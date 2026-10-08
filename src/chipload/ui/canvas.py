@@ -3,9 +3,19 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPainterPath, QPen, QWheelEvent
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import (
+    QColor,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPainterPathStroker,
+    QPen,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import (
     QGraphicsEllipseItem,
     QGraphicsItem,
@@ -13,6 +23,8 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsSimpleTextItem,
     QGraphicsView,
+    QStyle,
+    QStyleOptionGraphicsItem,
     QWidget,
 )
 
@@ -31,10 +43,13 @@ RAPID = "#9aa0a6"
 LABEL = "#fdd663"
 AXIS_X = "#f28b82"
 AXIS_Y = "#81c995"
+SELECTED = "#ff8bcb"
 
 ARROW_SPACING_MM = 40.0  # distance between direction arrows along the cutting path
 AXIS_LENGTH_MM = 15.0
 ZOOM_STEP = 1.25
+PICK_TOLERANCE_PX = 6.0  # how close (on screen) a click must be to a contour line
+CLICK_SLOP_PX = 3  # mouse travel below this is a click, above it a pan
 
 
 def _pen(color: str, width: float = 1.5, style: Qt.PenStyle = Qt.PenStyle.SolidLine) -> QPen:
@@ -44,22 +59,63 @@ def _pen(color: str, width: float = 1.5, style: Qt.PenStyle = Qt.PenStyle.SolidL
     return pen
 
 
+class ContourItem(QGraphicsPathItem):
+    """A drawn contour. Clickable only near its line, never by its interior, so dragging
+    inside a part still pans."""
+
+    def __init__(self, contour: Contour, path: QPainterPath, pen: QPen) -> None:
+        super().__init__(path)
+        self.contour = contour
+        self._normal_pen = pen
+        self._pick_shape = QPainterPath()
+        self.setPen(pen)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
+
+    def set_pick_width(self, width: float) -> None:
+        stroker = QPainterPathStroker()
+        stroker.setWidth(width)
+        self.prepareGeometryChange()
+        self._pick_shape = stroker.createStroke(self.path())
+
+    def shape(self) -> QPainterPath:
+        return self._pick_shape
+
+    def boundingRect(self) -> QRectF:
+        return super().boundingRect().united(self._pick_shape.boundingRect())
+
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
+        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
+            self.setPen(_pen(SELECTED, 3.0) if value else self._normal_pen)
+        return super().itemChange(change, value)
+
+    def paint(
+        self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget | None = None
+    ) -> None:
+        option.state &= ~QStyle.StateFlag.State_Selected  # no dashed selection box
+        super().paint(painter, option, widget)
+
+
 class DrawingView(QGraphicsView):
-    """Y-up view in millimetres. Wheel zooms around the cursor, drag pans."""
+    """Y-up view in millimetres. Wheel zooms around the cursor, drag pans, click selects
+    contours (Ctrl+click adds or removes, Escape clears)."""
 
     cursor_moved = Signal(float, float)
+    selection_changed = Signal(list)  # list[Contour], ordered by contour id
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setScene(QGraphicsScene(self))
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)  # panning is done by hand, see below
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setBackgroundBrush(QColor(BACKGROUND))
         self.setMouseTracking(True)
         self.scale(1, -1)  # drawing coordinates are Y up
         self._layers: dict[str, list[QGraphicsItem]] = {"stock": [], "contours": [], "path": []}
         self._add_axes()
+        self._press: QPoint | None = None  # where a pan or empty-space click started
+        self._panned = False
+        self.scene().selectionChanged.connect(self._emit_selection)
 
     # -- content
 
@@ -74,7 +130,11 @@ class DrawingView(QGraphicsView):
                 path.lineTo(x, y)
             if contour.closed:
                 path.closeSubpath()
-            self._add("contours", QGraphicsPathItem(path), _contour_pen(contour))
+            item = ContourItem(contour, path, _contour_pen(contour))
+            self.scene().addItem(item)
+            self._layers["contours"].append(item)
+        self._update_pick_width()
+        self._emit_selection()
 
     def show_stock(self, bounds: tuple[tuple[float, float], tuple[float, float]] | None) -> None:
         self._clear("stock")
@@ -136,6 +196,7 @@ class DrawingView(QGraphicsView):
         # Room to pan well beyond the drawing.
         span = max(rect.width(), rect.height()) * 3
         self.setSceneRect(rect.adjusted(-span, -span, span, span))
+        self._update_pick_width()
 
     def item_count(self, layer: str) -> int:
         return len(self._layers[layer])
@@ -146,13 +207,65 @@ class DrawingView(QGraphicsView):
         steps = event.angleDelta().y() / 120
         factor = ZOOM_STEP**steps
         self.scale(factor, factor)
+        self._update_pick_width()
+
+    def selected_contours(self) -> list[Contour]:
+        items = [i for i in self.scene().selectedItems() if isinstance(i, ContourItem)]
+        return sorted((i.contour for i in items), key=lambda c: c.id)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        on_contour = any(isinstance(i, ContourItem) for i in self.items(event.position().toPoint()))
+        if event.button() == Qt.MouseButton.LeftButton and not on_contour:
+            # Empty space: pan on drag, clear the selection on a plain click (see release).
+            self._press = event.position().toPoint()
+            self._panned = False
+            self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if self._press is not None and event.button() == Qt.MouseButton.LeftButton:
+            ctrl = event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            if not self._panned and not ctrl:
+                self.scene().clearSelection()
+            self._press = None
+            self.viewport().unsetCursor()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key.Key_Escape:
+            self.scene().clearSelection()
+            return
+        super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        point = self.mapToScene(event.position().toPoint())
+        pos = event.position().toPoint()
+        point = self.mapToScene(pos)
         self.cursor_moved.emit(point.x(), point.y())
+        if self._press is not None:
+            delta = pos - self._press
+            if self._panned or delta.manhattanLength() > CLICK_SLOP_PX:
+                self._panned = True
+                self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+                self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+                self._press = pos
+            return
         super().mouseMoveEvent(event)
 
     # -- helpers
+
+    def _emit_selection(self) -> None:
+        self.selection_changed.emit(self.selected_contours())
+
+    def _update_pick_width(self) -> None:
+        scale = abs(self.transform().m11()) or 1.0
+        width = 2 * PICK_TOLERANCE_PX / scale  # scene units for a fixed on-screen tolerance
+        for item in self._layers["contours"]:
+            if isinstance(item, ContourItem):
+                item.set_pick_width(width)
 
     def _add(self, layer: str, item: QGraphicsPathItem, pen: QPen) -> None:
         item.setPen(pen)

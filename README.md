@@ -23,7 +23,10 @@ chipload run part.dxf --job job.json -o part.nc  # generate checked G-code
 
 The viewer (`chipload-gui [part.dxf] [job.json]`) shows the drawing, stock, and generated
 toolpath (start points numbered in cut order, arrows in the cutting direction, rapids dashed)
-and saves G-code only after the check passes. Jobs are edited as JSON for now.
+and saves G-code only after the check passes. Jobs are edited as JSON for now: click contours
+in the viewer (Ctrl+click for more), then **Copy as selector** (Ctrl+Shift+C) and paste the
+`{"handles": [...]}` into an operation's `select`. The Selection panel shows what that selector
+would cut.
 
 v0 supports closed-contour **profile** operations (inside, outside, on) with climb or
 conventional milling and multiple depth passes, one tool per job, and the GRBL post.
