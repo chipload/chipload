@@ -1,15 +1,18 @@
-"""Load jobs: migrate older versions, refuse unknown or newer ones."""
+"""Load and save jobs. Loading migrates older versions and refuses unknown or newer ones;
+saving always writes the current version."""
 
 from __future__ import annotations
 
 import copy
 import json
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
 
 from chipload.core.errors import JobFileError, UnsupportedJobVersion
+from chipload.core.io.output import write_text_atomically
 from chipload.core.job.models import CURRENT_VERSION, Job
 from chipload.core.job.versioning import Migration, migrate_to_current
 
@@ -58,3 +61,26 @@ def load_job(path: str | Path) -> Job:
         return Job.model_validate(migrate(data))
     except ValidationError as exc:
         raise JobFileError(f"Invalid job file {path}: {exc}") from exc
+
+
+def dump_job(job: Job) -> str:
+    """Serialise as the current schema version.
+
+    Every field is written, defaults included, so a default that changes in a later version
+    can't silently change what an existing file means. ASCII-only JSON, stable field order.
+    """
+    current = job.model_copy(
+        update={"schema_version": CURRENT_VERSION, "written_by": f"chipload {_app_version()}"}
+    )
+    return json.dumps(current.model_dump(mode="json"), indent=2) + "\n"
+
+
+def save_job(job: Job, path: str | Path) -> None:
+    write_text_atomically(path, dump_job(job))
+
+
+def _app_version() -> str:
+    try:
+        return version("chipload")
+    except PackageNotFoundError:
+        return "unknown"
