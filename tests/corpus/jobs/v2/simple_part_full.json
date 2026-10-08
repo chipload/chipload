@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "written_by": "chipload 0.0.1",
+  "source": { "file": "simple_part.dxf", "units": "mm" },
+  "stock": { "x": 300, "y": 220, "thickness": 12, "origin": "bottom_left", "z_zero": "top" },
+  "machine": {
+    "post": "grbl",
+    "safe_z": 5,
+    "spindle": "cw",
+    "max_feed": 5000,
+    "travel": { "x": 800, "y": 600, "z": 100 }
+  },
+  "tools": [ { "id": 1, "type": "endmill", "diameter": 6, "flutes": 2, "rpm": 18000 } ],
+  "operations": [
+    {
+      "type": "profile",
+      "name": "Holes",
+      "select": { "layer": "HOLES" },
+      "side": "inside",
+      "direction": "climb",
+      "tool": 1,
+      "depth": 12,
+      "step_down": 4,
+      "feed": 1500,
+      "plunge_feed": 500
+    },
+    {
+      "type": "profile",
+      "name": "Outline",
+      "select": { "layer": "CUT_OUTSIDE" },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "depth": 12,
+      "step_down": 4,
+      "feed": 1800,
+      "plunge_feed": 600
+    }
+  ]
+}

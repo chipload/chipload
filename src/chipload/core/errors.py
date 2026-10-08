@@ -41,3 +41,19 @@ class UnsupportedPostConfigVersion(UnsupportedSchemaVersion):
 
 class PostConfigError(ChiploadError):
     """A post-processor config or template cannot be found, parsed or validated."""
+
+
+class JobFileError(ChiploadError):
+    """A job file cannot be read or does not validate."""
+
+
+class JobError(ChiploadError):
+    """A valid job that cannot be machined as written (e.g. depth deeper than the stock)."""
+
+
+class GcodeCheckFailed(ChiploadError):
+    """The independent checker rejected the generated program. No G-code is returned."""
+
+    def __init__(self, errors: list[str]) -> None:
+        self.errors = errors
+        super().__init__("G-code check failed:\n" + "\n".join(f"  {e}" for e in errors))

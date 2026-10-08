@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Literal
 
+from chipload.core.job.models import Job
 from chipload.core.tolerances import ARC_APPROX_TOL_MM, CHAIN_TOL_MM
 
 # Positional slack for comparisons against heights and bounds.
@@ -37,6 +38,28 @@ class CheckLimits:
     stock_max: tuple[float, float]
     tool_radius: float
     travel: tuple[float, float, float] | None = None  # machine travel span per axis
+
+
+def limits_from_job(job: Job) -> CheckLimits:
+    """Derived here from the job's raw numbers, deliberately not via the generator."""
+    stock, machine = job.stock, job.machine
+    top = 0.0 if stock.z_zero == "top" else stock.thickness
+    if stock.origin == "bottom_left":
+        lo, hi = (0.0, 0.0), (stock.x, stock.y)
+    else:
+        lo, hi = (-stock.x / 2, -stock.y / 2), (stock.x / 2, stock.y / 2)
+    used = {op.tool for op in job.operations}
+    radius = max((t.diameter / 2 for t in job.tools if t.id in used), default=0.0)
+    travel = machine.travel
+    return CheckLimits(
+        safe_z=machine.safe_z,
+        stock_top_z=top,
+        stock_bottom_z=top - stock.thickness,
+        stock_min=lo,
+        stock_max=hi,
+        tool_radius=radius,
+        travel=None if travel is None else (travel.x, travel.y, travel.z),
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from pathlib import Path
 
 from chipload.cli.report import format_contours, format_import_report
-from chipload.core.errors import ChiploadError
+from chipload.core.errors import ChiploadError, GcodeCheckFailed
 from chipload.core.io.dxf_import import import_dxf
+from chipload.core.job.loader import load_job
+from chipload.core.pipeline import run_job
 from chipload.core.units import Units
 
 EXIT_OK = 0
@@ -36,7 +40,9 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_OK
     if args.command == "inspect":
         return _inspect(args.dxf, Units(args.units) if args.units else None)
-    print(f"'{args.command}' is not implemented yet", file=sys.stderr)
+    if args.command == "run":
+        return _run(args.dxf, args.job, Path(args.output))
+    parser.print_help()
     return EXIT_USAGE
 
 
@@ -49,6 +55,36 @@ def _inspect(path: str, units: Units | None) -> int:
     for line in [*format_import_report(result.report), *format_contours(result.contours)]:
         print(line)
     return EXIT_OK
+
+
+def _run(dxf: str, job_path: str, output: Path) -> int:
+    try:
+        job = load_job(job_path)
+        result = run_job(job, dxf)
+    except GcodeCheckFailed as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        print("No output written.", file=sys.stderr)
+        return EXIT_FAILED
+    except ChiploadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_FAILED
+
+    for line in format_import_report(result.import_report):
+        print(line)
+    for note in result.notes:
+        print(f"warning: {note}")
+    for warning in result.check_warnings:
+        print(f"check warning: {warning.message}")
+    _write_atomically(output, result.gcode)
+    print(f"Wrote {output} ({result.gcode.count(chr(10))} lines, post {result.post.name})")
+    return EXIT_OK
+
+
+def _write_atomically(path: Path, text: str) -> None:
+    """Never leave a half-written program where a machine might pick it up."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="ascii", newline="\n")
+    os.replace(tmp, path)
 
 
 if __name__ == "__main__":

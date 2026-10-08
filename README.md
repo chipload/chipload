@@ -1,16 +1,28 @@
 # Chipload
 
-Cross-platform 2.5D CAM application (DXF/DWG in, G-code out). Placeholder name: rename the package, CLI, and docs as needed.
+Cross-platform 2.5D CAM application (DXF/DWG in, G-code out).
 
 See `CLAUDE.md` for architecture rules, conventions, and workflow.
 
 ## Quick start
 
 ```
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+uv sync --all-extras        # or: pip install -e ".[dev,ui]"
 pytest
 chipload --help
 ```
 
 Install the GUI extra with `pip install -e ".[ui]"`.
+
+## Usage (v0)
+
+```
+chipload inspect part.dxf                        # units, entities, contours, issues
+chipload run part.dxf --job job.json -o part.nc  # generate checked G-code
+```
+
+v0 supports closed-contour **profile** operations (inside, outside, on) with climb or
+conventional milling and multiple depth passes, one tool per job, and the GRBL post.
+G-code is written only if it passes the independent checker. See
+`tests/corpus/jobs/v2/simple_part_full.json` for an example job and
+`docs/specs/v0-profile-pipeline.md` for exact behaviour and limitations.

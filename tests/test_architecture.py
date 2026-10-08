@@ -30,5 +30,13 @@ def test_gcode_checker_is_independent_of_the_generator():
     imported = [
         node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module
     ]
-    allowed = ("__future__", "chipload.core.tolerances", "math", "re", "dataclasses", "typing")
+    allowed = (
+        "__future__",
+        "chipload.core.tolerances",
+        "chipload.core.job.models",  # job data only, to derive the limits
+        "math",
+        "re",
+        "dataclasses",
+        "typing",
+    )
     assert all(name.startswith(allowed) for name in imported), imported
