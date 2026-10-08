@@ -160,3 +160,18 @@ def test_checker_rejection_returns_no_gcode():
     small_machine = {"travel": {"x": 100, "y": 600, "z": 100}}  # part is 206 mm wide
     with pytest.raises(GcodeCheckFailed, match="exceeds machine travel"):
         run_job(job(machine=small_machine), SIMPLE)
+
+
+def test_result_exposes_toolpath_and_contours():
+    result = run_job(job(), SIMPLE)
+    assert len(result.contours) == 4
+    assert result.program.moves[0].kind == "rapid"
+    assert result.program.spindle == "cw"
+
+
+def test_checker_rejection_carries_the_toolpath_but_no_gcode():
+    small_machine = {"travel": {"x": 100, "y": 600, "z": 100}}
+    with pytest.raises(GcodeCheckFailed) as caught:
+        run_job(job(machine=small_machine), SIMPLE)
+    assert caught.value.program is not None
+    assert not hasattr(caught.value, "gcode")

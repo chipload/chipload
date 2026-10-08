@@ -1,5 +1,12 @@
 """Typed errors for core. Avoid broad `except Exception`."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from chipload.core.toolpath.model import Program
+
 
 class ChiploadError(Exception):
     """Base class for all Chipload errors."""
@@ -52,8 +59,13 @@ class JobError(ChiploadError):
 
 
 class GcodeCheckFailed(ChiploadError):
-    """The independent checker rejected the generated program. No G-code is returned."""
+    """The independent checker rejected the generated program.
 
-    def __init__(self, errors: list[str]) -> None:
+    No G-code is returned. `program` holds the rejected toolpath so a viewer can show what
+    went wrong; it must never be posted or written out.
+    """
+
+    def __init__(self, errors: list[str], program: Program | None = None) -> None:
         self.errors = errors
+        self.program = program
         super().__init__("G-code check failed:\n" + "\n".join(f"  {e}" for e in errors))

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from chipload.core.errors import GcodeCheckFailed, JobError
+from chipload.core.geometry.chain import Contour
 from chipload.core.geometry.primitives import Point
 from chipload.core.io.dxf_import import ImportReport, import_dxf
 from chipload.core.job.models import Job, ProfileOp, Tool
@@ -25,6 +26,8 @@ class RunResult:
     gcode: str
     post: PostConfig
     import_report: ImportReport
+    contours: tuple[Contour, ...]  # everything imported, for display
+    program: Program  # the toolpath the G-code was rendered from
     notes: tuple[str, ...]  # toolpath warnings
     check_warnings: tuple[CheckIssue, ...]
 
@@ -66,9 +69,17 @@ def run_job(job: Job, dxf_path: str | Path) -> RunResult:
     gcode = render_program(program, post)
     report = check_gcode(gcode, limits_from_job(job))
     if not report.ok:
-        raise GcodeCheckFailed([f"line {e.line}: {e.message}" for e in report.errors])
+        raise GcodeCheckFailed([f"line {e.line}: {e.message}" for e in report.errors], program)
     notes.extend(_extent_notes(job, imported.report))
-    return RunResult(gcode, post, imported.report, tuple(notes), report.warnings)
+    return RunResult(
+        gcode=gcode,
+        post=post,
+        import_report=imported.report,
+        contours=imported.contours,
+        program=program,
+        notes=tuple(notes),
+        check_warnings=report.warnings,
+    )
 
 
 def _verify_source(job: Job, dxf_path: Path) -> None:

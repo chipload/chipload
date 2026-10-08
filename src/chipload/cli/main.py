@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
 from chipload.cli.report import format_contours, format_import_report
 from chipload.core.errors import ChiploadError, GcodeCheckFailed
 from chipload.core.io.dxf_import import import_dxf
+from chipload.core.io.output import write_text_atomically
 from chipload.core.job.loader import load_job
 from chipload.core.pipeline import run_job
 from chipload.core.units import Units
@@ -75,16 +75,9 @@ def _run(dxf: str, job_path: str, output: Path) -> int:
         print(f"warning: {note}")
     for warning in result.check_warnings:
         print(f"check warning: {warning.message}")
-    _write_atomically(output, result.gcode)
+    write_text_atomically(output, result.gcode)
     print(f"Wrote {output} ({result.gcode.count(chr(10))} lines, post {result.post.name})")
     return EXIT_OK
-
-
-def _write_atomically(path: Path, text: str) -> None:
-    """Never leave a half-written program where a machine might pick it up."""
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="ascii", newline="\n")
-    os.replace(tmp, path)
 
 
 if __name__ == "__main__":
