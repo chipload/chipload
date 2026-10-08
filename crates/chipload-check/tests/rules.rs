@@ -1,0 +1,168 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Port of tests/unit/test_gcode_check.py: one case per rule, same programs, same messages.
+
+// Integration tests may unwrap and panic: a failure is the test result.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+use chipload_check::{CheckLimits, check_gcode};
+
+fn limits() -> CheckLimits {
+    CheckLimits {
+        safe_z: 5.0,
+        stock_top_z: 0.0,
+        stock_bottom_z: -18.0,
+        stock_min: (0.0, 0.0),
+        stock_max: (600.0, 400.0),
+        tool_radius: 3.0,
+        travel: Some((800.0, 600.0, 100.0)),
+    }
+}
+
+const HEADER: &str = "G21 G90 G17 G94\nG0 Z5\nM3 S18000\nG4 P3\n";
+const FOOTER: &str = "G0 Z5\nM5\nM30\n";
+const GOOD_BODY: &str = "G0 X10 Y10\nG1 Z-6 F600\nG1 X50 F1800\nG1 Y50\nG1 X10\nG1 Y10\n";
+
+fn good() -> String {
+    format!("{HEADER}{GOOD_BODY}{FOOTER}")
+}
+
+fn errors(program: &str) -> Vec<String> {
+    check_gcode(program, &limits())
+        .errors
+        .into_iter()
+        .map(|e| e.message)
+        .collect()
+}
+
+#[test]
+fn good_program_passes() {
+    let report = check_gcode(&good(), &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    assert!(report.warnings.is_empty());
+}
+
+#[test]
+fn comments_are_ignored() {
+    let program = format!(
+        "(T1 D=6.000)\n{}",
+        good().replace("G1 Y50", "G1 Y50 ; side 2")
+    );
+    assert!(errors(&program).is_empty());
+}
+
+#[test]
+fn bad_programs_are_flagged() {
+    let h = HEADER;
+    let cases: Vec<(String, &str)> = vec![
+        (
+            "G21 G90\nG0 Z5\nG0 X10 Y10\nG1 Z-1 F100\n".into(),
+            "spindle off",
+        ),
+        (
+            format!("{}{GOOD_BODY}", h.replace("G21 ", "")),
+            "before G21",
+        ),
+        (format!("{}{GOOD_BODY}", h.replace("G21", "G20")), "G20"),
+        (
+            format!("{}{GOOD_BODY}", h.replace(" G90", "")),
+            "before G90",
+        ),
+        (format!("{h}G91\n"), "G91"),
+        (format!("{h}G0 X10 Y10\nG1 Z-1\n"), "no feed"),
+        (format!("{h}G0 X10 Y10\nG1 Z-1 F0\n"), "must be positive"),
+        (
+            format!("{h}G0 X10 Y10\nG1 Z-1 F100\nG0 X20\n"),
+            "retract first",
+        ),
+        ("G21 G90\nG0 X10 Y10\n".into(), "retract first"),
+        (format!("{h}G0 X10 Y10\nG0 Z-1\n"), "rapid into material"),
+        (
+            format!("{h}G0 X10 Y10\nG1 Z-18.5 F100\n"),
+            "below the stock bottom",
+        ),
+        (
+            format!("{h}G0 X10 Y10\nG1 Z-1 F100\nG2 X20 Y10 I4 J0\n"),
+            "radius mismatch",
+        ),
+        (
+            format!("{h}G0 X10 Y10\nG1 Z-1 F100\nG2 X20 Y10\n"),
+            "without I/J",
+        ),
+        (format!("{h}G28\n"), "G28 is not supported"),
+        (format!("{h}M8\n"), "M8 is not supported"),
+        (format!("{h}G0 X10 Y10 X20\n"), "twice"),
+        (format!("{h}G0 G1 X10\n"), "more than one motion"),
+        (format!("{h}G0 X10 Y10 (unclosed\n"), "comment"),
+        (format!("{h}G0 X10 Y10 @\n"), "Cannot parse"),
+        (format!("{h}T1\n"), "Unsupported word T"),
+        (format!("{}G0 Z10\n", good()), "after program end"),
+        (
+            format!("{h}G0 X0 Y0\nG0 X900\n{FOOTER}"),
+            "exceeds machine travel",
+        ),
+    ];
+    for (program, expected) in cases {
+        let found = errors(&program);
+        assert!(
+            found
+                .iter()
+                .any(|e| e.to_lowercase().contains(&expected.to_lowercase())),
+            "expected {expected:?} in {found:?}"
+        );
+    }
+}
+
+#[test]
+fn valid_arc_passes() {
+    let body = "G0 X10 Y10\nG1 Z-1 F100\nG2 X20 Y10 I5 J0\nG3 X10 Y10 I-5 J0\n";
+    assert!(errors(&format!("{HEADER}{body}{FOOTER}")).is_empty());
+}
+
+#[test]
+fn rapid_down_to_just_above_stock_is_allowed() {
+    assert!(errors(&format!("{HEADER}G0 X10 Y10\nG0 Z1\nG1 Z-1 F100\n{FOOTER}")).is_empty());
+}
+
+#[test]
+fn cutting_outside_stock_is_a_warning() {
+    let program = format!("{HEADER}G0 X-20 Y10\nG1 Z-1 F100\nG1 X-30\n{FOOTER}");
+    let report = check_gcode(&program, &limits());
+    assert!(report.ok());
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock"))
+    );
+}
+
+#[test]
+fn missing_travel_is_a_warning() {
+    let mut l = limits();
+    l.travel = None;
+    let report = check_gcode(&good(), &l);
+    assert!(report.ok());
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("travel not set"))
+    );
+}
+
+#[test]
+fn missing_program_end_is_a_warning() {
+    let report = check_gcode(&format!("{HEADER}{GOOD_BODY}"), &limits());
+    assert!(report.warnings.iter().any(|w| w.message.contains("M30")));
+}
+
+#[test]
+fn exact_messages_match_python() {
+    let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-1 F0\n"));
+    assert!(
+        found.contains(&"Feed F0.0 must be positive".to_string()),
+        "{found:?}"
+    );
+    let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-18.5 F100\n"));
+    assert!(found.contains(&"Z-18.500 is below the stock bottom (-18.000)".to_string()));
+}
