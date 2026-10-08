@@ -171,6 +171,9 @@ Errors (any error → `run` writes no file):
 - Unknown G/M word (whitelist: G0 G1 G2 G3 G4 G17 G20 G21 G90 G94, M3 M4 M5 M30).
 - Motion before `G21`, or `G20` anywhere (unit mismatch).
 - `G91` (relative mode isn't produced, so it's treated as an error).
+- Motion before `G90` (absolute mode must be explicit).
+- Code after `M30`, unparseable text, unbalanced comments, a word repeated on one line,
+  or two motion commands on one line.
 - G1/G2/G3 with no feed set, or F ≤ 0.
 - Cutting motion while the spindle is off.
 - G0 that changes X/Y while Z is below `safe_z` (retract before XY travel).
@@ -180,7 +183,10 @@ Errors (any error → `run` writes no file):
 - Position outside `machine.travel`, when it's set.
 
 Warnings: `machine.travel` not set (limits not checked); cutting XY outside the stock bounds
-expanded by the tool radius.
+expanded by the tool radius; no `M30` at the end.
+
+Travel is checked as the span the program covers on each axis, because the checker only sees
+work coordinates and doesn't know where work zero sits on the machine.
 
 ## 7. CLI
 
