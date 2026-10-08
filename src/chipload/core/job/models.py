@@ -7,6 +7,8 @@ Schema history:
 - v1: initial format.
 - v2: `machine.spindle` (required), `plunge_feed` on profile and pocket ops (required),
   optional `machine.travel`, selectors must name a layer or handles.
+- v3: `direction` on pocket ops (required), optional `keep_tool_down` on pocket ops and
+  `center_cutting` on tools.
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-CURRENT_VERSION = 2
+CURRENT_VERSION = 3
 
 
 class _Frozen(BaseModel):
@@ -63,6 +65,7 @@ class Tool(_Frozen):
     type: Literal["endmill", "drill", "vbit"] = "endmill"
     diameter: float = Field(gt=0)
     flutes: int | None = None
+    center_cutting: bool | None = None  # None = unknown; pockets plunge straight down
     rpm: float | None = None
 
 
@@ -97,9 +100,11 @@ class PocketOp(_Frozen):
     tool: int
     depth: float = Field(gt=0)
     step_down: float = Field(gt=0)
-    stepover: float = Field(gt=0, le=1)
+    stepover: float = Field(gt=0, le=1)  # fraction of the tool diameter
+    direction: Literal["climb", "conventional"]
     feed: float = Field(gt=0)
     plunge_feed: float = Field(gt=0)
+    keep_tool_down: bool = False  # stay at depth between rings where that is safe
 
 
 class DrillOp(_Frozen):

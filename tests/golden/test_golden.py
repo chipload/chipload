@@ -18,6 +18,7 @@ CASES = [
     # (golden name, job file, drawing)
     ("v1_example_job", "jobs/v1/example_job.json", "dxf/simple_part.dxf"),
     ("v2_simple_part_full", "jobs/v2/simple_part_full.json", "dxf/simple_part.dxf"),
+    ("v3_messy_2_lower", "jobs/v3/messy_2_lower.json", "dxf/messy_2.dxf"),
 ]
 
 

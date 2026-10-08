@@ -43,7 +43,24 @@ def _v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
     return upgraded
 
 
+def _v2_to_v3(data: dict[str, Any]) -> dict[str, Any]:
+    """v3 makes the pocket cutting direction explicit.
+
+    Pocket generation did not exist in v2, so no machining behaviour is preserved or changed.
+    Decision 2026-10-08: existing pocket ops become "climb". The new optional fields
+    (keep_tool_down, center_cutting) keep their safe defaults.
+    """
+    upgraded = copy.deepcopy(data)
+    operations = upgraded.get("operations")
+    for op in operations if isinstance(operations, list) else []:
+        if isinstance(op, dict) and op.get("type") == "pocket":
+            op["direction"] = "climb"
+    upgraded["schema_version"] = 3
+    return upgraded
+
+
 MIGRATIONS[1] = _v1_to_v2
+MIGRATIONS[2] = _v2_to_v3
 
 
 def migrate(data: dict[str, Any]) -> dict[str, Any]:

@@ -13,7 +13,7 @@ from chipload.core.errors import (
     SelectorError,
 )
 from chipload.core.job.loader import load_job
-from chipload.core.job.models import Job
+from chipload.core.job.models import CURRENT_VERSION, Job
 from chipload.core.pipeline import run_job
 
 CORPUS = Path(__file__).parent.parent / "corpus"
@@ -87,13 +87,10 @@ def test_feed_above_machine_max_is_refused_not_clamped():
         run_job(job(operations=[op(feed=6000)]), SIMPLE)
 
 
-def test_pocket_is_not_implemented_yet():
-    pocket = {
-        "type": "pocket", "select": {"layer": "HOLES"}, "tool": 1, "depth": 3,
-        "step_down": 3, "stepover": 0.4, "feed": 1000, "plunge_feed": 300,
-    }  # fmt: skip
+def test_drill_is_not_implemented_yet():
+    drill = {"type": "drill", "select": {"layer": "HOLES"}, "tool": 1}
     with pytest.raises(JobError, match="not implemented"):
-        run_job(job(operations=[pocket]), SIMPLE)
+        run_job(job(operations=[drill]), SIMPLE)
 
 
 def test_selector_matching_nothing_is_an_error():
@@ -164,9 +161,9 @@ def test_inch_drawing_with_mm_job_is_refused():
         run_job(job(source={"units": "inch"}), SIMPLE)
 
 
-def test_v1_sample_migrates_to_v2():
+def test_v1_sample_migrates_to_current():
     loaded = load_job(CORPUS / "jobs" / "v1" / "example_job.json")
-    assert loaded.schema_version == 2
+    assert loaded.schema_version == CURRENT_VERSION
     assert loaded.machine.spindle == "cw"
     assert loaded.operations[0].plunge_feed == pytest.approx(2000 / 3)
 
@@ -190,3 +187,48 @@ def test_checker_rejection_carries_the_toolpath_but_no_gcode():
         run_job(job(machine=small_machine), SIMPLE)
     assert caught.value.program is not None
     assert not hasattr(caught.value, "gcode")
+
+
+# -- pocket
+
+MESSY_2 = CORPUS / "dxf" / "messy_2.dxf"
+LOWER = json.loads((CORPUS / "jobs" / "v3" / "messy_2_lower.json").read_text())
+
+
+def lower_job(tool_changes=None, pocket_changes=None) -> Job:
+    data = json.loads(json.dumps(LOWER))
+    data["tools"][0].update(tool_changes or {})
+    data["operations"][0].update(pocket_changes or {})
+    return Job.model_validate(data)
+
+
+def test_pocket_job_runs_on_the_real_drawing():
+    result = run_job(lower_job(), MESSY_2)
+    assert result.check_warnings == ()
+    assert min(z_values(result.gcode)) == -18.0  # the outline goes through
+
+
+def test_pocket_refuses_a_tool_that_is_not_centre_cutting():
+    with pytest.raises(JobError, match="not centre-cutting"):
+        run_job(lower_job({"center_cutting": False}), MESSY_2)
+
+
+def test_pocket_warns_when_centre_cutting_is_unknown():
+    result = run_job(lower_job({"center_cutting": None}), MESSY_2)
+    assert any("isn't marked center_cutting" in n for n in result.notes)
+
+
+def test_pocket_refuses_a_vbit():
+    with pytest.raises(JobError, match="need an endmill"):
+        run_job(lower_job({"type": "vbit"}), MESSY_2)
+
+
+def test_pocket_retracts_between_rings_by_default():
+    down = run_job(lower_job(pocket_changes={"keep_tool_down": True}), MESSY_2).gcode
+    retract = run_job(lower_job(pocket_changes={"keep_tool_down": False}), MESSY_2).gcode
+    assert retract.count("G0 Z5.000") > down.count("G0 Z5.000")
+
+
+def test_pocket_errors_name_the_operation():
+    with pytest.raises(GeometryError, match="Operation 1 \\(Openings\\).*does not fit"):
+        run_job(lower_job({"diameter": 16}), MESSY_2)
