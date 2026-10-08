@@ -13,4 +13,11 @@ chords within `ARC_APPROX_TOL_MM`, so v0 emits only G0/G1.
   added, integer scaling must still go through that single helper.
 - Golden G-code depends on the GEOS version; `uv.lock` pins it.
 
+- Inward offsets near collapse: GEOS's negative `buffer` can wrongly return empty (a convex
+  polygon with inscribed radius 22.44 mm gave an empty `buffer(-21)`; 40 of 10 000 random
+  cases). Offsetting a closed ring as a whole has the same problem. `erode_polygons` instead
+  subtracts the union of per-segment round-capped buffers, which had no wrong result in the
+  same cases, at about 20x the cost (milliseconds). Pockets use it; profiles still use
+  `buffer`, where the failure can only cause a false "tool does not fit" refusal.
+
 Revisit when adding G2/G3 output (smaller files, smoother finish).

@@ -64,8 +64,11 @@ after another, see §4.
 r = tool radius, s = stepover × D.
 
 ### Rings
-- Level 0 (wall pass): `region.buffer(−r)`, round joins.
-- Level k: `region.buffer(−(r + k·s))`, until the result is empty.
+- Level 0 (wall pass): the region shrunk by r.
+- Level k: the region shrunk by r + k·s, until the result is empty.
+- "Shrunk by d" is computed as the region minus the union of round-capped buffers of every
+  boundary segment (`erode_polygons`), not with `buffer(−d)`. GEOS's negative buffer can
+  wrongly return empty near collapse (see ADR 0002), which left pocket centres uncut.
 - Each level can be several polygons, each with an exterior ring and interior rings (around islands).
 - Arc flattening and the GEOS chord factor work exactly as for profiles.
 
@@ -123,8 +126,10 @@ Straight plunge at `plunge_feed`, at the innermost ring. This needs a **centre-c
 endmill**; see `Tool.center_cutting` in §1. Ramping (later) lifts the restriction.
 
 ## 4. Several pieces in one operation
-Pieces of the region are ordered nearest-neighbour by their first plunge point, starting from
-where the previous operation ended (or (0, 0) for the first). Same ordering helper as profiles.
+Pieces of the region are ordered nearest-neighbour by their distance from the current tool
+position (ties: lowest y, then x), starting from where the previous operation ended, or (0, 0)
+for the first. The plunge point itself depends on where the tool comes from, so it can't be
+used for ordering.
 
 ## 5. Determinism
 Shapely set operations may return polygons and ring vertices in any order. All results are

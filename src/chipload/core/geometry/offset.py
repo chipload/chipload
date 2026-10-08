@@ -5,7 +5,8 @@ from __future__ import annotations
 import math
 import warnings
 
-from shapely.geometry import MultiPolygon, Polygon
+import shapely
+from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 
 from chipload.core.errors import GeometryError
@@ -65,3 +66,48 @@ def dedupe_ring(points: list[Point]) -> list[Point]:
 def ring_points(coords: object) -> list[Point]:
     """Shapely ring coordinates as a deduplicated, implicitly closed list of points."""
     return dedupe_ring([(float(c[0]), float(c[1])) for c in coords])  # type: ignore[attr-defined]
+
+
+def erode_polygons(geometry: BaseGeometry, distance_mm: float) -> list[Polygon]:
+    """Shrink by `distance_mm`: everything farther than that from the boundary.
+
+    Computed as the geometry minus the union of round-capped buffers of every boundary
+    segment, not with a negative buffer. GEOS's negative buffer has a "ring is eroded
+    completely" shortcut that misfires near collapse: for a convex polygon with an inscribed
+    radius of 22.44 mm, buffer(-21) returned empty (Shapely 2.2 / GEOS 3.14). The capsule union
+    gave no wrong result in 10 000 random cases where buffer(-d) gave 40.
+    """
+    if distance_mm <= 0:
+        raise GeometryError(f"erode distance must be positive, got {distance_mm}")
+    return _sorted_polygons(geometry.difference(_boundary_band(geometry, distance_mm)))
+
+
+def dilate_polygons(geometry: BaseGeometry, distance_mm: float) -> list[Polygon]:
+    """Grow by `distance_mm`, the same way (holes shrink but are never dropped wrongly)."""
+    if distance_mm <= 0:
+        raise GeometryError(f"dilate distance must be positive, got {distance_mm}")
+    return _sorted_polygons(geometry.union(_boundary_band(geometry, distance_mm)))
+
+
+def _boundary_band(geometry: BaseGeometry, distance_mm: float) -> BaseGeometry:
+    segments = []
+    for polygon in polygons_of(geometry):
+        for ring in (polygon.exterior, *polygon.interiors):
+            coords = list(ring.coords)
+            segments += [LineString(coords[i : i + 2]) for i in range(len(coords) - 1)]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        try:
+            capsules = shapely.buffer(segments, distance_mm, quad_segs=quad_segs_for(distance_mm))
+            return shapely.union_all(capsules)
+        except RuntimeWarning as exc:
+            raise GeometryError(f"Offset failed numerically: {exc}") from exc
+
+
+def _sorted_polygons(geometry: BaseGeometry) -> list[Polygon]:
+    parts = [
+        p
+        for p in shapely.get_parts(geometry)
+        if isinstance(p, Polygon) and p.area > CHAIN_TOL_MM * CHAIN_TOL_MM
+    ]
+    return sorted(parts, key=lambda p: (p.bounds[1], p.bounds[0]))
