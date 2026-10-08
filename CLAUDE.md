@@ -47,7 +47,8 @@ Anything saved to disk and read back later (job files, tool libraries, machine p
 ## Commands
 
 ```
-uv sync                      # install deps (or: pip install -e ".[dev]")
+uv sync --all-extras          # install deps incl. dev tools and PySide6 (or: pip install -e ".[dev,ui]")
+                             # plain `uv sync` removes pytest/ruff/mypy; pytest-qt needs PySide6
 pytest                       # all tests
 pytest tests/unit -q         # fast loop
 pytest tests/golden          # G-code regression
