@@ -49,11 +49,21 @@ class PocketPlan:
     notes: tuple[str, ...]  # warnings: narrow parts, uncut material
 
 
-def build_region(contours: Sequence[tuple[int, list[Point]]]) -> list[Polygon]:
-    """Area to clear from selected closed contours (id, ring), as pieces sorted by (y, x).
+@dataclass(frozen=True, slots=True)
+class PocketArea:
+    """One selected boundary minus the selected islands inside it."""
 
-    Nesting among the selected contours decides boundary (even depth) or island (odd depth);
-    overlapping contours at the same depth are merged.
+    polygon: Polygon
+    contour_ids: tuple[int, ...]  # the boundary first, then its islands
+
+
+def build_region(contours: Sequence[tuple[int, list[Point]]]) -> list[PocketArea]:
+    """Areas to clear from selected closed contours (id, ring), sorted by (y, x).
+
+    Every selected contour at even nesting depth (among the selection) is its own pocket, even
+    if it crosses another one: crossing shapes are separate geometries and are never merged
+    (user decision 2026-10-08). Selected contours lying completely inside it one level deeper
+    are its islands.
     """
     polygons = [(cid, Polygon(dedupe_ring(ring))) for cid, ring in contours]
     _refuse_duplicates(polygons)
@@ -61,16 +71,23 @@ def build_region(contours: Sequence[tuple[int, list[Point]]]) -> list[Polygon]:
         cid: sum(1 for other_id, other in polygons if other_id != cid and other.contains(poly))
         for cid, poly in polygons
     }
-    region: BaseGeometry = Polygon()
-    for level in range(max(depth.values(), default=-1) + 1):
-        layer = unary_union([poly for cid, poly in polygons if depth[cid] == level])
-        region = region.union(layer) if level % 2 == 0 else region.difference(layer)
-    pieces = [
-        p
-        for p in shapely.get_parts(region)
-        if isinstance(p, Polygon) and p.area > CHAIN_TOL_MM * CHAIN_TOL_MM
-    ]
-    return sorted(pieces, key=lambda p: (p.bounds[1], p.bounds[0]))
+    areas: list[PocketArea] = []
+    for cid, boundary in polygons:
+        if depth[cid] % 2 == 1:
+            continue
+        islands = [
+            (iid, island)
+            for iid, island in polygons
+            if depth[iid] == depth[cid] + 1 and boundary.contains(island)
+        ]
+        area = boundary.difference(unary_union([i for _, i in islands])) if islands else boundary
+        ids = (cid, *(iid for iid, _ in islands))
+        areas += [
+            PocketArea(part, ids)
+            for part in shapely.get_parts(area)
+            if isinstance(part, Polygon) and part.area > CHAIN_TOL_MM * CHAIN_TOL_MM
+        ]
+    return sorted(areas, key=lambda a: (a.polygon.bounds[1], a.polygon.bounds[0], a.contour_ids))
 
 
 def plan_pocket(
@@ -85,22 +102,29 @@ def plan_pocket(
     """Rings, cut order and links for every piece. `stepover` is in mm."""
     if stepover <= 0:
         raise GeometryError(f"stepover must be positive, got {stepover}")
-    polygons = {cid: Polygon(dedupe_ring(ring)) for cid, ring in contours}
-    region_pieces = build_region(contours)
-    if not region_pieces:
+    areas = build_region(contours)
+    if not areas:
         raise GeometryError(
             "Nothing to clear: the selected islands cover the selected boundaries "
-            f"(contours {_ids(sorted(polygons))})"
+            f"(contours {_ids(sorted(cid for cid, _ in contours))})"
         )
     pieces: list[PocketPiece] = []
     notes: list[str] = []
     position = start
-    remaining = list(region_pieces)
+    remaining = list(areas)
     while remaining:
         here = ShapelyPoint(position)
-        region = min(remaining, key=lambda p: (p.distance(here), p.bounds[1], p.bounds[0]))
-        remaining.remove(region)
-        ids = tuple(sorted(cid for cid, poly in polygons.items() if poly.intersects(region)))
+        area = min(
+            remaining,
+            key=lambda a: (
+                a.polygon.distance(here),
+                a.polygon.bounds[1],
+                a.polygon.bounds[0],
+                a.contour_ids,
+            ),
+        )
+        remaining.remove(area)
+        region, ids = area.polygon, area.contour_ids
         roots = _ring_tree(region, tool_radius, stepover, ids)
         if len(roots) > 1:
             notes.append(

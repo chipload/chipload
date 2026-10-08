@@ -73,6 +73,6 @@ def test_pocket_never_gouges_and_clears_everything(contours, radius, stepover_fr
     clearance = radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM
     for piece in result.pieces:
         for ring in piece.rings:
-            region = next(r for r in regions if r.contains(shapely.Point(ring[0])))
+            region = next(a.polygon for a in regions if a.contour_ids == piece.contour_ids)
             assert shapely.distance(region.boundary, ring_geometry(ring)) >= clearance
     assert not any("uncut material" in n for n in result.notes), result.notes

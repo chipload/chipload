@@ -41,23 +41,23 @@ still migrate to the same golden G-code.
 Selection works as in the v0 spec: open contours are skipped and reported; invalid and partly
 matched contours are errors.
 
-The **region** to clear is built from the selected closed contours only. Contours that weren't
-selected are ignored, even if they lie inside the pocket (e.g. a circle you'll drill later).
+The areas to clear are built from the selected closed contours only. Contours that weren't
+selected are ignored, even if they lie inside a pocket (e.g. a circle you'll drill later).
 
 1. Nesting depth is computed **among the selected contours only**: the number of other
    selected contours that strictly contain it.
-2. Even depth = boundary, odd depth = island.
-3. Region = (union of depth-0 boundaries) − (union of depth-1 islands) + (union of depth-2
-   boundaries) − …
-4. Contours at the same depth that **overlap or cross** are merged (union). This is how the
-   user's openings work: a pocket shape that crosses another selected shape becomes one
-   connected area to clear.
+2. Every selected contour at even depth is **its own pocket**.
+3. Selected contours completely inside it, one level deeper, are its **islands** and are left
+   standing (decision 2026-10-08). A contour inside an island is its own pocket again.
+4. Contours that **overlap or cross** are **separate pockets**, each cleared completely as its
+   own shape. They are never merged (user decision 2026-10-08: crossing shapes such as the
+   two bars in `messy_2.dxf` are separate geometries). Where two pockets overlap, the second
+   one simply cuts air in the overlap.
 5. Two selected contours that are **the same shape** (e.g. a circle drawn twice as different
    entity types) → `SelectorError` naming both. Whether it's a boundary or an island is
    ambiguous.
 
-Disjoint pieces of the region (e.g. three separate keyholes in one operation) are cleared one
-after another, see §4.
+Pockets (e.g. three separate keyholes in one operation) are cleared one after another, see §4.
 
 ## 3. Toolpath for one region piece
 
@@ -141,8 +141,8 @@ closer than `CHAIN_TOL_MM` removed. The same job + drawing must give byte-identi
 
 ## 7. Tests
 - **Unit:** square pocket (ring count for a known size, stepover and tool); pocket with a circular
-  island (island ring direction is opposite to the wall's); two crossing rectangles become one
-  region; selected contour inside an unselected one; same shape twice → error; tool too big →
+  island (island ring direction is opposite to the wall's); two crossing rectangles stay two
+  separate pockets; selected contour inside an unselected one; same shape twice → error; tool too big →
   error; narrow neck → warning; stepover = 1.0 on a sharp-cornered shape triggers the uncut
   material check; depth passes at the boundaries (depth = step_down, depth = thickness,
   depth > thickness → error); non-endmill tool → error.
@@ -154,8 +154,8 @@ closer than `CHAIN_TOL_MM` removed. The same job + drawing must give byte-identi
 - **Hypothesis:** for random simple polygons with random islands inside them: every cutting point
   is inside `region.buffer(−r + tol)` (no gouge into walls or islands), and with stepover ≤ 0.5
   no uncut material is reported.
-- **Real drawing:** `messy_2.dxf`, lower part: the crossing pocket shapes (#4 ∪ #6) cleared as
-  one region; the result passes the checker; golden G-code.
+- **Real drawing:** `messy_2.dxf`, lower part: the crossing bars #4 and #6 cleared as two
+  separate pockets; the result passes the checker; golden G-code.
 - **Migration:** frozen v2 sample → v3 → unchanged golden G-code; a v2 pocket op gets
   `direction: "climb"` and keeps `keep_tool_down` false.
 

@@ -37,26 +37,34 @@ def bbox(ring):
 # -- region
 
 
-def test_crossing_shapes_merge_into_one_region():
-    pieces = build_region([(1, rect(0, 0, 50, 10)), (2, rect(20, -20, 30, 30))])
-    assert len(pieces) == 1
-    assert pieces[0].area == pytest.approx(500 + 500 - 100)
+def test_crossing_shapes_are_separate_pockets():
+    # User decision: crossing shapes are separate geometries, never merged into one region.
+    areas = build_region([(1, rect(0, 0, 50, 10)), (2, rect(20, -20, 30, 30))])
+    assert sorted(a.contour_ids for a in areas) == [(1,), (2,)]
+    assert sorted(a.polygon.area for a in areas) == pytest.approx([500, 500])
+
+
+def test_crossing_shapes_are_each_cleared_completely():
+    result = plan([(1, rect(0, 0, 50, 10)), (2, rect(20, -20, 30, 30))])
+    assert sorted(p.contour_ids for p in result.pieces) == [(1,), (2,)]
+    assert result.notes == ()
 
 
 def test_selected_contour_inside_another_is_an_island():
-    (piece,) = build_region([(1, RECT), (2, rect(40, 20, 60, 40))])
-    assert len(piece.interiors) == 1
-    assert piece.area == pytest.approx(6000 - 400)
+    (area,) = build_region([(1, RECT), (2, rect(40, 20, 60, 40))])
+    assert area.contour_ids == (1, 2)
+    assert len(area.polygon.interiors) == 1
+    assert area.polygon.area == pytest.approx(6000 - 400)
 
 
 def test_boundary_inside_an_island_is_cleared_again():
-    pieces = build_region([(1, RECT), (2, rect(20, 10, 80, 50)), (3, rect(40, 20, 60, 40))])
-    assert len(pieces) == 2
+    areas = build_region([(1, RECT), (2, rect(20, 10, 80, 50)), (3, rect(40, 20, 60, 40))])
+    assert [a.contour_ids for a in areas] == [(1, 2), (3,)]
 
 
 def test_unselected_contours_are_not_islands():
-    (piece,) = build_region([(1, RECT)])
-    assert len(piece.interiors) == 0
+    (area,) = build_region([(1, RECT)])
+    assert len(area.polygon.interiors) == 0
 
 
 def test_same_shape_twice_is_refused():
@@ -102,7 +110,7 @@ def test_narrow_neck_warns():
 def test_material_side_of_every_ring(direction, spindle, material_on_right):
     """With M3, climb keeps the material (nearest wall or island) on the right of travel."""
     contours = [(1, RECT), (2, circle(50, 30, 8))]
-    region = build_region(contours)[0]
+    region = build_region(contours)[0].polygon
     (piece,) = plan(contours, direction=direction, spindle=spindle).pieces
     for ring in piece.rings:
         a, b = max(zip(ring, ring[1:] + ring[:1]), key=lambda s: distance(*s))
@@ -116,7 +124,7 @@ def test_material_side_of_every_ring(direction, spindle, material_on_right):
 
 
 def test_rings_keep_tool_radius_from_walls_and_islands():
-    region = build_region([(1, RECT), (2, circle(50, 30, 8))])[0]
+    region = build_region([(1, RECT), (2, circle(50, 30, 8))])[0].polygon
     (piece,) = plan([(1, RECT), (2, circle(50, 30, 8))]).pieces
     for ring in piece.rings:
         assert (
