@@ -105,10 +105,25 @@ def test_layer_match_is_case_insensitive():
     run_job(job(operations=[op(select={"layer": "cut_outside"})]), SIMPLE)
 
 
-def test_open_contour_cannot_be_profiled():
+def test_selection_of_only_open_contours_is_an_error():
     data = job(source={"units": "mm"}, operations=[op(select={"layer": "OPEN"})])
-    with pytest.raises(SelectorError, match="open"):
+    with pytest.raises(SelectorError, match="only open contours"):
         run_job(data, MESSY)
+
+
+def test_open_centreline_on_a_cutting_layer_is_skipped_and_reported():
+    # Real drawing: the `upper` layer holds the lid's shapes plus an open centreline (#22).
+    data = job(
+        stock={"x": 200, "y": 120, "origin": "center"},
+        operations=[op(select={"layer": "upper"}, side="on")],
+    )
+    result = run_job(data, CORPUS / "dxf" / "messy_2.dxf")
+    skipped = [n for n in result.notes if "skipped open contour" in n]
+    expected = (
+        "Operation 1 (Outline): skipped open contour #22 on upper "
+        "(64.750, 50.000) to (64.750, 20.000)"
+    )
+    assert skipped == [expected]
 
 
 def test_tool_larger_than_hole_names_the_contour():

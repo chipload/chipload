@@ -51,8 +51,11 @@ def run_job(job: Job, dxf_path: str | Path) -> RunResult:
         if not isinstance(op, ProfileOp):  # _validate_job already refuses these
             raise JobError(f"Operation {index}: '{op.type}' is not implemented in this version")
         label = f"Operation {index}" + (f" ({op.name})" if op.name else "")
-        contours = select_contours(imported.contours, op.select, label)
-        plan = plan_profile(op, label, contours, tool.diameter / 2, job.machine.spindle, position)
+        selection = select_contours(imported.contours, op.select, label)
+        notes.extend(selection.notes)
+        plan = plan_profile(
+            op, label, list(selection.contours), tool.diameter / 2, job.machine.spindle, position
+        )
         notes.extend(plan.notes)
         pass_z = [top_z - d for d in pass_depths(op.depth, op.step_down)]
         for ring in plan.rings:

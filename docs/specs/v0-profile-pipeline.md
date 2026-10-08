@@ -81,7 +81,12 @@ A contour belongs to an operation if all its source entities match the selector:
 Errors (`SelectorError`, job aborts):
 - The selector matches nothing.
 - A contour is only partly matched (e.g. its entities are on two layers). That's ambiguous, so we refuse.
-- The selector matches an open or invalid contour. v0 profiles closed contours only.
+- The selector matches an invalid contour.
+- The selector matches only open contours.
+
+Open contours that match are **skipped and reported** (decision 2026-10-08): real drawings put
+centrelines on the same layer as the geometry to cut, and v0 profiles closed contours only.
+Each skipped contour is listed in the run output with its endpoints.
 
 ## 4. Profile toolpath
 
