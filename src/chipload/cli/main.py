@@ -5,7 +5,7 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="gncam", description="2.5D CAM")
+    parser = argparse.ArgumentParser(prog="chipload", description="2.5D CAM")
     sub = parser.add_subparsers(dest="command")
 
     inspect = sub.add_parser("inspect", help="Dump entities, units and issues of a DXF")

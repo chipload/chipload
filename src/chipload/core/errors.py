@@ -1,23 +1,23 @@
 """Typed errors for core. Avoid broad `except Exception`."""
 
 
-class gncamError(Exception):
-    """Base class for all gncam errors."""
+class ChiploadError(Exception):
+    """Base class for all Chipload errors."""
 
 
-class GeometryError(gncamError):
+class GeometryError(ChiploadError):
     pass
 
 
-class DxfImportError(gncamError):
+class DxfImportError(ChiploadError):
     pass
 
 
-class SelectorError(gncamError):
+class SelectorError(ChiploadError):
     """A job selector matched nothing, or matched something unexpected."""
 
 
-class UnsupportedJobVersion(gncamError):
+class UnsupportedJobVersion(ChiploadError):
     def __init__(self, version: object, current: int) -> None:
         super().__init__(
             f"Job schema_version {version!r} is not supported (this app supports up to {current}). "

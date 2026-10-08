@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from gncam.core.job.loader import load_job
+from chipload.core.job.loader import load_job
 
 SAMPLE = Path(__file__).parent.parent / "corpus" / "jobs" / "v1" / "example_job.json"
 

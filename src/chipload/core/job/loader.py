@@ -6,8 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from gncam.core.errors import UnsupportedJobVersion
-from gncam.core.job.models import CURRENT_VERSION, Job
+from chipload.core.errors import UnsupportedJobVersion
+from chipload.core.job.models import CURRENT_VERSION, Job
 
 # Map N -> function upgrading version N data to N+1. Pure functions only.
 # Each must set data["schema_version"] = N + 1.

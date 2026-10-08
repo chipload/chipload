@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Project: **gncam** (placeholder name), a cross-platform 2.5D CAM application.
+Project: **Chipload**, a cross-platform 2.5D CAM application.
 Input: DXF (and DWG via conversion). Output: G-code for CNC routers, mills, plasma, laser.
 This is commercial software that drives physical machines. Correctness and safety outrank speed and cleverness.
 
 ## Architecture rules (non-negotiable)
 
-1. `gncam.core` is **headless**. It must never import Qt, PySide6, or anything from `gncam.ui`. A test enforces this (`tests/test_architecture.py`).
+1. `chipload.core` is **headless**. It must never import Qt, PySide6, or anything from `chipload.ui`. A test enforces this (`tests/test_architecture.py`).
 2. Dependency direction: `ui -> cli/app services -> core`. Never the reverse.
 3. Every feature must be usable from the CLI before it gets a UI.
 4. The UI is thin: it builds a Job, calls core, displays results. No geometry or toolpath logic in `ui/`.
@@ -26,7 +26,7 @@ This is commercial software that drives physical machines. Correctness and safet
 
 Anything saved to disk and read back later (job files, tool libraries, machine profiles, post-processor configs, app settings) is a **persisted format**. Users keep these files for years, so each one is versioned from the first commit.
 
-- Every persisted file has a top-level integer `schema_version`. Also record `written_by` (e.g. `"gncam 1.4.2"`) to help debug customer files.
+- Every persisted file has a top-level integer `schema_version`. Also record `written_by` (e.g. `"chipload 1.4.2"`) to help debug customer files.
 - Models are Pydantic classes in `core/job/`. Each format has a `CURRENT_VERSION` constant and a `MIGRATIONS` dict mapping `N -> function(data: dict) -> dict` that upgrades version N to N+1.
 - Loading always goes through one function per format (e.g. `load_job`). It must:
   - **Older version:** apply migrations step by step to the current version, then validate.
@@ -53,9 +53,9 @@ pytest tests/unit -q         # fast loop
 pytest tests/golden          # G-code regression
 pytest --update-golden       # ONLY when a change is intended; review the diff
 ruff check . && ruff format --check .
-mypy src/gncam/core
-gncam run part.dxf --job job.json -o out.nc     # headless end to end
-gncam inspect part.dxf                          # dump entities, units, issues
+mypy src/chipload/core
+chipload run part.dxf --job job.json -o out.nc  # headless end to end
+chipload inspect part.dxf                       # dump entities, units, issues
 QT_QPA_PLATFORM=offscreen pytest tests/ui       # GUI smoke tests
 ```
 
@@ -97,7 +97,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 
 ## Licensing and packaging
 
-- Licensing/activation code lives only in `gncam/licensing/` and is behind an interface so it can be stubbed in tests and dev builds.
+- Licensing/activation code lives only in `chipload/licensing/` and is behind an interface so it can be stubbed in tests and dev builds.
 - Packaging scripts live in `packaging/` (Nuitka/PyInstaller, signing, notarization). Don't hardcode secrets or certificate paths. Read them from environment variables.
 
 ## Things to avoid

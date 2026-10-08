@@ -1,8 +1,8 @@
 import pytest
 
-from gncam.core.errors import UnsupportedJobVersion
-from gncam.core.job.loader import migrate
-from gncam.core.job.models import CURRENT_VERSION
+from chipload.core.errors import UnsupportedJobVersion
+from chipload.core.job.loader import migrate
+from chipload.core.job.models import CURRENT_VERSION
 
 
 def test_missing_version_rejected():
