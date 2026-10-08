@@ -6,7 +6,11 @@ Tabs are short bridges of material left at the bottom of a profile cut so the pa
 attached to the stock after the last pass. Without them a through-cut part comes loose on the
 last pass and can move into the cutter or be thrown.
 
-Builds on `v0-profile-pipeline.md`. Out of scope: tabs on pockets, manual tab placement by
+Tabs exist only on **profile** operations. Pockets never have tabs (decision 2026-10-08):
+a pocket clears material and frees nothing, so there is no part to hold. A `tabs` field on a
+pocket operation is rejected when the job loads.
+
+Builds on `v0-profile-pipeline.md`. Out of scope: manual tab placement by
 clicking in the viewer (later), and ramped tabs (v1 tabs are square, decision 2026-10-08).
 
 ## 1. Job model
@@ -102,5 +106,5 @@ viewer draws them in a distinct colour over the path, so tabs are visible in pla
 - **Golden:** the v2 sample with tabs on the outline, and `messy_2` lower outline with 4 tabs.
 
 ## 7. Known limitations
-No manual placement; square tabs only; no tabs on pockets; on parts with no straight stretch
+No manual placement; square tabs only; on parts with no straight stretch
 tabs stay on curves.

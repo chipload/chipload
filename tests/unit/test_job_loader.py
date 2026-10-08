@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -84,4 +85,16 @@ def test_invalid_job_file_is_a_typed_error(tmp_path):
         load_job(path)
     path.write_text(json.dumps({"schema_version": CURRENT_VERSION}))
     with pytest.raises(JobFileError):
+        load_job(path)
+
+
+def test_pockets_cannot_have_tabs(tmp_path):
+    """Tabs belong to profiles only; a pocket frees nothing, so there is nothing to hold."""
+    jobs = Path(__file__).parent.parent / "corpus" / "jobs" / "v3"
+    data = json.loads((jobs / "messy_2_lower.json").read_text())
+    assert data["operations"][0]["type"] == "pocket"
+    data["operations"][0]["tabs"] = {"count": 4, "width": 8, "height": 3}
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(data))
+    with pytest.raises(JobFileError, match="tabs"):
         load_job(path)
