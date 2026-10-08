@@ -18,3 +18,13 @@ def test_newer_version_rejected():
 def test_current_version_passes_through():
     data = {"schema_version": CURRENT_VERSION}
     assert migrate(data) == data
+
+
+def test_boolean_version_rejected():
+    with pytest.raises(UnsupportedJobVersion):
+        migrate({"schema_version": True})
+
+
+def test_string_version_rejected():
+    with pytest.raises(UnsupportedJobVersion):
+        migrate({"schema_version": "1"})

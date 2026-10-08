@@ -1,0 +1,13 @@
+(Chipload - {{ post_name }})
+(Tool {{ tool_id }}: {{ tool_diameter }} mm)
+G21 G90 G17 G94
+{{ "M3" if spindle == "cw" else "M4" }} S{{ rpm }}
+{% if dwell is not none %}
+G4 P{{ dwell }}
+{% endif %}
+{% for m in moves %}
+{{ m.code }}{% if m.x is not none %} X{{ m.x }}{% endif %}{% if m.y is not none %} Y{{ m.y }}{% endif %}{% if m.z is not none %} Z{{ m.z }}{% endif %}{% if m.f is not none %} F{{ m.f }}{% endif %}
+
+{% endfor %}
+M5
+M30

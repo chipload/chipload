@@ -1,0 +1,7 @@
+# GRBL 1.1 routers. Persisted format: see chipload/core/job/post_config.py.
+schema_version = 1
+name = "GRBL"
+template = "grbl.nc.j2"
+decimals = 3
+file_extension = ".nc"
+spindle_dwell_s = 3  # router spindles need time to reach speed (decision 2026-10-08)
