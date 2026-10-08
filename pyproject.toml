@@ -6,6 +6,9 @@ build-backend = "hatchling.build"
 name = "chipload"
 version = "0.0.1"
 description = "2.5D CAM for DXF/DWG drawings"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Gustav Näslund" }]
 requires-python = ">=3.11"
 dependencies = [
     "ezdxf>=1.3",

@@ -35,3 +35,14 @@ per job, and the GRBL post.
 G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/v3/` for example jobs and `docs/specs/` for exact behaviour and
 limitations.
+
+## License
+
+Copyright (C) 2026 Gustav Näslund
+
+Chipload is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version. See [LICENSE](LICENSE).
+
+Chipload generates programs that drive machines. It comes with no warranty: always check the
+toolpath in the viewer and do an air cut before machining.

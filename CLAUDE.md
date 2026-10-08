@@ -2,7 +2,9 @@
 
 Project: **Chipload**, a cross-platform 2.5D CAM application.
 Input: DXF (and DWG via conversion). Output: G-code for CNC routers, mills, plasma, laser.
-This is commercial software that drives physical machines. Correctness and safety outrank speed and cleverness.
+This is open-source software (**GPL-3.0-or-later**, copyright Gustav Näslund) that drives physical machines. Correctness and safety outrank speed and cleverness.
+
+**Migration in progress (ADR 0004):** the app is being rewritten in Rust (`crates/`, egui UI). The Python implementation (`src/chipload/`) is the **reference** until the Rust version passes the full conformance suite; new features go into the specs and Python first unless agreed otherwise. See "Rust" below.
 
 ## Architecture rules (non-negotiable)
 
@@ -58,7 +60,20 @@ mypy src/chipload/core
 chipload run part.dxf --job job.json -o out.nc  # headless end to end
 chipload inspect part.dxf                       # dump entities, units, issues
 QT_QPA_PLATFORM=offscreen pytest tests/ui       # GUI smoke tests
+
+cargo test --workspace                           # Rust tests
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all --check
+cargo run -p chipload-cli -- check out.nc --job job.json   # Rust checker on any G-code
 ```
+
+## Rust
+
+- Workspace in `crates/`, one crate per layer. The architecture rules above become crate dependencies: `chipload-core` has no I/O and no GUI; `chipload-check` must never depend on `chipload-toolpath` or `chipload-post` (a pytest in `tests/test_architecture.py` enforces it); only `chipload-gui` may depend on egui.
+- Same conventions as Python: millimetres, radians, f64, named tolerances (`chipload_core::tolerances`), typed errors (`thiserror`), no `unwrap()`/`expect()` in library code, `#![forbid(unsafe_code)]`.
+- Determinism: no `HashMap`/`HashSet` iteration in anything that reaches output (use `BTreeMap`/`IndexMap`); explicit number formatting.
+- Job files: the same JSON schema and versions as Python; Rust must load every frozen sample in `tests/corpus/jobs/`.
+- Conformance: the shared corpus (`tests/corpus/`) and the specs in `docs/specs/` are the contract. Toolpaths are compared to the Python output geometrically (same order, same Z, XY within tolerance) until the Rust output replaces the golden files.
 
 Run the relevant tests after every change. Do not report a task done until they pass.
 
@@ -69,7 +84,7 @@ Run the relevant tests after every change. Do not report a task done until they 
 - Prefer tests first for geometry. Add a Hypothesis property test where an invariant exists (e.g. offset contour never crosses the original, pocket stays inside boundary).
 - **Verify APIs against the installed library version** (`pip show`, read the source or `help()`), don't rely on memory. This matters for ezdxf, Shapely, and Clipper bindings.
 - If something is ambiguous (units, offset side, climb vs conventional, machine behaviour), **stop and ask** instead of choosing silently.
-- Do not add dependencies without stating the license and why it's needed. Allowed: MIT, BSD, Apache-2.0, MPL, LGPL (dynamic use only, e.g. PySide6). **Forbidden without explicit approval:** GPL/AGPL (e.g. libdxfrw, LibreDWG, CGAL), unknown or no license.
+- Do not add dependencies without stating the license and why it's needed. Every dependency must be compatible with **GPL-3.0-or-later**. Allowed: MIT, BSD-2/3-Clause, ISC, Zlib, Apache-2.0, MPL-2.0, LGPL-2.1-or-later/3.0, GPL-2.0-or-later, GPL-3.0(-or-later), Unicode-3.0. **Forbidden:** GPL-2.0-only (incompatible), proprietary, unknown or no license. **Needs explicit approval:** AGPL-3.0 (adds network obligations) and anything not listed. For Rust, `deny.toml` encodes this list.
 - Keep `docs/decisions/` updated with a short ADR for any significant architectural or library decision.
 
 ## Safety rules for toolpath and G-code code
@@ -88,7 +103,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 - Use `ezdxf`. Treat all input as hostile and messy: duplicate entities, gaps, overlaps, zero-length segments, tiny arcs, splines, ellipses, bulged polylines, blocks/inserts with transforms, mixed layers, 3D-coordinates with nonzero Z.
 - Pipeline: read -> flatten blocks/transforms -> convert to Line/Arc primitives (approximate splines and ellipses within tolerance) -> remove duplicates/zero-length -> chain into contours with tolerance -> classify closed/open -> nesting (outer vs holes) -> report issues.
 - Never silently drop geometry. Anything ignored or repaired is reported in an `ImportReport` that the CLI and UI both show.
-- DWG: convert to DXF through the ODA File Converter wrapper in `core/io/dwg_convert.py`. Do not bundle or redistribute it until its license terms are confirmed.
+- DWG: convert to DXF through the ODA File Converter wrapper in `core/io/dwg_convert.py`. Do not bundle or redistribute it (proprietary). Being GPL-3.0, the project may now use LibreDWG (GPL-3.0-or-later) instead; that's a separate decision with its own ADR.
 
 ## Test corpus
 
@@ -98,7 +113,8 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 
 ## Licensing and packaging
 
-- Licensing/activation code lives only in `chipload/licensing/` and is behind an interface so it can be stubbed in tests and dev builds.
+- The project is GPL-3.0-or-later (`LICENSE`). New Rust source files start with `// SPDX-License-Identifier: GPL-3.0-or-later`. Contributions are accepted under the same license with a DCO sign-off (`CONTRIBUTING.md`).
+- `chipload/licensing/` (activation code) is a leftover from the commercial plan and is pending removal; don't add to it.
 - Packaging scripts live in `packaging/` (Nuitka/PyInstaller, signing, notarization). Don't hardcode secrets or certificate paths. Read them from environment variables.
 
 ## Things to avoid
