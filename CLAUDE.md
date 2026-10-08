@@ -115,7 +115,6 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 ## Licensing and packaging
 
 - The project is GPL-3.0-or-later (`LICENSE`). New Rust source files start with `// SPDX-License-Identifier: GPL-3.0-or-later`. Contributions are accepted under the same license with a DCO sign-off (`CONTRIBUTING.md`).
-- `chipload/licensing/` (activation code) is a leftover from the commercial plan and is pending removal; don't add to it.
 - Packaging scripts live in `packaging/` (Nuitka/PyInstaller, signing, notarization). Don't hardcode secrets or certificate paths. Read them from environment variables.
 
 ## Things to avoid

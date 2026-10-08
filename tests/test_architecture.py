@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 
 CORE = Path(__file__).parent.parent / "src" / "chipload" / "core"
-FORBIDDEN = ("PySide6", "PyQt5", "PyQt6", "chipload.ui", "chipload.cli", "chipload.licensing")
+FORBIDDEN = ("PySide6", "PyQt5", "PyQt6", "chipload.ui", "chipload.cli")
 
 
 def test_core_has_no_ui_imports():
