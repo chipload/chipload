@@ -1,4 +1,5 @@
 """Unit handling. Internal geometry is always millimetres."""
+
 from __future__ import annotations
 
 from enum import Enum

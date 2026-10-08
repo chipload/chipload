@@ -1,4 +1,5 @@
 """Load jobs: migrate older versions, refuse unknown or newer ones."""
+
 from __future__ import annotations
 
 import json

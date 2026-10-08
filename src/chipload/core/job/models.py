@@ -1,4 +1,5 @@
 """Job model (declarative description of how to machine a drawing). Always mm internally."""
+
 from __future__ import annotations
 
 from typing import Annotated, Literal

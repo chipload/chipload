@@ -1,4 +1,5 @@
 """core must stay headless: no Qt, no UI imports."""
+
 import ast
 from pathlib import Path
 
