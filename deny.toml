@@ -1,0 +1,35 @@
+# cargo-deny configuration. Run: cargo deny check
+# Licenses must be compatible with GPL-3.0-or-later (see CLAUDE.md, "Workflow expectations").
+
+[licenses]
+allow = [
+    "GPL-3.0-or-later",
+    "GPL-3.0-only",
+    "GPL-2.0-or-later",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0-or-later",
+    "MPL-2.0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+]
+# Anything else (GPL-2.0-only, AGPL, proprietary, unlicensed) fails the check.
+confidence-threshold = 0.9
+unused-allowed-license = "allow"  # the list is policy, not an inventory
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

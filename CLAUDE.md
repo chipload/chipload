@@ -64,6 +64,7 @@ QT_QPA_PLATFORM=offscreen pytest tests/ui       # GUI smoke tests
 cargo test --workspace                           # Rust tests
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
+cargo deny check licenses bans sources            # GPL-3.0 compatibility of every crate
 cargo run -p chipload-cli -- check out.nc --job job.json   # Rust checker on any G-code
 ```
 
