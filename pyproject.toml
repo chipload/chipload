@@ -29,6 +29,9 @@ dev = [
 [project.scripts]
 chipload = "chipload.cli.main:main"
 
+[project.gui-scripts]
+chipload-gui = "chipload.ui.app:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/chipload"]
 
