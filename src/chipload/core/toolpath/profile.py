@@ -3,27 +3,20 @@
 from __future__ import annotations
 
 import math
-import warnings
 from typing import Literal
 
 import shapely
-from shapely.geometry import MultiPolygon, Polygon
-from shapely.geometry.base import BaseGeometry
+from shapely.geometry import Polygon
 
 from chipload.core.errors import GeometryError
-from chipload.core.geometry.primitives import Point, distance, max_segment_angle, signed_area
+from chipload.core.geometry.offset import buffer_polygons, dedupe_ring, ring_points
+from chipload.core.geometry.primitives import Point, signed_area
 from chipload.core.tolerances import (
     ARC_APPROX_TOL_MM,
-    CHAIN_TOL_MM,
     DEPTH_TOL_MM,
     OFFSET_CHECK_SLACK_MM,
 )
 from chipload.core.toolpath.model import Move, Spindle
-
-# GEOS rounds the number of chords in a round join to the nearest integer, so one chord can
-# span up to 1.5x the nominal angle (pi/2 / quad_segs). Measured with Shapely 2.2 / GEOS;
-# tests/property/test_profile_offset.py guards it.
-GEOS_JOIN_CHORD_FACTOR = 1.5
 
 Side = Literal["inside", "outside", "on"]
 Direction = Literal["climb", "conventional"]
@@ -36,25 +29,17 @@ def offset_rings(ring: list[Point], side: Side, tool_radius: float) -> list[list
     return several when the offset splits at a narrow neck. Raises GeometryError if the tool
     does not fit.
     """
-    ring = _dedupe(ring)
+    ring = dedupe_ring(ring)
     if side == "on":
         return [ring]
     polygon = Polygon(ring)
-    chord_angle = max_segment_angle(tool_radius) / GEOS_JOIN_CHORD_FACTOR
-    quad_segs = max(1, math.ceil((math.pi / 2) / chord_angle))
     signed = tool_radius if side == "outside" else -tool_radius
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", RuntimeWarning)
-        try:
-            result = polygon.buffer(signed, quad_segs=quad_segs, join_style="round")
-        except RuntimeWarning as exc:
-            raise GeometryError(f"Offset failed numerically: {exc}") from exc
-    polygons = _polygons(result)
+    polygons = buffer_polygons(polygon, signed)
     if not polygons:
         raise GeometryError(
             f"Tool (diameter {2 * tool_radius:.3f} mm) does not fit inside the contour"
         )
-    rings = [_dedupe([(float(c[0]), float(c[1])) for c in p.exterior.coords]) for p in polygons]
+    rings = [ring_points(p.exterior.coords) for p in polygons]
     for path in rings:
         _verify_offset(polygon, path, side, tool_radius)
     return sorted(rings, key=lambda r: _start_key(r))
@@ -121,30 +106,6 @@ def contour_moves(
         moves.append(Move("feed", x=start[0], y=start[1], feed=feed))
     moves.append(Move("rapid", z=safe_z))
     return moves
-
-
-def _polygons(geometry: BaseGeometry) -> list[Polygon]:
-    if geometry.is_empty:
-        return []
-    if isinstance(geometry, Polygon):
-        return [geometry]
-    if isinstance(geometry, MultiPolygon):
-        return [p for p in geometry.geoms if not p.is_empty]
-    raise GeometryError(f"Offset produced unexpected geometry: {geometry.geom_type}")
-
-
-def _dedupe(points: list[Point]) -> list[Point]:
-    """Drop consecutive points closer than CHAIN_TOL_MM, including a repeated closing point.
-
-    Near-zero edges make GEOS misjudge corner directions, so this runs before and after buffering.
-    """
-    ring: list[Point] = []
-    for p in points:
-        if not ring or distance(ring[-1], p) >= CHAIN_TOL_MM:
-            ring.append(p)
-    while len(ring) > 1 and distance(ring[-1], ring[0]) < CHAIN_TOL_MM:
-        ring.pop()
-    return ring
 
 
 def _start_key(ring: list[Point]) -> tuple[float, float]:
