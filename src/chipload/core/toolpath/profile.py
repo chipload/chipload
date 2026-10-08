@@ -29,8 +29,9 @@ def offset_rings(ring: list[Point], side: Side, tool_radius: float) -> list[list
     return several when the offset splits at a narrow neck. Raises GeometryError if the tool
     does not fit.
     """
+    ring = _dedupe(ring)
     if side == "on":
-        return [list(ring)]
+        return [ring]
     polygon = Polygon(ring)
     chord_angle = max_segment_angle(tool_radius) / GEOS_JOIN_CHORD_FACTOR
     quad_segs = max(1, math.ceil((math.pi / 2) / chord_angle))
@@ -41,7 +42,7 @@ def offset_rings(ring: list[Point], side: Side, tool_radius: float) -> list[list
         raise GeometryError(
             f"Tool (diameter {2 * tool_radius:.3f} mm) does not fit inside the contour"
         )
-    rings = [_clean_ring(list(p.exterior.coords)) for p in polygons]
+    rings = [_dedupe([(float(c[0]), float(c[1])) for c in p.exterior.coords]) for p in polygons]
     return sorted(rings, key=lambda r: _start_key(r))
 
 
@@ -97,11 +98,13 @@ def _polygons(geometry: BaseGeometry) -> list[Polygon]:
     raise GeometryError(f"Offset produced unexpected geometry: {geometry.geom_type}")
 
 
-def _clean_ring(coords: list[tuple[float, ...]]) -> list[Point]:
-    """Drop the repeated closing point and consecutive points closer than CHAIN_TOL_MM."""
+def _dedupe(points: list[Point]) -> list[Point]:
+    """Drop consecutive points closer than CHAIN_TOL_MM, including a repeated closing point.
+
+    Near-zero edges make GEOS misjudge corner directions, so this runs before and after buffering.
+    """
     ring: list[Point] = []
-    for c in coords[:-1]:
-        p = (float(c[0]), float(c[1]))
+    for p in points:
         if not ring or distance(ring[-1], p) >= CHAIN_TOL_MM:
             ring.append(p)
     while len(ring) > 1 and distance(ring[-1], ring[0]) < CHAIN_TOL_MM:

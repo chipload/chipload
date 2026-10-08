@@ -1,6 +1,8 @@
 import math
 
 import pytest
+from shapely.geometry import Point as ShapelyPoint
+from shapely.geometry import Polygon
 
 from chipload.core.errors import GeometryError
 from chipload.core.geometry.primitives import signed_area
@@ -165,3 +167,16 @@ def test_full_circle_offset_stays_round():
     radii = [math.hypot(*p) for p in ring]
     assert min(radii) == pytest.approx(53.0, abs=0.02)
     assert max(radii) == pytest.approx(53.0, abs=0.02)
+
+
+def test_near_duplicate_vertices_do_not_distort_the_offset():
+    # Found by Hypothesis: a zero-length edge made GEOS misplace the corner.
+    ring = [(10.0, 0.0), (10.0, 4.551103677987583e-162), (5.403, 8.415), (-4.161, 9.093)]
+    (path,) = offset_rings(ring, "outside", 1.0)
+    part = Polygon(ring)
+    assert max(part.exterior.distance(ShapelyPoint(p)) for p in path) <= 1.0 + 1e-6
+
+
+def test_on_profile_drops_near_duplicate_vertices():
+    ring = [(0.0, 0.0), (1e-9, 0.0), (10.0, 0.0), (10.0, 10.0)]
+    assert offset_rings(ring, "on", 3.0) == [[(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)]]
