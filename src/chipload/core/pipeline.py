@@ -139,10 +139,7 @@ def _extent_notes(job: Job, report: ImportReport) -> list[str]:
     if report.bbox is None:
         return []
     (x0, y0), (x1, y1) = report.bbox
-    if job.stock.origin == "bottom_left":
-        lo, hi = (0.0, 0.0), (job.stock.x, job.stock.y)
-    else:
-        lo, hi = (-job.stock.x / 2, -job.stock.y / 2), (job.stock.x / 2, job.stock.y / 2)
+    lo, hi = job.stock.xy_bounds()
     if x0 < lo[0] or y0 < lo[1] or x1 > hi[0] or y1 > hi[1]:
         return ["The drawing extends outside the stock"]
     return []

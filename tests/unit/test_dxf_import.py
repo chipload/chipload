@@ -197,3 +197,10 @@ def test_without_job_units_the_file_units_are_used():
 def test_without_job_units_a_unitless_file_is_refused():
     with pytest.raises(DxfImportError, match="no units"):
         import_document(new_doc(0), None)
+
+
+def test_missing_units_has_its_own_error_type():
+    from chipload.core.errors import DxfUnitsMissing
+
+    with pytest.raises(DxfUnitsMissing):
+        import_document(new_doc(0), None)

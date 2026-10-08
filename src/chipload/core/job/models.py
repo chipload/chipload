@@ -35,6 +35,12 @@ class Stock(_Frozen):
     origin: Literal["bottom_left", "center"] = "bottom_left"
     z_zero: Literal["top", "bottom"] = "top"
 
+    def xy_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
+        """(min, max) corners of the stock in work coordinates; work zero is the DXF origin."""
+        if self.origin == "bottom_left":
+            return (0.0, 0.0), (self.x, self.y)
+        return (-self.x / 2, -self.y / 2), (self.x / 2, self.y / 2)
+
 
 class Travel(_Frozen):
     """Usable machine travel per axis, mm."""

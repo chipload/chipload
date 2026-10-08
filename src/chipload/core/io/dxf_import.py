@@ -29,7 +29,7 @@ from ezdxf.lldxf.const import DXFError
 from ezdxf.math import OCS, Vec3, bulge_to_arc
 from shapely.geometry import Polygon
 
-from chipload.core.errors import DxfImportError
+from chipload.core.errors import DxfImportError, DxfUnitsMissing
 from chipload.core.geometry.chain import Contour, Segment, chain_segments
 from chipload.core.geometry.primitives import Arc, Line, Point, Primitive
 from chipload.core.tolerances import (
@@ -144,7 +144,7 @@ def _resolve_units(doc: Drawing, job_units: Units | None) -> tuple[Units, Litera
     code = doc.header.get("$INSUNITS", _UNITLESS)
     if code == _UNITLESS:
         if job_units is None:
-            raise DxfImportError("DXF has no units ($INSUNITS=0); specify mm or inch explicitly")
+            raise DxfUnitsMissing("DXF has no units ($INSUNITS=0); specify mm or inch explicitly")
         return job_units, "job"
     if code not in _INSUNITS:
         raise DxfImportError(

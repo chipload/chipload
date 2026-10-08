@@ -20,6 +20,10 @@ class DxfImportError(ChiploadError):
     pass
 
 
+class DxfUnitsMissing(DxfImportError):
+    """The DXF declares no units and none were given. Ask the user; never guess."""
+
+
 class SelectorError(ChiploadError):
     """A job selector matched nothing, or matched something unexpected."""
 
