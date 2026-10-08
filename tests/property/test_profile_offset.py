@@ -12,10 +12,8 @@ from shapely.geometry import LineString, Point, Polygon
 
 from chipload.core.errors import GeometryError
 from chipload.core.tolerances import ARC_APPROX_TOL_MM
+from chipload.core.tolerances import OFFSET_CHECK_SLACK_MM as NUMERIC_SLACK_MM
 from chipload.core.toolpath.profile import offset_rings
-
-# Floating-point slack on top of the documented chord tolerance.
-NUMERIC_SLACK_MM = 1e-6
 
 
 @st.composite
@@ -30,7 +28,11 @@ def star_polygons(draw):
         )
     )
     radii = draw(st.lists(st.floats(10, 100), min_size=n, max_size=n))
-    ring = [(r * math.cos(a), r * math.sin(a)) for a, r in zip(angles, radii, strict=True)]
+    # Rounded to 1e-6 mm, realistic DXF precision; avoids denormal coordinates like 1e-312.
+    ring = [
+        (round(r * math.cos(a), 6), round(r * math.sin(a), 6))
+        for a, r in zip(angles, radii, strict=True)
+    ]
     polygon = Polygon(ring)
     if not polygon.is_valid or polygon.area < 1:
         reject()

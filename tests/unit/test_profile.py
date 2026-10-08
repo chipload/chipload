@@ -180,3 +180,18 @@ def test_near_duplicate_vertices_do_not_distort_the_offset():
 def test_on_profile_drops_near_duplicate_vertices():
     ring = [(0.0, 0.0), (1e-9, 0.0), (10.0, 0.0), (10.0, 10.0)]
     assert offset_rings(ring, "on", 3.0) == [[(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)]]
+
+
+def test_degenerate_spike_is_refused_or_verified():
+    # Found by Hypothesis: a zero-width spike with denormal coordinates made GEOS divide by zero.
+    ring = [
+        (10.0, 0.0), (11.0, 2.4e-312), (12.0, 9.7e-227), (11.0, 1.3e-213),
+        (8.776, 4.794), (5.403, 8.415), (-4.161, 9.093), (-9.9, 1.411), (0.0, -10.0),
+    ]  # fmt: skip
+    try:
+        paths = offset_rings(ring, "inside", 1.0)
+    except GeometryError:
+        return
+    hole = Polygon(ring)
+    for path in paths:
+        assert all(hole.contains(ShapelyPoint(p)) for p in path)

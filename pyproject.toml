@@ -34,6 +34,8 @@ packages = ["src/chipload"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Numeric warnings from GEOS/numpy in geometry code are bugs, not noise.
+filterwarnings = ["error::RuntimeWarning"]
 
 [tool.ruff]
 line-length = 100

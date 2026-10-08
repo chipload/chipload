@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import math
+import warnings
 from typing import Literal
 
+import shapely
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 
 from chipload.core.errors import GeometryError
 from chipload.core.geometry.primitives import Point, distance, max_segment_angle, signed_area
-from chipload.core.tolerances import CHAIN_TOL_MM, DEPTH_TOL_MM
+from chipload.core.tolerances import (
+    ARC_APPROX_TOL_MM,
+    CHAIN_TOL_MM,
+    DEPTH_TOL_MM,
+    OFFSET_CHECK_SLACK_MM,
+)
 from chipload.core.toolpath.model import Move, Spindle
 
 # GEOS rounds the number of chords in a round join to the nearest integer, so one chord can
@@ -36,14 +43,42 @@ def offset_rings(ring: list[Point], side: Side, tool_radius: float) -> list[list
     chord_angle = max_segment_angle(tool_radius) / GEOS_JOIN_CHORD_FACTOR
     quad_segs = max(1, math.ceil((math.pi / 2) / chord_angle))
     signed = tool_radius if side == "outside" else -tool_radius
-    result = polygon.buffer(signed, quad_segs=quad_segs, join_style="round")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        try:
+            result = polygon.buffer(signed, quad_segs=quad_segs, join_style="round")
+        except RuntimeWarning as exc:
+            raise GeometryError(f"Offset failed numerically: {exc}") from exc
     polygons = _polygons(result)
     if not polygons:
         raise GeometryError(
             f"Tool (diameter {2 * tool_radius:.3f} mm) does not fit inside the contour"
         )
     rings = [_dedupe([(float(c[0]), float(c[1])) for c in p.exterior.coords]) for p in polygons]
+    for path in rings:
+        _verify_offset(polygon, path, side, tool_radius)
     return sorted(rings, key=lambda r: _start_key(r))
+
+
+def _verify_offset(polygon: Polygon, path: list[Point], side: Side, tool_radius: float) -> None:
+    """Post-condition: never trust the buffer blindly. Every vertex must be r from the contour,
+    every chord midpoint at least r - tolerance (no gouge), all on the requested side."""
+    midpoints = [
+        ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        for a, b in zip(path, path[1:] + path[:1], strict=True)
+    ]
+    vertices = shapely.points(path)
+    vertex_dist = [float(d) for d in shapely.distance(polygon.exterior, vertices)]
+    mid_dist = [float(d) for d in shapely.distance(polygon.exterior, shapely.points(midpoints))]
+    inside = [bool(v) for v in shapely.contains(polygon, vertices)]
+    lowest = tool_radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM
+    highest = tool_radius + OFFSET_CHECK_SLACK_MM
+    wrong_side = any(inside) if side == "outside" else not all(inside)
+    if max(vertex_dist) > highest or min(vertex_dist + mid_dist) < lowest or wrong_side:
+        raise GeometryError(
+            "Offset failed verification (path not at tool radius from the contour); "
+            "the contour may be degenerate"
+        )
 
 
 def cut_clockwise(side: Side, direction: Direction, spindle: Spindle) -> bool:
