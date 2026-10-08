@@ -28,8 +28,10 @@ in the viewer (Ctrl+click for more), then **Copy as selector** (Ctrl+Shift+C) an
 `{"handles": [...]}` into an operation's `select`. The Selection panel shows what that selector
 would cut.
 
-v0 supports closed-contour **profile** operations (inside, outside, on) with climb or
-conventional milling and multiple depth passes, one tool per job, and the GRBL post.
+Supported: **profile** operations (inside, outside, on) with optional holding tabs
+(`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
+**pocket** operations with islands; climb or conventional, multiple depth passes, one tool
+per job, and the GRBL post.
 G-code is written only if it passes the independent checker. See
-`tests/corpus/jobs/v2/simple_part_full.json` for an example job and
-`docs/specs/v0-profile-pipeline.md` for exact behaviour and limitations.
+`tests/corpus/jobs/v3/` for example jobs and `docs/specs/` for exact behaviour and
+limitations.

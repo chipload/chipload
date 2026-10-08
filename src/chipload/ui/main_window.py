@@ -207,6 +207,7 @@ class MainWindow(QMainWindow):
         self.contours = result.contours
         self.view.show_contours(result.contours)
         self.view.show_toolpath(result.program)
+        self.view.show_tabs(result.tabs)
         lines = [
             f"Generated {result.gcode.count(chr(10))} lines for {result.post.name}. Check passed.",
             *(f"warning: {n}" for n in result.notes),

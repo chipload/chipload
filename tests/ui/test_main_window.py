@@ -99,3 +99,14 @@ def test_bad_job_file_is_reported(window, tmp_path):
     job.write_text("{nope")
     assert not window.open_job(job)
     assert "Cannot open job" in window.messages.toPlainText()
+
+
+def test_tabs_are_drawn(window):
+    window.open_job(CORPUS / "jobs" / "v3" / "simple_part_tabs.json")
+    window.open_dxf(SIMPLE)
+    assert window.generate()
+    assert window.view.item_count("tabs") == 4
+    window.open_job(JOB)
+    assert window.view.item_count("tabs") == 0  # inputs changed: old toolpath and tabs gone
+    window.generate()
+    assert window.view.item_count("tabs") == 0

@@ -80,6 +80,14 @@ class Selector(_Frozen):
         return self
 
 
+class Tabs(_Frozen):
+    """Holding tabs on a profile (docs/specs/tabs.md). Optional, so no schema bump."""
+
+    count: int = Field(ge=1)
+    width: float = Field(gt=0)  # bridge left on the part, mm (the tool lifts for width + D)
+    height: float = Field(gt=0)  # bridge thickness up from the bottom of the cut, mm
+
+
 class ProfileOp(_Frozen):
     type: Literal["profile"] = "profile"
     name: str = ""
@@ -91,6 +99,7 @@ class ProfileOp(_Frozen):
     step_down: float = Field(gt=0)
     feed: float = Field(gt=0)
     plunge_feed: float = Field(gt=0)
+    tabs: Tabs | None = None
 
 
 class PocketOp(_Frozen):

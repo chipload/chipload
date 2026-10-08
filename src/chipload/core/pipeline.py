@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from chipload.core.errors import GcodeCheckFailed, GeometryError, JobError, SelectorError
@@ -19,6 +19,7 @@ from chipload.core.sim.gcode_check import CheckIssue, check_gcode, limits_from_j
 from chipload.core.toolpath.model import Move, Program
 from chipload.core.toolpath.pocket import plan_pocket, pocket_moves
 from chipload.core.toolpath.profile import contour_moves, pass_depths
+from chipload.core.toolpath.tabs import place_tabs, tab_polylines, tabbed_contour_moves
 from chipload.core.units import Units
 
 
@@ -29,6 +30,7 @@ class RunResult:
     import_report: ImportReport
     contours: tuple[Contour, ...]  # everything imported, for display
     program: Program  # the toolpath the G-code was rendered from
+    tabs: tuple[tuple[Point, ...], ...]  # tool-path stretch of every tab, for display
     notes: tuple[str, ...]  # toolpath warnings
     check_warnings: tuple[CheckIssue, ...]
 
@@ -47,6 +49,7 @@ def run_job(job: Job, dxf_path: str | Path) -> RunResult:
     top_z = 0.0 if job.stock.z_zero == "top" else job.stock.thickness
     moves: list[Move] = []
     notes: list[str] = list(tool_notes)
+    tabs: list[tuple[Point, ...]] = []
     position: Point = (0.0, 0.0)
     for index, op in enumerate(job.operations, start=1):
         label = f"Operation {index}" + (f" ({op.name})" if op.name else "")
@@ -56,15 +59,12 @@ def run_job(job: Job, dxf_path: str | Path) -> RunResult:
         notes.extend(selection.notes)
         pass_z = [top_z - d for d in pass_depths(op.depth, op.step_down)]
         if isinstance(op, ProfileOp):
-            new_moves, new_notes, position = _profile(
-                op, label, selection, tool, job, pass_z, position
-            )
+            planned, position = _profile(op, label, selection, tool, job, pass_z, position)
         else:
-            new_moves, new_notes, position = _pocket(
-                op, label, selection, tool, job, pass_z, position
-            )
-        moves.extend(new_moves)
-        notes.extend(new_notes)
+            planned, position = _pocket(op, label, selection, tool, job, pass_z, position)
+        moves.extend(planned.moves)
+        notes.extend(planned.notes)
+        tabs.extend(planned.tabs)
 
     program = Program(
         tool.id, tool.diameter, rpm, job.machine.spindle, job.machine.safe_z, tuple(moves)
@@ -80,12 +80,17 @@ def run_job(job: Job, dxf_path: str | Path) -> RunResult:
         import_report=imported.report,
         contours=imported.contours,
         program=program,
+        tabs=tuple(tabs),
         notes=tuple(notes),
         check_warnings=report.warnings,
     )
 
 
-Planned = tuple[list[Move], list[str], Point]
+@dataclass
+class Planned:
+    moves: list[Move] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    tabs: list[tuple[Point, ...]] = field(default_factory=list)
 
 
 def _profile(
@@ -96,17 +101,42 @@ def _profile(
     job: Job,
     pass_z: list[float],
     position: Point,
-) -> Planned:
+) -> tuple[Planned, Point]:
     plan = plan_profile(
         op, label, list(selection.contours), tool.diameter / 2, job.machine.spindle, position
     )
-    moves: list[Move] = []
-    for ring in plan.rings:
-        moves += contour_moves(
-            list(ring.points), pass_z, job.machine.safe_z, op.feed, op.plunge_feed
+    out = Planned(notes=list(plan.notes))
+    tabs = op.tabs
+    if tabs is not None and tabs.height >= op.depth:
+        raise JobError(
+            f"{label}: tab height {tabs.height} must be less than the cut depth {op.depth}"
         )
+    if tabs is not None and op.side == "inside":
+        out.notes.append(f"{label}: tabs on an inside profile will hold the cut-out slug")
+    curved: list[int] = []
+    for ring in plan.rings:
+        points = list(ring.points)
+        if tabs is None:
+            out.moves += contour_moves(points, pass_z, job.machine.safe_z, op.feed, op.plunge_feed)
+        else:
+            try:
+                layout = place_tabs(points, tabs.count, tabs.width, tool.diameter)
+            except GeometryError as exc:
+                raise GeometryError(f"{label}, contour #{ring.contour_id}: {exc}") from exc
+            if layout.on_curves:
+                curved.append(ring.contour_id)
+            z_tab = pass_z[-1] + tabs.height
+            out.moves += tabbed_contour_moves(
+                points, layout, pass_z, z_tab, job.machine.safe_z, op.feed, op.plunge_feed
+            )
+            out.tabs += tab_polylines(points, layout)
         position = ring.points[0]
-    return moves, list(plan.notes), position
+    if curved:
+        out.notes.append(
+            f"{label}: some tabs on contours {', '.join(f'#{c}' for c in curved)} sit on a "
+            "corner or curve (no straight stretch nearby)"
+        )
+    return out, position
 
 
 def _pocket(
@@ -117,7 +147,7 @@ def _pocket(
     job: Job,
     pass_z: list[float],
     position: Point,
-) -> Planned:
+) -> tuple[Planned, Point]:
     try:
         plan = plan_pocket(
             [(c.id, c.points()) for c in selection.contours],
@@ -130,11 +160,11 @@ def _pocket(
         )
     except (GeometryError, SelectorError) as exc:
         raise type(exc)(f"{label}: {exc}") from exc
-    moves: list[Move] = []
+    out = Planned(notes=[f"{label}: {n}" for n in plan.notes])
     for piece in plan.pieces:
-        moves += pocket_moves(piece, pass_z, job.machine.safe_z, op.feed, op.plunge_feed)
+        out.moves += pocket_moves(piece, pass_z, job.machine.safe_z, op.feed, op.plunge_feed)
         position = piece.rings[-1][0]  # retracted above the start of the wall ring
-    return moves, [f"{label}: {n}" for n in plan.notes], position
+    return out, position
 
 
 def _verify_source(job: Job, dxf_path: Path) -> None:

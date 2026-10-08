@@ -232,3 +232,40 @@ def test_pocket_retracts_between_rings_by_default():
 def test_pocket_errors_name_the_operation():
     with pytest.raises(GeometryError, match="Operation 1 \\(Openings\\).*does not fit"):
         run_job(lower_job({"diameter": 16}), MESSY_2)
+
+
+# -- tabs
+
+TABS_JOB = json.loads((CORPUS / "jobs" / "v3" / "simple_part_tabs.json").read_text())
+
+
+def tabs_job(tab_changes=None, op_changes=None) -> Job:
+    data = json.loads(json.dumps(TABS_JOB))
+    data["operations"][1]["tabs"].update(tab_changes or {})
+    data["operations"][1].update(op_changes or {})
+    return Job.model_validate(data)
+
+
+def test_tabs_lift_only_the_last_pass_and_are_reported_for_display():
+    result = run_job(tabs_job(), SIMPLE)
+    assert len(result.tabs) == 4
+    zs = z_values(result.gcode)
+    assert -9.0 in zs  # tab top: cut bottom -12 + height 3
+    assert min(zs) == -12.0
+
+
+def test_tab_height_must_be_below_the_cut_depth():
+    with pytest.raises(JobError, match="tab height"):
+        run_job(tabs_job({"height": 12}), SIMPLE)
+
+
+def test_too_many_tabs_names_the_contour():
+    with pytest.raises(GeometryError, match="contour #1.*don't fit"):
+        run_job(tabs_job({"count": 60}), SIMPLE)
+
+
+def test_tabs_on_an_inside_profile_warn():
+    holes = {"select": {"layer": "HOLES"}, "side": "inside"}
+    result = run_job(tabs_job({"count": 1, "width": 3}, holes), SIMPLE)
+    assert any("inside profile" in n for n in result.notes)
+    assert any("corner or curve" in n for n in result.notes)  # the round hole has no straight

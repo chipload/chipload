@@ -1,0 +1,74 @@
+{
+  "schema_version": 3,
+  "written_by": "chipload 0.0.1",
+  "source": {
+    "file": "messy_2.dxf",
+    "units": "mm"
+  },
+  "stock": {
+    "x": 200,
+    "y": 120,
+    "thickness": 18,
+    "origin": "center",
+    "z_zero": "top"
+  },
+  "machine": {
+    "post": "grbl",
+    "safe_z": 5,
+    "spindle": "cw",
+    "max_feed": 5000,
+    "travel": {
+      "x": 800,
+      "y": 600,
+      "z": 100
+    }
+  },
+  "tools": [
+    {
+      "id": 1,
+      "type": "endmill",
+      "diameter": 6,
+      "flutes": 2,
+      "rpm": 18000,
+      "center_cutting": true
+    }
+  ],
+  "operations": [
+    {
+      "type": "pocket",
+      "name": "Openings",
+      "select": {
+        "layer": "lower"
+      },
+      "tool": 1,
+      "depth": 6,
+      "step_down": 3,
+      "stepover": 0.4,
+      "direction": "climb",
+      "feed": 1500,
+      "plunge_feed": 400,
+      "keep_tool_down": true
+    },
+    {
+      "type": "profile",
+      "name": "Outline",
+      "select": {
+        "handles": [
+          "50"
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "depth": 18,
+      "step_down": 6,
+      "feed": 1800,
+      "plunge_feed": 600,
+      "tabs": {
+        "count": 4,
+        "width": 10,
+        "height": 2
+      }
+    }
+  ]
+}

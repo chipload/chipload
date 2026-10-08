@@ -44,6 +44,7 @@ LABEL = "#fdd663"
 AXIS_X = "#f28b82"
 AXIS_Y = "#81c995"
 SELECTED = "#ff8bcb"
+TAB = "#ff9e40"
 
 ARROW_SPACING_MM = 40.0  # distance between direction arrows along the cutting path
 AXIS_LENGTH_MM = 15.0
@@ -111,7 +112,12 @@ class DrawingView(QGraphicsView):
         self.setBackgroundBrush(QColor(BACKGROUND))
         self.setMouseTracking(True)
         self.scale(1, -1)  # drawing coordinates are Y up
-        self._layers: dict[str, list[QGraphicsItem]] = {"stock": [], "contours": [], "path": []}
+        self._layers: dict[str, list[QGraphicsItem]] = {
+            "stock": [],
+            "contours": [],
+            "path": [],
+            "tabs": [],
+        }
         self._add_axes()
         self._press: QPoint | None = None  # where a pan or empty-space click started
         self._panned = False
@@ -148,6 +154,7 @@ class DrawingView(QGraphicsView):
     def show_toolpath(self, program: Program | None, rejected: bool = False) -> None:
         """Feeds solid, rapids dashed, numbered start points, arrows in the cutting direction."""
         self._clear("path")
+        self._clear("tabs")
         if program is None:
             return
         feeds = QPainterPath()
@@ -180,6 +187,17 @@ class DrawingView(QGraphicsView):
             x, y = nx, ny
         self._add("path", QGraphicsPathItem(rapids), _pen(RAPID, 1.0, Qt.PenStyle.DashLine))
         self._add("path", QGraphicsPathItem(feeds), _pen(FEED_REJECTED if rejected else FEED, 2.0))
+
+    def show_tabs(self, tabs: tuple[tuple[tuple[float, float], ...], ...]) -> None:
+        """Highlight where the tool lifts over a holding tab. Call after show_toolpath."""
+        self._clear("tabs")
+        for line in tabs:
+            if len(line) < 2:
+                continue
+            path = QPainterPath(QPointF(*line[0]))
+            for x, y in line[1:]:
+                path.lineTo(x, y)
+            self._add("tabs", QGraphicsPathItem(path), _pen(TAB, 6.0))
 
     def clear_all(self) -> None:
         for layer in self._layers:

@@ -19,6 +19,8 @@ CASES = [
     ("v1_example_job", "jobs/v1/example_job.json", "dxf/simple_part.dxf"),
     ("v2_simple_part_full", "jobs/v2/simple_part_full.json", "dxf/simple_part.dxf"),
     ("v3_messy_2_lower", "jobs/v3/messy_2_lower.json", "dxf/messy_2.dxf"),
+    ("v3_simple_part_tabs", "jobs/v3/simple_part_tabs.json", "dxf/simple_part.dxf"),
+    ("v3_messy_2_lower_tabs", "jobs/v3/messy_2_lower_tabs.json", "dxf/messy_2.dxf"),
 ]
 
 
