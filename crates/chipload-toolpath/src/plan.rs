@@ -7,6 +7,7 @@ use chipload_core::chain::Contour;
 use chipload_job::{Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
 
 use crate::ToolpathError;
+use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, Program};
 use crate::pocket::{PocketPiece, plan_pocket, pocket_moves};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
@@ -22,6 +23,8 @@ pub struct Plan {
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece in cut order (rings and links), for display and conformance tests.
     pub pockets: Vec<PocketPiece>,
+    /// Material each operation leaves, for display; by operation, kind, then (y, x).
+    pub material_left: Vec<MaterialLeft>,
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
@@ -36,6 +39,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut moves: Vec<Move> = Vec::new();
     let mut tabs: Vec<Vec<Point>> = Vec::new();
     let mut pockets: Vec<PocketPiece> = Vec::new();
+    let mut material_left: Vec<MaterialLeft> = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
         if !op.enabled() {
@@ -73,6 +77,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         notes.extend(planned.notes);
         tabs.extend(planned.tabs);
         pockets.extend(planned.pockets);
+        material_left.extend(attach(index, planned.left));
         position = planned.end;
     }
     Ok(Plan {
@@ -87,7 +92,28 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         notes,
         tabs,
         pockets,
+        material_left,
     })
+}
+
+/// One operation's pieces, ordered by kind, then (min y, min x).
+fn attach(operation: usize, mut pieces: Vec<LeftPiece>) -> Vec<MaterialLeft> {
+    pieces.sort_by(|a, b| {
+        let ((ax, ay), _) = bounds_of(&a.rings);
+        let ((bx, by), _) = bounds_of(&b.rings);
+        a.kind
+            .cmp(&b.kind)
+            .then(ay.total_cmp(&by))
+            .then(ax.total_cmp(&bx))
+    });
+    pieces
+        .into_iter()
+        .map(|piece| MaterialLeft {
+            operation,
+            kind: piece.kind,
+            rings: piece.rings,
+        })
+        .collect()
 }
 
 /// What every operation needs from the job.
@@ -104,6 +130,7 @@ struct Planned {
     notes: Vec<String>,
     tabs: Vec<Vec<Point>>,
     pockets: Vec<PocketPiece>,
+    left: Vec<LeftPiece>,
     end: Point,
 }
 
@@ -129,6 +156,7 @@ fn plan_pocket_op(
         notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
+        left: plan.left,
         end: start,
     };
     for piece in &plan.pieces {
@@ -169,6 +197,7 @@ fn plan_profile_op(
         notes: plan.notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
+        left: plan.left,
         end: start,
     };
     if let Some(tabs) = &op.tabs {

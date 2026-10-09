@@ -16,11 +16,12 @@ use chipload_job::{
     Direction, Drawing, Operation, Selector, Side, Spindle, StockOrigin, Tabs, ToolType, Travel,
     Units, ZZero, load_job, save_job,
 };
-use chipload_pipeline::report::{format_contours, format_import_report};
+use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
 use chipload_pipeline::{
     PipelineError, RunResult, embed_drawing, load_drawing, new_project, run_job, update_drawing,
     write_atomically,
 };
+use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::select::select_contours;
 use eframe::egui::{
     self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, KeyboardShortcut, Layout, MenuBar,
@@ -28,7 +29,7 @@ use eframe::egui::{
 };
 
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary};
-use crate::view::{ContourShape, Scene, ToolpathShape, View};
+use crate::view::{ContourShape, Highlight, LeftShape, Scene, ToolpathShape, View};
 
 const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
@@ -115,6 +116,8 @@ pub struct ChiploadApp {
     fit_pending: bool,
     pub selection: CanvasSelection,
     context_pick: Option<usize>,
+    /// View > Show material left (docs/specs/material-left.md).
+    pub show_material_left: bool,
 
     pub report: Vec<String>,
     status: Option<(String, Instant)>,
@@ -144,6 +147,7 @@ impl Default for ChiploadApp {
             fit_pending: false,
             selection: CanvasSelection::Nothing,
             context_pick: None,
+            show_material_left: true,
             report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
             status: None,
             cursor: None,
@@ -563,6 +567,9 @@ impl ChiploadApp {
                 self.error_ops.clear();
                 self.scene.toolpath = Some(ToolpathShape::new(&result.program, false));
                 self.scene.tabs.clone_from(&result.tabs);
+                self.scene.left = result.material_left.iter().map(LeftShape::new).collect();
+                // Missed pieces on top.
+                self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
                 let mut lines = vec![format!(
                     "Generated {} lines for {}. Check passed.",
                     result.gcode.matches('\n').count(),
@@ -575,6 +582,7 @@ impl ChiploadApp {
                         .iter()
                         .map(|w| format!("check warning: {}", w.message)),
                 );
+                lines.extend(format_material_left(&job, &result.material_left));
                 lines.push(String::new());
                 lines.extend(format_import_report(&result.import_report));
                 lines.extend(format_contours(&result.contours));
@@ -585,6 +593,7 @@ impl ChiploadApp {
             Err(PipelineError::CheckFailed { errors, program }) => {
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true));
                 self.scene.tabs.clear();
+                self.scene.left.clear();
                 let mut lines = vec!["G-code check FAILED. Nothing can be exported.".to_string()];
                 lines.extend(errors);
                 self.error(lines);
@@ -593,6 +602,7 @@ impl ChiploadApp {
             Err(err) => {
                 self.scene.toolpath = None;
                 self.scene.tabs.clear();
+                self.scene.left.clear();
                 let message = err.to_string();
                 self.error_ops = operation_index(&message).into_iter().collect();
                 self.error(vec!["Generation failed:".into(), message]);
@@ -741,6 +751,7 @@ impl ChiploadApp {
         self.result = None;
         self.scene.toolpath = None;
         self.scene.tabs.clear();
+        self.scene.left.clear();
     }
 
     fn toolpath_out_of_date(&mut self) {
@@ -1076,6 +1087,11 @@ impl ChiploadApp {
                 if ui.button("Fit view  (F)").clicked() {
                     self.fit_pending = true;
                 }
+                ui.checkbox(&mut self.show_material_left, "Show material left")
+                    .on_hover_text(
+                        "Faint: material the tool can't reach (inside corners, narrow slots). \
+                         Red: material the toolpath missed.",
+                    );
             });
             ui.menu_button("Help", |ui| {
                 if ui.button("About and licences").clicked() {
@@ -1415,10 +1431,46 @@ impl ChiploadApp {
                 ui.label("Right-click a contour to select its layer.");
             }
         });
-        let selected = self.selection.ids(&self.contours);
-        let operation = self.focused_contours();
-        self.scene
-            .paint(&painter, &self.view, &selected, &operation);
+        let operation = match self.focus {
+            Focus::Op(i) => Some(i),
+            _ => None,
+        };
+        if self.show_material_left
+            && !response.dragged()
+            && let Some(at) = self.cursor
+            && let Some(piece) = self.scene.left_at(at, operation)
+        {
+            let text = self.material_left_text(piece);
+            response.on_hover_text_at_pointer(text);
+        }
+        let highlight = Highlight {
+            selected: self.selection.ids(&self.contours),
+            operation_contours: self.focused_contours(),
+            operation,
+            show_material_left: self.show_material_left,
+        };
+        self.scene.paint(&painter, &self.view, &highlight);
+    }
+
+    fn material_left_text(&self, piece: &LeftShape) -> String {
+        let name = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.ops.get(piece.operation))
+            .map(|e| e.op.name().to_string())
+            .unwrap_or_default();
+        let label = match name.as_str() {
+            "" => format!("Operation {}", piece.operation + 1),
+            name => format!("Operation {} ({name})", piece.operation + 1),
+        };
+        let what = match piece.kind {
+            LeftKind::Unreachable => "material the tool can't reach",
+            LeftKind::Missed => "material the toolpath missed (see the warning)",
+        };
+        format!(
+            "{label}: {what}, about {:.2} x {:.2} mm",
+            piece.size.0, piece.size.1
+        )
     }
 
     fn about(&mut self, ctx: &egui::Context) {
@@ -2036,6 +2088,24 @@ mod tests {
         assert!(reopened.open(&project));
         assert_eq!(reopened.contours, app.contours);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn generating_shows_the_material_left_until_the_project_changes() {
+        let mut app = lower_part();
+        assert!(app.generate(), "{:?}", app.report);
+        // Bar #4's four square corners. Bar #6's right end is rounded and its left corners
+        // lie inside bar #4, which clears them. The outline (operation 1, outside) has no
+        // inside corners.
+        assert!(app.scene.left.iter().all(|l| l.operation == 0));
+        assert_eq!(app.scene.left.len(), 4);
+        assert!(
+            app.report
+                .iter()
+                .any(|l| l.contains("the tool can't reach material in 4 places"))
+        );
+        app.toolpath_out_of_date();
+        assert!(app.scene.left.is_empty());
     }
 
     #[test]

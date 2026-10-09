@@ -7,6 +7,7 @@ mod common;
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
 use chipload_job::{Job, parse_job};
+use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::{ToolpathError, plan_job};
 use serde_json::{Value, json};
 
@@ -85,4 +86,56 @@ fn too_many_tabs_names_the_contour() {
         matches!(&err, ToolpathError::Geometry(m) if m.starts_with("Operation 1, contour #1:")),
         "{err}"
     );
+}
+
+// -- material left (docs/specs/material-left.md)
+
+fn unreachable(side: &str, contours: &[Contour]) -> Vec<chipload_toolpath::left::MaterialLeft> {
+    let plan = plan_job(&job(profile(side, Value::Null)), contours).unwrap();
+    assert!(
+        plan.material_left
+            .iter()
+            .all(|m| m.operation == 0 && m.kind == LeftKind::Unreachable)
+    );
+    plan.material_left
+}
+
+#[test]
+fn inside_profile_leaves_the_corners_of_the_hole() {
+    let left = unreachable("inside", &part());
+    assert_eq!(left.len(), 4);
+    // Ordered by (min y, min x): bottom left first.
+    assert_eq!(left[0].bounds().0, (10.0, 10.0));
+}
+
+#[test]
+fn outside_profile_of_a_convex_part_and_a_cut_on_the_line_leave_nothing() {
+    assert!(unreachable("outside", &part()).is_empty());
+    assert!(unreachable("on", &part()).is_empty());
+}
+
+#[test]
+fn outside_profile_leaves_the_inside_corner_of_an_l() {
+    let l = vec![common::polygon(&[
+        (0.0, 0.0),
+        (50.0, 0.0),
+        (50.0, 20.0),
+        (20.0, 20.0),
+        (20.0, 40.0),
+        (0.0, 40.0),
+    ])];
+    let left = unreachable("outside", &l);
+    assert_eq!(left.len(), 1);
+    let (x, y) = left[0].bounds().0;
+    assert!(
+        (x - 20.0).abs() < 1e-9 && (y - 20.0).abs() < 1e-9,
+        "{x}, {y}"
+    );
+}
+
+#[test]
+fn tabs_are_not_material_left() {
+    let tabs = json!({"count": 4, "width": 8, "height": 3});
+    let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
+    assert!(plan.material_left.is_empty());
 }

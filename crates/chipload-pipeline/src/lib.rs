@@ -19,6 +19,7 @@ use chipload_job::{
     StockOrigin, Tool, ToolType, Units, ZZero,
 };
 use chipload_post::{PostConfig, PostError, load_builtin_post, render_program};
+use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::pocket::PocketPiece;
 use chipload_toolpath::{ToolpathError, plan_job, validate_job};
@@ -55,6 +56,8 @@ pub struct RunResult {
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece (rings and links), for display.
     pub pockets: Vec<PocketPiece>,
+    /// Material each operation leaves (unreachable corners, missed spots), for display.
+    pub material_left: Vec<MaterialLeft>,
     /// Toolpath warnings.
     pub notes: Vec<String>,
     pub check_warnings: Vec<CheckIssue>,
@@ -91,6 +94,7 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
         program: plan.program,
         tabs: plan.tabs,
         pockets: plan.pockets,
+        material_left: plan.material_left,
         notes,
         check_warnings: report.warnings,
     })

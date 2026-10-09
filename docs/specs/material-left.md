@@ -42,8 +42,12 @@ telling. Corner fillets get no text.
 - **Profile, on the line**: nothing; there's no side to leave material on.
 - **Tabs** are left on purpose: not shown as material left.
 
-Overlapping operations: each operation is judged on its own. A corner one pocket leaves can
-be cleared by a later operation, and it's still shown. Telling them apart is rest machining,
+Within one pocket operation, crossing pockets clear each other's corners (the crossing bars
+in `messy_2.dxf`), so a piece is shown only where none of the operation's pockets reaches.
+Missed spots are still judged per pocket.
+
+Between operations, each one is judged on its own. A corner one operation leaves can be
+cleared by a later operation, and it's still shown. Telling them apart is rest machining,
 out of scope.
 
 ## 3. Computing it (chipload-toolpath)
@@ -72,27 +76,32 @@ Display only: nothing here changes the toolpath, and a failure must never block 
   pub struct MaterialLeft {
       pub operation: usize,          // index in job.operations
       pub kind: LeftKind,            // Unreachable | Missed
-      pub outline: Vec<Point>,       // closed polygon, CCW, arcs flattened
+      pub rings: Vec<Vec<Point>>,    // closed rings, arcs flattened, filled even-odd
   }
   ```
 
-  Pieces smaller than `REST_TOL_MM` across are dropped (chord and float noise).
+  An unreachable piece is its outline plus any holes; a missed piece is the quadtree squares
+  it is made of. Pieces that hold no disk of diameter `REST_TOL_MM` are dropped (chord and
+  float noise).
+- Sizes are bounding boxes of what is shown, so the gap makes a square corner left by a
+  3 mm radius tool read as about 2.75 mm: the thin tips along the walls are cut off.
 
 ## 4. CLI
 
 Every feature in the CLI first (CLAUDE.md):
 
-- `chipload plan --json` gets a `"material_left"` list: `{operation, kind, outline}`.
+- `chipload plan --json` gets a `"material_left"` list: `{operation, kind, rings}`.
 - `chipload plan` and `run` (text) add one summary line per operation that leaves any, e.g.
-  `Operation 2 (lid pocket): material left in 4 corners (unreachable), largest 1.2 x 1.2 mm`.
-  This is a plain info line, not a `warning:`.
+  `Operation 2 (lid pocket): the tool can't reach material in 4 places, largest about
+  2.75 x 2.75 mm`. This is a plain info line, not a `warning:`. The GUI report shows it too.
 - Missed material keeps its existing `warning:` line, unchanged.
 
 ## 5. GUI
 
 - Unreachable: a faint, translucent fill in a muted colour, under the toolpath and the
   contours, so it never hides a line. Missed: the same fill in the warning colour, stronger.
-- A toggle **Show material left** in the view menu, on by default.
+- A toggle **Show material left** in the View menu, on by default. It isn't saved between
+  sessions (there are no app settings yet).
 - Selecting an operation in the list emphasises its own pieces (as its contours are already
   drawn wider) and fades the rest.
 - egui only fills convex polygons (`epaint` 0.36.2, `PathShape`: "Fill is only supported for
@@ -108,6 +117,8 @@ Every feature in the CLI first (CLAUDE.md):
 ## 7. Tests
 
 - **Unit (toolpath)**:
+  - Two crossing pockets in one operation (a T): the crossbar's corners inside the upright
+    are not shown.
   - Square pocket, sharp corners: 4 unreachable corner pieces, each with area
     r²(1 − π/4) within tolerance; no missed pieces.
   - Pocket with a rounded-corner outline whose corner radius ≥ r: nothing unreachable.
@@ -124,8 +135,10 @@ Every feature in the CLI first (CLAUDE.md):
 - **Property (proptest)**: for random simple polygons with random islands:
   - every unreachable piece lies inside R;
   - sampled points inside a piece are farther than r − tol from every cutting move;
-  - sampled points of R farther than r + `REST_TOL_MM` from every cutting move lie in an unreachable or
-    a missed piece (nothing left over is unshown).
+  - sampled points of R farther than r + 2·`REST_TOL_MM` from every cutting move lie in a
+    shown piece (nothing left over is unshown);
+  - a geometry-library failure takes the fallback above. Such cases are rejected, so they
+    can't pass in bulk; only a degenerate outline (near-collinear spikes) has hit one.
 - **Golden**: G-code for every corpus project is unchanged (the test already exists).
 - **GUI**: scanline fill of a concave polygon (an L, a corner fillet) gives triangles whose
   total area equals the polygon's.

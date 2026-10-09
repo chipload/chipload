@@ -12,7 +12,9 @@ use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
 use chipload_job::{Job, Spindle, Units, load_job, save_job};
-use chipload_pipeline::report::{format_contours, format_import_report, severity_name};
+use chipload_pipeline::report::{
+    format_contours, format_import_report, format_material_left, severity_name,
+};
 use chipload_pipeline::{
     PipelineError, embed_drawing, load_drawing, new_project, run_job, update_drawing,
     write_atomically,
@@ -283,6 +285,9 @@ fn run(project: &Path, output: &Path) -> ExitCode {
     for warning in &result.check_warnings {
         println!("check warning: {}", warning.message);
     }
+    for line in format_material_left(&job, &result.material_left) {
+        println!("{line}");
+    }
     if let Err(err) = write_atomically(output, &result.gcode) {
         eprintln!("error: cannot write {}: {err}", output.display());
         return ExitCode::from(EXIT_FAILED);
@@ -401,11 +406,19 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                     "rings": p.rings,
                     "feed_links": p.feed_links,
                 })).collect::<Vec<_>>(),
+                "material_left": plan.material_left.iter().map(|m| json!({
+                    "operation": m.operation,
+                    "kind": m.kind.name(),
+                    "rings": m.rings,
+                })).collect::<Vec<_>>(),
             })
         );
     } else {
         for note in &plan.notes {
             println!("warning: {note}");
+        }
+        for line in format_material_left(&job, &plan.material_left) {
+            println!("{line}");
         }
         println!("Planned {} moves.", plan.program.moves.len());
     }

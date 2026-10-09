@@ -25,6 +25,7 @@ use chipload_job::{Direction, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::geom::PrimIndex;
+use crate::left::{LeftKind, LeftPiece, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
@@ -48,9 +49,11 @@ pub struct PocketPlan {
     pub pieces: Vec<PocketPiece>,
     /// Warnings: narrow parts, uncut material.
     pub notes: Vec<String>,
+    /// Material left, for display (unreachable corners and slots, missed spots).
+    pub left: Vec<LeftPiece>,
 }
 
-fn geometry(message: String) -> ToolpathError {
+pub(crate) fn geometry(message: String) -> ToolpathError {
     ToolpathError::Geometry(message)
 }
 
@@ -62,31 +65,31 @@ fn ids_text(ids: &[usize]) -> String {
 }
 
 /// Run a cavalier operation; a panic inside the library becomes a GeometryError.
-fn guarded<T>(what: &str, f: impl FnOnce() -> T) -> Result<T, ToolpathError> {
+pub(crate) fn guarded<T>(what: &str, f: impl FnOnce() -> T) -> Result<T, ToolpathError> {
     catch_unwind(AssertUnwindSafe(f))
         .map_err(|_| geometry(format!("{what} failed inside the geometry library")))
 }
 
-fn ccw(mut pline: Polyline<f64>) -> Polyline<f64> {
+pub(crate) fn ccw(mut pline: Polyline<f64>) -> Polyline<f64> {
     if pline.orientation() == PlineOrientation::Clockwise {
         pline.invert_direction_mut();
     }
     pline
 }
 
-fn cw(mut pline: Polyline<f64>) -> Polyline<f64> {
+pub(crate) fn cw(mut pline: Polyline<f64>) -> Polyline<f64> {
     if pline.orientation() == PlineOrientation::CounterClockwise {
         pline.invert_direction_mut();
     }
     pline
 }
 
-fn first_point(pline: &Polyline<f64>) -> Point {
+pub(crate) fn first_point(pline: &Polyline<f64>) -> Point {
     let v = pline.at(0);
     (v.x, v.y)
 }
 
-fn encloses(pline: &Polyline<f64>, p: Point) -> bool {
+pub(crate) fn encloses(pline: &Polyline<f64>, p: Point) -> bool {
     pline.winding_number(Vector2::new(p.0, p.1)) != 0
 }
 
@@ -102,11 +105,19 @@ pub struct Area {
 }
 
 impl Area {
-    fn contains(&self, p: Point) -> bool {
+    /// An area without holes.
+    pub fn of(outer: Polyline<f64>) -> Self {
+        Area {
+            outer,
+            holes: Vec::new(),
+        }
+    }
+
+    pub(crate) fn contains(&self, p: Point) -> bool {
         encloses(&self.outer, p) && !self.holes.iter().any(|h| encloses(h, p))
     }
 
-    fn boundary(&self) -> Vec<Primitive> {
+    pub(crate) fn boundary(&self) -> Vec<Primitive> {
         let mut prims = pline_segments(&self.outer);
         for hole in &self.holes {
             prims.extend(pline_segments(hole));
@@ -115,10 +126,15 @@ impl Area {
     }
 
     /// Distance from `p` to the area: 0 inside.
-    fn distance(&self, p: Point) -> f64 {
+    pub(crate) fn distance(&self, p: Point) -> f64 {
         if self.contains(p) {
             return 0.0;
         }
+        self.edge_distance(p)
+    }
+
+    /// Distance from `p` to the nearest edge, inside or out.
+    pub(crate) fn edge_distance(&self, p: Point) -> f64 {
         self.boundary()
             .iter()
             .map(|s| point_distance(s, p))
@@ -132,7 +148,8 @@ impl Area {
     }
 
     /// The area shrunk by `d`: every part farther than `d` from the boundary.
-    fn shrunk(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
+    /// Negative `d` grows it.
+    pub(crate) fn shrunk(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
         let plines = std::iter::once(self.outer.clone()).chain(self.holes.iter().cloned());
         let shape = Shape::from_plines(plines);
         let offset = guarded("Pocket offset", || {
@@ -600,7 +617,7 @@ fn uncut_material(
     links: &[bool],
     radius: f64,
     ids: &[usize],
-) -> Option<String> {
+) -> (Option<String>, Vec<LeftPiece>) {
     let eps = REST_TOL_MM;
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
@@ -616,7 +633,9 @@ fn uncut_material(
         cell_size,
     );
 
-    let extents = region.outer.extents()?;
+    let Some(extents) = region.outer.extents() else {
+        return (None, Vec::new());
+    };
     let side = (extents.max_x - extents.min_x).max(extents.max_y - extents.min_y);
     let mut todo = vec![Cell {
         centre: (
@@ -669,8 +688,16 @@ fn uncut_material(
         .filter(|piece| piece.iter().any(|&i| leftover[i].1))
         .collect();
     if spots.is_empty() {
-        return None;
+        return (None, Vec::new());
     }
+    let mut missed: Vec<LeftPiece> = spots
+        .iter()
+        .map(|spot| LeftPiece {
+            kind: LeftKind::Missed,
+            rings: spot.iter().map(|&i| square(cells[i])).collect(),
+        })
+        .collect();
+    sort_pieces(&mut missed);
     let area =
         |spot: &[usize]| -> f64 { spot.iter().map(|&i| (2.0 * cells[i].half).powi(2)).sum() };
     let bounds = |spot: &[usize]| {
@@ -699,16 +726,22 @@ fn uncut_material(
             .total_cmp(&area(b))
             .then(bb.1.total_cmp(&ba.1))
             .then(bb.0.total_cmp(&ba.0))
-    })?;
+    });
+    let Some(largest) = largest else {
+        return (None, missed);
+    };
     let (x0, y0, x1, y1) = bounds(largest);
     // A point inside the piece: the centre of its biggest cell.
     let inside = largest
         .iter()
         .map(|&i| cells[i])
-        .max_by(|a, b| a.half.total_cmp(&b.half))?;
+        .max_by(|a, b| a.half.total_cmp(&b.half));
+    let Some(inside) = inside else {
+        return (None, missed);
+    };
     let count = spots.len();
     let places = format!("{count} place{}", if count > 1 { "s" } else { "" });
-    Some(format!(
+    let note = format!(
         "contours {}: uncut material in {places}, largest about {:.2} x {:.2} mm near \
          ({:.1}, {:.1}); reduce the stepover to clear it",
         ids_text(ids),
@@ -716,7 +749,19 @@ fn uncut_material(
         y1 - y0,
         inside.centre.0,
         inside.centre.1
-    ))
+    );
+    (Some(note), missed)
+}
+
+/// A cell as a counter-clockwise square.
+fn square(cell: Cell) -> Vec<Point> {
+    let ((x, y), h) = (cell.centre, cell.half);
+    vec![
+        (x - h, y - h),
+        (x + h, y - h),
+        (x + h, y + h),
+        (x - h, y + h),
+    ]
 }
 
 /// Groups of cells that touch (within `gap`), as index lists in a deterministic order.
@@ -784,6 +829,9 @@ pub fn plan_pocket(
     }
     let mut pieces = Vec::new();
     let mut notes = Vec::new();
+    let mut left = Vec::new();
+    // Every region with where the tool centre can go in it, for the material left.
+    let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
     while !remaining.is_empty() {
         let here = position;
@@ -821,14 +869,10 @@ pub fn plan_pocket(
             .collect();
         verify(&region, &walls, &rings, &links, tool_radius, &ids)?;
         let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
-        notes.extend(uncut_material(
-            &region,
-            &level0,
-            &rings,
-            &links,
-            tool_radius,
-            &ids,
-        ));
+        let (uncut, missed) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
+        notes.extend(uncut);
+        left.extend(missed);
+        reachable.push((region, level0));
         position = rings[0][0]; // every depth starts again at the first ring
         pieces.push(PocketPiece {
             rings,
@@ -836,7 +880,44 @@ pub fn plan_pocket(
             contour_ids: ids,
         });
     }
-    Ok(PocketPlan { pieces, notes })
+    // Display only: any failure, even a panic in the geometry library, becomes a note.
+    let unreachable = guarded("Material left", || {
+        unreachable_in_pockets(&reachable, tool_radius)
+    })
+    .and_then(|result| result);
+    match unreachable {
+        Ok(pieces) => left.extend(pieces),
+        Err(_) => {
+            let mut ids: Vec<usize> = contours.iter().map(|c| c.id).collect();
+            ids.sort_unstable();
+            notes.push(format!(
+                "contours {}: could not compute the material left for display",
+                ids_text(&ids)
+            ));
+        }
+    }
+    Ok(PocketPlan {
+        pieces,
+        notes,
+        left,
+    })
+}
+
+/// Material no pocket of the operation reaches. Crossing pockets clear each other's
+/// corners, so each region is checked against the reach of all of them.
+fn unreachable_in_pockets(
+    regions: &[(Area, Vec<Area>)],
+    radius: f64,
+) -> Result<Vec<LeftPiece>, ToolpathError> {
+    let mut reached = Vec::new();
+    for (_, level0) in regions {
+        reached.extend(reach(level0, radius)?);
+    }
+    let mut pieces = Vec::new();
+    for (region, _) in regions {
+        pieces.extend(unreachable_inside(region, &reached)?);
+    }
+    Ok(pieces)
 }
 
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.
