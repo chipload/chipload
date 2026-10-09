@@ -3,6 +3,8 @@
 //!
 //! Headless by design: no I/O, no GUI. Units are millimetres, angles radians (CCW positive).
 
+pub mod chain;
+pub mod primitives;
 pub mod tolerances;
 
 /// A 2D point in millimetres.
