@@ -4,18 +4,21 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::{Job, Operation, Tool, ToolType, ZZero};
+use chipload_job::{Job, Operation, ProfileOp, Side, Tool, ToolType, ZZero};
 
 use crate::ToolpathError;
 use crate::model::{Move, Program};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
-use crate::select::select_contours;
+use crate::select::{Selection, select_contours};
+use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
     pub program: Program,
     /// Warnings for the user.
     pub notes: Vec<String>,
+    /// Tool-path stretch of every tab, for display.
+    pub tabs: Vec<Vec<Point>>,
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
@@ -28,6 +31,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         ZZero::Bottom => job.stock.thickness,
     };
     let mut moves: Vec<Move> = Vec::new();
+    let mut tabs: Vec<Vec<Point>> = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
         let label = match op_name(op) {
@@ -37,36 +41,23 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         let Operation::Profile(profile) = op else {
             return Err(not_ported(&label, op));
         };
-        if profile.tabs.is_some() {
-            return Err(job_error(format!(
-                "{label}: tabs are not ported to the Rust version yet"
-            )));
-        }
         let selection = select_contours(contours, &profile.select, &label)?;
-        notes.extend(selection.notes);
+        notes.extend(selection.notes.iter().cloned());
         let pass_z: Vec<f64> = pass_depths(profile.depth, profile.step_down)?
             .into_iter()
             .map(|d| top_z - d)
             .collect();
-        let plan = plan_profile(
-            profile,
-            &label,
-            &selection.contours,
-            tool.diameter / 2.0,
-            job.machine.spindle,
-            position,
-        )?;
-        notes.extend(plan.notes);
-        for ring in &plan.rings {
-            moves.extend(contour_moves(
-                &ring.points,
-                &pass_z,
-                job.machine.safe_z,
-                profile.feed,
-                profile.plunge_feed,
-            ));
-            position = ring.points[0];
-        }
+        let context = Context {
+            label: &label,
+            tool,
+            job,
+            pass_z: &pass_z,
+        };
+        let planned = plan_profile_op(profile, &context, &selection, position)?;
+        moves.extend(planned.moves);
+        notes.extend(planned.notes);
+        tabs.extend(planned.tabs);
+        position = planned.end;
     }
     Ok(Plan {
         program: Program {
@@ -78,7 +69,110 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             moves,
         },
         notes,
+        tabs,
     })
+}
+
+/// What every operation needs from the job.
+struct Context<'a> {
+    label: &'a str,
+    tool: &'a Tool,
+    job: &'a Job,
+    pass_z: &'a [f64],
+}
+
+/// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
+struct Planned {
+    moves: Vec<Move>,
+    notes: Vec<String>,
+    tabs: Vec<Vec<Point>>,
+    end: Point,
+}
+
+fn plan_profile_op(
+    op: &ProfileOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label;
+    let machine = &ctx.job.machine;
+    let plan = plan_profile(
+        op,
+        label,
+        &selection.contours,
+        ctx.tool.diameter / 2.0,
+        machine.spindle,
+        start,
+    )?;
+    let mut out = Planned {
+        moves: Vec::new(),
+        notes: plan.notes,
+        tabs: Vec::new(),
+        end: start,
+    };
+    if let Some(tabs) = &op.tabs {
+        if tabs.height >= op.depth {
+            return Err(job_error(format!(
+                "{label}: tab height {} must be less than the cut depth {}",
+                tabs.height, op.depth
+            )));
+        }
+        if op.side == Side::Inside {
+            out.notes.push(format!(
+                "{label}: tabs on an inside profile will hold the cut-out slug"
+            ));
+        }
+    }
+    let mut curved: Vec<usize> = Vec::new();
+    for ring in &plan.rings {
+        let points = &ring.points;
+        match &op.tabs {
+            None => out.moves.extend(contour_moves(
+                points,
+                ctx.pass_z,
+                machine.safe_z,
+                op.feed,
+                op.plunge_feed,
+            )),
+            Some(tabs) => {
+                // Validated: count >= 1.
+                let count = usize::try_from(tabs.count).unwrap_or(0);
+                let context = |err: ToolpathError| {
+                    err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+                };
+                let layout =
+                    place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
+                if layout.on_curves > 0 {
+                    curved.push(ring.contour_id);
+                }
+                let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
+                out.moves.extend(
+                    tabbed_contour_moves(
+                        points,
+                        &layout,
+                        ctx.pass_z,
+                        bottom + tabs.height,
+                        machine.safe_z,
+                        op.feed,
+                        op.plunge_feed,
+                    )
+                    .map_err(context)?,
+                );
+                out.tabs.extend(tab_polylines(points, &layout));
+            }
+        }
+        out.end = points[0];
+    }
+    if !curved.is_empty() {
+        let ids: Vec<String> = curved.iter().map(|c| format!("#{c}")).collect();
+        out.notes.push(format!(
+            "{label}: some tabs on contours {} sit on a corner or curve (no straight stretch \
+             nearby)",
+            ids.join(", ")
+        ));
+    }
+    Ok(out)
 }
 
 fn op_name(op: &Operation) -> &str {

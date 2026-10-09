@@ -9,6 +9,7 @@ pub mod offset;
 pub mod plan;
 pub mod profile;
 pub mod select;
+pub mod tabs;
 
 pub use plan::{Plan, plan_job};
 
