@@ -34,3 +34,7 @@ Status: accepted (2026-10-09)
 - Two implementations exist for a while; new features need agreement on where they go first.
 - Each crate choice beyond the basics (offsetting, DXF parsing) gets its own ADR after checking
   license and maintenance.
+- No code of conduct or security contact address yet (decision 2026-10-09). Revisit before
+  the repository goes public.
+- Libraries: `dxf` for reading DXF (ADR 0005), `cavalier_contours` for offsetting and polygon
+  queries (ADR 0006).
