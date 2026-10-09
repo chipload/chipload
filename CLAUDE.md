@@ -66,6 +66,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources            # GPL-3.0 compatibility of every crate
 cargo run -p chipload-cli -- check out.nc --job job.json   # Rust checker on any G-code
+cargo run -p chipload-cli -- run part.dxf --job job.json -o out.nc   # Rust end to end
+cargo run -p chipload-cli -- plan part.dxf --job job.json --json      # toolpath, no G-code
 ```
 
 ## Rust

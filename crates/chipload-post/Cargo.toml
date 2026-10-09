@@ -1,0 +1,18 @@
+[package]
+name = "chipload-post"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chipload-job = { version = "0.1.0", path = "../chipload-job" }
+chipload-toolpath = { version = "0.1.0", path = "../chipload-toolpath" }
+minijinja = { version = "3.0.0", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+toml = "1"
+
+[lints]
+workspace = true

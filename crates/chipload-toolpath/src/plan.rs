@@ -256,7 +256,7 @@ fn job_error(message: String) -> ToolpathError {
 }
 
 /// Generation-time rules from the specs. Returns the single tool used and warnings.
-fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
+pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
     if job.operations.is_empty() {
         return Err(job_error("Job has no operations".into()));
     }

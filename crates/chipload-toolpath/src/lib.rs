@@ -13,7 +13,7 @@ pub mod profile;
 pub mod select;
 pub mod tabs;
 
-pub use plan::{Plan, plan_job};
+pub use plan::{Plan, plan_job, validate_job};
 
 /// Why no toolpath could be made. Messages are the user-facing text.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]

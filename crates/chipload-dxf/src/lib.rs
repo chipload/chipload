@@ -29,7 +29,7 @@ pub use convert::{Affine, MAX_BLOCK_DEPTH};
 /// Millimetres per inch.
 const MM_PER_INCH: f64 = 25.4;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum ImportError {
     #[error("Cannot read DXF {path}: {reason}")]
     Unreadable { path: String, reason: String },
