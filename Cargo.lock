@@ -751,6 +751,7 @@ dependencies = [
  "chipload-job",
  "chipload-post",
  "chipload-toolpath",
+ "serde_json",
  "sha2",
  "thiserror 2.0.21",
 ]
@@ -759,6 +760,7 @@ dependencies = [
 name = "chipload-post"
 version = "0.1.0"
 dependencies = [
+ "chipload-check",
  "chipload-job",
  "chipload-toolpath",
  "minijinja",

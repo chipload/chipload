@@ -49,6 +49,50 @@ pub fn load_job(path: &Path) -> Result<Job, JobError> {
     parse_job(migrations::migrate(data)?, &shown)
 }
 
+/// Serialise as the current schema version.
+///
+/// Every field is written, defaults included, so a default that changes in a later version
+/// can't silently change what an existing file means. ASCII-only JSON (non-ASCII escaped as
+/// \uXXXX), two-space indent, fields in declaration order, ending with a newline.
+pub fn dump_job(job: &Job) -> Result<String, JobError> {
+    let mut current = job.clone();
+    current.schema_version = CURRENT_VERSION;
+    current.written_by = Some(format!("chipload {}", env!("CARGO_PKG_VERSION")));
+    let text = serde_json::to_string_pretty(&current).map_err(|e| JobError::Invalid {
+        path: "(job)".into(),
+        reason: e.to_string(),
+    })?;
+    let mut out = String::with_capacity(text.len() + 1);
+    for c in text.chars() {
+        if c.is_ascii() {
+            out.push(c);
+        } else {
+            // Non-ASCII only occurs inside JSON strings, where \u escapes are valid.
+            let mut units = [0u16; 2];
+            for unit in c.encode_utf16(&mut units) {
+                out.push_str(&format!("\\u{unit:04x}"));
+            }
+        }
+    }
+    out.push('\n');
+    Ok(out)
+}
+
+/// Save as the current schema version, via a temporary file and a rename so a reader never
+/// sees a half-written job.
+pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
+    let failed = |e: std::io::Error| JobError::Unreadable {
+        path: path.display().to_string(),
+        reason: format!("cannot write: {e}"),
+    };
+    let text = dump_job(job)?;
+    let mut tmp_name = path.file_name().unwrap_or_default().to_os_string();
+    tmp_name.push(".tmp");
+    let tmp = path.with_file_name(tmp_name);
+    std::fs::write(&tmp, text).map_err(failed)?;
+    std::fs::rename(&tmp, path).map_err(failed)
+}
+
 /// Validate already-migrated data as the current version.
 pub fn parse_job(data: Value, path: &str) -> Result<Job, JobError> {
     let job: Job = serde_json::from_value(data).map_err(|e| JobError::Invalid {

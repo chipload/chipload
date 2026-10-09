@@ -16,3 +16,6 @@ toml = "1"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+chipload-check = { path = "../chipload-check" }

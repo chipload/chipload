@@ -152,3 +152,82 @@ fn pocket_fields_parse() {
     assert!(pocket.keep_tool_down);
     assert_eq!(job.tools[0].center_cutting, Some(true));
 }
+
+// -- saving (port of tests/unit/test_job_save.py)
+
+fn temp_dir(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("chipload-job-{name}-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+#[test]
+fn round_trip_keeps_the_job() {
+    let mut original = load_job(&corpus().join("v2/simple_part_full.json")).unwrap();
+    let dir = temp_dir("round-trip");
+    let path = dir.join("job.json");
+    chipload_job::save_job(&original, &path).unwrap();
+    let mut reloaded = load_job(&path).unwrap();
+    std::fs::remove_dir_all(&dir).unwrap();
+    original.written_by = None;
+    reloaded.written_by = None;
+    original.schema_version = CURRENT_VERSION;
+    assert_eq!(reloaded, original);
+}
+
+#[test]
+fn every_corpus_job_survives_save_and_load() {
+    for path in all_corpus_jobs() {
+        let job = load_job(&path).unwrap();
+        let text = chipload_job::dump_job(&job).unwrap();
+        let data: Value = serde_json::from_str(&text).unwrap();
+        let again = parse_job(migrate(data).unwrap(), "saved").unwrap();
+        assert_eq!(again.operations, job.operations, "{}", path.display());
+    }
+}
+
+#[test]
+fn old_version_is_saved_as_current() {
+    let job = load_job(&corpus().join("v1/example_job.json")).unwrap();
+    let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    assert!(
+        data["written_by"]
+            .as_str()
+            .unwrap()
+            .starts_with("chipload ")
+    );
+    assert_eq!(data["machine"]["spindle"], json!("cw"));
+}
+
+#[test]
+fn defaults_are_written_explicitly() {
+    let job = load_job(&corpus().join("v1/example_job.json")).unwrap();
+    let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(data["stock"]["origin"], json!("bottom_left"));
+    assert_eq!(data["stock"]["z_zero"], json!("top"));
+    assert!(
+        data["machine"]
+            .as_object()
+            .unwrap()
+            .contains_key("max_feed")
+    );
+}
+
+#[test]
+fn output_is_deterministic_ascii() {
+    let mut job = load_job(&corpus().join("v2/simple_part_full.json")).unwrap();
+    if let Operation::Profile(op) = &mut job.operations[0] {
+        op.name = "Hål ⌀6 😀".into();
+    }
+    let text = chipload_job::dump_job(&job).unwrap();
+    assert_eq!(text, chipload_job::dump_job(&job).unwrap());
+    assert!(text.ends_with("}\n") && text.is_ascii());
+    // Same escaping as Python's json.dumps (ensure_ascii).
+    assert!(
+        text.contains(r#""H\u00e5l \u23006 \ud83d\ude00""#),
+        "{text}"
+    );
+    let back: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(back["operations"][0]["name"], json!("Hål ⌀6 😀"));
+}
