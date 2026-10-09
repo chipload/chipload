@@ -5,6 +5,7 @@
 #![allow(clippy::print_stderr)]
 
 mod app;
+mod editor;
 mod fonts;
 mod view;
 

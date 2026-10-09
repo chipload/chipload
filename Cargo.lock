@@ -728,6 +728,7 @@ dependencies = [
  "chipload-toolpath",
  "eframe",
  "rfd",
+ "serde_json",
  "winit",
 ]
 

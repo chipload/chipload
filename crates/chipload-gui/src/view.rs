@@ -23,6 +23,8 @@ const AXIS_X: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
 const AXIS_Y: Color32 = Color32::from_rgb(0x81, 0xc9, 0x95);
 const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
 const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
+/// Contours of the operation selected in the operations list.
+const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
 
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
@@ -276,7 +278,15 @@ impl Scene {
             .map(|(_, id)| id)
     }
 
-    pub fn paint(&self, painter: &Painter, view: &View, selected: &BTreeSet<usize>) {
+    /// `selected`: the canvas selection; `operation`: contours of the operation selected in
+    /// the operations list (drawn wider, under the selection colour).
+    pub fn paint(
+        &self,
+        painter: &Painter,
+        view: &View,
+        selected: &BTreeSet<usize>,
+        operation: &BTreeSet<usize>,
+    ) {
         painter.rect_filled(painter.clip_rect(), 0.0, BACKGROUND);
         let screen =
             |pts: &[Point]| -> Vec<Pos2> { pts.iter().map(|&p| view.to_screen(p)).collect() };
@@ -301,6 +311,9 @@ impl Scene {
         for c in &self.contours {
             let pts = screen(&c.points);
             let is_selected = selected.contains(&c.id);
+            if operation.contains(&c.id) {
+                painter.add(Shape::line(pts.clone(), Stroke::new(6.0, OPERATION)));
+            }
             let (color, width) = match (is_selected, c.kind) {
                 (true, _) => (SELECTED, 3.0),
                 (false, Kind::Outer) => (OUTER, 1.5),

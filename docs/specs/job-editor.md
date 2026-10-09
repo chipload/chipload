@@ -93,8 +93,9 @@ generated or saved until it's filled.
   side or geometry) can't be saved; the report says which field is missing.
 - **Export G-code** (Ctrl+E; decision 2026-10-09, Q1) writes the checked program, as Save
   G-code did before. It needs a successful F5 since the last edit.
-- Unsaved changes show as `*` in the title; closing the window, opening another job or a new
-  drawing asks first.
+- Unsaved changes show as `*` in the title; closing the window, opening another job or
+  starting a new job asks first. Opening another drawing keeps the job (nothing is lost) and
+  notes it if the job was made for a different file; the sha256 lock catches a mismatch.
 - **Undo / redo** (Ctrl+Z / Ctrl+Shift+Z) for every edit, as job snapshots.
 
 ## 8. Tests

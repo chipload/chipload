@@ -92,12 +92,8 @@ fn verify_source(job: &Job, dxf_path: &Path) -> Result<(), PipelineError> {
     let Some(expected) = &job.source.sha256 else {
         return Ok(());
     };
-    let bytes = std::fs::read(dxf_path)
+    let digest = drawing_sha256(dxf_path)
         .map_err(|e| PipelineError::Job(format!("Cannot read {}: {e}", dxf_path.display())))?;
-    let digest: String = Sha256::digest(&bytes)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect();
     if digest.eq_ignore_ascii_case(expected) {
         Ok(())
     } else {
@@ -106,6 +102,15 @@ fn verify_source(job: &Job, dxf_path: &Path) -> Result<(), PipelineError> {
             dxf_path.display()
         )))
     }
+}
+
+/// The sha256 of a drawing file, lowercase hex, as stored in a job's `source.sha256`.
+pub fn drawing_sha256(path: &Path) -> std::io::Result<String> {
+    let bytes = std::fs::read(path)?;
+    Ok(Sha256::digest(&bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect())
 }
 
 fn extent_notes(job: &Job, report: &ImportReport) -> Vec<String> {

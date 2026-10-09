@@ -22,12 +22,13 @@ chipload run part.dxf --job job.json -o part.nc  # generate checked G-code
 chipload check part.nc --job job.json            # the independent checker on any G-code
 ```
 
-The GUI (`chipload-gui [part.dxf] [job.json]`) shows the drawing, stock, and generated
-toolpath (start points numbered in cut order, arrows in the cutting direction, rapids dashed,
-tabs highlighted) and saves G-code only after the check passes. Jobs are edited as JSON for
-now: click contours in the GUI (Ctrl+click for more), then **Copy as selector**
-(Ctrl+Shift+C) and paste the `{"handles": [...]}` into an operation's `select`. The Selection
-panel shows what that selector would cut.
+The GUI (`chipload-gui [part.dxf] [job.json]`) is a job editor: open a drawing, start a job
+(Ctrl+N), click contours (Ctrl+click for more, right-click for a whole layer), then **New
+profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
+reorder, untick to skip one. **F5** generates and shows the toolpath (start points numbered in
+cut order, arrows in the cutting direction, rapids dashed, tabs highlighted); **Ctrl+S** saves
+the job, **Ctrl+E** exports G-code, which is only possible after the check passes. Saved
+jobs are ordinary job files: `chipload run` gives the same G-code.
 
 Supported: **profile** operations (inside, outside, on) with optional holding tabs
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
