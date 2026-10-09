@@ -82,6 +82,13 @@ r = tool radius, s = stepover × D.
   (decision 2026-10-08) naming its location and size. This catches corners where successive
   rings are too far apart (a large stepover with sharp corners) and the pocket centre left by
   the last ring.
+  - Rust port (2026-10-09): the same sets are found with exact distances instead of buffered
+    paths. The edges of the level-0 areas are cut rings, so leftover can only lie inside them;
+    a quadtree finds points farther than r from every cutting move (leftover) and farther
+    than r + `REST_TOL_MM` (a piece that survives the shrink), and reports the pieces holding
+    such points. Leftover thinner than `ARC_APPROX_TOL_MM` is ignored: GEOS's flattened
+    buffers leave slivers that thin, which in the Python version can join two real pieces
+    into one (e.g. 5 places reported where there are 6).
 - **Post-condition (safety):** every cutting move must lie inside `region.buffer(−r)` within
   `ARC_APPROX_TOL_MM`, and cutting moves must never come closer than r − tolerance to the
   region boundary. Otherwise → `GeometryError`. Like profiles, nothing is trusted blindly.

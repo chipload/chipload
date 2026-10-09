@@ -43,12 +43,24 @@ pub fn bulged(id: usize, vertices: &[(f64, f64, f64)]) -> Contour {
 }
 
 pub fn polygon(points: &[Point]) -> Contour {
+    polygon_id(1, points)
+}
+
+pub fn polygon_id(id: usize, points: &[Point]) -> Contour {
     let vertices: Vec<(f64, f64, f64)> = points.iter().map(|p| (p.0, p.1, 0.0)).collect();
-    bulged(1, &vertices)
+    bulged(id, &vertices)
+}
+
+pub fn rect(id: usize, x0: f64, y0: f64, x1: f64, y1: f64) -> Contour {
+    polygon_id(id, &[(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
 }
 
 pub fn circle(center: Point, radius: f64) -> Contour {
-    let mut contour = polygon(&[]);
+    circle_id(1, center, radius)
+}
+
+pub fn circle_id(id: usize, center: Point, radius: f64) -> Contour {
+    let mut contour = polygon_id(id, &[]);
     contour.parts = vec![segment(Primitive::Arc(Arc {
         center,
         radius,

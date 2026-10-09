@@ -4,10 +4,11 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::{Job, Operation, ProfileOp, Side, Tool, ToolType, ZZero};
+use chipload_job::{Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
 
 use crate::ToolpathError;
 use crate::model::{Move, Program};
+use crate::pocket::{PocketPiece, plan_pocket, pocket_moves};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours};
 use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
@@ -19,6 +20,8 @@ pub struct Plan {
     pub notes: Vec<String>,
     /// Tool-path stretch of every tab, for display.
     pub tabs: Vec<Vec<Point>>,
+    /// Every pocket piece in cut order (rings and links), for display and conformance tests.
+    pub pockets: Vec<PocketPiece>,
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
@@ -32,18 +35,21 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     };
     let mut moves: Vec<Move> = Vec::new();
     let mut tabs: Vec<Vec<Point>> = Vec::new();
+    let mut pockets: Vec<PocketPiece> = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
         let label = match op_name(op) {
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
-        let Operation::Profile(profile) = op else {
-            return Err(not_ported(&label, op));
+        let (select, depth, step_down) = match op {
+            Operation::Profile(p) => (&p.select, p.depth, p.step_down),
+            Operation::Pocket(p) => (&p.select, p.depth, p.step_down),
+            Operation::Drill(_) => return Err(not_ported(&label, op)),
         };
-        let selection = select_contours(contours, &profile.select, &label)?;
+        let selection = select_contours(contours, select, &label)?;
         notes.extend(selection.notes.iter().cloned());
-        let pass_z: Vec<f64> = pass_depths(profile.depth, profile.step_down)?
+        let pass_z: Vec<f64> = pass_depths(depth, step_down)?
             .into_iter()
             .map(|d| top_z - d)
             .collect();
@@ -53,10 +59,17 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             job,
             pass_z: &pass_z,
         };
-        let planned = plan_profile_op(profile, &context, &selection, position)?;
+        let planned = match op {
+            Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &selection, position)?,
+            Operation::Profile(profile) => {
+                plan_profile_op(profile, &context, &selection, position)?
+            }
+            Operation::Drill(_) => return Err(not_ported(&label, op)),
+        };
         moves.extend(planned.moves);
         notes.extend(planned.notes);
         tabs.extend(planned.tabs);
+        pockets.extend(planned.pockets);
         position = planned.end;
     }
     Ok(Plan {
@@ -70,6 +83,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         },
         notes,
         tabs,
+        pockets,
     })
 }
 
@@ -86,7 +100,49 @@ struct Planned {
     moves: Vec<Move>,
     notes: Vec<String>,
     tabs: Vec<Vec<Point>>,
+    pockets: Vec<PocketPiece>,
     end: Point,
+}
+
+fn plan_pocket_op(
+    op: &PocketOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label;
+    let plan = plan_pocket(
+        &selection.contours,
+        ctx.tool.diameter / 2.0,
+        op.stepover * ctx.tool.diameter,
+        op.direction,
+        ctx.job.machine.spindle,
+        op.keep_tool_down,
+        start,
+    )
+    .map_err(|err| err.with_context(label))?;
+    let mut out = Planned {
+        moves: Vec::new(),
+        notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        end: start,
+    };
+    for piece in &plan.pieces {
+        out.moves.extend(pocket_moves(
+            piece,
+            ctx.pass_z,
+            ctx.job.machine.safe_z,
+            op.feed,
+            op.plunge_feed,
+        ));
+        // Retracted above the start of the wall ring.
+        if let Some(&end) = piece.rings.last().and_then(|r| r.first()) {
+            out.end = end;
+        }
+    }
+    out.pockets = plan.pieces;
+    Ok(out)
 }
 
 fn plan_profile_op(
@@ -109,6 +165,7 @@ fn plan_profile_op(
         moves: Vec::new(),
         notes: plan.notes,
         tabs: Vec::new(),
+        pockets: Vec::new(),
         end: start,
     };
     if let Some(tabs) = &op.tabs {

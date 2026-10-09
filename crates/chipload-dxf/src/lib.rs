@@ -10,7 +10,6 @@
 
 mod convert;
 mod curves;
-mod nesting;
 mod sanitize;
 
 use std::collections::BTreeMap;
@@ -19,6 +18,7 @@ use std::path::Path;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
 use chipload_core::chain::{Contour, Segment, chain_segments};
+use chipload_core::nesting;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::Units;
 use dxf::Drawing;

@@ -3,10 +3,10 @@
 //! (as the Python reference uses): touching or sharing the outer boundary from the inside
 //! still counts as inside. Identical shapes contain each other.
 
+use crate::Point;
+use crate::primitives::distance;
+use crate::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use cavalier_contours::polyline::{PlineContainsResult, PlineSource, Polyline};
-use chipload_core::Point;
-use chipload_core::primitives::distance;
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 
 /// A valid closed contour: its vertices (no repeated end point) and the same as a polyline.
 pub struct Ring {

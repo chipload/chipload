@@ -105,7 +105,16 @@ fn plan(dxf: &Path, job_path: &Path, as_json: bool) -> ExitCode {
     if as_json {
         println!(
             "{}",
-            json!({"program": program_json(&plan.program), "notes": plan.notes})
+            json!({
+                "program": program_json(&plan.program),
+                "notes": plan.notes,
+                "tabs": plan.tabs,
+                "pockets": plan.pockets.iter().map(|p| json!({
+                    "contour_ids": p.contour_ids,
+                    "rings": p.rings,
+                    "feed_links": p.feed_links,
+                })).collect::<Vec<_>>(),
+            })
         );
     } else {
         for note in &plan.notes {

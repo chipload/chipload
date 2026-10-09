@@ -178,6 +178,7 @@ dependencies = [
 name = "chipload-core"
 version = "0.1.0"
 dependencies = [
+ "cavalier_contours",
  "thiserror",
 ]
 

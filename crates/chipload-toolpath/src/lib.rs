@@ -4,9 +4,11 @@
 //! Headless, no I/O. Port of `src/chipload/core/{ops,toolpath}` (ADR 0004); offsets use
 //! cavalier_contours with true arcs and are always verified afterwards (ADR 0006).
 
+pub mod geom;
 pub mod model;
 pub mod offset;
 pub mod plan;
+pub mod pocket;
 pub mod profile;
 pub mod select;
 pub mod tabs;
