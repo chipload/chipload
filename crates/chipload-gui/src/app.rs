@@ -113,6 +113,7 @@ pub struct ChiploadApp {
     prompt: Option<Prompt>,
     title: String,
     allow_close: bool,
+    about_open: bool,
 }
 
 impl Default for ChiploadApp {
@@ -145,6 +146,7 @@ impl Default for ChiploadApp {
             prompt: None,
             title: String::new(),
             allow_close: false,
+            about_open: false,
         }
     }
 }
@@ -1018,6 +1020,11 @@ impl ChiploadApp {
                     self.fit_pending = true;
                 }
             });
+            ui.menu_button("Help", |ui| {
+                if ui.button("About and licences").clicked() {
+                    self.about_open = true;
+                }
+            });
             ui.separator();
             if ui.button("Open drawing").clicked() {
                 self.ask_open_dxf();
@@ -1343,6 +1350,43 @@ impl ChiploadApp {
         let operation = self.focused_contours();
         self.scene
             .paint(&painter, &self.view, &selected, &operation);
+    }
+
+    fn about(&mut self, ctx: &egui::Context) {
+        let mut open = self.about_open;
+        egui::Window::new("About Chipload")
+            .open(&mut open)
+            .default_size([640.0, 520.0])
+            .show(ctx, |ui| {
+                ui.label(chipload_pipeline::notices::short_notice());
+                if cfg!(target_os = "linux") {
+                    ui.label(
+                        "The Linux AppImage also contains libxkbcommon and libxcb-xkb \
+                         (MIT-style licences); their copyright files are in \
+                         usr/share/doc/chipload/bundled inside the AppImage.",
+                    );
+                }
+                ui.separator();
+                egui::CollapsingHeader::new("GNU General Public License v3.0").show(ui, |ui| {
+                    ScrollArea::vertical()
+                        .id_salt("license-text")
+                        .max_height(300.0)
+                        .show(ui, |ui| {
+                            ui.monospace(chipload_pipeline::notices::LICENSE);
+                        });
+                });
+                egui::CollapsingHeader::new("Third-party licences")
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        ScrollArea::vertical()
+                            .id_salt("third-party-text")
+                            .max_height(300.0)
+                            .show(ui, |ui| {
+                                ui.monospace(chipload_pipeline::notices::THIRD_PARTY);
+                            });
+                    });
+            });
+        self.about_open = open;
     }
 
     fn prompts(&mut self, ctx: &egui::Context) {
@@ -1864,6 +1908,7 @@ impl eframe::App for ChiploadApp {
             });
         CentralPanel::no_frame().show(ui, |ui| self.canvas(ui));
         self.prompts(&ctx);
+        self.about(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();
         if !busy {

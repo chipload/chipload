@@ -4,6 +4,11 @@ Cross-platform 2.5D CAM application (DXF in, G-code out), written in Rust with a
 
 See `CLAUDE.md` for architecture rules, conventions, and workflow.
 
+## Download
+
+Releases provide a Linux AppImage and a single Windows `.exe` for the GUI, plus the command
+line for both (see `docs/releasing.md`).
+
 ## Quick start
 
 Install Rust with [rustup](https://rustup.rs) (1.95 or newer), then:

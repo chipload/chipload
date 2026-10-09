@@ -1,0 +1,23 @@
+Third-party software in Chipload
+================================
+
+Chipload is free software under the GNU General Public License v3.0 or later (see LICENSE).
+It is built from the Rust crates listed below, each under its own licence. The full text of
+every licence follows, with the crates that use it.
+
+{{#each overview}}
+- {{{name}}} ({{id}}): {{count}} crate(s)
+{{/each}}
+
+{{#each licenses}}
+--------------------------------------------------------------------------------
+{{{name}}} ({{id}})
+
+Used by:
+{{#each used_by}}
+  {{crate.name}} {{crate.version}}{{#if crate.repository}} ({{{crate.repository}}}){{/if}}
+{{/each}}
+
+{{{text}}}
+
+{{/each}}

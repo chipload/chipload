@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Chipload desktop GUI (egui). Usage: `chipload-gui [part.dxf] [job.json]`.
 
-// Startup errors go to the terminal before any window exists.
+// A windowed program on Windows: no console window opens behind the GUI.
+#![cfg_attr(windows, windows_subsystem = "windows")]
+// Startup errors go to the terminal (and a message box) before any window exists.
 #![allow(clippy::print_stderr)]
 
 mod app;
@@ -18,7 +20,7 @@ fn main() -> ExitCode {
     let fonts = match fonts::system_fonts() {
         Ok(fonts) => fonts,
         Err(message) => {
-            eprintln!("error: {message}");
+            fatal(&message);
             return ExitCode::FAILURE;
         }
     };
@@ -55,8 +57,19 @@ fn main() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("error: {err}");
+            fatal(&err.to_string());
             ExitCode::FAILURE
         }
     }
+}
+
+/// Report an error that keeps the GUI from starting: on the terminal and, because a
+/// Windows GUI has no terminal, in a message box.
+fn fatal(message: &str) {
+    eprintln!("error: {message}");
+    rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Error)
+        .set_title("Chipload cannot start")
+        .set_description(message)
+        .show();
 }

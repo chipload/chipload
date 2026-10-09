@@ -1,0 +1,6 @@
+# The toolchain for local and CI builds, so releases are reproducible.
+[toolchain]
+channel = "1.99.0"
+components = ["clippy", "rustfmt"]
+targets = ["x86_64-unknown-linux-gnu"]
+profile = "minimal"

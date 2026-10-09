@@ -145,3 +145,16 @@ fn newer_job_version_is_refused() {
     assert!(text(&out.stderr).contains("schema_version 99 is not supported"));
     assert!(!written);
 }
+
+#[test]
+fn licenses_prints_the_gpl_and_every_third_party_licence() {
+    let out = chipload(&["licenses"]);
+    assert!(out.status.success());
+    let stdout = text(&out.stdout);
+    assert!(stdout.contains("GNU GENERAL PUBLIC LICENSE"));
+    assert!(stdout.contains("Third-party software in Chipload"));
+    assert!(
+        stdout.contains("cavalier_contours"),
+        "dependencies are listed"
+    );
+}

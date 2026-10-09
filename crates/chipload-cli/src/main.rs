@@ -70,6 +70,8 @@ enum Command {
         #[arg(long, default_value = "grbl")]
         post: String,
     },
+    /// Print Chipload's licence and the licences of every third-party component.
+    Licenses,
     Check {
         /// G-code file to check.
         gcode: PathBuf,
@@ -101,6 +103,12 @@ fn main() -> ExitCode {
         Command::Run { dxf, job, output } => run(&dxf, &job, &output),
         Command::Render { program, post } => render(&program, &post),
         Command::Check { gcode, job, json } => check(&gcode, &job, json),
+        Command::Licenses => {
+            println!("{}\n", chipload_pipeline::notices::short_notice());
+            println!("{}", chipload_pipeline::notices::LICENSE);
+            println!("{}", chipload_pipeline::notices::THIRD_PARTY);
+            ExitCode::SUCCESS
+        }
     }
 }
 

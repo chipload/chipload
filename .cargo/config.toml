@@ -1,0 +1,4 @@
+# Windows: link the C runtime statically, so chipload-gui.exe and chipload.exe are single
+# files that run without the Visual C++ redistributable.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

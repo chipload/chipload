@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Chipload
+GenericName=2.5D CAM
+Comment=DXF in, checked G-code out
+Exec=chipload-gui %f
+Icon=chipload
+Terminal=false
+Categories=Graphics;Engineering;

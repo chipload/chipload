@@ -81,7 +81,12 @@ cargo run -p chipload-cli -- run part.dxf --job job.json -o out.nc   # headless 
 cargo run -p chipload-cli -- plan part.dxf --job job.json --json     # toolpath, no G-code
 cargo run -p chipload-cli -- check out.nc --job job.json  # the independent checker on any G-code
 cargo run -p chipload-gui -- part.dxf job.json            # GUI
+cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
+packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)
 ```
+
+Releases: push a `vX.Y.Z` tag; CI builds the AppImage, Windows executables and a **draft**
+release (`docs/releasing.md`, ADR 0010). Never push tags or publish without being asked.
 
 Run the relevant tests after every change. Do not report a task done until they pass.
 
@@ -124,6 +129,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 
 - The project is GPL-3.0-or-later (`LICENSE`). Contributions are accepted under the same license with a DCO sign-off (`CONTRIBUTING.md`).
 - Packaging scripts live in `packaging/`. Don't hardcode secrets or certificate paths. Read them from environment variables.
+- Every binary carries `LICENSE` and `THIRD-PARTY-LICENSES.txt` (`chipload_pipeline::notices`). Regenerate the notices with cargo-about whenever dependencies change.
 
 ## Things to avoid
 

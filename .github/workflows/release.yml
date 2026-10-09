@@ -1,0 +1,129 @@
+# Push a tag vX.Y.Z (matching the workspace version) to build the release files and create a
+# DRAFT GitHub Release with them. Review the draft, then publish it by hand.
+#
+#   Linux:   Chipload-X.Y.Z-x86_64.AppImage (GUI), chipload-X.Y.Z-linux-x86_64.tar.gz (CLI)
+#   Windows: chipload-gui-X.Y.Z-windows-x86_64.exe (GUI), chipload-X.Y.Z-windows-x86_64.exe (CLI)
+#   SHA256SUMS.txt
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        name: Tag matches the workspace version
+        run: |
+          crate=$(cargo metadata --format-version 1 --no-deps --locked \
+            | python3 -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"] == "chipload-gui"))')
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$crate" != "$tag" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $crate"
+            exit 1
+          fi
+          echo "version=$crate" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    # glibc 2.35: the AppImage runs on Ubuntu 22.04+, Debian 12+, Fedora 36+ and newer.
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Libraries bundled into the AppImage
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon0 libxkbcommon-x11-0 libxcb-xkb1
+      - run: cargo test --workspace --locked
+      - run: cargo build --release --locked -p chipload-gui -p chipload-cli
+      - name: AppImage
+        run: REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist
+      - name: CLI archive
+        run: |
+          stage="chipload-$VERSION-linux-x86_64"
+          mkdir -p "$stage"
+          cp target/release/chipload LICENSE THIRD-PARTY-LICENSES.txt "$stage/"
+          tar -czf "dist/$stage.tar.gz" "$stage"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --workspace --locked
+      # .cargo/config.toml links the C runtime statically: single-file executables.
+      - run: cargo build --release --locked -p chipload-gui -p chipload-cli
+      - name: Collect
+        run: |
+          mkdir -p dist
+          cp target/release/chipload-gui.exe "dist/chipload-gui-$VERSION-windows-x86_64.exe"
+          cp target/release/chipload.exe "dist/chipload-$VERSION-windows-x86_64.exe"
+      - name: No runtime DLL beyond Windows itself
+        shell: pwsh
+        run: |
+          $dumpbin = Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter dumpbin.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($dumpbin) {
+            $deps = & $dumpbin.FullName /dependents target/release/chipload-gui.exe | Out-String
+            Write-Output $deps
+            if ($deps -match "VCRUNTIME|MSVCP|api-ms-win-crt") { throw "chipload-gui.exe depends on the VC++ runtime" }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+          if-no-files-found: error
+
+  draft-release:
+    needs: [version, linux, windows]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Draft release
+        run: |
+          cat > notes.md <<NOTES
+          Chipload $VERSION.
+
+          - **Linux:** \`Chipload-$VERSION-x86_64.AppImage\`: make it executable and run it
+            (\`chmod +x\`). Without FUSE: \`--appimage-extract-and-run\`.
+          - **Windows:** \`chipload-gui-$VERSION-windows-x86_64.exe\`: a single file, no installer.
+            It is not code-signed yet, so Windows SmartScreen may ask before the first start.
+          - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-windows-x86_64.exe\`.
+
+          Free software under GPL-3.0-or-later; the source is attached to this release.
+          Third-party licences: Help > About and licences, or \`chipload licenses\`.
+          Always check the toolpath and do an air cut before machining.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" dist/* --draft --verify-tag \
+            --title "Chipload $VERSION" --notes-file notes.md

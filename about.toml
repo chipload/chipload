@@ -1,0 +1,27 @@
+# cargo-about: generates THIRD-PARTY-LICENSES.txt (shipped in every release and shown in the
+# GUI under Help > Licences). Regenerate after dependency changes:
+#   cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt
+# CI fails if the committed file is out of date. Accepted licences mirror deny.toml.
+accepted = [
+    "GPL-3.0-or-later",
+    "GPL-3.0-only",
+    "GPL-2.0-or-later",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0-or-later",
+    "MPL-2.0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "Unlicense",
+]
+# Both release targets: their dependency sets differ (e.g. the Windows clipboard crates).
+targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+ignore-build-dependencies = true
+ignore-dev-dependencies = true

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 
+pub mod notices;
 pub mod report;
 
 use std::path::Path;
