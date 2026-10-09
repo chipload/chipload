@@ -1,6 +1,6 @@
 # 0003: Post-processors as TOML config + sandboxed Jinja2 templates
 
-Status: accepted (2026-10-08)
+Status: accepted (2026-10-08); carried over to Rust by ADR 0007
 
 A post-processor is a small versioned TOML file (`schema_version`, name, template,
 decimals, file extension, spindle dwell) plus a Jinja2 template.

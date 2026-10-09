@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! DXF import: read -> Line/Arc primitives in mm -> chain -> classify -> nest -> report.
 //!
-//! Counterpart of `src/chipload/core/io/dxf_import.py`. The drawing is read as drawn, with
+//! The drawing is read as drawn, with
 //! as little repair as possible, and nothing is dropped without an entry in the report.
-//! Results match Python structurally (contours, layers, nesting, issue codes); flattened
-//! splines and ellipses match within tolerance, not point for point (ADR 0005).
+//! See ADR 0005 for what is converted and how.
 
 #![forbid(unsafe_code)]
 

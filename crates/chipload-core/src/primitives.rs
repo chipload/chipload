@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! 2D primitives in millimetres. Angles in radians, counter-clockwise positive.
-//! Port of `src/chipload/core/geometry/primitives.py`.
 
 use std::f64::consts::{PI, TAU};
 

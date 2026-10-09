@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Port of tests/unit/test_chain.py.
 
 // Integration tests may unwrap and panic: a failure is the test result.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

@@ -95,13 +95,14 @@ Per selected closed contour. r = tool radius.
 ### Offset side
 `side` is relative to **the selected loop itself**, not to "the part". To cut a hole, select the
 hole loop with `side: inside`.
-- `outside`: `buffer(+r, join_style=round)`, then the exterior ring(s) only.
-- `inside`: `buffer(−r, join_style=round)`, then each resulting polygon's exterior ring.
+- `outside`: the contour grown by r with round joins; only the outer ring is cut.
+- `inside`: the contour shrunk by r with round joins; each resulting piece's ring is cut.
 - `on`: the contour itself.
 
-Arc flattening, for both input arcs and buffer corners: segment angle θ is chosen so the sagitta
-r·(1 − cos θ/2) ≤ `ARC_APPROX_TOL_MM`. The chords lie inside the true arc, so outside profiles of
-curves can be up to 0.01 mm undersize. That's accepted for v0.
+Offsets are computed on the true arcs (cavalier_contours, ADR 0006) and flattened afterwards:
+segment angle θ is chosen so the sagitta r·(1 − cos θ/2) ≤ `ARC_APPROX_TOL_MM`. The chords lie
+inside the true arc, so outside profiles of curves can be up to 0.01 mm undersize. That's
+accepted for v0. Every offset is verified after it is built (`chipload-toolpath`, `offset.rs`).
 
 Edge cases:
 - **Tool larger than feature** (inside offset is empty) → `GeometryError` naming the contour. Never skipped silently.
@@ -123,11 +124,10 @@ don't really apply; by decision (2026-10-08) it is treated as outside.
 ### Start point
 The ring vertex with the smallest y, ties broken by smallest x. Deterministic, no lead-in in v0, so it leaves a small witness mark.
 
-Rust port (2026-10-09): offsets keep true arcs and every arc is split at its lowest point
-before flattening, so on a curved bottom the start is the true lowest point rather than the
-nearest chord end (Python's start can be up to one chord away). Two vertices whose y differ
-by less than `CHAIN_TOL_MM` count as a tie, so float noise can't move the start to the right
-end of a flat bottom.
+Every arc is split at its lowest point before flattening, so on a curved bottom the start is
+the true lowest point (the Python reference started at the nearest chord end, up to one chord
+away; changed 2026-10-09). Two vertices whose y differ by less than `CHAIN_TOL_MM` count as a
+tie, so float noise can't move the start to the right end of a flat bottom.
 
 ### Depth passes
 - n = ceil(depth / step_down), with depth/step_down rounded down by `DEPTH_TOL_MM` first so 18/6 gives 3 passes, not 4.
@@ -161,22 +161,24 @@ end of a flat bottom.
 
 ## 5. Post-processor
 
-`core/post/` turns an abstract toolpath (list of Rapid/Feed moves in mm, plus the header data) into text.
+`chipload-post` turns an abstract toolpath (list of Rapid/Feed moves in mm, plus the header data) into text.
 
-- **Post config** is a persisted format: TOML (stdlib `tomllib`, no new dependency) with
-  `schema_version = 1`, a `CURRENT_VERSION`, `MIGRATIONS`, and `load_post_config` like jobs.
+- **Post config** is a persisted format: TOML with `schema_version = 1`, a `CURRENT_VERSION`,
+  migrations, and `load_post_config` like jobs.
   Fields: `name`, `template`, `decimals` (default 3), `file_extension`, `spindle_dwell_s`.
-- Shipped post: `core/post/posts/grbl.toml` + `templates/grbl.nc.j2`.
-- The Python side does only generic things: modal compression (omit axes and F that haven't changed),
+- Shipped post: `crates/chipload-post/posts/grbl.toml` + `templates/grbl.nc.j2` (Jinja, rendered
+  with minijinja, ADR 0007).
+- The code does only generic things: modal compression (omit axes and F that haven't changed),
   fixed-decimal formatting, and normalising −0.000 to 0.000. Everything machine-specific is in the template.
 - GRBL output: `G21 G90 G17 G94` header, `M3`/`M4 S<rpm>`, `G4 P<dwell>` if dwell > 0,
   the moves, `G0 Z<safe>`, `M5`, `M30`. No timestamps or file names, so output is byte-identical across runs.
 - `spindle_dwell_s` in grbl.toml is **3 s** (decision 2026-10-08), since router spindles need time to reach speed.
 
-## 6. Independent G-code checker (`core/sim/gcode_check.py`)
+## 6. Independent G-code checker (`chipload-check`)
 
-It parses the G-code **text** with its own tokenizer and modal state machine. It imports nothing from
-`toolpath/` or `post/`. Limits come from a small `CheckLimits` dataclass that the checker builds from the Job itself.
+It parses the G-code **text** with its own tokenizer and modal state machine. It depends on nothing
+from `chipload-toolpath`, `chipload-post` or `chipload-dxf` (enforced by an architecture test).
+Limits come from a small `CheckLimits` struct that the checker builds from the Job itself.
 
 Errors (any error → `run` writes no file):
 - Unknown G/M word (whitelist: G0 G1 G2 G3 G4 G17 G20 G21 G90 G94, M3 M4 M5 M30).
@@ -215,14 +217,16 @@ work coordinates and doesn't know where work zero sits on the machine.
 - **Profile:** passes at the boundaries (depth = step_down, depth = thickness, depth not a multiple, depth > thickness → error);
   tool larger than hole → error; narrow neck split; direction table (signed area of the emitted ring) for all
   side × direction × spindle combinations.
-- **Hypothesis:** for random simple polygons, every outside-path vertex is at distance r ± tol from the
+- **Property (proptest):** for random simple polygons (with arc edges), every outside-path vertex is at distance r ± tol from the
   contour and outside it; every inside-path vertex is at distance ≥ r − tol and inside it.
 - **Checker:** one hand-written bad program per rule, each flagged; every golden program passes.
-- **Golden:** synthetic DXFs in `tests/corpus/dxf/` (made by a committed script in `tools/`) →
-  `tests/corpus/expected/*.nc`; `pytest --update-golden` regenerates them.
+- **Golden:** DXFs in `tests/corpus/dxf/` (the synthetic ones were made by `tools/make_corpus.py`,
+  kept at tag `python-final`) → `tests/corpus/expected/*.nc`;
+  `CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test golden` regenerates them.
 - **Migration:** the v1 sample migrates and produces the expected golden G-code.
 - **CLI:** `run` end to end on a corpus file; with a failing checker, no output file is written.
 
 ## 9. Known limitations of v0
 G1 only (larger files); no tabs, so small parts can break free on the last pass; plunges straight down
-on the contour; one tool; GRBL only; golden files depend on the GEOS version (pinned via `uv.lock`).
+on the contour; one tool; GRBL only; golden files depend on the cavalier_contours version (pinned
+via `Cargo.lock`).

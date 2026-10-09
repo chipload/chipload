@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Port of tests/unit/test_tabs.py and tests/property/test_tabs_placement.py.
+//! Tab placement: unit tests and the no-overlap / no-lost-material property.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;

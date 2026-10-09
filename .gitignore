@@ -1,3 +1,7 @@
+# Rust
+/target/
+
+# Local leftovers from the Python reference (removed, see tag python-final)
 __pycache__/
 *.pyc
 .venv/
@@ -5,10 +9,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .hypothesis/
+
+# Build output
 build/
 dist/
-*.egg-info/
 .DS_Store
-
-# Rust
-/target/

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Property: the tool-centre path keeps the cutter on the requested side and never gouges.
-//! Port of tests/property/test_profile_offset.py, with bulged (arc) edges added.
+//! On random star polygons with bulged (arc) edges.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;

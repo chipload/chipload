@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Machine-independent toolpath: what the post-processor turns into G-code. Units are mm.
-//! Port of `src/chipload/core/toolpath/model.py`.
 
 use chipload_core::Point;
 use chipload_job::Spindle;

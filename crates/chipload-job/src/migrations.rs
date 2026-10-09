@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Schema migrations. Each step upgrades version N to N+1 and is a pure function (no I/O,
-//! no clock). Must stay identical in effect to `src/chipload/core/job/loader.py`.
+//! no clock). Their effect must never change: frozen samples in tests/corpus/jobs depend on it.
 
 use serde_json::{Map, Value};
 

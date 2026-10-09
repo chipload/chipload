@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Holding tabs on profile rings. Port of `toolpath/tabs.py`; see docs/specs/tabs.md.
+//! Holding tabs on profile rings. See docs/specs/tabs.md.
 
 use std::f64::consts::TAU;
 

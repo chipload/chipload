@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job model: a declarative description of how to machine a drawing.
 //!
-//! Mirrors `src/chipload/core/job/models.py` (schema v3). All lengths are mm, all feeds
+//! Job file models (schema v3). All lengths are mm, all feeds
 //! mm/min, `depth` is measured down from the stock top. Unknown fields are rejected, like
 //! Pydantic's `extra="forbid"`; value constraints are checked by [`Job::validate`].
 
@@ -231,7 +231,7 @@ pub struct DrillOp {
 }
 
 impl Job {
-    /// Value constraints (Pydantic `Field(gt=..)` and validators in the Python model).
+    /// Value constraints the serde types can't express.
     /// Returns every violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();

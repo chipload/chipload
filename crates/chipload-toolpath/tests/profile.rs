@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Port of tests/unit/test_profile.py.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;
@@ -233,7 +232,7 @@ fn on_profile_drops_near_duplicate_vertices() {
 
 #[test]
 fn degenerate_spike_is_refused_or_verified() {
-    // From the Python suite: a zero-width spike with denormal coordinates.
+    // Found by Hypothesis in the Python reference: a zero-width spike with denormal coordinates.
     let ring = polygon(&[
         (10.0, 0.0),
         (11.0, 2.4e-312),

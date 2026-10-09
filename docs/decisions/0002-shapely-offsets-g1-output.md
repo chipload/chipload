@@ -1,6 +1,6 @@
 # 0002: Shapely offsets and G1-only output for v0
 
-Status: accepted (2026-10-08)
+Status: superseded by ADR 0006 (cavalier_contours) and 0009; G1-only output still holds
 
 Profile offsets use Shapely `buffer` (GEOS) with round joins. All curves are flattened to
 chords within `ARC_APPROX_TOL_MM`, so v0 emits only G0/G1.

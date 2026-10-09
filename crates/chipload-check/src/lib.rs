@@ -5,9 +5,8 @@
 //! rules in `docs/specs/v0-profile-pipeline.md` section 6. It must never depend on the toolpath
 //! generator or post-processor crates: its value is that it can disagree with them.
 //!
-//! Port of `src/chipload/core/sim/gcode_check.py`; messages are kept identical so both
-//! implementations can be compared on the same programs. Deliberate difference: only ASCII
-//! digits are accepted in numbers (Python's `\d` also accepts other Unicode digits).
+//! Messages are kept identical to the Python reference's checker (tag python-final). Only
+//! ASCII digits are accepted in numbers.
 
 mod parse;
 

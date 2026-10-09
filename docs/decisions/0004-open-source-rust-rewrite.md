@@ -1,6 +1,6 @@
 # 0004: Open source under GPL-3.0-or-later, rewrite in Rust with egui
 
-Status: accepted (2026-10-09)
+Status: accepted (2026-10-09); migration completed, Python removed (ADR 0009)
 
 ## Decision
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Port of tests/unit/test_pocket.py and tests/property/test_pocket_paths.py.
+//! Pocket planning: unit tests and the no-gouge / clears-everything property.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;
@@ -281,7 +281,8 @@ fn normal_stepover_leaves_nothing() {
 
 #[test]
 fn pocket_centre_is_cleared_where_geos_buffer_collapsed_too_early() {
-    // The Python suite's GEOS false-empty case: must not leave the centre uncut here either.
+    // Found by Hypothesis in the Python reference (GEOS returned empty too early): the centre
+    // must be cleared.
     let ring = polygon_id(
         1,
         &[

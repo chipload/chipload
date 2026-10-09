@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The drawing canvas: world (mm, Y up) to screen transform, what to draw, and picking.
-//! Port of `ui/canvas.py`. No geometry decisions here: it only shows core results.
+//! No geometry decisions here: it only shows core results.
 
 use std::collections::BTreeSet;
 
@@ -153,7 +153,7 @@ impl ContourShape {
 }
 
 /// A program as drawable pieces. Feeds solid, rapids dashed, numbered start points, arrows in
-/// the cutting direction (as the Python viewer).
+/// the cutting direction.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ToolpathShape {
     /// Runs of consecutive XY feed moves.

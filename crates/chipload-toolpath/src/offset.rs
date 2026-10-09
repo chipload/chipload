@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Tool-centre rings for profiles: offset with true arcs (cavalier_contours, ADR 0006), then
-//! flatten to chords and verify. Counterpart of `profile.py::offset_rings` and
-//! `geometry/offset.py`.
+//! flatten to chords and verify.
 
 use std::f64::consts::{FRAC_PI_2, TAU};
 use std::panic::{AssertUnwindSafe, catch_unwind};

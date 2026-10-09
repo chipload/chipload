@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Profile toolpaths around closed contours. Port of `toolpath/profile.py`,
-//! `toolpath/ordering.py` and `ops/profile_op.py`; see docs/specs/v0-profile-pipeline.md §4.
+//! Profile toolpaths around closed contours. See docs/specs/v0-profile-pipeline.md §4.
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;

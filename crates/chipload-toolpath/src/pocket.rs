@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Pocket clearing: contour-parallel rings, cut from the inside out. Port of
-//! `toolpath/pocket.py`; see docs/specs/pocket.md.
+//! Pocket clearing: contour-parallel rings, cut from the inside out. See
+//! docs/specs/pocket.md.
 //!
 //! Offsets use cavalier_contours shapes (outer loop plus islands, true arcs). Every result is
 //! verified afterwards, and uncut material is found with exact distances instead of the
-//! buffered-path union the Python version uses.
+//! buffered-path union the Python reference used.
 
 use std::f64::consts::SQRT_2;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -580,7 +580,7 @@ struct Cell {
 
 /// Material the tool could reach but the rings leave behind (spec section 3).
 ///
-/// Python computes the leftover `reachable − ∪ buffer(path, r)` and reports the pieces that
+/// The Python reference computed the leftover `reachable − ∪ buffer(path, r)` and reports the pieces that
 /// survive `buffer(−REST_TOL_MM)`, where reachable is everything within r of the level-0
 /// areas L0. The edges of L0 are the level-0 rings, which are cut, so any reachable point
 /// outside L0 lies within r of a path (up to the chord tolerance): leftover only exists
@@ -592,7 +592,7 @@ struct Cell {
 ///
 /// A quadtree decides whole cells from bounds on these distances and only refines down to
 /// ε-sized cells where the answer changes. Leftover cells are grouped into pieces; pieces
-/// containing a deep cell are reported, like Python's.
+/// containing a deep cell are reported, as before.
 fn uncut_material(
     region: &Area,
     reachable: &[Area],
@@ -692,7 +692,7 @@ fn uncut_material(
             },
         )
     };
-    // Largest spot by area; ties go to the lowest, then leftmost (as Python).
+    // Largest spot by area; ties go to the lowest, then leftmost (as before).
     let largest = spots.iter().max_by(|a, b| {
         let (ba, bb) = (bounds(a), bounds(b));
         area(a)

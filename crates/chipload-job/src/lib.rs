@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job files: models, schema-version migrations and loading.
 //!
-//! The same persisted format as the Python implementation: every file has an integer
+//! The persisted format (shared with the Python reference): every file has an integer
 //! `schema_version`; older versions are migrated step by step, missing or newer versions are
 //! refused, and validation only ever targets the current version.
 

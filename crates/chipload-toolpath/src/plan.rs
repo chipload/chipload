@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Job + imported contours -> Program. The toolpath half of `core/pipeline.py::run_job`;
-//! post-processing and the independent check come in a later step of the port.
+//! Job + imported contours -> Program: the toolpath half of `chipload_pipeline::run_job`,
+//! which then posts and independently checks it.
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;

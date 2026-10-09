@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! All tolerances live here. Do not write bare epsilons in algorithm code.
 //!
-//! Values must match `src/chipload/core/tolerances.py` while both implementations exist.
 
 /// Max gap when joining entities into a contour.
 pub const CHAIN_TOL_MM: f64 = 0.001;

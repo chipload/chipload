@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Job-level rules of plan_job (port of the relevant parts of tests/unit/test_pipeline.py).
+//! Job-level rules of plan_job.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;

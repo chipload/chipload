@@ -18,8 +18,10 @@ which adds `Signed-off-by: Your Name <you@example.com>`.
 - New toolpath operations or non-trivial algorithms start with a spec in `docs/specs/`.
 - Run the checks:
 
-      uv sync --all-extras && pytest && ruff check . && mypy src/chipload/core
-      cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
+      cargo test --workspace
+      cargo clippy --workspace --all-targets -- -D warnings
+      cargo fmt --all --check
+      cargo deny check licenses bans sources
 
 - Changing golden G-code needs a note in the commit message explaining why.
 - New dependencies: state the license (must be GPL-3.0-compatible, see `CLAUDE.md`) and why.

@@ -1,4 +1,4 @@
-# GRBL 1.1 routers. Persisted format: see chipload/core/job/post_config.py.
+# GRBL 1.1 routers. Persisted format: see crates/chipload-post/src/lib.rs (ADR 0003, 0007).
 schema_version = 1
 name = "GRBL"
 template = "grbl.nc.j2"

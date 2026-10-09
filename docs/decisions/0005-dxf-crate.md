@@ -25,7 +25,7 @@ transform per entity:
   control points). A spline given **only by fit points** is skipped with a warning: its shape
   depends on end tangents every CAD program picks differently, so we don't guess
   (ezdxf interpolates it; this is the one known difference from Python, see
-  `tests/conformance/test_dxf_import_parity.py`).
+  `tests/conformance/test_dxf_import_parity.py`, removed with Python in ADR 0009).
 - **Nesting** uses cavalier_contours, with an exact fallback when boundaries touch, so a shape
   sharing edges with its container from the inside counts as nested (Shapely `contains`
   semantics, which the pocket island rule relies on).

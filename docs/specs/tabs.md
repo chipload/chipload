@@ -101,7 +101,7 @@ viewer draws them in a distinct colour over the path, so tabs are visible in pla
   the tab width (still fine: the gap is `width + D`).
 - **Passes:** with depth 18, step 6 and height 3, only the last pass lifts (to −15); with height
   8, the last two passes lift.
-- **Hypothesis:** for random rings, counts, widths and heights that fit, the post-condition
+- **Property (proptest):** for random rings, counts, widths and heights that fit, the post-condition
   holds and the bridge left on the part is `width` long.
 - **Golden:** the v2 sample with tabs on the outline, and `messy_2` lower outline with 4 tabs.
 

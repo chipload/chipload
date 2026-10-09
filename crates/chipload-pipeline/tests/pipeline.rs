@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! End-to-end rules of run_job (port of tests/unit/test_pipeline.py).
+//! End-to-end rules of run_job.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::path::{Path, PathBuf};

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Main window: open a DXF and a job, generate, inspect the result, save checked G-code.
-//! Port of `ui/main_window.py`. Thin by design: everything that decides geometry or G-code
+//! Thin by design: everything that decides geometry or G-code
 //! is a call into the pipeline.
 
 use std::collections::BTreeSet;

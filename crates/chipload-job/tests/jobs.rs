@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Job loading against the shared corpus and the Python implementation's rules.
+//! Job loading and saving against the shared corpus (rules ported from the Python reference,
+//! tag python-final).
 
 // Integration tests may unwrap and panic: a failure is the test result.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -153,7 +154,7 @@ fn pocket_fields_parse() {
     assert_eq!(job.tools[0].center_cutting, Some(true));
 }
 
-// -- saving (port of tests/unit/test_job_save.py)
+// -- saving
 
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("chipload-job-{name}-{}", std::process::id()));

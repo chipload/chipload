@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
-//! Port of `core/pipeline.py::run_job`.
 
 pub mod report;
 

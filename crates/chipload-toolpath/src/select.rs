@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Match job selectors against imported contours. Port of `src/chipload/core/ops/select.py`.
+//! Match job selectors against imported contours. See docs/specs/v0-profile-pipeline.md §3.
 
 use chipload_core::chain::{Contour, Segment};
 use chipload_job::Selector;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Toolpath generation: selection, offsets, profiles and job planning.
 //!
-//! Headless, no I/O. Port of `src/chipload/core/{ops,toolpath}` (ADR 0004); offsets use
-//! cavalier_contours with true arcs and are always verified afterwards (ADR 0006).
+//! Headless, no I/O. Offsets use cavalier_contours with true arcs and are always verified
+//! afterwards (ADR 0006).
 
 pub mod geom;
 pub mod model;

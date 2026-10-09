@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Chain primitives into contours. Port of `src/chipload/core/geometry/chain.py`.
+//! Chain primitives into contours.
 //!
 //! Endpoints within the chaining tolerance snap to shared nodes. Nodes with exactly two
 //! connections are joined; any other node ends a chain. A contour is closed only when it

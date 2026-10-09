@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Post output rules (port of the rest of tests/unit/test_post.py).
+//! Post output rules.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_check::{CheckLimits, check_gcode};

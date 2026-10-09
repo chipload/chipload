@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Port of tests/unit/test_gcode_check.py: one case per rule, same programs, same messages.
+//! One case per rule, with the exact messages users see.
 
 // Integration tests may unwrap and panic: a failure is the test result.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Post-processors: render a Program to G-code text through a template.
 //!
-//! Port of `core/post/render.py` and `core/job/post_config.py`. Only generic work happens
+//! Only generic work happens
 //! here (number formatting and modal compression); anything machine specific lives in the
-//! template. The built-in configs and templates are the Python package's own files, compiled
-//! in, so both implementations render from the same source.
+//! template. Built-in configs and templates live in `posts/` and `templates/` and are
+//! compiled in (ADR 0007).
 
 use std::path::Path;
 
@@ -19,16 +19,10 @@ use serde::{Deserialize, Serialize};
 pub const CURRENT_VERSION: i64 = 1;
 
 /// Built-in posts: (name, config TOML).
-const BUILTIN_POSTS: [(&str, &str); 1] = [(
-    "grbl",
-    include_str!("../../../src/chipload/core/post/posts/grbl.toml"),
-)];
+const BUILTIN_POSTS: [(&str, &str); 1] = [("grbl", include_str!("../posts/grbl.toml"))];
 
 /// Templates a config may name: (file name, source).
-const TEMPLATES: [(&str, &str); 1] = [(
-    "grbl.nc.j2",
-    include_str!("../../../src/chipload/core/post/templates/grbl.nc.j2"),
-)];
+const TEMPLATES: [(&str, &str); 1] = [("grbl.nc.j2", include_str!("../templates/grbl.nc.j2"))];
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PostError {
@@ -82,7 +76,7 @@ pub fn parse_post_config(text: &str) -> Result<PostConfig, PostError> {
     let data: toml::Table = toml::from_str(text)
         .map_err(|e| PostError::Config(format!("Cannot read post-processor config: {e}")))?;
     let raw = data.get("schema_version");
-    // TOML integers only; a bool, float or string is refused, as in Python.
+    // TOML integers only; a bool, float or string is refused, as the Python reference did.
     match raw.and_then(toml::Value::as_integer) {
         Some(v) if (1..=CURRENT_VERSION).contains(&v) => {}
         _ => {
@@ -252,7 +246,7 @@ pub fn render_program(program: &Program, config: &PostConfig) -> Result<String, 
         .map(|(_, source)| *source)
         .ok_or_else(|| PostError::Config(format!("Unknown template {:?}", config.template)))?;
     let mut env = Environment::new();
-    // The same settings as the Python SandboxedEnvironment. minijinja has no access to
+    // The same settings as the Python reference's Jinja2 SandboxedEnvironment. minijinja has no access to
     // anything but the context, so templates are sandboxed by design.
     env.set_syntax(
         SyntaxConfig::builder()

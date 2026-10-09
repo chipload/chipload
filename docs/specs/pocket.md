@@ -66,30 +66,30 @@ r = tool radius, s = stepover × D.
 ### Rings
 - Level 0 (wall pass): the region shrunk by r.
 - Level k: the region shrunk by r + k·s, until the result is empty.
-- "Shrunk by d" is computed as the region minus the union of round-capped buffers of every
-  boundary segment (`erode_polygons`), not with `buffer(−d)`. GEOS's negative buffer can
-  wrongly return empty near collapse (see ADR 0002), which left pocket centres uncut.
-- Each level can be several polygons, each with an exterior ring and interior rings (around islands).
-- Arc flattening and the GEOS chord factor work exactly as for profiles.
+- "Shrunk by d" is an offset of the whole region (outer loop and islands together, true arcs,
+  cavalier_contours `Shape`). History: the Python reference avoided GEOS's negative buffer,
+  which wrongly returned empty near collapse and left pocket centres uncut; the Rust property
+  test still covers that case.
+- Each level can be several areas, each with an outer ring and island rings.
+- Arc flattening works exactly as for profiles.
 
 ### Errors and warnings
 - Level 0 empty (**tool does not fit anywhere** in the region) → `GeometryError` naming the contours.
 - Level 0 has more pieces than the region (**tool doesn't fit through a narrow part**) → warning:
   each piece is cleared, material stays in the narrow part.
-- **Uncut material check:** the area the tool could reach is
-  `region.buffer(−r).buffer(r)`. The area actually swept is the union of every cutting move
-  buffered by r. Any leftover piece that survives `buffer(−REST_TOL_MM)` → **warning**
+- **Uncut material check:** the area the tool could reach is the region shrunk by r, then grown
+  by r. The area actually swept is everything within r of a cutting move. Any leftover piece
+  that still holds a disk of radius `REST_TOL_MM` → **warning**
   (decision 2026-10-08) naming its location and size. This catches corners where successive
   rings are too far apart (a large stepover with sharp corners) and the pocket centre left by
   the last ring.
-  - Rust port (2026-10-09): the same sets are found with exact distances instead of buffered
-    paths. The edges of the level-0 areas are cut rings, so leftover can only lie inside them;
-    a quadtree finds points farther than r from every cutting move (leftover) and farther
-    than r + `REST_TOL_MM` (a piece that survives the shrink), and reports the pieces holding
-    such points. Leftover thinner than `ARC_APPROX_TOL_MM` is ignored: GEOS's flattened
-    buffers leave slivers that thin, which in the Python version can join two real pieces
-    into one (e.g. 5 places reported where there are 6).
-- **Post-condition (safety):** every cutting move must lie inside `region.buffer(−r)` within
+  - How (2026-10-09): exact distances, no buffered polygons. The edges of the level-0 areas
+    are cut rings, so leftover can only lie inside them; a quadtree finds points farther than
+    r from every cutting move (leftover) and farther than r + `REST_TOL_MM` (a piece that
+    survives the shrink), and reports the pieces holding such points. Leftover thinner than
+    `ARC_APPROX_TOL_MM` is ignored, so chord slivers can't join two real pieces into one (the
+    Python reference's GEOS buffers had that problem: 5 places reported where there were 6).
+- **Post-condition (safety):** every cutting move must lie inside the region shrunk by r, within
   `ARC_APPROX_TOL_MM`, and cutting moves must never come closer than r − tolerance to the
   region boundary. Otherwise → `GeometryError`. Like profiles, nothing is trusted blindly.
 
@@ -116,7 +116,7 @@ The user chooses per operation (decision 2026-10-08):
 - `keep_tool_down: false` (default): always retract to safe_z, rapid to the next ring's start,
   plunge at `plunge_feed`.
 - `keep_tool_down: true`: **feed at depth** when it's safe, i.e. the straight segment lies inside
-  `region.buffer(−r)` (the tool can't touch a wall or island) **and** is no longer than D (it
+  the region shrunk by r (the tool can't touch a wall or island) **and** is no longer than D (it
   may cut through one stepover band that isn't cleared yet; the limit keeps that short).
   Otherwise retract as above.
 
@@ -139,11 +139,11 @@ for the first. The plunge point itself depends on where the tool comes from, so 
 used for ordering.
 
 ## 5. Determinism
-Shapely set operations may return polygons and ring vertices in any order. All results are
+Offset and boolean operations may return areas and ring vertices in any order. All results are
 normalised: polygons sorted by (min y, min x), rings oriented explicitly, and consecutive points
 closer than `CHAIN_TOL_MM` removed. The same job + drawing must give byte-identical G-code.
 
-## 6. New constants (`core/tolerances.py`)
+## 6. New constants (`chipload_core::tolerances`)
 - `REST_TOL_MM = 0.05`: uncut pieces thinner than this aren't reported (chord and float noise).
 
 ## 7. Tests
@@ -158,8 +158,8 @@ closer than `CHAIN_TOL_MM` removed. The same job + drawing must give byte-identi
   inside the region feeds at depth, and a link that would cross an island or is longer than D
   still retracts.
 - **Tool checks:** `center_cutting: false` → error; `null` → warning.
-- **Hypothesis:** for random simple polygons with random islands inside them: every cutting point
-  is inside `region.buffer(−r + tol)` (no gouge into walls or islands), and with stepover ≤ 0.5
+- **Property (proptest):** for random simple polygons with random islands inside them: every cutting point
+  keeps at least r − tol from every wall and island (no gouge), and with stepover ≤ 0.5
   no uncut material is reported.
 - **Real drawing:** `messy_2.dxf`, lower part: the crossing bars #4 and #6 cleared as two
   separate pockets; the result passes the checker; golden G-code.

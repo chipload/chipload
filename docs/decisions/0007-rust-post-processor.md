@@ -15,11 +15,11 @@ The Rust port renders G-code in `chipload-post` with the same data-driven design
 - `sha2` 0.10 (MIT OR Apache-2.0, RustCrypto): `source.sha256` check in `chipload run`.
 
 ## One copy of every post
-The built-in configs and templates stay in `src/chipload/core/post/` and the Rust crate
-compiles them in with `include_str!`. Both implementations render from the same files, and
-`tests/conformance/test_post_parity.py` requires byte-identical output for the same toolpath
-(golden files and Hypothesis-generated toolpaths). When the Python version is removed
-(ADR 0004), the files move next to the Rust crate.
+During the port the built-in configs and templates stayed in the Python package and the Rust
+crate compiled them in with `include_str!`, so both implementations rendered from the same
+files; a conformance test (removed with Python, ADR 0009) required byte-identical output for
+the same toolpath, on the golden files and on Hypothesis-generated toolpaths. With Python gone
+the files live in `crates/chipload-post/posts/` and `templates/`.
 
 ## Number formatting
 Rust's `{:.N}` and Python's `f"{v:.Nf}"` both round the exact binary value with ties to

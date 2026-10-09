@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Import of individual entity kinds, units and repairs, on drawings built in memory.
-//! Port of tests/unit/test_dxf_import.py and tests/unit/test_corpus_messy_2.py.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::f64::consts::FRAC_PI_2;
