@@ -8,9 +8,11 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};
-use chipload_job::load_job;
-use clap::{Parser, Subcommand};
-use serde_json::json;
+use chipload_core::chain::Contour;
+use chipload_dxf::{ImportResult, Severity, UnitsFrom, import_dxf, units_name};
+use chipload_job::{Units, load_job};
+use clap::{Parser, Subcommand, ValueEnum};
+use serde_json::{Value, json};
 
 const EXIT_FAILED: u8 = 1;
 
@@ -23,6 +25,16 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Dump entities, units, contours and issues of a DXF.
+    Inspect {
+        dxf: PathBuf,
+        /// Units of the drawing; required if the DXF does not declare them.
+        #[arg(long)]
+        units: Option<UnitsArg>,
+        /// Print the result as JSON (used by the conformance tests).
+        #[arg(long)]
+        json: bool,
+    },
     /// Check a G-code program against a job's stock, safe height and machine limits.
     Check {
         /// G-code file to check.
@@ -36,10 +48,125 @@ enum Command {
     },
 }
 
+#[derive(Clone, Copy, ValueEnum)]
+enum UnitsArg {
+    Mm,
+    Inch,
+}
+
 fn main() -> ExitCode {
     match Cli::parse().command {
+        Command::Inspect { dxf, units, json } => {
+            let units = units.map(|u| match u {
+                UnitsArg::Mm => Units::Mm,
+                UnitsArg::Inch => Units::Inch,
+            });
+            inspect(&dxf, units, json)
+        }
         Command::Check { gcode, job, json } => check(&gcode, &job, json),
     }
+}
+
+fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
+    let result = match import_dxf(path, units) {
+        Ok(result) => result,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    if as_json {
+        println!("{}", import_json(&result));
+        return ExitCode::SUCCESS;
+    }
+    let report = &result.report;
+    let from = match report.units_from {
+        UnitsFrom::Dxf => "from DXF",
+        UnitsFrom::Job => "from job",
+    };
+    println!("Units: {} ({from})", units_name(report.units));
+    for (kind, count) in &report.imported {
+        println!("Imported: {count} {kind}");
+    }
+    for (kind, count) in &report.flattened {
+        println!("Flattened to lines: {count} {kind}");
+    }
+    for (kind, count) in &report.ignored {
+        println!("Ignored: {count} {kind}");
+    }
+    for issue in &report.issues {
+        println!("{}: {}", severity_name(issue.severity), issue.message);
+    }
+    for contour in &result.contours {
+        let state = match (
+            &contour.invalid_reason,
+            contour.closed,
+            contour.nesting_depth,
+        ) {
+            (Some(reason), _, _) => format!("invalid ({reason})"),
+            (None, false, _) => "open".to_string(),
+            (None, true, Some(depth)) if depth % 2 == 1 => format!("closed, hole (depth {depth})"),
+            (None, true, depth) => format!("closed, outer (depth {})", depth.unwrap_or(0)),
+        };
+        println!(
+            "Contour {}: {state}, layer {}, length {:.3} mm",
+            contour.id,
+            contour.layers().join(", "),
+            contour_length(contour)
+        );
+    }
+    ExitCode::SUCCESS
+}
+
+fn severity_name(severity: Severity) -> &'static str {
+    match severity {
+        Severity::Warning => "warning",
+        Severity::Error => "error",
+    }
+}
+
+fn contour_length(contour: &Contour) -> f64 {
+    contour.parts.iter().map(|p| p.segment.prim.length()).sum()
+}
+
+fn import_json(result: &ImportResult) -> Value {
+    let report = &result.report;
+    let point = |p: (f64, f64)| json!([p.0, p.1]);
+    let contours: Vec<Value> = result
+        .contours
+        .iter()
+        .map(|c| {
+            let mut handles: Vec<&str> =
+                c.parts.iter().map(|p| p.segment.handle.as_str()).collect();
+            handles.sort_unstable();
+            handles.dedup();
+            json!({
+                "id": c.id,
+                "closed": c.closed,
+                "layers": c.layers(),
+                "handles": handles,
+                "nesting_depth": c.nesting_depth,
+                "invalid_reason": c.invalid_reason,
+                "length": contour_length(c),
+                "points": c.points().into_iter().map(point).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    json!({
+        "units": units_name(report.units),
+        "units_from": match report.units_from { UnitsFrom::Dxf => "dxf", UnitsFrom::Job => "job" },
+        "imported": report.imported,
+        "flattened": report.flattened,
+        "ignored": report.ignored,
+        "issues": report.issues.iter().map(|i| json!({
+            "severity": severity_name(i.severity),
+            "code": i.code,
+            "message": i.message,
+            "location": i.location.map(point),
+        })).collect::<Vec<_>>(),
+        "bbox": report.bbox.map(|(lo, hi)| json!([point(lo), point(hi)])),
+        "contours": contours,
+    })
 }
 
 fn check(gcode: &Path, job_path: &Path, as_json: bool) -> ExitCode {

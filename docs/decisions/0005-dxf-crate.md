@@ -12,12 +12,33 @@ CIRCLE, LWPOLYLINE with bulges, POLYLINE + VERTEX, SPLINE, ELLIPSE, INSERT incl.
 arrays), extrusion directions, layers, handles, blocks with base points, and `$INSUNITS`.
 
 ## What we build ourselves (in `chipload-dxf`)
-ezdxf did these for the Python version; the crate doesn't:
-- **OCS → WCS** (the DXF "arbitrary axis algorithm"), so mirrored arcs (extrusion −Z) come out right.
-- **Block expansion:** INSERT transforms (base point, scale, rotation, extrusion, arrays),
-  nested blocks with a depth limit, layer "0" inheritance. Arcs under non-uniform scaling are
-  flattened in block space and transformed as lines.
-- **Spline and ellipse flattening** within `ARC_APPROX_TOL_MM` (rational B-spline evaluation).
+The importer reads the drawing as drawn and changes as little as possible (decision
+2026-10-09: it doesn't try to reproduce ezdxf). Everything goes through one 2D affine
+transform per entity:
+- **Extrusion:** only ±Z is accepted; −Z (the mirrored OCS, common for mirrored arcs) flips x.
+  Entities tilted out of the XY plane are skipped and reported, never projected.
+- **Block expansion:** INSERT base point, scale, rotation, extrusion and row/column arrays,
+  nested blocks with a depth limit, layer "0" inheritance. Arcs stay arcs under a similarity
+  (a mirror reverses the sweep); arcs under non-uniform scaling become lines within
+  `ARC_APPROX_TOL_MM`.
+- **Spline and ellipse flattening** within `ARC_APPROX_TOL_MM` (rational B-splines from
+  control points). A spline given **only by fit points** is skipped with a warning: its shape
+  depends on end tangents every CAD program picks differently, so we don't guess
+  (ezdxf interpolates it; this is the one known difference from Python, see
+  `tests/conformance/test_dxf_import_parity.py`).
+- **Nesting** uses cavalier_contours, with an exact fallback when boundaries touch, so a shape
+  sharing edges with its container from the inside counts as nested (Shapely `contains`
+  semantics, which the pocket island rule relies on).
+
+## Crash in dxf 0.6.2 on local-time dates
+The crate converts `$TDCREATE`/`$TDUPDATE` and OBJECTS timestamps from the epoch
+1900-01-01 00:00 *local time* and unwraps it. In time zones where that instant is ambiguous
+(Europe/Stockholm switched from local mean time to CET then) every file with such a date
+panics, including most AutoCAD and ezdxf output. Workaround in `sanitize.rs`: before
+parsing an ASCII DXF we drop those two header variables and the OBJECTS section, neither of
+which affects geometry. The parse also runs under `catch_unwind`, so any other panic in the
+parser becomes an import error instead of a crash. Worth reporting upstream; remove the
+workaround once a fixed release is out.
 
 ## Trade-offs
 - It pulls in `image` (BMP only, default features off) for DXF thumbnails, plus `chrono` and
