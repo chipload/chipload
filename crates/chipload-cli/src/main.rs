@@ -11,16 +11,13 @@ use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, units_name};
 use chipload_job::{Spindle, Units, load_job};
+use chipload_pipeline::report::{format_contours, format_import_report, severity_name};
 use chipload_pipeline::{PipelineError, run_job, write_atomically};
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::model::{Move, MoveKind, Program};
 use chipload_toolpath::plan_job;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
-
-mod report;
-
-use report::{format_contours, format_import_report, severity_name};
 
 const EXIT_FAILED: u8 = 1;
 

@@ -18,6 +18,7 @@ allow = [
     "ISC",
     "Zlib",
     "Unicode-3.0",
+    "BSL-1.0",  # Boost; GPL-compatible per FSF. egui clipboard on Windows (approved 2026-10-09)
     "Unlicense",
     "CC0-1.0",
 ]

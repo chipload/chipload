@@ -2,6 +2,8 @@
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 //! Port of `core/pipeline.py::run_job`.
 
+pub mod report;
+
 use std::path::Path;
 
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};

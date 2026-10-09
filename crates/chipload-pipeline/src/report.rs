@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Human-readable rendering of results for the terminal. Port of `cli/report.py`; the text
-//! is the same, so both CLIs can be compared line for line.
+//! Human-readable rendering of results, for the CLI and the GUI report panel. Port of
+//! `cli/report.py`; the text is the same, so both CLIs can be compared line for line.
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity, UnitsFrom, units_name};

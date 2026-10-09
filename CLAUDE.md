@@ -68,6 +68,7 @@ cargo deny check licenses bans sources            # GPL-3.0 compatibility of eve
 cargo run -p chipload-cli -- check out.nc --job job.json   # Rust checker on any G-code
 cargo run -p chipload-cli -- run part.dxf --job job.json -o out.nc   # Rust end to end
 cargo run -p chipload-cli -- plan part.dxf --job job.json --json      # toolpath, no G-code
+cargo run -p chipload-gui -- part.dxf job.json                   # egui GUI
 ```
 
 ## Rust
@@ -87,7 +88,7 @@ Run the relevant tests after every change. Do not report a task done until they 
 - Prefer tests first for geometry. Add a Hypothesis property test where an invariant exists (e.g. offset contour never crosses the original, pocket stays inside boundary).
 - **Verify APIs against the installed library version** (`pip show`, read the source or `help()`), don't rely on memory. This matters for ezdxf, Shapely, and Clipper bindings.
 - If something is ambiguous (units, offset side, climb vs conventional, machine behaviour), **stop and ask** instead of choosing silently.
-- Do not add dependencies without stating the license and why it's needed. Every dependency must be compatible with **GPL-3.0-or-later**. Allowed: MIT, BSD-2/3-Clause, ISC, Zlib, Apache-2.0, MPL-2.0, LGPL-2.1-or-later/3.0, GPL-2.0-or-later, GPL-3.0(-or-later), Unicode-3.0. **Forbidden:** GPL-2.0-only (incompatible), proprietary, unknown or no license. **Needs explicit approval:** AGPL-3.0 (adds network obligations) and anything not listed. For Rust, `deny.toml` encodes this list.
+- Do not add dependencies without stating the license and why it's needed. Every dependency must be compatible with **GPL-3.0-or-later**. Allowed: MIT, BSD-2/3-Clause, ISC, Zlib, Apache-2.0, MPL-2.0, LGPL-2.1-or-later/3.0, GPL-2.0-or-later, GPL-3.0(-or-later), Unicode-3.0, BSL-1.0 (approved 2026-10-09). **Forbidden:** GPL-2.0-only (incompatible), proprietary, unknown or no license. **Needs explicit approval:** AGPL-3.0 (adds network obligations) and anything not listed. For Rust, `deny.toml` encodes this list.
 - Keep `docs/decisions/` updated with a short ADR for any significant architectural or library decision.
 
 ## Safety rules for toolpath and G-code code

@@ -36,6 +36,20 @@ G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/v3/` for example jobs and `docs/specs/` for exact behaviour and
 limitations.
 
+## Rust version (in progress)
+
+A Rust rewrite with an egui GUI lives in `crates/` (see `docs/decisions/0004`). It already
+imports DXF, plans profiles, tabs and pockets, writes checked G-code and has a viewer:
+
+```
+cargo run --release -p chipload-gui -- part.dxf job.json    # GUI
+cargo run --release -p chipload-cli -- run part.dxf --job job.json -o out.nc
+```
+
+The GUI uses installed system fonts (e.g. DejaVu Sans). On Linux, native file dialogs need
+an XDG desktop portal or `zenity`; without them use *File → Open path…* or pass the files
+on the command line.
+
 ## License
 
 Copyright (C) 2026 Gustav Näslund
