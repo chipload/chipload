@@ -11,7 +11,11 @@ cavalier_contours = "0.9.0"
 chipload-core = { version = "0.1.0", path = "../chipload-core" }
 chipload-job = { version = "0.1.0", path = "../chipload-job" }
 dxf = "0.6.2"
+sha2 = "0.10"
 thiserror = "2.0.21"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+serde_json = "1"

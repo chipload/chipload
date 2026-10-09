@@ -10,7 +10,7 @@ use crate::models::CURRENT_VERSION;
 type Migration = fn(Value) -> Value;
 
 /// `MIGRATIONS[n - 1]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 2] = [v1_to_v2, v2_to_v3];
+const MIGRATIONS: [Migration; 3] = [v1_to_v2, v2_to_v3, v3_to_v4];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`), < 1 or newer
 /// versions are refused.
@@ -84,6 +84,23 @@ fn v2_to_v3(mut data: Value) -> Value {
         }
     }
     set_version(data, 3)
+}
+
+/// v4 makes the job a project with its drawing embedded (docs/specs/project-file.md). A
+/// migration can't read the DXF (no I/O), so the old `source` becomes `drawing.external`:
+/// such a project opens, and must be embedded (by the app) before it runs. Selectors are
+/// unchanged; `handles` stay valid while the drawing is external.
+fn v3_to_v4(mut data: Value) -> Value {
+    if let Value::Object(map) = &mut data {
+        let external = map.remove("source").unwrap_or(Value::Null);
+        let mut drawing = Map::new();
+        drawing.insert("shapes".into(), Value::Array(Vec::new()));
+        drawing.insert("next_shape_id".into(), Value::from(1));
+        drawing.insert("source".into(), Value::Null);
+        drawing.insert("external".into(), external);
+        map.insert("drawing".into(), Value::Object(drawing));
+    }
+    set_version(data, 4)
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

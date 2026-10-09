@@ -12,6 +12,7 @@ pub fn segment(prim: Primitive) -> OrientedSegment {
             layer: "L".into(),
             handle: "1".into(),
             source_type: "LWPOLYLINE".into(),
+            shape: None,
         },
         reversed: false,
     }

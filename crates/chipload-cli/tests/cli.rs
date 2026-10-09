@@ -81,9 +81,7 @@ fn run_writes_checked_gcode() {
     let out_file = dir.join("out.nc");
     let out = chipload(&[
         "run",
-        path(&corpus("dxf/simple_part.dxf")),
-        "--job",
-        path(&corpus("jobs/v2/simple_part_full.json")),
+        path(&corpus("jobs/v4/simple_part_full.chipload")),
         "-o",
         path(&out_file),
     ]);
@@ -99,7 +97,7 @@ fn failed_run_writes_nothing_and_keeps_an_old_file() {
     let dir = temp_dir("fail");
     let job = dir.join("job.json");
     let mut data: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(corpus("jobs/v2/simple_part_full.json")).unwrap(),
+        &std::fs::read_to_string(corpus("jobs/v4/simple_part_full.chipload")).unwrap(),
     )
     .unwrap();
     // The part is 206 mm wide: the checker refuses the program.
@@ -107,14 +105,7 @@ fn failed_run_writes_nothing_and_keeps_an_old_file() {
     std::fs::write(&job, data.to_string()).unwrap();
     let out_file = dir.join("out.nc");
     std::fs::write(&out_file, "old program\n").unwrap();
-    let out = chipload(&[
-        "run",
-        path(&corpus("dxf/simple_part.dxf")),
-        "--job",
-        path(&job),
-        "-o",
-        path(&out_file),
-    ]);
+    let out = chipload(&["run", path(&job), "-o", path(&out_file)]);
     let kept = std::fs::read_to_string(&out_file).unwrap();
     let leftovers = std::fs::read_dir(&dir).unwrap().count();
     std::fs::remove_dir_all(&dir).unwrap();
@@ -131,14 +122,7 @@ fn newer_job_version_is_refused() {
     let job = dir.join("job.json");
     std::fs::write(&job, r#"{"schema_version": 99}"#).unwrap();
     let out_file = dir.join("out.nc");
-    let out = chipload(&[
-        "run",
-        path(&corpus("dxf/simple_part.dxf")),
-        "--job",
-        path(&job),
-        "-o",
-        path(&out_file),
-    ]);
+    let out = chipload(&["run", path(&job), "-o", path(&out_file)]);
     let written = out_file.exists();
     std::fs::remove_dir_all(&dir).unwrap();
     assert_eq!(out.status.code(), Some(1));
@@ -156,5 +140,59 @@ fn licenses_prints_the_gpl_and_every_third_party_licence() {
     assert!(
         stdout.contains("cavalier_contours"),
         "dependencies are listed"
+    );
+}
+
+#[test]
+fn import_inspect_update_and_run_a_project() {
+    let dir = temp_dir("project");
+    let project = dir.join("part.chipload");
+    let out = chipload(&[
+        "import",
+        path(&corpus("dxf/messy_2.dxf")),
+        "-o",
+        path(&project),
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Imported messy_2.dxf (22 shapes)"));
+    // inspect gives the same report for the project as for the DXF.
+    let from_dxf = chipload(&["inspect", path(&corpus("dxf/messy_2.dxf"))]);
+    let from_project = chipload(&["inspect", path(&project)]);
+    assert_eq!(text(&from_project.stdout), text(&from_dxf.stdout));
+    // A project without operations doesn't run.
+    let x = dir.join("x.nc");
+    assert_eq!(
+        chipload(&["run", path(&project), "-o", path(&x)])
+            .status
+            .code(),
+        Some(1)
+    );
+    // Updating with the same drawing changes nothing.
+    let before = std::fs::read_to_string(&project).unwrap();
+    let out = chipload(&[
+        "update",
+        path(&project),
+        "--from",
+        path(&corpus("dxf/messy_2.dxf")),
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("22 unchanged, 0 changed, 0 added, 0 removed"));
+    assert_eq!(std::fs::read_to_string(&project).unwrap(), before);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn an_older_job_must_be_embedded_before_it_runs() {
+    let out = chipload(&[
+        "run",
+        path(&corpus("jobs/v3/messy_2_lower.json")),
+        "-o",
+        "/nonexistent/out.nc",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains("chipload import --into"),
+        "{}",
+        text(&out.stderr)
     );
 }

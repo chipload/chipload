@@ -20,4 +20,5 @@ thiserror = "2"
 workspace = true
 
 [dev-dependencies]
+chipload-dxf = { path = "../chipload-dxf" }
 serde_json = "1"

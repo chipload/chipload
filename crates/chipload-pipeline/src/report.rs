@@ -14,7 +14,7 @@ pub fn severity_name(severity: Severity) -> &'static str {
 pub fn format_import_report(report: &ImportReport) -> Vec<String> {
     let from = match report.units_from {
         UnitsFrom::Dxf => "dxf",
-        UnitsFrom::Job => "job",
+        UnitsFrom::User => "user",
     };
     let mut lines = vec![format!("Units: {} (from {from})", units_name(report.units))];
     if let Some(((x0, y0), (x1, y1))) = report.bbox {

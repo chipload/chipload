@@ -714,6 +714,8 @@ dependencies = [
  "chipload-core",
  "chipload-job",
  "dxf",
+ "serde_json",
+ "sha2",
  "thiserror 2.0.21",
 ]
 

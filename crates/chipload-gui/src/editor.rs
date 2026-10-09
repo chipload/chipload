@@ -5,12 +5,8 @@
 
 use std::collections::BTreeSet;
 
-use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::{
-    CURRENT_VERSION, Direction, Job, Machine, Operation, PocketOp, ProfileOp, Selector, Side,
-    Source, Spindle, Stock, StockOrigin, Tool, ToolType, Units, ZZero,
-};
+use chipload_job::{Direction, Job, Operation, PocketOp, ProfileOp, Selector, Side};
 
 use crate::view::Kind;
 
@@ -21,12 +17,6 @@ pub const DEFAULT_PLUNGE_FEED: f64 = 150.0;
 pub const DEFAULT_DEPTH: f64 = 1.0;
 pub const DEFAULT_STEP_DOWN: f64 = 1.0;
 pub const DEFAULT_STEPOVER: f64 = 0.4;
-
-/// Defaults for a new job (docs/specs/job-editor.md §6).
-pub const DEFAULT_THICKNESS: f64 = 10.0;
-pub const DEFAULT_SAFE_Z: f64 = 5.0;
-pub const DEFAULT_TOOL_DIAMETER: f64 = 6.0;
-pub const DEFAULT_RPM: f64 = 18000.0;
 
 /// What is selected on the canvas.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -53,27 +43,29 @@ impl CanvasSelection {
         }
     }
 
-    /// A job selector for it: handles for clicked contours, the layer for a layer selection.
-    /// Open contours are left out, as the pipeline would skip them anyway.
+    /// A job selector for it: the shapes of the clicked contours, or the layer for a layer
+    /// selection. Open contours are left out, as the pipeline would skip them anyway.
     pub fn selector(&self, contours: &[Contour]) -> Selector {
         match self {
             CanvasSelection::Layer(layer) => Selector {
                 layer: Some(layer.clone()),
                 handles: None,
+                shapes: None,
             },
             _ => {
                 let ids = self.ids(contours);
-                let mut handles: Vec<String> = Vec::new();
+                let mut shapes: Vec<u64> = Vec::new();
                 for c in contours.iter().filter(|c| ids.contains(&c.id) && c.closed) {
-                    for part in &c.parts {
-                        if !handles.contains(&part.segment.handle) {
-                            handles.push(part.segment.handle.clone());
+                    for id in c.parts.iter().filter_map(|p| p.segment.shape) {
+                        if !shapes.contains(&id) {
+                            shapes.push(id);
                         }
                     }
                 }
                 Selector {
                     layer: None,
-                    handles: Some(handles),
+                    handles: None,
+                    shapes: Some(shapes),
                 }
             }
         }
@@ -128,57 +120,6 @@ impl EditJob {
             })
             .collect();
         EditJob { settings, ops }
-    }
-
-    /// A new job for a drawing (docs/specs/job-editor.md §6).
-    pub fn for_drawing(file_name: &str, units: Units, bbox: Option<(Point, Point)>) -> Self {
-        let ((x0, y0), (x1, y1)) = bbox.unwrap_or(((0.0, 0.0), (100.0, 100.0)));
-        let first_quadrant = x0 >= 0.0 && y0 >= 0.0;
-        let (origin, x, y) = if first_quadrant {
-            (StockOrigin::BottomLeft, x1, y1)
-        } else {
-            (
-                StockOrigin::Center,
-                2.0 * x0.abs().max(x1.abs()),
-                2.0 * y0.abs().max(y1.abs()),
-            )
-        };
-        let settings = Job {
-            schema_version: CURRENT_VERSION,
-            written_by: None,
-            source: Source {
-                file: file_name.to_string(),
-                sha256: None,
-                units,
-            },
-            stock: Stock {
-                x: x.max(1.0),
-                y: y.max(1.0),
-                thickness: DEFAULT_THICKNESS,
-                origin,
-                z_zero: ZZero::Top,
-            },
-            machine: Machine {
-                post: "grbl".into(),
-                safe_z: DEFAULT_SAFE_Z,
-                spindle: Spindle::Cw,
-                max_feed: None,
-                travel: None,
-            },
-            tools: vec![Tool {
-                id: 1,
-                kind: ToolType::Endmill,
-                diameter: DEFAULT_TOOL_DIAMETER,
-                flutes: None,
-                center_cutting: None,
-                rpm: Some(DEFAULT_RPM),
-            }],
-            operations: Vec::new(),
-        };
-        EditJob {
-            settings,
-            ops: Vec::new(),
-        }
     }
 
     fn tool_id(&self) -> i64 {
@@ -342,8 +283,9 @@ impl EditJob {
                 Operation::Pocket(p) => &p.select,
                 Operation::Drill(d) => &d.select,
             };
-            let has_geometry =
-                select.layer.is_some() || select.handles.as_ref().is_some_and(|h| !h.is_empty());
+            let has_geometry = select.layer.is_some()
+                || select.handles.as_ref().is_some_and(|h| !h.is_empty())
+                || select.shapes.as_ref().is_some_and(|s| !s.is_empty());
             if !has_geometry {
                 out.push((
                     i,
@@ -372,18 +314,6 @@ impl EditJob {
             Err(problems)
         }
     }
-
-    /// Whether any operation selects by handle (and so depends on this exact drawing).
-    pub fn uses_handles(&self) -> bool {
-        self.ops.iter().any(|e| {
-            let select = match &e.op {
-                Operation::Profile(p) => &p.select,
-                Operation::Pocket(p) => &p.select,
-                Operation::Drill(d) => &d.select,
-            };
-            select.handles.as_ref().is_some_and(|h| !h.is_empty())
-        })
-    }
 }
 
 /// A short description of what an operation selects, e.g. "#4, #6" or "layer upper".
@@ -395,6 +325,22 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
     };
     if let Some(layer) = &select.layer {
         return format!("layer {layer}");
+    }
+    if let Some(shapes) = select.shapes.as_ref().filter(|s| !s.is_empty()) {
+        let ids: Vec<String> = contours
+            .iter()
+            .filter(|c| {
+                c.parts
+                    .iter()
+                    .any(|p| p.segment.shape.is_some_and(|id| shapes.contains(&id)))
+            })
+            .map(|c| format!("#{}", c.id))
+            .collect();
+        return if ids.is_empty() {
+            "shapes not in the drawing".into()
+        } else {
+            ids.join(", ")
+        };
     }
     let handles = select.handles.clone().unwrap_or_default();
     if handles.is_empty() {
@@ -421,13 +367,19 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chipload_dxf::import_dxf;
+    use chipload_dxf::shapes_from_dxf;
+    use chipload_pipeline::{load_drawing, new_project};
     use std::path::PathBuf;
 
-    fn messy_2() -> Vec<Contour> {
+    fn project() -> chipload_job::Job {
         let path =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/dxf/messy_2.dxf");
-        import_dxf(&path, None).unwrap().contours
+        new_project(shapes_from_dxf(&path, None).unwrap())
+    }
+
+    /// messy_2's contours as a project loads them (with shape ids).
+    fn messy_2() -> Vec<Contour> {
+        load_drawing(&project()).unwrap().contours
     }
 
     fn ids(list: &[usize]) -> CanvasSelection {
@@ -435,25 +387,7 @@ mod tests {
     }
 
     fn new_job() -> EditJob {
-        EditJob::for_drawing(
-            "messy_2.dxf",
-            Units::Mm,
-            Some(((-90.5, -50.0), (90.5, 55.0))),
-        )
-    }
-
-    #[test]
-    fn new_job_covers_the_drawing_with_visible_defaults() {
-        let job = new_job();
-        assert_eq!(job.settings.stock.origin, StockOrigin::Center);
-        assert_eq!((job.settings.stock.x, job.settings.stock.y), (181.0, 110.0));
-        assert_eq!(job.settings.stock.thickness, DEFAULT_THICKNESS);
-        let first = EditJob::for_drawing("a.dxf", Units::Mm, Some(((5.0, 5.0), (50.0, 30.0))));
-        assert_eq!(first.settings.stock.origin, StockOrigin::BottomLeft);
-        assert_eq!(
-            (first.settings.stock.x, first.settings.stock.y),
-            (50.0, 30.0)
-        );
+        EditJob::from_job(&project())
     }
 
     #[test]
@@ -484,14 +418,13 @@ mod tests {
         let Operation::Pocket(pocket) = &job.ops[a].op else {
             panic!()
         };
-        assert_eq!(pocket.select.handles.as_ref().unwrap().len(), 2);
+        assert_eq!(pocket.select.shapes.as_ref().unwrap().len(), 2);
         assert_eq!(geometry_summary(&job.ops[a].op, &contours), "#4, #6");
         let Operation::Profile(profile) = &job.ops[b].op else {
             panic!()
         };
         assert_eq!(profile.select.layer.as_deref(), Some("upper"));
         assert_eq!(geometry_summary(&job.ops[b].op, &contours), "layer upper");
-        assert!(job.uses_handles());
     }
 
     #[test]

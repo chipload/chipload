@@ -75,8 +75,10 @@ fn version_error_message_matches_python() {
     let err = migrate(json!({"schema_version": 99})).unwrap_err();
     assert_eq!(
         err.to_string(),
-        "Job schema_version 99 is not supported (this app supports up to 3). \
-         Update the application or check the file."
+        format!(
+            "Job schema_version 99 is not supported (this app supports up to {CURRENT_VERSION}). \
+             Update the application or check the file."
+        )
     );
     let err = migrate(json!({})).unwrap_err();
     assert!(err.to_string().starts_with("Job schema_version None "));
@@ -145,7 +147,7 @@ fn value_constraints_match_python() {
 
 #[test]
 fn pocket_fields_parse() {
-    let job = parse_job(lower_job(), "job.json").unwrap();
+    let job = parse_job(migrate(lower_job()).unwrap(), "job.json").unwrap();
     let Operation::Pocket(pocket) = &job.operations[0] else {
         panic!("expected a pocket")
     };
@@ -251,4 +253,134 @@ fn operations_are_enabled_unless_the_file_says_otherwise() {
     data["operations"][1]["enabled"] = json!(false);
     let job = parse_job(migrate(data).unwrap(), "test").unwrap();
     assert!(!job.operations[1].enabled());
+}
+
+// -- schema v4: projects (docs/specs/project-file.md)
+
+fn project(shapes: Value, next: u64, select: Value) -> Value {
+    let mut data = migrate(lower_job()).unwrap();
+    data["drawing"] =
+        json!({"shapes": shapes, "next_shape_id": next, "source": null, "external": null});
+    data["operations"] = json!([data["operations"][1].clone()]);
+    data["operations"][0]["select"] = select;
+    data
+}
+
+fn square_shape(id: u64) -> Value {
+    json!({"id": id, "layer": "L", "kind": "path", "closed": true, "segments": [
+        {"line": {"start": [0.0, 0.0], "end": [10.0, 0.0]}},
+        {"line": {"start": [10.0, 0.0], "end": [10.0, 10.0]}},
+        {"line": {"start": [10.0, 10.0], "end": [0.0, 0.0]}},
+    ]})
+}
+
+#[test]
+fn old_jobs_migrate_to_an_external_drawing() {
+    for path in all_corpus_jobs() {
+        let raw: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let job = load_job(&path).unwrap();
+        if raw["schema_version"].as_i64().unwrap() >= 4 {
+            continue;
+        }
+        let external = job.drawing.external.as_ref().expect("external");
+        assert_eq!(
+            external.file,
+            raw["source"]["file"].as_str().unwrap(),
+            "{}",
+            path.display()
+        );
+        assert!(job.drawing.shapes.is_empty() && job.drawing.next_shape_id == 1);
+    }
+}
+
+#[test]
+fn shapes_round_trip_exactly() {
+    let arc = json!({"id": 1, "layer": "L", "dxf_handle": "5C", "dxf_type": "CIRCLE",
+        "kind": "path", "closed": true, "segments": [
+        {"arc": {"center": [0.1, -1e-300], "radius": 1.0 / 3.0, "start_angle": 0.0,
+                 "sweep": std::f64::consts::TAU}}]});
+    let job = parse_job(project(json!([arc]), 2, json!({"shapes": [1]})), "p").unwrap();
+    let text = chipload_job::dump_job(&job).unwrap();
+    let again = parse_job(migrate(serde_json::from_str(&text).unwrap()).unwrap(), "p").unwrap();
+    assert_eq!(again.drawing, job.drawing);
+}
+
+#[test]
+fn drawing_rules_are_enforced() {
+    let refused = |data: Value, what: &str| {
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(what), "{what}: {err}");
+    };
+    let ok = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    parse_job(ok, "p").unwrap();
+    refused(
+        project(json!([square_shape(1)]), 1, json!({"shapes": [1]})),
+        "next_shape_id",
+    );
+    refused(
+        project(
+            json!([square_shape(1), square_shape(1)]),
+            3,
+            json!({"layer": "L"}),
+        ),
+        "used twice",
+    );
+    refused(
+        project(json!([square_shape(0)]), 3, json!({"layer": "L"})),
+        "between 1",
+    );
+    refused(
+        project(json!([square_shape(1)]), 2, json!({"handles": ["5C"]})),
+        "handle selectors",
+    );
+    let mut bad_arc = square_shape(1);
+    bad_arc["segments"] =
+        json!([{"arc": {"center": [0, 0], "radius": 0.0, "start_angle": 0, "sweep": 1}}]);
+    refused(
+        project(json!([bad_arc]), 2, json!({"layer": "L"})),
+        "radii positive",
+    );
+    let mut unknown = square_shape(1);
+    unknown["kind"] = json!("circle");
+    refused(
+        project(json!([unknown]), 2, json!({"layer": "L"})),
+        "unknown variant",
+    );
+    // A migrated job: handles stay valid, shapes can't be used until it is embedded.
+    let mut external = migrate(lower_job()).unwrap();
+    external["operations"][1]["select"] = json!({"shapes": [1]});
+    refused(external, "need an embedded drawing");
+}
+
+#[test]
+fn every_f64_survives_save_and_load_exactly() {
+    // Deterministic pseudo-random bit patterns plus hard cases (subnormals, near-halfway).
+    let mut state: u64 = 0x9e37_79b9_7f4a_7c15;
+    let mut values: Vec<f64> = vec![
+        0.1,
+        1.0 / 3.0,
+        -85.4901456079,
+        2.225_073_858_507_201e-308,
+        5e-324,
+        f64::MAX,
+        9_007_199_254_740_993.0,
+        0.300_000_000_000_000_04,
+    ];
+    for _ in 0..1_000_000 {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        let v = f64::from_bits(state);
+        if v.is_finite() {
+            values.push(v);
+        }
+    }
+    let text = serde_json::to_string(&values).unwrap();
+    let back: Vec<f64> = serde_json::from_str(&text).unwrap();
+    let wrong = values
+        .iter()
+        .zip(&back)
+        .filter(|(a, b)| a.to_bits() != b.to_bits())
+        .count();
+    assert_eq!(wrong, 0, "{wrong} values changed through JSON");
 }

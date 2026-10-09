@@ -22,18 +22,25 @@ cargo test --workspace                                      # tests
 ## Usage
 
 ```
-chipload inspect part.dxf                        # units, entities, contours, issues
-chipload run part.dxf --job job.json -o part.nc  # generate checked G-code
-chipload check part.nc --job job.json            # the independent checker on any G-code
+chipload import part.dxf -o part.chipload        # a project holding the drawing
+chipload inspect part.chipload                   # units, contours, issues (also takes a .dxf)
+chipload run part.chipload -o part.nc            # generate checked G-code
+chipload update part.chipload --from part.dxf    # take in a new version of the drawing
+chipload check part.nc --job part.chipload       # the independent checker on any G-code
 ```
 
-The GUI (`chipload-gui [part.dxf] [job.json]`) is a job editor: open a drawing, start a job
-(Ctrl+N), click contours (Ctrl+click for more, right-click for a whole layer), then **New
+A project (`.chipload`) holds the drawing's geometry, so the DXF is only needed to import or
+update it. Older `.json` jobs open too and are converted with `chipload import --into job.json
+part.dxf -o part.chipload` (GUI: File > Embed drawing).
+
+The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
+(Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New
 profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
 reorder, untick to skip one. **F5** generates and shows the toolpath (start points numbered in
 cut order, arrows in the cutting direction, rapids dashed, tabs highlighted); **Ctrl+S** saves
-the job, **Ctrl+E** exports G-code, which is only possible after the check passes. Saved
-jobs are ordinary job files: `chipload run` gives the same G-code.
+the project, **Ctrl+E** exports G-code, which is only possible after the check passes.
+*File > Update drawing from DXF* takes in a re-exported drawing and keeps the operations.
+`chipload run` on a saved project gives the same G-code.
 
 Supported: **profile** operations (inside, outside, on) with optional holding tabs
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and

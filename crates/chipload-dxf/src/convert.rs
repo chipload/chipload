@@ -137,6 +137,9 @@ pub struct Converter<'a> {
     /// Drawing units to millimetres.
     units: f64,
     pub segments: Vec<Segment>,
+    /// For each segment, the index of the entity it came from (one shape per entity).
+    pub entity_of: Vec<usize>,
+    entities: usize,
     pub issues: Vec<Issue>,
     pub imported: BTreeMap<String, usize>,
     pub flattened: BTreeMap<String, usize>,
@@ -161,6 +164,8 @@ impl<'a> Converter<'a> {
             drawing,
             units,
             segments: Vec::new(),
+            entity_of: Vec::new(),
+            entities: 0,
             issues: Vec::new(),
             imported: BTreeMap::new(),
             flattened: BTreeMap::new(),
@@ -200,13 +205,17 @@ impl<'a> Converter<'a> {
         };
         *self.imported.entry(kind.clone()).or_default() += 1;
         self.track_z(pieces.max_abs_z);
+        let entity = self.entities;
+        self.entities += 1;
         for prim in pieces.prims {
             self.segments.push(Segment {
                 prim,
                 layer: layer.clone(),
                 handle: place.root_handle.clone(),
                 source_type: kind.clone(),
+                shape: None,
             });
+            self.entity_of.push(entity);
         }
     }
 

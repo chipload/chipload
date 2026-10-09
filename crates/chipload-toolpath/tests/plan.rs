@@ -5,20 +5,22 @@
 mod common;
 
 use chipload_core::chain::Contour;
+use chipload_job::migrations::migrate;
 use chipload_job::{Job, parse_job};
 use chipload_toolpath::{ToolpathError, plan_job};
 use serde_json::{Value, json};
 
 fn job(operations: Value) -> Job {
     parse_job(
-        json!({
+        migrate(json!({
             "schema_version": 3,
             "source": {"file": "x.dxf", "units": "mm"},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left"},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw"},
             "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],
             "operations": operations,
-        }),
+        }))
+        .unwrap(),
         "test.json",
     )
     .unwrap()

@@ -12,8 +12,13 @@ fn corpus(name: &str) -> PathBuf {
         .join(name)
 }
 
-fn codes(result: &chipload_dxf::ImportResult) -> Vec<&'static str> {
-    result.report.issues.iter().map(|i| i.code).collect()
+fn codes(result: &chipload_dxf::ImportResult) -> Vec<&str> {
+    result
+        .report
+        .issues
+        .iter()
+        .map(|i| i.code.as_str())
+        .collect()
 }
 
 #[test]
@@ -38,12 +43,12 @@ fn ezdxf_file_with_local_dates_loads() {
 #[test]
 fn messy_reports_every_repair_and_skip() {
     let result = import_dxf(&corpus("messy.dxf"), Some(Units::Mm)).unwrap();
-    assert_eq!(result.report.units_from, UnitsFrom::Job);
+    assert_eq!(result.report.units_from, UnitsFrom::User);
     assert_eq!(
         codes(&result),
         [
             "entity_skipped",
-            "units_from_job",
+            "units_chosen",
             "nonzero_z",
             "zero_length",
             "duplicate",

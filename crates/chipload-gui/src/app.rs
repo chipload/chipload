@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Main window: open a drawing, create and edit a job (operations from selected geometry, in
-//! any order), generate on F5, save the job, export checked G-code.
-//! See docs/specs/job-editor.md. Thin by design: geometry and G-code decisions are calls into
-//! the pipeline; this file only edits a `Job` and shows results.
+//! Main window: import a drawing into a project, edit its operations (from selected geometry,
+//! in any order), generate on F5, save the project, export checked G-code.
+//! See docs/specs/job-editor.md and docs/specs/project-file.md. Thin by design: geometry and
+//! G-code decisions are calls into the pipeline; this file only edits a `Job` (a project)
+//! and shows results.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -10,13 +11,16 @@ use std::time::{Duration, Instant};
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_dxf::{ImportError, import_dxf};
+use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::{
-    Direction, Operation, Selector, Side, Spindle, StockOrigin, Tabs, ToolType, Travel, Units,
-    ZZero, load_job, save_job,
+    Direction, Drawing, Operation, Selector, Side, Spindle, StockOrigin, Tabs, ToolType, Travel,
+    Units, ZZero, load_job, save_job,
 };
 use chipload_pipeline::report::{format_contours, format_import_report};
-use chipload_pipeline::{PipelineError, RunResult, drawing_sha256, run_job, write_atomically};
+use chipload_pipeline::{
+    PipelineError, RunResult, embed_drawing, load_drawing, new_project, run_job, update_drawing,
+    write_atomically,
+};
 use chipload_toolpath::select::select_contours;
 use eframe::egui::{
     self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, KeyboardShortcut, Layout, MenuBar,
@@ -28,13 +32,14 @@ use crate::view::{ContourShape, Scene, ToolpathShape, View};
 
 const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
+/// Extension of project files (docs/specs/project-file.md, D1).
+pub const PROJECT_EXTENSION: &str = "chipload";
 
-const NEW_JOB: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::N);
-const OPEN_DXF: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::O);
-const OPEN_JOB: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::J);
-const SAVE_JOB_AS: KeyboardShortcut =
+const OPEN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::O);
+const IMPORT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::I);
+const SAVE_AS: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::S);
-const SAVE_JOB: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
+const SAVE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
 const EXPORT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::E);
 const GENERATE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F5);
 const REDO: KeyboardShortcut =
@@ -54,50 +59,54 @@ pub enum Focus {
     Op(usize),
 }
 
-/// Something that would throw away unsaved job changes, waiting for confirmation.
+/// Something that would throw away unsaved changes, waiting for confirmation.
 #[derive(Debug, Clone, PartialEq)]
 enum Pending {
     Close,
-    NewJob,
-    OpenJobDialog,
-    OpenJob(PathBuf),
+    OpenDialog,
+    ImportDialog,
+    Open(PathBuf),
+}
+
+/// What a typed-in path is for (for systems without a native file dialog).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PathPurpose {
+    Open,
+    Save,
+    Export,
+    Update,
+    Embed,
 }
 
 /// A small modal asking for something before an action can continue.
 #[derive(Debug, Clone, PartialEq)]
 enum Prompt {
-    /// The DXF declares no units and no job is open.
-    Units,
-    /// Type or paste a path (for systems without a native file dialog).
-    OpenPath(String),
-    SaveJobPath(String),
-    ExportPath(String),
+    /// The DXF being imported declares no units.
+    Units(PathBuf),
+    Path(PathPurpose, String),
     Discard(Pending),
 }
 
 pub struct ChiploadApp {
-    // The drawing.
-    pub dxf_path: Option<PathBuf>,
-    pub contours: Vec<Contour>,
-    drawing_units: Option<Units>,
-    drawing_bbox: Option<(Point, Point)>,
-    /// Units the user chose for a unitless DXF (used while no job says otherwise).
-    dxf_units: Option<Units>,
-
-    // The job being edited.
+    /// The project being edited.
     pub edit: Option<EditJob>,
+    /// Where it was opened from or last saved to.
     pub job_path: Option<PathBuf>,
-    /// The job as last opened or saved; differs from `edit` when there are unsaved changes.
+    /// The project as last opened or saved; differs from `edit` when there are unsaved changes.
     saved: Option<EditJob>,
-    /// The job as last recorded for undo.
+    /// The project as last recorded for undo.
     committed: Option<EditJob>,
     undo: Vec<Option<EditJob>>,
     redo: Vec<Option<EditJob>>,
     pub focus: Focus,
 
+    /// The project's contours (from its embedded drawing), and the drawing they came from.
+    pub contours: Vec<Contour>,
+    loaded_drawing: Option<Drawing>,
+
     // The last generation.
     pub result: Option<RunResult>,
-    /// Operations (indices) the last generation or validation complained about.
+    /// Operations (indices) the last generation, validation or update complained about.
     pub error_ops: BTreeSet<usize>,
 
     // The canvas.
@@ -119,11 +128,6 @@ pub struct ChiploadApp {
 impl Default for ChiploadApp {
     fn default() -> Self {
         ChiploadApp {
-            dxf_path: None,
-            contours: Vec::new(),
-            drawing_units: None,
-            drawing_bbox: None,
-            dxf_units: None,
             edit: None,
             job_path: None,
             saved: None,
@@ -131,6 +135,8 @@ impl Default for ChiploadApp {
             undo: Vec::new(),
             redo: Vec::new(),
             focus: Focus::Job,
+            contours: Vec::new(),
+            loaded_drawing: None,
             result: None,
             error_ops: BTreeSet::new(),
             scene: Scene::default(),
@@ -138,9 +144,7 @@ impl Default for ChiploadApp {
             fit_pending: false,
             selection: CanvasSelection::Nothing,
             context_pick: None,
-            report: vec![
-                "Open a drawing (Ctrl+O), then create a job (Ctrl+N) or open one (Ctrl+J).".into(),
-            ],
+            report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
             status: None,
             cursor: None,
             prompt: None,
@@ -158,7 +162,7 @@ fn file_name(path: &Path) -> String {
     )
 }
 
-/// The `schema_version` a job file was written with, before migration (for the save note).
+/// The `schema_version` a file was written with, before migration (for the save note).
 fn raw_schema_version(path: &Path) -> Option<i64> {
     let text = std::fs::read_to_string(path).ok()?;
     let value: serde_json::Value = serde_json::from_str(&text).ok()?;
@@ -181,26 +185,42 @@ fn selector_of(op: &Operation) -> &Selector {
 }
 
 fn selector_text(selector: &Selector) -> String {
-    match (&selector.layer, &selector.handles) {
-        (Some(layer), _) => format!("{{\"layer\": \"{layer}\"}}"),
-        (None, Some(handles)) => {
-            let quoted: Vec<String> = handles.iter().map(|h| format!("\"{h}\"")).collect();
-            format!("{{\"handles\": [{}]}}", quoted.join(", "))
-        }
-        (None, None) => "{}".into(),
+    if let Some(layer) = &selector.layer {
+        return format!("{{\"layer\": \"{layer}\"}}");
     }
+    if let Some(shapes) = selector.shapes.as_ref().filter(|s| !s.is_empty()) {
+        let ids: Vec<String> = shapes.iter().map(u64::to_string).collect();
+        return format!("{{\"shapes\": [{}]}}", ids.join(", "));
+    }
+    if let Some(handles) = &selector.handles {
+        let quoted: Vec<String> = handles.iter().map(|h| format!("\"{h}\"")).collect();
+        return format!("{{\"handles\": [{}]}}", quoted.join(", "));
+    }
+    "{}".into()
+}
+
+fn is_dxf(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
 }
 
 impl ChiploadApp {
     // -- state
 
-    /// The job has changes that aren't saved.
+    /// The project has changes that aren't saved.
     pub fn dirty(&self) -> bool {
         self.edit.is_some() && self.edit != self.saved
     }
 
-    /// Record the current job as one undo step if it changed since the last one. Called once
-    /// the user has finished an edit (no drag or text entry in progress).
+    /// The project still refers to an external DXF (a job from before projects).
+    pub fn needs_embedding(&self) -> bool {
+        self.edit
+            .as_ref()
+            .is_some_and(|e| e.settings.drawing.external.is_some())
+    }
+
+    /// Record the current project as one undo step if it changed since the last one. Called
+    /// once the user has finished an edit (no drag or text entry in progress).
     pub fn commit(&mut self) {
         if self.edit != self.committed {
             self.undo.push(self.committed.take());
@@ -244,114 +264,234 @@ impl ChiploadApp {
     }
 
     /// Start editing `job` as a fresh document (no undo history).
-    fn start_editing(&mut self, job: Option<EditJob>, saved: bool) {
-        self.saved = if saved { job.clone() } else { None };
-        self.committed.clone_from(&job);
-        self.edit = job;
+    fn start_editing(&mut self, job: EditJob, saved: bool, path: Option<PathBuf>) {
+        self.saved = saved.then(|| job.clone());
+        self.committed = Some(job.clone());
+        self.edit = Some(job);
+        self.job_path = path;
         self.undo.clear();
         self.redo.clear();
         self.focus = Focus::Job;
         self.error_ops.clear();
-        self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
+        self.selection = CanvasSelection::Nothing;
         self.invalidate();
+        self.loaded_drawing = None;
+        self.refresh_drawing();
+        self.fit_pending = true;
+    }
+
+    /// Recompute contours if the project's drawing changed (open, import, update, undo).
+    /// Returns the import report lines when it did.
+    fn refresh_drawing(&mut self) -> Option<Vec<String>> {
+        let job = self.edit.as_ref()?.settings.clone();
+        if self.loaded_drawing.as_ref() == Some(&job.drawing) {
+            return None;
+        }
+        self.loaded_drawing = Some(job.drawing.clone());
+        self.scene.stock = Some(job.stock.xy_bounds());
+        match load_drawing(&job) {
+            Ok(imported) => {
+                self.contours = imported.contours;
+                self.scene.contours = self.contours.iter().map(ContourShape::new).collect();
+                let mut lines = format_import_report(&imported.report);
+                lines.extend(format_contours(&self.contours));
+                Some(lines)
+            }
+            Err(_) => {
+                // A job from before projects: nothing to show until it's embedded.
+                self.contours.clear();
+                self.scene.contours.clear();
+                None
+            }
+        }
     }
 
     // -- operations (also called directly by tests)
 
-    /// Show a drawing. Units come from the job if one is open, else from the file, else
-    /// from the user. Never guessed. An open job is kept.
-    pub fn open_dxf(&mut self, path: &Path) -> bool {
-        self.dxf_path = Some(path.to_path_buf());
-        self.dxf_units = None;
-        self.invalidate();
-        let shown = self.show_drawing();
-        if shown
-            && let Some(edit) = &self.edit
-            && !edit.settings.source.file.is_empty()
-            && edit.settings.source.file != file_name(path)
-        {
-            self.report.insert(
-                0,
-                format!(
-                    "Note: the job was made for {}, this drawing is {}.",
-                    edit.settings.source.file,
-                    file_name(path)
-                ),
-            );
+    /// Open a project, an older job, or a DXF (imported as a new project).
+    pub fn open(&mut self, path: &Path) -> bool {
+        if is_dxf(path) {
+            self.import_dxf(path, None)
+        } else {
+            self.open_project(path)
         }
-        shown
     }
 
-    /// Open a job. If no drawing is open, its `source.file` next to the job is opened too.
-    pub fn open_job(&mut self, path: &Path) -> bool {
+    pub fn open_project(&mut self, path: &Path) -> bool {
         let job = match load_job(path) {
             Ok(job) => job,
             Err(err) => {
                 self.error(vec![
-                    format!("Cannot open job {}:", file_name(path)),
+                    format!("Cannot open {}:", file_name(path)),
                     err.to_string(),
                 ]);
                 return false;
             }
         };
         let version = raw_schema_version(path);
-        self.start_editing(Some(EditJob::from_job(&job)), true);
-        self.job_path = Some(path.to_path_buf());
-        let drawing = path.with_file_name(&job.source.file);
-        if self.dxf_path.is_none() && drawing.is_file() {
-            self.open_dxf(&drawing);
-        } else if self.dxf_path.is_some() {
-            self.show_drawing();
+        self.start_editing(EditJob::from_job(&job), true, Some(path.to_path_buf()));
+        let mut lines = vec![format!("Project: {}", file_name(path))];
+        if let Some(external) = &job.drawing.external {
+            lines.push(format!(
+                "This job is from before projects: its drawing {} is not embedded yet.",
+                external.file
+            ));
+            lines.push("Use File > Embed drawing (it is looked for next to the job).".into());
         } else {
-            self.report = vec![
-                format!("Job: {}", file_name(path)),
-                format!(
-                    "Its drawing {} is not next to it; open the drawing (Ctrl+O).",
-                    job.source.file
-                ),
-            ];
+            lines.extend(self.drawing_lines());
         }
         if let Some(v) = version
             && v < chipload_job::CURRENT_VERSION
         {
-            self.report.insert(
-                0,
+            lines.insert(
+                1,
                 format!(
-                    "This job file is schema version {v}; saving writes version {}.",
+                    "This file is schema version {v}; saving writes version {}.",
                     chipload_job::CURRENT_VERSION
                 ),
             );
         }
-        self.fit_pending = true;
+        self.report = lines;
         true
     }
 
-    /// A new job for the open drawing (docs/specs/job-editor.md §6).
-    pub fn new_job(&mut self) -> bool {
-        let (Some(path), Some(units)) = (&self.dxf_path, self.drawing_units) else {
-            self.error(vec!["Open a drawing first (Ctrl+O).".into()]);
+    /// Import a DXF as a new, unsaved project. A DXF without units asks for them.
+    pub fn import_dxf(&mut self, path: &Path, units: Option<Units>) -> bool {
+        self.prompt = None;
+        let imported = match shapes_from_dxf(path, units) {
+            Ok(imported) => imported,
+            Err(ImportError::UnitsMissing) => {
+                self.prompt = Some(Prompt::Units(path.to_path_buf()));
+                self.report = vec![format!(
+                    "{} does not say which units it uses; choose mm or inch.",
+                    file_name(path)
+                )];
+                return false;
+            }
+            Err(err) => {
+                self.error(vec![
+                    format!("Cannot import {}:", file_name(path)),
+                    err.to_string(),
+                ]);
+                return false;
+            }
+        };
+        let shapes = imported.shapes.len();
+        self.start_editing(EditJob::from_job(&new_project(imported)), false, None);
+        let mut lines = vec![
+            format!("New project from {} ({shapes} shapes).", file_name(path)),
+            "Select contours, then New profile or New pocket. Check stock, machine and tool \
+             under Job settings."
+                .into(),
+            String::new(),
+        ];
+        lines.extend(self.drawing_lines());
+        self.report = lines;
+        true
+    }
+
+    fn drawing_lines(&self) -> Vec<String> {
+        let Some(edit) = &self.edit else {
+            return Vec::new();
+        };
+        match load_drawing(&edit.settings) {
+            Ok(imported) => {
+                let mut lines = format_import_report(&imported.report);
+                lines.extend(format_contours(&imported.contours));
+                lines
+            }
+            Err(err) => vec![err.to_string()],
+        }
+    }
+
+    /// Embed the drawing of a job from before projects (docs/specs/project-file.md §3).
+    pub fn embed(&mut self, dxf: &Path) -> bool {
+        let Some(edit) = &self.edit else {
             return false;
         };
-        let job = EditJob::for_drawing(&file_name(path), units, self.drawing_bbox);
-        self.start_editing(Some(job), false);
-        self.job_path = None;
-        self.fit_pending = true;
-        self.report = vec![
-            "New job. Select contours, then New profile or New pocket.".into(),
-            "Check the stock, machine and tool under Job settings.".into(),
-        ];
-        true
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error(problems);
+                return false;
+            }
+        };
+        match embed_drawing(&job, dxf) {
+            Ok((project, lines)) => {
+                self.edit = Some(EditJob::from_job(&project));
+                // The result is a .chipload project: Save asks where to put it.
+                self.job_path = self
+                    .job_path
+                    .as_ref()
+                    .map(|p| p.with_extension(PROJECT_EXTENSION));
+                self.commit();
+                self.refresh_drawing();
+                self.fit_pending = true;
+                self.report = lines;
+                true
+            }
+            Err(err) => {
+                self.error(vec!["Could not embed the drawing:".into(), err.to_string()]);
+                false
+            }
+        }
     }
 
-    /// The user answered the units question for a unitless DXF.
-    pub fn choose_units(&mut self, units: Units) -> bool {
-        self.prompt = None;
-        self.dxf_units = Some(units);
-        self.show_drawing()
+    /// The external drawing of an older job, looked for next to the job file.
+    fn external_drawing_path(&self) -> Option<PathBuf> {
+        let external = self.edit.as_ref()?.settings.drawing.external.as_ref()?;
+        let path = self.job_path.as_ref()?.with_file_name(&external.file);
+        path.is_file().then_some(path)
+    }
+
+    /// Replace the imported drawing with a new version of the DXF (§4 of the project spec).
+    pub fn update_from(&mut self, dxf: &Path) -> bool {
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error(problems);
+                return false;
+            }
+        };
+        match update_drawing(&job, dxf, None) {
+            Ok((updated, report)) => {
+                let mut next = EditJob::from_job(&updated);
+                // Keep "side not chosen" marks; the update doesn't touch operations.
+                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
+                    entry.side_chosen = old.side_chosen;
+                }
+                self.edit = Some(next);
+                self.commit();
+                self.refresh_drawing();
+                self.error_ops = report.lost.iter().copied().collect();
+                self.report = report.lines;
+                if !report.lost.is_empty() {
+                    self.set_status(
+                        "Some operations lost their geometry: choose it again".into(),
+                        ERROR_STATUS_SECONDS,
+                    );
+                }
+                true
+            }
+            Err(err) => {
+                self.error(vec![
+                    "Could not update the drawing:".into(),
+                    err.to_string(),
+                ]);
+                false
+            }
+        }
     }
 
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
+        if self.needs_embedding() {
+            return None;
+        }
         let edit = self.edit.as_mut()?;
         let index = edit.add(kind, &self.selection, &self.contours);
         self.focus = Focus::Op(index);
@@ -363,6 +503,7 @@ impl ChiploadApp {
     pub fn use_selection(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {
             edit.set_geometry(i, &self.selection, &self.contours);
+            self.error_ops.remove(&i);
             self.commit();
         }
     }
@@ -403,28 +544,23 @@ impl ChiploadApp {
 
     pub fn generate(&mut self) -> bool {
         self.commit();
-        let (Some(edit), Some(dxf)) = (&self.edit, &self.dxf_path) else {
-            self.error(vec![
-                "Open a drawing and create or open a job before generating.".into(),
-            ]);
+        let Some(edit) = &self.edit else {
+            self.error(vec!["Import a DXF or open a project first.".into()]);
             return false;
         };
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
                 self.error_ops = problems.iter().filter_map(|p| operation_index(p)).collect();
-                let mut lines = vec!["The job is not complete:".to_string()];
+                let mut lines = vec!["The project is not complete:".to_string()];
                 lines.extend(problems.into_iter().map(|p| format!("  {p}")));
                 self.error(lines);
                 return false;
             }
         };
-        match run_job(&job, dxf) {
+        match run_job(&job) {
             Ok(result) => {
                 self.error_ops.clear();
-                self.contours.clone_from(&result.contours);
-                self.scene.contours = result.contours.iter().map(ContourShape::new).collect();
-                self.scene.stock = Some(job.stock.xy_bounds());
                 self.scene.toolpath = Some(ToolpathShape::new(&result.program, false));
                 self.scene.tabs.clone_from(&result.tabs);
                 let mut lines = vec![format!(
@@ -459,14 +595,7 @@ impl ChiploadApp {
                 self.scene.tabs.clear();
                 let message = err.to_string();
                 self.error_ops = operation_index(&message).into_iter().collect();
-                let mut lines = vec!["Generation failed:".into(), message];
-                if matches!(&err, PipelineError::Job(m) if m.contains("sha256")) {
-                    lines.push(
-                        "If you changed the drawing on purpose, use Job > Re-lock to drawing."
-                            .into(),
-                    );
-                }
-                self.error(lines);
+                self.error(vec!["Generation failed:".into(), message]);
                 false
             }
         }
@@ -493,41 +622,21 @@ impl ChiploadApp {
         }
     }
 
-    /// Save the job (current schema). A job using handle selectors is locked to the drawing
-    /// (`source.sha256`) if it isn't yet.
-    pub fn save_job(&mut self, path: &Path) -> bool {
+    /// Save the project (current schema, every field explicit).
+    pub fn save_project(&mut self, path: &Path) -> bool {
         self.commit();
         let Some(edit) = &self.edit else {
             return false;
         };
-        let mut job = match edit.to_job() {
+        let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                let mut lines = vec!["The job can't be saved yet:".to_string()];
+                let mut lines = vec!["The project can't be saved yet:".to_string()];
                 lines.extend(problems.into_iter().map(|p| format!("  {p}")));
                 self.error(lines);
                 return false;
             }
         };
-        let mut locked_now = false;
-        if edit.uses_handles()
-            && job.source.sha256.is_none()
-            && let Some(dxf) = &self.dxf_path
-        {
-            match drawing_sha256(dxf) {
-                Ok(sha) => {
-                    job.source.sha256 = Some(sha);
-                    locked_now = true;
-                }
-                Err(err) => {
-                    self.error(vec![
-                        format!("Cannot read {} to lock the job to it:", dxf.display()),
-                        err.to_string(),
-                    ]);
-                    return false;
-                }
-            }
-        }
         if let Err(err) = save_job(&job, path) {
             self.error(vec![
                 format!("Could not save {}:", path.display()),
@@ -540,39 +649,8 @@ impl ChiploadApp {
         self.committed = Some(saved.clone());
         self.saved = Some(saved);
         self.job_path = Some(path.to_path_buf());
-        let mut message = format!("Saved {}", path.display());
-        if locked_now {
-            message.push_str(" (locked to this drawing: it uses handle selectors)");
-        }
-        self.set_status(message, STATUS_SECONDS);
+        self.set_status(format!("Saved {}", path.display()), STATUS_SECONDS);
         true
-    }
-
-    /// Lock the job to the open drawing's current contents (after a deliberate change).
-    pub fn relock(&mut self) {
-        let Some(dxf) = self.dxf_path.clone() else {
-            return;
-        };
-        match drawing_sha256(&dxf) {
-            Ok(sha) => {
-                if let Some(edit) = self.edit.as_mut() {
-                    edit.settings.source.sha256 = Some(sha);
-                    edit.settings.source.file = file_name(&dxf);
-                    self.commit();
-                }
-            }
-            Err(err) => self.error(vec![
-                format!("Cannot read {}:", dxf.display()),
-                err.to_string(),
-            ]),
-        }
-    }
-
-    pub fn unlock(&mut self) {
-        if let Some(edit) = self.edit.as_mut() {
-            edit.settings.source.sha256 = None;
-            self.commit();
-        }
     }
 
     /// Click on the canvas: select one contour, Ctrl toggles, empty space clears.
@@ -605,10 +683,12 @@ impl ChiploadApp {
         self.selection = CanvasSelection::Layer(layer.to_string());
     }
 
-    /// A job selector for the canvas selection, e.g. {"handles": ["5C", "5D"]}.
+    /// A job selector for the canvas selection, e.g. {"shapes": [3, 4]}.
     pub fn selector_json(&self) -> Option<String> {
         let selector = self.selection.selector(&self.contours);
-        let empty = selector.layer.is_none() && selector.handles.as_ref().is_none_or(Vec::is_empty);
+        let empty = selector.layer.is_none()
+            && selector.shapes.as_ref().is_none_or(Vec::is_empty)
+            && selector.handles.as_ref().is_none_or(Vec::is_empty);
         (!empty).then(|| selector_text(&selector))
     }
 
@@ -656,48 +736,6 @@ impl ChiploadApp {
             .unwrap_or_default()
     }
 
-    fn show_drawing(&mut self) -> bool {
-        let Some(path) = self.dxf_path.clone() else {
-            return false;
-        };
-        let units = self
-            .edit
-            .as_ref()
-            .map(|e| e.settings.source.units)
-            .or(self.dxf_units);
-        let imported = match import_dxf(&path, units) {
-            Ok(imported) => imported,
-            Err(ImportError::UnitsMissing) => {
-                self.prompt = Some(Prompt::Units);
-                self.report = vec![format!(
-                    "{} does not say which units it uses; choose mm or inch.",
-                    file_name(&path)
-                )];
-                return false;
-            }
-            Err(err) => {
-                self.contours.clear();
-                self.scene.contours.clear();
-                self.error(vec![
-                    format!("Cannot open {}:", file_name(&path)),
-                    err.to_string(),
-                ]);
-                return false;
-            }
-        };
-        self.contours = imported.contours;
-        self.drawing_units = Some(imported.report.units);
-        self.drawing_bbox = imported.report.bbox;
-        self.selection = CanvasSelection::Nothing;
-        self.scene.contours = self.contours.iter().map(ContourShape::new).collect();
-        self.fit_pending = true;
-        let mut lines = vec![format!("Drawing: {}", file_name(&path))];
-        lines.extend(format_import_report(&imported.report));
-        lines.extend(format_contours(&self.contours));
-        self.report = lines;
-        true
-    }
-
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
         self.result = None;
@@ -709,11 +747,12 @@ impl ChiploadApp {
         if self.result.is_some() || self.scene.toolpath.is_some() {
             self.invalidate();
             self.set_status(
-                "Job changed: press F5 to generate again".into(),
+                "Project changed: press F5 to generate again".into(),
                 STATUS_SECONDS,
             );
         }
         self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
+        self.refresh_drawing();
     }
 
     fn error(&mut self, lines: Vec<String>) {
@@ -728,10 +767,10 @@ impl ChiploadApp {
     }
 
     fn can_generate(&self) -> bool {
-        self.edit.is_some() && self.dxf_path.is_some()
+        self.edit.is_some() && !self.needs_embedding()
     }
 
-    /// Proceed now, or ask first if unsaved job changes would be lost.
+    /// Proceed now, or ask first if unsaved changes would be lost.
     fn guard(&mut self, action: Pending) -> bool {
         if self.dirty() {
             self.prompt = Some(Prompt::Discard(action));
@@ -747,76 +786,104 @@ impl ChiploadApp {
                 self.allow_close = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
-            Pending::NewJob => {
-                self.new_job();
-            }
-            Pending::OpenJobDialog => self.open_job_dialog(),
-            Pending::OpenJob(path) => {
-                self.open_job(&path);
+            Pending::OpenDialog => self.open_dialog(),
+            Pending::ImportDialog => self.import_dialog(),
+            Pending::Open(path) => {
+                self.open(&path);
             }
         }
     }
 
-    fn default_job_path(&self) -> PathBuf {
-        self.job_path.clone().unwrap_or_else(|| {
-            self.dxf_path
-                .as_ref()
-                .map_or_else(|| PathBuf::from("job.json"), |d| d.with_extension("json"))
-        })
+    fn default_project_path(&self) -> PathBuf {
+        if let Some(path) = &self.job_path {
+            return path.with_extension(PROJECT_EXTENSION);
+        }
+        self.edit
+            .as_ref()
+            .and_then(|e| e.settings.drawing.source.as_ref())
+            .map(|s| Path::new(&s.file).with_extension(PROJECT_EXTENSION))
+            .unwrap_or_else(|| PathBuf::from(format!("project.{PROJECT_EXTENSION}")))
     }
 
     fn default_export_path(&self) -> PathBuf {
         let ext = self.result.as_ref().map_or("nc".to_string(), |r| {
             r.post.file_extension.trim_start_matches('.').to_string()
         });
-        self.dxf_path
-            .as_ref()
-            .map_or_else(|| PathBuf::from("out.nc"), |d| d.with_extension(ext))
+        self.default_project_path().with_extension(ext)
     }
 
     // -- dialogs
 
-    fn ask_open_dxf(&mut self) {
+    fn open_dialog(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Chipload projects", &[PROJECT_EXTENSION, "json"])
+            .add_filter("DXF drawings", &["dxf"])
+            .pick_file()
+        {
+            self.open(&path);
+        }
+    }
+
+    fn import_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("DXF drawings", &["dxf"])
             .pick_file()
         {
-            self.open_dxf(&path);
+            self.import_dxf(&path, None);
         }
     }
 
-    fn ask_open_job(&mut self) {
-        if self.guard(Pending::OpenJobDialog) {
-            self.open_job_dialog();
+    fn ask_open(&mut self) {
+        if self.guard(Pending::OpenDialog) {
+            self.open_dialog();
         }
     }
 
-    fn open_job_dialog(&mut self) {
+    fn ask_import(&mut self) {
+        if self.guard(Pending::ImportDialog) {
+            self.import_dialog();
+        }
+    }
+
+    fn ask_update(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("Chipload jobs", &["json"])
+            .add_filter("DXF drawings", &["dxf"])
             .pick_file()
         {
-            self.open_job(&path);
+            self.update_from(&path);
         }
     }
 
-    fn ask_new_job(&mut self) {
-        if self.guard(Pending::NewJob) {
-            self.new_job();
+    /// Embed the job's DXF if it is next to the job; otherwise ask for its path.
+    fn ask_embed(&mut self) {
+        if let Some(path) = self.external_drawing_path() {
+            self.embed(&path);
+            return;
         }
+        let suggested = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.drawing.external.as_ref())
+            .map(|x| x.file.clone())
+            .unwrap_or_default();
+        self.prompt = Some(Prompt::Path(PathPurpose::Embed, suggested));
     }
 
-    fn ask_save_job(&mut self, save_as: bool) {
+    fn ask_save(&mut self, save_as: bool) {
         if self.edit.is_none() {
             return;
         }
-        if !save_as && let Some(path) = self.job_path.clone() {
-            self.save_job(&path);
+        let current = self
+            .job_path
+            .clone()
+            .filter(|p| p.extension().is_some_and(|e| e == PROJECT_EXTENSION));
+        if !save_as && let Some(path) = current {
+            self.save_project(&path);
             return;
         }
-        let suggested = self.default_job_path();
-        if let Some(path) = save_dialog(&suggested, "Chipload jobs", "json") {
-            self.save_job(&path);
+        let suggested = self.default_project_path();
+        if let Some(path) = save_dialog(&suggested, "Chipload projects", PROJECT_EXTENSION) {
+            self.save_project(&path);
         }
     }
 
@@ -850,26 +917,23 @@ impl ChiploadApp {
         if pressed(&COPY_SELECTOR) {
             self.copy_selector(ctx);
         }
-        if pressed(&SAVE_JOB_AS) {
-            self.ask_save_job(true);
+        if pressed(&SAVE_AS) {
+            self.ask_save(true);
         }
         if pressed(&REDO) {
             self.redo();
         }
-        if pressed(&SAVE_JOB) {
-            self.ask_save_job(false);
+        if pressed(&SAVE) {
+            self.ask_save(false);
         }
         if pressed(&UNDO) {
             self.undo();
         }
-        if pressed(&NEW_JOB) {
-            self.ask_new_job();
+        if pressed(&OPEN) {
+            self.ask_open();
         }
-        if pressed(&OPEN_DXF) {
-            self.ask_open_dxf();
-        }
-        if pressed(&OPEN_JOB) {
-            self.ask_open_job();
+        if pressed(&IMPORT) {
+            self.ask_import();
         }
         if pressed(&EXPORT) {
             self.ask_export();
@@ -898,46 +962,58 @@ impl ChiploadApp {
 
     fn menu(&mut self, ui: &mut egui::Ui) {
         let has_job = self.edit.is_some();
+        let embedded = has_job && !self.needs_embedding();
         let has_result = self.result.is_some();
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("File", |ui| {
-                if ui.button("Open drawing…  (Ctrl+O)").clicked() {
-                    self.ask_open_dxf();
+                if ui.button("Open…  (Ctrl+O)").clicked() {
+                    self.ask_open();
                 }
-                if ui.button("Open job…  (Ctrl+J)").clicked() {
-                    self.ask_open_job();
+                if ui.button("Import DXF…  (Ctrl+I)").clicked() {
+                    self.ask_import();
                 }
                 if ui.button("Open path…").clicked() {
-                    self.prompt = Some(Prompt::OpenPath(String::new()));
+                    self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
                 }
                 ui.separator();
                 if ui
-                    .add_enabled(
-                        self.dxf_path.is_some(),
-                        egui::Button::new("New job  (Ctrl+N)"),
-                    )
+                    .add_enabled(embedded, egui::Button::new("Update drawing from DXF…"))
                     .clicked()
                 {
-                    self.ask_new_job();
+                    self.ask_update();
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Save job  (Ctrl+S)"))
+                    .add_enabled(embedded, egui::Button::new("Update drawing from path…"))
                     .clicked()
                 {
-                    self.ask_save_job(false);
+                    self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Save job as…  (Ctrl+Shift+S)"))
+                    .add_enabled(self.needs_embedding(), egui::Button::new("Embed drawing…"))
                     .clicked()
                 {
-                    self.ask_save_job(true);
+                    self.ask_embed();
+                }
+                ui.separator();
+                if ui
+                    .add_enabled(embedded, egui::Button::new("Save  (Ctrl+S)"))
+                    .clicked()
+                {
+                    self.ask_save(false);
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Save job to path…"))
+                    .add_enabled(embedded, egui::Button::new("Save as…  (Ctrl+Shift+S)"))
                     .clicked()
                 {
-                    self.prompt = Some(Prompt::SaveJobPath(
-                        self.default_job_path().display().to_string(),
+                    self.ask_save(true);
+                }
+                if ui
+                    .add_enabled(embedded, egui::Button::new("Save to path…"))
+                    .clicked()
+                {
+                    self.prompt = Some(Prompt::Path(
+                        PathPurpose::Save,
+                        self.default_project_path().display().to_string(),
                     ));
                 }
                 ui.separator();
@@ -951,7 +1027,8 @@ impl ChiploadApp {
                     .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
                     .clicked()
                 {
-                    self.prompt = Some(Prompt::ExportPath(
+                    self.prompt = Some(Prompt::Path(
+                        PathPurpose::Export,
                         self.default_export_path().display().to_string(),
                     ));
                 }
@@ -994,26 +1071,6 @@ impl ChiploadApp {
                 {
                     self.generate();
                 }
-                ui.separator();
-                let locked = self
-                    .edit
-                    .as_ref()
-                    .is_some_and(|e| e.settings.source.sha256.is_some());
-                if ui
-                    .add_enabled(
-                        has_job && self.dxf_path.is_some(),
-                        egui::Button::new("Re-lock to drawing"),
-                    )
-                    .clicked()
-                {
-                    self.relock();
-                }
-                if ui
-                    .add_enabled(locked, egui::Button::new("Unlock from drawing"))
-                    .clicked()
-                {
-                    self.unlock();
-                }
             });
             ui.menu_button("View", |ui| {
                 if ui.button("Fit view  (F)").clicked() {
@@ -1026,17 +1083,17 @@ impl ChiploadApp {
                 }
             });
             ui.separator();
-            if ui.button("Open drawing").clicked() {
-                self.ask_open_dxf();
+            if ui.button("Open").clicked() {
+                self.ask_open();
             }
-            if ui.button("Open job").clicked() {
-                self.ask_open_job();
+            if ui.button("Import DXF").clicked() {
+                self.ask_import();
             }
             if ui
-                .add_enabled(has_job, egui::Button::new("Save job"))
+                .add_enabled(embedded, egui::Button::new("Save"))
                 .clicked()
             {
-                self.ask_save_job(false);
+                self.ask_save(false);
             }
             if ui
                 .add_enabled(self.can_generate(), egui::Button::new("Generate (F5)"))
@@ -1076,40 +1133,44 @@ impl ChiploadApp {
 
     /// Left: operations in cut order, the canvas selection, layers.
     fn operations_panel(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Job");
+        ui.heading("Project");
         if self.edit.is_none() {
-            ui.label("No job open.");
-            if ui
-                .add_enabled(
-                    self.dxf_path.is_some(),
-                    egui::Button::new("New job from drawing"),
-                )
-                .clicked()
-            {
-                self.ask_new_job();
+            ui.label("No project open.");
+            if ui.button("Import DXF…").clicked() {
+                self.ask_import();
             }
-            if ui.button("Open job…").clicked() {
-                self.ask_open_job();
+            if ui.button("Open…").clicked() {
+                self.ask_open();
             }
-        } else {
-            self.operation_list(ui);
+            return;
         }
+        if self.needs_embedding() {
+            ui.colored_label(
+                egui::Color32::from_rgb(0xfd, 0xd6, 0x63),
+                "Drawing not embedded: this job is from before projects.",
+            );
+            if ui.button("Embed drawing…").clicked() {
+                self.ask_embed();
+            }
+            ui.separator();
+        }
+        self.operation_list(ui);
         ui.separator();
         ui.heading("Selection");
         for line in self.selection_lines() {
             ui.label(line);
         }
+        let editable = !self.needs_embedding();
         ui.horizontal(|ui| {
-            let has_job = self.edit.is_some();
             if ui
-                .add_enabled(has_job, egui::Button::new("New profile"))
+                .add_enabled(editable, egui::Button::new("New profile"))
                 .on_hover_text("A profile operation for the selected contours")
                 .clicked()
             {
                 self.add_operation(OpKind::Profile);
             }
             if ui
-                .add_enabled(has_job, egui::Button::new("New pocket"))
+                .add_enabled(editable, egui::Button::new("New pocket"))
                 .on_hover_text("A pocket operation for the selected contours")
                 .clicked()
             {
@@ -1148,6 +1209,7 @@ impl ChiploadApp {
     }
 
     fn operation_list(&mut self, ui: &mut egui::Ui) {
+        let editable = !self.needs_embedding();
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
@@ -1179,7 +1241,7 @@ impl ChiploadApp {
                 });
                 let mut enabled = entry.op.enabled();
                 if ui
-                    .checkbox(&mut enabled, "")
+                    .add_enabled(editable, egui::Checkbox::without_text(&mut enabled))
                     .on_hover_text("Enabled")
                     .changed()
                 {
@@ -1207,6 +1269,9 @@ impl ChiploadApp {
                     self.focus = Focus::Op(i);
                 }
             });
+            if !editable {
+                continue;
+            }
             if let Some(from) = row.response.dnd_release_payload::<usize>() {
                 moved = Some((*from, i));
             } else if row.response.dnd_hover_payload::<usize>().is_some() {
@@ -1218,7 +1283,7 @@ impl ChiploadApp {
             }
         }
         let focused = match self.focus {
-            Focus::Op(i) if i < count => Some(i),
+            Focus::Op(i) if i < count && editable => Some(i),
             _ => None,
         };
         ui.horizontal(|ui| {
@@ -1259,22 +1324,26 @@ impl ChiploadApp {
         }
     }
 
-    /// Right: the selected operation's fields, or the job settings.
+    /// Right: the selected operation's fields, or the project settings.
     fn properties_panel(&mut self, ui: &mut egui::Ui) {
+        let editable = !self.needs_embedding();
         let Some(edit) = self.edit.as_mut() else {
-            ui.label("No job open.");
+            ui.label("No project open.");
             return;
         };
-        match self.focus {
+        let focus = self.focus;
+        let contours = &self.contours;
+        let mut use_selection = false;
+        ui.add_enabled_ui(editable, |ui| match focus {
             Focus::Job => job_form(ui, edit),
             Focus::Op(i) => {
-                let Some(entry) = edit.ops.get_mut(i) else {
-                    return;
-                };
-                if op_form(ui, i, entry, &self.contours) {
-                    self.use_selection();
+                if let Some(entry) = edit.ops.get_mut(i) {
+                    use_selection = op_form(ui, i, entry, contours);
                 }
             }
+        });
+        if use_selection {
+            self.use_selection();
         }
     }
 
@@ -1394,24 +1463,27 @@ impl ChiploadApp {
             return;
         };
         match prompt {
-            Prompt::Units => {
+            Prompt::Units(path) => {
                 egui::Window::new("Drawing units")
                     .collapsible(false)
                     .resizable(false)
                     .show(ctx, |ui| {
-                        ui.label("This DXF does not say which units it uses.");
+                        ui.label(format!(
+                            "{} does not say which units it uses.",
+                            file_name(&path)
+                        ));
                         ui.label("What units was it drawn in?");
                         ui.horizontal(|ui| {
                             if ui.button("mm").clicked() {
-                                self.choose_units(Units::Mm);
+                                self.import_dxf(&path, Some(Units::Mm));
                             }
                             if ui.button("inch").clicked() {
-                                self.choose_units(Units::Inch);
+                                self.import_dxf(&path, Some(Units::Inch));
                             }
                             if ui.button("Cancel").clicked() {
                                 self.prompt = None;
                                 self.error(vec![
-                                    "Drawing not opened: its units are unknown.".into(),
+                                    "Drawing not imported: its units are unknown.".into(),
                                 ]);
                             }
                         });
@@ -1423,7 +1495,7 @@ impl ChiploadApp {
                     .collapsible(false)
                     .resizable(false)
                     .show(ctx, |ui| {
-                        ui.label("The job has unsaved changes. Discard them?");
+                        ui.label("The project has unsaved changes. Discard them?");
                         ui.horizontal(|ui| {
                             if ui.button("Discard").clicked() {
                                 answer = Some(true);
@@ -1443,24 +1515,18 @@ impl ChiploadApp {
                     None => {}
                 }
             }
-            Prompt::OpenPath(text) => {
-                self.path_prompt(
-                    ctx,
-                    "Open path",
-                    "Path to a .dxf drawing or a .json job:",
-                    text,
-                );
-            }
-            Prompt::SaveJobPath(text) => {
-                self.path_prompt(ctx, "Save job", "Save the job to:", text);
-            }
-            Prompt::ExportPath(text) => {
-                self.path_prompt(ctx, "Export G-code", "Export the checked G-code to:", text);
-            }
+            Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
         }
     }
 
-    fn path_prompt(&mut self, ctx: &egui::Context, title: &str, label: &str, mut text: String) {
+    fn path_prompt(&mut self, ctx: &egui::Context, purpose: PathPurpose, mut text: String) {
+        let (title, label) = match purpose {
+            PathPurpose::Open => ("Open path", "A .chipload project, a .json job or a .dxf:"),
+            PathPurpose::Save => ("Save project", "Save the project to:"),
+            PathPurpose::Export => ("Export G-code", "Export the checked G-code to:"),
+            PathPurpose::Update => ("Update drawing", "The new version of the DXF:"),
+            PathPurpose::Embed => ("Embed drawing", "The job's DXF:"),
+        };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
         egui::Window::new(title).collapsible(false).show(ctx, |ui| {
@@ -1476,53 +1542,38 @@ impl ChiploadApp {
                 }
             });
         });
-        let kind = self.prompt.clone();
-        self.prompt = if done {
-            None
-        } else {
-            kind.clone().map(|p| match p {
-                Prompt::OpenPath(_) => Prompt::OpenPath(text),
-                Prompt::SaveJobPath(_) => Prompt::SaveJobPath(text),
-                Prompt::ExportPath(_) => Prompt::ExportPath(text),
-                other => other,
-            })
-        };
-        let (Some(path), Some(kind)) = (chosen, kind) else {
+        self.prompt = (!done).then_some(Prompt::Path(purpose, text));
+        let Some(path) = chosen else {
             return;
         };
-        match kind {
-            Prompt::OpenPath(_) => {
-                let is_job = path
-                    .extension()
-                    .is_some_and(|e| e.eq_ignore_ascii_case("json"));
-                if is_job {
-                    if self.guard(Pending::OpenJob(path.clone())) {
-                        self.open_job(&path);
-                    }
-                } else {
-                    self.open_dxf(&path);
+        match purpose {
+            PathPurpose::Open => {
+                if self.guard(Pending::Open(path.clone())) {
+                    self.open(&path);
                 }
             }
-            Prompt::SaveJobPath(_) => {
-                self.save_job(&path);
+            PathPurpose::Save => {
+                self.save_project(&path);
             }
-            Prompt::ExportPath(_) => {
+            PathPurpose::Export => {
                 self.export_gcode(&path);
             }
-            _ => {}
+            PathPurpose::Update => {
+                self.update_from(&path);
+            }
+            PathPurpose::Embed => {
+                self.embed(&path);
+            }
         }
     }
 
     fn update_title(&mut self, ctx: &egui::Context) {
         let mut parts = vec!["Chipload".to_string()];
-        if let Some(dxf) = &self.dxf_path {
-            parts.push(file_name(dxf));
-        }
         if self.edit.is_some() {
             let name = self
                 .job_path
                 .as_deref()
-                .map_or("new job".to_string(), file_name);
+                .map_or("new project".to_string(), file_name);
             parts.push(if self.dirty() {
                 format!("{name} *")
             } else {
@@ -1710,26 +1761,31 @@ fn op_form(
     use_selection
 }
 
-/// Stock, machine and tool.
+/// Drawing, stock, machine and tool.
 fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     let job = &mut edit.settings;
     ui.heading("Job settings");
     Grid::new("job-form").num_columns(2).show(ui, |ui| {
         ui.label("Drawing");
-        ui.label(format!(
-            "{} ({})",
-            job.source.file,
-            match job.source.units {
-                Units::Mm => "mm",
-                Units::Inch => "inch",
+        match (&job.drawing.source, &job.drawing.external) {
+            (_, Some(external)) => {
+                ui.label(format!("{} (not embedded yet)", external.file));
             }
-        ));
-        ui.end_row();
-        ui.label("Locked");
-        ui.label(match &job.source.sha256 {
-            Some(sha) => format!("to sha256 {}…", &sha[..sha.len().min(12)]),
-            None => "no (Job > Re-lock to drawing)".into(),
-        });
+            (Some(source), None) => {
+                ui.label(format!(
+                    "{} shapes from {} ({})",
+                    job.drawing.shapes.len(),
+                    source.file,
+                    match source.units {
+                        Units::Mm => "mm",
+                        Units::Inch => "inch, converted to mm",
+                    }
+                ));
+            }
+            (None, None) => {
+                ui.label(format!("{} shapes", job.drawing.shapes.len()));
+            }
+        }
         ui.end_row();
 
         ui.strong("Stock");
@@ -1939,11 +1995,10 @@ mod tests {
         app.selection = CanvasSelection::Contours(ids.iter().copied().collect());
     }
 
-    /// messy_2 with a new job: a pocket on the crossing bars, then the lower outline.
+    /// messy_2 imported: a pocket on the crossing bars, then the lower outline.
     fn lower_part() -> ChiploadApp {
         let mut app = ChiploadApp::default();
-        assert!(app.open_dxf(&corpus("dxf/messy_2.dxf")));
-        assert!(app.new_job());
+        assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
         select(&mut app, &[4, 6]);
         app.add_operation(OpKind::Pocket).unwrap();
         select(&mut app, &[2]);
@@ -1961,22 +2016,25 @@ mod tests {
     }
 
     #[test]
-    fn create_operations_generate_save_and_run_from_the_cli_side() {
+    fn import_create_operations_generate_save_and_run_without_the_dxf() {
         let mut app = lower_part();
-        assert!(app.dirty(), "a new job is unsaved");
+        assert!(app.dirty(), "a new project is unsaved");
         assert!(app.generate(), "{:?}", app.report);
         let dir = temp_dir("save");
-        let job_path = dir.join("lower.json");
+        let project = dir.join("lower.chipload");
         let gcode_path = dir.join("lower.nc");
-        assert!(app.save_job(&job_path));
+        assert!(app.save_project(&project));
         assert!(!app.dirty());
         assert!(app.export_gcode(&gcode_path));
-        // The saved job is an ordinary job: run_job on it gives the exported G-code.
-        let job = load_job(&job_path).unwrap();
-        let again = run_job(&job, &corpus("dxf/messy_2.dxf")).unwrap();
+        // The saved project is self-contained: run_job on it gives the exported G-code.
+        let job = load_job(&project).unwrap();
+        assert!(job.drawing.external.is_none() && !job.drawing.shapes.is_empty());
+        let again = run_job(&job).unwrap();
         assert_eq!(std::fs::read_to_string(&gcode_path).unwrap(), again.gcode);
-        // Handle selectors: the job was locked to the drawing.
-        assert!(job.source.sha256.is_some());
+        // Reopening it shows the same contours.
+        let mut reopened = ChiploadApp::default();
+        assert!(reopened.open(&project));
+        assert_eq!(reopened.contours, app.contours);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -2008,7 +2066,7 @@ mod tests {
     }
 
     #[test]
-    fn undo_and_redo_restore_earlier_jobs() {
+    fn undo_and_redo_restore_earlier_projects() {
         let mut app = lower_part();
         assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
         app.undo();
@@ -2031,10 +2089,9 @@ mod tests {
     }
 
     #[test]
-    fn incomplete_jobs_say_what_is_missing() {
+    fn incomplete_projects_say_what_is_missing() {
         let mut app = ChiploadApp::default();
-        app.open_dxf(&corpus("dxf/messy_2.dxf"));
-        app.new_job();
+        app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
         select(&mut app, &[1, 2]); // a hole and an outer: side must be chosen
         app.add_operation(OpKind::Profile).unwrap();
         assert!(!app.generate());
@@ -2045,74 +2102,86 @@ mod tests {
         );
         assert_eq!(app.error_ops, BTreeSet::from([0]));
         let dir = temp_dir("incomplete");
-        assert!(!app.save_job(&dir.join("job.json")));
+        assert!(!app.save_project(&dir.join("p.chipload")));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
-    fn layer_selection_becomes_a_layer_selector() {
+    fn selections_become_shape_or_layer_selectors() {
         let mut app = ChiploadApp::default();
-        app.open_dxf(&corpus("dxf/messy_2.dxf"));
-        app.new_job();
+        app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
         app.select_layer("lower");
         assert_eq!(
             app.selector_json().as_deref(),
             Some("{\"layer\": \"lower\"}")
         );
-        app.add_operation(OpKind::Pocket).unwrap();
-        assert!(!app.edit.as_ref().unwrap().uses_handles());
         assert!(
             app.selection_lines()[1].contains("#7"),
             "the open centreline is named"
         );
+        select(&mut app, &[4]);
+        let json = app.selector_json().unwrap();
+        assert!(json.starts_with("{\"shapes\": ["), "{json}");
     }
 
     #[test]
-    fn a_job_opens_its_drawing_and_a_changed_drawing_is_refused() {
-        let dir = temp_dir("lock");
-        let dxf = dir.join("messy_2.dxf");
-        std::fs::copy(corpus("dxf/messy_2.dxf"), &dxf).unwrap();
+    fn an_older_job_is_embedded_and_keeps_its_output() {
+        let dir = temp_dir("embed");
+        let job = dir.join("lower.json");
+        let mut data: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(corpus("jobs/v3/messy_2_lower.json")).unwrap(),
+        )
+        .unwrap();
+        data["source"]["file"] = serde_json::json!("messy_2.dxf");
+        std::fs::write(&job, data.to_string()).unwrap();
+        std::fs::copy(corpus("dxf/messy_2.dxf"), dir.join("messy_2.dxf")).unwrap();
+
         let mut app = ChiploadApp::default();
-        app.open_dxf(&dxf);
-        app.new_job();
-        select(&mut app, &[4]);
-        app.add_operation(OpKind::Pocket).unwrap();
-        let job_path = dir.join("job.json");
-        assert!(app.save_job(&job_path));
-
-        let mut fresh = ChiploadApp::default();
-        assert!(fresh.open_job(&job_path));
-        assert_eq!(
-            fresh.dxf_path.as_deref(),
-            Some(dxf.as_path()),
-            "opened next to the job"
+        assert!(app.open(&job));
+        assert!(app.needs_embedding());
+        assert!(!app.can_generate());
+        assert!(
+            app.add_operation(OpKind::Pocket).is_none(),
+            "read-only until embedded"
         );
-        assert!(fresh.generate());
-
-        // Change the drawing: the lock refuses it until re-locked.
-        let mut text = std::fs::read_to_string(&dxf).unwrap();
-        text.push_str("\n999\nchanged\n");
-        std::fs::write(&dxf, text).unwrap();
-        assert!(!fresh.generate());
-        assert!(fresh.report.iter().any(|l| l.contains("Re-lock")));
-        fresh.relock();
-        assert!(fresh.generate(), "{:?}", fresh.report);
+        let drawing = app.external_drawing_path().unwrap();
+        assert!(app.embed(&drawing));
+        assert!(!app.needs_embedding());
+        assert!(app.generate(), "{:?}", app.report);
+        let golden = std::fs::read_to_string(corpus("expected/v3_messy_2_lower.nc")).unwrap();
+        assert_eq!(app.result.as_ref().unwrap().gcode, golden);
+        assert_eq!(app.default_project_path(), dir.join("lower.chipload"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
-    fn old_job_versions_are_saved_as_current() {
+    fn updating_the_drawing_keeps_operations_and_can_be_undone() {
+        let mut app = lower_part();
+        let before = app.edit.clone();
+        assert!(app.update_from(&corpus("dxf/messy_2.dxf")));
+        assert!(app.report[0].contains("22 unchanged"), "{:?}", app.report);
+        assert_eq!(app.edit, before, "same drawing: nothing changes");
+        // A different drawing: the operations' shapes are gone, so they are flagged.
+        assert!(app.update_from(&corpus("dxf/simple_part.dxf")));
+        assert_eq!(app.error_ops, BTreeSet::from([0, 1]));
+        assert!(!app.generate());
+        app.undo();
+        assert_eq!(app.edit, before);
+        assert!(app.generate(), "{:?}", app.report);
+    }
+
+    #[test]
+    fn old_job_versions_are_saved_as_current_projects() {
         let mut app = ChiploadApp::default();
-        app.open_dxf(&corpus("dxf/simple_part.dxf"));
-        assert!(app.open_job(&corpus("jobs/v1/example_job.json")));
-        assert!(
-            app.report[0].contains("schema version 1"),
-            "{:?}",
-            app.report
-        );
         let dir = temp_dir("old");
-        let path = dir.join("job.json");
-        assert!(app.save_job(&path));
+        std::fs::copy(
+            corpus("jobs/v4/example_job.chipload"),
+            dir.join("example.chipload"),
+        )
+        .unwrap();
+        assert!(app.open(&dir.join("example.chipload")));
+        let path = dir.join("again.chipload");
+        assert!(app.save_project(&path));
         assert_eq!(
             raw_schema_version(&path),
             Some(chipload_job::CURRENT_VERSION)
@@ -2123,18 +2192,18 @@ mod tests {
     #[test]
     fn unitless_drawing_asks_for_units() {
         let mut app = ChiploadApp::default();
-        assert!(!app.open_dxf(&corpus("dxf/messy.dxf")));
-        assert_eq!(app.prompt, Some(Prompt::Units));
-        assert!(app.choose_units(Units::Mm));
+        assert!(!app.open(&corpus("dxf/messy.dxf")));
+        assert!(matches!(app.prompt, Some(Prompt::Units(_))));
+        assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
         assert!(!app.contours.is_empty());
-        assert!(app.new_job());
-        assert_eq!(app.edit.as_ref().unwrap().settings.source.units, Units::Mm);
+        let source = app.edit.as_ref().unwrap().settings.drawing.source.clone();
+        assert_eq!(source.unwrap().units_from, chipload_job::UnitsFrom::User);
     }
 
     #[test]
     fn clicks_select_and_toggle() {
         let mut app = ChiploadApp::default();
-        app.open_dxf(&corpus("dxf/messy_2.dxf"));
+        app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
         assert_eq!(app.selector_json(), None);
         app.click(Some(4), false);
         app.click(Some(6), true);

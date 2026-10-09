@@ -23,6 +23,26 @@ pub fn select_contours<'a>(
     selector: &Selector,
     op: &str,
 ) -> Result<Selection<'a>, ToolpathError> {
+    // Every selected shape must be part of some contour; otherwise it was deleted, or chaining
+    // dropped it (a duplicate or zero-length segment). Never skip it silently.
+    if let Some(ids) = &selector.shapes {
+        let present: std::collections::BTreeSet<u64> = contours
+            .iter()
+            .flat_map(|c| c.parts.iter().filter_map(|p| p.segment.shape))
+            .collect();
+        let missing: Vec<String> = ids
+            .iter()
+            .filter(|id| !present.contains(id))
+            .map(|id| format!("S{id}"))
+            .collect();
+        if !missing.is_empty() {
+            return Err(ToolpathError::Selector(format!(
+                "{op}: shape {} is not part of any contour (deleted, or a duplicate or \
+                 zero-length segment the import removed)",
+                missing.join(", ")
+            )));
+        }
+    }
     let mut selected = Vec::new();
     let mut skipped: Vec<&Contour> = Vec::new();
     for contour in contours {
@@ -103,6 +123,12 @@ fn matches(segment: &Segment, selector: &Selector) -> bool {
     {
         return false;
     }
+    if let Some(shapes) = &selector.shapes
+        && !shapes.is_empty()
+        && !segment.shape.is_some_and(|id| shapes.contains(&id))
+    {
+        return false;
+    }
     true
 }
 
@@ -115,6 +141,12 @@ fn describe(selector: &Selector) -> String {
         && !handles.is_empty()
     {
         parts.push(format!("handles {}", handles.join(", ")));
+    }
+    if let Some(shapes) = &selector.shapes
+        && !shapes.is_empty()
+    {
+        let ids: Vec<String> = shapes.iter().map(|id| format!("S{id}")).collect();
+        parts.push(format!("shapes {}", ids.join(", ")));
     }
     parts.join(" and ")
 }

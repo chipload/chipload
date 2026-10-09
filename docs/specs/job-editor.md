@@ -1,6 +1,9 @@
 # Spec: job editing in the GUI
 
-Status: **approved 2026-10-09** (answers to Q1–Q4 below are folded in)
+Status: **approved 2026-10-09** (answers to Q1–Q4 below are folded in).
+Superseded in part by docs/specs/project-file.md: the job is a project holding its drawing;
+*Import DXF* (Ctrl+I) replaces Open drawing + New job, selections become `shapes` selectors,
+and the sha256 lock (§6 Q2) applies only to jobs from before projects, until embedded.
 
 Today jobs are written by hand as JSON; the GUI only views them and copies selectors. This
 spec makes the GUI a job editor: pick geometry, create operations, set their parameters,

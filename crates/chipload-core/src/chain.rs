@@ -21,6 +21,8 @@ pub struct Segment {
     pub handle: String,
     /// DXF type of the entity the primitive came from.
     pub source_type: String,
+    /// Id of the project shape it belongs to (None while importing a DXF).
+    pub shape: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

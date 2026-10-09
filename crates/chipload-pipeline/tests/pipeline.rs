@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
 use chipload_job::{CURRENT_VERSION, Job, Operation, Spindle, load_job, parse_job};
-use chipload_pipeline::{PipelineError, RunResult, run_job};
+use chipload_pipeline::{
+    PipelineError, RunResult, embed_drawing, load_drawing, new_project, run_job, update_drawing,
+};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::model::MoveKind;
 use serde_json::{Value, json};
@@ -77,12 +79,17 @@ fn max(values: &[f64]) -> f64 {
     values.iter().copied().fold(f64::NEG_INFINITY, f64::max)
 }
 
+/// Embed `dxf` into a job made from the old-style samples (as `chipload import --into`).
+fn embed(job: &Job, dxf: &Path) -> Result<Job, PipelineError> {
+    Ok(embed_drawing(job, dxf)?.0)
+}
+
 fn run(job: &Job, dxf: &Path) -> RunResult {
-    run_job(job, dxf).unwrap()
+    run_job(&embed(job, dxf).unwrap()).unwrap()
 }
 
 fn error(job: &Job, dxf: &Path) -> PipelineError {
-    match run_job(job, dxf) {
+    match embed(job, dxf).and_then(|j| run_job(&j)) {
         Ok(_) => panic!("expected an error"),
         Err(err) => err,
     }
@@ -550,4 +557,175 @@ fn a_disabled_drill_does_not_block_the_job() {
         &job(json!({"operations": [drill, op(json!({}))]})),
         &simple(),
     );
+}
+
+// -- projects (docs/specs/project-file.md)
+
+/// A DXF (text) with closed LWPOLYLINE squares: (handle, layer, x, y, size).
+fn square_dxf(path: &Path, squares: &[(&str, &str, f64, f64, f64)]) {
+    let mut text = String::from("0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n");
+    text += "0\nSECTION\n2\nENTITIES\n";
+    for (handle, layer, x, y, size) in squares {
+        text += &format!("0\nLWPOLYLINE\n5\n{handle}\n8\n{layer}\n90\n4\n70\n1\n");
+        for (px, py) in [
+            (x, y),
+            (&(x + size), y),
+            (&(x + size), &(y + size)),
+            (x, &(y + size)),
+        ] {
+            text += &format!("10\n{px}\n20\n{py}\n");
+        }
+    }
+    text += "0\nENDSEC\n0\nEOF\n";
+    std::fs::write(path, text).unwrap();
+}
+
+fn temp_dir(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("chipload-project-{name}-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+/// A project of `dxf` with one outside profile on shape 1.
+fn project_with_profile(dxf: &Path) -> Job {
+    let mut job = new_project(chipload_dxf::shapes_from_dxf(dxf, None).unwrap());
+    let mut data = serde_json::to_value(&job).unwrap();
+    data["stock"]["x"] = json!(300);
+    data["stock"]["y"] = json!(300);
+    data["operations"] = json!([op(
+        json!({"select": {"shapes": [1]}, "depth": 3, "step_down": 3})
+    )]);
+    job = parse_job(data, "p").unwrap();
+    job
+}
+
+#[test]
+fn new_projects_embed_the_drawing_and_run_without_it() {
+    let dir = temp_dir("new");
+    let dxf = dir.join("part.dxf");
+    square_dxf(&dxf, &[("A1", "CUT", 10.0, 10.0, 50.0)]);
+    let job = project_with_profile(&dxf);
+    assert_eq!(job.drawing.next_shape_id, 2);
+    assert_eq!(job.drawing.source.as_ref().unwrap().file, "part.dxf");
+    std::fs::remove_file(&dxf).unwrap(); // the DXF is no longer needed
+    let result = run_job(&job).unwrap();
+    assert_eq!(result.contours.len(), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn an_unembedded_job_is_refused_with_how_to_fix_it() {
+    let old = job(json!({}));
+    let err = run_job(&old).unwrap_err().to_string();
+    assert!(
+        err.contains("not embedded") && err.contains("chipload import --into"),
+        "{err}"
+    );
+    assert!(load_drawing(&old).is_err());
+}
+
+#[test]
+fn embedding_turns_handles_into_shapes_and_keeps_the_golden_output() {
+    let lower = parse_job(
+        migrate(read("jobs/v3/messy_2_lower.json")).unwrap(),
+        "lower",
+    )
+    .unwrap();
+    let (project, report) = embed_drawing(&lower, &messy_2()).unwrap();
+    let Operation::Profile(outline) = &project.operations[1] else {
+        panic!("expected the outline profile");
+    };
+    assert!(outline.select.handles.is_none());
+    assert_eq!(outline.select.shapes.as_ref().unwrap().len(), 1);
+    assert!(
+        report.iter().any(|l| l.contains("handles 50 -> shapes S")),
+        "{report:?}"
+    );
+    let golden = std::fs::read_to_string(corpus("expected/v3_messy_2_lower.nc")).unwrap();
+    assert_eq!(run_job(&project).unwrap().gcode, golden);
+}
+
+#[test]
+fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
+    let dir = temp_dir("update");
+    let v1 = dir.join("v1.dxf");
+    square_dxf(
+        &v1,
+        &[
+            ("A1", "CUT", 10.0, 10.0, 50.0),
+            ("A2", "CUT", 100.0, 10.0, 20.0),
+        ],
+    );
+    let mut job = project_with_profile(&v1);
+    // A shape drawn in Chipload (no DXF handle) must survive updates.
+    let mut drawn = job.drawing.shapes[1].clone();
+    drawn.id = job.drawing.next_shape_id;
+    drawn.dxf_handle = None;
+    for seg in &mut drawn.segments {
+        if let chipload_job::PathSegment::Line(l) = seg {
+            l.start[1] += 100.0;
+            l.end[1] += 100.0;
+        }
+    }
+    job.drawing.next_shape_id += 1;
+    job.drawing.shapes.push(drawn);
+
+    // Same drawing: nothing changes.
+    let (same, report) = update_drawing(&job, &v1, None).unwrap();
+    assert_eq!(report.unchanged, [1, 2]);
+    assert!(report.changed.is_empty() && report.added.is_empty() && report.removed.is_empty());
+    assert_eq!(same.drawing.shapes, job.drawing.shapes);
+
+    // Square A1 moved: same id, the operation follows it.
+    let v2 = dir.join("v2.dxf");
+    square_dxf(
+        &v2,
+        &[
+            ("A1", "CUT", 30.0, 10.0, 50.0),
+            ("A2", "CUT", 100.0, 10.0, 20.0),
+            ("A3", "CUT", 150.0, 10.0, 5.0),
+        ],
+    );
+    let (moved, report) = update_drawing(&job, &v2, None).unwrap();
+    assert_eq!(
+        (report.changed.clone(), report.added.clone()),
+        (vec![1], vec![4])
+    );
+    assert!(
+        report.lines.iter().any(|l| l.contains("geometry changed")),
+        "{:?}",
+        report.lines
+    );
+    assert!(
+        moved
+            .drawing
+            .shapes
+            .iter()
+            .any(|s| s.id == 3 && s.dxf_handle.is_none())
+    );
+    let before = run_job(&job).unwrap().program.moves;
+    let after = run_job(&moved).unwrap().program.moves;
+    let first_x =
+        |moves: &[chipload_toolpath::model::Move]| moves.iter().find_map(|m| m.x).unwrap();
+    assert!((first_x(&after) - first_x(&before) - 20.0).abs() < 1e-9);
+
+    // Square A1 deleted: the operation is flagged and can't run.
+    let v3 = dir.join("v3.dxf");
+    square_dxf(&v3, &[("A2", "CUT", 100.0, 10.0, 20.0)]);
+    let (lost, report) = update_drawing(&job, &v3, None).unwrap();
+    assert_eq!(report.removed, [1]);
+    assert_eq!(report.lost, [0]);
+    let err = run_job(&lost).unwrap_err().to_string();
+    assert!(err.contains("S1 is not part of any contour"), "{err}");
+
+    // Different units are never guessed.
+    let inch = dir.join("inch.dxf");
+    square_dxf(&inch, &[("A1", "CUT", 1.0, 1.0, 2.0)]);
+    let text = std::fs::read_to_string(&inch)
+        .unwrap()
+        .replace("70\n4\n0\nENDSEC", "70\n1\n0\nENDSEC");
+    std::fs::write(&inch, text).unwrap();
+    assert!(update_drawing(&job, &inch, None).is_err());
+    assert!(update_drawing(&job, &inch, Some(chipload_job::Units::Inch)).is_ok());
+    std::fs::remove_dir_all(&dir).unwrap();
 }

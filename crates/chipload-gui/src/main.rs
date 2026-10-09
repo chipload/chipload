@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Chipload desktop GUI (egui). Usage: `chipload-gui [part.dxf] [job.json]`.
+//! Chipload desktop GUI (egui). Usage: `chipload-gui [project.chipload | part.dxf]`.
 
 // A windowed program on Windows: no console window opens behind the GUI.
 #![cfg_attr(windows, windows_subsystem = "windows")]
@@ -24,14 +24,8 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    // Paths on the command line, in any order: .json is a job, anything else a drawing.
-    let (jobs, drawings): (Vec<PathBuf>, Vec<PathBuf>) = std::env::args_os()
-        .skip(1)
-        .map(PathBuf::from)
-        .partition(|p| {
-            p.extension()
-                .is_some_and(|e| e.eq_ignore_ascii_case("json"))
-        });
+    // A file on the command line: a .chipload project, an older .json job, or a .dxf to import.
+    let file: Option<PathBuf> = std::env::args_os().nth(1).map(PathBuf::from);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -45,11 +39,8 @@ fn main() -> ExitCode {
         Box::new(move |cc| {
             cc.egui_ctx.set_fonts(fonts);
             let mut app = app::ChiploadApp::default();
-            if let Some(job) = jobs.first() {
-                app.open_job(job);
-            }
-            if let Some(dxf) = drawings.first() {
-                app.open_dxf(dxf);
+            if let Some(file) = &file {
+                app.open(file);
             }
             Ok(Box::new(app))
         }),

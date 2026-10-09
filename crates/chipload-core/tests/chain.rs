@@ -14,6 +14,7 @@ fn seg(prim: Primitive) -> Segment {
         prim,
         layer: "L".into(),
         handle: "H".into(),
+        shape: None,
         source_type: "LINE".into(),
     }
 }

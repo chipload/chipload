@@ -1,0 +1,335 @@
+{
+  "schema_version": 4,
+  "written_by": "chipload 0.1.0",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "CUT_OUTSIDE",
+        "dxf_handle": "2F",
+        "dxf_type": "LWPOLYLINE",
+        "kind": "path",
+        "closed": true,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                60.0,
+                50.0
+              ],
+              "end": [
+                240.0,
+                50.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                240.0,
+                60.0
+              ],
+              "radius": 10.000000000000002,
+              "start_angle": -1.5707963267948966,
+              "sweep": 1.5707963267948966
+            }
+          },
+          {
+            "line": {
+              "start": [
+                250.0,
+                60.0
+              ],
+              "end": [
+                250.0,
+                160.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                240.0,
+                160.0
+              ],
+              "radius": 10.000000000000002,
+              "start_angle": 0.0,
+              "sweep": 1.5707963267948966
+            }
+          },
+          {
+            "line": {
+              "start": [
+                240.0,
+                170.0
+              ],
+              "end": [
+                60.0,
+                170.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                60.0,
+                160.0
+              ],
+              "radius": 10.000000000000002,
+              "start_angle": 1.5707963267948966,
+              "sweep": 1.5707963267948966
+            }
+          },
+          {
+            "line": {
+              "start": [
+                50.0,
+                160.0
+              ],
+              "end": [
+                50.0,
+                60.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                60.0,
+                60.0
+              ],
+              "radius": 10.000000000000002,
+              "start_angle": 3.141592653589793,
+              "sweep": 1.5707963267948966
+            }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "layer": "HOLES",
+        "dxf_handle": "30",
+        "dxf_type": "CIRCLE",
+        "kind": "path",
+        "closed": true,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                90.0,
+                110.0
+              ],
+              "radius": 15.0,
+              "start_angle": 0.0,
+              "sweep": 6.283185307179586
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "layer": "HOLES",
+        "dxf_handle": "31",
+        "dxf_type": "LWPOLYLINE",
+        "kind": "path",
+        "closed": true,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                140.0,
+                80.0
+              ],
+              "end": [
+                200.0,
+                80.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                200.0,
+                90.0
+              ],
+              "radius": 10.0,
+              "start_angle": -1.5707963267948966,
+              "sweep": 3.141592653589793
+            }
+          },
+          {
+            "line": {
+              "start": [
+                200.0,
+                100.0
+              ],
+              "end": [
+                140.0,
+                100.0
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                140.0,
+                90.0
+              ],
+              "radius": 10.0,
+              "start_angle": 1.5707963267948966,
+              "sweep": 3.141592653589793
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "layer": "HOLES",
+        "dxf_handle": "32",
+        "dxf_type": "LINE",
+        "kind": "path",
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                150.0,
+                120.0
+              ],
+              "end": [
+                210.0,
+                120.0
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "layer": "HOLES",
+        "dxf_handle": "33",
+        "dxf_type": "LINE",
+        "kind": "path",
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                210.0,
+                120.0
+              ],
+              "end": [
+                210.0,
+                150.0
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "layer": "HOLES",
+        "dxf_handle": "34",
+        "dxf_type": "LINE",
+        "kind": "path",
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                210.0,
+                150.0
+              ],
+              "end": [
+                150.0,
+                150.0
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "layer": "HOLES",
+        "dxf_handle": "35",
+        "dxf_type": "LINE",
+        "kind": "path",
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                150.0,
+                150.0
+              ],
+              "end": [
+                150.0,
+                120.0
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "next_shape_id": 8,
+    "source": {
+      "file": "simple_part.dxf",
+      "sha256": "5b0b3d849372f209295f4558b257ca1f151943404a290f36660a775407a73429",
+      "units": "mm",
+      "units_from": "dxf",
+      "imported": {
+        "CIRCLE": 1,
+        "LINE": 4,
+        "LWPOLYLINE": 2
+      },
+      "flattened": {},
+      "ignored": {},
+      "issues": []
+    },
+    "external": null
+  },
+  "stock": {
+    "x": 600.0,
+    "y": 400.0,
+    "thickness": 18.0,
+    "origin": "bottom_left",
+    "z_zero": "top"
+  },
+  "machine": {
+    "post": "grbl",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": null,
+    "travel": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": null,
+      "rpm": 18000.0
+    }
+  ],
+  "operations": [
+    {
+      "type": "profile",
+      "name": "Outside cut",
+      "enabled": true,
+      "select": {
+        "layer": "CUT_OUTSIDE",
+        "handles": null,
+        "shapes": null
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "depth": 18.0,
+      "step_down": 6.0,
+      "feed": 2000.0,
+      "plunge_feed": 666.6666666666666,
+      "tabs": null
+    }
+  ]
+}

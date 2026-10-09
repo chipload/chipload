@@ -68,8 +68,13 @@ fn import(d: &Drawing, units: Option<Units>) -> ImportResult {
     import_drawing(d, units).unwrap()
 }
 
-fn codes(result: &ImportResult) -> Vec<&'static str> {
-    result.report.issues.iter().map(|i| i.code).collect()
+fn codes(result: &ImportResult) -> Vec<&str> {
+    result
+        .report
+        .issues
+        .iter()
+        .map(|i| i.code.as_str())
+        .collect()
 }
 
 fn xs(result: &ImportResult, contour: usize) -> (f64, f64) {
@@ -113,8 +118,8 @@ fn unitless_file_uses_job_units_and_says_so() {
     let mut d = drawing(DxfUnits::Unitless);
     add(&mut d, square(0.0, 0.0, 1.0));
     let result = import(&d, Some(Units::Inch));
-    assert_eq!(result.report.units_from, UnitsFrom::Job);
-    assert!(codes(&result).contains(&"units_from_job"));
+    assert_eq!(result.report.units_from, UnitsFrom::User);
+    assert!(codes(&result).contains(&"units_chosen"));
     assert!(near(xs(&result, 0).1, 25.4, 1e-9));
 }
 
@@ -478,4 +483,77 @@ fn messy_2_every_closed_contour_is_valid_and_layers_add_up() {
             .count()
     };
     assert_eq!((count("0"), count("lower"), count("upper")), (3, 4, 15));
+}
+
+// -- shapes (docs/specs/project-file.md)
+
+use chipload_dxf::{contours_from_shapes, shapes_from_drawing, shapes_from_dxf};
+
+#[test]
+fn one_shape_per_entity_with_its_handle_type_and_closed_flag() {
+    let mut d = mm();
+    let square_handle = add(&mut d, square(0.0, 0.0, 10.0));
+    let line_handle = add(
+        &mut d,
+        EntityType::Line(Line::new(
+            Point::new(20.0, 0.0, 0.0),
+            Point::new(30.0, 0.0, 0.0),
+        )),
+    );
+    let imported = shapes_from_drawing(&d, Some(Units::Mm)).unwrap();
+    let shapes = &imported.shapes;
+    assert_eq!(shapes.len(), 2);
+    assert_eq!((shapes[0].id, shapes[1].id), (1, 2));
+    assert_eq!(
+        shapes[0].dxf_handle.as_deref(),
+        Some(square_handle.as_str())
+    );
+    assert_eq!(shapes[0].dxf_type.as_deref(), Some("LWPOLYLINE"));
+    assert_eq!(shapes[0].segments.len(), 4);
+    assert!(shapes[0].closed);
+    assert_eq!(shapes[1].dxf_handle.as_deref(), Some(line_handle.as_str()));
+    assert!(!shapes[1].closed);
+}
+
+#[test]
+fn block_children_are_separate_shapes_sharing_the_insert_handle() {
+    let mut d = mm();
+    let mut block = Block {
+        name: "TWO".into(),
+        ..Default::default()
+    };
+    block.entities.push(on_layer(square(0.0, 0.0, 10.0), "0"));
+    block.entities.push(on_layer(square(20.0, 0.0, 10.0), "0"));
+    d.add_block(block);
+    let handle = add(
+        &mut d,
+        EntityType::Insert(Insert {
+            name: "TWO".into(),
+            x_scale_factor: 1.0,
+            y_scale_factor: 1.0,
+            ..Default::default()
+        }),
+    );
+    let shapes = shapes_from_drawing(&d, Some(Units::Mm)).unwrap().shapes;
+    assert_eq!(shapes.len(), 2);
+    assert!(
+        shapes
+            .iter()
+            .all(|s| s.dxf_handle.as_deref() == Some(handle.as_str()))
+    );
+    assert!(shapes.iter().all(|s| s.layer == "CUT"));
+}
+
+#[test]
+fn shapes_survive_json_and_give_the_same_contours() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/dxf/messy.dxf");
+    let imported = shapes_from_dxf(&path, Some(Units::Mm)).unwrap();
+    assert_eq!(imported.source.file, "messy.dxf");
+    assert_eq!(imported.source.sha256.len(), 64);
+    let direct = import_dxf(&path, Some(Units::Mm)).unwrap();
+    let json = serde_json::to_string(&imported.shapes).unwrap();
+    let back: Vec<chipload_job::Shape> = serde_json::from_str(&json).unwrap();
+    assert_eq!(back, imported.shapes, "exact f64 round trip");
+    let again = contours_from_shapes(&back, Some(&imported.source));
+    assert_eq!(again, direct);
 }

@@ -11,8 +11,8 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | job file models, schema migrations, load/save |
-| `chipload-dxf` | DXF import and the `ImportReport` |
+| `chipload-job` | project/job file models (schema v4 embeds the drawing), migrations, load/save |
+| `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
@@ -76,11 +76,13 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
 
-cargo run -p chipload-cli -- inspect part.dxf             # entities, units, issues
-cargo run -p chipload-cli -- run part.dxf --job job.json -o out.nc   # headless end to end
-cargo run -p chipload-cli -- plan part.dxf --job job.json --json     # toolpath, no G-code
-cargo run -p chipload-cli -- check out.nc --job job.json  # the independent checker on any G-code
-cargo run -p chipload-gui -- part.dxf job.json            # GUI
+cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
+cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units, contours, issues
+cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end
+cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, no G-code
+cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
+cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
+cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)
 ```
@@ -122,7 +124,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 ## Test corpus
 
 - `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code.
-- `tests/corpus/jobs/v<N>/` holds frozen job files for every past schema version (see schema versioning above).
+- `tests/corpus/jobs/v<N>/` holds frozen job files for every past schema version (see schema versioning above). `v4/` holds the projects (with embedded drawings) the golden test runs; `v1`–`v3` are embedded with `chipload import --into` and must give the same G-code.
 - When a user-reported file breaks something, add it (anonymised) to the corpus **with a failing test first**, then fix.
 
 ## Licensing and packaging
