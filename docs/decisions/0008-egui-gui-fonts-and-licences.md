@@ -21,6 +21,14 @@ On Linux rfd uses the XDG desktop portal, falling back to `zenity`. Where neithe
 (e.g. WSL), *File → Open path…*, *Save G-code to path…* and command-line arguments do the
 same job.
 
+## Window frame on Wayland
+eframe without its default features also drops winit's default `wayland-csd-adwaita`, leaving
+winit's fallback client-side frame. Under WSLg's compositor that frame makes the connection
+drop while resizing ("Io error: Broken pipe", then exit). `chipload-gui` therefore depends on
+`winit` directly, only to enable `wayland-csd-adwaita` (sctk-adwaita, MIT; it draws the title
+with system fonts). Checked by resizing the window 400 times in a row: fallback frame
+disconnects, adwaita frame survives.
+
 ## Thin UI
 As in Python, the window only calls `chipload-pipeline` (run_job, report text) and
 `select_contours` for the selector preview; drawing, pan/zoom and picking are view code.

@@ -20,6 +20,10 @@ chipload-toolpath = { version = "0.1.0", path = "../chipload-toolpath" }
 # installed system fonts instead (decision 2026-10-09).
 eframe = { version = "0.36.2", default-features = false, features = ["accesskit", "glow", "wayland", "x11"] }
 rfd = "0.17.2"
+# Only to pick the window frame: winit's fallback frame (what eframe gets without its default
+# features) makes WSLg's compositor drop the connection while resizing; the adwaita frame
+# (winit's own default) is fine. See ADR 0008.
+winit = { version = "0.30.13", default-features = false, features = ["wayland-csd-adwaita"] }
 
 [lints]
 workspace = true
