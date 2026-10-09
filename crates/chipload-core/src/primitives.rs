@@ -32,6 +32,36 @@ pub enum Primitive {
 }
 
 impl Arc {
+    /// The arc a bulged polyline segment describes: it sweeps 4·atan(bulge) from `a` to `b`
+    /// (positive = counter-clockwise). None for a straight segment or a zero-length chord.
+    pub fn from_bulge(a: Point, b: Point, bulge: f64) -> Option<Arc> {
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let chord = dx.hypot(dy);
+        if bulge == 0.0 || chord == 0.0 {
+            return None;
+        }
+        let sweep = 4.0 * bulge.atan();
+        let half = sweep / 2.0;
+        // Centre: from the chord midpoint along the left normal, signed by the sweep.
+        let offset = chord / 2.0 / half.tan();
+        let center = (
+            (a.0 + b.0) / 2.0 - dy / chord * offset,
+            (a.1 + b.1) / 2.0 + dx / chord * offset,
+        );
+        Some(Arc {
+            center,
+            radius: chord / 2.0 / half.sin().abs(),
+            start_angle: (a.1 - center.1).atan2(a.0 - center.0),
+            sweep,
+        })
+    }
+
+    /// Bulge of this arc as one polyline segment, tan(sweep / 4). Only meaningful for
+    /// |sweep| < 2π; split longer arcs first.
+    pub fn bulge(&self) -> f64 {
+        (self.sweep / 4.0).tan()
+    }
+
     pub fn point_at(&self, angle: f64) -> Point {
         (
             self.center.0 + self.radius * angle.cos(),

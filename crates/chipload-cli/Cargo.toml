@@ -14,6 +14,7 @@ path = "src/main.rs"
 chipload-check = { version = "0.1.0", path = "../chipload-check" }
 chipload-core = { version = "0.1.0", path = "../chipload-core" }
 chipload-dxf = { version = "0.1.0", path = "../chipload-dxf" }
+chipload-toolpath = { version = "0.1.0", path = "../chipload-toolpath" }
 chipload-job = { version = "0.1.0", path = "../chipload-job" }
 clap = { version = "4.6.7", features = ["derive"] }
 serde_json = "1.0.151"

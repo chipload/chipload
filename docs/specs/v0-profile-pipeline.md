@@ -123,6 +123,12 @@ don't really apply; by decision (2026-10-08) it is treated as outside.
 ### Start point
 The ring vertex with the smallest y, ties broken by smallest x. Deterministic, no lead-in in v0, so it leaves a small witness mark.
 
+Rust port (2026-10-09): offsets keep true arcs and every arc is split at its lowest point
+before flattening, so on a curved bottom the start is the true lowest point rather than the
+nearest chord end (Python's start can be up to one chord away). Two vertices whose y differ
+by less than `CHAIN_TOL_MM` count as a tie, so float noise can't move the start to the right
+end of a flat bottom.
+
 ### Depth passes
 - n = ceil(depth / step_down), with depth/step_down rounded down by `DEPTH_TOL_MM` first so 18/6 gives 3 passes, not 4.
 - Equal passes: pass i is cut at depth · i / n (i = 1..n). The last pass is exactly `depth`.

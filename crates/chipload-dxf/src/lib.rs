@@ -24,7 +24,7 @@ use chipload_job::Units;
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
 
-pub use convert::{Affine, MAX_BLOCK_DEPTH, bulge_arc};
+pub use convert::{Affine, MAX_BLOCK_DEPTH};
 
 /// Millimetres per inch.
 const MM_PER_INCH: f64 = 25.4;

@@ -11,6 +11,8 @@ use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, Severity, UnitsFrom, import_dxf, units_name};
 use chipload_job::{Units, load_job};
+use chipload_toolpath::model::{MoveKind, Program};
+use chipload_toolpath::plan_job;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
@@ -32,6 +34,16 @@ enum Command {
         #[arg(long)]
         units: Option<UnitsArg>,
         /// Print the result as JSON (used by the conformance tests).
+        #[arg(long)]
+        json: bool,
+    },
+    /// Plan the toolpath for a job (no G-code yet: the post-processor isn't ported).
+    Plan {
+        dxf: PathBuf,
+        /// Job file.
+        #[arg(long)]
+        job: PathBuf,
+        /// Print the toolpath as JSON (used by the conformance tests).
         #[arg(long)]
         json: bool,
     },
@@ -63,8 +75,67 @@ fn main() -> ExitCode {
             });
             inspect(&dxf, units, json)
         }
+        Command::Plan { dxf, job, json } => plan(&dxf, &job, json),
         Command::Check { gcode, job, json } => check(&gcode, &job, json),
     }
+}
+
+fn plan(dxf: &Path, job_path: &Path, as_json: bool) -> ExitCode {
+    let job = match load_job(job_path) {
+        Ok(job) => job,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    let imported = match import_dxf(dxf, Some(job.source.units)) {
+        Ok(result) => result,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    let plan = match plan_job(&job, &imported.contours) {
+        Ok(plan) => plan,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    if as_json {
+        println!(
+            "{}",
+            json!({"program": program_json(&plan.program), "notes": plan.notes})
+        );
+    } else {
+        for note in &plan.notes {
+            println!("warning: {note}");
+        }
+        println!("Planned {} moves.", plan.program.moves.len());
+    }
+    ExitCode::SUCCESS
+}
+
+fn program_json(program: &Program) -> Value {
+    let moves: Vec<Value> = program
+        .moves
+        .iter()
+        .map(|m| {
+            let kind = match m.kind {
+                MoveKind::Rapid => "rapid",
+                MoveKind::Feed => "feed",
+            };
+            json!({"kind": kind, "x": m.x, "y": m.y, "z": m.z, "feed": m.feed})
+        })
+        .collect();
+    json!({
+        "tool_id": program.tool_id,
+        "tool_diameter": program.tool_diameter,
+        "rpm": program.rpm,
+        "spindle": match program.spindle { chipload_job::Spindle::Cw => "cw", chipload_job::Spindle::Ccw => "ccw" },
+        "safe_z": program.safe_z,
+        "moves": moves,
+    })
 }
 
 fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {

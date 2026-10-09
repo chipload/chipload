@@ -491,7 +491,7 @@ impl Pieces {
         for i in 0..count {
             let (x1, y1, bulge) = vertices[i];
             let (x2, y2, _) = vertices[(i + 1) % n];
-            match bulge_arc((x1, y1), (x2, y2), bulge) {
+            match Arc::from_bulge((x1, y1), (x2, y2), bulge) {
                 Some(arc) => self.prims.extend(map_arc(frame, &arc)),
                 None => self.prims.push(Primitive::Line(Line {
                     start: frame.apply((x1, y1)),
@@ -500,30 +500,6 @@ impl Pieces {
             }
         }
     }
-}
-
-/// The arc a bulged segment describes: it sweeps 4·atan(bulge) from `a` to `b`
-/// (positive = counter-clockwise). None for a straight segment or a zero-length chord.
-pub fn bulge_arc(a: Point, b: Point, bulge: f64) -> Option<Arc> {
-    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let chord = dx.hypot(dy);
-    if bulge == 0.0 || chord == 0.0 {
-        return None;
-    }
-    let sweep = 4.0 * bulge.atan();
-    let half = sweep / 2.0;
-    // Centre: from the chord midpoint along the left normal, signed by the sweep.
-    let offset = chord / 2.0 / half.tan();
-    let center = (
-        (a.0 + b.0) / 2.0 - dy / chord * offset,
-        (a.1 + b.1) / 2.0 + dx / chord * offset,
-    );
-    Some(Arc {
-        center,
-        radius: chord / 2.0 / half.sin().abs(),
-        start_angle: (a.1 - center.1).atan2(a.0 - center.0),
-        sweep,
-    })
 }
 
 /// An arc under an affine map. A similarity keeps it an arc (a mirror reverses the sweep);
@@ -578,7 +554,7 @@ mod tests {
 
     #[test]
     fn bulge_one_is_a_ccw_half_circle_below_the_chord() {
-        let arc = bulge_arc((0.0, 0.0), (10.0, 0.0), 1.0).unwrap();
+        let arc = Arc::from_bulge((0.0, 0.0), (10.0, 0.0), 1.0).unwrap();
         assert!(close(arc.center, (5.0, 0.0)));
         assert!((arc.radius - 5.0).abs() < EPS);
         let p = Primitive::Arc(arc);
@@ -588,9 +564,9 @@ mod tests {
 
     #[test]
     fn negative_bulge_is_clockwise_and_bigger_bulge_is_the_long_way() {
-        let cw = Primitive::Arc(bulge_arc((0.0, 0.0), (10.0, 0.0), -0.5).unwrap());
+        let cw = Primitive::Arc(Arc::from_bulge((0.0, 0.0), (10.0, 0.0), -0.5).unwrap());
         assert!(close(cw.end(), (10.0, 0.0)) && cw.midpoint().1 > 0.0);
-        let long = bulge_arc((0.0, 0.0), (10.0, 0.0), 2.0).unwrap();
+        let long = Arc::from_bulge((0.0, 0.0), (10.0, 0.0), 2.0).unwrap();
         assert!(long.sweep > std::f64::consts::PI);
         assert!(close(Primitive::Arc(long).end(), (10.0, 0.0)));
     }

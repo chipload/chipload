@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 5aa5a816dfbcd73a28a4a2f4d0211a991e328d387aebac2ee9b9997fba676042 # shrinks to vertices = [(10.0, 0.0, 0.0), (62.223705, 61.747687, 0.0), (29.478235, 60.332399, 0.0)], radius = 4.872350625252796
+cc efbf32bd3d9b0312a077973b87d43cd93f52b5928bab8daf431bd4cc8b623ef1 # shrinks to vertices = [(94.412867, 0.0, 0.0), (10.0, 0.001745, 0.0), (50.772482, 0.035446, 0.0)], radius = 0.5
