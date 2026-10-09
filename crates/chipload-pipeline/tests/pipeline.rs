@@ -501,3 +501,53 @@ fn tabs_on_an_inside_profile_warn() {
     // The round hole has no straight stretch for its tab.
     assert!(result.notes.iter().any(|n| n.contains("corner or curve")));
 }
+
+// -- enabled / disabled operations (docs/specs/job-editor.md §2)
+
+#[test]
+fn disabled_operations_are_skipped_and_keep_their_numbers() {
+    let all = run(&job(json!({})), &simple());
+    let hole_only = run(
+        &job(json!({"operations": [
+            read("jobs/v2/simple_part_full.json")["operations"][0].clone(),
+            op(json!({"enabled": false})),
+        ]})),
+        &simple(),
+    );
+    assert!(hole_only.program.moves.len() < all.program.moves.len());
+    // The second (outline) operation is gone: nothing cuts at the outline's corner x = 47.
+    let tool_r = 3.0;
+    assert!(
+        hole_only
+            .program
+            .moves
+            .iter()
+            .all(|m| m.x.is_none_or(|x| x > 50.0 - tool_r))
+    );
+    let err = error(
+        &job(json!({"operations": [
+            op(json!({"enabled": false})),
+            op(json!({"select": {"layer": "NOPE"}})),
+        ]})),
+        &simple(),
+    );
+    assert!(err.to_string().starts_with("Operation 2"), "{err}");
+}
+
+#[test]
+fn every_operation_disabled_is_an_error() {
+    job_error(
+        &job(json!({"operations": [op(json!({"enabled": false}))]})),
+        &simple(),
+        "nothing to cut",
+    );
+}
+
+#[test]
+fn a_disabled_drill_does_not_block_the_job() {
+    let drill = json!({"type": "drill", "select": {"layer": "HOLES"}, "tool": 1, "enabled": false});
+    run(
+        &job(json!({"operations": [drill, op(json!({}))]})),
+        &simple(),
+    );
+}

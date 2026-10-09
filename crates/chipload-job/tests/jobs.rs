@@ -232,3 +232,23 @@ fn output_is_deterministic_ascii() {
     let back: Value = serde_json::from_str(&text).unwrap();
     assert_eq!(back["operations"][0]["name"], json!("Hål ⌀6 😀"));
 }
+
+#[test]
+fn operations_are_enabled_unless_the_file_says_otherwise() {
+    for path in all_corpus_jobs() {
+        let job = load_job(&path).unwrap();
+        assert!(
+            job.operations.iter().all(Operation::enabled),
+            "{}",
+            path.display()
+        );
+        let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+        for op in data["operations"].as_array().unwrap() {
+            assert_eq!(op["enabled"], json!(true), "written explicitly");
+        }
+    }
+    let mut data = lower_job();
+    data["operations"][1]["enabled"] = json!(false);
+    let job = parse_job(migrate(data).unwrap(), "test").unwrap();
+    assert!(!job.operations[1].enabled());
+}

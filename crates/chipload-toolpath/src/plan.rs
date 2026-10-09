@@ -38,7 +38,10 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut pockets: Vec<PocketPiece> = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
-        let label = match op_name(op) {
+        if !op.enabled() {
+            continue; // kept in the file, skipped here; numbering stays as listed
+        }
+        let label = match op.name() {
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
@@ -232,14 +235,6 @@ fn plan_profile_op(
     Ok(out)
 }
 
-fn op_name(op: &Operation) -> &str {
-    match op {
-        Operation::Profile(p) => &p.name,
-        Operation::Pocket(p) => &p.name,
-        Operation::Drill(p) => &p.name,
-    }
-}
-
 fn not_ported(label: &str, op: &Operation) -> ToolpathError {
     let kind = match op {
         Operation::Profile(_) => "profile",
@@ -260,7 +255,18 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
     if job.operations.is_empty() {
         return Err(job_error("Job has no operations".into()));
     }
-    for (index, op) in job.operations.iter().enumerate() {
+    if !job.operations.iter().any(Operation::enabled) {
+        return Err(job_error(
+            "Every operation is disabled: nothing to cut".into(),
+        ));
+    }
+    let enabled = || {
+        job.operations
+            .iter()
+            .enumerate()
+            .filter(|(_, op)| op.enabled())
+    };
+    for (index, op) in enabled() {
         if let Operation::Drill(_) = op {
             return Err(job_error(format!(
                 "Operation {}: 'drill' is not implemented in this version",
@@ -268,7 +274,7 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
             )));
         }
     }
-    let mut used: Vec<i64> = job.operations.iter().map(Operation::tool).collect();
+    let mut used: Vec<i64> = enabled().map(|(_, op)| op.tool()).collect();
     used.sort_unstable();
     used.dedup();
     if used.len() > 1 {
@@ -300,7 +306,7 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
         )));
     }
     let mut notes = Vec::new();
-    for (index, op) in job.operations.iter().enumerate() {
+    for (index, op) in enabled() {
         let number = index + 1;
         let (depth, feed, plunge_feed) = match op {
             Operation::Profile(p) => (p.depth, p.feed, p.plunge_feed),

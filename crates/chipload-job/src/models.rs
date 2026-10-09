@@ -173,7 +173,27 @@ pub enum Operation {
     Drill(DrillOp),
 }
 
+fn enabled_default() -> bool {
+    true
+}
+
 impl Operation {
+    pub fn name(&self) -> &str {
+        match self {
+            Operation::Profile(op) => &op.name,
+            Operation::Pocket(op) => &op.name,
+            Operation::Drill(op) => &op.name,
+        }
+    }
+
+    pub fn enabled(&self) -> bool {
+        match self {
+            Operation::Profile(op) => op.enabled,
+            Operation::Pocket(op) => op.enabled,
+            Operation::Drill(op) => op.enabled,
+        }
+    }
+
     pub fn tool(&self) -> i64 {
         match self {
             Operation::Profile(op) => op.tool,
@@ -188,6 +208,9 @@ impl Operation {
 pub struct ProfileOp {
     #[serde(default)]
     pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
     pub select: Selector,
     pub side: Side,
     pub direction: Direction,
@@ -205,6 +228,9 @@ pub struct ProfileOp {
 pub struct PocketOp {
     #[serde(default)]
     pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
     pub select: Selector,
     pub tool: i64,
     pub depth: f64,
@@ -224,6 +250,9 @@ pub struct PocketOp {
 pub struct DrillOp {
     #[serde(default)]
     pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
     pub select: Selector,
     pub tool: i64,
     #[serde(default)]

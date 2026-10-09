@@ -44,7 +44,12 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
         ZZero::Top => 0.0,
         ZZero::Bottom => stock.thickness,
     };
-    let used: Vec<i64> = job.operations.iter().map(|op| op.tool()).collect();
+    let used: Vec<i64> = job
+        .operations
+        .iter()
+        .filter(|op| op.enabled())
+        .map(|op| op.tool())
+        .collect();
     let radius = job
         .tools
         .iter()
