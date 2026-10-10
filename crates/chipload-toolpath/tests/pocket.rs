@@ -13,7 +13,7 @@ use chipload_core::fold::fold_point;
 use chipload_core::primitives::Line;
 use chipload_core::primitives::{Primitive, distance, signed_area};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM};
-use chipload_job::{Direction, Spindle};
+use chipload_job::{Direction, Entry, Spindle};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::geom::PrimIndex;
 use chipload_toolpath::geom::segment_distance;
@@ -557,7 +557,16 @@ fn keep_tool_down_still_retracts_around_an_island() {
 fn moves_plunge_at_the_centre_for_every_depth() {
     let result = plan(&[outline()], false);
     let piece = &result.pieces[0];
-    let moves = pocket_moves(piece, &[-3.0, -6.0], 5.0, 1500.0, 400.0);
+    let moves = pocket_moves(
+        piece,
+        &[-3.0, -6.0],
+        0.0,
+        5.0,
+        1500.0,
+        400.0,
+        Entry::Plunge {},
+    )
+    .unwrap();
     let plunges: Vec<_> = moves
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
@@ -572,7 +581,16 @@ fn moves_plunge_at_the_centre_for_every_depth() {
 #[test]
 fn keep_tool_down_plunges_once_per_depth() {
     let result = plan(&[outline()], true);
-    let moves = pocket_moves(&result.pieces[0], &[-3.0, -6.0], 5.0, 1500.0, 400.0);
+    let moves = pocket_moves(
+        &result.pieces[0],
+        &[-3.0, -6.0],
+        0.0,
+        5.0,
+        1500.0,
+        400.0,
+        Entry::Plunge {},
+    )
+    .unwrap();
     let plunges = moves
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
@@ -955,7 +973,7 @@ proptest! {
         };
         let mut moves = Vec::new();
         for piece in &plan.pieces {
-            moves.extend(pocket_moves(piece, &[-1.0], 5.0, 1000.0, 300.0));
+            moves.extend(pocket_moves(piece, &[-1.0], 0.0, 5.0, 1000.0, 300.0, Entry::Plunge {}).unwrap());
         }
         tag_moves(&mut moves, &plan.arcs);
         let program = Program {
@@ -1017,7 +1035,9 @@ fn arc_moves(plan: &PocketPlan) -> usize {
     use chipload_toolpath::model::{MoveKind, Program};
     let mut moves = Vec::new();
     for piece in &plan.pieces {
-        moves.extend(pocket_moves(piece, &[-1.0], 5.0, 1000.0, 300.0));
+        moves.extend(
+            pocket_moves(piece, &[-1.0], 0.0, 5.0, 1000.0, 300.0, Entry::Plunge {}).unwrap(),
+        );
     }
     tag_moves(&mut moves, &plan.arcs);
     let program = Program {

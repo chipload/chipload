@@ -8,7 +8,8 @@ use std::collections::BTreeSet;
 use chipload_core::chain::Contour;
 use chipload_job::library::Cutting;
 use chipload_job::{
-    Direction, Job, Operation, PocketOp, PocketStrategy, ProfileOp, Selector, Side,
+    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, Job, Operation, PocketOp, PocketStrategy, ProfileOp,
+    Selector, Side,
 };
 
 use crate::view::Kind;
@@ -224,6 +225,14 @@ impl EditJob {
             + 1;
         let select = selection.selector(contours);
         let tool = self.tool_id();
+        // A tool marked not centre-cutting can't plunge: new operations ramp in
+        // (docs/specs/ramp-entry.md, decision 6).
+        let entry = match self.settings.tools.first().and_then(|t| t.center_cutting) {
+            Some(false) => Entry::Ramp {
+                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+            },
+            _ => Entry::Plunge {},
+        };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
                 let side = default_side(&selection.ids(contours), contours);
@@ -242,6 +251,7 @@ impl EditJob {
                         feed,
                         plunge_feed,
                         tabs: None,
+                        entry,
                     }),
                     side.is_some(),
                 )
@@ -262,6 +272,7 @@ impl EditJob {
                     plunge_feed,
                     keep_tool_down: false,
                     strategy: PocketStrategy::Rings {},
+                    entry,
                 }),
                 true,
             ),
@@ -503,6 +514,22 @@ mod tests {
             panic!()
         };
         assert_eq!(q.feed, 900.0, "copied from the operation above");
+    }
+
+    #[test]
+    fn new_operations_ramp_when_the_tool_cant_plunge() {
+        let contours = messy_2();
+        let mut job = new_job();
+        let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
+        assert_eq!(job.ops[i].op.entry(), Entry::Plunge {});
+        job.settings.tools[0].center_cutting = Some(false);
+        let j = job.add(OpKind::Profile, &ids(&[2]), &contours);
+        assert_eq!(
+            job.ops[j].op.entry(),
+            Entry::Ramp {
+                ramp_angle: DEFAULT_RAMP_ANGLE_RAD
+            }
+        );
     }
 
     #[test]

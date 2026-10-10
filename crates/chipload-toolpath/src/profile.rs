@@ -5,7 +5,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{distance, signed_area};
 use chipload_core::tolerances::DEPTH_TOL_MM;
-use chipload_job::{Direction, ProfileOp, Side, Spindle};
+use chipload_job::{Direction, Entry, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
@@ -13,6 +13,7 @@ use crate::left::{LeftPiece, cleared, reach, unreachable_inside, unreachable_out
 use crate::model::Move;
 use crate::offset::{contour_pline, offset_rings_tagged, start_index};
 use crate::pocket::{Area, ccw, guarded};
+use crate::ramp::{enter, polyline_length};
 
 /// Travel direction around the ring.
 ///
@@ -67,25 +68,52 @@ pub fn pass_depths(
         .collect())
 }
 
-/// Retract, travel, then for each pass plunge and go once around. Ends retracted.
+/// Retract, travel, then for each pass go down (`entry`) and once around. Ends retracted.
+/// `top_z` is the Z of the start depth, cut already (docs/specs/ramp-entry.md).
+#[allow(clippy::too_many_arguments)]
 pub fn contour_moves(
     ring: &[Point],
     pass_z: &[f64],
+    top_z: f64,
     safe_z: f64,
     feed: f64,
     plunge_feed: f64,
-) -> Vec<Move> {
+    entry: Entry,
+) -> Result<Vec<Move>, ToolpathError> {
     let Some(&start) = ring.first() else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
+    let path = closed_path(ring);
+    let around = polyline_length(&path);
     let mut moves = vec![Move::rapid_z(safe_z), Move::rapid_xy(start)];
+    let mut above = (safe_z, top_z);
     for &z in pass_z {
-        moves.push(Move::feed_z(z, plunge_feed));
+        let (from_z, cleared) = above;
+        moves.extend(enter(
+            &path,
+            around,
+            from_z,
+            cleared,
+            z,
+            entry,
+            feed,
+            plunge_feed,
+        )?);
         moves.extend(ring[1..].iter().map(|&p| Move::feed_xy(p, feed)));
         moves.push(Move::feed_xy(start, feed));
+        above = (z, z);
     }
     moves.push(Move::rapid_z(safe_z));
-    moves
+    Ok(moves)
+}
+
+/// A closed ring as a path that returns to its start.
+pub fn closed_path(ring: &[Point]) -> Vec<Point> {
+    let mut path = ring.to_vec();
+    if let Some(&first) = ring.first() {
+        path.push(first);
+    }
+    path
 }
 
 /// An oriented tool-centre ring, starting at points[0].

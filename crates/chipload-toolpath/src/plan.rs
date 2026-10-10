@@ -4,7 +4,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::{Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
+use chipload_job::{Entry, Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
 
 use chipload_core::tolerances::DEPTH_TOL_MM;
 
@@ -80,6 +80,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             tool,
             job,
             pass_z: &pass_z,
+            top_z: top_z - start_depth,
         };
         let planned = match op {
             Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &selection, position)?,
@@ -145,6 +146,8 @@ struct Context<'a> {
     tool: &'a Tool,
     job: &'a Job,
     pass_z: &'a [f64],
+    /// Z of the operation's start depth: cut already, where a ramp begins.
+    top_z: f64,
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
@@ -187,13 +190,18 @@ fn plan_pocket_op(
         end: start,
     };
     for piece in &plan.pieces {
-        out.moves.extend(pocket_moves(
-            piece,
-            ctx.pass_z,
-            ctx.job.machine.safe_z,
-            op.feed,
-            op.plunge_feed,
-        ));
+        out.moves.extend(
+            pocket_moves(
+                piece,
+                ctx.pass_z,
+                ctx.top_z,
+                ctx.job.machine.safe_z,
+                op.feed,
+                op.plunge_feed,
+                op.entry,
+            )
+            .map_err(|err| err.with_context(label))?,
+        );
         // Retracted above the start of the wall ring.
         let last = piece.rings.len().checked_sub(1);
         if let Some(end) = last.and_then(|k| {
@@ -250,13 +258,20 @@ fn plan_profile_op(
     for ring in &plan.rings {
         let points = &ring.points;
         match &op.tabs {
-            None => out.moves.extend(contour_moves(
-                points,
-                ctx.pass_z,
-                machine.safe_z,
-                op.feed,
-                op.plunge_feed,
-            )),
+            None => out.moves.extend(
+                contour_moves(
+                    points,
+                    ctx.pass_z,
+                    ctx.top_z,
+                    machine.safe_z,
+                    op.feed,
+                    op.plunge_feed,
+                    op.entry,
+                )
+                .map_err(|err| {
+                    err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+                })?,
+            ),
             Some(tabs) => {
                 // Validated: count >= 1.
                 let count = usize::try_from(tabs.count).unwrap_or(0);
@@ -274,10 +289,12 @@ fn plan_profile_op(
                         points,
                         &layout,
                         ctx.pass_z,
+                        ctx.top_z,
                         bottom + tabs.height,
                         machine.safe_z,
                         op.feed,
                         op.plunge_feed,
+                        op.entry,
                     )
                     .map_err(context)?,
                 );
@@ -392,15 +409,20 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
                 }
             }
         }
-        if let Operation::Pocket(_) = op {
-            notes.extend(pocket_tool_notes(number, tool)?);
+        match op {
+            Operation::Pocket(p) => notes.extend(pocket_tool_notes(number, tool, p.entry)?),
+            Operation::Profile(p) => notes.extend(plunge_notes(number, "profile", tool, p.entry)?),
         }
     }
     Ok((tool, notes))
 }
 
-/// Pockets plunge straight down (no ramping yet), so they need a centre-cutting endmill.
-fn pocket_tool_notes(number: usize, tool: &Tool) -> Result<Vec<String>, ToolpathError> {
+/// Pockets need an endmill; a straight plunge also needs it to be centre-cutting.
+fn pocket_tool_notes(
+    number: usize,
+    tool: &Tool,
+    entry: Entry,
+) -> Result<Vec<String>, ToolpathError> {
     if tool.kind != ToolType::Endmill {
         let kind = match tool.kind {
             ToolType::Endmill => "endmill",
@@ -412,15 +434,29 @@ fn pocket_tool_notes(number: usize, tool: &Tool) -> Result<Vec<String>, Toolpath
             tool.id
         )));
     }
+    plunge_notes(number, "pocket", tool, entry)
+}
+
+/// A straight plunge needs a centre-cutting tool (docs/specs/ramp-entry.md §6): refused
+/// for a tool marked not centre-cutting, a note when it's unknown. A ramp needs neither.
+fn plunge_notes(
+    number: usize,
+    what: &str,
+    tool: &Tool,
+    entry: Entry,
+) -> Result<Vec<String>, ToolpathError> {
+    if let Entry::Ramp { .. } = entry {
+        return Ok(Vec::new());
+    }
     match tool.center_cutting {
         Some(false) => Err(job_error(format!(
-            "Operation {number}: tool {} is not centre-cutting and pockets plunge straight \
-             down; use a centre-cutting endmill",
+            "Operation {number}: tool {} is not centre-cutting and this {what} plunges \
+             straight down; ramp in instead (entry: ramp) or use a centre-cutting tool",
             tool.id
         ))),
         None => Ok(vec![format!(
-            "Operation {number}: pocket plunges straight down; tool {} isn't marked \
-             center_cutting, make sure it is a centre-cutting endmill",
+            "Operation {number}: {what} plunges straight down; tool {} isn't marked \
+             center_cutting, make sure it is a centre-cutting tool",
             tool.id
         )]),
         Some(true) => Ok(Vec::new()),

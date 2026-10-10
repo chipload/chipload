@@ -7,7 +7,7 @@ mod common;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
-use chipload_job::Side;
+use chipload_job::{Entry, Side};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::model::Move;
 use chipload_toolpath::offset::offset_rings;
@@ -176,10 +176,12 @@ fn only_passes_below_the_tab_top_lift() {
         &ring,
         &layout,
         &[-6.0, -12.0, -18.0],
+        0.0,
         -15.0,
         5.0,
         1800.0,
         600.0,
+        Entry::Plunge {},
     )
     .unwrap();
     let mut levels: Vec<f64> = moves.iter().filter_map(|m| m.z).collect();
@@ -197,10 +199,12 @@ fn taller_tabs_lift_on_more_passes() {
         &ring,
         &layout,
         &[-6.0, -12.0, -18.0],
+        0.0,
         -10.0,
         5.0,
         1800.0,
         600.0,
+        Entry::Plunge {},
     )
     .unwrap();
     assert_eq!(count_at(&moves, -10.0), 8); // passes -12 and -18
@@ -254,8 +258,9 @@ proptest! {
             prop_assert!((s1 - s0 - (width + tool)).abs() < 1e-9);
         }
         // The move builder verifies its own result (lifted length == tab gaps).
-        prop_assert!(
-            tabbed_contour_moves(&ring, &layout, &[-3.0, -6.0], -4.0, 5.0, 1000.0, 300.0).is_ok()
-        );
+        let plunge = Entry::Plunge {};
+        let built =
+            tabbed_contour_moves(&ring, &layout, &[-3.0, -6.0], 0.0, -4.0, 5.0, 1000.0, 300.0, plunge);
+        prop_assert!(built.is_ok());
     }
 }

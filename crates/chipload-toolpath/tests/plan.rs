@@ -56,7 +56,9 @@ fn tabs_lift_on_the_last_pass_and_are_reported_for_display() {
         .filter(|m| m.z == Some(-9.0))
         .count();
     assert_eq!(lifts, 4);
-    assert!(plan.notes.is_empty());
+    // Only the reminder that a straight plunge needs a centre-cutting tool.
+    assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
+    assert!(plan.notes[0].contains("plunges straight down"));
 }
 
 #[test]
@@ -310,4 +312,117 @@ fn stock_left_on_purpose_is_not_shown_as_unreachable() {
     for c in [-0.5, 0.0, 0.5] {
         assert_eq!(left("inside", c).len(), 4, "clearance {c}");
     }
+}
+
+// -- ramp entry (docs/specs/ramp-entry.md)
+
+const THREE_DEG: f64 = 3.0 * std::f64::consts::PI / 180.0;
+
+fn not_centre_cutting(operations: Value) -> Job {
+    let mut job = job(operations);
+    job.tools[0].center_cutting = Some(false);
+    job
+}
+
+/// Straight descents only reach depths already cut (or the start depth); every move that
+/// goes down sideways is no steeper than the ramp angle. Returns how many ramp moves.
+fn assert_ramps_only(moves: &[chipload_toolpath::model::Move], top: f64, angle: f64) -> usize {
+    use chipload_toolpath::model::MoveKind;
+    let (mut x, mut y, mut z) = (0.0, 0.0, f64::INFINITY);
+    let mut deepest = top;
+    let mut ramps = 0;
+    for m in moves {
+        let (nx, ny, nz) = (m.x.unwrap_or(x), m.y.unwrap_or(y), m.z.unwrap_or(z));
+        let run = (nx - x).hypot(ny - y);
+        if m.kind != MoveKind::Rapid && nz < z - 1e-9 {
+            if run == 0.0 {
+                assert!(
+                    nz >= deepest - 1e-9,
+                    "straight plunge to {nz} below {deepest}"
+                );
+            } else {
+                assert!((z - nz) / run <= angle.tan() + 1e-9, "ramp too steep");
+                ramps += 1;
+            }
+        }
+        deepest = deepest.min(nz);
+        (x, y, z) = (nx, ny, nz);
+    }
+    ramps
+}
+
+#[test]
+fn a_profile_with_a_tool_that_cant_plunge_is_refused_unless_it_ramps() {
+    let plunge = not_centre_cutting(profile("outside", Value::Null));
+    let err = plan_job(&plunge, &part()).unwrap_err().to_string();
+    assert!(
+        err.contains("not centre-cutting") && err.contains("ramp"),
+        "{err}"
+    );
+
+    let mut ops = profile("outside", json!({"count": 4, "width": 8, "height": 3}));
+    ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": THREE_DEG});
+    let plan = plan_job(&not_centre_cutting(ops), &part()).unwrap();
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    // Two passes, each ramped in, and a ramp after each of the 4 tabs on the last pass.
+    let ramps = assert_ramps_only(&plan.program.moves, 0.0, THREE_DEG);
+    assert!(ramps >= 2 * 2 + 4 * 2, "{ramps} ramp moves");
+    // Every lap is still cut in full at its depth: the tab verification passed, and the
+    // lifts are the same four.
+    let lifts = plan
+        .program
+        .moves
+        .iter()
+        .filter(|m| m.z == Some(-9.0))
+        .count();
+    assert!(lifts >= 4);
+}
+
+#[test]
+fn pockets_ramp_in_every_strategy() {
+    let pocket_part = vec![common::polygon(&[
+        (0.0, 0.0),
+        (60.0, 0.0),
+        (60.0, 40.0),
+        (0.0, 40.0),
+    ])];
+    for strategy in [
+        json!({"type": "rings"}),
+        json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
+        json!({"type": "adaptive", "load": 0.1}),
+    ] {
+        let ops = json!([{"type": "pocket", "select": {"layer": "L"}, "tool": 1,
+            "start_depth": 1, "end_depth": 7, "clearance": 0, "step_down": 3, "stepover": 0.4,
+            "direction": "climb", "feed": 1500, "plunge_feed": 500, "strategy": strategy,
+            "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}]);
+        let plan = plan_job(&not_centre_cutting(ops), &pocket_part)
+            .unwrap_or_else(|e| panic!("{strategy}: {e}"));
+        // Ramps start at the start depth (Z -1): only that is taken as cut.
+        let ramps = assert_ramps_only(&plan.program.moves, -1.0, THREE_DEG);
+        assert!(ramps > 0, "{strategy}");
+    }
+}
+
+#[test]
+fn a_ramp_steeper_than_30_degrees_is_refused() {
+    let mut ops = profile("outside", Value::Null);
+    ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": 0.6});
+    let err = parse_job(
+        migrate(json!({
+            "schema_version": CURRENT_VERSION,
+            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "stock": {"x": 300, "y": 200, "thickness": 18, "max_overcut": 0.5},
+            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw"},
+            "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],
+            "operations": ops,
+        }))
+        .unwrap(),
+        "test.json",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("entry.ramp_angle: must be more than 0 and at most 30"),
+        "{err}"
+    );
 }

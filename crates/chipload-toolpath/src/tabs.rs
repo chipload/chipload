@@ -7,8 +7,11 @@ use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 
+use chipload_job::Entry;
+
 use crate::ToolpathError;
 use crate::model::{Move, MoveKind};
+use crate::ramp::{enter, polyline_length};
 
 /// A tab gap turning more than this (15°) in total is "on a corner".
 pub const TAB_MAX_TURN_RAD: f64 = 15.0 * std::f64::consts::PI / 180.0;
@@ -111,43 +114,108 @@ pub fn split_ring(ring: &[Point], spans: &[(f64, f64)]) -> Vec<(Point, bool)> {
 }
 
 /// Like `contour_moves`, but passes below the tab top lift over every tab: up at plunge
-/// feed, across at feed, back down at plunge feed.
+/// feed, across at feed, back down as `entry` says. A ramp after a tab runs along the path
+/// ahead, no further than the next tab (docs/specs/ramp-entry.md).
+#[allow(clippy::too_many_arguments)]
 pub fn tabbed_contour_moves(
     ring: &[Point],
     layout: &TabLayout,
     pass_z: &[f64],
+    top_z: f64,
     z_tab: f64,
     safe_z: f64,
     feed: f64,
     plunge_feed: f64,
+    entry: Entry,
 ) -> Result<Vec<Move>, ToolpathError> {
     let Some(&start) = ring.first() else {
         return Ok(Vec::new());
     };
     let path = split_ring(ring, &layout.spans);
     let mut moves = vec![Move::rapid_z(safe_z), Move::rapid_xy(start)];
+    let mut above = (safe_z, top_z);
     for &z in pass_z {
-        moves.push(Move::feed_z(z, plunge_feed));
+        let (from_z, cleared) = above;
+        above = (z, z);
         if z >= z_tab - DEPTH_TOL_MM {
+            let whole = crate::profile::closed_path(ring);
+            let around = polyline_length(&whole);
+            moves.extend(enter(
+                &whole,
+                around,
+                from_z,
+                cleared,
+                z,
+                entry,
+                feed,
+                plunge_feed,
+            )?);
             moves.extend(ring[1..].iter().map(|&p| Move::feed_xy(p, feed)));
             moves.push(Move::feed_xy(start, feed));
             continue;
         }
+        // Into the pass at the start: along the path up to the first tab.
+        let (ahead, room) = path_ahead(start, &path, 0);
+        moves.extend(enter(
+            &ahead,
+            room,
+            from_z,
+            cleared,
+            z,
+            entry,
+            feed,
+            plunge_feed,
+        )?);
         let mut lifted = false;
-        for &(point, in_tab) in &path {
-            if in_tab != lifted {
-                moves.push(Move::feed_z(if in_tab { z_tab } else { z }, plunge_feed));
-                lifted = in_tab;
+        let mut here = start;
+        for (index, &(point, in_tab)) in path.iter().enumerate() {
+            if in_tab && !lifted {
+                moves.push(Move::feed_z(z_tab, plunge_feed));
+                lifted = true;
+            } else if !in_tab && lifted {
+                let (ahead, room) = path_ahead(here, &path, index);
+                moves.extend(enter(
+                    &ahead,
+                    room,
+                    z_tab,
+                    z_tab,
+                    z,
+                    entry,
+                    feed,
+                    plunge_feed,
+                )?);
+                lifted = false;
             }
             moves.push(Move::feed_xy(point, feed));
+            here = point;
         }
         if lifted {
+            // The ring ends inside a tab: back down at its start, where the next pass or
+            // the retract follows; the lap's start is cut already, so nothing to ramp.
             moves.push(Move::feed_z(z, plunge_feed));
         }
     }
     moves.push(Move::rapid_z(safe_z));
     verify(&moves, layout, start, z_tab)?;
     Ok(moves)
+}
+
+/// The path from `here` on (the split ring from entry `from`, going round), up to the
+/// start of the next tab; and its length.
+fn path_ahead(here: Point, path: &[(Point, bool)], from: usize) -> (Vec<Point>, f64) {
+    let mut ahead = vec![here];
+    let mut length = 0.0;
+    let mut last = here;
+    for k in 0..path.len() {
+        let (point, in_tab) = path[(from + k) % path.len()];
+        if in_tab {
+            break;
+        }
+        length += distance(last, point);
+        ahead.push(point);
+        last = point;
+    }
+    (ahead, length)
 }
 
 /// The tool-path stretch of each tab, for display.
@@ -255,8 +323,11 @@ fn verify(
             }
         }
         let step = distance((x, y), (nx, ny));
+        // A ramp (XY and Z at once) is cut on top of the lap; the lap is what's counted.
+        let ramp = m.z.is_some() && step > 0.0;
         if let (MoveKind::Feed, Some(depth), Some(z)) = (m.kind, pass_z, z)
             && step > 0.0
+            && !ramp
         {
             let index = match passes.iter().position(|p| p.0 == depth) {
                 Some(i) => i,

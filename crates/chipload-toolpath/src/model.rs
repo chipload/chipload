@@ -64,6 +64,18 @@ impl Move {
         }
     }
 
+    /// A cutting move in X, Y and Z at once (a ramp).
+    pub fn feed_xyz(p: Point, z: f64, feed: f64) -> Self {
+        Move {
+            kind: MoveKind::Feed,
+            x: Some(p.0),
+            y: Some(p.1),
+            z: Some(z),
+            feed: Some(feed),
+            circle: None,
+        }
+    }
+
     pub fn feed_xy(p: Point, feed: f64) -> Self {
         Move {
             kind: MoveKind::Feed,

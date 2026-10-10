@@ -3,7 +3,7 @@
 
 use super::user_library::{LibraryRows, library_rows};
 use super::*;
-use chipload_job::{Machine, Tool};
+use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_pipeline::library::Library;
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
@@ -215,6 +215,7 @@ pub(super) fn op_form(
                 ui.label("Plunge feed");
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
+                entry_rows(ui, index, &mut p.entry);
                 ui.label("Tabs");
                 let mut has_tabs = p.tabs.is_some();
                 if ui.checkbox(&mut has_tabs, "holding tabs").changed() {
@@ -265,6 +266,7 @@ pub(super) fn op_form(
                 ui.label("Plunge feed");
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
+                entry_rows(ui, index, &mut p.entry);
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
                 ui.end_row();
@@ -273,6 +275,49 @@ pub(super) fn op_form(
         }
     });
     use_selection
+}
+
+/// How the tool goes down into each pass (docs/specs/ramp-entry.md); the angle is shown in
+/// degrees and kept in radians.
+fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry) {
+    ui.label("Entry").on_hover_text(
+        "How the tool goes down into the material. A ramp goes down along the path and back, \
+         so the tool needn't be centre-cutting; the ramp moves use the cutting feed.",
+    );
+    let ramp = Entry::Ramp {
+        ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+    };
+    ComboBox::from_id_salt(("entry", index))
+        .selected_text(match entry {
+            Entry::Plunge {} => "straight plunge",
+            Entry::Ramp { .. } => "ramp",
+        })
+        .show_ui(ui, |ui| {
+            let is_ramp = matches!(entry, Entry::Ramp { .. });
+            if ui.selectable_label(!is_ramp, "straight plunge").clicked() {
+                *entry = Entry::Plunge {};
+            }
+            if ui.selectable_label(is_ramp, "ramp").clicked() && !is_ramp {
+                *entry = ramp;
+            }
+        });
+    ui.end_row();
+    if let Entry::Ramp { ramp_angle } = entry {
+        ui.label("  ramp angle");
+        let mut degrees = ramp_angle.to_degrees();
+        if ui
+            .add(
+                DragValue::new(&mut degrees)
+                    .speed(0.1)
+                    .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
+                    .suffix("°"),
+            )
+            .changed()
+        {
+            *ramp_angle = degrees.to_radians();
+        }
+        ui.end_row();
+    }
 }
 
 /// Drawing, stock, machine and tool.

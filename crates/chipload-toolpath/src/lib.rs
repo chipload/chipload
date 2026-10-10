@@ -13,6 +13,7 @@ pub mod offset;
 pub mod plan;
 pub mod pocket;
 pub mod profile;
+pub mod ramp;
 pub mod select;
 pub mod tabs;
 

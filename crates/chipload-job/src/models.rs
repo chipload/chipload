@@ -757,6 +757,13 @@ impl Operation {
         }
     }
 
+    pub fn entry(&self) -> Entry {
+        match self {
+            Operation::Profile(p) => p.entry,
+            Operation::Pocket(p) => p.entry,
+        }
+    }
+
     pub fn clearance(&self) -> f64 {
         match self {
             Operation::Profile(op) => op.clearance,
@@ -803,6 +810,9 @@ pub struct ProfileOp {
     pub plunge_feed: f64,
     #[serde(default)]
     pub tabs: Option<Tabs>,
+    /// Missing: straight down, as before (docs/specs/ramp-entry.md).
+    #[serde(default)]
+    pub entry: Entry,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -834,7 +844,33 @@ pub struct PocketOp {
     /// How the pocket is cleared (docs/specs/trochoidal.md). Missing: rings, as before.
     #[serde(default)]
     pub strategy: PocketStrategy,
+    /// Missing: straight down, as before (docs/specs/ramp-entry.md).
+    #[serde(default)]
+    pub entry: Entry,
 }
+
+/// How the tool goes down into the material at the start of each pass
+/// (docs/specs/ramp-entry.md).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+pub enum Entry {
+    /// Straight down: needs a centre-cutting tool. An empty struct variant, as `Rings`.
+    Plunge {},
+    /// Down along the path and back, never steeper than `ramp_angle` (radians,
+    /// 0 < angle <= 30°).
+    Ramp { ramp_angle: f64 },
+}
+
+impl Default for Entry {
+    fn default() -> Self {
+        Entry::Plunge {}
+    }
+}
+
+/// The steepest ramp allowed: 30°.
+pub const MAX_RAMP_ANGLE_RAD: f64 = std::f64::consts::PI / 6.0;
+/// The ramp angle a new ramp gets: 3°.
+pub const DEFAULT_RAMP_ANGLE_RAD: f64 = 3.0 * std::f64::consts::PI / 180.0;
 
 /// Clearing strategy of a pocket.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -1134,6 +1170,15 @@ impl Job {
                 problems.push(format!(
                     "operations.{i}.strategy: adaptive needs 0 < load <= 0.5 (a fraction of the \
                      tool diameter), got {load}"
+                ));
+            }
+            if let Entry::Ramp { ramp_angle } = op.entry()
+                && !(ramp_angle.is_finite() && ramp_angle > 0.0 && ramp_angle <= MAX_RAMP_ANGLE_RAD)
+            {
+                problems.push(format!(
+                    "operations.{i}.entry.ramp_angle: must be more than 0 and at most 30 \
+                     degrees, got {:.3} degrees",
+                    ramp_angle.to_degrees()
                 ));
             }
             if let Operation::Pocket(p) = op

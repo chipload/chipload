@@ -21,7 +21,7 @@ use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
-use chipload_job::{Direction, PocketStrategy, Side, Spindle};
+use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::adaptive::{self, Field, Grid};
@@ -1405,23 +1405,40 @@ fn loops_along(
 }
 
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.
+/// `top_z` is the Z of the start depth, cut already; every descent into a pass goes
+/// down as `entry` says, along the path that follows (docs/specs/ramp-entry.md).
+#[allow(clippy::too_many_arguments)]
 pub fn pocket_moves(
     piece: &PocketPiece,
     pass_z: &[f64],
+    top_z: f64,
     safe_z: f64,
     feed: f64,
     plunge_feed: f64,
-) -> Vec<Move> {
+    entry: Entry,
+) -> Result<Vec<Move>, ToolpathError> {
     let mut moves = Vec::new();
     let Some(first) = piece.rings.first().and_then(|r| r.first().copied()) else {
-        return moves;
+        return Ok(moves);
     };
+    // The path the tool follows from a ring's start, to ramp along.
+    let path_of = |index: usize| {
+        let ring = &piece.rings[index];
+        if piece.open.get(index).copied().unwrap_or(false) {
+            ring.clone()
+        } else {
+            crate::profile::closed_path(ring)
+        }
+    };
+    let descend = |index: usize, cleared: f64, z: f64| {
+        let path = path_of(index);
+        let length = crate::ramp::polyline_length(&path);
+        crate::ramp::enter(&path, length, safe_z, cleared, z, entry, feed, plunge_feed)
+    };
+    let mut cleared = top_z;
     for &z in pass_z {
-        moves.extend([
-            Move::rapid_z(safe_z),
-            Move::rapid_xy(first),
-            Move::feed_z(z, plunge_feed),
-        ]);
+        moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
+        moves.extend(descend(0, cleared, z)?);
         for (index, ring) in piece.rings.iter().enumerate() {
             let start = ring[0];
             let open = piece.open.get(index).copied().unwrap_or(false);
@@ -1429,11 +1446,8 @@ pub fn pocket_moves(
                 if piece.feed_links[index - 1] {
                     moves.push(Move::feed_xy(start, feed));
                 } else {
-                    moves.extend([
-                        Move::rapid_z(safe_z),
-                        Move::rapid_xy(start),
-                        Move::feed_z(z, plunge_feed),
-                    ]);
+                    moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(start)]);
+                    moves.extend(descend(index, cleared, z)?);
                 }
             }
             moves.extend(ring[1..].iter().map(|&p| Move::feed_xy(p, feed)));
@@ -1442,6 +1456,7 @@ pub fn pocket_moves(
             }
         }
         moves.push(Move::rapid_z(safe_z));
+        cleared = z;
     }
-    moves
+    Ok(moves)
 }

@@ -4,7 +4,7 @@
 mod common;
 
 use chipload_core::primitives::signed_area;
-use chipload_job::{Direction, Side, Spindle};
+use chipload_job::{Direction, Entry, Side, Spindle};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::model::Move;
 use chipload_toolpath::offset::offset_rings;
@@ -187,7 +187,16 @@ fn pass_depths_rejects_bad_ranges() {
 #[test]
 fn contour_moves_sequence() {
     let ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)];
-    let moves = contour_moves(&ring, &[-1.0, -2.0], 5.0, 1000.0, 300.0);
+    let moves = contour_moves(
+        &ring,
+        &[-1.0, -2.0],
+        0.0,
+        5.0,
+        1000.0,
+        300.0,
+        Entry::Plunge {},
+    )
+    .unwrap();
     assert_eq!(moves[0], Move::rapid_z(5.0));
     assert_eq!(moves[1], Move::rapid_xy((0.0, 0.0)));
     assert_eq!(moves[2], Move::feed_z(-1.0, 300.0));
