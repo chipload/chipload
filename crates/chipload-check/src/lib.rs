@@ -365,13 +365,28 @@ fn move_to(
         if AXES.iter().any(|a| at(*a).is_none()) {
             problems.push("Cutting move from an unknown position".into());
         }
+        // An arc's own extremes count too: it can bulge past both its ends.
+        let mut extremes: Vec<(f64, f64)> = Vec::new();
         if motion == 2 || motion == 3 {
-            problems.extend(check_arc(&start, &target, values));
+            let (arc_problems, arc_extremes) = check_arc(&start, &target, values, motion == 2);
+            problems.extend(arc_problems);
+            extremes = arc_extremes;
         }
         if let (Some(x), Some(y)) = (at('X'), at('Y'))
-            && outside_stock(x, y, limits)
+            && (outside_stock(x, y, limits)
+                || extremes
+                    .iter()
+                    .any(|&(ex, ey)| outside_stock(ex, ey, limits)))
         {
             state.outside_stock += 1;
+        }
+        for (ex, ey) in extremes {
+            for (axis, v) in [('X', ex), ('Y', ey)] {
+                let lo = state.lo.entry(axis).or_insert(v);
+                *lo = lo.min(v);
+                let hi = state.hi.entry(axis).or_insert(v);
+                *hi = hi.max(v);
+            }
         }
     }
 
@@ -402,13 +417,16 @@ fn move_to(
     problems
 }
 
+/// An arc's problems, and the points where it is furthest left, right, down and up (those
+/// its sweep passes), for the stock and travel checks.
 fn check_arc(
     start: &BTreeMap<char, Option<f64>>,
     target: &BTreeMap<char, Option<f64>>,
     values: &BTreeMap<char, f64>,
-) -> Vec<String> {
+    clockwise: bool,
+) -> (Vec<String>, Vec<(f64, f64)>) {
     if !values.contains_key(&'I') && !values.contains_key(&'J') {
-        return vec!["Arc without I/J centre offsets".into()];
+        return (vec!["Arc without I/J centre offsets".into()], Vec::new());
     }
     let get = |m: &BTreeMap<char, Option<f64>>, a: char| m.get(&a).copied().flatten();
     let (Some(sx), Some(sy), Some(ex), Some(ey)) = (
@@ -417,18 +435,43 @@ fn check_arc(
         get(target, 'X'),
         get(target, 'Y'),
     ) else {
-        return vec!["Arc from an unknown position".into()];
+        return (vec!["Arc from an unknown position".into()], Vec::new());
     };
+    let mut problems = Vec::new();
+    if get(start, 'Z') != get(target, 'Z') {
+        problems.push("Arc that changes Z (helical) is not supported".into());
+    }
+    if (sx - ex).hypot(sy - ey) <= POSITION_TOL_MM {
+        problems.push("Arc ending where it starts (a full circle in one move)".into());
+    }
     let cx = sx + values.get(&'I').copied().unwrap_or(0.0);
     let cy = sy + values.get(&'J').copied().unwrap_or(0.0);
     let r_start = (sx - cx).hypot(sy - cy);
     let r_end = (ex - cx).hypot(ey - cy);
     if (r_start - r_end).abs() > ARC_APPROX_TOL_MM {
-        return vec![format!(
+        problems.push(format!(
             "Arc radius mismatch: start {r_start:.4} vs end {r_end:.4}"
-        )];
+        ));
     }
-    Vec::new()
+    // Angles from the start going the arc's way; an axis extreme is on the arc if it comes
+    // before the end.
+    let angle = |x: f64, y: f64| (y - cy).atan2(x - cx);
+    let along = |a: f64| {
+        let d = if clockwise {
+            angle(sx, sy) - a
+        } else {
+            a - angle(sx, sy)
+        };
+        d.rem_euclid(std::f64::consts::TAU)
+    };
+    let end = along(angle(ex, ey));
+    let r = r_start;
+    let extremes = [(r, 0.0), (0.0, r), (-r, 0.0), (0.0, -r)]
+        .into_iter()
+        .filter(|&(dx, dy)| along(dy.atan2(dx)) < end)
+        .map(|(dx, dy)| (cx + dx, cy + dy))
+        .collect();
+    (problems, extremes)
 }
 
 fn outside_stock(x: f64, y: f64, limits: &CheckLimits) -> bool {

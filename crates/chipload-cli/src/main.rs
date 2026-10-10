@@ -20,6 +20,7 @@ use chipload_pipeline::{
     PipelineError, load_drawing, new_project, run_job, update_drawing, write_atomically,
 };
 use chipload_post::{load_builtin_post, render_program};
+use chipload_toolpath::arcs::Circle;
 use chipload_toolpath::model::{Move, MoveKind, Program};
 use chipload_toolpath::plan_job;
 use clap::{Parser, Subcommand, ValueEnum};
@@ -568,7 +569,28 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
             let kind = match m.get("kind").and_then(Value::as_str) {
                 Some("rapid") => MoveKind::Rapid,
                 Some("feed") => MoveKind::Feed,
-                _ => return Err("move.kind must be \"rapid\" or \"feed\"".to_string()),
+                Some("arc_cw") => MoveKind::ArcCw,
+                Some("arc_ccw") => MoveKind::ArcCcw,
+                _ => {
+                    return Err(
+                        "move.kind must be \"rapid\", \"feed\", \"arc_cw\" or \"arc_ccw\""
+                            .to_string(),
+                    );
+                }
+            };
+            let circle = match m.get("circle") {
+                None | Some(Value::Null) => None,
+                Some(c) => {
+                    let center = c
+                        .get("center")
+                        .and_then(Value::as_array)
+                        .and_then(|xy| Some((xy.first()?.as_f64()?, xy.get(1)?.as_f64()?)))
+                        .ok_or("move.circle.center must be [x, y]")?;
+                    Some(Circle {
+                        center,
+                        radius: number(c, "radius")?,
+                    })
+                }
             };
             Ok(Move {
                 kind,
@@ -576,6 +598,7 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
                 y: optional(m, "y")?,
                 z: optional(m, "z")?,
                 feed: optional(m, "feed")?,
+                circle,
             })
         })
         .collect::<Result<Vec<Move>, String>>()?;
@@ -647,8 +670,15 @@ fn program_json(program: &Program) -> Value {
             let kind = match m.kind {
                 MoveKind::Rapid => "rapid",
                 MoveKind::Feed => "feed",
+                MoveKind::ArcCw => "arc_cw",
+                MoveKind::ArcCcw => "arc_ccw",
             };
-            json!({"kind": kind, "x": m.x, "y": m.y, "z": m.z, "feed": m.feed})
+            // On a feed: the circle the chord lies on (merged into an arc by `render` when
+            // the post writes arcs). On an arc: its circle.
+            let circle = m
+                .circle
+                .map(|c| json!({"center": [c.center.0, c.center.1], "radius": c.radius}));
+            json!({"kind": kind, "x": m.x, "y": m.y, "z": m.z, "feed": m.feed, "circle": circle})
         })
         .collect();
     json!({

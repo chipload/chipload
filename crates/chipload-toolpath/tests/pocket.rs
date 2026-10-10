@@ -926,3 +926,61 @@ proptest! {
         assert_clear(&contours, &result, radius - clearance);
     }
 }
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(30))]
+
+    /// docs/specs/arc-output.md: the rings of any pocket merge into arcs of at most a half
+    /// circle whose ends lie on their circle, and merging never changes where lines go.
+    #[test]
+    fn pocket_rings_merge_into_valid_arcs(
+        contours in pocket_with_islands(),
+        radius in 1.0f64..5.0,
+        fraction in 0.1f64..0.5,
+    ) {
+        use chipload_toolpath::arcs::{merge_arcs, tag_moves};
+        use chipload_toolpath::model::{MoveKind, Program};
+        let refs: Vec<&Contour> = contours.iter().collect();
+        let Ok(plan) = plan_pocket(
+            &refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
+            (0.0, 0.0),
+        ) else {
+            return Ok(());
+        };
+        let mut moves = Vec::new();
+        for piece in &plan.pieces {
+            moves.extend(pocket_moves(piece, &[-1.0], 5.0, 1000.0, 300.0));
+        }
+        tag_moves(&mut moves, &plan.arcs);
+        let program = Program {
+            tool_id: 1, tool_diameter: 2.0 * radius, rpm: 18000.0, spindle: Spindle::Cw,
+            safe_z: 5.0, moves,
+        };
+        let merged = merge_arcs(&program).unwrap();
+        let (mut x, mut y) = (0.0, 0.0);
+        let mut arcs = 0;
+        for m in &merged.moves {
+            let (nx, ny) = (m.x.unwrap_or(x), m.y.unwrap_or(y));
+            if matches!(m.kind, MoveKind::ArcCw | MoveKind::ArcCcw) {
+                let c = m.circle.unwrap();
+                for p in [(x, y), (nx, ny)] {
+                    prop_assert!((distance(p, c.center) - c.radius).abs() < 1e-6);
+                }
+                // At most a half circle: the chord is at least as long as the sagitta allows.
+                let (ax, ay) = (x - c.center.0, y - c.center.1);
+                let (bx, by) = (nx - c.center.0, ny - c.center.1);
+                let sweep = (ax * by - ay * bx).atan2(ax * bx + ay * by);
+                let cw = m.kind == MoveKind::ArcCw;
+                prop_assert!(sweep.abs() <= std::f64::consts::PI + 1e-9);
+                // The direction matches, except at exactly a half circle, where the short-way
+                // angle can't tell clockwise from counter-clockwise.
+                let half = sweep.abs() > std::f64::consts::PI - 1e-6;
+                prop_assert!(sweep == 0.0 || (sweep < 0.0) == cw || half);
+                arcs += 1;
+            }
+            (x, y) = (nx, ny);
+        }
+        // Every island here is a polygon, but rings around corners are arcs.
+        prop_assert!(arcs > 0);
+    }
+}

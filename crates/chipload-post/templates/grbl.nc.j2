@@ -9,7 +9,7 @@ G21 G90 G17 G94
 G4 P{{ dwell }}
 {% endif %}
 {% for m in moves %}
-{{ m.code }}{% if m.x is not none %} X{{ m.x }}{% endif %}{% if m.y is not none %} Y{{ m.y }}{% endif %}{% if m.z is not none %} Z{{ m.z }}{% endif %}{% if m.f is not none %} F{{ m.f }}{% endif %}
+{{ m.code }}{% if m.x is not none %} X{{ m.x }}{% endif %}{% if m.y is not none %} Y{{ m.y }}{% endif %}{% if m.z is not none %} Z{{ m.z }}{% endif %}{% if m.i is not none %} I{{ m.i }} J{{ m.j }}{% endif %}{% if m.f is not none %} F{{ m.f }}{% endif %}
 
 {% endfor %}
 M5

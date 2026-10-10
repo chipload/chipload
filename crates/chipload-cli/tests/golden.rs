@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Golden G-code: `chipload run` on the frozen corpus projects (tests/corpus/jobs/v4 on)
-//! must reproduce tests/corpus/expected/ byte for byte, twice in a row.
+//! must reproduce tests/corpus/expected/ byte for byte, twice in a row. The same projects
+//! without arcs must reproduce tests/corpus/expected/lines/ (docs/specs/arc-output.md).
 //!
 //! When a change is intended, regenerate with `CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p
 //! chipload-cli --test golden`, review the diff, and explain it in the commit message.
@@ -83,4 +84,74 @@ fn golden_gcode() {
         "golden G-code differs for {mismatches:?}; if intended, regenerate with \
          CHIPLOAD_UPDATE_GOLDEN=1 and explain the change in the commit message"
     );
+}
+
+/// The same project rendered with the GRBL post but `arcs = false`: what run_job does, with
+/// that one setting changed.
+fn render_without_arcs(project: &Path) -> String {
+    let job = chipload_job::load_job(project).unwrap();
+    let drawing = chipload_pipeline::load_drawing(&job).unwrap();
+    let plan = chipload_toolpath::plan_job(&job, &drawing.contours).unwrap();
+    let output = chipload_pipeline::in_work_coordinates(&plan.program, job.work_zero_xy());
+    let mut post = chipload_post::load_builtin_post("grbl").unwrap();
+    post.arcs = false;
+    chipload_post::render_program_with(&output, &post, Some(&job.work_zero_text())).unwrap()
+}
+
+#[test]
+fn without_arcs_the_output_is_the_line_only_golden() {
+    // docs/specs/arc-output.md: `arcs = false` must give exactly the G-code from before arcs
+    // (tests/corpus/expected/lines/, frozen when arcs were added).
+    for (name, project) in GOLDEN {
+        let lines = render_without_arcs(&corpus(project));
+        let golden = std::fs::read_to_string(corpus(&format!("expected/lines/{name}.nc"))).unwrap();
+        assert!(lines == golden, "{name}: arcs = false changed the G-code");
+        assert!(
+            !lines
+                .lines()
+                .any(|l| l.starts_with("G2 ") || l.starts_with("G3 "))
+        );
+    }
+}
+
+type Xy = (f64, f64);
+
+/// (start, end, centre) of every G2/G3 line, as written.
+fn arcs_in(gcode: &str) -> Vec<(Xy, Xy, Xy)> {
+    let word = |line: &str, letter: char| {
+        line.split_whitespace()
+            .find_map(|w| w.strip_prefix(letter).and_then(|v| v.parse::<f64>().ok()))
+    };
+    let (mut x, mut y) = (0.0, 0.0);
+    let mut arcs = Vec::new();
+    for line in gcode.lines() {
+        let (nx, ny) = (word(line, 'X').unwrap_or(x), word(line, 'Y').unwrap_or(y));
+        if line.starts_with("G2 ") || line.starts_with("G3 ") {
+            let (i, j) = (word(line, 'I').unwrap(), word(line, 'J').unwrap());
+            arcs.push(((x, y), (nx, ny), (x + i, y + j)));
+        }
+        (x, y) = (nx, ny);
+    }
+    arcs
+}
+
+#[test]
+fn every_golden_arc_is_consistent_as_written() {
+    // After rounding to 3 decimals, start and end radius agree within 0.001 mm (GRBL checks
+    // 0.005 mm, the independent checker 0.01 mm), and no arc is a full circle.
+    let mut count = 0;
+    for (name, _) in GOLDEN {
+        let gcode = std::fs::read_to_string(corpus(&format!("expected/{name}.nc"))).unwrap();
+        for (start, end, centre) in arcs_in(&gcode) {
+            let r0 = (start.0 - centre.0).hypot(start.1 - centre.1);
+            let r1 = (end.0 - centre.0).hypot(end.1 - centre.1);
+            assert!(
+                (r0 - r1).abs() <= 0.001,
+                "{name}: {start:?} -> {end:?} around {centre:?}"
+            );
+            assert!(start != end, "{name}: full circle in one move");
+            count += 1;
+        }
+    }
+    assert!(count > 50, "the corpus should exercise arcs, found {count}");
 }

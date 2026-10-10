@@ -9,6 +9,7 @@ use chipload_job::{Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZ
 use chipload_core::tolerances::DEPTH_TOL_MM;
 
 use crate::ToolpathError;
+use crate::arcs::{ArcTable, tag_moves};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, Program};
 use crate::pocket::{PocketPiece, plan_pocket, pocket_moves};
@@ -53,6 +54,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut pockets: Vec<PocketPiece> = Vec::new();
     let mut material_left: Vec<MaterialLeft> = Vec::new();
     let mut op_spans: Vec<OpSpan> = Vec::new();
+    let mut arcs = ArcTable::default();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
         if !op.enabled() {
@@ -95,8 +97,11 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         tabs.extend(planned.tabs);
         pockets.extend(planned.pockets);
         material_left.extend(attach(index, planned.left));
+        arcs.extend(planned.arcs);
         position = planned.end;
     }
+    // Chords of known arcs are tagged; the post writes them as G2/G3 if it does arcs.
+    tag_moves(&mut moves, &arcs);
     Ok(Plan {
         program: Program {
             tool_id: tool.id,
@@ -149,6 +154,7 @@ struct Planned {
     tabs: Vec<Vec<Point>>,
     pockets: Vec<PocketPiece>,
     left: Vec<LeftPiece>,
+    arcs: ArcTable,
     end: Point,
 }
 
@@ -176,6 +182,7 @@ fn plan_pocket_op(
         tabs: Vec::new(),
         pockets: Vec::new(),
         left: plan.left,
+        arcs: plan.arcs,
         end: start,
     };
     for piece in &plan.pieces {
@@ -217,6 +224,7 @@ fn plan_profile_op(
         tabs: Vec::new(),
         pockets: Vec::new(),
         left: plan.left,
+        arcs: plan.arcs,
         end: start,
     };
     if let Some(tabs) = &op.tabs {

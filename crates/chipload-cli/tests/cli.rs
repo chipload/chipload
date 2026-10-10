@@ -318,3 +318,27 @@ fn imported_shapes_cannot_be_changed_from_the_command_line() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn plan_json_renders_with_arcs_through_the_post() {
+    // docs/specs/arc-output.md section 6: `plan --json` carries the arc tags, `render` merges
+    // them when the post writes arcs.
+    let dir = temp_dir("plan-render");
+    let out = chipload(&[
+        "plan",
+        path(&corpus("jobs/v5/drawn_part.chipload")),
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let program = dir.join("program.json");
+    std::fs::write(&program, plan["program"].to_string()).unwrap();
+    let out = chipload(&["render", path(&program)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let gcode = text(&out.stdout);
+    assert!(
+        gcode.contains("G3 X75.000 Y89.000 I0.000 J9.000"),
+        "{gcode}"
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}

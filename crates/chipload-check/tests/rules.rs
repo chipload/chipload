@@ -197,3 +197,53 @@ fn below_the_stock_is_a_warning_within_the_overcut_and_an_error_beyond() {
         beyond.errors
     );
 }
+
+// -- arcs (docs/specs/arc-output.md)
+
+#[test]
+fn arcs_with_i_j_pass_and_bad_ones_are_refused() {
+    // From (20, 10) a half circle around (30, 10) to (40, 10), clockwise (over the top).
+    let ok = format!("{HEADER}G0 X20 Y10\nG1 Z-1 F100\nG2 X40 Y10 I10 J0\n{FOOTER}");
+    let report = check_gcode(&ok, &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    for (line, why) in [
+        ("G2 X40 Y10 R10", "Unsupported word R"), // only I/J
+        ("G2 X40 Y10", "without I/J"),
+        ("G2 X20 Y10 I10 J0", "full circle in one move"),
+        ("G2 X40 Y10 Z-2 I10 J0", "changes Z"),
+        ("G2 X41 Y10 I10 J0", "radius mismatch"),
+    ] {
+        let found = errors(&format!(
+            "{HEADER}G0 X20 Y10\nG1 Z-1 F100\n{line}\n{FOOTER}"
+        ));
+        assert!(found.iter().any(|e| e.contains(why)), "{line}: {found:?}");
+    }
+}
+
+#[test]
+fn an_arc_bulging_past_the_stock_is_seen_by_its_extent() {
+    // Both ends inside the 600 x 400 stock (Y 395), but the arc over the top reaches Y 405.
+    let mut tight = limits();
+    tight.tool_radius = 0.0;
+    let bulge = format!("{HEADER}G0 X290 Y395\nG1 Z-1 F100\nG2 X310 Y395 I10 J0\n{FOOTER}");
+    let report = check_gcode(&bulge, &tight);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock")),
+        "{:?}",
+        report.warnings
+    );
+    // The same arc the other way (G3, under its chord) stays inside.
+    let under = bulge.replace("G2 X310", "G3 X310");
+    let report = check_gcode(&under, &tight);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock")),
+        "{:?}",
+        report.warnings
+    );
+}

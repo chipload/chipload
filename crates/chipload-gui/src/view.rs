@@ -315,7 +315,9 @@ impl ToolpathShape {
                     }
                     run.clear();
                 }
-                MoveKind::Feed => {
+                // The canvas shows the planned program, whose arcs are still chords; an arc
+                // move (never shown today) is drawn as its chord.
+                MoveKind::Feed | MoveKind::ArcCw | MoveKind::ArcCcw => {
                     if let Some(from) = here {
                         if run.last() != Some(&from) {
                             if run.len() > 1 {
@@ -458,7 +460,7 @@ fn lines_3d(program: &Program) -> Vec<(Point3, Point3, bool)> {
         if let (Some(from), Some(x), Some(y), Some(z)) = (from, x, y, z)
             && from != (x, y, z)
         {
-            lines.push((from, (x, y, z), m.kind == MoveKind::Feed));
+            lines.push((from, (x, y, z), m.kind != MoveKind::Rapid));
         }
     }
     lines

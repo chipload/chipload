@@ -9,6 +9,7 @@
 use std::path::Path;
 
 use chipload_job::Spindle;
+use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
 use minijinja::value::Serde;
@@ -60,6 +61,10 @@ pub struct PostConfig {
     pub file_extension: String,
     /// Required: a silent 0 s default could cut at low rpm.
     pub spindle_dwell_s: f64,
+    /// Write arcs as G2/G3 (docs/specs/arc-output.md). Missing: false, chords as G1, which
+    /// is what every post wrote before this setting existed.
+    #[serde(default)]
+    pub arcs: bool,
 }
 
 /// `^[A-Za-z0-9_][A-Za-z0-9_.-]*$`: a plain file or post name, no paths.
@@ -159,27 +164,58 @@ pub struct PostMove {
     pub x: Option<String>,
     pub y: Option<String>,
     pub z: Option<String>,
+    /// Arc centre offsets from the start point (G2/G3 only).
+    pub i: Option<String>,
+    pub j: Option<String>,
     pub f: Option<String>,
 }
 
-/// Omit axis and feed words that have not changed; drop moves that go nowhere.
+/// Omit axis and feed words that have not changed; drop moves that go nowhere. Arcs always
+/// state X, Y, I and J; I and J are measured from the start point as written (rounded), so the
+/// controller sees the radius the numbers give.
 pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>, PostError> {
     let mut last: [Option<String>; 3] = [None, None, None];
     let mut last_f: Option<String> = None;
     let mut result = Vec::new();
     for m in &program.moves {
+        let arc = matches!(m.kind, MoveKind::ArcCw | MoveKind::ArcCcw);
         let mut words: [Option<String>; 3] = [None, None, None];
         for (axis, value) in [m.x, m.y, m.z].into_iter().enumerate() {
             let text = value.map(|v| format_number(v, decimals));
-            if text.is_some() && text != last[axis] {
+            if text.is_some() && (text != last[axis] || (arc && axis < 2)) {
                 words[axis] = text;
             }
         }
         if words.iter().all(Option::is_none) {
             continue;
         }
+        let (mut i, mut j) = (None, None);
+        if arc {
+            let circle = m
+                .circle
+                .ok_or_else(|| PostError::Render("Arc move without a centre".into()))?;
+            let start = |axis: usize| {
+                last[axis]
+                    .as_deref()
+                    .and_then(|t| t.parse::<f64>().ok())
+                    .ok_or_else(|| PostError::Render("Arc from an unknown position".into()))
+            };
+            let (sx, sy) = (start(0)?, start(1)?);
+            let end = |axis: usize, value: Option<f64>| {
+                words[axis]
+                    .as_deref()
+                    .or(last[axis].as_deref())
+                    .and_then(|t| t.parse::<f64>().ok())
+                    .or(value)
+                    .ok_or_else(|| PostError::Render("Arc to an unknown position".into()))
+            };
+            let (ex, ey) = (end(0, m.x)?, end(1, m.y)?);
+            let (ci, cj) = centre_offsets((sx, sy), (ex, ey), circle.center, decimals);
+            i = Some(ci);
+            j = Some(cj);
+        }
         let mut feed = None;
-        if m.kind == MoveKind::Feed {
+        if m.kind != MoveKind::Rapid {
             let rate = m
                 .feed
                 .ok_or_else(|| PostError::Render("Feed move without a feed rate".into()))?;
@@ -196,18 +232,54 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
         }
         let [x, y, z] = words;
         result.push(PostMove {
-            code: if m.kind == MoveKind::Rapid {
-                "G0"
-            } else {
-                "G1"
+            code: match m.kind {
+                MoveKind::Rapid => "G0",
+                MoveKind::Feed => "G1",
+                MoveKind::ArcCw => "G2",
+                MoveKind::ArcCcw => "G3",
             },
             x,
             y,
             z,
+            i,
+            j,
             f: feed,
         });
     }
     Ok(result)
+}
+
+/// I and J as written: the centre offset rounded to the post's decimals, picking among the
+/// neighbouring roundings the one whose start and end radius agree best (the ends are
+/// already rounded). Deterministic: ties keep the plain rounding, then the first in order.
+fn centre_offsets(
+    start: (f64, f64),
+    end: (f64, f64),
+    centre: (f64, f64),
+    decimals: u32,
+) -> (String, String) {
+    let step = 10f64.powi(-(decimals as i32));
+    let round = |v: f64| (v / step).round() * step;
+    let (i0, j0) = (round(centre.0 - start.0), round(centre.1 - start.1));
+    let mismatch = |i: f64, j: f64| {
+        let r_start = i.hypot(j);
+        let r_end = (end.0 - (start.0 + i)).hypot(end.1 - (start.1 + j));
+        (r_start - r_end).abs()
+    };
+    let mut best = (i0, j0, mismatch(i0, j0));
+    for di in [-1.0, 0.0, 1.0] {
+        for dj in [-1.0, 0.0, 1.0] {
+            let (i, j) = (i0 + di * step, j0 + dj * step);
+            let m = mismatch(i, j);
+            if m < best.2 - 1e-12 {
+                best = (i, j, m);
+            }
+        }
+    }
+    (
+        format_number(best.0, decimals),
+        format_number(best.1, decimals),
+    )
 }
 
 #[derive(Serialize)]
@@ -238,6 +310,13 @@ pub fn render_program_with(
     work_zero: Option<&str>,
 ) -> Result<String, PostError> {
     let fmt = |v: f64| format_number(v, config.decimals);
+    // Chords of known arcs become G2/G3 only if the post writes arcs; otherwise the tags are
+    // ignored and the output is the chords, as before.
+    let output = if config.arcs {
+        merge_arcs(program).map_err(|e| PostError::Render(e.to_string()))?
+    } else {
+        program.clone()
+    };
     let context = Context {
         post_name: config.name.clone(),
         tool_id: program.tool_id,
@@ -251,7 +330,7 @@ pub fn render_program_with(
         dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
         // Parentheses would end the comment early, and ';' starts one.
         work_zero: work_zero.map(|w| w.replace('(', "[").replace(')', "]").replace(';', ",")),
-        moves: compress_moves(program, config.decimals)?,
+        moves: compress_moves(&output, config.decimals)?,
     };
     let failed = |e: minijinja::Error| {
         PostError::Render(format!("Template {:?} failed: {e}", config.template))

@@ -4,21 +4,30 @@
 use chipload_core::Point;
 use chipload_job::Spindle;
 
+use crate::arcs::Circle;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveKind {
     Rapid,
+    /// A straight cutting move.
     Feed,
+    /// G2 / G3 in the XY plane, ending at (x, y) around `circle` (only after merge_arcs).
+    ArcCw,
+    ArcCcw,
 }
 
-/// A straight move. Axes left as None keep their current value.
+/// One move. Axes left as None keep their current value.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Move {
     pub kind: MoveKind,
     pub x: Option<f64>,
     pub y: Option<f64>,
     pub z: Option<f64>,
-    /// mm/min; set for feed moves, None for rapids.
+    /// mm/min; set for cutting moves, None for rapids.
     pub feed: Option<f64>,
+    /// On a feed: the chord lies on this circle (docs/specs/arc-output.md). On an arc: its
+    /// circle. None otherwise.
+    pub circle: Option<Circle>,
 }
 
 impl Move {
@@ -29,6 +38,7 @@ impl Move {
             y: None,
             z: Some(z),
             feed: None,
+            circle: None,
         }
     }
 
@@ -39,6 +49,7 @@ impl Move {
             y: Some(p.1),
             z: None,
             feed: None,
+            circle: None,
         }
     }
 
@@ -49,6 +60,7 @@ impl Move {
             y: None,
             z: Some(z),
             feed: Some(feed),
+            circle: None,
         }
     }
 
@@ -59,6 +71,7 @@ impl Move {
             y: Some(p.1),
             z: None,
             feed: Some(feed),
+            circle: None,
         }
     }
 }

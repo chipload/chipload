@@ -2,6 +2,7 @@
 //! Tool-centre rings for profiles: offset with true arcs (cavalier_contours, ADR 0006), then
 //! flatten to chords and verify.
 
+use std::collections::BTreeMap;
 use std::f64::consts::{FRAC_PI_2, TAU};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -14,6 +15,7 @@ use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SL
 use chipload_job::Side;
 
 use crate::ToolpathError;
+use crate::arcs::{ArcTable, Circle, arc_midpoint};
 
 /// The contour as a closed polyline with true arcs (bulges). Arcs over half a turn are split,
 /// since a bulge describes at most a full circle and loses precision near it.
@@ -83,21 +85,73 @@ pub fn pline_segments(pline: &Polyline<f64>) -> Vec<Primitive> {
 /// Every arc is split at its lowest point, so the start point of a ring (lowest, then
 /// leftmost) lies on the true curve rather than wherever a chord happens to end.
 pub fn flatten(pline: &Polyline<f64>) -> Vec<Point> {
-    let mut points = Vec::new();
+    flatten_tagged(pline, &mut ArcTable::default())
+}
+
+/// [`flatten`], also recording in `arcs` which chords lie on which arc, so they can be
+/// written as G2/G3 later (docs/specs/arc-output.md). The points are exactly flatten's.
+pub fn flatten_tagged(pline: &Polyline<f64>, arcs: &mut ArcTable) -> Vec<Point> {
+    // Raw points, and for each the circle of the piece that ends there (None: a line).
+    let mut points: Vec<Point> = Vec::new();
+    let mut ending: Vec<Option<Circle>> = Vec::new();
     for prim in pline_segments(pline) {
         if points.is_empty() {
             points.push(prim.start());
+            ending.push(None);
         }
         match prim {
-            Primitive::Line(line) => points.push(line.end),
+            Primitive::Line(line) => {
+                points.push(line.end);
+                ending.push(None);
+            }
             Primitive::Arc(arc) => {
+                let circle = Circle {
+                    center: arc.center,
+                    radius: arc.radius,
+                };
                 for piece in split_at_bottom(&arc) {
-                    points.extend(Primitive::Arc(piece).points().into_iter().skip(1));
+                    for p in Primitive::Arc(piece).points().into_iter().skip(1) {
+                        points.push(p);
+                        ending.push(Some(circle));
+                    }
                 }
             }
         }
     }
-    dedupe_ring(&points)
+    let ring = dedupe_ring(&points);
+    // A chord of the final ring is on an arc if every raw piece it stands for is on that
+    // circle. Points removed as too close (dedupe_ring), including the closing point that
+    // repeats the start, are bridged this way rather than losing their arc.
+    let index: BTreeMap<(u64, u64), usize> = points
+        .iter()
+        .enumerate()
+        .rev()
+        .map(|(i, p)| ((p.0.to_bits(), p.1.to_bits()), i))
+        .collect();
+    let raw = |p: Point| index.get(&(p.0.to_bits(), p.1.to_bits())).copied();
+    let n = ring.len();
+    for k in 0..n {
+        let (a, b) = (ring[k], ring[(k + 1) % n]);
+        let (Some(i), Some(j)) = (raw(a), raw(b)) else {
+            continue;
+        };
+        // Raw pieces from i to j, wrapping round to the start for the closing chord.
+        let pieces: Vec<Option<Circle>> = if j > i {
+            ending[i + 1..=j].to_vec()
+        } else {
+            ending[i + 1..]
+                .iter()
+                .chain(&ending[1..=j])
+                .copied()
+                .collect()
+        };
+        if let Some(Some(first)) = pieces.first()
+            && pieces.iter().all(|c| *c == Some(*first))
+        {
+            arcs.insert(a, b, *first);
+        }
+    }
+    ring
 }
 
 fn split_at_bottom(arc: &Arc) -> Vec<Arc> {
@@ -170,9 +224,19 @@ pub fn offset_rings(
     side: Side,
     tool_radius: f64,
 ) -> Result<Vec<Vec<Point>>, ToolpathError> {
+    offset_rings_tagged(contour, side, tool_radius, &mut ArcTable::default())
+}
+
+/// [`offset_rings`], recording the rings' arcs in `arcs`.
+pub fn offset_rings_tagged(
+    contour: &Contour,
+    side: Side,
+    tool_radius: f64,
+    arcs: &mut ArcTable,
+) -> Result<Vec<Vec<Point>>, ToolpathError> {
     let mut pline = contour_pline(contour);
     if side == Side::On {
-        return Ok(vec![flatten(&pline)]);
+        return Ok(vec![flatten_tagged(&pline, arcs)]);
     }
     if pline.orientation() == PlineOrientation::Clockwise {
         pline.invert_direction_mut();
@@ -203,9 +267,12 @@ pub fn offset_rings(
         results.truncate(1);
     }
     let segments = pline_segments(&pline);
-    let mut rings: Vec<Vec<Point>> = results.iter().map(flatten).collect();
+    let mut rings: Vec<Vec<Point>> = results
+        .iter()
+        .map(|pline| flatten_tagged(pline, arcs))
+        .collect();
     for ring in &rings {
-        verify_offset(&pline, &segments, ring, side, tool_radius)?;
+        verify_offset(&pline, &segments, ring, side, tool_radius, arcs)?;
     }
     rings.sort_by(|a, b| {
         let (ka, kb) = (start_key(a), start_key(b));
@@ -226,6 +293,7 @@ fn verify_offset(
     ring: &[Point],
     side: Side,
     tool_radius: f64,
+    arcs: &ArcTable,
 ) -> Result<(), ToolpathError> {
     let lowest = tool_radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
     let highest = tool_radius + OFFSET_CHECK_SLACK_MM;
@@ -242,7 +310,18 @@ fn verify_offset(
             let mid = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
             let d = dist(a);
             let inside = contour.winding_number(Vector2::new(a.0, a.1)) != 0;
-            d <= highest && d >= lowest && dist(mid) >= lowest && inside == (side == Side::Inside)
+            // A chord on an arc is cut as the arc when arcs are written: check where it
+            // bulges most too (docs/specs/arc-output.md section 5).
+            let arc_ok = arcs.get(a, b).is_none_or(|circle| {
+                let top = arc_midpoint(a, b, circle);
+                let d = dist(top);
+                d >= lowest && d <= highest
+            });
+            d <= highest
+                && d >= lowest
+                && dist(mid) >= lowest
+                && arc_ok
+                && inside == (side == Side::Inside)
         });
     if ok {
         Ok(())
@@ -279,6 +358,58 @@ pub fn point_distance(prim: &Primitive, p: Point) -> f64 {
             } else {
                 distance(p, prim.start()).min(distance(p, prim.end()))
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cavalier_contours::polyline::PlineSourceMut;
+
+    fn square(size: f64) -> Polyline<f64> {
+        let mut p = Polyline::new_closed();
+        for (x, y) in [(0.0, 0.0), (size, 0.0), (size, size), (0.0, size)] {
+            p.add(x, y, 0.0);
+        }
+        p
+    }
+
+    #[test]
+    fn an_arc_bulging_into_the_wall_fails_although_its_chord_passes() {
+        // docs/specs/arc-output.md section 5. An inside ring 1 mm from a 10 mm square's walls.
+        let contour = square(10.0);
+        let segments = pline_segments(&contour);
+        let ring = [(1.0, 1.0), (9.0, 1.0), (9.0, 9.0), (1.0, 9.0)];
+        let no_arcs = ArcTable::default();
+        assert!(verify_offset(&contour, &segments, &ring, Side::Inside, 1.0, &no_arcs).is_ok());
+        // Claim the bottom chord is part of a circle that sags 0.4 mm towards the wall.
+        let mut arcs = ArcTable::default();
+        let centre = (5.0, 20.0);
+        arcs.insert(
+            (1.0, 1.0),
+            (9.0, 1.0),
+            Circle {
+                center: centre,
+                radius: distance(centre, (1.0, 1.0)),
+            },
+        );
+        assert!(verify_offset(&contour, &segments, &ring, Side::Inside, 1.0, &arcs).is_err());
+    }
+
+    #[test]
+    fn flattening_records_the_chords_of_every_arc() {
+        // A 10 mm circle as two half arcs (bulge 1).
+        let mut circle = Polyline::new_closed();
+        circle.add(0.0, -5.0, 1.0);
+        circle.add(0.0, 5.0, 1.0);
+        let mut arcs = ArcTable::default();
+        let points = flatten_tagged(&circle, &mut arcs);
+        assert_eq!(points, flatten(&circle), "same points as before");
+        let n = points.len();
+        for k in 0..n {
+            let c = arcs.get(points[k], points[(k + 1) % n]).unwrap();
+            assert!((c.radius - 5.0).abs() < 1e-9 && distance(c.center, (0.0, 0.0)) < 1e-9);
         }
     }
 }

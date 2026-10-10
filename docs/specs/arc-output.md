@@ -1,6 +1,7 @@
 # Spec: arc output (G2/G3)
 
-Status: **approved 2026-10-10** (Q1–Q5 as recommended).
+Status: **approved 2026-10-10** (Q1–Q5 as recommended). Implemented as described in ADR 0013;
+notes on where the implementation differs in detail are marked *Implemented:*.
 
 Today every arc becomes a run of short G1 chords (ADR 0002 chose G1 for the first version).
 The offsets already have true arcs (cavalier_contours, ADR 0006); they're flattened just
@@ -46,6 +47,11 @@ Tabs cut a ring into stretches at given distances along it. An arc that a tab bo
 falls on is split there into two arcs (same centre and radius), so tabbed rings keep their
 arcs. The lift up over the tab and back down stays as now.
 
+*Implemented:* rings stay point lists, so a tab boundary falls inside one chord of the
+flattened arc. The arc runs up to the end of the last whole chord before the boundary; the
+short piece of that chord up to the boundary is a G1 line (within the arc tolerance, as all
+chords are). The same after the tab. Tabbed rings keep their arcs everywhere else.
+
 ## 5. Safety
 
 - **Verification** checks what is cut: each arc against the walls and islands (closest
@@ -65,8 +71,9 @@ arcs. The lift up over the tab and back down stays as now.
 
 - The GUI draws arcs flattened, so the view looks as it does today; plunge numbers, 3D, the
   material-left shading are unaffected.
-- `chipload plan --json` gains arc moves: `{"kind": "arc_cw" | "arc_ccw", "x", "y", "z",
-  "i", "j", "feed"}`; `render` reads them.
+- `chipload plan --json` shows the planned moves, where a chord of an arc carries its
+  `"circle": {"center": [x, y], "radius": r}`; `render` merges those into arcs when the post
+  writes arcs (merged moves are `"arc_cw"` / `"arc_ccw"`, with the same `circle`).
 
 ## 7. Tests
 

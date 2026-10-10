@@ -116,6 +116,9 @@ pub fn in_work_coordinates(program: &Program, (zx, zy): (f64, f64)) -> Program {
     for m in &mut out.moves {
         m.x = m.x.map(|x| x - zx);
         m.y = m.y.map(|y| y - zy);
+        if let Some(circle) = &mut m.circle {
+            circle.center = (circle.center.0 - zx, circle.center.1 - zy);
+        }
     }
     out
 }

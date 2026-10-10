@@ -127,7 +127,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 
 ## Test corpus
 
-- `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code.
+- `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code (with arcs); `expected/lines/` the same programs without arcs (post `arcs = false`), frozen when arc output came (ADR 0013).
 - `tests/corpus/jobs/v<N>/` holds frozen projects for every schema version still loaded (v4 on; see schema versioning above). The golden test runs them through their migrations and must give the same G-code.
 - When a user-reported file breaks something, add it (anonymised) to the corpus **with a failing test first**, then fix.
 

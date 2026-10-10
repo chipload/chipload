@@ -4,6 +4,7 @@
 //! Headless, no I/O. Offsets use cavalier_contours with true arcs and are always verified
 //! afterwards (ADR 0006).
 
+pub mod arcs;
 pub mod geom;
 pub mod left;
 pub mod model;

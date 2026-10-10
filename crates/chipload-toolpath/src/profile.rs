@@ -8,9 +8,10 @@ use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_job::{Direction, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
+use crate::arcs::ArcTable;
 use crate::left::{LeftPiece, cleared, reach, unreachable_inside, unreachable_outside};
 use crate::model::Move;
-use crate::offset::{contour_pline, offset_rings, start_index};
+use crate::offset::{contour_pline, offset_rings_tagged, start_index};
 use crate::pocket::{Area, ccw, guarded};
 
 /// Travel direction around the ring.
@@ -139,6 +140,8 @@ pub struct ProfilePlan {
     pub notes: Vec<String>,
     /// Material the tool can't reach (inside corners), for display.
     pub left: Vec<LeftPiece>,
+    /// Which ring chords lie on arcs (docs/specs/arc-output.md).
+    pub arcs: ArcTable,
 }
 
 pub fn plan_profile(
@@ -161,8 +164,9 @@ pub fn plan_profile(
     let mut rings = Vec::new();
     let mut notes = Vec::new();
     let mut left = Vec::new();
+    let mut arcs = ArcTable::default();
     for contour in contours {
-        let paths = offset_rings(contour, op.side, offset)
+        let paths = offset_rings_tagged(contour, op.side, offset, &mut arcs)
             .map_err(|err| err.with_context(&format!("{label}, contour #{}", contour.id)))?;
         if paths.len() > 1 {
             notes.push(format!(
@@ -195,6 +199,7 @@ pub fn plan_profile(
         rings: order_rings(rings, start),
         notes,
         left,
+        arcs,
     })
 }
 

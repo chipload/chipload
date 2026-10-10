@@ -24,10 +24,11 @@ use chipload_core::tolerances::{
 use chipload_job::{Direction, Side, Spindle};
 
 use crate::ToolpathError;
+use crate::arcs::{ArcTable, arc_midpoint};
 use crate::geom::PrimIndex;
 use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
-use crate::offset::{contour_pline, dedupe_ring, flatten, pline_segments, point_distance};
+use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -51,6 +52,8 @@ pub struct PocketPlan {
     pub notes: Vec<String>,
     /// Material left, for display (unreachable corners and slots, missed spots).
     pub left: Vec<LeftPiece>,
+    /// Which ring chords lie on arcs (docs/specs/arc-output.md).
+    pub arcs: ArcTable,
 }
 
 pub(crate) fn geometry(message: String) -> ToolpathError {
@@ -471,6 +474,7 @@ fn cut_order(
     mut position: Point,
     direction: Direction,
     spindle: Spindle,
+    arcs: &mut ArcTable,
 ) -> Vec<Vec<Point>> {
     let wall_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside the ring
     let island_cw = cut_clockwise(Side::Outside, direction, spindle); // material inside it
@@ -499,7 +503,11 @@ fn cut_order(
         stack.pop();
         let Some(node) = waiting else { continue };
         let area = &nodes[node].area;
-        let mut islands: Vec<Vec<Point>> = area.holes.iter().map(flatten).collect();
+        let mut islands: Vec<Vec<Point>> = area
+            .holes
+            .iter()
+            .map(|hole| flatten_tagged(hole, arcs))
+            .collect();
         while !islands.is_empty() {
             let here = position;
             let nearest = (0..islands.len())
@@ -517,7 +525,7 @@ fn cut_order(
             position = ring[0];
             rings.push(ring);
         }
-        let wall = orient_from(&flatten(&area.outer), wall_cw, position);
+        let wall = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
         position = wall[0];
         rings.push(wall);
     }
@@ -585,14 +593,20 @@ fn verify(
     links: &[bool],
     radius: f64,
     ids: &[usize],
+    arcs: &ArcTable,
 ) -> Result<(), ToolpathError> {
     let clearance = min_clearance(radius);
     let inside = rings
         .iter()
         .all(|r| r.first().is_some_and(|&p| region.contains(p)));
-    let clear = cutting_segments(rings, links)
-        .iter()
-        .all(|&(a, b)| clear_of(walls, a, b, clearance));
+    // Chords on arcs are cut as arcs when arcs are written: check where they bulge most too.
+    let clear = cutting_segments(rings, links).iter().all(|&(a, b)| {
+        clear_of(walls, a, b, clearance)
+            && arcs.get(a, b).is_none_or(|circle| {
+                let top = arc_midpoint(a, b, circle);
+                clear_of(walls, top, top, clearance)
+            })
+    });
     if inside && clear {
         Ok(())
     } else {
@@ -856,6 +870,7 @@ pub fn plan_pocket(
     let mut pieces = Vec::new();
     let mut notes = Vec::new();
     let mut left = Vec::new();
+    let mut arcs = ArcTable::default();
     // Every region with where the tool centre can go in it, for the material left.
     let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
@@ -887,7 +902,7 @@ pub fn plan_pocket(
                 roots.len()
             ));
         }
-        let rings = cut_order(&nodes, &roots, position, direction, spindle);
+        let rings = cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
         let links: Vec<bool> = rings
             .windows(2)
@@ -896,7 +911,7 @@ pub fn plan_pocket(
                     && link_is_safe(&region, &walls, w[0][0], w[1][0], tool_radius, offset)
             })
             .collect();
-        verify(&region, &walls, &rings, &links, offset, &ids)?;
+        verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
         let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
         let (uncut, missed) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
         notes.extend(uncut);
@@ -929,6 +944,7 @@ pub fn plan_pocket(
         pieces,
         notes,
         left,
+        arcs,
     })
 }
 
