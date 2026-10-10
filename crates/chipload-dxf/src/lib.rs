@@ -27,7 +27,7 @@ use chipload_core::nesting;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use chipload_job::{
-    ArcSegment, DrawingSource, LineSegment, PathSegment, Shape, ShapeKind, SourceIssue, Units,
+    ArcSegment, DrawingSource, Geometry, LineSegment, PathSegment, Shape, SourceIssue, Units,
 };
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
@@ -206,26 +206,35 @@ pub fn shapes_from_drawing(
         ));
     }
 
-    let mut shapes: Vec<Shape> = Vec::new();
+    // (layer, handle, type, segments) per DXF entity, in import order.
+    let mut entities: Vec<(String, String, String, Vec<PathSegment>)> = Vec::new();
     for (segment, &entity) in converter.segments.iter().zip(&converter.entity_of) {
-        if shapes.len() <= entity {
-            shapes.push(Shape {
-                id: entity as u64 + 1,
-                layer: segment.layer.clone(),
-                dxf_handle: Some(segment.handle.clone()),
-                dxf_type: Some(segment.source_type.clone()),
-                kind: ShapeKind::Path,
-                closed: false,
-                segments: Vec::new(),
-            });
+        if entities.len() <= entity {
+            entities.push((
+                segment.layer.clone(),
+                segment.handle.clone(),
+                segment.source_type.clone(),
+                Vec::new(),
+            ));
         }
-        if let Some(shape) = shapes.last_mut() {
-            shape.segments.push(path_segment(&segment.prim));
+        if let Some(last) = entities.last_mut() {
+            last.3.push(path_segment(&segment.prim));
         }
     }
-    for shape in &mut shapes {
-        shape.closed = is_closed(&shape.segments);
-    }
+    let shapes: Vec<Shape> = entities
+        .into_iter()
+        .enumerate()
+        .map(|(i, (layer, handle, dxf_type, segments))| Shape {
+            id: i as u64 + 1,
+            layer,
+            geometry: Geometry::Path {
+                dxf_handle: Some(handle),
+                dxf_type: Some(dxf_type),
+                closed: is_closed(&segments),
+                segments,
+            },
+        })
+        .collect();
     let source = DrawingSource {
         file: String::new(),
         sha256: String::new(),
@@ -294,14 +303,17 @@ pub fn contours_from_shapes(shapes: &[Shape], source: Option<&DrawingSource>) ->
     let segments: Vec<Segment> = shapes
         .iter()
         .flat_map(|shape| {
-            shape.segments.iter().map(move |seg| Segment {
-                prim: primitive(seg),
+            let handle = shape
+                .dxf_handle()
+                .map_or_else(|| format!("S{}", shape.id), str::to_string);
+            let source_type = shape
+                .dxf_type()
+                .map_or_else(|| shape.kind_name().to_uppercase(), str::to_string);
+            shape.segments().into_iter().map(move |seg| Segment {
+                prim: primitive(&seg),
                 layer: shape.layer.clone(),
-                handle: shape
-                    .dxf_handle
-                    .clone()
-                    .unwrap_or_else(|| format!("S{}", shape.id)),
-                source_type: shape.dxf_type.clone().unwrap_or_else(|| "PATH".into()),
+                handle: handle.clone(),
+                source_type: source_type.clone(),
                 shape: Some(shape.id),
             })
         })

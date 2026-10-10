@@ -530,15 +530,12 @@ fn one_shape_per_entity_with_its_handle_type_and_closed_flag() {
     let shapes = &imported.shapes;
     assert_eq!(shapes.len(), 2);
     assert_eq!((shapes[0].id, shapes[1].id), (1, 2));
-    assert_eq!(
-        shapes[0].dxf_handle.as_deref(),
-        Some(square_handle.as_str())
-    );
-    assert_eq!(shapes[0].dxf_type.as_deref(), Some("LWPOLYLINE"));
-    assert_eq!(shapes[0].segments.len(), 4);
-    assert!(shapes[0].closed);
-    assert_eq!(shapes[1].dxf_handle.as_deref(), Some(line_handle.as_str()));
-    assert!(!shapes[1].closed);
+    assert_eq!(shapes[0].dxf_handle(), Some(square_handle.as_str()));
+    assert_eq!(shapes[0].dxf_type(), Some("LWPOLYLINE"));
+    assert_eq!(shapes[0].segments().len(), 4);
+    assert!(shapes[0].closed());
+    assert_eq!(shapes[1].dxf_handle(), Some(line_handle.as_str()));
+    assert!(!shapes[1].closed());
 }
 
 #[test]
@@ -565,7 +562,7 @@ fn block_children_are_separate_shapes_sharing_the_insert_handle() {
     assert!(
         shapes
             .iter()
-            .all(|s| s.dxf_handle.as_deref() == Some(handle.as_str()))
+            .all(|s| s.dxf_handle() == Some(handle.as_str()))
     );
     assert!(shapes.iter().all(|s| s.layer == "CUT"));
 }
@@ -582,4 +579,28 @@ fn shapes_survive_json_and_give_the_same_contours() {
     assert_eq!(back, imported.shapes, "exact f64 round trip");
     let again = contours_from_shapes(&back, Some(&imported.source));
     assert_eq!(again, direct);
+}
+
+#[test]
+fn a_drawn_circle_is_exactly_an_imported_circle() {
+    // docs/specs/drawing-tools.md §2: same segments, so it machines identically.
+    let mut d = mm();
+    add(
+        &mut d,
+        EntityType::Circle(Circle::new(Point::new(12.5, -3.25, 0.0), 7.75)),
+    );
+    let imported = shapes_from_drawing(&d, Some(Units::Mm)).unwrap();
+    let drawn = chipload_job::Shape {
+        id: 2,
+        layer: "0".into(),
+        geometry: chipload_job::Geometry::Circle {
+            center: [12.5, -3.25],
+            radius: 7.75,
+        },
+    };
+    assert_eq!(drawn.segments(), imported.shapes[0].segments());
+    // And both become one closed contour.
+    let result = chipload_dxf::contours_from_shapes(&[drawn], None);
+    assert_eq!(result.contours.len(), 1);
+    assert!(result.contours[0].closed);
 }

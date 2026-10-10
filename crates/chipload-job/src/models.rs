@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job model: a declarative description of how to machine a drawing.
 //!
-//! Job file models (schema v4: a project with its drawing embedded, docs/specs/
-//! project-file.md). All lengths are mm, all feeds mm/min, angles radians, `depth` is
+//! Job file models (schema v5: a project with its drawing embedded, docs/specs/
+//! project-file.md, and shapes drawn in Chipload, docs/specs/drawing-tools.md). All lengths are mm, all feeds mm/min, angles radians, `depth` is
 //! measured down from the stock top. Unknown fields are rejected; value constraints are
 //! checked by [`Job::validate`].
 
 use std::collections::BTreeMap;
 
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 4;
+pub const CURRENT_VERSION: i64 = 5;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,28 +60,317 @@ pub struct ExternalDrawing {
     pub units: Units,
 }
 
-/// One shape: today always a path of lines and arcs (one per imported DXF entity).
+/// One shape of the drawing: imported (a path of lines and arcs, one per DXF entity) or
+/// drawn in Chipload (circle, rectangle, polyline; docs/specs/drawing-tools.md).
+///
+/// In the file it is one flat object: `id`, `layer`, `kind`, then the fields of that kind.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "RawShape", into = "RawShape")]
 pub struct Shape {
     pub id: u64,
     pub layer: String,
-    /// Handle of the DXF entity it was imported from (the INSERT's for block content).
-    #[serde(default)]
-    pub dxf_handle: Option<String>,
-    /// DXF type of that entity, e.g. "LWPOLYLINE".
-    #[serde(default)]
-    pub dxf_type: Option<String>,
-    pub kind: ShapeKind,
-    /// The last segment ends where the first starts.
-    pub closed: bool,
-    pub segments: Vec<PathSegment>,
+    pub geometry: Geometry,
+}
+
+/// What a shape is. Drawn kinds store their defining values; their segments are derived.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Geometry {
+    /// Imported: lines and arcs exactly as read from the DXF.
+    Path {
+        /// Handle of the DXF entity it was imported from (the INSERT's for block content).
+        dxf_handle: Option<String>,
+        /// DXF type of that entity, e.g. "LWPOLYLINE".
+        dxf_type: Option<String>,
+        /// The last segment ends where the first starts.
+        closed: bool,
+        segments: Vec<PathSegment>,
+    },
+    Circle {
+        center: [f64; 2],
+        radius: f64,
+    },
+    /// `length` along the local X axis, `width` along local Y, rotated by `angle` (radians,
+    /// CCW) about `center`.
+    Rectangle {
+        center: [f64; 2],
+        length: f64,
+        width: f64,
+        angle: f64,
+    },
+    /// Straight segments through `points`, and back to the first if `closed`.
+    Polyline {
+        closed: bool,
+        points: Vec<[f64; 2]>,
+    },
+}
+
+impl Shape {
+    pub fn kind_name(&self) -> &'static str {
+        match self.geometry {
+            Geometry::Path { .. } => "path",
+            Geometry::Circle { .. } => "circle",
+            Geometry::Rectangle { .. } => "rectangle",
+            Geometry::Polyline { .. } => "polyline",
+        }
+    }
+
+    /// Drawn in Chipload (editable), as opposed to imported.
+    pub fn is_drawn(&self) -> bool {
+        !matches!(self.geometry, Geometry::Path { .. })
+    }
+
+    /// Whether the shape's segments form a loop (as stored for paths).
+    pub fn closed(&self) -> bool {
+        match &self.geometry {
+            Geometry::Path { closed, .. } | Geometry::Polyline { closed, .. } => *closed,
+            Geometry::Circle { .. } | Geometry::Rectangle { .. } => true,
+        }
+    }
+
+    pub fn dxf_handle(&self) -> Option<&str> {
+        match &self.geometry {
+            Geometry::Path { dxf_handle, .. } => dxf_handle.as_deref(),
+            _ => None,
+        }
+    }
+
+    pub fn dxf_type(&self) -> Option<&str> {
+        match &self.geometry {
+            Geometry::Path { dxf_type, .. } => dxf_type.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// The shape as lines and arcs (spec drawing-tools.md section 2). Exact and
+    /// deterministic: nothing is rounded.
+    pub fn segments(&self) -> Vec<PathSegment> {
+        match &self.geometry {
+            Geometry::Path { segments, .. } => segments.clone(),
+            // As an imported DXF CIRCLE: one full arc starting at angle 0.
+            Geometry::Circle { center, radius } => vec![PathSegment::Arc(ArcSegment {
+                center: *center,
+                radius: *radius,
+                start_angle: 0.0,
+                sweep: std::f64::consts::TAU,
+            })],
+            Geometry::Rectangle {
+                center,
+                length,
+                width,
+                angle,
+            } => {
+                let (sin, cos) = angle.sin_cos();
+                let (hl, hw) = (length / 2.0, width / 2.0);
+                // Counter-clockwise from the (-length/2, -width/2) corner.
+                let corners: Vec<[f64; 2]> = [(-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw)]
+                    .iter()
+                    .map(|&(x, y)| [center[0] + x * cos - y * sin, center[1] + x * sin + y * cos])
+                    .collect();
+                lines_through(&corners, true)
+            }
+            Geometry::Polyline { closed, points } => lines_through(points, *closed),
+        }
+    }
+}
+
+fn lines_through(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
+    let n = points.len();
+    let count = if closed { n } else { n.saturating_sub(1) };
+    (0..count)
+        .map(|i| {
+            PathSegment::Line(LineSegment {
+                start: points[i],
+                end: points[(i + 1) % n],
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ShapeKind {
     Path,
+    Circle,
+    Rectangle,
+    Polyline,
+}
+
+/// A shape as it appears in the file: every field a kind may have. Fields of other kinds are
+/// refused, never ignored.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawShape {
+    id: u64,
+    layer: String,
+    kind: ShapeKind,
+    // path: dxf_handle and dxf_type are always written (null if unknown).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dxf_handle: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dxf_type: Option<Option<String>>,
+    // path, polyline
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    closed: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    segments: Option<Vec<PathSegment>>,
+    // circle, rectangle
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    center: Option<[f64; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    radius: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    width: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    angle: Option<f64>,
+    // polyline
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    points: Option<Vec<[f64; 2]>>,
+}
+
+impl RawShape {
+    fn empty(id: u64, layer: String, kind: ShapeKind) -> Self {
+        RawShape {
+            id,
+            layer,
+            kind,
+            dxf_handle: None,
+            dxf_type: None,
+            closed: None,
+            segments: None,
+            center: None,
+            radius: None,
+            length: None,
+            width: None,
+            angle: None,
+            points: None,
+        }
+    }
+
+    /// Names of the fields that are set, for "not allowed for this kind" messages.
+    fn present(&self) -> Vec<&'static str> {
+        [
+            ("dxf_handle", self.dxf_handle.is_some()),
+            ("dxf_type", self.dxf_type.is_some()),
+            ("closed", self.closed.is_some()),
+            ("segments", self.segments.is_some()),
+            ("center", self.center.is_some()),
+            ("radius", self.radius.is_some()),
+            ("length", self.length.is_some()),
+            ("width", self.width.is_some()),
+            ("angle", self.angle.is_some()),
+            ("points", self.points.is_some()),
+        ]
+        .into_iter()
+        .filter_map(|(name, set)| set.then_some(name))
+        .collect()
+    }
+}
+
+impl From<Shape> for RawShape {
+    fn from(shape: Shape) -> Self {
+        let kind = match shape.geometry {
+            Geometry::Path { .. } => ShapeKind::Path,
+            Geometry::Circle { .. } => ShapeKind::Circle,
+            Geometry::Rectangle { .. } => ShapeKind::Rectangle,
+            Geometry::Polyline { .. } => ShapeKind::Polyline,
+        };
+        let mut raw = RawShape::empty(shape.id, shape.layer, kind);
+        match shape.geometry {
+            Geometry::Path {
+                dxf_handle,
+                dxf_type,
+                closed,
+                segments,
+            } => {
+                raw.dxf_handle = Some(dxf_handle);
+                raw.dxf_type = Some(dxf_type);
+                raw.closed = Some(closed);
+                raw.segments = Some(segments);
+            }
+            Geometry::Circle { center, radius } => {
+                raw.center = Some(center);
+                raw.radius = Some(radius);
+            }
+            Geometry::Rectangle {
+                center,
+                length,
+                width,
+                angle,
+            } => {
+                raw.center = Some(center);
+                raw.length = Some(length);
+                raw.width = Some(width);
+                raw.angle = Some(angle);
+            }
+            Geometry::Polyline { closed, points } => {
+                raw.closed = Some(closed);
+                raw.points = Some(points);
+            }
+        }
+        raw
+    }
+}
+
+impl TryFrom<RawShape> for Shape {
+    type Error = String;
+
+    fn try_from(raw: RawShape) -> Result<Self, String> {
+        let kind = raw.kind;
+        let allowed: &[&str] = match kind {
+            ShapeKind::Path => &["dxf_handle", "dxf_type", "closed", "segments"],
+            ShapeKind::Circle => &["center", "radius"],
+            ShapeKind::Rectangle => &["center", "length", "width", "angle"],
+            ShapeKind::Polyline => &["closed", "points"],
+        };
+        let name = RawShape::from_kind_name(kind);
+        if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
+            return Err(format!(
+                "shape {}: field `{extra}` is not allowed for a {name}",
+                raw.id
+            ));
+        }
+        let missing = |field: &str| format!("shape {}: a {name} needs `{field}`", raw.id);
+        let geometry = match kind {
+            ShapeKind::Path => Geometry::Path {
+                dxf_handle: raw.dxf_handle.flatten(),
+                dxf_type: raw.dxf_type.flatten(),
+                closed: raw.closed.ok_or_else(|| missing("closed"))?,
+                segments: raw.segments.ok_or_else(|| missing("segments"))?,
+            },
+            ShapeKind::Circle => Geometry::Circle {
+                center: raw.center.ok_or_else(|| missing("center"))?,
+                radius: raw.radius.ok_or_else(|| missing("radius"))?,
+            },
+            ShapeKind::Rectangle => Geometry::Rectangle {
+                center: raw.center.ok_or_else(|| missing("center"))?,
+                length: raw.length.ok_or_else(|| missing("length"))?,
+                width: raw.width.ok_or_else(|| missing("width"))?,
+                angle: raw.angle.ok_or_else(|| missing("angle"))?,
+            },
+            ShapeKind::Polyline => Geometry::Polyline {
+                closed: raw.closed.ok_or_else(|| missing("closed"))?,
+                points: raw.points.ok_or_else(|| missing("points"))?,
+            },
+        };
+        Ok(Shape {
+            id: raw.id,
+            layer: raw.layer,
+            geometry,
+        })
+    }
+}
+
+impl RawShape {
+    fn from_kind_name(kind: ShapeKind) -> &'static str {
+        match kind {
+            ShapeKind::Path => "path",
+            ShapeKind::Circle => "circle",
+            ShapeKind::Rectangle => "rectangle",
+            ShapeKind::Polyline => "polyline",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -393,29 +683,96 @@ impl Drawing {
             if !seen.insert(shape.id) {
                 problems.push(format!("{at}.id: {} is used twice", shape.id));
             }
-            if shape.segments.is_empty() {
-                problems.push(format!("{at}.segments: a shape needs at least one segment"));
+            problems.extend(
+                shape_problems(&shape.geometry)
+                    .into_iter()
+                    .map(|p| format!("{at}.{p}")),
+            );
+        }
+        problems
+    }
+}
+
+/// Value rules of one shape, as "field: message" (spec drawing-tools.md section 1).
+fn shape_problems(geometry: &Geometry) -> Vec<String> {
+    let mut problems = Vec::new();
+    let finite = |p: &[f64; 2]| p.iter().all(|v| v.is_finite());
+    let mut positive = |field: &str, value: f64| {
+        if !(value.is_finite() && value > 0.0) {
+            problems.push(format!("{field}: must be a positive number, got {value}"));
+        }
+    };
+    match geometry {
+        Geometry::Path { segments, .. } => {
+            if segments.is_empty() {
+                problems.push("segments: a shape needs at least one segment".into());
             }
-            for (j, segment) in shape.segments.iter().enumerate() {
-                let finite = match segment {
-                    PathSegment::Line(l) => l.start.iter().chain(&l.end).all(|v| v.is_finite()),
+            for (j, segment) in segments.iter().enumerate() {
+                let ok = match segment {
+                    PathSegment::Line(l) => finite(&l.start) && finite(&l.end),
                     PathSegment::Arc(a) => {
-                        a.center.iter().all(|v| v.is_finite())
+                        finite(&a.center)
                             && a.start_angle.is_finite()
                             && a.sweep.is_finite()
                             && a.radius.is_finite()
                             && a.radius > 0.0
                     }
                 };
-                if !finite {
+                if !ok {
                     problems.push(format!(
-                        "{at}.segments.{j}: coordinates must be finite and radii positive"
+                        "segments.{j}: coordinates must be finite and radii positive"
                     ));
                 }
             }
         }
-        problems
+        Geometry::Circle { center, radius } => {
+            positive("radius", *radius);
+            if !finite(center) {
+                problems.push("center: must be finite".into());
+            }
+        }
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+        } => {
+            positive("length", *length);
+            positive("width", *width);
+            if !finite(center) {
+                problems.push("center: must be finite".into());
+            }
+            if !angle.is_finite() {
+                problems.push(format!("angle: must be finite, got {angle}"));
+            }
+        }
+        Geometry::Polyline { closed, points } => {
+            let least = if *closed { 3 } else { 2 };
+            if points.len() < least {
+                problems.push(format!(
+                    "points: a{} polyline needs at least {least} points, got {}",
+                    if *closed { " closed" } else { "n open" },
+                    points.len()
+                ));
+            }
+            if !points.iter().all(finite) {
+                problems.push("points: must be finite".into());
+            }
+            let n = points.len();
+            let pairs = if *closed { n } else { n.saturating_sub(1) };
+            for i in 0..pairs {
+                let (a, b) = (points[i], points[(i + 1) % n]);
+                if (a[0] - b[0]).hypot(a[1] - b[1]) <= CHAIN_TOL_MM {
+                    problems.push(format!(
+                        "points.{}: is on top of the previous point (closer than {} mm)",
+                        (i + 1) % n,
+                        CHAIN_TOL_MM
+                    ));
+                }
+            }
+        }
     }
+    problems
 }
 
 impl Job {
@@ -505,5 +862,102 @@ impl Job {
             }
         }
         problems
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn shape(geometry: Geometry) -> Shape {
+        Shape {
+            id: 1,
+            layer: "0".into(),
+            geometry,
+        }
+    }
+
+    fn line_starts(shape: &Shape) -> Vec<[f64; 2]> {
+        shape
+            .segments()
+            .iter()
+            .map(|s| match s {
+                PathSegment::Line(l) => l.start,
+                PathSegment::Arc(_) => panic!("expected lines"),
+            })
+            .collect()
+    }
+
+    fn close(a: [f64; 2], b: [f64; 2]) -> bool {
+        (a[0] - b[0]).abs() < 1e-12 && (a[1] - b[1]).abs() < 1e-12
+    }
+
+    #[test]
+    fn a_circle_is_one_full_arc_from_angle_zero() {
+        let c = shape(Geometry::Circle {
+            center: [5.0, 6.0],
+            radius: 2.0,
+        });
+        assert_eq!(
+            c.segments(),
+            [PathSegment::Arc(ArcSegment {
+                center: [5.0, 6.0],
+                radius: 2.0,
+                start_angle: 0.0,
+                sweep: std::f64::consts::TAU,
+            })]
+        );
+        assert!(c.closed() && c.is_drawn() && c.dxf_handle().is_none());
+    }
+
+    #[test]
+    fn rectangle_corners_run_counter_clockwise_and_rotate_about_the_centre() {
+        let rect = |angle: f64| {
+            shape(Geometry::Rectangle {
+                center: [10.0, 20.0],
+                length: 8.0,
+                width: 4.0,
+                angle,
+            })
+        };
+        let flat = line_starts(&rect(0.0));
+        assert_eq!(flat, [[6.0, 18.0], [14.0, 18.0], [14.0, 22.0], [6.0, 22.0]]);
+        // 90°: length now runs along Y.
+        let up = line_starts(&rect(std::f64::consts::FRAC_PI_2));
+        let expected = [[12.0, 16.0], [12.0, 24.0], [8.0, 24.0], [8.0, 16.0]];
+        assert!(
+            up.iter().zip(&expected).all(|(a, b)| close(*a, *b)),
+            "{up:?}"
+        );
+        // 30°: the first corner is (-4, -2) rotated by 30° about the centre.
+        let (sin, cos) = 30f64.to_radians().sin_cos();
+        let first = line_starts(&rect(30f64.to_radians()))[0];
+        assert!(close(
+            first,
+            [10.0 - 4.0 * cos + 2.0 * sin, 20.0 - 4.0 * sin - 2.0 * cos]
+        ));
+        // Closed: the last line ends at the first corner.
+        let segments = rect(0.3).segments();
+        let (PathSegment::Line(first), PathSegment::Line(last)) = (&segments[0], &segments[3])
+        else {
+            panic!("lines");
+        };
+        assert_eq!(last.end, first.start);
+    }
+
+    #[test]
+    fn polylines_close_only_when_asked() {
+        let points = vec![[0.0, 0.0], [4.0, 0.0], [2.0, 3.0]];
+        let open = shape(Geometry::Polyline {
+            closed: false,
+            points: points.clone(),
+        });
+        let closed = shape(Geometry::Polyline {
+            closed: true,
+            points,
+        });
+        assert_eq!(open.segments().len(), 2);
+        assert_eq!(closed.segments().len(), 3);
+        assert!(!open.closed() && closed.closed());
     }
 }

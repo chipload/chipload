@@ -10,7 +10,7 @@ use crate::models::CURRENT_VERSION;
 type Migration = fn(Value) -> Value;
 
 /// `MIGRATIONS[n - 1]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 3] = [v1_to_v2, v2_to_v3, v3_to_v4];
+const MIGRATIONS: [Migration; 4] = [v1_to_v2, v2_to_v3, v3_to_v4, v4_to_v5];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`), < 1 or newer
 /// versions are refused.
@@ -101,6 +101,14 @@ fn v3_to_v4(mut data: Value) -> Value {
         map.insert("drawing".into(), Value::Object(drawing));
     }
     set_version(data, 4)
+}
+
+/// v5 adds drawn shapes (circle, rectangle, polyline; docs/specs/drawing-tools.md). A v4
+/// file only holds imported `path` shapes, which v5 reads unchanged: nothing to convert.
+/// The bump exists so an older Chipload refuses v5 files as "newer" instead of tripping
+/// over an unknown shape kind.
+fn v4_to_v5(data: Value) -> Value {
+    set_version(data, 5)
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

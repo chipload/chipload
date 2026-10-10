@@ -11,7 +11,7 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project/job file models (schema v4 embeds the drawing), migrations, load/save |
+| `chipload-job` | project/job file models (schema v5: embedded drawing, drawn shapes), migrations, load/save |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |

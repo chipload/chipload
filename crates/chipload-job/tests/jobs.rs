@@ -341,7 +341,7 @@ fn drawing_rules_are_enforced() {
         "radii positive",
     );
     let mut unknown = square_shape(1);
-    unknown["kind"] = json!("circle");
+    unknown["kind"] = json!("spiral");
     refused(
         project(json!([unknown]), 2, json!({"layer": "L"})),
         "unknown variant",
@@ -383,4 +383,81 @@ fn every_f64_survives_save_and_load_exactly() {
         .filter(|(a, b)| a.to_bits() != b.to_bits())
         .count();
     assert_eq!(wrong, 0, "{wrong} values changed through JSON");
+}
+
+// -- drawn shapes (docs/specs/drawing-tools.md)
+
+fn drawn_shapes() -> Value {
+    json!([
+        {"id": 1, "layer": "0", "kind": "circle", "center": [50.0, 30.0], "radius": 12.5},
+        {"id": 2, "layer": "0", "kind": "rectangle", "center": [0.0, 0.0], "length": 80.0,
+         "width": 40.0, "angle": 0.5235987755982988},
+        {"id": 3, "layer": "0", "kind": "polyline", "closed": true,
+         "points": [[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]]},
+    ])
+}
+
+#[test]
+fn drawn_shapes_round_trip_exactly_and_are_written_flat() {
+    let job = parse_job(project(drawn_shapes(), 4, json!({"layer": "0"})), "p").unwrap();
+    let text = chipload_job::dump_job(&job).unwrap();
+    let data: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(data["schema_version"], 5);
+    assert_eq!(data["drawing"]["shapes"], drawn_shapes());
+    let again = parse_job(migrate(data).unwrap(), "p").unwrap();
+    assert_eq!(again.drawing, job.drawing);
+}
+
+#[test]
+fn drawn_shape_values_are_checked() {
+    let refused = |shape: Value, what: &str| {
+        let data = project(json!([shape]), 2, json!({"layer": "0"}));
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(what), "{what}: {err}");
+    };
+    let circle = |radius: Value| json!({"id": 1, "layer": "0", "kind": "circle", "center": [0.0, 0.0], "radius": radius});
+    refused(circle(json!(0.0)), "radius: must be a positive number");
+    refused(circle(json!(-1.0)), "radius: must be a positive number");
+    refused(
+        json!({"id": 1, "layer": "0", "kind": "circle", "center": [0.0, 0.0]}),
+        "a circle needs `radius`",
+    );
+    refused(
+        json!({"id": 1, "layer": "0", "kind": "circle", "center": [0.0, 0.0], "radius": 1.0,
+               "closed": true}),
+        "field `closed` is not allowed for a circle",
+    );
+    refused(
+        json!({"id": 1, "layer": "0", "kind": "rectangle", "center": [0.0, 0.0],
+               "length": 10.0, "width": 0.0, "angle": 0.0}),
+        "width: must be a positive number",
+    );
+    let polyline = |closed: bool, points: Value| json!({"id": 1, "layer": "0", "kind": "polyline", "closed": closed, "points": points});
+    refused(
+        polyline(true, json!([[0.0, 0.0], [1.0, 0.0]])),
+        "a closed polyline needs at least 3 points",
+    );
+    refused(
+        polyline(false, json!([[0.0, 0.0]])),
+        "an open polyline needs at least 2 points",
+    );
+    refused(
+        polyline(false, json!([[0.0, 0.0], [0.0, 0.0005], [5.0, 0.0]])),
+        "points.1: is on top of the previous point",
+    );
+    // An open polyline with two points is fine.
+    let ok = project(
+        json!([polyline(false, json!([[0.0, 0.0], [5.0, 0.0]]))]),
+        2,
+        json!({"layer": "0"}),
+    );
+    parse_job(ok, "p").unwrap();
+}
+
+#[test]
+fn a_v5_file_is_refused_by_name_of_its_version_when_too_new() {
+    let mut data = project(drawn_shapes(), 4, json!({"layer": "0"}));
+    data["schema_version"] = json!(6);
+    let err = migrate(data).unwrap_err().to_string();
+    assert!(err.contains("schema_version 6 is not supported"), "{err}");
 }

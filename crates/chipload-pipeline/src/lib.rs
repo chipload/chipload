@@ -230,8 +230,7 @@ pub fn embed_drawing(job: &Job, dxf: &Path) -> Result<(Job, Vec<String>), Pipeli
                 .shapes
                 .iter()
                 .filter(|s| {
-                    s.dxf_handle
-                        .as_ref()
+                    s.dxf_handle()
                         .is_some_and(|h| handles.iter().any(|w| w.eq_ignore_ascii_case(h)))
                 })
                 .map(|s| s.id)
@@ -299,8 +298,8 @@ pub fn update_drawing(
     // Old imported shapes by handle, in order; each can be matched once.
     let mut by_handle: BTreeMap<&str, Vec<&Shape>> = BTreeMap::new();
     for shape in &old.shapes {
-        if let Some(handle) = &shape.dxf_handle {
-            by_handle.entry(handle.as_str()).or_default().push(shape);
+        if let Some(handle) = shape.dxf_handle() {
+            by_handle.entry(handle).or_default().push(shape);
         }
     }
     // How many shapes with each handle the new drawing has used so far.
@@ -309,7 +308,7 @@ pub fn update_drawing(
     let mut report = UpdateReport::default();
     let mut shapes: Vec<Shape> = Vec::new();
     for mut shape in imported.shapes {
-        let handle = shape.dxf_handle.clone().unwrap_or_default();
+        let handle = shape.dxf_handle().unwrap_or_default().to_string();
         let k = taken.entry(handle.clone()).or_default();
         let matched = by_handle
             .get(handle.as_str())
@@ -319,9 +318,7 @@ pub fn update_drawing(
         match matched {
             Some(previous) => {
                 shape.id = previous.id;
-                let same = previous.layer == shape.layer
-                    && previous.segments == shape.segments
-                    && previous.dxf_type == shape.dxf_type;
+                let same = previous.layer == shape.layer && previous.geometry == shape.geometry;
                 if same {
                     report.unchanged.push(shape.id);
                 } else {
@@ -340,14 +337,14 @@ pub fn update_drawing(
     report.removed = old
         .shapes
         .iter()
-        .filter(|s| s.dxf_handle.is_some() && !kept.contains(&s.id))
+        .filter(|s| s.dxf_handle().is_some() && !kept.contains(&s.id))
         .map(|s| s.id)
         .collect();
     // Shapes drawn in Chipload stay as they are.
     shapes.extend(
         old.shapes
             .iter()
-            .filter(|s| s.dxf_handle.is_none())
+            .filter(|s| s.dxf_handle().is_none())
             .cloned(),
     );
 

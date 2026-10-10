@@ -657,16 +657,17 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
         ],
     );
     let mut job = project_with_profile(&v1);
-    // A shape drawn in Chipload (no DXF handle) must survive updates.
-    let mut drawn = job.drawing.shapes[1].clone();
-    drawn.id = job.drawing.next_shape_id;
-    drawn.dxf_handle = None;
-    for seg in &mut drawn.segments {
-        if let chipload_job::PathSegment::Line(l) = seg {
-            l.start[1] += 100.0;
-            l.end[1] += 100.0;
-        }
-    }
+    // A shape drawn in Chipload must survive updates.
+    let drawn = chipload_job::Shape {
+        id: job.drawing.next_shape_id,
+        layer: "CUT".into(),
+        geometry: chipload_job::Geometry::Rectangle {
+            center: [110.0, 120.0],
+            length: 20.0,
+            width: 20.0,
+            angle: 0.0,
+        },
+    };
     job.drawing.next_shape_id += 1;
     job.drawing.shapes.push(drawn);
 
@@ -701,7 +702,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
             .drawing
             .shapes
             .iter()
-            .any(|s| s.id == 3 && s.dxf_handle.is_none())
+            .any(|s| s.id == 3 && s.is_drawn())
     );
     let before = run_job(&job).unwrap().program.moves;
     let after = run_job(&moved).unwrap().program.moves;
