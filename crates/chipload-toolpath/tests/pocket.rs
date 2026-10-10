@@ -412,6 +412,93 @@ fn pocket_centre_is_cleared_where_geos_buffer_collapsed_too_early() {
     assert!(result.notes.is_empty(), "{:?}", result.notes);
 }
 
+#[test]
+#[ignore = "known: a near-tangent ring level fails verification (docs/specs/offset-retry.md)"]
+fn a_pocket_whose_island_offsets_just_touch_can_be_cleared() {
+    // Found by the property test on 2026-10-10. At this exact stepover the offsets of islands
+    // #2 and #4 meet almost exactly tangentially at one ring level; cavalier_contours then
+    // asserts (debug) or returns rings that fail Chipload's verification (release): a safe
+    // refusal of a valid drawing. The same pocket with the stepover 1e-6 mm smaller or larger
+    // works, and without island #2 or #4 it works too.
+    let contours = [
+        polygon_id(
+            1,
+            &[
+                (30.0, 0.0),
+                (30.322407, 1.705904),
+                (5.054545, 37.482756),
+                (-23.021876, 21.363316),
+                (-25.829146, 19.140482),
+                (-30.284893, 15.298),
+                (-45.537702, -2.625687),
+                (-58.104488, -5.359507),
+                (-24.468721, -21.808497),
+                (-22.392178, -19.964728),
+                (-22.178358, -20.201991),
+                (-22.174832, -20.205861),
+                (-22.00122, -20.394762),
+                (-21.99766, -20.398601),
+                (-21.9941, -20.40244),
+            ],
+        ),
+        polygon_id(
+            2,
+            &[
+                (-9.272381, -2.474317),
+                (-8.256644, -1.080425),
+                (-8.4151, -1.118743),
+                (-10.789403, -1.435533),
+                (-13.201579, -0.639165),
+                (-13.144529, -2.621),
+                (-14.823898, -4.123532),
+                (-12.349723, -6.245718),
+            ],
+        ),
+        polygon_id(
+            3,
+            &[
+                (-10.92616, -8.885295),
+                (-10.506378, -9.53471),
+                (-11.383609, -10.018626),
+                (-11.08858, -12.68881),
+                (-7.985534, -14.337199),
+                (-6.678434, -11.361687),
+            ],
+        ),
+        polygon_id(
+            4,
+            &[
+                (1.445616, 0.069215),
+                (3.533449, 0.823268),
+                (0.213707, 0.942674),
+                (-1.099894, 1.084898),
+                (-2.706574, 2.254326),
+                (-1.838731, 1.332842),
+                (-2.488002, 0.823475),
+                (-2.823642, -2.895785),
+                (-0.813676, -2.389074),
+                (0.16108, -1.48637),
+                (0.521338, -2.941803),
+                (2.204077, -3.460651),
+                (1.499667, -0.225105),
+            ],
+        ),
+    ];
+    let refs: Vec<&Contour> = contours.iter().collect();
+    let radius = 4.865292712794798;
+    let result = plan_pocket(
+        &refs,
+        radius,
+        0.18893806468913993 * 2.0 * radius,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+    )
+    .unwrap();
+    assert_clear(&contours, &result, radius);
+}
+
 // -- links
 
 #[test]
