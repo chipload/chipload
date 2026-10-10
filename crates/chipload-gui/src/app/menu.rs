@@ -84,6 +84,21 @@ impl ChiploadApp {
                 if ui.button("Open…  (Ctrl+O)").clicked() {
                     self.ask_open();
                 }
+                let recent = self.recent.clone();
+                ui.add_enabled_ui(!recent.is_empty(), |ui| {
+                    ui.menu_button("Open recent", |ui| {
+                        for path in &recent {
+                            let name = file_name(Path::new(path));
+                            if ui.button(name).on_hover_text(path).clicked() {
+                                self.open_recent(path);
+                            }
+                        }
+                        ui.separator();
+                        if ui.button("Clear list").clicked() {
+                            self.forget_recent(None);
+                        }
+                    });
+                });
                 if ui.button("Import DXF…  (Ctrl+I)").clicked() {
                     self.ask_import();
                 }

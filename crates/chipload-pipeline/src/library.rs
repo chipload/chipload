@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 
 use chipload_job::Job;
 use chipload_job::library::{
-    MACHINES_FILE, MachineLibrary, TOOLS_FILE, ToolLibrary, load_machines, load_tools,
+    MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary, load_machines,
+    load_tools,
 };
 
 /// Overrides the settings folder (tests, a portable install, a shared workshop folder).
@@ -43,6 +44,10 @@ pub fn tools_path(dir: &Path) -> PathBuf {
 
 pub fn machines_path(dir: &Path) -> PathBuf {
     dir.join(MACHINES_FILE)
+}
+
+pub fn settings_path(dir: &Path) -> PathBuf {
+    dir.join(SETTINGS_FILE)
 }
 
 /// The library as read for starting values. A file that can't be read is left empty and

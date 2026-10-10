@@ -43,7 +43,7 @@ In the GUI: *Settings > Tool library…* and *Machines…*, and *Use profile…*
 profile…* (and the same for the tool) under Job settings.
 
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
-(Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New
+(Ctrl+I) or open a project (Ctrl+O, or *File > Open recent*), click contours (Ctrl+click for more, right-click for a whole layer), then **New
 profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
 reorder, untick to skip one. **F5** generates and shows the toolpath (each operation numbered
 at its first plunge, arrows in the cutting direction, rapids dashed, tabs highlighted, material

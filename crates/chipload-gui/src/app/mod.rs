@@ -173,6 +173,8 @@ pub struct ChiploadApp {
     /// The tool library and machine profiles as last read.
     library: chipload_pipeline::library::Library,
     library_windows: LibraryWindows,
+    /// File > Open recent (docs/specs/open-recent.md), most recent first.
+    pub recent: Vec<String>,
 }
 
 impl Default for ChiploadApp {
@@ -211,6 +213,7 @@ impl Default for ChiploadApp {
             settings_dir: None,
             library: chipload_pipeline::library::Library::default(),
             library_windows: LibraryWindows::default(),
+            recent: Vec::new(),
         }
     }
 }
@@ -374,6 +377,7 @@ impl ChiploadApp {
         };
         let version = raw_schema_version(path);
         self.start_editing(EditJob::from_job(&job), true, Some(path.to_path_buf()));
+        self.record_recent(path);
         let mut lines = vec![format!("Project: {}", file_name(path))];
         lines.extend(self.drawing_lines());
         if let Some(v) = version
@@ -662,6 +666,7 @@ impl ChiploadApp {
         self.saved = Some(saved);
         self.job_path = Some(path.to_path_buf());
         self.set_status(format!("Saved {}", path.display()), STATUS_SECONDS);
+        self.record_recent(path);
         true
     }
 

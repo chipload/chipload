@@ -23,6 +23,12 @@ pub const MACHINES_FILE: &str = "machines.json";
 pub const TOOLS_VERSION: i64 = 1;
 /// Current `schema_version` of `machines.json`.
 pub const MACHINES_VERSION: i64 = 1;
+/// App settings: the recent projects (docs/specs/open-recent.md).
+pub const SETTINGS_FILE: &str = "settings.json";
+/// Current `schema_version` of `settings.json`.
+pub const SETTINGS_VERSION: i64 = 1;
+/// How many recent projects are kept.
+pub const RECENT_MAX: usize = 10;
 
 #[derive(Debug, Error)]
 pub enum LibraryError {
@@ -462,6 +468,61 @@ impl MachineLibrary {
     }
 }
 
+/// App settings kept between sessions (docs/specs/open-recent.md).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AppSettings {
+    pub schema_version: i64,
+    #[serde(default)]
+    pub written_by: Option<String>,
+    /// Absolute paths, most recent first, at most `RECENT_MAX`, no duplicates.
+    pub recent_projects: Vec<String>,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        AppSettings {
+            schema_version: SETTINGS_VERSION,
+            written_by: None,
+            recent_projects: Vec::new(),
+        }
+    }
+}
+
+impl AppSettings {
+    /// Put a project at the top of the recent list (moving it if it is there already).
+    pub fn add_recent(&mut self, path: &str) {
+        self.remove_recent(path);
+        self.recent_projects.insert(0, path.to_string());
+        self.recent_projects.truncate(RECENT_MAX);
+    }
+
+    pub fn remove_recent(&mut self, path: &str) {
+        self.recent_projects.retain(|p| p != path);
+    }
+
+    /// Every rule violation as "path: message".
+    pub fn validate(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        let recent = &self.recent_projects;
+        if recent.len() > RECENT_MAX {
+            problems.push(format!(
+                "recent_projects: at most {RECENT_MAX}, got {}",
+                recent.len()
+            ));
+        }
+        for (i, path) in recent.iter().enumerate() {
+            if path.trim().is_empty() {
+                problems.push(format!("recent_projects.{i}: must not be empty"));
+            }
+            if recent[..i].contains(path) {
+                problems.push(format!("recent_projects.{i}: \"{path}\" is listed twice"));
+            }
+        }
+        problems
+    }
+}
+
 /// Names compare ignoring case, so "6 mm Upcut" and "6 mm upcut" can't both exist.
 pub fn same_name(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
@@ -578,6 +639,17 @@ impl LibraryFile for MachineLibrary {
     }
 }
 
+impl LibraryFile for AppSettings {
+    const VERSION: i64 = SETTINGS_VERSION;
+    fn validate(&self) -> Vec<String> {
+        AppSettings::validate(self)
+    }
+    fn stamp(&mut self) {
+        self.schema_version = SETTINGS_VERSION;
+        self.written_by = Some(written_by());
+    }
+}
+
 fn written_by() -> String {
     format!("chipload {}", env!("CARGO_PKG_VERSION"))
 }
@@ -615,6 +687,19 @@ pub fn update_tools<T>(
 pub fn update_machines<T>(
     path: &Path,
     change: impl FnOnce(&mut MachineLibrary) -> Result<T, LibraryError>,
+) -> Result<T, LibraryError> {
+    update(path, change)
+}
+
+/// Load `settings.json`; a missing file is the default settings.
+pub fn load_settings(path: &Path) -> Result<AppSettings, LibraryError> {
+    load(path)
+}
+
+/// As `update_tools`, for `settings.json`.
+pub fn update_settings<T>(
+    path: &Path,
+    change: impl FnOnce(&mut AppSettings) -> Result<T, LibraryError>,
 ) -> Result<T, LibraryError> {
     update(path, change)
 }

@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use chipload_job::library::{AppSettings, RECENT_MAX, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, UsedTool,
     load_machines, load_tools, save_machines, save_tools, update_tools, use_tool,
@@ -388,4 +389,55 @@ fn names_in_a_project_round_trip_and_old_files_have_none() {
     let again = chipload_job::parse_job(data, "saved").unwrap();
     assert_eq!(again.machine, job.machine);
     assert_eq!(again.tools, job.tools);
+}
+
+#[test]
+fn recent_projects_keep_order_without_duplicates_up_to_the_limit() {
+    let dir = temp_dir("recent");
+    let path = dir.join("settings.json");
+    assert_eq!(load_settings(&path).unwrap(), AppSettings::default());
+    for i in 0..12 {
+        update_settings(&path, |s| {
+            s.add_recent(&format!("/p/{i}.chipload"));
+            Ok(())
+        })
+        .unwrap();
+    }
+    update_settings(&path, |s| {
+        s.add_recent("/p/5.chipload");
+        Ok(())
+    })
+    .unwrap();
+    let settings = load_settings(&path).unwrap();
+    assert_eq!(settings.recent_projects.len(), RECENT_MAX);
+    assert_eq!(settings.recent_projects[0], "/p/5.chipload");
+    assert_eq!(settings.recent_projects[1], "/p/11.chipload");
+    assert_eq!(
+        settings
+            .recent_projects
+            .iter()
+            .filter(|p| *p == "/p/5.chipload")
+            .count(),
+        1
+    );
+    assert!(
+        !settings
+            .recent_projects
+            .contains(&"/p/1.chipload".to_string())
+    );
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("\"schema_version\": 1"), "{text}");
+
+    std::fs::write(
+        &path,
+        r#"{"schema_version": 1, "recent_projects": ["/a", "/a"]}"#,
+    )
+    .unwrap();
+    let err = load_settings(&path).unwrap_err().to_string();
+    assert!(err.contains("listed twice"), "{err}");
+    std::fs::write(&path, r#"{"schema_version": 2, "recent_projects": []}"#).unwrap();
+    assert!(matches!(
+        load_settings(&path).unwrap_err(),
+        LibraryError::UnsupportedVersion { .. }
+    ));
 }

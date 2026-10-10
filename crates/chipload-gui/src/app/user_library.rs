@@ -5,6 +5,7 @@
 //! values.
 
 use chipload_job::Tool;
+use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineProfile, same_name, update_machines, update_tools,
 };
@@ -400,6 +401,67 @@ impl ChiploadApp {
     pub fn set_settings_dir(&mut self, dir: Option<PathBuf>) {
         self.settings_dir = dir;
         self.reload_library();
+        self.recent = self
+            .settings_dir
+            .as_deref()
+            .map(chipload_pipeline::library::settings_path)
+            .and_then(|path| load_settings(&path).ok())
+            .map(|settings| settings.recent_projects)
+            .unwrap_or_default();
+    }
+
+    /// Put a project at the top of File > Open recent. A failure to write the settings
+    /// only shows in the status bar: it never stops opening or saving.
+    pub(super) fn record_recent(&mut self, path: &Path) {
+        let Some(text) = std::path::absolute(path)
+            .ok()
+            .and_then(|p| p.to_str().map(str::to_string))
+        else {
+            return;
+        };
+        self.change_settings(|settings| settings.add_recent(&text));
+    }
+
+    /// Take a project off the recent list, or empty it (None).
+    pub fn forget_recent(&mut self, path: Option<&str>) {
+        self.change_settings(|settings| match path {
+            Some(path) => settings.remove_recent(path),
+            None => settings.recent_projects.clear(),
+        });
+    }
+
+    fn change_settings(&mut self, change: impl FnOnce(&mut AppSettings)) {
+        let Some(dir) = self.settings_dir.clone() else {
+            return;
+        };
+        let path = chipload_pipeline::library::settings_path(&dir);
+        let result = update_settings(&path, |settings| {
+            change(settings);
+            Ok(settings.recent_projects.clone())
+        });
+        match result {
+            Ok(recent) => self.recent = recent,
+            Err(err) => self.set_status(
+                format!("Recent projects not saved: {err}"),
+                ERROR_STATUS_SECONDS,
+            ),
+        }
+    }
+
+    /// Open a project from File > Open recent; one that is gone is reported and forgotten.
+    pub fn open_recent(&mut self, path: &str) -> bool {
+        let file = PathBuf::from(path);
+        if !file.exists() {
+            self.error(vec![format!(
+                "{path} no longer exists; it was taken off the recent list."
+            )]);
+            self.forget_recent(Some(path));
+            return false;
+        }
+        if self.guard(Pending::Open(file.clone())) {
+            return self.open(&file);
+        }
+        false
     }
 
     /// Read the library again (it may have been changed by the CLI or another window).
