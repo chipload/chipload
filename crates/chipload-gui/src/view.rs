@@ -25,6 +25,8 @@ const AXIS_X: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
 const AXIS_Y: Color32 = Color32::from_rgb(0x81, 0xc9, 0x95);
 const AXIS_Z: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
 const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
+/// The snap marker: a point of the drawing the cursor is on.
+const SNAP: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
 const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
 /// Contours of the operation selected in the operations list.
 const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
@@ -479,6 +481,10 @@ pub struct Scene {
     pub preview: Vec<Vec<Point>>,
     /// The points clicked so far while drawing.
     pub sketch_points: Vec<Point>,
+    /// Handles of the selected drawn shape (top view only).
+    pub handles: Vec<Point>,
+    /// The point the cursor snapped to, marked with a diamond.
+    pub snap_mark: Option<Point>,
     /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
     pub work_zero: Point,
     /// The stock's (top, bottom) Z, for the 3D view.
@@ -699,6 +705,27 @@ impl Scene {
         }
         for &p in &self.sketch_points {
             painter.circle_stroke(view.to_screen(p), 4.0, Stroke::new(1.5, SELECTED));
+        }
+        for &p in self.handles.iter().filter(|_| flat) {
+            let square = Rect::from_center_size(view.to_screen(p), Vec2::splat(7.0));
+            painter.rect_filled(square, 0.0, Color32::from_gray(20));
+            painter.rect_stroke(
+                square,
+                0.0,
+                Stroke::new(1.5, SELECTED),
+                eframe::egui::StrokeKind::Middle,
+            );
+        }
+        if let Some(p) = self.snap_mark {
+            let c = view.to_screen(p);
+            let r = 6.0;
+            let diamond = vec![
+                c + Vec2::new(0.0, -r),
+                c + Vec2::new(r, 0.0),
+                c + Vec2::new(0.0, r),
+                c + Vec2::new(-r, 0.0),
+            ];
+            painter.add(Shape::closed_line(diamond, Stroke::new(1.5, SNAP)));
         }
     }
 }

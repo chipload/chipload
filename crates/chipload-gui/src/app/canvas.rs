@@ -3,6 +3,9 @@
 
 use super::*;
 
+/// How far beyond a rectangle's end its rotation handle sits, in screen pixels.
+const ROTATE_HANDLE_PX: f64 = 24.0;
+
 impl ChiploadApp {
     /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
     pub fn view_3d(&mut self) {
@@ -53,7 +56,37 @@ impl ChiploadApp {
                 self.fit_pending = false;
             }
         }
-        if response.dragged() {
+        let (alt, shift) = ui.input(|i| (i.modifiers.alt, i.modifiers.shift));
+        let shape_handles = self.shape_handles();
+        self.scene.handles = shape_handles.iter().map(|&(_, p)| p).collect();
+        let view = self.view;
+        let on_handle = |pos: egui::Pos2| -> Option<Handle> {
+            shape_handles
+                .iter()
+                .map(|&(h, p)| (h, view.to_screen(p).distance(pos)))
+                .filter(|&(_, d)| d <= crate::view::PICK_TOLERANCE_PX)
+                .min_by(|a, b| a.1.total_cmp(&b.1))
+                .map(|(h, _)| h)
+        };
+        if response.drag_started_by(egui::PointerButton::Primary)
+            && let Some(origin) = ui.input(|i| i.pointer.press_origin())
+            && let Some(handle) = on_handle(origin)
+        {
+            self.start_handle_drag(handle);
+        }
+        if response.drag_stopped() {
+            self.end_handle_drag();
+        }
+        self.snapped = None;
+        self.scene.snap_mark = None;
+        if self.handle_drag.is_some() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let to = self.snap_world(self.view.to_world(pos), alt, true);
+                self.drag_handle_to(to, shift);
+            }
+        } else if response.dragged() {
             // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view any drag pans.
             let pan = !self.three_d
                 || response.dragged_by(egui::PointerButton::Secondary)
@@ -76,7 +109,7 @@ impl ChiploadApp {
             self.cursor = None;
         }
         if self.sketch.is_some() {
-            let step = grid_step(self.view.scale);
+            let at = self.cursor.map(|c| self.snap_world(c, alt, false));
             if response.double_clicked() {
                 self.finish_drawing();
             } else if response.clicked()
@@ -86,10 +119,11 @@ impl ChiploadApp {
                 let on_first = first.is_some_and(|f| {
                     self.view.to_screen(f).distance(pos) <= crate::view::PICK_TOLERANCE_PX
                 });
-                self.draw_click(snap(self.view.to_world(pos), step), on_first);
+                let p = self.snap_world(self.view.to_world(pos), alt, false);
+                self.draw_click(p, on_first);
             }
-            self.scene.preview = match (&self.sketch, self.cursor) {
-                (Some(sketch), Some(at)) => sketch.preview(snap(at, step)),
+            self.scene.preview = match (&self.sketch, at) {
+                (Some(sketch), Some(at)) => sketch.preview(at),
                 _ => Vec::new(),
             };
             self.scene.sketch_points = self
@@ -102,6 +136,7 @@ impl ChiploadApp {
             self.scene.sketch_points.clear();
             if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
+                && on_handle(pos).is_none()
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
@@ -161,6 +196,81 @@ impl ChiploadApp {
             show_material_left: self.show_material_left,
         };
         self.scene.paint(&painter, &self.view, &highlight);
+    }
+
+    // -- handles and snapping (docs/specs/drawing-follow-ups.md sections 1 and 2)
+
+    /// Handles of the selected shape: one drawn shape, in top view, not while drawing.
+    pub(super) fn shape_handles(&self) -> Vec<(Handle, Point)> {
+        if self.three_d || self.sketch.is_some() || !self.can_draw() {
+            return Vec::new();
+        }
+        let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
+            return Vec::new();
+        };
+        // The rotation handle sits a fixed distance on screen beyond the rectangle.
+        let reach = ROTATE_HANDLE_PX / self.view.scale;
+        handles(&shape.geometry, reach)
+            .into_iter()
+            .map(|(h, p)| (h, (p[0], p[1])))
+            .collect()
+    }
+
+    /// Where the cursor at `at` lands (snap point, else grid; exact with Alt), remembered
+    /// for the marker and the status bar. `dragging`: skip the selected shape's own points.
+    pub(super) fn snap_world(&mut self, at: Point, free: bool, dragging: bool) -> Point {
+        let skip: BTreeSet<usize> = match self.selected_shape().filter(|_| dragging) {
+            Some(id) => self
+                .contours
+                .iter()
+                .filter(|c| shapes_of(c).contains(&id))
+                .map(|c| c.id)
+                .collect(),
+            None => BTreeSet::new(),
+        };
+        let step = grid_step(self.view.scale);
+        let (p, hit) = snap_cursor(at, &self.snap_points, &skip, self.view.scale, step, free);
+        self.snapped = Some((p, hit));
+        self.scene.snap_mark = hit.map(|h| h.at);
+        p
+    }
+
+    pub fn start_handle_drag(&mut self, handle: Handle) {
+        let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
+            return;
+        };
+        self.handle_drag = Some(HandleDrag {
+            handle,
+            layer: shape.layer.clone(),
+            start: shape.geometry.clone(),
+        });
+    }
+
+    /// Move the dragged handle to `to`. A position that would make the shape invalid
+    /// leaves it as it was last valid; the form says why.
+    pub fn drag_handle_to(&mut self, to: Point, bend: bool) {
+        let Some(drag) = self.handle_drag.clone() else {
+            return;
+        };
+        let refused = match try_drag(&drag.start, drag.handle, [to.0, to.1], bend) {
+            Ok(geometry) => self.set_selected_shape(&drag.layer, geometry).err(),
+            Err(why) => Some(why),
+        };
+        let shape = self.selected_shape().and_then(|id| self.shape(id)).cloned();
+        if let Some(shape) = shape {
+            let mut draft = ShapeDraft::of(&shape);
+            draft.error = refused;
+            self.shape_draft = Some(draft);
+        }
+    }
+
+    pub fn end_handle_drag(&mut self) {
+        if self.handle_drag.take().is_some()
+            && let Some(draft) = self.shape_draft.as_mut()
+        {
+            draft.error = None;
+        }
+        self.scene.snap_mark = None;
     }
 
     /// "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30", one line per operation.

@@ -293,9 +293,19 @@ impl ChiploadApp {
 
     pub(super) fn status_bar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            if let (Some(sketch), Some(at)) = (&self.sketch, self.cursor) {
+            let snapped = self.snapped.map(|(p, hit)| {
+                let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
+                (p, name)
+            });
+            if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
                 let step = grid_step(self.view.scale);
-                ui.label(sketch.status(snap(at, step), step));
+                ui.label(format!("{}{name}", sketch.status(*at, step)));
+            } else if let (Some(_), Some((at, name))) = (&self.handle_drag, &snapped) {
+                ui.label(format!(
+                    "Dragging to ({:.3}, {:.3}){name} (Alt: no snapping; Shift on a middle \
+                     bends the segment)",
+                    at.0, at.1
+                ));
             } else if let Some((text, until)) = &self.status {
                 if Instant::now() < *until {
                     ui.label(text);

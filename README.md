@@ -30,8 +30,9 @@ chipload check part.nc --job part.chipload       # the independent checker on an
 ```
 
 A project (`.chipload`) holds the drawing's geometry, so the DXF is only needed to import or
-update it. Circles, rectangles and polylines can also be drawn in the project
-(`chipload shape add …`, or the GUI's Draw menu).
+update it. Circles, rectangles and polylines (with arc segments as DXF bulges) can also be
+drawn in the project (`chipload shape add …`, or the GUI's Draw menu); in the GUI their
+handles can be dragged, and the cursor snaps to end points, centres and middles (Alt: off).
 
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
 (Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New

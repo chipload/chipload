@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_dxf};
+use chipload_job::edit::{Handle, handles, try_drag};
 use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
     StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
@@ -28,7 +29,7 @@ use eframe::egui::{
     Modifiers, Panel, RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
 };
 
-use crate::draw::{Sketch, Step, Tool, grid_step, snap};
+use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, LeftShape, Scene, ToolpathShape, View};
@@ -101,6 +102,15 @@ enum Prompt {
     Discard(Pending),
 }
 
+/// A handle drag in progress: the shape as it was when the drag began, which every frame
+/// of the drag starts from (chipload_job::edit::drag).
+#[derive(Debug, Clone)]
+struct HandleDrag {
+    handle: Handle,
+    layer: String,
+    start: Geometry,
+}
+
 pub struct ChiploadApp {
     /// The project being edited.
     pub edit: Option<EditJob>,
@@ -137,6 +147,12 @@ pub struct ChiploadApp {
     pub sketch: Option<Sketch>,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
+    /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
+    snap_points: Vec<SnapPoint>,
+    /// Where the cursor snapped this frame, while drawing or dragging a handle.
+    snapped: Option<(Point, Option<SnapPoint>)>,
+    /// The handle being dragged, if any.
+    handle_drag: Option<HandleDrag>,
 
     pub report: Vec<String>,
     status: Option<(String, Instant)>,
@@ -170,6 +186,9 @@ impl Default for ChiploadApp {
             three_d: false,
             sketch: None,
             shape_draft: None,
+            snap_points: Vec::new(),
+            snapped: None,
+            handle_drag: None,
             report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
             status: None,
             cursor: None,
@@ -302,6 +321,7 @@ impl ChiploadApp {
             Ok(imported) => {
                 self.contours = imported.contours;
                 self.scene.contours = self.contours.iter().map(ContourShape::new).collect();
+                self.snap_points = snap_points(&self.contours);
                 let mut lines = format_import_report(&imported.report);
                 lines.extend(format_contours(&self.contours));
                 Some(lines)
@@ -309,6 +329,7 @@ impl ChiploadApp {
             Err(_) => {
                 self.contours.clear();
                 self.scene.contours.clear();
+                self.snap_points.clear();
                 None
             }
         }

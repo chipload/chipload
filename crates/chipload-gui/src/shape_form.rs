@@ -152,6 +152,11 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
         .striped(true)
         .show(ui, |ui| {
             let count = points.len();
+            ui.label("");
+            ui.label("");
+            ui.label("");
+            ui.label("Bulge");
+            ui.end_row();
             for (i, point) in points.iter_mut().enumerate() {
                 ui.label(format!("{}", i + 1));
                 ui.add(mm(&mut point[0]).prefix("X "));
@@ -162,8 +167,7 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
                             DragValue::new(bulge)
                                 .speed(0.01)
                                 .range(-1.0..=1.0)
-                                .max_decimals(3)
-                                .prefix("bulge "),
+                                .max_decimals(3),
                         )
                         .on_hover_text(
                             "Bend of the segment to the next point: 0 straight, 1 a half \

@@ -101,6 +101,16 @@ pub fn segment_middle(a: [f64; 2], b: [f64; 2], bulge: f64) -> [f64; 2] {
 /// `start`, so a long drag doesn't drift. None when the result would be invalid (the caller
 /// keeps the last valid shape) or the handle doesn't belong to the shape.
 pub fn drag(start: &Geometry, handle: Handle, to: [f64; 2], bend: bool) -> Option<Geometry> {
+    try_drag(start, handle, to, bend).ok()
+}
+
+/// As [`drag`], with the reason when the result would be invalid.
+pub fn try_drag(
+    start: &Geometry,
+    handle: Handle,
+    to: [f64; 2],
+    bend: bool,
+) -> Result<Geometry, String> {
     let mut geometry = start.clone();
     match (&mut geometry, handle) {
         (Geometry::Circle { center, .. }, Handle::Center)
@@ -128,7 +138,7 @@ pub fn drag(start: &Geometry, handle: Handle, to: [f64; 2], bend: bool) -> Optio
         (Geometry::Rectangle { center, angle, .. }, Handle::Rotate) => {
             let (dx, dy) = (to[0] - center[0], to[1] - center[1]);
             if dx == 0.0 && dy == 0.0 {
-                return None;
+                return Err("the rotation handle is on the centre".into());
             }
             *angle = dy.atan2(dx);
         }
@@ -153,9 +163,14 @@ pub fn drag(start: &Geometry, handle: Handle, to: [f64; 2], bend: bool) -> Optio
                 bulges.insert(i + 1, 0.0);
             }
         }
-        _ => return None,
+        _ => return Err(format!("{handle:?} isn't a handle of this shape")),
     }
-    shape_problems(&geometry).is_empty().then_some(geometry)
+    let problems = shape_problems(&geometry);
+    if problems.is_empty() {
+        Ok(geometry)
+    } else {
+        Err(problems.join("; "))
+    }
 }
 
 /// The bulge whose arc from `a` to `b` bows out as far as `to` lies from the chord (signed:

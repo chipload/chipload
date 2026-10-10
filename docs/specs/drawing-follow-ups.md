@@ -1,6 +1,7 @@
 # Spec: drawing follow-ups (handles, snapping, arcs in polylines)
 
-Status: **approved 2026-10-10** (Q1–Q4 as recommended).
+Status: **approved 2026-10-10** (Q1–Q4 as recommended). Implemented; details settled while
+building it are marked *Implemented:*.
 
 Builds on docs/specs/drawing-tools.md, which left these out: dragging handles on the canvas,
 snapping to existing geometry, and arcs in polylines.
@@ -21,6 +22,11 @@ changes the shape's defining values, through the same validation as the form:
   the last valid position; the form shows the reason.
 - Handles only in top view; in 3D, the form still edits values.
 - Imported shapes have no handles (read-only, as before).
+- *Implemented:* the drag rules are plain functions on shape values (`chipload_job::edit`).
+  Every frame of a drag starts from the shape as it was when the drag began, so values don't
+  drift. Dragging a segment's middle without Shift inserts a point there with both halves
+  straight. The form's "+" splits a segment in the middle instead, into two halves of the
+  same arc; its "−" joins the two segments at that point into one straight segment.
 
 ## 2. Snapping
 
@@ -33,6 +39,8 @@ While drawing (§ drawing-tools 6) and while dragging a handle, the cursor snaps
 - Hold **Alt** to switch snapping off (free position, no rounding).
 - Snapping picks the nearest candidate on screen; ties go to end points, then centres, then
   middles, then the lowest contour or shape id (deterministic).
+- *Implemented:* the status bar names the contour ("end of #4"). While dragging a handle,
+  the dragged shape's own points are left out.
 
 ## 3. Arcs in polylines
 
@@ -52,6 +60,9 @@ straight line, 1 a half circle, negative bends the other way):
   machine like imported bulged polylines, with G2/G3 output.
 - GUI: a *bulge* column in the point table, and the Shift-drag of a segment's middle handle
   (§1). CLI: `chipload shape add/set … --bulges "0 0.4 0"`.
+- *Implemented:* saving writes `bulges` explicitly, as every field. When `shape set` changes
+  the number of segments of a polyline with curved segments and gives no `--bulges`, it
+  refuses rather than guess which bends to keep.
 
 ## 4. Command line
 
