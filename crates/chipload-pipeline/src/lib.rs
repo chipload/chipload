@@ -3,6 +3,7 @@
 
 pub mod notices;
 pub mod report;
+pub mod shapes;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;

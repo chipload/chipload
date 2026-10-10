@@ -196,3 +196,125 @@ fn an_older_job_must_be_embedded_before_it_runs() {
         text(&out.stderr)
     );
 }
+
+#[test]
+fn shapes_are_added_changed_and_deleted_from_the_command_line() {
+    // docs/specs/drawing-tools.md §5
+    let dir = temp_dir("shapes");
+    let project = dir.join("drawn.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let ok = |args: &[&str]| {
+        let out = chipload(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    let refused = |args: &[&str], why: &str| {
+        let out = chipload(args);
+        assert_eq!(out.status.code(), Some(1), "{args:?}");
+        assert!(
+            text(&out.stderr).contains(why),
+            "{args:?}: {}",
+            text(&out.stderr)
+        );
+    };
+
+    // Ids continue after the last one (3), negative coordinates are fine.
+    let added = ok(&[
+        "shape", "add", p, "circle", "--center", "-5,-6.5", "--radius", "2",
+    ]);
+    assert!(added.contains("Added shape S4."), "{added}");
+    ok(&[
+        "shape",
+        "add",
+        p,
+        "rectangle",
+        "--center",
+        "200,50",
+        "--length",
+        "30",
+        "--width",
+        "10",
+        "--angle-deg",
+        "45",
+        "--layer",
+        "extra",
+    ]);
+    ok(&[
+        "shape",
+        "add",
+        p,
+        "polyline",
+        "--points",
+        "0,0 10,0 10,5",
+        "--open",
+    ]);
+    ok(&["shape", "set", p, "4", "--radius", "2.5"]);
+    ok(&["shape", "set", p, "6", "--closed"]);
+    let listed = ok(&["inspect", p]);
+    for expected in [
+        "Shapes: 6 drawn, 0 imported",
+        "S4    circle    layer 0            centre (-5.000, -6.500) radius 2.500",
+        "S5    rectangle layer extra        centre (200.000, 50.000) length 30.000 width 10.000 \
+         angle 45.000°",
+        "S6    polyline  layer 0            closed (0.000, 0.000) (10.000, 0.000) (10.000, 5.000)",
+    ] {
+        assert!(listed.contains(expected), "{expected}\n{listed}");
+    }
+
+    refused(
+        &["shape", "add", p, "circle", "--center", "0,0"],
+        "needs --radius",
+    );
+    refused(
+        &[
+            "shape", "add", p, "circle", "--center", "0,0", "--radius", "0",
+        ],
+        "(S7).radius",
+    );
+    refused(
+        &["shape", "set", p, "4", "--length", "3"],
+        "--length doesn't apply to a circle",
+    );
+    refused(
+        &["shape", "set", p, "99", "--radius", "3"],
+        "there is no shape 99",
+    );
+    refused(
+        &["shape", "add", p, "polyline", "--points", "0,0 1"],
+        "expected a point as X,Y",
+    );
+
+    // Deleting a shape an operation uses: written, the operation is flagged, exit code 1.
+    let out = chipload(&["shape", "delete", p, "2"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stdout).contains("Operation 1 (Holes): shape S2 no longer exists"));
+    let listed = ok(&["inspect", p]);
+    assert!(listed.contains("Shapes: 5 drawn"), "{listed}");
+    let run = chipload(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(run.status.code(), Some(1));
+    // A deleted id is never handed out again.
+    let added = ok(&[
+        "shape", "add", p, "circle", "--center", "75,80", "--radius", "12",
+    ]);
+    assert!(added.contains("Added shape S7."), "{added}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn imported_shapes_cannot_be_changed_from_the_command_line() {
+    let dir = temp_dir("imported-shape");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v4/simple_part_full.chipload"), &project).unwrap();
+    let out = chipload(&["shape", "set", path(&project), "1", "--radius", "3"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("was imported from the DXF"));
+    let out = chipload(&["shape", "delete", path(&project), "1"]);
+    assert_eq!(out.status.code(), Some(1));
+    // Refused before writing: the project is unchanged.
+    assert_eq!(
+        std::fs::read_to_string(&project).unwrap(),
+        std::fs::read_to_string(corpus("jobs/v4/simple_part_full.chipload")).unwrap()
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}

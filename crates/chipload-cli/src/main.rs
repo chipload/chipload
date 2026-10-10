@@ -11,10 +11,11 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
-use chipload_job::{Job, Spindle, Units, load_job, save_job};
+use chipload_job::{Geometry, Job, Spindle, Units, load_job, save_job};
 use chipload_pipeline::report::{
-    format_contours, format_import_report, format_material_left, severity_name,
+    format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
+use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
     PipelineError, embed_drawing, load_drawing, new_project, run_job, update_drawing,
     write_atomically,
@@ -115,8 +116,86 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Draw in a project: add, change or delete circles, rectangles and polylines.
+    Shape {
+        #[command(subcommand)]
+        action: ShapeAction,
+    },
     /// Print Chipload's licence and the licences of every third-party component.
     Licenses,
+}
+
+#[derive(Subcommand)]
+enum ShapeAction {
+    /// Add a drawn shape; prints its id.
+    Add {
+        /// The project (.chipload).
+        project: PathBuf,
+        kind: KindArg,
+        #[command(flatten)]
+        values: ShapeValues,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Change a drawn shape's values or layer; it keeps its id.
+    Set {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        #[command(flatten)]
+        values: ShapeValues,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Delete a drawn shape. Operations that used it are flagged.
+    Delete {
+        /// The project (.chipload).
+        project: PathBuf,
+        id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum KindArg {
+    Circle,
+    Rectangle,
+    Polyline,
+}
+
+/// Defining values, all in mm; the angle in degrees.
+#[derive(clap::Args)]
+struct ShapeValues {
+    /// Centre "X,Y" (circle, rectangle).
+    #[arg(long, allow_hyphen_values = true)]
+    center: Option<String>,
+    #[arg(long)]
+    radius: Option<f64>,
+    /// Along the rectangle's own X axis.
+    #[arg(long)]
+    length: Option<f64>,
+    /// Along the rectangle's own Y axis.
+    #[arg(long)]
+    width: Option<f64>,
+    /// Rotation about the centre, degrees, counter-clockwise.
+    #[arg(long, allow_hyphen_values = true)]
+    angle_deg: Option<f64>,
+    /// Polyline points "X,Y X,Y ...".
+    #[arg(long, allow_hyphen_values = true)]
+    points: Option<String>,
+    /// The polyline doesn't return to its first point.
+    #[arg(long, conflicts_with = "closed")]
+    open: bool,
+    /// The polyline returns to its first point (the default for new ones).
+    #[arg(long)]
+    closed: bool,
+    #[arg(long)]
+    layer: Option<String>,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -154,6 +233,7 @@ fn main() -> ExitCode {
         Command::Run { project, output } => run(&project, &output),
         Command::Render { program, post } => render(&program, &post),
         Command::Check { gcode, job, json } => check(&gcode, &job, json),
+        Command::Shape { action } => shape(action),
         Command::Licenses => {
             println!("{}\n", chipload_pipeline::notices::short_notice());
             println!("{}", chipload_pipeline::notices::LICENSE);
@@ -253,6 +333,180 @@ fn update(project: &Path, from: &Path, units: Option<Units>, output: Option<&Pat
         );
         ExitCode::from(EXIT_FAILED)
     }
+}
+
+fn shape(action: ShapeAction) -> ExitCode {
+    let (project, output) = match &action {
+        ShapeAction::Add {
+            project, output, ..
+        }
+        | ShapeAction::Set {
+            project, output, ..
+        }
+        | ShapeAction::Delete {
+            project, output, ..
+        } => (project.clone(), output.clone()),
+    };
+    let job = match load(&project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let mut flagged_ops = 0;
+    let changed = match action {
+        ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
+            .map_err(PipelineError::Job)
+            .and_then(|geometry| {
+                let layer = values.layer.as_deref().unwrap_or("0");
+                add_shape(&job, layer, geometry)
+            })
+            .map(|(job, id)| (job, vec![format!("Added shape S{id}.")])),
+        ShapeAction::Set { id, values, .. } => job
+            .drawing
+            .shapes
+            .iter()
+            .find(|s| s.id == id)
+            .ok_or_else(|| PipelineError::Job(format!("there is no shape {id}")))
+            .and_then(|shape| {
+                let geometry =
+                    changed_geometry(&shape.geometry, &values).map_err(PipelineError::Job)?;
+                let layer = values.layer.clone().unwrap_or_else(|| shape.layer.clone());
+                set_shape(&job, id, &layer, geometry)
+            })
+            .map(|job| (job, vec![format!("Changed shape S{id}.")])),
+        ShapeAction::Delete { id, .. } => delete_shape(&job, id).map(|(job, flagged)| {
+            flagged_ops = flagged.len();
+            let mut lines = vec![format!("Deleted shape S{id}.")];
+            lines.extend(flagged.into_iter().map(|l| format!("warning: {l}")));
+            (job, lines)
+        }),
+    };
+    let (job, lines) = match changed {
+        Ok(done) => done,
+        Err(err) => return fail(err),
+    };
+    let target = output.as_deref().unwrap_or(&project);
+    if let Err(err) = save_job(&job, target) {
+        return fail(err);
+    }
+    for line in lines {
+        println!("{line}");
+    }
+    println!("Wrote {}", target.display());
+    if flagged_ops == 0 {
+        ExitCode::SUCCESS
+    } else {
+        // As for `update`: written, but some operations can't run until fixed.
+        ExitCode::from(EXIT_FAILED)
+    }
+}
+
+fn point_arg(text: &str) -> Result<[f64; 2], String> {
+    let parsed = text
+        .split_once(',')
+        .and_then(|(x, y)| Some([x.trim().parse::<f64>().ok()?, y.trim().parse::<f64>().ok()?]));
+    parsed.ok_or_else(|| format!("expected a point as X,Y, got {text:?}"))
+}
+
+fn points_arg(text: &str) -> Result<Vec<[f64; 2]>, String> {
+    text.split_whitespace().map(point_arg).collect()
+}
+
+fn need<T>(value: Option<T>, what: &str, kind: &str) -> Result<T, String> {
+    value.ok_or_else(|| format!("a {kind} needs --{what}"))
+}
+
+fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
+    let center = v.center.as_deref().map(point_arg).transpose()?;
+    Ok(match kind {
+        KindArg::Circle => Geometry::Circle {
+            center: need(center, "center", "circle")?,
+            radius: need(v.radius, "radius", "circle")?,
+        },
+        KindArg::Rectangle => Geometry::Rectangle {
+            center: need(center, "center", "rectangle")?,
+            length: need(v.length, "length", "rectangle")?,
+            width: need(v.width, "width", "rectangle")?,
+            angle: v.angle_deg.unwrap_or(0.0).to_radians(),
+        },
+        KindArg::Polyline => Geometry::Polyline {
+            closed: !v.open,
+            points: points_arg(need(v.points.as_deref(), "points", "polyline")?)?,
+        },
+    })
+}
+
+/// The shape's geometry with the given values replaced; values that don't belong to its
+/// kind are refused rather than ignored.
+fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, String> {
+    let center = v.center.as_deref().map(point_arg).transpose()?;
+    let not_for = |kind: &str, given: &[(&str, bool)]| -> Result<(), String> {
+        match given.iter().find(|(_, set)| *set) {
+            Some((name, _)) => Err(format!("--{name} doesn't apply to a {kind}")),
+            None => Ok(()),
+        }
+    };
+    let mut geometry = current.clone();
+    match &mut geometry {
+        Geometry::Path { .. } => {}
+        Geometry::Circle { center: c, radius } => {
+            not_for(
+                "circle",
+                &[
+                    ("length", v.length.is_some()),
+                    ("width", v.width.is_some()),
+                    ("angle-deg", v.angle_deg.is_some()),
+                    ("points", v.points.is_some()),
+                    ("open", v.open),
+                    ("closed", v.closed),
+                ],
+            )?;
+            *c = center.unwrap_or(*c);
+            *radius = v.radius.unwrap_or(*radius);
+        }
+        Geometry::Rectangle {
+            center: c,
+            length,
+            width,
+            angle,
+        } => {
+            not_for(
+                "rectangle",
+                &[
+                    ("radius", v.radius.is_some()),
+                    ("points", v.points.is_some()),
+                    ("open", v.open),
+                    ("closed", v.closed),
+                ],
+            )?;
+            *c = center.unwrap_or(*c);
+            *length = v.length.unwrap_or(*length);
+            *width = v.width.unwrap_or(*width);
+            if let Some(degrees) = v.angle_deg {
+                *angle = degrees.to_radians();
+            }
+        }
+        Geometry::Polyline { closed, points } => {
+            not_for(
+                "polyline",
+                &[
+                    ("center", center.is_some()),
+                    ("radius", v.radius.is_some()),
+                    ("length", v.length.is_some()),
+                    ("width", v.width.is_some()),
+                    ("angle-deg", v.angle_deg.is_some()),
+                ],
+            )?;
+            if let Some(text) = &v.points {
+                *points = points_arg(text)?;
+            }
+            if v.open {
+                *closed = false;
+            } else if v.closed {
+                *closed = true;
+            }
+        }
+    }
+    Ok(geometry)
 }
 
 fn load(project: &Path) -> Result<Job, ExitCode> {
@@ -448,12 +702,14 @@ fn program_json(program: &Program) -> Value {
 }
 
 fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
+    let mut shapes = None;
     let loaded = if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
     } else {
-        load_job(path)
-            .map_err(|e| e.to_string())
-            .and_then(|job| load_drawing(&job).map_err(|e| e.to_string()))
+        load_job(path).map_err(|e| e.to_string()).and_then(|job| {
+            shapes = Some(job.drawing.shapes.clone());
+            load_drawing(&job).map_err(|e| e.to_string())
+        })
     };
     let result = match loaded {
         Ok(result) => result,
@@ -466,6 +722,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
     for line in format_import_report(&result.report)
         .into_iter()
         .chain(format_contours(&result.contours))
+        .chain(shapes.as_deref().map(format_shapes).unwrap_or_default())
     {
         println!("{line}");
     }

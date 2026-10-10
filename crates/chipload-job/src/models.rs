@@ -686,7 +686,7 @@ impl Drawing {
             problems.extend(
                 shape_problems(&shape.geometry)
                     .into_iter()
-                    .map(|p| format!("{at}.{p}")),
+                    .map(|p| format!("{at} (S{}).{p}", shape.id)),
             );
         }
         problems

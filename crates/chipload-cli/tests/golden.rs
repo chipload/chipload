@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Golden G-code: `chipload run` on the corpus projects (tests/corpus/jobs/v4) must reproduce
+//! Golden G-code: `chipload run` on the corpus projects (tests/corpus/jobs/v4, v5) must reproduce
 //! tests/corpus/expected/ byte for byte, twice in a row; and embedding each frozen older job
 //! (`chipload import --into`) must give the same G-code.
 //!
@@ -45,6 +45,9 @@ const GOLDEN: [(&str, &str, &str, &str); 5] = [
     ),
 ];
 
+/// (golden name, project) for projects with no older version: shapes drawn in Chipload.
+const DRAWN: [(&str, &str); 1] = [("v5_drawn_part", "jobs/v5/drawn_part.chipload")];
+
 fn corpus(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/corpus")
@@ -79,7 +82,11 @@ fn golden_gcode() {
     std::fs::create_dir_all(&dir).unwrap();
     let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
     let mut mismatches = Vec::new();
-    for (name, project, _, _) in GOLDEN {
+    let projects = GOLDEN
+        .iter()
+        .map(|&(name, project, _, _)| (name, project))
+        .chain(DRAWN);
+    for (name, project) in projects {
         let project = corpus(project);
         let first = run(&project, &dir.join(format!("{name}-1.nc")));
         let second = run(&project, &dir.join(format!("{name}-2.nc")));

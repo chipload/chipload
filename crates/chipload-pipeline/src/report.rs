@@ -3,7 +3,7 @@
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity, UnitsFrom, units_name};
-use chipload_job::Job;
+use chipload_job::{Geometry, Job, Shape};
 use chipload_toolpath::left::{LeftKind, MaterialLeft};
 
 pub fn severity_name(severity: Severity) -> &'static str {
@@ -116,4 +116,62 @@ pub fn format_material_left(job: &Job, left: &[MaterialLeft]) -> Vec<String> {
         ));
     }
     lines
+}
+
+/// Drawn shapes with their defining values, after a count of both kinds (spec
+/// drawing-tools.md section 5). Angles in degrees. Nothing if no shape is drawn, so a
+/// project straight from a DXF inspects exactly like the DXF.
+pub fn format_shapes(shapes: &[Shape]) -> Vec<String> {
+    let drawn: Vec<&Shape> = shapes.iter().filter(|s| s.is_drawn()).collect();
+    if drawn.is_empty() {
+        return Vec::new();
+    }
+    let mut lines = vec![format!(
+        "Shapes: {} drawn, {} imported",
+        drawn.len(),
+        shapes.len() - drawn.len()
+    )];
+    for shape in drawn {
+        lines.push(format!(
+            "  S{:<4} {:<9} layer {:<12} {}",
+            shape.id,
+            shape.kind_name(),
+            shape.layer,
+            shape_values(&shape.geometry)
+        ));
+    }
+    lines
+}
+
+/// The defining values of a drawn shape, for display.
+pub fn shape_values(geometry: &Geometry) -> String {
+    match geometry {
+        Geometry::Path { segments, .. } => format!("{} segments", segments.len()),
+        Geometry::Circle { center, radius } => format!(
+            "centre ({:.3}, {:.3}) radius {radius:.3}",
+            center[0], center[1]
+        ),
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+        } => format!(
+            "centre ({:.3}, {:.3}) length {length:.3} width {width:.3} angle {:.3}°",
+            center[0],
+            center[1],
+            angle.to_degrees()
+        ),
+        Geometry::Polyline { closed, points } => {
+            let list: Vec<String> = points
+                .iter()
+                .map(|p| format!("({:.3}, {:.3})", p[0], p[1]))
+                .collect();
+            format!(
+                "{} {}",
+                if *closed { "closed" } else { "open" },
+                list.join(" ")
+            )
+        }
+    }
 }
