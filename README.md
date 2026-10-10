@@ -4,6 +4,25 @@ Cross-platform 2.5D CAM application (DXF in, G-code out), written in Rust with a
 
 See `CLAUDE.md` for architecture rules, conventions, and workflow.
 
+## Safety warning
+
+**CNC machines are dangerous.** A wrong program can break tools, throw parts or swarf, damage
+the machine and injure people. Chipload checks every program it writes, but the checker can
+only catch the mistakes it knows about: it can't know your stock, your clamps, your fixture,
+your tool or your machine's real state.
+
+**You are responsible for verifying every generated program yourself** before you run it:
+
+1. Look at the toolpath in a G-code viewer or simulator, for example
+   [NC Viewer](https://ncviewer.com), [gSender](https://sienci.com/gsender/) or
+   [CAMotics](https://camotics.org): depths, the work zero, clamps in the way, the cut
+   order and the stock left holding the part.
+2. Do an **air cut** on the actual machine: set the work zero above the stock (or raise Z)
+   and run the program without cutting, with a hand on the stop button.
+3. Only then cut, and never leave a running machine unattended.
+
+Chipload comes with no warranty (GPL-3.0, sections 15 and 16).
+
 ## Download
 
 Releases provide a Linux AppImage and a single Windows `.exe` for the GUI, plus the command
@@ -86,5 +105,5 @@ Chipload is free software: you can redistribute it and/or modify it under the te
 GNU General Public License as published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version. See [LICENSE](LICENSE).
 
-Chipload generates programs that drive machines. It comes with no warranty: always check the
-toolpath in the viewer and do an air cut before machining.
+Chipload generates programs that drive machines. It comes with no warranty: see the
+[safety warning](#safety-warning) above.
