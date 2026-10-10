@@ -81,16 +81,26 @@ impl ChiploadApp {
         };
         if response.drag_started_by(egui::PointerButton::Primary)
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
-            && let Some(handle) = on_handle(origin)
         {
-            self.start_handle_drag(handle);
+            if let Some(handle) = on_handle(origin) {
+                self.start_handle_drag(handle);
+            } else {
+                self.start_drag = self.start_marker_at(origin);
+            }
         }
         if response.drag_stopped() {
             self.end_handle_drag();
+            self.drop_start();
         }
         self.snapped = None;
         self.scene.snap_mark = None;
-        if self.handle_drag.is_some() {
+        if let Some(marker) = self.start_drag {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                self.drag_start_to(marker, self.view.to_world(pos));
+            }
+        } else if self.handle_drag.is_some() {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
@@ -148,6 +158,7 @@ impl ChiploadApp {
             if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()
+                && self.start_marker_at(pos).is_none()
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
@@ -155,17 +166,33 @@ impl ChiploadApp {
             }
         }
         if response.secondary_clicked() {
-            self.context_pick = response
-                .interact_pointer_pos()
-                .and_then(|pos| self.scene.pick(&self.view, pos));
+            let at = response.interact_pointer_pos();
+            self.context_start = at.and_then(|pos| self.start_marker_at(pos));
+            self.context_pick = at.and_then(|pos| self.scene.pick(&self.view, pos));
         }
+        let context_start = self.context_start;
         let picked = self
             .context_pick
             .and_then(|id| self.contours.iter().find(|c| c.id == id));
         let layers: Vec<String> = picked.map(Contour::layers).unwrap_or_default();
         let picked_id = picked.map(|c| c.id);
-        response.context_menu(|ui| match picked_id {
-            Some(id) => {
+        response.context_menu(|ui| match (context_start, picked_id) {
+            (Some(marker), _) => {
+                let moved = self
+                    .scene
+                    .start_markers
+                    .get(marker)
+                    .is_some_and(|m| m.stored.is_some());
+                if ui
+                    .add_enabled(moved, egui::Button::new("Reset start"))
+                    .on_disabled_hover_text("This ring starts where Chipload chose")
+                    .clicked()
+                {
+                    self.reset_start(marker);
+                    ui.close();
+                }
+            }
+            (None, Some(id)) => {
                 if ui.button(format!("Select #{id}")).clicked() {
                     self.click(Some(id), false);
                     ui.close();
@@ -177,7 +204,7 @@ impl ChiploadApp {
                     }
                 }
             }
-            None => {
+            (None, None) => {
                 ui.label("Right-click a contour to select its layer.");
             }
         });
@@ -189,7 +216,17 @@ impl ChiploadApp {
             .hover_pos()
             .map(|pos| self.scene.plunges_at(&self.view, pos))
             .unwrap_or_default();
-        if !plunges.is_empty() && !response.dragged() {
+        let on_start = response
+            .hover_pos()
+            .and_then(|pos| self.start_marker_at(pos))
+            .and_then(|i| self.scene.start_markers.get(i));
+        if let Some(marker) = on_start.filter(|_| !response.dragged()) {
+            let text = match marker.stored {
+                Some(_) => "Start of this ring: drag it along the ring; right-click to reset",
+                None => "Start of this ring: drag it along the ring to move it",
+            };
+            response.on_hover_text_at_pointer(text);
+        } else if !plunges.is_empty() && !response.dragged() {
             let text = self.plunge_text(&plunges);
             response.on_hover_text_at_pointer(text);
         } else if self.show_material_left
@@ -282,6 +319,76 @@ impl ChiploadApp {
             draft.error = None;
         }
         self.scene.snap_mark = None;
+    }
+
+    // -- start points (docs/specs/helix-and-leads.md part A)
+
+    /// The focused operation's start marker at `pos`, in top view.
+    pub(super) fn start_marker_at(&self, pos: egui::Pos2) -> Option<usize> {
+        let Focus::Op(operation) = self.focus else {
+            return None;
+        };
+        if self.three_d || self.sketch.is_some() {
+            return None;
+        }
+        self.scene
+            .start_markers
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m.operation == operation)
+            .map(|(i, m)| (i, self.view.to_screen(m.at).distance(pos)))
+            .filter(|&(_, d)| d <= crate::view::PICK_TOLERANCE_PX + 2.0)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
+    }
+
+    /// Move a start marker along its ring, towards `to` (drawing coordinates).
+    pub fn drag_start_to(&mut self, marker: usize, to: Point) {
+        self.start_drag = Some(marker);
+        if let Some(m) = self.scene.start_markers.get_mut(marker) {
+            m.move_to(to);
+        }
+    }
+
+    /// Store where the dragged marker was left as the ring's start point, and generate
+    /// again so the toolpath starts there.
+    pub fn drop_start(&mut self) {
+        let Some(marker) = self.start_drag.take() else {
+            return;
+        };
+        let Some(m) = self.scene.start_markers.get(marker).cloned() else {
+            return;
+        };
+        let Some(op) = self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)) else {
+            return;
+        };
+        let point = [m.at.0, m.at.1];
+        let starts = op.op.starts_mut();
+        match m.stored.filter(|&k| k < starts.len()) {
+            Some(k) => starts[k] = point,
+            None => starts.push(point),
+        }
+        self.commit();
+        self.generate();
+    }
+
+    /// Forget the point that set this marker's ring start, and generate again.
+    pub fn reset_start(&mut self, marker: usize) {
+        let Some(m) = self.scene.start_markers.get(marker).cloned() else {
+            return;
+        };
+        let (Some(k), Some(op)) = (
+            m.stored,
+            self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)),
+        ) else {
+            return;
+        };
+        let starts = op.op.starts_mut();
+        if k < starts.len() {
+            starts.remove(k);
+        }
+        self.commit();
+        self.generate();
     }
 
     /// "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30", one line per operation.

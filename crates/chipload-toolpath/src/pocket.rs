@@ -31,6 +31,7 @@ use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
+use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
@@ -47,6 +48,12 @@ pub struct PocketPiece {
     pub feed_links: Vec<bool>,
     /// Selected contours that make up this piece, for messages.
     pub contour_ids: Vec<usize>,
+    /// walls[i]: rings[i] is a wall ring (the last ring along a wall or island at each
+    /// depth), whose start the user can move.
+    pub walls: Vec<bool>,
+    /// chosen[i]: the index in the operation's `starts` of the point that set rings[i]'s
+    /// start (docs/specs/helix-and-leads.md part A).
+    pub chosen: Vec<Option<usize>>,
 }
 
 /// Where the tool is after cutting a path: back at its start if closed, at its end if open.
@@ -552,10 +559,11 @@ fn cut_order(
     direction: Direction,
     spindle: Spindle,
     arcs: &mut ArcTable,
-) -> Vec<Vec<Point>> {
+) -> (Vec<Vec<Point>>, Vec<bool>) {
     let wall_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside the ring
     let island_cw = cut_clockwise(Side::Outside, direction, spindle); // material inside it
     let mut rings: Vec<Vec<Point>> = Vec::new();
+    let mut walls: Vec<bool> = Vec::new();
     let mut stack: Vec<(Vec<usize>, Option<usize>)> = vec![(roots.to_vec(), None)];
     while let Some((siblings, waiting)) = stack.last_mut() {
         if !siblings.is_empty() {
@@ -580,6 +588,7 @@ fn cut_order(
         stack.pop();
         let Some(node) = waiting else { continue };
         let area = &nodes[node].area;
+        let wall = roots.contains(&node);
         let mut islands: Vec<Vec<Point>> = area
             .holes
             .iter()
@@ -601,12 +610,14 @@ fn cut_order(
             let ring = orient_from(&island, island_cw, position);
             position = ring[0];
             rings.push(ring);
+            walls.push(wall);
         }
-        let wall = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
-        position = wall[0];
-        rings.push(wall);
+        let outer = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
+        position = outer[0];
+        rings.push(outer);
+        walls.push(wall);
     }
-    rings
+    (rings, walls)
 }
 
 fn min_clearance(radius: f64) -> f64 {
@@ -957,6 +968,46 @@ pub fn plan_pocket_with(
     start: Point,
     strategy: PocketStrategy,
 ) -> Result<PocketPlan, ToolpathError> {
+    plan_pocket_starting(
+        contours,
+        tool_radius,
+        clearance,
+        stepover,
+        direction,
+        spindle,
+        keep_tool_down,
+        start,
+        strategy,
+        &[],
+    )
+}
+
+/// One piece's paths before its links are chosen and it is verified.
+struct Draft {
+    region: Area,
+    ids: Vec<usize>,
+    rings: Vec<Vec<Point>>,
+    level0: Vec<Area>,
+    open: Vec<bool>,
+    walls: Vec<bool>,
+    chosen: Vec<Option<usize>>,
+}
+
+/// [`plan_pocket_with`] with start points for the wall rings (docs/specs/helix-and-leads.md
+/// part A), moved with the copy.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_pocket_starting(
+    contours: &[&Contour],
+    tool_radius: f64,
+    clearance: f64,
+    stepover: f64,
+    direction: Direction,
+    spindle: Spindle,
+    keep_tool_down: bool,
+    start: Point,
+    strategy: PocketStrategy,
+    starts: &[Point],
+) -> Result<PocketPlan, ToolpathError> {
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
             "stepover must be positive, got {stepover}"
@@ -986,6 +1037,7 @@ pub fn plan_pocket_with(
     // Every region with where the tool centre can go in it, for the material left.
     let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
+    let mut drafts: Vec<Draft> = Vec::new();
     while !remaining.is_empty() {
         let here = position;
         let key = |a: &PocketArea| {
@@ -1005,13 +1057,14 @@ pub fn plan_pocket_with(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        let (rings, level0, open) = match strategy {
+        let (rings, level0, open, walls) = match strategy {
             PocketStrategy::Rings {} => {
                 let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
-                let rings = cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
+                let (rings, walls) =
+                    cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
                 let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
                 let open = vec![false; rings.len()];
-                (rings, level0, open)
+                (rings, level0, open, walls)
             }
             PocketStrategy::Adaptive { load } => adaptive_rings(
                 &region,
@@ -1047,11 +1100,11 @@ pub fn plan_pocket_with(
                     step,
                     band: (2.0 * loop_radius + stepover).min(reach),
                 };
-                let (rings, level0) = trochoidal_rings(
+                let (rings, level0, walls) = trochoidal_rings(
                     &region, &trochoid, &ids, position, direction, spindle, &mut arcs, &mut notes,
                 )?;
                 let open = vec![false; rings.len()];
-                (rings, level0, open)
+                (rings, level0, open, walls)
             }
         };
         if level0.len() > 1 {
@@ -1062,6 +1115,37 @@ pub fn plan_pocket_with(
                 level0.len()
             ));
         }
+        position = rings[0][0]; // every depth starts again at the first ring
+        let chosen = vec![None; rings.len()];
+        drafts.push(Draft {
+            region,
+            ids,
+            rings,
+            level0,
+            open,
+            walls,
+            chosen,
+        });
+    }
+    // The order and the clearing were chosen from the planner's starts; only the wall
+    // rings move to the user's.
+    choose_starts(
+        &mut drafts,
+        starts,
+        2.0 * tool_radius,
+        &mut arcs,
+        &mut notes,
+    );
+    for draft in drafts {
+        let Draft {
+            region,
+            ids,
+            rings,
+            level0,
+            open,
+            walls: wall_rings,
+            chosen,
+        } = draft;
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
         let links: Vec<bool> = (1..rings.len())
             .map(|k| {
@@ -1078,12 +1162,13 @@ pub fn plan_pocket_with(
         notes.extend(uncut);
         left.extend(missed);
         reachable.push((region, level0));
-        position = rings[0][0]; // every depth starts again at the first ring
         pieces.push(PocketPiece {
             rings,
             open,
             feed_links: links,
             contour_ids: ids,
+            walls: wall_rings,
+            chosen,
         });
     }
     // Display only: any failure, even a panic in the geometry library, becomes a note.
@@ -1111,6 +1196,57 @@ pub fn plan_pocket_with(
     })
 }
 
+/// Restart each wall ring at the stored point nearest to it (among all the pieces' wall
+/// rings), with notes for points far from their ring (more than `far`) and for a second
+/// point on one ring.
+fn choose_starts(
+    drafts: &mut [Draft],
+    starts: &[Point],
+    far: f64,
+    arcs: &mut ArcTable,
+    notes: &mut Vec<String>,
+) {
+    if starts.is_empty() {
+        return;
+    }
+    let mut at: Vec<(usize, usize)> = Vec::new();
+    for (d, draft) in drafts.iter().enumerate() {
+        at.extend(
+            (0..draft.rings.len())
+                .filter(|&k| draft.walls[k])
+                .map(|k| (d, k)),
+        );
+    }
+    let rings: Vec<&[Point]> = at
+        .iter()
+        .map(|&(d, k)| drafts[d].rings[k].as_slice())
+        .collect();
+    let (chosen, duplicates) = assign(starts, &rings);
+    for (&(d, k), choice) in at.iter().zip(&chosen) {
+        let Some(choice) = choice else { continue };
+        let draft = &mut drafts[d];
+        draft.rings[k] = restart(&draft.rings[k], choice.stored, arcs);
+        draft.chosen[k] = Some(choice.index);
+        if choice.distance > far {
+            notes.push(format!(
+                "contours {}: start point {} is {:.3} mm from the wall; the nearest point is \
+                 used",
+                ids_text(&draft.ids),
+                point_text(choice.stored),
+                choice.distance
+            ));
+        }
+    }
+    for (index, r) in duplicates {
+        let (d, _) = at[r];
+        notes.push(format!(
+            "contours {}: start point {} is on a wall that already has one; it is ignored",
+            ids_text(&drafts[d].ids),
+            point_text(starts[index])
+        ));
+    }
+}
+
 /// Material no pocket of the operation reaches. Crossing pockets clear each other's
 /// corners, so each region is checked against the reach of all of them.
 fn unreachable_in_pockets(
@@ -1132,8 +1268,11 @@ fn unreachable_in_pockets(
 }
 
 /// A piece's paths in cut order, its wall-pass areas (the level 0 of the uncut and
-/// material-left checks), and which paths are open.
-type PiecePaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>);
+/// material-left checks), which paths are open, and which are wall rings.
+type PiecePaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>, Vec<bool>);
+
+/// A piece's closed paths in cut order, its wall-pass areas, and which are wall rings.
+type ClosedPaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>);
 
 /// Adaptive passes (open) and then the wall pass, with the wall-pass areas
 /// (docs/specs/adaptive.md section 3).
@@ -1236,10 +1375,12 @@ fn adaptive_rings(
         })
         .collect();
     let roots: Vec<usize> = (0..wall_nodes.len()).collect();
-    let wall_rings = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
+    let (wall_rings, wall_flags) = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
+    let mut flags = vec![false; rings.len()];
+    flags.extend(wall_flags);
     open.extend(vec![false; wall_rings.len()]);
     rings.extend(wall_rings);
-    Ok((rings, walls, open))
+    Ok((rings, walls, open, flags))
 }
 
 /// Flattened points of a ring, without recording arcs (the material model only needs the
@@ -1275,7 +1416,7 @@ fn trochoidal_rings(
     spindle: Spindle,
     arcs: &mut ArcTable,
     notes: &mut Vec<String>,
-) -> Result<(Vec<Vec<Point>>, Vec<Area>), ToolpathError> {
+) -> Result<ClosedPaths, ToolpathError> {
     let walls = region.shrunk(t.offset)?;
     if walls.is_empty() {
         return Err(geometry(format!(
@@ -1298,7 +1439,7 @@ fn trochoidal_rings(
         let (nodes, roots) =
             ring_tree(region, t.offset + t.loop_radius, t.tool_radius, t.band, ids)?;
         // The backbones themselves aren't cut: their chords don't go in `arcs`.
-        let backbones = cut_order(
+        let (backbones, _) = cut_order(
             &nodes,
             &roots,
             here,
@@ -1325,15 +1466,11 @@ fn trochoidal_rings(
         })
         .collect();
     let roots: Vec<usize> = (0..wall_nodes.len()).collect();
-    rings.extend(cut_order(
-        &wall_nodes,
-        &roots,
-        here,
-        direction,
-        spindle,
-        arcs,
-    ));
-    Ok((rings, walls))
+    let (wall_rings, wall_flags) = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
+    let mut flags = vec![false; rings.len()];
+    flags.extend(wall_flags);
+    rings.extend(wall_rings);
+    Ok((rings, walls, flags))
 }
 
 /// One closed path of loops along a closed `backbone` (cut direction already set): loop

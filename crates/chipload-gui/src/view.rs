@@ -33,6 +33,8 @@ const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
 const GHOST: Color32 = Color32::from_rgb(0x6b, 0x6f, 0x75);
 const GHOST_FADE: f32 = 0.4;
 const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
+/// Start markers of the focused operation's rings: as bright as the operation's outline.
+const START: Color32 = OPERATION;
 /// Material the tool can't reach: faint, it's normal (docs/specs/material-left.md).
 const LEFT_UNREACHABLE: Color32 = Color32::from_rgb(0xae, 0xcb, 0xfa);
 /// Material the toolpath missed: stronger, it comes with a warning.
@@ -508,6 +510,49 @@ pub struct Scene {
     /// Where the copies of the part are, as shifts of the drawing (copy 1 excluded): drawn
     /// faded, never picked (docs/specs/copies-grid.md).
     pub copies: Vec<Point>,
+    /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
+    /// part A); the focused operation's are shown and can be dragged.
+    pub start_markers: Vec<StartMarker>,
+}
+
+/// A ring's start that can be dragged along the ring.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StartMarker {
+    /// Index in the project's operations.
+    pub operation: usize,
+    /// The tool-centre ring, for moving the marker along it.
+    pub ring: Vec<Point>,
+    pub at: Point,
+    /// The cutting direction there, radians CCW from +X.
+    pub heading: f64,
+    /// Index in the operation's `starts` of the point that set it; None: the default.
+    pub stored: Option<usize>,
+}
+
+impl StartMarker {
+    pub fn new(operation: usize, ring: Vec<Point>, stored: Option<usize>) -> Self {
+        let at = ring.first().copied().unwrap_or((0.0, 0.0));
+        let mut marker = StartMarker {
+            operation,
+            ring,
+            at,
+            heading: 0.0,
+            stored,
+        };
+        marker.move_to(at);
+        marker
+    }
+
+    /// Put the marker on the ring's point nearest to `to`, heading along the ring there.
+    pub fn move_to(&mut self, to: Point) {
+        let Some((i, at, _)) = chipload_toolpath::start::nearest_on_ring(&self.ring, to) else {
+            return;
+        };
+        let n = self.ring.len();
+        let (a, b) = (self.ring[i], self.ring[(i + 1) % n]);
+        self.at = at;
+        self.heading = (b.1 - a.1).atan2(b.0 - a.0);
+    }
 }
 
 impl Scene {
@@ -746,6 +791,22 @@ impl Scene {
                 Stroke::new(1.5, SELECTED),
                 eframe::egui::StrokeKind::Middle,
             );
+        }
+        for marker in &self.start_markers {
+            if flat && highlight.operation == Some(marker.operation) {
+                let at = view.to_screen(marker.at);
+                painter.circle_filled(at, 6.0, BACKGROUND);
+                painter.circle_stroke(at, 6.0, Stroke::new(2.0, START));
+                if marker.stored.is_some() {
+                    painter.circle_filled(at, 3.0, START);
+                }
+                let ahead = at
+                    + Vec2::new(
+                        (16.0 * marker.heading.cos()) as f32,
+                        (-16.0 * marker.heading.sin()) as f32,
+                    );
+                painter.add(chevron(ahead, marker.heading, START));
+            }
         }
         if let Some(p) = self.snap_mark {
             let c = view.to_screen(p);

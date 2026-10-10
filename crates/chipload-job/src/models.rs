@@ -850,6 +850,20 @@ impl Operation {
         }
     }
 
+    pub fn starts(&self) -> &[[f64; 2]] {
+        match self {
+            Operation::Profile(p) => &p.starts,
+            Operation::Pocket(p) => &p.starts,
+        }
+    }
+
+    pub fn starts_mut(&mut self) -> &mut Vec<[f64; 2]> {
+        match self {
+            Operation::Profile(p) => &mut p.starts,
+            Operation::Pocket(p) => &mut p.starts,
+        }
+    }
+
     pub fn clearance(&self) -> f64 {
         match self {
             Operation::Profile(op) => op.clearance,
@@ -899,6 +913,10 @@ pub struct ProfileOp {
     /// Missing: straight down, as before (docs/specs/ramp-entry.md).
     #[serde(default)]
     pub entry: Entry,
+    /// Where rings start, in drawing coordinates (mm): each point moves the start of the
+    /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
+    #[serde(default)]
+    pub starts: Vec<[f64; 2]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -933,6 +951,10 @@ pub struct PocketOp {
     /// Missing: straight down, as before (docs/specs/ramp-entry.md).
     #[serde(default)]
     pub entry: Entry,
+    /// Where rings start, in drawing coordinates (mm): each point moves the start of the
+    /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
+    #[serde(default)]
+    pub starts: Vec<[f64; 2]>,
 }
 
 /// How the tool goes down into the material at the start of each pass
@@ -1268,6 +1290,15 @@ impl Job {
                     "operations.{i}.entry.ramp_angle: must be more than 0 and at most 30 \
                      degrees, got {:.3} degrees",
                     ramp_angle.to_degrees()
+                ));
+            }
+            if op
+                .starts()
+                .iter()
+                .any(|p| !(p[0].is_finite() && p[1].is_finite()))
+            {
+                problems.push(format!(
+                    "operations.{i}.starts: every start point needs finite x and y"
                 ));
             }
             if let Operation::Pocket(p) = op

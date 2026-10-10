@@ -14,7 +14,7 @@ use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
-use crate::pocket::{PocketPiece, plan_pocket_with, pocket_moves};
+use crate::pocket::{PocketPiece, plan_pocket_starting, pocket_moves};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours};
 use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
@@ -33,6 +33,20 @@ pub struct Plan {
     pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, in cut order, for display.
     pub op_spans: Vec<OpSpan>,
+    /// Every ring whose start the user can move (on the part, copy 1), for the start
+    /// markers (docs/specs/helix-and-leads.md part A).
+    pub ring_starts: Vec<RingStart>,
+}
+
+/// A ring whose start can be moved: profile rings and pocket wall rings.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RingStart {
+    /// Index in `job.operations`.
+    pub operation: usize,
+    /// The tool-centre ring in cut direction, starting at its start.
+    pub ring: Vec<Point>,
+    /// Index in the operation's `starts` of the point that set it; None: the planner's.
+    pub stored: Option<usize>,
 }
 
 /// The moves one operation contributed to the program.
@@ -59,6 +73,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut pockets: Vec<PocketPiece> = Vec::new();
     let mut material_left: Vec<MaterialLeft> = Vec::new();
     let mut op_spans: Vec<OpSpan> = Vec::new();
+    let mut ring_starts: Vec<RingStart> = Vec::new();
     let mut arcs = ArcTable::default();
     let mut position: Point = (0.0, 0.0);
     // Every enabled operation's selection, chosen once on the drawing as drawn.
@@ -130,9 +145,18 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             contours: moved.iter().collect(),
             notes: Vec::new(),
         };
+        let starts: Vec<Point> = op
+            .starts()
+            .iter()
+            .map(|p| (p[0] + offset.0, p[1] + offset.1))
+            .collect();
         let planned = match op {
-            Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &shifted, position),
-            Operation::Profile(profile) => plan_profile_op(profile, &context, &shifted, position),
+            Operation::Pocket(pocket) => {
+                plan_pocket_op(pocket, &context, &shifted, position, &starts)
+            }
+            Operation::Profile(profile) => {
+                plan_profile_op(profile, &context, &shifted, position, &starts)
+            }
         };
         let planned = match planned {
             Ok(planned) => planned,
@@ -158,6 +182,11 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         // Material left describes the part: the copies leave the same.
         if number == 1 {
             material_left.extend(attach(*index, planned.left));
+            ring_starts.extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
+                operation: *index,
+                ring,
+                stored,
+            }));
         }
         arcs.extend(planned.arcs);
         position = planned.end;
@@ -181,6 +210,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         pockets,
         material_left,
         op_spans,
+        ring_starts,
     })
 }
 
@@ -223,6 +253,8 @@ struct Planned {
     left: Vec<LeftPiece>,
     arcs: ArcTable,
     end: Point,
+    /// Rings whose start can be moved, and the stored point that set it.
+    starts: Vec<(Vec<Point>, Option<usize>)>,
 }
 
 fn plan_pocket_op(
@@ -230,9 +262,10 @@ fn plan_pocket_op(
     ctx: &Context,
     selection: &Selection,
     start: Point,
+    starts: &[Point],
 ) -> Result<Planned, ToolpathError> {
     let label = ctx.label;
-    let plan = plan_pocket_with(
+    let plan = plan_pocket_starting(
         &selection.contours,
         ctx.tool.diameter / 2.0,
         op.clearance,
@@ -242,6 +275,7 @@ fn plan_pocket_op(
         op.keep_tool_down,
         start,
         op.strategy,
+        starts,
     )
     .map_err(|err| err.with_context(label))?;
     let mut out = Planned {
@@ -252,8 +286,15 @@ fn plan_pocket_op(
         left: plan.left,
         arcs: plan.arcs,
         end: start,
+        starts: Vec::new(),
     };
     for piece in &plan.pieces {
+        for (k, ring) in piece.rings.iter().enumerate() {
+            if piece.walls.get(k).copied().unwrap_or(false) {
+                out.starts
+                    .push((ring.clone(), piece.chosen.get(k).copied().flatten()));
+            }
+        }
         out.moves.extend(
             pocket_moves(
                 piece,
@@ -283,6 +324,7 @@ fn plan_profile_op(
     ctx: &Context,
     selection: &Selection,
     start: Point,
+    starts: &[Point],
 ) -> Result<Planned, ToolpathError> {
     let label = ctx.label;
     let machine = &ctx.job.machine;
@@ -293,6 +335,7 @@ fn plan_profile_op(
         ctx.tool.diameter / 2.0,
         machine.spindle,
         start,
+        starts,
     )?;
     let mut out = Planned {
         moves: Vec::new(),
@@ -302,6 +345,12 @@ fn plan_profile_op(
         left: plan.left,
         arcs: plan.arcs,
         end: start,
+        starts: plan
+            .rings
+            .iter()
+            .zip(&plan.chosen)
+            .map(|(ring, &stored)| (ring.points.clone(), stored))
+            .collect(),
     };
     if let Some(tabs) = &op.tabs {
         let cut = op.end_depth - op.start_depth;

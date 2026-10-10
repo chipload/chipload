@@ -519,3 +519,62 @@ fn ok_inspect(project: &str) -> String {
     assert!(out.status.success());
     text(&out.stdout)
 }
+
+#[test]
+fn start_points_are_shown_by_plan_and_pass_the_checker() {
+    // docs/specs/helix-and-leads.md part A
+    let dir = temp_dir("starts");
+    let project = dir.join("p.chipload");
+    let p = path(&project);
+    let ok = |args: &[&str]| {
+        let out = chipload(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    ok(&["new", "-o", p]);
+    ok(&[
+        "shape", "add", p, "circle", "--center", "50,50", "--radius", "20",
+    ]);
+    ok(&[
+        "shape",
+        "add",
+        p,
+        "rectangle",
+        "--center",
+        "150,50",
+        "--length",
+        "60",
+        "--width",
+        "40",
+    ]);
+    let mut job: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+    job["operations"] = serde_json::json!([
+        {"type": "pocket", "select": {"shapes": [2]}, "tool": 1, "start_depth": 0.0,
+         "end_depth": 4.0, "clearance": 0.0, "step_down": 2.0, "stepover": 0.4,
+         "direction": "climb", "feed": 1500.0, "plunge_feed": 400.0,
+         "starts": [[150.0, 75.0]]},
+        {"type": "profile", "select": {"shapes": [1]}, "side": "outside",
+         "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
+         "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,
+         "tabs": {"count": 3, "width": 6.0, "height": 2.0}, "starts": [[90.0, 90.0]]}
+    ]);
+    std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
+    let out = ok(&["plan", p]);
+    // The pocket's wall ring runs 3 mm inside the 60 x 40 rectangle: its top is y = 67.
+    assert!(
+        out.contains("Operation 1: a ring starts at (150.000, 67.000) (start point 1)"),
+        "{out}"
+    );
+    // On the circle 3 mm outside the disc, towards (90, 90): 50 + 23 / √2.
+    assert!(
+        out.contains("Operation 2: a ring starts at (66.263, 66.263) (start point 1)"),
+        "{out}"
+    );
+    // Arcs split at the start still pass the independent checker.
+    let nc = dir.join("p.nc");
+    ok(&["run", p, "-o", path(&nc)]);
+    let gcode = std::fs::read_to_string(&nc).unwrap();
+    assert!(gcode.contains("G2") || gcode.contains("G3"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

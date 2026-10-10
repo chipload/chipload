@@ -27,7 +27,7 @@ use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
-use chipload_toolpath::{OpSpan, ToolpathError, plan_job, validate_job};
+use chipload_toolpath::{OpSpan, RingStart, ToolpathError, plan_job, validate_job};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PipelineError {
@@ -65,6 +65,8 @@ pub struct RunResult {
     pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, for display.
     pub op_spans: Vec<OpSpan>,
+    /// Rings whose start the user can move, for the start markers.
+    pub ring_starts: Vec<RingStart>,
     /// Toolpath warnings.
     pub notes: Vec<String>,
     pub check_warnings: Vec<CheckIssue>,
@@ -105,6 +107,7 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
         pockets: plan.pockets,
         material_left: plan.material_left,
         op_spans: plan.op_spans,
+        ring_starts: plan.ring_starts,
         notes,
         check_warnings: report.warnings,
     })

@@ -1002,3 +1002,78 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
         app.report
     );
 }
+
+#[test]
+fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
+    // docs/specs/helix-and-leads.md part A
+    let mut app = lower_part();
+    assert!(app.generate(), "{:?}", app.report);
+    app.focus = Focus::Op(1);
+    let marker = app
+        .scene
+        .start_markers
+        .iter()
+        .position(|m| m.operation == 1)
+        .expect("the profile's ring has a marker");
+    assert_eq!(app.scene.start_markers[marker].stored, None);
+    let before = first_cut(&app);
+    // The ring's point halfway round, as far as possible from the default start.
+    let ring = app.scene.start_markers[marker].ring.clone();
+    let far = ring[ring.len() / 2];
+    // Dragging follows the ring, wherever the pointer is.
+    app.drag_start_to(marker, (far.0 + 0.4, far.1 - 0.3));
+    let on_ring = app.scene.start_markers[marker].at;
+    let (_, _, d) = chipload_toolpath::start::nearest_on_ring(&ring, on_ring).unwrap();
+    assert!(d < 1e-9);
+    app.drop_start();
+    let starts = app.edit.as_ref().unwrap().ops[1].op.starts().to_vec();
+    assert_eq!(starts, vec![[on_ring.0, on_ring.1]]);
+    assert!(app.result.is_some(), "generated again: {:?}", app.report);
+    // The profile now starts there; the markers show it.
+    let moved = app
+        .scene
+        .start_markers
+        .iter()
+        .find(|m| m.operation == 1)
+        .unwrap();
+    assert_eq!(moved.stored, Some(0));
+    // On a chord of an arc the start goes onto the arc itself: within the arc tolerance.
+    let tol = chipload_core::tolerances::ARC_APPROX_TOL_MM;
+    assert!(
+        (moved.at.0 - on_ring.0).hypot(moved.at.1 - on_ring.1) <= tol,
+        "{:?} vs {on_ring:?}",
+        moved.at
+    );
+    assert_eq!(first_cut(&app), before, "the pocket still comes first");
+
+    // Reset removes the point; undo brings it back.
+    let marker = app
+        .scene
+        .start_markers
+        .iter()
+        .position(|m| m.operation == 1)
+        .unwrap();
+    app.reset_start(marker);
+    assert!(app.edit.as_ref().unwrap().ops[1].op.starts().is_empty());
+    app.undo();
+    assert_eq!(app.edit.as_ref().unwrap().ops[1].op.starts().len(), 1);
+}
+
+#[test]
+fn start_markers_are_only_for_the_focused_operation_in_top_view() {
+    let mut app = lower_part();
+    assert!(app.generate(), "{:?}", app.report);
+    let marker = &app.scene.start_markers[0];
+    let pos = app.view.to_screen(marker.at);
+    let operation = marker.operation;
+    app.focus = Focus::Job;
+    assert_eq!(app.start_marker_at(pos), None);
+    app.focus = Focus::Op(operation);
+    assert_eq!(app.start_marker_at(pos), Some(0));
+    app.view_3d();
+    assert_eq!(app.start_marker_at(pos), None);
+    app.view_top();
+    // A change to the project hides them until the next generation.
+    app.toolpath_out_of_date();
+    assert!(app.scene.start_markers.is_empty());
+}

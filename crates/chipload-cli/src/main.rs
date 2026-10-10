@@ -881,6 +881,11 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                     "kind": m.kind.name(),
                     "rings": m.rings,
                 })).collect::<Vec<_>>(),
+                "ring_starts": plan.ring_starts.iter().map(|s| json!({
+                    "operation": s.operation,
+                    "start": s.ring.first(),
+                    "stored": s.stored,
+                })).collect::<Vec<_>>(),
             })
         );
     } else {
@@ -889,6 +894,19 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
         }
         for line in format_material_left(&job, &plan.material_left) {
             println!("{line}");
+        }
+        for start in &plan.ring_starts {
+            let Some((x, y)) = start.ring.first() else {
+                continue;
+            };
+            let from = match start.stored {
+                Some(k) => format!("start point {}", k + 1),
+                None => "default".into(),
+            };
+            println!(
+                "Operation {}: a ring starts at ({x:.3}, {y:.3}) ({from})",
+                start.operation + 1
+            );
         }
         if let Some(text) = copies_text(&job) {
             println!("Copies: {text}");

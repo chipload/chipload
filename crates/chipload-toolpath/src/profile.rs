@@ -14,6 +14,7 @@ use crate::model::Move;
 use crate::offset::{contour_pline, offset_rings_tagged, start_index};
 use crate::pocket::{Area, ccw, guarded};
 use crate::ramp::{enter, polyline_length};
+use crate::start::{assign, point_text, restart};
 
 /// Travel direction around the ring.
 ///
@@ -170,8 +171,12 @@ pub struct ProfilePlan {
     pub left: Vec<LeftPiece>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
+    /// For each ring, the index in `starts` of the point that set its start.
+    pub chosen: Vec<Option<usize>>,
 }
 
+/// `starts`: the operation's start points, moved with the copy (docs/specs/helix-and-leads.md
+/// part A).
 pub fn plan_profile(
     op: &ProfileOp,
     label: &str,
@@ -179,6 +184,7 @@ pub fn plan_profile(
     tool_radius: f64,
     spindle: Spindle,
     start: Point,
+    starts: &[Point],
 ) -> Result<ProfilePlan, ToolpathError> {
     let clockwise = cut_clockwise(op.side, op.direction, spindle);
     // The tool centre runs this far from the contour (docs/specs/depths-and-clearance.md).
@@ -223,12 +229,58 @@ pub fn plan_profile(
             contour_id: contour.id,
         }));
     }
+    // The order is chosen from the planner's starts, so moving a start doesn't reorder.
+    let mut rings = order_rings(rings, start);
+    let chosen = apply_starts(
+        &mut rings,
+        starts,
+        label,
+        2.0 * tool_radius,
+        &mut arcs,
+        &mut notes,
+    );
     Ok(ProfilePlan {
-        rings: order_rings(rings, start),
+        rings,
         notes,
         left,
         arcs,
+        chosen,
     })
+}
+
+/// Restart each ring at the stored point nearest to it, with notes for points far from
+/// their ring (more than `far`) and for a second point on one ring.
+fn apply_starts(
+    rings: &mut [PathRing],
+    starts: &[Point],
+    label: &str,
+    far: f64,
+    arcs: &mut ArcTable,
+    notes: &mut Vec<String>,
+) -> Vec<Option<usize>> {
+    let all: Vec<&[Point]> = rings.iter().map(|r| r.points.as_slice()).collect();
+    let (chosen, duplicates) = assign(starts, &all);
+    for (ring, choice) in rings.iter_mut().zip(&chosen) {
+        let Some(choice) = choice else { continue };
+        ring.points = restart(&ring.points, choice.stored, arcs);
+        if choice.distance > far {
+            notes.push(format!(
+                "{label}: start point {} is {:.3} mm from contour #{}; the nearest point is used",
+                point_text(choice.stored),
+                choice.distance,
+                ring.contour_id
+            ));
+        }
+    }
+    for (index, r) in duplicates {
+        notes.push(format!(
+            "{label}: start point {} is on contour #{} too, which already has one; it is \
+             ignored",
+            point_text(starts[index]),
+            rings[r].contour_id
+        ));
+    }
+    chosen.iter().map(|c| c.map(|c| c.index)).collect()
 }
 
 /// Material on the cut side of the contour that the tool can't reach (spec material-left.md

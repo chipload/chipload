@@ -15,9 +15,10 @@ pub mod pocket;
 pub mod profile;
 pub mod ramp;
 pub mod select;
+pub mod start;
 pub mod tabs;
 
-pub use plan::{OpSpan, Plan, plan_job, validate_job};
+pub use plan::{OpSpan, Plan, RingStart, plan_job, validate_job};
 
 /// Why no toolpath could be made. Messages are the user-facing text.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]

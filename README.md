@@ -75,7 +75,8 @@ The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import 
 profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
 reorder, untick to skip one. **F5** generates and shows the toolpath (each operation numbered
 at its first plunge, arrows in the cutting direction, rapids dashed, tabs highlighted, material
-the tool can't reach shaded); **Ctrl+S** saves
+the tool can't reach shaded; with an operation selected, a marker shows where each ring
+starts: drag it along the ring to start the cut elsewhere, right-click it to reset); **Ctrl+S** saves
 the project, **Ctrl+E** exports G-code, which is only possible after the check passes.
 **3D** shows the toolpath at its real depths (left-drag turns, right-drag pans, Z can be
 stretched in the View menu); **Top view** (T) goes back.
@@ -86,7 +87,7 @@ Supported: **profile** operations (inside, outside, on) with optional holding ta
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
 **pocket** operations with islands, cleared in rings, with trochoidal loops or adaptively; climb or conventional, a start and end depth with
 multiple passes, a clearance (positive: larger pocket or smaller part, negative: stock left),
-cuts into the spoilboard up to a set limit, straight plunges or ramp entry (down along the path, for tools that aren't centre-cutting), one tool per job, and the GRBL post (arcs written as G2/G3).
+cuts into the spoilboard up to a set limit, straight plunges or ramp entry (down along the path, for tools that aren't centre-cutting), start points chosen per ring (`"starts": [[x, y]]`, each moving the start of the ring nearest to it), one tool per job, and the GRBL post (arcs written as G2/G3).
 G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
 limitations.

@@ -252,6 +252,7 @@ impl EditJob {
                         plunge_feed,
                         tabs: None,
                         entry,
+                        starts: Vec::new(),
                     }),
                     side.is_some(),
                 )
@@ -273,6 +274,7 @@ impl EditJob {
                     keep_tool_down: false,
                     strategy: PocketStrategy::Rings {},
                     entry,
+                    starts: Vec::new(),
                 }),
                 true,
             ),

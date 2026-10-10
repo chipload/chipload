@@ -33,7 +33,7 @@ use eframe::egui::{
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
-use crate::view::{ContourShape, Highlight, LeftShape, Scene, ToolpathShape, View};
+use crate::view::{ContourShape, Highlight, LeftShape, Scene, StartMarker, ToolpathShape, View};
 
 mod canvas;
 mod dialogs;
@@ -161,6 +161,10 @@ pub struct ChiploadApp {
     snapped: Option<(Point, Option<SnapPoint>)>,
     /// The handle being dragged, if any.
     handle_drag: Option<HandleDrag>,
+    /// The start marker being dragged (index in `scene.start_markers`).
+    start_drag: Option<usize>,
+    /// The start marker right-clicked, for its context menu.
+    context_start: Option<usize>,
 
     pub report: Vec<String>,
     status: Option<(String, Instant)>,
@@ -206,6 +210,8 @@ impl Default for ChiploadApp {
             snap_points: Vec::new(),
             snapped: None,
             handle_drag: None,
+            start_drag: None,
+            context_start: None,
             report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
             status: None,
             cursor: None,
@@ -643,6 +649,11 @@ impl ChiploadApp {
                     Some(ToolpathShape::new(&result.program, false, &result.op_spans));
                 self.scene.tabs.clone_from(&result.tabs);
                 self.scene.left = result.material_left.iter().map(LeftShape::new).collect();
+                self.scene.start_markers = result
+                    .ring_starts
+                    .iter()
+                    .map(|s| StartMarker::new(s.operation, s.ring.clone(), s.stored))
+                    .collect();
                 // Missed pieces on top.
                 self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
                 let mut lines = vec![format!(
@@ -670,6 +681,7 @@ impl ChiploadApp {
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
                 self.scene.tabs.clear();
                 self.scene.left.clear();
+                self.scene.start_markers.clear();
                 let mut lines = vec!["G-code check FAILED. Nothing can be exported.".to_string()];
                 lines.extend(errors);
                 self.error(lines);
@@ -679,6 +691,7 @@ impl ChiploadApp {
                 self.scene.toolpath = None;
                 self.scene.tabs.clear();
                 self.scene.left.clear();
+                self.scene.start_markers.clear();
                 let message = err.to_string();
                 self.error_ops = operation_index(&message).into_iter().collect();
                 self.error(vec!["Generation failed:".into(), message]);
@@ -832,6 +845,9 @@ impl ChiploadApp {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
         self.scene.left.clear();
+        self.scene.start_markers.clear();
+        self.start_drag = None;
+        self.context_start = None;
     }
 
     fn toolpath_out_of_date(&mut self) {
