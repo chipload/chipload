@@ -17,8 +17,7 @@ use chipload_pipeline::report::{
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
-    PipelineError, embed_drawing, load_drawing, new_project, run_job, update_drawing,
-    write_atomically,
+    PipelineError, load_drawing, new_project, run_job, update_drawing, write_atomically,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::model::{Move, MoveKind, Program};
@@ -52,13 +51,10 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// Create a project from a DXF, or embed the DXF of an older job (--into).
+    /// Create a project from a DXF.
     Import {
-        /// The DXF. With --into it defaults to the job's drawing, next to the job file.
-        dxf: Option<PathBuf>,
-        /// An older job (.json) whose drawing to embed.
-        #[arg(long)]
-        into: Option<PathBuf>,
+        /// The DXF.
+        dxf: PathBuf,
         /// Units of a DXF that does not declare them.
         #[arg(long)]
         units: Option<UnitsArg>,
@@ -219,10 +215,9 @@ fn main() -> ExitCode {
         } => inspect(&file, units(u), json),
         Command::Import {
             dxf,
-            into,
             units: u,
             output,
-        } => import(dxf.as_deref(), into.as_deref(), units(u), &output),
+        } => import(&dxf, units(u), &output),
         Command::Update {
             project,
             from,
@@ -253,56 +248,20 @@ fn is_dxf(path: &Path) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
 }
 
-fn import(
-    dxf: Option<&Path>,
-    into: Option<&Path>,
-    units: Option<Units>,
-    output: &Path,
-) -> ExitCode {
-    let (project, report) = match into {
-        Some(job_path) => {
-            let job = match load_job(job_path) {
-                Ok(job) => job,
-                Err(err) => return fail(err),
-            };
-            let Some(external) = &job.drawing.external else {
-                return fail(format!(
-                    "{} already has its drawing embedded",
-                    job_path.display()
-                ));
-            };
-            let drawing = dxf.map_or_else(
-                || job_path.with_file_name(&external.file),
-                Path::to_path_buf,
-            );
-            match embed_drawing(&job, &drawing) {
-                Ok(done) => done,
-                Err(err) => return fail(err),
-            }
-        }
-        None => {
-            let Some(dxf) = dxf else {
-                return fail("give a DXF to import, or --into <job> to embed a job's drawing");
-            };
-            match shapes_from_dxf(dxf, units) {
-                Ok(imported) => {
-                    let line = format!(
-                        "Imported {} ({} shapes).",
-                        imported.source.file,
-                        imported.shapes.len()
-                    );
-                    (new_project(imported), vec![line])
-                }
-                Err(err) => return fail(err),
-            }
-        }
+fn import(dxf: &Path, units: Option<Units>, output: &Path) -> ExitCode {
+    let imported = match shapes_from_dxf(dxf, units) {
+        Ok(imported) => imported,
+        Err(err) => return fail(err),
     };
-    if let Err(err) = save_job(&project, output) {
+    let line = format!(
+        "Imported {} ({} shapes).",
+        imported.source.file,
+        imported.shapes.len()
+    );
+    if let Err(err) = save_job(&new_project(imported), output) {
         return fail(err);
     }
-    for line in report {
-        println!("{line}");
-    }
+    println!("{line}");
     println!("Wrote {}", output.display());
     ExitCode::SUCCESS
 }

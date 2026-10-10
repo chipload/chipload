@@ -6,7 +6,7 @@ mod common;
 
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
-use chipload_job::{Job, parse_job};
+use chipload_job::{CURRENT_VERSION, Job, parse_job};
 use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::{ToolpathError, plan_job};
 use serde_json::{Value, json};
@@ -14,8 +14,9 @@ use serde_json::{Value, json};
 fn job(operations: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": 3,
-            "source": {"file": "x.dxf", "units": "mm"},
+            "schema_version": CURRENT_VERSION,
+            // plan_job gets its contours directly; the drawing isn't used here.
+            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left"},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw"},
             "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],

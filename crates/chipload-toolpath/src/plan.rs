@@ -60,12 +60,11 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
-        let (select, depth, step_down) = match op {
-            Operation::Profile(p) => (&p.select, p.depth, p.step_down),
-            Operation::Pocket(p) => (&p.select, p.depth, p.step_down),
-            Operation::Drill(_) => return Err(not_ported(&label, op)),
+        let (depth, step_down) = match op {
+            Operation::Profile(p) => (p.depth, p.step_down),
+            Operation::Pocket(p) => (p.depth, p.step_down),
         };
-        let selection = select_contours(contours, select, &label)?;
+        let selection = select_contours(contours, op.select(), &label)?;
         notes.extend(selection.notes.iter().cloned());
         let pass_z: Vec<f64> = pass_depths(depth, step_down)?
             .into_iter()
@@ -82,7 +81,6 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             Operation::Profile(profile) => {
                 plan_profile_op(profile, &context, &selection, position)?
             }
-            Operation::Drill(_) => return Err(not_ported(&label, op)),
         };
         let first = moves.len();
         moves.extend(planned.moves);
@@ -281,17 +279,6 @@ fn plan_profile_op(
     Ok(out)
 }
 
-fn not_ported(label: &str, op: &Operation) -> ToolpathError {
-    let kind = match op {
-        Operation::Profile(_) => "profile",
-        Operation::Pocket(_) => "pocket",
-        Operation::Drill(_) => "drill",
-    };
-    job_error(format!(
-        "{label}: '{kind}' is not ported to the Rust version yet"
-    ))
-}
-
 fn job_error(message: String) -> ToolpathError {
     ToolpathError::Job(message)
 }
@@ -312,14 +299,6 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
             .enumerate()
             .filter(|(_, op)| op.enabled())
     };
-    for (index, op) in enabled() {
-        if let Operation::Drill(_) = op {
-            return Err(job_error(format!(
-                "Operation {}: 'drill' is not implemented in this version",
-                index + 1
-            )));
-        }
-    }
     let mut used: Vec<i64> = enabled().map(|(_, op)| op.tool()).collect();
     used.sort_unstable();
     used.dedup();
@@ -357,7 +336,6 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
         let (depth, feed, plunge_feed) = match op {
             Operation::Profile(p) => (p.depth, p.feed, p.plunge_feed),
             Operation::Pocket(p) => (p.depth, p.feed, p.plunge_feed),
-            Operation::Drill(_) => continue,
         };
         if depth > job.stock.thickness {
             return Err(job_error(format!(

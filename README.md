@@ -30,14 +30,15 @@ chipload check part.nc --job part.chipload       # the independent checker on an
 ```
 
 A project (`.chipload`) holds the drawing's geometry, so the DXF is only needed to import or
-update it. Older `.json` jobs open too and are converted with `chipload import --into job.json
-part.dxf -o part.chipload` (GUI: File > Embed drawing).
+update it. Circles, rectangles and polylines can also be drawn in the project
+(`chipload shape add …`, or the GUI's Draw menu).
 
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
 (Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New
 profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
-reorder, untick to skip one. **F5** generates and shows the toolpath (start points numbered in
-cut order, arrows in the cutting direction, rapids dashed, tabs highlighted); **Ctrl+S** saves
+reorder, untick to skip one. **F5** generates and shows the toolpath (each operation numbered
+at its first plunge, arrows in the cutting direction, rapids dashed, tabs highlighted, material
+the tool can't reach shaded); **Ctrl+S** saves
 the project, **Ctrl+E** exports G-code, which is only possible after the check passes.
 *File > Update drawing from DXF* takes in a re-exported drawing and keeps the operations.
 `chipload run` on a saved project gives the same G-code.
@@ -47,7 +48,7 @@ Supported: **profile** operations (inside, outside, on) with optional holding ta
 **pocket** operations with islands; climb or conventional, multiple depth passes, one tool
 per job, and the GRBL post.
 G-code is written only if it passes the independent checker. See
-`tests/corpus/jobs/v3/` for example jobs and `docs/specs/` for exact behaviour and
+`tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
 limitations.
 
 The GUI uses installed system fonts (e.g. DejaVu Sans). On Linux, native file dialogs need

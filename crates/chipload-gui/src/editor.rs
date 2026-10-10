@@ -49,7 +49,6 @@ impl CanvasSelection {
         match self {
             CanvasSelection::Layer(layer) => Selector {
                 layer: Some(layer.clone()),
-                handles: None,
                 shapes: None,
             },
             _ => {
@@ -64,7 +63,6 @@ impl CanvasSelection {
                 }
                 Selector {
                     layer: None,
-                    handles: None,
                     shapes: Some(shapes),
                 }
             }
@@ -128,10 +126,9 @@ impl EditJob {
 
     /// Feeds, step-down and stepover from the nearest operation above `index`, or defaults.
     fn inherited(&self, index: usize) -> (f64, f64, f64, f64) {
-        let above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
-            Operation::Profile(p) => Some((p.step_down, p.feed, p.plunge_feed, None)),
-            Operation::Pocket(p) => Some((p.step_down, p.feed, p.plunge_feed, Some(p.stepover))),
-            Operation::Drill(_) => None,
+        let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
+            Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
+            Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
         });
         let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
             Operation::Pocket(p) => Some(p.stepover),
@@ -239,7 +236,6 @@ impl EditJob {
                 }
             }
             Operation::Pocket(p) => p.select = select,
-            Operation::Drill(d) => d.select = select,
         }
     }
 
@@ -278,14 +274,9 @@ impl EditJob {
                     "choose the profile side (inside, outside or on)".to_string(),
                 ));
             }
-            let select = match &edit.op {
-                Operation::Profile(p) => &p.select,
-                Operation::Pocket(p) => &p.select,
-                Operation::Drill(d) => &d.select,
-            };
-            let has_geometry = select.layer.is_some()
-                || select.handles.as_ref().is_some_and(|h| !h.is_empty())
-                || select.shapes.as_ref().is_some_and(|s| !s.is_empty());
+            let select = edit.op.select();
+            let has_geometry =
+                select.layer.is_some() || select.shapes.as_ref().is_some_and(|s| !s.is_empty());
             if !has_geometry {
                 out.push((
                     i,
@@ -318,11 +309,7 @@ impl EditJob {
 
 /// A short description of what an operation selects, e.g. "#4, #6" or "layer upper".
 pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
-    let select = match op {
-        Operation::Profile(p) => &p.select,
-        Operation::Pocket(p) => &p.select,
-        Operation::Drill(d) => &d.select,
-    };
+    let select = op.select();
     if let Some(layer) = &select.layer {
         return format!("layer {layer}");
     }
@@ -342,26 +329,7 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
             ids.join(", ")
         };
     }
-    let handles = select.handles.clone().unwrap_or_default();
-    if handles.is_empty() {
-        return "no geometry".into();
-    }
-    let ids: Vec<String> = contours
-        .iter()
-        .filter(|c| {
-            c.parts.iter().any(|p| {
-                handles
-                    .iter()
-                    .any(|h| h.eq_ignore_ascii_case(&p.segment.handle))
-            })
-        })
-        .map(|c| format!("#{}", c.id))
-        .collect();
-    if ids.is_empty() {
-        format!("handles {} (not in this drawing)", handles.join(", "))
-    } else {
-        ids.join(", ")
-    }
+    "no geometry".into()
 }
 
 #[cfg(test)]

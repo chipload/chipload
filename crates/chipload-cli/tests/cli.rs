@@ -182,19 +182,19 @@ fn import_inspect_update_and_run_a_project() {
 }
 
 #[test]
-fn an_older_job_must_be_embedded_before_it_runs() {
-    let out = chipload(&[
-        "run",
-        path(&corpus("jobs/v3/messy_2_lower.json")),
-        "-o",
-        "/nonexistent/out.nc",
-    ]);
+fn a_job_from_before_projects_is_refused_with_advice() {
+    let dir = temp_dir("old-job");
+    let job = dir.join("old.json");
+    std::fs::write(&job, r#"{"schema_version": 3}"#).unwrap();
+    let out = chipload(&["run", path(&job), "-o", path(&dir.join("out.nc"))]);
     assert_eq!(out.status.code(), Some(1));
     assert!(
-        text(&out.stderr).contains("chipload import --into"),
+        text(&out.stderr).contains("Chipload 0.3.0"),
         "{}",
         text(&out.stderr)
     );
+    assert!(!dir.join("out.nc").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
 }
 
 #[test]

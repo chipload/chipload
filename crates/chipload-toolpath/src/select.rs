@@ -109,17 +109,9 @@ pub fn select_contours<'a>(
 }
 
 fn matches(segment: &Segment, selector: &Selector) -> bool {
-    // DXF layer names and handles are case-insensitive.
+    // DXF layer names are case-insensitive.
     if let Some(layer) = &selector.layer
         && segment.layer.to_lowercase() != layer.to_lowercase()
-    {
-        return false;
-    }
-    if let Some(handles) = &selector.handles
-        && !handles.is_empty()
-        && !handles
-            .iter()
-            .any(|h| h.to_lowercase() == segment.handle.to_lowercase())
     {
         return false;
     }
@@ -136,11 +128,6 @@ fn describe(selector: &Selector) -> String {
     let mut parts = Vec::new();
     if let Some(layer) = &selector.layer {
         parts.push(format!("layer '{layer}'"));
-    }
-    if let Some(handles) = &selector.handles
-        && !handles.is_empty()
-    {
-        parts.push(format!("handles {}", handles.join(", ")));
     }
     if let Some(shapes) = &selector.shapes
         && !shapes.is_empty()

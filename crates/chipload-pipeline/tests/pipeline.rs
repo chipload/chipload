@@ -5,10 +5,8 @@
 use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, Operation, Spindle, load_job, parse_job};
-use chipload_pipeline::{
-    PipelineError, RunResult, embed_drawing, load_drawing, new_project, run_job, update_drawing,
-};
+use chipload_job::{Job, Spindle, load_job, parse_job};
+use chipload_pipeline::{PipelineError, RunResult, new_project, run_job, update_drawing};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::model::MoveKind;
 use serde_json::{Value, json};
@@ -17,10 +15,6 @@ fn corpus(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/corpus")
         .join(rel)
-}
-
-fn simple() -> PathBuf {
-    corpus("dxf/simple_part.dxf")
 }
 
 fn messy_2() -> PathBuf {
@@ -48,14 +42,14 @@ fn with(mut base: Value, changes: Value) -> Job {
     parse_job(migrate(base).unwrap(), "test").unwrap()
 }
 
-/// The v2 sample job (simple_part, inside + outside profile) with changes.
+/// The simple_part sample project (inside + outside profile) with changes.
 fn job(changes: Value) -> Job {
-    with(read("jobs/v2/simple_part_full.json"), changes)
+    with(read("jobs/v4/simple_part_full.chipload"), changes)
 }
 
 /// The sample's outside profile with changes.
 fn op(changes: Value) -> Value {
-    let mut base = read("jobs/v2/simple_part_full.json")["operations"][1].clone();
+    let mut base = read("jobs/v4/simple_part_full.chipload")["operations"][1].clone();
     for (k, v) in changes.as_object().unwrap() {
         base[k] = v.clone();
     }
@@ -79,24 +73,26 @@ fn max(values: &[f64]) -> f64 {
     values.iter().copied().fold(f64::NEG_INFINITY, f64::max)
 }
 
-/// Embed `dxf` into a job made from the old-style samples (as `chipload import --into`).
-fn embed(job: &Job, dxf: &Path) -> Result<Job, PipelineError> {
-    Ok(embed_drawing(job, dxf)?.0)
+/// `job` with its drawing replaced by `dxf`, imported in mm (for drawings without units).
+fn on_drawing(mut job: Job, dxf: &Path) -> Job {
+    let imported = chipload_dxf::shapes_from_dxf(dxf, Some(chipload_job::Units::Mm)).unwrap();
+    job.drawing = new_project(imported).drawing;
+    job
 }
 
-fn run(job: &Job, dxf: &Path) -> RunResult {
-    run_job(&embed(job, dxf).unwrap()).unwrap()
+fn run(job: &Job) -> RunResult {
+    run_job(job).unwrap()
 }
 
-fn error(job: &Job, dxf: &Path) -> PipelineError {
-    match embed(job, dxf).and_then(|j| run_job(&j)) {
+fn error(job: &Job) -> PipelineError {
+    match run_job(job) {
         Ok(_) => panic!("expected an error"),
         Err(err) => err,
     }
 }
 
-fn job_error(job: &Job, dxf: &Path, text: &str) {
-    let err = error(job, dxf);
+fn job_error(job: &Job, text: &str) {
+    let err = error(job);
     assert!(
         matches!(&err, PipelineError::Toolpath(ToolpathError::Job(m)) if m.contains(text)),
         "{err}"
@@ -105,17 +101,14 @@ fn job_error(job: &Job, dxf: &Path, text: &str) {
 
 #[test]
 fn sample_runs_and_passes_check() {
-    let result = run(&job(json!({})), &simple());
+    let result = run(&job(json!({})));
     assert!(result.check_warnings.is_empty());
     assert_eq!(min(&z_values(&result.gcode)), -12.0);
 }
 
 #[test]
 fn depth_equal_to_thickness_is_allowed() {
-    let result = run(
-        &job(json!({"operations": [op(json!({"depth": 12}))]})),
-        &simple(),
-    );
+    let result = run(&job(json!({"operations": [op(json!({"depth": 12}))]})));
     assert_eq!(min(&z_values(&result.gcode)), -12.0);
 }
 
@@ -123,17 +116,15 @@ fn depth_equal_to_thickness_is_allowed() {
 fn depth_beyond_thickness_is_refused() {
     job_error(
         &job(json!({"operations": [op(json!({"depth": 12.5}))]})),
-        &simple(),
         "deeper than the stock",
     );
 }
 
 #[test]
 fn z_zero_bottom_shifts_heights() {
-    let result = run(
-        &job(json!({"stock": {"z_zero": "bottom"}, "machine": {"safe_z": 17}})),
-        &simple(),
-    );
+    let result = run(&job(
+        json!({"stock": {"z_zero": "bottom"}, "machine": {"safe_z": 17}}),
+    ));
     let zs = z_values(&result.gcode);
     assert_eq!((min(&zs), max(&zs)), (0.0, 17.0));
 }
@@ -141,20 +132,12 @@ fn z_zero_bottom_shifts_heights() {
 #[test]
 fn safe_z_must_clear_the_stock() {
     // safe_z 5 is below the top (12) when Z zero is the bottom.
-    job_error(
-        &job(json!({"stock": {"z_zero": "bottom"}})),
-        &simple(),
-        "safe_z",
-    );
+    job_error(&job(json!({"stock": {"z_zero": "bottom"}})), "safe_z");
 }
 
 #[test]
 fn tool_without_rpm_is_refused() {
-    job_error(
-        &job(json!({"tools": [{"id": 1, "diameter": 6}]})),
-        &simple(),
-        "rpm",
-    );
+    job_error(&job(json!({"tools": [{"id": 1, "diameter": 6}]})), "rpm");
 }
 
 #[test]
@@ -162,34 +145,19 @@ fn multiple_tools_are_refused() {
     let tools =
         json!([{"id": 1, "diameter": 6, "rpm": 18000}, {"id": 2, "diameter": 3, "rpm": 18000}]);
     let ops = json!([op(json!({})), op(json!({"tool": 2}))]);
-    job_error(
-        &job(json!({"tools": tools, "operations": ops})),
-        &simple(),
-        "one tool",
-    );
+    job_error(&job(json!({"tools": tools, "operations": ops})), "one tool");
 }
 
 #[test]
 fn feed_above_machine_max_is_refused_not_clamped() {
     job_error(
         &job(json!({"operations": [op(json!({"feed": 6000}))]})),
-        &simple(),
         "max_feed",
     );
 }
 
-#[test]
-fn drill_is_not_implemented_yet() {
-    let drill = json!({"type": "drill", "select": {"layer": "HOLES"}, "tool": 1});
-    job_error(
-        &job(json!({"operations": [drill]})),
-        &simple(),
-        "not implemented",
-    );
-}
-
-fn selector_error(job: &Job, dxf: &Path, text: &str) {
-    let err = error(job, dxf);
+fn selector_error(job: &Job, text: &str) {
+    let err = error(job);
     assert!(
         matches!(&err, PipelineError::Toolpath(ToolpathError::Selector(m)) if m.contains(text)),
         "{err}"
@@ -199,25 +167,20 @@ fn selector_error(job: &Job, dxf: &Path, text: &str) {
 #[test]
 fn selector_matching_nothing_is_an_error() {
     let ops = json!([op(json!({"select": {"layer": "NOPE"}}))]);
-    selector_error(
-        &job(json!({"operations": ops})),
-        &simple(),
-        "matches nothing",
-    );
+    selector_error(&job(json!({"operations": ops})), "matches nothing");
 }
 
 #[test]
 fn layer_match_is_case_insensitive() {
     let ops = json!([op(json!({"select": {"layer": "cut_outside"}}))]);
-    run(&job(json!({"operations": ops})), &simple());
+    run(&job(json!({"operations": ops})));
 }
 
 #[test]
 fn selection_of_only_open_contours_is_an_error() {
     let ops = json!([op(json!({"select": {"layer": "OPEN"}}))]);
     selector_error(
-        &job(json!({"source": {"units": "mm"}, "operations": ops})),
-        &corpus("dxf/messy.dxf"),
+        &on_drawing(job(json!({"operations": ops})), &corpus("dxf/messy.dxf")),
         "only open contours",
     );
 }
@@ -225,11 +188,14 @@ fn selection_of_only_open_contours_is_an_error() {
 #[test]
 fn open_centreline_on_a_cutting_layer_is_skipped_and_reported() {
     // Real drawing: the `upper` layer holds the lid's shapes plus an open centreline (#22).
-    let data = job(json!({
-        "stock": {"x": 200, "y": 120, "origin": "center"},
-        "operations": [op(json!({"select": {"layer": "upper"}, "side": "on"}))],
-    }));
-    let result = run(&data, &messy_2());
+    let data = on_drawing(
+        job(json!({
+            "stock": {"x": 200, "y": 120, "origin": "center"},
+            "operations": [op(json!({"select": {"layer": "upper"}, "side": "on"}))],
+        })),
+        &messy_2(),
+    );
+    let result = run(&data);
     let skipped: Vec<&String> = result
         .notes
         .iter()
@@ -247,10 +213,7 @@ fn open_centreline_on_a_cutting_layer_is_skipped_and_reported() {
 fn tool_larger_than_hole_names_the_contour() {
     let tools = json!([{"id": 1, "diameter": 32, "rpm": 18000}]);
     let holes = op(json!({"select": {"layer": "HOLES"}, "side": "inside"}));
-    let err = error(
-        &job(json!({"tools": tools, "operations": [holes]})),
-        &simple(),
-    );
+    let err = error(&job(json!({"tools": tools, "operations": [holes]})));
     assert!(
         matches!(&err, PipelineError::Toolpath(ToolpathError::Geometry(m)) if m.contains("contour #2")),
         "{err}"
@@ -259,7 +222,7 @@ fn tool_larger_than_hole_names_the_contour() {
 
 #[test]
 fn holes_are_cut_before_the_outline_even_if_listed_together() {
-    // One op selecting by handles across the outline and a hole: still hole first.
+    // One op selecting the outline and a hole together: still hole first.
     // Written as text: the dxf crate's writer has the same local-time date bug as its reader.
     let (outline, hole) = ("A1", "A2");
     let mut text = String::from("0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n");
@@ -275,11 +238,12 @@ fn holes_are_cut_before_the_outline_even_if_listed_together() {
     let path = dir.join("part.dxf");
     std::fs::write(&path, text).unwrap();
 
-    let select = json!({"handles": [outline, hole]});
-    let result = run(
-        &job(json!({"operations": [op(json!({"select": select, "side": "on"}))]})),
+    // Imported in order: the outline is S1, the hole S2.
+    let select = json!({"shapes": [1, 2]});
+    let result = run(&on_drawing(
+        job(json!({"operations": [op(json!({"select": select, "side": "on"}))]})),
         &path,
-    );
+    ));
     std::fs::remove_dir_all(&dir).unwrap();
     let first = result
         .program
@@ -295,62 +259,10 @@ fn holes_are_cut_before_the_outline_even_if_listed_together() {
 }
 
 #[test]
-fn sha256_mismatch_is_refused() {
-    let err = error(
-        &job(json!({"source": {"sha256": "0".repeat(64)}})),
-        &simple(),
-    );
-    assert!(
-        matches!(&err, PipelineError::Job(m) if m.contains("sha256")),
-        "{err}"
-    );
-}
-
-#[test]
-fn sha256_match_is_accepted() {
-    // sha256 of tests/corpus/dxf/simple_part.dxf; a frozen corpus file never changes.
-    let digest = sha256_hex(&std::fs::read(simple()).unwrap());
-    run(&job(json!({"source": {"sha256": digest}})), &simple());
-    run(
-        &job(json!({"source": {"sha256": digest.to_uppercase()}})),
-        &simple(),
-    );
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    Sha256::digest(bytes)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
-}
-
-#[test]
-fn inch_job_on_mm_drawing_is_refused() {
-    let err = error(&job(json!({"source": {"units": "inch"}})), &simple());
-    assert!(
-        matches!(&err, PipelineError::Import(e) if e.to_string().contains("inch")),
-        "{err}"
-    );
-}
-
-#[test]
-fn v1_sample_migrates_to_current() {
-    let loaded = load_job(&corpus("jobs/v1/example_job.json")).unwrap();
-    assert_eq!(loaded.schema_version, CURRENT_VERSION);
-    assert_eq!(loaded.machine.spindle, Spindle::Cw);
-    let Operation::Profile(profile) = &loaded.operations[0] else {
-        panic!("expected a profile");
-    };
-    assert!((profile.plunge_feed - 2000.0 / 3.0).abs() < 1e-9);
-    run(&loaded, &simple());
-}
-
-#[test]
 fn checker_rejection_returns_no_gcode_but_the_toolpath() {
     // The part is 206 mm wide.
     let small = job(json!({"machine": {"travel": {"x": 100, "y": 600, "z": 100}}}));
-    match error(&small, &simple()) {
+    match error(&small) {
         PipelineError::CheckFailed { errors, program } => {
             assert!(
                 errors.iter().any(|e| e.contains("exceeds machine travel")),
@@ -364,7 +276,7 @@ fn checker_rejection_returns_no_gcode_but_the_toolpath() {
 
 #[test]
 fn result_exposes_toolpath_and_contours() {
-    let result = run(&job(json!({})), &simple());
+    let result = run(&job(json!({})));
     assert_eq!(result.contours.len(), 4);
     assert_eq!(result.program.moves[0].kind, MoveKind::Rapid);
     assert_eq!(result.program.spindle, Spindle::Cw);
@@ -372,7 +284,7 @@ fn result_exposes_toolpath_and_contours() {
 
 #[test]
 fn drawing_outside_the_stock_is_noted() {
-    let result = run(&job(json!({"stock": {"x": 100}})), &simple());
+    let result = run(&job(json!({"stock": {"x": 100}})));
     assert!(
         result
             .notes
@@ -384,7 +296,7 @@ fn drawing_outside_the_stock_is_noted() {
 // -- pocket
 
 fn lower_job(tool_changes: Value, pocket_changes: Value) -> Job {
-    let mut data = read("jobs/v3/messy_2_lower.json");
+    let mut data = read("jobs/v4/messy_2_lower.chipload");
     for (k, v) in tool_changes.as_object().unwrap() {
         data["tools"][0][k] = v.clone();
     }
@@ -396,7 +308,7 @@ fn lower_job(tool_changes: Value, pocket_changes: Value) -> Job {
 
 #[test]
 fn pocket_job_runs_on_the_real_drawing() {
-    let result = run(&lower_job(json!({}), json!({})), &messy_2());
+    let result = run(&lower_job(json!({}), json!({})));
     assert!(result.check_warnings.is_empty());
     assert_eq!(min(&z_values(&result.gcode)), -18.0); // the outline goes through
     assert_eq!(result.pockets.len(), 3);
@@ -406,17 +318,13 @@ fn pocket_job_runs_on_the_real_drawing() {
 fn pocket_refuses_a_tool_that_is_not_centre_cutting() {
     job_error(
         &lower_job(json!({"center_cutting": false}), json!({})),
-        &messy_2(),
         "not centre-cutting",
     );
 }
 
 #[test]
 fn pocket_warns_when_centre_cutting_is_unknown() {
-    let result = run(
-        &lower_job(json!({"center_cutting": null}), json!({})),
-        &messy_2(),
-    );
+    let result = run(&lower_job(json!({"center_cutting": null}), json!({})));
     assert!(
         result
             .notes
@@ -429,29 +337,20 @@ fn pocket_warns_when_centre_cutting_is_unknown() {
 fn pocket_refuses_a_vbit() {
     job_error(
         &lower_job(json!({"type": "vbit"}), json!({})),
-        &messy_2(),
         "need an endmill",
     );
 }
 
 #[test]
 fn pocket_retracts_between_rings_by_default() {
-    let down = run(
-        &lower_job(json!({}), json!({"keep_tool_down": true})),
-        &messy_2(),
-    )
-    .gcode;
-    let retract = run(
-        &lower_job(json!({}), json!({"keep_tool_down": false})),
-        &messy_2(),
-    )
-    .gcode;
+    let down = run(&lower_job(json!({}), json!({"keep_tool_down": true}))).gcode;
+    let retract = run(&lower_job(json!({}), json!({"keep_tool_down": false}))).gcode;
     assert!(retract.matches("G0 Z5.000").count() > down.matches("G0 Z5.000").count());
 }
 
 #[test]
 fn pocket_errors_name_the_operation() {
-    let err = error(&lower_job(json!({"diameter": 16}), json!({})), &messy_2());
+    let err = error(&lower_job(json!({"diameter": 16}), json!({})));
     let text = err.to_string();
     assert!(
         text.starts_with("Operation 1 (Openings):") && text.contains("does not fit"),
@@ -462,7 +361,7 @@ fn pocket_errors_name_the_operation() {
 // -- tabs
 
 fn tabs_job(tab_changes: Value, op_changes: Value) -> Job {
-    let mut data = read("jobs/v3/simple_part_tabs.json");
+    let mut data = read("jobs/v4/simple_part_tabs.chipload");
     for (k, v) in tab_changes.as_object().unwrap() {
         data["operations"][1]["tabs"][k] = v.clone();
     }
@@ -474,7 +373,7 @@ fn tabs_job(tab_changes: Value, op_changes: Value) -> Job {
 
 #[test]
 fn tabs_lift_only_the_last_pass_and_are_reported_for_display() {
-    let result = run(&tabs_job(json!({}), json!({})), &simple());
+    let result = run(&tabs_job(json!({}), json!({})));
     assert_eq!(result.tabs.len(), 4);
     let zs = z_values(&result.gcode);
     assert!(zs.contains(&-9.0)); // tab top: cut bottom -12 + height 3
@@ -483,16 +382,12 @@ fn tabs_lift_only_the_last_pass_and_are_reported_for_display() {
 
 #[test]
 fn tab_height_must_be_below_the_cut_depth() {
-    job_error(
-        &tabs_job(json!({"height": 12}), json!({})),
-        &simple(),
-        "tab height",
-    );
+    job_error(&tabs_job(json!({"height": 12}), json!({})), "tab height");
 }
 
 #[test]
 fn too_many_tabs_names_the_contour() {
-    let err = error(&tabs_job(json!({"count": 60}), json!({})), &simple());
+    let err = error(&tabs_job(json!({"count": 60}), json!({})));
     let text = err.to_string();
     assert!(
         text.contains("contour #1") && text.contains("don't fit"),
@@ -503,7 +398,7 @@ fn too_many_tabs_names_the_contour() {
 #[test]
 fn tabs_on_an_inside_profile_warn() {
     let holes = json!({"select": {"layer": "HOLES"}, "side": "inside"});
-    let result = run(&tabs_job(json!({"count": 1, "width": 3}), holes), &simple());
+    let result = run(&tabs_job(json!({"count": 1, "width": 3}), holes));
     assert!(result.notes.iter().any(|n| n.contains("inside profile")));
     // The round hole has no straight stretch for its tab.
     assert!(result.notes.iter().any(|n| n.contains("corner or curve")));
@@ -513,14 +408,11 @@ fn tabs_on_an_inside_profile_warn() {
 
 #[test]
 fn disabled_operations_are_skipped_and_keep_their_numbers() {
-    let all = run(&job(json!({})), &simple());
-    let hole_only = run(
-        &job(json!({"operations": [
-            read("jobs/v2/simple_part_full.json")["operations"][0].clone(),
-            op(json!({"enabled": false})),
-        ]})),
-        &simple(),
-    );
+    let all = run(&job(json!({})));
+    let hole_only = run(&job(json!({"operations": [
+        read("jobs/v4/simple_part_full.chipload")["operations"][0].clone(),
+        op(json!({"enabled": false})),
+    ]})));
     assert!(hole_only.program.moves.len() < all.program.moves.len());
     // The second (outline) operation is gone: nothing cuts at the outline's corner x = 47.
     let tool_r = 3.0;
@@ -531,13 +423,10 @@ fn disabled_operations_are_skipped_and_keep_their_numbers() {
             .iter()
             .all(|m| m.x.is_none_or(|x| x > 50.0 - tool_r))
     );
-    let err = error(
-        &job(json!({"operations": [
-            op(json!({"enabled": false})),
-            op(json!({"select": {"layer": "NOPE"}})),
-        ]})),
-        &simple(),
-    );
+    let err = error(&job(json!({"operations": [
+        op(json!({"enabled": false})),
+        op(json!({"select": {"layer": "NOPE"}})),
+    ]})));
     assert!(err.to_string().starts_with("Operation 2"), "{err}");
 }
 
@@ -545,17 +434,7 @@ fn disabled_operations_are_skipped_and_keep_their_numbers() {
 fn every_operation_disabled_is_an_error() {
     job_error(
         &job(json!({"operations": [op(json!({"enabled": false}))]})),
-        &simple(),
         "nothing to cut",
-    );
-}
-
-#[test]
-fn a_disabled_drill_does_not_block_the_job() {
-    let drill = json!({"type": "drill", "select": {"layer": "HOLES"}, "tool": 1, "enabled": false});
-    run(
-        &job(json!({"operations": [drill, op(json!({}))]})),
-        &simple(),
     );
 }
 
@@ -611,38 +490,6 @@ fn new_projects_embed_the_drawing_and_run_without_it() {
     let result = run_job(&job).unwrap();
     assert_eq!(result.contours.len(), 1);
     std::fs::remove_dir_all(&dir).unwrap();
-}
-
-#[test]
-fn an_unembedded_job_is_refused_with_how_to_fix_it() {
-    let old = job(json!({}));
-    let err = run_job(&old).unwrap_err().to_string();
-    assert!(
-        err.contains("not embedded") && err.contains("chipload import --into"),
-        "{err}"
-    );
-    assert!(load_drawing(&old).is_err());
-}
-
-#[test]
-fn embedding_turns_handles_into_shapes_and_keeps_the_golden_output() {
-    let lower = parse_job(
-        migrate(read("jobs/v3/messy_2_lower.json")).unwrap(),
-        "lower",
-    )
-    .unwrap();
-    let (project, report) = embed_drawing(&lower, &messy_2()).unwrap();
-    let Operation::Profile(outline) = &project.operations[1] else {
-        panic!("expected the outline profile");
-    };
-    assert!(outline.select.handles.is_none());
-    assert_eq!(outline.select.shapes.as_ref().unwrap().len(), 1);
-    assert!(
-        report.iter().any(|l| l.contains("handles 50 -> shapes S")),
-        "{report:?}"
-    );
-    let golden = std::fs::read_to_string(corpus("expected/v3_messy_2_lower.nc")).unwrap();
-    assert_eq!(run_job(&project).unwrap().gcode, golden);
 }
 
 #[test]

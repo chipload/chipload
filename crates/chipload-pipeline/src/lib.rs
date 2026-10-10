@@ -16,8 +16,8 @@ use chipload_dxf::{
     shapes_from_dxf,
 };
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Job, Machine, Operation, Selector, Shape, Spindle, Stock,
-    StockOrigin, Tool, ToolType, Units, WorkZero, ZZero,
+    CURRENT_VERSION, Drawing, Job, Machine, Operation, Shape, Spindle, Stock, StockOrigin, Tool,
+    ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{PostConfig, PostError, load_builtin_post, render_program_with};
 use chipload_toolpath::left::MaterialLeft;
@@ -122,13 +122,6 @@ pub fn in_work_coordinates(program: &Program, (zx, zy): (f64, f64)) -> Program {
 
 /// The project's contours and import report (from its embedded shapes).
 pub fn load_drawing(job: &Job) -> Result<ImportResult, PipelineError> {
-    if let Some(external) = &job.drawing.external {
-        return Err(PipelineError::Job(format!(
-            "The drawing ({}) is not embedded in this job yet; embed it first (GUI: Embed \
-             drawing, or `chipload import --into <job> <dxf> -o <project>.chipload`)",
-            external.file
-        )));
-    }
     Ok(contours_from_shapes(
         &job.drawing.shapes,
         job.drawing.source.as_ref(),
@@ -165,7 +158,6 @@ pub fn new_project(imported: ImportedShapes) -> Job {
             shapes: imported.shapes,
             next_shape_id,
             source: Some(imported.source),
-            external: None,
         },
         stock: Stock {
             x: x.max(1.0),
@@ -194,14 +186,6 @@ pub fn new_project(imported: ImportedShapes) -> Job {
     }
 }
 
-fn selector_mut(op: &mut Operation) -> &mut Selector {
-    match op {
-        Operation::Profile(p) => &mut p.select,
-        Operation::Pocket(p) => &mut p.select,
-        Operation::Drill(d) => &mut d.select,
-    }
-}
-
 fn op_label(index: usize, op: &Operation) -> String {
     match op.name() {
         "" => format!("Operation {}", index + 1),
@@ -214,78 +198,6 @@ fn ids_text(ids: &[u64]) -> String {
         .map(|id| format!("S{id}"))
         .collect::<Vec<_>>()
         .join(", ")
-}
-
-/// Embed the DXF of a job from before projects (docs/specs/project-file.md §3): import it,
-/// turn each `handles` selector into the shapes with those handles, record the source.
-/// Returns the project and one report line per operation.
-pub fn embed_drawing(job: &Job, dxf: &Path) -> Result<(Job, Vec<String>), PipelineError> {
-    let Some(external) = &job.drawing.external else {
-        return Err(PipelineError::Job(
-            "The drawing is already embedded in this project".into(),
-        ));
-    };
-    if let Some(expected) = &external.sha256 {
-        let digest = drawing_sha256(dxf)
-            .map_err(|e| PipelineError::Job(format!("Cannot read {}: {e}", dxf.display())))?;
-        if !digest.eq_ignore_ascii_case(expected) {
-            return Err(PipelineError::Job(format!(
-                "{} does not match the job's sha256; it is not the drawing the job was made \
-                 for",
-                dxf.display()
-            )));
-        }
-    }
-    let imported = shapes_from_dxf(dxf, Some(external.units))?;
-    let mut out = job.clone();
-    let mut report = vec![format!(
-        "Embedded {} ({} shapes).",
-        imported.source.file,
-        imported.shapes.len()
-    )];
-    for (i, op) in out.operations.iter_mut().enumerate() {
-        let label = op_label(i, op);
-        let select = selector_mut(op);
-        if let Some(handles) = select.handles.take().filter(|h| !h.is_empty()) {
-            let ids: Vec<u64> = imported
-                .shapes
-                .iter()
-                .filter(|s| {
-                    s.dxf_handle()
-                        .is_some_and(|h| handles.iter().any(|w| w.eq_ignore_ascii_case(h)))
-                })
-                .map(|s| s.id)
-                .collect();
-            if ids.is_empty() {
-                return Err(PipelineError::Job(format!(
-                    "{label}: no shape in {} has handle {}; fix the job's selector first",
-                    imported.source.file,
-                    handles.join(", ")
-                )));
-            }
-            report.push(format!(
-                "{label}: handles {} -> shapes {}",
-                handles.join(", "),
-                ids_text(&ids)
-            ));
-            select.shapes = Some(ids);
-        } else if let Some(layer) = &select.layer {
-            report.push(format!("{label}: layer {layer} (unchanged)"));
-        }
-    }
-    let next_shape_id = imported.shapes.iter().map(|s| s.id).max().unwrap_or(0) + 1;
-    out.drawing = Drawing {
-        shapes: imported.shapes,
-        next_shape_id,
-        source: Some(imported.source),
-        external: None,
-    };
-    out.schema_version = CURRENT_VERSION;
-    let problems = out.validate();
-    if !problems.is_empty() {
-        return Err(PipelineError::Job(problems.join("; ")));
-    }
-    Ok((out, report))
 }
 
 /// What updating a drawing from a DXF did (docs/specs/project-file.md §4).
@@ -308,11 +220,6 @@ pub fn update_drawing(
     dxf: &Path,
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
-    if job.drawing.external.is_some() {
-        return Err(PipelineError::Job(
-            "Embed the drawing before updating it".into(),
-        ));
-    }
     let expected = units.or(job.drawing.source.as_ref().map(|s| s.units));
     let imported = shapes_from_dxf(dxf, expected)?;
     let old = &job.drawing;
@@ -374,7 +281,6 @@ pub fn update_drawing(
         shapes,
         next_shape_id: next,
         source: Some(imported.source),
-        external: None,
     };
     report.lines.push(format!(
         "Updated from {}: {} unchanged, {} changed, {} added, {} removed.",
@@ -386,11 +292,7 @@ pub fn update_drawing(
     ));
     for (i, op) in out.operations.iter().enumerate() {
         let label = op_label(i, op);
-        let select = match op {
-            Operation::Profile(p) => &p.select,
-            Operation::Pocket(p) => &p.select,
-            Operation::Drill(d) => &d.select,
-        };
+        let select = op.select();
         if let Some(ids) = &select.shapes {
             let lost: Vec<u64> = ids
                 .iter()

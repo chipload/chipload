@@ -11,7 +11,7 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project/job file models (schema v5: embedded drawing, drawn shapes), migrations, load/save |
+| `chipload-job` | project file models (schema v6: embedded drawing, drawn shapes), migrations, load/save |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
@@ -61,6 +61,10 @@ Anything saved to disk and read back later (job files, tool libraries, machine p
   3. a frozen sample file of the old version in `tests/corpus/jobs/v<N>/`,
   4. a test that the sample migrates and still produces the expected golden G-code.
 - Never edit or delete a frozen old-version sample. Add a new one instead.
+- Exception, decided 2026-10-10: formats from before the first public release may be dropped
+  as a whole when the user decides so. Schema 1-3 (jobs before projects) were dropped: the
+  oldest version that loads is `OLDEST_VERSION` (4), older files are refused with advice.
+  From the first public release on, every version stays loadable.
 - Migrations must be pure functions (no I/O, no clock) and must not silently change machining behaviour. If a migration cannot preserve behaviour exactly, stop and ask.
 - Saving always writes the current version, with every field written explicitly (`save_job`). Never write an older format.
 - Treat missing units, sides, directions, or depths in an old file as a migration decision to surface, not something to default quietly.
@@ -124,7 +128,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 ## Test corpus
 
 - `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code.
-- `tests/corpus/jobs/v<N>/` holds frozen job files for every past schema version (see schema versioning above). `v4/` holds the projects (with embedded drawings) the golden test runs; `v1`–`v3` are embedded with `chipload import --into` and must give the same G-code.
+- `tests/corpus/jobs/v<N>/` holds frozen projects for every schema version still loaded (v4 on; see schema versioning above). The golden test runs them through their migrations and must give the same G-code.
 - When a user-reported file breaks something, add it (anonymised) to the corpus **with a failing test first**, then fix.
 
 ## Licensing and packaging

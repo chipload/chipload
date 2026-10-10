@@ -71,11 +71,7 @@ pub fn delete_shape(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineEr
 }
 
 fn selected_ids(op: &Operation) -> Option<&Vec<u64>> {
-    match op {
-        Operation::Profile(p) => p.select.shapes.as_ref(),
-        Operation::Pocket(p) => p.select.shapes.as_ref(),
-        Operation::Drill(d) => d.select.shapes.as_ref(),
-    }
+    op.select().shapes.as_ref()
 }
 
 fn drawn_mut(job: &mut Job, id: u64) -> Result<&mut Shape, PipelineError> {

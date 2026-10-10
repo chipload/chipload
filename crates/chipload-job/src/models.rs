@@ -12,7 +12,11 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 5;
+pub const CURRENT_VERSION: i64 = 6;
+
+/// The oldest schema version that still loads (decision 2026-10-10: versions from before
+/// projects, 1-3, were never released and are no longer read).
+pub const OLDEST_VERSION: i64 = 4;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -45,19 +49,6 @@ pub struct Drawing {
     /// Where the imported shapes came from (the last import or update).
     #[serde(default)]
     pub source: Option<DrawingSource>,
-    /// Legacy: the DXF a pre-v4 job referred to. Such a project must be embedded first.
-    #[serde(default)]
-    pub external: Option<ExternalDrawing>,
-}
-
-/// A pre-v4 job's drawing reference (was the top-level `source`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ExternalDrawing {
-    pub file: String,
-    #[serde(default)]
-    pub sha256: Option<String>,
-    pub units: Units,
 }
 
 /// One shape of the drawing: imported (a path of lines and arcs, one per DXF entity) or
@@ -617,8 +608,6 @@ pub struct Tool {
 pub struct Selector {
     #[serde(default)]
     pub layer: Option<String>,
-    #[serde(default)]
-    pub handles: Option<Vec<String>>,
     /// Shape ids of the project's drawing.
     #[serde(default)]
     pub shapes: Option<Vec<u64>>,
@@ -654,7 +643,6 @@ pub enum Direction {
 pub enum Operation {
     Profile(ProfileOp),
     Pocket(PocketOp),
-    Drill(DrillOp),
 }
 
 fn enabled_default() -> bool {
@@ -666,7 +654,6 @@ impl Operation {
         match self {
             Operation::Profile(op) => &op.name,
             Operation::Pocket(op) => &op.name,
-            Operation::Drill(op) => &op.name,
         }
     }
 
@@ -674,7 +661,6 @@ impl Operation {
         match self {
             Operation::Profile(op) => op.enabled,
             Operation::Pocket(op) => op.enabled,
-            Operation::Drill(op) => op.enabled,
         }
     }
 
@@ -682,7 +668,20 @@ impl Operation {
         match self {
             Operation::Profile(op) => op.tool,
             Operation::Pocket(op) => op.tool,
-            Operation::Drill(op) => op.tool,
+        }
+    }
+
+    pub fn select(&self) -> &Selector {
+        match self {
+            Operation::Profile(op) => &op.select,
+            Operation::Pocket(op) => &op.select,
+        }
+    }
+
+    pub fn select_mut(&mut self) -> &mut Selector {
+        match self {
+            Operation::Profile(op) => &mut op.select,
+            Operation::Pocket(op) => &mut op.select,
         }
     }
 }
@@ -729,27 +728,10 @@ pub struct PocketOp {
     pub keep_tool_down: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DrillOp {
-    #[serde(default)]
-    pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
-    #[serde(default = "enabled_default")]
-    pub enabled: bool,
-    pub select: Selector,
-    pub tool: i64,
-    #[serde(default)]
-    pub peck: Option<f64>,
-}
-
 impl Drawing {
     /// Structural rules of the drawing, as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();
-        if self.external.is_some() && !self.shapes.is_empty() {
-            problems.push("drawing: an external drawing can't also have shapes".into());
-        }
         let mut seen = std::collections::BTreeSet::new();
         for (i, shape) in self.shapes.iter().enumerate() {
             let at = format!("drawing.shapes.{i}");
@@ -903,32 +885,14 @@ impl Job {
                     positive(at("plunge_feed"), p.plunge_feed);
                     positive(at("stepover"), p.stepover);
                 }
-                Operation::Drill(_) => {}
             }
         }
         for (i, op) in self.operations.iter().enumerate() {
-            let selector = match op {
-                Operation::Profile(p) => &p.select,
-                Operation::Pocket(p) => &p.select,
-                Operation::Drill(p) => &p.select,
-            };
-            let has_handles = selector.handles.as_ref().is_some_and(|h| !h.is_empty());
+            let selector = op.select();
             let has_shapes = selector.shapes.as_ref().is_some_and(|s| !s.is_empty());
-            if selector.layer.is_none() && !has_handles && !has_shapes {
+            if selector.layer.is_none() && !has_shapes {
                 problems.push(format!(
-                    "operations.{i}.select: selector needs a layer, handles or shapes"
-                ));
-            }
-            let external = self.drawing.external.is_some();
-            if has_handles && !external {
-                problems.push(format!(
-                    "operations.{i}.select: handle selectors only apply to a drawing that is not \
-                     embedded yet; select shapes instead"
-                ));
-            }
-            if has_shapes && external {
-                problems.push(format!(
-                    "operations.{i}.select: shape selectors need an embedded drawing"
+                    "operations.{i}.select: selector needs a layer or shapes"
                 ));
             }
             if let Operation::Pocket(p) = op

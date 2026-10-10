@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job files: models, schema-version migrations and loading.
 //!
-//! The persisted format (shared with the Python reference): every file has an integer
+//! The persisted format: every file has an integer
 //! `schema_version`; older versions are migrated step by step, missing or newer versions are
 //! refused, and validation only ever targets the current version.
 
@@ -23,6 +23,15 @@ pub enum JobError {
          Update the application or check the file."
     )]
     UnsupportedVersion { found: String, current: i64 },
+    /// A job from before projects (schema 1-3), which this version no longer reads.
+    #[error(
+        "Job schema_version {found} is from before projects and is no longer read. Open it \
+         with Chipload 0.3.0 and save it, or import its DXF again."
+    )]
+    TooOld { found: i64 },
+    /// An older file that can't be carried forward without changing what it means.
+    #[error("This job (schema_version {from}) can't be opened: {reason}")]
+    CannotMigrate { from: i64, reason: String },
     #[error("Cannot read job file {path}: {reason}")]
     Unreadable { path: String, reason: String },
     #[error("Invalid job file {path}: {reason}")]

@@ -2,6 +2,11 @@
 
 Status: **approved 2026-10-09** (answers to Q1–Q2 folded in)
 
+**Superseded in part (2026-10-10):** jobs from before projects (schema 1-3) are no longer
+read, so the external-drawing mode, `handles` selectors, *Embed drawing* and
+`chipload import --into` (§1 `external`, §3, D3, D5) were removed in schema v6. Projects
+(v4 on) are unchanged.
+
 Today a job file points at a DXF (`source.file`, optionally locked by `source.sha256`), and
 every run re-imports it. This spec makes the job file a **project**: it holds the drawing's
 geometry itself, so the DXF is only needed to import (and later to update) it. It also gives
