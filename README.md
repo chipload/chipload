@@ -45,8 +45,9 @@ the project, **Ctrl+E** exports G-code, which is only possible after the check p
 
 Supported: **profile** operations (inside, outside, on) with optional holding tabs
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
-**pocket** operations with islands; climb or conventional, multiple depth passes, one tool
-per job, and the GRBL post.
+**pocket** operations with islands; climb or conventional, a start and end depth with
+multiple passes, a clearance (positive: larger pocket or smaller part, negative: stock left),
+cuts into the spoilboard up to a set limit, one tool per job, and the GRBL post.
 G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
 limitations.

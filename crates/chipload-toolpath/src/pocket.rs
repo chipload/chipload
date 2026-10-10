@@ -25,7 +25,7 @@ use chipload_job::{Direction, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::geom::PrimIndex;
-use crate::left::{LeftKind, LeftPiece, reach, sort_pieces, unreachable_inside};
+use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
@@ -383,9 +383,12 @@ struct Node {
     children: Vec<usize>,
 }
 
+/// `radius` is the tool-centre offset from the walls (tool radius minus clearance);
+/// `tool_radius` is only for messages.
 fn ring_tree(
     region: &Area,
     radius: f64,
+    tool_radius: f64,
     stepover: f64,
     ids: &[usize],
 ) -> Result<(Vec<Node>, Vec<usize>), ToolpathError> {
@@ -400,9 +403,14 @@ fn ring_tree(
     }
     if roots.is_empty() {
         return Err(geometry(format!(
-            "contours {}: tool (diameter {:.3} mm) does not fit in the pocket",
+            "contours {}: tool (diameter {:.3} mm{}) does not fit in the pocket",
             ids_text(ids),
-            2.0 * radius
+            2.0 * tool_radius,
+            if radius == tool_radius {
+                String::new()
+            } else {
+                format!(", clearance {:.3} mm", tool_radius - radius)
+            }
         )));
     }
     let mut level = roots.clone();
@@ -528,7 +536,15 @@ fn clear_of(index: &PrimIndex, a: Point, b: Point, clearance: f64) -> bool {
 }
 
 /// Staying down is safe if the tool can't reach a wall or island and the link is short.
-fn link_is_safe(region: &Area, walls: &PrimIndex, a: Point, b: Point, radius: f64) -> bool {
+/// `offset`: how far the tool centre keeps from the walls; `radius`: the tool's.
+fn link_is_safe(
+    region: &Area,
+    walls: &PrimIndex,
+    a: Point,
+    b: Point,
+    radius: f64,
+    offset: f64,
+) -> bool {
     let length = distance(a, b);
     if length > 2.0 * radius {
         return false;
@@ -536,7 +552,7 @@ fn link_is_safe(region: &Area, walls: &PrimIndex, a: Point, b: Point, radius: f6
     if length < CHAIN_TOL_MM {
         return true;
     }
-    region.contains(a) && clear_of(walls, a, b, min_clearance(radius))
+    region.contains(a) && clear_of(walls, a, b, min_clearance(offset))
 }
 
 /// Every cutting move as a segment: ring chords (closed) and links fed at depth.
@@ -803,9 +819,13 @@ fn connected(cells: &[Cell], gap: f64) -> Vec<Vec<usize>> {
 }
 
 /// Rings, cut order and links for every piece. `stepover` is in mm.
+/// `clearance` moves the cut into the kept material (docs/specs/depths-and-clearance.md):
+/// the tool centre runs `tool_radius - clearance` from the walls and islands.
+#[allow(clippy::too_many_arguments)]
 pub fn plan_pocket(
     contours: &[&Contour],
     tool_radius: f64,
+    clearance: f64,
     stepover: f64,
     direction: Direction,
     spindle: Spindle,
@@ -815,6 +835,12 @@ pub fn plan_pocket(
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
             "stepover must be positive, got {stepover}"
+        )));
+    }
+    let offset = tool_radius - clearance;
+    if offset <= 0.0 || offset.is_nan() {
+        return Err(geometry(format!(
+            "clearance {clearance} must be less than the tool radius {tool_radius}"
         )));
     }
     let mut remaining = build_region(contours)?;
@@ -852,7 +878,7 @@ pub fn plan_pocket(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        let (nodes, roots) = ring_tree(&region, tool_radius, stepover, &ids)?;
+        let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
         if roots.len() > 1 {
             notes.push(format!(
                 "contours {}: the tool does not fit through a narrow part; cleared as {} \
@@ -865,9 +891,12 @@ pub fn plan_pocket(
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
         let links: Vec<bool> = rings
             .windows(2)
-            .map(|w| keep_tool_down && link_is_safe(&region, &walls, w[0][0], w[1][0], tool_radius))
+            .map(|w| {
+                keep_tool_down
+                    && link_is_safe(&region, &walls, w[0][0], w[1][0], tool_radius, offset)
+            })
             .collect();
-        verify(&region, &walls, &rings, &links, tool_radius, &ids)?;
+        verify(&region, &walls, &rings, &links, offset, &ids)?;
         let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
         let (uncut, missed) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
         notes.extend(uncut);
@@ -882,7 +911,7 @@ pub fn plan_pocket(
     }
     // Display only: any failure, even a panic in the geometry library, becomes a note.
     let unreachable = guarded("Material left", || {
-        unreachable_in_pockets(&reachable, tool_radius)
+        unreachable_in_pockets(&reachable, tool_radius, clearance)
     })
     .and_then(|result| result);
     match unreachable {
@@ -908,6 +937,7 @@ pub fn plan_pocket(
 fn unreachable_in_pockets(
     regions: &[(Area, Vec<Area>)],
     radius: f64,
+    clearance: f64,
 ) -> Result<Vec<LeftPiece>, ToolpathError> {
     let mut reached = Vec::new();
     for (_, level0) in regions {
@@ -915,7 +945,9 @@ fn unreachable_in_pockets(
     }
     let mut pieces = Vec::new();
     for (region, _) in regions {
-        pieces.extend(unreachable_inside(region, &reached)?);
+        for target in cleared(region, clearance)? {
+            pieces.extend(unreachable_inside(&target, &reached)?);
+        }
     }
     Ok(pieces)
 }

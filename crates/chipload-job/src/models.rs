@@ -12,7 +12,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 6;
+pub const CURRENT_VERSION: i64 = 7;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -457,6 +457,9 @@ pub struct Stock {
     pub origin: StockOrigin,
     #[serde(default)]
     pub z_zero: ZZero,
+    /// How far below the stock bottom a cut may go (into the spoilboard), mm, >= 0. Cuts
+    /// below the stock within this are warned about; deeper ones are refused.
+    pub max_overcut: f64,
 }
 
 impl Stock {
@@ -671,6 +674,21 @@ impl Operation {
         }
     }
 
+    /// (start_depth, end_depth), mm down from the stock top.
+    pub fn depths(&self) -> (f64, f64) {
+        match self {
+            Operation::Profile(op) => (op.start_depth, op.end_depth),
+            Operation::Pocket(op) => (op.start_depth, op.end_depth),
+        }
+    }
+
+    pub fn clearance(&self) -> f64 {
+        match self {
+            Operation::Profile(op) => op.clearance,
+            Operation::Pocket(op) => op.clearance,
+        }
+    }
+
     pub fn select(&self) -> &Selector {
         match self {
             Operation::Profile(op) => &op.select,
@@ -698,7 +716,13 @@ pub struct ProfileOp {
     pub side: Side,
     pub direction: Direction,
     pub tool: i64,
-    pub depth: f64,
+    /// Where the cut starts and ends, mm down from the stock top (docs/specs/
+    /// depths-and-clearance.md): 0 <= start_depth < end_depth.
+    pub start_depth: f64,
+    pub end_depth: f64,
+    /// How far the cut moves into the material that is kept, mm: positive gives a larger
+    /// pocket or a smaller part, negative leaves material. Less than the tool radius.
+    pub clearance: f64,
     pub step_down: f64,
     pub feed: f64,
     pub plunge_feed: f64,
@@ -716,7 +740,13 @@ pub struct PocketOp {
     pub enabled: bool,
     pub select: Selector,
     pub tool: i64,
-    pub depth: f64,
+    /// Where the cut starts and ends, mm down from the stock top (docs/specs/
+    /// depths-and-clearance.md): 0 <= start_depth < end_depth.
+    pub start_depth: f64,
+    pub end_depth: f64,
+    /// How far the cut moves into the material that is kept, mm: positive gives a larger
+    /// pocket or a smaller part, negative leaves material. Less than the tool radius.
+    pub clearance: f64,
     pub step_down: f64,
     /// Fraction of the tool diameter, 0 < stepover <= 1.
     pub stepover: f64,
@@ -869,7 +899,7 @@ impl Job {
             let at = |field: &str| format!("operations.{i}.{field}");
             match op {
                 Operation::Profile(p) => {
-                    positive(at("depth"), p.depth);
+                    positive(at("end_depth"), p.end_depth);
                     positive(at("step_down"), p.step_down);
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
@@ -879,12 +909,47 @@ impl Job {
                     }
                 }
                 Operation::Pocket(p) => {
-                    positive(at("depth"), p.depth);
+                    positive(at("end_depth"), p.end_depth);
                     positive(at("step_down"), p.step_down);
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                     positive(at("stepover"), p.stepover);
                 }
+            }
+        }
+        let overcut = self.stock.max_overcut;
+        if !(overcut.is_finite() && overcut >= 0.0) {
+            problems.push(format!(
+                "stock.max_overcut: must be 0 or more, got {overcut}"
+            ));
+        }
+        for (i, op) in self.operations.iter().enumerate() {
+            let (start, end) = op.depths();
+            if !(start.is_finite() && start >= 0.0) {
+                problems.push(format!(
+                    "operations.{i}.start_depth: must be 0 or more, got {start}"
+                ));
+            } else if start >= end {
+                problems.push(format!(
+                    "operations.{i}.start_depth: must be less than end_depth ({end}), got \
+                     {start}"
+                ));
+            }
+            if !op.clearance().is_finite() {
+                problems.push(format!(
+                    "operations.{i}.clearance: must be a number, got {}",
+                    op.clearance()
+                ));
+            }
+            if let Operation::Profile(p) = op
+                && p.side == Side::On
+                && p.clearance != 0.0
+            {
+                problems.push(format!(
+                    "operations.{i}.clearance: a profile on the line has no side to clear \
+                     towards; it must be 0, got {}",
+                    p.clearance
+                ));
             }
         }
         for (i, op) in self.operations.iter().enumerate() {

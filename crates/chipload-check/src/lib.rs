@@ -29,6 +29,9 @@ pub struct CheckLimits {
     pub safe_z: f64,
     pub stock_top_z: f64,
     pub stock_bottom_z: f64,
+    /// How far below the stock bottom moves may go (spoilboard), mm: a warning within it,
+    /// an error beyond.
+    pub max_overcut: f64,
     pub stock_min: (f64, f64),
     pub stock_max: (f64, f64),
     pub tool_radius: f64,
@@ -64,6 +67,7 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
         safe_z: job.machine.safe_z,
         stock_top_z: top,
         stock_bottom_z: top - stock.thickness,
+        max_overcut: stock.max_overcut,
         stock_min,
         stock_max,
         tool_radius: radius,
@@ -107,6 +111,9 @@ struct State {
     lo: BTreeMap<char, f64>,
     hi: BTreeMap<char, f64>,
     outside_stock: usize,
+    /// Moves below the stock bottom within the overcut allowance, and the lowest Z of them.
+    below_stock: usize,
+    deepest: f64,
     ended: bool,
 }
 
@@ -122,6 +129,8 @@ impl State {
             lo: BTreeMap::new(),
             hi: BTreeMap::new(),
             outside_stock: 0,
+            below_stock: 0,
+            deepest: f64::INFINITY,
             ended: false,
         }
     }
@@ -156,6 +165,16 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
         }
     }
 
+    if state.below_stock > 0 {
+        report.warnings.push(CheckIssue {
+            line: 0,
+            message: format!(
+                "{} moves go below the stock bottom (deepest Z{:.3}, bottom {:.3}), within the \
+                 allowed {:.3} mm",
+                state.below_stock, state.deepest, limits.stock_bottom_z, limits.max_overcut
+            ),
+        });
+    }
     if state.outside_stock > 0 {
         report.warnings.push(CheckIssue {
             line: 0,
@@ -359,10 +378,16 @@ fn move_to(
     if let Some(z) = at('Z')
         && z < limits.stock_bottom_z - POSITION_TOL_MM
     {
-        problems.push(format!(
-            "Z{z:.3} is below the stock bottom ({:.3})",
-            limits.stock_bottom_z
-        ));
+        let floor = limits.stock_bottom_z - limits.max_overcut;
+        if z < floor - POSITION_TOL_MM {
+            problems.push(format!(
+                "Z{z:.3} is below the stock bottom ({:.3}) by more than the allowed {:.3} mm",
+                limits.stock_bottom_z, limits.max_overcut
+            ));
+        } else {
+            state.below_stock += 1;
+            state.deepest = state.deepest.min(z);
+        }
     }
 
     for (&axis, value) in &target {

@@ -11,7 +11,7 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 2] = [v4_to_v5, v5_to_v6];
+const MIGRATIONS: [Migration; 3] = [v4_to_v5, v5_to_v6, v6_to_v7];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
 /// are refused, as are versions older than [`OLDEST_VERSION`] and files a migration can't
@@ -106,6 +106,24 @@ fn v5_to_v6(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 6))
+}
+
+/// v7 gives operations a start depth and a clearance and the stock an overcut allowance
+/// (docs/specs/depths-and-clearance.md). `depth` becomes `end_depth`; the new values are 0,
+/// which is exactly what v6 did: cut from the stock top, on the drawn line plus the tool
+/// radius, never below the stock.
+fn v6_to_v7(mut data: Value) -> Result<Value, String> {
+    if let Some(Value::Object(stock)) = data.get_mut("stock") {
+        stock.insert("max_overcut".into(), Value::from(0.0));
+    }
+    for op in operations_mut(&mut data) {
+        if let Some(depth) = op.remove("depth") {
+            op.insert("end_depth".into(), depth);
+        }
+        op.insert("start_depth".into(), Value::from(0.0));
+        op.insert("clearance".into(), Value::from(0.0));
+    }
+    Ok(set_version(data, 7))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

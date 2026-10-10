@@ -130,6 +130,8 @@ pub fn load_drawing(job: &Job) -> Result<ImportResult, PipelineError> {
 
 /// Defaults for a new project (docs/specs/job-editor.md §6): all visible and editable.
 pub const DEFAULT_THICKNESS: f64 = 10.0;
+/// How far a new project may cut below the stock (spoilboard), mm (decision 2026-10-10).
+pub const DEFAULT_MAX_OVERCUT: f64 = 0.5;
 pub const DEFAULT_SAFE_Z: f64 = 5.0;
 pub const DEFAULT_TOOL_DIAMETER: f64 = 6.0;
 pub const DEFAULT_RPM: f64 = 18000.0;
@@ -163,6 +165,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
             x: x.max(1.0),
             y: y.max(1.0),
             thickness: DEFAULT_THICKNESS,
+            max_overcut: DEFAULT_MAX_OVERCUT,
             origin,
             z_zero: ZZero::Top,
         },

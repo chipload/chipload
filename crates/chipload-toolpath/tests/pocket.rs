@@ -36,7 +36,16 @@ fn plan_with(
     keep: bool,
 ) -> Result<PocketPlan, ToolpathError> {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_pocket(&refs, 3.0, stepover, direction, spindle, keep, (0.0, 0.0))
+    plan_pocket(
+        &refs,
+        3.0,
+        0.0,
+        stepover,
+        direction,
+        spindle,
+        keep,
+        (0.0, 0.0),
+    )
 }
 
 fn plan(contours: &[Contour], keep: bool) -> PocketPlan {
@@ -402,6 +411,7 @@ fn pocket_centre_is_cleared_where_geos_buffer_collapsed_too_early() {
     let result = plan_pocket(
         &refs,
         1.0,
+        0.0,
         1.0,
         Direction::Climb,
         Spindle::Cw,
@@ -489,6 +499,7 @@ fn a_pocket_whose_island_offsets_just_touch_can_be_cleared() {
     let result = plan_pocket(
         &refs,
         radius,
+        0.0,
         0.18893806468913993 * 2.0 * radius,
         Direction::Climb,
         Spindle::Cw,
@@ -570,6 +581,7 @@ fn first_ring_starts_nearest_the_start_position() {
     let result = plan_pocket(
         &refs,
         3.0,
+        0.0,
         2.4,
         Direction::Climb,
         Spindle::Cw,
@@ -692,8 +704,7 @@ proptest! {
         keep in any::<bool>(),
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = plan_pocket(
-            &refs, radius, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, keep, (0.0, 0.0),
+        let result = plan_pocket(&refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, keep, (0.0, 0.0),
         );
         let result = match result {
             Ok(result) => result,
@@ -722,8 +733,7 @@ proptest! {
         fraction in 0.1f64..0.5,
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let Ok(result) = plan_pocket(
-            &refs, radius, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
+        let Ok(result) = plan_pocket(&refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
             (0.0, 0.0),
         ) else {
             return Ok(());
@@ -783,5 +793,136 @@ proptest! {
                 }
             }
         }
+    }
+}
+
+// -- clearance (docs/specs/depths-and-clearance.md)
+
+fn with_clearance(contours: &[Contour], clearance: f64) -> PocketPlan {
+    let refs: Vec<&Contour> = contours.iter().collect();
+    plan_pocket(
+        &refs,
+        3.0,
+        clearance,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+    )
+    .unwrap()
+}
+
+/// (min x, min y, max x, max y) over every ring.
+fn extent(result: &PocketPlan) -> (f64, f64, f64, f64) {
+    result
+        .pieces
+        .iter()
+        .flat_map(|p| p.rings.iter().flatten())
+        .fold(
+            (
+                f64::INFINITY,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+            ),
+            |(a, b, c, d), &(x, y)| (a.min(x), b.min(y), c.max(x), d.max(y)),
+        )
+}
+
+#[test]
+fn clearance_makes_the_pocket_larger_and_islands_smaller() {
+    let island_centre = (50.0, 30.0);
+    let contours = [outline(), circle_id(2, island_centre, 8.0)];
+    // The ring nearest the island: its distance from the island's centre.
+    let island_ring = |result: &PocketPlan| {
+        result
+            .pieces
+            .iter()
+            .flat_map(|p| p.rings.iter().flatten())
+            .map(|&p| distance(p, island_centre))
+            .fold(f64::INFINITY, f64::min)
+    };
+    let none = with_clearance(&contours, 0.0);
+    let more = with_clearance(&contours, 0.5);
+    let less = with_clearance(&contours, -0.5);
+    // Walls: tool centre 3 mm in, then 0.5 mm further out or in.
+    let close = |a: (f64, f64, f64, f64), b: (f64, f64, f64, f64)| {
+        (a.0 - b.0).abs() < 1e-6
+            && (a.1 - b.1).abs() < 1e-6
+            && (a.2 - b.2).abs() < 1e-6
+            && (a.3 - b.3).abs() < 1e-6
+    };
+    assert!(
+        close(extent(&none), (3.0, 3.0, 97.0, 57.0)),
+        "{:?}",
+        extent(&none)
+    );
+    assert!(
+        close(extent(&more), (2.5, 2.5, 97.5, 57.5)),
+        "{:?}",
+        extent(&more)
+    );
+    assert!(
+        close(extent(&less), (3.5, 3.5, 96.5, 56.5)),
+        "{:?}",
+        extent(&less)
+    );
+    // Island ring at 8 + 3 - c from its centre (chords lie inside the true circle).
+    for (result, expected) in [(&none, 11.0), (&more, 10.5), (&less, 11.5)] {
+        let d = island_ring(result);
+        assert!((d - expected).abs() < 0.02, "{d} vs {expected}");
+    }
+    // No gouge beyond the clearance.
+    assert_clear(&contours, &more, 2.5);
+}
+
+#[test]
+fn clearance_must_be_less_than_the_tool_radius() {
+    let refs = [&outline()];
+    let err = plan_pocket(
+        &refs,
+        3.0,
+        3.0,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+    )
+    .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("must be less than the tool radius"),
+        "{err}"
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(30))]
+
+    /// With clearance c the tool centre keeps r - c from every wall and island: the cut goes
+    /// exactly c into the kept material, never further.
+    #[test]
+    fn clearance_never_cuts_further_than_asked(
+        contours in pocket_with_islands(),
+        radius in 1.0f64..5.0,
+        share in -0.5f64..0.8,
+        fraction in 0.1f64..0.5,
+    ) {
+        let clearance = share * radius;
+        let refs: Vec<&Contour> = contours.iter().collect();
+        let result = plan_pocket(
+            &refs, radius, clearance, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw,
+            false, (0.0, 0.0),
+        );
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &result, radius - clearance);
     }
 }

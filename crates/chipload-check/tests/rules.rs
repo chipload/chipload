@@ -11,6 +11,7 @@ fn limits() -> CheckLimits {
         safe_z: 5.0,
         stock_top_z: 0.0,
         stock_bottom_z: -18.0,
+        max_overcut: 0.0,
         stock_min: (0.0, 0.0),
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
@@ -164,5 +165,35 @@ fn exact_messages() {
         "{found:?}"
     );
     let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-18.5 F100\n"));
-    assert!(found.contains(&"Z-18.500 is below the stock bottom (-18.000)".to_string()));
+    assert!(
+        found.contains(
+            &"Z-18.500 is below the stock bottom (-18.000) by more than the allowed 0.000 mm"
+                .to_string()
+        )
+    );
+}
+
+#[test]
+fn below_the_stock_is_a_warning_within_the_overcut_and_an_error_beyond() {
+    let mut allowed = limits();
+    allowed.max_overcut = 0.5;
+    let program = |z: &str| format!("{HEADER}G0 X10 Y10\nG1 Z{z} F100\n{FOOTER}");
+    let within = check_gcode(&program("-18.3"), &allowed);
+    assert!(within.ok(), "{:?}", within.errors);
+    assert!(
+        within.warnings.iter().any(|w| w
+            .message
+            .contains("1 moves go below the stock bottom (deepest Z-18.300")),
+        "{:?}",
+        within.warnings
+    );
+    let beyond = check_gcode(&program("-18.6"), &allowed);
+    assert!(
+        beyond
+            .errors
+            .iter()
+            .any(|e| e.message.contains("by more than the allowed 0.500 mm")),
+        "{:?}",
+        beyond.errors
+    );
 }

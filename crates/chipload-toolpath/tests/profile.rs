@@ -139,40 +139,49 @@ fn full_circle_offset_stays_round() {
 
 #[test]
 fn pass_depths_cases() {
-    let cases: [(f64, f64, &[f64]); 5] = [
-        (18.0, 6.0, &[6.0, 12.0, 18.0]), // exact multiple: no extra sliver pass
-        (6.0, 6.0, &[6.0]),              // depth equal to step down
-        (2.0, 6.0, &[2.0]),              // shallower than one step
-        (10.0, 6.0, &[5.0, 10.0]),       // not a multiple: equal passes
-        (18.0005, 6.0, &[6.000_166_7, 12.000_333_3, 18.0005]), // within DEPTH_TOL
+    let cases: [(f64, f64, f64, &[f64]); 8] = [
+        (0.0, 18.0, 6.0, &[6.0, 12.0, 18.0]), // exact multiple: no extra sliver pass
+        (0.0, 6.0, 6.0, &[6.0]),              // depth equal to step down
+        (0.0, 2.0, 6.0, &[2.0]),              // shallower than one step
+        (0.0, 10.0, 6.0, &[5.0, 10.0]),       // not a multiple: equal passes
+        (0.0, 18.0005, 6.0, &[6.000_166_7, 12.000_333_3, 18.0005]), // within DEPTH_TOL
+        // With a start depth only the range is split (docs/specs/depths-and-clearance.md).
+        (2.0, 6.0, 2.0, &[4.0, 6.0]),
+        (5.0, 5.5, 6.0, &[5.5]), // step down larger than the range
+        (3.0, 12.0, 4.0, &[6.0, 9.0, 12.0]), // 9 mm in passes of at most 4: three of 3
     ];
-    for (depth, step, expected) in cases {
-        let got = pass_depths(depth, step).unwrap();
-        assert_eq!(got.len(), expected.len(), "{depth}/{step}");
+    for (start, end, step, expected) in cases {
+        let got = pass_depths(start, end, step).unwrap();
+        assert_eq!(got.len(), expected.len(), "{start}-{end}/{step}: {got:?}");
         for (g, e) in got.iter().zip(expected) {
-            assert!((g - e).abs() < 1e-6, "{depth}/{step}: {got:?}");
+            assert!((g - e).abs() < 1e-6, "{start}-{end}/{step}: {got:?}");
         }
     }
 }
 
 #[test]
-fn pass_depths_never_exceed_step_down() {
-    for depth in [0.1, 5.9, 6.0, 6.1, 17.99, 18.0, 18.01, 100.0] {
-        let passes = pass_depths(depth, 6.0).unwrap();
-        let mut previous = 0.0;
-        for &p in &passes {
-            assert!(p - previous <= 6.0 + 1e-9);
-            previous = p;
+fn pass_depths_never_exceed_step_down_and_end_exactly() {
+    for start in [0.0, 0.5, 3.0] {
+        for end in [3.1, 5.9, 6.0, 6.1, 17.99, 18.0, 18.01, 100.0] {
+            let passes = pass_depths(start, end, 6.0).unwrap();
+            let mut previous = start;
+            for &p in &passes {
+                assert!(p > previous && p - previous <= 6.0 + 1e-9, "{passes:?}");
+                previous = p;
+            }
+            assert_eq!(*passes.last().unwrap(), end);
         }
-        assert_eq!(*passes.last().unwrap(), depth);
     }
 }
 
 #[test]
-fn pass_depths_rejects_non_positive() {
-    assert!(pass_depths(0.0, 6.0).is_err());
-    assert!(pass_depths(6.0, 0.0).is_err());
-    assert!(pass_depths(f64::NAN, 6.0).is_err());
+fn pass_depths_rejects_bad_ranges() {
+    assert!(pass_depths(0.0, 0.0, 6.0).is_err());
+    assert!(pass_depths(0.0, 6.0, 0.0).is_err());
+    assert!(pass_depths(0.0, f64::NAN, 6.0).is_err());
+    assert!(pass_depths(4.0, 4.0, 6.0).is_err()); // start = end
+    assert!(pass_depths(5.0, 4.0, 6.0).is_err()); // start below end
+    assert!(pass_depths(-1.0, 4.0, 6.0).is_err()); // above the stock
 }
 
 #[test]

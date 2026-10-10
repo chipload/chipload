@@ -10,6 +10,37 @@ pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
         .suffix(" mm")
 }
 
+/// Start depth, end depth and clearance (docs/specs/depths-and-clearance.md).
+fn depth_rows(
+    ui: &mut egui::Ui,
+    start: &mut f64,
+    end: &mut f64,
+    clearance: &mut f64,
+    can_clear: bool,
+) {
+    ui.label("Start depth")
+        .on_hover_text("Where the cut starts, down from the stock top");
+    ui.add(mm(start));
+    ui.end_row();
+    ui.label("End depth")
+        .on_hover_text("Where the cut ends, down from the stock top");
+    ui.add(mm(end));
+    ui.end_row();
+    ui.label("Clearance").on_hover_text(
+        "How far the cut moves into the material that is kept: positive makes a pocket \
+         larger or a part smaller, negative leaves material. Less than the tool radius.",
+    );
+    ui.add_enabled(
+        can_clear,
+        DragValue::new(clearance)
+            .speed(0.01)
+            .range(-100_000.0..=100_000.0)
+            .suffix(" mm"),
+    )
+    .on_disabled_hover_text("A profile on the line has no side to clear towards");
+    ui.end_row();
+}
+
 pub(super) fn feed(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
         .speed(10.0)
@@ -93,9 +124,17 @@ pub(super) fn op_form(
                 ui.label("Direction");
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
-                ui.label("Depth");
-                ui.add(mm(&mut p.depth));
-                ui.end_row();
+                let can_clear = p.side != Side::On;
+                if !can_clear {
+                    p.clearance = 0.0;
+                }
+                depth_rows(
+                    ui,
+                    &mut p.start_depth,
+                    &mut p.end_depth,
+                    &mut p.clearance,
+                    can_clear,
+                );
                 ui.label("Step down");
                 ui.add(mm(&mut p.step_down));
                 ui.end_row();
@@ -131,9 +170,13 @@ pub(super) fn op_form(
                 ui.label("Direction");
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
-                ui.label("Depth");
-                ui.add(mm(&mut p.depth));
-                ui.end_row();
+                depth_rows(
+                    ui,
+                    &mut p.start_depth,
+                    &mut p.end_depth,
+                    &mut p.clearance,
+                    true,
+                );
                 ui.label("Step down");
                 ui.add(mm(&mut p.step_down));
                 ui.end_row();
@@ -260,6 +303,12 @@ pub(super) fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
         ui.end_row();
         ui.label("Thickness");
         ui.add(mm(&mut job.stock.thickness));
+        ui.end_row();
+        ui.label("Max depth below stock").on_hover_text(
+            "How far a cut may go below the stock (into the spoilboard). Cuts within it are \
+             warned about; deeper ones are refused.",
+        );
+        ui.add(mm(&mut job.stock.max_overcut));
         ui.end_row();
         // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
         // zero: that's the work zero below (docs/specs/work-zero.md).

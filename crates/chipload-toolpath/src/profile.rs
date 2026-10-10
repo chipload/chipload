@@ -8,7 +8,7 @@ use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_job::{Direction, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
-use crate::left::{LeftPiece, reach, unreachable_inside, unreachable_outside};
+use crate::left::{LeftPiece, cleared, reach, unreachable_inside, unreachable_outside};
 use crate::model::Move;
 use crate::offset::{contour_pline, offset_rings, start_index};
 use crate::pocket::{Area, ccw, guarded};
@@ -40,16 +40,29 @@ pub fn orient(ring: &[Point], clockwise: bool) -> Vec<Point> {
 }
 
 /// Equal passes no deeper than step_down; the last one is exactly `depth`.
-pub fn pass_depths(depth: f64, step_down: f64) -> Result<Vec<f64>, ToolpathError> {
-    if depth <= 0.0 || step_down <= 0.0 || depth.is_nan() || step_down.is_nan() {
+pub fn pass_depths(
+    start_depth: f64,
+    end_depth: f64,
+    step_down: f64,
+) -> Result<Vec<f64>, ToolpathError> {
+    let range = end_depth - start_depth;
+    if !(start_depth >= 0.0 && range > 0.0 && step_down > 0.0) {
         return Err(ToolpathError::Geometry(format!(
-            "depth ({depth}) and step_down ({step_down}) must be positive"
+            "depths must satisfy 0 <= start ({start_depth}) < end ({end_depth}) and step_down \
+             ({step_down}) must be positive"
         )));
     }
-    // Small positive whole number: depth and step_down are validated job values.
-    let count = ((depth - DEPTH_TOL_MM) / step_down).ceil().max(1.0) as u32;
+    // Small positive whole number: depths and step_down are validated job values.
+    let count = ((range - DEPTH_TOL_MM) / step_down).ceil().max(1.0) as u32;
+    // The last pass is exactly the end depth (start + range can differ in the last bit).
     Ok((1..=count)
-        .map(|i| depth * f64::from(i) / f64::from(count))
+        .map(|i| {
+            if i == count {
+                end_depth
+            } else {
+                start_depth + range * f64::from(i) / f64::from(count)
+            }
+        })
         .collect())
 }
 
@@ -137,11 +150,19 @@ pub fn plan_profile(
     start: Point,
 ) -> Result<ProfilePlan, ToolpathError> {
     let clockwise = cut_clockwise(op.side, op.direction, spindle);
+    // The tool centre runs this far from the contour (docs/specs/depths-and-clearance.md).
+    let offset = tool_radius - op.clearance;
+    if op.side != Side::On && (offset <= 0.0 || offset.is_nan()) {
+        return Err(ToolpathError::Job(format!(
+            "{label}: clearance {} must be less than the tool radius {tool_radius}",
+            op.clearance
+        )));
+    }
     let mut rings = Vec::new();
     let mut notes = Vec::new();
     let mut left = Vec::new();
     for contour in contours {
-        let paths = offset_rings(contour, op.side, tool_radius)
+        let paths = offset_rings(contour, op.side, offset)
             .map_err(|err| err.with_context(&format!("{label}, contour #{}", contour.id)))?;
         if paths.len() > 1 {
             notes.push(format!(
@@ -153,7 +174,7 @@ pub fn plan_profile(
         }
         // Display only: any failure, even a panic in the geometry library, becomes a note.
         let unreachable = guarded("Material left", || {
-            unreachable_beside(contour, op.side, tool_radius)
+            unreachable_beside(contour, op.side, offset, tool_radius)
         })
         .and_then(|result| result);
         match unreachable {
@@ -182,16 +203,22 @@ pub fn plan_profile(
 fn unreachable_beside(
     contour: &Contour,
     side: Side,
+    offset: f64,
     tool_radius: f64,
 ) -> Result<Vec<LeftPiece>, ToolpathError> {
     let pline = contour_pline(contour);
     match side {
         Side::On => Ok(Vec::new()),
-        Side::Outside => unreachable_outside(&pline, tool_radius),
+        Side::Outside => unreachable_outside(&pline, offset, tool_radius),
         Side::Inside => {
             let region = Area::of(ccw(pline));
-            let level0 = region.shrunk(tool_radius)?;
-            unreachable_inside(&region, &reach(&level0, tool_radius)?)
+            let level0 = region.shrunk(offset)?;
+            let reached = reach(&level0, tool_radius)?;
+            let mut pieces = Vec::new();
+            for target in cleared(&region, tool_radius - offset)? {
+                pieces.extend(unreachable_inside(&target, &reached)?);
+            }
+            Ok(pieces)
         }
     }
 }

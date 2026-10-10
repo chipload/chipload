@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Golden G-code: `chipload run` on the frozen corpus projects (tests/corpus/jobs/v4, v5)
+//! Golden G-code: `chipload run` on the frozen corpus projects (tests/corpus/jobs/v4 on)
 //! must reproduce tests/corpus/expected/ byte for byte, twice in a row.
 //!
 //! When a change is intended, regenerate with `CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p
@@ -12,7 +12,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 6] = [
+const GOLDEN: [(&str, &str); 8] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -22,6 +22,13 @@ const GOLDEN: [(&str, &str); 6] = [
         "jobs/v4/messy_2_lower_tabs.chipload",
     ),
     ("v5_drawn_part", "jobs/v5/drawn_part.chipload"),
+    // The same project frozen at v6: must give the same G-code after migrating to v7.
+    ("v6_drawn_part", "jobs/v6/drawn_part.chipload"),
+    // Start depth, clearance (both signs) and a cut into the spoilboard.
+    (
+        "v7_depths_and_clearance",
+        "jobs/v7/depths_and_clearance.chipload",
+    ),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

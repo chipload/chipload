@@ -153,8 +153,9 @@ impl ChiploadApp {
                         Operation::Pocket(p) => p.enabled = enabled,
                     }
                 }
+                let (start, end) = entry.op.depths();
                 let mut text = RichText::new(format!(
-                    "{}. {kind}: {}  [{summary}]",
+                    "{}. {kind}: {}  [{summary}]  {start}–{end} mm",
                     i + 1,
                     entry.op.name()
                 ));

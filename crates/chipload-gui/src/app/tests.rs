@@ -293,7 +293,7 @@ fn plunges_are_counted_per_operation() {
     app.add_operation(OpKind::Profile).unwrap();
     // Three depth passes, retracting between rings, like the reported project.
     if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.ops[0].op) {
-        p.depth = 3.0;
+        p.end_depth = 3.0;
         p.step_down = 1.0;
         p.keep_tool_down = false;
     }
@@ -363,14 +363,14 @@ fn undo_and_redo_restore_earlier_projects() {
     assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
     // A field edit is one step.
     if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
-        p.depth = 5.0;
+        p.end_depth = 5.0;
     }
     app.commit();
     app.undo();
     let Operation::Profile(p) = &app.edit.as_ref().unwrap().ops[1].op else {
         panic!("expected the profile");
     };
-    assert_eq!(p.depth, 1.0);
+    assert_eq!(p.end_depth, 1.0);
 }
 
 #[test]

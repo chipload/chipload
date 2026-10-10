@@ -213,7 +213,9 @@ impl EditJob {
                         side: side.unwrap_or(Side::Outside),
                         direction: Direction::Climb,
                         tool,
-                        depth: DEFAULT_DEPTH,
+                        start_depth: 0.0,
+                        end_depth: DEFAULT_DEPTH,
+                        clearance: 0.0,
                         step_down,
                         feed,
                         plunge_feed,
@@ -228,7 +230,9 @@ impl EditJob {
                     enabled: true,
                     select,
                     tool,
-                    depth: DEFAULT_DEPTH,
+                    start_depth: 0.0,
+                    end_depth: DEFAULT_DEPTH,
+                    clearance: 0.0,
                     step_down,
                     stepover,
                     direction: Direction::Climb,
@@ -433,7 +437,7 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            (p.depth, p.step_down, p.feed, p.plunge_feed),
+            (p.end_depth, p.step_down, p.feed, p.plunge_feed),
             (1.0, 1.0, 500.0, 150.0)
         );
         assert_eq!(p.name, "Profile 1");
@@ -444,7 +448,7 @@ mod tests {
             panic!()
         };
         assert_eq!(
-            (q.depth, q.step_down, q.feed, q.stepover),
+            (q.end_depth, q.step_down, q.feed, q.stepover),
             (1.0, 3.0, 1200.0, 0.4)
         );
         assert_eq!(q.name, "Pocket 1");

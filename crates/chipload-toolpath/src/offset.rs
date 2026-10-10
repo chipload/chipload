@@ -192,8 +192,8 @@ pub fn offset_rings(
         .collect();
     if results.is_empty() {
         return Err(geometry(&format!(
-            "Tool (diameter {:.3} mm) does not fit inside the contour",
-            2.0 * tool_radius
+            "Tool does not fit inside the contour (its centre would run {tool_radius:.3} mm \
+             inside the line)"
         )));
     }
     if side == Side::Outside {

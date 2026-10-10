@@ -17,7 +17,8 @@ fn job(operations: Value) -> Job {
             "schema_version": CURRENT_VERSION,
             // plan_job gets its contours directly; the drawing isn't used here.
             "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
-            "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left"},
+            "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
+                      "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw"},
             "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],
             "operations": operations,
@@ -30,7 +31,7 @@ fn job(operations: Value) -> Job {
 
 fn profile(side: &str, tabs: Value) -> Value {
     json!([{"type": "profile", "select": {"layer": "L"}, "side": side, "direction": "climb",
-            "tool": 1, "depth": 12, "step_down": 6, "feed": 1500, "plunge_feed": 500,
+            "tool": 1, "start_depth": 0, "end_depth": 12, "clearance": 0, "step_down": 6, "feed": 1500, "plunge_feed": 500,
             "tabs": tabs}])
 }
 
@@ -156,4 +157,157 @@ fn each_operation_owns_a_run_of_moves_in_cut_order() {
     assert_eq!(plan.op_spans[0].moves.start, 0);
     assert_eq!(plan.op_spans[0].moves.end, plan.op_spans[1].moves.start);
     assert_eq!(plan.op_spans[1].moves.end, plan.program.moves.len());
+}
+
+// -- depths and clearance (docs/specs/depths-and-clearance.md)
+
+fn profile_with(side: &str, changes: Value) -> Value {
+    let mut ops = profile(side, Value::Null);
+    for (k, v) in changes.as_object().unwrap() {
+        ops[0][k] = v.clone();
+    }
+    ops
+}
+
+/// (min x, min y, max x, max y) of the XY positions the program visits.
+fn xy_extent(plan: &chipload_toolpath::Plan) -> (f64, f64, f64, f64) {
+    let (mut x, mut y) = (0.0, 0.0);
+    let mut out = (
+        f64::INFINITY,
+        f64::INFINITY,
+        f64::NEG_INFINITY,
+        f64::NEG_INFINITY,
+    );
+    for m in &plan.program.moves {
+        x = m.x.unwrap_or(x);
+        y = m.y.unwrap_or(y);
+        if m.x.is_some() || m.y.is_some() {
+            out = (out.0.min(x), out.1.min(y), out.2.max(x), out.3.max(y));
+        }
+    }
+    out
+}
+
+#[test]
+fn clearance_moves_a_profile_into_the_part() {
+    // The part is 10..110 x 10..70; tool radius 3.
+    let outside = |c: f64| {
+        xy_extent(
+            &plan_job(
+                &job(profile_with("outside", json!({"clearance": c}))),
+                &part(),
+            )
+            .unwrap(),
+        )
+    };
+    assert_eq!(outside(0.0), (7.0, 7.0, 113.0, 73.0));
+    assert_eq!(outside(0.5), (7.5, 7.5, 112.5, 72.5)); // smaller part
+    assert_eq!(outside(-0.5), (6.5, 6.5, 113.5, 73.5)); // stock left on it
+    let inside = |c: f64| {
+        xy_extent(
+            &plan_job(
+                &job(profile_with("inside", json!({"clearance": c}))),
+                &part(),
+            )
+            .unwrap(),
+        )
+    };
+    assert_eq!(inside(0.5), (12.5, 12.5, 107.5, 67.5)); // larger hole
+    let err = plan_job(
+        &job(profile_with("outside", json!({"clearance": 3}))),
+        &part(),
+    )
+    .unwrap_err();
+    assert!(
+        err.to_string().contains("less than the tool radius 3"),
+        "{err}"
+    );
+}
+
+#[test]
+fn passes_run_between_start_and_end_depth() {
+    let ops = profile_with(
+        "outside",
+        json!({"start_depth": 4, "end_depth": 12, "step_down": 4}),
+    );
+    let plan = plan_job(&job(ops), &part()).unwrap();
+    let mut cut_z: Vec<f64> = plan
+        .program
+        .moves
+        .iter()
+        .filter_map(|m| m.z)
+        .filter(|&z| z < 0.0)
+        .collect();
+    cut_z.dedup();
+    assert_eq!(cut_z, [-8.0, -12.0]);
+}
+
+#[test]
+fn tabs_must_be_lower_than_the_cut_between_the_depths() {
+    let tabs = json!({"count": 4, "width": 8, "height": 3});
+    let cut = |start: f64| {
+        plan_job(
+            &job(profile_with(
+                "outside",
+                json!({"start_depth": start, "tabs": tabs.clone()}),
+            )),
+            &part(),
+        )
+    };
+    assert!(cut(8.0).is_ok()); // 4 mm cut, 3 mm tabs
+    let err = cut(9.0).unwrap_err(); // 3 mm cut
+    assert!(
+        err.to_string()
+            .contains("tab height 3 must be less than the cut depth 3"),
+        "{err}"
+    );
+}
+
+#[test]
+fn cuts_below_the_stock_warn_within_the_overcut_and_fail_beyond() {
+    // Stock 18 mm thick, max_overcut 0.5.
+    let plan = plan_job(
+        &job(profile_with("outside", json!({"end_depth": 18.3}))),
+        &part(),
+    )
+    .unwrap();
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.contains("cuts 0.300 mm below the stock")),
+        "{:?}",
+        plan.notes
+    );
+    let err = plan_job(
+        &job(profile_with("outside", json!({"end_depth": 18.6}))),
+        &part(),
+    )
+    .unwrap_err();
+    assert!(
+        err.to_string().contains("more than the allowed 0.5 mm"),
+        "{err}"
+    );
+    let flush = plan_job(
+        &job(profile_with("outside", json!({"end_depth": 18}))),
+        &part(),
+    )
+    .unwrap();
+    assert!(!flush.notes.iter().any(|n| n.contains("below the stock")));
+}
+
+#[test]
+fn stock_left_on_purpose_is_not_shown_as_unreachable() {
+    // Found with the v7 corpus sample: a negative clearance leaves a band of stock on the
+    // part, and material left must be judged against the cleared outline, not the drawn one.
+    let left = |side: &str, c: f64| {
+        plan_job(&job(profile_with(side, json!({"clearance": c}))), &part())
+            .unwrap()
+            .material_left
+    };
+    assert!(left("outside", -0.5).is_empty()); // a square part: no inside corners
+    assert!(left("outside", 0.5).is_empty());
+    // A square hole: its four corners, whatever the clearance, never one band.
+    for c in [-0.5, 0.0, 0.5] {
+        assert_eq!(left("inside", c).len(), 4, "clearance {c}");
+    }
 }

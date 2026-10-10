@@ -60,6 +60,7 @@ fn rendered_program_passes_the_checker() {
         safe_z: 5.0,
         stock_top_z: 0.0,
         stock_bottom_z: -18.0,
+        max_overcut: 0.0,
         stock_min: (0.0, 0.0),
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,

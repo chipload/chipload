@@ -117,12 +117,39 @@ pub fn unreachable_inside(
 
 /// Material outside the closed `contour` that no tool disk of `radius` beside it reaches:
 /// the inside corners of a part cut with an outside profile.
+/// The area meant to be cleared once the clearance is applied: grown by a positive
+/// clearance, shrunk by a negative one (docs/specs/depths-and-clearance.md). Material left
+/// is judged against this, so stock left on purpose isn't shown as unreachable.
+pub fn cleared(region: &Area, clearance: f64) -> Result<Vec<Area>, ToolpathError> {
+    if clearance == 0.0 {
+        return Ok(vec![region.clone()]);
+    }
+    region.shrunk(-clearance)
+}
+
+/// `offset` is how far the tool centre runs from the contour (the tool radius minus any
+/// clearance); `radius` is the tool's.
 pub fn unreachable_outside(
     contour: &Polyline<f64>,
+    offset: f64,
     radius: f64,
 ) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let part = ccw(contour.clone());
-    let grown = guarded("Material left offset", || part.parallel_offset(-radius))?
+    let drawn = ccw(contour.clone());
+    // The part as it should come out: shrunk by a positive clearance, grown by a negative.
+    let clearance = radius - offset;
+    let part = if clearance == 0.0 {
+        drawn.clone()
+    } else {
+        let kept = guarded("Material left offset", || drawn.parallel_offset(clearance))?
+            .into_iter()
+            .filter(|p| p.is_closed())
+            .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()));
+        let Some(kept) = kept else {
+            return Ok(Vec::new());
+        };
+        ccw(kept)
+    };
+    let grown = guarded("Material left offset", || drawn.parallel_offset(-offset))?
         .into_iter()
         .filter(|p| p.is_closed())
         .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()));
@@ -426,7 +453,7 @@ mod tests {
     fn outside_profile_leaves_the_inside_corners_of_a_part() {
         let r = 3.0;
         assert!(
-            unreachable_outside(&rect(0.0, 0.0, 50.0, 30.0), r)
+            unreachable_outside(&rect(0.0, 0.0, 50.0, 30.0), r, r)
                 .unwrap()
                 .is_empty()
         );
@@ -441,7 +468,7 @@ mod tests {
         ] {
             l.add(x, y, 0.0);
         }
-        let pieces = unreachable_outside(&l, r).unwrap();
+        let pieces = unreachable_outside(&l, r, r).unwrap();
         assert_eq!(pieces.len(), 1);
         let ((x0, y0), (x1, y1)) = pieces[0].bounds_check();
         assert!((x0 - 20.0).abs() < 1e-6 && (y0 - 20.0).abs() < 1e-6);
@@ -450,7 +477,7 @@ mod tests {
         // Clockwise input gives the same answer.
         let mut reversed = l.clone();
         reversed.invert_direction_mut();
-        assert_eq!(unreachable_outside(&reversed, r).unwrap(), pieces);
+        assert_eq!(unreachable_outside(&reversed, r, r).unwrap(), pieces);
     }
 
     #[test]
@@ -469,7 +496,7 @@ mod tests {
         ] {
             u.add(x, y, 0.0);
         }
-        let pieces = unreachable_outside(&u, 3.0).unwrap();
+        let pieces = unreachable_outside(&u, 3.0, 3.0).unwrap();
         assert_eq!(pieces.len(), 1);
         // The 4 x 20 bay, less the dip of a tool disk into its mouth (under 1 mm).
         assert!(area_of(&pieces[0]) > 4.0 * 19.0, "{}", area_of(&pieces[0]));

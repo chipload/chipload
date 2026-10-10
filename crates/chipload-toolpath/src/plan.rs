@@ -6,6 +6,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_job::{Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
 
+use chipload_core::tolerances::DEPTH_TOL_MM;
+
 use crate::ToolpathError;
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, Program};
@@ -60,13 +62,14 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
-        let (depth, step_down) = match op {
-            Operation::Profile(p) => (p.depth, p.step_down),
-            Operation::Pocket(p) => (p.depth, p.step_down),
+        let step_down = match op {
+            Operation::Profile(p) => p.step_down,
+            Operation::Pocket(p) => p.step_down,
         };
+        let (start_depth, end_depth) = op.depths();
         let selection = select_contours(contours, op.select(), &label)?;
         notes.extend(selection.notes.iter().cloned());
-        let pass_z: Vec<f64> = pass_depths(depth, step_down)?
+        let pass_z: Vec<f64> = pass_depths(start_depth, end_depth, step_down)?
             .into_iter()
             .map(|d| top_z - d)
             .collect();
@@ -159,6 +162,7 @@ fn plan_pocket_op(
     let plan = plan_pocket(
         &selection.contours,
         ctx.tool.diameter / 2.0,
+        op.clearance,
         op.stepover * ctx.tool.diameter,
         op.direction,
         ctx.job.machine.spindle,
@@ -216,10 +220,12 @@ fn plan_profile_op(
         end: start,
     };
     if let Some(tabs) = &op.tabs {
-        if tabs.height >= op.depth {
+        let cut = op.end_depth - op.start_depth;
+        if tabs.height >= cut {
             return Err(job_error(format!(
-                "{label}: tab height {} must be less than the cut depth {}",
-                tabs.height, op.depth
+                "{label}: tab height {} must be less than the cut depth {cut} (end depth \
+                 minus start depth)",
+                tabs.height
             )));
         }
         if op.side == Side::Inside {
@@ -333,15 +339,36 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
     let mut notes = Vec::new();
     for (index, op) in enabled() {
         let number = index + 1;
-        let (depth, feed, plunge_feed) = match op {
-            Operation::Profile(p) => (p.depth, p.feed, p.plunge_feed),
-            Operation::Pocket(p) => (p.depth, p.feed, p.plunge_feed),
+        let label = match op.name() {
+            "" => format!("Operation {number}"),
+            name => format!("Operation {number} ({name})"),
         };
-        if depth > job.stock.thickness {
+        let (feed, plunge_feed) = match op {
+            Operation::Profile(p) => (p.feed, p.plunge_feed),
+            Operation::Pocket(p) => (p.feed, p.plunge_feed),
+        };
+        // Below the stock: a warning within the overcut allowance, an error beyond it
+        // (docs/specs/depths-and-clearance.md section 2).
+        let (_, end_depth) = op.depths();
+        let thickness = job.stock.thickness;
+        let below = end_depth - thickness;
+        if below > job.stock.max_overcut + DEPTH_TOL_MM {
             return Err(job_error(format!(
-                "Operation {number}: depth {depth} is deeper than the stock ({}); overcut is \
-                 not supported yet",
-                job.stock.thickness
+                "{label}: end depth {end_depth} is {below:.3} mm below the stock \
+                 ({thickness} mm thick), more than the allowed {} mm (max depth below stock)",
+                job.stock.max_overcut
+            )));
+        }
+        if below > DEPTH_TOL_MM {
+            notes.push(format!(
+                "{label}: cuts {below:.3} mm below the stock (into the spoilboard)"
+            ));
+        }
+        if op.clearance() >= tool.diameter / 2.0 {
+            return Err(job_error(format!(
+                "{label}: clearance {} must be less than the tool radius {}",
+                op.clearance(),
+                tool.diameter / 2.0
             )));
         }
         if let Some(max_feed) = job.machine.max_feed {

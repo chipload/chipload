@@ -44,12 +44,17 @@ fn with(mut base: Value, changes: Value) -> Job {
 
 /// The simple_part sample project (inside + outside profile) with changes.
 fn job(changes: Value) -> Job {
-    with(read("jobs/v4/simple_part_full.chipload"), changes)
+    with(current("jobs/v4/simple_part_full.chipload"), changes)
+}
+
+/// A frozen project migrated to the current version, as raw data.
+fn current(rel: &str) -> Value {
+    migrate(read(rel)).unwrap()
 }
 
 /// The sample's outside profile with changes.
 fn op(changes: Value) -> Value {
-    let mut base = read("jobs/v4/simple_part_full.chipload")["operations"][1].clone();
+    let mut base = current("jobs/v4/simple_part_full.chipload")["operations"][1].clone();
     for (k, v) in changes.as_object().unwrap() {
         base[k] = v.clone();
     }
@@ -108,15 +113,15 @@ fn sample_runs_and_passes_check() {
 
 #[test]
 fn depth_equal_to_thickness_is_allowed() {
-    let result = run(&job(json!({"operations": [op(json!({"depth": 12}))]})));
+    let result = run(&job(json!({"operations": [op(json!({"end_depth": 12}))]})));
     assert_eq!(min(&z_values(&result.gcode)), -12.0);
 }
 
 #[test]
 fn depth_beyond_thickness_is_refused() {
     job_error(
-        &job(json!({"operations": [op(json!({"depth": 12.5}))]})),
-        "deeper than the stock",
+        &job(json!({"operations": [op(json!({"end_depth": 12.5}))]})),
+        "0.500 mm below the stock (12 mm thick), more than the allowed 0 mm",
     );
 }
 
@@ -410,7 +415,7 @@ fn tabs_on_an_inside_profile_warn() {
 fn disabled_operations_are_skipped_and_keep_their_numbers() {
     let all = run(&job(json!({})));
     let hole_only = run(&job(json!({"operations": [
-        read("jobs/v4/simple_part_full.chipload")["operations"][0].clone(),
+        current("jobs/v4/simple_part_full.chipload")["operations"][0].clone(),
         op(json!({"enabled": false})),
     ]})));
     assert!(hole_only.program.moves.len() < all.program.moves.len());
@@ -472,7 +477,7 @@ fn project_with_profile(dxf: &Path) -> Job {
     data["stock"]["x"] = json!(300);
     data["stock"]["y"] = json!(300);
     data["operations"] = json!([op(
-        json!({"select": {"shapes": [1]}, "depth": 3, "step_down": 3})
+        json!({"select": {"shapes": [1]}, "end_depth": 3, "step_down": 3})
     )]);
     job = parse_job(data, "p").unwrap();
     job

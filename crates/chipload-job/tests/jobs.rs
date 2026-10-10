@@ -143,7 +143,7 @@ fn value_constraints_are_checked() {
     let cases: [(&str, Value); 5] = [
         ("/stock/thickness", json!(0)),
         ("/operations/0/stepover", json!(1.5)),
-        ("/operations/0/depth", json!(-1)),
+        ("/operations/0/end_depth", json!(-1)),
         ("/tools/0/diameter", json!(0)),
         ("/operations/1/select", json!({})),
     ];
@@ -505,4 +505,61 @@ fn work_zero_round_trips_and_is_checked() {
     ] {
         assert!(parse_job(with_zero(bad.clone()), "p").is_err(), "{bad}");
     }
+}
+
+// -- start/end depth, clearance, overcut (docs/specs/depths-and-clearance.md)
+
+#[test]
+fn v6_to_v7_keeps_machining_as_it_was() {
+    let v6 = raw("v6/drawn_part.chipload");
+    let depths: Vec<Value> = v6["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|op| op["depth"].clone())
+        .collect();
+    let current = migrate(v6).unwrap();
+    assert_eq!(current["stock"]["max_overcut"], json!(0.0));
+    for (op, depth) in current["operations"].as_array().unwrap().iter().zip(depths) {
+        assert!(op.get("depth").is_none());
+        assert_eq!(op["end_depth"], depth);
+        assert_eq!(op["start_depth"], json!(0.0));
+        assert_eq!(op["clearance"], json!(0.0));
+    }
+}
+
+#[test]
+fn depth_and_clearance_rules_are_checked() {
+    let refused = |change: &dyn Fn(&mut Value), why: &str| {
+        let mut data = lower_job();
+        change(&mut data);
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(why), "{why}: {err}");
+    };
+    // Operation 1 is the outline profile (outside), operation 0 the pocket.
+    refused(
+        &|d| d["operations"][1]["start_depth"] = json!(-0.5),
+        "start_depth: must be 0 or more",
+    );
+    refused(
+        &|d| d["operations"][1]["start_depth"] = d["operations"][1]["end_depth"].clone(),
+        "start_depth: must be less than end_depth",
+    );
+    refused(
+        &|d| d["stock"]["max_overcut"] = json!(-1),
+        "stock.max_overcut: must be 0 or more",
+    );
+    refused(
+        &|d| {
+            d["operations"][1]["side"] = json!("on");
+            d["operations"][1]["clearance"] = json!(0.2);
+        },
+        "a profile on the line has no side",
+    );
+    // Allowed: a start depth, a negative clearance, a clearance on a pocket.
+    let mut data = lower_job();
+    data["operations"][1]["start_depth"] = json!(2.0);
+    data["operations"][1]["clearance"] = json!(-0.4);
+    data["operations"][0]["clearance"] = json!(0.25);
+    parse_job(data, "p").unwrap();
 }
