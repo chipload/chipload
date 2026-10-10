@@ -582,6 +582,10 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
         data["operations"][0]["strategy"] = strategy;
         parse_job(data, "p")
     };
+    let adaptive = json!({"type": "adaptive", "load": 0.1});
+    let job = with(adaptive.clone()).unwrap();
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["operations"][0]["strategy"], adaptive);
     let trochoidal = json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6});
     let job = with(trochoidal.clone()).unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
@@ -597,6 +601,9 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
             "0 < step <= loop_radius",
         ),
         (json!({"type": "zigzag"}), "unknown variant"),
+        (json!({"type": "adaptive", "load": 0.6}), "0 < load <= 0.5"),
+        (json!({"type": "adaptive", "load": 0.0}), "0 < load <= 0.5"),
+        (json!({"type": "adaptive"}), "missing field `load`"),
         (json!({"type": "rings", "step": 1}), "unknown field"),
     ] {
         let err = with(bad.clone()).unwrap_err().to_string();

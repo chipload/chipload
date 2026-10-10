@@ -41,41 +41,70 @@ fn depth_rows(
     ui.end_row();
 }
 
-/// Rings or trochoidal; trochoidal's loop radius and step (docs/specs/trochoidal.md).
-/// Switching to trochoidal fills 0.25 × D and 0.1 × D, visibly, for the current tool.
+/// Rings, trochoidal (loop radius, step; docs/specs/trochoidal.md) or adaptive (load;
+/// docs/specs/adaptive.md). Switching fills defaults for the current tool, visibly.
 fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy, diameter: f64) {
     ui.label("Strategy");
-    let trochoidal = matches!(strategy, PocketStrategy::Trochoidal { .. });
+    let current = match strategy {
+        PocketStrategy::Rings {} => "rings",
+        PocketStrategy::Trochoidal { .. } => "trochoidal",
+        PocketStrategy::Adaptive { .. } => "adaptive",
+    };
     ComboBox::from_id_salt(("strategy", index))
-        .selected_text(if trochoidal { "trochoidal" } else { "rings" })
+        .selected_text(current)
         .show_ui(ui, |ui| {
-            if ui.selectable_label(!trochoidal, "rings").clicked() {
+            if ui.selectable_label(current == "rings", "rings").clicked() {
                 *strategy = PocketStrategy::Rings {};
             }
             if ui
-                .selectable_label(trochoidal, "trochoidal")
+                .selectable_label(current == "trochoidal", "trochoidal")
                 .on_hover_text(
                     "Small loops that take a thin bite each: for hard materials and deep cuts",
                 )
                 .clicked()
-                && !trochoidal
+                && current != "trochoidal"
             {
                 *strategy = PocketStrategy::Trochoidal {
                     loop_radius: 0.25 * diameter,
                     step: 0.1 * diameter,
                 };
             }
+            if ui
+                .selectable_label(current == "adaptive", "adaptive")
+                .on_hover_text(
+                    "A path steered to cut about the same amount everywhere, corners too",
+                )
+                .clicked()
+                && current != "adaptive"
+            {
+                *strategy = PocketStrategy::Adaptive { load: 0.1 };
+            }
         });
     ui.end_row();
-    if let PocketStrategy::Trochoidal { loop_radius, step } = strategy {
-        ui.label("  loop radius")
-            .on_hover_text("At most the tool radius");
-        ui.add(mm(loop_radius));
-        ui.end_row();
-        ui.label("  step per loop")
-            .on_hover_text("How far each loop moves on; at most the loop radius");
-        ui.add(mm(step));
-        ui.end_row();
+    match strategy {
+        PocketStrategy::Rings {} => {}
+        PocketStrategy::Trochoidal { loop_radius, step } => {
+            ui.label("  loop radius")
+                .on_hover_text("At most the tool radius");
+            ui.add(mm(loop_radius));
+            ui.end_row();
+            ui.label("  step per loop")
+                .on_hover_text("How far each loop moves on; at most the loop radius");
+            ui.add(mm(step));
+            ui.end_row();
+        }
+        PocketStrategy::Adaptive { load } => {
+            ui.label("  load").on_hover_text(
+                "The sideways cut to keep, as a fraction of the tool diameter (0 < load <= 0.5)",
+            );
+            ui.add(
+                DragValue::new(load)
+                    .speed(0.01)
+                    .range(0.01..=0.5)
+                    .suffix(" × D"),
+            );
+            ui.end_row();
+        }
     }
 }
 

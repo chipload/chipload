@@ -641,6 +641,7 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                 "pockets": plan.pockets.iter().map(|p| json!({
                     "contour_ids": p.contour_ids,
                     "rings": p.rings,
+                    "open": p.open,
                     "feed_links": p.feed_links,
                 })).collect::<Vec<_>>(),
                 "material_left": plan.material_left.iter().map(|m| json!({

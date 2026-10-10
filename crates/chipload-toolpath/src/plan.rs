@@ -195,7 +195,10 @@ fn plan_pocket_op(
             op.plunge_feed,
         ));
         // Retracted above the start of the wall ring.
-        if let Some(&end) = piece.rings.last().and_then(|r| r.first()) {
+        let last = piece.rings.len().checked_sub(1);
+        if let Some(end) = last.and_then(|k| {
+            crate::pocket::path_end(&piece.rings[k], piece.open.get(k).copied().unwrap_or(false))
+        }) {
             out.end = end;
         }
     }

@@ -24,6 +24,7 @@ use chipload_core::tolerances::{
 use chipload_job::{Direction, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
+use crate::adaptive::{self, Field, Grid};
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::geom::PrimIndex;
 use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
@@ -34,15 +35,23 @@ use crate::profile::cut_clockwise;
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
 
-/// One connected area to clear, with its rings in cut order.
+/// One connected area to clear, with its paths in cut order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PocketPiece {
-    /// Each oriented, starting (and ending) at ring[0].
+    /// Each oriented and starting at ring[0]; a closed ring also ends there.
     pub rings: Vec<Vec<Point>>,
-    /// feed_links[i]: stay at depth from rings[i] into rings[i + 1].
+    /// open[i]: rings[i] is an open path (adaptive passes) ending at its last point, not
+    /// closed back to its start.
+    pub open: Vec<bool>,
+    /// feed_links[i]: stay at depth from the end of rings[i] into rings[i + 1].
     pub feed_links: Vec<bool>,
     /// Selected contours that make up this piece, for messages.
     pub contour_ids: Vec<usize>,
+}
+
+/// Where the tool is after cutting a path: back at its start if closed, at its end if open.
+pub fn path_end(ring: &[Point], open: bool) -> Option<Point> {
+    if open { ring.last() } else { ring.first() }.copied()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,6 +63,9 @@ pub struct PocketPlan {
     pub left: Vec<LeftPiece>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
+    /// Adaptive clearing: every step's cut as a share of the target (docs/specs/adaptive.md);
+    /// empty for the other strategies.
+    pub engagement: Vec<f64>,
 }
 
 pub(crate) fn geometry(message: String) -> ToolpathError {
@@ -564,19 +576,24 @@ fn link_is_safe(
 }
 
 /// Every cutting move as a segment: ring chords (closed) and links fed at depth.
-fn cutting_segments(rings: &[Vec<Point>], links: &[bool]) -> Vec<(Point, Point)> {
+fn cutting_segments(rings: &[Vec<Point>], open: &[bool], links: &[bool]) -> Vec<(Point, Point)> {
     let mut segments = Vec::new();
-    for ring in rings {
+    for (k, ring) in rings.iter().enumerate() {
         let n = ring.len();
+        let is_open = open.get(k).copied().unwrap_or(false);
         match n {
             0 => {}
             1 => segments.push((ring[0], ring[0])),
             2 => segments.push((ring[0], ring[1])),
+            _ if is_open => segments.extend(ring.windows(2).map(|w| (w[0], w[1]))),
             _ => segments.extend((0..n).map(|i| (ring[i], ring[(i + 1) % n]))),
         }
     }
     for (i, &stays_down) in links.iter().enumerate() {
-        let (a, b) = (rings[i][0], rings[i + 1][0]);
+        let is_open = open.get(i).copied().unwrap_or(false);
+        let (Some(a), b) = (path_end(&rings[i], is_open), rings[i + 1][0]) else {
+            continue;
+        };
         if stays_down && distance(a, b) >= CHAIN_TOL_MM {
             segments.push((a, b));
         }
@@ -586,10 +603,12 @@ fn cutting_segments(rings: &[Vec<Point>], links: &[bool]) -> Vec<(Point, Point)>
 
 /// Post-condition: no cutting move comes closer than r (minus tolerance) to a wall or
 /// island, and everything is inside the region. Never trust the offsets blindly.
+#[allow(clippy::too_many_arguments)]
 fn verify(
     region: &Area,
     walls: &PrimIndex,
     rings: &[Vec<Point>],
+    open: &[bool],
     links: &[bool],
     radius: f64,
     ids: &[usize],
@@ -600,7 +619,7 @@ fn verify(
         .iter()
         .all(|r| r.first().is_some_and(|&p| region.contains(p)));
     // Chords on arcs are cut as arcs when arcs are written: check where they bulge most too.
-    let clear = cutting_segments(rings, links).iter().all(|&(a, b)| {
+    let clear = cutting_segments(rings, open, links).iter().all(|&(a, b)| {
         clear_of(walls, a, b, clearance)
             && arcs.get(a, b).is_none_or(|circle| {
                 let top = arc_midpoint(a, b, circle);
@@ -644,6 +663,7 @@ fn uncut_material(
     region: &Area,
     reachable: &[Area],
     rings: &[Vec<Point>],
+    open: &[bool],
     links: &[bool],
     radius: f64,
     ids: &[usize],
@@ -652,7 +672,7 @@ fn uncut_material(
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
     let paths = PrimIndex::new(
-        cutting_segments(rings, links)
+        cutting_segments(rings, open, links)
             .into_iter()
             .map(|(start, end)| Primitive::Line(Line { start, end }))
             .collect(),
@@ -897,6 +917,7 @@ pub fn plan_pocket_with(
     let mut notes = Vec::new();
     let mut left = Vec::new();
     let mut arcs = ArcTable::default();
+    let mut engagement = Vec::new();
     // Every region with where the tool centre can go in it, for the material left.
     let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
@@ -919,13 +940,26 @@ pub fn plan_pocket_with(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        let (rings, level0) = match strategy {
+        let (rings, level0, open) = match strategy {
             PocketStrategy::Rings {} => {
                 let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
                 let rings = cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
                 let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
-                (rings, level0)
+                let open = vec![false; rings.len()];
+                (rings, level0, open)
             }
+            PocketStrategy::Adaptive { load } => adaptive_rings(
+                &region,
+                offset,
+                tool_radius,
+                load * 2.0 * tool_radius,
+                &ids,
+                position,
+                direction,
+                spindle,
+                &mut arcs,
+                &mut engagement,
+            )?,
             PocketStrategy::Trochoidal { loop_radius, step } => {
                 if loop_radius > tool_radius {
                     return Err(geometry(format!(
@@ -948,9 +982,11 @@ pub fn plan_pocket_with(
                     step,
                     band: (2.0 * loop_radius + stepover).min(reach),
                 };
-                trochoidal_rings(
+                let (rings, level0) = trochoidal_rings(
                     &region, &trochoid, &ids, position, direction, spindle, &mut arcs, &mut notes,
-                )?
+                )?;
+                let open = vec![false; rings.len()];
+                (rings, level0, open)
             }
         };
         if level0.len() > 1 {
@@ -962,21 +998,25 @@ pub fn plan_pocket_with(
             ));
         }
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
-        let links: Vec<bool> = rings
-            .windows(2)
-            .map(|w| {
+        let links: Vec<bool> = (1..rings.len())
+            .map(|k| {
+                let from = path_end(&rings[k - 1], open[k - 1]);
                 keep_tool_down
-                    && link_is_safe(&region, &walls, w[0][0], w[1][0], tool_radius, offset)
+                    && from.is_some_and(|from| {
+                        link_is_safe(&region, &walls, from, rings[k][0], tool_radius, offset)
+                    })
             })
             .collect();
-        verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
-        let (uncut, missed) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
+        verify(&region, &walls, &rings, &open, &links, offset, &ids, &arcs)?;
+        let (uncut, missed) =
+            uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
         notes.extend(uncut);
         left.extend(missed);
         reachable.push((region, level0));
         position = rings[0][0]; // every depth starts again at the first ring
         pieces.push(PocketPiece {
             rings,
+            open,
             feed_links: links,
             contour_ids: ids,
         });
@@ -1002,6 +1042,7 @@ pub fn plan_pocket_with(
         notes,
         left,
         arcs,
+        engagement,
     })
 }
 
@@ -1024,6 +1065,126 @@ fn unreachable_in_pockets(
     }
     Ok(pieces)
 }
+
+/// A piece's paths in cut order, its wall-pass areas (the level 0 of the uncut and
+/// material-left checks), and which paths are open.
+type PiecePaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>);
+
+/// Adaptive passes (open) and then the wall pass, with the wall-pass areas
+/// (docs/specs/adaptive.md section 3).
+#[allow(clippy::too_many_arguments)]
+fn adaptive_rings(
+    region: &Area,
+    offset: f64,
+    tool_radius: f64,
+    load: f64,
+    ids: &[usize],
+    position: Point,
+    direction: Direction,
+    spindle: Spindle,
+    arcs: &mut ArcTable,
+    engagement: &mut Vec<f64>,
+) -> Result<PiecePaths, ToolpathError> {
+    let walls = region.shrunk(offset)?;
+    if walls.is_empty() {
+        return Err(geometry(format!(
+            "contours {}: tool (diameter {:.3} mm) does not fit in the pocket",
+            ids_text(ids),
+            2.0 * tool_radius
+        )));
+    }
+    let diameter = 2.0 * tool_radius;
+    let h = (diameter / 30.0).min(ADAPTIVE_CELL_MM);
+    let Some(extents) = region.outer.extents() else {
+        return Err(geometry("adaptive clearing: empty pocket".into()));
+    };
+    let (lo, hi) = (
+        (extents.min_x - tool_radius, extents.min_y - tool_radius),
+        (extents.max_x + tool_radius, extents.max_y + tool_radius),
+    );
+    let rings_of = |area: &Area| -> Vec<Vec<Point>> {
+        std::iter::once(&area.outer)
+            .chain(&area.holes)
+            .map(flatten_tagged_plain)
+            .collect()
+    };
+    // Where the tool centre may be, and the material for the passes: what the tool can
+    // reach, less a band one load wide along the walls that the wall pass takes.
+    let mut allowed = Grid::new(lo, hi, h);
+    let mut safe = Grid::new(lo, hi, h);
+    let mut material = Grid::new(lo, hi, h);
+    for area in &walls {
+        let mut one = Grid::new(lo, hi, h);
+        one.fill(&rings_of(area));
+        allowed.or(&one);
+        // A few cells further in, a cell's whole square is inside: no exact check needed.
+        for inner in area.shrunk(3.0 * h)? {
+            let mut part = Grid::new(lo, hi, h);
+            part.fill(&rings_of(&inner));
+            safe.or(&part);
+        }
+        for grown in area.shrunk(-(tool_radius - load).max(0.0))? {
+            let mut part = Grid::new(lo, hi, h);
+            part.fill(&rings_of(&grown));
+            material.or(&part);
+        }
+    }
+    // Start where the pocket is deepest: the last non-empty shrink, D/2 at a time.
+    let mut start = first_point(&walls[0].outer);
+    for k in 1..MAX_RING_LEVELS {
+        let inner = region.shrunk(offset + k as f64 * tool_radius)?;
+        let Some(area) = inner.first() else {
+            break;
+        };
+        start = first_point(&area.outer);
+    }
+    let index = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
+    let mut field = Field {
+        material,
+        allowed,
+        safe,
+        walls: &index,
+        offset,
+        tool_radius,
+        load,
+        // Material on the right is climb with an M3 spindle, as for ring walls.
+        material_right: !cut_clockwise(Side::Inside, direction, spindle),
+    };
+    let passes = adaptive::clear(&mut field, start);
+    engagement.extend(passes.engagement);
+    let mut rings: Vec<Vec<Point>> = passes
+        .paths
+        .iter()
+        .map(|p| adaptive::simplify(p, ARC_APPROX_TOL_MM / 2.0))
+        .collect();
+    let mut open = vec![true; rings.len()];
+    let here = rings
+        .last()
+        .and_then(|p| p.last())
+        .copied()
+        .unwrap_or(position);
+    let wall_nodes: Vec<Node> = walls
+        .iter()
+        .map(|area| Node {
+            area: area.clone(),
+            children: Vec::new(),
+        })
+        .collect();
+    let roots: Vec<usize> = (0..wall_nodes.len()).collect();
+    let wall_rings = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
+    open.extend(vec![false; wall_rings.len()]);
+    rings.extend(wall_rings);
+    Ok((rings, walls, open))
+}
+
+/// Flattened points of a ring, without recording arcs (the material model only needs the
+/// shape).
+fn flatten_tagged_plain(pline: &Polyline<f64>) -> Vec<Point> {
+    flatten_tagged(pline, &mut ArcTable::default())
+}
+
+/// Largest cell of the adaptive material grid, mm (smaller for tools under 6 mm: D / 30).
+const ADAPTIVE_CELL_MM: f64 = 0.2;
 
 /// Sizes for trochoidal clearing, mm (docs/specs/trochoidal.md section 3).
 struct Trochoid {
@@ -1198,6 +1359,7 @@ pub fn pocket_moves(
         ]);
         for (index, ring) in piece.rings.iter().enumerate() {
             let start = ring[0];
+            let open = piece.open.get(index).copied().unwrap_or(false);
             if index > 0 {
                 if piece.feed_links[index - 1] {
                     moves.push(Move::feed_xy(start, feed));
@@ -1210,7 +1372,9 @@ pub fn pocket_moves(
                 }
             }
             moves.extend(ring[1..].iter().map(|&p| Move::feed_xy(p, feed)));
-            moves.push(Move::feed_xy(start, feed));
+            if !open {
+                moves.push(Move::feed_xy(start, feed));
+            }
         }
         moves.push(Move::rapid_z(safe_z));
     }

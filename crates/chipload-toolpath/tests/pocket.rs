@@ -259,9 +259,15 @@ fn assert_clear(contours: &[Contour], result: &PocketPlan, radius: f64) {
         .collect();
     let clearance = radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
     for piece in &result.pieces {
-        for ring in &piece.rings {
+        for (k, ring) in piece.rings.iter().enumerate() {
             let n = ring.len();
-            for i in 0..n {
+            // Open paths (adaptive passes) don't go back to their start.
+            let chords = if piece.open[k] {
+                n.saturating_sub(1)
+            } else {
+                n
+            };
+            for i in 0..chords {
                 let (a, b) = (ring[i], ring[(i + 1) % n]);
                 for wall in &walls {
                     let d = segment_distance(a, b, wall);
@@ -980,8 +986,10 @@ proptest! {
             }
             (x, y) = (nx, ny);
         }
-        // Every island here is a polygon, but rings around corners are arcs.
-        prop_assert!(arcs > 0);
+        // Rings round an island's corners are arcs (a polygon turns at least 45° at one of
+        // its at most 8 corners). A convex outline without islands shrinks to sharp corners
+        // only, so it may have none.
+        prop_assert!(arcs > 0 || contours.len() == 1);
     }
 }
 
@@ -1179,5 +1187,123 @@ proptest! {
             "{:?}", plan.notes
         );
         prop_assert!(arc_moves(&plan) > 0);
+    }
+}
+
+// -- adaptive clearing (docs/specs/adaptive.md)
+
+fn adaptive(contours: &[Contour], radius: f64, load: f64) -> PocketPlan {
+    let refs: Vec<&Contour> = contours.iter().collect();
+    chipload_toolpath::pocket::plan_pocket_with(
+        &refs,
+        radius,
+        0.0,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+        chipload_job::PocketStrategy::Adaptive { load },
+    )
+    .unwrap()
+}
+
+/// (median, share within 50 %) of the engagement samples, as shares of the target.
+fn engagement_stats(plan: &PocketPlan) -> (f64, f64) {
+    let mut e = plan.engagement.clone();
+    e.sort_by(f64::total_cmp);
+    let median = e[e.len() / 2];
+    let near = e.iter().filter(|&&x| (0.5..=1.5).contains(&x)).count() as f64 / e.len() as f64;
+    (median, near)
+}
+
+#[test]
+fn adaptive_clears_a_square_pocket_near_the_target_load() {
+    let contours = [outline()];
+    let plan = adaptive(&contours, 3.0, 0.1);
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    assert_clear(&contours, &plan, 3.0);
+    let (median, near) = engagement_stats(&plan);
+    println!("square: median {median:.3}, within 50 % {near:.3}");
+    // The last path is the wall pass, the ring pocket's wall ring; the others are open.
+    let piece = &plan.pieces[0];
+    assert!(!piece.open[piece.rings.len() - 1]);
+    assert!(piece.open[..piece.rings.len() - 1].iter().all(|&o| o));
+    // Deterministic.
+    assert_eq!(adaptive(&contours, 3.0, 0.1), plan);
+}
+
+#[test]
+fn adaptive_handles_islands_and_l_shapes() {
+    let island = [outline(), circle_id(2, (50.0, 30.0), 8.0)];
+    let l_shape = [polygon_id(
+        1,
+        &[
+            (0.0, 0.0),
+            (80.0, 0.0),
+            (80.0, 30.0),
+            (30.0, 30.0),
+            (30.0, 70.0),
+            (0.0, 70.0),
+        ],
+    )];
+    for contours in [&island[..], &l_shape[..]] {
+        let plan = adaptive(contours, 3.0, 0.1);
+        assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+        assert_clear(contours, &plan, 3.0);
+        let (median, near) = engagement_stats(&plan);
+        println!("median {median:.3}, within 50 % {near:.3}");
+        assert!((median - 1.0).abs() <= 0.2, "median {median}");
+        assert!(near >= 0.9, "within 50 %: {near}");
+    }
+}
+
+#[test]
+fn adaptive_plans_a_large_pocket_in_reasonable_time() {
+    // 200 x 150 mm with a 6 mm tool (docs/specs/adaptive.md section 6). The bound is loose
+    // for debug builds; release is several times faster.
+    let big = [rect(1, 0.0, 0.0, 200.0, 150.0)];
+    let started = std::time::Instant::now();
+    let plan = adaptive(&big, 3.0, 0.1);
+    let took = started.elapsed();
+    println!("200 x 150 mm: {took:?}, {} steps", plan.engagement.len());
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    let limit = if cfg!(debug_assertions) { 30.0 } else { 2.0 };
+    assert!(took.as_secs_f64() < limit, "{took:?}");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(12))]
+
+    /// Adaptive passes never come closer than the tool radius to a wall or island and leave
+    /// no material behind (the uncut check runs on the real path).
+    #[test]
+    fn adaptive_never_gouges_or_leaves_material(
+        contours in pocket_with_islands(),
+        radius in 1.5f64..4.0,
+        load in 0.05f64..0.3,
+    ) {
+        let refs: Vec<&Contour> = contours.iter().collect();
+        // Outlines ring pockets already refuse (docs/specs/offset-retry.md) aren't the point.
+        prop_assume!(
+            plan_pocket(&refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false,
+                (0.0, 0.0)).is_ok()
+        );
+        let plan = chipload_toolpath::pocket::plan_pocket_with(
+            &refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false, (0.0, 0.0),
+            chipload_job::PocketStrategy::Adaptive { load },
+        );
+        let plan = match plan {
+            Ok(plan) => plan,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &plan, radius);
+        prop_assert!(
+            !plan.notes.iter().any(|n| n.contains("uncut material")),
+            "{:?}", plan.notes
+        );
     }
 }

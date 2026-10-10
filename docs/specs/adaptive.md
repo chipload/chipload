@@ -1,6 +1,7 @@
 # Spec: adaptive pocket clearing
 
-Status: **approved 2026-10-10** (Q1–Q5 as recommended).
+Status: **approved 2026-10-10** (Q1–Q5 as recommended). Implemented; refinements found while
+building it are marked *Implemented:*.
 
 User request (2026-10-10): adaptive clearing, after trochoidal.
 
@@ -34,6 +35,11 @@ r = tool radius, D = diameter, w = load × D.
 
 1. **Material model**: the pocket as a grid of square cells (side h = min(D / 30, 0.2 mm)),
    each uncut or cut. Only cells the tool can reach (within r of the pocket shrunk by r) count.
+
+   *Implemented:* the model cuts with r − h/√2, so a cell is marked cut only when all of it
+   is within the tool. Marking cells cut by their centres left specks a cell wide that the
+   model thought done (found by the property test). Counting and clearing use the same
+   radius, so the model never follows material it can't clear.
 2. **Start**: plunge at the point of the pocket furthest from the walls, and cut a small
    circle there (radius w) to open a start.
 3. **Steering**: from the current point, advance in steps of about h. At each step, choose the
@@ -44,10 +50,21 @@ r = tool radius, D = diameter, w = load × D.
    against the walls with the same distance index the verification uses). A step that would
    leave it is turned along the wall instead.
 5. **Next pass**: when engagement can't be kept (the material near the path is gone), the
-   tool goes to the nearest uncut boundary: feeding at depth if that's short and safe (the
+   tool goes to the nearest uncut boundary.
+
+   *Implemented:* first, without lifting, the tool **seeks**: it moves through what is
+   cleared (inside the allowed area, along walls) towards the uncut material within
+   5 × r, and follows again once it cuts. Only when nothing is within that reach (or the
+   way is blocked) does the pass end. Ending passes on a few low-cut steps instead broke a
+   100 × 60 mm pocket into 918 passes (each a retract and plunge); with seeking it is 11.
+   When a pass does end, the tool goes to the nearest uncut boundary: feeding at depth if that's short and safe (the
    `keep_tool_down` rule), otherwise retract, rapid, plunge into cleared material.
 6. **End**: when no reachable uncut cell is left. Then the ordinary **wall pass** (the ring
    pocket's last ring) at each depth finishes the walls and islands.
+
+   *Implemented:* the passes leave a band one load wide along the walls to the wall pass,
+   so it cuts about one load, not a full-width chunk. The plunge point is in the deepest part
+   of the pocket (its last non-empty shrink, r at a time).
 7. **Smoothing**: the steps are simplified (dropping points while the path stays within
    `ARC_APPROX_TOL_MM`), so the program isn't one line per 0.2 mm.
 
@@ -88,7 +105,10 @@ adjustment, adaptive profiles.
 - Square, L-shaped and island pockets: no gouge, no uncut warning, wall pass last at each
   depth, deterministic (same input twice, same moves).
 - Engagement: sampled along the path (from the material model), the median within 20 % of
-  the target, and over 90 % of samples within 50 %.
+  the target, and over 90 % of samples within 50 %. *Implemented:* sampled on the cutting
+  steps; seeking moves through cleared material aren't cutting. Measured: square 97.9 %,
+  L-shape 96.3 %, pocket with an island 96.8 % within 50 %; median 1.0 in all three.
+- *Implemented:* timing: the 200 × 150 mm pocket plans in 1.35 s (release), 4.5 s (debug).
 - A pocket too small for the start circle falls back to the wall pass with a note.
 - Property: random pockets with islands: no gouge, no uncut warning.
 - Rings and trochoidal: every existing golden file unchanged.

@@ -771,6 +771,9 @@ pub enum PocketStrategy {
     /// Small full-circle loops of `loop_radius` moving `step` mm along backbones, then a
     /// wall pass. Both mm.
     Trochoidal { loop_radius: f64, step: f64 },
+    /// A path steered to cut about `load` × D sideways all along (docs/specs/adaptive.md),
+    /// then a wall pass. 0 < load <= 0.5.
+    Adaptive { load: f64 },
 }
 
 impl Default for PocketStrategy {
@@ -992,6 +995,15 @@ impl Job {
                 problems.push(format!(
                     "operations.{i}.strategy: trochoidal needs 0 < step <= loop_radius, got \
                      step {step} and loop_radius {loop_radius}"
+                ));
+            }
+            if let Operation::Pocket(p) = op
+                && let PocketStrategy::Adaptive { load } = p.strategy
+                && !(load.is_finite() && load > 0.0 && load <= 0.5)
+            {
+                problems.push(format!(
+                    "operations.{i}.strategy: adaptive needs 0 < load <= 0.5 (a fraction of the \
+                     tool diameter), got {load}"
                 ));
             }
             if let Operation::Pocket(p) = op
