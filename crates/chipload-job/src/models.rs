@@ -559,6 +559,10 @@ pub enum Spindle {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Machine {
+    /// The machine profile these values came from (docs/specs/tool-library-and-machines.md
+    /// §4). Only a note: planning and G-code never read it.
+    #[serde(default)]
+    pub name: Option<String>,
     pub post: String,
     pub safe_z: f64,
     pub spindle: Spindle,
@@ -661,6 +665,10 @@ pub enum ToolType {
 #[serde(deny_unknown_fields)]
 pub struct Tool {
     pub id: i64,
+    /// The library tool these values came from (docs/specs/tool-library-and-machines.md
+    /// §4). Only a note: planning and G-code never read it.
+    #[serde(default)]
+    pub name: Option<String>,
     #[serde(default, rename = "type")]
     pub kind: ToolType,
     pub diameter: f64,
@@ -976,18 +984,60 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
     problems
 }
 
+/// "<at>.<field>: must be greater than 0, got <value>" unless value > 0.
+fn positive_problem(at: &str, field: &str, value: f64) -> Option<String> {
+    (value <= 0.0 || value.is_nan())
+        .then(|| format!("{at}.{field}: must be greater than 0, got {value}"))
+}
+
+/// The rule for `max_overcut`, kept under `stock` in projects and in machine profiles.
+pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<String> {
+    if overcut.is_finite() && overcut >= 0.0 {
+        Vec::new()
+    } else {
+        vec![format!(
+            "{at}.max_overcut: must be 0 or more, got {overcut}"
+        )]
+    }
+}
+
+impl Machine {
+    /// Value rules of a machine, as "<at>.field: message"; shared by projects and machine
+    /// profiles.
+    pub fn problems(&self, at: &str) -> Vec<String> {
+        let mut problems = Vec::new();
+        if let WorkZero::Point { x, y } = self.work_zero
+            && !(x.is_finite() && y.is_finite())
+        {
+            problems.push(format!(
+                "{at}.work_zero: x and y must be finite, got {x}, {y}"
+            ));
+        }
+        if let Some(t) = &self.travel {
+            for (axis, value) in [("x", t.x), ("y", t.y), ("z", t.z)] {
+                problems.extend(positive_problem(&format!("{at}.travel"), axis, value));
+            }
+        }
+        problems
+    }
+}
+
+impl Tool {
+    /// Value rules of a tool, as "<at>.field: message"; shared by projects and the tool
+    /// library.
+    pub fn problems(&self, at: &str) -> Vec<String> {
+        positive_problem(at, "diameter", self.diameter)
+            .into_iter()
+            .collect()
+    }
+}
+
 impl Job {
     /// Value constraints the serde types can't express.
     /// Returns every violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = self.drawing.validate();
-        if let WorkZero::Point { x, y } = self.machine.work_zero
-            && !(x.is_finite() && y.is_finite())
-        {
-            problems.push(format!(
-                "machine.work_zero: x and y must be finite, got {x}, {y}"
-            ));
-        }
+        problems.extend(self.machine.problems("machine"));
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
                 problems.push(format!("{path}: must be greater than 0, got {value}"));
@@ -996,14 +1046,14 @@ impl Job {
         positive("stock.x".into(), self.stock.x);
         positive("stock.y".into(), self.stock.y);
         positive("stock.thickness".into(), self.stock.thickness);
-        if let Some(t) = &self.machine.travel {
-            positive("machine.travel.x".into(), t.x);
-            positive("machine.travel.y".into(), t.y);
-            positive("machine.travel.z".into(), t.z);
-        }
         for (i, tool) in self.tools.iter().enumerate() {
-            positive(format!("tools.{i}.diameter"), tool.diameter);
+            problems.extend(tool.problems(&format!("tools.{i}")));
         }
+        let mut positive = |path: String, value: f64| {
+            if value <= 0.0 || value.is_nan() {
+                problems.push(format!("{path}: must be greater than 0, got {value}"));
+            }
+        };
         for (i, op) in self.operations.iter().enumerate() {
             let at = |field: &str| format!("operations.{i}.{field}");
             match op {
@@ -1026,12 +1076,7 @@ impl Job {
                 }
             }
         }
-        let overcut = self.stock.max_overcut;
-        if !(overcut.is_finite() && overcut >= 0.0) {
-            problems.push(format!(
-                "stock.max_overcut: must be 0 or more, got {overcut}"
-            ));
-        }
+        problems.extend(max_overcut_problems("stock", self.stock.max_overcut));
         for (i, op) in self.operations.iter().enumerate() {
             let (start, end) = op.depths();
             if !(start.is_finite() && start >= 0.0) {

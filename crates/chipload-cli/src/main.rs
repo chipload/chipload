@@ -5,6 +5,8 @@
 // A CLI's job is to print; the workspace-wide lint is meant for library crates.
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
+mod library;
+
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -14,6 +16,7 @@ use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_n
 use chipload_job::{
     Geometry, Job, Spindle, Units, WorkZero, load_job, polyline_segment_count, save_job,
 };
+use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
@@ -64,6 +67,9 @@ enum Command {
         /// The project to write (.chipload).
         #[arg(short, long)]
         output: PathBuf,
+        /// The machine profile to start from (default: your default machine).
+        #[arg(long)]
+        machine: Option<String>,
     },
     /// Replace a project's imported drawing with a new version of the DXF.
     Update {
@@ -119,6 +125,16 @@ enum Command {
     Shape {
         #[command(subcommand)]
         action: ShapeAction,
+    },
+    /// Your tool library: tools kept for every project (copied into a project when used).
+    Tool {
+        #[command(subcommand)]
+        action: library::ToolAction,
+    },
+    /// Your machine profiles: machine values a new project starts with.
+    Machine {
+        #[command(subcommand)]
+        action: library::MachineAction,
     },
     /// Print Chipload's licence and the licences of every third-party component.
     Licenses,
@@ -224,7 +240,8 @@ fn main() -> ExitCode {
             dxf,
             units: u,
             output,
-        } => import(&dxf, units(u), &output),
+            machine,
+        } => import(&dxf, units(u), &output, machine.as_deref()),
         Command::Update {
             project,
             from,
@@ -236,6 +253,8 @@ fn main() -> ExitCode {
         Command::Render { program, post } => render(&program, &post),
         Command::Check { gcode, job, json } => check(&gcode, &job, json),
         Command::Shape { action } => shape(action),
+        Command::Tool { action } => library::tool(action),
+        Command::Machine { action } => library::machine(action),
         Command::Licenses => {
             println!("{}\n", chipload_pipeline::notices::short_notice());
             println!("{}", chipload_pipeline::notices::LICENSE);
@@ -255,7 +274,7 @@ fn is_dxf(path: &Path) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
 }
 
-fn import(dxf: &Path, units: Option<Units>, output: &Path) -> ExitCode {
+fn import(dxf: &Path, units: Option<Units>, output: &Path, machine: Option<&str>) -> ExitCode {
     let imported = match shapes_from_dxf(dxf, units) {
         Ok(imported) => imported,
         Err(err) => return fail(err),
@@ -265,10 +284,25 @@ fn import(dxf: &Path, units: Option<Units>, output: &Path) -> ExitCode {
         imported.source.file,
         imported.shapes.len()
     );
-    if let Err(err) = save_job(&new_project(imported), output) {
+    // The library only gives starting values; without a settings folder there is none.
+    let library = settings_dir()
+        .map(|dir| Library::load(&dir))
+        .unwrap_or_default();
+    let mut job = new_project(imported);
+    let notes = match apply_library(&mut job, &library, machine) {
+        Ok(notes) => notes,
+        Err(err) => return fail(err),
+    };
+    if let Err(err) = save_job(&job, output) {
         return fail(err);
     }
     println!("{line}");
+    for problem in &library.problems {
+        eprintln!("warning: {problem}");
+    }
+    for note in notes {
+        println!("{note}");
+    }
     println!("Wrote {}", output.display());
     ExitCode::SUCCESS
 }

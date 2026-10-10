@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 
+pub mod library;
 pub mod notices;
 pub mod report;
 pub mod shapes;
@@ -173,6 +174,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
             z_zero: ZZero::Top,
         },
         machine: Machine {
+            name: None,
             post: "grbl".into(),
             safe_z: DEFAULT_SAFE_Z,
             spindle: Spindle::Cw,
@@ -182,6 +184,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         },
         tools: vec![Tool {
             id: 1,
+            name: None,
             kind: ToolType::Endmill,
             diameter: DEFAULT_TOOL_DIAMETER,
             flutes: None,

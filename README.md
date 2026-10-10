@@ -34,6 +34,12 @@ update it. Circles, rectangles and polylines (with arc segments as DXF bulges) c
 drawn in the project (`chipload shape add …`, or the GUI's Draw menu); in the GUI their
 handles can be dragged, and the cursor snaps to end points, centres and middles (Alt: off).
 
+Your tools and machines can be kept between projects (`chipload tool add …`, `chipload
+machine add …`, then `tool default` / `machine default`): a new project starts with the
+default machine and tool, and `tool use` / `machine use` copy them into a project. They live
+in your settings folder (`~/.config/chipload/`, `%APPDATA%\chipload\`, or
+`CHIPLOAD_CONFIG_DIR`). A project keeps its own copy, so it cuts the same on any computer.
+
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
 (Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New
 profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to

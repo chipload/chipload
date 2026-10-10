@@ -1,0 +1,366 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! `chipload tool …`, `chipload machine …` and new projects from the library
+//! (docs/specs/tool-library-and-machines.md).
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+
+use serde_json::Value;
+
+fn corpus(rel: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus")
+        .join(rel)
+}
+
+/// A fresh folder for one test, used as the settings folder and for its projects.
+fn temp_dir(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "chipload-cli-library-{name}-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn chipload(settings: &Path, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_chipload"))
+        .env("CHIPLOAD_CONFIG_DIR", settings)
+        .args(args)
+        .output()
+        .unwrap()
+}
+
+/// Runs and expects success; returns stdout.
+fn ok(settings: &Path, args: &[&str]) -> String {
+    let out = chipload(settings, args);
+    assert!(
+        out.status.success(),
+        "{args:?}: {}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8(out.stdout).unwrap()
+}
+
+/// Runs and expects failure; returns stderr.
+fn refused(settings: &Path, args: &[&str]) -> String {
+    let out = chipload(settings, args);
+    assert_eq!(out.status.code(), Some(1), "{args:?} should fail");
+    String::from_utf8(out.stderr).unwrap()
+}
+
+fn path(p: &Path) -> &str {
+    p.to_str().unwrap()
+}
+
+fn json(p: &Path) -> Value {
+    serde_json::from_str(&std::fs::read_to_string(p).unwrap()).unwrap()
+}
+
+fn add_upcut(settings: &Path) {
+    ok(
+        settings,
+        &[
+            "tool",
+            "add",
+            "6 mm upcut",
+            "--diameter",
+            "6",
+            "--flutes",
+            "2",
+            "--center-cutting",
+            "yes",
+            "--rpm",
+            "18000",
+            "--feed",
+            "1200",
+            "--plunge-feed",
+            "300",
+            "--step-down",
+            "2",
+            "--stepover",
+            "0.4",
+        ],
+    );
+}
+
+fn add_shapeoko(settings: &Path) {
+    ok(
+        settings,
+        &[
+            "machine",
+            "add",
+            "Shapeoko",
+            "--safe-z",
+            "10",
+            "--max-feed",
+            "5000",
+            "--travel",
+            "830,830,95",
+            "--work-zero",
+            "stock-bottom-left",
+            "--max-overcut",
+            "0.3",
+        ],
+    );
+}
+
+#[test]
+fn tools_are_added_listed_changed_and_removed() {
+    let dir = temp_dir("tools");
+    let listed = ok(&dir, &["tool", "list"]);
+    assert!(listed.contains("(no tools)"), "{listed}");
+    assert!(!dir.join("tools.json").exists(), "listing must not write");
+
+    add_upcut(&dir);
+    ok(&dir, &["tool", "default", "6 MM UPCUT"]);
+    let listed = ok(&dir, &["tool", "list"]);
+    assert!(listed.contains(path(&dir.join("tools.json"))), "{listed}");
+    assert!(
+        listed.contains(
+            "6 mm upcut (default): id 1, endmill 6 mm, flutes 2, centre cutting yes, rpm 18000; \
+             feed 1200 plunge 300 mm/min, step down 2 mm, stepover 0.4"
+        ),
+        "{listed}"
+    );
+
+    // A changed cutting value keeps the rest of the set; a rename keeps the default.
+    ok(
+        &dir,
+        &[
+            "tool",
+            "set",
+            "6 mm upcut",
+            "--feed",
+            "1500",
+            "--rename",
+            "6 mm",
+        ],
+    );
+    let file = json(&dir.join("tools.json"));
+    assert_eq!(file["default_tool"], "6 mm");
+    assert_eq!(file["tools"][0]["cutting"]["feed"], 1500.0);
+    assert_eq!(file["tools"][0]["cutting"]["stepover"], 0.4);
+    assert_eq!(file["schema_version"], 1);
+
+    let err = refused(&dir, &["tool", "add", "6 MM", "--diameter", "3"]);
+    assert!(err.contains("already has a tool named"), "{err}");
+    let err = refused(&dir, &["tool", "add", "3 mm"]);
+    assert!(err.contains("needs --diameter"), "{err}");
+    let err = refused(
+        &dir,
+        &["tool", "add", "3 mm", "--diameter", "3", "--feed", "900"],
+    );
+    assert!(err.contains("missing --plunge-feed"), "{err}");
+    let err = refused(&dir, &["tool", "add", "bad", "--diameter", "0"]);
+    assert!(err.contains("diameter: must be greater than 0"), "{err}");
+
+    ok(&dir, &["tool", "remove", "6 mm"]);
+    let file = json(&dir.join("tools.json"));
+    assert_eq!(file["tools"].as_array().unwrap().len(), 0);
+    assert!(file["default_tool"].is_null());
+    assert!(dir.join("tools.json.bak").exists());
+}
+
+#[test]
+fn machines_are_added_listed_and_checked() {
+    let dir = temp_dir("machines");
+    add_shapeoko(&dir);
+    ok(&dir, &["machine", "default", "shapeoko"]);
+    let listed = ok(&dir, &["machine", "list"]);
+    assert!(
+        listed.contains(
+            "Shapeoko (default): post grbl, safe Z 10 mm, spindle cw, max overcut 0.3 mm, \
+             max feed 5000 mm/min, travel X830 Y830 Z95 mm, work zero stock bottom left corner"
+        ),
+        "{listed}"
+    );
+    let err = refused(&dir, &["machine", "add", "Other", "--post", "nonesuch"]);
+    assert!(err.contains("nonesuch"), "{err}");
+    let err = refused(&dir, &["machine", "add", "Other", "--travel", "1,2"]);
+    assert!(err.contains("expected travel as X,Y,Z"), "{err}");
+    let err = refused(&dir, &["machine", "add", "Other", "--work-zero", "middle"]);
+    assert!(err.contains("expected drawing-origin"), "{err}");
+    ok(
+        &dir,
+        &[
+            "machine",
+            "add",
+            "Laser",
+            "--work-zero",
+            "-10,5",
+            "--spindle",
+            "ccw",
+        ],
+    );
+    let file = json(&dir.join("machines.json"));
+    assert_eq!(file["machines"][1]["work_zero"]["at"], "point");
+    assert_eq!(file["machines"][1]["work_zero"]["x"], -10.0);
+    assert_eq!(file["machines"][1]["spindle"], "ccw");
+    assert_eq!(file["machines"][1]["safe_z"], 5.0);
+}
+
+#[test]
+fn a_new_project_starts_from_the_default_machine_and_tool() {
+    let dir = temp_dir("import");
+    let dxf = corpus("dxf/simple_part.dxf");
+
+    // No library: the built-in values, no names.
+    let plain = dir.join("plain.chipload");
+    let out = ok(&dir, &["import", path(&dxf), "-o", path(&plain)]);
+    assert!(!out.contains("machine:"), "{out}");
+    let job = json(&plain);
+    assert!(job["machine"]["name"].is_null());
+    assert_eq!(job["machine"]["post"], "grbl");
+    assert!(job["tools"][0]["name"].is_null());
+    assert!(!dir.join("tools.json").exists() && !dir.join("machines.json").exists());
+
+    add_upcut(&dir);
+    add_shapeoko(&dir);
+    ok(&dir, &["tool", "default", "6 mm upcut"]);
+    ok(&dir, &["machine", "default", "Shapeoko"]);
+    let project = dir.join("part.chipload");
+    let out = ok(&dir, &["import", path(&dxf), "-o", path(&project)]);
+    assert!(out.contains("machine: Shapeoko (default profile)"), "{out}");
+    assert!(out.contains("tool 1: 6 mm upcut (default tool)"), "{out}");
+    let job = json(&project);
+    assert_eq!(job["machine"]["name"], "Shapeoko");
+    assert_eq!(job["machine"]["safe_z"], 10.0);
+    assert_eq!(job["machine"]["travel"]["x"], 830.0);
+    assert_eq!(job["machine"]["work_zero"]["corner"], "bottom_left");
+    assert_eq!(job["stock"]["max_overcut"], 0.3);
+    assert_eq!(job["tools"].as_array().unwrap().len(), 1);
+    assert_eq!(job["tools"][0]["name"], "6 mm upcut");
+    assert_eq!(job["tools"][0]["center_cutting"], true);
+
+    // Opening a project never reads the library: a broken one changes nothing.
+    std::fs::write(dir.join("machines.json"), "{broken").unwrap();
+    ok(&dir, &["inspect", path(&project)]);
+
+    let err = refused(
+        &dir.join("elsewhere"),
+        &[
+            "import",
+            path(&dxf),
+            "-o",
+            path(&project),
+            "--machine",
+            "Nope",
+        ],
+    );
+    assert!(err.contains("no machine profile named \"Nope\""), "{err}");
+}
+
+#[test]
+fn a_broken_library_warns_on_import_and_is_never_overwritten() {
+    let dir = temp_dir("broken");
+    let newer = r#"{"schema_version": 2, "tools": []}"#;
+    std::fs::write(dir.join("tools.json"), newer).unwrap();
+    let project = dir.join("part.chipload");
+    let out = chipload(
+        &dir,
+        &[
+            "import",
+            path(&corpus("dxf/simple_part.dxf")),
+            "-o",
+            path(&project),
+        ],
+    );
+    assert!(out.status.success());
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(
+        err.contains("warning:") && err.contains("schema_version 2 is not supported"),
+        "{err}"
+    );
+    assert!(err.contains("using built-in defaults"), "{err}");
+    assert!(json(&project)["tools"][0]["name"].is_null());
+
+    let err = refused(&dir, &["tool", "add", "3 mm", "--diameter", "3"]);
+    assert!(err.contains("schema_version 2 is not supported"), "{err}");
+    assert_eq!(
+        std::fs::read_to_string(dir.join("tools.json")).unwrap(),
+        newer
+    );
+}
+
+#[test]
+fn library_tools_and_machines_go_into_projects_and_back() {
+    let dir = temp_dir("use");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v7/adaptive.chipload"), &project).unwrap();
+    let before = json(&project);
+    let ids: Vec<i64> = before["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["id"].as_i64().unwrap())
+        .collect();
+    assert!(ids.contains(&1), "the corpus project has tool 1: {ids:?}");
+
+    add_upcut(&dir);
+    let out = ok(&dir, &["tool", "use", "6 mm upcut", path(&project)]);
+    let next = ids.iter().max().unwrap() + 1;
+    assert!(
+        out.contains(&format!("tool {next} (added as {next}; tool 1 was taken)")),
+        "{out}"
+    );
+    let out = ok(&dir, &["tool", "use", "6 mm upcut", path(&project)]);
+    assert!(out.contains("(already in the project)"), "{out}");
+
+    add_shapeoko(&dir);
+    let out = ok(&dir, &["machine", "use", "Shapeoko", path(&project)]);
+    assert!(out.contains("  safe Z 5 mm -> 10 mm"), "{out}");
+    assert!(
+        out.contains("  work zero drawing origin -> stock bottom left corner"),
+        "{out}"
+    );
+    let out = ok(&dir, &["machine", "use", "Shapeoko", path(&project)]);
+    assert!(out.contains("no values changed"), "{out}");
+
+    // Back into the library: an existing name needs --replace.
+    let err = refused(
+        &dir,
+        &["machine", "save", path(&project), "--name", "Shapeoko"],
+    );
+    assert!(err.contains("add --replace"), "{err}");
+    ok(&dir, &["machine", "save", path(&project), "--name", "Copy"]);
+    ok(
+        &dir,
+        &[
+            "tool",
+            "save",
+            path(&project),
+            "--tool",
+            "1",
+            "--name",
+            "Tool one",
+        ],
+    );
+    ok(
+        &dir,
+        &[
+            "tool",
+            "save",
+            path(&project),
+            "--tool",
+            "1",
+            "--name",
+            "6 mm upcut",
+            "--replace",
+        ],
+    );
+    let tools = json(&dir.join("tools.json"));
+    // The replaced entry keeps its cutting values: a project tool has none.
+    assert_eq!(tools["tools"][0]["cutting"]["feed"], 1200.0);
+    assert_eq!(tools["tools"][1]["name"], "Tool one");
+    let machines = json(&dir.join("machines.json"));
+    assert_eq!(machines["machines"][1]["name"], "Copy");
+    assert_eq!(machines["machines"][1]["safe_z"], 10.0);
+
+    // The project still runs: the copies are complete project values.
+    let gcode = dir.join("out.nc");
+    ok(&dir, &["run", path(&project), "-o", path(&gcode)]);
+}

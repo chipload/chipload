@@ -11,8 +11,10 @@ fn corpus(rel: &str) -> PathBuf {
         .join(rel)
 }
 
+/// Runs with an empty settings folder: tests never read the user's tool library.
 fn chipload(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_chipload"))
+        .env("CHIPLOAD_CONFIG_DIR", temp_dir("no-settings"))
         .args(args)
         .output()
         .unwrap()

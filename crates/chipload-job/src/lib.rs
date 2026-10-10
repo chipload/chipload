@@ -6,6 +6,7 @@
 //! refused, and validation only ever targets the current version.
 
 pub mod edit;
+pub mod library;
 pub mod migrations;
 pub mod models;
 
@@ -73,6 +74,11 @@ pub fn dump_job(job: &Job) -> Result<String, JobError> {
         path: "(job)".into(),
         reason: e.to_string(),
     })?;
+    Ok(ascii_json(&text))
+}
+
+/// Pretty JSON as written to disk: non-ASCII escaped as \uXXXX, ending with a newline.
+pub(crate) fn ascii_json(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 1);
     for c in text.chars() {
         if c.is_ascii() {
@@ -86,7 +92,7 @@ pub fn dump_job(job: &Job) -> Result<String, JobError> {
         }
     }
     out.push('\n');
-    Ok(out)
+    out
 }
 
 /// Save as the current schema version, via a temporary file and a rename so a reader never

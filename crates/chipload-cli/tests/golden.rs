@@ -43,7 +43,11 @@ fn corpus(rel: &str) -> PathBuf {
 }
 
 fn chipload(args: &[&OsStr]) {
+    // An empty settings folder: tests never read the user's tool library.
+    let settings =
+        std::env::temp_dir().join(format!("chipload-golden-settings-{}", std::process::id()));
     let out = Command::new(env!("CARGO_BIN_EXE_chipload"))
+        .env("CHIPLOAD_CONFIG_DIR", settings)
         .args(args)
         .output()
         .unwrap();
