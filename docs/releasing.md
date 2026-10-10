@@ -4,9 +4,11 @@ Releases are built by GitHub Actions (`.github/workflows/release.yml`, ADR 0010)
 version tag is pushed. The workflow creates a **draft** release; nothing is public until you
 publish it.
 
-1. Bump `version` in the workspace `Cargo.toml` (e.g. `0.2.0`) and run `cargo build` so
-   `Cargo.lock` follows.
-2. If dependencies changed, regenerate the notices (CI fails otherwise):
+1. Bump `version` in the workspace `Cargo.toml` (e.g. `0.2.0`) **and** the internal
+   dependency pins (`chipload-* = { version = "0.2.0", path = … }` in `crates/*/Cargo.toml`),
+   then run `cargo build` so `Cargo.lock` follows.
+2. Regenerate the notices. Always: they list Chipload's own crates with their version, so
+   every version bump changes them, and CI fails if they're stale:
 
        cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt
 
