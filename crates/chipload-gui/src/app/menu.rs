@@ -28,6 +28,9 @@ impl ChiploadApp {
         if pressed(&UNDO) {
             self.undo();
         }
+        if pressed(&NEW) {
+            self.ask_new();
+        }
         if pressed(&OPEN) {
             self.ask_open();
         }
@@ -81,6 +84,9 @@ impl ChiploadApp {
         let has_result = self.result.is_some();
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("File", |ui| {
+                if ui.button("New project  (Ctrl+N)").clicked() {
+                    self.ask_new();
+                }
                 if ui.button("Open…  (Ctrl+O)").clicked() {
                     self.ask_open();
                 }
@@ -106,14 +112,12 @@ impl ChiploadApp {
                     self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
                 }
                 ui.separator();
-                if ui
-                    .add_enabled(has_job, egui::Button::new("Update drawing from DXF…"))
-                    .clicked()
-                {
+                let (update, update_path) = self.update_labels();
+                if ui.add_enabled(has_job, egui::Button::new(update)).clicked() {
                     self.ask_update();
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Update drawing from path…"))
+                    .add_enabled(has_job, egui::Button::new(update_path))
                     .clicked()
                 {
                     self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
@@ -243,6 +247,9 @@ impl ChiploadApp {
                 }
             });
             ui.separator();
+            if ui.button("New").clicked() {
+                self.ask_new();
+            }
             if ui.button("Open").clicked() {
                 self.ask_open();
             }

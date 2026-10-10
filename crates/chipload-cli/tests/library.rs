@@ -364,3 +364,35 @@ fn library_tools_and_machines_go_into_projects_and_back() {
     let gcode = dir.join("out.nc");
     ok(&dir, &["run", path(&project), "-o", path(&gcode)]);
 }
+
+#[test]
+fn an_empty_project_starts_from_a_named_machine() {
+    let dir = temp_dir("new");
+    add_upcut(&dir);
+    add_shapeoko(&dir);
+    ok(&dir, &["tool", "default", "6 mm upcut"]);
+    let project = dir.join("empty.chipload");
+    let out = ok(
+        &dir,
+        &["new", "-o", path(&project), "--machine", "shapeoko"],
+    );
+    assert!(out.contains("machine: Shapeoko (profile)"), "{out}");
+    assert!(out.contains("tool 1: 6 mm upcut (default tool)"), "{out}");
+    let job = json(&project);
+    assert_eq!(job["machine"]["name"], "Shapeoko");
+    assert_eq!(job["tools"][0]["name"], "6 mm upcut");
+    assert!(job["drawing"]["shapes"].as_array().unwrap().is_empty());
+    let err = refused(
+        &dir,
+        &[
+            "new",
+            "-o",
+            path(&dir.join("x.chipload")),
+            "--machine",
+            "Nope",
+        ],
+    );
+    assert!(err.contains("no machine profile named \"Nope\""), "{err}");
+    assert!(!dir.join("x.chipload").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}

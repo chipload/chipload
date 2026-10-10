@@ -380,3 +380,72 @@ fn plan_json_renders_with_arcs_through_the_post() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
+    // docs/specs/new-project.md
+    let dir = temp_dir("new-project");
+    let project = dir.join("p.chipload");
+    let p = path(&project);
+    let ok = |args: &[&str]| {
+        let out = chipload(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    let out = ok(&["new", "-o", p]);
+    assert!(out.contains("New empty project."), "{out}");
+    let job: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+    assert_eq!(job["drawing"]["shapes"].as_array().unwrap().len(), 0);
+    assert!(job["drawing"]["source"].is_null());
+    assert_eq!(job["stock"]["x"], 300.0);
+    assert_eq!(job["stock"]["y"], 200.0);
+    assert_eq!(job["stock"]["origin"], "bottom_left");
+    assert!(ok(&["inspect", p]).contains("Contours (0)"));
+
+    // Draw, cut it out, run: the program passes the checker.
+    let added = ok(&[
+        "shape", "add", p, "circle", "--center", "20,20", "--radius", "10",
+    ]);
+    assert!(added.contains("Added shape S1."), "{added}");
+    let mut job: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+    job["operations"] = serde_json::json!([{
+        "type": "profile", "name": "Disc", "enabled": true,
+        "select": {"layer": null, "shapes": [1]},
+        "side": "outside", "direction": "climb", "tool": 1,
+        "start_depth": 0.0, "end_depth": 10.0, "clearance": -0.3, "step_down": 3.0,
+        "feed": 1500.0, "plunge_feed": 400.0, "tabs": null
+    }]);
+    std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
+    ok(&["run", p, "-o", path(&dir.join("disc.nc"))]);
+
+    // The DXF comes later: its shapes are added, the drawn circle keeps its id.
+    let dxf = corpus("dxf/simple_part.dxf");
+    let out = ok(&["update", p, "--from", path(&dxf)]);
+    assert!(
+        out.contains("0 unchanged, 0 changed, 7 added, 0 removed"),
+        "{out}"
+    );
+    assert!(!out.contains("beyond the stock"), "{out}");
+    let job: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+    let shapes = job["drawing"]["shapes"].as_array().unwrap();
+    assert_eq!(shapes.len(), 8);
+    assert!(shapes.iter().any(|s| s["id"] == 1 && s["kind"] == "circle"));
+    assert_eq!(job["drawing"]["source"]["file"], "simple_part.dxf");
+    assert_eq!(job["stock"]["x"], 300.0, "the stock is left as it is");
+    ok(&["run", p, "-o", path(&dir.join("disc2.nc"))]);
+
+    // A drawing that doesn't fit the stock is pointed out.
+    let mut job = job;
+    job["stock"]["x"] = 100.0.into();
+    std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
+    let out = ok(&["update", p, "--from", path(&dxf)]);
+    assert!(
+        out.contains("to 250.000, Y")
+            && out.contains("extends beyond the stock (100.000 × 200.000 mm)"),
+        "{out}"
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}

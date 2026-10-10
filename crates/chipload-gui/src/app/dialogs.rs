@@ -25,6 +25,12 @@ impl ChiploadApp {
         }
     }
 
+    pub(super) fn ask_new(&mut self) {
+        if self.guard(Pending::New) {
+            self.new_project();
+        }
+    }
+
     pub(super) fn ask_open(&mut self) {
         if self.guard(Pending::OpenDialog) {
             self.open_dialog();
@@ -42,7 +48,7 @@ impl ChiploadApp {
             .add_filter("DXF drawings", &["dxf"])
             .pick_file()
         {
-            self.update_from(&path);
+            self.update_from(&path, None);
         }
     }
 
@@ -124,7 +130,7 @@ impl ChiploadApp {
             return;
         };
         match prompt {
-            Prompt::Units(path) => {
+            Prompt::Units(path, update) => {
                 egui::Window::new("Drawing units")
                     .collapsible(false)
                     .resizable(false)
@@ -135,11 +141,14 @@ impl ChiploadApp {
                         ));
                         ui.label("What units was it drawn in?");
                         ui.horizontal(|ui| {
-                            if ui.button("mm").clicked() {
-                                self.import_dxf(&path, Some(Units::Mm));
-                            }
-                            if ui.button("inch").clicked() {
-                                self.import_dxf(&path, Some(Units::Inch));
+                            for (label, units) in [("mm", Units::Mm), ("inch", Units::Inch)] {
+                                if ui.button(label).clicked() {
+                                    if update {
+                                        self.update_from(&path, Some(units));
+                                    } else {
+                                        self.import_dxf(&path, Some(units));
+                                    }
+                                }
                             }
                             if ui.button("Cancel").clicked() {
                                 self.prompt = None;
@@ -191,7 +200,7 @@ impl ChiploadApp {
             PathPurpose::Open => ("Open path", "A .chipload project or a .dxf:"),
             PathPurpose::Save => ("Save project", "Save the project to:"),
             PathPurpose::Export => ("Export G-code", "Export the checked G-code to:"),
-            PathPurpose::Update => ("Update drawing", "The new version of the DXF:"),
+            PathPurpose::Update => ("Update drawing", "The DXF:"),
         };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
@@ -225,7 +234,7 @@ impl ChiploadApp {
                 self.export_gcode(&path);
             }
             PathPurpose::Update => {
-                self.update_from(&path);
+                self.update_from(&path, None);
             }
         }
     }

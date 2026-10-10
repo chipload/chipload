@@ -20,7 +20,8 @@ use chipload_job::{
 use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
-    PipelineError, RunResult, load_drawing, new_project, run_job, update_drawing, write_atomically,
+    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, update_drawing,
+    write_atomically,
 };
 use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::select::select_contours;
@@ -53,6 +54,7 @@ const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
 
+const NEW: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::N);
 const OPEN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::O);
 const IMPORT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::I);
 const SAVE_AS: KeyboardShortcut =
@@ -82,6 +84,7 @@ pub enum Focus {
 #[derive(Debug, Clone, PartialEq)]
 enum Pending {
     Close,
+    New,
     OpenDialog,
     ImportDialog,
     Open(PathBuf),
@@ -99,8 +102,8 @@ enum PathPurpose {
 /// A small modal asking for something before an action can continue.
 #[derive(Debug, Clone, PartialEq)]
 enum Prompt {
-    /// The DXF being imported declares no units.
-    Units(PathBuf),
+    /// The DXF being imported (or, with `true`, updating the drawing) declares no units.
+    Units(PathBuf, bool),
     Path(PathPurpose, String),
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
@@ -395,13 +398,32 @@ impl ChiploadApp {
         true
     }
 
+    /// Start a new, unsaved project with no drawing (docs/specs/new-project.md).
+    pub fn new_project(&mut self) {
+        self.prompt = None;
+        self.reload_library();
+        let mut job = empty_project();
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+            .unwrap_or_default();
+        self.start_editing(EditJob::from_job(&job), false, None);
+        let mut lines = vec!["New project.".to_string()];
+        lines.extend(notes.iter().map(|n| format!("Started with {n}.")));
+        lines.extend(self.library.problems.iter().cloned());
+        lines.push(
+            "Draw shapes from the Draw menu, or bring in a drawing with File > Import DXF \
+             into project. Check stock, machine and tool under Job settings."
+                .into(),
+        );
+        self.report = lines;
+    }
+
     /// Import a DXF as a new, unsaved project. A DXF without units asks for them.
     pub fn import_dxf(&mut self, path: &Path, units: Option<Units>) -> bool {
         self.prompt = None;
         let imported = match shapes_from_dxf(path, units) {
             Ok(imported) => imported,
             Err(ImportError::UnitsMissing) => {
-                self.prompt = Some(Prompt::Units(path.to_path_buf()));
+                self.prompt = Some(Prompt::Units(path.to_path_buf(), false));
                 self.report = vec![format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(path)
@@ -454,8 +476,11 @@ impl ChiploadApp {
         }
     }
 
-    /// Replace the imported drawing with a new version of the DXF (§4 of the project spec).
-    pub fn update_from(&mut self, dxf: &Path) -> bool {
+    /// Replace the imported drawing with a new version of the DXF (§4 of the project spec),
+    /// or bring in the first DXF of a project started empty. A DXF without units, when the
+    /// project has none recorded either, asks for them.
+    pub fn update_from(&mut self, dxf: &Path, units: Option<Units>) -> bool {
+        self.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
             return false;
@@ -467,7 +492,7 @@ impl ChiploadApp {
                 return false;
             }
         };
-        match update_drawing(&job, dxf, None) {
+        match update_drawing(&job, dxf, units) {
             Ok((updated, report)) => {
                 let mut next = EditJob::from_job(&updated);
                 // Keep "side not chosen" marks; the update doesn't touch operations.
@@ -486,6 +511,14 @@ impl ChiploadApp {
                     );
                 }
                 true
+            }
+            Err(PipelineError::Import(ImportError::UnitsMissing)) => {
+                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), true));
+                self.report = vec![format!(
+                    "{} does not say which units it uses; choose mm or inch.",
+                    file_name(dxf)
+                )];
+                false
             }
             Err(err) => {
                 self.error(vec![
@@ -807,11 +840,29 @@ impl ChiploadApp {
                 self.allow_close = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
+            Pending::New => self.new_project(),
             Pending::OpenDialog => self.open_dialog(),
             Pending::ImportDialog => self.import_dialog(),
             Pending::Open(path) => {
                 self.open(&path);
             }
+        }
+    }
+
+    /// The File menu's labels for bringing in a DXF: the first one into a project started
+    /// empty, or a new version of it (docs/specs/new-project.md §3).
+    pub fn update_labels(&self) -> (&'static str, &'static str) {
+        let first = self
+            .edit
+            .as_ref()
+            .is_some_and(|e| e.settings.drawing.source.is_none());
+        if first {
+            (
+                "Import DXF into project…",
+                "Import DXF into project from path…",
+            )
+        } else {
+            ("Update drawing from DXF…", "Update drawing from path…")
         }
     }
 

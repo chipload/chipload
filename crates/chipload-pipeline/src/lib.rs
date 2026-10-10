@@ -12,6 +12,7 @@ use std::path::Path;
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
     shapes_from_dxf,
@@ -140,37 +141,26 @@ pub const DEFAULT_SAFE_Z: f64 = 5.0;
 pub const DEFAULT_TOOL_DIAMETER: f64 = 6.0;
 pub const DEFAULT_RPM: f64 = 18000.0;
 
-/// A new project holding an imported drawing: stock covering it (origin bottom left if it
-/// lies in the first quadrant, else centred), GRBL, one 6 mm endmill, no operations.
-pub fn new_project(imported: ImportedShapes) -> Job {
-    let bbox = contours_from_shapes(&imported.shapes, Some(&imported.source))
-        .report
-        .bbox;
-    let ((x0, y0), (x1, y1)) = bbox.unwrap_or(((0.0, 0.0), (100.0, 100.0)));
-    let (origin, x, y) = if x0 >= 0.0 && y0 >= 0.0 {
-        (StockOrigin::BottomLeft, x1, y1)
-    } else {
-        (
-            StockOrigin::Center,
-            2.0 * x0.abs().max(x1.abs()),
-            2.0 * y0.abs().max(y1.abs()),
-        )
-    };
-    let next_shape_id = imported.shapes.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+/// Stock of a project started without a drawing, mm (docs/specs/new-project.md decision 1).
+pub const DEFAULT_EMPTY_STOCK: (f64, f64) = (300.0, 200.0);
+
+/// A new project with no drawing yet (docs/specs/new-project.md): 300 × 200 mm stock, origin
+/// bottom left, GRBL, one 6 mm endmill, no operations.
+pub fn empty_project() -> Job {
     Job {
         schema_version: CURRENT_VERSION,
         written_by: None,
         drawing: Drawing {
-            shapes: imported.shapes,
-            next_shape_id,
-            source: Some(imported.source),
+            shapes: Vec::new(),
+            next_shape_id: 1,
+            source: None,
         },
         stock: Stock {
-            x: x.max(1.0),
-            y: y.max(1.0),
+            x: DEFAULT_EMPTY_STOCK.0,
+            y: DEFAULT_EMPTY_STOCK.1,
             thickness: DEFAULT_THICKNESS,
             max_overcut: DEFAULT_MAX_OVERCUT,
-            origin,
+            origin: StockOrigin::BottomLeft,
             z_zero: ZZero::Top,
         },
         machine: Machine {
@@ -193,6 +183,56 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         }],
         operations: Vec::new(),
     }
+}
+
+/// A new project holding an imported drawing: stock covering it (origin bottom left if it
+/// lies in the first quadrant, else centred), GRBL, one 6 mm endmill, no operations.
+pub fn new_project(imported: ImportedShapes) -> Job {
+    let bbox = contours_from_shapes(&imported.shapes, Some(&imported.source))
+        .report
+        .bbox;
+    let ((x0, y0), (x1, y1)) = bbox.unwrap_or(((0.0, 0.0), (100.0, 100.0)));
+    let (origin, x, y) = if x0 >= 0.0 && y0 >= 0.0 {
+        (StockOrigin::BottomLeft, x1, y1)
+    } else {
+        (
+            StockOrigin::Center,
+            2.0 * x0.abs().max(x1.abs()),
+            2.0 * y0.abs().max(y1.abs()),
+        )
+    };
+    let next_shape_id = imported.shapes.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+    let mut job = empty_project();
+    job.drawing = Drawing {
+        shapes: imported.shapes,
+        next_shape_id,
+        source: Some(imported.source),
+    };
+    job.stock.x = x.max(1.0);
+    job.stock.y = y.max(1.0);
+    job.stock.origin = origin;
+    job
+}
+
+/// A note when the drawing reaches beyond the stock (docs/specs/new-project.md §3); None
+/// when it fits or is empty.
+pub fn stock_fit_note(job: &Job) -> Option<String> {
+    let bbox = contours_from_shapes(&job.drawing.shapes, job.drawing.source.as_ref())
+        .report
+        .bbox?;
+    let ((x0, y0), (x1, y1)) = bbox;
+    let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
+    let fits = x0 >= sx0 - CHAIN_TOL_MM
+        && y0 >= sy0 - CHAIN_TOL_MM
+        && x1 <= sx1 + CHAIN_TOL_MM
+        && y1 <= sy1 + CHAIN_TOL_MM;
+    (!fits).then(|| {
+        format!(
+            "The drawing (X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}) extends beyond the stock \
+             ({:.3} × {:.3} mm); check the stock under Job settings.",
+            job.stock.x, job.stock.y
+        )
+    })
 }
 
 fn op_label(index: usize, op: &Operation) -> String {
@@ -299,6 +339,7 @@ pub fn update_drawing(
         report.added.len(),
         report.removed.len()
     ));
+    report.lines.extend(stock_fit_note(&out));
     for (i, op) in out.operations.iter().enumerate() {
         let label = op_label(i, op);
         let select = op.select();

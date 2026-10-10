@@ -22,7 +22,8 @@ use chipload_pipeline::report::{
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
-    PipelineError, load_drawing, new_project, run_job, update_drawing, write_atomically,
+    PipelineError, empty_project, load_drawing, new_project, run_job, update_drawing,
+    write_atomically,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -56,6 +57,15 @@ enum Command {
         /// Print the result as JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Create an empty project, to draw in or import a DXF into later (`update --from`).
+    New {
+        /// The project to write (.chipload).
+        #[arg(short, long)]
+        output: PathBuf,
+        /// The machine profile to start from (default: your default machine).
+        #[arg(long)]
+        machine: Option<String>,
     },
     /// Create a project from a DXF.
     Import {
@@ -236,6 +246,12 @@ fn main() -> ExitCode {
             units: u,
             json,
         } => inspect(&file, units(u), json),
+        Command::New { output, machine } => create(
+            empty_project(),
+            "New empty project.",
+            &output,
+            machine.as_deref(),
+        ),
         Command::Import {
             dxf,
             units: u,
@@ -284,11 +300,15 @@ fn import(dxf: &Path, units: Option<Units>, output: &Path, machine: Option<&str>
         imported.source.file,
         imported.shapes.len()
     );
+    create(new_project(imported), &line, output, machine)
+}
+
+/// Write a new project, started from the library's machine profile and default tool.
+fn create(mut job: Job, line: &str, output: &Path, machine: Option<&str>) -> ExitCode {
     // The library only gives starting values; without a settings folder there is none.
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
         .unwrap_or_default();
-    let mut job = new_project(imported);
     let notes = match apply_library(&mut job, &library, machine) {
         Ok(notes) => notes,
         Err(err) => return fail(err),

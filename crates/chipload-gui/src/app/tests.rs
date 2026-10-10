@@ -429,11 +429,11 @@ fn a_job_from_before_projects_is_refused_with_advice() {
 fn updating_the_drawing_keeps_operations_and_can_be_undone() {
     let mut app = lower_part();
     let before = app.edit.clone();
-    assert!(app.update_from(&corpus("dxf/messy_2.dxf")));
+    assert!(app.update_from(&corpus("dxf/messy_2.dxf"), None));
     assert!(app.report[0].contains("22 unchanged"), "{:?}", app.report);
     assert_eq!(app.edit, before, "same drawing: nothing changes");
     // A different drawing: the operations' shapes are gone, so they are flagged.
-    assert!(app.update_from(&corpus("dxf/simple_part.dxf")));
+    assert!(app.update_from(&corpus("dxf/simple_part.dxf"), None));
     assert_eq!(app.error_ops, BTreeSet::from([0, 1]));
     assert!(!app.generate());
     app.undo();
@@ -464,7 +464,7 @@ fn old_job_versions_are_saved_as_current_projects() {
 fn unitless_drawing_asks_for_units() {
     let mut app = ChiploadApp::default();
     assert!(!app.open(&corpus("dxf/messy.dxf")));
-    assert!(matches!(app.prompt, Some(Prompt::Units(_))));
+    assert!(matches!(app.prompt, Some(Prompt::Units(_, false))));
     assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(!app.contours.is_empty());
     let source = app.edit.as_ref().unwrap().settings.drawing.source.clone();
@@ -902,4 +902,49 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
     app.forget_recent(None);
     assert!(app.recent.is_empty());
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
+    // docs/specs/new-project.md
+    let mut app = ChiploadApp::default();
+    assert_eq!(app.update_labels().0, "Update drawing from DXF…");
+    app.ask_new();
+    let job = app.edit.as_ref().unwrap().settings.clone();
+    assert!(job.drawing.shapes.is_empty() && job.drawing.source.is_none());
+    assert_eq!((job.stock.x, job.stock.y), (300.0, 200.0));
+    assert!(app.job_path.is_none() && app.contours.is_empty());
+    assert_eq!(app.update_labels().0, "Import DXF into project…");
+    assert_eq!(
+        app.scene.fit_points(0.0).len(),
+        10,
+        "the axes and the stock box"
+    );
+
+    // Draw a circle and cut it out.
+    app.start_drawing(Tool::Circle);
+    app.draw_click((50.0, 50.0), false);
+    app.draw_click((50.0, 60.0), false);
+    app.commit();
+    assert_eq!(app.contours.len(), 1);
+    let id = app.contours[0].id;
+    select(&mut app, &[id]);
+    app.add_operation(OpKind::Profile).unwrap();
+    assert!(app.generate(), "{:?}", app.report);
+
+    // Unsaved changes: a new project asks first.
+    app.ask_new();
+    assert!(matches!(app.prompt, Some(Prompt::Discard(Pending::New))));
+    app.prompt = None;
+
+    // The first DXF has no units: they are asked for, then the drawing comes in and the
+    // drawn circle stays.
+    assert!(!app.update_from(&corpus("dxf/messy.dxf"), None));
+    assert!(matches!(app.prompt, Some(Prompt::Units(_, true))));
+    assert!(app.update_from(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
+    assert!(app.prompt.is_none());
+    assert!(app.shape(1).is_some());
+    assert!(app.contours.len() > 1);
+    assert_eq!(app.update_labels().0, "Update drawing from DXF…");
+    assert!(app.generate(), "{:?}", app.report);
 }

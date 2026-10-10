@@ -81,6 +81,7 @@ cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
+cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)
 cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units, contours, issues
 cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, no G-code
