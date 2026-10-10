@@ -27,6 +27,7 @@ use crate::ToolpathError;
 use crate::adaptive::{self, Field, Grid};
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::geom::PrimIndex;
+use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
 use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
@@ -54,6 +55,9 @@ pub struct PocketPiece {
     /// chosen[i]: the index in the operation's `starts` of the point that set rings[i]'s
     /// start (docs/specs/helix-and-leads.md part A).
     pub chosen: Vec<Option<usize>>,
+    /// leads[i]: rings[i] is a wall ring with a lead-in before it and a lead-out after it,
+    /// as one open path; the ring itself is rings[i][range] (part B).
+    pub leads: Vec<Option<std::ops::Range<usize>>>,
 }
 
 /// Where the tool is after cutting a path: back at its start if closed, at its end if open.
@@ -979,6 +983,7 @@ pub fn plan_pocket_with(
         start,
         strategy,
         &[],
+        None,
     )
 }
 
@@ -991,6 +996,7 @@ struct Draft {
     open: Vec<bool>,
     walls: Vec<bool>,
     chosen: Vec<Option<usize>>,
+    leads: Vec<Option<std::ops::Range<usize>>>,
 }
 
 /// [`plan_pocket_with`] with start points for the wall rings (docs/specs/helix-and-leads.md
@@ -1007,6 +1013,7 @@ pub fn plan_pocket_starting(
     start: Point,
     strategy: PocketStrategy,
     starts: &[Point],
+    lead: Option<f64>,
 ) -> Result<PocketPlan, ToolpathError> {
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
@@ -1117,6 +1124,7 @@ pub fn plan_pocket_starting(
         }
         position = rings[0][0]; // every depth starts again at the first ring
         let chosen = vec![None; rings.len()];
+        let leads = vec![None; rings.len()];
         drafts.push(Draft {
             region,
             ids,
@@ -1125,6 +1133,7 @@ pub fn plan_pocket_starting(
             open,
             walls,
             chosen,
+            leads,
         });
     }
     // The order and the clearing were chosen from the planner's starts; only the wall
@@ -1140,13 +1149,53 @@ pub fn plan_pocket_starting(
         let Draft {
             region,
             ids,
-            rings,
+            mut rings,
             level0,
-            open,
+            mut open,
             walls: wall_rings,
             chosen,
+            mut leads,
         } = draft;
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
+        if let Some(radius) = lead {
+            // Climb with M3 keeps the walls on the right: the cleared side is on the left.
+            let waste_left = !cut_clockwise(Side::Inside, direction, spindle);
+            let fits =
+                |l: &Leads| l.all_points(|p| region.contains(p)) && l.clear_of(&walls, offset);
+            let min_radius = 2.0 * tool_radius * MIN_LEAD_DIAMETERS;
+            for k in (0..rings.len()).filter(|&k| wall_rings[k]) {
+                if chosen[k].is_none()
+                    && let Some(at) = roomiest_start(&rings[k])
+                {
+                    rings[k] = restart(&rings[k], at, &mut arcs);
+                }
+                match fitted_leads(&rings[k], radius, min_radius, waste_left, fits) {
+                    Some((l, used)) => {
+                        if used < radius {
+                            notes.push(format!(
+                                "contours {}: lead radius reduced to {used:.3} mm (no room \
+                                 for {radius:.3} mm)",
+                                ids_text(&ids)
+                            ));
+                        }
+                        l.tag(&mut arcs);
+                        let ring = std::mem::take(&mut rings[k]);
+                        let before = l.lead_in.len() - 1;
+                        let mut path = l.lead_in[..before].to_vec();
+                        path.extend(ring.iter().copied());
+                        path.extend(l.lead_out.iter().copied());
+                        leads[k] = Some(before..before + ring.len());
+                        rings[k] = path;
+                        open[k] = true;
+                    }
+                    None => notes.push(format!(
+                        "contours {}: no room for a lead (not even {min_radius:.3} mm); the \
+                         wall is cut without one",
+                        ids_text(&ids)
+                    )),
+                }
+            }
+        }
         let links: Vec<bool> = (1..rings.len())
             .map(|k| {
                 let from = path_end(&rings[k - 1], open[k - 1]);
@@ -1169,6 +1218,7 @@ pub fn plan_pocket_starting(
             contour_ids: ids,
             walls: wall_rings,
             chosen,
+            leads,
         });
     }
     // Display only: any failure, even a panic in the geometry library, becomes a note.

@@ -4,7 +4,7 @@
 use super::user_library::{LibraryRows, library_rows};
 use super::*;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
-use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, MAX_RAMP_ANGLE_RAD, Machine, Tool};
+use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 
@@ -218,6 +218,9 @@ pub(super) fn op_form(
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
                 entry_rows(ui, index, &mut p.entry);
+                // On the line there is no waste side to put a lead on.
+                let can_lead = p.side != Side::On || p.lead.is_some();
+                lead_rows(ui, &mut p.lead, tool_diameter, can_lead);
                 ui.label("Tabs");
                 let mut has_tabs = p.tabs.is_some();
                 if ui.checkbox(&mut has_tabs, "holding tabs").changed() {
@@ -269,6 +272,7 @@ pub(super) fn op_form(
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
                 entry_rows(ui, index, &mut p.entry);
+                lead_rows(ui, &mut p.lead, tool_diameter, true);
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
                 ui.end_row();
@@ -318,6 +322,34 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry) {
         {
             *ramp_angle = degrees.to_radians();
         }
+        ui.end_row();
+    }
+}
+
+/// Lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and the radius,
+/// the tool radius by default.
+fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64, enabled: bool) {
+    ui.label("Lead").on_hover_text(
+        "Arc onto the path from the waste and off it again, so the tool goes down in the \
+         waste and leaves no mark on the part. A lead without room shrinks, or is left out \
+         (the report says so).",
+    );
+    let mut on = lead.is_some();
+    let response = ui
+        .add_enabled(
+            enabled,
+            egui::Checkbox::new(&mut on, "lead-in and lead-out"),
+        )
+        .on_disabled_hover_text("A profile cut on the line has no waste side for a lead");
+    if response.changed() {
+        *lead = on.then_some(Lead {
+            radius: tool_diameter / 2.0,
+        });
+    }
+    ui.end_row();
+    if let Some(lead) = lead {
+        ui.label("  radius");
+        ui.add(mm(&mut lead.radius));
         ui.end_row();
     }
 }

@@ -166,43 +166,59 @@ pub fn tabbed_contour_moves(
             feed,
             plunge_feed,
         )?);
-        let mut lifted = false;
-        let mut here = start;
-        for (index, &(point, in_tab)) in path.iter().enumerate() {
-            if in_tab && !lifted {
-                moves.push(Move::feed_z(z_tab, plunge_feed));
-                lifted = true;
-            } else if !in_tab && lifted {
-                let (ahead, room) = path_ahead(here, &path, index);
-                moves.extend(enter(
-                    &ahead,
-                    room,
-                    z_tab,
-                    z_tab,
-                    z,
-                    entry,
-                    feed,
-                    plunge_feed,
-                )?);
-                lifted = false;
-            }
-            moves.push(Move::feed_xy(point, feed));
-            here = point;
-        }
-        if lifted {
-            // The ring ends inside a tab: back down at its start, where the next pass or
-            // the retract follows; the lap's start is cut already, so nothing to ramp.
-            moves.push(Move::feed_z(z, plunge_feed));
-        }
+        moves.extend(tab_lap(&path, start, z, z_tab, entry, feed, plunge_feed)?);
     }
     moves.push(Move::rapid_z(safe_z));
     verify(&moves, layout, start, z_tab)?;
     Ok(moves)
 }
 
+/// One lap of the split ring `path` below the tab top, from `start` at depth `z`: up over
+/// each tab, back down after it as `entry` says. Ends at `start`, at `z`.
+pub(crate) fn tab_lap(
+    path: &[(Point, bool)],
+    start: Point,
+    z: f64,
+    z_tab: f64,
+    entry: Entry,
+    feed: f64,
+    plunge_feed: f64,
+) -> Result<Vec<Move>, ToolpathError> {
+    let mut moves = Vec::new();
+    let mut lifted = false;
+    let mut here = start;
+    for (index, &(point, in_tab)) in path.iter().enumerate() {
+        if in_tab && !lifted {
+            moves.push(Move::feed_z(z_tab, plunge_feed));
+            lifted = true;
+        } else if !in_tab && lifted {
+            let (ahead, room) = path_ahead(here, path, index);
+            moves.extend(enter(
+                &ahead,
+                room,
+                z_tab,
+                z_tab,
+                z,
+                entry,
+                feed,
+                plunge_feed,
+            )?);
+            lifted = false;
+        }
+        moves.push(Move::feed_xy(point, feed));
+        here = point;
+    }
+    if lifted {
+        // The ring ends inside a tab: back down at its start, where the next pass or
+        // the retract follows; the lap's start is cut already, so nothing to ramp.
+        moves.push(Move::feed_z(z, plunge_feed));
+    }
+    Ok(moves)
+}
+
 /// The path from `here` on (the split ring from entry `from`, going round), up to the
 /// start of the next tab; and its length.
-fn path_ahead(here: Point, path: &[(Point, bool)], from: usize) -> (Vec<Point>, f64) {
+pub(crate) fn path_ahead(here: Point, path: &[(Point, bool)], from: usize) -> (Vec<Point>, f64) {
     let mut ahead = vec![here];
     let mut length = 0.0;
     let mut last = here;
@@ -302,7 +318,7 @@ fn straightest_centre(
 
 /// Post-condition: on every pass below the tab top, the length cut low equals the ring
 /// length minus the tab gaps, and the lifted length equals the tab gaps.
-fn verify(
+pub(crate) fn verify(
     moves: &[Move],
     layout: &TabLayout,
     start: Point,

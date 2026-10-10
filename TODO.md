@@ -8,7 +8,7 @@ it's built (see `CLAUDE.md`).
 - **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md, approved
   2026-10-10). In this order:
   - [x] A. Start points: drag where each contour's cut starts.
-  - [ ] B. Lead-in/out: go down in the waste and arc onto the path.
+  - [x] B. Lead-in/out: go down in the waste and arc onto the path.
   - [ ] C. Helical entry for pockets (helical G2/G3, taught to the checker).
 
 ## Next

@@ -1327,3 +1327,49 @@ proptest! {
         );
     }
 }
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(40))]
+
+    /// Leads and moved starts (docs/specs/helix-and-leads.md parts A and B) never gouge
+    /// either: every chord, leads included, keeps the tool radius from walls and islands.
+    #[test]
+    fn pockets_with_leads_and_starts_never_gouge(
+        contours in pocket_with_islands(),
+        radius in 1.0f64..5.0,
+        fraction in 0.1f64..0.5,
+        lead in 0.5f64..8.0,
+        starts in prop::collection::vec((-60.0f64..60.0, -60.0f64..60.0), 0..3),
+    ) {
+        let refs: Vec<&Contour> = contours.iter().collect();
+        let result = chipload_toolpath::pocket::plan_pocket_starting(
+            &refs,
+            radius,
+            0.0,
+            fraction * 2.0 * radius,
+            Direction::Climb,
+            Spindle::Cw,
+            false,
+            (0.0, 0.0),
+            chipload_job::PocketStrategy::Rings {},
+            &starts,
+            Some(lead),
+        );
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &result, radius);
+        for piece in &result.pieces {
+            for (k, range) in piece.leads.iter().enumerate() {
+                if let Some(range) = range {
+                    prop_assert!(piece.walls[k] && piece.open[k]);
+                    prop_assert!(range.start > 0 && range.end < piece.rings[k].len());
+                }
+            }
+        }
+    }
+}

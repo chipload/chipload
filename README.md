@@ -87,7 +87,7 @@ Supported: **profile** operations (inside, outside, on) with optional holding ta
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
 **pocket** operations with islands, cleared in rings, with trochoidal loops or adaptively; climb or conventional, a start and end depth with
 multiple passes, a clearance (positive: larger pocket or smaller part, negative: stock left),
-cuts into the spoilboard up to a set limit, straight plunges or ramp entry (down along the path, for tools that aren't centre-cutting), start points chosen per ring (`"starts": [[x, y]]`, each moving the start of the ring nearest to it), one tool per job, and the GRBL post (arcs written as G2/G3).
+cuts into the spoilboard up to a set limit, straight plunges or ramp entry (down along the path, for tools that aren't centre-cutting), start points chosen per ring (`"starts": [[x, y]]`, each moving the start of the ring nearest to it), lead-in and lead-out arcs from the waste (`"lead": {"radius": 3}`; profiles inside or outside, and pocket walls), one tool per job, and the GRBL post (arcs written as G2/G3).
 G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
 limitations.

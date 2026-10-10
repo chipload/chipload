@@ -253,6 +253,7 @@ impl EditJob {
                         tabs: None,
                         entry,
                         starts: Vec::new(),
+                        lead: None,
                     }),
                     side.is_some(),
                 )
@@ -275,6 +276,7 @@ impl EditJob {
                     strategy: PocketStrategy::Rings {},
                     entry,
                     starts: Vec::new(),
+                    lead: None,
                 }),
                 true,
             ),

@@ -7,6 +7,7 @@
 pub mod adaptive;
 pub mod arcs;
 pub mod geom;
+pub mod lead;
 pub mod left;
 pub mod model;
 pub mod offset;

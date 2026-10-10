@@ -9,12 +9,14 @@ use chipload_job::{Direction, Entry, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
+use crate::lead::{Leads, roomiest_start};
 use crate::left::{LeftPiece, cleared, reach, unreachable_inside, unreachable_outside};
 use crate::model::Move;
 use crate::offset::{contour_pline, offset_rings_tagged, start_index};
 use crate::pocket::{Area, ccw, guarded};
 use crate::ramp::{enter, polyline_length};
 use crate::start::{assign, point_text, restart};
+use crate::tabs::{TabLayout, path_ahead, split_ring, tab_lap, verify as verify_tabs};
 
 /// Travel direction around the ring.
 ///
@@ -105,6 +107,83 @@ pub fn contour_moves(
         above = (z, z);
     }
     moves.push(Move::rapid_z(safe_z));
+    Ok(moves)
+}
+
+/// Tabs on a ring: where they are, and the Z of their top.
+#[derive(Debug, Clone, Copy)]
+pub struct TabsAt<'a> {
+    pub layout: &'a TabLayout,
+    pub z_tab: f64,
+}
+
+/// Each pass with leads (docs/specs/helix-and-leads.md part B): retract, rapid to the
+/// lead-in's start, go down there (`entry`; a ramp runs along the lead-in and on along the
+/// ring), lead-in, the lap (over the tabs, if any), lead-out, retract. Every pass starts and
+/// ends in the waste; the lead-in's start was cut to the previous pass's depth by the
+/// previous lead-in. Ends retracted.
+#[allow(clippy::too_many_arguments)]
+pub fn led_contour_moves(
+    ring: &[Point],
+    leads: &Leads,
+    tabs: Option<TabsAt>,
+    pass_z: &[f64],
+    top_z: f64,
+    safe_z: f64,
+    feed: f64,
+    plunge_feed: f64,
+    entry: Entry,
+) -> Result<Vec<Move>, ToolpathError> {
+    let (Some(&start), Some(&from)) = (ring.first(), leads.lead_in.first()) else {
+        return Ok(Vec::new());
+    };
+    let whole = closed_path(ring);
+    let around = polyline_length(&whole);
+    let lead_length = polyline_length(&leads.lead_in);
+    let split = tabs.map(|t| split_ring(ring, &t.layout.spans));
+    let mut moves = Vec::new();
+    // The laps alone, each from a plunge at the start, for the tab verification.
+    let mut laps = Vec::new();
+    let mut cleared = top_z;
+    for &z in pass_z {
+        moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(from)]);
+        let tabbed = tabs.filter(|t| z < t.z_tab - DEPTH_TOL_MM);
+        let (ahead, room) = match (tabbed, &split) {
+            (Some(_), Some(path)) => path_ahead(start, path, 0),
+            _ => (whole.clone(), around),
+        };
+        let mut path = leads.lead_in.clone();
+        path.extend(ahead.iter().skip(1));
+        moves.extend(enter(
+            &path,
+            lead_length + room,
+            safe_z,
+            cleared,
+            z,
+            entry,
+            feed,
+            plunge_feed,
+        )?);
+        moves.extend(leads.lead_in[1..].iter().map(|&p| Move::feed_xy(p, feed)));
+        let lap = match (tabbed, &split) {
+            (Some(t), Some(path)) => tab_lap(path, start, z, t.z_tab, entry, feed, plunge_feed)?,
+            _ => {
+                let mut lap: Vec<Move> =
+                    ring[1..].iter().map(|&p| Move::feed_xy(p, feed)).collect();
+                lap.push(Move::feed_xy(start, feed));
+                lap
+            }
+        };
+        laps.push(Move::feed_z(z, plunge_feed));
+        laps.extend(lap.iter().copied());
+        moves.extend(lap);
+        moves.extend(leads.lead_out[1..].iter().map(|&p| Move::feed_xy(p, feed)));
+        moves.push(Move::rapid_z(safe_z));
+        cleared = z;
+    }
+    if let Some(t) = tabs {
+        verify_tabs(&laps, t.layout, start, t.z_tab)?;
+    }
     Ok(moves)
 }
 
@@ -239,6 +318,15 @@ pub fn plan_profile(
         &mut arcs,
         &mut notes,
     );
+    if op.lead.is_some() {
+        for (ring, choice) in rings.iter_mut().zip(&chosen) {
+            if choice.is_none()
+                && let Some(at) = roomiest_start(&ring.points)
+            {
+                ring.points = restart(&ring.points, at, &mut arcs);
+            }
+        }
+    }
     Ok(ProfilePlan {
         rings,
         notes,

@@ -1,6 +1,6 @@
 # Spec: helical entry, lead-in/out and start points
 
-Status: **approved 2026-10-10**, all decisions as recommended (§7). Part A implemented.
+Status: **approved 2026-10-10**, all decisions as recommended (§7). Parts A and B implemented.
 
 User requests (2026-10-10):
 - "Spiral plunge for tools that are not end-cutting." The ramp along the path is done
@@ -89,6 +89,14 @@ An optional `lead` per profile and pocket. Missing means none, today's behaviour
 
 - `radius`: mm, more than 0 and at most 10 × the tool diameter. Default when switched on:
   the tool radius (decision 2). Written explicitly.
+
+### Where a ring with a lead starts
+
+A ring that has a lead but no start point of its own starts in the **middle of its longest
+chord** (the first, on a tie), not at today's corner. Beside an inside corner a lead has no
+room: its start would come within the tool radius of the other wall. Only rings with a lead
+start there, so nothing changes for existing projects. (Found while implementing,
+2026-10-10.)
 
 ### Each pass
 

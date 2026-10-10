@@ -4,18 +4,24 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero,
+    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, ProfileOp, Side, Tool,
+    ToolType, ZZero,
 };
 
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
+use crate::geom::PrimIndex;
+use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
 use crate::pocket::{PocketPiece, plan_pocket_starting, pocket_moves};
-use crate::profile::{contour_moves, pass_depths, plan_profile};
+use crate::profile::{
+    TabsAt, contour_moves, cut_clockwise, led_contour_moves, pass_depths, plan_profile,
+};
 use crate::select::{Selection, select_contours};
 use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
 
@@ -127,12 +133,19 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             .into_iter()
             .map(|d| top_z - d)
             .collect();
+        // Leads keep clear of every contour of the drawing (moved with the copy).
+        let everything: Vec<Contour> = if op.lead().is_some() {
+            contours.iter().map(|c| c.translated(offset)).collect()
+        } else {
+            Vec::new()
+        };
         let context = Context {
             label,
             tool,
             job,
             pass_z: &pass_z,
             top_z: top_z - start_depth,
+            everything: &everything,
         };
         // A copy is planned from its own, moved contours: built and verified like the
         // original.
@@ -242,6 +255,8 @@ struct Context<'a> {
     pass_z: &'a [f64],
     /// Z of the operation's start depth: cut already, where a ramp begins.
     top_z: f64,
+    /// Every contour of the drawing, moved with the copy; only filled for leads.
+    everything: &'a [Contour],
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
@@ -276,6 +291,7 @@ fn plan_pocket_op(
         start,
         op.strategy,
         starts,
+        op.lead.map(|l| l.radius),
     )
     .map_err(|err| err.with_context(label))?;
     let mut out = Planned {
@@ -291,8 +307,13 @@ fn plan_pocket_op(
     for piece in &plan.pieces {
         for (k, ring) in piece.rings.iter().enumerate() {
             if piece.walls.get(k).copied().unwrap_or(false) {
+                // Without the leads, if it has them.
+                let plain = match piece.leads.get(k).cloned().flatten() {
+                    Some(range) => ring.get(range).map(<[Point]>::to_vec).unwrap_or_default(),
+                    None => ring.clone(),
+                };
                 out.starts
-                    .push((ring.clone(), piece.chosen.get(k).copied().flatten()));
+                    .push((plain, piece.chosen.get(k).copied().flatten()));
             }
         }
         out.moves.extend(
@@ -370,6 +391,48 @@ fn plan_profile_op(
     let mut curved: Vec<usize> = Vec::new();
     for ring in &plan.rings {
         let points = &ring.points;
+        let leads = match op.lead {
+            Some(lead) => profile_leads(op, ctx, ring, lead.radius, &mut out.notes),
+            None => None,
+        };
+        if let Some(leads) = &leads {
+            leads.tag(&mut out.arcs);
+            let context = |err: ToolpathError| {
+                err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+            };
+            let mut layout = None;
+            if let Some(tabs) = &op.tabs {
+                // Validated: count >= 1.
+                let count = usize::try_from(tabs.count).unwrap_or(0);
+                let placed =
+                    place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
+                if placed.on_curves > 0 {
+                    curved.push(ring.contour_id);
+                }
+                out.tabs.extend(tab_polylines(points, &placed));
+                let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
+                layout = Some((placed, bottom + tabs.height));
+            }
+            out.moves.extend(
+                led_contour_moves(
+                    points,
+                    leads,
+                    layout.as_ref().map(|(layout, z_tab)| TabsAt {
+                        layout,
+                        z_tab: *z_tab,
+                    }),
+                    ctx.pass_z,
+                    ctx.top_z,
+                    machine.safe_z,
+                    op.feed,
+                    op.plunge_feed,
+                    op.entry,
+                )
+                .map_err(context)?,
+            );
+            out.end = leads.lead_out.last().copied().unwrap_or(points[0]);
+            continue;
+        }
         match &op.tabs {
             None => out.moves.extend(
                 contour_moves(
@@ -425,6 +488,57 @@ fn plan_profile_op(
         ));
     }
     Ok(out)
+}
+
+/// Leads for one profile ring that keep the tool centre at least the ring's offset from its
+/// own contour and the tool radius from every other contour; the radius halves until they
+/// fit, down to a tenth of the tool diameter (docs/specs/helix-and-leads.md part B). None
+/// with a note if even that doesn't fit.
+fn profile_leads(
+    op: &ProfileOp,
+    ctx: &Context,
+    ring: &crate::profile::PathRing,
+    radius: f64,
+    notes: &mut Vec<String>,
+) -> Option<Leads> {
+    let tool_radius = ctx.tool.diameter / 2.0;
+    let offset = tool_radius - op.clearance;
+    let clockwise = cut_clockwise(op.side, op.direction, ctx.job.machine.spindle);
+    // Climb with M3 keeps the part on the right: the waste is on the left.
+    let waste_left = (op.side == Side::Outside) == clockwise;
+    let prims = |own: bool| -> Vec<Primitive> {
+        ctx.everything
+            .iter()
+            .filter(|c| (c.id == ring.contour_id) == own)
+            .flat_map(|c| c.parts.iter().map(|p| p.segment.prim))
+            .collect()
+    };
+    let cell = tool_radius.max(1.0);
+    let own = PrimIndex::new(prims(true), cell);
+    let others = PrimIndex::new(prims(false), cell);
+    let min_radius = MIN_LEAD_DIAMETERS * ctx.tool.diameter;
+    let label = ctx.label;
+    let id = ring.contour_id;
+    match fitted_leads(&ring.points, radius, min_radius, waste_left, |l| {
+        l.clear_of(&own, offset) && l.clear_of(&others, tool_radius)
+    }) {
+        Some((leads, used)) => {
+            if used < radius {
+                notes.push(format!(
+                    "{label}, contour #{id}: lead radius reduced to {used:.3} mm (no room for \
+                     {radius:.3} mm)"
+                ));
+            }
+            Some(leads)
+        }
+        None => {
+            notes.push(format!(
+                "{label}, contour #{id}: no room for a lead (not even {min_radius:.3} mm); cut \
+                 without one"
+            ));
+            None
+        }
+    }
 }
 
 /// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
@@ -574,6 +688,24 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
                         "Operation {number}: {name} {value} exceeds machine max_feed {max_feed}"
                     )));
                 }
+            }
+        }
+        if let Some(lead) = op.lead() {
+            let longest = MAX_LEAD_DIAMETERS * tool.diameter;
+            if lead.radius > longest {
+                return Err(job_error(format!(
+                    "{label}: lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
+                     diameter ({longest:.3} mm)",
+                    lead.radius
+                )));
+            }
+            if let Operation::Profile(p) = op
+                && p.side == Side::On
+            {
+                return Err(job_error(format!(
+                    "{label}: a profile cut on the line has no waste side for a lead; cut \
+                     inside or outside, or remove the lead"
+                )));
             }
         }
         match op {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
+use chipload_job::Lead;
 use chipload_toolpath::model::MoveKind;
 
 fn corpus(rel: &str) -> PathBuf {
@@ -1076,4 +1077,35 @@ fn start_markers_are_only_for_the_focused_operation_in_top_view() {
     // A change to the project hides them until the next generation.
     app.toolpath_out_of_date();
     assert!(app.scene.start_markers.is_empty());
+}
+
+#[test]
+fn a_lead_set_on_an_operation_is_generated_and_saved() {
+    // docs/specs/helix-and-leads.md part B
+    let mut app = lower_part();
+    assert!(app.generate(), "{:?}", app.report);
+    let before = app.result.as_ref().unwrap().program.moves.len();
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+        p.lead = Some(Lead { radius: 3.0 });
+    }
+    assert!(app.generate(), "{:?}", app.report);
+    let after = app.result.as_ref().unwrap().program.moves.len();
+    assert!(
+        after > before,
+        "the lead arcs add moves: {before} -> {after}"
+    );
+    // The marker shows the ring without its leads.
+    let marker = app
+        .scene
+        .start_markers
+        .iter()
+        .find(|m| m.operation == 1)
+        .unwrap();
+    assert!(marker.ring.len() > 3);
+    let dir = temp_dir("lead");
+    let project = dir.join("lead.chipload");
+    assert!(app.save_project(&project));
+    let job = load_job(&project).unwrap();
+    assert_eq!(job.operations[1].lead(), Some(Lead { radius: 3.0 }));
+    std::fs::remove_dir_all(&dir).unwrap();
 }

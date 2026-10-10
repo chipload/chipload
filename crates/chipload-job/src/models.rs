@@ -864,6 +864,13 @@ impl Operation {
         }
     }
 
+    pub fn lead(&self) -> Option<Lead> {
+        match self {
+            Operation::Profile(p) => p.lead,
+            Operation::Pocket(p) => p.lead,
+        }
+    }
+
     pub fn clearance(&self) -> f64 {
         match self {
             Operation::Profile(op) => op.clearance,
@@ -917,6 +924,10 @@ pub struct ProfileOp {
     /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
     #[serde(default)]
     pub starts: Vec<[f64; 2]>,
+    /// Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,
+    /// part B). Missing: none.
+    #[serde(default)]
+    pub lead: Option<Lead>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -955,7 +966,22 @@ pub struct PocketOp {
     /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
     #[serde(default)]
     pub starts: Vec<[f64; 2]>,
+    /// Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,
+    /// part B). Missing: none.
+    #[serde(default)]
+    pub lead: Option<Lead>,
 }
+
+/// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Lead {
+    /// Of the arcs the tool centre follows, mm: more than 0, at most 10 × the tool diameter.
+    pub radius: f64,
+}
+
+/// The longest lead allowed, in tool diameters.
+pub const MAX_LEAD_DIAMETERS: f64 = 10.0;
 
 /// How the tool goes down into the material at the start of each pass
 /// (docs/specs/ramp-entry.md).
@@ -1290,6 +1316,14 @@ impl Job {
                     "operations.{i}.entry.ramp_angle: must be more than 0 and at most 30 \
                      degrees, got {:.3} degrees",
                     ramp_angle.to_degrees()
+                ));
+            }
+            if let Some(lead) = op.lead()
+                && !(lead.radius.is_finite() && lead.radius > 0.0)
+            {
+                problems.push(format!(
+                    "operations.{i}.lead.radius: must be more than 0, got {}",
+                    lead.radius
                 ));
             }
             if op

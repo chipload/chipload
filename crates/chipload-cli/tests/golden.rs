@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 12] = [
+const GOLDEN: [(&str, &str); 13] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -37,6 +37,8 @@ const GOLDEN: [(&str, &str); 12] = [
     ("v7_adaptive", "jobs/v7/adaptive.chipload"),
     // The ramp-entry part cut six times, operation by operation (docs/specs/copies-grid.md).
     ("v7_copies", "jobs/v7/copies.chipload"),
+    // The ramp-entry part with leads and moved starts (docs/specs/helix-and-leads.md).
+    ("v7_leads", "jobs/v7/leads.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {
