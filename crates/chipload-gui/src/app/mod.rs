@@ -62,6 +62,7 @@ const UNDO: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Z)
 const MOVE_UP: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::ArrowUp);
 const MOVE_DOWN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::ArrowDown);
 const FIT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F);
+const TOP_VIEW: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::T);
 const COPY_SELECTOR: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::C);
 const QUIT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Q);
@@ -130,6 +131,8 @@ pub struct ChiploadApp {
     context_pick: Option<usize>,
     /// View > Show material left (docs/specs/material-left.md).
     pub show_material_left: bool,
+    /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
+    pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
     pub sketch: Option<Sketch>,
     /// The selected drawn shape's values as being edited.
@@ -164,6 +167,7 @@ impl Default for ChiploadApp {
             selection: CanvasSelection::Nothing,
             context_pick: None,
             show_material_left: true,
+            three_d: false,
             sketch: None,
             shape_draft: None,
             report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],

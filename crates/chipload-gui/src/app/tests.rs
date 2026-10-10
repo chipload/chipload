@@ -491,3 +491,36 @@ fn operation_numbers_are_read_from_messages() {
     assert_eq!(operation_index("Operation 1: x"), Some(0));
     assert_eq!(operation_index("no operation"), None);
 }
+
+// -- 3D view (docs/specs/3d-view.md)
+
+#[test]
+fn the_3d_view_can_be_entered_and_left_and_drawing_returns_to_top_view() {
+    let mut app = drawn_part();
+    app.view_3d();
+    assert!(app.three_d && !app.view.is_top());
+    app.view_top();
+    assert!(!app.three_d && app.view.is_top());
+    app.view_3d();
+    app.start_drawing(Tool::Circle);
+    assert!(
+        !app.three_d && app.view.is_top(),
+        "drawing works in top view only"
+    );
+    assert!(app.sketch.is_some());
+}
+
+#[test]
+fn contours_can_be_picked_in_3d() {
+    let mut app = drawn_part();
+    app.view_3d();
+    let circle = contour_of(&app, 2);
+    let on_it = app
+        .contours
+        .iter()
+        .find(|c| c.id == circle)
+        .unwrap()
+        .points()[0];
+    let at = app.view.to_screen(on_it);
+    assert_eq!(app.scene.pick(&app.view, at), Some(circle));
+}

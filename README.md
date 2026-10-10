@@ -40,6 +40,8 @@ reorder, untick to skip one. **F5** generates and shows the toolpath (each opera
 at its first plunge, arrows in the cutting direction, rapids dashed, tabs highlighted, material
 the tool can't reach shaded); **Ctrl+S** saves
 the project, **Ctrl+E** exports G-code, which is only possible after the check passes.
+**3D** shows the toolpath at its real depths (left-drag turns, right-drag pans, Z can be
+stretched in the View menu); **Top view** (T) goes back.
 *File > Update drawing from DXF* takes in a re-exported drawing and keeps the operations.
 `chipload run` on a saved project gives the same G-code.
 

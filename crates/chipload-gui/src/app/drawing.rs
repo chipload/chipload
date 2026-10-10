@@ -13,6 +13,9 @@ impl ChiploadApp {
 
     pub fn start_drawing(&mut self, tool: Tool) {
         if self.can_draw() {
+            if self.three_d {
+                self.view_top(); // drawing works in top view only
+            }
             self.sketch = Some(Sketch::new(tool));
         }
     }

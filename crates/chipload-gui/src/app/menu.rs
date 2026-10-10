@@ -51,6 +51,9 @@ impl ChiploadApp {
         if pressed(&FIT) {
             self.fit_pending = true;
         }
+        if pressed(&TOP_VIEW) {
+            self.view_top();
+        }
         if pressed(&QUIT) {
             ctx.send_viewport_cmd(ViewportCommand::Close);
         }
@@ -182,6 +185,17 @@ impl ChiploadApp {
                 if ui.button("Fit view  (F)").clicked() {
                     self.fit_pending = true;
                 }
+                if ui.button("Top view  (T)").clicked() {
+                    self.view_top();
+                }
+                if ui.button("3D view").clicked() {
+                    self.view_3d();
+                }
+                ui.menu_button("Z scale in 3D", |ui| {
+                    for factor in [1.0, 2.0, 5.0, 10.0] {
+                        ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
+                    }
+                });
                 ui.checkbox(&mut self.show_material_left, "Show material left")
                     .on_hover_text(
                         "Faint: material the tool can't reach (inside corners, narrow slots). \
@@ -229,6 +243,26 @@ impl ChiploadApp {
             }
             if ui.button("Fit").clicked() {
                 self.fit_pending = true;
+            }
+            // Z stretch is labelled whenever it isn't true scale (docs/specs/3d-view.md §4).
+            let three_d = if self.view.z_scale == 1.0 {
+                "3D".to_string()
+            } else {
+                format!("3D (Z × {})", self.view.z_scale)
+            };
+            if ui
+                .add(egui::Button::new(three_d).selected(self.three_d))
+                .on_hover_text("Left-drag turns and tilts; right-drag or Shift+drag pans")
+                .clicked()
+            {
+                self.view_3d();
+            }
+            if ui
+                .add(egui::Button::new("Top view").selected(!self.three_d))
+                .on_hover_text("Look straight down (T)")
+                .clicked()
+            {
+                self.view_top();
             }
             ui.separator();
             let can_draw = self.can_draw();

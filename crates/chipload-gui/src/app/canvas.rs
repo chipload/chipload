@@ -4,21 +4,66 @@
 use super::*;
 
 impl ChiploadApp {
+    /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
+    pub fn view_3d(&mut self) {
+        if !self.three_d {
+            self.three_d = true;
+            self.sketch = None; // drawing works in top view only
+            let pivot = self.orbit_pivot();
+            self.view
+                .orient(-30f64.to_radians(), 55f64.to_radians(), pivot);
+        }
+    }
+
+    /// Back to looking straight down, as the 2D view always did.
+    pub fn view_top(&mut self) {
+        self.three_d = false;
+        let pivot = self.orbit_pivot();
+        self.view.orient(0.0, 0.0, pivot);
+    }
+
+    /// What the 3D view turns around: the stock's centre, else the drawing origin.
+    fn orbit_pivot(&self) -> Point {
+        self.scene.stock.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
+            ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+        })
+    }
+
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.scene.work_zero = self
             .edit
             .as_ref()
             .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+        // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
+        if let Some(edit) = &self.edit {
+            let stock = &edit.settings.stock;
+            let top = match stock.z_zero {
+                ZZero::Top => 0.0,
+                ZZero::Bottom => stock.thickness,
+            };
+            self.view.top_z = top;
+            self.scene.stock_z = Some((top, top - stock.thickness));
+        }
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
-        if self.fit_pending
-            && let Some(bounds) = self.scene.bounds()
-        {
-            self.view.fit(bounds, rect);
-            self.fit_pending = false;
+        if self.fit_pending {
+            let points = self.scene.fit_points(self.view.top_z);
+            if !points.is_empty() {
+                self.view.fit(&points, rect);
+                self.fit_pending = false;
+            }
         }
         if response.dragged() {
-            self.view.pan(response.drag_delta());
+            // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view any drag pans.
+            let pan = !self.three_d
+                || response.dragged_by(egui::PointerButton::Secondary)
+                || response.dragged_by(egui::PointerButton::Middle)
+                || ui.input(|i| i.modifiers.shift);
+            if pan {
+                self.view.pan(response.drag_delta());
+            } else {
+                self.view.orbit(response.drag_delta(), self.orbit_pivot());
+            }
         }
         if let Some(pos) = response.hover_pos() {
             let (scroll, zoom) = ui.input(|i| (i.smooth_scroll_delta.y, i.zoom_delta()));
