@@ -285,6 +285,42 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
         "expected a point as X,Y",
     );
 
+    // Bulges (docs/specs/drawing-follow-ups.md section 3): one per segment, |b| <= 1.
+    let added = ok(&[
+        "shape",
+        "add",
+        p,
+        "polyline",
+        "--points",
+        "0,0 40,0 20,30",
+        "--bulges",
+        "0 0.4 -1",
+    ]);
+    assert!(added.contains("Added shape S7."), "{added}");
+    let listed = ok(&["inspect", p]);
+    assert!(
+        listed.contains("(20.000, 30.000) bulges 0.000 0.400 -1.000"),
+        "{listed}"
+    );
+    refused(
+        &["shape", "set", p, "7", "--bulges", "0 1.5 0"],
+        "bulges.1: must be between -1 and 1",
+    );
+    refused(
+        &["shape", "set", p, "7", "--bulges", "0 0"],
+        "bulges: one per segment, 3 for this polyline, got 2",
+    );
+    // Opening it drops a segment; which bends to keep is not guessed.
+    refused(&["shape", "set", p, "7", "--open"], "give --bulges too");
+    ok(&["shape", "set", p, "7", "--open", "--bulges", "0 0.4"]);
+    // A straight polyline just follows its new points.
+    ok(&["shape", "set", p, "6", "--points", "0,0 10,0 10,5 0,5"]);
+    refused(
+        &["shape", "set", p, "4", "--bulges", "0"],
+        "--bulges doesn't apply to a circle",
+    );
+    ok(&["shape", "delete", p, "7"]);
+
     // Deleting a shape an operation uses: written, the operation is flagged, exit code 1.
     let out = chipload(&["shape", "delete", p, "2"]);
     assert_eq!(out.status.code(), Some(1));
@@ -297,7 +333,7 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
     let added = ok(&[
         "shape", "add", p, "circle", "--center", "75,80", "--radius", "12",
     ]);
-    assert!(added.contains("Added shape S7."), "{added}");
+    assert!(added.contains("Added shape S8."), "{added}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

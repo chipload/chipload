@@ -5,6 +5,7 @@
 //! `schema_version`; older versions are migrated step by step, missing or newer versions are
 //! refused, and validation only ever targets the current version.
 
+pub mod edit;
 pub mod migrations;
 pub mod models;
 

@@ -671,3 +671,37 @@ fn the_checker_places_the_stock_by_the_work_zero_itself() {
     // Judged as if zero were the drawing origin: the cuts land outside the stock.
     assert!(outside(&drawn_part_with(WorkZero::DrawingOrigin {})));
 }
+
+// -- polyline bulges (docs/specs/drawing-follow-ups.md section 3)
+
+#[test]
+fn a_pocket_of_a_bulged_polyline_passes_the_checker_with_arcs() {
+    let mut job = load_job(&corpus("jobs/v7/adaptive.chipload")).unwrap();
+    // The triangle's bottom side bows out by 0.3 × half its 30 mm chord.
+    let triangle = job.drawing.shapes.iter_mut().find(|s| s.id == 3).unwrap();
+    let chipload_job::Geometry::Polyline { bulges, .. } = &mut triangle.geometry else {
+        panic!("polyline");
+    };
+    *bulges = vec![0.3, 0.0, 0.0];
+    let chipload_job::Operation::Pocket(pocket) = &mut job.operations[0] else {
+        panic!("pocket");
+    };
+    pocket.select.shapes = Some(vec![3]);
+    pocket.strategy = chipload_job::PocketStrategy::Rings {};
+    // run_job refuses G-code the checker rejects.
+    let result = run(&job);
+    let arcs = result
+        .gcode
+        .lines()
+        .filter(|l| l.starts_with("G2") || l.starts_with("G3"))
+        .count();
+    assert!(arcs > 0, "{}", result.gcode);
+    // The bow is cut: the pocket reaches below the triangle's straight bottom (y = 65).
+    let lowest = result
+        .pockets
+        .iter()
+        .flat_map(|piece| piece.rings.iter().flatten())
+        .map(|p| p.1)
+        .fold(f64::INFINITY, f64::min);
+    assert!(lowest < 65.0, "{lowest}");
+}

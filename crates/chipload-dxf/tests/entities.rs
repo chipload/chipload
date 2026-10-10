@@ -147,6 +147,28 @@ fn without_job_units_a_unitless_file_is_refused_with_its_own_error() {
 // -- entities
 
 #[test]
+fn a_drawn_polyline_with_bulges_gives_the_segments_of_the_same_lwpolyline() {
+    // docs/specs/drawing-follow-ups.md section 3: same meaning as DXF bulges.
+    let vertices = [(0.0, 0.0, 0.0), (40.0, 0.0, 0.4), (20.0, 30.0, -0.25)];
+    let mut d = mm();
+    add(&mut d, polyline(&vertices, true));
+    let imported = chipload_dxf::shapes_from_drawing(&d, Some(Units::Mm))
+        .unwrap()
+        .shapes;
+    let drawn = chipload_job::Shape {
+        id: 1,
+        layer: "CUT".into(),
+        geometry: chipload_job::Geometry::Polyline {
+            closed: true,
+            points: vertices.iter().map(|&(x, y, _)| [x, y]).collect(),
+            bulges: vertices.iter().map(|&(_, _, b)| b).collect(),
+        },
+    };
+    assert_eq!(imported.len(), 1);
+    assert_eq!(imported[0].segments(), drawn.segments());
+}
+
+#[test]
 fn bulged_polyline_arcs_end_on_vertices() {
     // A slot: two straight sides and two half-circle ends (bulge 1 = 180 degrees).
     let mut d = mm();

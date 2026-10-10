@@ -8,6 +8,7 @@
 
 use std::collections::BTreeMap;
 
+use chipload_core::primitives::Arc;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
@@ -88,10 +89,13 @@ pub enum Geometry {
         width: f64,
         angle: f64,
     },
-    /// Straight segments through `points`, and back to the first if `closed`.
+    /// Segments through `points`, and back to the first if `closed`. Each segment bends by
+    /// its bulge, as in DXF: tan(sweep / 4), 0 straight, ±1 a half circle (positive
+    /// counter-clockwise); one per segment (docs/specs/drawing-follow-ups.md section 3).
     Polyline {
         closed: bool,
         points: Vec<[f64; 2]>,
+        bulges: Vec<f64>,
     },
 }
 
@@ -159,9 +163,55 @@ impl Shape {
                     .collect();
                 lines_through(&corners, true)
             }
-            Geometry::Polyline { closed, points } => lines_through(points, *closed),
+            Geometry::Polyline {
+                closed,
+                points,
+                bulges,
+            } => polyline_segments(points, bulges, *closed),
         }
     }
+}
+
+impl Geometry {
+    /// A polyline of straight segments (every bulge 0).
+    pub fn straight_polyline(closed: bool, points: Vec<[f64; 2]>) -> Geometry {
+        let bulges = vec![0.0; polyline_segment_count(points.len(), closed)];
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        }
+    }
+}
+
+/// How many segments a polyline of `points` points has.
+pub fn polyline_segment_count(points: usize, closed: bool) -> usize {
+    if closed {
+        points
+    } else {
+        points.saturating_sub(1)
+    }
+}
+
+/// A polyline's segments: straight where the bulge is 0, otherwise the arc a DXF bulge of
+/// that value describes (`Arc::from_bulge`). A missing bulge counts as straight.
+fn polyline_segments(points: &[[f64; 2]], bulges: &[f64], closed: bool) -> Vec<PathSegment> {
+    let n = points.len();
+    (0..polyline_segment_count(n, closed))
+        .map(|i| {
+            let (a, b) = (points[i], points[(i + 1) % n]);
+            let bulge = bulges.get(i).copied().unwrap_or(0.0);
+            match Arc::from_bulge((a[0], a[1]), (b[0], b[1]), bulge) {
+                Some(arc) => PathSegment::Arc(ArcSegment {
+                    center: [arc.center.0, arc.center.1],
+                    radius: arc.radius,
+                    start_angle: arc.start_angle,
+                    sweep: arc.sweep,
+                }),
+                None => PathSegment::Line(LineSegment { start: a, end: b }),
+            }
+        })
+        .collect()
 }
 
 fn lines_through(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
@@ -218,6 +268,8 @@ struct RawShape {
     // polyline
     #[serde(default, skip_serializing_if = "Option::is_none")]
     points: Option<Vec<[f64; 2]>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    bulges: Option<Vec<f64>>,
 }
 
 impl RawShape {
@@ -236,6 +288,7 @@ impl RawShape {
             width: None,
             angle: None,
             points: None,
+            bulges: None,
         }
     }
 
@@ -252,6 +305,7 @@ impl RawShape {
             ("width", self.width.is_some()),
             ("angle", self.angle.is_some()),
             ("points", self.points.is_some()),
+            ("bulges", self.bulges.is_some()),
         ]
         .into_iter()
         .filter_map(|(name, set)| set.then_some(name))
@@ -295,9 +349,14 @@ impl From<Shape> for RawShape {
                 raw.width = Some(width);
                 raw.angle = Some(angle);
             }
-            Geometry::Polyline { closed, points } => {
+            Geometry::Polyline {
+                closed,
+                points,
+                bulges,
+            } => {
                 raw.closed = Some(closed);
                 raw.points = Some(points);
+                raw.bulges = Some(bulges);
             }
         }
         raw
@@ -313,7 +372,7 @@ impl TryFrom<RawShape> for Shape {
             ShapeKind::Path => &["dxf_handle", "dxf_type", "closed", "segments"],
             ShapeKind::Circle => &["center", "radius"],
             ShapeKind::Rectangle => &["center", "length", "width", "angle"],
-            ShapeKind::Polyline => &["closed", "points"],
+            ShapeKind::Polyline => &["closed", "points", "bulges"],
         };
         let name = RawShape::from_kind_name(kind);
         if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
@@ -340,10 +399,18 @@ impl TryFrom<RawShape> for Shape {
                 width: raw.width.ok_or_else(|| missing("width"))?,
                 angle: raw.angle.ok_or_else(|| missing("angle"))?,
             },
-            ShapeKind::Polyline => Geometry::Polyline {
-                closed: raw.closed.ok_or_else(|| missing("closed"))?,
-                points: raw.points.ok_or_else(|| missing("points"))?,
-            },
+            ShapeKind::Polyline => {
+                let closed = raw.closed.ok_or_else(|| missing("closed"))?;
+                let points = raw.points.ok_or_else(|| missing("points"))?;
+                // Optional: without it every segment is straight (as before bulges existed).
+                let count = polyline_segment_count(points.len(), closed);
+                let bulges = raw.bulges.unwrap_or_else(|| vec![0.0; count]);
+                Geometry::Polyline {
+                    closed,
+                    points,
+                    bulges,
+                }
+            }
         };
         Ok(Shape {
             id: raw.id,
@@ -810,7 +877,8 @@ impl Drawing {
 }
 
 /// Value rules of one shape, as "field: message" (spec drawing-tools.md section 1).
-fn shape_problems(geometry: &Geometry) -> Vec<String> {
+/// What is wrong with a shape's values, as "field: message"; empty when it is valid.
+pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
     let mut problems = Vec::new();
     let finite = |p: &[f64; 2]| p.iter().all(|v| v.is_finite());
     let mut positive = |field: &str, value: f64| {
@@ -862,7 +930,11 @@ fn shape_problems(geometry: &Geometry) -> Vec<String> {
                 problems.push(format!("angle: must be finite, got {angle}"));
             }
         }
-        Geometry::Polyline { closed, points } => {
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => {
             let least = if *closed { 3 } else { 2 };
             if points.len() < least {
                 problems.push(format!(
@@ -883,6 +955,19 @@ fn shape_problems(geometry: &Geometry) -> Vec<String> {
                         "points.{}: is on top of the previous point (closer than {} mm)",
                         (i + 1) % n,
                         CHAIN_TOL_MM
+                    ));
+                }
+            }
+            if bulges.len() != pairs {
+                problems.push(format!(
+                    "bulges: one per segment, {pairs} for this polyline, got {}",
+                    bulges.len()
+                ));
+            }
+            for (i, b) in bulges.iter().enumerate() {
+                if !(b.is_finite() && b.abs() <= 1.0) {
+                    problems.push(format!(
+                        "bulges.{i}: must be between -1 and 1 (at most a half circle), got {b}"
                     ));
                 }
             }
@@ -1113,13 +1198,42 @@ mod tests {
         let open = shape(Geometry::Polyline {
             closed: false,
             points: points.clone(),
+            bulges: vec![0.0; 2],
         });
         let closed = shape(Geometry::Polyline {
             closed: true,
             points,
+            bulges: vec![0.0; 3],
         });
         assert_eq!(open.segments().len(), 2);
         assert_eq!(closed.segments().len(), 3);
         assert!(!open.closed() && closed.closed());
+    }
+
+    #[test]
+    fn a_bulged_segment_is_the_arc_a_dxf_bulge_describes() {
+        let bulged = shape(Geometry::Polyline {
+            closed: true,
+            points: vec![[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]],
+            bulges: vec![0.0, 0.4, 0.0],
+        });
+        let segments = bulged.segments();
+        assert!(matches!(segments[0], PathSegment::Line(_)));
+        assert!(matches!(segments[2], PathSegment::Line(_)));
+        let PathSegment::Arc(arc) = segments[1] else {
+            panic!("arc");
+        };
+        let expected = Arc::from_bulge((40.0, 0.0), (20.0, 30.0), 0.4).unwrap();
+        assert_eq!(arc.center, [expected.center.0, expected.center.1]);
+        assert_eq!(arc.radius, expected.radius);
+        assert_eq!(arc.start_angle, expected.start_angle);
+        assert_eq!(arc.sweep, 4.0 * 0.4f64.atan());
+        // It ends on the next point.
+        let end_angle = arc.start_angle + arc.sweep;
+        let end = [
+            arc.center[0] + arc.radius * end_angle.cos(),
+            arc.center[1] + arc.radius * end_angle.sin(),
+        ];
+        assert!((end[0] - 20.0).abs() < 1e-9 && (end[1] - 30.0).abs() < 1e-9);
     }
 }

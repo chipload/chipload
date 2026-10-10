@@ -11,7 +11,9 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
-use chipload_job::{Geometry, Job, Spindle, Units, WorkZero, load_job, save_job};
+use chipload_job::{
+    Geometry, Job, Spindle, Units, WorkZero, load_job, polyline_segment_count, save_job,
+};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
@@ -185,6 +187,10 @@ struct ShapeValues {
     /// Polyline points "X,Y X,Y ...".
     #[arg(long, allow_hyphen_values = true)]
     points: Option<String>,
+    /// Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight,
+    /// 1 a counter-clockwise half circle, -1 clockwise (default: all straight).
+    #[arg(long, allow_hyphen_values = true)]
+    bulges: Option<String>,
     /// The polyline doesn't return to its first point.
     #[arg(long, conflicts_with = "closed")]
     open: bool,
@@ -371,6 +377,15 @@ fn points_arg(text: &str) -> Result<Vec<[f64; 2]>, String> {
     text.split_whitespace().map(point_arg).collect()
 }
 
+fn bulges_arg(text: &str) -> Result<Vec<f64>, String> {
+    text.split_whitespace()
+        .map(|b| {
+            b.parse::<f64>()
+                .map_err(|_| format!("expected a bulge as a number, got {b:?}"))
+        })
+        .collect()
+}
+
 fn need<T>(value: Option<T>, what: &str, kind: &str) -> Result<T, String> {
     value.ok_or_else(|| format!("a {kind} needs --{what}"))
 }
@@ -388,10 +403,19 @@ fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
             width: need(v.width, "width", "rectangle")?,
             angle: v.angle_deg.unwrap_or(0.0).to_radians(),
         },
-        KindArg::Polyline => Geometry::Polyline {
-            closed: !v.open,
-            points: points_arg(need(v.points.as_deref(), "points", "polyline")?)?,
-        },
+        KindArg::Polyline => {
+            let closed = !v.open;
+            let points = points_arg(need(v.points.as_deref(), "points", "polyline")?)?;
+            let bulges = match &v.bulges {
+                Some(text) => bulges_arg(text)?,
+                None => vec![0.0; polyline_segment_count(points.len(), closed)],
+            };
+            Geometry::Polyline {
+                closed,
+                points,
+                bulges,
+            }
+        }
     })
 }
 
@@ -416,6 +440,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("width", v.width.is_some()),
                     ("angle-deg", v.angle_deg.is_some()),
                     ("points", v.points.is_some()),
+                    ("bulges", v.bulges.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                 ],
@@ -434,6 +459,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                 &[
                     ("radius", v.radius.is_some()),
                     ("points", v.points.is_some()),
+                    ("bulges", v.bulges.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                 ],
@@ -445,7 +471,11 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                 *angle = degrees.to_radians();
             }
         }
-        Geometry::Polyline { closed, points } => {
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => {
             not_for(
                 "polyline",
                 &[
@@ -463,6 +493,20 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                 *closed = false;
             } else if v.closed {
                 *closed = true;
+            }
+            let count = polyline_segment_count(points.len(), *closed);
+            if let Some(text) = &v.bulges {
+                *bulges = bulges_arg(text)?;
+            } else if bulges.len() != count {
+                // The segments changed: straight ones stay straight, but which bend a curved
+                // one should keep isn't ours to guess.
+                if bulges.iter().any(|&b| b != 0.0) {
+                    return Err(format!(
+                        "the polyline now has {count} segments and some were curved: \
+                         give --bulges too"
+                    ));
+                }
+                *bulges = vec![0.0; count];
             }
         }
     }

@@ -394,9 +394,74 @@ fn drawn_shapes_round_trip_exactly_and_are_written_flat() {
     let text = chipload_job::dump_job(&job).unwrap();
     let data: Value = serde_json::from_str(&text).unwrap();
     assert_eq!(data["schema_version"], CURRENT_VERSION);
-    assert_eq!(data["drawing"]["shapes"], drawn_shapes());
+    // Written with every field, so a polyline without bulges gets them (all straight).
+    let mut written = drawn_shapes();
+    written[2]["bulges"] = json!([0.0, 0.0, 0.0]);
+    assert_eq!(data["drawing"]["shapes"], written);
     let again = parse_job(migrate(data).unwrap(), "p").unwrap();
     assert_eq!(again.drawing, job.drawing);
+}
+
+// -- polyline bulges (docs/specs/drawing-follow-ups.md section 3)
+
+fn polyline(closed: bool, points: Value, bulges: Option<Value>) -> Value {
+    let mut shape = json!({"id": 1, "layer": "0", "kind": "polyline", "closed": closed,
+                           "points": points});
+    if let Some(b) = bulges {
+        shape["bulges"] = b;
+    }
+    project(json!([shape]), 2, json!({"layer": "0"}))
+}
+
+#[test]
+fn polyline_bulges_round_trip_and_are_checked() {
+    let triangle = json!([[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]]);
+    let job = parse_job(
+        polyline(true, triangle.clone(), Some(json!([0.0, 0.4, -1.0]))),
+        "p",
+    )
+    .unwrap();
+    let text = chipload_job::dump_job(&job).unwrap();
+    let data: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        data["drawing"]["shapes"][0]["bulges"],
+        json!([0.0, 0.4, -1.0])
+    );
+    assert_eq!(parse_job(data, "p").unwrap().drawing, job.drawing);
+    // Open: one fewer than the points.
+    assert!(
+        parse_job(
+            polyline(false, triangle.clone(), Some(json!([0.2, 0.0]))),
+            "p"
+        )
+        .is_ok()
+    );
+
+    let refused = |data: Value, what: &str| {
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(what), "{what}: {err}");
+    };
+    refused(
+        polyline(true, triangle.clone(), Some(json!([0.0, 1.5, 0.0]))),
+        "bulges.1: must be between -1 and 1",
+    );
+    refused(
+        polyline(true, triangle.clone(), Some(json!([0.0, 0.0]))),
+        "bulges: one per segment, 3 for this polyline, got 2",
+    );
+    refused(
+        polyline(false, triangle, Some(json!([0.0, 0.0, 0.0]))),
+        "bulges: one per segment, 2 for this polyline, got 3",
+    );
+    refused(
+        project(
+            json!([{"id": 1, "layer": "0", "kind": "circle", "center": [0.0, 0.0],
+                    "radius": 1.0, "bulges": [0.0]}]),
+            2,
+            json!({"layer": "0"}),
+        ),
+        "field `bulges` is not allowed for a circle",
+    );
 }
 
 #[test]

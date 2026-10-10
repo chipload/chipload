@@ -162,16 +162,26 @@ pub fn shape_values(geometry: &Geometry) -> String {
             center[1],
             angle.to_degrees()
         ),
-        Geometry::Polyline { closed, points } => {
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => {
             let list: Vec<String> = points
                 .iter()
                 .map(|p| format!("({:.3}, {:.3})", p[0], p[1]))
                 .collect();
-            format!(
+            let mut text = format!(
                 "{} {}",
                 if *closed { "closed" } else { "open" },
                 list.join(" ")
-            )
+            );
+            // Bulges only when a segment bends, so straight polylines read as before.
+            if bulges.iter().any(|&b| b != 0.0) {
+                let list: Vec<String> = bulges.iter().map(|b| format!("{b:.3}")).collect();
+                text.push_str(&format!(" bulges {}", list.join(" ")));
+            }
+            text
         }
     }
 }

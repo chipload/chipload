@@ -89,10 +89,10 @@ impl Sketch {
             },
             Tool::Polyline => {
                 if on_first && self.points.len() >= 3 {
-                    return Step::Done(Geometry::Polyline {
-                        closed: true,
-                        points: self.points.iter().map(|&(x, y)| [x, y]).collect(),
-                    });
+                    return Step::Done(Geometry::straight_polyline(
+                        true,
+                        self.points.iter().map(|&(x, y)| [x, y]).collect(),
+                    ));
                 }
                 self.points.push(p);
                 Step::Continue
@@ -108,10 +108,10 @@ impl Sketch {
         if self.points.len() < 2 {
             return Step::Ignored("a polyline needs at least 2 points".into());
         }
-        Step::Done(Geometry::Polyline {
-            closed: false,
-            points: self.points.iter().map(|&(x, y)| [x, y]).collect(),
-        })
+        Step::Done(Geometry::straight_polyline(
+            false,
+            self.points.iter().map(|&(x, y)| [x, y]).collect(),
+        ))
     }
 
     /// Backspace: forget the last click.
@@ -280,7 +280,8 @@ mod tests {
             open.finish(),
             Step::Done(Geometry::Polyline {
                 closed: false,
-                points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]]
+                points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]],
+                bulges: vec![0.0, 0.0],
             })
         );
         assert!(matches!(
