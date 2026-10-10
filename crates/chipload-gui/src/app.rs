@@ -576,7 +576,8 @@ impl ChiploadApp {
         match run_job(&job) {
             Ok(result) => {
                 self.error_ops.clear();
-                self.scene.toolpath = Some(ToolpathShape::new(&result.program, false));
+                self.scene.toolpath =
+                    Some(ToolpathShape::new(&result.program, false, &result.op_spans));
                 self.scene.tabs.clone_from(&result.tabs);
                 self.scene.left = result.material_left.iter().map(LeftShape::new).collect();
                 // Missed pieces on top.
@@ -602,7 +603,7 @@ impl ChiploadApp {
                 true
             }
             Err(PipelineError::CheckFailed { errors, program }) => {
-                self.scene.toolpath = Some(ToolpathShape::new(&program, true));
+                self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
                 self.scene.tabs.clear();
                 self.scene.left.clear();
                 let mut lines = vec!["G-code check FAILED. Nothing can be exported.".to_string()];
@@ -1759,7 +1760,14 @@ impl ChiploadApp {
             Focus::Op(i) => Some(i),
             _ => None,
         };
-        if self.show_material_left
+        let plunges = response
+            .hover_pos()
+            .map(|pos| self.scene.plunges_at(&self.view, pos))
+            .unwrap_or_default();
+        if !plunges.is_empty() && !response.dragged() {
+            let text = self.plunge_text(&plunges);
+            response.on_hover_text_at_pointer(text);
+        } else if self.show_material_left
             && !response.dragged()
             && let Some(at) = self.cursor
             && let Some(piece) = self.scene.left_at(at, operation)
@@ -1776,17 +1784,55 @@ impl ChiploadApp {
         self.scene.paint(&painter, &self.view, &highlight);
     }
 
-    fn material_left_text(&self, piece: &LeftShape) -> String {
+    /// "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30", one line per operation.
+    fn plunge_text(&self, hovered: &[usize]) -> String {
+        let Some(path) = &self.scene.toolpath else {
+            return String::new();
+        };
+        let mut by_op: std::collections::BTreeMap<Option<usize>, Vec<usize>> =
+            std::collections::BTreeMap::new();
+        for &i in hovered {
+            let op = path.starts[i].operation;
+            // Number within its operation, 1-based.
+            let n = path.starts[..=i]
+                .iter()
+                .filter(|s| s.operation == op)
+                .count();
+            by_op.entry(op).or_default().push(n);
+        }
+        by_op
+            .into_iter()
+            .map(|(op, numbers)| {
+                let total = path.starts.iter().filter(|s| s.operation == op).count();
+                let label =
+                    op.map_or_else(|| "Rejected toolpath".to_string(), |i| self.op_label(i));
+                let list: Vec<String> = numbers.iter().map(ToString::to_string).collect();
+                let noun = if numbers.len() == 1 {
+                    "plunge"
+                } else {
+                    "plunges"
+                };
+                format!("{label}: {noun} {} of {total}", list.join(", "))
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn op_label(&self, index: usize) -> String {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.ops.get(piece.operation))
+            .and_then(|e| e.ops.get(index))
             .map(|e| e.op.name().to_string())
             .unwrap_or_default();
-        let label = match name.as_str() {
-            "" => format!("Operation {}", piece.operation + 1),
-            name => format!("Operation {} ({name})", piece.operation + 1),
-        };
+        match name.as_str() {
+            "" => format!("Operation {}", index + 1),
+            name => format!("Operation {} ({name})", index + 1),
+        }
+    }
+
+    fn material_left_text(&self, piece: &LeftShape) -> String {
+        let label = self.op_label(piece.operation);
         let what = match piece.kind {
             LeftKind::Unreachable => "material the tool can't reach",
             LeftKind::Missed => "material the toolpath missed (see the warning)",
@@ -2599,6 +2645,47 @@ mod tests {
             )
             .unwrap_err();
         assert!(err.contains("imported from the DXF"), "{err}");
+    }
+
+    #[test]
+    fn plunges_are_counted_per_operation() {
+        // The 35 x 24 mm pocket #5 needs several rings.
+        let mut app = ChiploadApp::default();
+        assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
+        select(&mut app, &[5]);
+        app.add_operation(OpKind::Pocket).unwrap();
+        select(&mut app, &[2]);
+        app.add_operation(OpKind::Profile).unwrap();
+        // Three depth passes, retracting between rings, like the reported project.
+        if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.ops[0].op) {
+            p.depth = 3.0;
+            p.step_down = 1.0;
+            p.keep_tool_down = false;
+        }
+        app.commit();
+        assert!(app.generate(), "{:?}", app.report);
+        let path = app.scene.toolpath.clone().unwrap();
+        // Two operations, many plunges (every depth pass, every ring change).
+        let ops: BTreeSet<Option<usize>> = path.starts.iter().map(|s| s.operation).collect();
+        assert_eq!(ops, BTreeSet::from([Some(0), Some(1)]));
+        assert!(path.starts.len() > 2);
+        // The pocket starts every depth at the same point: hovering it lists all of them.
+        let first = path.starts[0].at;
+        let same: Vec<usize> = (0..path.starts.len())
+            .filter(|&i| path.starts[i].at == first)
+            .collect();
+        let pocket_total = path
+            .starts
+            .iter()
+            .filter(|s| s.operation == Some(0))
+            .count();
+        let text = app.plunge_text(&same);
+        assert!(
+            text.starts_with("Operation 1 (Pocket 1): plunges 1, "),
+            "{text}"
+        );
+        assert!(pocket_total >= 6, "{pocket_total}");
+        assert!(text.ends_with(&format!(" of {pocket_total}")), "{text}");
     }
 
     #[test]

@@ -139,3 +139,20 @@ fn tabs_are_not_material_left() {
     let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
     assert!(plan.material_left.is_empty());
 }
+
+#[test]
+fn each_operation_owns_a_run_of_moves_in_cut_order() {
+    // Three operations, the middle one disabled: the spans keep the list's numbering.
+    let mut ops = profile("inside", Value::Null);
+    let mut disabled = ops[0].clone();
+    disabled["enabled"] = json!(false);
+    let mut outside = ops[0].clone();
+    outside["side"] = json!("outside");
+    ops = json!([ops[0], disabled, outside]);
+    let plan = plan_job(&job(ops), &part()).unwrap();
+    let ops: Vec<usize> = plan.op_spans.iter().map(|s| s.operation).collect();
+    assert_eq!(ops, [0, 2]);
+    assert_eq!(plan.op_spans[0].moves.start, 0);
+    assert_eq!(plan.op_spans[0].moves.end, plan.op_spans[1].moves.start);
+    assert_eq!(plan.op_spans[1].moves.end, plan.program.moves.len());
+}

@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_toolpath::OpSpan;
 use chipload_toolpath::left::{LeftKind, MaterialLeft};
 use chipload_toolpath::model::{MoveKind, Program};
 use eframe::egui::{Align2, Color32, FontId, Mesh, Painter, Pos2, Rect, Shape, Stroke, Vec2};
@@ -159,22 +160,31 @@ impl ContourShape {
     }
 }
 
-/// A program as drawable pieces. Feeds solid, rapids dashed, numbered start points, arrows in
-/// the cutting direction.
+/// Where the tool goes down to cut: the end of a rapid move to a new XY position.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Plunge {
+    pub at: Point,
+    /// Index in `job.operations` (None for a rejected program shown without them).
+    pub operation: Option<usize>,
+}
+
+/// A program as drawable pieces. Feeds solid, rapids dashed, plunge points (each operation
+/// numbered once), arrows in the cutting direction.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ToolpathShape {
     /// Runs of consecutive XY feed moves.
     pub feeds: Vec<Vec<Point>>,
     pub rapids: Vec<(Point, Point)>,
-    /// Where each rapid ends, in order (numbered on screen).
-    pub starts: Vec<Point>,
+    /// Where each rapid ends, in cut order.
+    pub starts: Vec<Plunge>,
     /// (position, direction angle in radians, CCW from +X)
     pub arrows: Vec<(Point, f64)>,
     pub rejected: bool,
 }
 
 impl ToolpathShape {
-    pub fn new(program: &Program, rejected: bool) -> Self {
+    /// `spans` says which moves each operation made (empty: unknown).
+    pub fn new(program: &Program, rejected: bool, spans: &[OpSpan]) -> Self {
         let mut shape = ToolpathShape {
             rejected,
             ..Default::default()
@@ -183,7 +193,7 @@ impl ToolpathShape {
         let (mut x, mut y): (Option<f64>, Option<f64>) = (None, None);
         let mut since_arrow = ARROW_SPACING_MM; // so the first cut of every ring gets an arrow
         let mut run: Vec<Point> = Vec::new();
-        for m in &program.moves {
+        for (index, m) in program.moves.iter().enumerate() {
             let (nx, ny) = (m.x.or(x), m.y.or(y));
             let (Some(px), Some(py)) = (nx, ny) else {
                 (x, y) = (nx, ny);
@@ -198,7 +208,14 @@ impl ToolpathShape {
                     if let Some(from) = here {
                         shape.rapids.push((from, next));
                     }
-                    shape.starts.push(next);
+                    let operation = spans
+                        .iter()
+                        .find(|s| s.moves.contains(&index))
+                        .map(|s| s.operation);
+                    shape.starts.push(Plunge {
+                        at: next,
+                        operation,
+                    });
                     since_arrow = ARROW_SPACING_MM;
                     if run.len() > 1 {
                         shape.feeds.push(std::mem::take(&mut run));
@@ -347,7 +364,7 @@ impl Scene {
         }
         if let Some(path) = &self.toolpath {
             points.extend(path.feeds.iter().flatten().copied());
-            points.extend(path.starts.iter().copied());
+            points.extend(path.starts.iter().map(|s| s.at));
         }
         if self.contours.is_empty() && self.stock.is_none() && self.toolpath.is_none() {
             return None;
@@ -384,6 +401,19 @@ impl Scene {
             .iter()
             .filter(|l| l.contains(p))
             .min_by_key(|l| (l.kind != LeftKind::Missed, Some(l.operation) != operation))
+    }
+
+    /// Plunges (indices into the toolpath's starts) within pick distance of a screen point.
+    pub fn plunges_at(&self, view: &View, at: Pos2) -> Vec<usize> {
+        let Some(path) = &self.toolpath else {
+            return Vec::new();
+        };
+        path.starts
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| view.to_screen(s.at).distance(at) <= PICK_TOLERANCE_PX)
+            .map(|(i, _)| i)
+            .collect()
     }
 
     /// Material left: under everything else, so it never hides a line.
@@ -472,16 +502,25 @@ impl Scene {
             for &(at, angle) in &path.arrows {
                 painter.add(chevron(view.to_screen(at), angle, feed));
             }
-            for (i, &p) in path.starts.iter().enumerate() {
-                let dot = view.to_screen(p);
-                painter.circle_stroke(dot, 4.0, Stroke::new(1.5, LABEL));
-                painter.text(
-                    dot + Vec2::new(6.0, -18.0),
-                    Align2::LEFT_TOP,
-                    (i + 1).to_string(),
-                    FontId::proportional(12.0),
-                    LABEL,
-                );
+            // Each operation is numbered once, at its first plunge (its number in the
+            // operations list); other plunges get a small marker, once per position.
+            let mut labelled: BTreeSet<Option<usize>> = BTreeSet::new();
+            let mut marked: Vec<Point> = Vec::new();
+            for plunge in &path.starts {
+                let dot = view.to_screen(plunge.at);
+                if plunge.operation.is_some() && labelled.insert(plunge.operation) {
+                    painter.circle_stroke(dot, 5.0, Stroke::new(2.0, LABEL));
+                    painter.text(
+                        dot + Vec2::new(7.0, -19.0),
+                        Align2::LEFT_TOP,
+                        plunge.operation.map_or(0, |op| op + 1).to_string(),
+                        FontId::proportional(14.0),
+                        LABEL,
+                    );
+                } else if !marked.contains(&plunge.at) {
+                    painter.circle_stroke(dot, 3.0, Stroke::new(1.0, LABEL));
+                }
+                marked.push(plunge.at);
             }
         }
         for line in &self.tabs {
@@ -610,8 +649,22 @@ mod tests {
                 Move::feed_xy((60.0, 50.0), 1000.0),
             ],
         };
-        let shape = ToolpathShape::new(&program, false);
-        assert_eq!(shape.starts, [(0.0, 0.0), (50.0, 50.0)]);
+        let spans = [
+            OpSpan {
+                operation: 0,
+                moves: 0..6,
+            },
+            OpSpan {
+                operation: 3,
+                moves: 6..9,
+            },
+        ];
+        let shape = ToolpathShape::new(&program, false, &spans);
+        let plunge = |at, operation| Plunge { at, operation };
+        assert_eq!(
+            shape.starts,
+            [plunge((0.0, 0.0), Some(0)), plunge((50.0, 50.0), Some(3))]
+        );
         assert_eq!(shape.rapids, [((100.0, 10.0), (50.0, 50.0))]);
         assert_eq!(
             shape.feeds,

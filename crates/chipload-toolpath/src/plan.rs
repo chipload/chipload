@@ -25,6 +25,16 @@ pub struct Plan {
     pub pockets: Vec<PocketPiece>,
     /// Material each operation leaves, for display; by operation, kind, then (y, x).
     pub material_left: Vec<MaterialLeft>,
+    /// Which moves of `program` each operation made, in cut order, for display.
+    pub op_spans: Vec<OpSpan>,
+}
+
+/// The moves one operation contributed to the program.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OpSpan {
+    /// Index in `job.operations`.
+    pub operation: usize,
+    pub moves: std::ops::Range<usize>,
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
@@ -40,6 +50,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut tabs: Vec<Vec<Point>> = Vec::new();
     let mut pockets: Vec<PocketPiece> = Vec::new();
     let mut material_left: Vec<MaterialLeft> = Vec::new();
+    let mut op_spans: Vec<OpSpan> = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for (index, op) in job.operations.iter().enumerate() {
         if !op.enabled() {
@@ -73,7 +84,12 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             }
             Operation::Drill(_) => return Err(not_ported(&label, op)),
         };
+        let first = moves.len();
         moves.extend(planned.moves);
+        op_spans.push(OpSpan {
+            operation: index,
+            moves: first..moves.len(),
+        });
         notes.extend(planned.notes);
         tabs.extend(planned.tabs);
         pockets.extend(planned.pockets);
@@ -93,6 +109,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         tabs,
         pockets,
         material_left,
+        op_spans,
     })
 }
 

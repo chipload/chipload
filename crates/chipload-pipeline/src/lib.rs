@@ -23,7 +23,7 @@ use chipload_post::{PostConfig, PostError, load_builtin_post, render_program};
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::pocket::PocketPiece;
-use chipload_toolpath::{ToolpathError, plan_job, validate_job};
+use chipload_toolpath::{OpSpan, ToolpathError, plan_job, validate_job};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PipelineError {
@@ -59,6 +59,8 @@ pub struct RunResult {
     pub pockets: Vec<PocketPiece>,
     /// Material each operation leaves (unreachable corners, missed spots), for display.
     pub material_left: Vec<MaterialLeft>,
+    /// Which moves of `program` each operation made, for display.
+    pub op_spans: Vec<OpSpan>,
     /// Toolpath warnings.
     pub notes: Vec<String>,
     pub check_warnings: Vec<CheckIssue>,
@@ -96,6 +98,7 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
         tabs: plan.tabs,
         pockets: plan.pockets,
         material_left: plan.material_left,
+        op_spans: plan.op_spans,
         notes,
         check_warnings: report.warnings,
     })
