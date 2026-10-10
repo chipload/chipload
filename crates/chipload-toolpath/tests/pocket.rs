@@ -794,7 +794,7 @@ proptest! {
         for piece in &result.left {
             prop_assert_eq!(piece.kind, LeftKind::Unreachable);
             for &p in piece.rings.iter().flatten() {
-                let on_wall = walls.any_within(p, ARC_APPROX_TOL_MM);
+                let on_wall = walls.any_within(p, ARC_APPROX_TOL_MM + OFFSET_CHECK_SLACK_MM);
                 prop_assert!(in_region(p) || on_wall, "{:?} outside the pocket", p);
                 prop_assert!(!cuts.any_within(p, reach), "{:?} within reach", p);
             }

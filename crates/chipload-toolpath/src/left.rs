@@ -9,7 +9,9 @@ use cavalier_contours::polyline::{
     BooleanOp, BooleanResult, PlineContainsResult, PlineSource, Polyline,
 };
 use chipload_core::Point;
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, REST_TOL_MM};
+use chipload_core::tolerances::{
+    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
+};
 
 use crate::ToolpathError;
 use crate::offset::flatten;
@@ -18,6 +20,9 @@ use crate::pocket::{Area, ccw, cw, encloses, first_point, geometry, guarded};
 /// The gap left between the opening and the walls, so booleans never work on coincident
 /// edges. Slivers thinner than this are not shown (spec section 3).
 const WALL_GAP_MM: f64 = ARC_APPROX_TOL_MM;
+/// How far a point of material left may lie outside the area it was computed for: the
+/// flattening of arcs, plus float slack (a point exactly on the tolerance is not outside).
+const OUTSIDE_LIMIT_MM: f64 = ARC_APPROX_TOL_MM + OFFSET_CHECK_SLACK_MM;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LeftKind {
@@ -105,7 +110,7 @@ pub fn unreachable_inside(
     for piece in &pieces {
         let outside = flatten(&piece.outer)
             .into_iter()
-            .any(|p| region.distance(p) > ARC_APPROX_TOL_MM);
+            .any(|p| region.distance(p) > OUTSIDE_LIMIT_MM);
         if outside {
             return Err(geometry(
                 "material left lies outside the area it was computed for".into(),
@@ -170,7 +175,7 @@ pub fn unreachable_outside(
     for piece in &pieces {
         let inside = flatten(&piece.outer)
             .into_iter()
-            .any(|p| part_area.contains(p) && part_area.edge_distance(p) > ARC_APPROX_TOL_MM);
+            .any(|p| part_area.contains(p) && part_area.edge_distance(p) > OUTSIDE_LIMIT_MM);
         if inside {
             return Err(geometry(
                 "material left lies inside the part it was computed for".into(),
