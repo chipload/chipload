@@ -42,8 +42,11 @@ mod menu;
 mod panels;
 #[cfg(test)]
 mod tests;
+mod user_library;
 
 use forms::{job_form, op_form};
+pub use user_library::LibraryKind;
+use user_library::{LibraryRequest, LibraryWindows};
 
 const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
@@ -100,6 +103,8 @@ enum Prompt {
     Units(PathBuf),
     Path(PathPurpose, String),
     Discard(Pending),
+    /// A name for the project's machine or tool in the user's library.
+    LibraryName(LibraryKind, String),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame
@@ -161,6 +166,13 @@ pub struct ChiploadApp {
     title: String,
     allow_close: bool,
     about_open: bool,
+
+    /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
+    /// and when there is no home folder.
+    settings_dir: Option<PathBuf>,
+    /// The tool library and machine profiles as last read.
+    library: chipload_pipeline::library::Library,
+    library_windows: LibraryWindows,
 }
 
 impl Default for ChiploadApp {
@@ -196,6 +208,9 @@ impl Default for ChiploadApp {
             title: String::new(),
             allow_close: false,
             about_open: false,
+            settings_dir: None,
+            library: chipload_pipeline::library::Library::default(),
+            library_windows: LibraryWindows::default(),
         }
     }
 }
@@ -398,14 +413,24 @@ impl ChiploadApp {
             }
         };
         let shapes = imported.shapes.len();
-        self.start_editing(EditJob::from_job(&new_project(imported)), false, None);
-        let mut lines = vec![
-            format!("New project from {} ({shapes} shapes).", file_name(path)),
+        // The library gives starting values (the default machine and tool).
+        self.reload_library();
+        let mut job = new_project(imported);
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+            .unwrap_or_default();
+        self.start_editing(EditJob::from_job(&job), false, None);
+        let mut lines = vec![format!(
+            "New project from {} ({shapes} shapes).",
+            file_name(path)
+        )];
+        lines.extend(notes.iter().map(|n| format!("Started with {n}.")));
+        lines.extend(self.library.problems.iter().cloned());
+        lines.extend([
             "Select contours, then New profile or New pocket. Check stock, machine and tool \
              under Job settings."
                 .into(),
             String::new(),
-        ];
+        ]);
         lines.extend(self.drawing_lines());
         self.report = lines;
         true
@@ -470,8 +495,9 @@ impl ChiploadApp {
 
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
+        let cutting = self.tool_cutting();
         let edit = self.edit.as_mut()?;
-        let index = edit.add(kind, &self.selection, &self.contours);
+        let index = edit.add_with(kind, &self.selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
         self.commit();
         Some(index)
@@ -836,6 +862,7 @@ impl eframe::App for ChiploadApp {
         CentralPanel::no_frame().show(ui, |ui| self.canvas(ui));
         self.prompts(&ctx);
         self.about(&ctx);
+        self.library_windows_ui(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();
         if !busy {

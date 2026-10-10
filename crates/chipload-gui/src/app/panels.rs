@@ -232,9 +232,11 @@ impl ChiploadApp {
         };
         let focus = self.focus;
         let contours = &self.contours;
+        let library = self.settings_dir.as_ref().map(|_| &self.library);
         let mut use_selection = false;
+        let mut request = None;
         ui.scope(|ui| match focus {
-            Focus::Job => job_form(ui, edit),
+            Focus::Job => request = job_form(ui, edit, library),
             Focus::Op(i) => {
                 let tool_diameter = edit.settings.tools.first().map_or(0.0, |t| t.diameter);
                 if let Some(entry) = edit.ops.get_mut(i) {
@@ -244,6 +246,9 @@ impl ChiploadApp {
         });
         if use_selection {
             self.use_selection();
+        }
+        if let Some(request) = request {
+            self.library_request(request);
         }
     }
 

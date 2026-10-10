@@ -41,6 +41,7 @@ fn main() -> ExitCode {
         Box::new(move |cc| {
             cc.egui_ctx.set_fonts(fonts);
             let mut app = app::ChiploadApp::default();
+            app.set_settings_dir(chipload_pipeline::library::settings_dir());
             if let Some(file) = &file {
                 app.open(file);
             }

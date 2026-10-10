@@ -172,6 +172,13 @@ chipload import part.dxf -o part.chipload [--machine NAME]
 - The "differs from library" note is shown as in §4.
 - The GUI receives the settings folder as a parameter; app tests use a temporary folder and
   never touch the real one.
+- *Implemented:* a project has one tool (the planner supports one tool per job), so the
+  GUI's *Use library tool…* replaces that tool's values and keeps its id, so the operations
+  still use it. Like *Use profile…*, it is one undo step and lists what changed. The CLI's
+  `tool use` adds the tool as §5 says, ready for when jobs take several tools.
+- *Implemented:* a new operation copies the operation above it, as before. Only when there
+  is none does it take the tool's cutting values, and only if the project's tool still has
+  its library values; otherwise it gets the built-in defaults.
 
 ## 9. Code
 

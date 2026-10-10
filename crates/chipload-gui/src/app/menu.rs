@@ -181,6 +181,14 @@ impl ChiploadApp {
                     self.generate();
                 }
             });
+            ui.menu_button("Settings", |ui| {
+                if ui.button("Tool library…").clicked() {
+                    self.open_library_window(LibraryKind::Tools);
+                }
+                if ui.button("Machines…").clicked() {
+                    self.open_library_window(LibraryKind::Machines);
+                }
+            });
             ui.menu_button("View", |ui| {
                 if ui.button("Fit view  (F)").clicked() {
                     self.fit_pending = true;

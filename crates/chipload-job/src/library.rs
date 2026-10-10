@@ -107,6 +107,39 @@ impl LibraryTool {
         }
     }
 
+    /// What replacing a project tool's values with this entry would change, one line per
+    /// value ("diameter 6 mm -> 8 mm"); empty when they match (id and name aside).
+    pub fn changes(&self, tool: &Tool) -> Vec<String> {
+        let mut changes = Vec::new();
+        let mut differs = |what: &str, from: String, to: String| {
+            if from != to {
+                changes.push(format!("{what} {from} -> {to}"));
+            }
+        };
+        differs(
+            "type",
+            tool_type_name(tool.kind).into(),
+            tool_type_name(self.kind).into(),
+        );
+        differs("diameter", mm(tool.diameter), mm(self.diameter));
+        differs(
+            "flutes",
+            optional(tool.flutes.map(|f| f.to_string())),
+            optional(self.flutes.map(|f| f.to_string())),
+        );
+        differs(
+            "centre cutting",
+            yes_no(tool.center_cutting).into(),
+            yes_no(self.center_cutting).into(),
+        );
+        differs(
+            "rpm",
+            optional(tool.rpm.map(|r| r.to_string())),
+            optional(self.rpm.map(|r| r.to_string())),
+        );
+        changes
+    }
+
     /// Whether a project tool has this entry's values (id and name aside).
     pub fn same_values(&self, tool: &Tool) -> bool {
         self.tool(tool.id)
@@ -312,6 +345,22 @@ fn optional(text: Option<String>) -> String {
 
 fn travel_text(t: &Travel) -> String {
     format!("X{} Y{} Z{} mm", t.x, t.y, t.z)
+}
+
+fn tool_type_name(kind: ToolType) -> &'static str {
+    match kind {
+        ToolType::Endmill => "endmill",
+        ToolType::Drill => "drill",
+        ToolType::Vbit => "v-bit",
+    }
+}
+
+fn yes_no(value: Option<bool>) -> &'static str {
+    match value {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "unknown",
+    }
 }
 
 fn spindle_name(spindle: Spindle) -> &'static str {

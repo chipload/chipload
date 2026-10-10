@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The property forms: one operation, and the job settings.
 
+use super::user_library::{LibraryRows, library_rows};
 use super::*;
+use chipload_job::{Machine, Tool};
+use chipload_pipeline::library::Library;
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -273,8 +276,14 @@ pub(super) fn op_form(
 }
 
 /// Drawing, stock, machine and tool.
-/// The G-code's X0 Y0: a choice, plus X and Y for a point.
-pub(super) fn work_zero_rows(ui: &mut egui::Ui, job: &mut Job) {
+/// The G-code's X0 Y0: a choice, plus X and Y for a point. A point starts at `here`
+/// (where the current zero is), so choosing it moves nothing.
+pub(super) fn work_zero_rows(
+    ui: &mut egui::Ui,
+    salt: &str,
+    work_zero: &mut WorkZero,
+    here: (f64, f64),
+) {
     let choices = [
         (WorkZero::DrawingOrigin {}, "drawing origin"),
         (
@@ -308,28 +317,27 @@ pub(super) fn work_zero_rows(ui: &mut egui::Ui, job: &mut Job) {
             "stock top right",
         ),
     ];
-    let current = job.machine.work_zero;
+    let current = *work_zero;
     let selected = choices
         .iter()
         .find(|(choice, _)| *choice == current)
         .map_or("point", |(_, name)| *name);
     ui.label("Work zero X Y")
         .on_hover_text("The point that becomes X0 Y0 in the G-code. The geometry doesn't move.");
-    ComboBox::from_id_salt("work_zero")
+    ComboBox::from_id_salt((salt, "work_zero"))
         .selected_text(selected)
         .show_ui(ui, |ui| {
             for (choice, name) in choices {
-                ui.selectable_value(&mut job.machine.work_zero, choice, name);
+                ui.selectable_value(work_zero, choice, name);
             }
-            // A point starts where the current zero is, so choosing it moves nothing.
-            let (x, y) = job.work_zero_xy();
-            let is_point = matches!(job.machine.work_zero, WorkZero::Point { .. });
+            let (x, y) = here;
+            let is_point = matches!(work_zero, WorkZero::Point { .. });
             if ui.selectable_label(is_point, "point").clicked() && !is_point {
-                job.machine.work_zero = WorkZero::Point { x, y };
+                *work_zero = WorkZero::Point { x, y };
             }
         });
     ui.end_row();
-    if let WorkZero::Point { x, y } = &mut job.machine.work_zero {
+    if let WorkZero::Point { x, y } = work_zero {
         ui.label("");
         ui.horizontal(|ui| {
             ui.add(mm(x).prefix("X "));
@@ -339,7 +347,13 @@ pub(super) fn work_zero_rows(ui: &mut egui::Ui, job: &mut Job) {
     }
 }
 
-pub(super) fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
+/// Returns what the user asked of the library (docs/specs/tool-library-and-machines.md §8).
+pub(super) fn job_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    library: Option<&Library>,
+) -> Option<LibraryRequest> {
+    let mut request = None;
     let job = &mut edit.settings;
     ui.heading("Job settings");
     Grid::new("job-form").num_columns(2).show(ui, |ui| {
@@ -400,7 +414,8 @@ pub(super) fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
                 );
             });
         ui.end_row();
-        work_zero_rows(ui, job);
+        let here = job.work_zero_xy();
+        work_zero_rows(ui, "job", &mut job.machine.work_zero, here);
         ui.label("Z zero");
         ComboBox::from_id_salt("z_zero")
             .selected_text(match job.stock.z_zero {
@@ -415,106 +430,117 @@ pub(super) fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
 
         ui.strong("Machine");
         ui.end_row();
-        ui.label("Post");
-        ComboBox::from_id_salt("post")
-            .selected_text(job.machine.post.clone())
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut job.machine.post, "grbl".to_string(), "grbl");
-            });
-        ui.end_row();
-        ui.label("Safe Z");
-        ui.add(
-            DragValue::new(&mut job.machine.safe_z)
-                .speed(0.1)
-                .suffix(" mm"),
-        );
-        ui.end_row();
-        ui.label("Spindle");
-        ComboBox::from_id_salt("spindle")
-            .selected_text(match job.machine.spindle {
-                Spindle::Cw => "cw (M3)",
-                Spindle::Ccw => "ccw (M4)",
-            })
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut job.machine.spindle, Spindle::Cw, "cw (M3)");
-                ui.selectable_value(&mut job.machine.spindle, Spindle::Ccw, "ccw (M4)");
-            });
-        ui.end_row();
-        ui.label("Max feed");
-        ui.horizontal(|ui| {
-            let mut set = job.machine.max_feed.is_some();
-            if ui.checkbox(&mut set, "").changed() {
-                job.machine.max_feed = set.then_some(5000.0);
-            }
-            if let Some(max) = &mut job.machine.max_feed {
-                ui.add(feed(max));
-            }
-        });
-        ui.end_row();
-        ui.label("Travel X Y Z");
-        ui.horizontal(|ui| {
-            let mut set = job.machine.travel.is_some();
-            if ui.checkbox(&mut set, "").changed() {
-                job.machine.travel = set.then_some(Travel {
-                    x: 800.0,
-                    y: 600.0,
-                    z: 100.0,
-                });
-            }
-            if let Some(t) = &mut job.machine.travel {
-                ui.add(mm(&mut t.x));
-                ui.add(mm(&mut t.y));
-                ui.add(mm(&mut t.z));
-            }
-        });
-        ui.end_row();
+        machine_rows(ui, "job", &mut job.machine);
+        library_rows(ui, &mut request, LibraryRows::machine(job, library));
 
-        if let Some(tool) = job.tools.first_mut() {
+        if let Some(tool) = job.tools.first() {
             ui.strong(format!("Tool {}", tool.id));
             ui.end_row();
-            ui.label("Type");
-            ComboBox::from_id_salt("tool-type")
-                .selected_text(match tool.kind {
-                    ToolType::Endmill => "endmill",
-                    ToolType::Drill => "drill",
-                    ToolType::Vbit => "v-bit",
-                })
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut tool.kind, ToolType::Endmill, "endmill");
-                    ui.selectable_value(&mut tool.kind, ToolType::Drill, "drill");
-                    ui.selectable_value(&mut tool.kind, ToolType::Vbit, "v-bit");
-                });
-            ui.end_row();
-            ui.label("Diameter");
-            ui.add(mm(&mut tool.diameter));
-            ui.end_row();
-            ui.label("Spindle speed");
-            let mut rpm = tool.rpm.unwrap_or(0.0);
-            if ui
-                .add(
-                    DragValue::new(&mut rpm)
-                        .speed(100.0)
-                        .range(0.0..=100_000.0)
-                        .suffix(" rpm"),
-                )
-                .changed()
-            {
-                tool.rpm = (rpm > 0.0).then_some(rpm);
-            }
-            ui.end_row();
-            ui.label("Centre cutting");
-            ComboBox::from_id_salt("center-cutting")
-                .selected_text(match tool.center_cutting {
-                    Some(true) => "yes",
-                    Some(false) => "no",
-                    None => "unknown",
-                })
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut tool.center_cutting, Some(true), "yes");
-                    ui.selectable_value(&mut tool.center_cutting, Some(false), "no");
-                    ui.selectable_value(&mut tool.center_cutting, None, "unknown");
-                });
-            ui.end_row();
+            library_rows(ui, &mut request, LibraryRows::tool(tool, library));
+        }
+        if let Some(tool) = job.tools.first_mut() {
+            tool_rows(ui, "job", tool);
         }
     });
+    request
+}
+
+/// Post, safe Z, spindle, max feed and travel (the work zero is with the stock).
+pub(super) fn machine_rows(ui: &mut egui::Ui, salt: &str, machine: &mut Machine) {
+    ui.label("Post");
+    ComboBox::from_id_salt((salt, "post"))
+        .selected_text(machine.post.clone())
+        .show_ui(ui, |ui| {
+            ui.selectable_value(&mut machine.post, "grbl".to_string(), "grbl");
+        });
+    ui.end_row();
+    ui.label("Safe Z");
+    ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm"));
+    ui.end_row();
+    ui.label("Spindle");
+    ComboBox::from_id_salt((salt, "spindle"))
+        .selected_text(match machine.spindle {
+            Spindle::Cw => "cw (M3)",
+            Spindle::Ccw => "ccw (M4)",
+        })
+        .show_ui(ui, |ui| {
+            ui.selectable_value(&mut machine.spindle, Spindle::Cw, "cw (M3)");
+            ui.selectable_value(&mut machine.spindle, Spindle::Ccw, "ccw (M4)");
+        });
+    ui.end_row();
+    ui.label("Max feed");
+    ui.horizontal(|ui| {
+        let mut set = machine.max_feed.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            machine.max_feed = set.then_some(5000.0);
+        }
+        if let Some(max) = &mut machine.max_feed {
+            ui.add(feed(max));
+        }
+    });
+    ui.end_row();
+    ui.label("Travel X Y Z");
+    ui.horizontal(|ui| {
+        let mut set = machine.travel.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            machine.travel = set.then_some(Travel {
+                x: 800.0,
+                y: 600.0,
+                z: 100.0,
+            });
+        }
+        if let Some(t) = &mut machine.travel {
+            ui.add(mm(&mut t.x));
+            ui.add(mm(&mut t.y));
+            ui.add(mm(&mut t.z));
+        }
+    });
+    ui.end_row();
+}
+
+/// Type, diameter, spindle speed and centre cutting.
+pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
+    ui.label("Type");
+    ComboBox::from_id_salt((salt, "tool-type"))
+        .selected_text(match tool.kind {
+            ToolType::Endmill => "endmill",
+            ToolType::Drill => "drill",
+            ToolType::Vbit => "v-bit",
+        })
+        .show_ui(ui, |ui| {
+            ui.selectable_value(&mut tool.kind, ToolType::Endmill, "endmill");
+            ui.selectable_value(&mut tool.kind, ToolType::Drill, "drill");
+            ui.selectable_value(&mut tool.kind, ToolType::Vbit, "v-bit");
+        });
+    ui.end_row();
+    ui.label("Diameter");
+    ui.add(mm(&mut tool.diameter));
+    ui.end_row();
+    ui.label("Spindle speed");
+    let mut rpm = tool.rpm.unwrap_or(0.0);
+    if ui
+        .add(
+            DragValue::new(&mut rpm)
+                .speed(100.0)
+                .range(0.0..=100_000.0)
+                .suffix(" rpm"),
+        )
+        .changed()
+    {
+        tool.rpm = (rpm > 0.0).then_some(rpm);
+    }
+    ui.end_row();
+    ui.label("Centre cutting");
+    ComboBox::from_id_salt((salt, "center-cutting"))
+        .selected_text(match tool.center_cutting {
+            Some(true) => "yes",
+            Some(false) => "no",
+            None => "unknown",
+        })
+        .show_ui(ui, |ui| {
+            ui.selectable_value(&mut tool.center_cutting, Some(true), "yes");
+            ui.selectable_value(&mut tool.center_cutting, Some(false), "no");
+            ui.selectable_value(&mut tool.center_cutting, None, "unknown");
+        });
+    ui.end_row();
 }

@@ -329,6 +329,26 @@ fn using_a_library_tool_reuses_keeps_or_renumbers_ids() {
 }
 
 #[test]
+fn a_library_tool_lists_what_it_changes() {
+    let entry = upcut();
+    let mut tool = entry.tool(4);
+    assert!(entry.changes(&tool).is_empty());
+    tool.name = None;
+    assert!(entry.changes(&tool).is_empty(), "the name is only a note");
+    tool.diameter = 8.0;
+    tool.center_cutting = None;
+    tool.rpm = None;
+    assert_eq!(
+        entry.changes(&tool),
+        [
+            "diameter 8 mm -> 6 mm",
+            "centre cutting unknown -> yes",
+            "rpm none -> 18000"
+        ]
+    );
+}
+
+#[test]
 fn a_machine_profile_lists_what_it_changes() {
     let mut job = project();
     job.machine.max_feed = None;

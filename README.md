@@ -39,6 +39,8 @@ machine add …`, then `tool default` / `machine default`): a new project starts
 default machine and tool, and `tool use` / `machine use` copy them into a project. They live
 in your settings folder (`~/.config/chipload/`, `%APPDATA%\chipload\`, or
 `CHIPLOAD_CONFIG_DIR`). A project keeps its own copy, so it cuts the same on any computer.
+In the GUI: *Settings > Tool library…* and *Machines…*, and *Use profile…* / *Save as
+profile…* (and the same for the tool) under Job settings.
 
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
 (Ctrl+I) or open a project (Ctrl+O), click contours (Ctrl+click for more, right-click for a whole layer), then **New

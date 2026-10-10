@@ -177,6 +177,7 @@ impl ChiploadApp {
                 }
             }
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
+            Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
         }
     }
 

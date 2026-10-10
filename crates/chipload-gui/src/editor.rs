@@ -6,6 +6,7 @@
 use std::collections::BTreeSet;
 
 use chipload_core::chain::Contour;
+use chipload_job::library::Cutting;
 use chipload_job::{
     Direction, Job, Operation, PocketOp, PocketStrategy, ProfileOp, Selector, Side,
 };
@@ -155,8 +156,9 @@ impl EditJob {
         self.settings.tools.first().map_or(1, |t| t.id)
     }
 
-    /// Feeds, step-down and stepover from the nearest operation above `index`, or defaults.
-    fn inherited(&self, index: usize) -> (f64, f64, f64, f64) {
+    /// Feeds, step-down and stepover from the nearest operation above `index`, else the
+    /// tool's cutting values from the library, else defaults.
+    fn inherited(&self, index: usize, cutting: Option<&Cutting>) -> (f64, f64, f64, f64) {
         let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
             Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
@@ -170,26 +172,44 @@ impl EditJob {
                 step_down,
                 feed,
                 plunge,
-                stepover_above.unwrap_or(DEFAULT_STEPOVER),
+                stepover_above
+                    .or(cutting.map(|c| c.stepover))
+                    .unwrap_or(DEFAULT_STEPOVER),
             ),
-            None => (
-                DEFAULT_STEP_DOWN,
-                DEFAULT_FEED,
-                DEFAULT_PLUNGE_FEED,
-                DEFAULT_STEPOVER,
-            ),
+            None => match cutting {
+                Some(c) => (c.step_down, c.feed, c.plunge_feed, c.stepover),
+                None => (
+                    DEFAULT_STEP_DOWN,
+                    DEFAULT_FEED,
+                    DEFAULT_PLUNGE_FEED,
+                    DEFAULT_STEPOVER,
+                ),
+            },
         }
     }
 
     /// Add an operation for the canvas selection at the end of the list; returns its index.
+    #[cfg(test)]
     pub fn add(
         &mut self,
         kind: OpKind,
         selection: &CanvasSelection,
         contours: &[Contour],
     ) -> usize {
+        self.add_with(kind, selection, contours, None)
+    }
+
+    /// As `add`, with the tool's cutting values from the library (used when there is no
+    /// operation above to copy from; docs/specs/tool-library-and-machines.md §3).
+    pub fn add_with(
+        &mut self,
+        kind: OpKind,
+        selection: &CanvasSelection,
+        contours: &[Contour],
+        cutting: Option<&Cutting>,
+    ) -> usize {
         let index = self.ops.len();
-        let (step_down, feed, plunge_feed, stepover) = self.inherited(index);
+        let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting);
         let number = self
             .ops
             .iter()
@@ -455,6 +475,34 @@ mod tests {
             (1.0, 3.0, 1200.0, 0.4)
         );
         assert_eq!(q.name, "Pocket 1");
+    }
+
+    #[test]
+    fn the_tools_cutting_values_come_before_the_defaults_but_after_the_operation_above() {
+        let contours = messy_2();
+        let mut job = new_job();
+        let cutting = Cutting {
+            feed: 1500.0,
+            plunge_feed: 400.0,
+            step_down: 2.5,
+            stepover: 0.3,
+        };
+        let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting));
+        let Operation::Pocket(p) = &mut job.ops[first].op else {
+            panic!()
+        };
+        assert_eq!(
+            (p.step_down, p.feed, p.plunge_feed, p.stepover),
+            (2.5, 1500.0, 400.0, 0.3)
+        );
+        // The depth is not a tool value: still the shallow test cut.
+        assert_eq!(p.end_depth, DEFAULT_DEPTH);
+        p.feed = 900.0;
+        let second = job.add_with(OpKind::Profile, &ids(&[2]), &contours, Some(&cutting));
+        let Operation::Profile(q) = &job.ops[second].op else {
+            panic!()
+        };
+        assert_eq!(q.feed, 900.0, "copied from the operation above");
     }
 
     #[test]

@@ -600,3 +600,250 @@ fn drawing_snaps_to_the_drawing_unless_alt_is_held() {
     assert_eq!(app.snap_world((20.3, 20.6), false, false), (20.0, 21.0));
     assert!(app.snapped.unwrap().1.is_none());
 }
+
+// -- tool library and machine profiles (docs/specs/tool-library-and-machines.md)
+
+mod library {
+    use super::*;
+    use chipload_job::library::{
+        Cutting, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, load_machines,
+        load_tools, save_machines, save_tools,
+    };
+
+    fn settings(name: &str) -> PathBuf {
+        let dir = temp_dir(&format!("settings-{name}"));
+        let _ = std::fs::remove_file(dir.join("tools.json"));
+        let _ = std::fs::remove_file(dir.join("machines.json"));
+        dir
+    }
+
+    fn upcut() -> LibraryTool {
+        LibraryTool {
+            name: "3 mm upcut".into(),
+            id: 2,
+            kind: ToolType::Endmill,
+            diameter: 3.0,
+            flutes: Some(2),
+            center_cutting: Some(true),
+            rpm: Some(20000.0),
+            cutting: Some(Cutting {
+                feed: 800.0,
+                plunge_feed: 200.0,
+                step_down: 0.75,
+                stepover: 0.35,
+            }),
+        }
+    }
+
+    fn shapeoko() -> MachineProfile {
+        MachineProfile {
+            name: "Shapeoko".into(),
+            post: "grbl".into(),
+            safe_z: 12.0,
+            spindle: Spindle::Cw,
+            max_feed: Some(5000.0),
+            travel: Some(Travel {
+                x: 830.0,
+                y: 830.0,
+                z: 95.0,
+            }),
+            work_zero: WorkZero::Stock {
+                corner: StockCorner::BottomLeft,
+            },
+            max_overcut: 0.3,
+        }
+    }
+
+    /// An app with a library holding one tool and one machine, both the defaults.
+    fn app_with_library(name: &str) -> (ChiploadApp, PathBuf) {
+        let dir = settings(name);
+        save_tools(
+            &ToolLibrary {
+                default_tool: Some("3 mm upcut".into()),
+                tools: vec![upcut()],
+                ..ToolLibrary::default()
+            },
+            &dir.join("tools.json"),
+        )
+        .unwrap();
+        save_machines(
+            &MachineLibrary {
+                default_machine: Some("Shapeoko".into()),
+                machines: vec![shapeoko()],
+                ..MachineLibrary::default()
+            },
+            &dir.join("machines.json"),
+        )
+        .unwrap();
+        let mut app = ChiploadApp::default();
+        app.set_settings_dir(Some(dir.clone()));
+        (app, dir)
+    }
+
+    fn settings_of(app: &ChiploadApp) -> &Job {
+        &app.edit.as_ref().unwrap().settings
+    }
+
+    #[test]
+    fn without_a_settings_folder_nothing_changes() {
+        let mut app = ChiploadApp::default();
+        assert!(app.library().is_none());
+        assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
+        let job = settings_of(&app);
+        assert!(job.machine.name.is_none() && job.tools[0].name.is_none());
+        assert_eq!(
+            job.tools[0].diameter,
+            chipload_pipeline::DEFAULT_TOOL_DIAMETER
+        );
+        assert!(!app.save_to_library(LibraryKind::Machines, "Mine"));
+    }
+
+    #[test]
+    fn a_new_project_starts_with_the_default_machine_and_tool() {
+        let (mut app, _) = app_with_library("import");
+        assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
+        let job = settings_of(&app);
+        assert_eq!(job.machine, shapeoko().machine());
+        assert_eq!(job.stock.max_overcut, 0.3);
+        assert_eq!(job.tools, [upcut().tool(2)]);
+        assert!(
+            app.report
+                .iter()
+                .any(|l| l == "Started with machine: Shapeoko (default profile).")
+        );
+        // A new operation takes the tool's cutting values (nothing above to copy).
+        select(&mut app, &[4]);
+        let i = app.add_operation(OpKind::Pocket).unwrap();
+        let Operation::Pocket(p) = &app.edit.as_ref().unwrap().ops[i].op else {
+            panic!()
+        };
+        assert_eq!((p.feed, p.step_down, p.stepover), (800.0, 0.75, 0.35));
+        assert_eq!(p.tool, 2);
+    }
+
+    #[test]
+    fn using_a_profile_and_a_library_tool_are_single_undo_steps() {
+        // A project made without a library, then the library appears.
+        let (_, dir) = app_with_library("use");
+        let mut app = lower_part();
+        app.set_settings_dir(Some(dir));
+        let before = settings_of(&app).clone();
+
+        assert!(app.use_machine_profile("shapeoko"));
+        let job = settings_of(&app);
+        assert_eq!(job.machine.safe_z, 12.0);
+        assert_eq!(job.machine.name.as_deref(), Some("Shapeoko"));
+        assert!(
+            app.report.iter().any(|l| l == "  safe Z 5 mm -> 12 mm"),
+            "{:?}",
+            app.report
+        );
+
+        // The project's one tool takes the library values and keeps its id, so the
+        // operations still use it.
+        let id = before.tools[0].id;
+        assert!(app.use_library_tool("3 mm upcut"));
+        let job = settings_of(&app);
+        assert_eq!(job.tools, [upcut().tool(id)]);
+        assert!(
+            app.report.iter().any(|l| l == "  diameter 6 mm -> 3 mm"),
+            "{:?}",
+            app.report
+        );
+        assert!(app.generate(), "{:?}", app.report);
+
+        app.undo();
+        app.undo();
+        assert_eq!(settings_of(&app), &before);
+    }
+
+    #[test]
+    fn saving_to_the_library_names_the_project_values() {
+        let dir = settings("save");
+        let mut app = lower_part();
+        app.set_settings_dir(Some(dir.clone()));
+        assert!(app.save_to_library(LibraryKind::Machines, " Router "));
+        assert!(app.save_to_library(LibraryKind::Tools, "6 mm"));
+        let job = settings_of(&app);
+        assert_eq!(job.machine.name.as_deref(), Some("Router"));
+        assert_eq!(job.tools[0].name.as_deref(), Some("6 mm"));
+        let machines = load_machines(&dir.join("machines.json")).unwrap();
+        assert_eq!(
+            machines.machines[0],
+            MachineProfile::from_job("Router", job)
+        );
+        let tools = load_tools(&dir.join("tools.json")).unwrap();
+        assert!(tools.tools[0].same_values(&job.tools[0]));
+
+        // The project and the library agree: no "differs" note.
+        let rows =
+            |app: &ChiploadApp| user_library::LibraryRows::machine(settings_of(app), app.library());
+        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        app.edit.as_mut().unwrap().settings.machine.safe_z = 9.0;
+        assert_eq!(
+            rows(&app).note_text().unwrap(),
+            "differs from profile \"Router\": safe Z 9 mm -> 5 mm"
+        );
+    }
+
+    #[test]
+    fn the_settings_windows_store_rename_and_refuse_duplicates() {
+        let (mut app, dir) = app_with_library("windows");
+        let renamed = LibraryTool {
+            name: "3 mm".into(),
+            ..upcut()
+        };
+        app.store_library_tool(Some("3 mm upcut"), renamed).unwrap();
+        let tools = load_tools(&dir.join("tools.json")).unwrap();
+        assert_eq!(tools.default_tool.as_deref(), Some("3 mm"));
+        assert_eq!(app.library.tools.tools[0].name, "3 mm");
+
+        let err = app
+            .store_library_tool(
+                None,
+                LibraryTool {
+                    name: "3 MM".into(),
+                    ..upcut()
+                },
+            )
+            .unwrap_err();
+        assert!(err.contains("already a tool"), "{err}");
+        let err = app
+            .store_machine_profile(
+                None,
+                MachineProfile {
+                    max_overcut: -1.0,
+                    name: "Bad".into(),
+                    ..shapeoko()
+                },
+            )
+            .unwrap_err();
+        assert!(err.contains("max_overcut"), "{err}");
+        assert_eq!(
+            load_machines(&dir.join("machines.json"))
+                .unwrap()
+                .machines
+                .len(),
+            1
+        );
+        app.set_library_default(LibraryKind::Machines, "Shapeoko")
+            .unwrap();
+    }
+
+    #[test]
+    fn a_broken_library_is_reported_and_the_project_still_starts() {
+        let dir = settings("broken");
+        std::fs::write(dir.join("machines.json"), "{\"schema_version\": 9}").unwrap();
+        let mut app = ChiploadApp::default();
+        app.set_settings_dir(Some(dir));
+        assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
+        assert!(
+            app.report
+                .iter()
+                .any(|l| l.contains("schema_version 9 is not supported")),
+            "{:?}",
+            app.report
+        );
+        assert!(settings_of(&app).machine.name.is_none());
+    }
+}
