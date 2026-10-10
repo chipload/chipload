@@ -563,3 +563,43 @@ fn depth_and_clearance_rules_are_checked() {
     data["operations"][0]["clearance"] = json!(0.25);
     parse_job(data, "p").unwrap();
 }
+
+// -- pocket strategy (docs/specs/trochoidal.md)
+
+#[test]
+fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
+    // Operation 0 of the lower part is a pocket without a strategy: rings, written explicitly.
+    let job = parse_job(lower_job(), "p").unwrap();
+    let Operation::Pocket(pocket) = &job.operations[0] else {
+        panic!("expected a pocket");
+    };
+    assert_eq!(pocket.strategy, chipload_job::PocketStrategy::Rings {});
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["operations"][0]["strategy"], json!({"type": "rings"}));
+
+    let with = |strategy: Value| {
+        let mut data = lower_job();
+        data["operations"][0]["strategy"] = strategy;
+        parse_job(data, "p")
+    };
+    let trochoidal = json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6});
+    let job = with(trochoidal.clone()).unwrap();
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["operations"][0]["strategy"], trochoidal);
+    for (bad, why) in [
+        (json!({"type": "trochoidal", "step": 0.6}), "loop_radius"),
+        (
+            json!({"type": "trochoidal", "loop_radius": 1.0, "step": 1.5}),
+            "0 < step <= loop_radius",
+        ),
+        (
+            json!({"type": "trochoidal", "loop_radius": 0.0, "step": 0.0}),
+            "0 < step <= loop_radius",
+        ),
+        (json!({"type": "zigzag"}), "unknown variant"),
+        (json!({"type": "rings", "step": 1}), "unknown field"),
+    ] {
+        let err = with(bad.clone()).unwrap_err().to_string();
+        assert!(err.contains(why), "{bad}: {err}");
+    }
+}

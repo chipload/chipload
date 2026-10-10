@@ -6,7 +6,9 @@
 use std::collections::BTreeSet;
 
 use chipload_core::chain::Contour;
-use chipload_job::{Direction, Job, Operation, PocketOp, ProfileOp, Selector, Side};
+use chipload_job::{
+    Direction, Job, Operation, PocketOp, PocketStrategy, ProfileOp, Selector, Side,
+};
 
 use crate::view::Kind;
 
@@ -239,6 +241,7 @@ impl EditJob {
                     feed,
                     plunge_feed,
                     keep_tool_down: false,
+                    strategy: PocketStrategy::Rings {},
                 }),
                 true,
             ),

@@ -1,6 +1,7 @@
 # Spec: trochoidal pocket clearing
 
-Status: **approved 2026-10-10** (Q1–Q4 as recommended).
+Status: **approved 2026-10-10** (Q1–Q4 as recommended). Implemented; two refinements found by
+testing are marked *Implemented:*.
 
 User decisions (2026-10-10): pockets get a choice of clearing strategy, trochoidal rather
 than zig-zag; for whole pockets and for slots; arcs first (done, docs/specs/arc-output.md);
@@ -30,13 +31,20 @@ pockets.
   trochoidal. When you switch an operation to trochoidal the GUI fills in 0.25 × D and
   0.1 × D for the current tool, visibly, and you can change them.
 - Rules: `0 < step ≤ loop_radius`, `loop_radius > 0`. `stepover` keeps a meaning (§3).
+- *Implemented:* also `loop_radius ≤ tool radius` (checked when planning). A larger loop
+  leaves an uncut core round its own centre that the neighbouring loops only cover for some
+  steps. The default (0.25 × D) is half the tool radius.
 
 ## 3. The path for one pocket
 
 With tool radius `r`, loop radius `ρ`, step `p`, stepover `s × D`:
 
 1. **Backbones**: the pocket shrunk by `r + ρ`, then by `r + ρ + k·b` for k = 1, 2, …
-   until empty, where the band spacing is `b = 2ρ + s·D`. These are rings, exactly like
+   until empty, where the band spacing is `b = 2ρ + s·D`. *Implemented:* `b` is at most the loops' reach
+   `√((ρ + r)² − (p/2)²) − 0.01 mm` (a point midway between two loop centres is half a step
+   further from them; chords lie inside their arcs). Otherwise, where a lobe of the pocket
+   ends between two backbone levels, material out of reach was left (found by the property
+   test). With the default values the cap applies, so the spacing is the reach. These are rings, exactly like
    today's pocket rings but further from the walls and further apart, because each loop
    clears a band `2ρ + D` wide around its backbone.
 2. **Loops**: along each backbone, loop centres every `p` mm (by length along the ring). At

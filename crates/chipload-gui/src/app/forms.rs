@@ -41,6 +41,44 @@ fn depth_rows(
     ui.end_row();
 }
 
+/// Rings or trochoidal; trochoidal's loop radius and step (docs/specs/trochoidal.md).
+/// Switching to trochoidal fills 0.25 × D and 0.1 × D, visibly, for the current tool.
+fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy, diameter: f64) {
+    ui.label("Strategy");
+    let trochoidal = matches!(strategy, PocketStrategy::Trochoidal { .. });
+    ComboBox::from_id_salt(("strategy", index))
+        .selected_text(if trochoidal { "trochoidal" } else { "rings" })
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(!trochoidal, "rings").clicked() {
+                *strategy = PocketStrategy::Rings {};
+            }
+            if ui
+                .selectable_label(trochoidal, "trochoidal")
+                .on_hover_text(
+                    "Small loops that take a thin bite each: for hard materials and deep cuts",
+                )
+                .clicked()
+                && !trochoidal
+            {
+                *strategy = PocketStrategy::Trochoidal {
+                    loop_radius: 0.25 * diameter,
+                    step: 0.1 * diameter,
+                };
+            }
+        });
+    ui.end_row();
+    if let PocketStrategy::Trochoidal { loop_radius, step } = strategy {
+        ui.label("  loop radius")
+            .on_hover_text("At most the tool radius");
+        ui.add(mm(loop_radius));
+        ui.end_row();
+        ui.label("  step per loop")
+            .on_hover_text("How far each loop moves on; at most the loop radius");
+        ui.add(mm(step));
+        ui.end_row();
+    }
+}
+
 pub(super) fn feed(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
         .speed(10.0)
@@ -66,6 +104,7 @@ pub(super) fn op_form(
     index: usize,
     entry: &mut crate::editor::EditOp,
     contours: &[Contour],
+    tool_diameter: f64,
 ) -> bool {
     let mut use_selection = false;
     let summary = geometry_summary(&entry.op, contours);
@@ -197,6 +236,7 @@ pub(super) fn op_form(
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
                 ui.end_row();
+                strategy_rows(ui, index, &mut p.strategy, tool_diameter);
             }
         }
     });

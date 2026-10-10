@@ -12,7 +12,7 @@ use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, Program};
-use crate::pocket::{PocketPiece, plan_pocket, pocket_moves};
+use crate::pocket::{PocketPiece, plan_pocket_with, pocket_moves};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours};
 use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
@@ -165,7 +165,7 @@ fn plan_pocket_op(
     start: Point,
 ) -> Result<Planned, ToolpathError> {
     let label = ctx.label;
-    let plan = plan_pocket(
+    let plan = plan_pocket_with(
         &selection.contours,
         ctx.tool.diameter / 2.0,
         op.clearance,
@@ -174,6 +174,7 @@ fn plan_pocket_op(
         ctx.job.machine.spindle,
         op.keep_tool_down,
         start,
+        op.strategy,
     )
     .map_err(|err| err.with_context(label))?;
     let mut out = Planned {

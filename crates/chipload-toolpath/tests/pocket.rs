@@ -984,3 +984,200 @@ proptest! {
         prop_assert!(arcs > 0);
     }
 }
+
+// -- trochoidal clearing (docs/specs/trochoidal.md)
+
+fn trochoidal(contours: &[Contour], radius: f64, loop_radius: f64, step: f64) -> PocketPlan {
+    let refs: Vec<&Contour> = contours.iter().collect();
+    chipload_toolpath::pocket::plan_pocket_with(
+        &refs,
+        radius,
+        0.0,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+        chipload_job::PocketStrategy::Trochoidal { loop_radius, step },
+    )
+    .unwrap()
+}
+
+/// Arc moves after merging the plan's rings (one depth) into G2/G3.
+fn arc_moves(plan: &PocketPlan) -> usize {
+    use chipload_toolpath::arcs::{merge_arcs, tag_moves};
+    use chipload_toolpath::model::{MoveKind, Program};
+    let mut moves = Vec::new();
+    for piece in &plan.pieces {
+        moves.extend(pocket_moves(piece, &[-1.0], 5.0, 1000.0, 300.0));
+    }
+    tag_moves(&mut moves, &plan.arcs);
+    let program = Program {
+        tool_id: 1,
+        tool_diameter: 6.0,
+        rpm: 18000.0,
+        spindle: Spindle::Cw,
+        safe_z: 5.0,
+        moves,
+    };
+    merge_arcs(&program)
+        .unwrap()
+        .moves
+        .iter()
+        .filter(|m| matches!(m.kind, MoveKind::ArcCw | MoveKind::ArcCcw))
+        .count()
+}
+
+#[test]
+fn a_square_pocket_is_cleared_by_loops_then_a_wall_pass() {
+    let contours = [outline()]; // 100 x 60
+    let plan = trochoidal(&contours, 3.0, 1.5, 0.6);
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    // Backbones 4.5 mm in, then every min(2 * 1.5 + 2.4, reach) mm, where the loops' reach is
+    // sqrt(4.5^2 - 0.3^2) - 0.01 = 4.480 mm: six levels, perimeters 284, 248.2, 212.3,
+    // 176.5, 140.6 and 104.8 mm, so 474 + 414 + 354 + 295 + 235 + 175 = 1947 loops of two
+    // halves each.
+    assert_eq!(arc_moves(&plan), 3894);
+    // Seven paths: the six backbones' loops, then the wall pass, the same as a ring pocket's
+    // last ring.
+    let rings = &plan.pieces[0].rings;
+    assert_eq!(rings.len(), 7);
+    let ring_pocket = plan_with(&contours, 2.4, Direction::Climb, Spindle::Cw, false).unwrap();
+    let wall = ring_pocket.pieces[0].rings.last().unwrap();
+    let (mut a, mut b) = (rings[6].clone(), wall.clone());
+    a.sort_by(|p, q| p.partial_cmp(q).unwrap());
+    b.sort_by(|p, q| p.partial_cmp(q).unwrap());
+    assert_eq!(a, b, "the wall pass is the ring pocket's wall ring");
+    // Every loop keeps the tool radius from the walls.
+    assert_clear(&contours, &plan, 3.0);
+}
+
+#[test]
+fn loops_turn_by_climb_or_conventional_and_the_spindle() {
+    use chipload_toolpath::profile::cut_clockwise;
+    for direction in [Direction::Climb, Direction::Conventional] {
+        for spindle in [Spindle::Cw, Spindle::Ccw] {
+            let refs = [&outline()];
+            let plan = chipload_toolpath::pocket::plan_pocket_with(
+                &refs,
+                3.0,
+                0.0,
+                2.4,
+                direction,
+                spindle,
+                false,
+                (0.0, 0.0),
+                chipload_job::PocketStrategy::Trochoidal {
+                    loop_radius: 1.5,
+                    step: 0.6,
+                },
+            )
+            .unwrap();
+            // The first loop: from the path's start round to the start again.
+            let path = &plan.pieces[0].rings[0];
+            let back = path[1..].iter().position(|&p| p == path[0]).unwrap() + 1;
+            let clockwise = signed_area(&path[..back]) < 0.0;
+            let expected = cut_clockwise(chipload_job::Side::Inside, direction, spindle);
+            assert_eq!(clockwise, expected, "{direction:?} {spindle:?}");
+        }
+    }
+}
+
+#[test]
+fn loops_larger_than_the_tool_radius_are_refused() {
+    let refs = [&outline()];
+    let err = chipload_toolpath::pocket::plan_pocket_with(
+        &refs,
+        3.0,
+        0.0,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+        chipload_job::PocketStrategy::Trochoidal {
+            loop_radius: 3.5,
+            step: 1.0,
+        },
+    )
+    .unwrap_err();
+    assert!(err.to_string().contains("uncut core"), "{err}");
+}
+
+#[test]
+fn a_slot_too_narrow_for_loops_gets_only_the_wall_pass() {
+    // 7 mm wide: a 6 mm tool fits, loops of 1.5 mm radius need more than 9 mm.
+    let slot = [rect(1, 0.0, 0.0, 80.0, 7.0)];
+    let plan = trochoidal(&slot, 3.0, 1.5, 0.6);
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.contains("loops (radius 1.500 mm) don't fit")),
+        "{:?}",
+        plan.notes
+    );
+    assert_eq!(plan.pieces[0].rings.len(), 1, "only the wall pass");
+    assert!(!plan.notes.iter().any(|n| n.contains("uncut")));
+}
+
+#[test]
+fn ring_pockets_are_unchanged_by_the_strategy_setting() {
+    let contours = [outline(), circle_id(2, (50.0, 30.0), 8.0)];
+    let refs: Vec<&Contour> = contours.iter().collect();
+    let with = chipload_toolpath::pocket::plan_pocket_with(
+        &refs,
+        3.0,
+        0.0,
+        2.4,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+        chipload_job::PocketStrategy::Rings {},
+    )
+    .unwrap();
+    assert_eq!(with, plan(&contours, false));
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(20))]
+
+    /// Trochoidal loops never come closer than the tool radius to a wall or island, and
+    /// with the stepover kept at most half the tool no material is missed.
+    #[test]
+    fn trochoidal_never_gouges(
+        contours in pocket_with_islands(),
+        radius in 1.5f64..4.0,
+        loop_share in 0.15f64..0.4,
+        step_share in 0.2f64..1.0,
+    ) {
+        let loop_radius = loop_share * 2.0 * radius;
+        let step = step_share * loop_radius;
+        let refs: Vec<&Contour> = contours.iter().collect();
+        // Outlines the offset library already mishandles for ring pockets (the known case
+        // parked as docs/specs/offset-retry.md) aren't what this property is about.
+        prop_assume!(
+            plan_pocket(&refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false,
+                (0.0, 0.0)).is_ok()
+        );
+        let result = chipload_toolpath::pocket::plan_pocket_with(
+            &refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false,
+            (0.0, 0.0),
+            chipload_job::PocketStrategy::Trochoidal { loop_radius, step },
+        );
+        let plan = match result {
+            Ok(plan) => plan,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &plan, radius);
+        // Bands 2 * loop radius + 0.2 D apart overlap (each clears 2 * loop radius + D).
+        prop_assert!(
+            !plan.notes.iter().any(|n| n.contains("uncut material")),
+            "{:?}", plan.notes
+        );
+        prop_assert!(arc_moves(&plan) > 0);
+    }
+}

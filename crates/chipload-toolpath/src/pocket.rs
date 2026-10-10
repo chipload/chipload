@@ -6,7 +6,7 @@
 //! verified afterwards, and uncut material is found with exact distances, not by buffering
 //! the paths.
 
-use std::f64::consts::SQRT_2;
+use std::f64::consts::{SQRT_2, TAU};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use cavalier_contours::core::math::Vector2;
@@ -21,10 +21,10 @@ use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
-use chipload_job::{Direction, Side, Spindle};
+use chipload_job::{Direction, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
-use crate::arcs::{ArcTable, arc_midpoint};
+use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::geom::PrimIndex;
 use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
@@ -846,6 +846,32 @@ pub fn plan_pocket(
     keep_tool_down: bool,
     start: Point,
 ) -> Result<PocketPlan, ToolpathError> {
+    plan_pocket_with(
+        contours,
+        tool_radius,
+        clearance,
+        stepover,
+        direction,
+        spindle,
+        keep_tool_down,
+        start,
+        PocketStrategy::Rings {},
+    )
+}
+
+/// [`plan_pocket`] with a clearing strategy (docs/specs/trochoidal.md).
+#[allow(clippy::too_many_arguments)]
+pub fn plan_pocket_with(
+    contours: &[&Contour],
+    tool_radius: f64,
+    clearance: f64,
+    stepover: f64,
+    direction: Direction,
+    spindle: Spindle,
+    keep_tool_down: bool,
+    start: Point,
+    strategy: PocketStrategy,
+) -> Result<PocketPlan, ToolpathError> {
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
             "stepover must be positive, got {stepover}"
@@ -893,16 +919,48 @@ pub fn plan_pocket(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
-        if roots.len() > 1 {
+        let (rings, level0) = match strategy {
+            PocketStrategy::Rings {} => {
+                let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
+                let rings = cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
+                let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
+                (rings, level0)
+            }
+            PocketStrategy::Trochoidal { loop_radius, step } => {
+                if loop_radius > tool_radius {
+                    return Err(geometry(format!(
+                        "contours {}: loop radius {loop_radius} must be at most the tool \
+                         radius {tool_radius}, or each loop leaves an uncut core",
+                        ids_text(&ids)
+                    )));
+                }
+                // How far either side of its backbone a row of loops surely cuts: a point
+                // midway between two loop centres is half a step further from them, and
+                // chords lie up to the arc tolerance inside their arcs.
+                let reach = ((loop_radius + tool_radius).powi(2) - (step / 2.0).powi(2)).sqrt()
+                    - ARC_APPROX_TOL_MM;
+                // Backbones no further apart than that, so every point between two levels
+                // (even where a lobe of the pocket ends) is within reach of a row of loops.
+                let trochoid = Trochoid {
+                    offset,
+                    tool_radius,
+                    loop_radius,
+                    step,
+                    band: (2.0 * loop_radius + stepover).min(reach),
+                };
+                trochoidal_rings(
+                    &region, &trochoid, &ids, position, direction, spindle, &mut arcs, &mut notes,
+                )?
+            }
+        };
+        if level0.len() > 1 {
             notes.push(format!(
                 "contours {}: the tool does not fit through a narrow part; cleared as {} \
                  areas and material remains in between",
                 ids_text(&ids),
-                roots.len()
+                level0.len()
             ));
         }
-        let rings = cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
         let links: Vec<bool> = rings
             .windows(2)
@@ -912,7 +970,6 @@ pub fn plan_pocket(
             })
             .collect();
         verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
-        let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
         let (uncut, missed) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
         notes.extend(uncut);
         left.extend(missed);
@@ -966,6 +1023,159 @@ fn unreachable_in_pockets(
         }
     }
     Ok(pieces)
+}
+
+/// Sizes for trochoidal clearing, mm (docs/specs/trochoidal.md section 3).
+struct Trochoid {
+    /// Tool centre to walls (tool radius minus clearance).
+    offset: f64,
+    tool_radius: f64,
+    loop_radius: f64,
+    /// How far each loop moves on along its backbone.
+    step: f64,
+    /// Spacing of the backbones: 2 loop radii plus the stepover, at most the loops' reach.
+    band: f64,
+}
+
+/// The backbones' loop paths from the inside out, then the wall pass, and the wall-pass
+/// areas (the "level 0" the uncut and material-left checks start from).
+#[allow(clippy::too_many_arguments)]
+fn trochoidal_rings(
+    region: &Area,
+    t: &Trochoid,
+    ids: &[usize],
+    position: Point,
+    direction: Direction,
+    spindle: Spindle,
+    arcs: &mut ArcTable,
+    notes: &mut Vec<String>,
+) -> Result<(Vec<Vec<Point>>, Vec<Area>), ToolpathError> {
+    let walls = region.shrunk(t.offset)?;
+    if walls.is_empty() {
+        return Err(geometry(format!(
+            "contours {}: tool (diameter {:.3} mm) does not fit in the pocket",
+            ids_text(ids),
+            2.0 * t.tool_radius
+        )));
+    }
+    let loop_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside a loop
+    let mut rings: Vec<Vec<Point>> = Vec::new();
+    let mut here = position;
+    if region.shrunk(t.offset + t.loop_radius)?.is_empty() {
+        notes.push(format!(
+            "contours {}: the loops (radius {:.3} mm) don't fit anywhere; only the wall pass \
+             cuts this pocket",
+            ids_text(ids),
+            t.loop_radius
+        ));
+    } else {
+        let (nodes, roots) =
+            ring_tree(region, t.offset + t.loop_radius, t.tool_radius, t.band, ids)?;
+        // The backbones themselves aren't cut: their chords don't go in `arcs`.
+        let backbones = cut_order(
+            &nodes,
+            &roots,
+            here,
+            direction,
+            spindle,
+            &mut ArcTable::default(),
+        );
+        for backbone in &backbones {
+            let path = loops_along(backbone, t.loop_radius, t.step, loop_cw, arcs);
+            // A path ends where it starts (the last loop links back to the first).
+            if let Some(&start) = path.first() {
+                here = start;
+            }
+            rings.push(path);
+        }
+    }
+    // The wall pass: a ring at the tool radius from every wall and island, as the last ring
+    // of a ring pocket.
+    let wall_nodes: Vec<Node> = walls
+        .iter()
+        .map(|area| Node {
+            area: area.clone(),
+            children: Vec::new(),
+        })
+        .collect();
+    let roots: Vec<usize> = (0..wall_nodes.len()).collect();
+    rings.extend(cut_order(
+        &wall_nodes,
+        &roots,
+        here,
+        direction,
+        spindle,
+        arcs,
+    ));
+    Ok((rings, walls))
+}
+
+/// One closed path of loops along a closed `backbone` (cut direction already set): loop
+/// centres every `step` or a little less (evenly by length), at each a full circle of
+/// `radius` starting and ending at its point towards the next centre, consecutive loops
+/// linked by a straight move. The circles' chords are recorded in `arcs`.
+fn loops_along(
+    backbone: &[Point],
+    radius: f64,
+    step: f64,
+    clockwise: bool,
+    arcs: &mut ArcTable,
+) -> Vec<Point> {
+    let n = backbone.len();
+    if n == 0 {
+        return Vec::new();
+    }
+    let mut lengths = vec![0.0];
+    for k in 0..n {
+        let next = lengths[k] + distance(backbone[k], backbone[(k + 1) % n]);
+        lengths.push(next);
+    }
+    let total = lengths[n];
+    let count = ((total / step).ceil() as usize).max(1);
+    let at = |s: f64| -> Point {
+        let k = lengths
+            .partition_point(|&l| l <= s)
+            .saturating_sub(1)
+            .min(n - 1);
+        let (a, b) = (backbone[k], backbone[(k + 1) % n]);
+        let span = lengths[k + 1] - lengths[k];
+        let t = if span > 0.0 {
+            (s - lengths[k]) / span
+        } else {
+            0.0
+        };
+        (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+    };
+    let centres: Vec<Point> = (0..count)
+        .map(|i| at(total * i as f64 / count as f64))
+        .collect();
+    let circle_sweep = if clockwise { -TAU } else { TAU };
+    let mut path = Vec::new();
+    let mut heading = 0.0;
+    for (i, &c) in centres.iter().enumerate() {
+        let next = centres[(i + 1) % count];
+        if distance(c, next) > CHAIN_TOL_MM {
+            heading = (next.1 - c.1).atan2(next.0 - c.0);
+        }
+        let circle = Primitive::Arc(chipload_core::primitives::Arc {
+            center: c,
+            radius,
+            start_angle: heading,
+            sweep: circle_sweep,
+        });
+        let mut points = circle.points();
+        points.pop(); // the end repeats the start; close on the exact start instead
+        let Some(&first) = points.first() else {
+            continue;
+        };
+        points.push(first);
+        let tag = Circle { center: c, radius };
+        for w in points.windows(2) {
+            arcs.insert(w[0], w[1], tag);
+        }
+        path.extend(points);
+    }
+    path
 }
 
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.

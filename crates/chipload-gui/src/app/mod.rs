@@ -13,8 +13,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::{
-    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
-    StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
+    Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
+    StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};

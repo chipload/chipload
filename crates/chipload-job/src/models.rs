@@ -756,6 +756,27 @@ pub struct PocketOp {
     /// Stay at depth between rings where that is safe.
     #[serde(default)]
     pub keep_tool_down: bool,
+    /// How the pocket is cleared (docs/specs/trochoidal.md). Missing: rings, as before.
+    #[serde(default)]
+    pub strategy: PocketStrategy,
+}
+
+/// Clearing strategy of a pocket.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+pub enum PocketStrategy {
+    /// Rings parallel to the walls, cut from the inside out. An empty struct variant (not a
+    /// unit one) so serde refuses stray fields here too.
+    Rings {},
+    /// Small full-circle loops of `loop_radius` moving `step` mm along backbones, then a
+    /// wall pass. Both mm.
+    Trochoidal { loop_radius: f64, step: f64 },
+}
+
+impl Default for PocketStrategy {
+    fn default() -> Self {
+        PocketStrategy::Rings {}
+    }
 }
 
 impl Drawing {
@@ -958,6 +979,19 @@ impl Job {
             if selector.layer.is_none() && !has_shapes {
                 problems.push(format!(
                     "operations.{i}.select: selector needs a layer or shapes"
+                ));
+            }
+            if let Operation::Pocket(p) = op
+                && let PocketStrategy::Trochoidal { loop_radius, step } = p.strategy
+                && !(loop_radius.is_finite()
+                    && loop_radius > 0.0
+                    && step.is_finite()
+                    && step > 0.0
+                    && step <= loop_radius)
+            {
+                problems.push(format!(
+                    "operations.{i}.strategy: trochoidal needs 0 < step <= loop_radius, got \
+                     step {step} and loop_radius {loop_radius}"
                 ));
             }
             if let Operation::Pocket(p) = op

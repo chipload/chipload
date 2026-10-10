@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 8] = [
+const GOLDEN: [(&str, &str); 9] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -30,6 +30,8 @@ const GOLDEN: [(&str, &str); 8] = [
         "v7_depths_and_clearance",
         "jobs/v7/depths_and_clearance.chipload",
     ),
+    // The same, its pocket cleared with trochoidal loops (docs/specs/trochoidal.md).
+    ("v7_trochoidal", "jobs/v7/trochoidal.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {
@@ -102,9 +104,14 @@ fn render_without_arcs(project: &Path) -> String {
 fn without_arcs_the_output_is_the_line_only_golden() {
     // docs/specs/arc-output.md: `arcs = false` must give exactly the G-code from before arcs
     // (tests/corpus/expected/lines/, frozen when arcs were added).
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
     for (name, project) in GOLDEN {
         let lines = render_without_arcs(&corpus(project));
-        let golden = std::fs::read_to_string(corpus(&format!("expected/lines/{name}.nc"))).unwrap();
+        let path = corpus(&format!("expected/lines/{name}.nc"));
+        if update {
+            std::fs::write(&path, &lines).unwrap();
+        }
+        let golden = std::fs::read_to_string(&path).unwrap();
         assert!(lines == golden, "{name}: arcs = false changed the G-code");
         assert!(
             !lines

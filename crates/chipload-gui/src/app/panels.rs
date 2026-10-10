@@ -236,8 +236,9 @@ impl ChiploadApp {
         ui.scope(|ui| match focus {
             Focus::Job => job_form(ui, edit),
             Focus::Op(i) => {
+                let tool_diameter = edit.settings.tools.first().map_or(0.0, |t| t.diameter);
                 if let Some(entry) = edit.ops.get_mut(i) {
-                    use_selection = op_form(ui, i, entry, contours);
+                    use_selection = op_form(ui, i, entry, contours, tool_diameter);
                 }
             }
         });
