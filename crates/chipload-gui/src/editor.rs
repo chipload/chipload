@@ -18,23 +18,52 @@ pub const DEFAULT_DEPTH: f64 = 1.0;
 pub const DEFAULT_STEP_DOWN: f64 = 1.0;
 pub const DEFAULT_STEPOVER: f64 = 0.4;
 
-/// What is selected on the canvas.
+/// What is selected on the canvas. Clicked geometry is kept as shape ids, which never
+/// change, so a selection survives anything that renumbers contours (undo, updating or
+/// drawing); shapes that no longer exist simply drop out.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum CanvasSelection {
     #[default]
     Nothing,
-    /// Clicked contours (ids).
-    Contours(BTreeSet<usize>),
+    /// The shapes of the clicked contours.
+    Shapes(BTreeSet<u64>),
     /// Every contour on one layer.
     Layer(String),
 }
 
+/// The shape ids a contour is made of.
+pub fn shapes_of(contour: &Contour) -> BTreeSet<u64> {
+    contour
+        .parts
+        .iter()
+        .filter_map(|p| p.segment.shape)
+        .collect()
+}
+
 impl CanvasSelection {
-    /// The contour ids this selection covers.
+    /// The selection made of these contours (their shapes).
+    pub fn of_contours(ids: &BTreeSet<usize>, contours: &[Contour]) -> Self {
+        let shapes: BTreeSet<u64> = contours
+            .iter()
+            .filter(|c| ids.contains(&c.id))
+            .flat_map(shapes_of)
+            .collect();
+        if shapes.is_empty() {
+            CanvasSelection::Nothing
+        } else {
+            CanvasSelection::Shapes(shapes)
+        }
+    }
+
+    /// The contour ids this selection covers: those with a selected shape, or on the layer.
     pub fn ids(&self, contours: &[Contour]) -> BTreeSet<usize> {
         match self {
             CanvasSelection::Nothing => BTreeSet::new(),
-            CanvasSelection::Contours(ids) => ids.clone(),
+            CanvasSelection::Shapes(shapes) => contours
+                .iter()
+                .filter(|c| !shapes_of(c).is_disjoint(shapes))
+                .map(|c| c.id)
+                .collect(),
             CanvasSelection::Layer(layer) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
@@ -43,7 +72,7 @@ impl CanvasSelection {
         }
     }
 
-    /// A job selector for it: the shapes of the clicked contours, or the layer for a layer
+    /// A job selector for it: the shapes of the selected contours, or the layer for a layer
     /// selection. Open contours are left out, as the pipeline would skip them anyway.
     pub fn selector(&self, contours: &[Contour]) -> Selector {
         match self {
@@ -351,7 +380,7 @@ mod tests {
     }
 
     fn ids(list: &[usize]) -> CanvasSelection {
-        CanvasSelection::Contours(list.iter().copied().collect())
+        CanvasSelection::of_contours(&list.iter().copied().collect(), &messy_2())
     }
 
     fn new_job() -> EditJob {
@@ -374,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn click_selection_makes_handles_and_layer_selection_a_layer() {
+    fn click_selection_makes_shapes_and_layer_selection_a_layer() {
         let contours = messy_2();
         let mut job = new_job();
         let a = job.add(OpKind::Pocket, &ids(&[4, 6, 7]), &contours); // #7 is open: left out

@@ -29,7 +29,7 @@ use eframe::egui::{
 };
 
 use crate::draw::{Sketch, Step, Tool, grid_step, snap};
-use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary};
+use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, LeftShape, Scene, ToolpathShape, View};
 
@@ -604,28 +604,33 @@ impl ChiploadApp {
     }
 
     /// Click on the canvas: select one contour, Ctrl toggles, empty space clears.
+    /// A click on the canvas: `picked` is the contour hit (if any); `toggle` (Ctrl) adds or
+    /// removes it instead of replacing the selection. Selections are kept as shape ids.
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
-        let mut ids = match (&self.selection, toggle) {
-            (CanvasSelection::Contours(ids), true) => ids.clone(),
-            (CanvasSelection::Layer(_), true) => self.selection.ids(&self.contours),
-            _ => BTreeSet::new(),
-        };
-        match (picked, toggle) {
-            (Some(id), true) => {
-                if !ids.remove(&id) {
-                    ids.insert(id);
+        let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
+            (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
+            (CanvasSelection::Layer(_), true) => {
+                let ids = self.selection.ids(&self.contours);
+                match CanvasSelection::of_contours(&ids, &self.contours) {
+                    CanvasSelection::Shapes(shapes) => shapes,
+                    _ => BTreeSet::new(),
                 }
             }
-            (Some(id), false) => {
-                ids.insert(id);
-            }
-            (None, true) => {}
-            (None, false) => ids.clear(),
+            _ => BTreeSet::new(),
+        };
+        let hit: BTreeSet<u64> = picked
+            .and_then(|id| self.contours.iter().find(|c| c.id == id))
+            .map(shapes_of)
+            .unwrap_or_default();
+        if toggle && !hit.is_empty() && hit.is_subset(&shapes) {
+            shapes.retain(|s| !hit.contains(s));
+        } else {
+            shapes.extend(hit);
         }
-        self.selection = if ids.is_empty() {
+        self.selection = if shapes.is_empty() {
             CanvasSelection::Nothing
         } else {
-            CanvasSelection::Contours(ids)
+            CanvasSelection::Shapes(shapes)
         };
     }
 
@@ -775,17 +780,17 @@ impl ChiploadApp {
 
     /// The one shape the canvas selection consists of, if it is exactly one.
     pub fn selected_shape(&self) -> Option<u64> {
-        let CanvasSelection::Contours(ids) = &self.selection else {
+        if !matches!(self.selection, CanvasSelection::Shapes(_)) {
+            return None;
+        }
+        let ids = self.selection.ids(&self.contours);
+        let mut contours = self.contours.iter().filter(|c| ids.contains(&c.id));
+        let (Some(only), None) = (contours.next(), contours.next()) else {
             return None;
         };
-        let shapes: BTreeSet<u64> = self
-            .contours
-            .iter()
-            .filter(|c| ids.contains(&c.id))
-            .flat_map(|c| c.parts.iter().filter_map(|p| p.segment.shape))
-            .collect();
-        match (ids.len(), shapes.len()) {
-            (1, 1) => shapes.into_iter().next(),
+        let shapes = shapes_of(only);
+        match shapes.len() {
+            1 => shapes.into_iter().next(),
             _ => None,
         }
     }
@@ -838,26 +843,13 @@ impl ChiploadApp {
         }
     }
 
-    /// The drawing changed: recompute contours now (so the canvas follows every edit), and
-    /// select the contours of `shapes`, since contour numbers can change.
+    /// The drawing changed: recompute contours now, so the canvas follows every edit, and
+    /// select `shapes` if given. (The selection is kept as shape ids, so contour numbers
+    /// changing doesn't disturb it.)
     fn drawing_changed(&mut self, shapes: &[u64]) {
         self.refresh_drawing();
         if !shapes.is_empty() {
-            let ids: BTreeSet<usize> = self
-                .contours
-                .iter()
-                .filter(|c| {
-                    c.parts
-                        .iter()
-                        .any(|p| p.segment.shape.is_some_and(|s| shapes.contains(&s)))
-                })
-                .map(|c| c.id)
-                .collect();
-            self.selection = if ids.is_empty() {
-                CanvasSelection::Nothing
-            } else {
-                CanvasSelection::Contours(ids)
-            };
+            self.selection = CanvasSelection::Shapes(shapes.iter().copied().collect());
         }
     }
 
@@ -2375,7 +2367,7 @@ mod tests {
     }
 
     fn select(app: &mut ChiploadApp, ids: &[usize]) {
-        app.selection = CanvasSelection::Contours(ids.iter().copied().collect());
+        app.selection = CanvasSelection::of_contours(&ids.iter().copied().collect(), &app.contours);
     }
 
     /// messy_2 imported: a pocket on the crossing bars, then the lower outline.
@@ -2588,6 +2580,40 @@ mod tests {
         assert!(!app.generate());
         app.undo();
         assert!(app.shape(2).is_some());
+    }
+
+    #[test]
+    fn the_selection_stays_on_its_shape_when_contours_are_renumbered() {
+        let mut app = drawn_part();
+        // Delete the rectangle S1 (contour #1): the triangle S3 becomes contour #2.
+        app.click(Some(contour_of(&app, 1)), false);
+        app.delete_selected_shape();
+        app.commit();
+        assert_eq!(contour_of(&app, 3), 2);
+        app.click(Some(2), false);
+        assert_eq!(app.selected_shape(), Some(3));
+        // Undo brings S1 back as #1 and the triangle is #3 again. Contour #2 is now the
+        // circle; a selection kept as contour numbers would have jumped to it.
+        app.undo();
+        assert_eq!(contour_of(&app, 3), 3);
+        assert_eq!(app.selected_shape(), Some(3));
+        assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([3]));
+    }
+
+    #[test]
+    fn a_selected_shape_that_is_deleted_drops_out_of_the_selection() {
+        let mut app = drawn_part();
+        app.click(Some(contour_of(&app, 2)), false);
+        app.click(Some(contour_of(&app, 3)), true);
+        // Delete S3 behind the selection's back (as Update from DXF could).
+        let edit = app.edit.as_mut().unwrap();
+        edit.settings.drawing.shapes.retain(|s| s.id != 3);
+        app.commit();
+        app.refresh_drawing();
+        assert_eq!(
+            app.selection.ids(&app.contours),
+            BTreeSet::from([contour_of(&app, 2)])
+        );
     }
 
     #[test]
