@@ -1,51 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Tokenizer for G-code lines. Mirrors the Python checker's regex-based parsing exactly,
-//! including Python's definitions of line breaks and whitespace.
+//! Tokenizer for G-code lines.
 
-/// Python `str.splitlines()`: splits on \n, \r\n, \r and the other Unicode line boundaries.
+/// Lines separated by \n, \r\n or a lone \r (controllers end a line at either).
 pub fn split_lines(text: &str) -> Vec<&str> {
-    let mut lines = Vec::new();
-    let mut start = 0;
-    let mut chars = text.char_indices().peekable();
-    while let Some((i, c)) = chars.next() {
-        let boundary = matches!(
-            c,
-            '\n' | '\r'
-                | '\x0b'
-                | '\x0c'
-                | '\x1c'
-                | '\x1d'
-                | '\x1e'
-                | '\u{85}'
-                | '\u{2028}'
-                | '\u{2029}'
-        );
-        if !boundary {
-            continue;
-        }
-        lines.push(&text[start..i]);
-        let mut end = i + c.len_utf8();
-        if c == '\r'
-            && let Some(&(j, '\n')) = chars.peek()
-        {
-            chars.next();
-            end = j + 1;
-        }
-        start = end;
+    if text.is_empty() {
+        return Vec::new();
     }
-    if start < text.len() {
-        lines.push(&text[start..]);
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    if text.ends_with('\n') {
+        lines.pop();
     }
     lines
+        .into_iter()
+        .flat_map(|line| {
+            let line = line.strip_suffix('\r').unwrap_or(line);
+            line.split('\r')
+        })
+        .collect()
 }
 
-/// Python `str.isspace()`.
-fn is_space(c: char) -> bool {
-    c.is_whitespace() || ('\x1c'..='\x1f').contains(&c)
-}
-
-/// Replace every `(...)` comment that contains no parentheses with a space, left to right,
-/// like Python's `re.sub(r"\([^()]*\)", " ", line)`.
+/// Replace every `(...)` comment (which can't contain parentheses) with a space, left to
+/// right. Anything left over is unbalanced or nested.
 fn strip_comments(line: &str) -> String {
     let chars: Vec<char> = line.chars().collect();
     let mut out = String::with_capacity(line.len());
@@ -78,7 +53,7 @@ pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, String> {
     let mut words = Vec::new();
     let mut pos = 0;
     while pos < chars.len() {
-        if is_space(chars[pos]) {
+        if chars[pos].is_whitespace() {
             pos += 1;
             continue;
         }
@@ -89,10 +64,7 @@ pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, String> {
             }
             None => {
                 let rest: String = chars[pos..].iter().collect();
-                return Err(format!(
-                    "Cannot parse {}",
-                    py_str_repr(rest.trim_matches(is_space))
-                ));
+                return Err(format!("Cannot parse {:?}", rest.trim()));
             }
         }
     }
@@ -101,7 +73,7 @@ pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, String> {
 
 /// `\s*([A-Za-z])\s*([+-]?(?:\d+\.?\d*|\.\d+))` anchored at `pos`.
 fn match_word(chars: &[char], mut pos: usize) -> Option<(char, f64, usize)> {
-    while pos < chars.len() && is_space(chars[pos]) {
+    while pos < chars.len() && chars[pos].is_whitespace() {
         pos += 1;
     }
     let letter = *chars.get(pos)?;
@@ -109,7 +81,7 @@ fn match_word(chars: &[char], mut pos: usize) -> Option<(char, f64, usize)> {
         return None;
     }
     pos += 1;
-    while pos < chars.len() && is_space(chars[pos]) {
+    while pos < chars.len() && chars[pos].is_whitespace() {
         pos += 1;
     }
     let start = pos;
@@ -141,73 +113,31 @@ fn match_word(chars: &[char], mut pos: usize) -> Option<(char, f64, usize)> {
     Some((letter, value, pos))
 }
 
-/// Python `repr(float)` for the values that appear in messages (e.g. `0.0`, `-5.0`, `0.5`).
-pub fn py_float(value: f64) -> String {
-    let debug = format!("{value:?}");
-    // Rust writes 1e16 and 1e-7; Python writes 1e+16 and 1e-07.
-    match debug.split_once('e') {
-        Some((mantissa, exp)) => {
-            let (sign, digits) = match exp.strip_prefix('-') {
-                Some(d) => ('-', d),
-                None => ('+', exp),
-            };
-            format!("{mantissa}e{sign}{digits:0>2}")
-        }
-        None => debug,
-    }
-}
-
-/// Python `repr(str)`: single quotes unless the text contains ' and no ".
-fn py_str_repr(text: &str) -> String {
-    let quote = if text.contains('\'') && !text.contains('"') {
-        '"'
-    } else {
-        '\''
-    };
-    let mut out = String::new();
-    out.push(quote);
-    for c in text.chars() {
-        match c {
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c == quote => {
-                out.push('\\');
-                out.push(c);
-            }
-            c => out.push(c),
-        }
-    }
-    out.push(quote);
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn splits_lines_like_python() {
-        assert_eq!(split_lines("a\nb\r\nc\rd\x0ce"), ["a", "b", "c", "d", "e"]);
+    fn splits_lines_at_any_line_end() {
+        assert_eq!(split_lines("a\nb\r\nc\rd"), ["a", "b", "c", "d"]);
         assert_eq!(split_lines("a\n"), ["a"]);
+        assert_eq!(split_lines("a\r\n"), ["a"]);
         assert_eq!(split_lines(""), Vec::<&str>::new());
         assert_eq!(split_lines("\n\nx"), ["", "", "x"]);
     }
 
     #[test]
-    fn strips_comments_like_python() {
+    fn strips_comments() {
         assert_eq!(strip_comments("G0 (a) X1 (b)"), "G0   X1  ");
         assert_eq!(strip_comments("((a)"), "( ");
     }
 
     #[test]
-    fn floats_print_like_python_repr() {
-        assert_eq!(py_float(0.0), "0.0");
-        assert_eq!(py_float(-5.0), "-5.0");
-        assert_eq!(py_float(0.5), "0.5");
-        assert_eq!(py_float(1e-7), "1e-07");
-        assert_eq!(py_float(1e16), "1e+16");
+    fn unparseable_text_is_quoted_in_the_message() {
+        assert_eq!(
+            parse_line("G1 X1 ?Y2").unwrap_err(),
+            r#"Cannot parse "?Y2""#
+        );
     }
 
     #[test]

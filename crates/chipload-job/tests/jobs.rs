@@ -450,8 +450,20 @@ fn a_file_from_a_newer_chipload_is_refused_by_its_version() {
     let mut data = project(drawn_shapes(), 4, json!({"layer": "0"}));
     data["schema_version"] = json!(CURRENT_VERSION + 1);
     let err = migrate(data).unwrap_err().to_string();
-    let expected = format!("schema_version {} is not supported", CURRENT_VERSION + 1);
+    let expected = format!(
+        "schema_version {} is not supported: this version of Chipload reads 4 to {CURRENT_VERSION}",
+        CURRENT_VERSION + 1
+    );
     assert!(err.contains(&expected), "{err}");
+    let err = migrate(json!({})).unwrap_err().to_string();
+    assert!(
+        err.starts_with("Job schema_version missing is not supported"),
+        "{err}"
+    );
+    let err = migrate(json!({"schema_version": "4"}))
+        .unwrap_err()
+        .to_string();
+    assert!(err.starts_with(r#"Job schema_version "4" is not"#), "{err}");
 }
 
 #[test]

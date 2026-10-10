@@ -157,10 +157,10 @@ fn missing_program_end_is_a_warning() {
 }
 
 #[test]
-fn exact_messages_match_python() {
+fn exact_messages() {
     let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-1 F0\n"));
     assert!(
-        found.contains(&"Feed F0.0 must be positive".to_string()),
+        found.contains(&"Feed F0 must be positive".to_string()),
         "{found:?}"
     );
     let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-18.5 F100\n"));

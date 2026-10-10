@@ -19,8 +19,9 @@ pub use models::*;
 pub enum JobError {
     /// Missing, malformed or newer-than-known `schema_version`. Never guessed.
     #[error(
-        "Job schema_version {found} is not supported (this app supports up to {current}). \
-         Update the application or check the file."
+        "Job schema_version {found} is not supported: this version of Chipload reads \
+         {oldest} to {current}. Update Chipload or check the file.",
+        oldest = OLDEST_VERSION
     )]
     UnsupportedVersion { found: String, current: i64 },
     /// A job from before projects (schema 1-3), which this version no longer reads.

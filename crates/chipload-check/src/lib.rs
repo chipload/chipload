@@ -5,8 +5,7 @@
 //! rules in `docs/specs/v0-profile-pipeline.md` section 6. It must never depend on the toolpath
 //! generator or post-processor crates: its value is that it can disagree with them.
 //!
-//! Messages are kept identical to the Python reference's checker (tag python-final). Only
-//! ASCII digits are accepted in numbers.
+//! Only ASCII digits are accepted in numbers.
 
 mod parse;
 
@@ -203,10 +202,7 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     for &(letter, value) in words {
         if letter == 'G' || letter == 'M' {
             if value != value.trunc() {
-                return vec![format!(
-                    "{letter}{} is not supported",
-                    parse::py_float(value)
-                )];
+                return vec![format!("{letter}{} is not supported", value)];
             }
             // `as` saturates for absurd values, which then fail the whitelist anyway.
             let code = value as i64;
@@ -251,7 +247,7 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     // Modal settings first, in the order a controller applies them.
     if let Some(&feed) = values.get(&'F') {
         if feed <= 0.0 {
-            problems.push(format!("Feed F{} must be positive", parse::py_float(feed)));
+            problems.push(format!("Feed F{feed} must be positive"));
         }
         state.feed = Some(feed);
     }

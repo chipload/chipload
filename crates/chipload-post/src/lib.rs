@@ -76,7 +76,7 @@ pub fn parse_post_config(text: &str) -> Result<PostConfig, PostError> {
     let data: toml::Table = toml::from_str(text)
         .map_err(|e| PostError::Config(format!("Cannot read post-processor config: {e}")))?;
     let raw = data.get("schema_version");
-    // TOML integers only; a bool, float or string is refused, as the Python reference did.
+    // TOML integers only; a bool, float or string is refused, never converted.
     match raw.and_then(toml::Value::as_integer) {
         Some(v) if (1..=CURRENT_VERSION).contains(&v) => {}
         _ => {
@@ -262,8 +262,8 @@ pub fn render_program_with(
         .map(|(_, source)| *source)
         .ok_or_else(|| PostError::Config(format!("Unknown template {:?}", config.template)))?;
     let mut env = Environment::new();
-    // The same settings as the Python reference's Jinja2 SandboxedEnvironment. minijinja has no access to
-    // anything but the context, so templates are sandboxed by design.
+    // Jinja-style whitespace handling. minijinja has no access to anything but the context,
+    // so templates are sandboxed by design.
     env.set_syntax(
         SyntaxConfig::builder()
             .trim_blocks(true)
@@ -299,7 +299,7 @@ mod tests {
     fn numbers_never_show_negative_zero() {
         assert_eq!(format_number(-0.0004, 3), "0.000");
         assert_eq!(format_number(-0.0006, 3), "-0.001");
-        assert_eq!(format_number(0.125, 2), "0.12"); // ties to even, as Python
+        assert_eq!(format_number(0.125, 2), "0.12"); // ties to even
         assert_eq!(format_number(18000.0, 0), "18000");
     }
 

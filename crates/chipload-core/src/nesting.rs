@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Whether one closed contour lies inside another, with OGC/Shapely `contains` semantics
-//! (kept from the Python reference): touching or sharing the outer boundary from the inside
-//! still counts as inside. Identical shapes contain each other.
+//! Whether one closed contour lies inside another, with OGC `contains` semantics: touching
+//! or sharing the outer boundary from the inside still counts as inside. Identical shapes
+//! contain each other.
 
 use crate::Point;
 use crate::primitives::distance;

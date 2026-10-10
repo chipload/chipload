@@ -44,12 +44,10 @@ pub fn migrate(mut data: Value) -> Result<Value, JobError> {
     Ok(data)
 }
 
-/// The value as Python's `repr` would show it in the error message.
+/// The version as found in the file, for the error message.
 fn describe(value: Option<&Value>) -> String {
     match value {
-        None | Some(Value::Null) => "None".into(),
-        Some(Value::Bool(b)) => if *b { "True" } else { "False" }.into(),
-        Some(Value::String(s)) => format!("'{s}'"),
+        None | Some(Value::Null) => "missing".into(),
         Some(other) => other.to_string(),
     }
 }
