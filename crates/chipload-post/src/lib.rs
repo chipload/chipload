@@ -274,7 +274,11 @@ pub fn render_program_with(
     );
     env.set_undefined_behavior(UndefinedBehavior::Strict);
     env.set_auto_escape_callback(|_| AutoEscape::None);
-    env.add_template(&config.template, source).map_err(failed)?;
+    // The same output on every platform, whatever line endings the template was checked
+    // out with (git may give a Windows build CRLF).
+    let source = source.replace("\r\n", "\n");
+    env.add_template(&config.template, &source)
+        .map_err(failed)?;
     let text = env
         .get_template(&config.template)
         .and_then(|t| t.render(Value::from(Serde(&context))))
@@ -337,6 +341,23 @@ mod tests {
         assert!(parse_post_config(missing).is_err());
         let path = "schema_version = 1\nname = \"X\"\ntemplate = \"../x\"\nspindle_dwell_s = 0\n";
         assert!(parse_post_config(path).is_err());
+    }
+
+    #[test]
+    fn output_has_unix_line_endings_on_every_platform() {
+        // A Windows checkout may give the template CRLF; the G-code must not change.
+        let program = Program {
+            tool_id: 1,
+            tool_diameter: 6.0,
+            rpm: 18000.0,
+            spindle: Spindle::Cw,
+            safe_z: 5.0,
+            moves: vec![Move::rapid_z(5.0), Move::rapid_xy((1.0, 2.0))],
+        };
+        let config = load_builtin_post("grbl").unwrap();
+        let text = render_program_with(&program, &config, Some("x (y); z")).unwrap();
+        assert!(!text.contains('\r'), "{text:?}");
+        assert!(text.contains("(Work zero: x [y], z)\n"), "{text}");
     }
 
     #[test]

@@ -1,0 +1,7 @@
+# Text files are checked out with LF on every platform. Golden G-code, templates and
+# projects are compared byte for byte, and the release build on Windows failed when git
+# converted them to CRLF there.
+* text=auto eol=lf
+
+# Drawings are real-world input and must reach the tests exactly as received.
+*.dxf -text
