@@ -344,7 +344,17 @@ impl ChiploadApp {
                     self.status = None;
                 }
             }
+            let copies = self
+                .edit
+                .as_ref()
+                .and_then(|e| e.settings.copies)
+                .map(|c| c.count())
+                .filter(|&n| n > 1);
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if let Some(n) = copies {
+                    ui.label(format!("{n} copies"));
+                    ui.separator();
+                }
                 if let Some((x, y)) = self.cursor {
                     // Drawing coordinates, and program coordinates when they differ.
                     let (zx, zy) = self

@@ -11,7 +11,7 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v7: embedded drawing, drawn shapes, depth ranges, clearance), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014) |
+| `chipload-job` | project file models (schema v7: embedded drawing, drawn shapes, depth ranges, clearance, optional grid of copies), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014) |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
@@ -82,6 +82,7 @@ cargo deny check licenses bans sources                    # GPL-3.0 compatibilit
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)
+cargo run -p chipload-cli -- copies part.chipload --grid 3x2 --gap 10   # a grid of copies of the part
 cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units, contours, issues
 cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, no G-code

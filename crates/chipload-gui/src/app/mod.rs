@@ -540,6 +540,43 @@ impl ChiploadApp {
         Some(index)
     }
 
+    /// Set the copies' pitch so `gap` mm are left between their cuts (docs/specs/
+    /// copies-grid.md §6). It plans the part once, so the project must be complete.
+    pub fn set_copies_gap(&mut self, gap: f64) {
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return;
+        };
+        // The part alone: the grid being set may not be valid yet (a pitch of 0).
+        let mut part = edit.clone();
+        part.settings.copies = None;
+        let job = match part.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error(problems);
+                return;
+            }
+        };
+        let current = edit.settings.copies.map_or((0.0, 0.0), |c| (c.dx, c.dy));
+        match chipload_pipeline::copies::pitch_for_gap(&job, gap, current) {
+            Ok((dx, dy)) => {
+                if let Some(copies) = self.edit.as_mut().and_then(|e| e.settings.copies.as_mut()) {
+                    copies.dx = dx;
+                    copies.dy = dy;
+                }
+                self.commit();
+                self.set_status(
+                    format!("Pitch {dx:.3} × {dy:.3} mm ({gap:.3} mm gap)"),
+                    STATUS_SECONDS,
+                );
+            }
+            Err(err) => self.error(vec![
+                "Could not set the pitch from a gap: the part has to be planned first.".into(),
+                err.to_string(),
+            ]),
+        }
+    }
+
     /// Give the selected operation the current canvas selection as its geometry.
     pub fn use_selection(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {

@@ -30,6 +30,92 @@ pub struct Job {
     pub machine: Machine,
     pub tools: Vec<Tool>,
     pub operations: Vec<Operation>,
+    /// The part cut several times in a grid (docs/specs/copies-grid.md); None: once.
+    #[serde(default)]
+    pub copies: Option<Copies>,
+}
+
+/// Most columns or rows of copies, and most copies in all.
+pub const MAX_COPIES_PER_SIDE: u32 = 100;
+pub const MAX_COPIES: u32 = 1000;
+
+/// A grid of copies of the whole part: copy (column c, row r) is the drawing moved by
+/// (c·dx, r·dy) mm.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Copies {
+    pub columns: u32,
+    pub rows: u32,
+    pub dx: f64,
+    pub dy: f64,
+    #[serde(default)]
+    pub order: CopyOrder,
+}
+
+/// In which order the copies are cut.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CopyOrder {
+    /// Each operation on every copy, then the next operation.
+    #[default]
+    ByOperation,
+    /// Every operation on one copy, then the next copy.
+    ByPart,
+}
+
+impl Copies {
+    pub fn count(&self) -> u32 {
+        self.columns.saturating_mul(self.rows)
+    }
+
+    /// Every copy as (number, shift), in cut order: row by row from copy 1, alternating
+    /// direction (1, 2, 3, then 6, 5, 4). Copies are numbered row by row from 1, the
+    /// drawing as drawn.
+    pub fn in_cut_order(&self) -> Vec<(u32, (f64, f64))> {
+        let mut out = Vec::new();
+        for row in 0..self.rows {
+            let mut columns: Vec<u32> = (0..self.columns).collect();
+            if row % 2 == 1 {
+                columns.reverse();
+            }
+            for column in columns {
+                let number = row * self.columns + column + 1;
+                out.push((
+                    number,
+                    (f64::from(column) * self.dx, f64::from(row) * self.dy),
+                ));
+            }
+        }
+        out
+    }
+
+    /// What is wrong with the grid, as "copies.field: message".
+    pub fn problems(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        for (name, n) in [("columns", self.columns), ("rows", self.rows)] {
+            if !(1..=MAX_COPIES_PER_SIDE).contains(&n) {
+                problems.push(format!(
+                    "copies.{name}: must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"
+                ));
+            }
+        }
+        if self.count() > MAX_COPIES {
+            problems.push(format!(
+                "copies: at most {MAX_COPIES} copies in all, got {}",
+                self.count()
+            ));
+        }
+        for (name, pitch, n) in [("dx", self.dx, self.columns), ("dy", self.dy, self.rows)] {
+            if !pitch.is_finite() {
+                problems.push(format!("copies.{name}: must be a number, got {pitch}"));
+            } else if n > 1 && pitch == 0.0 {
+                problems.push(format!(
+                    "copies.{name}: must not be 0 with more than one copy that way"
+                ));
+            }
+        }
+        problems
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1113,6 +1199,9 @@ impl Job {
             }
         }
         problems.extend(max_overcut_problems("stock", self.stock.max_overcut));
+        if let Some(copies) = &self.copies {
+            problems.extend(copies.problems());
+        }
         for (i, op) in self.operations.iter().enumerate() {
             let (start, end) = op.depths();
             if !(start.is_finite() && start >= 0.0) {

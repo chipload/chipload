@@ -29,6 +29,9 @@ const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
 const SNAP: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
 const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
 /// Contours of the operation selected in the operations list.
+/// Copies of the part: outlines, and the toolpath's colour faded by this much.
+const GHOST: Color32 = Color32::from_rgb(0x6b, 0x6f, 0x75);
+const GHOST_FADE: f32 = 0.4;
 const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
 /// Material the tool can't reach: faint, it's normal (docs/specs/material-left.md).
 const LEFT_UNREACHABLE: Color32 = Color32::from_rgb(0xae, 0xcb, 0xfa);
@@ -266,6 +269,8 @@ pub struct Plunge {
 pub struct ToolpathShape {
     /// Runs of consecutive XY feed moves.
     pub feeds: Vec<Vec<Point>>,
+    /// The same for the copies of the part (docs/specs/copies-grid.md), drawn faded.
+    pub ghost_feeds: Vec<Vec<Point>>,
     pub rapids: Vec<(Point, Point)>,
     /// Where each rapid ends, in cut order.
     pub starts: Vec<Plunge>,
@@ -288,7 +293,15 @@ impl ToolpathShape {
         let (mut x, mut y): (Option<f64>, Option<f64>) = (None, None);
         let mut since_arrow = ARROW_SPACING_MM; // so the first cut of every ring gets an arrow
         let mut run: Vec<Point> = Vec::new();
+        let mut ghost = false;
         for (index, m) in program.moves.iter().enumerate() {
+            let span = spans.iter().find(|s| s.moves.contains(&index));
+            // Moves of a copy: faded, without plunge markers or arrows.
+            let in_copy = span.is_some_and(|s| s.copy != 1);
+            if in_copy != ghost {
+                shape.flush(&mut run, ghost);
+                ghost = in_copy;
+            }
             let (nx, ny) = (m.x.or(x), m.y.or(y));
             let (Some(px), Some(py)) = (nx, ny) else {
                 (x, y) = (nx, ny);
@@ -303,33 +316,26 @@ impl ToolpathShape {
                     if let Some(from) = here {
                         shape.rapids.push((from, next));
                     }
-                    let operation = spans
-                        .iter()
-                        .find(|s| s.moves.contains(&index))
-                        .map(|s| s.operation);
-                    shape.starts.push(Plunge {
-                        at: next,
-                        operation,
-                    });
-                    since_arrow = ARROW_SPACING_MM;
-                    if run.len() > 1 {
-                        shape.feeds.push(std::mem::take(&mut run));
+                    if !ghost {
+                        shape.starts.push(Plunge {
+                            at: next,
+                            operation: span.map(|s| s.operation),
+                        });
                     }
-                    run.clear();
+                    since_arrow = ARROW_SPACING_MM;
+                    shape.flush(&mut run, ghost);
                 }
                 // The canvas shows the planned program, whose arcs are still chords; an arc
                 // move (never shown today) is drawn as its chord.
                 MoveKind::Feed | MoveKind::ArcCw | MoveKind::ArcCcw => {
                     if let Some(from) = here {
                         if run.last() != Some(&from) {
-                            if run.len() > 1 {
-                                shape.feeds.push(std::mem::take(&mut run));
-                            }
+                            shape.flush(&mut run, ghost);
                             run = vec![from];
                         }
                         run.push(next);
                         let (dx, dy) = (next.0 - from.0, next.1 - from.1);
-                        if since_arrow >= ARROW_SPACING_MM {
+                        if since_arrow >= ARROW_SPACING_MM && !ghost {
                             let mid = ((from.0 + next.0) / 2.0, (from.1 + next.1) / 2.0);
                             shape.arrows.push((mid, dy.atan2(dx)));
                             since_arrow = 0.0;
@@ -341,11 +347,21 @@ impl ToolpathShape {
             here = Some(next);
             (x, y) = (nx, ny);
         }
-        if run.len() > 1 {
-            shape.feeds.push(run);
-        }
+        shape.flush(&mut run, ghost);
         shape.lines3 = lines_3d(program);
         shape
+    }
+
+    /// End a run of feed moves: kept if it draws anything, then started afresh.
+    fn flush(&mut self, run: &mut Vec<Point>, ghost: bool) {
+        let done = std::mem::take(run);
+        if done.len() > 1 {
+            if ghost {
+                self.ghost_feeds.push(done);
+            } else {
+                self.feeds.push(done);
+            }
+        }
     }
 
     /// The Z range of the cutting moves: (highest, lowest).
@@ -489,6 +505,9 @@ pub struct Scene {
     pub work_zero: Point,
     /// The stock's (top, bottom) Z, for the 3D view.
     pub stock_z: Option<(f64, f64)>,
+    /// Where the copies of the part are, as shifts of the drawing (copy 1 excluded): drawn
+    /// faded, never picked (docs/specs/copies-grid.md).
+    pub copies: Vec<Point>,
 }
 
 impl Scene {
@@ -504,11 +523,13 @@ impl Scene {
             on_top((zx, zy)),
             on_top((zx + AXIS_LENGTH_MM, zy + AXIS_LENGTH_MM)),
         ];
-        points.extend(
-            self.contours
-                .iter()
-                .flat_map(|c| c.points.iter().map(|&p| on_top(p))),
-        );
+        for shift in std::iter::once((0.0, 0.0)).chain(self.copies.iter().copied()) {
+            points.extend(self.contours.iter().flat_map(|c| {
+                c.points
+                    .iter()
+                    .map(move |&p| on_top((p.0 + shift.0, p.1 + shift.1)))
+            }));
+        }
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let (top, bottom) = self.stock_z.unwrap_or((top_z, top_z));
             for z in [top, bottom] {
@@ -636,6 +657,12 @@ impl Scene {
         }
         self.paint_left(painter, view, highlight);
 
+        for &(dx, dy) in &self.copies {
+            for c in &self.contours {
+                let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
+                painter.add(Shape::line(screen(&moved), Stroke::new(1.0, GHOST)));
+            }
+        }
         for c in &self.contours {
             let pts = screen(&c.points);
             let is_selected = selected.contains(&c.id);
@@ -661,6 +688,10 @@ impl Scene {
             if flat {
                 for &(a, b) in &path.rapids {
                     dashed(screen(&[a, b]), Stroke::new(1.0, RAPID));
+                }
+                for run in &path.ghost_feeds {
+                    let faded = feed.gamma_multiply(GHOST_FADE);
+                    painter.add(Shape::line(screen(run), Stroke::new(1.5, faded)));
                 }
                 for run in &path.feeds {
                     painter.add(Shape::line(screen(run), Stroke::new(2.0, feed)));
@@ -993,10 +1024,12 @@ mod tests {
         let spans = [
             OpSpan {
                 operation: 0,
+                copy: 1,
                 moves: 0..6,
             },
             OpSpan {
                 operation: 3,
+                copy: 1,
                 moves: 6..9,
             },
         ];

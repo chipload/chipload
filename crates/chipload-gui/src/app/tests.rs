@@ -948,3 +948,57 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     assert_eq!(app.update_labels().0, "Update drawing from DXF…");
     assert!(app.generate(), "{:?}", app.report);
 }
+
+#[test]
+fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
+    // docs/specs/copies-grid.md §6
+    let mut app = lower_part();
+    assert!(app.generate(), "{:?}", app.report);
+    let one = app.scene.toolpath.clone().unwrap();
+    assert!(one.ghost_feeds.is_empty());
+
+    app.edit.as_mut().unwrap().settings.copies = Some(chipload_job::Copies {
+        columns: 2,
+        rows: 2,
+        dx: 0.0,
+        dy: 0.0,
+        order: chipload_job::CopyOrder::ByOperation,
+    });
+    app.set_copies_gap(5.0);
+    let copies = app.edit.as_ref().unwrap().settings.copies.unwrap();
+    assert!(copies.dx > 5.0 && copies.dy > 5.0, "{copies:?}");
+    // Generating again: the copies are cut, the gap leaves them apart.
+    app.edit.as_mut().unwrap().settings.stock.x = 1000.0;
+    app.edit.as_mut().unwrap().settings.stock.y = 1000.0;
+    app.commit();
+    assert!(app.generate(), "{:?}", app.report);
+    let result = app.result.as_ref().unwrap();
+    let copy_numbers: BTreeSet<u32> = result.op_spans.iter().map(|s| s.copy).collect();
+    assert_eq!(copy_numbers, BTreeSet::from([1, 2, 3, 4]));
+    // Copy 1 as before, the other three faded, and plunges marked on copy 1 only.
+    let path = app.scene.toolpath.as_ref().unwrap();
+    assert_eq!(path.feeds.len(), one.feeds.len());
+    assert_eq!(path.ghost_feeds.len(), 3 * one.feeds.len());
+    assert_eq!(path.starts.len(), one.starts.len());
+    assert_eq!(
+        app.edit.as_ref().unwrap().to_job().unwrap().copies,
+        Some(copies)
+    );
+
+    // An overlapping pitch is refused with the size it needs.
+    app.edit
+        .as_mut()
+        .unwrap()
+        .settings
+        .copies
+        .as_mut()
+        .unwrap()
+        .dx = 10.0;
+    app.commit();
+    assert!(!app.generate());
+    assert!(
+        app.report.iter().any(|l| l.contains("Copies overlap")),
+        "{:?}",
+        app.report
+    );
+}

@@ -3,7 +3,9 @@
 
 use super::user_library::{LibraryRows, library_rows};
 use super::*;
+use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, MAX_RAMP_ANGLE_RAD, Machine, Tool};
+use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
@@ -392,13 +394,24 @@ pub(super) fn work_zero_rows(
     }
 }
 
-/// Returns what the user asked of the library (docs/specs/tool-library-and-machines.md §8).
+/// What the job form asks of the app beyond editing values.
+pub(super) enum JobRequest {
+    /// docs/specs/tool-library-and-machines.md §8.
+    Library(LibraryRequest),
+    /// Set the copies' pitch so this many mm are left between their cuts.
+    CopiesGap(f64),
+}
+
+/// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
+const DEFAULT_COPIES_GAP: f64 = 10.0;
+
 pub(super) fn job_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     library: Option<&Library>,
-) -> Option<LibraryRequest> {
+) -> Option<JobRequest> {
     let mut request = None;
+    let mut copies_request = None;
     let job = &mut edit.settings;
     ui.heading("Job settings");
     Grid::new("job-form").num_columns(2).show(ui, |ui| {
@@ -472,6 +485,7 @@ pub(super) fn job_form(
                 ui.selectable_value(&mut job.stock.z_zero, ZZero::Bottom, "stock bottom");
             });
         ui.end_row();
+        copies_rows(ui, &mut job.copies, &mut copies_request);
 
         ui.strong("Machine");
         ui.end_row();
@@ -487,7 +501,78 @@ pub(super) fn job_form(
             tool_rows(ui, "job", tool);
         }
     });
-    request
+    copies_request.or(request.map(JobRequest::Library))
+}
+
+/// The part cut several times in a grid (docs/specs/copies-grid.md).
+fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Option<JobRequest>) {
+    ui.strong("Copies");
+    ui.end_row();
+    ui.label("Copies").on_hover_text(
+        "Cut the part several times in a grid. The copies are drawn faded; only the drawing \
+         itself can be selected.",
+    );
+    let mut on = copies.is_some();
+    if ui.checkbox(&mut on, "several, in a grid").changed() {
+        *copies = on.then_some(Copies {
+            columns: 2,
+            rows: 1,
+            dx: 0.0,
+            dy: 0.0,
+            order: CopyOrder::ByOperation,
+        });
+        if on {
+            *request = Some(JobRequest::CopiesGap(DEFAULT_COPIES_GAP));
+        }
+    }
+    ui.end_row();
+    let Some(grid) = copies else {
+        return;
+    };
+    ui.label("  columns × rows");
+    ui.horizontal(|ui| {
+        let count = 1..=MAX_COPIES_PER_SIDE;
+        ui.add(DragValue::new(&mut grid.columns).range(count.clone()));
+        ui.add(DragValue::new(&mut grid.rows).range(count));
+        ui.label(format!("= {}", grid.count()));
+    });
+    ui.end_row();
+    ui.label("  pitch X Y")
+        .on_hover_text("Copy to copy, mm. Negative grows to the left or down.");
+    ui.horizontal(|ui| {
+        for value in [&mut grid.dx, &mut grid.dy] {
+            ui.add(
+                DragValue::new(value)
+                    .speed(0.1)
+                    .range(-100_000.0..=100_000.0)
+                    .suffix(" mm"),
+            );
+        }
+    });
+    ui.end_row();
+    ui.label("  gap").on_hover_text(
+        "Sets the pitch once so this much is left between the cuts of neighbouring copies. \
+         The project keeps the pitch.",
+    );
+    ui.horizontal(|ui| {
+        let id = egui::Id::new("copies-gap");
+        let mut gap = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_COPIES_GAP));
+        ui.add(mm(&mut gap));
+        ui.data_mut(|d| d.insert_temp(id, gap));
+        if ui.button("Set pitch").clicked() {
+            *request = Some(JobRequest::CopiesGap(gap));
+        }
+    });
+    ui.end_row();
+    ui.label("  order");
+    ComboBox::from_id_salt("copies-order")
+        .selected_text(order_name(grid.order))
+        .show_ui(ui, |ui| {
+            for order in [CopyOrder::ByOperation, CopyOrder::ByPart] {
+                ui.selectable_value(&mut grid.order, order, order_name(order));
+            }
+        });
+    ui.end_row();
 }
 
 /// Post, safe Z, spindle, max feed and travel (the work zero is with the stock).

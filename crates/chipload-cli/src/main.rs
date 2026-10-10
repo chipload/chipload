@@ -14,8 +14,10 @@ use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
 use chipload_job::{
-    Geometry, Job, Spindle, Units, WorkZero, load_job, polyline_segment_count, save_job,
+    Copies, CopyOrder, Geometry, Job, Spindle, Units, WorkZero, load_job, polyline_segment_count,
+    save_job,
 };
+use chipload_pipeline::copies::{copies_text, pitch_for_gap};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
@@ -146,8 +148,48 @@ enum Command {
         #[command(subcommand)]
         action: library::MachineAction,
     },
+    /// Cut the part several times in a grid (docs/specs/copies-grid.md).
+    Copies {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Columns x rows, e.g. "3x2".
+        #[arg(long)]
+        grid: Option<String>,
+        /// Pitch "DX,DY" in mm, copy to copy; negative grows left or down.
+        #[arg(long, allow_hyphen_values = true, conflicts_with = "gap")]
+        pitch: Option<String>,
+        /// Set the pitch so that this many mm are left between the cuts of neighbours.
+        #[arg(long)]
+        gap: Option<f64>,
+        /// The cut order.
+        #[arg(long)]
+        order: Option<OrderArg>,
+        /// Back to a single part.
+        #[arg(long, conflicts_with_all = ["grid", "pitch", "gap", "order"])]
+        off: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Print Chipload's licence and the licences of every third-party component.
     Licenses,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum OrderArg {
+    /// Each operation on every copy, then the next operation.
+    ByOperation,
+    /// Every operation on one copy, then the next copy.
+    ByPart,
+}
+
+/// What `chipload copies` was asked to change.
+struct CopiesArgs {
+    grid: Option<String>,
+    pitch: Option<String>,
+    gap: Option<f64>,
+    order: Option<OrderArg>,
+    off: bool,
 }
 
 #[derive(Subcommand)]
@@ -271,6 +313,25 @@ fn main() -> ExitCode {
         Command::Shape { action } => shape(action),
         Command::Tool { action } => library::tool(action),
         Command::Machine { action } => library::machine(action),
+        Command::Copies {
+            project,
+            grid,
+            pitch,
+            gap,
+            order,
+            off,
+            output,
+        } => copies(
+            &project,
+            CopiesArgs {
+                grid,
+                pitch,
+                gap,
+                order,
+                off,
+            },
+            output.as_deref(),
+        ),
         Command::Licenses => {
             println!("{}\n", chipload_pipeline::notices::short_notice());
             println!("{}", chipload_pipeline::notices::LICENSE);
@@ -325,6 +386,79 @@ fn create(mut job: Job, line: &str, output: &Path, machine: Option<&str>) -> Exi
     }
     println!("Wrote {}", output.display());
     ExitCode::SUCCESS
+}
+
+fn copies(project: &Path, args: CopiesArgs, output: Option<&Path>) -> ExitCode {
+    let mut job = match load_job(project) {
+        Ok(job) => job,
+        Err(err) => return fail(err),
+    };
+    match changed_copies(&job, args) {
+        Ok(copies) => job.copies = copies,
+        Err(err) => return fail(err),
+    }
+    let problems = job.validate();
+    if !problems.is_empty() {
+        return fail(problems.join("; "));
+    }
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&job, target) {
+        return fail(err);
+    }
+    match copies_text(&job) {
+        Some(text) => println!("Copies: {text}"),
+        None => println!("Copies: off (one part)"),
+    }
+    // Overlap is refused when the project is run; say so now.
+    if job.copies.is_some_and(|c| c.count() > 1)
+        && let Ok(drawing) = load_drawing(&job)
+        && let Err(err) = plan_job(&job, &drawing.contours)
+        && err.to_string().starts_with("Copies overlap")
+    {
+        eprintln!("warning: {err}");
+    }
+    println!("Wrote {}", target.display());
+    ExitCode::SUCCESS
+}
+
+fn changed_copies(job: &Job, args: CopiesArgs) -> Result<Option<Copies>, String> {
+    if args.off {
+        return Ok(None);
+    }
+    let mut copies = job.copies.unwrap_or(Copies {
+        columns: 1,
+        rows: 1,
+        dx: 0.0,
+        dy: 0.0,
+        order: CopyOrder::ByOperation,
+    });
+    if job.copies.is_none() && args.grid.is_none() {
+        return Err("the project has no copies yet: give --grid (and --pitch or --gap)".into());
+    }
+    if let Some(grid) = &args.grid {
+        let (columns, rows) = grid
+            .split_once(['x', 'X'])
+            .and_then(|(c, r)| Some((c.trim().parse().ok()?, r.trim().parse().ok()?)))
+            .ok_or_else(|| format!("--grid wants columns x rows like 3x2, got \"{grid}\""))?;
+        copies.columns = columns;
+        copies.rows = rows;
+    }
+    if let Some(pitch) = &args.pitch {
+        [copies.dx, copies.dy] = point_arg(pitch).map_err(|e| format!("--pitch: {e}"))?;
+    }
+    if let Some(order) = args.order {
+        copies.order = match order {
+            OrderArg::ByOperation => CopyOrder::ByOperation,
+            OrderArg::ByPart => CopyOrder::ByPart,
+        };
+    }
+    if let Some(gap) = args.gap {
+        (copies.dx, copies.dy) =
+            pitch_for_gap(job, gap, (copies.dx, copies.dy)).map_err(|e| e.to_string())?;
+    } else if job.copies.is_none() && args.pitch.is_none() && copies.count() > 1 {
+        return Err("give the spacing with --pitch DX,DY or --gap MM".into());
+    }
+    Ok(Some(copies))
 }
 
 fn update(project: &Path, from: &Path, units: Option<Units>, output: Option<&Path>) -> ExitCode {
@@ -756,6 +890,9 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
         for line in format_material_left(&job, &plan.material_left) {
             println!("{line}");
         }
+        if let Some(text) = copies_text(&job) {
+            println!("Copies: {text}");
+        }
         println!("Planned {} moves.", plan.program.moves.len());
     }
     ExitCode::SUCCESS
@@ -793,6 +930,7 @@ fn program_json(program: &Program) -> Value {
 fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
     let mut shapes = None;
     let mut work_zero = None;
+    let mut copies_line = None;
     let loaded = if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
     } else {
@@ -802,6 +940,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
             if job.machine.work_zero != (WorkZero::DrawingOrigin {}) {
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
+            copies_line = copies_text(&job).map(|text| format!("Copies: {text}"));
             load_drawing(&job).map_err(|e| e.to_string())
         })
     };
@@ -818,6 +957,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
         .chain(format_contours(&result.contours))
         .chain(shapes.as_deref().map(format_shapes).unwrap_or_default())
         .chain(work_zero)
+        .chain(copies_line)
     {
         println!("{line}");
     }

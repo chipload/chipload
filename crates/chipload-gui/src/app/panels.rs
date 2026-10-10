@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The side panels: operations, selection (with the shape editor), properties, report.
 
+use super::forms::JobRequest;
 use super::*;
 
 impl ChiploadApp {
@@ -247,8 +248,10 @@ impl ChiploadApp {
         if use_selection {
             self.use_selection();
         }
-        if let Some(request) = request {
-            self.library_request(request);
+        match request {
+            Some(JobRequest::Library(request)) => self.library_request(request),
+            Some(JobRequest::CopiesGap(gap)) => self.set_copies_gap(gap),
+            None => {}
         }
     }
 

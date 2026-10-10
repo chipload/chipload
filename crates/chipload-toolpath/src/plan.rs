@@ -4,14 +4,16 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::{Entry, Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero};
+use chipload_job::{
+    Copies, CopyOrder, Entry, Job, Operation, PocketOp, ProfileOp, Side, Tool, ToolType, ZZero,
+};
 
-use chipload_core::tolerances::DEPTH_TOL_MM;
+use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
-use crate::model::{Move, Program};
+use crate::model::{Move, MoveKind, Program};
 use crate::pocket::{PocketPiece, plan_pocket_with, pocket_moves};
 use crate::profile::{contour_moves, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours};
@@ -26,7 +28,8 @@ pub struct Plan {
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece in cut order (rings and links), for display and conformance tests.
     pub pockets: Vec<PocketPiece>,
-    /// Material each operation leaves, for display; by operation, kind, then (y, x).
+    /// Material each operation leaves (on the part, copy 1), for display; by operation,
+    /// kind, then (y, x).
     pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, in cut order, for display.
     pub op_spans: Vec<OpSpan>,
@@ -37,6 +40,8 @@ pub struct Plan {
 pub struct OpSpan {
     /// Index in `job.operations`.
     pub operation: usize,
+    /// Which copy of the part (docs/specs/copies-grid.md): 1 is the drawing as drawn.
+    pub copy: u32,
     pub moves: std::ops::Range<usize>,
 }
 
@@ -56,6 +61,8 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut op_spans: Vec<OpSpan> = Vec::new();
     let mut arcs = ArcTable::default();
     let mut position: Point = (0.0, 0.0);
+    // Every enabled operation's selection, chosen once on the drawing as drawn.
+    let mut chosen: Vec<(usize, String, Selection)> = Vec::new();
     for (index, op) in job.operations.iter().enumerate() {
         if !op.enabled() {
             continue; // kept in the file, skipped here; numbering stays as listed
@@ -64,42 +71,99 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
+        let selection = select_contours(contours, op.select(), &label)?;
+        chosen.push((index, label, selection));
+    }
+    let copies = job
+        .copies
+        .map_or_else(|| vec![(1, (0.0, 0.0))], |c| c.in_cut_order());
+    let several = copies.len() > 1;
+    // (operation, copy) pairs in cut order (docs/specs/copies-grid.md §3).
+    let mut order: Vec<(usize, usize)> = Vec::new();
+    match job.copies.map(|c| c.order) {
+        Some(CopyOrder::ByPart) => {
+            for k in 0..copies.len() {
+                order.extend((0..chosen.len()).map(|i| (i, k)));
+            }
+        }
+        _ => {
+            for i in 0..chosen.len() {
+                order.extend((0..copies.len()).map(|k| (i, k)));
+            }
+        }
+    }
+    // Every copy repeats the original's notes: each is listed once per operation.
+    let mut seen: Vec<(usize, String)> = Vec::new();
+    let mut started: Vec<usize> = Vec::new();
+    for (i, k) in order {
+        let (index, label, selection) = &chosen[i];
+        if !started.contains(index) {
+            started.push(*index);
+            notes.extend(selection.notes.iter().cloned());
+        }
+        let (number, offset) = copies[k];
+        let op = &job.operations[*index];
         let step_down = match op {
             Operation::Profile(p) => p.step_down,
             Operation::Pocket(p) => p.step_down,
         };
         let (start_depth, end_depth) = op.depths();
-        let selection = select_contours(contours, op.select(), &label)?;
-        notes.extend(selection.notes.iter().cloned());
         let pass_z: Vec<f64> = pass_depths(start_depth, end_depth, step_down)?
             .into_iter()
             .map(|d| top_z - d)
             .collect();
         let context = Context {
-            label: &label,
+            label,
             tool,
             job,
             pass_z: &pass_z,
             top_z: top_z - start_depth,
         };
+        // A copy is planned from its own, moved contours: built and verified like the
+        // original.
+        let moved: Vec<Contour> = selection
+            .contours
+            .iter()
+            .map(|c| c.translated(offset))
+            .collect();
+        let shifted = Selection {
+            contours: moved.iter().collect(),
+            notes: Vec::new(),
+        };
         let planned = match op {
-            Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &selection, position)?,
-            Operation::Profile(profile) => {
-                plan_profile_op(profile, &context, &selection, position)?
-            }
+            Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &shifted, position),
+            Operation::Profile(profile) => plan_profile_op(profile, &context, &shifted, position),
+        };
+        let planned = match planned {
+            Ok(planned) => planned,
+            Err(err) if several => return Err(err.with_context(&format!("copy {number}"))),
+            Err(err) => return Err(err),
         };
         let first = moves.len();
         moves.extend(planned.moves);
         op_spans.push(OpSpan {
-            operation: index,
+            operation: *index,
+            copy: number,
             moves: first..moves.len(),
         });
-        notes.extend(planned.notes);
+        for note in planned.notes {
+            let key = (*index, note);
+            if !seen.contains(&key) {
+                notes.push(key.1.clone());
+                seen.push(key);
+            }
+        }
         tabs.extend(planned.tabs);
         pockets.extend(planned.pockets);
-        material_left.extend(attach(index, planned.left));
+        // Material left describes the part: the copies leave the same.
+        if number == 1 {
+            material_left.extend(attach(*index, planned.left));
+        }
         arcs.extend(planned.arcs);
         position = planned.end;
+    }
+    if let Some(grid) = &job.copies {
+        check_copies_apart(grid, &moves, &op_spans, tool.diameter / 2.0)?;
     }
     // Chords of known arcs are tagged; the post writes them as G2/G3 if it does arcs.
     tag_moves(&mut moves, &arcs);
@@ -312,6 +376,60 @@ fn plan_profile_op(
         ));
     }
     Ok(out)
+}
+
+/// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
+/// points, plus the tool radius. None if it cuts nothing.
+pub fn cut_extent(
+    moves: &[Move],
+    spans: &[OpSpan],
+    radius: f64,
+    copy: Option<u32>,
+) -> Option<(Point, Point)> {
+    let mut extent: Option<(Point, Point)> = None;
+    let mut at: (Option<f64>, Option<f64>) = (None, None);
+    for span in spans {
+        for m in &moves[span.moves.clone()] {
+            let from = at;
+            at = (m.x.or(at.0), m.y.or(at.1));
+            if copy.is_some_and(|c| c != span.copy) || m.kind != MoveKind::Feed {
+                continue;
+            }
+            for (x, y) in [from, at] {
+                let (Some(x), Some(y)) = (x, y) else { continue };
+                let ((x0, y0), (x1, y1)) = extent.unwrap_or(((x, y), (x, y)));
+                extent = Some(((x0.min(x), y0.min(y)), (x1.max(x), y1.max(y))));
+            }
+        }
+    }
+    extent.map(|((x0, y0), (x1, y1))| ((x0 - radius, y0 - radius), (x1 + radius, y1 + radius)))
+}
+
+/// Neighbouring copies must not cut into each other (docs/specs/copies-grid.md §4): with
+/// more than one column the pitch dx is at least the cut's width, likewise dy and height.
+fn check_copies_apart(
+    grid: &Copies,
+    moves: &[Move],
+    spans: &[OpSpan],
+    radius: f64,
+) -> Result<(), ToolpathError> {
+    let Some(((x0, y0), (x1, y1))) = cut_extent(moves, spans, radius, Some(1)) else {
+        return Ok(());
+    };
+    let axes = [
+        ("columns", "dx", grid.columns, grid.dx, x1 - x0, "wide"),
+        ("rows", "dy", grid.rows, grid.dy, y1 - y0, "high"),
+    ];
+    for (what, name, count, pitch, size, dimension) in axes {
+        if count > 1 && pitch.abs() + CHAIN_TOL_MM < size {
+            return Err(job_error(format!(
+                "Copies overlap: with {what} the pitch {name} must be at least {size:.3} mm \
+                 (the cut is {size:.3} mm {dimension}), got {:.3}",
+                pitch.abs()
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn job_error(message: String) -> ToolpathError {

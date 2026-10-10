@@ -449,3 +449,73 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn copies_are_set_from_the_command_line() {
+    // docs/specs/copies-grid.md §5
+    let dir = temp_dir("copies");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let copies = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job["copies"].clone()
+    };
+
+    let (code, _, err) = run(&["copies", p, "--pitch", "200,150"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("give --grid"), "{err}");
+    let (code, _, err) = run(&["copies", p, "--grid", "3x2"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("--pitch DX,DY or --gap"), "{err}");
+    let (code, _, err) = run(&["copies", p, "--grid", "3by2", "--pitch", "1,1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("columns x rows like 3x2"), "{err}");
+    assert!(copies().is_null(), "refused: nothing written");
+
+    let (code, out, _) = run(&["copies", p, "--grid", "3x2", "--pitch", "200,-150"]);
+    assert_eq!(code, Some(0));
+    assert!(
+        out.contains("Copies: 3 × 2 copies, pitch 200.000 × -150.000 mm, operation by operation"),
+        "{out}"
+    );
+    assert_eq!(
+        copies(),
+        serde_json::json!({"columns": 3, "rows": 2, "dx": 200.0, "dy": -150.0,
+                           "order": "by_operation"})
+    );
+    // Only what is given changes.
+    run(&["copies", p, "--order", "by-part"]);
+    assert_eq!(copies()["order"], "by_part");
+    assert_eq!(copies()["dx"], 200.0);
+    // A gap: the cut's size plus the gap.
+    let (_, out, _) = run(&["copies", p, "--gap", "10"]);
+    // It keeps the direction: the rows still grow down.
+    assert!(
+        out.contains("pitch 154.665 × -122.221 mm, part by part"),
+        "{out}"
+    );
+    assert!(ok_inspect(p).contains("Copies: 3 × 2 copies"));
+    // Overlap is only a warning here; running refuses it.
+    let (code, _, err) = run(&["copies", p, "--pitch", "100,150"]);
+    assert_eq!(code, Some(0));
+    assert!(err.contains("warning: Copies overlap"), "{err}");
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("Copies overlap"), "{err}");
+    let (_, out, _) = run(&["copies", p, "--off"]);
+    assert!(out.contains("Copies: off (one part)"), "{out}");
+    assert!(copies().is_null());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+fn ok_inspect(project: &str) -> String {
+    let out = chipload(&["inspect", project]);
+    assert!(out.status.success());
+    text(&out.stdout)
+}

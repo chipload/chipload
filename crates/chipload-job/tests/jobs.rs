@@ -675,3 +675,77 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
         assert!(err.contains(why), "{bad}: {err}");
     }
 }
+
+// -- copies in a grid (docs/specs/copies-grid.md)
+
+#[test]
+fn copies_round_trip_default_to_one_part_and_are_checked() {
+    let with_copies = |copies: Value| {
+        let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+        data["copies"] = copies;
+        data
+    };
+    // Missing: one part, written explicitly as null.
+    let data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    let job = parse_job(data, "p").unwrap();
+    assert_eq!(job.copies, None);
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["copies"], Value::Null);
+
+    // A missing order is by operation, written explicitly.
+    let job = parse_job(
+        with_copies(json!({"columns": 3, "rows": 2, "dx": 120.5, "dy": -80})),
+        "p",
+    )
+    .unwrap();
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(
+        saved["copies"],
+        json!({"columns": 3, "rows": 2, "dx": 120.5, "dy": -80.0, "order": "by_operation"})
+    );
+    let by_part = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_part"});
+    let job = parse_job(with_copies(by_part.clone()), "p").unwrap();
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["copies"], by_part);
+
+    // Copies numbered row by row, cut in a serpentine.
+    let grid = job.copies.map(|mut c| {
+        c.columns = 3;
+        c.rows = 2;
+        c.dx = 10.0;
+        c.dy = 20.0;
+        c
+    });
+    let order = grid.unwrap().in_cut_order();
+    assert_eq!(
+        order,
+        [
+            (1, (0.0, 0.0)),
+            (2, (10.0, 0.0)),
+            (3, (20.0, 0.0)),
+            (6, (20.0, 20.0)),
+            (5, (10.0, 20.0)),
+            (4, (0.0, 20.0)),
+        ]
+    );
+
+    for bad in [
+        json!({"columns": 0, "rows": 1, "dx": 10, "dy": 10}),
+        json!({"columns": 101, "rows": 1, "dx": 10, "dy": 10}),
+        json!({"columns": 40, "rows": 26, "dx": 10, "dy": 10}),
+        json!({"columns": 2, "rows": 1, "dx": 0, "dy": 10}),
+        json!({"columns": 1, "rows": 2, "dx": 10, "dy": 0}),
+        json!({"columns": -1, "rows": 1, "dx": 10, "dy": 10}),
+        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 10, "order": "random"}),
+        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 10, "gap": 3}),
+    ] {
+        assert!(parse_job(with_copies(bad.clone()), "p").is_err(), "{bad}");
+    }
+    // At the limits.
+    for good in [
+        json!({"columns": 100, "rows": 10, "dx": 10, "dy": 10}),
+        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 0}),
+    ] {
+        assert!(parse_job(with_copies(good.clone()), "p").is_ok(), "{good}");
+    }
+}

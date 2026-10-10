@@ -426,3 +426,112 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
         "{err}"
     );
 }
+
+// -- copies in a grid (docs/specs/copies-grid.md)
+
+fn with_copies(ops: Value, copies: Value) -> Job {
+    let mut job = job(ops);
+    job.copies = serde_json::from_value(copies).unwrap();
+    job
+}
+
+/// The inside then the outside profile of the part.
+fn two_profiles() -> Value {
+    let inside = profile("inside", Value::Null)[0].clone();
+    let outside = profile("outside", Value::Null)[0].clone();
+    json!([inside, outside])
+}
+
+/// XY extent of the feed moves of the spans for `copy`.
+fn extent_of(plan: &chipload_toolpath::Plan, copy: u32) -> ((f64, f64), (f64, f64)) {
+    chipload_toolpath::plan::cut_extent(&plan.program.moves, &plan.op_spans, 0.0, Some(copy))
+        .unwrap()
+}
+
+#[test]
+fn one_copy_is_the_part_as_before() {
+    let plain = plan_job(&job(two_profiles()), &part()).unwrap();
+    let grid = json!({"columns": 1, "rows": 1, "dx": 0, "dy": 0});
+    let one = plan_job(&with_copies(two_profiles(), grid), &part()).unwrap();
+    assert_eq!(one.program, plain.program);
+    assert_eq!(one.notes, plain.notes);
+}
+
+#[test]
+fn copies_are_cut_operation_by_operation_in_a_serpentine() {
+    let grid = json!({"columns": 2, "rows": 2, "dx": 120, "dy": 80});
+    let plan = plan_job(&with_copies(two_profiles(), grid), &part()).unwrap();
+    let order: Vec<(usize, u32)> = plan
+        .op_spans
+        .iter()
+        .map(|s| (s.operation, s.copy))
+        .collect();
+    assert_eq!(
+        order,
+        [
+            (0, 1),
+            (0, 2),
+            (0, 4),
+            (0, 3),
+            (1, 1),
+            (1, 2),
+            (1, 4),
+            (1, 3)
+        ]
+    );
+    // Every copy cuts the original moved by its pitch.
+    let ((x0, y0), (x1, y1)) = extent_of(&plan, 1);
+    for (copy, (dx, dy)) in [(2, (120.0, 0.0)), (3, (0.0, 80.0)), (4, (120.0, 80.0))] {
+        let ((a0, b0), (a1, b1)) = extent_of(&plan, copy);
+        for (got, want) in [(a0, x0 + dx), (b0, y0 + dy), (a1, x1 + dx), (b1, y1 + dy)] {
+            assert!((got - want).abs() < 1e-9, "copy {copy}: {got} vs {want}");
+        }
+    }
+    // The straight-plunge reminder once per operation, not per copy.
+    let reminders = plan
+        .notes
+        .iter()
+        .filter(|n| n.contains("plunges straight down"))
+        .count();
+    assert_eq!(reminders, 2, "{:?}", plan.notes);
+}
+
+#[test]
+fn copies_can_be_cut_part_by_part() {
+    let grid = json!({"columns": 3, "rows": 1, "dx": -120, "dy": 0, "order": "by_part"});
+    let plan = plan_job(&with_copies(two_profiles(), grid), &part()).unwrap();
+    let order: Vec<(usize, u32)> = plan
+        .op_spans
+        .iter()
+        .map(|s| (s.operation, s.copy))
+        .collect();
+    assert_eq!(order, [(0, 1), (1, 1), (0, 2), (1, 2), (0, 3), (1, 3)]);
+    // A negative pitch grows to the left.
+    let ((x0, _), _) = extent_of(&plan, 3);
+    assert!(x0 < -200.0, "{x0}");
+}
+
+#[test]
+fn overlapping_copies_are_refused_at_the_boundary() {
+    // The outside profile of the 100 x 60 part with a 6 mm tool cuts 112 x 72 mm.
+    let ok = |columns, rows, dx, dy| {
+        let grid = json!({"columns": columns, "rows": rows, "dx": dx, "dy": dy});
+        plan_job(&with_copies(two_profiles(), grid), &part())
+    };
+    assert!(ok(2, 1, 112.0, 0.0).is_ok());
+    let err = ok(2, 1, 111.9, 0.0).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("Copies overlap: with columns the pitch dx must be at least 112.000 mm"),
+        "{err}"
+    );
+    assert!(ok(1, 2, 0.0, 72.0).is_ok());
+    let err = ok(1, 2, 0.0, -71.0).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("pitch dy must be at least 72.000 mm"),
+        "{err}"
+    );
+    // One column: dx doesn't matter.
+    assert!(ok(1, 3, 5.0, 100.0).is_ok());
+}

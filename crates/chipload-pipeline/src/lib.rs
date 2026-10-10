@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 
+pub mod copies;
 pub mod library;
 pub mod notices;
 pub mod report;
@@ -24,6 +25,7 @@ use chipload_job::{
 use chipload_post::{PostConfig, PostError, load_builtin_post, render_program_with};
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
+use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
 use chipload_toolpath::{OpSpan, ToolpathError, plan_job, validate_job};
 
@@ -92,6 +94,7 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
     }
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));
+    notes.extend(copies_note(job, &plan.program, &plan.op_spans));
     Ok(RunResult {
         gcode,
         post,
@@ -182,6 +185,7 @@ pub fn empty_project() -> Job {
             rpm: Some(DEFAULT_RPM),
         }],
         operations: Vec::new(),
+        copies: None,
     }
 }
 
@@ -378,6 +382,25 @@ pub fn update_drawing(
 /// The sha256 of a drawing file, lowercase hex, as stored in a project.
 pub fn drawing_sha256(path: &Path) -> std::io::Result<String> {
     Ok(sha256_hex(&std::fs::read(path)?))
+}
+
+/// A note when copies reach beyond the stock (docs/specs/copies-grid.md §4).
+fn copies_note(job: &Job, program: &Program, spans: &[OpSpan]) -> Option<String> {
+    let copies = job.copies.filter(|c| c.count() > 1)?;
+    let radius = program.tool_diameter / 2.0;
+    let ((x0, y0), (x1, y1)) = cut_extent(&program.moves, spans, radius, None)?;
+    let (lo, hi) = job.stock.xy_bounds();
+    let tol = CHAIN_TOL_MM;
+    let fits = x0 >= lo.0 - tol && y0 >= lo.1 - tol && x1 <= hi.0 + tol && y1 <= hi.1 + tol;
+    (!fits).then(|| {
+        format!(
+            "The {} copies cut X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}, beyond the stock \
+             ({:.3} × {:.3} mm); check the stock or the copies under Job settings.",
+            copies.count(),
+            job.stock.x,
+            job.stock.y
+        )
+    })
 }
 
 fn extent_notes(job: &Job, report: &ImportReport) -> Vec<String> {

@@ -37,6 +37,17 @@ impl ChiploadApp {
             .edit
             .as_ref()
             .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+        // Copies of the part, faded (docs/specs/copies-grid.md); copy 1 is the drawing.
+        self.scene.copies = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.copies)
+            .map(|c| {
+                let mut shifts: Vec<Point> = c.in_cut_order().into_iter().map(|(_, s)| s).collect();
+                shifts.retain(|&s| s != (0.0, 0.0));
+                shifts
+            })
+            .unwrap_or_default();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
         if let Some(edit) = &self.edit {
             let stock = &edit.settings.stock;

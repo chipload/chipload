@@ -70,6 +70,20 @@ impl Arc {
 }
 
 impl Primitive {
+    /// The same primitive moved by `(dx, dy)`.
+    pub fn translated(&self, (dx, dy): Point) -> Primitive {
+        match *self {
+            Primitive::Line(l) => Primitive::Line(Line {
+                start: (l.start.0 + dx, l.start.1 + dy),
+                end: (l.end.0 + dx, l.end.1 + dy),
+            }),
+            Primitive::Arc(a) => Primitive::Arc(Arc {
+                center: (a.center.0 + dx, a.center.1 + dy),
+                ..a
+            }),
+        }
+    }
+
     pub fn start(&self) -> Point {
         match self {
             Primitive::Line(l) => l.start,

@@ -27,6 +27,7 @@ chipload new -o part.chipload                    # an empty project, to draw in
 chipload inspect part.chipload                   # units, contours, issues (also takes a .dxf)
 chipload run part.chipload -o part.nc            # generate checked G-code
 chipload update part.chipload --from part.dxf    # a new version of the drawing (or its first)
+chipload copies part.chipload --grid 3x2 --gap 10   # cut the part six times
 chipload check part.nc --job part.chipload       # the independent checker on any G-code
 ```
 
@@ -36,6 +37,11 @@ drawn in the project (`chipload shape add …`, or the GUI's Draw menu); in the 
 handles can be dragged, and the cursor snaps to end points, centres and middles (Alt: off).
 A project can also start empty (`chipload new`, *File > New project*) and take in a DXF later
 (`update --from`, *File > Import DXF into project…*); drawn shapes are kept.
+
+A part can be cut several times in a grid (`chipload copies`, or *Copies* under Job
+settings): columns × rows at a fixed pitch, no rotation, operation by operation across all
+copies or part by part. Every copy is planned and checked like the original, and copies
+whose cuts would overlap are refused. In the GUI the copies are drawn faded.
 
 Your tools and machines can be kept between projects (`chipload tool add …`, `chipload
 machine add …`, then `tool default` / `machine default`): a new project starts with the

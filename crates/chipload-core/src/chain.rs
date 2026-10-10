@@ -53,6 +53,15 @@ pub struct Contour {
 }
 
 impl Contour {
+    /// The same contour moved by `offset` (a copy of the part, docs/specs/copies-grid.md).
+    pub fn translated(&self, offset: Point) -> Contour {
+        let mut out = self.clone();
+        for part in &mut out.parts {
+            part.segment.prim = part.segment.prim.translated(offset);
+        }
+        out
+    }
+
     pub fn start(&self) -> Point {
         self.parts.first().map_or((0.0, 0.0), |p| p.points()[0])
     }
