@@ -7,8 +7,8 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-core = { version = "0.6.0", path = "../chipload-core" }
-chipload-job = { version = "0.6.0", path = "../chipload-job" }
+chipload-core = { version = "0.7.0", path = "../chipload-core" }
+chipload-job = { version = "0.7.0", path = "../chipload-job" }
 thiserror = "2.0.21"
 
 [lints]
