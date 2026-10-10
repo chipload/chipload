@@ -7,8 +7,10 @@
 #![allow(clippy::print_stderr)]
 
 mod app;
+mod draw;
 mod editor;
 mod fonts;
+mod shape_form;
 mod view;
 
 use std::path::PathBuf;

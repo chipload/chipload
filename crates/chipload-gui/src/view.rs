@@ -331,6 +331,10 @@ pub struct Scene {
     pub tabs: Vec<Vec<Point>>,
     /// Missed pieces after unreachable ones, so they are painted on top.
     pub left: Vec<LeftShape>,
+    /// The shape being drawn, as it would be with the cursor's point.
+    pub preview: Vec<Vec<Point>>,
+    /// The points clicked so far while drawing.
+    pub sketch_points: Vec<Point>,
 }
 
 impl Scene {
@@ -484,6 +488,14 @@ impl Scene {
             if line.len() > 1 {
                 painter.add(Shape::line(screen(line), Stroke::new(6.0, TAB)));
             }
+        }
+        for line in &self.preview {
+            if line.len() > 1 {
+                dashed(screen(line), Stroke::new(1.5, SELECTED));
+            }
+        }
+        for &p in &self.sketch_points {
+            painter.circle_stroke(view.to_screen(p), 4.0, Stroke::new(1.5, SELECTED));
         }
     }
 }

@@ -97,7 +97,9 @@ operations it flagged. `set` on an imported shape is refused with a clear messag
   - Clicks are rounded to a grid that depends on the zoom (1, 0.5, 0.1 mm…), shown in the
     status bar, so values start out round. They can be typed exactly afterwards.
 - Clicking a drawn shape selects it as today; when the selection is **one drawn shape**, the
-  properties panel shows its editor:
+  **Selection** section (left panel) shows its editor. (Implementation note 2026-10-10: not
+  the right-hand properties panel as first written, because that panel holds the operation
+  being edited, whose *Use selection* needs canvas selections, drawn shapes included.)
   - circle: centre X, Y, radius;
   - rectangle: centre X, Y, length, width, angle (°);
   - polyline: a table of X, Y rows with insert and delete per row, and a *closed* checkbox;

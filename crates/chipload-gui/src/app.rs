@@ -13,10 +13,11 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::{
-    Direction, Drawing, Operation, Selector, Side, Spindle, StockOrigin, Tabs, ToolType, Travel,
-    Units, ZZero, load_job, save_job,
+    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockOrigin, Tabs,
+    ToolType, Travel, Units, ZZero, load_job, save_job,
 };
 use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
+use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
     PipelineError, RunResult, embed_drawing, load_drawing, new_project, run_job, update_drawing,
     write_atomically,
@@ -28,7 +29,9 @@ use eframe::egui::{
     Modifiers, Panel, RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
 };
 
+use crate::draw::{Sketch, Step, Tool, grid_step, snap};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary};
+use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, LeftShape, Scene, ToolpathShape, View};
 
 const STATUS_SECONDS: u64 = 5;
@@ -118,6 +121,10 @@ pub struct ChiploadApp {
     context_pick: Option<usize>,
     /// View > Show material left (docs/specs/material-left.md).
     pub show_material_left: bool,
+    /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
+    pub sketch: Option<Sketch>,
+    /// The selected drawn shape's values as being edited.
+    shape_draft: Option<ShapeDraft>,
 
     pub report: Vec<String>,
     status: Option<(String, Instant)>,
@@ -148,6 +155,8 @@ impl Default for ChiploadApp {
             selection: CanvasSelection::Nothing,
             context_pick: None,
             show_material_left: true,
+            sketch: None,
+            shape_draft: None,
             report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
             status: None,
             cursor: None,
@@ -254,6 +263,8 @@ impl ChiploadApp {
     }
 
     fn after_history_step(&mut self) {
+        self.shape_draft = None;
+        self.sketch = None;
         let len = self.edit.as_ref().map_or(0, |e| e.ops.len());
         if let Focus::Op(i) = self.focus
             && i >= len
@@ -732,6 +743,239 @@ impl ChiploadApp {
         lines
     }
 
+    // -- drawing (docs/specs/drawing-tools.md)
+
+    /// Whether shapes can be drawn: a project whose drawing is embedded.
+    pub fn can_draw(&self) -> bool {
+        self.edit.is_some() && !self.needs_embedding()
+    }
+
+    pub fn start_drawing(&mut self, tool: Tool) {
+        if self.can_draw() {
+            self.sketch = Some(Sketch::new(tool));
+        }
+    }
+
+    pub fn cancel_drawing(&mut self) {
+        self.sketch = None;
+    }
+
+    /// A click while drawing, at `p` (already on the grid). `on_first`: the click hit the
+    /// polyline's first point on screen.
+    pub fn draw_click(&mut self, p: Point, on_first: bool) {
+        let Some(sketch) = self.sketch.as_mut() else {
+            return;
+        };
+        let step = sketch.click(p, on_first);
+        self.after_sketch_step(step);
+    }
+
+    /// Enter or double-click: finish a polyline open.
+    pub fn finish_drawing(&mut self) {
+        let Some(sketch) = self.sketch.as_mut() else {
+            return;
+        };
+        let step = sketch.finish();
+        self.after_sketch_step(step);
+    }
+
+    fn after_sketch_step(&mut self, step: Step) {
+        match step {
+            Step::Continue => {}
+            Step::Ignored(why) => {
+                if !why.is_empty() {
+                    self.set_status(why, STATUS_SECONDS);
+                }
+            }
+            Step::Done(geometry) => {
+                self.sketch = None;
+                self.add_drawn(geometry);
+            }
+        }
+    }
+
+    /// Add a drawn shape to the project and select it.
+    pub fn add_drawn(&mut self, geometry: Geometry) -> Option<u64> {
+        let layer = self.default_layer();
+        let edit = self.edit.as_mut()?;
+        match add_shape(&edit.settings, &layer, geometry) {
+            Ok((job, id)) => {
+                edit.settings = job;
+                self.drawing_changed(&[id]);
+                let kind = self
+                    .shape(id)
+                    .map_or("shape", chipload_job::Shape::kind_name);
+                self.set_status(
+                    format!("Added {kind} S{id} on layer {layer}"),
+                    STATUS_SECONDS,
+                );
+                Some(id)
+            }
+            Err(err) => {
+                self.error(vec!["Cannot add the shape:".into(), err.to_string()]);
+                None
+            }
+        }
+    }
+
+    /// A new shape's layer: the selection's, if it is all on one layer; else 0.
+    fn default_layer(&self) -> String {
+        if let CanvasSelection::Layer(layer) = &self.selection {
+            return layer.clone();
+        }
+        let ids = self.selection.ids(&self.contours);
+        let layers: BTreeSet<String> = self
+            .contours
+            .iter()
+            .filter(|c| ids.contains(&c.id))
+            .flat_map(Contour::layers)
+            .collect();
+        match layers.len() {
+            1 => layers.into_iter().next().unwrap_or_else(|| "0".into()),
+            _ => "0".into(),
+        }
+    }
+
+    pub fn shape(&self, id: u64) -> Option<&chipload_job::Shape> {
+        self.edit
+            .as_ref()?
+            .settings
+            .drawing
+            .shapes
+            .iter()
+            .find(|s| s.id == id)
+    }
+
+    /// The one shape the canvas selection consists of, if it is exactly one.
+    pub fn selected_shape(&self) -> Option<u64> {
+        let CanvasSelection::Contours(ids) = &self.selection else {
+            return None;
+        };
+        let shapes: BTreeSet<u64> = self
+            .contours
+            .iter()
+            .filter(|c| ids.contains(&c.id))
+            .flat_map(|c| c.parts.iter().filter_map(|p| p.segment.shape))
+            .collect();
+        match (ids.len(), shapes.len()) {
+            (1, 1) => shapes.into_iter().next(),
+            _ => None,
+        }
+    }
+
+    /// Apply new values to the selected drawn shape. On failure the project is unchanged
+    /// and the reason is returned (shown under the form).
+    pub fn set_selected_shape(&mut self, layer: &str, geometry: Geometry) -> Result<(), String> {
+        let id = self.selected_shape().ok_or("no shape selected")?;
+        let edit = self.edit.as_mut().ok_or("no project")?;
+        let job = set_shape(&edit.settings, id, layer, geometry).map_err(|e| e.to_string())?;
+        edit.settings = job;
+        self.drawing_changed(&[id]);
+        Ok(())
+    }
+
+    /// Delete the selected drawn shape. Operations that used it are flagged.
+    pub fn delete_selected_shape(&mut self) {
+        let Some(id) = self.selected_shape() else {
+            return;
+        };
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let mut job: Job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        match delete_shape(&job, id) {
+            Ok((out, flagged)) => {
+                edit.settings.drawing = out.drawing;
+                self.error_ops = edit
+                    .ops
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, e)| {
+                        selector_of(&e.op)
+                            .shapes
+                            .as_ref()
+                            .is_some_and(|ids| ids.contains(&id))
+                    })
+                    .map(|(i, _)| i)
+                    .collect();
+                self.selection = CanvasSelection::Nothing;
+                self.shape_draft = None;
+                self.drawing_changed(&[]);
+                let mut lines = vec![format!("Deleted shape S{id}.")];
+                lines.extend(flagged);
+                self.report = lines;
+                self.set_status(format!("Deleted shape S{id}"), STATUS_SECONDS);
+            }
+            Err(err) => self.error(vec![err.to_string()]),
+        }
+    }
+
+    /// The drawing changed: recompute contours now (so the canvas follows every edit), and
+    /// select the contours of `shapes`, since contour numbers can change.
+    fn drawing_changed(&mut self, shapes: &[u64]) {
+        self.refresh_drawing();
+        if !shapes.is_empty() {
+            let ids: BTreeSet<usize> = self
+                .contours
+                .iter()
+                .filter(|c| {
+                    c.parts
+                        .iter()
+                        .any(|p| p.segment.shape.is_some_and(|s| shapes.contains(&s)))
+                })
+                .map(|c| c.id)
+                .collect();
+            self.selection = if ids.is_empty() {
+                CanvasSelection::Nothing
+            } else {
+                CanvasSelection::Contours(ids)
+            };
+        }
+    }
+
+    /// The selection section's shape part: the editor for a drawn shape, facts for an
+    /// imported one.
+    fn selected_shape_ui(&mut self, ui: &mut egui::Ui) {
+        let Some(id) = self.selected_shape() else {
+            self.shape_draft = None;
+            return;
+        };
+        let Some(shape) = self.shape(id).cloned() else {
+            return;
+        };
+        if !shape.is_drawn() {
+            for line in imported_lines(&shape) {
+                ui.label(line);
+            }
+            return;
+        }
+        // Start from the stored shape unless the user is fixing values that were refused.
+        let keep = self
+            .shape_draft
+            .as_ref()
+            .is_some_and(|d| d.id == id && d.error.is_some());
+        if !keep {
+            self.shape_draft = Some(ShapeDraft::of(&shape));
+        }
+        let Some(mut draft) = self.shape_draft.take() else {
+            return;
+        };
+        let action = ui
+            .add_enabled_ui(self.can_draw(), |ui| shape_form(ui, &mut draft))
+            .inner;
+        if action == ShapeAction::Delete {
+            self.delete_selected_shape();
+            return;
+        }
+        if draft.differs_from(&shape) {
+            draft.error = self
+                .set_selected_shape(&draft.layer.clone(), draft.geometry.clone())
+                .err();
+        }
+        self.shape_draft = Some(draft);
+    }
+
     // -- internals
 
     fn focused_contours(&self) -> BTreeSet<usize> {
@@ -966,8 +1210,22 @@ impl ChiploadApp {
         if pressed(&QUIT) {
             ctx.send_viewport_cmd(ViewportCommand::Close);
         }
+        if self.sketch.is_some() {
+            if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
+                self.finish_drawing();
+            }
+            if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Backspace))
+                && let Some(sketch) = self.sketch.as_mut()
+            {
+                sketch.undo_point();
+            }
+        }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-            self.selection = CanvasSelection::Nothing;
+            if self.sketch.is_some() {
+                self.cancel_drawing();
+            } else {
+                self.selection = CanvasSelection::Nothing;
+            }
         }
     }
 
@@ -1093,6 +1351,18 @@ impl ChiploadApp {
                          Red: material the toolpath missed.",
                     );
             });
+            ui.menu_button("Draw", |ui| {
+                let can_draw = self.can_draw();
+                for (tool, label) in [
+                    (Tool::Circle, "Circle"),
+                    (Tool::Rectangle, "Rectangle"),
+                    (Tool::Polyline, "Polyline"),
+                ] {
+                    if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
+                        self.start_drawing(tool);
+                    }
+                }
+            });
             ui.menu_button("Help", |ui| {
                 if ui.button("About and licences").clicked() {
                     self.about_open = true;
@@ -1126,12 +1396,39 @@ impl ChiploadApp {
             if ui.button("Fit").clicked() {
                 self.fit_pending = true;
             }
+            ui.separator();
+            let can_draw = self.can_draw();
+            for (tool, label, hint) in [
+                (
+                    Tool::Circle,
+                    "Circle",
+                    "Draw a circle: centre, then a point on it",
+                ),
+                (
+                    Tool::Rectangle,
+                    "Rectangle",
+                    "Draw a rectangle: two opposite corners",
+                ),
+                (Tool::Polyline, "Polyline", "Draw a polyline: click points"),
+            ] {
+                let active = self.sketch.as_ref().is_some_and(|s| s.tool == tool);
+                if ui
+                    .add_enabled(can_draw, egui::Button::new(label).selected(active))
+                    .on_hover_text(hint)
+                    .clicked()
+                {
+                    self.start_drawing(tool);
+                }
+            }
         });
     }
 
     fn status_bar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            if let Some((text, until)) = &self.status {
+            if let (Some(sketch), Some(at)) = (&self.sketch, self.cursor) {
+                let step = grid_step(self.view.scale);
+                ui.label(sketch.status(snap(at, step), step));
+            } else if let Some((text, until)) = &self.status {
                 if Instant::now() < *until {
                     ui.label(text);
                     ui.ctx().request_repaint_after(*until - Instant::now());
@@ -1176,6 +1473,7 @@ impl ChiploadApp {
         for line in self.selection_lines() {
             ui.label(line);
         }
+        self.selected_shape_ui(ui);
         let editable = !self.needs_embedding();
         ui.horizontal(|ui| {
             if ui
@@ -1397,12 +1695,38 @@ impl ChiploadApp {
         } else {
             self.cursor = None;
         }
-        if response.clicked()
-            && let Some(pos) = response.interact_pointer_pos()
-        {
-            let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
-            let picked = self.scene.pick(&self.view, pos);
-            self.click(picked, toggle);
+        if self.sketch.is_some() {
+            let step = grid_step(self.view.scale);
+            if response.double_clicked() {
+                self.finish_drawing();
+            } else if response.clicked()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let first = self.sketch.as_ref().and_then(|s| s.points.first().copied());
+                let on_first = first.is_some_and(|f| {
+                    self.view.to_screen(f).distance(pos) <= crate::view::PICK_TOLERANCE_PX
+                });
+                self.draw_click(snap(self.view.to_world(pos), step), on_first);
+            }
+            self.scene.preview = match (&self.sketch, self.cursor) {
+                (Some(sketch), Some(at)) => sketch.preview(snap(at, step)),
+                _ => Vec::new(),
+            };
+            self.scene.sketch_points = self
+                .sketch
+                .as_ref()
+                .map(|s| s.points.clone())
+                .unwrap_or_default();
+        } else {
+            self.scene.preview.clear();
+            self.scene.sketch_points.clear();
+            if response.clicked()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
+                let picked = self.scene.pick(&self.view, pos);
+                self.click(picked, toggle);
+            }
         }
         if response.secondary_clicked() {
             self.context_pick = response
@@ -2106,6 +2430,175 @@ mod tests {
         );
         app.toolpath_out_of_date();
         assert!(app.scene.left.is_empty());
+    }
+
+    // -- drawing (docs/specs/drawing-tools.md)
+
+    fn drawn_part() -> ChiploadApp {
+        let mut app = ChiploadApp::default();
+        assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+        app
+    }
+
+    fn contour_of(app: &ChiploadApp, shape: u64) -> usize {
+        app.contours
+            .iter()
+            .find(|c| c.parts.iter().any(|p| p.segment.shape == Some(shape)))
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn each_kind_is_drawn_by_clicks_and_selected() {
+        let mut app = drawn_part();
+        app.click(None, false);
+        app.start_drawing(Tool::Circle);
+        app.draw_click((200.0, 50.0), false);
+        app.draw_click((203.0, 54.0), false);
+        assert!(app.sketch.is_none());
+        assert_eq!(app.selected_shape(), Some(4));
+        assert_eq!(
+            app.shape(4).unwrap().geometry,
+            Geometry::Circle {
+                center: [200.0, 50.0],
+                radius: 5.0
+            }
+        );
+        assert_eq!(app.shape(4).unwrap().layer, "0");
+        app.commit(); // as the UI loop does after every finished edit
+
+        app.start_drawing(Tool::Rectangle);
+        app.draw_click((220.0, 10.0), false);
+        app.draw_click((250.0, 30.0), false);
+        assert!(matches!(
+            app.shape(5).unwrap().geometry,
+            Geometry::Rectangle {
+                length: 30.0,
+                width: 20.0,
+                ..
+            }
+        ));
+        app.commit();
+
+        app.start_drawing(Tool::Polyline);
+        for p in [(200.0, 100.0), (230.0, 100.0), (215.0, 120.0)] {
+            app.draw_click(p, false);
+        }
+        app.draw_click((200.0, 100.0), true); // the first point: closes it
+        assert!(matches!(
+            app.shape(6).unwrap().geometry,
+            Geometry::Polyline { closed: true, .. }
+        ));
+        app.commit();
+
+        app.start_drawing(Tool::Polyline);
+        app.draw_click((260.0, 100.0), false);
+        app.draw_click((280.0, 100.0), false);
+        app.finish_drawing();
+        assert!(matches!(
+            app.shape(7).unwrap().geometry,
+            Geometry::Polyline { closed: false, .. }
+        ));
+        // A closed drawn shape is its own contour; the open one is an open contour.
+        let contour = |id| {
+            app.contours
+                .iter()
+                .find(|c| c.id == contour_of(&app, id))
+                .unwrap()
+        };
+        assert!(contour(6).closed && !contour(7).closed);
+
+        // Every addition is an undo step.
+        app.commit();
+        app.undo();
+        assert!(app.shape(7).is_none() && app.shape(6).is_some());
+        app.redo();
+        assert!(app.shape(7).is_some());
+    }
+
+    #[test]
+    fn escape_cancels_and_a_new_shape_takes_the_selections_layer() {
+        let mut app = drawn_part();
+        app.start_drawing(Tool::Circle);
+        app.draw_click((10.0, 10.0), false);
+        app.cancel_drawing();
+        assert!(app.sketch.is_none());
+        assert_eq!(app.edit.as_ref().unwrap().settings.drawing.shapes.len(), 3);
+        // The circle S2 is on layer "drawn" and selected: the new shape goes there too.
+        app.click(Some(contour_of(&app, 2)), false);
+        app.start_drawing(Tool::Circle);
+        app.draw_click((10.0, 10.0), false);
+        app.draw_click((12.0, 10.0), false);
+        assert_eq!(app.shape(4).unwrap().layer, "drawn");
+    }
+
+    #[test]
+    fn editing_the_selected_shape_moves_its_contour_and_operations_follow() {
+        let mut app = drawn_part();
+        assert!(app.generate(), "{:?}", app.report);
+        let before = first_cut(&app);
+        // S2 is the circle the first operation (Holes) cuts first.
+        app.click(Some(contour_of(&app, 2)), false);
+        assert_eq!(app.selected_shape(), Some(2));
+        let moved = Geometry::Circle {
+            center: [70.0, 80.0],
+            radius: 12.0,
+        };
+        app.set_selected_shape("drawn", moved.clone()).unwrap();
+        assert_eq!(app.shape(2).unwrap().geometry, moved);
+        // Still selected, though contours were recomputed.
+        assert_eq!(app.selected_shape(), Some(2));
+        // Refused values leave the project as it was.
+        let err = app
+            .set_selected_shape(
+                "drawn",
+                Geometry::Circle {
+                    center: [70.0, 80.0],
+                    radius: 0.0,
+                },
+            )
+            .unwrap_err();
+        assert!(err.contains("radius"), "{err}");
+        assert_eq!(app.shape(2).unwrap().geometry, moved);
+        app.commit();
+        assert!(app.generate(), "{:?}", app.report);
+        assert!((first_cut(&app).0 - (before.0 - 5.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn deleting_a_shape_flags_the_operations_using_it() {
+        let mut app = drawn_part();
+        app.click(Some(contour_of(&app, 2)), false);
+        app.delete_selected_shape();
+        assert!(app.shape(2).is_none());
+        assert_eq!(app.error_ops, BTreeSet::from([0]));
+        assert!(
+            app.report
+                .iter()
+                .any(|l| l.contains("shape S2 no longer exists"))
+        );
+        app.commit();
+        assert!(!app.generate());
+        app.undo();
+        assert!(app.shape(2).is_some());
+    }
+
+    #[test]
+    fn imported_shapes_are_not_editable() {
+        let mut app = lower_part();
+        app.click(Some(4), false);
+        let id = app.selected_shape().unwrap();
+        assert!(!app.shape(id).unwrap().is_drawn());
+        let err = app
+            .set_selected_shape(
+                "x",
+                Geometry::Circle {
+                    center: [0.0, 0.0],
+                    radius: 1.0,
+                },
+            )
+            .unwrap_err();
+        assert!(err.contains("imported from the DXF"), "{err}");
     }
 
     #[test]
