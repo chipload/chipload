@@ -17,3 +17,8 @@ unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
 print_stdout = "deny"  # library code reports through return values, not stdout
+
+# Test and debug builds run cavalier_contours exactly as release builds do (ADR 0012): its
+# internal debug assertions reject valid input that release builds offset correctly.
+[profile.dev.package.cavalier_contours]
+debug-assertions = false
