@@ -15,3 +15,6 @@ pub const Z_NONZERO_TOL_MM: f64 = 0.001;
 pub const OFFSET_CHECK_SLACK_MM: f64 = 1e-6;
 /// Uncut pocket material thinner than this is not reported.
 pub const REST_TOL_MM: f64 = 0.05;
+/// Boundary points closer than ARC_APPROX_TOL_MM but farther apart than this along the
+/// boundary mean the outline folds back on itself (docs/specs/folded-contours.md).
+pub const FOLD_MIN_PATH_MM: f64 = 1.0;

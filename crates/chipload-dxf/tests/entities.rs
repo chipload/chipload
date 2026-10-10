@@ -413,6 +413,32 @@ fn self_intersecting_contour_is_invalid() {
 }
 
 #[test]
+fn contour_folding_back_on_itself_is_invalid() {
+    // A square with a 10 mm needle, 0.005 mm wide (docs/specs/folded-contours.md).
+    let mut d = mm();
+    add(
+        &mut d,
+        polyline(
+            &[
+                (0.0, 0.0, 0.0),
+                (20.0, 0.0, 0.0),
+                (20.0, 10.0, 0.0),
+                (20.005, 0.0, 0.0),
+                (40.0, 0.0, 0.0),
+                (40.0, 40.0, 0.0),
+                (0.0, 40.0, 0.0),
+            ],
+            true,
+        ),
+    );
+    let result = import(&d, Some(Units::Mm));
+    let reason = result.contours[0].invalid_reason.as_deref().unwrap();
+    assert!(reason.starts_with("folds back on itself"), "{reason}");
+    assert!(reason.contains("near (20.0"), "{reason}");
+    assert!(codes(&result).contains(&"invalid_contour"));
+}
+
+#[test]
 fn nesting_depth() {
     let mut d = mm();
     add(&mut d, square(0.0, 0.0, 100.0));

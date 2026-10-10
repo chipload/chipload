@@ -9,6 +9,7 @@ use std::f64::consts::TAU;
 use cavalier_contours::polyline::PlineSource;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::fold::fold_point;
 use chipload_core::primitives::Line;
 use chipload_core::primitives::{Primitive, distance, signed_area};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM};
@@ -553,14 +554,21 @@ fn pocket_with_islands() -> impl Strategy<Value = Vec<Contour>> {
         (-12.0f64..12.0, -12.0f64..12.0).prop_flat_map(|(cx, cy)| star(3..16, 1.0, 4.0, cx, cy)),
         0..=3,
     );
-    (star(8..16, 30.0, 60.0, 0.0, 0.0), islands).prop_map(|(boundary, islands)| {
+    // Outlines that fold back on themselves are refused on import
+    // (docs/specs/folded-contours.md), so they never reach pocketing.
+    let outline = star(8..16, 30.0, 60.0, 0.0, 0.0)
+        .prop_filter("folds back on itself", |ring| fold_point(ring).is_none());
+    (outline, islands).prop_map(|(boundary, islands)| {
         let outer = polygon_id(1, &boundary);
         let outer_pline = contour_pline(&outer);
         let mut kept: Vec<Contour> = vec![outer];
         for points in islands {
             let island = polygon_id(kept.len() + 1, &points);
             let pline = contour_pline(&island);
-            if pline.scan_for_self_intersect() || pline.area().abs() < 1.0 {
+            if pline.scan_for_self_intersect()
+                || pline.area().abs() < 1.0
+                || fold_point(&points).is_some()
+            {
                 continue;
             }
             // Keep 0.5 mm from the wall and from other islands, as the Python property does.
@@ -633,13 +641,10 @@ proptest! {
         ) else {
             return Ok(());
         };
-        // The spec's fallback for a geometry-library failure: no highlight, one note. Only
-        // degenerate outlines (near-collinear spikes) have hit it; rejecting keeps it rare,
-        // since proptest fails when too many cases are rejected.
-        if result.notes.iter().any(|n| n.contains("could not compute")) {
-            prop_assert!(result.left.iter().all(|m| m.kind == LeftKind::Missed));
-            prop_assume!(false);
-        }
+        prop_assert!(
+            !result.notes.iter().any(|n| n.contains("could not compute")),
+            "{:?}", result.notes
+        );
         let plines: Vec<_> = contours.iter().map(contour_pline).collect();
         let in_region = |p: Point| {
             let wind = |i: usize| {

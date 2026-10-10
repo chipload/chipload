@@ -137,8 +137,8 @@ Every feature in the CLI first (CLAUDE.md):
   - sampled points inside a piece are farther than r − tol from every cutting move;
   - sampled points of R farther than r + 2·`REST_TOL_MM` from every cutting move lie in a
     shown piece (nothing left over is unshown);
-  - a geometry-library failure takes the fallback above. Such cases are rejected, so they
-    can't pass in bulk; only a degenerate outline (near-collinear spikes) has hit one.
+  - no "could not compute" note: the fallback is for the unexpected, not a normal outcome.
+    (Debug-only library assertions are off since ADR 0012.)
 - **Golden**: G-code for every corpus project is unchanged (the test already exists).
 - **GUI**: scanline fill of a concave polygon (an L, a corner fillet) gives triangles whose
   total area equals the polygon's.

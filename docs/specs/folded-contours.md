@@ -15,11 +15,16 @@ same angle from the centre, so the boundary runs out along y ≈ 0, back, out ag
 ```
 
 The edges never cross, so import's self-intersection check passes it. But they run side by
-side 0.005–0.02 mm apart over 10–25 mm. Offsetting that is ill-conditioned:
-- In debug builds cavalier_contours hits an internal assertion, which becomes "Pocket offset
-  failed inside the geometry library". That's safe, but it doesn't say what's wrong.
-- Release builds skip that assertion, so what happens there is whatever the library
-  computes. The offset verification should catch a bad result, but nothing promises it.
+side 0.005–0.02 mm apart over 10–25 mm. No tool can follow a boundary like that, and the
+drawing almost certainly doesn't mean it.
+
+Correction (2026-10-10, after approval): this outline was first blamed for "Pocket offset
+failed inside the geometry library" in the property tests. That was wrong. Pocketing it works
+in debug and release builds. Its failure was in the material-left code (already handled
+there), and the pocket test failures came from a valid jagged island tripping a debug-only
+assertion in cavalier_contours, dealt with in ADR 0012. The rule below still stands, as a
+drawing check: refuse what can't be machined as drawn, and say where, instead of producing
+a toolpath that silently ignores a needle or slit.
 
 A real drawing gets this from bad exports or from a polyline drawn over itself: a needle,
 a slit drawn as two lines on top of each other, or a doubled-back edge.
@@ -73,8 +78,8 @@ never safe. No schema change.
   show it).
 - **Import:** the invalid reason and the issue appear with the location; selecting the
   contour gives the selector error.
-- **Property tests:** the pocket generator skips outlines the rule flags. Then the existing
-  "never gouges" property and the material-left one need no exception for library failures.
+- **Property tests:** the pocket generator skips outlines the rule flags, since import never
+  passes them on. (The library failures they hit are handled by ADR 0012, not by this rule.)
 
 ## 5. Decisions (approved 2026-10-10)
 

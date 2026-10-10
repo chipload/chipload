@@ -22,9 +22,10 @@ use std::path::Path;
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
 use chipload_core::chain::{Contour, Segment, chain_segments};
+use chipload_core::fold::fold_point;
 use chipload_core::nesting;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
-use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use chipload_job::{
     ArcSegment, DrawingSource, LineSegment, PathSegment, Shape, ShapeKind, SourceIssue, Units,
 };
@@ -441,6 +442,12 @@ fn ring(points: &[Point]) -> Result<Polyline<f64>, String> {
     }
     if pline.scan_for_self_intersect() {
         return Err("self-intersecting".into());
+    }
+    if let Some((x, y)) = fold_point(points) {
+        return Err(format!(
+            "folds back on itself: its edges come within {ARC_APPROX_TOL_MM:.3} mm of each \
+             other near ({x:.3}, {y:.3})"
+        ));
     }
     if pline.area().abs() < CHAIN_TOL_MM * CHAIN_TOL_MM {
         return Err("encloses no area".into());
