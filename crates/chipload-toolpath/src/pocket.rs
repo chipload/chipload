@@ -27,6 +27,7 @@ use crate::ToolpathError;
 use crate::adaptive::{self, Field, Grid};
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::geom::PrimIndex;
+use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
 use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
 use crate::model::Move;
@@ -58,6 +59,9 @@ pub struct PocketPiece {
     /// leads[i]: rings[i] is a wall ring with a lead-in before it and a lead-out after it,
     /// as one open path; the ring itself is rings[i][range] (part B).
     pub leads: Vec<Option<std::ops::Range<usize>>>,
+    /// The helix each depth pass goes down round, then feeds at depth to rings[0][0]
+    /// (part C); None: the first path's own entry.
+    pub helix: Option<Helix>,
 }
 
 /// Where the tool is after cutting a path: back at its start if closed, at its end if open.
@@ -982,9 +986,20 @@ pub fn plan_pocket_with(
         keep_tool_down,
         start,
         strategy,
-        &[],
-        None,
+        Choices::default(),
     )
+}
+
+/// Where the wall rings start, their leads, and the helix the tool goes down round
+/// (docs/specs/helix-and-leads.md); the default is none of them.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Choices<'a> {
+    /// Start points, moved with the copy (part A).
+    pub starts: &'a [Point],
+    /// Lead radius (part B).
+    pub lead: Option<f64>,
+    /// Helix radius (part C).
+    pub helix: Option<f64>,
 }
 
 /// One piece's paths before its links are chosen and it is verified.
@@ -999,8 +1014,8 @@ struct Draft {
     leads: Vec<Option<std::ops::Range<usize>>>,
 }
 
-/// [`plan_pocket_with`] with start points for the wall rings (docs/specs/helix-and-leads.md
-/// part A), moved with the copy.
+/// [`plan_pocket_with`] with start points and leads for the wall rings, and a helix to go
+/// down round (docs/specs/helix-and-leads.md).
 #[allow(clippy::too_many_arguments)]
 pub fn plan_pocket_starting(
     contours: &[&Contour],
@@ -1012,9 +1027,13 @@ pub fn plan_pocket_starting(
     keep_tool_down: bool,
     start: Point,
     strategy: PocketStrategy,
-    starts: &[Point],
-    lead: Option<f64>,
+    choices: Choices,
 ) -> Result<PocketPlan, ToolpathError> {
+    let Choices {
+        starts,
+        lead,
+        helix,
+    } = choices;
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
             "stepover must be positive, got {stepover}"
@@ -1206,6 +1225,20 @@ pub fn plan_pocket_starting(
             })
             .collect();
         verify(&region, &walls, &rings, &open, &links, offset, &ids, &arcs)?;
+        let helix = match helix {
+            Some(radius) => {
+                let wall_cw = cut_clockwise(Side::Inside, direction, spindle);
+                let fit = HelixFit {
+                    region: &region,
+                    walls: &walls,
+                    offset,
+                    tool_radius,
+                    clockwise: wall_cw,
+                };
+                fit_helix(&fit, radius, &rings, &ids, &mut notes)?
+            }
+            None => None,
+        };
         let (uncut, missed) =
             uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
         notes.extend(uncut);
@@ -1219,6 +1252,7 @@ pub fn plan_pocket_starting(
             walls: wall_rings,
             chosen,
             leads,
+            helix,
         });
     }
     // Display only: any failure, even a panic in the geometry library, becomes a note.
@@ -1244,6 +1278,105 @@ pub fn plan_pocket_starting(
         arcs,
         engagement,
     })
+}
+
+/// What a helix must fit: the piece, its walls, and how far the tool centre keeps from them.
+struct HelixFit<'a> {
+    region: &'a Area,
+    walls: &'a PrimIndex,
+    offset: f64,
+    tool_radius: f64,
+    clockwise: bool,
+}
+
+/// The helix for a piece (docs/specs/helix-and-leads.md part C): round the point furthest
+/// from the walls in the area nearest the first path, its circle at least the tool centre's
+/// offset from every wall. The radius shrinks to the largest that fits, down to a tenth of
+/// the tool diameter; the helix and the feed from it to the first path are checked against
+/// the walls. None, with a note, if no helix fits: the piece then ramps in.
+fn fit_helix(
+    fit: &HelixFit,
+    radius: f64,
+    rings: &[Vec<Point>],
+    ids: &[usize],
+    notes: &mut Vec<String>,
+) -> Result<Option<Helix>, ToolpathError> {
+    let Some(&first) = rings.first().and_then(|r| r.first()) else {
+        return Ok(None);
+    };
+    let min_radius = 0.2 * fit.tool_radius; // a tenth of the diameter
+    let without = |why: &str| {
+        format!(
+            "contours {}: no room for a helix ({why}); ramping in instead",
+            ids_text(ids)
+        )
+    };
+    // The areas a helix centre of radius r may lie in.
+    let room = |r: f64| fit.region.shrunk(fit.offset + r);
+    let mut used = radius;
+    if room(radius)?.is_empty() {
+        if room(min_radius)?.is_empty() {
+            notes.push(without(&format!("not even {min_radius:.3} mm")));
+            return Ok(None);
+        }
+        // The largest radius that fits, to within a thousandth of the range.
+        let (mut lo, mut hi) = (min_radius, radius);
+        for _ in 0..10 {
+            let mid = (lo + hi) / 2.0;
+            if room(mid)?.is_empty() {
+                hi = mid;
+            } else {
+                lo = mid;
+            }
+        }
+        used = lo;
+        notes.push(format!(
+            "contours {}: helix radius reduced to {used:.3} mm (no room for {radius:.3} mm)",
+            ids_text(ids)
+        ));
+    }
+    let areas = room(used)?;
+    let Some(nearest) = areas
+        .iter()
+        .min_by(|a, b| a.distance(first).total_cmp(&b.distance(first)))
+    else {
+        notes.push(without("the pocket is too narrow"));
+        return Ok(None);
+    };
+    // Deepest: the last non-empty shrink of that area, a tool radius at a time.
+    let mut center = first_point(&nearest.outer);
+    for k in 1..MAX_RING_LEVELS {
+        let inner = nearest.shrunk(k as f64 * fit.tool_radius)?;
+        let Some(area) = inner.first() else {
+            break;
+        };
+        center = first_point(&area.outer);
+    }
+    // Start on the side towards the first path, so the feed to it is short.
+    let towards = match distance(center, first) {
+        d if d > 0.0 => ((first.0 - center.0) / d, (first.1 - center.1) / d),
+        _ => (1.0, 0.0),
+    };
+    let helix = Helix {
+        circle: Circle {
+            center,
+            radius: used,
+        },
+        start: (center.0 + used * towards.0, center.1 + used * towards.1),
+        clockwise: fit.clockwise,
+    };
+    let clearance = min_clearance(fit.offset);
+    let points = helix.points();
+    let clear = points.iter().all(|&p| fit.region.contains(p))
+        && points
+            .windows(2)
+            .all(|w| clear_of(fit.walls, w[0], w[1], clearance))
+        && clear_of(fit.walls, helix.start, first, clearance);
+    if !clear {
+        notes.push(without("its way to the first path passes a wall or island"));
+        return Ok(None);
+    }
+    Ok(Some(helix))
 }
 
 /// Restart each wall ring at the stored point nearest to it (among all the pieces' wall
@@ -1624,8 +1757,26 @@ pub fn pocket_moves(
     };
     let mut cleared = top_z;
     for &z in pass_z {
-        moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
-        moves.extend(descend(0, cleared, z)?);
+        match (piece.helix, entry) {
+            (Some(helix), Entry::Helix { ramp_angle, .. }) => {
+                // Down round the helix, then at depth to the first path (checked when the
+                // helix was fitted).
+                moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(helix.start)]);
+                moves.extend(helix_moves(
+                    &helix,
+                    cleared,
+                    z,
+                    ramp_angle,
+                    feed,
+                    plunge_feed,
+                )?);
+                moves.push(Move::feed_xy(first, feed));
+            }
+            _ => {
+                moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
+                moves.extend(descend(0, cleared, z)?);
+            }
+        }
         for (index, ring) in piece.rings.iter().enumerate() {
             let start = ring[0];
             let open = piece.open.get(index).copied().unwrap_or(false);

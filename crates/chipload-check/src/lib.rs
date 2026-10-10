@@ -438,9 +438,9 @@ fn check_arc(
         return (vec!["Arc from an unknown position".into()], Vec::new());
     };
     let mut problems = Vec::new();
-    if get(start, 'Z') != get(target, 'Z') {
-        problems.push("Arc that changes Z (helical) is not supported".into());
-    }
+    // A helical arc (one that changes Z) goes linearly from its start Z to its end Z, so its
+    // lowest point is one of its ends: the depth and stock checks on the end (and on the
+    // previous move's end, its start) cover it (docs/specs/helix-and-leads.md part C).
     if (sx - ex).hypot(sy - ey) <= POSITION_TOL_MM {
         problems.push("Arc ending where it starts (a full circle in one move)".into());
     }

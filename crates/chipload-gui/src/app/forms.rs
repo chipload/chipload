@@ -217,7 +217,7 @@ pub(super) fn op_form(
                 ui.label("Plunge feed");
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
-                entry_rows(ui, index, &mut p.entry);
+                entry_rows(ui, index, &mut p.entry, None);
                 // On the line there is no waste side to put a lead on.
                 let can_lead = p.side != Side::On || p.lead.is_some();
                 lead_rows(ui, &mut p.lead, tool_diameter, can_lead);
@@ -271,7 +271,7 @@ pub(super) fn op_form(
                 ui.label("Plunge feed");
                 ui.add(feed(&mut p.plunge_feed));
                 ui.end_row();
-                entry_rows(ui, index, &mut p.entry);
+                entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter, true);
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
@@ -283,12 +283,14 @@ pub(super) fn op_form(
     use_selection
 }
 
-/// How the tool goes down into each pass (docs/specs/ramp-entry.md); the angle is shown in
-/// degrees and kept in radians.
-fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry) {
+/// How the tool goes down into each pass (docs/specs/ramp-entry.md); angles are shown in
+/// degrees and kept in radians. `helix`: the tool diameter, for a pocket, which may also go
+/// down round a helix (docs/specs/helix-and-leads.md part C).
+fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<f64>) {
     ui.label("Entry").on_hover_text(
         "How the tool goes down into the material. A ramp goes down along the path and back, \
-         so the tool needn't be centre-cutting; the ramp moves use the cutting feed.",
+         a helix (pockets) round a small circle, so the tool needn't be centre-cutting; both \
+         use the cutting feed.",
     );
     let ramp = Entry::Ramp {
         ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
@@ -297,18 +299,37 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry) {
         .selected_text(match entry {
             Entry::Plunge {} => "straight plunge",
             Entry::Ramp { .. } => "ramp",
+            Entry::Helix { .. } => "helix",
         })
         .show_ui(ui, |ui| {
             let is_ramp = matches!(entry, Entry::Ramp { .. });
-            if ui.selectable_label(!is_ramp, "straight plunge").clicked() {
+            let is_helix = matches!(entry, Entry::Helix { .. });
+            if ui
+                .selectable_label(!is_ramp && !is_helix, "straight plunge")
+                .clicked()
+            {
                 *entry = Entry::Plunge {};
             }
             if ui.selectable_label(is_ramp, "ramp").clicked() && !is_ramp {
                 *entry = ramp;
             }
+            if let Some(diameter) = helix
+                && ui.selectable_label(is_helix, "helix").clicked()
+                && !is_helix
+            {
+                *entry = Entry::default_helix(diameter);
+            }
         });
     ui.end_row();
-    if let Entry::Ramp { ramp_angle } = entry {
+    if let Entry::Helix { radius, .. } = entry {
+        ui.label("  helix radius").on_hover_text(
+            "Of the circle the tool centre follows: less than the tool radius, so no core is \
+             left standing",
+        );
+        ui.add(mm(radius));
+        ui.end_row();
+    }
+    if let Entry::Ramp { ramp_angle } | Entry::Helix { ramp_angle, .. } = entry {
         ui.label("  ramp angle");
         let mut degrees = ramp_angle.to_degrees();
         if ui

@@ -18,7 +18,7 @@ use crate::geom::PrimIndex;
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
-use crate::pocket::{PocketPiece, plan_pocket_starting, pocket_moves};
+use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
 use crate::profile::{
     TabsAt, contour_moves, cut_clockwise, led_contour_moves, pass_depths, plan_profile,
 };
@@ -290,8 +290,14 @@ fn plan_pocket_op(
         op.keep_tool_down,
         start,
         op.strategy,
-        starts,
-        op.lead.map(|l| l.radius),
+        Choices {
+            starts,
+            lead: op.lead.map(|l| l.radius),
+            helix: match op.entry {
+                Entry::Helix { radius, .. } => Some(radius),
+                _ => None,
+            },
+        },
     )
     .map_err(|err| err.with_context(label))?;
     let mut out = Planned {
@@ -690,6 +696,20 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
                 }
             }
         }
+        if let Entry::Helix { radius, .. } = op.entry() {
+            if let Operation::Profile(_) = op {
+                return Err(job_error(format!(
+                    "{label}: helix entry is for pockets; a profile can ramp in (entry: ramp)"
+                )));
+            }
+            if radius >= tool.diameter / 2.0 {
+                return Err(job_error(format!(
+                    "{label}: helix radius {radius} must be less than the tool radius {}, or \
+                     it leaves a core standing in the middle",
+                    tool.diameter / 2.0
+                )));
+            }
+        }
         if let Some(lead) = op.lead() {
             let longest = MAX_LEAD_DIAMETERS * tool.diameter;
             if lead.radius > longest {
@@ -744,7 +764,7 @@ fn plunge_notes(
     tool: &Tool,
     entry: Entry,
 ) -> Result<Vec<String>, ToolpathError> {
-    if let Entry::Ramp { .. } = entry {
+    if entry.ramp_angle().is_some() {
         return Ok(Vec::new());
     }
     match tool.center_cutting {

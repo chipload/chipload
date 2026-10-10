@@ -36,8 +36,10 @@ pub fn enter(
     feed: f64,
     plunge_feed: f64,
 ) -> Result<Vec<Move>, ToolpathError> {
-    let ramp_angle = match entry {
-        Entry::Ramp { ramp_angle } if cleared - z > DEPTH_TOL_MM => ramp_angle,
+    // A helix's other descents (re-plunges, docs/specs/helix-and-leads.md part C) ramp
+    // along the path at its angle.
+    let ramp_angle = match entry.ramp_angle() {
+        Some(ramp_angle) if cleared - z > DEPTH_TOL_MM => ramp_angle,
         _ => return Ok(vec![Move::feed_z(z, plunge_feed)]),
     };
     let mut moves = Vec::new();

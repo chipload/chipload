@@ -210,8 +210,30 @@ fn arcs_with_i_j_pass_and_bad_ones_are_refused() {
         ("G2 X40 Y10 R10", "Unsupported word R"), // only I/J
         ("G2 X40 Y10", "without I/J"),
         ("G2 X20 Y10 I10 J0", "full circle in one move"),
-        ("G2 X40 Y10 Z-2 I10 J0", "changes Z"),
         ("G2 X41 Y10 I10 J0", "radius mismatch"),
+    ] {
+        let found = errors(&format!(
+            "{HEADER}G0 X20 Y10\nG1 Z-1 F100\n{line}\n{FOOTER}"
+        ));
+        assert!(found.iter().any(|e| e.contains(why)), "{line}: {found:?}");
+    }
+}
+
+#[test]
+fn helical_arcs_pass_and_are_held_to_the_same_limits() {
+    // Down 1 mm over a half circle, then on round the other half to its start, 1 mm lower.
+    let ok = format!(
+        "{HEADER}G0 X20 Y10\nG1 Z-1 F100\nG2 X40 Y10 Z-2 I10 J0\nG2 X20 Y10 Z-3 I-10 J0\n{FOOTER}"
+    );
+    let report = check_gcode(&ok, &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    for (line, why) in [
+        // Its radius must agree as for a flat arc.
+        ("G2 X41 Y10 Z-2 I10 J0", "radius mismatch"),
+        // Its end may not go deeper than the stock allows.
+        ("G2 X40 Y10 Z-18.5 I10 J0", "below the stock bottom"),
+        // Nor may it be a full circle in one move.
+        ("G2 X20 Y10 Z-2 I10 J0", "full circle in one move"),
     ] {
         let found = errors(&format!(
             "{HEADER}G0 X20 Y10\nG1 Z-1 F100\n{line}\n{FOOTER}"

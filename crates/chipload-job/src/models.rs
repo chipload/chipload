@@ -993,7 +993,32 @@ pub enum Entry {
     /// Down along the path and back, never steeper than `ramp_angle` (radians,
     /// 0 < angle <= 30°).
     Ramp { ramp_angle: f64 },
+    /// Pockets only: down round a circle of `radius` (of the tool centre, mm, less than
+    /// the tool radius), never steeper than `ramp_angle` (docs/specs/helix-and-leads.md
+    /// part C).
+    Helix { radius: f64, ramp_angle: f64 },
 }
+
+impl Entry {
+    /// How steeply a ramp or helix goes down; None for a straight plunge.
+    pub fn ramp_angle(&self) -> Option<f64> {
+        match *self {
+            Entry::Plunge {} => None,
+            Entry::Ramp { ramp_angle } | Entry::Helix { ramp_angle, .. } => Some(ramp_angle),
+        }
+    }
+
+    /// A helix for a tool of `diameter`, with the default radius and angle.
+    pub fn default_helix(diameter: f64) -> Entry {
+        Entry::Helix {
+            radius: DEFAULT_HELIX_DIAMETERS * diameter,
+            ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+        }
+    }
+}
+
+/// The helix radius a new helix gets, in tool diameters.
+pub const DEFAULT_HELIX_DIAMETERS: f64 = 0.25;
 
 impl Default for Entry {
     fn default() -> Self {
@@ -1309,7 +1334,14 @@ impl Job {
                      tool diameter), got {load}"
                 ));
             }
-            if let Entry::Ramp { ramp_angle } = op.entry()
+            if let Entry::Helix { radius, .. } = op.entry()
+                && !(radius.is_finite() && radius > 0.0)
+            {
+                problems.push(format!(
+                    "operations.{i}.entry.radius: must be more than 0, got {radius}"
+                ));
+            }
+            if let Some(ramp_angle) = op.entry().ramp_angle()
                 && !(ramp_angle.is_finite() && ramp_angle > 0.0 && ramp_angle <= MAX_RAMP_ANGLE_RAD)
             {
                 problems.push(format!(

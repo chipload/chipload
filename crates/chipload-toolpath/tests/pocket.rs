@@ -1352,8 +1352,11 @@ proptest! {
             false,
             (0.0, 0.0),
             chipload_job::PocketStrategy::Rings {},
-            &starts,
-            Some(lead),
+            chipload_toolpath::pocket::Choices {
+                starts: &starts,
+                lead: Some(lead),
+                helix: None,
+            },
         );
         let result = match result {
             Ok(result) => result,
@@ -1368,6 +1371,62 @@ proptest! {
                 if let Some(range) = range {
                     prop_assert!(piece.walls[k] && piece.open[k]);
                     prop_assert!(range.start > 0 && range.end < piece.rings[k].len());
+                }
+            }
+        }
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(40))]
+
+    /// A helix (docs/specs/helix-and-leads.md part C), and the feed from it to the first
+    /// path, keep the tool radius from every wall and island.
+    #[test]
+    fn pockets_with_a_helix_never_gouge(
+        contours in pocket_with_islands(),
+        radius in 1.0f64..5.0,
+        fraction in 0.1f64..0.5,
+        helix in 0.1f64..0.95,
+    ) {
+        let refs: Vec<&Contour> = contours.iter().collect();
+        let result = chipload_toolpath::pocket::plan_pocket_starting(
+            &refs,
+            radius,
+            0.0,
+            fraction * 2.0 * radius,
+            Direction::Climb,
+            Spindle::Cw,
+            false,
+            (0.0, 0.0),
+            chipload_job::PocketStrategy::Rings {},
+            chipload_toolpath::pocket::Choices {
+                helix: Some(helix * radius),
+                ..Default::default()
+            },
+        );
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &result, radius);
+        let walls: Vec<Primitive> = contours
+            .iter()
+            .flat_map(|c| pline_segments(&contour_pline(c)))
+            .collect();
+        let clearance = radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
+        for piece in &result.pieces {
+            let Some(h) = piece.helix else { continue };
+            prop_assert!(h.circle.radius <= helix * radius + 1e-12);
+            let mut path = h.points();
+            path.push(piece.rings[0][0]);
+            for w in path.windows(2) {
+                for wall in &walls {
+                    let d = segment_distance(w[0], w[1], wall);
+                    prop_assert!(d >= clearance, "helix chord {:?} is {} from a wall", w, d);
                 }
             }
         }

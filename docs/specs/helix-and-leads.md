@@ -1,6 +1,6 @@
 # Spec: helical entry, lead-in/out and start points
 
-Status: **approved 2026-10-10**, all decisions as recommended (§7). Parts A and B implemented.
+Status: **approved 2026-10-10**, all decisions as recommended (§7). Implemented (A, B and C).
 
 User requests (2026-10-10):
 - "Spiral plunge for tools that are not end-cutting." The ramp along the path is done

@@ -10,7 +10,7 @@ use std::f64::consts::PI;
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::model::{Move, MoveKind, Program};
@@ -83,7 +83,8 @@ pub fn tag_moves(moves: &mut [Move], table: &ArcTable) {
             && m.z.is_none()
             && let (Some(from), Some(to)) = (from, to)
         {
-            m.circle = table.get(from, to);
+            // Moves tagged when they were made (a helix's flat circle) keep their tag.
+            m.circle = table.get(from, to).or(m.circle);
         }
         (x, y) = (m.x.or(x), m.y.or(y));
     }
@@ -98,18 +99,28 @@ fn swept(c: Point, a: Point, b: Point) -> f64 {
 
 /// Turn runs of tagged chords into arc moves of at most 180°; arcs that bulge no more than
 /// `ARC_APPROX_TOL_MM` over their chord stay lines. Every tag is dropped from the result.
+///
+/// A run is flat (XY chords) or helical (chords that also go down or up, at the same rate
+/// per radian all along: a helix, docs/specs/helix-and-leads.md part C); a helical piece
+/// ends at its last chord's Z.
 pub fn merge_arcs(program: &Program) -> Result<Program, ToolpathError> {
     let mut out = Vec::with_capacity(program.moves.len());
     let moves = &program.moves;
-    let (mut x, mut y): (Option<f64>, Option<f64>) = (None, None);
+    let (mut x, mut y, mut z): (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
     let mut i = 0;
     while i < moves.len() {
         let m = moves[i];
         let start = x.zip(y);
-        if let (Some(circle), Some(start), MoveKind::Feed, None) = (m.circle, start, m.kind, m.z) {
-            // The run: consecutive XY chords of the same circle, same feed, same direction.
+        let helical = m.z.is_some();
+        if let (Some(circle), Some(start), MoveKind::Feed) = (m.circle, start, m.kind)
+            && (!helical || z.is_some())
+        {
+            // The run: consecutive chords of the same circle, same feed, same direction, and
+            // (helical) the same descent per radian.
             let mut vertices = vec![start];
+            let mut heights: Vec<Option<f64>> = vec![None];
             let mut sweeps: Vec<f64> = Vec::new();
+            let mut rate: Option<f64> = None;
             let mut j = i;
             while j < moves.len() {
                 let n = moves[j];
@@ -118,29 +129,36 @@ pub fn merge_arcs(program: &Program) -> Result<Program, ToolpathError> {
                 };
                 let last = vertices[vertices.len() - 1];
                 let sweep = swept(circle.center, last, (nx, ny));
-                let same = n.kind == MoveKind::Feed
-                    && n.z.is_none()
+                let mut same = n.kind == MoveKind::Feed
+                    && n.z.is_some() == helical
                     && n.circle == Some(circle)
                     && n.feed == m.feed
                     && sweeps
                         .first()
                         .is_none_or(|s: &f64| s.signum() == sweep.signum());
+                if same && let (Some(nz), Some(cz)) = (n.z, z) {
+                    let step = (nz - cz) / sweep;
+                    same = sweep != 0.0
+                        && rate.is_none_or(|r| ((step - r) * sweep).abs() <= DEPTH_TOL_MM);
+                    rate = rate.or(Some(step));
+                }
                 if !same {
                     break;
                 }
                 vertices.push((nx, ny));
+                heights.push(n.z);
                 sweeps.push(sweep);
-                (x, y) = (Some(nx), Some(ny));
+                (x, y, z) = (Some(nx), Some(ny), n.z.or(z));
                 j += 1;
             }
-            emit_run(&mut out, &vertices, &sweeps, circle, m.feed)?;
+            emit_run(&mut out, &vertices, &heights, &sweeps, circle, m.feed)?;
             i = j;
             continue;
         }
         let mut plain = m;
         plain.circle = None;
         out.push(plain);
-        (x, y) = (m.x.or(x), m.y.or(y));
+        (x, y, z) = (m.x.or(x), m.y.or(y), m.z.or(z));
         i += 1;
     }
     Ok(Program {
@@ -149,10 +167,12 @@ pub fn merge_arcs(program: &Program) -> Result<Program, ToolpathError> {
     })
 }
 
-/// Pieces of at most 180° from a run of chords on one circle.
+/// Pieces of at most 180° from a run of chords on one circle; `heights[k]` is the Z the
+/// run reaches at vertex k (None for a flat run).
 fn emit_run(
     out: &mut Vec<Move>,
     vertices: &[Point],
+    heights: &[Option<f64>],
     sweeps: &[f64],
     circle: Circle,
     feed: Option<f64>,
@@ -169,13 +189,27 @@ fn emit_run(
     let mut total = 0.0;
     for (k, &sweep) in sweeps.iter().enumerate() {
         if (total + sweep).abs() > PI + ARC_TOL_RAD {
-            push_piece(out, &vertices[first..=k], total, circle, feed);
+            push_piece(
+                out,
+                &vertices[first..=k],
+                &heights[first..=k],
+                total,
+                circle,
+                feed,
+            );
             first = k;
             total = 0.0;
         }
         total += sweep;
     }
-    push_piece(out, &vertices[first..], total, circle, feed);
+    push_piece(
+        out,
+        &vertices[first..],
+        &heights[first..],
+        total,
+        circle,
+        feed,
+    );
     Ok(())
 }
 
@@ -186,6 +220,7 @@ const ARC_TOL_RAD: f64 = 1e-9;
 fn push_piece(
     out: &mut Vec<Move>,
     vertices: &[Point],
+    heights: &[Option<f64>],
     sweep: f64,
     circle: Circle,
     feed: Option<f64>,
@@ -199,12 +234,12 @@ fn push_piece(
     let sagitta = circle.radius * (1.0 - (sweep.abs() / 2.0).cos());
     if sagitta <= ARC_APPROX_TOL_MM {
         // Nearly straight: the chords themselves, as lines.
-        for &v in &vertices[1..] {
+        for (&v, &h) in vertices[1..].iter().zip(&heights[1..]) {
             out.push(Move {
                 kind: MoveKind::Feed,
                 x: Some(v.0),
                 y: Some(v.1),
-                z: None,
+                z: h,
                 feed,
                 circle: None,
             });
@@ -219,7 +254,7 @@ fn push_piece(
         },
         x: Some(end.0),
         y: Some(end.1),
-        z: None,
+        z: heights.last().copied().flatten(),
         feed,
         circle: Some(circle),
     });

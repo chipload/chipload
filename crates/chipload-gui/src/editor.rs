@@ -225,13 +225,17 @@ impl EditJob {
             + 1;
         let select = selection.selector(contours);
         let tool = self.tool_id();
-        // A tool marked not centre-cutting can't plunge: new operations ramp in
-        // (docs/specs/ramp-entry.md, decision 6).
-        let entry = match self.settings.tools.first().and_then(|t| t.center_cutting) {
-            Some(false) => Entry::Ramp {
+        // A tool marked not centre-cutting can't plunge: new profiles ramp in
+        // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
+        // (docs/specs/helix-and-leads.md, decision 6).
+        let plunges = self.settings.tools.first().and_then(|t| t.center_cutting) != Some(false);
+        let diameter = self.settings.tools.first().map_or(0.0, |t| t.diameter);
+        let entry = match (plunges, kind) {
+            (true, _) => Entry::Plunge {},
+            (false, OpKind::Profile) => Entry::Ramp {
                 ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
             },
-            _ => Entry::Plunge {},
+            (false, OpKind::Pocket) => Entry::default_helix(diameter),
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
@@ -518,6 +522,16 @@ mod tests {
             panic!()
         };
         assert_eq!(q.feed, 900.0, "copied from the operation above");
+    }
+
+    #[test]
+    fn new_pockets_go_down_round_a_helix_when_the_tool_cant_plunge() {
+        let contours = messy_2();
+        let mut job = new_job();
+        job.settings.tools[0].center_cutting = Some(false);
+        let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
+        let diameter = job.settings.tools[0].diameter;
+        assert_eq!(job.ops[i].op.entry(), Entry::default_helix(diameter));
     }
 
     #[test]

@@ -9,7 +9,7 @@ it's built (see `CLAUDE.md`).
   2026-10-10). In this order:
   - [x] A. Start points: drag where each contour's cut starts.
   - [x] B. Lead-in/out: go down in the waste and arc onto the path.
-  - [ ] C. Helical entry for pockets (helical G2/G3, taught to the checker).
+  - [x] C. Helical entry for pockets (helical G2/G3, taught to the checker).
 
 ## Next
 
