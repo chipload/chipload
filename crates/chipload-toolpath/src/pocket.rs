@@ -209,6 +209,71 @@ impl Area {
     }
 }
 
+impl Area {
+    /// The area grown by `d` (≥ 0): the outline offset outwards and each hole shrunk, one
+    /// loop at a time. Growing can't make two loops meet (the outline moves away from the
+    /// holes, and shrinking holes move apart), so nothing is lost by not offsetting them as
+    /// one shape, and cavalier's shape offset drops a hole at some distances: two islands
+    /// whose offsets merge lost their hole when grown by r + 0.005 to r + 0.05 mm but not by
+    /// r or r + 0.1 (found by the material-left property test).
+    pub(crate) fn grown(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
+        if d <= 0.0 {
+            return self.shrunk(-d);
+        }
+        let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
+        let mut outers: Vec<Polyline<f64>> = Vec::new();
+        let mut holes: Vec<Polyline<f64>> = Vec::new();
+        // Positive offsets go inwards for counter-clockwise loops.
+        let outline = ccw(self.outer.clone());
+        for loop_ in guarded("Pocket offset", || outline.parallel_offset(-d))? {
+            if !keep(&loop_) {
+                continue;
+            }
+            // A bay that closes up while growing leaves a clockwise void.
+            if loop_.area() > 0.0 {
+                outers.push(loop_);
+            } else {
+                holes.push(loop_);
+            }
+        }
+        for hole in &self.holes {
+            let inside = ccw(hole.clone());
+            for loop_ in guarded("Pocket offset", || inside.parallel_offset(d))? {
+                if keep(&loop_) {
+                    holes.push(cw(loop_));
+                }
+            }
+        }
+        let mut areas: Vec<Area> = outers
+            .into_iter()
+            .map(|outer| Area {
+                outer,
+                holes: Vec::new(),
+            })
+            .collect();
+        for hole in holes {
+            let inside = first_point(&hole);
+            let parent = areas
+                .iter_mut()
+                .filter(|a| encloses(&a.outer, inside))
+                .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
+            match parent {
+                Some(area) => area.holes.push(hole),
+                None => {
+                    return Err(geometry(
+                        "pocket offset produced an island outside every area".into(),
+                    ));
+                }
+            }
+        }
+        areas.sort_by(|a, b| {
+            let (ka, kb) = (a.sort_key(), b.sort_key());
+            ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
+        });
+        Ok(areas)
+    }
+}
+
 /// One selected boundary minus the selected islands inside it.
 #[derive(Debug, Clone)]
 pub struct PocketArea {
@@ -1123,7 +1188,7 @@ fn adaptive_rings(
             part.fill(&rings_of(&inner));
             safe.or(&part);
         }
-        for grown in area.shrunk(-(tool_radius - load).max(0.0))? {
+        for grown in area.grown((tool_radius - load).max(0.0))? {
             let mut part = Grid::new(lo, hi, h);
             part.fill(&rings_of(&grown));
             material.or(&part);

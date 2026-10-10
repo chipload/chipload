@@ -85,7 +85,7 @@ pub(crate) fn sort_pieces(pieces: &mut [LeftPiece]) {
 pub fn reach(level0: &[Area], radius: f64) -> Result<Vec<Area>, ToolpathError> {
     let mut areas = Vec::new();
     for area in level0 {
-        areas.extend(area.shrunk(-(radius + WALL_GAP_MM))?);
+        areas.extend(area.grown(radius + WALL_GAP_MM)?);
     }
     Ok(areas)
 }
@@ -124,7 +124,7 @@ pub fn cleared(region: &Area, clearance: f64) -> Result<Vec<Area>, ToolpathError
     if clearance == 0.0 {
         return Ok(vec![region.clone()]);
     }
-    region.shrunk(-clearance)
+    region.grown(clearance)
 }
 
 /// `offset` is how far the tool centre runs from the contour (the tool radius minus any
@@ -360,6 +360,83 @@ mod tests {
     fn inside(region: &Area, radius: f64) -> Vec<LeftPiece> {
         let level0 = region.shrunk(radius).unwrap();
         unreachable_inside(region, &reach(&level0, radius).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn growing_keeps_the_hole_round_two_close_islands() {
+        // From the material-left property test: islands closer than the tool diameter share
+        // one hole in the tool centre's area. cavalier's shape offset lost that hole when
+        // growing it back by r + 0.01 mm, so the notches of the islands didn't show.
+        let island = |pts: &[(f64, f64)]| {
+            let mut p = Polyline::new_closed();
+            for &(x, y) in pts {
+                p.add(x, y, 0.0);
+            }
+            cw(p)
+        };
+        let i2 = island(&[
+            (-3.111864, -7.41021),
+            (-3.192688, -4.992429),
+            (-5.475167, -6.646518),
+            (-8.258502, -6.993821),
+            (-8.810572, -7.999693),
+            (-7.274977, -7.848187),
+            (-7.121847, -8.04851),
+            (-7.896631, -11.134579),
+            (-6.424539, -10.236057),
+            (-4.821013, -9.548028),
+            (-4.504654, -9.040614),
+            (-4.078219, -8.945432),
+            (-3.30825, -8.50243),
+            (-4.059942, -7.929354),
+        ]);
+        let i3 = island(&[
+            (3.114433, -9.925338),
+            (5.602391, -8.681575),
+            (2.942974, -6.451198),
+            (2.438971, -6.096676),
+            (1.189276, -7.65624),
+            (0.478617, -8.078924),
+            (-0.41388, -7.902225),
+            (-1.156058, -8.495761),
+            (1.117258, -10.853473),
+            (-0.031204, -12.162694),
+            (0.808376, -12.739233),
+            (1.478249, -12.46676),
+            (2.936997, -12.135961),
+            (3.276493, -11.719524),
+        ]);
+        let region = Area {
+            outer: ccw(rect(-30.0, -30.0, 30.0, 30.0)),
+            holes: vec![i2, i3],
+        };
+        let r = 2.7918711862602326;
+        let level0 = region.shrunk(r).unwrap();
+        assert_eq!(level0.len(), 1);
+        assert_eq!(level0[0].holes.len(), 1, "one hole round both islands");
+        for extra in [0.0, 0.005, WALL_GAP_MM, 0.05, 0.1] {
+            let grown = level0[0].grown(r + extra).unwrap();
+            assert_eq!(grown.len(), 1);
+            assert_eq!(grown[0].holes.len(), 1, "grown by r + {extra}");
+        }
+        // The notch of island 2 at (-8.5, -8) is out of reach and shown.
+        let pieces = inside(&region, r);
+        assert!(
+            pieces
+                .iter()
+                .any(|piece| crate::pocket::Area::of(ring_pline(&piece.rings[0]))
+                    .contains((-8.5, -8.0))),
+            "{} pieces",
+            pieces.len()
+        );
+    }
+
+    fn ring_pline(ring: &[Point]) -> Polyline<f64> {
+        let mut p = Polyline::new_closed();
+        for &(x, y) in ring {
+            p.add(x, y, 0.0);
+        }
+        ccw(p)
     }
 
     #[test]
