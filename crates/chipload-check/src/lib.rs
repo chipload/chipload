@@ -56,7 +56,11 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
         .filter(|t| used.contains(&t.id))
         .map(|t| t.diameter / 2.0)
         .fold(0.0, f64::max);
-    let (stock_min, stock_max) = stock.xy_bounds();
+    // The program is in work coordinates: the stock as placed in the drawing, shifted so
+    // the project's work zero is at X0 Y0 (docs/specs/work-zero.md).
+    let ((x0, y0), (x1, y1)) = stock.xy_bounds();
+    let (zx, zy) = job.work_zero_xy();
+    let (stock_min, stock_max) = ((x0 - zx, y0 - zy), (x1 - zx, y1 - zy));
     CheckLimits {
         safe_z: job.machine.safe_z,
         stock_top_z: top,

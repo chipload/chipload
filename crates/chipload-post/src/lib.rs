@@ -219,10 +219,24 @@ struct Context {
     spindle: &'static str,
     safe_z: String,
     dwell: Option<String>,
+    /// Where X0 Y0 Z0 is, for a header comment (docs/specs/work-zero.md); None when unknown
+    /// (rendering a bare toolpath).
+    work_zero: Option<String>,
     moves: Vec<PostMove>,
 }
 
+/// Render without a work-zero note (a bare toolpath, e.g. `chipload render`).
 pub fn render_program(program: &Program, config: &PostConfig) -> Result<String, PostError> {
+    render_program_with(program, config, None)
+}
+
+/// Render, stating in the header where the work zero is. The program must already be in
+/// program coordinates.
+pub fn render_program_with(
+    program: &Program,
+    config: &PostConfig,
+    work_zero: Option<&str>,
+) -> Result<String, PostError> {
     let fmt = |v: f64| format_number(v, config.decimals);
     let context = Context {
         post_name: config.name.clone(),
@@ -235,6 +249,8 @@ pub fn render_program(program: &Program, config: &PostConfig) -> Result<String, 
         },
         safe_z: fmt(program.safe_z),
         dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
+        // Parentheses would end the comment early, and ';' starts one.
+        work_zero: work_zero.map(|w| w.replace('(', "[").replace(')', "]").replace(';', ",")),
         moves: compress_moves(program, config.decimals)?,
     };
     let failed = |e: minijinja::Error| {

@@ -352,12 +352,15 @@ pub struct Scene {
     pub preview: Vec<Vec<Point>>,
     /// The points clicked so far while drawing.
     pub sketch_points: Vec<Point>,
+    /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
+    pub work_zero: Point,
 }
 
 impl Scene {
     /// (min, max) of everything shown, including the origin axes.
     pub fn bounds(&self) -> Option<(Point, Point)> {
-        let mut points: Vec<Point> = vec![(0.0, 0.0), (AXIS_LENGTH_MM, AXIS_LENGTH_MM)];
+        let (zx, zy) = self.work_zero;
+        let mut points: Vec<Point> = vec![(zx, zy), (zx + AXIS_LENGTH_MM, zy + AXIS_LENGTH_MM)];
         points.extend(self.contours.iter().flat_map(|c| c.points.iter().copied()));
         if let Some((lo, hi)) = self.stock {
             points.extend([lo, hi]);
@@ -460,13 +463,15 @@ impl Scene {
             let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
             dashed(screen(&corners), Stroke::new(1.0, STOCK));
         }
-        let origin = view.to_screen((0.0, 0.0));
+        // The axes mark the G-code zero (docs/specs/work-zero.md).
+        let (zx, zy) = self.work_zero;
+        let origin = view.to_screen((zx, zy));
         painter.line_segment(
-            [origin, view.to_screen((AXIS_LENGTH_MM, 0.0))],
+            [origin, view.to_screen((zx + AXIS_LENGTH_MM, zy))],
             Stroke::new(2.0, AXIS_X),
         );
         painter.line_segment(
-            [origin, view.to_screen((0.0, AXIS_LENGTH_MM))],
+            [origin, view.to_screen((zx, zy + AXIS_LENGTH_MM))],
             Stroke::new(2.0, AXIS_Y),
         );
         self.paint_left(painter, view, highlight);

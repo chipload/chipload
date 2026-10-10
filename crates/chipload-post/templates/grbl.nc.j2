@@ -1,5 +1,8 @@
 (Chipload - {{ post_name }})
 (Tool {{ tool_id }}: {{ tool_diameter }} mm)
+{% if work_zero is not none %}
+(Work zero: {{ work_zero }})
+{% endif %}
 G21 G90 G17 G94
 {{ "M3" if spindle == "cw" else "M4" }} S{{ rpm }}
 {% if dwell is not none %}

@@ -11,7 +11,7 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
-use chipload_job::{Geometry, Job, Spindle, Units, load_job, save_job};
+use chipload_job::{Geometry, Job, Spindle, Units, WorkZero, load_job, save_job};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
@@ -542,6 +542,7 @@ fn run(project: &Path, output: &Path) -> ExitCode {
     for line in format_material_left(&job, &result.material_left) {
         println!("{line}");
     }
+    println!("Work zero: {}", job.work_zero_text());
     if let Err(err) = write_atomically(output, &result.gcode) {
         eprintln!("error: cannot write {}: {err}", output.display());
         return ExitCode::from(EXIT_FAILED);
@@ -703,11 +704,16 @@ fn program_json(program: &Program) -> Value {
 
 fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
     let mut shapes = None;
+    let mut work_zero = None;
     let loaded = if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
     } else {
         load_job(path).map_err(|e| e.to_string()).and_then(|job| {
             shapes = Some(job.drawing.shapes.clone());
+            // Only when set, so a fresh project still inspects exactly like its DXF.
+            if job.machine.work_zero != (WorkZero::DrawingOrigin {}) {
+                work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
+            }
             load_drawing(&job).map_err(|e| e.to_string())
         })
     };
@@ -723,6 +729,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
         .into_iter()
         .chain(format_contours(&result.contours))
         .chain(shapes.as_deref().map(format_shapes).unwrap_or_default())
+        .chain(work_zero)
     {
         println!("{line}");
     }

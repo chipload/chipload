@@ -1,5 +1,6 @@
 (Chipload - GRBL)
 (Tool 1: 6.000 mm)
+(Work zero: drawing origin = drawing X0.000 Y0.000, Z0 = stock top)
 G21 G90 G17 G94
 M3 S18000
 G4 P3.000

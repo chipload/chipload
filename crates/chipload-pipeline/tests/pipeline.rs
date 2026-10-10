@@ -730,3 +730,92 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
     assert!(update_drawing(&job, &inch, Some(chipload_job::Units::Inch)).is_ok());
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+// -- work zero (docs/specs/work-zero.md)
+
+fn drawn_part_with(work_zero: chipload_job::WorkZero) -> Job {
+    let mut job = load_job(&corpus("jobs/v5/drawn_part.chipload")).unwrap();
+    job.machine.work_zero = work_zero;
+    job
+}
+
+/// (X, Y) words of every motion line, None where a line has no such word.
+fn xy_words(gcode: &str) -> Vec<(Option<f64>, Option<f64>)> {
+    let word = |line: &str, axis: char| {
+        line.split_whitespace()
+            .find_map(|w| w.strip_prefix(axis).and_then(|v| v.parse::<f64>().ok()))
+    };
+    gcode
+        .lines()
+        .filter(|l| l.starts_with("G0") || l.starts_with("G1"))
+        .map(|l| (word(l, 'X'), word(l, 'Y')))
+        .collect()
+}
+
+#[test]
+fn the_work_zero_only_translates_the_output() {
+    use chipload_job::{StockCorner, WorkZero};
+    let base = run_job(&drawn_part_with(WorkZero::DrawingOrigin {})).unwrap();
+    // Stock 300 x 220 with its bottom-left corner at the drawing origin.
+    for (zero, (dx, dy), text) in [
+        (
+            WorkZero::Stock {
+                corner: StockCorner::Center,
+            },
+            (150.0, 110.0),
+            "stock center = drawing X150.000 Y110.000, Z0 = stock top",
+        ),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::TopRight,
+            },
+            (300.0, 220.0),
+            "stock top right corner = drawing X300.000 Y220.000",
+        ),
+        (
+            WorkZero::Point { x: 25.0, y: -10.0 },
+            (25.0, -10.0),
+            "point = drawing X25.000 Y-10.000",
+        ),
+    ] {
+        let moved = run_job(&drawn_part_with(zero)).unwrap();
+        assert!(
+            moved.gcode.contains(&format!("(Work zero: {text}")),
+            "{text}"
+        );
+        // Same toolpath for display, every output X/Y shifted by the same vector.
+        assert_eq!(moved.program, base.program);
+        let (a, b) = (xy_words(&base.gcode), xy_words(&moved.gcode));
+        assert_eq!(a.len(), b.len());
+        for ((x0, y0), (x1, y1)) in a.into_iter().zip(b) {
+            assert_eq!(x0.is_some(), x1.is_some());
+            assert_eq!(y0.is_some(), y1.is_some());
+            if let (Some(x0), Some(x1)) = (x0, x1) {
+                assert!((x0 - dx - x1).abs() < 1e-9, "{x0} - {dx} != {x1}");
+            }
+            if let (Some(y0), Some(y1)) = (y0, y1) {
+                assert!((y0 - dy - y1).abs() < 1e-9, "{y0} - {dy} != {y1}");
+            }
+        }
+    }
+}
+
+#[test]
+fn the_checker_places_the_stock_by_the_work_zero_itself() {
+    use chipload_check::{check_gcode, limits_from_job};
+    use chipload_job::{StockCorner, WorkZero};
+    let centred = drawn_part_with(WorkZero::Stock {
+        corner: StockCorner::Center,
+    });
+    let gcode = run_job(&centred).unwrap().gcode;
+    let outside = |job: &Job| {
+        check_gcode(&gcode, &limits_from_job(job))
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock"))
+    };
+    // Judged with its own project: the stock is where the program expects it.
+    assert!(!outside(&centred));
+    // Judged as if zero were the drawing origin: the cuts land outside the stock.
+    assert!(outside(&drawn_part_with(WorkZero::DrawingOrigin {})));
+}

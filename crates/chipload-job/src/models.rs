@@ -505,6 +505,86 @@ pub struct Machine {
     pub max_feed: Option<f64>,
     #[serde(default)]
     pub travel: Option<Travel>,
+    /// The drawing point that becomes X0 Y0 in the G-code (docs/specs/work-zero.md).
+    /// Missing in older files: the drawing origin, as before.
+    #[serde(default)]
+    pub work_zero: WorkZero,
+}
+
+/// Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "at", rename_all = "snake_case", deny_unknown_fields)]
+pub enum WorkZero {
+    /// The drawing's own origin (the only choice before work_zero existed). An empty struct
+    /// variant, not a unit one, so serde refuses stray fields here too.
+    DrawingOrigin {},
+    /// A corner or the centre of the stock, as placed by `stock.origin`.
+    Stock { corner: StockCorner },
+    /// Any point, in drawing coordinates (mm).
+    Point { x: f64, y: f64 },
+}
+
+impl Default for WorkZero {
+    fn default() -> Self {
+        WorkZero::DrawingOrigin {}
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StockCorner {
+    Center,
+    BottomLeft,
+    BottomRight,
+    TopLeft,
+    TopRight,
+}
+
+impl StockCorner {
+    pub fn name(self) -> &'static str {
+        match self {
+            StockCorner::Center => "center",
+            StockCorner::BottomLeft => "bottom left corner",
+            StockCorner::BottomRight => "bottom right corner",
+            StockCorner::TopLeft => "top left corner",
+            StockCorner::TopRight => "top right corner",
+        }
+    }
+}
+
+impl Job {
+    /// The work zero in drawing coordinates: subtract it from every X, Y of the toolpath to
+    /// get program coordinates.
+    pub fn work_zero_xy(&self) -> (f64, f64) {
+        let ((x0, y0), (x1, y1)) = self.stock.xy_bounds();
+        match self.machine.work_zero {
+            WorkZero::DrawingOrigin {} => (0.0, 0.0),
+            WorkZero::Point { x, y } => (x, y),
+            WorkZero::Stock { corner } => match corner {
+                StockCorner::Center => ((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+                StockCorner::BottomLeft => (x0, y0),
+                StockCorner::BottomRight => (x1, y0),
+                StockCorner::TopLeft => (x0, y1),
+                StockCorner::TopRight => (x1, y1),
+            },
+        }
+    }
+
+    /// "stock center = drawing X150.000 Y110.000, Z0 = stock top", for the G-code header,
+    /// the CLI and the GUI. No parentheses or semicolons, so it fits in a G-code comment.
+    pub fn work_zero_text(&self) -> String {
+        let (x, y) = self.work_zero_xy();
+        let at = match self.machine.work_zero {
+            WorkZero::DrawingOrigin {} => "drawing origin".to_string(),
+            WorkZero::Stock { corner } => format!("stock {}", corner.name()),
+            WorkZero::Point { .. } => "point".to_string(),
+        };
+        let z = match self.stock.z_zero {
+            ZZero::Top => "stock top",
+            ZZero::Bottom => "stock bottom",
+        };
+        format!("{at} = drawing X{x:.3} Y{y:.3}, Z0 = {z}")
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -780,6 +860,13 @@ impl Job {
     /// Returns every violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = self.drawing.validate();
+        if let WorkZero::Point { x, y } = self.machine.work_zero
+            && !(x.is_finite() && y.is_finite())
+        {
+            problems.push(format!(
+                "machine.work_zero: x and y must be finite, got {x}, {y}"
+            ));
+        }
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
                 problems.push(format!("{path}: must be greater than 0, got {value}"));

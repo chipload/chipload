@@ -13,8 +13,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::{
-    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockOrigin, Tabs,
-    ToolType, Travel, Units, ZZero, load_job, save_job,
+    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
+    StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
@@ -595,6 +595,7 @@ impl ChiploadApp {
                         .map(|w| format!("check warning: {}", w.message)),
                 );
                 lines.extend(format_material_left(&job, &result.material_left));
+                lines.push(format!("Work zero: {}", job.work_zero_text()));
                 lines.push(String::new());
                 lines.extend(format_import_report(&result.import_report));
                 lines.extend(format_contours(&result.contours));
@@ -1439,7 +1440,20 @@ impl ChiploadApp {
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if let Some((x, y)) = self.cursor {
-                    ui.monospace(format!("X {x:.3}  Y {y:.3} mm"));
+                    // Drawing coordinates, and program coordinates when they differ.
+                    let (zx, zy) = self
+                        .edit
+                        .as_ref()
+                        .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+                    if (zx, zy) == (0.0, 0.0) {
+                        ui.monospace(format!("X {x:.3}  Y {y:.3} mm"));
+                    } else {
+                        ui.monospace(format!(
+                            "X {x:.3}  Y {y:.3} mm  (work X {:.3}  Y {:.3})",
+                            x - zx,
+                            y - zy
+                        ));
+                    }
                 }
             });
         });
@@ -1675,6 +1689,10 @@ impl ChiploadApp {
     }
 
     fn canvas(&mut self, ui: &mut egui::Ui) {
+        self.scene.work_zero = self
+            .edit
+            .as_ref()
+            .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
         if self.fit_pending
@@ -2184,6 +2202,72 @@ fn op_form(
 }
 
 /// Drawing, stock, machine and tool.
+/// The G-code's X0 Y0: a choice, plus X and Y for a point.
+fn work_zero_rows(ui: &mut egui::Ui, job: &mut Job) {
+    let choices = [
+        (WorkZero::DrawingOrigin {}, "drawing origin"),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::Center,
+            },
+            "stock centre",
+        ),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::BottomLeft,
+            },
+            "stock bottom left",
+        ),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::BottomRight,
+            },
+            "stock bottom right",
+        ),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::TopLeft,
+            },
+            "stock top left",
+        ),
+        (
+            WorkZero::Stock {
+                corner: StockCorner::TopRight,
+            },
+            "stock top right",
+        ),
+    ];
+    let current = job.machine.work_zero;
+    let selected = choices
+        .iter()
+        .find(|(choice, _)| *choice == current)
+        .map_or("point", |(_, name)| *name);
+    ui.label("Work zero X Y")
+        .on_hover_text("The point that becomes X0 Y0 in the G-code. The geometry doesn't move.");
+    ComboBox::from_id_salt("work_zero")
+        .selected_text(selected)
+        .show_ui(ui, |ui| {
+            for (choice, name) in choices {
+                ui.selectable_value(&mut job.machine.work_zero, choice, name);
+            }
+            // A point starts where the current zero is, so choosing it moves nothing.
+            let (x, y) = job.work_zero_xy();
+            let is_point = matches!(job.machine.work_zero, WorkZero::Point { .. });
+            if ui.selectable_label(is_point, "point").clicked() && !is_point {
+                job.machine.work_zero = WorkZero::Point { x, y };
+            }
+        });
+    ui.end_row();
+    if let WorkZero::Point { x, y } = &mut job.machine.work_zero {
+        ui.label("");
+        ui.horizontal(|ui| {
+            ui.add(mm(x).prefix("X "));
+            ui.add(mm(y).prefix("Y "));
+        });
+        ui.end_row();
+    }
+}
+
 fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     let job = &mut edit.settings;
     ui.heading("Job settings");
@@ -2221,21 +2305,28 @@ fn job_form(ui: &mut egui::Ui, edit: &mut EditJob) {
         ui.label("Thickness");
         ui.add(mm(&mut job.stock.thickness));
         ui.end_row();
-        ui.label("Origin");
+        // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
+        // zero: that's the work zero below (docs/specs/work-zero.md).
+        ui.label("Stock position");
         ComboBox::from_id_salt("origin")
             .selected_text(match job.stock.origin {
-                StockOrigin::BottomLeft => "bottom left",
-                StockOrigin::Center => "center",
+                StockOrigin::BottomLeft => "corner at drawing origin",
+                StockOrigin::Center => "centred on drawing origin",
             })
             .show_ui(ui, |ui| {
                 ui.selectable_value(
                     &mut job.stock.origin,
                     StockOrigin::BottomLeft,
-                    "bottom left",
+                    "corner at drawing origin",
                 );
-                ui.selectable_value(&mut job.stock.origin, StockOrigin::Center, "center");
+                ui.selectable_value(
+                    &mut job.stock.origin,
+                    StockOrigin::Center,
+                    "centred on drawing origin",
+                );
             });
         ui.end_row();
+        work_zero_rows(ui, job);
         ui.label("Z zero");
         ComboBox::from_id_salt("z_zero")
             .selected_text(match job.stock.z_zero {

@@ -461,3 +461,44 @@ fn a_v5_file_is_refused_by_name_of_its_version_when_too_new() {
     let err = migrate(data).unwrap_err().to_string();
     assert!(err.contains("schema_version 6 is not supported"), "{err}");
 }
+
+#[test]
+fn work_zero_round_trips_and_is_checked() {
+    let with_zero = |zero: Value| {
+        let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+        data["machine"]["work_zero"] = zero;
+        data
+    };
+    for zero in [
+        json!({"at": "drawing_origin"}),
+        json!({"at": "stock", "corner": "center"}),
+        json!({"at": "stock", "corner": "top_left"}),
+        json!({"at": "point", "x": 25.5, "y": -1e-3}),
+    ] {
+        let job = parse_job(with_zero(zero.clone()), "p").unwrap();
+        let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+        assert_eq!(data["machine"]["work_zero"], zero);
+    }
+    // Missing: the drawing origin, written explicitly on save.
+    let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    data["machine"].as_object_mut().unwrap().remove("work_zero");
+    let job = parse_job(data, "p").unwrap();
+    assert_eq!(
+        job.machine.work_zero,
+        chipload_job::WorkZero::DrawingOrigin {}
+    );
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(
+        saved["machine"]["work_zero"],
+        json!({"at": "drawing_origin"})
+    );
+    for bad in [
+        json!({"at": "somewhere"}),
+        json!({"at": "stock", "corner": "middle"}),
+        json!({"at": "stock"}),
+        json!({"at": "point", "x": 1.0}),
+        json!({"at": "drawing_origin", "x": 1.0}),
+    ] {
+        assert!(parse_job(with_zero(bad.clone()), "p").is_err(), "{bad}");
+    }
+}

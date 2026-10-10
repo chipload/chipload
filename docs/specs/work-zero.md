@@ -54,7 +54,7 @@ New optional field `machine.work_zero`, the drawing point that becomes X0 Y0 in 
 Every program gets a header comment, e.g.:
 
 ```
-(Work zero: stock center = drawing X150.000 Y110.000; Z0 = stock top)
+(Work zero: stock center = drawing X150.000 Y110.000, Z0 = stock top)
 ```
 
 A machinist reading the file can then set up the machine without opening the project. This

@@ -17,9 +17,9 @@ use chipload_dxf::{
 };
 use chipload_job::{
     CURRENT_VERSION, Drawing, Job, Machine, Operation, Selector, Shape, Spindle, Stock,
-    StockOrigin, Tool, ToolType, Units, ZZero,
+    StockOrigin, Tool, ToolType, Units, WorkZero, ZZero,
 };
-use chipload_post::{PostConfig, PostError, load_builtin_post, render_program};
+use chipload_post::{PostConfig, PostError, load_builtin_post, render_program_with};
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::pocket::PocketPiece;
@@ -75,7 +75,8 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
     let post = load_builtin_post(&job.machine.post)?;
     let imported = load_drawing(job)?;
     let plan = plan_job(job, &imported.contours)?;
-    let gcode = render_program(&plan.program, &post)?;
+    let output = in_work_coordinates(&plan.program, job.work_zero_xy());
+    let gcode = render_program_with(&output, &post, Some(&job.work_zero_text()))?;
     let report = check_gcode(&gcode, &limits_from_job(job));
     if !report.ok() {
         return Err(PipelineError::CheckFailed {
@@ -102,6 +103,21 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
         notes,
         check_warnings: report.warnings,
     })
+}
+
+/// The program moved so the work zero is at X0 Y0: every X and Y minus the work zero.
+/// Only the output is translated; geometry and the displayed toolpath stay in drawing
+/// coordinates (docs/specs/work-zero.md).
+pub fn in_work_coordinates(program: &Program, (zx, zy): (f64, f64)) -> Program {
+    let mut out = program.clone();
+    if (zx, zy) == (0.0, 0.0) {
+        return out; // drawing origin: bit-identical to the untranslated program
+    }
+    for m in &mut out.moves {
+        m.x = m.x.map(|x| x - zx);
+        m.y = m.y.map(|y| y - zy);
+    }
+    out
 }
 
 /// The project's contours and import report (from its embedded shapes).
@@ -164,6 +180,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
             spindle: Spindle::Cw,
             max_feed: None,
             travel: None,
+            work_zero: WorkZero::DrawingOrigin {},
         },
         tools: vec![Tool {
             id: 1,
