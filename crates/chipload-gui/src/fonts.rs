@@ -37,6 +37,16 @@ const MONO_CANDIDATES: &[&str] = &[
     "/Library/Fonts/Courier New.ttf",
 ];
 
+/// Fonts with the symbols the interface uses (✔ ⚠ ✖ ▸ ▾ …), as a last fallback: Segoe UI
+/// and Arial lack some of them.
+const SYMBOL_CANDIDATES: &[&str] = &[
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "C:\\Windows\\Fonts\\seguisym.ttf",
+    "/System/Library/Fonts/Apple Symbols.ttf",
+];
+
 /// Ask fontconfig (Linux and other Unix desktops) for a font file.
 fn fontconfig(pattern: &str) -> Option<PathBuf> {
     let output = Command::new("fc-match")
@@ -76,6 +86,10 @@ pub fn system_fonts() -> Result<FontDefinitions, String> {
     let read = |path: &Path| {
         std::fs::read(path).map_err(|e| format!("Cannot read font {}: {e}", path.display()))
     };
+    // Missing symbols are not fatal either: they show as boxes.
+    let symbols = find("DejaVu Sans", SYMBOL_CANDIDATES)
+        .filter(|p| *p != sans && *p != mono)
+        .and_then(|p| read(&p).ok());
     let mut fonts = FontDefinitions::empty();
     fonts
         .font_data
@@ -88,9 +102,16 @@ pub fn system_fonts() -> Result<FontDefinitions, String> {
         (FontFamily::Monospace, "mono"),
     ] {
         let fallback = if first == "sans" { "mono" } else { "sans" };
+        let mut names = vec![first.to_string(), fallback.to_string()];
+        if symbols.is_some() {
+            names.push("symbols".into());
+        }
+        fonts.families.insert(family, names);
+    }
+    if let Some(data) = symbols {
         fonts
-            .families
-            .insert(family, vec![first.into(), fallback.into()]);
+            .font_data
+            .insert("symbols".into(), Arc::new(FontData::from_owned(data)));
     }
     Ok(fonts)
 }

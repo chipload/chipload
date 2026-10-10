@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The side panels: operations, selection (with the shape editor), properties, report.
+//! The side panels: operations, selection (with the shape editor), properties.
 
 use super::forms::JobRequest;
 use super::*;
@@ -253,17 +253,5 @@ impl ChiploadApp {
             Some(JobRequest::CopiesGap(gap)) => self.set_copies_gap(gap),
             None => {}
         }
-    }
-
-    pub(super) fn report_panel(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Report");
-        ScrollArea::both()
-            .id_salt("report")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                ui.add(
-                    egui::Label::new(RichText::new(self.report.join("\n")).monospace()).extend(),
-                );
-            });
     }
 }

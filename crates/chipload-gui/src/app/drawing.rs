@@ -168,7 +168,7 @@ impl ChiploadApp {
                 self.drawing_changed(&[]);
                 let mut lines = vec![format!("Deleted shape S{id}.")];
                 lines.extend(flagged);
-                self.report = lines;
+                self.set_report(Report::info(lines));
                 self.set_status(format!("Deleted shape S{id}"), STATUS_SECONDS);
             }
             Err(err) => self.error(vec![err.to_string()]),

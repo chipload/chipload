@@ -17,7 +17,7 @@ use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
     StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
-use chipload_pipeline::report::{format_contours, format_import_report, format_material_left};
+use chipload_pipeline::report::format_material_left;
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, update_drawing,
@@ -41,11 +41,13 @@ mod drawing;
 mod forms;
 mod menu;
 mod panels;
+mod report;
 #[cfg(test)]
 mod tests;
 mod user_library;
 
 use forms::{job_form, op_form};
+use report::{DrawingFacts, Report, Tone};
 pub use user_library::LibraryKind;
 use user_library::{LibraryRequest, LibraryWindows};
 
@@ -166,7 +168,11 @@ pub struct ChiploadApp {
     /// The start marker right-clicked, for its context menu.
     context_start: Option<usize>,
 
-    pub report: Vec<String>,
+    pub report: Report,
+    /// The report panel is open (it opens by itself on warnings and errors).
+    pub report_open: bool,
+    /// The current drawing's facts, for the report's Drawing section.
+    pub drawing_facts: Option<DrawingFacts>,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
     prompt: Option<Prompt>,
@@ -212,7 +218,11 @@ impl Default for ChiploadApp {
             handle_drag: None,
             start_drag: None,
             context_start: None,
-            report: vec!["Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into()],
+            report: Report::info([
+                "Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into(),
+            ]),
+            report_open: false,
+            drawing_facts: None,
             status: None,
             cursor: None,
             prompt: None,
@@ -335,12 +345,15 @@ impl ChiploadApp {
         self.fit_pending = true;
     }
 
-    /// Recompute contours if the project's drawing changed (open, import, update, undo).
-    /// Returns the import report lines when it did.
-    fn refresh_drawing(&mut self) -> Option<Vec<String>> {
-        let job = self.edit.as_ref()?.settings.clone();
+    /// Recompute contours and the drawing's facts if the project's drawing changed (open,
+    /// import, update, undo).
+    fn refresh_drawing(&mut self) {
+        let Some(job) = self.edit.as_ref().map(|e| e.settings.clone()) else {
+            self.drawing_facts = None;
+            return;
+        };
         if self.loaded_drawing.as_ref() == Some(&job.drawing) {
-            return None;
+            return;
         }
         self.loaded_drawing = Some(job.drawing.clone());
         self.scene.stock = Some(job.stock.xy_bounds());
@@ -349,15 +362,13 @@ impl ChiploadApp {
                 self.contours = imported.contours;
                 self.scene.contours = self.contours.iter().map(ContourShape::new).collect();
                 self.snap_points = snap_points(&self.contours);
-                let mut lines = format_import_report(&imported.report);
-                lines.extend(format_contours(&self.contours));
-                Some(lines)
+                self.drawing_facts = Some(DrawingFacts::new(&imported.report, &self.contours));
             }
-            Err(_) => {
+            Err(err) => {
                 self.contours.clear();
                 self.scene.contours.clear();
                 self.snap_points.clear();
-                None
+                self.drawing_facts = Some(DrawingFacts::failed(err.to_string()));
             }
         }
     }
@@ -388,7 +399,6 @@ impl ChiploadApp {
         self.start_editing(EditJob::from_job(&job), true, Some(path.to_path_buf()));
         self.record_recent(path);
         let mut lines = vec![format!("Project: {}", file_name(path))];
-        lines.extend(self.drawing_lines());
         if let Some(v) = version
             && v < chipload_job::CURRENT_VERSION
         {
@@ -400,7 +410,7 @@ impl ChiploadApp {
                 ),
             );
         }
-        self.report = lines;
+        self.set_report(Report::info(lines));
         true
     }
 
@@ -420,7 +430,7 @@ impl ChiploadApp {
              into project. Check stock, machine and tool under Job settings."
                 .into(),
         );
-        self.report = lines;
+        self.set_report(Report::info(lines));
     }
 
     /// Import a DXF as a new, unsaved project. A DXF without units asks for them.
@@ -430,10 +440,10 @@ impl ChiploadApp {
             Ok(imported) => imported,
             Err(ImportError::UnitsMissing) => {
                 self.prompt = Some(Prompt::Units(path.to_path_buf(), false));
-                self.report = vec![format!(
+                self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(path)
-                )];
+                )]));
                 return false;
             }
             Err(err) => {
@@ -457,29 +467,13 @@ impl ChiploadApp {
         )];
         lines.extend(notes.iter().map(|n| format!("Started with {n}.")));
         lines.extend(self.library.problems.iter().cloned());
-        lines.extend([
+        lines.push(
             "Select contours, then New profile or New pocket. Check stock, machine and tool \
              under Job settings."
                 .into(),
-            String::new(),
-        ]);
-        lines.extend(self.drawing_lines());
-        self.report = lines;
+        );
+        self.set_report(Report::info(lines));
         true
-    }
-
-    fn drawing_lines(&self) -> Vec<String> {
-        let Some(edit) = &self.edit else {
-            return Vec::new();
-        };
-        match load_drawing(&edit.settings) {
-            Ok(imported) => {
-                let mut lines = format_import_report(&imported.report);
-                lines.extend(format_contours(&imported.contours));
-                lines
-            }
-            Err(err) => vec![err.to_string()],
-        }
     }
 
     /// Replace the imported drawing with a new version of the DXF (§4 of the project spec),
@@ -509,7 +503,7 @@ impl ChiploadApp {
                 self.commit();
                 self.refresh_drawing();
                 self.error_ops = report.lost.iter().copied().collect();
-                self.report = report.lines;
+                self.set_report(Report::info(report.lines));
                 if !report.lost.is_empty() {
                     self.set_status(
                         "Some operations lost their geometry: choose it again".into(),
@@ -520,10 +514,10 @@ impl ChiploadApp {
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
                 self.prompt = Some(Prompt::Units(dxf.to_path_buf(), true));
-                self.report = vec![format!(
+                self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(dxf)
-                )];
+                )]));
                 false
             }
             Err(err) => {
@@ -656,24 +650,26 @@ impl ChiploadApp {
                     .collect();
                 // Missed pieces on top.
                 self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
-                let mut lines = vec![format!(
-                    "Generated {} lines for {}. Check passed.",
-                    result.gcode.matches('\n').count(),
-                    result.post.name
-                )];
-                lines.extend(result.notes.iter().map(|n| format!("warning: {n}")));
-                lines.extend(
-                    result
-                        .check_warnings
-                        .iter()
-                        .map(|w| format!("check warning: {}", w.message)),
+                let mut report = Report::default();
+                report.push(
+                    Tone::Good,
+                    format!(
+                        "Generated {} lines for {}. Check passed.",
+                        result.gcode.matches('\n').count(),
+                        result.post.name
+                    ),
                 );
-                lines.extend(format_material_left(&job, &result.material_left));
-                lines.push(format!("Work zero: {}", job.work_zero_text()));
-                lines.push(String::new());
-                lines.extend(format_import_report(&result.import_report));
-                lines.extend(format_contours(&result.contours));
-                self.report = lines;
+                for note in &result.notes {
+                    report.push(Tone::Warning, note.clone());
+                }
+                for warning in &result.check_warnings {
+                    report.push(Tone::Warning, format!("Check: {}", warning.message));
+                }
+                for line in format_material_left(&job, &result.material_left) {
+                    report.push(Tone::Info, line);
+                }
+                report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
+                self.set_report(report);
                 self.result = Some(result);
                 true
             }
@@ -866,7 +862,7 @@ impl ChiploadApp {
         if let Some(first) = lines.first() {
             self.set_status(first.clone(), ERROR_STATUS_SECONDS);
         }
-        self.report = lines;
+        self.set_report(Report::error(lines));
     }
 
     fn set_status(&mut self, text: String, seconds: u64) {
@@ -948,6 +944,7 @@ impl eframe::App for ChiploadApp {
         self.shortcuts(&ctx);
         Panel::top("menu").show(ui, |ui| self.menu(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
+        self.report_panel(ui);
         Panel::left("operations")
             .resizable(true)
             .default_size(340.0)
@@ -960,13 +957,10 @@ impl eframe::App for ChiploadApp {
             .resizable(true)
             .default_size(440.0)
             .show(ui, |ui| {
-                let height = ui.available_height() * 0.55;
                 ScrollArea::vertical()
                     .id_salt("properties-scroll")
-                    .max_height(height)
+                    .auto_shrink([false, true])
                     .show(ui, |ui| self.properties_panel(ui));
-                ui.separator();
-                self.report_panel(ui);
             });
         CentralPanel::no_frame().show(ui, |ui| self.canvas(ui));
         self.prompts(&ctx);

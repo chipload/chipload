@@ -1109,3 +1109,26 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
     assert_eq!(job.operations[1].lead(), Some(Lead { radius: 3.0 }));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_report_with_warnings_opens_and_links_to_its_operations() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v7/leads.chipload")));
+    assert!(!app.report_open, "nothing to warn about yet");
+    let facts = app.drawing_facts.clone().unwrap();
+    assert_eq!((facts.contours, facts.issues), (3, 0));
+    assert!(app.generate(), "{:?}", app.report);
+    assert_eq!(app.report.lines[0].tone, Tone::Good);
+    assert!(app.report_open, "warnings open the report");
+    // "Operation 2 (Outline): cuts 0.300 mm below the stock bottom ..."
+    let warning = app
+        .report
+        .lines
+        .iter()
+        .find(|l| l.tone == Tone::Warning)
+        .unwrap();
+    assert_eq!(warning.op, Some(1), "{warning:?}");
+    // Closing a project clears the drawing's facts with it.
+    app.new_project();
+    assert_eq!(app.drawing_facts.clone().unwrap().contours, 0);
+}

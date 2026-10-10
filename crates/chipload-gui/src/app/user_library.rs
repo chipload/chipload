@@ -563,7 +563,7 @@ impl ChiploadApp {
         if changes.is_empty() {
             lines.push("  no values changed".into());
         }
-        self.report = lines;
+        self.set_report(Report::info(lines));
         self.set_status(status, STATUS_SECONDS);
     }
 
