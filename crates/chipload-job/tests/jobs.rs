@@ -749,3 +749,50 @@ fn copies_round_trip_default_to_one_part_and_are_checked() {
         assert!(parse_job(with_copies(good.clone()), "p").is_ok(), "{good}");
     }
 }
+
+// -- placement of the imported drawing (docs/specs/drawing-placement.md)
+
+#[test]
+fn v7_to_v8_places_an_imported_drawing_where_the_dxf_has_it() {
+    let v7 = raw("v7/simple_part_full.chipload");
+    let shapes = v7["drawing"]["shapes"].clone();
+    let current = migrate(v7).unwrap();
+    assert_eq!(
+        current["drawing"]["source"]["placement"],
+        json!({"dx": 0.0, "dy": 0.0})
+    );
+    assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
+    // Without an imported drawing there is nothing to place.
+    let drawn = migrate(raw("v7/leads.chipload")).unwrap();
+    assert_eq!(drawn["drawing"]["source"], Value::Null);
+    load_job(&corpus().join("v7/simple_part_full.chipload")).unwrap();
+}
+
+#[test]
+fn a_v8_drawing_source_needs_a_finite_placement() {
+    let good = migrate(raw("v7/simple_part_full.chipload")).unwrap();
+    let mut missing = good.clone();
+    missing["drawing"]["source"]
+        .as_object_mut()
+        .unwrap()
+        .remove("placement");
+    assert!(parse_job(missing, "p").is_err());
+    let mut stray = good.clone();
+    stray["drawing"]["source"]["placement"]["angle"] = json!(0.0);
+    assert!(parse_job(stray, "p").is_err());
+    let mut moved = good;
+    moved["drawing"]["source"]["placement"] = json!({"dx": -12.5, "dy": 3.0});
+    let mut job = parse_job(moved, "p").unwrap();
+    let source = job.drawing.source.as_mut().unwrap();
+    assert_eq!(
+        source.placement,
+        chipload_job::Placement { dx: -12.5, dy: 3.0 }
+    );
+    // JSON can't hold a non-finite number, but a job built in code can.
+    source.placement.dy = f64::NAN;
+    assert!(
+        job.validate()
+            .iter()
+            .any(|p| p.starts_with("drawing.source.placement"))
+    );
+}

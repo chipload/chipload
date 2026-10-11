@@ -11,7 +11,7 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 3] = [v4_to_v5, v5_to_v6, v6_to_v7];
+const MIGRATIONS: [Migration; 4] = [v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
 /// are refused, as are versions older than [`OLDEST_VERSION`] and files a migration can't
@@ -124,6 +124,20 @@ fn v6_to_v7(mut data: Value) -> Result<Value, String> {
         op.insert("clearance".into(), Value::from(0.0));
     }
     Ok(set_version(data, 7))
+}
+
+/// v8 records where the imported drawing is placed (docs/specs/drawing-placement.md). A v7
+/// drawing is where its DXF has it: placement (0, 0). Nothing moves.
+fn v7_to_v8(mut data: Value) -> Result<Value, String> {
+    if let Some(Value::Object(drawing)) = data.get_mut("drawing")
+        && let Some(Value::Object(source)) = drawing.get_mut("source")
+    {
+        let mut placement = Map::new();
+        placement.insert("dx".into(), Value::from(0.0));
+        placement.insert("dy".into(), Value::from(0.0));
+        source.insert("placement".into(), Value::Object(placement));
+    }
+    Ok(set_version(data, 8))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

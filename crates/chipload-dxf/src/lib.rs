@@ -27,7 +27,8 @@ use chipload_core::nesting;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use chipload_job::{
-    ArcSegment, DrawingSource, Geometry, LineSegment, PathSegment, Shape, SourceIssue, Units,
+    ArcSegment, DrawingSource, Geometry, LineSegment, PathSegment, Placement, Shape, SourceIssue,
+    Units,
 };
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
@@ -251,6 +252,7 @@ pub fn shapes_from_drawing(
                 message: i.message,
             })
             .collect(),
+        placement: Placement::default(),
     };
     Ok(ImportedShapes { shapes, source })
 }

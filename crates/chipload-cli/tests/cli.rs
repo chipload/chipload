@@ -578,3 +578,84 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
     assert!(gcode.contains("G2") || gcode.contains("G3"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn the_imported_drawing_is_placed_from_the_command_line() {
+    // docs/specs/drawing-placement.md §4
+    let dir = temp_dir("place");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/simple_part_full.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let placement = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job["drawing"]["source"]["placement"].clone()
+    };
+    let extents = || {
+        ok_inspect(p)
+            .lines()
+            .find(|l| l.starts_with("Extents"))
+            .unwrap()
+            .to_string()
+    };
+
+    let (code, out, _) = run(&["place", p]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("Drawing: as in the DXF"), "{out}");
+    assert!(!ok_inspect(p).contains("Drawing:"), "only shown when moved");
+
+    let (code, _, err) = run(&["place", p, "--margin", "5"]);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains("--margin goes with --align bottom-left"),
+        "{err}"
+    );
+    let (code, _, err) = run(&["place", p, "--align", "center", "--margin", "5"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("--margin"), "{err}");
+    let (code, _, err) = run(&["place", p, "--by", "1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("--by: expected a point"), "{err}");
+
+    let (code, out, _) = run(&["place", p, "--by", "-20,30"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Moved the imported drawing by X-20.000 Y30.000"),
+        "{out}"
+    );
+    assert_eq!(placement(), serde_json::json!({"dx": -20.0, "dy": 30.0}));
+    assert!(extents().contains("X 30.000 .. 230.000, Y 80.000 .. 200.000"));
+    assert!(ok_inspect(p).contains("Drawing: moved X-20.000 Y30.000 from the DXF"));
+
+    // Stock 300 × 220, drawing 200 × 120.
+    run(&["place", p, "--align", "bottom-left", "--margin", "10"]);
+    assert!(extents().contains("X 10.000 .. 210.000, Y 10.000 .. 130.000"));
+    run(&["place", p, "--align", "center"]);
+    assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
+    assert_eq!(placement(), serde_json::json!({"dx": 0.0, "dy": 0.0}));
+    run(&["place", p, "--to", "5,-5"]);
+    assert_eq!(placement(), serde_json::json!({"dx": 5.0, "dy": -5.0}));
+
+    // An update keeps it where it was put.
+    let (code, out, _) = run(&["update", p, "--from", path(&corpus("dxf/simple_part.dxf"))]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("7 unchanged"), "{out}");
+    assert!(out.contains("Placed as before"), "{out}");
+    assert!(extents().contains("X 55.000 .. 255.000, Y 45.000 .. 165.000"));
+
+    // And it still runs through the checker.
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(code, Some(0), "{err}");
+
+    // Nothing imported, nothing to move.
+    let empty = dir.join("empty.chipload");
+    run(&["new", "-o", path(&empty)]);
+    let (code, _, err) = run(&["place", path(&empty), "--by", "1,1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no imported drawing"), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

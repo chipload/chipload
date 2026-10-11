@@ -4,6 +4,7 @@
 pub mod copies;
 pub mod library;
 pub mod notices;
+pub mod placement;
 pub mod report;
 pub mod shapes;
 
@@ -19,8 +20,8 @@ use chipload_dxf::{
     shapes_from_dxf,
 };
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Job, Machine, Operation, Shape, Spindle, Stock, StockOrigin, Tool,
-    ToolType, Units, WorkZero, ZZero,
+    CURRENT_VERSION, Drawing, Job, Machine, Operation, Placement, Shape, Spindle, Stock,
+    StockOrigin, Tool, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{PostConfig, PostError, load_builtin_post, render_program_with};
 use chipload_toolpath::left::MaterialLeft;
@@ -277,7 +278,16 @@ pub fn update_drawing(
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
     let expected = units.or(job.drawing.source.as_ref().map(|s| s.units));
-    let imported = shapes_from_dxf(dxf, expected)?;
+    let mut imported = shapes_from_dxf(dxf, expected)?;
+    // The new drawing goes where the old one was put (docs/specs/drawing-placement.md).
+    let placed = job
+        .drawing
+        .source
+        .as_ref()
+        .map(|s| s.placement)
+        .unwrap_or_default();
+    placement::translate_imported(&mut imported.shapes, placed.dx, placed.dy);
+    imported.source.placement = placed;
     let old = &job.drawing;
     // Old imported shapes by handle, in order; each can be matched once.
     let mut by_handle: BTreeMap<&str, Vec<&Shape>> = BTreeMap::new();
@@ -302,7 +312,7 @@ pub fn update_drawing(
         match matched {
             Some(previous) => {
                 shape.id = previous.id;
-                let same = previous.layer == shape.layer && previous.geometry == shape.geometry;
+                let same = placement::same_shape(previous, &shape);
                 if same {
                     report.unchanged.push(shape.id);
                 } else {
@@ -346,6 +356,12 @@ pub fn update_drawing(
         report.added.len(),
         report.removed.len()
     ));
+    if placed != Placement::default() {
+        report.lines.push(format!(
+            "Placed as before: {}.",
+            placement::placement_text(placed)
+        ));
+    }
     report.lines.extend(stock_fit_note(&out));
     for (i, op) in out.operations.iter().enumerate() {
         let label = op_label(i, op);

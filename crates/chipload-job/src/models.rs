@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job model: a declarative description of how to machine a drawing.
 //!
-//! Job file models (schema v5: a project with its drawing embedded, docs/specs/
-//! project-file.md, and shapes drawn in Chipload, docs/specs/drawing-tools.md). All lengths are mm, all feeds mm/min, angles radians, `depth` is
+//! Job file models (schema v8: a project with its drawing embedded, docs/specs/
+//! project-file.md, shapes drawn in Chipload, docs/specs/drawing-tools.md, and the imported
+//! drawing's placement, docs/specs/drawing-placement.md). All lengths are mm, all feeds
+//! mm/min, angles radians, `depth` is
 //! measured down from the stock top. Unknown fields are rejected; value constraints are
 //! checked by [`Job::validate`].
 
@@ -13,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 7;
+pub const CURRENT_VERSION: i64 = 8;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -524,6 +526,23 @@ pub enum PathSegment {
     Arc(ArcSegment),
 }
 
+impl PathSegment {
+    /// The segment moved by (dx, dy) mm.
+    pub fn translated(&self, dx: f64, dy: f64) -> PathSegment {
+        let moved = |p: [f64; 2]| [p[0] + dx, p[1] + dy];
+        match self {
+            PathSegment::Line(l) => PathSegment::Line(LineSegment {
+                start: moved(l.start),
+                end: moved(l.end),
+            }),
+            PathSegment::Arc(a) => PathSegment::Arc(ArcSegment {
+                center: moved(a.center),
+                ..*a
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LineSegment {
@@ -582,6 +601,17 @@ pub struct DrawingSource {
     pub ignored: BTreeMap<String, usize>,
     #[serde(default)]
     pub issues: Vec<SourceIssue>,
+    /// How far the imported shapes are moved from where the DXF has them; the stored shapes
+    /// are the moved ones (docs/specs/drawing-placement.md).
+    pub placement: Placement,
+}
+
+/// A move of the imported drawing, mm.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Placement {
+    pub dx: f64,
+    pub dy: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -1233,6 +1263,14 @@ impl Job {
     pub fn validate(&self) -> Vec<String> {
         let mut problems = self.drawing.validate();
         problems.extend(self.machine.problems("machine"));
+        if let Some(source) = &self.drawing.source {
+            let Placement { dx, dy } = source.placement;
+            if !(dx.is_finite() && dy.is_finite()) {
+                problems.push(format!(
+                    "drawing.source.placement: must be numbers, got ({dx}, {dy})"
+                ));
+            }
+        }
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
                 problems.push(format!("{path}: must be greater than 0, got {value}"));

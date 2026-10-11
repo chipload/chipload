@@ -14,11 +14,12 @@ use chipload_check::{CheckIssue, check_gcode, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
 use chipload_job::{
-    Copies, CopyOrder, Geometry, Job, Spindle, Units, WorkZero, load_job, polyline_segment_count,
-    save_job,
+    Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
+    polyline_segment_count, save_job,
 };
 use chipload_pipeline::copies::{copies_text, pitch_for_gap};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
+use chipload_pipeline::placement::{Move as PlaceMove, place_drawing, placement_text};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
@@ -171,8 +172,37 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Move the imported drawing (docs/specs/drawing-placement.md). Without an option,
+    /// print where it is.
+    Place {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Move by "DX,DY" mm.
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["to", "align"])]
+        by: Option<String>,
+        /// Put it "DX,DY" mm from where the DXF has it; 0,0 is as drawn.
+        #[arg(long, allow_hyphen_values = true, conflicts_with = "align")]
+        to: Option<String>,
+        /// Align the drawing's extent with the stock.
+        #[arg(long)]
+        align: Option<AlignArg>,
+        /// With --align bottom-left: how far in from the stock's corner, mm.
+        #[arg(long)]
+        margin: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Print Chipload's licence and the licences of every third-party component.
     Licenses,
+}
+
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum AlignArg {
+    /// Bottom-left corner on the stock's, --margin mm in.
+    BottomLeft,
+    /// Centre on the stock's centre.
+    Center,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -332,6 +362,14 @@ fn main() -> ExitCode {
             },
             output.as_deref(),
         ),
+        Command::Place {
+            project,
+            by,
+            to,
+            align,
+            margin,
+            output,
+        } => place(&project, by, to, align, margin, output.as_deref()),
         Command::Licenses => {
             println!("{}\n", chipload_pipeline::notices::short_notice());
             println!("{}", chipload_pipeline::notices::LICENSE);
@@ -459,6 +497,72 @@ fn changed_copies(job: &Job, args: CopiesArgs) -> Result<Option<Copies>, String>
         return Err("give the spacing with --pitch DX,DY or --gap MM".into());
     }
     Ok(Some(copies))
+}
+
+fn place(
+    project: &Path,
+    by: Option<String>,
+    to: Option<String>,
+    align: Option<AlignArg>,
+    margin: Option<f64>,
+    output: Option<&Path>,
+) -> ExitCode {
+    let job = match load_job(project) {
+        Ok(job) => job,
+        Err(err) => return fail(err),
+    };
+    let how = match place_move(by, to, align, margin) {
+        Ok(Some(how)) => how,
+        Ok(None) => {
+            return match &job.drawing.source {
+                Some(source) => {
+                    println!("Drawing: {}", placement_text(source.placement));
+                    ExitCode::SUCCESS
+                }
+                None => fail("the project has no imported drawing"),
+            };
+        }
+        Err(err) => return fail(err),
+    };
+    let (placed, report) = match place_drawing(&job, how) {
+        Ok(done) => done,
+        Err(err) => return fail(err),
+    };
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&placed, target) {
+        return fail(err);
+    }
+    for line in &report.lines {
+        println!("{line}");
+    }
+    println!("Wrote {}", target.display());
+    ExitCode::SUCCESS
+}
+
+/// The move `place` was asked for; None: just print the placement.
+fn place_move(
+    by: Option<String>,
+    to: Option<String>,
+    align: Option<AlignArg>,
+    margin: Option<f64>,
+) -> Result<Option<PlaceMove>, String> {
+    if margin.is_some() && align != Some(AlignArg::BottomLeft) {
+        return Err("--margin goes with --align bottom-left".into());
+    }
+    if let Some(by) = by {
+        let [dx, dy] = point_arg(&by).map_err(|e| format!("--by: {e}"))?;
+        return Ok(Some(PlaceMove::By(dx, dy)));
+    }
+    if let Some(to) = to {
+        let [dx, dy] = point_arg(&to).map_err(|e| format!("--to: {e}"))?;
+        return Ok(Some(PlaceMove::To(dx, dy)));
+    }
+    Ok(align.map(|align| match align {
+        AlignArg::BottomLeft => PlaceMove::BottomLeft {
+            margin: margin.unwrap_or(0.0),
+        },
+        AlignArg::Center => PlaceMove::Center,
+    }))
 }
 
 fn update(project: &Path, from: &Path, units: Option<Units>, output: Option<&Path>) -> ExitCode {
@@ -949,6 +1053,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
     let mut shapes = None;
     let mut work_zero = None;
     let mut copies_line = None;
+    let mut placement_line = None;
     let loaded = if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
     } else {
@@ -959,6 +1064,12 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
             copies_line = copies_text(&job).map(|text| format!("Copies: {text}"));
+            placement_line = job
+                .drawing
+                .source
+                .as_ref()
+                .filter(|s| s.placement != Placement::default())
+                .map(|s| format!("Drawing: {}", placement_text(s.placement)));
             load_drawing(&job).map_err(|e| e.to_string())
         })
     };
@@ -974,6 +1085,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
         .into_iter()
         .chain(format_contours(&result.contours))
         .chain(shapes.as_deref().map(format_shapes).unwrap_or_default())
+        .chain(placement_line)
         .chain(work_zero)
         .chain(copies_line)
     {

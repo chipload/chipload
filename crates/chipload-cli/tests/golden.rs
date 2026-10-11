@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 14] = [
+const GOLDEN: [(&str, &str); 16] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -41,6 +41,11 @@ const GOLDEN: [(&str, &str); 14] = [
     ("v7_leads", "jobs/v7/leads.chipload"),
     // The same, its pockets going down round a helix (helical G2/G3).
     ("v7_helix", "jobs/v7/helix.chipload"),
+    // The simple part frozen at v7 (an imported drawing): the same G-code as
+    // v2_simple_part_full after migrating to v8 (docs/specs/drawing-placement.md).
+    ("v7_simple_part_full", "jobs/v7/simple_part_full.chipload"),
+    // The same, its drawing moved by (-20, 30) with a start point on the outline.
+    ("v8_placed_part", "jobs/v8/placed_part.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {
