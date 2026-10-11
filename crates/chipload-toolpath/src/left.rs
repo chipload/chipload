@@ -214,6 +214,15 @@ fn finish(pieces: Vec<Area>) -> Vec<LeftPiece> {
     out
 }
 
+/// `piece` inside `other` (its outer loop minus its holes), for adaptive fronts
+/// (docs/specs/adaptive-fronts.md §3.3). Each boolean is checked by area as here.
+pub(crate) fn area_intersection(piece: &Area, other: &Area) -> Result<Vec<Area>, ToolpathError> {
+    subtract_holes(
+        intersection(piece, &ccw(other.outer.clone()))?,
+        &other.holes,
+    )
+}
+
 /// Every piece minus `area` (its outer loop minus its holes).
 fn minus_area(pieces: Vec<Area>, area: &Area) -> Result<Vec<Area>, ToolpathError> {
     let mut out = Vec::new();

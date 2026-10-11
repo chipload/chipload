@@ -2,7 +2,8 @@
 
 Status: **approved 2026-10-11**, all decisions as recommended (§9). Replaces the path
 generation of docs/specs/adaptive.md §3 (the grid steering). Its verification, wall pass and
-tests stay. Stage 1 (§8, the format) is built.
+tests stay. Stages 1 (the format) and 3 (the fronts) are built; §10 says how and what was
+measured, including the targets of §4 that are not met yet.
 
 User request (2026-10-11, with a screenshot of a rectangle pocket with two round islands):
 the adaptive path "doesn't look very efficient", and the Voronoi diagram should be used to
@@ -204,8 +205,8 @@ Targets at stepover 0.4 (to be confirmed by the first build, decision 6):
 3. **Tree and fronts**: medial-axis tree, open fronts with returns, spiral in open areas,
    order. This replaces the steering. Adaptive golden files change here.
    *Stage 1 found:* at stepover 0.4 the grid steering re-enters on passes too short for a
-   ramp or helix entry, so those two tests (plan.rs, helix.rs) still run adaptive at 0.1.
-   This stage moves them to 0.4.
+   ramp or helix entry, so those two tests (plan.rs, helix.rs) ran adaptive at 0.1.
+   *Built:* they run at 0.4 again.
 4. **Smoothing and arcs**: ρ_min rounding and G2/G3 output. The targets in §4 become test
    assertions.
 5. **GUI**: the adaptive fields show *Stepover (cut width)*, limited to 0.5. Remove the old
@@ -234,3 +235,63 @@ Targets at stepover 0.4 (to be confirmed by the first build, decision 6):
    wrong, I report the measured value and ask before relaxing it. **Recommended.**
 7. **Start**: at the largest circle, with the operation's entry. A helix fits best there.
    **Recommended.**
+
+## 10. As built (stage 3)
+
+`chipload_toolpath::fronts`, called from `pocket::adaptive_rings`. Differences from §3:
+
+- **No band for the wall pass.** R is the whole wall-pass area (the pocket shrunk by r +
+  clearance), not that less w. With a band, a front meeting a wall at a shallow angle (in
+  corners, round islands) has the tool running along R's edge with the band beside it:
+  measured at load 0.1, up to 13 × w over a few millimetres, close to a full-width slot. With
+  the fronts reaching the walls there is no material beside the edge; the wall pass only
+  takes the cusps between front ends.
+- **The order needs no medial-axis tree.** A pass waits for the earlier passes within about
+  a cut width of it (the ones it cuts against); among the ready ones, a neighbour of the
+  last pass goes first, then the nearest. That finishes a branch before the next, as the
+  tree would, and handles splits and joins without building it. The start is the centre of
+  the largest circle (§3.1), found by bisection on shrinking R: the same point the medial
+  axis gives, without it.
+- **Returns**: straight if the line stays in R and the material grid says it cuts
+  (almost) nothing; otherwise back along the pass just cut until a straight line is clear.
+  A new path (after a retract) goes down at a point the tool has already been at and
+  moves across, so it never plunges into material.
+- **Spiral**: from one closed front to the next (and from the opening circle), the next
+  starts 4 w further along and the way across is a gentle diagonal (§3.3). Smoother
+  blending is stage 4.
+- **Engagement measure**: the grid's cell count per 0.2 mm step varies by a cell or two
+  even where the cut is steady (at load 0.1 a step should cut 3 cells), so the tests
+  average it over every 1 mm. The opening round the plunge is an entry and isn't measured.
+
+Measured (6 mm tool, 1 mm averages; "worst" is the largest 1 mm average):
+
+| Pocket | Stepover | Median | Within ±20 % | Within ±50 % | Worst |
+|---|---|---|---|---|---|
+| 100 × 60 square | 0.4 | 1.05 | 82 % | 89 % | 1.8 |
+| with a Ø16 island | 0.4 | 1.05 | 76 % | 85 % | 2.4 |
+| two islands (the screenshot) | 0.4 | 1.05 | 75 % | 84 % | 2.3 |
+| L shape | 0.4 | 1.05 | 71 % | 82 % | 2.1 |
+| with a Ø16 island | 0.1 | 1.13 | 73 % | 90 % | 5.1 |
+| two islands | 0.1 | 1.13 | 74 % | 90 % | 5.3 |
+
+The screenshot pocket at stepover 0.4, against the grid steering (§1): reversals over 135°
+1 403 → 43 (all in returns), plunges 22 → 10, 1 077 G-code lines with 722 arcs; feed 6 684
+mm (1.7 × the ideal 3 620 mm, of which about 560 mm is the wall pass). The 200 × 150 mm
+pocket plans in 1.6 s (release).
+
+**Not met yet (§4, decision 6: for the user to decide):**
+
+1. *Engagement within ±20 % on 95 %*: 71–82 %. Most of what's outside is low (the ends of
+   passes along walls cut less), which is safe.
+2. *Never above 1.5 w*: up to about 2 × w at stepover 0.4 and 5 × w at 0.1, for a millimetre
+   or two where a pass starts at a wall or an island. The path there has to take the
+   lens of material between the old front, the new one and the wall, and moving along the
+   edge the way the fronts grow puts the tool's whole leading side into it: about chord / w.
+   Taking it with a way in from the cleared side instead did not help (any way in meets
+   the lens across its width). Candidates: leave a strip along those edges and take it last
+   with a pass along the wall the other way, or slow the feed there (out of scope, §6).
+3. *Cutting + returns ≤ 1.6 × ideal*: 1.7 × at stepover 0.4. The returns are what cutting
+   every pass in one direction costs (decision 4).
+4. Tight turns: the joins from a pass to its return still turn sharply (stage 4, ρ_min).
+5. Small loops round the start cut more per millimetre of path ((ρ + r) / ρ for a loop of
+   radius ρ): geometry, not a fault of the path; only a slower feed there would help.

@@ -306,10 +306,15 @@ fn a_pocket_wall_gets_leads_in_every_strategy() {
         let k = piece.rings.len() - 1;
         let range = piece.leads[k].clone().expect("the wall has leads");
         assert!(piece.open[k]);
-        // The wall ring, starting in the middle of its longest chord (the bottom edge),
-        // with the leads around it; every corner of it is still there.
+        // The wall ring, starting in the middle of its longest chord (the bottom or the top
+        // edge, as long as each other: the one nearer where the clearing ended), with the
+        // leads around it; every corner of it is still there.
         let ring = &piece.rings[k][range.clone()];
-        assert_eq!(ring[0], (30.0, 3.0), "{strategy}");
+        assert!(
+            ring[0] == (30.0, 3.0) || ring[0] == (30.0, 37.0),
+            "{strategy}: {:?}",
+            ring[0]
+        );
         for corner in &plain.pockets[0].rings[k] {
             assert!(ring.contains(corner), "{strategy}: {corner:?}");
         }

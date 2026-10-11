@@ -6,6 +6,7 @@
 
 pub mod adaptive;
 pub mod arcs;
+pub mod fronts;
 pub mod geom;
 pub mod helix;
 pub mod lead;

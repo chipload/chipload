@@ -24,8 +24,9 @@ use chipload_core::tolerances::{
 use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
-use crate::adaptive::{self, Field, Grid};
+use crate::adaptive::Grid;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
+use crate::fronts;
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
@@ -1605,13 +1606,13 @@ type PiecePaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>, Vec<bool>);
 type ClosedPaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>);
 
 /// Adaptive passes (open) and then the wall pass, with the wall-pass areas
-/// (docs/specs/adaptive.md section 3).
+/// (docs/specs/adaptive-fronts.md). `width`: the cut width (stepover), mm.
 #[allow(clippy::too_many_arguments)]
 fn adaptive_rings(
     region: &Area,
     offset: f64,
     tool_radius: f64,
-    load: f64,
+    width: f64,
     ids: &[usize],
     position: Point,
     direction: Direction,
@@ -1642,55 +1643,33 @@ fn adaptive_rings(
             .map(flatten_tagged_plain)
             .collect()
     };
-    // Where the tool centre may be, and the material for the passes: what the tool can
-    // reach, less a band one load wide along the walls that the wall pass takes.
-    let mut allowed = Grid::new(lo, hi, h);
-    let mut safe = Grid::new(lo, hi, h);
+    // Where the passes go: all of the wall pass's area. The fronts reach the walls
+    // themselves, so no band is left that a tool on its edge would sweep sideways where a
+    // front meets a wall at a shallow angle; the wall pass then only takes the cusps
+    // between front ends (docs/specs/adaptive-fronts.md §10).
+    let parts = walls.clone();
+    // The material the passes cut, for returns and engagement: cells whose whole square the
+    // tool covers from somewhere in the parts (centres within r − 2h; the model cuts with
+    // r − h/√2).
     let mut material = Grid::new(lo, hi, h);
-    for area in &walls {
-        let mut one = Grid::new(lo, hi, h);
-        one.fill(&rings_of(area));
-        allowed.or(&one);
-        // A few cells further in, a cell's whole square is inside: no exact check needed.
-        for inner in area.shrunk(3.0 * h)? {
-            let mut part = Grid::new(lo, hi, h);
-            part.fill(&rings_of(&inner));
-            safe.or(&part);
-        }
-        for grown in area.grown((tool_radius - load).max(0.0))? {
-            let mut part = Grid::new(lo, hi, h);
-            part.fill(&rings_of(&grown));
-            material.or(&part);
+    for part in &parts {
+        for grown in part.grown(tool_radius - 2.0 * h)? {
+            let mut one = Grid::new(lo, hi, h);
+            one.fill(&rings_of(&grown));
+            material.or(&one);
         }
     }
-    // Start where the pocket is deepest: the last non-empty shrink, D/2 at a time.
-    let mut start = first_point(&walls[0].outer);
-    for k in 1..MAX_RING_LEVELS {
-        let inner = region.shrunk(offset + k as f64 * tool_radius)?;
-        let Some(area) = inner.first() else {
-            break;
-        };
-        start = first_point(&area.outer);
-    }
-    let index = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
-    let mut field = Field {
-        material,
-        allowed,
-        safe,
-        walls: &index,
-        offset,
-        tool_radius,
-        load,
+    let setup = fronts::Setup {
+        parts: &parts,
+        width,
         // Material on the right is climb with an M3 spindle, as for ring walls.
         material_right: !cut_clockwise(Side::Inside, direction, spindle),
+        material,
+        reach: tool_radius - h * std::f64::consts::FRAC_1_SQRT_2,
     };
-    let passes = adaptive::clear(&mut field, start);
+    let passes = fronts::clear(setup, position, arcs)?;
     engagement.extend(passes.engagement);
-    let mut rings: Vec<Vec<Point>> = passes
-        .paths
-        .iter()
-        .map(|p| adaptive::simplify(p, ARC_APPROX_TOL_MM / 2.0))
-        .collect();
+    let mut rings = passes.paths;
     let mut open = vec![true; rings.len()];
     let here = rings
         .last()
