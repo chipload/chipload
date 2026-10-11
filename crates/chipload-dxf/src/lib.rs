@@ -152,6 +152,17 @@ pub fn import_drawing(
 
 /// Read a DXF file into shapes; `source` records its name and sha256.
 pub fn shapes_from_dxf(path: &Path, units: Option<Units>) -> Result<ImportedShapes, ImportError> {
+    shapes_from_dxf_scaled(path, units, 1.0)
+}
+
+/// [`shapes_from_dxf`], with every shape scaled about the DXF origin by `scale` (> 0) and
+/// splines, ellipses and distorted arcs approximated within the tolerance at that size
+/// (docs/specs/drawing-scale.md).
+pub fn shapes_from_dxf_scaled(
+    path: &Path,
+    units: Option<Units>,
+    scale: f64,
+) -> Result<ImportedShapes, ImportError> {
     let unreadable = |reason: String| ImportError::Unreadable {
         path: path.display().to_string(),
         reason,
@@ -163,7 +174,7 @@ pub fn shapes_from_dxf(path: &Path, units: Option<Units>) -> Result<ImportedShap
     let parsed = std::panic::catch_unwind(|| Drawing::load(&mut cleaned.as_slice()))
         .map_err(|_| unreadable("the DXF parser crashed on this file".into()))?;
     let drawing = parsed.map_err(|err| unreadable(err.to_string()))?;
-    let mut imported = shapes_from_drawing(&drawing, units)?;
+    let mut imported = shapes_from_drawing_scaled(&drawing, units, scale)?;
     imported.source.file = path.file_name().map_or_else(
         || path.display().to_string(),
         |n| n.to_string_lossy().into_owned(),
@@ -177,12 +188,27 @@ pub fn shapes_from_drawing(
     drawing: &Drawing,
     units: Option<Units>,
 ) -> Result<ImportedShapes, ImportError> {
+    shapes_from_drawing_scaled(drawing, units, 1.0)
+}
+
+/// [`shapes_from_drawing`] at `scale` (see [`shapes_from_dxf_scaled`]).
+pub fn shapes_from_drawing_scaled(
+    drawing: &Drawing,
+    units: Option<Units>,
+    scale: f64,
+) -> Result<ImportedShapes, ImportError> {
+    if !(scale.is_finite() && scale > 0.0) {
+        return Err(ImportError::Unreadable {
+            path: String::new(),
+            reason: format!("can't import at scale {scale}"),
+        });
+    }
     let (file_units, units_from) = resolve_units(drawing, units)?;
-    let scale = match file_units {
+    let to_mm = match file_units {
         Units::Mm => 1.0,
         Units::Inch => MM_PER_INCH,
     };
-    let mut converter = convert::Converter::new(drawing, scale);
+    let mut converter = convert::Converter::new(drawing, to_mm, scale);
     converter.convert_modelspace();
 
     let mut issues = std::mem::take(&mut converter.issues);

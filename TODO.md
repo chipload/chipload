@@ -9,6 +9,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Scaling the imported drawing** (docs/specs/drawing-scale.md): uniformly, about its
+  centre, by a factor or to a width or height; updates re-approximate curves at the new size
+  (schema 11, `chipload place --scale/--width/--height`, GUI *Size* rows).
 - **Trochoidal vs adaptive:** dropped 2026-10-11; adaptive covers it, trochoidal stays as
   it is.
 - **GUI pass** (approved 2026-10-11): report under the canvas, forms in sections, operations
@@ -30,8 +33,6 @@ it's built (see `CLAUDE.md`).
   tool, with a tool change between them (user request 2026-10-11).
 - **Several DXFs in one project:** import more than one drawing into a project, each with
   its own source and placement (user request 2026-10-11).
-- **Scale the imported drawing**, as well as move and turn it (user request 2026-10-11).
-  Spec drafted: docs/specs/drawing-scale.md, awaiting review.
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
   update from a new version, placement (user request 2026-10-11).
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR

@@ -629,7 +629,7 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     );
     assert_eq!(
         placement(),
-        serde_json::json!({"quarter_turns": 0, "dx": -20.0, "dy": 30.0})
+        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": -20.0, "dy": 30.0})
     );
     assert!(extents().contains("X 30.000 .. 230.000, Y 80.000 .. 200.000"));
     assert!(ok_inspect(p).contains("Drawing: moved X-20.000 Y30.000 from the DXF"));
@@ -641,12 +641,12 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
     assert_eq!(
         placement(),
-        serde_json::json!({"quarter_turns": 0, "dx": 0.0, "dy": 0.0})
+        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": 0.0, "dy": 0.0})
     );
     run(&["place", p, "--to", "5,-5"]);
     assert_eq!(
         placement(),
-        serde_json::json!({"quarter_turns": 0, "dx": 5.0, "dy": -5.0})
+        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": 5.0, "dy": -5.0})
     );
 
     // An update keeps it where it was put.
@@ -728,6 +728,89 @@ fn the_imported_drawing_is_turned_from_the_command_line() {
     let (code, out, _) = run(&["place", p, "--align", "bottom-left", "--margin", "10"]);
     assert_eq!(code, Some(0), "{out}");
     assert!(extents().contains("X 10.000 .. 130.000, Y 10.000 .. 210.000"));
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(code, Some(0), "{err}");
+    let (code, out, _) = run(&["place", p, "--reset"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
+    let (_, out, _) = run(&["place", p]);
+    assert!(out.contains("Drawing: as in the DXF"), "{out}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn the_imported_drawing_is_scaled_from_the_command_line() {
+    // docs/specs/drawing-scale.md §4
+    let dir = temp_dir("scale");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/simple_part_full.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let extents = || {
+        ok_inspect(p)
+            .lines()
+            .find(|l| l.starts_with("Extents"))
+            .unwrap()
+            .to_string()
+    };
+
+    for bad in ["0", "-1"] {
+        let (code, _, err) = run(&["place", p, "--scale", bad]);
+        assert_eq!(code, Some(1), "{bad}: {err}");
+        assert!(err.contains("greater than 0"), "{err}");
+    }
+    let (code, _, err) = run(&["place", p, "--scale", "5000"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("between ×0.001 and ×1000"), "{err}");
+    // Usage errors (clap): one size at a time, and no offsets with it.
+    for args in [
+        ["--scale", "2", "--width", "100"],
+        ["--width", "100", "--height", "50"],
+        ["--scale", "2", "--by", "1,1"],
+    ] {
+        let mut all = vec!["place", p];
+        all.extend(args);
+        let (code, _, err) = run(&all);
+        assert_eq!(code, Some(2), "{args:?}: {err}");
+        assert!(err.contains("cannot be used with"), "{err}");
+    }
+
+    // 200 × 120 centred on (150, 110).
+    let (code, out, _) = run(&["place", p, "--scale", "0.5"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Scaled the imported drawing ×0.5 (now 100.000 × 60.000 mm)"),
+        "{out}"
+    );
+    assert!(extents().contains("X 100.000 .. 200.000, Y 80.000 .. 140.000"));
+    let (_, out, _) = run(&["place", p]);
+    assert!(
+        out.contains("Drawing: scaled ×0.5, moved X75.000 Y55.000 from the DXF"),
+        "{out}"
+    );
+    assert!(out.contains("Size: 100.000 × 60.000 mm"), "{out}");
+    assert!(ok_inspect(p).contains("Drawing: scaled ×0.5,"));
+    // Turn, then scale to a width, then align: 60 wide, 100 high, in the corner.
+    let (code, out, _) = run(&[
+        "place",
+        p,
+        "--rotate",
+        "90",
+        "--width",
+        "60",
+        "--align",
+        "bottom-left",
+        "--margin",
+        "10",
+    ]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(extents().contains("X 10.000 .. 70.000, Y 10.000 .. 110.000"));
+    let (code, out, _) = run(&["place", p, "--height", "150"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("(now 90.000 × 150.000 mm)"), "{out}");
     let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
     assert_eq!(code, Some(0), "{err}");
     let (code, out, _) = run(&["place", p, "--reset"]);

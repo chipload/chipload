@@ -136,6 +136,9 @@ pub struct Converter<'a> {
     drawing: &'a Drawing,
     /// Drawing units to millimetres.
     units: f64,
+    /// The scale the shapes are made at (the placement's, docs/specs/drawing-scale.md):
+    /// tolerances hold at that size.
+    size: f64,
     pub segments: Vec<Segment>,
     /// For each segment, the index of the entity it came from (one shape per entity).
     pub entity_of: Vec<usize>,
@@ -159,10 +162,12 @@ struct Placement {
 }
 
 impl<'a> Converter<'a> {
-    pub fn new(drawing: &'a Drawing, units: f64) -> Self {
+    /// `size` scales everything about the DXF origin, before any tolerance is applied.
+    pub fn new(drawing: &'a Drawing, units: f64, size: f64) -> Self {
         Converter {
             drawing,
             units,
+            size,
             segments: Vec::new(),
             entity_of: Vec::new(),
             entities: 0,
@@ -179,7 +184,7 @@ impl<'a> Converter<'a> {
         let drawing = self.drawing;
         for entity in drawing.entities() {
             let place = Placement {
-                to_mm: Affine::scale(self.units, self.units),
+                to_mm: Affine::scale(self.units * self.size, self.units * self.size),
                 root_handle: entity.common.handle.as_string(),
                 parent_layer: None,
                 depth: 0,

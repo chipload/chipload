@@ -780,6 +780,7 @@ dependencies = [
  "chipload-job",
  "chipload-post",
  "chipload-toolpath",
+ "proptest",
  "serde_json",
  "sha2",
  "thiserror 2.0.21",

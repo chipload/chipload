@@ -19,7 +19,9 @@ use chipload_job::{
 };
 use chipload_pipeline::copies::{copies_text, pitch_for_gap};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
-use chipload_pipeline::placement::{Move as PlaceMove, place_drawing, placement_text};
+use chipload_pipeline::placement::{
+    Move as PlaceMove, imported_size, place_drawing, placement_text,
+};
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
@@ -172,8 +174,8 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Move or turn the imported drawing (docs/specs/drawing-placement.md,
-    /// drawing-rotation.md). Without an option, print where it is.
+    /// Move, turn or scale the imported drawing (docs/specs/drawing-placement.md,
+    /// drawing-rotation.md, drawing-scale.md). Without an option, print where it is.
     Place {
         /// The project (.chipload).
         project: PathBuf,
@@ -193,8 +195,21 @@ enum Command {
         /// --align when both are given.
         #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
         rotate: Option<i32>,
-        /// Back to where the DXF has it: no turn, no move.
-        #[arg(long, conflicts_with_all = ["by", "to", "align", "margin", "rotate"])]
+        /// Scale it about its centre by this factor (> 0), on top of any scale it has. After
+        /// --rotate, before --align.
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "width", "height"])]
+        scale: Option<f64>,
+        /// Scale it about its centre until it is this wide, mm (the height follows).
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "height"])]
+        width: Option<f64>,
+        /// Scale it about its centre until it is this high, mm (the width follows).
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
+        height: Option<f64>,
+        /// Back to where the DXF has it: no turn, no scale, no move.
+        #[arg(
+            long,
+            conflicts_with_all = ["by", "to", "align", "margin", "rotate", "scale", "width", "height"]
+        )]
         reset: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
@@ -376,6 +391,9 @@ fn main() -> ExitCode {
             align,
             margin,
             rotate,
+            scale,
+            width,
+            height,
             reset,
             output,
         } => place(
@@ -386,6 +404,9 @@ fn main() -> ExitCode {
                 align,
                 margin,
                 rotate,
+                scale,
+                width,
+                height,
                 reset,
             },
             output.as_deref(),
@@ -526,6 +547,9 @@ struct PlaceArgs {
     align: Option<AlignArg>,
     margin: Option<f64>,
     rotate: Option<i32>,
+    scale: Option<f64>,
+    width: Option<f64>,
+    height: Option<f64>,
     reset: bool,
 }
 
@@ -542,6 +566,9 @@ fn place(project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
         return match &job.drawing.source {
             Some(source) => {
                 println!("Drawing: {}", placement_text(source.placement));
+                if let Some((w, h)) = imported_size(&job.drawing.shapes) {
+                    println!("Size: {w:.3} × {h:.3} mm");
+                }
                 ExitCode::SUCCESS
             }
             None => fail("the project has no imported drawing"),
@@ -569,7 +596,7 @@ fn place(project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// The moves `place` was asked for, in order: a turn first, then a move or an alignment.
+/// The moves `place` was asked for, in order: a turn, a scale, then a move or an alignment.
 /// Empty: just print the placement.
 fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
     if args.reset {
@@ -583,6 +610,15 @@ fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
             ));
         }
         steps.push(PlaceMove::Turn(degrees / 90));
+    }
+    if let Some(factor) = args.scale {
+        steps.push(PlaceMove::Scale(factor));
+    }
+    if let Some(width) = args.width {
+        steps.push(PlaceMove::Width(width));
+    }
+    if let Some(height) = args.height {
+        steps.push(PlaceMove::Height(height));
     }
     steps.extend(place_move(args.by, args.to, args.align, args.margin)?);
     Ok(steps)

@@ -17,7 +17,7 @@ use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
-    shapes_from_dxf,
+    shapes_from_dxf_scaled,
 };
 use chipload_job::{
     CURRENT_VERSION, Drawing, Job, Machine, Operation, Placement, Shape, Spindle, Stock,
@@ -280,15 +280,16 @@ pub fn update_drawing(
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
     let expected = units.or(job.drawing.source.as_ref().map(|s| s.units));
-    let mut imported = shapes_from_dxf(dxf, expected)?;
-    // The new drawing goes where the old one was put (docs/specs/drawing-placement.md).
+    // The new drawing goes where the old one was put (docs/specs/drawing-placement.md), read
+    // at its scale so curves are approximated at that size (docs/specs/drawing-scale.md).
     let placed = job
         .drawing
         .source
         .as_ref()
         .map(|s| s.placement)
         .unwrap_or_default();
-    placement::place_imported(&mut imported.shapes, placed);
+    let mut imported = shapes_from_dxf_scaled(dxf, expected, placed.scale)?;
+    placement::place_scaled_import(&mut imported.shapes, placed);
     imported.source.placement = placed;
     let old = &job.drawing;
     // Old imported shapes by handle, in order; each can be matched once.

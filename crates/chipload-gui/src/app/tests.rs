@@ -1229,6 +1229,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert_eq!(
         placement(&app),
         chipload_job::Placement {
+            scale: 1.0,
             quarter_turns: 0,
             dx: -40.0,
             dy: -40.0
@@ -1255,6 +1256,29 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert!(app.place(chipload_pipeline::placement::Move::Reset));
     assert!(near(contour_min(&app, outline(&app)), (50.0, 50.0)));
     assert_eq!(placement(&app).quarter_turns, 0);
+
+    // Scaled about its centre (docs/specs/drawing-scale.md §5): to a width, one undo step;
+    // a bad factor is refused and reported; Reset takes it back.
+    assert!(app.place(chipload_pipeline::placement::Move::Width(100.0)));
+    assert_eq!(placement(&app).scale, 0.5);
+    assert!(near(contour_min(&app, outline(&app)), (100.0, 80.0)));
+    assert_eq!(circle(&app), before, "the drawn circle stays");
+    let size = |app: &ChiploadApp| {
+        chipload_pipeline::placement::imported_size(
+            &app.edit.as_ref().unwrap().settings.drawing.shapes,
+        )
+        .unwrap()
+    };
+    assert!(near(size(&app), (100.0, 60.0)));
+    app.undo();
+    assert_eq!(placement(&app).scale, 1.0);
+    app.redo();
+    assert!(!app.place(chipload_pipeline::placement::Move::Scale(5000.0)));
+    assert_eq!(placement(&app).scale, 0.5);
+    assert!(app.place(chipload_pipeline::placement::Move::Scale(3.0)));
+    assert!(near(size(&app), (300.0, 180.0)));
+    assert!(app.place(chipload_pipeline::placement::Move::Reset));
+    assert_eq!(placement(&app), chipload_job::Placement::default());
 
     // A project without an imported drawing has nothing to move.
     let mut app = ChiploadApp::default();

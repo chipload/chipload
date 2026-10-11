@@ -9,7 +9,7 @@ use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
-use chipload_pipeline::placement::{Move as PlaceMove, placement_text};
+use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -714,7 +714,8 @@ pub(super) fn job_form(
         let placement = source.placement;
         let summary = placement_text(placement);
         section(ui, "job-placement", "Drawing position", &summary, |ui| {
-            placement_rows(ui, placement, &mut copies_request);
+            let size = imported_size(&job.drawing.shapes);
+            placement_rows(ui, placement, size, &mut copies_request);
         });
     }
 
@@ -762,27 +763,38 @@ pub(super) fn job_form(
 /// Margin the *Bottom left* button starts with, mm; only an input, never saved.
 const DEFAULT_PLACE_MARGIN: f64 = 10.0;
 
-/// Moving the imported drawing (docs/specs/drawing-placement.md §5). The values typed here
-/// are inputs only: nothing moves until a button is pressed, so each move is one undo step.
-fn placement_rows(ui: &mut egui::Ui, placement: Placement, request: &mut Option<JobRequest>) {
+/// Moving, turning and scaling the imported drawing (docs/specs/drawing-placement.md §5,
+/// drawing-scale.md §5). The values typed here are inputs only: nothing moves until a button
+/// is pressed, so each change is one undo step.
+fn placement_rows(
+    ui: &mut egui::Ui,
+    placement: Placement,
+    size: Option<(f64, f64)>,
+    request: &mut Option<JobRequest>,
+) {
     ui.label("From the DXF").on_hover_text(
         "Where the DXF's shapes are, compared with the DXF itself. Updates from the DXF \
          keep this. Shapes drawn in Chipload don't move.",
     );
     ui.horizontal(|ui| {
+        let scaled = if placement.scale == 1.0 {
+            String::new()
+        } else {
+            format!("scaled ×{}, ", factor_text(placement.scale))
+        };
         let turned = match placement.quarter_turns {
             0 => String::new(),
             k => format!("turned {}°, ", 90 * u32::from(k)),
         };
         ui.label(format!(
-            "{turned}moved X {}  Y {} mm",
+            "{scaled}{turned}moved X {}  Y {} mm",
             len(placement.dx),
             len(placement.dy)
         ));
         if placement != Placement::default()
             && ui
                 .button("Reset")
-                .on_hover_text("Back to where the DXF has it: no turn, no move.")
+                .on_hover_text("Back to where the DXF has it: no turn, no scale, no move.")
                 .clicked()
         {
             *request = Some(JobRequest::Place(PlaceMove::Reset));
@@ -807,6 +819,9 @@ fn placement_rows(ui: &mut egui::Ui, placement: Placement, request: &mut Option<
         }
     });
     ui.end_row();
+    if let Some((width, height)) = size {
+        size_rows(ui, width, height, request);
+    }
     ui.label("  on the stock");
     ui.horizontal(|ui| {
         let id = egui::Id::new("place-margin");
@@ -840,6 +855,53 @@ fn placement_rows(ui: &mut egui::Ui, placement: Placement, request: &mut Option<
         ui.data_mut(|d| d.insert_temp(id, (dx, dy)));
         if ui.button("Move").clicked() {
             *request = Some(JobRequest::Place(PlaceMove::By(dx, dy)));
+        }
+    });
+    ui.end_row();
+}
+
+/// Scaling the imported drawing about its centre, to a width, a height or by a factor
+/// (docs/specs/drawing-scale.md §5). The inputs start at the drawing's current size.
+fn size_rows(ui: &mut egui::Ui, width: f64, height: f64, request: &mut Option<JobRequest>) {
+    // Keyed by the current size, so the inputs follow the drawing after each change.
+    let key = (width.to_bits(), height.to_bits());
+    let range = 0.001..=100_000.0;
+    ui.label("  size W H").on_hover_text(
+        "Scale about the drawing's centre to this width or height; the other follows. \
+         Tool sizes, depths and tabs don't scale.",
+    );
+    ui.horizontal(|ui| {
+        let id = egui::Id::new(("place-size", key));
+        let (mut w, mut h) = ui.data_mut(|d| *d.get_temp_mut_or(id, (width, height)));
+        ui.add(
+            DragValue::new(&mut w)
+                .speed(0.1)
+                .range(range.clone())
+                .suffix(" mm"),
+        );
+        if ui.button("Set width").clicked() {
+            *request = Some(JobRequest::Place(PlaceMove::Width(w)));
+        }
+        ui.add(DragValue::new(&mut h).speed(0.1).range(range).suffix(" mm"));
+        if ui.button("Set height").clicked() {
+            *request = Some(JobRequest::Place(PlaceMove::Height(h)));
+        }
+        ui.data_mut(|d| d.insert_temp(id, (w, h)));
+    });
+    ui.end_row();
+    ui.label("  scale by");
+    ui.horizontal(|ui| {
+        let id = egui::Id::new(("place-factor", key));
+        let mut factor = ui.data_mut(|d| *d.get_temp_mut_or(id, 1.0));
+        ui.add(
+            DragValue::new(&mut factor)
+                .speed(0.01)
+                .range(0.001..=1000.0)
+                .prefix("× "),
+        );
+        ui.data_mut(|d| d.insert_temp(id, factor));
+        if ui.button("Scale").clicked() {
+            *request = Some(JobRequest::Place(PlaceMove::Scale(factor)));
         }
     });
     ui.end_row();

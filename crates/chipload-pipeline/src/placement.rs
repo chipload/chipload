@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Moving and turning the imported drawing (docs/specs/drawing-placement.md,
-//! docs/specs/drawing-rotation.md). The stored shapes are the placed ones and
+//! Moving, turning and scaling the imported drawing (docs/specs/drawing-placement.md,
+//! docs/specs/drawing-rotation.md, docs/specs/drawing-scale.md). The stored shapes are the placed ones and
 //! `drawing.source.placement` records the placement, so an update from the DXF can put the
 //! new shapes in the same place. The CLI and the GUI both go through here.
 
@@ -8,7 +8,7 @@ use std::f64::consts::TAU;
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::{ANGLE_TOL_RAD, PLACEMENT_ROUNDING_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, PLACEMENT_ROUNDING_MM};
 use chipload_dxf::contours_from_shapes;
 use chipload_job::{
     Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero, quarter_turned,
@@ -30,14 +30,21 @@ pub enum Move {
     /// Turn by this many × 90° counter-clockwise (negative: clockwise) about the centre of
     /// the bounding box.
     Turn(i32),
-    /// Back to where the DXF has it: no turn, no move.
+    /// Scale by this factor (> 0) about the centre of the bounding box.
+    Scale(f64),
+    /// Scale about the centre of the bounding box until it is this wide, mm.
+    Width(f64),
+    /// Scale about the centre of the bounding box until it is this high, mm.
+    Height(f64),
+    /// Back to where the DXF has it: no turn, no scale, no move.
     Reset,
 }
 
-/// One change of placement: turn about the origin by `turns` × 90° counter-clockwise,
-/// then move by (dx, dy).
+/// One change of placement: turn about the origin by `turns` × 90° counter-clockwise, scale
+/// about the origin, then move by (dx, dy).
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Step {
+    scale: f64,
     turns: u8,
     dx: f64,
     dy: f64,
@@ -46,7 +53,7 @@ struct Step {
 impl Step {
     fn apply(&self, p: [f64; 2]) -> [f64; 2] {
         let q = quarter_turned(p, self.turns);
-        [q[0] + self.dx, q[1] + self.dy]
+        [self.scale * q[0] + self.dx, self.scale * q[1] + self.dy]
     }
 }
 
@@ -56,8 +63,8 @@ pub struct PlaceReport {
     pub lines: Vec<String>,
 }
 
-/// Move or turn the imported drawing, with the start points that belong to it. Drawn shapes
-/// and a work zero at a point stay where they are.
+/// Move, turn or scale the imported drawing, with the start points that belong to it. Drawn
+/// shapes and a work zero at a point stay where they are.
 pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), PipelineError> {
     let Some(source) = &job.drawing.source else {
         return Err(nothing_imported());
@@ -73,13 +80,18 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
         return Err(nothing_imported());
     }
     let step = step_for(job, &imported, source.placement, how)?;
-    let Step { turns, dx, dy } = step;
+    let Step {
+        scale,
+        turns,
+        dx,
+        dy,
+    } = step;
     if !(dx.is_finite() && dy.is_finite()) {
         return Err(PipelineError::Job(format!(
             "can't move the drawing by ({dx}, {dy})"
         )));
     }
-    if (turns, dx, dy) == (0, 0.0, 0.0) {
+    if (scale, turns, dx, dy) == (1.0, 0, 0.0, 0.0) {
         let report = PlaceReport {
             lines: vec!["The drawing is already there; nothing moved.".into()],
         };
@@ -98,13 +110,19 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
         }
     }
     apply_to_imported(&mut out.drawing.shapes, step);
-    // turn(old placement) followed by the step: turns add up, the old move turns too.
+    // The old placement followed by the step: turns add up, scales multiply, and the old
+    // move turns, scales and moves too. Reset is exactly the DXF's placement.
     let old = source.placement;
     let [pdx, pdy] = step.apply([old.dx, old.dy]);
-    let placement = Placement {
-        quarter_turns: (old.quarter_turns + turns) % 4,
-        dx: pdx,
-        dy: pdy,
+    let placement = if how == Move::Reset {
+        Placement::default()
+    } else {
+        Placement {
+            scale: old.scale * scale,
+            quarter_turns: (old.quarter_turns + turns) % 4,
+            dx: pdx,
+            dy: pdy,
+        }
     };
     if let Some(source) = &mut out.drawing.source {
         source.placement = placement;
@@ -121,9 +139,18 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
             }
         ),
         Move::Reset => "Put the imported drawing back where the DXF has it".to_string(),
+        Move::Scale(_) | Move::Width(_) | Move::Height(_) => {
+            let size = imported_size(&out.drawing.shapes)
+                .map(|(w, h)| format!(" (now {w:.3} × {h:.3} mm)"))
+                .unwrap_or_default();
+            format!("Scaled the imported drawing ×{}{size}", factor_text(scale))
+        }
         _ => format!("Moved the imported drawing by X{dx:.3} Y{dy:.3} mm"),
     };
     let mut lines = vec![format!("{done}; it is now {}.", placement_text(placement))];
+    if scale != 1.0 {
+        lines.extend(scale_notes(&job.drawing.shapes, &out.drawing.shapes, scale));
+    }
     if moved_starts > 0 {
         lines.push(format!("Moved {moved_starts} start point(s) with it."));
     }
@@ -144,9 +171,12 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     Ok((out, PlaceReport { lines }))
 }
 
-/// "as in the DXF", or e.g. "turned 90°, moved X12.000 Y-3.500 from the DXF".
+/// "as in the DXF", or e.g. "scaled ×2, turned 90°, moved X12.000 Y-3.500 from the DXF".
 pub fn placement_text(placement: Placement) -> String {
     let mut parts = Vec::new();
+    if placement.scale != 1.0 {
+        parts.push(format!("scaled ×{}", factor_text(placement.scale)));
+    }
     if placement.quarter_turns != 0 {
         parts.push(format!(
             "turned {}°",
@@ -163,6 +193,64 @@ pub fn placement_text(placement: Placement) -> String {
     }
 }
 
+/// A scale factor for people: up to 6 decimals, without trailing zeros ("2", "0.5",
+/// "25.4").
+pub fn factor_text(factor: f64) -> String {
+    let text = format!("{factor:.6}");
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+/// Width and height of the imported shapes' bounding box, mm.
+pub fn imported_size(shapes: &[Shape]) -> Option<(f64, f64)> {
+    let imported: Vec<Shape> = shapes.iter().filter(|s| !s.is_drawn()).cloned().collect();
+    let ((x0, y0), (x1, y1)) = contours_from_shapes(&imported, None).report.bbox?;
+    Some((x1 - x0, y1 - y0))
+}
+
+/// What scaling by `factor` may have changed beyond the size (docs/specs/drawing-scale.md
+/// §3): curves approximated at the old size, contours that join differently, units.
+fn scale_notes(before: &[Shape], after: &[Shape], factor: f64) -> Vec<String> {
+    let mut notes = Vec::new();
+    let curves = after
+        .iter()
+        .filter(|s| !s.is_drawn() && matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
+        .count();
+    if curves > 0 && factor > 1.0 {
+        notes.push(format!(
+            "{curves} shape(s) from splines or ellipses were approximated within {:.3} mm at \
+             the size before; scaled ×{}, they may be up to {:.3} mm off their curves. Update \
+             from the DXF to approximate them again at this size.",
+            ARC_APPROX_TOL_MM,
+            factor_text(factor),
+            ARC_APPROX_TOL_MM * factor
+        ));
+    }
+    let closed = |shapes: &[Shape]| {
+        contours_from_shapes(shapes, None)
+            .contours
+            .iter()
+            .filter(|c| c.closed)
+            .count()
+    };
+    let (was, now) = (closed(before), closed(after));
+    if was != now {
+        notes.push(format!(
+            "{was} closed contour(s) before, {now} now: gaps are joined within {:.3} mm at \
+             the new size. Check the import report and the operations' selections.",
+            chipload_core::tolerances::CHAIN_TOL_MM
+        ));
+    }
+    let units = |f: f64| (f - 25.4).abs() <= 1e-9 * 25.4 || (f * 25.4 - 1.0).abs() <= 1e-9;
+    if units(factor) {
+        notes.push(
+            "If the DXF's units are wrong, set them on update instead (--units), so the \
+             project records them."
+                .into(),
+        );
+    }
+    notes
+}
+
 fn nothing_imported() -> PipelineError {
     PipelineError::Job("the project has no imported drawing to move".into())
 }
@@ -174,7 +262,12 @@ fn step_for(
     current: Placement,
     how: Move,
 ) -> Result<Step, PipelineError> {
-    let moved = |dx: f64, dy: f64| Step { turns: 0, dx, dy };
+    let moved = |dx: f64, dy: f64| Step {
+        scale: 1.0,
+        turns: 0,
+        dx,
+        dy,
+    };
     let bbox = || {
         contours_from_shapes(imported, None)
             .report
@@ -202,14 +295,27 @@ fn step_for(
             )
         }
         Move::Reset => {
-            // Undo turn(p) + d: turn back by the same turns, so the move turns back too.
+            // Undo s·turn(p) + d: turn back and divide, so the move turns back and shrinks
+            // too.
             let back = (4 - current.quarter_turns % 4) % 4;
             let d = quarter_turned([current.dx, current.dy], back);
             Step {
+                scale: 1.0 / current.scale,
                 turns: back,
-                dx: -d[0],
-                dy: -d[1],
+                dx: -d[0] / current.scale,
+                dy: -d[1] / current.scale,
             }
+        }
+        Move::Scale(factor) => scaled_about_centre(bbox()?, current, factor)?,
+        Move::Width(width) => {
+            let ((x0, y0), (x1, y1)) = bbox()?;
+            let factor = size_factor("width", width, x1 - x0)?;
+            scaled_about_centre(((x0, y0), (x1, y1)), current, factor)?
+        }
+        Move::Height(height) => {
+            let ((x0, y0), (x1, y1)) = bbox()?;
+            let factor = size_factor("height", height, y1 - y0)?;
+            scaled_about_centre(((x0, y0), (x1, y1)), current, factor)?
         }
         Move::Turn(k) => {
             // About the bounding box's centre c: p -> turn(p - c) + c = turn(p) + c - turn(c).
@@ -218,6 +324,7 @@ fn step_for(
             let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
             let tc = quarter_turned(c, turns);
             Step {
+                scale: 1.0,
                 turns,
                 dx: c[0] - tc[0],
                 dy: c[1] - tc[1],
@@ -226,11 +333,58 @@ fn step_for(
     })
 }
 
-/// Put shapes read from the DXF where `placement` says; drawn shapes stay.
-pub(crate) fn place_imported(shapes: &mut [Shape], placement: Placement) {
+/// The step that scales by `factor` about the centre of `bbox`: p -> f(p - c) + c.
+fn scaled_about_centre(
+    bbox: (Point, Point),
+    current: Placement,
+    factor: f64,
+) -> Result<Step, PipelineError> {
+    if !(factor.is_finite() && factor > 0.0) {
+        return Err(PipelineError::Job(format!(
+            "the scale must be a number greater than 0, got {factor}"
+        )));
+    }
+    let total = current.scale * factor;
+    if !Placement::scale_in_range(total) {
+        return Err(PipelineError::Job(format!(
+            "that would scale the drawing ×{} from the DXF; it must stay between ×{} and ×{}",
+            factor_text(total),
+            factor_text(Placement::MIN_SCALE),
+            factor_text(Placement::MAX_SCALE)
+        )));
+    }
+    let ((x0, y0), (x1, y1)) = bbox;
+    let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
+    Ok(Step {
+        scale: factor,
+        turns: 0,
+        dx: c[0] - factor * c[0],
+        dy: c[1] - factor * c[1],
+    })
+}
+
+/// The factor that makes `current` mm into `wanted` mm.
+fn size_factor(what: &str, wanted: f64, current: f64) -> Result<f64, PipelineError> {
+    if !(wanted.is_finite() && wanted > 0.0) {
+        return Err(PipelineError::Job(format!(
+            "the {what} must be greater than 0, got {wanted}"
+        )));
+    }
+    if current <= PLACEMENT_ROUNDING_MM {
+        return Err(PipelineError::Job(format!(
+            "the imported drawing has no {what} to scale"
+        )));
+    }
+    Ok(wanted / current)
+}
+
+/// Put shapes read from the DXF at the placement's scale (`shapes_from_dxf_scaled`) where
+/// the placement says: turn and move only. Drawn shapes stay.
+pub(crate) fn place_scaled_import(shapes: &mut [Shape], placement: Placement) {
     apply_to_imported(
         shapes,
         Step {
+            scale: 1.0,
             turns: placement.quarter_turns,
             dx: placement.dx,
             dy: placement.dy,
@@ -238,14 +392,18 @@ pub(crate) fn place_imported(shapes: &mut [Shape], placement: Placement) {
     );
 }
 
-/// Turn, then move, every imported shape; drawn shapes stay.
+/// Turn, scale, then move every imported shape; drawn shapes stay.
 fn apply_to_imported(shapes: &mut [Shape], step: Step) {
     for shape in shapes {
         if let Geometry::Path { segments, .. } = &mut shape.geometry {
             for segment in segments.iter_mut() {
-                *segment = segment
-                    .quarter_turned(step.turns)
-                    .translated(step.dx, step.dy);
+                let turned = segment.quarter_turned(step.turns);
+                let scaled = if step.scale == 1.0 {
+                    turned
+                } else {
+                    turned.scaled(step.scale)
+                };
+                *segment = scaled.translated(step.dx, step.dy);
             }
         }
     }

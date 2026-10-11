@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 10;
+pub const CURRENT_VERSION: i64 = 11;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -542,6 +542,23 @@ impl PathSegment {
         }
     }
 
+    /// The segment scaled about the origin by `factor` (> 0): points and radius are
+    /// multiplied, angles stay.
+    pub fn scaled(&self, factor: f64) -> PathSegment {
+        let times = |p: [f64; 2]| [p[0] * factor, p[1] * factor];
+        match self {
+            PathSegment::Line(l) => PathSegment::Line(LineSegment {
+                start: times(l.start),
+                end: times(l.end),
+            }),
+            PathSegment::Arc(a) => PathSegment::Arc(ArcSegment {
+                center: times(a.center),
+                radius: a.radius * factor,
+                ..*a
+            }),
+        }
+    }
+
     /// The segment turned about the origin by `k` × 90° counter-clockwise. Points are
     /// exact; an arc's start angle is wrapped into [0, 2π).
     pub fn quarter_turned(&self, k: u8) -> PathSegment {
@@ -626,16 +643,43 @@ pub struct DrawingSource {
     pub placement: Placement,
 }
 
-/// Where the imported drawing is put: a DXF point p goes to turn(p) + (dx, dy), turned
-/// about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/
-/// drawing-rotation.md), then moved by (dx, dy) mm.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+/// Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy),
+/// turned about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/
+/// drawing-rotation.md), scaled about the origin (docs/specs/drawing-scale.md), then moved
+/// by (dx, dy) mm.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Placement {
+    /// Uniform, `MIN_SCALE` to `MAX_SCALE`.
+    pub scale: f64,
     /// 0 to 3.
     pub quarter_turns: u8,
     pub dx: f64,
     pub dy: f64,
+}
+
+impl Default for Placement {
+    /// As the DXF has it.
+    fn default() -> Self {
+        Placement {
+            scale: 1.0,
+            quarter_turns: 0,
+            dx: 0.0,
+            dy: 0.0,
+        }
+    }
+}
+
+impl Placement {
+    /// The smallest total scale of the imported drawing (docs/specs/drawing-scale.md §8.5).
+    pub const MIN_SCALE: f64 = 0.001;
+    /// The largest total scale.
+    pub const MAX_SCALE: f64 = 1000.0;
+
+    /// Whether `scale` is an allowed total scale.
+    pub fn scale_in_range(scale: f64) -> bool {
+        (Self::MIN_SCALE..=Self::MAX_SCALE).contains(&scale)
+    }
 }
 
 /// The point turned about the origin by `k` × 90° counter-clockwise. Exact: no trigonometry.
@@ -1378,10 +1422,18 @@ impl Job {
         problems.extend(self.machine.problems("machine"));
         if let Some(source) = &self.drawing.source {
             let Placement {
+                scale,
                 quarter_turns,
                 dx,
                 dy,
             } = source.placement;
+            if !Placement::scale_in_range(scale) {
+                problems.push(format!(
+                    "drawing.source.placement.scale: must be {} to {}, got {scale}",
+                    Placement::MIN_SCALE,
+                    Placement::MAX_SCALE
+                ));
+            }
             if !(dx.is_finite() && dy.is_finite()) {
                 problems.push(format!(
                     "drawing.source.placement: must be numbers, got ({dx}, {dy})"

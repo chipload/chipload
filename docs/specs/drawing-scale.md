@@ -1,6 +1,7 @@
 # Spec: scaling the imported drawing
 
-Status: **draft, for review** (decisions in §8).
+Status: **approved 2026-10-11**, with all decisions as recommended (§8). Built as described,
+with the differences in §9.
 
 User request (2026-10-11): scale the imported drawing, as well as move and turn it. This
 follows docs/specs/drawing-placement.md (moving) and docs/specs/drawing-rotation.md (turning).
@@ -176,3 +177,22 @@ G-code. A new v11 sample with a scaled, turned and moved drawing gets its own go
    joined.
 7. **Schema 11 with a migration** adding `scale: 1.0`. Recommended: **bump to 11** (same
    reasoning as schema 9).
+
+## 9. As built
+
+- **The spline note** is given for each step that scales up (factor > 1), with that step's
+  factor: the project doesn't record the size its curves were approximated at, so the note
+  can't know how far a series of steps has grown them. Every such note says to update from
+  the DXF.
+- **Updates** read the DXF at the placement's scale (`chipload_dxf::shapes_from_dxf_scaled`),
+  then turn and move. So every tolerance of the import holds at the placed size: splines,
+  ellipses, and arcs under block inserts that distort them.
+- **GUI:** the *Size* rows follow the *move by* row: inputs that start at the drawing's
+  current width, height and ×1, with **Set width**, **Set height** and **Scale** buttons, so
+  each press is one undo step. The inputs can't go to 0 or below; a factor that takes the
+  total out of range is refused in the report.
+- `place` with no option also prints `Size: W × H mm`.
+- Tests: crates/chipload-pipeline/tests/placement.rs (including a property test that
+  placing step by step equals placing the DXF once), crates/chipload-job/tests/jobs.rs,
+  crates/chipload-cli/tests/cli.rs, the GUI's placement test, and the golden sample
+  `tests/corpus/jobs/v11/scaled_part.chipload` (×0.9, turned 90°, in the corner).

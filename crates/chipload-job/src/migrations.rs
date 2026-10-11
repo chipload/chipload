@@ -11,7 +11,9 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 6] = [v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10];
+const MIGRATIONS: [Migration; 7] = [
+    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11,
+];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
 /// are refused, as are versions older than [`OLDEST_VERSION`] and files a migration can't
@@ -158,6 +160,18 @@ fn v8_to_v9(mut data: Value) -> Result<Value, String> {
 /// "newer" instead of as "unknown field".
 fn v9_to_v10(data: Value) -> Result<Value, String> {
     Ok(set_version(data, 10))
+}
+
+/// v11 lets the imported drawing be scaled (docs/specs/drawing-scale.md). A v10 placement
+/// has no scale: 1. Nothing moves or changes size.
+fn v10_to_v11(mut data: Value) -> Result<Value, String> {
+    if let Some(Value::Object(drawing)) = data.get_mut("drawing")
+        && let Some(Value::Object(source)) = drawing.get_mut("source")
+        && let Some(Value::Object(placement)) = source.get_mut("placement")
+    {
+        placement.insert("scale".into(), Value::from(1.0));
+    }
+    Ok(set_version(data, 11))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

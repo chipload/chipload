@@ -759,7 +759,7 @@ fn v7_to_v8_places_an_imported_drawing_where_the_dxf_has_it() {
     let current = migrate(v7).unwrap();
     assert_eq!(
         current["drawing"]["source"]["placement"],
-        json!({"quarter_turns": 0, "dx": 0.0, "dy": 0.0})
+        json!({"scale": 1.0, "quarter_turns": 0, "dx": 0.0, "dy": 0.0})
     );
     assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
     // Without an imported drawing there is nothing to place.
@@ -781,12 +781,14 @@ fn a_v8_drawing_source_needs_a_finite_placement() {
     stray["drawing"]["source"]["placement"]["angle"] = json!(0.0);
     assert!(parse_job(stray, "p").is_err());
     let mut moved = good;
-    moved["drawing"]["source"]["placement"] = json!({"quarter_turns": 0, "dx": -12.5, "dy": 3.0});
+    moved["drawing"]["source"]["placement"] =
+        json!({"scale": 1.0, "quarter_turns": 0, "dx": -12.5, "dy": 3.0});
     let mut job = parse_job(moved, "p").unwrap();
     let source = job.drawing.source.as_mut().unwrap();
     assert_eq!(
         source.placement,
         chipload_job::Placement {
+            scale: 1.0,
             quarter_turns: 0,
             dx: -12.5,
             dy: 3.0
@@ -810,7 +812,7 @@ fn v8_to_v9_gives_a_placement_no_turn() {
     let current = migrate(v8).unwrap();
     assert_eq!(
         current["drawing"]["source"]["placement"],
-        json!({"quarter_turns": 0, "dx": -20.0, "dy": 30.0})
+        json!({"scale": 1.0, "quarter_turns": 0, "dx": -20.0, "dy": 30.0})
     );
     assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
 }
@@ -836,8 +838,13 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(10));
+    assert_eq!(current["schema_version"], json!(11));
+    // Only v10 -> v11 adds something: the scale.
     current["schema_version"] = json!(9);
+    current["drawing"]["source"]["placement"]
+        .as_object_mut()
+        .unwrap()
+        .remove("scale");
     assert_eq!(current, v9);
     let job = parse_job(migrate(v9).unwrap(), "p").unwrap();
     assert!(
@@ -897,4 +904,55 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
     let mut data = vcarve_job();
     data["operations"][0]["side"] = json!("inside");
     assert!(parse_job(data, "p").is_err(), "a V-carve has no side");
+}
+
+// -- scaling the imported drawing (docs/specs/drawing-scale.md)
+
+#[test]
+fn v10_to_v11_gives_a_placement_scale_1() {
+    let v10 = raw("v10/vcarve_letters.chipload");
+    let mut current = migrate(v10.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(11));
+    assert_eq!(
+        current["drawing"]["source"]["placement"]["scale"],
+        json!(1.0)
+    );
+    current["schema_version"] = json!(10);
+    current["drawing"]["source"]["placement"]
+        .as_object_mut()
+        .unwrap()
+        .remove("scale");
+    assert_eq!(current, v10, "nothing else changes");
+    let job = parse_job(migrate(v10).unwrap(), "p").unwrap();
+    assert_eq!(
+        job.drawing.source.unwrap().placement,
+        chipload_job::Placement::default()
+    );
+}
+
+#[test]
+fn the_scale_is_required_and_in_range() {
+    let good = migrate(raw("v10/vcarve_letters.chipload")).unwrap();
+    for (scale, ok) in [
+        (json!(1.0), true),
+        (json!(0.001), true),
+        (json!(1000.0), true),
+        (json!(25.4), true),
+        (json!(0.0), false),
+        (json!(-2.0), false),
+        (json!(0.0009), false),
+        (json!(1000.5), false),
+        (json!("2"), false),
+        (Value::Null, false),
+    ] {
+        let mut data = good.clone();
+        data["drawing"]["source"]["placement"]["scale"] = scale.clone();
+        assert_eq!(parse_job(data, "p").is_ok(), ok, "{scale}");
+    }
+    let mut missing = good;
+    missing["drawing"]["source"]["placement"]
+        .as_object_mut()
+        .unwrap()
+        .remove("scale");
+    assert!(parse_job(missing, "p").is_err());
 }
