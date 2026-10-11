@@ -9,9 +9,9 @@ pub mod report;
 pub mod shapes;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use chipload_check::{CheckIssue, check_gcode, limits_from_job};
+use chipload_check::{CheckIssue, CheckLimits, check_gcode, limits_for_tool};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
@@ -23,12 +23,14 @@ use chipload_job::{
     CURRENT_VERSION, Drawing, Job, Machine, Operation, Placement, Shape, Spindle, Stock,
     StockOrigin, Tool, ToolType, Units, WorkZero, ZZero,
 };
-use chipload_post::{PostConfig, PostError, load_builtin_post, render_program_with};
+use chipload_post::{
+    FileHeader, PostConfig, PostError, load_builtin_post, render_program_with, render_tool_file,
+};
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
-use chipload_toolpath::{OpSpan, RingStart, ToolpathError, plan_job, validate_job};
+use chipload_toolpath::{OpSpan, RingStart, ToolGroup, ToolpathError, plan_job, validate_job};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PipelineError {
@@ -51,7 +53,9 @@ pub enum PipelineError {
 
 #[derive(Debug, Clone)]
 pub struct RunResult {
-    pub gcode: String,
+    /// The checked G-code: one file, or one per tool group (docs/specs/tool-per-operation.md
+    /// §3.1), in cut order.
+    pub files: Vec<GcodeFile>,
     pub post: PostConfig,
     pub import_report: ImportReport,
     /// Everything imported, for display.
@@ -73,6 +77,86 @@ pub struct RunResult {
     pub check_warnings: Vec<CheckIssue>,
 }
 
+/// One G-code file of a run.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GcodeFile {
+    /// Added to the output's file stem: None for a single file, `-2-T3` for the second
+    /// file of a set, cut with tool 3.
+    pub suffix: Option<String>,
+    pub tool: i64,
+    /// Indexes in `job.operations`, in cut order.
+    pub operations: Vec<usize>,
+    pub gcode: String,
+}
+
+impl GcodeFile {
+    /// Where this file goes when the user asked for `output`: `part.nc` gives `part.nc` or
+    /// `part-2-T3.nc`.
+    pub fn path(&self, output: &Path) -> PathBuf {
+        let Some(suffix) = &self.suffix else {
+            return output.to_path_buf();
+        };
+        let stem = output
+            .file_stem()
+            .map_or(String::new(), |s| s.to_string_lossy().into_owned());
+        let name = match output.extension() {
+            Some(ext) => format!("{stem}{suffix}.{}", ext.to_string_lossy()),
+            None => format!("{stem}{suffix}"),
+        };
+        output.with_file_name(name)
+    }
+
+    /// `part-1-T1.nc (tool 1, operations 1, 3)`, for the CLI and the report.
+    pub fn describe(&self, output: &Path) -> String {
+        let path = self.path(output);
+        let name = path.file_name().map_or_else(
+            || path.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        );
+        format!(
+            "{name} (tool {}, operations {})",
+            self.tool,
+            chipload_post::operations_text(&self.operations)
+        )
+    }
+}
+
+/// Set the tool operation `number` (1-based, as listed) cuts with. The tool must be in the
+/// project; feeds stay as they are (docs/specs/tool-per-operation.md §7, decision 6).
+pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), PipelineError> {
+    if !job.tools.iter().any(|t| t.id == tool) {
+        return Err(PipelineError::Job(format!(
+            "the project has no tool {tool}; copy one in from your library with `tool use`"
+        )));
+    }
+    let count = job.operations.len();
+    let op = number
+        .checked_sub(1)
+        .and_then(|i| job.operations.get_mut(i))
+        .ok_or_else(|| {
+            PipelineError::Job(format!(
+                "there is no operation {number}; the project has {count}"
+            ))
+        })?;
+    match op {
+        Operation::Profile(p) => p.tool = tool,
+        Operation::Pocket(p) => p.tool = tool,
+        Operation::Vcarve(v) => v.tool = tool,
+    }
+    Ok(())
+}
+
+/// Write every file of a run, each atomically. Returns the paths written.
+pub fn write_gcode_files(output: &Path, files: &[GcodeFile]) -> std::io::Result<Vec<PathBuf>> {
+    let mut written = Vec::new();
+    for file in files {
+        let path = file.path(output);
+        write_atomically(&path, &file.gcode)?;
+        written.push(path);
+    }
+    Ok(written)
+}
+
 /// Generate G-code. Fails for anything that is not safe to cut, including a failed
 /// independent check, so unchecked G-code never leaves this function.
 /// Generate G-code from a project. Fails for anything that is not safe to cut, including a
@@ -82,24 +166,12 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
     let post = load_builtin_post(&job.machine.post)?;
     let imported = load_drawing(job)?;
     let plan = plan_job(job, &imported.contours)?;
-    let output = in_work_coordinates(&plan.program, job.work_zero_xy());
-    let gcode = render_program_with(&output, &post, Some(&job.work_zero_text()))?;
-    let report = check_gcode(&gcode, &limits_from_job(job));
-    if !report.ok() {
-        return Err(PipelineError::CheckFailed {
-            errors: report
-                .errors
-                .iter()
-                .map(|e| format!("line {}: {}", e.line, e.message))
-                .collect(),
-            program: Box::new(plan.program),
-        });
-    }
+    let (files, check_warnings) = post_and_check(job, &post, &plan.program, &plan.groups)?;
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));
     notes.extend(copies_note(job, &plan.program, &plan.op_spans));
     Ok(RunResult {
-        gcode,
+        files,
         post,
         import_report: imported.report,
         contours: imported.contours,
@@ -110,8 +182,71 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
         op_spans: plan.op_spans,
         ring_starts: plan.ring_starts,
         notes,
-        check_warnings: report.warnings,
+        check_warnings,
     })
+}
+
+/// Post and check a plan: one program, or one per tool group. Every program is checked
+/// with its own tool's radius before any is returned (docs/specs/tool-per-operation.md §6).
+pub fn post_and_check(
+    job: &Job,
+    post: &PostConfig,
+    program: &Program,
+    groups: &[ToolGroup],
+) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
+    let work_zero = job.work_zero_text();
+    let several = groups.len() > 1;
+    let mut files = Vec::new();
+    let mut warnings = Vec::new();
+    for (i, group) in groups.iter().enumerate() {
+        let part = in_work_coordinates(&group.program(program), job.work_zero_xy());
+        let gcode = if several {
+            let header = FileHeader {
+                number: i + 1,
+                count: groups.len(),
+                tool: group.tool.clone(),
+                operations: group.operations.clone(),
+            };
+            render_tool_file(&part, post, Some(&work_zero), &header)?
+        } else {
+            render_program_with(&part, post, Some(&work_zero))?
+        };
+        let limits = tool_limits(job, group.tool.id)?;
+        let report = check_gcode(&gcode, &limits);
+        let label = |issue: &CheckIssue| {
+            if several {
+                format!("file {}, line {}: {}", i + 1, issue.line, issue.message)
+            } else {
+                format!("line {}: {}", issue.line, issue.message)
+            }
+        };
+        if !report.ok() {
+            return Err(PipelineError::CheckFailed {
+                errors: report.errors.iter().map(label).collect(),
+                program: Box::new(program.clone()),
+            });
+        }
+        warnings.extend(report.warnings.iter().map(|w| CheckIssue {
+            line: w.line,
+            message: if several {
+                format!("file {}: {}", i + 1, w.message)
+            } else {
+                w.message.clone()
+            },
+        }));
+        files.push(GcodeFile {
+            suffix: several.then(|| format!("-{}-T{}", i + 1, group.tool.id)),
+            tool: group.tool.id,
+            operations: group.operations.clone(),
+            gcode,
+        });
+    }
+    Ok((files, warnings))
+}
+
+fn tool_limits(job: &Job, tool: i64) -> Result<CheckLimits, PipelineError> {
+    limits_for_tool(job, tool)
+        .ok_or_else(|| PipelineError::Job(format!("Tool {tool} is not defined in the job")))
 }
 
 /// The program moved so the work zero is at X0 Y0: every X and Y minus the work zero.
@@ -409,8 +544,7 @@ pub fn drawing_sha256(path: &Path) -> std::io::Result<String> {
 /// A note when copies reach beyond the stock (docs/specs/copies-grid.md §4).
 fn copies_note(job: &Job, program: &Program, spans: &[OpSpan]) -> Option<String> {
     let copies = job.copies.filter(|c| c.count() > 1)?;
-    let radius = program.tool_diameter / 2.0;
-    let ((x0, y0), (x1, y1)) = cut_extent(&program.moves, spans, radius, None)?;
+    let ((x0, y0), (x1, y1)) = cut_extent(&program.moves, spans, None)?;
     let (lo, hi) = job.stock.xy_bounds();
     let tol = CHAIN_TOL_MM;
     let fits = x0 >= lo.0 - tol && y0 >= lo.1 - tol && x1 <= hi.0 + tol && y1 <= hi.1 + tol;

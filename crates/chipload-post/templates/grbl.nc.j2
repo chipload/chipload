@@ -1,4 +1,9 @@
 (Chipload - {{ post_name }})
+{% if file is not none %}
+(File {{ file.number }} of {{ file.count }}: {{ file.tool }})
+(Operations {{ file.operations }})
+(Set Z zero with this tool. Keep X and Y zero.)
+{% endif %}
 (Tool {{ tool_id }}: {{ tool_diameter }} mm)
 {% if work_zero is not none %}
 (Work zero: {{ work_zero }})

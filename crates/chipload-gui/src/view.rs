@@ -1087,11 +1087,13 @@ mod tests {
                 operation: 0,
                 copy: 1,
                 moves: 0..6,
+                tool_radius: 3.0,
             },
             OpSpan {
                 operation: 3,
                 copy: 1,
                 moves: 6..9,
+                tool_radius: 3.0,
             },
         ];
         let shape = ToolpathShape::new(&program, false, &spans);

@@ -10,7 +10,7 @@ mod library;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_check::{CheckIssue, check_gcode, limits_from_job};
+use chipload_check::{CheckIssue, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
 use chipload_job::{
@@ -27,8 +27,8 @@ use chipload_pipeline::report::{
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
-    PipelineError, empty_project, load_drawing, new_project, run_job, update_drawing,
-    write_atomically,
+    PipelineError, empty_project, load_drawing, new_project, run_job, set_op_tool, update_drawing,
+    write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -132,9 +132,18 @@ enum Command {
         /// The project (or job) the program was generated from.
         #[arg(long)]
         job: PathBuf,
+        /// The project's tool that cuts this program, for its stock margin (one file of a
+        /// set written one file per tool). Default: the largest tool the project uses.
+        #[arg(long)]
+        tool: Option<i64>,
         /// Print the result as JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// Change an operation of a project.
+    Op {
+        #[command(subcommand)]
+        action: OpAction,
     },
     /// Draw in a project: add, change or delete circles, rectangles and polylines.
     Shape {
@@ -242,6 +251,25 @@ struct CopiesArgs {
     gap: Option<f64>,
     order: Option<OrderArg>,
     off: bool,
+}
+
+#[derive(Subcommand)]
+enum OpAction {
+    /// Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool
+    /// must be in the project: copy one in from your library with `tool use`.
+    Tool {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation, 1-based as listed.
+        #[arg(long)]
+        op: usize,
+        /// The tool's id in the project.
+        #[arg(long)]
+        tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -361,7 +389,13 @@ fn main() -> ExitCode {
         Command::Plan { project, json } => plan(&project, json),
         Command::Run { project, output } => run(&project, &output),
         Command::Render { program, post } => render(&program, &post),
-        Command::Check { gcode, job, json } => check(&gcode, &job, json),
+        Command::Check {
+            gcode,
+            job,
+            tool,
+            json,
+        } => check(&gcode, &job, tool, json),
+        Command::Op { action } => op(action),
         Command::Shape { action } => shape(action),
         Command::Tool { action } => library::tool(action),
         Command::Machine { action } => library::machine(action),
@@ -924,17 +958,62 @@ fn run(project: &Path, output: &Path) -> ExitCode {
         println!("{line}");
     }
     println!("Work zero: {}", job.work_zero_text());
-    if let Err(err) = write_atomically(output, &result.gcode) {
+    if let Err(err) = write_gcode_files(output, &result.files) {
         eprintln!("error: cannot write {}: {err}", output.display());
         return ExitCode::from(EXIT_FAILED);
     }
-    println!(
-        "Wrote {} ({} lines, post {})",
-        output.display(),
-        result.gcode.matches('\n').count(),
-        result.post.name
-    );
+    for file in &result.files {
+        let lines = file.gcode.matches('\n').count();
+        if file.suffix.is_some() {
+            println!(
+                "Wrote {} ({lines} lines, tool {}, operations {})",
+                file.path(output).display(),
+                file.tool,
+                chipload_post::operations_text(&file.operations)
+            );
+        } else {
+            println!(
+                "Wrote {} ({lines} lines, post {})",
+                output.display(),
+                result.post.name
+            );
+        }
+    }
+    if result.files.len() > 1 {
+        println!(
+            "{} files, post {}: change the tool and set Z zero between them, keeping X and Y \
+             zero.",
+            result.files.len(),
+            result.post.name
+        );
+    }
     ExitCode::SUCCESS
+}
+
+fn op(action: OpAction) -> ExitCode {
+    match action {
+        OpAction::Tool {
+            project,
+            op,
+            tool,
+            output,
+        } => {
+            let mut job = match load(&project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            if let Err(err) = set_op_tool(&mut job, op, tool) {
+                return fail(err);
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return fail(err);
+            }
+            println!("Operation {op} now cuts with tool {tool}.");
+            println!("Wrote {}", target.display());
+            ExitCode::SUCCESS
+        }
+    }
 }
 
 fn render(program_path: &Path, post_name: &str) -> ExitCode {
@@ -962,6 +1041,12 @@ fn render(program_path: &Path, post_name: &str) -> ExitCode {
 }
 
 fn program_from_json(value: &Value) -> Result<Program, String> {
+    // A plan with tool changes is posted by `run`, which writes each tool's part.
+    if let Some(groups) = value.get("tool_groups").and_then(Value::as_u64)
+        && groups > 1
+    {
+        return Err(format!("this plan uses {groups} tool groups; use run"));
+    }
     let number = |v: &Value, key: &str| -> Result<f64, String> {
         v.get(key)
             .and_then(Value::as_f64)
@@ -1056,7 +1141,12 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
         println!(
             "{}",
             json!({
-                "program": program_json(&plan.program),
+                "program": program_with_groups(&plan.program, plan.groups.len()),
+                "groups": plan.groups.iter().map(|g| json!({
+                    "tool": g.tool.id,
+                    "operations": g.operations,
+                    "moves": [g.moves.start, g.moves.end],
+                })).collect::<Vec<_>>(),
                 "notes": plan.notes,
                 "tabs": plan.tabs,
                 "pockets": plan.pockets.iter().map(|p| json!({
@@ -1100,9 +1190,27 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
         if let Some(text) = copies_text(&job) {
             println!("Copies: {text}");
         }
+        if plan.groups.len() > 1 {
+            for (i, g) in plan.groups.iter().enumerate() {
+                println!(
+                    "Tool group {}: tool {}, operations {}",
+                    i + 1,
+                    g.tool.id,
+                    chipload_post::operations_text(&g.operations)
+                );
+            }
+        }
         println!("Planned {} moves.", plan.program.moves.len());
     }
     ExitCode::SUCCESS
+}
+
+/// The program as `render` reads it, with how many tool groups it has: `render` refuses a
+/// plan with tool changes.
+fn program_with_groups(program: &Program, groups: usize) -> Value {
+    let mut value = program_json(program);
+    value["tool_groups"] = json!(groups);
+    value
 }
 
 fn program_json(program: &Program) -> Value {
@@ -1223,7 +1331,7 @@ fn import_json(result: &ImportResult) -> Value {
     })
 }
 
-fn check(gcode: &Path, job_path: &Path, as_json: bool) -> ExitCode {
+fn check(gcode: &Path, job_path: &Path, tool: Option<i64>, as_json: bool) -> ExitCode {
     let job = match load_job(job_path) {
         Ok(job) => job,
         Err(err) => {
@@ -1238,7 +1346,14 @@ fn check(gcode: &Path, job_path: &Path, as_json: bool) -> ExitCode {
             return ExitCode::from(EXIT_FAILED);
         }
     };
-    let report = check_gcode(&text, &limits_from_job(&job));
+    let limits = match tool {
+        None => limits_from_job(&job),
+        Some(id) => match limits_for_tool(&job, id) {
+            Some(limits) => limits,
+            None => return fail(format!("the project has no tool {id}")),
+        },
+    };
+    let report = check_gcode(&text, &limits);
     if as_json {
         let issues = |list: &[CheckIssue]| -> Vec<serde_json::Value> {
             list.iter()

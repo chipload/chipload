@@ -39,13 +39,9 @@ pub struct CheckLimits {
     pub travel: Option<(f64, f64, f64)>,
 }
 
-/// Derived here from the job's raw numbers, deliberately not via any generator code.
+/// Derived here from the job's raw numbers, deliberately not via any generator code. The
+/// stock margin is the largest radius of the tools the enabled operations use.
 pub fn limits_from_job(job: &Job) -> CheckLimits {
-    let stock = &job.stock;
-    let top = match stock.z_zero {
-        ZZero::Top => 0.0,
-        ZZero::Bottom => stock.thickness,
-    };
     let used: Vec<i64> = job
         .operations
         .iter()
@@ -58,6 +54,22 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
         .filter(|t| used.contains(&t.id))
         .map(|t| t.diameter / 2.0)
         .fold(0.0, f64::max);
+    limits_with_radius(job, radius)
+}
+
+/// The same, for a program cut with one tool of the job (docs/specs/tool-per-operation.md
+/// §6). None if the job has no tool with that id.
+pub fn limits_for_tool(job: &Job, tool: i64) -> Option<CheckLimits> {
+    let found = job.tools.iter().find(|t| t.id == tool)?;
+    Some(limits_with_radius(job, found.diameter / 2.0))
+}
+
+fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
+    let stock = &job.stock;
+    let top = match stock.z_zero {
+        ZZero::Top => 0.0,
+        ZZero::Bottom => stock.thickness,
+    };
     // The program is in work coordinates: the stock as placed in the drawing, shifted so
     // the project's work zero is at X0 Y0 (docs/specs/work-zero.md).
     let ((x0, y0), (x1, y1)) = stock.xy_bounds();

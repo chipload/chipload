@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use chipload_job::Spindle;
+use chipload_job::{Spindle, Tool, ToolType};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
@@ -294,7 +294,60 @@ struct Context {
     /// Where X0 Y0 Z0 is, for a header comment (docs/specs/work-zero.md); None when unknown
     /// (rendering a bare toolpath).
     work_zero: Option<String>,
+    /// Which file of a set this is, when a job writes one file per tool group
+    /// (docs/specs/tool-per-operation.md §3.1); None for a single file.
+    file: Option<FileContext>,
     moves: Vec<PostMove>,
+}
+
+#[derive(Serialize)]
+struct FileContext {
+    number: usize,
+    count: usize,
+    /// `tool 2, 3.000 mm endmill "3 mm downcut"`
+    tool: String,
+    /// `2, 4` (1-based, as listed)
+    operations: String,
+}
+
+/// One file of a job written as one file per tool group.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FileHeader {
+    /// 1-based, in cut order.
+    pub number: usize,
+    pub count: usize,
+    pub tool: Tool,
+    /// Indexes in `job.operations`.
+    pub operations: Vec<usize>,
+}
+
+/// Parentheses would end a G-code comment early, and ';' starts one.
+fn comment_safe(text: &str) -> String {
+    text.replace('(', "[").replace(')', "]").replace(';', ",")
+}
+
+/// `tool 2, 3.000 mm endmill "3 mm downcut"`: the tool as a G-code comment shows it.
+pub fn tool_text(tool: &Tool, decimals: u32) -> String {
+    let kind = match tool.kind {
+        ToolType::Endmill => "endmill",
+        ToolType::Drill => "drill",
+        ToolType::Vbit => "V-bit",
+    };
+    let name = tool
+        .name
+        .as_deref()
+        .map_or(String::new(), |n| format!(" \"{}\"", comment_safe(n)));
+    format!(
+        "tool {}, {} mm {kind}{name}",
+        tool.id,
+        format_number(tool.diameter, decimals)
+    )
+}
+
+/// `2, 4`: operation indexes as the user numbers them.
+pub fn operations_text(operations: &[usize]) -> String {
+    let numbers: Vec<String> = operations.iter().map(|i| (i + 1).to_string()).collect();
+    numbers.join(", ")
 }
 
 /// Render without a work-zero note (a bare toolpath, e.g. `chipload render`).
@@ -308,6 +361,26 @@ pub fn render_program_with(
     program: &Program,
     config: &PostConfig,
     work_zero: Option<&str>,
+) -> Result<String, PostError> {
+    render(program, config, work_zero, None)
+}
+
+/// Render one file of a set written one file per tool group: the header also says which
+/// file and tool it is (docs/specs/tool-per-operation.md §3.1).
+pub fn render_tool_file(
+    program: &Program,
+    config: &PostConfig,
+    work_zero: Option<&str>,
+    file: &FileHeader,
+) -> Result<String, PostError> {
+    render(program, config, work_zero, Some(file))
+}
+
+fn render(
+    program: &Program,
+    config: &PostConfig,
+    work_zero: Option<&str>,
+    file: Option<&FileHeader>,
 ) -> Result<String, PostError> {
     let fmt = |v: f64| format_number(v, config.decimals);
     // Chords of known arcs become G2/G3 only if the post writes arcs; otherwise the tags are
@@ -328,8 +401,13 @@ pub fn render_program_with(
         },
         safe_z: fmt(program.safe_z),
         dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
-        // Parentheses would end the comment early, and ';' starts one.
-        work_zero: work_zero.map(|w| w.replace('(', "[").replace(')', "]").replace(';', ",")),
+        work_zero: work_zero.map(comment_safe),
+        file: file.map(|f| FileContext {
+            number: f.number,
+            count: f.count,
+            tool: tool_text(&f.tool, config.decimals),
+            operations: operations_text(&f.operations),
+        }),
         moves: compress_moves(&output, config.decimals)?,
     };
     let failed = |e: minijinja::Error| {

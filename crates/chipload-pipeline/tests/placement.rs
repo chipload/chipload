@@ -265,7 +265,7 @@ fn start_points_on_the_imported_drawing_move_with_it() {
     );
     // And the moved project still makes a program that passes the checker.
     let result = run_job(&placed).unwrap();
-    assert!(!result.gcode.is_empty());
+    assert!(!result.files[0].gcode.is_empty());
     std::fs::remove_dir_all(dir).unwrap();
 }
 

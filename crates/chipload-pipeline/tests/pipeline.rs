@@ -108,13 +108,13 @@ fn job_error(job: &Job, text: &str) {
 fn sample_runs_and_passes_check() {
     let result = run(&job(json!({})));
     assert!(result.check_warnings.is_empty());
-    assert_eq!(min(&z_values(&result.gcode)), -12.0);
+    assert_eq!(min(&z_values(&result.files[0].gcode)), -12.0);
 }
 
 #[test]
 fn depth_equal_to_thickness_is_allowed() {
     let result = run(&job(json!({"operations": [op(json!({"end_depth": 12}))]})));
-    assert_eq!(min(&z_values(&result.gcode)), -12.0);
+    assert_eq!(min(&z_values(&result.files[0].gcode)), -12.0);
 }
 
 #[test]
@@ -130,7 +130,7 @@ fn z_zero_bottom_shifts_heights() {
     let result = run(&job(
         json!({"stock": {"z_zero": "bottom"}, "machine": {"safe_z": 17}}),
     ));
-    let zs = z_values(&result.gcode);
+    let zs = z_values(&result.files[0].gcode);
     assert_eq!((min(&zs), max(&zs)), (0.0, 17.0));
 }
 
@@ -145,12 +145,213 @@ fn tool_without_rpm_is_refused() {
     job_error(&job(json!({"tools": [{"id": 1, "diameter": 6}]})), "rpm");
 }
 
+// -- a tool per operation (docs/specs/tool-per-operation.md)
+
+/// Tool 1: 6 mm at 18000 rpm (the sample's); tool 2: 3 mm at 20000 rpm.
+fn two_tools() -> Value {
+    json!([
+        {"id": 1, "diameter": 6, "rpm": 18000},
+        {"id": 2, "diameter": 3, "rpm": 20000, "name": "3 mm (downcut)"}
+    ])
+}
+
+/// The sample's inside profile with tool 2, then its outside profile with tool 1.
+fn two_tool_job(changes: Value) -> Job {
+    let mut ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    ops[0]["tool"] = json!(2);
+    let mut base = json!({"tools": two_tools(), "operations": ops});
+    for (k, v) in changes.as_object().unwrap() {
+        base[k] = v.clone();
+    }
+    job(base)
+}
+
+/// The program after its header comments: what the machine does.
+fn body(gcode: &str) -> Vec<&str> {
+    gcode.lines().skip_while(|l| l.starts_with('(')).collect()
+}
+
 #[test]
-fn multiple_tools_are_refused() {
-    let tools =
-        json!([{"id": 1, "diameter": 6, "rpm": 18000}, {"id": 2, "diameter": 3, "rpm": 18000}]);
-    let ops = json!([op(json!({})), op(json!({"tool": 2}))]);
-    job_error(&job(json!({"tools": tools, "operations": ops})), "one tool");
+fn each_tool_group_is_a_checked_file_of_its_own() {
+    let job = two_tool_job(json!({}));
+    let result = run(&job);
+    assert_eq!(result.files.len(), 2);
+    let (first, second) = (&result.files[0], &result.files[1]);
+    assert_eq!(first.suffix.as_deref(), Some("-1-T2"));
+    assert_eq!(second.suffix.as_deref(), Some("-2-T1"));
+    assert_eq!((first.tool, first.operations.clone()), (2, vec![0]));
+    assert_eq!((second.tool, second.operations.clone()), (1, vec![1]));
+    assert!(
+        first.gcode.starts_with(
+            "(Chipload - GRBL)\n(File 1 of 2: tool 2, 3.000 mm endmill \"3 mm [downcut]\")\n\
+             (Operations 1)\n(Set Z zero with this tool. Keep X and Y zero.)\n(Tool 2: 3.000 mm)\n"
+        ),
+        "{}",
+        first.gcode
+    );
+    assert!(
+        second
+            .gcode
+            .contains("(File 2 of 2: tool 1, 6.000 mm endmill)\n")
+    );
+    for (file, rpm, tool) in [(first, "S20000", 2), (second, "S18000", 1)] {
+        let lines = body(&file.gcode);
+        assert_eq!(
+            &lines[..4],
+            [
+                "G21 G90 G17 G94",
+                &format!("M3 {rpm}"),
+                "G4 P3.000",
+                "G0 Z5.000"
+            ]
+        );
+        assert_eq!(&lines[lines.len() - 2..], ["M5", "M30"]);
+        let limits = chipload_check::limits_for_tool(&job, tool).unwrap();
+        let report = chipload_check::check_gcode(&file.gcode, &limits);
+        assert!(report.ok(), "{:?}", report.errors);
+    }
+}
+
+#[test]
+fn each_operation_is_cut_as_with_its_tool_alone() {
+    let both = run(&two_tool_job(json!({})));
+    // The inside profile alone, with tool 2; the outside profile alone, with tool 1.
+    let ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    let mut inside = ops[0].clone();
+    inside["tool"] = json!(2);
+    let alone = |op: Value| run(&job(json!({"tools": two_tools(), "operations": [op]})));
+    let inside_alone = alone(inside);
+    let outside_alone = alone(ops[1].clone());
+    assert_eq!(inside_alone.files.len(), 1);
+    assert_eq!(
+        body(&both.files[0].gcode),
+        body(&inside_alone.files[0].gcode)
+    );
+    assert_eq!(
+        body(&both.files[1].gcode),
+        body(&outside_alone.files[0].gcode)
+    );
+}
+
+#[test]
+fn one_tool_writes_one_file_without_a_suffix() {
+    let result = run(&job(json!({"tools": two_tools()})));
+    assert_eq!(result.files.len(), 1);
+    assert_eq!(result.files[0].suffix, None);
+    assert!(!result.files[0].gcode.contains("(File "));
+}
+
+#[test]
+fn a_tool_that_comes_back_is_another_group_and_a_note() {
+    let ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    let with_tool = |i: usize, tool: i64| {
+        let mut op = ops[i].clone();
+        op["tool"] = json!(tool);
+        op
+    };
+    // 1, 2, 1: three files.
+    let job3 = job(
+        json!({"tools": two_tools(), "operations": [with_tool(0, 1), with_tool(1, 2), with_tool(0, 1)]}),
+    );
+    let result = run(&job3);
+    let tools: Vec<i64> = result.files.iter().map(|f| f.tool).collect();
+    assert_eq!(tools, [1, 2, 1]);
+    assert!(
+        result.notes.iter().any(|n| n
+            == "Tool 1 is used in 2 groups (operations 1, 3); moving them next to each other \
+                saves a tool change"),
+        "{:?}",
+        result.notes
+    );
+    // 1, 1, 2: two files, no note.
+    let job2 = job(
+        json!({"tools": two_tools(), "operations": [with_tool(0, 1), with_tool(0, 1), with_tool(1, 2)]}),
+    );
+    let result = run(&job2);
+    assert_eq!(result.files.len(), 2);
+    assert_eq!(result.files[0].operations, [0, 1]);
+    assert!(!result.notes.iter().any(|n| n.contains("tool change")));
+    // A disabled operation between two with the same tool doesn't split them.
+    let mut off = with_tool(1, 2);
+    off["enabled"] = json!(false);
+    let job1 =
+        job(json!({"tools": two_tools(), "operations": [with_tool(0, 1), off, with_tool(1, 1)]}));
+    let result = run(&job1);
+    assert_eq!(result.files.len(), 1);
+    assert_eq!(result.files[0].operations, [0, 2]);
+}
+
+#[test]
+fn copies_are_cut_tool_group_by_tool_group() {
+    // Inside and outside profile with tool 1, then the inside again with tool 2.
+    let ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    let mut again = ops[0].clone();
+    again["tool"] = json!(2);
+    let operations = json!([ops[0], ops[1], again]);
+    let expected = [
+        (
+            "by_operation",
+            [(0, 1), (0, 2), (1, 1), (1, 2), (2, 1), (2, 2)],
+        ),
+        ("by_part", [(0, 1), (1, 1), (0, 2), (1, 2), (2, 1), (2, 2)]),
+    ];
+    for (order, cut) in expected {
+        let copies = json!({"columns": 2, "rows": 1, "dx": 250.0, "dy": 0.0, "order": order});
+        let job = job(json!({"tools": two_tools(), "operations": operations, "copies": copies}));
+        let result = run(&job);
+        assert_eq!(result.files.len(), 2, "{order}");
+        let spans: Vec<(usize, u32)> = result
+            .op_spans
+            .iter()
+            .map(|s| (s.operation, s.copy))
+            .collect();
+        assert_eq!(spans, cut, "{order}");
+    }
+}
+
+#[test]
+fn operations_are_checked_against_their_own_tool() {
+    let mut tools = two_tools();
+    tools[1]["rpm"] = Value::Null;
+    job_error(
+        &two_tool_job(json!({"tools": tools})),
+        "Tool 2 has no spindle speed",
+    );
+    // A clearance that fits tool 1's radius but not tool 2's.
+    let mut ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    ops[0]["tool"] = json!(2);
+    ops[0]["clearance"] = json!(2.0);
+    job_error(
+        &job(json!({"tools": two_tools(), "operations": ops})),
+        "clearance 2 must be less than the tool radius 1.5",
+    );
+    let mut ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
+    ops[1]["tool"] = json!(3);
+    job_error(
+        &job(json!({"tools": two_tools(), "operations": ops})),
+        "Tool 3 is not defined",
+    );
+}
+
+#[test]
+fn gcode_file_names_add_the_group_and_tool_to_the_stem() {
+    let file = |suffix: Option<&str>| chipload_pipeline::GcodeFile {
+        suffix: suffix.map(String::from),
+        tool: 3,
+        operations: vec![1, 3],
+        gcode: String::new(),
+    };
+    let out = Path::new("dir/part.nc");
+    assert_eq!(file(None).path(out), Path::new("dir/part.nc"));
+    assert_eq!(file(Some("-2-T3")).path(out), Path::new("dir/part-2-T3.nc"));
+    assert_eq!(
+        file(Some("-2-T3")).path(Path::new("part")),
+        Path::new("part-2-T3")
+    );
+    assert_eq!(
+        file(Some("-2-T3")).describe(out),
+        "part-2-T3.nc (tool 3, operations 2, 4)"
+    );
 }
 
 #[test]
@@ -315,7 +516,7 @@ fn lower_job(tool_changes: Value, pocket_changes: Value) -> Job {
 fn pocket_job_runs_on_the_real_drawing() {
     let result = run(&lower_job(json!({}), json!({})));
     assert!(result.check_warnings.is_empty());
-    assert_eq!(min(&z_values(&result.gcode)), -18.0); // the outline goes through
+    assert_eq!(min(&z_values(&result.files[0].gcode)), -18.0); // the outline goes through
     assert_eq!(result.pockets.len(), 3);
 }
 
@@ -348,8 +549,12 @@ fn pocket_refuses_a_vbit() {
 
 #[test]
 fn pocket_retracts_between_rings_by_default() {
-    let down = run(&lower_job(json!({}), json!({"keep_tool_down": true}))).gcode;
-    let retract = run(&lower_job(json!({}), json!({"keep_tool_down": false}))).gcode;
+    let down = run(&lower_job(json!({}), json!({"keep_tool_down": true}))).files[0]
+        .gcode
+        .clone();
+    let retract = run(&lower_job(json!({}), json!({"keep_tool_down": false}))).files[0]
+        .gcode
+        .clone();
     assert!(retract.matches("G0 Z5.000").count() > down.matches("G0 Z5.000").count());
 }
 
@@ -380,7 +585,7 @@ fn tabs_job(tab_changes: Value, op_changes: Value) -> Job {
 fn tabs_lift_only_the_last_pass_and_are_reported_for_display() {
     let result = run(&tabs_job(json!({}), json!({})));
     assert_eq!(result.tabs.len(), 4);
-    let zs = z_values(&result.gcode);
+    let zs = z_values(&result.files[0].gcode);
     assert!(zs.contains(&-9.0)); // tab top: cut bottom -12 + height 3
     assert_eq!(min(&zs), -12.0);
 }
@@ -632,12 +837,17 @@ fn the_work_zero_only_translates_the_output() {
     ] {
         let moved = run_job(&drawn_part_with(zero)).unwrap();
         assert!(
-            moved.gcode.contains(&format!("(Work zero: {text}")),
+            moved.files[0]
+                .gcode
+                .contains(&format!("(Work zero: {text}")),
             "{text}"
         );
         // Same toolpath for display, every output X/Y shifted by the same vector.
         assert_eq!(moved.program, base.program);
-        let (a, b) = (xy_words(&base.gcode), xy_words(&moved.gcode));
+        let (a, b) = (
+            xy_words(&base.files[0].gcode),
+            xy_words(&moved.files[0].gcode),
+        );
         assert_eq!(a.len(), b.len());
         for ((x0, y0), (x1, y1)) in a.into_iter().zip(b) {
             assert_eq!(x0.is_some(), x1.is_some());
@@ -659,7 +869,7 @@ fn the_checker_places_the_stock_by_the_work_zero_itself() {
     let centred = drawn_part_with(WorkZero::Stock {
         corner: StockCorner::Center,
     });
-    let gcode = run_job(&centred).unwrap().gcode;
+    let gcode = run_job(&centred).unwrap().files[0].gcode.clone();
     let outside = |job: &Job| {
         check_gcode(&gcode, &limits_from_job(job))
             .warnings
@@ -690,12 +900,12 @@ fn a_pocket_of_a_bulged_polyline_passes_the_checker_with_arcs() {
     pocket.strategy = chipload_job::PocketStrategy::Rings {};
     // run_job refuses G-code the checker rejects.
     let result = run(&job);
-    let arcs = result
+    let arcs = result.files[0]
         .gcode
         .lines()
         .filter(|l| l.starts_with("G2") || l.starts_with("G3"))
         .count();
-    assert!(arcs > 0, "{}", result.gcode);
+    assert!(arcs > 0, "{}", result.files[0].gcode);
     // The bow is cut: the pocket reaches below the triangle's straight bottom (y = 65).
     let lowest = result
         .pockets

@@ -22,7 +22,7 @@ pub mod start;
 pub mod tabs;
 pub mod vcarve;
 
-pub use plan::{OpSpan, Plan, RingStart, plan_job, validate_job};
+pub use plan::{OpSpan, Plan, RingStart, ToolGroup, op_tool, plan_job, tool_groups, validate_job};
 
 /// Why no toolpath could be made. Messages are the user-facing text.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]

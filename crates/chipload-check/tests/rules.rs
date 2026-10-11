@@ -269,3 +269,38 @@ fn an_arc_bulging_past_the_stock_is_seen_by_its_extent() {
         report.warnings
     );
 }
+
+#[test]
+fn each_tool_has_its_own_stock_margin() {
+    // docs/specs/tool-per-operation.md §6: tool 1 is 6 mm, tool 2 is 3 mm.
+    let project = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v11/two_tools.chipload");
+    let job = chipload_job::load_job(&project).unwrap();
+    let largest = chipload_check::limits_from_job(&job);
+    let small = chipload_check::limits_for_tool(&job, 2).unwrap();
+    assert_eq!(largest.tool_radius, 3.0);
+    assert_eq!(chipload_check::limits_for_tool(&job, 1).unwrap(), largest);
+    assert_eq!(
+        small,
+        CheckLimits {
+            tool_radius: 1.5,
+            ..largest.clone()
+        }
+    );
+    assert_eq!(chipload_check::limits_for_tool(&job, 9), None);
+    // A cut 2 mm left of the stock: within 6 mm tool's margin, outside the 3 mm tool's.
+    let x = largest.stock_min.0 - 2.0;
+    let y = largest.stock_min.1 + 10.0;
+    let program = format!(
+        "{HEADER}G0 X{x} Y{y}\nG1 Z-1 F100\nG1 Y{}\n{FOOTER}",
+        y + 10.0
+    );
+    let outside = |limits: &CheckLimits| {
+        check_gcode(&program, limits)
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock"))
+    };
+    assert!(!outside(&largest));
+    assert!(outside(&small));
+}

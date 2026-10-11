@@ -444,8 +444,7 @@ fn two_profiles() -> Value {
 
 /// XY extent of the feed moves of the spans for `copy`.
 fn extent_of(plan: &chipload_toolpath::Plan, copy: u32) -> ((f64, f64), (f64, f64)) {
-    chipload_toolpath::plan::cut_extent(&plan.program.moves, &plan.op_spans, 0.0, Some(copy))
-        .unwrap()
+    chipload_toolpath::plan::cut_extent(&plan.program.moves, &plan.op_spans, Some(copy)).unwrap()
 }
 
 #[test]

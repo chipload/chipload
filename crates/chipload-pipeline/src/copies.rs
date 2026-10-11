@@ -34,8 +34,7 @@ pub fn cut_size(job: &Job) -> Result<(f64, f64), PipelineError> {
     one.copies = None;
     let imported = load_drawing(&one)?;
     let plan = plan_job(&one, &imported.contours)?;
-    let radius = plan.program.tool_diameter / 2.0;
-    let ((x0, y0), (x1, y1)) = cut_extent(&plan.program.moves, &plan.op_spans, radius, None)
+    let ((x0, y0), (x1, y1)) = cut_extent(&plan.program.moves, &plan.op_spans, None)
         .ok_or_else(|| PipelineError::Job("The project cuts nothing".into()))?;
     Ok((x1 - x0, y1 - y0))
 }

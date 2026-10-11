@@ -54,7 +54,10 @@ fn import_create_operations_generate_save_and_run_without_the_dxf() {
     let job = load_job(&project).unwrap();
     assert!(!job.drawing.shapes.is_empty());
     let again = run_job(&job).unwrap();
-    assert_eq!(std::fs::read_to_string(&gcode_path).unwrap(), again.gcode);
+    assert_eq!(
+        std::fs::read_to_string(&gcode_path).unwrap(),
+        again.files[0].gcode
+    );
     // Reopening it shows the same contours.
     let mut reopened = ChiploadApp::default();
     assert!(reopened.open(&project));

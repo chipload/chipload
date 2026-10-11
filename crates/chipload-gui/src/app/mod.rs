@@ -22,7 +22,7 @@ use chipload_pipeline::report::format_material_left;
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, update_drawing,
-    write_atomically,
+    write_gcode_files,
 };
 use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::select::select_contours;
@@ -706,11 +706,19 @@ impl ChiploadApp {
                 // Missed pieces on top.
                 self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
                 let mut report = Report::default();
+                let lines: usize = result
+                    .files
+                    .iter()
+                    .map(|f| f.gcode.matches('\n').count())
+                    .sum();
+                let files = match result.files.len() {
+                    1 => String::new(),
+                    n => format!(" in {n} files, one per tool group"),
+                };
                 report.push(
                     Tone::Good,
                     format!(
-                        "Generated {} lines for {}. Check passed.",
-                        result.gcode.matches('\n').count(),
+                        "Generated {lines} lines{files} for {}. Check passed.",
                         result.post.name
                     ),
                 );
@@ -757,8 +765,32 @@ impl ChiploadApp {
             self.error(vec!["Generate (F5) before exporting G-code.".into()]);
             return false;
         };
-        match write_atomically(path, &result.gcode) {
-            Ok(()) => {
+        match write_gcode_files(path, &result.files) {
+            Ok(written) if written.len() > 1 => {
+                let mut report = Report::default();
+                report.push(
+                    Tone::Good,
+                    format!(
+                        "Exported {} files: change the tool and set Z zero between them, \
+                         keeping X and Y zero.",
+                        written.len()
+                    ),
+                );
+                for file in &result.files {
+                    report.push(Tone::Info, file.describe(path));
+                }
+                self.set_report(report);
+                self.set_status(
+                    format!(
+                        "Exported {} files next to {}",
+                        written.len(),
+                        path.display()
+                    ),
+                    STATUS_SECONDS,
+                );
+                true
+            }
+            Ok(_) => {
                 self.set_status(format!("Exported {}", path.display()), STATUS_SECONDS);
                 true
             }

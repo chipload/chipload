@@ -43,6 +43,32 @@ pub struct Plan {
     /// Every ring whose start the user can move (on the part, copy 1), for the start
     /// markers (docs/specs/helix-and-leads.md part A).
     pub ring_starts: Vec<RingStart>,
+    /// The tool groups in cut order (docs/specs/tool-per-operation.md §2): one per tool
+    /// change, each a program of its own or a part of one. A one-tool job has one.
+    pub groups: Vec<ToolGroup>,
+}
+
+/// Operations next to each other that use the same tool, and the moves they made.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ToolGroup {
+    pub tool: Tool,
+    /// Indexes in `job.operations`, in cut order.
+    pub operations: Vec<usize>,
+    pub moves: std::ops::Range<usize>,
+}
+
+impl ToolGroup {
+    /// The group's moves as a program of their own: its tool, the rest from `program`.
+    pub fn program(&self, program: &Program) -> Program {
+        Program {
+            tool_id: self.tool.id,
+            tool_diameter: self.tool.diameter,
+            rpm: self.tool.rpm.unwrap_or(0.0),
+            spindle: program.spindle,
+            safe_z: program.safe_z,
+            moves: program.moves[self.moves.clone()].to_vec(),
+        }
+    }
 }
 
 /// A ring whose start can be moved: profile rings and pocket wall rings.
@@ -57,20 +83,19 @@ pub struct RingStart {
 }
 
 /// The moves one operation contributed to the program.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OpSpan {
     /// Index in `job.operations`.
     pub operation: usize,
     /// Which copy of the part (docs/specs/copies-grid.md): 1 is the drawing as drawn.
     pub copy: u32,
     pub moves: std::ops::Range<usize>,
+    /// Of the operation's tool, mm.
+    pub tool_radius: f64,
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
-    let (tool, mut notes) = validate_job(job)?;
-    let rpm = tool
-        .rpm
-        .ok_or_else(|| job_error(format!("Tool {} has no spindle speed (rpm)", tool.id)))?;
+    let mut notes = validate_job(job)?;
     let top_z = match job.stock.z_zero {
         ZZero::Top => 0.0,
         ZZero::Bottom => job.stock.thickness,
@@ -100,25 +125,51 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         .copies
         .map_or_else(|| vec![(1, (0.0, 0.0))], |c| c.in_cut_order());
     let several = copies.len() > 1;
-    // (operation, copy) pairs in cut order (docs/specs/copies-grid.md §3).
+    // (operation, copy) pairs in cut order (docs/specs/copies-grid.md §3), tool group by
+    // tool group (docs/specs/tool-per-operation.md §2): the copies' order applies within a
+    // group, so a grid needs one tool change, not one per part.
     let mut order: Vec<(usize, usize)> = Vec::new();
-    match job.copies.map(|c| c.order) {
-        Some(CopyOrder::ByPart) => {
-            for k in 0..copies.len() {
-                order.extend((0..chosen.len()).map(|i| (i, k)));
+    let mut group_of: Vec<usize> = Vec::new();
+    let mut groups: Vec<ToolGroup> = Vec::new();
+    for (tool_id, indexes) in tool_groups(job) {
+        let tool = job
+            .tools
+            .iter()
+            .find(|t| t.id == tool_id)
+            .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
+        let members: Vec<usize> = (0..chosen.len())
+            .filter(|i| indexes.contains(&chosen[*i].0))
+            .collect();
+        let before = order.len();
+        match job.copies.map(|c| c.order) {
+            Some(CopyOrder::ByPart) => {
+                for k in 0..copies.len() {
+                    order.extend(members.iter().map(|i| (*i, k)));
+                }
+            }
+            _ => {
+                for i in &members {
+                    order.extend((0..copies.len()).map(|k| (*i, k)));
+                }
             }
         }
-        _ => {
-            for i in 0..chosen.len() {
-                order.extend((0..copies.len()).map(|k| (i, k)));
-            }
-        }
+        group_of.extend(std::iter::repeat_n(groups.len(), order.len() - before));
+        groups.push(ToolGroup {
+            tool: tool.clone(),
+            operations: indexes,
+            moves: 0..0,
+        });
     }
     // Every copy repeats the original's notes: each is listed once per operation.
     let mut seen: Vec<(usize, String)> = Vec::new();
     let mut started: Vec<usize> = Vec::new();
-    for (i, k) in order {
+    for (step, (i, k)) in order.into_iter().enumerate() {
         let (index, label, selection) = &chosen[i];
+        let group = &mut groups[group_of[step]];
+        if group.moves.is_empty() {
+            group.moves = moves.len()..moves.len();
+        }
+        let tool = op_tool(job, &job.operations[*index])?;
         if !started.contains(index) {
             started.push(*index);
             notes.extend(selection.notes.iter().cloned());
@@ -187,7 +238,9 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             operation: *index,
             copy: number,
             moves: first..moves.len(),
+            tool_radius: tool.diameter / 2.0,
         });
+        groups[group_of[step]].moves.end = moves.len();
         for note in planned.notes {
             let key = (*index, note);
             if !seen.contains(&key) {
@@ -210,15 +263,18 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         position = planned.end;
     }
     if let Some(grid) = &job.copies {
-        check_copies_apart(grid, &moves, &op_spans, tool.diameter / 2.0)?;
+        check_copies_apart(grid, &moves, &op_spans)?;
     }
+    let first = groups
+        .first()
+        .ok_or_else(|| job_error("Every operation is disabled: nothing to cut".into()))?;
     // Chords of known arcs are tagged; the post writes them as G2/G3 if it does arcs.
     tag_moves(&mut moves, &arcs);
     Ok(Plan {
         program: Program {
-            tool_id: tool.id,
-            tool_diameter: tool.diameter,
-            rpm,
+            tool_id: first.tool.id,
+            tool_diameter: first.tool.diameter,
+            rpm: first.tool.rpm.unwrap_or(0.0),
             spindle: job.machine.spindle,
             safe_z: job.machine.safe_z,
             moves,
@@ -229,6 +285,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         material_left,
         op_spans,
         ring_starts,
+        groups,
     })
 }
 
@@ -603,16 +660,12 @@ fn profile_leads(
 }
 
 /// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
-/// points, plus the tool radius. None if it cuts nothing.
-pub fn cut_extent(
-    moves: &[Move],
-    spans: &[OpSpan],
-    radius: f64,
-    copy: Option<u32>,
-) -> Option<(Point, Point)> {
+/// points, plus the radius of the tool that made them. None if it cuts nothing.
+pub fn cut_extent(moves: &[Move], spans: &[OpSpan], copy: Option<u32>) -> Option<(Point, Point)> {
     let mut extent: Option<(Point, Point)> = None;
     let mut at: (Option<f64>, Option<f64>) = (None, None);
     for span in spans {
+        let r = span.tool_radius;
         for m in &moves[span.moves.clone()] {
             let from = at;
             at = (m.x.or(at.0), m.y.or(at.1));
@@ -621,12 +674,15 @@ pub fn cut_extent(
             }
             for (x, y) in [from, at] {
                 let (Some(x), Some(y)) = (x, y) else { continue };
-                let ((x0, y0), (x1, y1)) = extent.unwrap_or(((x, y), (x, y)));
-                extent = Some(((x0.min(x), y0.min(y)), (x1.max(x), y1.max(y))));
+                let ((x0, y0), (x1, y1)) = extent.unwrap_or(((x - r, y - r), (x + r, y + r)));
+                extent = Some((
+                    (x0.min(x - r), y0.min(y - r)),
+                    (x1.max(x + r), y1.max(y + r)),
+                ));
             }
         }
     }
-    extent.map(|((x0, y0), (x1, y1))| ((x0 - radius, y0 - radius), (x1 + radius, y1 + radius)))
+    extent
 }
 
 /// Neighbouring copies must not cut into each other (docs/specs/copies-grid.md §4): with
@@ -635,9 +691,8 @@ fn check_copies_apart(
     grid: &Copies,
     moves: &[Move],
     spans: &[OpSpan],
-    radius: f64,
 ) -> Result<(), ToolpathError> {
-    let Some(((x0, y0), (x1, y1))) = cut_extent(moves, spans, radius, Some(1)) else {
+    let Some(((x0, y0), (x1, y1))) = cut_extent(moves, spans, Some(1)) else {
         return Ok(());
     };
     let axes = [
@@ -660,8 +715,17 @@ fn job_error(message: String) -> ToolpathError {
     ToolpathError::Job(message)
 }
 
-/// Generation-time rules from the specs. Returns the single tool used and warnings.
-pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
+/// The tool an operation names (docs/specs/tool-per-operation.md §4).
+pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathError> {
+    job.tools
+        .iter()
+        .find(|t| t.id == op.tool())
+        .ok_or_else(|| job_error(format!("Tool {} is not defined in the job", op.tool())))
+}
+
+/// Generation-time rules from the specs, each operation against its own tool. Returns
+/// warnings.
+pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
     if job.operations.is_empty() {
         return Err(job_error("Job has no operations".into()));
     }
@@ -676,26 +740,14 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
             .enumerate()
             .filter(|(_, op)| op.enabled())
     };
-    let mut used: Vec<i64> = enabled().map(|(_, op)| op.tool()).collect();
-    used.sort_unstable();
-    used.dedup();
-    if used.len() > 1 {
-        let list: Vec<String> = used.iter().map(i64::to_string).collect();
-        return Err(job_error(format!(
-            "Operations use tools [{}]; this version supports one tool per job",
-            list.join(", ")
-        )));
-    }
-    let tool = job
-        .tools
-        .iter()
-        .find(|t| t.id == used[0])
-        .ok_or_else(|| job_error(format!("Tool {} is not defined in the job", used[0])))?;
-    if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
-        return Err(job_error(format!(
-            "Tool {} has no spindle speed (rpm)",
-            tool.id
-        )));
+    for (_, op) in enabled() {
+        let tool = op_tool(job, op)?;
+        if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
+            return Err(job_error(format!(
+                "Tool {} has no spindle speed (rpm)",
+                tool.id
+            )));
+        }
     }
     let (top, z_zero) = match job.stock.z_zero {
         ZZero::Top => (0.0, "top"),
@@ -707,8 +759,9 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
             job.machine.safe_z
         )));
     }
-    let mut notes = Vec::new();
+    let mut notes = tool_group_notes(job);
     for (index, op) in enabled() {
+        let tool = op_tool(job, op)?;
         let number = index + 1;
         let label = match op.name() {
             "" => format!("Operation {number}"),
@@ -790,7 +843,55 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
             Operation::Vcarve(_) => notes.extend(vcarve_tool_notes(&label, tool)?),
         }
     }
-    Ok((tool, notes))
+    Ok(notes)
+}
+
+/// The enabled operations in tool groups: runs of operations next to each other (disabled
+/// ones skipped) that use the same tool (docs/specs/tool-per-operation.md §2). Indexes in
+/// `job.operations`.
+pub fn tool_groups(job: &Job) -> Vec<(i64, Vec<usize>)> {
+    let mut groups: Vec<(i64, Vec<usize>)> = Vec::new();
+    for (index, op) in job.operations.iter().enumerate() {
+        if !op.enabled() {
+            continue;
+        }
+        match groups.last_mut() {
+            Some((tool, ops)) if *tool == op.tool() => ops.push(index),
+            _ => groups.push((op.tool(), vec![index])),
+        }
+    }
+    groups
+}
+
+/// A note for each tool that comes back after another one: putting its operations next to
+/// each other saves a tool change.
+fn tool_group_notes(job: &Job) -> Vec<String> {
+    let groups = tool_groups(job);
+    let mut tools: Vec<i64> = groups.iter().map(|(tool, _)| *tool).collect();
+    tools.sort_unstable();
+    tools.dedup();
+    let mut notes = Vec::new();
+    for tool in tools {
+        let used: Vec<&Vec<usize>> = groups
+            .iter()
+            .filter(|(t, _)| *t == tool)
+            .map(|(_, ops)| ops)
+            .collect();
+        if used.len() < 2 {
+            continue;
+        }
+        let numbers: Vec<String> = used
+            .iter()
+            .flat_map(|ops| ops.iter().map(|i| (i + 1).to_string()))
+            .collect();
+        notes.push(format!(
+            "Tool {tool} is used in {} groups (operations {}); moving them next to each other \
+             saves a tool change",
+            used.len(),
+            numbers.join(", ")
+        ));
+    }
+    notes
 }
 
 /// V-carving needs a V-bit with a known angle; a tip that isn't set is taken as pointed and

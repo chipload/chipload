@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 19] = [
+const GOLDEN: [(&str, &str); 20] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -51,6 +51,9 @@ const GOLDEN: [(&str, &str); 19] = [
     // Serif letters V-carved with a 60° bit in two passes (docs/specs/v-carve.md).
     ("v10_vcarve_letters", "jobs/v10/vcarve_letters.chipload"),
     ("v11_scaled_part", "jobs/v11/scaled_part.chipload"),
+    // A pocket with a 3 mm tool, the outline with 6 mm: one file per tool
+    // (docs/specs/tool-per-operation.md), v11_two_tools-1-T2.nc and v11_two_tools-2-T1.nc.
+    ("v11_two_tools", "jobs/v11/two_tools.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {
@@ -75,35 +78,56 @@ fn chipload(args: &[&OsStr]) {
     );
 }
 
-fn run(project: &Path, out: &Path) -> String {
+/// Run the project to `dir/<name>.nc`: the files written, as (file name, G-code), in name
+/// order. One file, or one per tool group (`<name>-1-T2.nc`, …).
+fn run(project: &Path, dir: &Path, name: &str) -> Vec<(String, String)> {
+    let out = dir.join(format!("{name}.nc"));
     chipload(&[
         "run".as_ref(),
         project.as_os_str(),
         "-o".as_ref(),
         out.as_os_str(),
     ]);
-    std::fs::read_to_string(out).unwrap()
+    let mut files: Vec<(String, String)> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|f| f == &format!("{name}.nc") || f.starts_with(&format!("{name}-")))
+        .map(|f| {
+            let text = std::fs::read_to_string(dir.join(&f)).unwrap();
+            (f, text)
+        })
+        .collect();
+    files.sort();
+    files
 }
 
 #[test]
 fn golden_gcode() {
-    let dir = std::env::temp_dir().join(format!("chipload-golden-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
+    let base = std::env::temp_dir().join(format!("chipload-golden-{}", std::process::id()));
     let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
     let mut mismatches = Vec::new();
     for (name, project) in GOLDEN {
         let project = corpus(project);
-        let first = run(&project, &dir.join(format!("{name}-1.nc")));
-        let second = run(&project, &dir.join(format!("{name}-2.nc")));
+        let (one, two) = (
+            base.join(format!("{name}-a")),
+            base.join(format!("{name}-b")),
+        );
+        std::fs::create_dir_all(&one).unwrap();
+        std::fs::create_dir_all(&two).unwrap();
+        let first = run(&project, &one, name);
+        let second = run(&project, &two, name);
         assert_eq!(first, second, "{name}: output differs between runs");
-        let expected = corpus(&format!("expected/{name}.nc"));
-        if update {
-            std::fs::write(&expected, &first).unwrap();
-        } else if std::fs::read_to_string(&expected).unwrap() != first {
-            mismatches.push(name);
+        assert!(!first.is_empty(), "{name}: no G-code written");
+        for (file, text) in &first {
+            let expected = corpus(&format!("expected/{file}"));
+            if update {
+                std::fs::write(&expected, text).unwrap();
+            } else if std::fs::read_to_string(&expected).ok().as_ref() != Some(text) {
+                mismatches.push(file.clone());
+            }
         }
     }
-    std::fs::remove_dir_all(&dir).unwrap();
+    std::fs::remove_dir_all(&base).unwrap();
     assert!(
         mismatches.is_empty(),
         "golden G-code differs for {mismatches:?}; if intended, regenerate with \
@@ -112,15 +136,22 @@ fn golden_gcode() {
 }
 
 /// The same project rendered with the GRBL post but `arcs = false`: what run_job does, with
-/// that one setting changed.
-fn render_without_arcs(project: &Path) -> String {
+/// that one setting changed. (file name, G-code) for each file, as `run` names them.
+fn render_without_arcs(project: &Path, name: &str) -> Vec<(String, String)> {
     let job = chipload_job::load_job(project).unwrap();
     let drawing = chipload_pipeline::load_drawing(&job).unwrap();
     let plan = chipload_toolpath::plan_job(&job, &drawing.contours).unwrap();
-    let output = chipload_pipeline::in_work_coordinates(&plan.program, job.work_zero_xy());
     let mut post = chipload_post::load_builtin_post("grbl").unwrap();
     post.arcs = false;
-    chipload_post::render_program_with(&output, &post, Some(&job.work_zero_text())).unwrap()
+    let (files, _) =
+        chipload_pipeline::post_and_check(&job, &post, &plan.program, &plan.groups).unwrap();
+    files
+        .into_iter()
+        .map(|f| {
+            let file = format!("{name}{}.nc", f.suffix.unwrap_or_default());
+            (file, f.gcode)
+        })
+        .collect()
 }
 
 #[test]
@@ -129,19 +160,36 @@ fn without_arcs_the_output_is_the_line_only_golden() {
     // (tests/corpus/expected/lines/, frozen when arcs were added).
     let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
     for (name, project) in GOLDEN {
-        let lines = render_without_arcs(&corpus(project));
-        let path = corpus(&format!("expected/lines/{name}.nc"));
-        if update {
-            std::fs::write(&path, &lines).unwrap();
+        for (file, lines) in render_without_arcs(&corpus(project), name) {
+            let path = corpus(&format!("expected/lines/{file}"));
+            if update {
+                std::fs::write(&path, &lines).unwrap();
+            }
+            let golden = std::fs::read_to_string(&path).unwrap();
+            assert!(lines == golden, "{file}: arcs = false changed the G-code");
+            assert!(
+                !lines
+                    .lines()
+                    .any(|l| l.starts_with("G2 ") || l.starts_with("G3 "))
+            );
         }
-        let golden = std::fs::read_to_string(&path).unwrap();
-        assert!(lines == golden, "{name}: arcs = false changed the G-code");
-        assert!(
-            !lines
-                .lines()
-                .any(|l| l.starts_with("G2 ") || l.starts_with("G3 "))
-        );
     }
+}
+
+/// Every golden file of the GOLDEN projects (`expected/<name>.nc` or `<name>-…nc`).
+fn golden_files() -> Vec<String> {
+    let mut files: Vec<String> = std::fs::read_dir(corpus("expected"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|f| {
+            GOLDEN.iter().any(|(name, _)| {
+                f == &format!("{name}.nc")
+                    || (f.starts_with(&format!("{name}-")) && f.ends_with(".nc"))
+            })
+        })
+        .collect();
+    files.sort();
+    files
 }
 
 type Xy = (f64, f64);
@@ -170,8 +218,8 @@ fn every_golden_arc_is_consistent_as_written() {
     // After rounding to 3 decimals, start and end radius agree within 0.001 mm (GRBL checks
     // 0.005 mm, the independent checker 0.01 mm), and no arc is a full circle.
     let mut count = 0;
-    for (name, _) in GOLDEN {
-        let gcode = std::fs::read_to_string(corpus(&format!("expected/{name}.nc"))).unwrap();
+    for name in golden_files() {
+        let gcode = std::fs::read_to_string(corpus(&format!("expected/{name}"))).unwrap();
         for (start, end, centre) in arcs_in(&gcode) {
             let r0 = (start.0 - centre.0).hypot(start.1 - centre.1);
             let r1 = (end.0 - centre.0).hypot(end.1 - centre.1);

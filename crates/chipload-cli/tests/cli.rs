@@ -820,3 +820,87 @@ fn the_imported_drawing_is_scaled_from_the_command_line() {
     assert!(out.contains("Drawing: as in the DXF"), "{out}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_project_with_two_tools_writes_one_checked_file_per_tool() {
+    // docs/specs/tool-per-operation.md §3.1, §6, §7.
+    let dir = temp_dir("two-tools");
+    let project = dir.join("two.chipload");
+    std::fs::copy(corpus("jobs/v11/two_tools.chipload"), &project).unwrap();
+    let out_path = dir.join("part.nc");
+    let out = chipload(&["run", path(&project), "-o", path(&out_path)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let stdout = text(&out.stdout);
+    let (first, second) = (dir.join("part-1-T2.nc"), dir.join("part-2-T1.nc"));
+    for (file, tool, ops) in [(&first, 2, "1"), (&second, 1, "2")] {
+        assert!(
+            stdout.contains(&format!("Wrote {} (", file.display()))
+                && stdout.contains(&format!("lines, tool {tool}, operations {ops})")),
+            "{stdout}"
+        );
+        // Each file passes the checker with its own tool, and with the largest.
+        let tool = tool.to_string();
+        for extra in [&["--tool", tool.as_str()][..], &[][..]] {
+            let mut args = vec!["check", path(file), "--job", path(&project)];
+            args.extend_from_slice(extra);
+            let out = chipload(&args);
+            assert!(out.status.success(), "{}", text(&out.stdout));
+        }
+    }
+    assert!(stdout.contains("2 files, post GRBL: change the tool and set Z zero"));
+    assert!(
+        !out_path.exists(),
+        "no single file for a project with two tools"
+    );
+    let out = chipload(&[
+        "check",
+        path(&first),
+        "--job",
+        path(&project),
+        "--tool",
+        "9",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("the project has no tool 9"));
+
+    // plan: the groups, and render refuses a plan with tool changes.
+    let out = chipload(&["plan", path(&project), "--json"]);
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(plan["groups"][0]["tool"], 2);
+    assert_eq!(plan["groups"][0]["operations"], serde_json::json!([0]));
+    assert_eq!(plan["groups"][1]["tool"], 1);
+    assert_eq!(plan["program"]["tool_groups"], 2);
+    let program = dir.join("program.json");
+    std::fs::write(&program, plan["program"].to_string()).unwrap();
+    let out = chipload(&["render", path(&program)]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("this plan uses 2 tool groups; use run"));
+    let out = chipload(&["plan", path(&project)]);
+    assert!(text(&out.stdout).contains("Tool group 1: tool 2, operations 1"));
+
+    // op tool: both operations with tool 1 give one file again.
+    let out = chipload(&["op", "tool", path(&project), "--op", "1", "--tool", "1"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Operation 1 now cuts with tool 1."));
+    let out = chipload(&["run", path(&project), "-o", path(&out_path)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(out_path.exists());
+    for (args, message) in [
+        (
+            ["--op", "1", "--tool", "7"],
+            "the project has no tool 7; copy one in",
+        ),
+        (
+            ["--op", "3", "--tool", "2"],
+            "there is no operation 3; the project has 2",
+        ),
+        (["--op", "0", "--tool", "2"], "there is no operation 0"),
+    ] {
+        let mut all = vec!["op", "tool", path(&project)];
+        all.extend_from_slice(&args);
+        let out = chipload(&all);
+        assert_eq!(out.status.code(), Some(1), "{args:?}");
+        assert!(text(&out.stderr).contains(message), "{}", text(&out.stderr));
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
