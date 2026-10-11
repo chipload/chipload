@@ -198,6 +198,30 @@ fn an_update_keeps_the_placement() {
 }
 
 #[test]
+fn arcs_rounded_differently_on_another_platform_are_unchanged() {
+    // A project saved on Linux and updated on Windows: radius and sweep of a bulged
+    // polyline's arcs come from trigonometry and may differ in the last bits.
+    let mut job = simple_part();
+    let mut nudged = 0;
+    for shape in &mut job.drawing.shapes {
+        if let Geometry::Path { segments, .. } = &mut shape.geometry {
+            for segment in segments {
+                if let chipload_job::PathSegment::Arc(arc) = segment {
+                    arc.radius = f64::from_bits(arc.radius.to_bits() + 2);
+                    arc.sweep = f64::from_bits(arc.sweep.to_bits() + 2);
+                    nudged += 1;
+                }
+            }
+        }
+    }
+    assert!(nudged > 0, "simple_part has arcs");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus");
+    let (_, report) = update_drawing(&job, &corpus.join("dxf/simple_part.dxf"), None).unwrap();
+    assert_eq!(report.unchanged.len(), 7, "{:?}", report.lines);
+    assert!(report.changed.is_empty(), "{:?}", report.lines);
+}
+
+#[test]
 fn start_points_on_the_imported_drawing_move_with_it() {
     let (job, _, dir) = drawn_then_imported("starts");
     let job = with_ops(

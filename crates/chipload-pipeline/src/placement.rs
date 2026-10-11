@@ -288,12 +288,14 @@ fn same_segment(a: &PathSegment, b: &PathSegment) -> bool {
         (PathSegment::Line(x), PathSegment::Line(y)) => {
             close(x.start, y.start) && close(x.end, y.end)
         }
-        // Moves and turns never change an arc's radius or sweep: those must be equal.
+        // Radius and sweep come from trigonometry for a bulged polyline, which may round
+        // differently in the last bit on another platform (a project saved on Linux,
+        // updated on Windows): within the tolerances too.
         (PathSegment::Arc(x), PathSegment::Arc(y)) => {
             let turn = (x.start_angle - y.start_angle).rem_euclid(TAU);
             close(x.center, y.center)
-                && x.radius == y.radius
-                && x.sweep == y.sweep
+                && (x.radius - y.radius).abs() <= PLACEMENT_ROUNDING_MM
+                && (x.sweep - y.sweep).abs() <= ANGLE_TOL_RAD
                 && (turn <= ANGLE_TOL_RAD || TAU - turn <= ANGLE_TOL_RAD)
         }
         _ => false,
