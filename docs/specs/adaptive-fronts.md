@@ -1,6 +1,8 @@
 # Spec: adaptive clearing by fronts, divided by the medial axis
 
-Status: **approved 2026-10-11**, all decisions as recommended (§9). Replaces the path
+Status: **approved 2026-10-11**, all decisions as recommended (§9). **Superseded** the same
+day by docs/specs/adaptive-spiral.md (user: step back to medial-axis spirals); its stage 1,
+the one stepover setting (schema 13), stays. Replaces the path
 generation of docs/specs/adaptive.md §3 (the grid steering). Its verification, wall pass and
 tests stay. Stages 1 (the format) and 3 (the fronts) are built; §10 says how and what was
 measured, including the targets of §4 that are not met yet.

@@ -9,17 +9,10 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Adaptive clearing by fronts** (docs/specs/adaptive-fronts.md, approved 2026-10-11).
-  Stage 1 (schema 13: stepover replaces `load`) and stage 3 (the fronts) are on main; the
-  user chose to merge with the measured shortfalls (§10) and improve after:
-  - Engagement up to about 2 × w (5 × at stepover 0.1) where a pass starts at a wall or
-    island. Idea: leave a thin strip along those edges and take it last with a pass along
-    the wall the other way.
-  - Stage 4: smooth the turns into and out of returns (ρ_min), smoother spiral blending.
-  - Stage 5: GUI label *Stepover (cut width)*; remove the old grid steering
-    (`adaptive::clear` and its `Field`).
-  - Length is 1.7 × the ideal (target 1.6 ×): the returns; a faster return feed is out of
-    scope so far.
+- **Adaptive as spirals and trochoidal channels on the medial axis**
+  (docs/specs/adaptive-spiral.md, draft 2026-10-11, awaiting review). Replaces the fronts
+  (adaptive-fronts.md, on main since f9fcf79 until the spiral covers every pocket) and the
+  trochoidal strategy. Then rest machining with a smaller tool, its own spec.
 
 ## Done
 
