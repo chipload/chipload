@@ -17,6 +17,11 @@ it's built (see `CLAUDE.md`).
   areas, and clear each along its centre line with steady engagement, in an order that
   keeps links short. Needs a spec first: what "efficient" is measured as (cut time, air
   time, link length, re-entries), and checks that it stays gouge-free and leaves nothing.
+  User's goals (2026-10-11): adaptive is about **constant chip load**, **fluid motion**
+  (few sudden changes of direction, so the controller keeps its speed) and **little
+  recutting** of areas already cut. One setting, not both `load` and stepover: adaptive
+  uses the pocket's stepover, default 0.4 × D as for rings (a format change: `load` goes,
+  so a migration).
 
 ## Done
 

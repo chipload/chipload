@@ -83,12 +83,43 @@ fn dist_to_outline(contours: &[Contour], p: Point) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
-/// Even-odd: inside the outer contour and outside its holes.
+/// The contour as a ring with arcs split far finer than the import's chords (sag at most
+/// a thousandth of TOL): a point between a chord and its arc is outside the shape, and
+/// counting it in would turn the chords' sag into a miss.
+fn fine_ring(contour: &Contour) -> Vec<Point> {
+    let sag = TOL / 1000.0;
+    let mut ring = Vec::new();
+    for part in &contour.parts {
+        let mut points = match part.segment.prim {
+            Primitive::Line(l) => vec![l.start, l.end],
+            Primitive::Arc(a) => {
+                let step = 2.0 * (1.0 - sag / a.radius).clamp(-1.0, 1.0).acos();
+                let n = (a.sweep.abs() / step).ceil().max(1.0) as usize;
+                (0..=n)
+                    .map(|i| {
+                        let t = a.start_angle + a.sweep * i as f64 / n as f64;
+                        (
+                            a.center.0 + a.radius * t.cos(),
+                            a.center.1 + a.radius * t.sin(),
+                        )
+                    })
+                    .collect()
+            }
+        };
+        if part.reversed {
+            points.reverse();
+        }
+        ring.extend(points.into_iter().skip(usize::from(!ring.is_empty())));
+    }
+    ring
+}
+
+/// Even-odd: inside the outer contour and outside its holes, with the real arcs.
 fn inside(contours: &[Contour], p: Point) -> bool {
     let crossings: usize = contours
         .iter()
         .map(|c| {
-            let ring = c.points();
+            let ring = fine_ring(c);
             let n = ring.len();
             (0..n)
                 .filter(|&i| {
