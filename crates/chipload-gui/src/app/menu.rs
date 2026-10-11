@@ -226,12 +226,12 @@ impl ChiploadApp {
                 ui.checkbox(&mut self.legend_open, "Show legend");
                 ui.menu_button("Theme", |ui| {
                     for (choice, label) in [
-                        (egui::ThemePreference::System, "Follow system"),
-                        (egui::ThemePreference::Light, "Light"),
-                        (egui::ThemePreference::Dark, "Dark"),
+                        (Theme::System, "Follow system"),
+                        (Theme::Light, "Light"),
+                        (Theme::Dark, "Dark"),
                     ] {
-                        if ui.radio_value(&mut self.theme, choice, label).clicked() {
-                            ui.ctx().set_theme(choice);
+                        if ui.radio(self.theme == choice, label).clicked() {
+                            self.set_theme(choice);
                         }
                     }
                 });

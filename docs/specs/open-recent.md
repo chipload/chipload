@@ -5,13 +5,14 @@ menu"), and decision 10 of docs/specs/tool-library-and-machines.md placed it in 
 settings folder, as a third small versioned file. The choices below are the conventional
 ones and are open to change.
 
-## 1. Format: `settings.json` (schema version 1)
+## 1. Format: `settings.json` (schema version 2)
 
 ```json
 {
-  "schema_version": 1,
-  "written_by": "chipload 0.6.0",
-  "recent_projects": ["/home/ann/cnc/sign.chipload", "/home/ann/cnc/box.chipload"]
+  "schema_version": 2,
+  "written_by": "chipload 0.10.0",
+  "recent_projects": ["/home/ann/cnc/sign.chipload", "/home/ann/cnc/box.chipload"],
+  "theme": "system"
 }
 ```
 
@@ -19,7 +20,14 @@ ones and are open to change.
 - Loading and saving follow the library rules: versioned, missing file = empty, broken or
   newer file refused and never overwritten, atomic saves keeping a `.bak`.
 - A path that isn't valid Unicode isn't recorded, rather than being written wrongly.
-- Room for other app settings later (optional fields, no version bump).
+- `theme` (since version 2, decided 2026-10-11): `system`, `light` or `dark`, set under
+  *View > Theme*.
+- The file refuses fields it doesn't know, so every new setting is a version bump with a
+  migration, like a project. Version 1 (recent projects only) migrates to 2 with `theme:
+  system`, which is how it looked before; a frozen sample is in
+  `tests/corpus/settings/v1/`. Chipload 0.9.0 and older refuse a version 2 file: they
+  show an empty recent list, report the version when they try to record a project, and
+  never overwrite the file.
 
 ## 2. Behaviour
 

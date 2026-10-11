@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use chipload_job::library::{AppSettings, RECENT_MAX, load_settings, update_settings};
+use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, UsedTool,
     load_machines, load_tools, save_machines, save_tools, update_tools, use_tool,
@@ -426,7 +426,7 @@ fn recent_projects_keep_order_without_duplicates_up_to_the_limit() {
             .contains(&"/p/1.chipload".to_string())
     );
     let text = std::fs::read_to_string(&path).unwrap();
-    assert!(text.contains("\"schema_version\": 1"), "{text}");
+    assert!(text.contains("\"schema_version\": 2"), "{text}");
 
     std::fs::write(
         &path,
@@ -435,9 +435,59 @@ fn recent_projects_keep_order_without_duplicates_up_to_the_limit() {
     .unwrap();
     let err = load_settings(&path).unwrap_err().to_string();
     assert!(err.contains("listed twice"), "{err}");
-    std::fs::write(&path, r#"{"schema_version": 2, "recent_projects": []}"#).unwrap();
+    std::fs::write(
+        &path,
+        r#"{"schema_version": 3, "recent_projects": [], "theme": "system"}"#,
+    )
+    .unwrap();
     assert!(matches!(
         load_settings(&path).unwrap_err(),
         LibraryError::UnsupportedVersion { .. }
     ));
+}
+
+/// The frozen settings of each older version (never edited; add a new one instead).
+fn settings_sample(version: i64) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(format!(
+        "../../tests/corpus/settings/v{version}/settings.json"
+    ))
+}
+
+#[test]
+fn version_1_settings_migrate_to_follow_the_system_theme() {
+    let dir = temp_dir("settings-v1");
+    let path = dir.join("settings.json");
+    std::fs::copy(settings_sample(1), &path).unwrap();
+    let settings = load_settings(&path).unwrap();
+    assert_eq!(settings.theme, Theme::System);
+    assert_eq!(
+        settings.recent_projects,
+        ["/home/ann/cnc/sign.chipload", "/home/ann/cnc/box.chipload"]
+    );
+    // Saving writes the current version, every field explicit.
+    update_settings(&path, |s| {
+        s.theme = Theme::Dark;
+        Ok(())
+    })
+    .unwrap();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("\"schema_version\": 2"), "{text}");
+    assert!(text.contains("\"theme\": \"dark\""), "{text}");
+    assert_eq!(load_settings(&path).unwrap().theme, Theme::Dark);
+}
+
+#[test]
+fn settings_newer_than_known_or_without_a_theme_are_refused() {
+    let dir = temp_dir("settings-refused");
+    let path = dir.join("settings.json");
+    std::fs::write(
+        &path,
+        r#"{"schema_version": 3, "recent_projects": [], "theme": "system"}"#,
+    )
+    .unwrap();
+    let err = load_settings(&path).unwrap_err().to_string();
+    assert!(err.contains("schema_version 3 is not supported"), "{err}");
+    // Version 2 needs its theme: a missing field is not guessed.
+    std::fs::write(&path, r#"{"schema_version": 2, "recent_projects": []}"#).unwrap();
+    assert!(load_settings(&path).is_err());
 }

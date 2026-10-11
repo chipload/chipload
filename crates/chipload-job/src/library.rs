@@ -25,8 +25,8 @@ pub const TOOLS_VERSION: i64 = 1;
 pub const MACHINES_VERSION: i64 = 1;
 /// App settings: the recent projects (docs/specs/open-recent.md).
 pub const SETTINGS_FILE: &str = "settings.json";
-/// Current `schema_version` of `settings.json`.
-pub const SETTINGS_VERSION: i64 = 1;
+/// Current `schema_version` of `settings.json`. Version 2 added `theme`.
+pub const SETTINGS_VERSION: i64 = 2;
 /// How many recent projects are kept.
 pub const RECENT_MAX: usize = 10;
 
@@ -468,6 +468,17 @@ impl MachineLibrary {
     }
 }
 
+/// The GUI's colours (docs/specs/open-recent.md section 1).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Light or dark as the operating system is set.
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
 /// App settings kept between sessions (docs/specs/open-recent.md).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -477,6 +488,8 @@ pub struct AppSettings {
     pub written_by: Option<String>,
     /// Absolute paths, most recent first, at most `RECENT_MAX`, no duplicates.
     pub recent_projects: Vec<String>,
+    /// Since version 2.
+    pub theme: Theme,
 }
 
 impl Default for AppSettings {
@@ -485,6 +498,7 @@ impl Default for AppSettings {
             schema_version: SETTINGS_VERSION,
             written_by: None,
             recent_projects: Vec::new(),
+            theme: Theme::System,
         }
     }
 }
@@ -613,8 +627,14 @@ pub fn use_tool(job: &mut Job, entry: &LibraryTool) -> UsedTool {
 /// A library file format: its version, name in messages, and rules.
 trait LibraryFile: Serialize + DeserializeOwned + Default + Clone {
     const VERSION: i64;
+    /// The oldest version still read; older ones are upgraded by `upgrade`.
+    const OLDEST: i64 = Self::VERSION;
     fn validate(&self) -> Vec<String>;
     fn stamp(&mut self);
+    /// Upgrade data of version `from` to `from + 1`. Pure: no I/O, no clock.
+    fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
+        let _ = (from, data);
+    }
 }
 
 impl LibraryFile for ToolLibrary {
@@ -641,6 +661,7 @@ impl LibraryFile for MachineLibrary {
 
 impl LibraryFile for AppSettings {
     const VERSION: i64 = SETTINGS_VERSION;
+    const OLDEST: i64 = 1;
     fn validate(&self) -> Vec<String> {
         AppSettings::validate(self)
     }
@@ -648,6 +669,17 @@ impl LibraryFile for AppSettings {
         self.schema_version = SETTINGS_VERSION;
         self.written_by = Some(written_by());
     }
+    fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
+        if from == 1 {
+            settings_v1_to_v2(data);
+        }
+    }
+}
+
+/// Settings 1 -> 2: the theme, which until then always followed the system.
+pub fn settings_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
+    data.insert("theme".into(), Value::String("system".into()));
+    data.insert("schema_version".into(), Value::from(2));
 }
 
 fn written_by() -> String {
@@ -726,18 +758,25 @@ fn load<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
         Err(e) => return Err(unreadable(e.to_string())),
     };
     let data: Value = serde_json::from_str(&text).map_err(|e| unreadable(e.to_string()))?;
-    let Some(object) = data.as_object() else {
+    let Value::Object(mut object) = data else {
         return Err(unreadable("must contain a JSON object".into()));
     };
     let version = object.get("schema_version");
-    // Version 1 is the first; migrations from older versions go here, one step each.
-    if version.and_then(Value::as_i64) != Some(L::VERSION) {
+    let Some(found) = version
+        .and_then(Value::as_i64)
+        .filter(|v| (L::OLDEST..=L::VERSION).contains(v))
+    else {
         return Err(LibraryError::UnsupportedVersion {
             path: shown,
             found: version.map_or_else(|| "(missing)".into(), Value::to_string),
             current: L::VERSION,
         });
+    };
+    // Older versions are upgraded one step at a time, then read as the current one.
+    for step in found..L::VERSION {
+        L::upgrade(step, &mut object);
     }
+    let data = Value::Object(object);
     let library: L = serde_json::from_value(data).map_err(|e| LibraryError::Invalid {
         path: shown.clone(),
         reason: e.to_string(),

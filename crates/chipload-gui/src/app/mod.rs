@@ -13,6 +13,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::edit::{Handle, handles, try_drag};
+use chipload_job::library::Theme;
 use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
     StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
@@ -177,8 +178,10 @@ pub struct ChiploadApp {
     pub legend_open: bool,
     /// The project changed since the last generation, which was cleared.
     pub toolpath_stale: bool,
-    /// View > Theme.
-    pub theme: egui::ThemePreference,
+    /// View > Theme, kept in the app settings.
+    pub theme: Theme,
+    /// The theme last handed to egui.
+    applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
     prompt: Option<Prompt>,
@@ -231,7 +234,8 @@ impl Default for ChiploadApp {
             drawing_facts: None,
             legend_open: true,
             toolpath_stale: false,
-            theme: egui::ThemePreference::System,
+            theme: Theme::System,
+            applied_theme: None,
             status: None,
             cursor: None,
             prompt: None,
@@ -243,6 +247,14 @@ impl Default for ChiploadApp {
             library_windows: LibraryWindows::default(),
             recent: Vec::new(),
         }
+    }
+}
+
+fn theme_preference(theme: Theme) -> egui::ThemePreference {
+    match theme {
+        Theme::System => egui::ThemePreference::System,
+        Theme::Light => egui::ThemePreference::Light,
+        Theme::Dark => egui::ThemePreference::Dark,
     }
 }
 
@@ -945,6 +957,10 @@ impl eframe::App for ChiploadApp {
         if ctx.input(|i| i.viewport().close_requested()) && self.dirty() && !self.allow_close {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.prompt = Some(Prompt::Discard(Pending::Close));
+        }
+        if self.applied_theme != Some(self.theme) {
+            ctx.set_theme(theme_preference(self.theme));
+            self.applied_theme = Some(self.theme);
         }
         self.shortcuts(&ctx);
         Panel::top("menu").show(ui, |ui| self.menu(ui));

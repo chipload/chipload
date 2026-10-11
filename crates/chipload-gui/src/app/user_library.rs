@@ -401,13 +401,20 @@ impl ChiploadApp {
     pub fn set_settings_dir(&mut self, dir: Option<PathBuf>) {
         self.settings_dir = dir;
         self.reload_library();
-        self.recent = self
+        let settings = self
             .settings_dir
             .as_deref()
             .map(chipload_pipeline::library::settings_path)
             .and_then(|path| load_settings(&path).ok())
-            .map(|settings| settings.recent_projects)
             .unwrap_or_default();
+        self.recent = settings.recent_projects;
+        self.theme = settings.theme;
+    }
+
+    /// View > Theme: used at once and kept in the settings for next time.
+    pub fn set_theme(&mut self, theme: Theme) {
+        self.theme = theme;
+        self.change_settings(|settings| settings.theme = theme);
     }
 
     /// Put a project at the top of File > Open recent. A failure to write the settings
@@ -441,10 +448,7 @@ impl ChiploadApp {
         });
         match result {
             Ok(recent) => self.recent = recent,
-            Err(err) => self.set_status(
-                format!("Recent projects not saved: {err}"),
-                ERROR_STATUS_SECONDS,
-            ),
+            Err(err) => self.set_status(format!("Settings not saved: {err}"), ERROR_STATUS_SECONDS),
         }
     }
 

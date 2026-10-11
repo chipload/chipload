@@ -656,6 +656,23 @@ mod library {
     }
 
     /// An app with a library holding one tool and one machine, both the defaults.
+    #[test]
+    fn the_theme_is_kept_for_next_time() {
+        let dir = settings("theme");
+        let _ = std::fs::remove_file(dir.join("settings.json"));
+        let mut app = ChiploadApp::default();
+        app.set_settings_dir(Some(dir.clone()));
+        assert_eq!(
+            app.theme,
+            Theme::System,
+            "no settings yet: follow the system"
+        );
+        app.set_theme(Theme::Light);
+        let mut again = ChiploadApp::default();
+        again.set_settings_dir(Some(dir));
+        assert_eq!(again.theme, Theme::Light);
+    }
+
     fn app_with_library(name: &str) -> (ChiploadApp, PathBuf) {
         let dir = settings(name);
         save_tools(

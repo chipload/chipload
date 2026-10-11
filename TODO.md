@@ -12,8 +12,7 @@ it's built (see `CLAUDE.md`).
   - [x] Forms in sections with summaries; operations as cards.
   - [x] A toolbar row (Generate stands out) and a start screen.
   - [x] A canvas legend, an out-of-date notice, View > Theme, a calmer style.
-  - [ ] Remember the theme between sessions: `settings.json` refuses unknown fields, so
-    this needs a settings schema decision.
+  - [x] Remember the theme between sessions (settings schema 2, decided 2026-10-11).
 
 ## Done
 
