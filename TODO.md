@@ -26,5 +26,11 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
+- **A tool per operation** instead of one tool per project: each operation picks its own
+  tool, with a tool change between them (user request 2026-10-11).
+- **Several DXFs in one project:** import more than one drawing into a project, each with
+  its own source and placement (user request 2026-10-11).
+- **Scale the imported drawing**, as well as move and turn it (user request 2026-10-11).
+
 - **Trochoidal vs adaptive:** decide whether trochoidal should get bigger loops that cover
   the pocket's width, or whether adaptive already does what's wanted.
