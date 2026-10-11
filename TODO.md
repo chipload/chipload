@@ -17,10 +17,10 @@ it's built (see `CLAUDE.md`).
 ## Done
 
 - **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md), in 0.9.0.
+- **Offset retry** (docs/specs/offset-retry.md): a pocket or profile whose offsets hit a
+  numerical coincidence is retried with offsets moved by 1e-6 mm instead of refused.
 
 ## Later
 
 - **Trochoidal vs adaptive:** decide whether trochoidal should get bigger loops that cover
   the pocket's width, or whether adaptive already does what's wanted.
-- **Offset retry** (parked, docs/specs/offset-retry.md, draft): a pocket whose island
-  offsets just touch at one exact stepover is refused; retry with a slightly smaller one.

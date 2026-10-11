@@ -429,13 +429,13 @@ fn pocket_centre_is_cleared_where_geos_buffer_collapsed_too_early() {
 }
 
 #[test]
-#[ignore = "known: a near-tangent ring level fails verification (docs/specs/offset-retry.md)"]
 fn a_pocket_whose_island_offsets_just_touch_can_be_cleared() {
     // Found by the property test on 2026-10-10. At this exact stepover the offsets of islands
     // #2 and #4 meet almost exactly tangentially at one ring level; cavalier_contours then
     // asserts (debug) or returns rings that fail Chipload's verification (release): a safe
     // refusal of a valid drawing. The same pocket with the stepover 1e-6 mm smaller or larger
-    // works, and without island #2 or #4 it works too.
+    // works, and without island #2 or #4 it works too, so the rings are retried with a
+    // negligibly smaller stepover (docs/specs/offset-retry.md).
     let contours = [
         polygon_id(
             1,
@@ -514,6 +514,109 @@ fn a_pocket_whose_island_offsets_just_touch_can_be_cleared() {
     )
     .unwrap();
     assert_clear(&contours, &result, radius);
+}
+
+#[test]
+fn every_strategy_gets_past_a_wall_offset_that_just_touches() {
+    // Found by the property tests: here the wall pass itself (the pocket shrunk by the tool
+    // radius) hits the coincidence, so the retry moves it 1e-6 mm farther from the walls
+    // (docs/specs/offset-retry.md). Every strategy shrinks by the same radius.
+    let contours = [
+        polygon_id(
+            1,
+            &[
+                (37.13323, 4.493615),
+                (52.680761, 10.402409),
+                (33.226386, 7.372197),
+                (40.940788, 11.677743),
+                (-47.224613, 33.834442),
+                (-1.955255, -47.442586),
+                (7.197566, -38.796799),
+                (7.093812, -38.089252),
+                (47.301213, -30.308581),
+                (36.547621, -23.247548),
+                (51.178369, -4.729656),
+                (43.407037, -3.500072),
+            ],
+        ),
+        polygon_id(
+            2,
+            &[
+                (7.392563, -0.017588),
+                (6.232092, 0.925335),
+                (6.128889, 1.06124),
+                (4.557844, 1.060071),
+                (2.139117, -0.430789),
+                (1.800265, -0.651998),
+                (3.653979, -1.90574),
+                (2.556696, -3.950995),
+                (4.12737, -2.700044),
+                (5.722765, -1.470621),
+            ],
+        ),
+        polygon_id(
+            3,
+            &[
+                (-1.591528, 8.765963),
+                (-0.848709, 9.601491),
+                (-1.712437, 9.695428),
+                (-2.125371, 11.029932),
+                (-2.658742, 9.616261),
+                (-3.833042, 10.475096),
+                (-4.995071, 10.693974),
+                (-4.618075, 10.012663),
+                (-3.84308, 8.975507),
+                (-6.227303, 6.791432),
+                (-2.177225, 6.516531),
+                (-0.823733, 5.119389),
+                (-1.353595, 6.21427),
+                (-1.848735, 7.819246),
+            ],
+        ),
+        polygon_id(
+            4,
+            &[
+                (1.610987, -6.912785),
+                (-0.131615, -6.653224),
+                (-0.776742, -6.567334),
+                (-2.094251, -3.976692),
+                (-2.013122, -5.676233),
+                (-2.169977, -6.690901),
+                (-3.490718, -5.628196),
+                (-3.160791, -7.343266),
+                (-1.258303, -8.65368),
+                (-0.352758, -9.543414),
+                (-0.296498, -8.539492),
+                (0.783847, -7.63515),
+            ],
+        ),
+    ];
+    let refs: Vec<&Contour> = contours.iter().collect();
+    let radius = 3.073129921791429;
+    let loop_radius = 0.27689550776778343 * 2.0 * radius;
+    for strategy in [
+        chipload_job::PocketStrategy::Rings {},
+        chipload_job::PocketStrategy::Adaptive {
+            load: 0.17689550776778346,
+        },
+        chipload_job::PocketStrategy::Trochoidal {
+            loop_radius,
+            step: 0.5793095676111893 * loop_radius,
+        },
+    ] {
+        let result = chipload_toolpath::pocket::plan_pocket_with(
+            &refs,
+            radius,
+            0.0,
+            0.4 * radius,
+            Direction::Climb,
+            Spindle::Cw,
+            false,
+            (0.0, 0.0),
+            strategy,
+        );
+        assert!(result.is_ok(), "{strategy:?}: {:?}", result.err());
+    }
 }
 
 // -- links
@@ -1182,8 +1285,8 @@ proptest! {
         let loop_radius = loop_share * 2.0 * radius;
         let step = step_share * loop_radius;
         let refs: Vec<&Contour> = contours.iter().collect();
-        // Outlines the offset library already mishandles for ring pockets (the known case
-        // parked as docs/specs/offset-retry.md) aren't what this property is about.
+        // Outlines the offset library mishandles even for ring pockets, which are retried
+        // (docs/specs/offset-retry.md), aren't what this property is about.
         prop_assume!(
             plan_pocket(&refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false,
                 (0.0, 0.0)).is_ok()
@@ -1304,7 +1407,8 @@ proptest! {
         load in 0.05f64..0.3,
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        // Outlines ring pockets already refuse (docs/specs/offset-retry.md) aren't the point.
+        // Outlines ring pockets refuse even after retrying (docs/specs/offset-retry.md)
+        // aren't the point.
         prop_assume!(
             plan_pocket(&refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false,
                 (0.0, 0.0)).is_ok()

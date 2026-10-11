@@ -16,6 +16,7 @@ pub mod plan;
 pub mod pocket;
 pub mod profile;
 pub mod ramp;
+mod retry;
 pub mod select;
 pub mod start;
 pub mod tabs;

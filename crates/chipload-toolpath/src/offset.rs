@@ -16,6 +16,7 @@ use chipload_job::Side;
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
+use crate::retry::{Failure, nudged};
 
 /// The contour as a closed polyline with true arcs (bulges). Arcs over half a turn are split,
 /// since a bulge describes at most a full circle and loses precision near it.
@@ -241,24 +242,44 @@ pub fn offset_rings_tagged(
     if pline.orientation() == PlineOrientation::Clockwise {
         pline.invert_direction_mut();
     }
+    // A numerical failure is retried slightly farther from the line
+    // (docs/specs/offset-retry.md); only the used attempt's arcs are kept.
+    let (rings, used) = nudged(|nudge| {
+        let mut attempt = ArcTable::default();
+        let rings = offset_attempt(&pline, side, tool_radius + nudge.wall, &mut attempt)?;
+        Ok((rings, attempt))
+    })?;
+    arcs.extend(used);
+    Ok(rings)
+}
+
+/// The rings `tool_radius` (nudged for a retry) from a counter-clockwise `pline`, verified
+/// at that distance.
+fn offset_attempt(
+    pline: &Polyline<f64>,
+    side: Side,
+    tool_radius: f64,
+    arcs: &mut ArcTable,
+) -> Result<Vec<Vec<Point>>, Failure> {
     // Positive offsets go left of the direction of travel: inward on a CCW loop.
     let signed = if side == Side::Outside {
         -tool_radius
     } else {
         tool_radius
     };
+    let numerical = |error| Failure::Numerical { error, wall: true };
     // A panic in the offset library becomes an error, never a crash or a toolpath.
     let raw = catch_unwind(AssertUnwindSafe(|| pline.parallel_offset(signed)))
-        .map_err(|_| geometry("Offset failed inside the geometry library"))?;
+        .map_err(|_| numerical(geometry("Offset failed inside the geometry library")))?;
     let mut results: Vec<Polyline<f64>> = raw
         .into_iter()
         .filter(|p| p.is_closed() && p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM)
         .collect();
     if results.is_empty() {
-        return Err(geometry(&format!(
+        return Err(Failure::Final(geometry(&format!(
             "Tool does not fit inside the contour (its centre would run {tool_radius:.3} mm \
              inside the line)"
-        )));
+        ))));
     }
     if side == Side::Outside {
         // Growing one loop gives one region; any further loops are holes it encloses (e.g. a
@@ -266,13 +287,13 @@ pub fn offset_rings_tagged(
         results.sort_by(|a, b| b.area().abs().total_cmp(&a.area().abs()));
         results.truncate(1);
     }
-    let segments = pline_segments(&pline);
+    let segments = pline_segments(pline);
     let mut rings: Vec<Vec<Point>> = results
         .iter()
         .map(|pline| flatten_tagged(pline, arcs))
         .collect();
     for ring in &rings {
-        verify_offset(&pline, &segments, ring, side, tool_radius, arcs)?;
+        verify_offset(pline, &segments, ring, side, tool_radius, arcs).map_err(numerical)?;
     }
     rings.sort_by(|a, b| {
         let (ka, kb) = (start_key(a), start_key(b));
@@ -373,6 +394,31 @@ mod tests {
             p.add(x, y, 0.0);
         }
         p
+    }
+
+    #[test]
+    fn a_retried_profile_ring_is_a_nudge_farther_and_verified_there() {
+        // docs/specs/offset-retry.md section 3, with the first attempt made to fail: the next
+        // ring lies 1 mm + one nudge inside, and the distance check accepts that distance.
+        let contour = square(10.0);
+        let mut nudges = Vec::new();
+        let (rings, _) = nudged(|nudge| {
+            nudges.push(nudge.wall);
+            if nudges.len() == 1 {
+                return Err(Failure::Numerical {
+                    error: geometry("forced"),
+                    wall: true,
+                });
+            }
+            let mut arcs = ArcTable::default();
+            let rings = offset_attempt(&contour, Side::Inside, 1.0 + nudge.wall, &mut arcs)?;
+            Ok((rings, arcs))
+        })
+        .unwrap();
+        let nudge = chipload_core::tolerances::OFFSET_RETRY_NUDGE_MM;
+        assert_eq!(nudges, [0.0, nudge]);
+        let lowest = rings[0].iter().map(|p| p.1).fold(f64::INFINITY, f64::min);
+        assert!((lowest - (1.0 + nudge)).abs() < 1e-9, "{lowest}");
     }
 
     #[test]

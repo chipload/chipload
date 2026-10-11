@@ -1,6 +1,6 @@
 # Spec: retrying an offset that hit a numerical coincidence
 
-Status: **draft 2026-10-10**, waiting for review (questions in §5).
+Status: **reviewed 2026-10-11**, all four questions in §5 as recommended.
 
 ## 1. The problem
 
@@ -41,21 +41,47 @@ Why this is safe:
 
 For the first ring (the wall pass, offset by the tool radius r), the same coincidence would
 need r itself to move: that attempt offsets by r + ε instead (1e-6 mm farther from the wall).
+Once a wall ring has failed, every later attempt moves it (r + kε, stepover − kε).
+
+What counts as a failure worth retrying: the geometry library failing (a panic or an
+inconsistent result such as offsets that aren't nested), or the rings failing verification.
+Errors that a nudge can't change (the tool doesn't fit, too many rings) are returned at once.
+If a retry ends in such an error, the first attempt's error is returned, as today.
+
+The rings are verified (without links or leads) as soon as they are built, so a failure is
+retried before anything is planned on top of them; the full verification still runs at the
+end as before. Each attempt records its arcs separately and only the used attempt's arcs are
+kept.
+
+### Adaptive and trochoidal pockets
+
+They shrink the pocket by the same r for their wall pass, so the same coincidence stops them
+(found by the property tests on 2026-10-11, once ring pockets got past it). They take the
+same retry with the wall moved on every retry (r + kε; trochoidal backbones also step kε
+closer). They have no rings at one stepover to nudge on their own, and their errors (from
+the geometry library or their own checks) can't be told apart, so each one is retried; an
+error a nudge can't change just comes back as the first attempt's.
 
 ## 3. Profiles
 
 Profile offsets use the same library and verification. No failing case is known yet. The
-same retry (r + kε) can be applied there at no cost.
+same retry (r + kε) is applied there at no cost. A profile ring checks its distance both
+ways (at least r − tolerance, at most r + slack), so a nudged attempt is checked against
+r + kε, the distance it was asked for: the no-gouge bound only gets stricter.
 
 ## 4. Tests
 
 - The ignored test becomes a normal test: the pocket is cleared and every ring keeps the
   tool radius from walls and islands.
-- A unit test that the retry is used only after a failure (a pocket that works is
-  byte-identical with and without the retry code path).
+- Unit tests of the retry: no retry after a success, attempts in order with the right
+  nudges, the wall moved only after a wall failure, the first error kept, no retry after an
+  error a nudge can't change.
+- Golden G-code unchanged shows that working pockets and profiles are byte-identical.
+- A pocket whose wall pass hits the coincidence is cleared by all three strategies.
+- A profile attempt made to fail is retried one nudge farther out and verified there.
 - Golden G-code unchanged; property tests unchanged.
 
-## 5. Questions for review
+## 5. Questions for review (answered 2026-10-11: 1 yes, 2 yes, 3 no note, 4 yes)
 
 1. **Retry** as in §2: stepover −ε, −2ε, −3ε with ε = 1e-6 mm, never a larger stepover.
    *Recommendation: yes.*

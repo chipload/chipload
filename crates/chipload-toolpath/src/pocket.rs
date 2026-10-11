@@ -33,6 +33,7 @@ use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
+use crate::retry::{Failure, Nudge, nudged};
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -479,17 +480,22 @@ struct Node {
 }
 
 /// `radius` is the tool-centre offset from the walls (tool radius minus clearance);
-/// `tool_radius` is only for messages.
+/// `tool_radius` is only for messages. `nudge` moves the offsets for a retry
+/// (docs/specs/offset-retry.md).
 fn ring_tree(
     region: &Area,
     radius: f64,
     tool_radius: f64,
     stepover: f64,
     ids: &[usize],
-) -> Result<(Vec<Node>, Vec<usize>), ToolpathError> {
+    nudge: Nudge,
+) -> Result<(Vec<Node>, Vec<usize>), Failure> {
+    let numerical = |wall: bool| move |error| Failure::Numerical { error, wall };
+    let wall_offset = radius + nudge.wall;
+    let stepover = stepover - nudge.step;
     let mut nodes: Vec<Node> = Vec::new();
     let mut roots = Vec::new();
-    for area in region.shrunk(radius)? {
+    for area in region.shrunk(wall_offset).map_err(numerical(true))? {
         roots.push(nodes.len());
         nodes.push(Node {
             area,
@@ -497,7 +503,7 @@ fn ring_tree(
         });
     }
     if roots.is_empty() {
-        return Err(geometry(format!(
+        return Err(Failure::Final(geometry(format!(
             "contours {}: tool (diameter {:.3} mm{}) does not fit in the pocket",
             ids_text(ids),
             2.0 * tool_radius,
@@ -506,11 +512,13 @@ fn ring_tree(
             } else {
                 format!(", clearance {:.3} mm", tool_radius - radius)
             }
-        )));
+        ))));
     }
     let mut level = roots.clone();
     for k in 1..=MAX_RING_LEVELS {
-        let areas = region.shrunk(radius + k as f64 * stepover)?;
+        let areas = region
+            .shrunk(wall_offset + k as f64 * stepover)
+            .map_err(numerical(false))?;
         if areas.is_empty() {
             return Ok((nodes, roots));
         }
@@ -518,10 +526,13 @@ fn ring_tree(
         for area in areas {
             let inside = first_point(&area.outer);
             let Some(&parent) = level.iter().find(|&&n| nodes[n].area.contains(inside)) else {
-                return Err(geometry(format!(
-                    "contours {}: pocket offsets are not nested",
-                    ids_text(ids)
-                )));
+                return Err(Failure::Numerical {
+                    error: geometry(format!(
+                        "contours {}: pocket offsets are not nested",
+                        ids_text(ids)
+                    )),
+                    wall: false,
+                });
             };
             let id = nodes.len();
             nodes.push(Node {
@@ -533,10 +544,174 @@ fn ring_tree(
         }
         level = next_level;
     }
-    Err(geometry(format!(
+    Err(Failure::Final(geometry(format!(
         "contours {}: more than {MAX_RING_LEVELS} pocket rings",
         ids_text(ids)
-    )))
+    ))))
+}
+
+/// One piece's paths from one attempt (docs/specs/offset-retry.md), with the arcs,
+/// engagement and notes that attempt recorded: only the used attempt's are kept.
+#[derive(Default)]
+struct Attempt {
+    rings: Vec<Vec<Point>>,
+    level0: Vec<Area>,
+    open: Vec<bool>,
+    walls: Vec<bool>,
+    arcs: ArcTable,
+    engagement: Vec<f64>,
+    notes: Vec<String>,
+}
+
+/// What a piece is cleared with, and where the tool comes from.
+struct Clearing {
+    strategy: PocketStrategy,
+    offset: f64,
+    tool_radius: f64,
+    stepover: f64,
+    position: Point,
+    direction: Direction,
+    spindle: Spindle,
+}
+
+/// The paths of one piece, checked as soon as they are built and retried with nudged
+/// offsets after a numerical failure (docs/specs/offset-retry.md).
+fn cleared_piece(region: &Area, ids: &[usize], c: &Clearing) -> Result<Attempt, ToolpathError> {
+    let walls = PrimIndex::new(region.boundary(), c.tool_radius.max(1.0));
+    let rings_only = matches!(c.strategy, PocketStrategy::Rings {});
+    nudged(|nudge| {
+        let mut a = attempt_piece(region, ids, c, nudge)?;
+        if let Some(k) = first_unclear(region, &walls, &a.rings, &a.open, c.offset, &a.arcs) {
+            return Err(Failure::Numerical {
+                error: verification_failed(ids),
+                // Adaptive and trochoidal paths have no stepover between rings to nudge.
+                wall: a.walls.get(k).copied().unwrap_or(true) || !rings_only,
+            });
+        }
+        if a.open.is_empty() {
+            a.open = vec![false; a.rings.len()];
+        }
+        Ok(a)
+    })
+}
+
+/// One attempt at a piece's paths, with the wall offset and stepover nudged.
+fn attempt_piece(
+    region: &Area,
+    ids: &[usize],
+    c: &Clearing,
+    nudge: Nudge,
+) -> Result<Attempt, Failure> {
+    let mut a = Attempt::default();
+    // Adaptive and trochoidal errors include the library's, so every one may be numerical;
+    // one a nudge can't change just fails again and the first error is returned.
+    let numerical = |error| Failure::Numerical { error, wall: true };
+    let offset = c.offset + nudge.wall;
+    match c.strategy {
+        PocketStrategy::Rings {} => {
+            let (nodes, roots) =
+                ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
+            (a.rings, a.walls) = cut_order(
+                &nodes,
+                &roots,
+                c.position,
+                c.direction,
+                c.spindle,
+                &mut a.arcs,
+            );
+            a.level0 = roots.iter().map(|&r| nodes[r].area.clone()).collect();
+        }
+        PocketStrategy::Adaptive { load } => {
+            (a.rings, a.level0, a.open, a.walls) = adaptive_rings(
+                region,
+                offset,
+                c.tool_radius,
+                load * 2.0 * c.tool_radius,
+                ids,
+                c.position,
+                c.direction,
+                c.spindle,
+                &mut a.arcs,
+                &mut a.engagement,
+            )
+            .map_err(numerical)?;
+        }
+        PocketStrategy::Trochoidal { loop_radius, step } => {
+            let tool_radius = c.tool_radius;
+            // How far either side of its backbone a row of loops surely cuts: a point
+            // midway between two loop centres is half a step further from them, and
+            // chords lie up to the arc tolerance inside their arcs.
+            let reach = ((loop_radius + tool_radius).powi(2) - (step / 2.0).powi(2)).sqrt()
+                - ARC_APPROX_TOL_MM;
+            // Backbones no further apart than that, so every point between two levels
+            // (even where a lobe of the pocket ends) is within reach of a row of loops.
+            let trochoid = Trochoid {
+                offset,
+                tool_radius,
+                loop_radius,
+                step,
+                band: (2.0 * loop_radius + c.stepover).min(reach) - nudge.step,
+            };
+            (a.rings, a.level0, a.walls) = trochoidal_rings(
+                region,
+                &trochoid,
+                ids,
+                c.position,
+                c.direction,
+                c.spindle,
+                &mut a.arcs,
+                &mut a.notes,
+            )
+            .map_err(numerical)?;
+        }
+    }
+    Ok(a)
+}
+
+/// The first path that comes closer than r (minus tolerance) to a wall or island or starts
+/// outside the region: [`verify`] for the paths alone, before links and leads. `open` may
+/// be empty: all closed.
+fn first_unclear(
+    region: &Area,
+    walls: &PrimIndex,
+    rings: &[Vec<Point>],
+    open: &[bool],
+    radius: f64,
+    arcs: &ArcTable,
+) -> Option<usize> {
+    let clearance = min_clearance(radius);
+    rings.iter().enumerate().position(|(k, ring)| {
+        let is_open = open.get(k).copied().unwrap_or(false);
+        let inside = ring.first().is_some_and(|&p| region.contains(p));
+        let clear = cutting_segments(std::slice::from_ref(ring), &[is_open], &[])
+            .iter()
+            .all(|&(a, b)| segment_is_clear(walls, a, b, clearance, arcs));
+        !(inside && clear)
+    })
+}
+
+/// The cutting move from `a` to `b` keeps `clearance` from every wall, also where it bulges
+/// most if it is cut as an arc.
+fn segment_is_clear(
+    walls: &PrimIndex,
+    a: Point,
+    b: Point,
+    clearance: f64,
+    arcs: &ArcTable,
+) -> bool {
+    clear_of(walls, a, b, clearance)
+        && arcs.get(a, b).is_none_or(|circle| {
+            let top = arc_midpoint(a, b, circle);
+            clear_of(walls, top, top, clearance)
+        })
+}
+
+fn verification_failed(ids: &[usize]) -> ToolpathError {
+    geometry(format!(
+        "contours {}: pocket toolpath failed verification (too close to a wall or island); \
+         the drawing may be degenerate",
+        ids_text(ids)
+    ))
 }
 
 /// Order for the travel direction and start at the vertex nearest `near` (ties: y, x).
@@ -703,21 +878,13 @@ fn verify(
         .iter()
         .all(|r| r.first().is_some_and(|&p| region.contains(p)));
     // Chords on arcs are cut as arcs when arcs are written: check where they bulge most too.
-    let clear = cutting_segments(rings, open, links).iter().all(|&(a, b)| {
-        clear_of(walls, a, b, clearance)
-            && arcs.get(a, b).is_none_or(|circle| {
-                let top = arc_midpoint(a, b, circle);
-                clear_of(walls, top, top, clearance)
-            })
-    });
+    let clear = cutting_segments(rings, open, links)
+        .iter()
+        .all(|&(a, b)| segment_is_clear(walls, a, b, clearance, arcs));
     if inside && clear {
         Ok(())
     } else {
-        Err(geometry(format!(
-            "contours {}: pocket toolpath failed verification (too close to a wall or \
-             island); the drawing may be degenerate",
-            ids_text(ids)
-        )))
+        Err(verification_failed(ids))
     }
 }
 
@@ -1083,56 +1250,36 @@ pub fn plan_pocket_starting(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        let (rings, level0, open, walls) = match strategy {
-            PocketStrategy::Rings {} => {
-                let (nodes, roots) = ring_tree(&region, offset, tool_radius, stepover, &ids)?;
-                let (rings, walls) =
-                    cut_order(&nodes, &roots, position, direction, spindle, &mut arcs);
-                let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
-                let open = vec![false; rings.len()];
-                (rings, level0, open, walls)
-            }
-            PocketStrategy::Adaptive { load } => adaptive_rings(
-                &region,
-                offset,
-                tool_radius,
-                load * 2.0 * tool_radius,
-                &ids,
-                position,
-                direction,
-                spindle,
-                &mut arcs,
-                &mut engagement,
-            )?,
-            PocketStrategy::Trochoidal { loop_radius, step } => {
-                if loop_radius > tool_radius {
-                    return Err(geometry(format!(
-                        "contours {}: loop radius {loop_radius} must be at most the tool \
-                         radius {tool_radius}, or each loop leaves an uncut core",
-                        ids_text(&ids)
-                    )));
-                }
-                // How far either side of its backbone a row of loops surely cuts: a point
-                // midway between two loop centres is half a step further from them, and
-                // chords lie up to the arc tolerance inside their arcs.
-                let reach = ((loop_radius + tool_radius).powi(2) - (step / 2.0).powi(2)).sqrt()
-                    - ARC_APPROX_TOL_MM;
-                // Backbones no further apart than that, so every point between two levels
-                // (even where a lobe of the pocket ends) is within reach of a row of loops.
-                let trochoid = Trochoid {
-                    offset,
-                    tool_radius,
-                    loop_radius,
-                    step,
-                    band: (2.0 * loop_radius + stepover).min(reach),
-                };
-                let (rings, level0, walls) = trochoidal_rings(
-                    &region, &trochoid, &ids, position, direction, spindle, &mut arcs, &mut notes,
-                )?;
-                let open = vec![false; rings.len()];
-                (rings, level0, open, walls)
-            }
+        if let PocketStrategy::Trochoidal { loop_radius, .. } = strategy
+            && loop_radius > tool_radius
+        {
+            return Err(geometry(format!(
+                "contours {}: loop radius {loop_radius} must be at most the tool radius \
+                 {tool_radius}, or each loop leaves an uncut core",
+                ids_text(&ids)
+            )));
+        }
+        let clearing = Clearing {
+            strategy,
+            offset,
+            tool_radius,
+            stepover,
+            position,
+            direction,
+            spindle,
         };
+        let Attempt {
+            rings,
+            level0,
+            open,
+            walls,
+            arcs: used_arcs,
+            engagement: used_engagement,
+            notes: used_notes,
+        } = cleared_piece(&region, &ids, &clearing)?;
+        arcs.extend(used_arcs);
+        engagement.extend(used_engagement);
+        notes.extend(used_notes);
         if level0.len() > 1 {
             notes.push(format!(
                 "contours {}: the tool does not fit through a narrow part; cleared as {} \
@@ -1619,8 +1766,15 @@ fn trochoidal_rings(
             t.loop_radius
         ));
     } else {
-        let (nodes, roots) =
-            ring_tree(region, t.offset + t.loop_radius, t.tool_radius, t.band, ids)?;
+        let (nodes, roots) = ring_tree(
+            region,
+            t.offset + t.loop_radius,
+            t.tool_radius,
+            t.band,
+            ids,
+            Nudge::NONE,
+        )
+        .map_err(Failure::into_error)?;
         // The backbones themselves aren't cut: their chords don't go in `arcs`.
         let (backbones, _) = cut_order(
             &nodes,
