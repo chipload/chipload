@@ -49,8 +49,8 @@ mod user_library;
 
 use forms::{job_form, op_form};
 use report::{DrawingFacts, Report, Tone};
-pub use user_library::LibraryKind;
-use user_library::{LibraryRequest, LibraryWindows};
+use user_library::LibraryWindows;
+pub use user_library::{LibraryKind, SaveTarget};
 
 const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
@@ -110,7 +110,7 @@ enum Prompt {
     Path(PathPurpose, String),
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
-    LibraryName(LibraryKind, String),
+    LibraryName(SaveTarget, String),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame
@@ -553,7 +553,8 @@ impl ChiploadApp {
 
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
-        let cutting = self.tool_cutting();
+        let tool = self.edit.as_ref()?.next_tool_id();
+        let cutting = self.tool_cutting(tool);
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(kind, &self.selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);

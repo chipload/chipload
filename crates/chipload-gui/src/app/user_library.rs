@@ -21,19 +21,39 @@ pub enum LibraryKind {
     Machines,
 }
 
+/// What a library row works on: the project's machine, or one of its tools (by id).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SaveTarget {
+    Machine,
+    Tool(i64),
+}
+
+impl SaveTarget {
+    fn kind(self) -> LibraryKind {
+        match self {
+            SaveTarget::Machine => LibraryKind::Machines,
+            SaveTarget::Tool(_) => LibraryKind::Tools,
+        }
+    }
+}
+
 /// What the job form asks of the library.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LibraryRequest {
     UseMachine(String),
-    UseTool(String),
+    /// Give project tool `id` the values of the named library tool.
+    UseTool(i64, String),
+    /// Copy a library tool into the project as a tool of its own
+    /// (docs/specs/tool-per-operation.md §8).
+    AddTool(String),
     /// Ask for a name, then save the project's machine or tool into the library.
-    Save(LibraryKind),
+    Save(SaveTarget),
 }
 
 /// The library rows of the job form: the entries to choose from, and where the project's
 /// values came from.
 pub(super) struct LibraryRows {
-    kind: LibraryKind,
+    target: SaveTarget,
     /// None: no settings folder, so no library.
     names: Option<Vec<String>>,
     /// "from profile …" or "differs from …", and the entry to update from.
@@ -69,7 +89,7 @@ impl LibraryRows {
             origin_note("profile", name, changes)
         });
         LibraryRows {
-            kind: LibraryKind::Machines,
+            target: SaveTarget::Machine,
             names,
             note,
         }
@@ -85,7 +105,7 @@ impl LibraryRows {
             origin_note("library tool", name, changes)
         });
         LibraryRows {
-            kind: LibraryKind::Tools,
+            target: SaveTarget::Tool(tool.id),
             names,
             note,
         }
@@ -99,29 +119,33 @@ impl LibraryRows {
     }
 }
 
+fn target_salt(target: SaveTarget) -> i64 {
+    match target {
+        SaveTarget::Machine => -1,
+        SaveTarget::Tool(id) => id,
+    }
+}
+
 pub(super) fn library_rows(
     ui: &mut egui::Ui,
     request: &mut Option<LibraryRequest>,
     rows: LibraryRows,
 ) {
-    let (choose, save, use_entry): (&str, &str, fn(String) -> LibraryRequest) = match rows.kind {
-        LibraryKind::Machines => (
-            "Use profile…",
-            "Save as profile…",
-            LibraryRequest::UseMachine,
-        ),
-        LibraryKind::Tools => (
-            "Use library tool…",
-            "Save to library…",
-            LibraryRequest::UseTool,
-        ),
+    let target = rows.target;
+    let (choose, save) = match target {
+        SaveTarget::Machine => ("Use profile…", "Save as profile…"),
+        SaveTarget::Tool(_) => ("Use library tool…", "Save to library…"),
+    };
+    let use_entry = |name: String| match target {
+        SaveTarget::Machine => LibraryRequest::UseMachine(name),
+        SaveTarget::Tool(id) => LibraryRequest::UseTool(id, name),
     };
     ui.label("Library");
     ui.horizontal(|ui| {
         let available = rows.names.is_some();
         let names = rows.names.unwrap_or_default();
         ui.add_enabled_ui(available && !names.is_empty(), |ui| {
-            ComboBox::from_id_salt(("library", choose))
+            ComboBox::from_id_salt(("library", choose, target_salt(target)))
                 .selected_text(choose)
                 .show_ui(ui, |ui| {
                     for name in names {
@@ -141,7 +165,7 @@ pub(super) fn library_rows(
             ))
         };
         if button.clicked() {
-            *request = Some(LibraryRequest::Save(rows.kind));
+            *request = Some(LibraryRequest::Save(target));
         }
     });
     ui.end_row();
@@ -484,10 +508,16 @@ impl ChiploadApp {
         self.settings_dir.as_ref().map(|_| &self.library)
     }
 
-    /// The project tool's cutting values from the library: only when the tool came from
-    /// the library and still has its values.
-    pub(super) fn tool_cutting(&self) -> Option<Cutting> {
-        let tool = self.edit.as_ref()?.settings.tools.first()?;
+    /// A project tool's cutting values from the library: only when the tool came from the
+    /// library and still has its values.
+    pub(super) fn tool_cutting(&self, id: i64) -> Option<Cutting> {
+        let tool = self
+            .edit
+            .as_ref()?
+            .settings
+            .tools
+            .iter()
+            .find(|t| t.id == id)?;
         let entry = self.library()?.tools.find(tool.name.as_deref()?)?;
         if entry.same_values(tool) {
             entry.cutting
@@ -501,15 +531,23 @@ impl ChiploadApp {
             LibraryRequest::UseMachine(name) => {
                 self.use_machine_profile(&name);
             }
-            LibraryRequest::UseTool(name) => {
-                self.use_library_tool(&name);
+            LibraryRequest::UseTool(id, name) => {
+                self.use_library_tool(id, &name);
             }
-            LibraryRequest::Save(kind) => {
-                let current = self.edit.as_ref().and_then(|e| match kind {
-                    LibraryKind::Machines => e.settings.machine.name.clone(),
-                    LibraryKind::Tools => e.settings.tools.first().and_then(|t| t.name.clone()),
+            LibraryRequest::AddTool(name) => {
+                self.add_library_tool(&name);
+            }
+            LibraryRequest::Save(target) => {
+                let current = self.edit.as_ref().and_then(|e| match target {
+                    SaveTarget::Machine => e.settings.machine.name.clone(),
+                    SaveTarget::Tool(id) => e
+                        .settings
+                        .tools
+                        .iter()
+                        .find(|t| t.id == id)
+                        .and_then(|t| t.name.clone()),
                 });
-                self.prompt = Some(Prompt::LibraryName(kind, current.unwrap_or_default()));
+                self.prompt = Some(Prompt::LibraryName(target, current.unwrap_or_default()));
             }
         }
     }
@@ -530,9 +568,9 @@ impl ChiploadApp {
         true
     }
 
-    /// Give the project's tool a library tool's values. The project has one tool, so it is
-    /// replaced and keeps its id: operations still use it (one undo step).
-    pub fn use_library_tool(&mut self, name: &str) -> bool {
+    /// Give project tool `id` a library tool's values; it keeps its id, so the operations
+    /// that use it still do (one undo step).
+    pub fn use_library_tool(&mut self, id: i64, name: &str) -> bool {
         self.reload_library();
         let Some(entry) = self.library.tools.find(name).cloned() else {
             self.error(vec![format!("There is no library tool \"{name}\".")]);
@@ -541,21 +579,52 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let tools = &mut edit.settings.tools;
-        let changes = match tools.first_mut() {
-            Some(tool) => {
-                let changes = entry.changes(tool);
-                *tool = entry.tool(tool.id);
-                changes
-            }
-            None => {
-                tools.push(entry.tool(entry.id.max(1)));
-                vec![format!("added as tool {}", entry.id.max(1))]
-            }
+        let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) else {
+            self.error(vec![format!("The project has no tool {id}.")]);
+            return false;
         };
+        let changes = entry.changes(tool);
+        *tool = entry.tool(id);
         self.commit();
         self.report_changes(&format!("Library tool \"{}\"", entry.name), changes);
         true
+    }
+
+    /// Copy a library tool into the project as a tool of its own, or find it there already
+    /// (docs/specs/tool-per-operation.md §8). Returns its id in the project.
+    pub fn add_library_tool(&mut self, name: &str) -> Option<i64> {
+        let id = self.insert_library_tool(name)?;
+        self.commit();
+        Some(id)
+    }
+
+    /// Cut operation `op` with a library tool, copied into the project if it isn't there
+    /// yet: one undo step. The operation keeps its feeds (decision 6).
+    pub fn tool_from_library(&mut self, op: usize, name: &str) -> bool {
+        let Some(id) = self.insert_library_tool(name) else {
+            return false;
+        };
+        let Some(entry) = self.edit.as_mut().and_then(|e| e.ops.get_mut(op)) else {
+            return false;
+        };
+        entry.op.set_tool(id);
+        self.commit();
+        true
+    }
+
+    fn insert_library_tool(&mut self, name: &str) -> Option<i64> {
+        self.reload_library();
+        let Some(entry) = self.library.tools.find(name).cloned() else {
+            self.error(vec![format!("There is no library tool \"{name}\".")]);
+            return None;
+        };
+        let edit = self.edit.as_mut()?;
+        let used = chipload_job::library::use_tool(&mut edit.settings, &entry);
+        self.set_status(
+            format!("\"{}\": {}", entry.name, used.describe(entry.id)),
+            STATUS_SECONDS,
+        );
+        Some(used.id)
     }
 
     fn report_changes(&mut self, what: &str, changes: Vec<String>) {
@@ -575,13 +644,13 @@ impl ChiploadApp {
 
     /// Save the project's machine or tool into the library under `name`, replacing an
     /// entry of that name. The project records the name.
-    pub fn save_to_library(&mut self, kind: LibraryKind, name: &str) -> bool {
+    pub fn save_to_library(&mut self, target: SaveTarget, name: &str) -> bool {
         let name = name.trim().to_string();
         let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
             return false;
         };
-        let result = match kind {
-            LibraryKind::Machines => {
+        let result = match target {
+            SaveTarget::Machine => {
                 let profile = MachineProfile::from_job(&name, &edit.settings);
                 update_machines(&machines_path(&dir), |library| {
                     match library.position(&name) {
@@ -591,7 +660,7 @@ impl ChiploadApp {
                     Ok(())
                 })
             }
-            LibraryKind::Tools => match edit.settings.tools.first() {
+            SaveTarget::Tool(id) => match edit.settings.tools.iter().find(|t| t.id == id) {
                 Some(tool) => {
                     let entry = LibraryTool::from_tool(&name, tool, None);
                     update_tools(&tools_path(&dir), |library| {
@@ -615,10 +684,10 @@ impl ChiploadApp {
             return false;
         }
         if let Some(edit) = self.edit.as_mut() {
-            match kind {
-                LibraryKind::Machines => edit.settings.machine.name = Some(name.clone()),
-                LibraryKind::Tools => {
-                    if let Some(tool) = edit.settings.tools.first_mut() {
+            match target {
+                SaveTarget::Machine => edit.settings.machine.name = Some(name.clone()),
+                SaveTarget::Tool(id) => {
+                    if let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) {
                         tool.name = Some(name.clone());
                     }
                 }
@@ -632,10 +701,10 @@ impl ChiploadApp {
     pub(super) fn library_name_prompt(
         &mut self,
         ctx: &egui::Context,
-        kind: LibraryKind,
+        target: SaveTarget,
         mut text: String,
     ) {
-        let (title, taken) = match kind {
+        let (title, taken) = match target.kind() {
             LibraryKind::Machines => (
                 "Save machine profile",
                 self.library
@@ -676,9 +745,9 @@ impl ChiploadApp {
                     }
                 });
             });
-        self.prompt = (!done).then(|| Prompt::LibraryName(kind, text.clone()));
+        self.prompt = (!done).then(|| Prompt::LibraryName(target, text.clone()));
         if save {
-            self.save_to_library(kind, &text);
+            self.save_to_library(target, &text);
         }
     }
 

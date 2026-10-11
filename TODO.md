@@ -5,9 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **A tool per operation** (docs/specs/tool-per-operation.md): step 1, one file per tool
-  group, done (04bc5e3). Next: the machine's tool change setting (schema 12, machines.json
-  2) with one file with `M6`, then the GUI.
+(nothing)
 
 ## Next
 
@@ -21,6 +19,12 @@ it's built (see `CLAUDE.md`).
   time, link length, re-entries), and checks that it stays gouge-free and leaves nothing.
 
 ## Done
+
+- **A tool per operation** (docs/specs/tool-per-operation.md): each operation cuts with its
+  own tool, in tool groups. Output is one checked file per tool, or one file with `T M6`
+  for senders that handle the change (machine setting, project schema 12, machines.json 2).
+  CLI `op tool`, `run --tool-change`, `check --tool`; GUI *Tools* section and an operation
+  *Tool* box.
 
 - **Scaling the imported drawing** (docs/specs/drawing-scale.md): uniformly, about its
   centre, by a factor or to a width or height; updates re-approximate curves at the new size

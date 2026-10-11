@@ -139,11 +139,7 @@ pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), Pipeli
                 "there is no operation {number}; the project has {count}"
             ))
         })?;
-    match op {
-        Operation::Profile(p) => p.tool = tool,
-        Operation::Pocket(p) => p.tool = tool,
-        Operation::Vcarve(v) => v.tool = tool,
-    }
+    op.set_tool(tool);
     Ok(())
 }
 

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The property forms: one operation, and the job settings.
 
-use super::user_library::{LibraryRows, library_rows};
+use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
 use chipload_job::Placement;
+use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
+use chipload_job::{Job, ToolChange};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
@@ -205,16 +207,38 @@ fn entry_summary(entry: &Entry, lead: Option<&Lead>) -> String {
     }
 }
 
-/// The selected operation's fields, in sections. Returns true if "Use selection" was
-/// clicked.
+/// What the operation form asks of the app beyond editing values.
+#[derive(Debug, Default, PartialEq)]
+pub(super) struct OpFormRequest {
+    /// "Use selection" was clicked.
+    pub use_selection: bool,
+    /// Copy this library tool into the project and cut this operation with it.
+    pub tool_from_library: Option<String>,
+}
+
+/// What the operation form needs to know about tools: the project's, the library's names
+/// (None: no library), and the operation's tool's cutting values from the library.
+pub(super) struct ToolChoice<'a> {
+    pub tools: &'a [Tool],
+    pub library: Option<Vec<String>>,
+    pub cutting: Option<Cutting>,
+}
+
+/// The selected operation's fields, in sections.
 pub(super) fn op_form(
     ui: &mut egui::Ui,
     index: usize,
     entry: &mut crate::editor::EditOp,
     contours: &[Contour],
-    tool_diameter: f64,
-) -> bool {
+    choice: ToolChoice<'_>,
+) -> OpFormRequest {
+    let mut request = OpFormRequest::default();
     let mut use_selection = false;
+    let tool_diameter = choice
+        .tools
+        .iter()
+        .find(|t| t.id == entry.op.tool())
+        .map_or(0.0, |t| t.diameter);
     let summary = geometry_summary(&entry.op, contours);
     let side_chosen = &mut entry.side_chosen;
     ui.heading(format!("Operation {}", index + 1));
@@ -239,6 +263,7 @@ pub(super) fn op_form(
                 }
             });
             ui.end_row();
+            tool_row(ui, index, &mut entry.op, &choice, &mut request);
             if let Operation::Profile(p) = &mut entry.op {
                 ui.label("Side");
                 let text = if *side_chosen {
@@ -425,7 +450,102 @@ pub(super) fn op_form(
             feeds_section(ui, &mut v.feed, &mut v.plunge_feed);
         }
     }
-    use_selection
+    request.use_selection = use_selection;
+    request
+}
+
+/// The operation's tool: one of the project's, or one copied in from the library
+/// (docs/specs/tool-per-operation.md §8). Changing it keeps the feeds; when the tool's
+/// library cutting values differ from the operation's, a button applies them.
+fn tool_row(
+    ui: &mut egui::Ui,
+    index: usize,
+    op: &mut Operation,
+    choice: &ToolChoice<'_>,
+    request: &mut OpFormRequest,
+) {
+    let current = op.tool();
+    let selected = choice
+        .tools
+        .iter()
+        .find(|t| t.id == current)
+        .map_or(format!("T{current} (not in the project)"), tool_label);
+    ui.label("Tool");
+    ComboBox::from_id_salt(("op-tool", index))
+        .selected_text(selected)
+        .width(240.0)
+        .show_ui(ui, |ui| {
+            for tool in choice.tools {
+                if ui
+                    .selectable_label(tool.id == current, tool_label(tool))
+                    .clicked()
+                {
+                    op.set_tool(tool.id);
+                }
+            }
+            if let Some(names) = &choice.library
+                && !names.is_empty()
+            {
+                ui.separator();
+                ui.weak("From your library:");
+                for name in names {
+                    if ui.selectable_label(false, format!("+ {name}")).clicked() {
+                        request.tool_from_library = Some(name.clone());
+                    }
+                }
+            }
+        });
+    ui.end_row();
+    if let Some(cutting) = choice.cutting
+        && !has_cutting_values(op, &cutting)
+    {
+        ui.label("");
+        if ui
+            .button("Use the tool's cutting values")
+            .on_hover_text(format!(
+                "From the library: feed {} / plunge {} mm/min, step down {} mm, stepover {}",
+                len(cutting.feed),
+                len(cutting.plunge_feed),
+                len(cutting.step_down),
+                cutting.stepover
+            ))
+            .clicked()
+        {
+            apply_cutting(op, &cutting);
+        }
+        ui.end_row();
+    }
+}
+
+/// Whether the operation already cuts with these feeds, step-down and (pockets) stepover.
+fn has_cutting_values(op: &Operation, c: &Cutting) -> bool {
+    match op {
+        Operation::Profile(p) => {
+            (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
+        }
+        Operation::Pocket(p) => {
+            (p.feed, p.plunge_feed, p.step_down, p.stepover)
+                == (c.feed, c.plunge_feed, c.step_down, c.stepover)
+        }
+        Operation::Vcarve(v) => {
+            (v.feed, v.plunge_feed, v.step_down) == (c.feed, c.plunge_feed, Some(c.step_down))
+        }
+    }
+}
+
+fn apply_cutting(op: &mut Operation, c: &Cutting) {
+    match op {
+        Operation::Profile(p) => {
+            (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+        }
+        Operation::Pocket(p) => {
+            (p.feed, p.plunge_feed, p.step_down, p.stepover) =
+                (c.feed, c.plunge_feed, c.step_down, c.stepover);
+        }
+        Operation::Vcarve(v) => {
+            (v.feed, v.plunge_feed, v.step_down) = (c.feed, c.plunge_feed, Some(c.step_down));
+        }
+    }
 }
 
 fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64) {
@@ -624,6 +744,8 @@ pub(super) fn job_form(
 ) -> Option<JobRequest> {
     let mut request = None;
     let mut copies_request = None;
+    // The operations live in the editor until saved: which tool each uses.
+    let op_tools: Vec<i64> = edit.ops.iter().map(|e| e.op.tool()).collect();
     let job = &mut edit.settings;
     ui.heading("Job settings");
     Grid::new("job-form")
@@ -740,24 +862,111 @@ pub(super) fn job_form(
         library_rows(ui, &mut request, LibraryRows::machine(job, library));
     });
 
-    if let Some(tool) = job.tools.first() {
-        let title = format!("Tool {}", tool.id);
-        let kind = match tool.kind {
-            ToolType::Endmill => "endmill",
-            ToolType::Drill => "drill",
-            ToolType::Vbit => "v-bit",
-        };
-        let text = format!("{kind} Ø{} mm", len(tool.diameter));
-        section(ui, "job-tool", &title, &text, |ui| {
-            if let Some(tool) = job.tools.first() {
-                library_rows(ui, &mut request, LibraryRows::tool(tool, library));
-            }
-            if let Some(tool) = job.tools.first_mut() {
-                tool_rows(ui, "job", tool);
+    tools_section(ui, job, &op_tools, library, &mut request);
+    copies_request.or(request.map(JobRequest::Library))
+}
+
+/// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
+pub(super) fn tool_label(tool: &Tool) -> String {
+    let kind = match tool.kind {
+        ToolType::Endmill => "endmill",
+        ToolType::Drill => "drill",
+        ToolType::Vbit => "v-bit",
+    };
+    let name = tool
+        .name
+        .as_deref()
+        .map_or(String::new(), |n| format!(" \"{n}\""));
+    format!("T{} {kind} Ø{} mm{name}", tool.id, len(tool.diameter))
+}
+
+/// The project's tools, each in a section of its own, and buttons to add one
+/// (docs/specs/tool-per-operation.md §8). A tool an operation uses can't be removed.
+fn tools_section(
+    ui: &mut egui::Ui,
+    job: &mut Job,
+    op_tools: &[i64],
+    library: Option<&Library>,
+    request: &mut Option<LibraryRequest>,
+) {
+    let summary = match job.tools.len() {
+        1 => "1 tool".to_string(),
+        n => format!("{n} tools"),
+    };
+    section(ui, "job-tools", "Tools", &summary, |ui| {
+        ui.label("");
+        ui.horizontal(|ui| {
+            let names: Vec<String> = library
+                .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect())
+                .unwrap_or_default();
+            ui.add_enabled_ui(!names.is_empty(), |ui| {
+                ComboBox::from_id_salt("add-library-tool")
+                    .selected_text("Add from library…")
+                    .show_ui(ui, |ui| {
+                        for name in names {
+                            if ui.selectable_label(false, &name).clicked() {
+                                *request = Some(LibraryRequest::AddTool(name));
+                            }
+                        }
+                    });
+            });
+            if ui
+                .button("New tool")
+                .on_hover_text("A 6 mm endmill to edit; operations pick it in their Tool row")
+                .clicked()
+            {
+                let id = job.tools.iter().map(|t| t.id).max().unwrap_or(0).max(0) + 1;
+                job.tools.push(Tool {
+                    id,
+                    name: None,
+                    kind: ToolType::Endmill,
+                    diameter: chipload_pipeline::DEFAULT_TOOL_DIAMETER,
+                    flutes: None,
+                    center_cutting: None,
+                    rpm: Some(chipload_pipeline::DEFAULT_RPM),
+                    angle: None,
+                    tip_diameter: None,
+                });
             }
         });
+        ui.end_row();
+    });
+    let mut remove = None;
+    for index in 0..job.tools.len() {
+        let tool = &job.tools[index];
+        let id = tool.id;
+        let users: Vec<String> = op_tools
+            .iter()
+            .enumerate()
+            .filter(|(_, tool)| **tool == id)
+            .map(|(i, _)| (i + 1).to_string())
+            .collect();
+        let summary = match users.len() {
+            0 => "not used".to_string(),
+            _ => format!("operations {}", users.join(", ")),
+        };
+        let title = tool_label(tool);
+        section(ui, &format!("job-tool-{id}"), &title, &summary, |ui| {
+            library_rows(ui, request, LibraryRows::tool(&job.tools[index], library));
+            tool_rows(ui, &format!("job-tool-{id}"), &mut job.tools[index]);
+            ui.label("");
+            let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
+            if users.is_empty() {
+                if button.clicked() {
+                    remove = Some(index);
+                }
+            } else {
+                button.on_disabled_hover_text(format!(
+                    "Used by operations {}; give them another tool first",
+                    users.join(", ")
+                ));
+            }
+            ui.end_row();
+        });
     }
-    copies_request.or(request.map(JobRequest::Library))
+    if let Some(index) = remove {
+        job.tools.remove(index);
+    }
 }
 
 /// Margin the *Bottom left* button starts with, mm; only an input, never saved.
@@ -1010,6 +1219,19 @@ pub(super) fn machine_rows(ui: &mut egui::Ui, salt: &str, machine: &mut Machine)
         }
     });
     ui.end_row();
+    ui.label("Tool changes").on_hover_text(
+        "With several tools: one G-code file per tool (change the tool and set Z zero \
+         between files), or one file with M6 tool changes that your sender handles \
+         (GRBL itself refuses M6)",
+    );
+    ComboBox::from_id_salt((salt, "tool-change"))
+        .selected_text(tool_change_name(machine.tool_change))
+        .show_ui(ui, |ui| {
+            for change in [ToolChange::Files, ToolChange::Program] {
+                ui.selectable_value(&mut machine.tool_change, change, tool_change_name(change));
+            }
+        });
+    ui.end_row();
     ui.label("Travel X Y Z");
     ui.horizontal(|ui| {
         let mut set = machine.travel.is_some();
@@ -1027,6 +1249,13 @@ pub(super) fn machine_rows(ui: &mut egui::Ui, salt: &str, machine: &mut Machine)
         }
     });
     ui.end_row();
+}
+
+fn tool_change_name(change: ToolChange) -> &'static str {
+    match change {
+        ToolChange::Files => "one file per tool",
+        ToolChange::Program => "one file with M6 (your sender handles the change)",
+    }
 }
 
 /// Type, diameter, spindle speed and centre cutting.

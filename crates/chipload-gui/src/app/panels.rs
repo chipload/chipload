@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The side panels: operations, selection (with the shape editor), properties.
 
-use super::forms::JobRequest;
+use super::forms::{JobRequest, OpFormRequest, ToolChoice};
 use super::*;
 
 impl ChiploadApp {
@@ -130,7 +130,7 @@ impl ChiploadApp {
         if ui
             .selectable_label(
                 self.focus == Focus::Job,
-                "⚙ Job settings (stock, machine, tool)",
+                "⚙ Job settings (stock, machine, tools)",
             )
             .clicked()
         {
@@ -140,8 +140,26 @@ impl ChiploadApp {
         let missing: BTreeSet<usize> = edit.missing().into_iter().map(|(i, _)| i).collect();
         let mut action: Option<CardAction> = None;
         let count = edit.ops.len();
+        // The tool of the enabled operation before: a line marks each tool change
+        // (docs/specs/tool-per-operation.md §8).
+        let mut last_tool: Option<i64> = None;
         for i in 0..count {
             let entry = &mut edit.ops[i];
+            if entry.op.enabled() {
+                let tool = entry.op.tool();
+                if last_tool.is_some_and(|t| t != tool) {
+                    ui.horizontal(|ui| {
+                        ui.add(
+                            egui::Separator::default()
+                                .horizontal()
+                                .shrink(0.0)
+                                .spacing(4.0),
+                        );
+                    });
+                    ui.weak(RichText::new(format!("tool change → T{tool}")).small());
+                }
+                last_tool = Some(tool);
+            }
             let flagged = missing.contains(&i) || self.error_ops.contains(&i);
             let selected = self.focus == Focus::Op(i);
             let card = op_card(ui, i, entry, &self.contours, selected, flagged);
@@ -242,19 +260,34 @@ impl ChiploadApp {
         let focus = self.focus;
         let contours = &self.contours;
         let library = self.settings_dir.as_ref().map(|_| &self.library);
-        let mut use_selection = false;
+        let mut op_request = OpFormRequest::default();
         let mut request = None;
+        let cutting = match focus {
+            Focus::Op(i) => edit
+                .ops
+                .get(i)
+                .and_then(|e| self_tool_cutting(library, &edit.settings.tools, e.op.tool())),
+            Focus::Job => None,
+        };
         ui.scope(|ui| match focus {
             Focus::Job => request = job_form(ui, edit, library),
             Focus::Op(i) => {
-                let tool_diameter = edit.settings.tools.first().map_or(0.0, |t| t.diameter);
+                let choice = ToolChoice {
+                    tools: &edit.settings.tools,
+                    library: library
+                        .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
+                    cutting,
+                };
                 if let Some(entry) = edit.ops.get_mut(i) {
-                    use_selection = op_form(ui, i, entry, contours, tool_diameter);
+                    op_request = op_form(ui, i, entry, contours, choice);
                 }
             }
         });
-        if use_selection {
+        if op_request.use_selection {
             self.use_selection();
+        }
+        if let (Some(name), Focus::Op(i)) = (op_request.tool_from_library, focus) {
+            self.tool_from_library(i, &name);
         }
         match request {
             Some(JobRequest::Library(request)) => self.library_request(request),
@@ -264,6 +297,22 @@ impl ChiploadApp {
             }
             None => {}
         }
+    }
+}
+
+/// A project tool's cutting values from the library: only when the tool came from the
+/// library and still has its values (as `ChiploadApp::tool_cutting`).
+fn self_tool_cutting(
+    library: Option<&chipload_pipeline::library::Library>,
+    tools: &[chipload_job::Tool],
+    id: i64,
+) -> Option<chipload_job::library::Cutting> {
+    let tool = tools.iter().find(|t| t.id == id)?;
+    let entry = library?.tools.find(tool.name.as_deref()?)?;
+    if entry.same_values(tool) {
+        entry.cutting
+    } else {
+        None
     }
 }
 
@@ -439,8 +488,10 @@ fn op_card(
                         }
                         ui.add(egui::Label::new(title).truncate().selectable(false));
                     });
+                    let tool = entry.op.tool();
                     let mut detail =
-                        RichText::new(format!("{summary}  ·  {start}–{end} mm")).small();
+                        RichText::new(format!("T{tool}  ·  {summary}  ·  {start}–{end} mm"))
+                            .small();
                     detail = if selected {
                         detail.color(text_color)
                     } else {

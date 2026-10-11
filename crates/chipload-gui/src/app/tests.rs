@@ -720,7 +720,7 @@ mod library {
             job.tools[0].diameter,
             chipload_pipeline::DEFAULT_TOOL_DIAMETER
         );
-        assert!(!app.save_to_library(LibraryKind::Machines, "Mine"));
+        assert!(!app.save_to_library(SaveTarget::Machine, "Mine"));
     }
 
     #[test]
@@ -767,7 +767,7 @@ mod library {
         // The project's one tool takes the library values and keeps its id, so the
         // operations still use it.
         let id = before.tools[0].id;
-        assert!(app.use_library_tool("3 mm upcut"));
+        assert!(app.use_library_tool(id, "3 mm upcut"));
         let job = settings_of(&app);
         assert_eq!(job.tools, [upcut().tool(id)]);
         assert!(
@@ -783,12 +783,74 @@ mod library {
     }
 
     #[test]
+    fn an_operation_takes_a_library_tool_of_its_own() {
+        // docs/specs/tool-per-operation.md §8.
+        let dir = settings("op-tool");
+        save_tools(
+            &ToolLibrary {
+                tools: vec![upcut()],
+                ..ToolLibrary::default()
+            },
+            &dir.join("tools.json"),
+        )
+        .unwrap();
+        let mut app = lower_part();
+        app.set_settings_dir(Some(dir.clone()));
+        let before = settings_of(&app).clone();
+        let ops_before: Vec<Operation> = app
+            .edit
+            .as_ref()
+            .unwrap()
+            .ops
+            .iter()
+            .map(|e| e.op.clone())
+            .collect();
+        // The pocket (operation 1) is cut with the 3 mm tool: copied in as tool 2, one
+        // undo step, feeds kept.
+        assert!(app.tool_from_library(0, "3 mm upcut"));
+        let job = settings_of(&app);
+        assert_eq!(job.tools.len(), 2);
+        assert_eq!(job.tools[1], upcut().tool(2));
+        let ops: Vec<Operation> = app
+            .edit
+            .as_ref()
+            .unwrap()
+            .ops
+            .iter()
+            .map(|e| e.op.clone())
+            .collect();
+        assert_eq!((ops[0].tool(), ops[1].tool()), (2, 1));
+        let mut same = ops[0].clone();
+        same.set_tool(ops_before[0].tool());
+        assert_eq!(same, ops_before[0], "only the tool changed");
+        assert!(app.generate(), "{:?}", app.report);
+        let files = &app.result.as_ref().unwrap().files;
+        assert_eq!(files.len(), 2);
+        // Exported as one file per tool, named after the chosen file.
+        let out = temp_dir("op-tool-export").join("part.nc");
+        assert!(app.export_gcode(&out));
+        assert!(out.with_file_name("part-1-T2.nc").exists());
+        assert!(out.with_file_name("part-2-T1.nc").exists());
+        // Again: the library tool is found in the project, not added twice.
+        assert!(app.tool_from_library(1, "3 mm upcut"));
+        assert_eq!(settings_of(&app).tools.len(), 2);
+        // A new operation gets the tool of the last one.
+        select(&mut app, &[2]);
+        let new = app.add_operation(OpKind::Profile).unwrap();
+        assert_eq!(app.edit.as_ref().unwrap().ops[new].op.tool(), 2);
+        app.undo();
+        app.undo();
+        app.undo();
+        assert_eq!(settings_of(&app), &before);
+    }
+
+    #[test]
     fn saving_to_the_library_names_the_project_values() {
         let dir = settings("save");
         let mut app = lower_part();
         app.set_settings_dir(Some(dir.clone()));
-        assert!(app.save_to_library(LibraryKind::Machines, " Router "));
-        assert!(app.save_to_library(LibraryKind::Tools, "6 mm"));
+        assert!(app.save_to_library(SaveTarget::Machine, " Router "));
+        assert!(app.save_to_library(SaveTarget::Tool(1), "6 mm"));
         let job = settings_of(&app);
         assert_eq!(job.machine.name.as_deref(), Some("Router"));
         assert_eq!(job.tools[0].name.as_deref(), Some("6 mm"));

@@ -87,7 +87,8 @@ cargo run -p chipload-cli -- place part.chipload --align bottom-left --margin 10
 cargo run -p chipload-cli -- place part.chipload --rotate 90  # turn it in place (90° steps)
 cargo run -p chipload-cli -- place part.chipload --width 100   # scale it about its centre (also --scale 2, --height)
 cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units, contours, issues
-cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end
+cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end (several tools: out-1-T1.nc, … or --tool-change program)
+cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, no G-code
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker

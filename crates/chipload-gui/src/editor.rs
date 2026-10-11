@@ -154,8 +154,16 @@ impl EditJob {
         EditJob { settings, ops }
     }
 
-    fn tool_id(&self) -> i64 {
-        self.settings.tools.first().map_or(1, |t| t.id)
+    /// The tool a new operation gets: the last operation's, else the project's first
+    /// (docs/specs/tool-per-operation.md §8).
+    pub fn next_tool_id(&self) -> i64 {
+        let known = |id: &i64| self.settings.tools.iter().any(|t| t.id == *id);
+        self.ops
+            .last()
+            .map(|e| e.op.tool())
+            .filter(known)
+            .or(self.settings.tools.first().map(|t| t.id))
+            .unwrap_or(1)
     }
 
     /// Feeds, step-down and stepover from the nearest operation above `index`, else the
@@ -232,12 +240,13 @@ impl EditJob {
             .count()
             + 1;
         let select = selection.selector(contours);
-        let tool = self.tool_id();
+        let tool = self.next_tool_id();
+        let chosen = self.settings.tools.iter().find(|t| t.id == tool);
         // A tool marked not centre-cutting can't plunge: new profiles ramp in
         // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
         // (docs/specs/helix-and-leads.md, decision 6).
-        let plunges = self.settings.tools.first().and_then(|t| t.center_cutting) != Some(false);
-        let diameter = self.settings.tools.first().map_or(0.0, |t| t.diameter);
+        let plunges = chosen.and_then(|t| t.center_cutting) != Some(false);
+        let diameter = chosen.map_or(0.0, |t| t.diameter);
         let entry = match (plunges, kind) {
             (true, _) => Entry::Plunge {},
             (false, OpKind::Profile) => Entry::Ramp {

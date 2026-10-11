@@ -992,6 +992,14 @@ impl Operation {
         }
     }
 
+    pub fn set_tool(&mut self, tool: i64) {
+        match self {
+            Operation::Profile(op) => op.tool = tool,
+            Operation::Pocket(op) => op.tool = tool,
+            Operation::Vcarve(op) => op.tool = tool,
+        }
+    }
+
     /// (start_depth, end_depth), mm down from the stock top.
     pub fn depths(&self) -> (f64, f64) {
         match self {

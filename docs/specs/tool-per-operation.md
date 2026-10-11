@@ -1,7 +1,8 @@
 # Spec: a tool per operation
 
-Status: **draft 2026-10-11**, for review. Decisions in §9. Revised the same day: both one
-file per tool and one file with tool changes, as a machine setting (user request).
+Status: **approved 2026-10-11**, with all decisions as recommended (§9). Revised before
+approval: both one file per tool and one file with tool changes, as a machine setting (user
+request). Built as described, with the differences in §11.
 
 User request (2026-10-11): each operation picks its own tool, with a tool change between
 them, instead of one tool per project. It is also what the V-carve flat floor needs (a V-bit
@@ -273,3 +274,27 @@ The checker stays independent. Each program is checked **on its own**:
   `lines/` versions.
 - GUI: the tool combo changes the tool (undo); a tool in use can't be removed; *Add from
   library* adds and selects it; the new operation inherits the tool above.
+
+## 11. As built
+
+- **Steps:** one file per tool (04bc5e3), the setting with project schema 12 and
+  machines.json 2 (2f5cf5d), one file with `M6` (08ab49b), then the GUI.
+- **Samples:** the one-file-per-tool golden comes from a **v11** sample
+  (`jobs/v11/two_tools.chipload`, files `v11_two_tools-1-T2.nc` / `-2-T1.nc`): it was made
+  before schema 12 and now also checks that the v11 → v12 migration keeps the output. The
+  `M6` sample is `jobs/v12/two_tools_program.chipload`. The golden test collects every
+  file a run writes.
+- **One file with `M6`:** the header lists each tool once, as `(T2 3.000 mm endmill "…")`,
+  in the order first used. A tool group starts with `G0 Z<safe>` itself, so after the
+  change's `G0 Z<safe>` the retract can appear twice: harmless, and explicit.
+- **`render`** reads only the program, so `plan --json` also writes `"tool_groups": N` into
+  the program, and `render` refuses N > 1.
+- **Checker:** `CheckLimits.tool_radii` holds every tool of the job by number. `T` alone
+  changes nothing. `M6` is checked before the spindle words of its line, the order a
+  controller uses.
+- **GUI:** *Tools* lists every project tool in a section of its own (type, size, library
+  rows, *Remove tool*, disabled with the operations named while it is used). *Add from
+  library…* and *New tool* (a 6 mm endmill) sit above them. The operation's *Tool* box lists
+  the project's tools and then the library's ("+ name"). Picking one copies it in and
+  selects it, as one undo step. The operation cards show `T<n>`, and a line marks each
+  tool change.
