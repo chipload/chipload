@@ -5,7 +5,20 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **A tool per operation** (docs/specs/tool-per-operation.md): step 1, one file per tool
+  group, done (04bc5e3). Next: the machine's tool change setting (schema 12, machines.json
+  2) with one file with `M6`, then the GUI.
+
+## Next
+
+- **Adaptive clearing that divides the area smarter** (user request 2026-10-11, with a
+  screenshot): on a rectangle with two round holes the adaptive path wastes time. Short
+  zig-zag cuts comb along every wall, there are long link moves across the part, re-entries
+  cluster in corners, and one big spiral sits in the middle. Idea: split the pocket by its
+  segment Voronoi diagram / medial axis (boostvoronoi, ADR 0015) into channels and open
+  areas, and clear each along its centre line with steady engagement, in an order that
+  keeps links short. Needs a spec first: what "efficient" is measured as (cut time, air
+  time, link length, re-entries), and checks that it stays gouge-free and leaves nothing.
 
 ## Done
 
@@ -29,8 +42,6 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
-- **A tool per operation** instead of one tool per project: each operation picks its own
-  tool, with a tool change between them (user request 2026-10-11).
 - **Several DXFs in one project:** import more than one drawing into a project, each with
   its own source and placement (user request 2026-10-11).
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
