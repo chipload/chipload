@@ -116,11 +116,28 @@ fn bounds(prim: &Primitive) -> (Point, Point) {
             (l.start.0.min(l.end.0), l.start.1.min(l.end.1)),
             (l.start.0.max(l.end.0), l.start.1.max(l.end.1)),
         ),
-        Primitive::Arc(a) => (
-            (a.center.0 - a.radius, a.center.1 - a.radius),
-            (a.center.0 + a.radius, a.center.1 + a.radius),
-        ),
+        Primitive::Arc(a) => arc_bounds(a),
     }
+}
+
+/// The box of the arc itself: its ends and the circle's extremes its sweep passes. Not the
+/// whole circle: a nearly straight arc of a 2 m radius would fill millions of index cells.
+fn arc_bounds(arc: &Arc) -> (Point, Point) {
+    let mut lo = (f64::INFINITY, f64::INFINITY);
+    let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    let extremes = [0.0, 0.25 * TAU, 0.5 * TAU, 0.75 * TAU]
+        .into_iter()
+        .filter(|&angle| on_arc(arc, angle))
+        .map(|angle| arc.point_at(angle));
+    let ends = [
+        arc.point_at(arc.start_angle),
+        arc.point_at(arc.start_angle + arc.sweep),
+    ];
+    for p in ends.into_iter().chain(extremes) {
+        lo = (lo.0.min(p.0), lo.1.min(p.1));
+        hi = (hi.0.max(p.0), hi.1.max(p.1));
+    }
+    (lo, hi)
 }
 
 /// Primitives bucketed on a square grid, for "everything near this box" queries.
@@ -256,6 +273,37 @@ mod tests {
             start_angle: start,
             sweep,
         })
+    }
+
+    #[test]
+    fn an_arc_is_boxed_by_its_sweep_not_its_circle() {
+        // A nearly straight arc from (0, 0) to (15, 0), radius about 2 m (bulge -0.0018).
+        let Some(flat) = Arc::from_bulge((0.0, 0.0), (15.0, 0.0), -0.0018) else {
+            panic!("an arc");
+        };
+        let (lo, hi) = arc_bounds(&flat);
+        assert!(lo.0 > -1e-9 && hi.0 < 15.0 + 1e-9, "{lo:?} {hi:?}");
+        assert!(lo.1 > -0.1 && hi.1 < 0.1, "{lo:?} {hi:?}");
+        // Through an extreme: the half circle over the top reaches y = 1.
+        let (lo, hi) = arc_bounds(&Arc {
+            center: (0.0, 0.0),
+            radius: 1.0,
+            start_angle: 0.0,
+            sweep: 0.5 * TAU,
+        });
+        assert!((lo.0 + 1.0).abs() < 1e-9 && (hi.0 - 1.0).abs() < 1e-9);
+        assert!(lo.1.abs() < 1e-9 && (hi.1 - 1.0).abs() < 1e-9);
+        // Clockwise through the bottom.
+        let (lo, _) = arc_bounds(&Arc {
+            center: (0.0, 0.0),
+            radius: 1.0,
+            start_angle: 0.0,
+            sweep: -0.5 * TAU,
+        });
+        assert!((lo.1 + 1.0).abs() < 1e-9);
+        // The index of the flat arc stays small.
+        let index = PrimIndex::new(vec![Primitive::Arc(flat)], 0.3);
+        assert!(index.grid.len() < 100, "{} cells", index.grid.len());
     }
 
     #[test]
