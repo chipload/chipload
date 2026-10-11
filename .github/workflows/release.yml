@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Libraries bundled into the AppImage
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon0 libxkbcommon-x11-0 libxcb-xkb1
-      - run: cargo test --workspace --locked
+      - run: cargo test --workspace --locked --no-fail-fast
       - run: cargo build --release --locked -p chipload-gui -p chipload-cli
       - name: AppImage
         run: REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist
@@ -71,7 +71,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - run: cargo test --workspace --locked
+      - run: cargo test --workspace --locked --no-fail-fast
       # .cargo/config.toml links the C runtime statically: single-file executables.
       - run: cargo build --release --locked -p chipload-gui -p chipload-cli
       - name: Collect

@@ -129,41 +129,58 @@ mod tests {
         }
     }
 
+    /// An absolute path on the machine running the test: on Windows a path needs a drive
+    /// to be absolute (and `/` separates there too), elsewhere it is as written.
+    fn abs(path: &str) -> String {
+        if cfg!(windows) {
+            format!("C:{path}")
+        } else {
+            path.to_string()
+        }
+    }
+
     #[test]
     fn the_settings_folder_per_os() {
-        let home = [("HOME", "/home/ann")];
+        let ann = abs("/home/ann");
+        let home = [("HOME", ann.as_str())];
         assert_eq!(
             settings_dir_from("linux", env(&home)),
-            Some(PathBuf::from("/home/ann/.config/chipload"))
+            Some(PathBuf::from(abs("/home/ann/.config/chipload")))
         );
         assert_eq!(
             settings_dir_from(
                 "linux",
-                env(&[("HOME", "/home/ann"), ("XDG_CONFIG_HOME", "/cfg")])
+                env(&[
+                    ("HOME", &abs("/home/ann")),
+                    ("XDG_CONFIG_HOME", &abs("/cfg"))
+                ])
             ),
-            Some(PathBuf::from("/cfg/chipload"))
+            Some(PathBuf::from(abs("/cfg/chipload")))
         );
         // A relative XDG_CONFIG_HOME is ignored, as the XDG spec says.
         assert_eq!(
             settings_dir_from(
                 "linux",
-                env(&[("HOME", "/home/ann"), ("XDG_CONFIG_HOME", "cfg")])
+                env(&[("HOME", &abs("/home/ann")), ("XDG_CONFIG_HOME", "cfg")])
             ),
-            Some(PathBuf::from("/home/ann/.config/chipload"))
+            Some(PathBuf::from(abs("/home/ann/.config/chipload")))
         );
         assert_eq!(
             settings_dir_from("macos", env(&home)),
-            Some(PathBuf::from(
+            Some(PathBuf::from(abs(
                 "/home/ann/Library/Application Support/chipload"
-            ))
+            )))
         );
         assert_eq!(settings_dir_from("linux", env(&[])), None);
         assert_eq!(
             settings_dir_from(
                 "linux",
-                env(&[("HOME", "/home/ann"), (CONFIG_DIR_VAR, "/shared/cnc")])
+                env(&[
+                    ("HOME", &abs("/home/ann")),
+                    (CONFIG_DIR_VAR, &abs("/shared/cnc"))
+                ])
             ),
-            Some(PathBuf::from("/shared/cnc"))
+            Some(PathBuf::from(abs("/shared/cnc")))
         );
     }
 

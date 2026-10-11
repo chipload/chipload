@@ -33,7 +33,7 @@ jobs:
           command -v cargo-about || cargo install --locked cargo-about --version "$CARGO_ABOUT_VERSION" --features cli
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
+      - run: cargo test --workspace --locked --no-fail-fast
       - run: cargo deny check licenses bans sources
       - name: Third-party notices are up to date
         run: |
@@ -54,4 +54,4 @@ jobs:
             target
           key: windows-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
+      - run: cargo test --workspace --locked --no-fail-fast
