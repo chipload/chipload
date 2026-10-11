@@ -23,6 +23,9 @@ const WALL_GAP_MM: f64 = ARC_APPROX_TOL_MM;
 /// How far a point of material left may lie outside the area it was computed for: the
 /// flattening of arcs, plus float slack (a point exactly on the tolerance is not outside).
 const OUTSIDE_LIMIT_MM: f64 = ARC_APPROX_TOL_MM + OFFSET_CHECK_SLACK_MM;
+/// How much area a boolean may gain or lose against what it must give, mm²: a square of
+/// the wall gap. Pieces this small are dropped anyway (`too_small`, `keep_visible`).
+const AREA_SLACK_MM2: f64 = WALL_GAP_MM * WALL_GAP_MM;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LeftKind {
@@ -285,12 +288,10 @@ fn difference(piece: &Area, cutter: &Polyline<f64>) -> Result<Vec<Area>, Toolpat
                 holes,
             }])
         }
-        PlineContainsResult::Intersected => {
-            let cut = guarded("Material left difference", || {
-                piece.outer.boolean(cutter, BooleanOp::Not)
-            })?;
-            subtract_holes(areas_of(cut)?, &piece.holes)
-        }
+        PlineContainsResult::Intersected => subtract_holes(
+            checked_boolean(&piece.outer, cutter, BooleanOp::Not)?,
+            &piece.holes,
+        ),
         PlineContainsResult::InvalidInput => Err(invalid()),
     }
 }
@@ -303,13 +304,74 @@ fn intersection(piece: &Area, window: &Polyline<f64>) -> Result<Vec<Area>, Toolp
         PlineContainsResult::Pline2InsidePline1 => {
             subtract_holes(vec![Area::of(window.clone())], &piece.holes)
         }
-        PlineContainsResult::Intersected => {
-            let common = guarded("Material left intersection", || {
-                piece.outer.boolean(window, BooleanOp::And)
-            })?;
-            subtract_holes(areas_of(common)?, &piece.holes)
-        }
+        PlineContainsResult::Intersected => subtract_holes(
+            checked_boolean(&piece.outer, window, BooleanOp::And)?,
+            &piece.holes,
+        ),
         PlineContainsResult::InvalidInput => Err(invalid()),
+    }
+}
+
+/// `outer` minus (Not) or inside (And) the counter-clockwise loop `other`, checked by area:
+/// a vertex lying almost on the other loop's edge can put a piece on the wrong side. Then
+/// `other` is moved out by `CHAIN_TOL_MM` (the result shrinks by that, invisibly) and it is
+/// tried once more; a second failure is an error, which the caller turns into a note.
+fn checked_boolean(
+    outer: &Polyline<f64>,
+    other: &Polyline<f64>,
+    op: BooleanOp,
+) -> Result<Vec<Area>, ToolpathError> {
+    let first = boolean_areas(outer, other, op)?;
+    if area_is_plausible(outer, other, op, &first) {
+        return Ok(first);
+    }
+    // Not: a larger cutter; And: a smaller window. Either way the result only shrinks.
+    let nudge = match op {
+        BooleanOp::Not => -CHAIN_TOL_MM,
+        _ => CHAIN_TOL_MM,
+    };
+    let moved = guarded("Material left offset", || {
+        ccw(other.clone()).parallel_offset(nudge)
+    })?
+    .into_iter()
+    .filter(|p| p.is_closed())
+    .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()))
+    .map(ccw)
+    .ok_or_else(invalid)?;
+    let second = boolean_areas(outer, &moved, op)?;
+    if area_is_plausible(outer, &moved, op, &second) {
+        Ok(second)
+    } else {
+        Err(geometry(
+            "material left: a boolean gave the wrong area".into(),
+        ))
+    }
+}
+
+fn boolean_areas(
+    outer: &Polyline<f64>,
+    other: &Polyline<f64>,
+    op: BooleanOp,
+) -> Result<Vec<Area>, ToolpathError> {
+    let result = guarded("Material left boolean", || outer.boolean(other, op))?;
+    areas_of(result)
+}
+
+/// A − B keeps at least |A| − |B|; A ∩ B holds at most the smaller of the two.
+fn area_is_plausible(
+    outer: &Polyline<f64>,
+    other: &Polyline<f64>,
+    op: BooleanOp,
+    result: &[Area],
+) -> bool {
+    let size = |p: &Polyline<f64>| p.area().abs();
+    let total: f64 = result
+        .iter()
+        .map(|a| size(&a.outer) - a.holes.iter().map(size).sum::<f64>())
+        .sum();
+    match op {
+        BooleanOp::Not => total + size(other) + AREA_SLACK_MM2 >= size(outer),
+        _ => total <= size(outer).min(size(other)) + AREA_SLACK_MM2,
     }
 }
 
@@ -588,5 +650,66 @@ mod tests {
         fn bounds_check(&self) -> (Point, Point) {
             bounds_of(&self.rings)
         }
+    }
+
+    /// A pocket whose island has a shallow notch: the reach's hole has a vertex almost on
+    /// the island's edge there, and the boolean put the notch on the wrong side (found by
+    /// the material-left property on Windows CI). The notch must still be shown.
+    #[test]
+    fn a_notch_beside_a_near_coincident_vertex_is_shown() {
+        let poly = |pts: &[(f64, f64)]| {
+            let mut p = Polyline::new_closed();
+            for &(x, y) in pts {
+                p.add(x, y, 0.0);
+            }
+            p
+        };
+        let outer = poly(&[
+            (40.945449, 1.32253),
+            (22.753549, 26.239641),
+            (-42.535571, 18.67181),
+            (-32.319766, -32.038946),
+            (56.683192, 0.0),
+        ]);
+        let island = poly(&[
+            (-8.363385, 9.840549),
+            (-8.734276, 9.791431),
+            (-6.501682, 10.832788),
+            (-9.93716, 12.669076),
+            (-10.264582, 11.860188),
+            (-10.459567, 10.328525),
+            (-11.547827, 11.41166),
+            (-12.785683, 9.35055),
+            (-11.61, 9.29592),
+            (-12.389582, 7.846854),
+            (-7.90973, 6.515219),
+            (-8.38772, 8.56454),
+            (-7.64152, 8.615552),
+            (-6.344734, 8.167195),
+        ]);
+        let neighbour = poly(&[
+            (-0.948688, 5.340228),
+            (-2.1745, 5.065788),
+            (-5.478237, 5.044509),
+            (-4.668653, 4.167576),
+            (-4.717223, 3.503425),
+            (-3.989023, 0.314792),
+            (-3.505816, 1.988827),
+            (-1.717394, 3.061823),
+            (-0.227616, 2.313822),
+        ]);
+        let region = Area {
+            outer: ccw(outer),
+            holes: vec![cw(island), cw(neighbour)],
+        };
+        let radius = 4.130773022615462;
+        let reached = reach(&region.shrunk(radius).unwrap(), radius).unwrap();
+        let pieces = unreachable_inside(&region, &reached).unwrap();
+        let notch = (-12.5, 9.0);
+        let shown = pieces.iter().any(|piece| {
+            let rings: Vec<Polyline<f64>> = piece.rings.iter().map(|r| poly(r)).collect();
+            rings.iter().filter(|r| encloses(r, notch)).count() % 2 == 1
+        });
+        assert!(shown, "the notch at {notch:?} is not shown");
     }
 }
