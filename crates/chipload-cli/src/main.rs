@@ -172,8 +172,8 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Move the imported drawing (docs/specs/drawing-placement.md). Without an option,
-    /// print where it is.
+    /// Move or turn the imported drawing (docs/specs/drawing-placement.md,
+    /// drawing-rotation.md). Without an option, print where it is.
     Place {
         /// The project (.chipload).
         project: PathBuf,
@@ -189,6 +189,13 @@ enum Command {
         /// With --align bottom-left: how far in from the stock's corner, mm.
         #[arg(long)]
         margin: Option<f64>,
+        /// Turn it about its centre, degrees counter-clockwise: 90, 180, 270 or -90. Before
+        /// --align when both are given.
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
+        rotate: Option<i32>,
+        /// Back to where the DXF has it: no turn, no move.
+        #[arg(long, conflicts_with_all = ["by", "to", "align", "margin", "rotate"])]
+        reset: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -368,8 +375,21 @@ fn main() -> ExitCode {
             to,
             align,
             margin,
+            rotate,
+            reset,
             output,
-        } => place(&project, by, to, align, margin, output.as_deref()),
+        } => place(
+            &project,
+            PlaceArgs {
+                by,
+                to,
+                align,
+                margin,
+                rotate,
+                reset,
+            },
+            output.as_deref(),
+        ),
         Command::Licenses => {
             println!("{}\n", chipload_pipeline::notices::short_notice());
             println!("{}", chipload_pipeline::notices::LICENSE);
@@ -499,47 +519,76 @@ fn changed_copies(job: &Job, args: CopiesArgs) -> Result<Option<Copies>, String>
     Ok(Some(copies))
 }
 
-fn place(
-    project: &Path,
+/// What `chipload place` was asked to do.
+struct PlaceArgs {
     by: Option<String>,
     to: Option<String>,
     align: Option<AlignArg>,
     margin: Option<f64>,
-    output: Option<&Path>,
-) -> ExitCode {
+    rotate: Option<i32>,
+    reset: bool,
+}
+
+fn place(project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
     let job = match load_job(project) {
         Ok(job) => job,
         Err(err) => return fail(err),
     };
-    let how = match place_move(by, to, align, margin) {
-        Ok(Some(how)) => how,
-        Ok(None) => {
-            return match &job.drawing.source {
-                Some(source) => {
-                    println!("Drawing: {}", placement_text(source.placement));
-                    ExitCode::SUCCESS
-                }
-                None => fail("the project has no imported drawing"),
-            };
+    let steps = match place_moves(args) {
+        Ok(steps) => steps,
+        Err(err) => return fail(err),
+    };
+    if steps.is_empty() {
+        return match &job.drawing.source {
+            Some(source) => {
+                println!("Drawing: {}", placement_text(source.placement));
+                ExitCode::SUCCESS
+            }
+            None => fail("the project has no imported drawing"),
+        };
+    }
+    let mut placed = job;
+    let mut lines = Vec::new();
+    for how in steps {
+        match place_drawing(&placed, how) {
+            Ok((next, report)) => {
+                placed = next;
+                lines.extend(report.lines);
+            }
+            Err(err) => return fail(err),
         }
-        Err(err) => return fail(err),
-    };
-    let (placed, report) = match place_drawing(&job, how) {
-        Ok(done) => done,
-        Err(err) => return fail(err),
-    };
+    }
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&placed, target) {
         return fail(err);
     }
-    for line in &report.lines {
+    for line in &lines {
         println!("{line}");
     }
     println!("Wrote {}", target.display());
     ExitCode::SUCCESS
 }
 
-/// The move `place` was asked for; None: just print the placement.
+/// The moves `place` was asked for, in order: a turn first, then a move or an alignment.
+/// Empty: just print the placement.
+fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
+    if args.reset {
+        return Ok(vec![PlaceMove::Reset]);
+    }
+    let mut steps = Vec::new();
+    if let Some(degrees) = args.rotate {
+        if degrees % 90 != 0 {
+            return Err(format!(
+                "--rotate turns in steps of 90 degrees (90, 180, 270, -90), got {degrees}"
+            ));
+        }
+        steps.push(PlaceMove::Turn(degrees / 90));
+    }
+    steps.extend(place_move(args.by, args.to, args.align, args.margin)?);
+    Ok(steps)
+}
+
+/// The move or alignment `place` was asked for, if any.
 fn place_move(
     by: Option<String>,
     to: Option<String>,

@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Moving the imported drawing (docs/specs/drawing-placement.md). The stored shapes are the
-//! moved ones and `drawing.source.placement` records the move, so an update from the DXF can
-//! put the new shapes in the same place. The CLI and the GUI both go through here.
+//! Moving and turning the imported drawing (docs/specs/drawing-placement.md,
+//! docs/specs/drawing-rotation.md). The stored shapes are the placed ones and
+//! `drawing.source.placement` records the placement, so an update from the DXF can put the
+//! new shapes in the same place. The CLI and the GUI both go through here.
 
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::PLACEMENT_ROUNDING_MM;
+use chipload_core::tolerances::{ANGLE_TOL_RAD, PLACEMENT_ROUNDING_MM};
 use chipload_dxf::contours_from_shapes;
-use chipload_job::{Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero};
+use chipload_job::{
+    Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero, quarter_turned,
+};
 
 use crate::{PipelineError, stock_fit_note};
 
@@ -24,17 +27,37 @@ pub enum Move {
     BottomLeft { margin: f64 },
     /// The bounding box's centre on the stock's centre.
     Center,
+    /// Turn by this many × 90° counter-clockwise (negative: clockwise) about the centre of
+    /// the bounding box.
+    Turn(i32),
+    /// Back to where the DXF has it: no turn, no move.
+    Reset,
 }
 
-/// What placing did: the move made and lines to show.
+/// One change of placement: turn about the origin by `turns` × 90° counter-clockwise,
+/// then move by (dx, dy).
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Step {
+    turns: u8,
+    dx: f64,
+    dy: f64,
+}
+
+impl Step {
+    fn apply(&self, p: [f64; 2]) -> [f64; 2] {
+        let q = quarter_turned(p, self.turns);
+        [q[0] + self.dx, q[1] + self.dy]
+    }
+}
+
+/// What placing did: lines to show.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlaceReport {
-    pub moved: (f64, f64),
     pub lines: Vec<String>,
 }
 
-/// Move the imported drawing, with the start points that belong to it. Drawn shapes and a
-/// work zero at a point stay where they are.
+/// Move or turn the imported drawing, with the start points that belong to it. Drawn shapes
+/// and a work zero at a point stay where they are.
 pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), PipelineError> {
     let Some(source) = &job.drawing.source else {
         return Err(nothing_imported());
@@ -49,15 +72,15 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     if imported.is_empty() {
         return Err(nothing_imported());
     }
-    let (dx, dy) = move_for(job, &imported, source.placement, how)?;
+    let step = step_for(job, &imported, source.placement, how)?;
+    let Step { turns, dx, dy } = step;
     if !(dx.is_finite() && dy.is_finite()) {
         return Err(PipelineError::Job(format!(
             "can't move the drawing by ({dx}, {dy})"
         )));
     }
-    if (dx, dy) == (0.0, 0.0) {
+    if (turns, dx, dy) == (0, 0.0, 0.0) {
         let report = PlaceReport {
-            moved: (0.0, 0.0),
             lines: vec!["The drawing is already there; nothing moved.".into()],
         };
         return Ok((job.clone(), report));
@@ -69,24 +92,38 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
         let select = op.select().clone();
         for start in op.starts_mut() {
             if nearest_is_imported(&job.drawing.shapes, &select, (start[0], start[1])) {
-                *start = [start[0] + dx, start[1] + dy];
+                *start = step.apply(*start);
                 moved_starts += 1;
             }
         }
     }
-    translate_imported(&mut out.drawing.shapes, dx, dy);
+    apply_to_imported(&mut out.drawing.shapes, step);
+    // turn(old placement) followed by the step: turns add up, the old move turns too.
+    let old = source.placement;
+    let [pdx, pdy] = step.apply([old.dx, old.dy]);
     let placement = Placement {
-        dx: source.placement.dx + dx,
-        dy: source.placement.dy + dy,
+        quarter_turns: (old.quarter_turns + turns) % 4,
+        dx: pdx,
+        dy: pdy,
     };
     if let Some(source) = &mut out.drawing.source {
         source.placement = placement;
     }
 
-    let mut lines = vec![format!(
-        "Moved the imported drawing by X{dx:.3} Y{dy:.3} mm; it is now {}.",
-        placement_text(placement)
-    )];
+    let done = match how {
+        Move::Turn(k) => format!(
+            "Turned the imported drawing {}° {}",
+            90 * k.unsigned_abs(),
+            if k > 0 {
+                "counter-clockwise"
+            } else {
+                "clockwise"
+            }
+        ),
+        Move::Reset => "Put the imported drawing back where the DXF has it".to_string(),
+        _ => format!("Moved the imported drawing by X{dx:.3} Y{dy:.3} mm"),
+    };
+    let mut lines = vec![format!("{done}; it is now {}.", placement_text(placement))];
     if moved_starts > 0 {
         lines.push(format!("Moved {moved_starts} start point(s) with it."));
     }
@@ -104,24 +141,25 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     if !problems.is_empty() {
         return Err(PipelineError::Job(problems.join("; ")));
     }
-    Ok((
-        out,
-        PlaceReport {
-            moved: (dx, dy),
-            lines,
-        },
-    ))
+    Ok((out, PlaceReport { lines }))
 }
 
-/// "as in the DXF" or "moved X12.000 Y-3.500 from the DXF".
+/// "as in the DXF", or e.g. "turned 90°, moved X12.000 Y-3.500 from the DXF".
 pub fn placement_text(placement: Placement) -> String {
-    if placement == Placement::default() {
+    let mut parts = Vec::new();
+    if placement.quarter_turns != 0 {
+        parts.push(format!(
+            "turned {}°",
+            90 * u32::from(placement.quarter_turns)
+        ));
+    }
+    if (placement.dx, placement.dy) != (0.0, 0.0) {
+        parts.push(format!("moved X{:.3} Y{:.3}", placement.dx, placement.dy));
+    }
+    if parts.is_empty() {
         "as in the DXF".into()
     } else {
-        format!(
-            "moved X{:.3} Y{:.3} from the DXF",
-            placement.dx, placement.dy
-        )
+        format!("{} from the DXF", parts.join(", "))
     }
 }
 
@@ -129,13 +167,14 @@ fn nothing_imported() -> PipelineError {
     PipelineError::Job("the project has no imported drawing to move".into())
 }
 
-/// The move `how` asks for, from the current placement and the imported shapes' extent.
-fn move_for(
+/// The step `how` asks for, from the current placement and the imported shapes' extent.
+fn step_for(
     job: &Job,
     imported: &[Shape],
     current: Placement,
     how: Move,
-) -> Result<(f64, f64), PipelineError> {
+) -> Result<Step, PipelineError> {
+    let moved = |dx: f64, dy: f64| Step { turns: 0, dx, dy };
     let bbox = || {
         contours_from_shapes(imported, None)
             .report
@@ -144,8 +183,8 @@ fn move_for(
     };
     let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
     Ok(match how {
-        Move::By(dx, dy) => (dx, dy),
-        Move::To(x, y) => (x - current.dx, y - current.dy),
+        Move::By(dx, dy) => moved(dx, dy),
+        Move::To(x, y) => moved(x - current.dx, y - current.dy),
         Move::BottomLeft { margin } => {
             if !(margin.is_finite() && margin >= 0.0) {
                 return Err(PipelineError::Job(format!(
@@ -153,30 +192,67 @@ fn move_for(
                 )));
             }
             let ((x0, y0), _) = bbox()?;
-            (sx0 + margin - x0, sy0 + margin - y0)
+            moved(sx0 + margin - x0, sy0 + margin - y0)
         }
         Move::Center => {
             let ((x0, y0), (x1, y1)) = bbox()?;
-            (
+            moved(
                 (sx0 + sx1) / 2.0 - (x0 + x1) / 2.0,
                 (sy0 + sy1) / 2.0 - (y0 + y1) / 2.0,
             )
         }
+        Move::Reset => {
+            // Undo turn(p) + d: turn back by the same turns, so the move turns back too.
+            let back = (4 - current.quarter_turns % 4) % 4;
+            let d = quarter_turned([current.dx, current.dy], back);
+            Step {
+                turns: back,
+                dx: -d[0],
+                dy: -d[1],
+            }
+        }
+        Move::Turn(k) => {
+            // About the bounding box's centre c: p -> turn(p - c) + c = turn(p) + c - turn(c).
+            let ((x0, y0), (x1, y1)) = bbox()?;
+            let turns = u8::try_from(k.rem_euclid(4)).unwrap_or(0);
+            let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
+            let tc = quarter_turned(c, turns);
+            Step {
+                turns,
+                dx: c[0] - tc[0],
+                dy: c[1] - tc[1],
+            }
+        }
     })
 }
 
-/// Move every imported shape by (dx, dy); drawn shapes stay.
-pub(crate) fn translate_imported(shapes: &mut [Shape], dx: f64, dy: f64) {
+/// Put shapes read from the DXF where `placement` says; drawn shapes stay.
+pub(crate) fn place_imported(shapes: &mut [Shape], placement: Placement) {
+    apply_to_imported(
+        shapes,
+        Step {
+            turns: placement.quarter_turns,
+            dx: placement.dx,
+            dy: placement.dy,
+        },
+    );
+}
+
+/// Turn, then move, every imported shape; drawn shapes stay.
+fn apply_to_imported(shapes: &mut [Shape], step: Step) {
     for shape in shapes {
         if let Geometry::Path { segments, .. } = &mut shape.geometry {
             for segment in segments.iter_mut() {
-                *segment = segment.translated(dx, dy);
+                *segment = segment
+                    .quarter_turned(step.turns)
+                    .translated(step.dx, step.dy);
             }
         }
     }
 }
 
-/// The same shape up to the last bits a repeated move may leave (`PLACEMENT_ROUNDING_MM`).
+/// The same shape up to the last bits repeated moves and turns may leave
+/// (`PLACEMENT_ROUNDING_MM`, `ANGLE_TOL_RAD`).
 pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
     match (&a.geometry, &b.geometry) {
         (
@@ -212,12 +288,13 @@ fn same_segment(a: &PathSegment, b: &PathSegment) -> bool {
         (PathSegment::Line(x), PathSegment::Line(y)) => {
             close(x.start, y.start) && close(x.end, y.end)
         }
-        // A move never changes an arc's radius or angles: those must be equal.
+        // Moves and turns never change an arc's radius or sweep: those must be equal.
         (PathSegment::Arc(x), PathSegment::Arc(y)) => {
+            let turn = (x.start_angle - y.start_angle).rem_euclid(TAU);
             close(x.center, y.center)
                 && x.radius == y.radius
-                && x.start_angle == y.start_angle
                 && x.sweep == y.sweep
+                && (turn <= ANGLE_TOL_RAD || TAU - turn <= ANGLE_TOL_RAD)
         }
         _ => false,
     }

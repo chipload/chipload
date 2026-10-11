@@ -759,7 +759,7 @@ fn v7_to_v8_places_an_imported_drawing_where_the_dxf_has_it() {
     let current = migrate(v7).unwrap();
     assert_eq!(
         current["drawing"]["source"]["placement"],
-        json!({"dx": 0.0, "dy": 0.0})
+        json!({"quarter_turns": 0, "dx": 0.0, "dy": 0.0})
     );
     assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
     // Without an imported drawing there is nothing to place.
@@ -781,12 +781,16 @@ fn a_v8_drawing_source_needs_a_finite_placement() {
     stray["drawing"]["source"]["placement"]["angle"] = json!(0.0);
     assert!(parse_job(stray, "p").is_err());
     let mut moved = good;
-    moved["drawing"]["source"]["placement"] = json!({"dx": -12.5, "dy": 3.0});
+    moved["drawing"]["source"]["placement"] = json!({"quarter_turns": 0, "dx": -12.5, "dy": 3.0});
     let mut job = parse_job(moved, "p").unwrap();
     let source = job.drawing.source.as_mut().unwrap();
     assert_eq!(
         source.placement,
-        chipload_job::Placement { dx: -12.5, dy: 3.0 }
+        chipload_job::Placement {
+            quarter_turns: 0,
+            dx: -12.5,
+            dy: 3.0
+        }
     );
     // JSON can't hold a non-finite number, but a job built in code can.
     source.placement.dy = f64::NAN;
@@ -795,4 +799,33 @@ fn a_v8_drawing_source_needs_a_finite_placement() {
             .iter()
             .any(|p| p.starts_with("drawing.source.placement"))
     );
+}
+
+// -- turning the imported drawing (docs/specs/drawing-rotation.md)
+
+#[test]
+fn v8_to_v9_gives_a_placement_no_turn() {
+    let v8 = raw("v8/placed_part.chipload");
+    let shapes = v8["drawing"]["shapes"].clone();
+    let current = migrate(v8).unwrap();
+    assert_eq!(
+        current["drawing"]["source"]["placement"],
+        json!({"quarter_turns": 0, "dx": -20.0, "dy": 30.0})
+    );
+    assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
+}
+
+#[test]
+fn quarter_turns_are_0_to_3() {
+    let good = migrate(raw("v8/placed_part.chipload")).unwrap();
+    for (turns, ok) in [
+        (json!(3), true),
+        (json!(4), false),
+        (json!(-1), false),
+        (json!(1.5), false),
+    ] {
+        let mut data = good.clone();
+        data["drawing"]["source"]["placement"]["quarter_turns"] = turns.clone();
+        assert_eq!(parse_job(data, "p").is_ok(), ok, "{turns}");
+    }
 }

@@ -627,7 +627,10 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
         out.contains("Moved the imported drawing by X-20.000 Y30.000"),
         "{out}"
     );
-    assert_eq!(placement(), serde_json::json!({"dx": -20.0, "dy": 30.0}));
+    assert_eq!(
+        placement(),
+        serde_json::json!({"quarter_turns": 0, "dx": -20.0, "dy": 30.0})
+    );
     assert!(extents().contains("X 30.000 .. 230.000, Y 80.000 .. 200.000"));
     assert!(ok_inspect(p).contains("Drawing: moved X-20.000 Y30.000 from the DXF"));
 
@@ -636,9 +639,15 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     assert!(extents().contains("X 10.000 .. 210.000, Y 10.000 .. 130.000"));
     run(&["place", p, "--align", "center"]);
     assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
-    assert_eq!(placement(), serde_json::json!({"dx": 0.0, "dy": 0.0}));
+    assert_eq!(
+        placement(),
+        serde_json::json!({"quarter_turns": 0, "dx": 0.0, "dy": 0.0})
+    );
     run(&["place", p, "--to", "5,-5"]);
-    assert_eq!(placement(), serde_json::json!({"dx": 5.0, "dy": -5.0}));
+    assert_eq!(
+        placement(),
+        serde_json::json!({"quarter_turns": 0, "dx": 5.0, "dy": -5.0})
+    );
 
     // An update keeps it where it was put.
     let (code, out, _) = run(&["update", p, "--from", path(&corpus("dxf/simple_part.dxf"))]);
@@ -657,5 +666,74 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     let (code, _, err) = run(&["place", path(&empty), "--by", "1,1"]);
     assert_eq!(code, Some(1));
     assert!(err.contains("no imported drawing"), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn the_imported_drawing_is_turned_from_the_command_line() {
+    // docs/specs/drawing-rotation.md §4
+    let dir = temp_dir("rotate");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/simple_part_full.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let extents = || {
+        ok_inspect(p)
+            .lines()
+            .find(|l| l.starts_with("Extents"))
+            .unwrap()
+            .to_string()
+    };
+
+    let (code, _, err) = run(&["place", p, "--rotate", "45"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("steps of 90 degrees"), "{err}");
+    // A usage error (clap): the offset would be unclear after a turn.
+    let (code, _, err) = run(&["place", p, "--rotate", "90", "--by", "1,1"]);
+    assert_eq!(code, Some(2), "{err}");
+    assert!(err.contains("cannot be used with"), "{err}");
+
+    // 200 × 120 centred on (150, 110): turned in place it is 120 × 200.
+    let (code, out, _) = run(&["place", p, "--rotate", "90"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Turned the imported drawing 90° counter-clockwise"),
+        "{out}"
+    );
+    assert!(extents().contains("X 90.000 .. 210.000, Y 10.000 .. 210.000"));
+    let (_, out, _) = run(&["place", p]);
+    assert!(
+        out.contains("Drawing: turned 90°, moved X260.000 Y-40.000 from the DXF"),
+        "{out}"
+    );
+    // Stock 300 × 220: turned and put in the corner, it fits.
+    let (code, out, _) = run(&[
+        "place",
+        p,
+        "--rotate",
+        "-90",
+        "--align",
+        "bottom-left",
+        "--margin",
+        "10",
+    ]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("90° clockwise"), "{out}");
+    assert!(extents().contains("X 10.000 .. 210.000, Y 10.000 .. 130.000"));
+    let (code, out, _) = run(&["place", p, "--rotate", "270"]);
+    assert_eq!(code, Some(0), "{out}");
+    let (code, out, _) = run(&["place", p, "--align", "bottom-left", "--margin", "10"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(extents().contains("X 10.000 .. 130.000, Y 10.000 .. 210.000"));
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(code, Some(0), "{err}");
+    let (code, out, _) = run(&["place", p, "--reset"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
+    let (_, out, _) = run(&["place", p]);
+    assert!(out.contains("Drawing: as in the DXF"), "{out}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

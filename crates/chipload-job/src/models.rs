@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Job model: a declarative description of how to machine a drawing.
 //!
-//! Job file models (schema v8: a project with its drawing embedded, docs/specs/
+//! Job file models (schema v9: a project with its drawing embedded, docs/specs/
 //! project-file.md, shapes drawn in Chipload, docs/specs/drawing-tools.md, and the imported
-//! drawing's placement, docs/specs/drawing-placement.md). All lengths are mm, all feeds
+//! drawing's placement, docs/specs/drawing-placement.md and drawing-rotation.md). All lengths are mm, all feeds
 //! mm/min, angles radians, `depth` is
 //! measured down from the stock top. Unknown fields are rejected; value constraints are
 //! checked by [`Job::validate`].
@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 8;
+pub const CURRENT_VERSION: i64 = 9;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -541,6 +541,26 @@ impl PathSegment {
             }),
         }
     }
+
+    /// The segment turned about the origin by `k` × 90° counter-clockwise. Points are
+    /// exact; an arc's start angle is wrapped into [0, 2π).
+    pub fn quarter_turned(&self, k: u8) -> PathSegment {
+        if k.is_multiple_of(4) {
+            return self.clone();
+        }
+        match self {
+            PathSegment::Line(l) => PathSegment::Line(LineSegment {
+                start: quarter_turned(l.start, k),
+                end: quarter_turned(l.end, k),
+            }),
+            PathSegment::Arc(a) => PathSegment::Arc(ArcSegment {
+                center: quarter_turned(a.center, k),
+                start_angle: (a.start_angle + f64::from(k % 4) * std::f64::consts::FRAC_PI_2)
+                    .rem_euclid(std::f64::consts::TAU),
+                ..*a
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -606,12 +626,26 @@ pub struct DrawingSource {
     pub placement: Placement,
 }
 
-/// A move of the imported drawing, mm.
+/// Where the imported drawing is put: a DXF point p goes to turn(p) + (dx, dy), turned
+/// about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/
+/// drawing-rotation.md), then moved by (dx, dy) mm.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Placement {
+    /// 0 to 3.
+    pub quarter_turns: u8,
     pub dx: f64,
     pub dy: f64,
+}
+
+/// The point turned about the origin by `k` × 90° counter-clockwise. Exact: no trigonometry.
+pub fn quarter_turned(p: [f64; 2], k: u8) -> [f64; 2] {
+    match k % 4 {
+        0 => p,
+        1 => [-p[1], p[0]],
+        2 => [-p[0], -p[1]],
+        _ => [p[1], -p[0]],
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -1264,10 +1298,19 @@ impl Job {
         let mut problems = self.drawing.validate();
         problems.extend(self.machine.problems("machine"));
         if let Some(source) = &self.drawing.source {
-            let Placement { dx, dy } = source.placement;
+            let Placement {
+                quarter_turns,
+                dx,
+                dy,
+            } = source.placement;
             if !(dx.is_finite() && dy.is_finite()) {
                 problems.push(format!(
                     "drawing.source.placement: must be numbers, got ({dx}, {dy})"
+                ));
+            }
+            if quarter_turns > 3 {
+                problems.push(format!(
+                    "drawing.source.placement.quarter_turns: must be 0 to 3, got {quarter_turns}"
                 ));
             }
         }

@@ -18,6 +18,8 @@ it's built (see `CLAUDE.md`).
 
 - **Placing the imported drawing** (docs/specs/drawing-placement.md): move it by an offset or
   align it with the stock, kept through updates from the DXF (schema 8, `chipload place`).
+- **Turning the imported drawing in 90° steps** (docs/specs/drawing-rotation.md): about its
+  centre, exact (schema 9, `chipload place --rotate`, GUI ⟲ ⟳).
 - **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md), in 0.9.0.
 - **Offset retry** (docs/specs/offset-retry.md): a pocket or profile whose offsets hit a
   numerical coincidence is retried with offsets moved by 1e-6 mm instead of refused.

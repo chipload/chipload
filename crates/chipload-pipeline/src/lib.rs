@@ -286,7 +286,7 @@ pub fn update_drawing(
         .as_ref()
         .map(|s| s.placement)
         .unwrap_or_default();
-    placement::translate_imported(&mut imported.shapes, placed.dx, placed.dy);
+    placement::place_imported(&mut imported.shapes, placed);
     imported.source.placement = placed;
     let old = &job.drawing;
     // Old imported shapes by handle, in order; each can be matched once.

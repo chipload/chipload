@@ -1227,6 +1227,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert_eq!(
         placement(&app),
         chipload_job::Placement {
+            quarter_turns: 0,
             dx: -40.0,
             dy: -40.0
         }
@@ -1239,6 +1240,19 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert!(near(contour_min(&app, outline(&app)), (10.0, 10.0)));
     assert!(app.place(chipload_pipeline::placement::Move::To(0.0, 0.0)));
     assert_eq!(placement(&app), chipload_job::Placement::default());
+
+    // Turned in place (docs/specs/drawing-rotation.md §5): the 200 × 120 outline centred on
+    // (150, 110) becomes 120 × 200; one undo step; Reset takes it back.
+    assert!(app.place(chipload_pipeline::placement::Move::Turn(-1)));
+    assert_eq!(placement(&app).quarter_turns, 3);
+    assert!(near(contour_min(&app, outline(&app)), (90.0, 10.0)));
+    assert_eq!(circle(&app), before, "the drawn circle stays");
+    app.undo();
+    assert_eq!(placement(&app).quarter_turns, 0);
+    app.redo();
+    assert!(app.place(chipload_pipeline::placement::Move::Reset));
+    assert!(near(contour_min(&app, outline(&app)), (50.0, 50.0)));
+    assert_eq!(placement(&app).quarter_turns, 0);
 
     // A project without an imported drawing has nothing to move.
     let mut app = ChiploadApp::default();

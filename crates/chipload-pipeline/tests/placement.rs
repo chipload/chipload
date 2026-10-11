@@ -116,6 +116,7 @@ fn bottom_left_with_a_margin_puts_the_drawing_on_the_stock() {
     assert_eq!(
         placement(&placed),
         Placement {
+            quarter_turns: 0,
             dx: -490.0,
             dy: -390.0
         }
@@ -149,11 +150,11 @@ fn centre_on_the_stock() {
 fn by_adds_and_to_sets() {
     let (job, _, dir) = drawn_then_imported("by-to");
     let (once, _) = place_drawing(&job, Move::By(-400.0, -300.0)).unwrap();
-    let (twice, report) = place_drawing(&once, Move::By(5.5, -2.25)).unwrap();
-    assert_eq!(report.moved, (5.5, -2.25));
+    let (twice, _) = place_drawing(&once, Move::By(5.5, -2.25)).unwrap();
     assert_eq!(
         placement(&twice),
         Placement {
+            quarter_turns: 0,
             dx: -394.5,
             dy: -302.25
         }
@@ -298,4 +299,209 @@ fn a_moved_drawing_cuts_the_same_program_moved() {
             }
         }
     }
+}
+
+// -- turning in 90° steps (docs/specs/drawing-rotation.md)
+
+/// simple_part (an outline with arcs, a slot, a circle and a rectangle hole), frozen at v7
+/// with an inside and an outside profile.
+fn simple_part() -> Job {
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus");
+    chipload_job::load_job(&corpus.join("jobs/v7/simple_part_full.chipload")).unwrap()
+}
+
+fn drawing_box(job: &Job) -> ((f64, f64), (f64, f64)) {
+    chipload_pipeline::load_drawing(job)
+        .unwrap()
+        .report
+        .bbox
+        .unwrap()
+}
+
+/// Every segment of every shape equal within float noise (angles modulo a full turn).
+fn assert_same_shapes(a: &Job, b: &Job) {
+    use chipload_job::PathSegment;
+    let close = |p: [f64; 2], q: [f64; 2]| near(p[0], q[0]) && near(p[1], q[1]);
+    for (x, y) in a.drawing.shapes.iter().zip(&b.drawing.shapes) {
+        for (s, t) in x.segments().iter().zip(y.segments()) {
+            let same = match (s, &t) {
+                (PathSegment::Line(s), PathSegment::Line(t)) => {
+                    close(s.start, t.start) && close(s.end, t.end)
+                }
+                (PathSegment::Arc(s), PathSegment::Arc(t)) => {
+                    let turn = (s.start_angle - t.start_angle).rem_euclid(std::f64::consts::TAU);
+                    close(s.center, t.center)
+                        && s.radius == t.radius
+                        && s.sweep == t.sweep
+                        && (turn < 1e-9 || std::f64::consts::TAU - turn < 1e-9)
+                }
+                _ => false,
+            };
+            assert!(same, "shape {}: {s:?} vs {t:?}", x.id);
+        }
+    }
+}
+
+#[test]
+fn a_turn_keeps_the_drawing_centred_where_it_was() {
+    let job = simple_part();
+    // 50 .. 250 × 50 .. 170: centre (150, 110).
+    let (turned, report) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let ((x0, y0), (x1, y1)) = drawing_box(&turned);
+    assert!(near(x0, 90.0) && near(x1, 210.0) && near(y0, 10.0) && near(y1, 210.0));
+    assert_eq!(placement(&turned).quarter_turns, 1);
+    assert!(
+        report.lines[0].starts_with("Turned the imported drawing 90° counter-clockwise; it is now turned 90°, moved X260.000 Y-40.000 from the DXF"),
+        "{:?}",
+        report.lines
+    );
+    // Points turn exactly: every line end is (-y, x) plus the same move.
+    let (dx, dy) = (placement(&turned).dx, placement(&turned).dy);
+    for (a, b) in job.drawing.shapes.iter().zip(&turned.drawing.shapes) {
+        for (s, t) in a.segments().iter().zip(b.segments()) {
+            if let (chipload_job::PathSegment::Line(s), chipload_job::PathSegment::Line(t)) =
+                (s, &t)
+            {
+                assert_eq!(t.start, [-s.start[1] + dx, s.start[0] + dy]);
+            }
+        }
+    }
+    // Clockwise is three counter-clockwise turns; half a turn twice is none.
+    let (cw, report) = place_drawing(&job, Move::Turn(-1)).unwrap();
+    assert!(
+        report.lines[0].contains("90° clockwise"),
+        "{:?}",
+        report.lines
+    );
+    assert_eq!(placement(&cw).quarter_turns, 3);
+    let (half, _) = place_drawing(&job, Move::Turn(2)).unwrap();
+    let (back, _) = place_drawing(&half, Move::Turn(2)).unwrap();
+    assert_eq!(placement(&back).quarter_turns, 0);
+    assert_same_shapes(&back, &job);
+    let (same, report) = place_drawing(&job, Move::Turn(4)).unwrap();
+    assert_eq!(same, job);
+    assert!(report.lines[0].contains("nothing moved"));
+}
+
+#[test]
+fn four_turns_bring_it_back() {
+    let job = simple_part();
+    let mut turned = job.clone();
+    for _ in 0..4 {
+        turned = place_drawing(&turned, Move::Turn(1)).unwrap().0;
+    }
+    let p = placement(&turned);
+    assert_eq!(p.quarter_turns, 0);
+    assert!(near(p.dx, 0.0) && near(p.dy, 0.0), "{p:?}");
+    assert_same_shapes(&turned, &job);
+}
+
+#[test]
+fn a_turned_part_keeps_its_holes_and_cuts_the_same_amount() {
+    let job = simple_part();
+    let (turned, _) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let depths = |job: &Job| {
+        let mut d: Vec<Option<usize>> = chipload_pipeline::load_drawing(job)
+            .unwrap()
+            .contours
+            .iter()
+            .map(|c| c.nesting_depth)
+            .collect();
+        d.sort();
+        d
+    };
+    assert_eq!(depths(&turned), depths(&job), "outer and holes stay");
+    let before = run_job(&job).unwrap();
+    let after = run_job(&turned).unwrap();
+    // Each operation cuts the same path length, turned (the order of holes may differ).
+    // Along the circle where a move has one, so a ring started at another point of an arc
+    // (cut into other chords) measures the same.
+    use chipload_toolpath::model::MoveKind;
+    let along = |m: &chipload_toolpath::model::Move, a: (f64, f64), b: (f64, f64)| -> f64 {
+        let chord = (b.0 - a.0).hypot(b.1 - a.1);
+        let Some(c) = m.circle else { return chord };
+        let turn =
+            (b.1 - c.center.1).atan2(b.0 - c.center.0) - (a.1 - c.center.1).atan2(a.0 - c.center.0);
+        match m.kind {
+            MoveKind::ArcCcw => c.radius * turn.rem_euclid(std::f64::consts::TAU),
+            MoveKind::ArcCw => c.radius * (-turn).rem_euclid(std::f64::consts::TAU),
+            _ => 2.0 * c.radius * (chord / (2.0 * c.radius)).min(1.0).asin(),
+        }
+    };
+    // Feed lengths per operation, following the position through moves that give only Z.
+    let length = |r: &chipload_pipeline::RunResult, op: usize| -> f64 {
+        let in_op: Vec<bool> = (0..r.program.moves.len())
+            .map(|i| {
+                r.op_spans
+                    .iter()
+                    .any(|s| s.operation == op && s.moves.contains(&i))
+            })
+            .collect();
+        let (mut x, mut y, mut total) = (0.0_f64, 0.0_f64, 0.0);
+        for (i, m) in r.program.moves.iter().enumerate() {
+            let (nx, ny) = (m.x.unwrap_or(x), m.y.unwrap_or(y));
+            if in_op[i] && m.kind != MoveKind::Rapid {
+                total += along(m, (x, y), (nx, ny));
+            }
+            (x, y) = (nx, ny);
+        }
+        total
+    };
+    for op in 0..job.operations.len() {
+        let (a, b) = (length(&before, op), length(&after, op));
+        assert!((a - b).abs() < 1e-6, "operation {op}: {a} vs {b}");
+    }
+}
+
+#[test]
+fn start_points_turn_with_it_and_updates_keep_the_turn() {
+    let (job, dxf, dir) = drawn_then_imported("turn");
+    // The square 500 .. 550 × 400 .. 450, centre (525, 425); a start on its bottom edge.
+    let job = with_ops(
+        &job,
+        json!([
+            profile(
+                json!({"layer": null, "shapes": [2]}),
+                json!([[525.0, 397.0]])
+            ),
+            profile(
+                json!({"layer": "DRAWN", "shapes": null}),
+                json!([[100.0, 77.0]])
+            ),
+        ]),
+    );
+    let (turned, _) = place_drawing(&job, Move::Turn(1)).unwrap();
+    // Bottom edge turns to the right edge: (525, 397) -> (553, 425).
+    assert_eq!(turned.operations[0].starts(), [[553.0, 425.0]]);
+    assert_eq!(turned.operations[1].starts(), [[100.0, 77.0]]);
+    assert_eq!(shape(&turned, 1), shape(&job, 1));
+    let (turned, _) = place_drawing(&turned, Move::BottomLeft { margin: 10.0 }).unwrap();
+    let (same, report) = update_drawing(&turned, &dxf, None).unwrap();
+    assert_eq!(report.unchanged, [2], "{:?}", report.lines);
+    assert_eq!(placement(&same), placement(&turned));
+    assert_box(&same, 2, (10.0, 10.0), (60.0, 60.0));
+    assert!(
+        report.lines.iter().any(|l| l.contains("turned 90°")),
+        "{:?}",
+        report.lines
+    );
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn reset_undoes_turns_and_moves() {
+    let job = simple_part();
+    let (moved, _) = place_drawing(&job, Move::Turn(-1)).unwrap();
+    let (moved, _) = place_drawing(&moved, Move::BottomLeft { margin: 7.5 }).unwrap();
+    let (moved, _) = place_drawing(&moved, Move::Turn(2)).unwrap();
+    let (back, report) = place_drawing(&moved, Move::Reset).unwrap();
+    assert!(
+        report.lines[0].starts_with("Put the imported drawing back"),
+        "{:?}",
+        report.lines
+    );
+    let p = placement(&back);
+    assert_eq!(p.quarter_turns, 0);
+    assert!(near(p.dx, 0.0) && near(p.dy, 0.0), "{p:?}");
+    assert_same_shapes(&back, &job);
 }

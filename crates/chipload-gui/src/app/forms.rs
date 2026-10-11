@@ -731,23 +731,45 @@ const DEFAULT_PLACE_MARGIN: f64 = 10.0;
 /// Moving the imported drawing (docs/specs/drawing-placement.md §5). The values typed here
 /// are inputs only: nothing moves until a button is pressed, so each move is one undo step.
 fn placement_rows(ui: &mut egui::Ui, placement: Placement, request: &mut Option<JobRequest>) {
-    ui.label("Moved from the DXF").on_hover_text(
+    ui.label("From the DXF").on_hover_text(
         "Where the DXF's shapes are, compared with the DXF itself. Updates from the DXF \
          keep this. Shapes drawn in Chipload don't move.",
     );
     ui.horizontal(|ui| {
+        let turned = match placement.quarter_turns {
+            0 => String::new(),
+            k => format!("turned {}°, ", 90 * u32::from(k)),
+        };
         ui.label(format!(
-            "X {}  Y {} mm",
+            "{turned}moved X {}  Y {} mm",
             len(placement.dx),
             len(placement.dy)
         ));
         if placement != Placement::default()
             && ui
                 .button("Reset")
-                .on_hover_text("Back to where the DXF has it.")
+                .on_hover_text("Back to where the DXF has it: no turn, no move.")
                 .clicked()
         {
-            *request = Some(JobRequest::Place(PlaceMove::To(0.0, 0.0)));
+            *request = Some(JobRequest::Place(PlaceMove::Reset));
+        }
+    });
+    ui.end_row();
+    ui.label("  turn");
+    ui.horizontal(|ui| {
+        if ui
+            .button("⟲ 90°")
+            .on_hover_text("Counter-clockwise, about the drawing's centre.")
+            .clicked()
+        {
+            *request = Some(JobRequest::Place(PlaceMove::Turn(1)));
+        }
+        if ui
+            .button("⟳ 90°")
+            .on_hover_text("Clockwise, about the drawing's centre.")
+            .clicked()
+        {
+            *request = Some(JobRequest::Place(PlaceMove::Turn(-1)));
         }
     });
     ui.end_row();
