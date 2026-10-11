@@ -3,10 +3,12 @@
 
 use super::user_library::{LibraryRows, library_rows};
 use super::*;
+use chipload_job::Placement;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
+use chipload_pipeline::placement::{Move as PlaceMove, placement_text};
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -574,6 +576,8 @@ pub(super) enum JobRequest {
     Library(LibraryRequest),
     /// Set the copies' pitch so this many mm are left between their cuts.
     CopiesGap(f64),
+    /// Move the imported drawing (docs/specs/drawing-placement.md).
+    Place(PlaceMove),
 }
 
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
@@ -671,6 +675,15 @@ pub(super) fn job_form(
         ui.end_row();
     });
 
+    let imported = job.drawing.shapes.iter().any(|s| !s.is_drawn());
+    if let (true, Some(source)) = (imported, &job.drawing.source) {
+        let placement = source.placement;
+        let summary = placement_text(placement);
+        section(ui, "job-placement", "Drawing position", &summary, |ui| {
+            placement_rows(ui, placement, &mut copies_request);
+        });
+    }
+
     let copies = job.copies.map_or("one part".to_string(), |c| {
         format!("{} × {} = {}", c.columns, c.rows, c.count())
     });
@@ -710,6 +723,70 @@ pub(super) fn job_form(
         });
     }
     copies_request.or(request.map(JobRequest::Library))
+}
+
+/// Margin the *Bottom left* button starts with, mm; only an input, never saved.
+const DEFAULT_PLACE_MARGIN: f64 = 10.0;
+
+/// Moving the imported drawing (docs/specs/drawing-placement.md §5). The values typed here
+/// are inputs only: nothing moves until a button is pressed, so each move is one undo step.
+fn placement_rows(ui: &mut egui::Ui, placement: Placement, request: &mut Option<JobRequest>) {
+    ui.label("Moved from the DXF").on_hover_text(
+        "Where the DXF's shapes are, compared with the DXF itself. Updates from the DXF \
+         keep this. Shapes drawn in Chipload don't move.",
+    );
+    ui.horizontal(|ui| {
+        ui.label(format!(
+            "X {}  Y {} mm",
+            len(placement.dx),
+            len(placement.dy)
+        ));
+        if placement != Placement::default()
+            && ui
+                .button("Reset")
+                .on_hover_text("Back to where the DXF has it.")
+                .clicked()
+        {
+            *request = Some(JobRequest::Place(PlaceMove::To(0.0, 0.0)));
+        }
+    });
+    ui.end_row();
+    ui.label("  on the stock");
+    ui.horizontal(|ui| {
+        let id = egui::Id::new("place-margin");
+        let mut margin = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_PLACE_MARGIN));
+        if ui
+            .button("Bottom left")
+            .on_hover_text("The drawing's lower-left corner this far in from the stock's.")
+            .clicked()
+        {
+            *request = Some(JobRequest::Place(PlaceMove::BottomLeft { margin }));
+        }
+        ui.add(mm(&mut margin).prefix("margin "));
+        ui.data_mut(|d| d.insert_temp(id, margin));
+        if ui.button("Centre").clicked() {
+            *request = Some(JobRequest::Place(PlaceMove::Center));
+        }
+    });
+    ui.end_row();
+    ui.label("  move by X Y");
+    ui.horizontal(|ui| {
+        let id = egui::Id::new("place-by");
+        let (mut dx, mut dy) = ui.data_mut(|d| *d.get_temp_mut_or(id, (0.0, 0.0)));
+        for value in [&mut dx, &mut dy] {
+            ui.add(
+                DragValue::new(value)
+                    .speed(0.1)
+                    .range(-100_000.0..=100_000.0)
+                    .suffix(" mm"),
+            );
+        }
+        ui.data_mut(|d| d.insert_temp(id, (dx, dy)));
+        if ui.button("Move").clicked() {
+            *request = Some(JobRequest::Place(PlaceMove::By(dx, dy)));
+        }
+    });
+    ui.end_row();
 }
 
 /// The part cut several times in a grid (docs/specs/copies-grid.md).

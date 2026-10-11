@@ -249,6 +249,9 @@ impl ChiploadApp {
         match request {
             Some(JobRequest::Library(request)) => self.library_request(request),
             Some(JobRequest::CopiesGap(gap)) => self.set_copies_gap(gap),
+            Some(JobRequest::Place(how)) => {
+                self.place(how);
+            }
             None => {}
         }
     }

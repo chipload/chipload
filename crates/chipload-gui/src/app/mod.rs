@@ -563,6 +563,39 @@ impl ChiploadApp {
 
     /// Set the copies' pitch so `gap` mm are left between their cuts (docs/specs/
     /// copies-grid.md §6). It plans the part once, so the project must be complete.
+    /// Move the imported drawing (docs/specs/drawing-placement.md), as one undo step.
+    pub fn place(&mut self, how: chipload_pipeline::placement::Move) -> bool {
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error(problems);
+                return false;
+            }
+        };
+        match chipload_pipeline::placement::place_drawing(&job, how) {
+            Ok((placed, report)) => {
+                let mut next = EditJob::from_job(&placed);
+                // Keep "side not chosen" marks; placing only moves start points.
+                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
+                    entry.side_chosen = old.side_chosen;
+                }
+                self.edit = Some(next);
+                self.commit();
+                self.refresh_drawing();
+                self.set_report(Report::info(report.lines));
+                true
+            }
+            Err(err) => {
+                self.error(vec!["Could not move the drawing:".into(), err.to_string()]);
+                false
+            }
+        }
+    }
+
     pub fn set_copies_gap(&mut self, gap: f64) {
         self.commit();
         let Some(edit) = &self.edit else {

@@ -1176,3 +1176,72 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
     assert!(!app.toolpath_stale);
 }
+
+/// Lowest X and Y of a contour.
+fn contour_min(app: &ChiploadApp, id: usize) -> (f64, f64) {
+    let contour = app.contours.iter().find(|c| c.id == id).unwrap();
+    contour
+        .points()
+        .iter()
+        .fold((f64::MAX, f64::MAX), |(x, y), p| (x.min(p.0), y.min(p.1)))
+}
+
+#[test]
+fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
+    // docs/specs/drawing-placement.md §5: the user's case, drawn first, DXF later.
+    let mut app = ChiploadApp::default();
+    app.ask_new();
+    app.start_drawing(Tool::Circle);
+    app.draw_click((250.0, 150.0), false);
+    app.draw_click((250.0, 160.0), false);
+    app.commit();
+    assert!(app.update_from(&corpus("dxf/simple_part.dxf"), None));
+    let circle = |app: &ChiploadApp| app.shape(1).unwrap().geometry.clone();
+    let before = circle(&app);
+    let placement = |app: &ChiploadApp| {
+        app.edit
+            .as_ref()
+            .unwrap()
+            .settings
+            .drawing
+            .source
+            .as_ref()
+            .unwrap()
+            .placement
+    };
+    assert_eq!(placement(&app), chipload_job::Placement::default());
+    // simple_part's outline (the outer contour) is 50 .. 250 × 50 .. 170.
+    let outline = |app: &ChiploadApp| {
+        app.contours
+            .iter()
+            .find(|c| c.nesting_depth == Some(0) && c.layers() == ["CUT_OUTSIDE"])
+            .unwrap()
+            .id
+    };
+    let near = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6;
+    assert!(near(contour_min(&app, outline(&app)), (50.0, 50.0)));
+
+    assert!(app.place(chipload_pipeline::placement::Move::BottomLeft { margin: 10.0 }));
+    assert!(near(contour_min(&app, outline(&app)), (10.0, 10.0)));
+    assert_eq!(circle(&app), before, "the drawn circle stays");
+    assert_eq!(
+        placement(&app),
+        chipload_job::Placement {
+            dx: -40.0,
+            dy: -40.0
+        }
+    );
+
+    // One undo step brings it back; redo moves it again.
+    app.undo();
+    assert!(near(contour_min(&app, outline(&app)), (50.0, 50.0)));
+    app.redo();
+    assert!(near(contour_min(&app, outline(&app)), (10.0, 10.0)));
+    assert!(app.place(chipload_pipeline::placement::Move::To(0.0, 0.0)));
+    assert_eq!(placement(&app), chipload_job::Placement::default());
+
+    // A project without an imported drawing has nothing to move.
+    let mut app = ChiploadApp::default();
+    app.ask_new();
+    assert!(!app.place(chipload_pipeline::placement::Move::Center));
+}

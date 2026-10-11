@@ -80,13 +80,17 @@ Exactly one of `--by`, `--to`, `--align` (or none, to print). `--margin` only wi
 ## 5. GUI
 
 Job settings get a **Drawing position** section (only when the project has imported shapes),
-summary "as in the DXF" or "moved X…, Y…":
+summary "as in the DXF" or "moved X… Y… from the DXF":
 
-- *Moved by X Y*: the placement, editable (applied when the value is changed, as **To**).
-- *Bottom left on stock* with a margin field, and *Centre on stock*: the two alignments.
+- *Moved from the DXF*: the placement, with *Reset* (back to the DXF's position, **To** 0, 0)
+  when it isn't 0, 0.
+- *On the stock*: *Bottom left* with a margin field (10 mm to start with), and *Centre*.
+- *Move by X Y* with a *Move* button.
 
-Each is one undo step, and marks the toolpath out of date like any other edit. No dragging on
-the canvas for now.
+The typed values are only inputs: nothing moves until a button is pressed, so each move is
+one undo step (a field applied while dragging would make one per frame). A move marks the
+toolpath out of date like any other edit, and its report lines show under the canvas. No
+dragging on the canvas for now.
 
 ## 6. Format: schema 8
 
