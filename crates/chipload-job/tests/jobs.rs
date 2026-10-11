@@ -647,7 +647,7 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
         data["operations"][0]["strategy"] = strategy;
         parse_job(data, "p")
     };
-    let adaptive = json!({"type": "adaptive", "load": 0.1});
+    let adaptive = json!({"type": "adaptive"});
     let job = with(adaptive.clone()).unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
     assert_eq!(saved["operations"][0]["strategy"], adaptive);
@@ -666,14 +666,24 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
             "0 < step <= loop_radius",
         ),
         (json!({"type": "zigzag"}), "unknown variant"),
-        (json!({"type": "adaptive", "load": 0.6}), "0 < load <= 0.5"),
-        (json!({"type": "adaptive", "load": 0.0}), "0 < load <= 0.5"),
-        (json!({"type": "adaptive"}), "missing field `load`"),
+        // Since schema 13 adaptive cuts the pocket's stepover (docs/specs/adaptive-fronts.md).
+        (json!({"type": "adaptive", "load": 0.1}), "unknown field"),
         (json!({"type": "rings", "step": 1}), "unknown field"),
     ] {
         let err = with(bad.clone()).unwrap_err().to_string();
         assert!(err.contains(why), "{bad}: {err}");
     }
+    // Adaptive cuts at most half the tool wide; rings may step over up to the whole tool.
+    let mut data = lower_job();
+    data["operations"][0]["strategy"] = adaptive;
+    data["operations"][0]["stepover"] = json!(0.6);
+    let err = parse_job(data.clone(), "p").unwrap_err().to_string();
+    assert!(
+        err.contains("adaptive needs a stepover of at most 0.5"),
+        "{err}"
+    );
+    data["operations"][0]["strategy"] = json!({"type": "rings"});
+    parse_job(data, "p").unwrap();
 }
 
 // -- copies in a grid (docs/specs/copies-grid.md)
@@ -838,8 +848,9 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(12));
-    // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting.
+    assert_eq!(current["schema_version"], json!(13));
+    // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting
+    // (v12 -> v13 only touches adaptive pockets, and this has none).
     current["schema_version"] = json!(9);
     current["drawing"]["source"]["placement"]
         .as_object_mut()
@@ -916,7 +927,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(12));
+    assert_eq!(current["schema_version"], json!(13));
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
         json!(1.0)
@@ -972,7 +983,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(12));
+        assert_eq!(current["schema_version"], json!(13));
         assert_eq!(current["machine"]["tool_change"], json!("files"));
         current["schema_version"] = json!(11);
         current["machine"]
@@ -1005,4 +1016,45 @@ fn the_tool_change_setting_is_required_and_known() {
         .unwrap()
         .remove("tool_change");
     assert!(parse_job(missing, "p").is_err());
+}
+
+// -- adaptive clearing cuts the stepover (docs/specs/adaptive-fronts.md §5)
+
+#[test]
+fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
+    let v12 = raw("v12/adaptive.chipload");
+    assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
+    assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
+    let mut current = migrate(v12.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(13));
+    assert_eq!(
+        current["operations"][0]["strategy"],
+        json!({"type": "adaptive"})
+    );
+    // The cut stays as wide as it was: 0.1 × D, not the 0.4 adaptive never used.
+    assert_eq!(current["operations"][0]["stepover"], json!(0.1));
+    current["schema_version"] = json!(12);
+    current["operations"][0]["strategy"]["load"] = json!(0.1);
+    current["operations"][0]["stepover"] = json!(0.4);
+    assert_eq!(current, v12, "nothing else changes");
+    let job = parse_job(migrate(v12).unwrap(), "p").unwrap();
+    let Operation::Pocket(pocket) = &job.operations[0] else {
+        panic!("a pocket");
+    };
+    assert_eq!(pocket.strategy, chipload_job::PocketStrategy::Adaptive {});
+    assert_eq!(pocket.stepover, 0.1);
+
+    // Other pockets keep their stepover; an adaptive without a load can't be carried on.
+    let rings = raw("v12/two_tools_program.chipload");
+    assert_eq!(
+        migrate(rings.clone()).unwrap()["operations"],
+        rings["operations"]
+    );
+    let mut broken = raw("v12/adaptive.chipload");
+    broken["operations"][0]["strategy"]
+        .as_object_mut()
+        .unwrap()
+        .remove("load");
+    let err = migrate(broken).unwrap_err().to_string();
+    assert!(err.contains("adaptive without a numeric load"), "{err}");
 }

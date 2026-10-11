@@ -131,13 +131,17 @@ fn every_strategy_can_start_with_a_helix() {
     for strategy in [
         rings(),
         json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive", "load": 0.1}),
+        json!({"type": "adaptive"}),
     ] {
-        let plan = plan_job(
-            &job(pocket(strategy.clone(), helix(1.5))),
-            &rect(60.0, 40.0),
-        )
-        .unwrap_or_else(|e| panic!("{strategy}: {e}"));
+        let mut ops = pocket(strategy.clone(), helix(1.5));
+        if strategy["type"] == "adaptive" {
+            // The cut width this was written for (load 0.1 before schema 13). At 0.4 the
+            // grid steering's first pass is too short for the helix; the fronts that
+            // replace it are tested at 0.4 (docs/specs/adaptive-fronts.md §8).
+            ops[0]["stepover"] = json!(0.1);
+        }
+        let plan =
+            plan_job(&job(ops), &rect(60.0, 40.0)).unwrap_or_else(|e| panic!("{strategy}: {e}"));
         assert!(plan.pockets[0].helix.is_some(), "{strategy}");
         assert_entries_safe(&plan, -1.0);
     }

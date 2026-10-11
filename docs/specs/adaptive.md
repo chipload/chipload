@@ -1,7 +1,9 @@
 # Spec: adaptive pocket clearing
 
 Status: **approved 2026-10-10** (Q1–Q5 as recommended). Implemented; refinements found while
-building it are marked *Implemented:*.
+building it are marked *Implemented:*. Superseded in part by docs/specs/adaptive-fronts.md:
+since schema 13 the strategy has no `load`; adaptive cuts the pocket's stepover (§2 below is
+the v7–v12 format).
 
 User request (2026-10-10): adaptive clearing, after trochoidal.
 

@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 12;
+pub const CURRENT_VERSION: i64 = 13;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1241,9 +1241,9 @@ pub enum PocketStrategy {
     /// Small full-circle loops of `loop_radius` moving `step` mm along backbones, then a
     /// wall pass. Both mm.
     Trochoidal { loop_radius: f64, step: f64 },
-    /// A path steered to cut about `load` × D sideways all along (docs/specs/adaptive.md),
-    /// then a wall pass. 0 < load <= 0.5.
-    Adaptive { load: f64 },
+    /// Passes that cut the pocket's stepover × D sideways all along
+    /// (docs/specs/adaptive-fronts.md), then a wall pass. Needs stepover <= 0.5.
+    Adaptive {},
 }
 
 impl Default for PocketStrategy {
@@ -1576,12 +1576,13 @@ impl Job {
                 ));
             }
             if let Operation::Pocket(p) = op
-                && let PocketStrategy::Adaptive { load } = p.strategy
-                && !(load.is_finite() && load > 0.0 && load <= 0.5)
+                && let PocketStrategy::Adaptive {} = p.strategy
+                && p.stepover > 0.5
             {
                 problems.push(format!(
-                    "operations.{i}.strategy: adaptive needs 0 < load <= 0.5 (a fraction of the \
-                     tool diameter), got {load}"
+                    "operations.{i}.stepover: adaptive needs a stepover of at most 0.5 (a \
+                     fraction of the tool diameter), got {}",
+                    p.stepover
                 ));
             }
             if let Entry::Helix { radius, .. } = op.entry()

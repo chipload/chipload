@@ -389,12 +389,20 @@ fn pockets_ramp_in_every_strategy() {
     for strategy in [
         json!({"type": "rings"}),
         json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive", "load": 0.1}),
+        json!({"type": "adaptive"}),
     ] {
+        // Adaptive at the cut width this was written for (load 0.1 before schema 13). At 0.4
+        // the grid steering re-enters on passes too short to ramp along; the fronts that
+        // replace it are tested at 0.4 (docs/specs/adaptive-fronts.md §8).
+        let stepover = if strategy["type"] == "adaptive" {
+            0.1
+        } else {
+            0.4
+        };
         let ops = json!([{"type": "pocket", "select": {"layer": "L"}, "tool": 1,
-            "start_depth": 1, "end_depth": 7, "clearance": 0, "step_down": 3, "stepover": 0.4,
-            "direction": "climb", "feed": 1500, "plunge_feed": 500, "strategy": strategy,
-            "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}]);
+            "start_depth": 1, "end_depth": 7, "clearance": 0, "step_down": 3,
+            "stepover": stepover, "direction": "climb", "feed": 1500, "plunge_feed": 500,
+            "strategy": strategy, "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}]);
         let plan = plan_job(&not_centre_cutting(ops), &pocket_part)
             .unwrap_or_else(|e| panic!("{strategy}: {e}"));
         // Ramps start at the start depth (Z -1): only that is taken as cut.

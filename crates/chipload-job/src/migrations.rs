@@ -11,8 +11,8 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 8] = [
-    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
+const MIGRATIONS: [Migration; 9] = [
+    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12, v12_to_v13,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -181,6 +181,27 @@ fn v11_to_v12(mut data: Value) -> Result<Value, String> {
         machine.insert("tool_change".into(), Value::from("files"));
     }
     Ok(set_version(data, 12))
+}
+
+/// v13: adaptive pockets cut the pocket's `stepover` wide, and the strategy's own `load` goes
+/// (docs/specs/adaptive-fronts.md §5). The stepover becomes the load, so the cut stays as
+/// wide as it was: the old stepover was unused by adaptive.
+fn v12_to_v13(mut data: Value) -> Result<Value, String> {
+    for (i, op) in operations_mut(&mut data).into_iter().enumerate() {
+        let Some(Value::Object(strategy)) = op.get_mut("strategy") else {
+            continue;
+        };
+        if strategy.get("type").and_then(Value::as_str) != Some("adaptive") {
+            continue;
+        }
+        let Some(load) = strategy.remove("load").as_ref().and_then(Value::as_f64) else {
+            return Err(format!(
+                "operations.{i}.strategy: adaptive without a numeric load"
+            ));
+        };
+        op.insert("stepover".into(), Value::from(load));
+    }
+    Ok(set_version(data, 13))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

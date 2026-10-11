@@ -621,12 +621,12 @@ fn attempt_piece(
             );
             a.level0 = roots.iter().map(|&r| nodes[r].area.clone()).collect();
         }
-        PocketStrategy::Adaptive { load } => {
+        PocketStrategy::Adaptive {} => {
             (a.rings, a.level0, a.open, a.walls) = adaptive_rings(
                 region,
                 offset,
                 c.tool_radius,
-                load * 2.0 * c.tool_radius,
+                c.stepover,
                 ids,
                 c.position,
                 c.direction,

@@ -1,7 +1,8 @@
 # Spec: adaptive clearing by fronts, divided by the medial axis
 
-Status: **draft 2026-10-11**, for review. Replaces the path generation of
-docs/specs/adaptive.md §3 (the grid steering). Its verification, wall pass and tests stay.
+Status: **approved 2026-10-11**, all decisions as recommended (§9). Replaces the path
+generation of docs/specs/adaptive.md §3 (the grid steering). Its verification, wall pass and
+tests stay. Stage 1 (§8, the format) is built.
 
 User request (2026-10-11, with a screenshot of a rectangle pocket with two round islands):
 the adaptive path "doesn't look very efficient", and the Voronoi diagram should be used to
@@ -202,6 +203,9 @@ Targets at stepover 0.4 (to be confirmed by the first build, decision 6):
    asserting today's numbers. This is the baseline.
 3. **Tree and fronts**: medial-axis tree, open fronts with returns, spiral in open areas,
    order. This replaces the steering. Adaptive golden files change here.
+   *Stage 1 found:* at stepover 0.4 the grid steering re-enters on passes too short for a
+   ramp or helix entry, so those two tests (plan.rs, helix.rs) still run adaptive at 0.1.
+   This stage moves them to 0.4.
 4. **Smoothing and arcs**: ρ_min rounding and G2/G3 output. The targets in §4 become test
    assertions.
 5. **GUI**: the adaptive fields show *Stepover (cut width)*, limited to 0.5. Remove the old

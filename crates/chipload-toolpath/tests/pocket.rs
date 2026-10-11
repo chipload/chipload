@@ -594,21 +594,26 @@ fn every_strategy_gets_past_a_wall_offset_that_just_touches() {
     let refs: Vec<&Contour> = contours.iter().collect();
     let radius = 3.073129921791429;
     let loop_radius = 0.27689550776778343 * 2.0 * radius;
-    for strategy in [
-        chipload_job::PocketStrategy::Rings {},
-        chipload_job::PocketStrategy::Adaptive {
-            load: 0.17689550776778346,
-        },
-        chipload_job::PocketStrategy::Trochoidal {
-            loop_radius,
-            step: 0.5793095676111893 * loop_radius,
-        },
+    // Adaptive cuts its stepover wide (found with load 0.17689550776778346 × D).
+    for (strategy, stepover) in [
+        (chipload_job::PocketStrategy::Rings {}, 0.4 * radius),
+        (
+            chipload_job::PocketStrategy::Adaptive {},
+            0.17689550776778346 * 2.0 * radius,
+        ),
+        (
+            chipload_job::PocketStrategy::Trochoidal {
+                loop_radius,
+                step: 0.5793095676111893 * loop_radius,
+            },
+            0.4 * radius,
+        ),
     ] {
         let result = chipload_toolpath::pocket::plan_pocket_with(
             &refs,
             radius,
             0.0,
-            0.4 * radius,
+            stepover,
             Direction::Climb,
             Spindle::Cw,
             false,
@@ -1315,18 +1320,19 @@ proptest! {
 
 // -- adaptive clearing (docs/specs/adaptive.md)
 
+/// An adaptive plan cutting `load` × D wide (the stepover).
 fn adaptive(contours: &[Contour], radius: f64, load: f64) -> PocketPlan {
     let refs: Vec<&Contour> = contours.iter().collect();
     chipload_toolpath::pocket::plan_pocket_with(
         &refs,
         radius,
         0.0,
-        2.4,
+        load * 2.0 * radius,
         Direction::Climb,
         Spindle::Cw,
         false,
         (0.0, 0.0),
-        chipload_job::PocketStrategy::Adaptive { load },
+        chipload_job::PocketStrategy::Adaptive {},
     )
     .unwrap()
 }
@@ -1414,8 +1420,8 @@ proptest! {
                 (0.0, 0.0)).is_ok()
         );
         let plan = chipload_toolpath::pocket::plan_pocket_with(
-            &refs, radius, 0.0, 0.4 * radius, Direction::Climb, Spindle::Cw, false, (0.0, 0.0),
-            chipload_job::PocketStrategy::Adaptive { load },
+            &refs, radius, 0.0, load * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
+            (0.0, 0.0), chipload_job::PocketStrategy::Adaptive {},
         );
         let plan = match plan {
             Ok(plan) => plan,

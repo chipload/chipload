@@ -176,7 +176,7 @@ fn a_pocket_moves_only_its_wall_ring_in_every_strategy() {
     for strategy in [
         json!({"type": "rings"}),
         json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive", "load": 0.1}),
+        json!({"type": "adaptive"}),
     ] {
         let plain = plan_job(&job(pocket(strategy.clone(), json!([]))), &parts).unwrap();
         let plan = plan_job(&job(pocket(strategy.clone(), json!([[30, 45]]))), &parts)

@@ -51,8 +51,9 @@ fn depth_rows(
     ui.end_row();
 }
 
-/// Rings, trochoidal (loop radius, step; docs/specs/trochoidal.md) or adaptive (load;
-/// docs/specs/adaptive.md). Switching fills defaults for the current tool, visibly.
+/// Rings, trochoidal (loop radius, step; docs/specs/trochoidal.md) or adaptive (the pocket's
+/// stepover; docs/specs/adaptive-fronts.md). Switching fills defaults for the current tool,
+/// visibly.
 fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy, diameter: f64) {
     ui.label("Strategy");
     let current = match strategy {
@@ -81,13 +82,11 @@ fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy,
             }
             if ui
                 .selectable_label(current == "adaptive", "adaptive")
-                .on_hover_text(
-                    "A path steered to cut about the same amount everywhere, corners too",
-                )
+                .on_hover_text("Passes that cut the stepover wide everywhere, corners too")
                 .clicked()
                 && current != "adaptive"
             {
-                *strategy = PocketStrategy::Adaptive { load: 0.1 };
+                *strategy = PocketStrategy::Adaptive {};
             }
         });
     ui.end_row();
@@ -103,18 +102,7 @@ fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy,
             ui.add(mm(step));
             ui.end_row();
         }
-        PocketStrategy::Adaptive { load } => {
-            ui.label("  load").on_hover_text(
-                "The sideways cut to keep, as a fraction of the tool diameter (0 < load <= 0.5)",
-            );
-            ui.add(
-                DragValue::new(load)
-                    .speed(0.01)
-                    .range(0.01..=0.5)
-                    .suffix(" × D"),
-            );
-            ui.end_row();
-        }
+        PocketStrategy::Adaptive {} => {}
     }
 }
 
@@ -394,11 +382,20 @@ pub(super) fn op_form(
             let clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
             section(ui, "op-clearing", "Clearing", &clearing, |ui| {
                 strategy_rows(ui, index, &mut p.strategy, tool_diameter);
-                ui.label("Stepover");
+                // Adaptive cuts the stepover wide all along: at most half the tool.
+                let adaptive = matches!(p.strategy, PocketStrategy::Adaptive {});
+                let most = if adaptive { 0.5 } else { 1.0 };
+                p.stepover = p.stepover.min(most);
+                ui.label("Stepover").on_hover_text(if adaptive {
+                    "The width every adaptive pass cuts, as a fraction of the tool diameter \
+                     (at most 0.5)"
+                } else {
+                    "How far each ring moves on, as a fraction of the tool diameter"
+                });
                 ui.add(
                     DragValue::new(&mut p.stepover)
                         .speed(0.01)
-                        .range(0.01..=1.0)
+                        .range(0.01..=most)
                         .suffix(" × D"),
                 );
                 ui.end_row();
