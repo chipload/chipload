@@ -246,68 +246,113 @@ impl ChiploadApp {
                     self.about_open = true;
                 }
             });
-            ui.separator();
-            if ui.button("New").clicked() {
+        });
+    }
+
+    /// The toolbar under the menu: file | generate and export | view | draw.
+    pub(super) fn toolbar(&mut self, ui: &mut egui::Ui) {
+        let has_job = self.edit.is_some();
+        let has_result = self.result.is_some();
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 4.0;
+            ui.spacing_mut().button_padding = egui::vec2(8.0, 3.0);
+            if ui
+                .button("New")
+                .on_hover_text("New project (Ctrl+N)")
+                .clicked()
+            {
                 self.ask_new();
             }
-            if ui.button("Open").clicked() {
+            if ui
+                .button("Open")
+                .on_hover_text("Open a project (Ctrl+O)")
+                .clicked()
+            {
                 self.ask_open();
             }
-            if ui.button("Import DXF").clicked() {
+            if ui
+                .button("Import DXF")
+                .on_hover_text("New project from a DXF (Ctrl+I)")
+                .clicked()
+            {
                 self.ask_import();
             }
-            if ui.add_enabled(has_job, egui::Button::new("Save")).clicked() {
+            if ui
+                .add_enabled(has_job, egui::Button::new("Save"))
+                .on_hover_text("Save the project (Ctrl+S)")
+                .clicked()
+            {
                 self.ask_save(false);
             }
+            ui.separator();
+            // The main action stands out.
+            let accent = ui.visuals().selection.bg_fill;
+            let on_accent = ui.visuals().selection.stroke.color;
             if ui
-                .add_enabled(self.can_generate(), egui::Button::new("Generate (F5)"))
+                .add_enabled(
+                    self.can_generate(),
+                    egui::Button::new(RichText::new("▶ Generate").strong().color(on_accent))
+                        .fill(accent),
+                )
+                .on_hover_text("Plan the toolpaths, write and check the G-code (F5)")
                 .clicked()
             {
                 self.generate();
             }
             if ui
-                .add_enabled(has_result, egui::Button::new("Export G-code"))
+                .add_enabled(has_result, egui::Button::new("⬇ Export G-code"))
+                .on_hover_text("Save the checked G-code (Ctrl+E)")
+                .on_disabled_hover_text("Generate first")
                 .clicked()
             {
                 self.ask_export();
             }
-            if ui.button("Fit").clicked() {
+            ui.separator();
+            if ui.button("Fit").on_hover_text("Fit the view (F)").clicked() {
                 self.fit_pending = true;
             }
-            // Z stretch is labelled whenever it isn't true scale (docs/specs/3d-view.md §4).
-            let three_d = if self.view.z_scale == 1.0 {
-                "3D".to_string()
-            } else {
-                format!("3D (Z × {})", self.view.z_scale)
-            };
-            if ui
-                .add(egui::Button::new(three_d).selected(self.three_d))
-                .on_hover_text("Left-drag turns and tilts; right-drag or Shift+drag pans")
-                .clicked()
-            {
-                self.view_3d();
-            }
-            if ui
-                .add(egui::Button::new("Top view").selected(!self.three_d))
-                .on_hover_text("Look straight down (T)")
-                .clicked()
-            {
-                self.view_top();
-            }
+            // Top and 3D side by side, one of them on: a two-way switch.
+            ui.scope(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                if ui
+                    .add(egui::Button::new("Top").selected(!self.three_d))
+                    .on_hover_text("Look straight down (T)")
+                    .clicked()
+                {
+                    self.view_top();
+                }
+                // Z stretch is labelled whenever it isn't true scale (docs/specs/3d-view.md §4).
+                let three_d = if self.view.z_scale == 1.0 {
+                    "3D".to_string()
+                } else {
+                    format!("3D (Z × {})", self.view.z_scale)
+                };
+                if ui
+                    .add(egui::Button::new(three_d).selected(self.three_d))
+                    .on_hover_text("Left-drag turns and tilts; right-drag or Shift+drag pans")
+                    .clicked()
+                {
+                    self.view_3d();
+                }
+            });
             ui.separator();
             let can_draw = self.can_draw();
             for (tool, label, hint) in [
                 (
                     Tool::Circle,
-                    "Circle",
+                    "○ Circle",
                     "Draw a circle: centre, then a point on it",
                 ),
                 (
                     Tool::Rectangle,
-                    "Rectangle",
+                    "▭ Rectangle",
                     "Draw a rectangle: two opposite corners",
                 ),
-                (Tool::Polyline, "Polyline", "Draw a polyline: click points"),
+                (
+                    Tool::Polyline,
+                    "✎ Polyline",
+                    "Draw a polyline: click points",
+                ),
             ] {
                 let active = self.sketch.as_ref().is_some_and(|s| s.tool == tool);
                 if ui

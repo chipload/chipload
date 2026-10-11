@@ -940,6 +940,7 @@ impl eframe::App for ChiploadApp {
         }
         self.shortcuts(&ctx);
         Panel::top("menu").show(ui, |ui| self.menu(ui));
+        Panel::top("toolbar").show(ui, |ui| self.toolbar(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
         self.report_panel(ui);
         Panel::left("operations")
@@ -959,7 +960,13 @@ impl eframe::App for ChiploadApp {
                     .auto_shrink([false, true])
                     .show(ui, |ui| self.properties_panel(ui));
             });
-        CentralPanel::no_frame().show(ui, |ui| self.canvas(ui));
+        CentralPanel::no_frame().show(ui, |ui| {
+            if self.edit.is_some() {
+                self.canvas(ui);
+            } else {
+                self.start_screen(ui);
+            }
+        });
         self.prompts(&ctx);
         self.about(&ctx);
         self.library_windows_ui(&ctx);

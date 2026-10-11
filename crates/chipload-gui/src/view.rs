@@ -11,7 +11,7 @@ use chipload_toolpath::left::{LeftKind, MaterialLeft};
 use chipload_toolpath::model::{MoveKind, Program};
 use eframe::egui::{Align2, Color32, FontId, Mesh, Painter, Pos2, Rect, Shape, Stroke, Vec2};
 
-const BACKGROUND: Color32 = Color32::from_rgb(0x1f, 0x21, 0x24);
+pub const BACKGROUND: Color32 = Color32::from_rgb(0x1f, 0x21, 0x24);
 const OUTER: Color32 = Color32::from_rgb(0xe8, 0xea, 0xed);
 const HOLE: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
 const OPEN: Color32 = Color32::from_rgb(0xfb, 0xbc, 0x04);

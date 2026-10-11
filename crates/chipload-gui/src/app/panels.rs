@@ -51,13 +51,7 @@ impl ChiploadApp {
     pub(super) fn operations_panel(&mut self, ui: &mut egui::Ui) {
         ui.heading("Project");
         if self.edit.is_none() {
-            ui.label("No project open.");
-            if ui.button("Import DXF…").clicked() {
-                self.ask_import();
-            }
-            if ui.button("Open…").clicked() {
-                self.ask_open();
-            }
+            ui.weak("No project open.");
             return;
         }
         self.operation_list(ui);
@@ -259,6 +253,81 @@ impl ChiploadApp {
         }
     }
 }
+
+impl ChiploadApp {
+    /// With no project open, the canvas offers the ways to start one, and recent projects.
+    pub(super) fn start_screen(&mut self, ui: &mut egui::Ui) {
+        // The canvas's own background, so the window doesn't change colour on opening.
+        ui.painter()
+            .rect_filled(ui.max_rect(), 0.0, crate::view::BACKGROUND);
+        ui.add_space((ui.available_height() * 0.18).max(16.0));
+        ui.vertical_centered(|ui| {
+            egui::Frame::new()
+                .fill(ui.visuals().panel_fill)
+                .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                .corner_radius(8.0)
+                .inner_margin(24.0)
+                .show(ui, |ui| {
+                    ui.set_max_width(START_WIDTH);
+                    ui.heading(RichText::new("Chipload").size(28.0).strong());
+                    ui.weak("2.5D CAM: drawings in, checked G-code out");
+                    ui.add_space(16.0);
+                    let wide = egui::vec2(START_WIDTH, 32.0);
+                    if ui
+                        .add(egui::Button::new("New project").min_size(wide))
+                        .on_hover_text("An empty project: draw shapes or import a DXF later")
+                        .clicked()
+                    {
+                        self.ask_new();
+                    }
+                    if ui
+                        .add(egui::Button::new("Import DXF…").min_size(wide))
+                        .on_hover_text("A new project from a drawing (Ctrl+I)")
+                        .clicked()
+                    {
+                        self.ask_import();
+                    }
+                    if ui
+                        .add(egui::Button::new("Open project…").min_size(wide))
+                        .on_hover_text("Ctrl+O")
+                        .clicked()
+                    {
+                        self.ask_open();
+                    }
+                    let recent: Vec<String> =
+                        self.recent.iter().take(START_RECENT).cloned().collect();
+                    if !recent.is_empty() {
+                        ui.add_space(16.0);
+                        ui.label(RichText::new("Recent").strong());
+                        for path in &recent {
+                            let name = file_name(Path::new(path));
+                            if ui
+                                .add(egui::Button::new(name).frame(false))
+                                .on_hover_text(path)
+                                .clicked()
+                            {
+                                self.open_recent(path);
+                            }
+                        }
+                    }
+                    ui.add_space(16.0);
+                    ui.label(
+                        RichText::new(
+                            "⚠ Machines are dangerous. Check every program in a G-code viewer \
+                             and with an air cut before cutting material.",
+                        )
+                        .small()
+                        .color(ui.visuals().warn_fg_color),
+                    );
+                });
+        });
+    }
+}
+
+/// Width of the start screen's card.
+const START_WIDTH: f32 = 320.0;
+/// Recent projects shown on the start screen (all are under File > Open recent).
+const START_RECENT: usize = 6;
 
 /// What a click in the operation list asks for, done after the list is drawn.
 enum CardAction {
