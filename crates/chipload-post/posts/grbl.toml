@@ -6,3 +6,6 @@ decimals = 3
 file_extension = ".nc"
 spindle_dwell_s = 3  # router spindles need time to reach speed (decision 2026-10-08)
 arcs = true  # G2/G3 with I/J (docs/specs/arc-output.md)
+# One file per tool, or one file with T M6 for a sender that handles the change (GRBL itself
+# refuses M6; docs/specs/tool-per-operation.md)
+tool_changes = ["files", "program"]

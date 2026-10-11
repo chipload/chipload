@@ -15,6 +15,7 @@ fn limits() -> CheckLimits {
         stock_min: (0.0, 0.0),
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
+        tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
         travel: Some((800.0, 600.0, 100.0)),
     }
 }
@@ -95,7 +96,7 @@ fn bad_programs_are_flagged() {
         (format!("{h}G0 G1 X10\n"), "more than one motion"),
         (format!("{h}G0 X10 Y10 (unclosed\n"), "comment"),
         (format!("{h}G0 X10 Y10 @\n"), "Cannot parse"),
-        (format!("{h}T1\n"), "Unsupported word T"),
+        (format!("{h}H1\n"), "Unsupported word H"),
         (format!("{}G0 Z10\n", good()), "after program end"),
         (
             format!("{h}G0 X0 Y0\nG0 X900\n{FOOTER}"),
@@ -303,4 +304,82 @@ fn each_tool_has_its_own_stock_margin() {
     };
     assert!(!outside(&largest));
     assert!(outside(&small));
+}
+
+// -- tool changes (docs/specs/tool-per-operation.md §6)
+
+/// Tool 1 (radius 3) cuts, then T2 M6 (radius 1.5) and it cuts again.
+fn with_change(change: &str) -> String {
+    format!(
+        "G21 G90 G17 G94\nG0 Z5\nT1 M6\nM3 S18000\nG4 P3\n{GOOD_BODY}G0 Z5\n{change}\
+         G0 X20 Y20\nG1 Z-3 F600\nG1 X40 F1800\n{FOOTER}"
+    )
+}
+
+const CHANGE: &str = "M5\nT2 M6\nM3 S20000\nG4 P3\n";
+
+#[test]
+fn a_tool_change_with_the_spindle_stopped_at_safe_height_passes() {
+    let report = check_gcode(&with_change(CHANGE), &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    // T alone changes nothing.
+    let report = check_gcode(&format!("T2\n{}", good()), &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+}
+
+#[test]
+fn bad_tool_changes_are_refused() {
+    for (change, message) in [
+        // Spindle still on.
+        ("T2 M6\nM3 S20000\n", "Tool change (M6) with the spindle on"),
+        // A tool the project doesn't have.
+        (
+            "M5\nT7 M6\nM3 S20000\n",
+            "Tool change (M6) to T7, not a tool of the project",
+        ),
+        // Down at the stock.
+        (
+            "G0 Z1\nM5\nT2 M6\nM3 S20000\n",
+            "Tool change (M6) below safe height",
+        ),
+        // Started again without a speed, or not at all.
+        (
+            "M5\nT2 M6\nM3\n",
+            "Spindle started after a tool change without a speed (S)",
+        ),
+        ("M5\nT2 M6\n", "Cutting move with the spindle off"),
+        ("M5\nT2.5 M6\nM3 S1\n", "T2.5 must be a whole tool number"),
+    ] {
+        let errors = errors(&with_change(change));
+        assert!(
+            errors.iter().any(|e| e.contains(message)),
+            "{change:?}: expected {message:?} in {errors:?}"
+        );
+    }
+    // M6 before any T.
+    let errors = errors(&format!("G21 G90 G17 G94\nG0 Z5\nM6\n{}", good()));
+    assert!(
+        errors
+            .iter()
+            .any(|e| e == "Tool change (M6) without a tool number (T)"),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn after_a_tool_change_the_stock_margin_is_the_new_tools() {
+    // A cut 2 mm left of the stock: inside tool 1's margin (3), outside tool 2's (1.5).
+    let program = |change: &str| {
+        format!("{HEADER}{GOOD_BODY}G0 Z5\n{change}G0 X-2 Y20\nG1 Z-1 F600\nG1 Y40\n{FOOTER}")
+    };
+    let outside = |text: &str| {
+        let report = check_gcode(text, &limits());
+        assert!(report.ok(), "{:?}", report.errors);
+        report
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("outside the stock"))
+    };
+    assert!(!outside(&program("")));
+    assert!(outside(&program(CHANGE)));
 }

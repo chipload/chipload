@@ -11,7 +11,7 @@ pub mod shapes;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-use chipload_check::{CheckIssue, CheckLimits, check_gcode, limits_for_tool};
+use chipload_check::{CheckIssue, CheckLimits, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
@@ -24,7 +24,8 @@ use chipload_job::{
     StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{
-    FileHeader, PostConfig, PostError, load_builtin_post, render_program_with, render_tool_file,
+    FileHeader, PostConfig, PostError, ToolPart, load_builtin_post, render_program_with,
+    render_tool_file, render_with_tool_changes,
 };
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
@@ -196,6 +197,9 @@ pub fn post_and_check(
 ) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
     let work_zero = job.work_zero_text();
     let several = groups.len() > 1;
+    if several && job.machine.tool_change == ToolChange::Program {
+        return one_file_with_tool_changes(job, post, program, groups);
+    }
     let mut files = Vec::new();
     let mut warnings = Vec::new();
     for (i, group) in groups.iter().enumerate() {
@@ -242,6 +246,44 @@ pub fn post_and_check(
         });
     }
     Ok((files, warnings))
+}
+
+/// Every group in one program with `T M6` between them (docs/specs/tool-per-operation.md
+/// §3.2), checked as a whole: each M6 sets the stock margin to its tool's radius.
+fn one_file_with_tool_changes(
+    job: &Job,
+    post: &PostConfig,
+    program: &Program,
+    groups: &[ToolGroup],
+) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
+    let parts: Vec<ToolPart> = groups
+        .iter()
+        .map(|g| ToolPart {
+            program: in_work_coordinates(&g.program(program), job.work_zero_xy()),
+            tool: g.tool.clone(),
+            operations: g.operations.clone(),
+        })
+        .collect();
+    let gcode = render_with_tool_changes(&parts, post, Some(&job.work_zero_text()))?;
+    let report = check_gcode(&gcode, &limits_from_job(job));
+    if !report.ok() {
+        return Err(PipelineError::CheckFailed {
+            errors: report
+                .errors
+                .iter()
+                .map(|e| format!("line {}: {}", e.line, e.message))
+                .collect(),
+            program: Box::new(program.clone()),
+        });
+    }
+    let first = &groups[0];
+    let file = GcodeFile {
+        suffix: None,
+        tool: first.tool.id,
+        operations: groups.iter().flat_map(|g| g.operations.clone()).collect(),
+        gcode,
+    };
+    Ok((vec![file], report.warnings))
 }
 
 fn tool_limits(job: &Job, tool: i64) -> Result<CheckLimits, PipelineError> {

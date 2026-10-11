@@ -904,3 +904,33 @@ fn a_project_with_two_tools_writes_one_checked_file_per_tool() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn tool_changes_in_one_file_from_the_machine_or_for_one_run() {
+    // docs/specs/tool-per-operation.md §3.2, §3.3.
+    let dir = temp_dir("tool-change");
+    let out_path = dir.join("part.nc");
+    // The v12 sample's machine says "program": one file.
+    let project = corpus("jobs/v12/two_tools_program.chipload");
+    let out = chipload(&["run", path(&project), "-o", path(&out_path)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let gcode = std::fs::read_to_string(&out_path).unwrap();
+    assert!(gcode.contains("\nT2 M6\n") && gcode.contains("\nT1 M6\n"));
+    let out = chipload(&["check", path(&out_path), "--job", path(&project)]);
+    assert!(out.status.success(), "{}", text(&out.stdout));
+    std::fs::remove_file(&out_path).unwrap();
+    // The same for one run of the v11 sample, whose machine says "files".
+    let project = corpus("jobs/v11/two_tools.chipload");
+    let out = chipload(&[
+        "run",
+        path(&project),
+        "-o",
+        path(&out_path),
+        "--tool-change",
+        "program",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(std::fs::read_to_string(&out_path).unwrap(), gcode);
+    assert!(!dir.join("part-1-T2.nc").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}

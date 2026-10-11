@@ -3,8 +3,10 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_check::{CheckLimits, check_gcode};
-use chipload_job::Spindle;
-use chipload_post::{load_builtin_post, parse_post_config, render_program};
+use chipload_job::{Spindle, Tool, ToolChange, ToolType};
+use chipload_post::{
+    ToolPart, load_builtin_post, parse_post_config, render_program, render_with_tool_changes,
+};
 use chipload_toolpath::model::{Move, Program};
 
 fn program(spindle: Spindle) -> Program {
@@ -64,9 +66,54 @@ fn rendered_program_passes_the_checker() {
         stock_min: (0.0, 0.0),
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
+        tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
         travel: Some((800.0, 600.0, 100.0)),
     };
     let report = check_gcode(&text, &limits);
     assert!(report.ok(), "{:?}", report.errors);
     assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+}
+
+#[test]
+fn a_post_without_tool_changes_refuses_one_file_with_m6() {
+    // docs/specs/tool-per-operation.md §3.2: a config that doesn't list "program" (missing
+    // means files only) is never asked to write M6.
+    let mut post = load_builtin_post("grbl").unwrap();
+    assert_eq!(post.tool_changes, [ToolChange::Files, ToolChange::Program]);
+    let text = "schema_version = 1\nname = \"Old\"\ntemplate = \"grbl.nc.j2\"\n\
+                spindle_dwell_s = 0\n";
+    let old = parse_post_config(text).unwrap();
+    assert_eq!(old.tool_changes, [ToolChange::Files]);
+    let tool = |id: i64, diameter: f64| Tool {
+        id,
+        name: None,
+        kind: ToolType::Endmill,
+        diameter,
+        flutes: None,
+        center_cutting: None,
+        rpm: Some(18000.0),
+        angle: None,
+        tip_diameter: None,
+    };
+    let parts = [
+        ToolPart {
+            program: program(Spindle::Cw),
+            tool: tool(1, 6.0),
+            operations: vec![0],
+        },
+        ToolPart {
+            program: program(Spindle::Cw),
+            tool: tool(2, 3.0),
+            operations: vec![1],
+        },
+    ];
+    let err = render_with_tool_changes(&parts, &old, None).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("can't write tool changes in one file"),
+        "{err}"
+    );
+    post.arcs = false;
+    let text = render_with_tool_changes(&parts, &post, None).unwrap();
+    assert_eq!(text.matches(" M6\n").count(), 2, "{text}");
 }

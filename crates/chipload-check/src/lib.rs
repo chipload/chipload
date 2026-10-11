@@ -18,9 +18,9 @@ use chipload_job::{Job, ZZero};
 pub const POSITION_TOL_MM: f64 = CHAIN_TOL_MM;
 
 const ALLOWED_G: [i64; 11] = [0, 1, 2, 3, 4, 17, 20, 21, 90, 91, 94];
-const ALLOWED_M: [i64; 4] = [3, 4, 5, 30];
+const ALLOWED_M: [i64; 5] = [3, 4, 5, 6, 30];
 const MOTION_G: [i64; 4] = [0, 1, 2, 3];
-const VALUE_LETTERS: &str = "XYZIJFSPN";
+const VALUE_LETTERS: &str = "XYZIJFSPNT";
 const AXES: [char; 3] = ['X', 'Y', 'Z'];
 
 /// Everything the checker knows about the job. Heights in work coordinates, mm.
@@ -34,7 +34,11 @@ pub struct CheckLimits {
     pub max_overcut: f64,
     pub stock_min: (f64, f64),
     pub stock_max: (f64, f64),
+    /// The stock margin until a tool change (M6) says which tool cuts.
     pub tool_radius: f64,
+    /// Every tool of the job by number: the radius after `T<n> M6`
+    /// (docs/specs/tool-per-operation.md §6). Empty: tool changes are refused.
+    pub tool_radii: BTreeMap<i64, f64>,
     /// Machine travel span per axis.
     pub travel: Option<(f64, f64, f64)>,
 }
@@ -83,6 +87,7 @@ fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
         stock_min,
         stock_max,
         tool_radius: radius,
+        tool_radii: job.tools.iter().map(|t| (t.id, t.diameter / 2.0)).collect(),
         travel: job.machine.travel.as_ref().map(|t| (t.x, t.y, t.z)),
     }
 }
@@ -127,6 +132,12 @@ struct State {
     below_stock: usize,
     deepest: f64,
     ended: bool,
+    /// The tool number of the last T word.
+    tool: Option<i64>,
+    /// The radius of the tool put in by the last M6; None: `limits.tool_radius`.
+    radius: Option<f64>,
+    /// After M6 the spindle must be started again with a speed.
+    needs_speed: bool,
 }
 
 impl State {
@@ -144,6 +155,9 @@ impl State {
             below_stock: 0,
             deepest: f64::INFINITY,
             ended: false,
+            tool: None,
+            radius: None,
+            needs_speed: false,
         }
     }
 }
@@ -296,6 +310,24 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     if g_codes.contains(&90) {
         state.absolute = Some(true);
     }
+    if let Some(&t) = values.get(&'T') {
+        if t < 0.0 || t != t.trunc() {
+            problems.push(format!("T{t} must be a whole tool number"));
+        } else {
+            // `as` saturates for absurd values, which no project has as a tool.
+            state.tool = Some(t as i64);
+        }
+    }
+    // A controller changes the tool before it starts or stops the spindle.
+    if m_codes.contains(&6) {
+        problems.extend(tool_change(state, limits));
+    }
+    if (m_codes.contains(&3) || m_codes.contains(&4)) && state.needs_speed {
+        if !values.contains_key(&'S') {
+            problems.push("Spindle started after a tool change without a speed (S)".into());
+        }
+        state.needs_speed = false;
+    }
     if m_codes.contains(&3) {
         state.spindle = SpindleState::Cw;
     }
@@ -327,6 +359,35 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     if m_codes.contains(&30) {
         state.ended = true;
     }
+    problems
+}
+
+/// M6: a known tool, the spindle stopped, the tool at safe height. From here on the stock
+/// margin is the new tool's radius.
+fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<String> {
+    let mut problems = Vec::new();
+    match state.tool {
+        None => problems.push("Tool change (M6) without a tool number (T)".into()),
+        Some(t) => match limits.tool_radii.get(&t) {
+            Some(&radius) => state.radius = Some(radius),
+            None => problems.push(format!(
+                "Tool change (M6) to T{t}, not a tool of the project"
+            )),
+        },
+    }
+    if state.spindle != SpindleState::Off {
+        problems.push("Tool change (M6) with the spindle on (stop it with M5 first)".into());
+    }
+    if state
+        .pos
+        .get(&'Z')
+        .copied()
+        .flatten()
+        .is_none_or(|z| z < limits.safe_z - POSITION_TOL_MM)
+    {
+        problems.push("Tool change (M6) below safe height (retract first)".into());
+    }
+    state.needs_speed = true;
     problems
 }
 
@@ -385,10 +446,10 @@ fn move_to(
             extremes = arc_extremes;
         }
         if let (Some(x), Some(y)) = (at('X'), at('Y'))
-            && (outside_stock(x, y, limits)
+            && (outside_stock(x, y, limits, state.radius)
                 || extremes
                     .iter()
-                    .any(|&(ex, ey)| outside_stock(ex, ey, limits)))
+                    .any(|&(ex, ey)| outside_stock(ex, ey, limits, state.radius)))
         {
             state.outside_stock += 1;
         }
@@ -486,8 +547,8 @@ fn check_arc(
     (problems, extremes)
 }
 
-fn outside_stock(x: f64, y: f64, limits: &CheckLimits) -> bool {
-    let margin = limits.tool_radius + POSITION_TOL_MM;
+fn outside_stock(x: f64, y: f64, limits: &CheckLimits, radius: Option<f64>) -> bool {
+    let margin = radius.unwrap_or(limits.tool_radius) + POSITION_TOL_MM;
     let inside_x = limits.stock_min.0 - margin <= x && x <= limits.stock_max.0 + margin;
     let inside_y = limits.stock_min.1 - margin <= y && y <= limits.stock_max.1 + margin;
     !(inside_x && inside_y)

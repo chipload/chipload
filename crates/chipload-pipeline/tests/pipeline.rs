@@ -334,6 +334,67 @@ fn operations_are_checked_against_their_own_tool() {
 }
 
 #[test]
+fn with_tool_changes_in_the_program_it_is_one_checked_file_with_m6() {
+    // docs/specs/tool-per-operation.md §3.2.
+    let job = two_tool_job(json!({"machine": {"tool_change": "program"}}));
+    let result = run(&job);
+    assert_eq!(result.files.len(), 1);
+    let file = &result.files[0];
+    assert_eq!(
+        (file.suffix.clone(), file.operations.clone()),
+        (None, vec![0, 1])
+    );
+    let lines: Vec<&str> = file.gcode.lines().collect();
+    assert!(
+        lines.contains(&"(T2 3.000 mm endmill \"3 mm [downcut]\")"),
+        "{}",
+        file.gcode
+    );
+    assert!(lines.contains(&"(T1 6.000 mm endmill)"));
+    let start = lines.iter().position(|l| *l == "G21 G90 G17 G94").unwrap();
+    assert_eq!(
+        &lines[start..start + 5],
+        [
+            "G21 G90 G17 G94",
+            "G0 Z5.000",
+            "T2 M6",
+            "M3 S20000",
+            "G4 P3.000"
+        ]
+    );
+    let change = lines.iter().position(|l| *l == "T1 M6").unwrap();
+    assert_eq!(
+        &lines[change - 3..change + 3],
+        [
+            "(Tool change 1 of 1: tool 1, 6.000 mm endmill, operations 2)",
+            "G0 Z5.000",
+            "M5",
+            "T1 M6",
+            "M3 S18000",
+            "G4 P3.000"
+        ]
+    );
+    // The machine does what the two files do, in one go.
+    let files = run(&two_tool_job(json!({})));
+    let moves = |text: &str| -> Vec<String> {
+        text.lines()
+            .filter(|l| ["G1 ", "G2 ", "G3 "].iter().any(|g| l.starts_with(g)))
+            .map(String::from)
+            .collect()
+    };
+    let both: Vec<String> = files.files.iter().flat_map(|f| moves(&f.gcode)).collect();
+    assert_eq!(moves(&file.gcode), both);
+}
+
+#[test]
+fn one_tool_gives_the_same_file_in_both_modes() {
+    let files = run(&job(json!({})));
+    let program = run(&job(json!({"machine": {"tool_change": "program"}})));
+    assert_eq!(files.files, program.files);
+    assert!(!program.files[0].gcode.contains("M6"));
+}
+
+#[test]
 fn gcode_file_names_add_the_group_and_tool_to_the_stem() {
     let file = |suffix: Option<&str>| chipload_pipeline::GcodeFile {
         suffix: suffix.map(String::from),

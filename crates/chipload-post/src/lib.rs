@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use chipload_job::{Spindle, Tool, ToolType};
+use chipload_job::{Spindle, Tool, ToolChange, ToolType};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
@@ -65,6 +65,16 @@ pub struct PostConfig {
     /// is what every post wrote before this setting existed.
     #[serde(default)]
     pub arcs: bool,
+    /// How the template can write a job with several tools (docs/specs/tool-per-operation.md
+    /// §3.2): "files" (one program per tool) and, if it writes the commands, "program" (one
+    /// file with tool changes). Missing: files only, so a template that knows nothing of M6
+    /// never gets asked for it.
+    #[serde(default = "default_tool_changes")]
+    pub tool_changes: Vec<ToolChange>,
+}
+
+fn default_tool_changes() -> Vec<ToolChange> {
+    vec![ToolChange::Files]
 }
 
 /// `^[A-Za-z0-9_][A-Za-z0-9_.-]*$`: a plain file or post name, no paths.
@@ -297,7 +307,25 @@ struct Context {
     /// Which file of a set this is, when a job writes one file per tool group
     /// (docs/specs/tool-per-operation.md §3.1); None for a single file.
     file: Option<FileContext>,
+    /// One file with tool changes: every tool, for the header; None otherwise.
+    tools: Option<Vec<String>>,
+    /// The moves, split where the tool changes; one segment without a change otherwise.
+    segments: Vec<Segment>,
+}
+
+#[derive(Serialize)]
+struct Segment {
+    /// The tool change before these moves; None for the first tool.
+    change: Option<ChangeContext>,
     moves: Vec<PostMove>,
+}
+
+#[derive(Serialize)]
+struct ChangeContext {
+    /// `Tool change 1 of 2: tool 2, 3.000 mm endmill, operations 2, 4`
+    comment: String,
+    tool_id: i64,
+    rpm: String,
 }
 
 #[derive(Serialize)]
@@ -408,8 +436,106 @@ fn render(
             tool: tool_text(&f.tool, config.decimals),
             operations: operations_text(&f.operations),
         }),
-        moves: compress_moves(&output, config.decimals)?,
+        tools: None,
+        segments: vec![Segment {
+            change: None,
+            moves: compress_moves(&output, config.decimals)?,
+        }],
     };
+    fill_template(config, &context)
+}
+
+/// One part of a job written as one file with tool changes: a tool group's moves.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ToolPart {
+    /// The group's moves with its tool, in program coordinates.
+    pub program: Program,
+    pub tool: Tool,
+    /// Indexes in `job.operations`.
+    pub operations: Vec<usize>,
+}
+
+/// Render a job with several tools as one program with a tool change before each part but
+/// the first (docs/specs/tool-per-operation.md §3.2). The post must support it.
+pub fn render_with_tool_changes(
+    parts: &[ToolPart],
+    config: &PostConfig,
+    work_zero: Option<&str>,
+) -> Result<String, PostError> {
+    if !config.tool_changes.contains(&ToolChange::Program) {
+        return Err(PostError::Config(format!(
+            "Post-processor {:?} can't write tool changes in one file; write one file per \
+             tool instead (tool changes: files)",
+            config.name
+        )));
+    }
+    let first = parts
+        .first()
+        .ok_or_else(|| PostError::Render("No tool groups to render".into()))?;
+    let fmt = |v: f64| format_number(v, config.decimals);
+    let mut segments = Vec::new();
+    for (i, part) in parts.iter().enumerate() {
+        let output = if config.arcs {
+            merge_arcs(&part.program).map_err(|e| PostError::Render(e.to_string()))?
+        } else {
+            part.program.clone()
+        };
+        // Each part starts from fresh modal state: after a tool change every word is written
+        // again, whatever the sender did to move the machine.
+        let change = (i > 0).then(|| ChangeContext {
+            comment: comment_safe(&format!(
+                "Tool change {i} of {}: {}, operations {}",
+                parts.len() - 1,
+                tool_text(&part.tool, config.decimals),
+                operations_text(&part.operations)
+            )),
+            tool_id: part.tool.id,
+            rpm: format_number(part.program.rpm, 0),
+        });
+        segments.push(Segment {
+            change,
+            moves: compress_moves(&output, config.decimals)?,
+        });
+    }
+    let context = Context {
+        post_name: config.name.clone(),
+        tool_id: first.program.tool_id,
+        tool_diameter: fmt(first.program.tool_diameter),
+        rpm: format_number(first.program.rpm, 0),
+        spindle: match first.program.spindle {
+            Spindle::Cw => "cw",
+            Spindle::Ccw => "ccw",
+        },
+        safe_z: fmt(first.program.safe_z),
+        dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
+        work_zero: work_zero.map(comment_safe),
+        file: None,
+        tools: Some(tool_list(parts, config.decimals)),
+        segments,
+    };
+    fill_template(config, &context)
+}
+
+/// `T2 3.000 mm endmill "3 mm downcut"` for each tool once, in the order first used.
+fn tool_list(parts: &[ToolPart], decimals: u32) -> Vec<String> {
+    let mut seen: Vec<i64> = Vec::new();
+    let mut lines = Vec::new();
+    for part in parts {
+        if seen.contains(&part.tool.id) {
+            continue;
+        }
+        seen.push(part.tool.id);
+        let text = tool_text(&part.tool, decimals);
+        // "tool 2, 3.000 mm endmill" -> "T2 3.000 mm endmill"
+        let rest = text
+            .split_once(", ")
+            .map_or(text.as_str(), |(_, rest)| rest);
+        lines.push(comment_safe(&format!("T{} {rest}", part.tool.id)));
+    }
+    lines
+}
+
+fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostError> {
     let failed = |e: minijinja::Error| {
         PostError::Render(format!("Template {:?} failed: {e}", config.template))
     };
@@ -438,7 +564,7 @@ fn render(
         .map_err(failed)?;
     let text = env
         .get_template(&config.template)
-        .and_then(|t| t.render(Value::from(Serde(&context))))
+        .and_then(|t| t.render(Value::from(Serde(context))))
         .map_err(failed)?;
     Ok(if text.ends_with('\n') {
         text
