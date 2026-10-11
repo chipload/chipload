@@ -31,6 +31,7 @@ it's built (see `CLAUDE.md`).
 - **Several DXFs in one project:** import more than one drawing into a project, each with
   its own source and placement (user request 2026-10-11).
 - **Scale the imported drawing**, as well as move and turn it (user request 2026-10-11).
+  Spec drafted: docs/specs/drawing-scale.md, awaiting review.
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
   update from a new version, placement (user request 2026-10-11).
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
