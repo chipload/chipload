@@ -11,6 +11,7 @@ pub mod geom;
 pub mod helix;
 pub mod lead;
 pub mod left;
+pub(crate) mod medial;
 pub mod model;
 pub mod offset;
 pub mod plan;
