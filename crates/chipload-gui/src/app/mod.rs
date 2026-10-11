@@ -173,6 +173,12 @@ pub struct ChiploadApp {
     pub report_open: bool,
     /// The current drawing's facts, for the report's Drawing section.
     pub drawing_facts: Option<DrawingFacts>,
+    /// The canvas legend is unfolded.
+    pub legend_open: bool,
+    /// The project changed since the last generation, which was cleared.
+    pub toolpath_stale: bool,
+    /// View > Theme.
+    pub theme: egui::ThemePreference,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
     prompt: Option<Prompt>,
@@ -223,6 +229,9 @@ impl Default for ChiploadApp {
             ]),
             report_open: false,
             drawing_facts: None,
+            legend_open: true,
+            toolpath_stale: false,
+            theme: egui::ThemePreference::System,
             status: None,
             cursor: None,
             prompt: None,
@@ -622,6 +631,7 @@ impl ChiploadApp {
 
     pub fn generate(&mut self) -> bool {
         self.commit();
+        self.toolpath_stale = false;
         let Some(edit) = &self.edit else {
             self.error(vec!["Import a DXF or open a project first.".into()]);
             return false;
@@ -834,6 +844,7 @@ impl ChiploadApp {
 
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
+        self.toolpath_stale = false;
         self.result = None;
         self.scene.toolpath = None;
         self.scene.tabs.clear();
@@ -846,10 +857,7 @@ impl ChiploadApp {
     fn toolpath_out_of_date(&mut self) {
         if self.result.is_some() || self.scene.toolpath.is_some() {
             self.invalidate();
-            self.set_status(
-                "Project changed: press F5 to generate again".into(),
-                STATUS_SECONDS,
-            );
+            self.toolpath_stale = true;
         }
         self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
         self.refresh_drawing();

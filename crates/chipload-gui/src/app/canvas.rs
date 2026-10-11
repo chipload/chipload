@@ -244,6 +244,82 @@ impl ChiploadApp {
             show_material_left: self.show_material_left,
         };
         self.scene.paint(&painter, &self.view, &highlight);
+        self.canvas_overlays(ui, rect);
+    }
+
+    /// On top of the canvas, inside it: the out-of-date notice and the legend.
+    fn canvas_overlays(&mut self, ui: &mut egui::Ui, rect: egui::Rect) {
+        let visuals = ui.visuals().clone();
+        let frame = egui::Frame::new()
+            .fill(visuals.panel_fill.gamma_multiply(0.94))
+            .stroke(visuals.widgets.noninteractive.bg_stroke)
+            .corner_radius(6.0)
+            .inner_margin(egui::Margin::symmetric(10, 6));
+        let inner = rect.shrink(10.0);
+        if self.toolpath_stale {
+            let top = egui::UiBuilder::new()
+                .max_rect(inner)
+                .layout(egui::Layout::top_down(egui::Align::Min));
+            ui.scope_builder(top, |ui| {
+                frame.show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            RichText::new("⚠ Toolpath out of date").color(visuals.warn_fg_color),
+                        );
+                        if ui
+                            .button("▶ Generate")
+                            .on_hover_text("The project changed since it was generated (F5)")
+                            .clicked()
+                        {
+                            self.generate();
+                        }
+                    });
+                });
+            });
+        }
+        let items = crate::view::legend(&self.scene, self.show_material_left);
+        // Anchored at the bottom: placed by its height last frame (estimated on the first).
+        let size_id = egui::Id::new("legend-height");
+        let rows = if self.legend_open { items.len() } else { 0 };
+        let estimate = 30.0 + 15.0 * rows as f32;
+        let height = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
+        let top_left = egui::pos2(inner.left(), (inner.bottom() - height).max(inner.top()));
+        let place = egui::UiBuilder::new()
+            .max_rect(egui::Rect::from_min_max(top_left, inner.right_bottom()))
+            .layout(egui::Layout::top_down(egui::Align::Min));
+        let shown = ui
+            .scope_builder(place, |ui| {
+                frame.show(ui, |ui| self.legend_ui(ui, items)).response.rect
+            })
+            .inner;
+        if (shown.height() - height).abs() > 0.5 {
+            ui.data_mut(|d| d.insert_temp(size_id, shown.height()));
+            ui.ctx().request_repaint();
+        }
+    }
+
+    /// The legend's title (it folds) and its entries.
+    fn legend_ui(&mut self, ui: &mut egui::Ui, items: Vec<(crate::view::Swatch, &str)>) {
+        ui.spacing_mut().item_spacing.y = 1.0;
+        let arrow = if self.legend_open { "▾" } else { "▸" };
+        if ui
+            .selectable_label(false, RichText::new(format!("{arrow} Legend")).small())
+            .on_hover_text("What the canvas shows")
+            .clicked()
+        {
+            self.legend_open = !self.legend_open;
+        }
+        if !self.legend_open {
+            return;
+        }
+        for (swatch, text) in items {
+            ui.horizontal(|ui| {
+                let (swatch_rect, _) =
+                    ui.allocate_exact_size(egui::vec2(30.0, 14.0), Sense::hover());
+                crate::view::paint_swatch(ui.painter(), swatch_rect, swatch);
+                ui.label(RichText::new(text).small());
+            });
+        }
     }
 
     // -- handles and snapping (docs/specs/drawing-follow-ups.md sections 1 and 2)

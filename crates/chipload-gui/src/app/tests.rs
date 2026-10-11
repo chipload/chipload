@@ -1132,3 +1132,30 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
     app.new_project();
     assert_eq!(app.drawing_facts.clone().unwrap().contours, 0);
 }
+
+#[test]
+fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v7/leads.chipload")));
+    let drawing_only = crate::view::legend(&app.scene, true).len();
+    assert!(app.generate(), "{:?}", app.report);
+    assert!(!app.toolpath_stale);
+    let generated = crate::view::legend(&app.scene, true).len();
+    assert!(
+        generated > drawing_only,
+        "the legend explains the toolpath too"
+    );
+    match &mut app.edit.as_mut().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.feed = 900.0,
+        Operation::Profile(_) => panic!("operation 1 is a pocket"),
+    }
+    app.commit();
+    assert!(app.toolpath_stale, "the cleared toolpath is noticed");
+    assert_eq!(crate::view::legend(&app.scene, true).len(), drawing_only);
+    assert!(app.generate(), "{:?}", app.report);
+    assert!(!app.toolpath_stale);
+    // A project opened afresh has nothing out of date.
+    app.commit();
+    assert!(app.open(&corpus("jobs/v7/leads.chipload")));
+    assert!(!app.toolpath_stale);
+}

@@ -11,6 +11,7 @@ mod draw;
 mod editor;
 mod fonts;
 mod shape_form;
+mod style;
 mod view;
 
 use std::path::PathBuf;
@@ -40,6 +41,7 @@ fn main() -> ExitCode {
         options,
         Box::new(move |cc| {
             cc.egui_ctx.set_fonts(fonts);
+            style::apply(&cc.egui_ctx);
             let mut app = app::ChiploadApp::default();
             app.set_settings_dir(chipload_pipeline::library::settings_dir());
             if let Some(file) = &file {

@@ -223,6 +223,18 @@ impl ChiploadApp {
                         ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
                     }
                 });
+                ui.checkbox(&mut self.legend_open, "Show legend");
+                ui.menu_button("Theme", |ui| {
+                    for (choice, label) in [
+                        (egui::ThemePreference::System, "Follow system"),
+                        (egui::ThemePreference::Light, "Light"),
+                        (egui::ThemePreference::Dark, "Dark"),
+                    ] {
+                        if ui.radio_value(&mut self.theme, choice, label).clicked() {
+                            ui.ctx().set_theme(choice);
+                        }
+                    }
+                });
                 ui.checkbox(&mut self.show_material_left, "Show material left")
                     .on_hover_text(
                         "Faint: material the tool can't reach (inside corners, narrow slots). \

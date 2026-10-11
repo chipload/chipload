@@ -1177,3 +1177,83 @@ mod tests {
         assert!((trapezoid_area(&cells) - 2.25).abs() < 1e-9);
     }
 }
+
+/// What a legend entry looks like: drawn the way the canvas draws that thing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Swatch {
+    Line(Color32, f32),
+    Dashed(Color32),
+    /// A filled patch at this opacity.
+    Patch(Color32, f32),
+    /// A plunge: the ring the canvas draws where the tool goes down.
+    Plunge,
+    /// A ring's start marker.
+    Start,
+}
+
+/// What the canvas shows, explained: contours always; the toolpath and what goes with it once
+/// generated; material left when shown; copies when there are some.
+pub fn legend(scene: &Scene, material_left: bool) -> Vec<(Swatch, &'static str)> {
+    let mut items = vec![
+        (Swatch::Line(OUTER, 1.5), "outline"),
+        (Swatch::Line(HOLE, 1.5), "hole"),
+        (Swatch::Dashed(OPEN), "open contour (not cut)"),
+        (Swatch::Line(SELECTED, 3.0), "selected"),
+        (Swatch::Line(OPERATION, 6.0), "the operation's contours"),
+        (Swatch::Dashed(STOCK), "stock"),
+    ];
+    if !scene.copies.is_empty() {
+        items.push((Swatch::Line(GHOST, 1.0), "copies"));
+    }
+    if let Some(path) = &scene.toolpath {
+        let feed = if path.rejected { FEED_REJECTED } else { FEED };
+        items.push((Swatch::Line(feed, 2.0), "cutting move"));
+        items.push((Swatch::Dashed(RAPID), "rapid, above the stock"));
+        items.push((Swatch::Plunge, "where the tool goes down"));
+        if !scene.tabs.is_empty() {
+            items.push((Swatch::Line(TAB, 6.0), "tab"));
+        }
+        if !scene.start_markers.is_empty() {
+            items.push((Swatch::Start, "ring start (drag to move)"));
+        }
+    }
+    if material_left && !scene.left.is_empty() {
+        items.push((
+            Swatch::Patch(LEFT_UNREACHABLE, 0.4),
+            "material the tool can't reach",
+        ));
+        if scene.left.iter().any(|l| l.kind == LeftKind::Missed) {
+            items.push((Swatch::Patch(LEFT_MISSED, 0.6), "material missed"));
+        }
+    }
+    items
+}
+
+/// Paint a swatch in `rect`, on the canvas background.
+pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch) {
+    painter.rect_filled(rect, 2.0, BACKGROUND);
+    let (left, right) = (rect.left_center(), rect.right_center());
+    let (a, b) = (left + Vec2::new(3.0, 0.0), right - Vec2::new(3.0, 0.0));
+    match swatch {
+        Swatch::Line(color, width) => {
+            painter.line_segment([a, b], Stroke::new(width.min(rect.height() - 4.0), color));
+        }
+        Swatch::Dashed(color) => {
+            painter.extend(Shape::dashed_line(
+                &[a, b],
+                Stroke::new(1.5, color),
+                4.0,
+                3.0,
+            ));
+        }
+        Swatch::Patch(color, alpha) => {
+            painter.rect_filled(rect.shrink(2.0), 1.0, color.gamma_multiply(alpha));
+        }
+        Swatch::Plunge => {
+            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, LABEL));
+        }
+        Swatch::Start => {
+            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, START));
+        }
+    }
+}
