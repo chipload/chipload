@@ -1,6 +1,7 @@
 # Spec: adaptive clearing as spirals and trochoidal channels on the medial axis
 
-Status: **approved 2026-10-11**, all decisions as recommended (§9). Replaces docs/specs/adaptive-fronts.md (its
+Status: **approved 2026-10-11**, all decisions as recommended (§9). **§3.1–3.4 revised
+2026-10-11 for stage 2** (option C of §11, chosen by the user): decisions 9–12, for review. Replaces docs/specs/adaptive-fronts.md (its
 stage 1, one stepover setting, stays) and the trochoidal strategy (docs/specs/trochoidal.md).
 
 User request (2026-10-11), after the fronts were built and measured: step back. Adaptive
@@ -36,61 +37,72 @@ width ae with tool diameter D: θ = acos(1 − 2·ae/D). Stepover 0.1 × D is 37
 
 ## 3. How the path is made
 
-### 3.1 Division by the medial axis
+### 3.1 The core (revised for stage 2, §11)
 
-r = tool radius, R = the area the tool centre may be in (the pocket shrunk by r +
-clearance). The medial axis of R, with the clearance radius ρ(m) at each point (built as
+r = tool radius, w = stepover, R = the area the tool centre may be in (the pocket shrunk by
+r + clearance). The medial axis of R, with the clearance radius ρ(m) at each point (built as
 for V-carving, ADR 0015; that code becomes shared).
 
-- **Open areas**: the parts of R round medial-axis points with ρ ≥ ρ_open (decision 5). Each
-  gets one spiral.
-- **Channels**: the rest, narrower than an open area: the medial-axis branches between and
-  beyond the open areas. Each gets trochoidal loops along its centre line (§3.4).
-- A pocket with no open area (a slot) is all channel. A pocket that is one open area is
-  one spiral.
-- Small branches that only reach into corners (the medial axis runs into every convex
-  corner of R) are not channels: their material is taken by the last spiral loops or the
-  wall pass. The cut-off is when the branch adds less than the stepover (as V-carve prunes
-  by its tolerance).
+- **The core** is the part of the medial axis that the spiral grows from. It is the medial
+  axis **pruned from its leaves**: a leaf branch is shortened as long as every boundary point
+  of R stays within `ROUND_ENOUGH` (1.25) × the smallest clearance on the wide part of the
+  core. A square's core is its centre point; a 3 : 1 rectangle's is its centre line plus the
+  inner parts of its four corner branches; an L's is the centre lines of both arms.
+- **Why**: every boundary point's spoke (§3.2) runs from its nearest core point, so spokes
+  differ in length by at most 1.25 ×; the spiral then cuts at least about 0.8 of the target
+  angle everywhere (stage 1 measured 0.90 on a circle, where all spokes are equal).
+- **Channels** are the parts of the core where the opening loops (§3.4) already reach the
+  walls: there the opening is the whole cut, and nothing is left for a spiral. A slot is all
+  channel; a dumbbell is two wide parts joined by a channel. This replaces the fixed
+  clearance limit of decision 5 (ρ ≥ D): what is open follows from the loop size.
+- Leaf branches that stay narrow to their end (a slot off a room) are never pruned away:
+  their boundary is too far from the rest of the core, so the rule keeps them, and being
+  narrow they are channels.
 
-### 3.2 The morphed spiral (one open area, no islands)
+### 3.2 The morphed spiral (one wide part, no islands)
 
-- **Start** at the centre of the area's largest circle, with the operation's entry (a helix
-  fits best there).
-- **Loops** morph from a small circle round the start to the area's boundary: for each point
-  b of the boundary, a **spoke** runs from the start along the medial axis to b's nearest
-  medial-axis point and on to b. Loop k is made of the points k/N along every spoke. The
-  last loop is the boundary itself.
-- **One continuous spiral**: instead of separate loops, the fraction grows steadily as the
-  tool goes round, from k/N to (k+1)/N in one turn. No links, no lifts; the tool always
-  turns the same way (climb by default).
-- **Spacing**: N, the number of turns, is set by the longest spoke so that no two turns are
-  farther apart than the stepover; then shortened where the angle rule (§2) needs it
-  (tight turns near the start). Along short spokes turns lie closer: the spiral cuts less
-  there. Splitting the pocket (§3.1) is what keeps that waste small.
-- **Smooth**: the spiral is built as points and fitted with arcs (tangent-continuous) within
-  `ARC_APPROX_TOL_MM`, so the controller sees G2/G3 that flow into each other.
-- Where the area meets a channel, the boundary is not a wall but the channel's mouth; the
-  spiral still ends on it, and the channel takes over from there.
+- **Start**: the core is opened first (§3.4); the spiral starts on the boundary of the
+  opened band and grows out to the wall. For a core that is one point (a circle, a square)
+  the opening is the helix entry and one small loop: stage 1 as built.
+- **Spokes**: for each point b of the (rounded) wall, the spoke runs from b's nearest core
+  point m(b), starting where it leaves the opened band, straight to b. Spokes to the nearest
+  points of a medial axis never cross each other (each lies inside its own maximal circle),
+  so neither do the turns. Where the core was pruned, the spokes of a corner fan out from the
+  end of the remaining branch.
+- **One continuous spiral**: turn t is t of the way out along every spoke (blended as in
+  stage 1, so inner turns follow the band's shape and outer turns the wall's); t grows
+  steadily as the tool goes round. No links, no lifts; always the same turning direction
+  (climb by default).
+- **Spacing**: as built in stage 1: each turn as far from the last as the engagement angle
+  allows in its tightest place, never more than w; spokes are parametrised by the wall's
+  length instead of the angle from a centre, since the area need not be star-shaped.
+- **Smooth**: points fitted with arcs within `ARC_APPROX_TOL_MM`, as in stage 1.
+- Where a wide part meets a channel, its boundary there is the channel's opened band, which
+  is already cut: the spiral's spokes end on it.
 
 ### 3.3 What the spiral cuts
 
-Between turns the radial distance varies with the spoke: longest spoke / N at most (≤
-stepover), less elsewhere. So θ ≤ θ₀ on straight parts and, after the spacing correction,
-on curves too. Where turns lie much closer than the stepover, the spiral recuts nothing,
-it just takes thinner chips.
+Between turns the radial distance varies with the spoke: longest spoke / N at most (≤ w),
+at least 0.8 of that by the core rule. So θ ≤ θ₀ everywhere after the spacing correction,
+and the cut stays close to it.
 
-### 3.4 Channels: trochoidal along the centre line
+### 3.4 The opening: trochoidal loops along the core
 
-- Loops along the medial-axis centre line, each a circle (as arcs) whose radius follows the
-  channel: ρ(m) less a small margin, so a loop reaches the channel's walls to the wall pass's
-  band.
-- **Step per loop**: the stepover. A loop moving on by p cuts at most about p sideways, so
-  the angle rule holds; the measured angle decides (§5).
-- Where a channel narrows below the trochoidal minimum (loop radius under a tenth of D, say),
-  it is a plain slot: the tool follows the centre line at full width, with a note (as
-  today's narrow-slot warning). Decision 7.
-- Channels are cut from the open area they leave, outwards to their ends.
+- The tool goes down at the core's widest point (the largest circle, with the operation's
+  entry) and walks the core depth first, making **trochoidal loops** along it: circles (as
+  arcs) moving on along the core between loops.
+- **Loop radius**: the tool radius r, so the opened band is 2 × D wide (tool edge to tool
+  edge); smaller where the clearance is smaller, so the loop just reaches the wall's band
+  (ρ(m) less a margin). Where the loops reach the wall, that stretch is a channel and is
+  done.
+- **Step per loop**: as far as the engagement angle allows on a loop of that radius (the
+  stage 1 formula with the loop's bend), at most w. The loops are within θ₀ like the spiral.
+- **Branches**: at a fork the walk goes into one branch to its end and comes back through the
+  band it opened (cutting nothing), then takes the next.
+- **Too narrow for loops**: where the loop radius would be under a tenth of D, the tool
+  follows the core as a full-width slot, with a note (decision 7, unchanged).
+- **Cost**: loops are slower than a spiral per area cleared (about 1.5 × the ideal length in
+  the band), but the band is a small part of a wide pocket. Measured and reported (§5).
 
 ### 3.5 Order, links and the wall pass
 
@@ -180,8 +192,9 @@ engagement, lifting on links, spirals that cross islands without splitting.
 1. **Spiral** for pockets without islands that are one open area (no channels yet): shared
    medial axis, spokes, the spiral, angle-based spacing, arcs. Replaces the fronts for those
    pockets; others keep the fronts until their stage. Measurements reported.
-2. **Channels**: division into open areas and channels, trochoidal along centre lines,
-   order and links. Dumbbell and slot tests.
+2. **Core and opening** (§3.1–3.4 as revised): the pruned core, trochoidal opening along it,
+   spirals from the opened band, channels, order and links. Square, rectangle 3 : 1, L,
+   dumbbell and slot tests.
 3. **Islands**: cutting the medial axis's loops, splitting R, seams.
 4. **Format**: schema 14 (trochoidal migrated, flute length), tools.json 3, the defaults,
    the flute-length warning; the trochoidal strategy and the fronts removed.
@@ -203,7 +216,7 @@ engagement, lifting on links, spirals that cross islands without splitting.
 5. **Open area or channel**: a medial-axis point is in an open area when its clearance
    radius (tool centre to wall) is at least D (the pocket there is at least 3 × D wide,
    room for a spiral of several turns). **Recommended: D**, a named constant, revisited
-   after stage 2's measurements.
+   after stage 2's measurements. *Replaced by decision 10 (revision of §3).*
 6. **Targets** (§5): to be confirmed by measuring; if one is wrong I report it and ask.
    **Recommended.**
 7. **Too narrow for loops**: follow the centre line as a full-width slot with a note (as
@@ -211,6 +224,21 @@ engagement, lifting on links, spirals that cross islands without splitting.
    slot with a note.**
 8. **Staging** (§8), each stage on main when its tests pass, the fronts kept for what the
    spiral doesn't cover yet. **Recommended.**
+
+Revision of §3 for stage 2 (§11), for review:
+
+9. **The core**: the medial axis pruned from its leaves while every wall point stays within
+   1.25 × the core's smallest wide clearance (§3.1), the same limit as stage 1's roundness
+   gate. **Recommended.** A smaller limit cuts closer to the target but lengthens the
+   opening.
+10. **Channels** are where the opening loops reach the walls (§3.1), replacing decision 5.
+    **Recommended.**
+11. **Opening loop radius**: the tool radius (band 2 × D wide), smaller where the pocket is
+    narrower (§3.4). **Recommended.** Larger loops open a wider band at the same load but
+    are slower per length.
+12. **Fallback in stage 2**: a part the new path can't take (islands until stage 3, a wall
+    whose spokes can't be built) keeps the fronts, as in stage 1, until stage 4 removes
+    them. **Recommended.**
 
 ## 10. As built
 
@@ -255,5 +283,10 @@ v7_adaptive and v12_adaptive change (their round hole is now a spiral).
 Measured in stage 1: the spec's split by clearance radius (§3.1) would make a square or a
 3 : 1 rectangle one open area, which one spiral clears poorly (above). Clearing them well
 needs either rounder pieces (several spirals, which raises where each starts and how they
-meet) or a different treatment of corners and long sides. To be proposed to the user with
-measurements before stage 2 is built.
+meet) or a different treatment of corners and long sides.
+
+Proposed 2026-10-11: A, several spirals in round cells (a plunge per cell, seams cut
+twice); B, a spiral in the round middle and trochoidal loops into corners and ends (slow in
+wide ends); C, a spiral grown from a pruned medial axis that is first opened with
+trochoidal loops (one plunge, no seams, narrow channels done by the opening). **The user
+chose C**: §3.1–3.4 revised, decisions 9–12.
