@@ -9,19 +9,17 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Adaptive clearing that divides the area smarter** (user request 2026-10-11, with a
-  screenshot): on a rectangle with two round holes the adaptive path wastes time. Short
-  zig-zag cuts comb along every wall, there are long link moves across the part, re-entries
-  cluster in corners, and one big spiral sits in the middle. Idea: split the pocket by its
-  segment Voronoi diagram / medial axis (boostvoronoi, ADR 0015) into channels and open
-  areas, and clear each along its centre line with steady engagement, in an order that
-  keeps links short. Needs a spec first: what "efficient" is measured as (cut time, air
-  time, link length, re-entries), and checks that it stays gouge-free and leaves nothing.
-  User's goals (2026-10-11): adaptive is about **constant chip load**, **fluid motion**
-  (few sudden changes of direction, so the controller keeps its speed) and **little
-  recutting** of areas already cut. One setting, not both `load` and stepover: adaptive
-  uses the pocket's stepover, default 0.4 × D as for rings (a format change: `load` goes,
-  so a migration).
+- **Adaptive clearing by fronts** (docs/specs/adaptive-fronts.md, approved 2026-10-11).
+  Stage 1 (schema 13: stepover replaces `load`) and stage 3 (the fronts) are on main; the
+  user chose to merge with the measured shortfalls (§10) and improve after:
+  - Engagement up to about 2 × w (5 × at stepover 0.1) where a pass starts at a wall or
+    island. Idea: leave a thin strip along those edges and take it last with a pass along
+    the wall the other way.
+  - Stage 4: smooth the turns into and out of returns (ρ_min), smoother spiral blending.
+  - Stage 5: GUI label *Stepover (cut width)*; remove the old grid steering
+    (`adaptive::clear` and its `Field`).
+  - Length is 1.7 × the ideal (target 1.6 ×): the returns; a faster return feed is out of
+    scope so far.
 
 ## Done
 
