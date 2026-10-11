@@ -794,10 +794,7 @@ impl ChiploadApp {
     pub fn selection_lines(&self) -> Vec<String> {
         let ids = self.selection.ids(&self.contours);
         if ids.is_empty() {
-            return vec![
-                "Click a contour to select it; Ctrl+click adds or removes, Esc clears.".into(),
-                "Right-click a contour to select its whole layer.".into(),
-            ];
+            return vec!["Nothing selected.".into()];
         }
         let what = match &self.selection {
             CanvasSelection::Layer(layer) => format!("layer {layer}"),

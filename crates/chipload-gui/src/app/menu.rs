@@ -343,6 +343,14 @@ impl ChiploadApp {
                 } else {
                     self.status = None;
                 }
+            } else if self.edit.is_some() {
+                ui.label(
+                    RichText::new(
+                        "Click a contour to select it · Ctrl+click adds or removes · \
+                         right-click selects its layer · Esc clears",
+                    )
+                    .weak(),
+                );
             }
             let copies = self
                 .edit

@@ -63,8 +63,13 @@ impl ChiploadApp {
         self.operation_list(ui);
         ui.separator();
         ui.heading("Selection");
+        let nothing = self.selection.ids(&self.contours).is_empty();
         for line in self.selection_lines() {
-            ui.label(line);
+            if nothing {
+                ui.weak(line);
+            } else {
+                ui.label(line);
+            }
         }
         self.selected_shape_ui(ui);
         ui.horizontal(|ui| {
@@ -121,64 +126,51 @@ impl ChiploadApp {
         if ui
             .selectable_label(
                 self.focus == Focus::Job,
-                "Job settings (stock, machine, tool)",
+                "⚙ Job settings (stock, machine, tool)",
             )
             .clicked()
         {
             self.focus = Focus::Job;
         }
+        ui.add_space(2.0);
         let missing: BTreeSet<usize> = edit.missing().into_iter().map(|(i, _)| i).collect();
-        let mut moved: Option<(usize, usize)> = None;
+        let mut action: Option<CardAction> = None;
         let count = edit.ops.len();
         for i in 0..count {
             let entry = &mut edit.ops[i];
-            let summary = geometry_summary(&entry.op, &self.contours);
-            let kind = match &entry.op {
-                Operation::Profile(_) => "Profile",
-                Operation::Pocket(_) => "Pocket",
-            };
             let flagged = missing.contains(&i) || self.error_ops.contains(&i);
-            let row = ui.horizontal(|ui| {
-                ui.dnd_drag_source(egui::Id::new(("operation", i)), i, |ui| {
-                    ui.label("≡")
-                        .on_hover_text("Drag onto another operation to move it there");
-                });
-                let mut enabled = entry.op.enabled();
+            let selected = self.focus == Focus::Op(i);
+            let card = op_card(ui, i, entry, &self.contours, selected, flagged);
+            let response = card.response;
+            if response.clicked() {
+                action = Some(CardAction::Focus(i));
+            }
+            response.context_menu(|ui| {
                 if ui
-                    .add(egui::Checkbox::without_text(&mut enabled))
-                    .on_hover_text("Enabled")
-                    .changed()
-                {
-                    match &mut entry.op {
-                        Operation::Profile(p) => p.enabled = enabled,
-                        Operation::Pocket(p) => p.enabled = enabled,
-                    }
-                }
-                let (start, end) = entry.op.depths();
-                let mut text = RichText::new(format!(
-                    "{}. {kind}: {}  [{summary}]  {start}–{end} mm",
-                    i + 1,
-                    entry.op.name()
-                ));
-                if !enabled {
-                    text = text.weak();
-                }
-                if flagged {
-                    text = text.color(egui::Color32::from_rgb(0xf2, 0x8b, 0x82));
-                }
-                if ui
-                    .selectable_label(self.focus == Focus::Op(i), text)
+                    .add_enabled(i > 0, egui::Button::new("Move up"))
                     .clicked()
                 {
-                    self.focus = Focus::Op(i);
+                    action = Some(CardAction::Move(i, i - 1));
+                }
+                if ui
+                    .add_enabled(i + 1 < count, egui::Button::new("Move down"))
+                    .clicked()
+                {
+                    action = Some(CardAction::Move(i, i + 1));
+                }
+                if ui.button("Duplicate").clicked() {
+                    action = Some(CardAction::Duplicate(i));
+                }
+                if ui.button("Delete").clicked() {
+                    action = Some(CardAction::Delete(i));
                 }
             });
-            if let Some(from) = row.response.dnd_release_payload::<usize>() {
-                moved = Some((*from, i));
-            } else if row.response.dnd_hover_payload::<usize>().is_some() {
+            if let Some(from) = response.dnd_release_payload::<usize>() {
+                action = Some(CardAction::Move(*from, i));
+            } else if response.dnd_hover_payload::<usize>().is_some() {
                 ui.painter().hline(
-                    row.response.rect.x_range(),
-                    row.response.rect.top(),
+                    response.rect.x_range(),
+                    response.rect.top() - 1.0,
                     egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
                 );
             }
@@ -194,7 +186,7 @@ impl ChiploadApp {
                 .clicked()
                 && let Some(i) = focused
             {
-                moved = Some((i, i - 1));
+                action = Some(CardAction::Move(i, i - 1));
             }
             if ui
                 .add_enabled(
@@ -205,23 +197,35 @@ impl ChiploadApp {
                 .clicked()
                 && let Some(i) = focused
             {
-                moved = Some((i, i + 1));
+                action = Some(CardAction::Move(i, i + 1));
             }
             if ui
                 .add_enabled(focused.is_some(), egui::Button::new("Duplicate"))
                 .clicked()
+                && let Some(i) = focused
             {
-                self.duplicate_operation();
+                action = Some(CardAction::Duplicate(i));
             }
             if ui
                 .add_enabled(focused.is_some(), egui::Button::new("Delete"))
                 .clicked()
+                && let Some(i) = focused
             {
-                self.delete_operation();
+                action = Some(CardAction::Delete(i));
             }
         });
-        if let Some((from, to)) = moved {
-            self.move_operation(from, to);
+        match action {
+            Some(CardAction::Focus(i)) => self.focus = Focus::Op(i),
+            Some(CardAction::Move(from, to)) => self.move_operation(from, to),
+            Some(CardAction::Duplicate(i)) => {
+                self.focus = Focus::Op(i);
+                self.duplicate_operation();
+            }
+            Some(CardAction::Delete(i)) => {
+                self.focus = Focus::Op(i);
+                self.delete_operation();
+            }
+            None => {}
         }
     }
 
@@ -254,4 +258,117 @@ impl ChiploadApp {
             None => {}
         }
     }
+}
+
+/// What a click in the operation list asks for, done after the list is drawn.
+enum CardAction {
+    Focus(usize),
+    Move(usize, usize),
+    Duplicate(usize),
+    Delete(usize),
+}
+
+/// The kind's tag colour: pockets and profiles told apart at a glance.
+fn kind_color(op: &Operation, dark: bool) -> egui::Color32 {
+    match (op, dark) {
+        (Operation::Profile(_), true) => egui::Color32::from_rgb(0x6f, 0xc8, 0xbd),
+        (Operation::Profile(_), false) => egui::Color32::from_rgb(0x00, 0x79, 0x6b),
+        (Operation::Pocket(_), true) => egui::Color32::from_rgb(0xc3, 0xa6, 0xf0),
+        (Operation::Pocket(_), false) => egui::Color32::from_rgb(0x6a, 0x3d, 0xb8),
+    }
+}
+
+/// One operation as a card: drag handle, enabled box, number, kind and name; below, its
+/// geometry and depths. The whole card is clickable (selects it) and right-clickable.
+fn op_card(
+    ui: &mut egui::Ui,
+    i: usize,
+    entry: &mut crate::editor::EditOp,
+    contours: &[Contour],
+    selected: bool,
+    flagged: bool,
+) -> egui::InnerResponse<()> {
+    let summary = geometry_summary(&entry.op, contours);
+    let (start, end) = entry.op.depths();
+    let kind = match &entry.op {
+        Operation::Profile(_) => "PROFILE",
+        Operation::Pocket(_) => "POCKET",
+    };
+    ui.scope_builder(
+        egui::UiBuilder::new()
+            .id_salt(("op-card", i))
+            .sense(Sense::click()),
+        |ui| {
+            let hovered = ui.response().hovered();
+            let visuals = ui.visuals().clone();
+            let fill = if selected {
+                visuals.selection.bg_fill
+            } else if hovered {
+                visuals.widgets.hovered.weak_bg_fill
+            } else {
+                visuals.faint_bg_color
+            };
+            let text_color = if selected {
+                visuals.selection.stroke.color
+            } else {
+                visuals.text_color()
+            };
+            egui::Frame::new()
+                .fill(fill)
+                .corner_radius(4.0)
+                .inner_margin(egui::Margin::symmetric(6, 4))
+                .show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    ui.horizontal(|ui| {
+                        ui.dnd_drag_source(egui::Id::new(("operation", i)), i, |ui| {
+                            ui.label(RichText::new("≡").color(text_color))
+                                .on_hover_text("Drag onto another operation to move it there");
+                        });
+                        let mut enabled = entry.op.enabled();
+                        if ui
+                            .add(egui::Checkbox::without_text(&mut enabled))
+                            .on_hover_text("Enabled: cut this operation")
+                            .changed()
+                        {
+                            match &mut entry.op {
+                                Operation::Profile(p) => p.enabled = enabled,
+                                Operation::Pocket(p) => p.enabled = enabled,
+                            }
+                        }
+                        ui.label(RichText::new(format!("{}", i + 1)).color(text_color));
+                        let tag = if selected {
+                            text_color
+                        } else {
+                            kind_color(&entry.op, visuals.dark_mode)
+                        };
+                        ui.label(RichText::new(kind).small().strong().color(tag));
+                        let name = match entry.op.name() {
+                            "" => "(no name)".to_string(),
+                            name => name.to_string(),
+                        };
+                        let mut title = RichText::new(name).strong().color(text_color);
+                        if flagged {
+                            title = RichText::new(format!("⚠ {}", entry.op.name()))
+                                .strong()
+                                .color(visuals.error_fg_color);
+                        }
+                        if !enabled {
+                            title = title.weak();
+                        }
+                        ui.add(egui::Label::new(title).truncate().selectable(false));
+                    });
+                    let mut detail =
+                        RichText::new(format!("{summary}  ·  {start}–{end} mm")).small();
+                    detail = if selected {
+                        detail.color(text_color)
+                    } else {
+                        detail.weak()
+                    };
+                    ui.horizontal(|ui| {
+                        ui.add_space(22.0);
+                        ui.add(egui::Label::new(detail).truncate().selectable(false));
+                    });
+                });
+        },
+    )
 }

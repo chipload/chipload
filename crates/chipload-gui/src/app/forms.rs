@@ -132,7 +132,78 @@ pub(super) fn direction_combo(ui: &mut egui::Ui, id: (&str, usize), direction: &
         });
 }
 
-/// The selected operation's fields. Returns true if "Use selection" was clicked.
+/// Least width of a form's label column, so the sections' grids line up.
+const LABEL_WIDTH: f32 = 130.0;
+
+/// A collapsible section of a form: a bold title with a short summary beside it (seen when
+/// folded), and its rows in a two-column grid. Its open state is kept per `key`.
+pub(super) fn section<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let mut header = egui::text::LayoutJob::default();
+    let style = ui.style().clone();
+    RichText::new(title).strong().append_to(
+        &mut header,
+        &style,
+        egui::FontSelection::Default,
+        Align::Center,
+    );
+    if !summary.is_empty() {
+        RichText::new(format!("   {summary}")).weak().append_to(
+            &mut header,
+            &style,
+            egui::FontSelection::Default,
+            Align::Center,
+        );
+    }
+    egui::CollapsingHeader::new(header)
+        .id_salt(("section", key))
+        .default_open(true)
+        .show(ui, |ui| {
+            Grid::new(("section-grid", key))
+                .num_columns(2)
+                .min_col_width(LABEL_WIDTH)
+                .show(ui, rows)
+                .inner
+        })
+        .body_returned
+}
+
+/// A length for a summary: no trailing zeros.
+fn len(value: f64) -> String {
+    let text = format!("{value:.3}");
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+fn direction_name(direction: Direction) -> &'static str {
+    match direction {
+        Direction::Climb => "climb",
+        Direction::Conventional => "conventional",
+    }
+}
+
+fn entry_summary(entry: &Entry, lead: Option<&Lead>) -> String {
+    let entry = match entry {
+        Entry::Plunge {} => "straight plunge".to_string(),
+        Entry::Ramp { ramp_angle } => format!("ramp {:.1}°", ramp_angle.to_degrees()),
+        Entry::Helix { radius, ramp_angle } => format!(
+            "helix r {} mm, {:.1}°",
+            len(*radius),
+            ramp_angle.to_degrees()
+        ),
+    };
+    match lead {
+        Some(lead) => format!("{entry}, lead {} mm", len(lead.radius)),
+        None => entry,
+    }
+}
+
+/// The selected operation's fields, in sections. Returns true if "Use selection" was
+/// clicked.
 pub(super) fn op_form(
     ui: &mut egui::Ui,
     index: usize,
@@ -144,28 +215,31 @@ pub(super) fn op_form(
     let summary = geometry_summary(&entry.op, contours);
     let side_chosen = &mut entry.side_chosen;
     ui.heading(format!("Operation {}", index + 1));
-    Grid::new(("op-form", index)).num_columns(2).show(ui, |ui| {
-        let name = match &mut entry.op {
-            Operation::Profile(p) => &mut p.name,
-            Operation::Pocket(p) => &mut p.name,
-        };
-        ui.label("Name");
-        ui.add(TextEdit::singleline(name).desired_width(200.0));
-        ui.end_row();
-        ui.label("Geometry");
-        ui.horizontal(|ui| {
-            ui.label(&summary);
-            if ui
-                .button("Use selection")
-                .on_hover_text("Replace with the contours selected on the canvas")
-                .clicked()
-            {
-                use_selection = true;
-            }
-        });
-        ui.end_row();
-        match &mut entry.op {
-            Operation::Profile(p) => {
+    Grid::new(("op-form", index))
+        .num_columns(2)
+        // Past the sections' indent, so the values line up with theirs.
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            let name = match &mut entry.op {
+                Operation::Profile(p) => &mut p.name,
+                Operation::Pocket(p) => &mut p.name,
+            };
+            ui.label("Name");
+            ui.add(TextEdit::singleline(name).desired_width(200.0));
+            ui.end_row();
+            ui.label("Geometry");
+            ui.horizontal(|ui| {
+                ui.label(&summary);
+                if ui
+                    .button("Use selection")
+                    .on_hover_text("Replace with the contours selected on the canvas")
+                    .clicked()
+                {
+                    use_selection = true;
+                }
+            });
+            ui.end_row();
+            if let Operation::Profile(p) = &mut entry.op {
                 ui.label("Side");
                 let text = if *side_chosen {
                     match p.side {
@@ -194,6 +268,18 @@ pub(super) fn op_form(
                         }
                     });
                 ui.end_row();
+            }
+        });
+    match &mut entry.op {
+        Operation::Profile(p) => {
+            let cut = format!(
+                "{}–{} mm, steps of {} mm, {}",
+                len(p.start_depth),
+                len(p.end_depth),
+                len(p.step_down),
+                direction_name(p.direction)
+            );
+            section(ui, "op-cut", "Cut", &cut, |ui| {
                 ui.label("Direction");
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
@@ -211,16 +297,24 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 ui.add(mm(&mut p.step_down));
                 ui.end_row();
-                ui.label("Feed");
-                ui.add(feed(&mut p.feed));
-                ui.end_row();
-                ui.label("Plunge feed");
-                ui.add(feed(&mut p.plunge_feed));
-                ui.end_row();
+            });
+            feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
+            let entry_text = entry_summary(&p.entry, p.lead.as_ref());
+            section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, None);
                 // On the line there is no waste side to put a lead on.
                 let can_lead = p.side != Side::On || p.lead.is_some();
                 lead_rows(ui, &mut p.lead, tool_diameter, can_lead);
+            });
+            let tabs_text = p.tabs.as_ref().map_or("none".to_string(), |t| {
+                format!(
+                    "{} × {} mm, {} mm high",
+                    t.count,
+                    len(t.width),
+                    len(t.height)
+                )
+            });
+            section(ui, "op-tabs", "Tabs", &tabs_text, |ui| {
                 ui.label("Tabs");
                 let mut has_tabs = p.tabs.is_some();
                 if ui.checkbox(&mut has_tabs, "holding tabs").changed() {
@@ -242,8 +336,17 @@ pub(super) fn op_form(
                     ui.add(mm(&mut tabs.height));
                     ui.end_row();
                 }
-            }
-            Operation::Pocket(p) => {
+            });
+        }
+        Operation::Pocket(p) => {
+            let cut = format!(
+                "{}–{} mm, steps of {} mm, {}",
+                len(p.start_depth),
+                len(p.end_depth),
+                len(p.step_down),
+                direction_name(p.direction)
+            );
+            section(ui, "op-cut", "Cut", &cut, |ui| {
                 ui.label("Direction");
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
@@ -257,6 +360,15 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 ui.add(mm(&mut p.step_down));
                 ui.end_row();
+            });
+            let strategy = match p.strategy {
+                PocketStrategy::Rings {} => "rings",
+                PocketStrategy::Trochoidal { .. } => "trochoidal",
+                PocketStrategy::Adaptive { .. } => "adaptive",
+            };
+            let clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
+            section(ui, "op-clearing", "Clearing", &clearing, |ui| {
+                strategy_rows(ui, index, &mut p.strategy, tool_diameter);
                 ui.label("Stepover");
                 ui.add(
                     DragValue::new(&mut p.stepover)
@@ -265,22 +377,31 @@ pub(super) fn op_form(
                         .suffix(" × D"),
                 );
                 ui.end_row();
-                ui.label("Feed");
-                ui.add(feed(&mut p.feed));
-                ui.end_row();
-                ui.label("Plunge feed");
-                ui.add(feed(&mut p.plunge_feed));
-                ui.end_row();
-                entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
-                lead_rows(ui, &mut p.lead, tool_diameter, true);
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
                 ui.end_row();
-                strategy_rows(ui, index, &mut p.strategy, tool_diameter);
-            }
+            });
+            feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
+            let entry_text = entry_summary(&p.entry, p.lead.as_ref());
+            section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
+                entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
+                lead_rows(ui, &mut p.lead, tool_diameter, true);
+            });
         }
-    });
+    }
     use_selection
+}
+
+fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64) {
+    let text = format!("{} / {} mm/min", len(*cut), len(*plunge));
+    section(ui, "op-feeds", "Feeds", &text, |ui| {
+        ui.label("Feed");
+        ui.add(feed(cut));
+        ui.end_row();
+        ui.label("Plunge feed");
+        ui.add(feed(plunge));
+        ui.end_row();
+    });
 }
 
 /// How the tool goes down into each pass (docs/specs/ramp-entry.md); angles are shown in
@@ -467,28 +588,38 @@ pub(super) fn job_form(
     let mut copies_request = None;
     let job = &mut edit.settings;
     ui.heading("Job settings");
-    Grid::new("job-form").num_columns(2).show(ui, |ui| {
-        ui.label("Drawing");
-        match &job.drawing.source {
-            Some(source) => {
-                ui.label(format!(
-                    "{} shapes from {} ({})",
-                    job.drawing.shapes.len(),
-                    source.file,
-                    match source.units {
-                        Units::Mm => "mm",
-                        Units::Inch => "inch, converted to mm",
-                    }
-                ));
+    Grid::new("job-form")
+        .num_columns(2)
+        // Past the sections' indent, so the values line up with theirs.
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label("Drawing");
+            match &job.drawing.source {
+                Some(source) => {
+                    ui.label(format!(
+                        "{} shapes from {} ({})",
+                        job.drawing.shapes.len(),
+                        source.file,
+                        match source.units {
+                            Units::Mm => "mm",
+                            Units::Inch => "inch, converted to mm",
+                        }
+                    ));
+                }
+                None => {
+                    ui.label(format!("{} shapes", job.drawing.shapes.len()));
+                }
             }
-            None => {
-                ui.label(format!("{} shapes", job.drawing.shapes.len()));
-            }
-        }
-        ui.end_row();
+            ui.end_row();
+        });
 
-        ui.strong("Stock");
-        ui.end_row();
+    let stock = format!(
+        "{} × {} × {} mm",
+        len(job.stock.x),
+        len(job.stock.y),
+        len(job.stock.thickness)
+    );
+    section(ui, "job-stock", "Stock", &stock, |ui| {
         ui.label("Size X × Y");
         ui.horizontal(|ui| {
             ui.add(mm(&mut job.stock.x));
@@ -538,29 +669,51 @@ pub(super) fn job_form(
                 ui.selectable_value(&mut job.stock.z_zero, ZZero::Bottom, "stock bottom");
             });
         ui.end_row();
-        copies_rows(ui, &mut job.copies, &mut copies_request);
+    });
 
-        ui.strong("Machine");
-        ui.end_row();
+    let copies = job.copies.map_or("one part".to_string(), |c| {
+        format!("{} × {} = {}", c.columns, c.rows, c.count())
+    });
+    section(ui, "job-copies", "Copies", &copies, |ui| {
+        copies_rows(ui, &mut job.copies, &mut copies_request);
+    });
+
+    let machine = format!(
+        "{}, safe Z {} mm, {}",
+        job.machine.post,
+        len(job.machine.safe_z),
+        match job.machine.spindle {
+            Spindle::Cw => "M3",
+            Spindle::Ccw => "M4",
+        }
+    );
+    section(ui, "job-machine", "Machine", &machine, |ui| {
         machine_rows(ui, "job", &mut job.machine);
         library_rows(ui, &mut request, LibraryRows::machine(job, library));
-
-        if let Some(tool) = job.tools.first() {
-            ui.strong(format!("Tool {}", tool.id));
-            ui.end_row();
-            library_rows(ui, &mut request, LibraryRows::tool(tool, library));
-        }
-        if let Some(tool) = job.tools.first_mut() {
-            tool_rows(ui, "job", tool);
-        }
     });
+
+    if let Some(tool) = job.tools.first() {
+        let title = format!("Tool {}", tool.id);
+        let kind = match tool.kind {
+            ToolType::Endmill => "endmill",
+            ToolType::Drill => "drill",
+            ToolType::Vbit => "v-bit",
+        };
+        let text = format!("{kind} Ø{} mm", len(tool.diameter));
+        section(ui, "job-tool", &title, &text, |ui| {
+            if let Some(tool) = job.tools.first() {
+                library_rows(ui, &mut request, LibraryRows::tool(tool, library));
+            }
+            if let Some(tool) = job.tools.first_mut() {
+                tool_rows(ui, "job", tool);
+            }
+        });
+    }
     copies_request.or(request.map(JobRequest::Library))
 }
 
 /// The part cut several times in a grid (docs/specs/copies-grid.md).
 fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Option<JobRequest>) {
-    ui.strong("Copies");
-    ui.end_row();
     ui.label("Copies").on_hover_text(
         "Cut the part several times in a grid. The copies are drawn faded; only the drawing \
          itself can be selected.",
@@ -726,4 +879,29 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
             ui.selectable_value(&mut tool.center_cutting, None, "unknown");
         });
     ui.end_row();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summaries_are_short() {
+        assert_eq!(len(12.0), "12");
+        assert_eq!(len(0.25), "0.25");
+        assert_eq!(len(12.3456), "12.346");
+        let ramp = Entry::Ramp {
+            ramp_angle: 3f64.to_radians(),
+        };
+        assert_eq!(entry_summary(&ramp, None), "ramp 3.0°");
+        let helix = Entry::Helix {
+            radius: 1.5,
+            ramp_angle: 3f64.to_radians(),
+        };
+        let lead = Lead { radius: 2.0 };
+        assert_eq!(
+            entry_summary(&helix, Some(&lead)),
+            "helix r 1.5 mm, 3.0°, lead 2 mm"
+        );
+    }
 }
