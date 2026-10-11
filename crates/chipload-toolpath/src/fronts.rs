@@ -124,7 +124,7 @@ pub fn clear(
 
 /// The centre and radius of the largest circle in `part` (by bisection on shrinking it),
 /// None if it holds none wider than the chaining tolerance.
-fn largest_circle(part: &Area) -> Result<Option<(Point, f64)>, ToolpathError> {
+pub(crate) fn largest_circle(part: &Area) -> Result<Option<(Point, f64)>, ToolpathError> {
     let Some(extents) = part.outer.extents() else {
         return Ok(None);
     };

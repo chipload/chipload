@@ -1397,6 +1397,91 @@ fn adaptive_handles_islands_and_l_shapes() {
     }
 }
 
+// -- the spiral (docs/specs/adaptive-spiral.md, stage 1)
+
+/// (median, share at most 1.1, largest) of the spiral's engagement angle as shares of the
+/// target, averaged over every 1 mm (10 steps on its 0.1 mm measuring grid).
+fn angle_stats(plan: &PocketPlan) -> (f64, f64, f64) {
+    let window = 10;
+    let mut e: Vec<f64> = plan
+        .engagement
+        .chunks(window)
+        .filter(|w| w.len() == window)
+        .map(|w| w.iter().sum::<f64>() / window as f64)
+        .collect();
+    e.sort_by(f64::total_cmp);
+    let within = e.iter().filter(|&&x| x <= 1.1).count() as f64 / e.len() as f64;
+    (e[e.len() / 2], within, e[e.len() - 1])
+}
+
+/// The sharpest turn between consecutive moves of an open path, degrees.
+fn sharpest_turn(path: &[Point]) -> f64 {
+    path.windows(3)
+        .filter(|w| distance(w[0], w[1]) > 1e-9 && distance(w[1], w[2]) > 1e-9)
+        .map(|w| {
+            let a = (w[1].1 - w[0].1).atan2(w[1].0 - w[0].0);
+            let b = (w[2].1 - w[1].1).atan2(w[2].0 - w[1].0);
+            ((b - a + std::f64::consts::PI).rem_euclid(TAU) - std::f64::consts::PI)
+                .abs()
+                .to_degrees()
+        })
+        .fold(0.0, f64::max)
+}
+
+#[test]
+fn a_round_pocket_is_cleared_by_one_spiral_within_the_engagement_angle() {
+    let contours = [circle_id(1, (50.0, 50.0), 30.0)];
+    for load in [0.1, 0.25, 0.4] {
+        let plan = adaptive(&contours, 3.0, load);
+        assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+        assert_clear(&contours, &plan, 3.0);
+        // One spiral from the centre (no links, no lifts), then the wall pass.
+        let piece = &plan.pieces[0];
+        assert_eq!(piece.rings.len(), 2, "load {load}");
+        assert!(piece.open[0] && !piece.open[1]);
+        assert!(distance(piece.rings[0][0], (50.0, 50.0)) < 0.01);
+        // After the plunge's first move out, it never turns sharply.
+        assert!(sharpest_turn(&piece.rings[0][1..]) < 45.0, "load {load}");
+        let (median, within, worst) = angle_stats(&plan);
+        println!(
+            "circle load {load}: median {median:.3}, within 1.1 {within:.3}, worst {worst:.3}"
+        );
+        // Measured 0.90 to 0.93, 99.9 % or more, at most 1.16 (§5: ≤ 1.1 on 99 %, never
+        // above 1.25).
+        assert!(median >= 0.85, "median {median}");
+        assert!(within >= 0.99, "within {within}");
+        assert!(worst <= 1.25, "worst {worst}");
+        assert_eq!(adaptive(&contours, 3.0, load), plan, "deterministic");
+    }
+}
+
+#[test]
+fn a_roundish_pocket_gets_a_spiral_and_a_square_does_not_yet() {
+    // An ellipse 72 x 60 mm: the farthest point 1.2 times the nearest (with the tool).
+    let ellipse: Vec<Point> = (0..72)
+        .map(|k| {
+            let a = k as f64 * TAU / 72.0;
+            (50.0 + 36.0 * a.cos(), 50.0 + 30.0 * a.sin())
+        })
+        .collect();
+    let contours = [polygon_id(1, &ellipse)];
+    let plan = adaptive(&contours, 3.0, 0.25);
+    assert_clear(&contours, &plan, 3.0);
+    assert_eq!(plan.pieces[0].rings.len(), 2);
+    let (median, _, worst) = angle_stats(&plan);
+    // Measured 0.76 and 0.97.
+    assert!(
+        median >= 0.6 && worst <= 1.25,
+        "median {median}, worst {worst}"
+    );
+    // A square is cleared by fronts until the spiral can split it (stage 2): their path
+    // turns back sharply where a pass ends and its return begins.
+    let square = [rect(1, 0.0, 0.0, 60.0, 60.0)];
+    let plan = adaptive(&square, 3.0, 0.25);
+    assert_clear(&square, &plan, 3.0);
+    assert!(sharpest_turn(&plan.pieces[0].rings[0][1..]) > 90.0);
+}
+
 #[test]
 fn adaptive_plans_a_large_pocket_in_reasonable_time() {
     // 200 x 150 mm with a 6 mm tool (docs/specs/adaptive.md section 6). The bound is loose

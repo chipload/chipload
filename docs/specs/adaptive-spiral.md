@@ -1,6 +1,6 @@
 # Spec: adaptive clearing as spirals and trochoidal channels on the medial axis
 
-Status: **draft 2026-10-11**, for review. Replaces docs/specs/adaptive-fronts.md (its
+Status: **approved 2026-10-11**, all decisions as recommended (§9). Replaces docs/specs/adaptive-fronts.md (its
 stage 1, one stepover setting, stays) and the trochoidal strategy (docs/specs/trochoidal.md).
 
 User request (2026-10-11), after the fronts were built and measured: step back. Adaptive
@@ -211,3 +211,49 @@ engagement, lifting on links, spirals that cross islands without splitting.
    slot with a note.**
 8. **Staging** (§8), each stage on main when its tests pass, the fronts kept for what the
    spiral doesn't cover yet. **Recommended.**
+
+## 10. As built
+
+### Stage 1 (the spiral, round areas)
+
+`chipload_toolpath::spiral`, called per part of the wall-pass area from
+`pocket::adaptive_rings`; parts it doesn't take go to the fronts (adaptive-fronts.md) as
+before.
+
+- **Which areas**: no islands, star-shaped from the largest circle's centre once the corners
+  are rounded, and **round enough**: the farthest boundary point at most 1.25 × as far as
+  the nearest (`ROUND_ENOUGH`). One spiral has as many turns in every direction, so the
+  farthest direction sets them and nearer ones get thinner cuts. Measured median angle
+  (share of the target): circle 0.90–0.93, ellipse 1.2 : 1 0.73–0.78, hexagon 0.49–0.73,
+  square 0.42–0.66, 3 : 1 rectangle about 0.35, the last two too wasteful, so they stay with
+  the fronts until stage 2 splits them. Splitting is where the open questions are (§11).
+- **Turns** (§3.2, simplified to what round areas need): the spokes are straight lines from
+  the start (the area is star-shaped from it); turn t is t of the way out along a blend of
+  the inner circle (radius: the nearest boundary point) and the boundary, the boundary's
+  share growing with t, so inner turns are round.
+- **Corners** are rounded to (stepover / (√2 − 1)): a 90° corner then leaves the wall pass
+  about one stepover. The last turn runs on that rounded boundary, pulled in by the arc
+  tolerance (its points come from chords and fitted arcs).
+- **Spacing**: each turn is as far from the last as the engagement angle allows in its
+  tightest direction (§2's formula with the turn's local bend), never more than the
+  stepover and never less than a tenth of it (the very first turns round the plunge would
+  otherwise need ever smaller steps). The first turn is the opening: an entry, not
+  measured.
+- **Arcs**: points (at most 0.25 mm apart) fitted greedily with arcs through three of them
+  within half the arc tolerance, written as tagged chords (G2/G3).
+- **Angle measure**: on its own grid of half the adaptive cell (0.1 mm for a 6 mm tool), at
+  the model's cutting radius; with 0.2 mm cells the reading varied by about 30 % where the
+  cut was steady.
+
+Measured on a Ø60 circle (6 mm tool, 1 mm averages): median 0.90 / 0.92 / 0.93 of the target
+at stepover 0.1 / 0.25 / 0.4, at most 1.1 × on 99.9 % or more, worst 1.16 / 1.09 / 1.06; no
+turn sharper than 45° after the first move out; one path plus the wall pass. Golden:
+v7_adaptive and v12_adaptive change (their round hole is now a spiral).
+
+## 11. Open: splitting the rest (before stage 2)
+
+Measured in stage 1: the spec's split by clearance radius (§3.1) would make a square or a
+3 : 1 rectangle one open area, which one spiral clears poorly (above). Clearing them well
+needs either rounder pieces (several spirals, which raises where each starts and how they
+meet) or a different treatment of corners and long sides. To be proposed to the user with
+measurements before stage 2 is built.

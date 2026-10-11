@@ -35,6 +35,7 @@ use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged};
+use crate::spiral;
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -1659,17 +1660,60 @@ fn adaptive_rings(
             material.or(&one);
         }
     }
+    // Material on the right is climb with an M3 spindle, as for ring walls.
+    let material_right = !cut_clockwise(Side::Inside, direction, spindle);
+    let reach = tool_radius - h * std::f64::consts::FRAC_1_SQRT_2;
+    // A spiral for every part that suits one (docs/specs/adaptive-spiral.md §3.2); fronts
+    // for the others, until the spiral covers them too.
+    let theta0 = spiral::target_angle(width, tool_radius);
+    let mut rings: Vec<Vec<Point>> = Vec::new();
+    let mut rest = Vec::new();
+    for part in &parts {
+        let plan = spiral::plan(
+            &spiral::Spiral {
+                area: part,
+                tool_radius,
+                width,
+                material_right,
+            },
+            arcs,
+        )?;
+        match plan {
+            Some(path) => {
+                // Measured on its own finer grid (see ADAPTIVE_CELL_MM).
+                let fine = h / 2.0;
+                let mut grid = Grid::new(lo, hi, fine);
+                for grown in part.grown(tool_radius - 2.0 * fine)? {
+                    grid.fill(&rings_of(&grown));
+                }
+                let reach = tool_radius - fine * std::f64::consts::FRAC_1_SQRT_2;
+                engagement.extend(spiral::measure(
+                    &mut grid,
+                    &path.points,
+                    path.opening,
+                    reach,
+                    theta0,
+                ));
+                rings.push(path.points);
+            }
+            None => rest.push(part.clone()),
+        }
+    }
+    let here = rings
+        .last()
+        .and_then(|p| p.last())
+        .copied()
+        .unwrap_or(position);
     let setup = fronts::Setup {
-        parts: &parts,
+        parts: &rest,
         width,
-        // Material on the right is climb with an M3 spindle, as for ring walls.
-        material_right: !cut_clockwise(Side::Inside, direction, spindle),
+        material_right,
         material,
-        reach: tool_radius - h * std::f64::consts::FRAC_1_SQRT_2,
+        reach,
     };
-    let passes = fronts::clear(setup, position, arcs)?;
+    let passes = fronts::clear(setup, here, arcs)?;
     engagement.extend(passes.engagement);
-    let mut rings = passes.paths;
+    rings.extend(passes.paths);
     let mut open = vec![true; rings.len()];
     let here = rings
         .last()
@@ -1699,6 +1743,9 @@ fn flatten_tagged_plain(pline: &Polyline<f64>) -> Vec<Point> {
 }
 
 /// Largest cell of the adaptive material grid, mm (smaller for tools under 6 mm: D / 30).
+/// The spiral's engagement angle is measured on a grid of half that: with 0.2 mm cells, at
+/// a 37° target the angle read varied by about 30 % from step to step where the cut was
+/// steady.
 const ADAPTIVE_CELL_MM: f64 = 0.2;
 
 /// Sizes for trochoidal clearing, mm (docs/specs/trochoidal.md section 3).

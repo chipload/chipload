@@ -19,6 +19,7 @@ pub mod profile;
 pub mod ramp;
 mod retry;
 pub mod select;
+pub mod spiral;
 pub mod start;
 pub mod tabs;
 pub mod vcarve;
