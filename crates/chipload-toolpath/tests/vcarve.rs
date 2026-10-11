@@ -242,6 +242,30 @@ fn a_rectangle_is_carved_along_its_centre_line_and_into_its_corners() {
 }
 
 #[test]
+fn nearly_straight_arcs_are_carved_without_running_out_of_memory() {
+    // Found by the rounded-shapes property: sides bowed by a bulge of -0.0018 (radius about
+    // 2 m). The distance index boxed each arc by its whole circle and ran out of memory.
+    let (w, h, bulge) = (
+        15.229564116995071,
+        7.237798519283311,
+        -0.0017924511987609248,
+    );
+    let shape = vec![common::bulged(
+        1,
+        &[
+            (0.0, 0.0, bulge),
+            (w, 0.0, 0.0),
+            (w, h, bulge),
+            (0.0, h, 0.0),
+        ],
+    )];
+    let bit = bit(60.0, 0.0);
+    let plan = carve(&shape, &bit, 100.0);
+    assert_no_gouge(&shape, &plan, &bit);
+    assert!(worst_miss(&shape, &plan, &bit, 0.4) <= TOL);
+}
+
+#[test]
 fn a_ring_is_one_circle_at_one_depth_without_spokes() {
     // A letter O: between circles of radius 10 and 6, the centre line is the circle of
     // radius 8, 2 mm from both.
