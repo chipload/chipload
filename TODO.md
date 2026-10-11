@@ -9,6 +9,8 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Trochoidal vs adaptive:** dropped 2026-10-11; adaptive covers it, trochoidal stays as
+  it is.
 - **GUI pass** (approved 2026-10-11): report under the canvas, forms in sections, operations
   as cards, a toolbar row and start screen, a canvas legend, View > Theme (remembered).
 - **V-carving, step 1** (docs/specs/v-carve.md): a V-bit follows the centre line of closed
@@ -41,5 +43,3 @@ it's built (see `CLAUDE.md`).
   pixel size in mm chosen explicitly. Not prioritised.
 - **V-carve: a flat floor** for strokes wider than the bit carves: the V-bit cuts the walls,
   an endmill clears the floor. Needs a tool per operation. Not prioritised.
-- **Trochoidal vs adaptive:** decide whether trochoidal should get bigger loops that cover
-  the pocket's width, or whether adaptive already does what's wanted.
