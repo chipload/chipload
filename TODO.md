@@ -35,6 +35,8 @@ it's built (see `CLAUDE.md`).
   its own source and placement (user request 2026-10-11).
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
   update from a new version, placement (user request 2026-10-11).
+- **Import/export the tool library and machine profiles**, e.g. when moving to a new
+  computer or for a backup (user request 2026-10-11).
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
   0015) can make other parts faster or more robust: pocket clearing and adaptive, material
   left, narrow-part checks, distance queries (user request 2026-10-11).

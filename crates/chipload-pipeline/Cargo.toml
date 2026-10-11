@@ -7,12 +7,12 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-check = { version = "0.10.1", path = "../chipload-check" }
-chipload-core = { version = "0.10.1", path = "../chipload-core" }
-chipload-dxf = { version = "0.10.1", path = "../chipload-dxf" }
-chipload-job = { version = "0.10.1", path = "../chipload-job" }
-chipload-post = { version = "0.10.1", path = "../chipload-post" }
-chipload-toolpath = { version = "0.10.1", path = "../chipload-toolpath" }
+chipload-check = { version = "0.11.0", path = "../chipload-check" }
+chipload-core = { version = "0.11.0", path = "../chipload-core" }
+chipload-dxf = { version = "0.11.0", path = "../chipload-dxf" }
+chipload-job = { version = "0.11.0", path = "../chipload-job" }
+chipload-post = { version = "0.11.0", path = "../chipload-post" }
+chipload-toolpath = { version = "0.11.0", path = "../chipload-toolpath" }
 sha2 = "0.10"
 thiserror = "2"
 
