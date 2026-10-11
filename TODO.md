@@ -16,6 +16,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **V-carving, step 1** (docs/specs/v-carve.md): a V-bit follows the centre line of closed
+  shapes, as deep as makes the cut as wide as the shape (schema 10, V-bit angle and tip,
+  tools.json 2). Next steps, each with its own spec: text typed in the app, tracing
+  black-and-white pictures, clearing a flat floor with a second tool.
 - **Placing the imported drawing** (docs/specs/drawing-placement.md): move it by an offset or
   align it with the stock, kept through updates from the DXF (schema 8, `chipload place`).
 - **Turning the imported drawing in 90° steps** (docs/specs/drawing-rotation.md): about its
@@ -31,6 +35,11 @@ it's built (see `CLAUDE.md`).
 - **Several DXFs in one project:** import more than one drawing into a project, each with
   its own source and placement (user request 2026-10-11).
 - **Scale the imported drawing**, as well as move and turn it (user request 2026-10-11).
+- **Import SVG** as well as DXF, working the same way: units, contours, the import report,
+  update from a new version, placement (user request 2026-10-11).
+- **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
+  0015) can make other parts faster or more robust: pocket clearing and adaptive, material
+  left, narrow-part checks, distance queries (user request 2026-10-11).
 
 - **Trochoidal vs adaptive:** decide whether trochoidal should get bigger loops that cover
   the pocket's width, or whether adaptive already does what's wanted.

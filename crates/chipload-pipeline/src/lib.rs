@@ -187,6 +187,8 @@ pub fn empty_project() -> Job {
             flutes: None,
             center_cutting: None,
             rpm: Some(DEFAULT_RPM),
+            angle: None,
+            tip_diameter: None,
         }],
         operations: Vec::new(),
         copies: None,

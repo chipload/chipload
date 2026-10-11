@@ -144,7 +144,7 @@ fn tools_are_added_listed_changed_and_removed() {
     assert_eq!(file["default_tool"], "6 mm");
     assert_eq!(file["tools"][0]["cutting"]["feed"], 1500.0);
     assert_eq!(file["tools"][0]["cutting"]["stepover"], 0.4);
-    assert_eq!(file["schema_version"], 1);
+    assert_eq!(file["schema_version"], 2);
 
     let err = refused(&dir, &["tool", "add", "6 MM", "--diameter", "3"]);
     assert!(err.contains("already has a tool named"), "{err}");
@@ -257,7 +257,7 @@ fn a_new_project_starts_from_the_default_machine_and_tool() {
 #[test]
 fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     let dir = temp_dir("broken");
-    let newer = r#"{"schema_version": 2, "tools": []}"#;
+    let newer = r#"{"schema_version": 3, "tools": []}"#;
     std::fs::write(dir.join("tools.json"), newer).unwrap();
     let project = dir.join("part.chipload");
     let out = chipload(
@@ -272,14 +272,14 @@ fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     assert!(out.status.success());
     let err = String::from_utf8(out.stderr).unwrap();
     assert!(
-        err.contains("warning:") && err.contains("schema_version 2 is not supported"),
+        err.contains("warning:") && err.contains("schema_version 3 is not supported"),
         "{err}"
     );
     assert!(err.contains("using built-in defaults"), "{err}");
     assert!(json(&project)["tools"][0]["name"].is_null());
 
     let err = refused(&dir, &["tool", "add", "3 mm", "--diameter", "3"]);
-    assert!(err.contains("schema_version 2 is not supported"), "{err}");
+    assert!(err.contains("schema_version 3 is not supported"), "{err}");
     assert_eq!(
         std::fs::read_to_string(dir.join("tools.json")).unwrap(),
         newer
@@ -395,4 +395,58 @@ fn an_empty_project_starts_from_a_named_machine() {
     assert!(err.contains("no machine profile named \"Nope\""), "{err}");
     assert!(!dir.join("x.chipload").exists());
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_vbit_gets_its_angle_and_tip_and_carves_letters() {
+    // docs/specs/v-carve.md §7
+    let dir = temp_dir("vbit");
+    ok(
+        &dir,
+        &[
+            "tool",
+            "add",
+            "V 60",
+            "--type",
+            "vbit",
+            "--diameter",
+            "12.7",
+            "--angle",
+            "60",
+            "--tip",
+            "0.2",
+            "--rpm",
+            "18000",
+        ],
+    );
+    let listed = ok(&dir, &["tool", "list"]);
+    assert!(
+        listed.contains("V 60: id 1, v-bit 12.7 mm, rpm 18000, angle 60.0°, tip 0.2 mm"),
+        "{listed}"
+    );
+    let file = json(&dir.join("tools.json"));
+    let angle = file["tools"][0]["angle"].as_f64().unwrap();
+    assert!(
+        (angle - std::f64::consts::FRAC_PI_3).abs() < 1e-12,
+        "radians in the file"
+    );
+
+    // The letters project V-carves and passes the independent checker.
+    let nc = dir.join("letters.nc");
+    let out = ok(
+        &dir,
+        &[
+            "run",
+            path(&corpus("jobs/v10/vcarve_letters.chipload")),
+            "-o",
+            path(&nc),
+        ],
+    );
+    assert!(out.contains("Wrote"), "{out}");
+    let gcode = std::fs::read_to_string(&nc).unwrap();
+    assert!(
+        gcode
+            .lines()
+            .any(|l| l.starts_with("G1 X") && l.contains(" Z-"))
+    );
 }

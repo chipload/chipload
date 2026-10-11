@@ -20,7 +20,8 @@ use crate::models::{
 pub const TOOLS_FILE: &str = "tools.json";
 pub const MACHINES_FILE: &str = "machines.json";
 /// Current `schema_version` of `tools.json`.
-pub const TOOLS_VERSION: i64 = 1;
+/// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9).
+pub const TOOLS_VERSION: i64 = 2;
 /// Current `schema_version` of `machines.json`.
 pub const MACHINES_VERSION: i64 = 1;
 /// App settings: the recent projects (docs/specs/open-recent.md).
@@ -83,6 +84,12 @@ pub struct LibraryTool {
     pub rpm: Option<f64>,
     #[serde(default)]
     pub cutting: Option<Cutting>,
+    /// V-bits: included angle, radians; None = unknown.
+    #[serde(default)]
+    pub angle: Option<f64>,
+    /// V-bits: flat tip diameter, mm; None = pointed.
+    #[serde(default)]
+    pub tip_diameter: Option<f64>,
 }
 
 impl LibraryTool {
@@ -97,6 +104,8 @@ impl LibraryTool {
             center_cutting: tool.center_cutting,
             rpm: tool.rpm,
             cutting,
+            angle: tool.angle,
+            tip_diameter: tool.tip_diameter,
         }
     }
 
@@ -110,6 +119,8 @@ impl LibraryTool {
             flutes: self.flutes,
             center_cutting: self.center_cutting,
             rpm: self.rpm,
+            angle: self.angle,
+            tip_diameter: self.tip_diameter,
         }
     }
 
@@ -142,6 +153,16 @@ impl LibraryTool {
             "rpm",
             optional(tool.rpm.map(|r| r.to_string())),
             optional(self.rpm.map(|r| r.to_string())),
+        );
+        differs(
+            "angle",
+            optional(tool.angle.map(degrees)),
+            optional(self.angle.map(degrees)),
+        );
+        differs(
+            "tip",
+            optional(tool.tip_diameter.map(mm)),
+            optional(self.tip_diameter.map(mm)),
         );
         changes
     }
@@ -343,6 +364,10 @@ impl MachineProfile {
 
 fn mm(value: f64) -> String {
     format!("{value} mm")
+}
+
+fn degrees(radians: f64) -> String {
+    format!("{}°", radians.to_degrees())
 }
 
 fn optional(text: Option<String>) -> String {
@@ -639,6 +664,7 @@ trait LibraryFile: Serialize + DeserializeOwned + Default + Clone {
 
 impl LibraryFile for ToolLibrary {
     const VERSION: i64 = TOOLS_VERSION;
+    const OLDEST: i64 = 1;
     fn validate(&self) -> Vec<String> {
         ToolLibrary::validate(self)
     }
@@ -646,6 +672,16 @@ impl LibraryFile for ToolLibrary {
         self.schema_version = TOOLS_VERSION;
         self.written_by = Some(written_by());
     }
+    fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
+        if from == 1 {
+            tools_v1_to_v2(data);
+        }
+    }
+}
+
+/// Tools 1 -> 2: V-bits may have an angle and a tip; existing ones get neither (unknown).
+pub fn tools_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
+    data.insert("schema_version".into(), Value::from(2));
 }
 
 impl LibraryFile for MachineLibrary {

@@ -23,3 +23,9 @@ pub const FOLD_MIN_PATH_MM: f64 = 1.0;
 /// Imported geometry within this of the stored one counts as unchanged after an update: a
 /// drawing moved several times may differ in the last bits (docs/specs/drawing-placement.md).
 pub const PLACEMENT_ROUNDING_MM: f64 = 1e-9;
+/// Grid the V-carve outline is snapped to for the Voronoi diagram, which needs integers
+/// (docs/specs/v-carve.md §4).
+pub const VORONOI_GRID_MM: f64 = 0.0001;
+/// How far a V-carve may stray from the outline: no gouge beyond it, and every part of the
+/// shape reached within it (docs/specs/v-carve.md §1).
+pub const VCARVE_TOL_MM: f64 = ARC_APPROX_TOL_MM;

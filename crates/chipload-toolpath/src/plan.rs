@@ -7,7 +7,7 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
     Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, ProfileOp, Side, Tool,
-    ToolType, ZZero,
+    ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -24,6 +24,7 @@ use crate::profile::{
 };
 use crate::select::{Selection, select_contours};
 use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
+use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
@@ -124,15 +125,18 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
         }
         let (number, offset) = copies[k];
         let op = &job.operations[*index];
-        let step_down = match op {
-            Operation::Profile(p) => p.step_down,
-            Operation::Pocket(p) => p.step_down,
-        };
         let (start_depth, end_depth) = op.depths();
-        let pass_z: Vec<f64> = pass_depths(start_depth, end_depth, step_down)?
-            .into_iter()
-            .map(|d| top_z - d)
-            .collect();
+        // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
+        let pass_z: Vec<f64> = match op {
+            Operation::Profile(ProfileOp { step_down, .. })
+            | Operation::Pocket(PocketOp { step_down, .. }) => {
+                pass_depths(start_depth, end_depth, *step_down)?
+                    .into_iter()
+                    .map(|d| top_z - d)
+                    .collect()
+            }
+            Operation::Vcarve(_) => Vec::new(),
+        };
         // Leads keep clear of every contour of the drawing (moved with the copy).
         let everything: Vec<Contour> = if op.lead().is_some() {
             contours.iter().map(|c| c.translated(offset)).collect()
@@ -170,6 +174,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             Operation::Profile(profile) => {
                 plan_profile_op(profile, &context, &shifted, position, &starts)
             }
+            Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
         };
         let planned = match planned {
             Ok(planned) => planned,
@@ -344,6 +349,56 @@ fn plan_pocket_op(
     }
     out.pockets = plan.pieces;
     Ok(out)
+}
+
+fn plan_vcarve_op(
+    op: &VcarveOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label;
+    let tool = ctx.tool;
+    // Validated in validate_job: a V-bit with an angle.
+    let angle = tool
+        .angle
+        .ok_or_else(|| job_error(format!("{label}: tool {} has no angle", tool.id)))?;
+    let bit = VBit {
+        angle,
+        tip_diameter: tool.tip_diameter.unwrap_or(0.0),
+        diameter: tool.diameter,
+    };
+    let plan = plan_vcarve(
+        &selection.contours,
+        &bit,
+        op.end_depth - op.start_depth,
+        start,
+    )
+    .map_err(|err| err.with_context(label))?;
+    let levels = carve_levels(plan.deepest, op.step_down)?;
+    let moves = vcarve_moves(
+        &plan.paths,
+        &levels,
+        ctx.top_z,
+        ctx.job.machine.safe_z,
+        op.feed,
+        op.plunge_feed,
+    );
+    let end = plan
+        .paths
+        .last()
+        .and_then(|p| p.points.last().copied())
+        .unwrap_or(start);
+    Ok(Planned {
+        moves,
+        notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        left: Vec::new(),
+        arcs: ArcTable::default(),
+        end,
+        starts: Vec::new(),
+    })
 }
 
 fn plan_profile_op(
@@ -662,6 +717,7 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
         let (feed, plunge_feed) = match op {
             Operation::Profile(p) => (p.feed, p.plunge_feed),
             Operation::Pocket(p) => (p.feed, p.plunge_feed),
+            Operation::Vcarve(v) => (v.feed, v.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
@@ -731,9 +787,43 @@ pub fn validate_job(job: &Job) -> Result<(&Tool, Vec<String>), ToolpathError> {
         match op {
             Operation::Pocket(p) => notes.extend(pocket_tool_notes(number, tool, p.entry)?),
             Operation::Profile(p) => notes.extend(plunge_notes(number, "profile", tool, p.entry)?),
+            Operation::Vcarve(_) => notes.extend(vcarve_tool_notes(&label, tool)?),
         }
     }
     Ok((tool, notes))
+}
+
+/// V-carving needs a V-bit with a known angle; a tip that isn't set is taken as pointed and
+/// said so (docs/specs/v-carve.md §2, decision 11).
+fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, ToolpathError> {
+    if tool.kind != ToolType::Vbit {
+        return Err(job_error(format!(
+            "{label}: V-carving needs a V-bit, tool {} is a {}",
+            tool.id,
+            type_name(tool.kind)
+        )));
+    }
+    if tool.angle.is_none() {
+        return Err(job_error(format!(
+            "{label}: tool {} is a V-bit with no angle; set its angle",
+            tool.id
+        )));
+    }
+    if tool.tip_diameter.is_none() {
+        return Ok(vec![format!(
+            "{label}: tool {} has no tip diameter set; V-carving takes it as pointed",
+            tool.id
+        )]);
+    }
+    Ok(Vec::new())
+}
+
+fn type_name(kind: ToolType) -> &'static str {
+    match kind {
+        ToolType::Endmill => "endmill",
+        ToolType::Drill => "drill",
+        ToolType::Vbit => "vbit",
+    }
 }
 
 /// Pockets need an endmill; a straight plunge also needs it to be centre-cutting.
@@ -743,14 +833,10 @@ fn pocket_tool_notes(
     entry: Entry,
 ) -> Result<Vec<String>, ToolpathError> {
     if tool.kind != ToolType::Endmill {
-        let kind = match tool.kind {
-            ToolType::Endmill => "endmill",
-            ToolType::Drill => "drill",
-            ToolType::Vbit => "vbit",
-        };
         return Err(job_error(format!(
-            "Operation {number}: pockets need an endmill, tool {} is a {kind}",
-            tool.id
+            "Operation {number}: pockets need an endmill, tool {} is a {}",
+            tool.id,
+            type_name(tool.kind)
         )));
     }
     plunge_notes(number, "pocket", tool, entry)

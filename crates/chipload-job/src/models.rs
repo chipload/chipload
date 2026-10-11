@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 9;
+pub const CURRENT_VERSION: i64 = 10;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -829,6 +829,13 @@ pub struct Tool {
     pub center_cutting: Option<bool>,
     #[serde(default)]
     pub rpm: Option<f64>,
+    /// V-bits: the included angle, radians, 0 < angle < π (docs/specs/v-carve.md §2).
+    /// None = unknown: a V-carve refuses the tool until it is set.
+    #[serde(default)]
+    pub angle: Option<f64>,
+    /// V-bits: the diameter of the flat tip, mm, 0 <= tip < diameter. None = pointed.
+    #[serde(default)]
+    pub tip_diameter: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -871,6 +878,7 @@ pub enum Direction {
 pub enum Operation {
     Profile(ProfileOp),
     Pocket(PocketOp),
+    Vcarve(VcarveOp),
 }
 
 fn enabled_default() -> bool {
@@ -882,6 +890,23 @@ impl Operation {
         match self {
             Operation::Profile(op) => &op.name,
             Operation::Pocket(op) => &op.name,
+            Operation::Vcarve(op) => &op.name,
+        }
+    }
+
+    pub fn name_mut(&mut self) -> &mut String {
+        match self {
+            Operation::Profile(op) => &mut op.name,
+            Operation::Pocket(op) => &mut op.name,
+            Operation::Vcarve(op) => &mut op.name,
+        }
+    }
+
+    pub fn set_enabled(&mut self, enabled: bool) {
+        match self {
+            Operation::Profile(op) => op.enabled = enabled,
+            Operation::Pocket(op) => op.enabled = enabled,
+            Operation::Vcarve(op) => op.enabled = enabled,
         }
     }
 
@@ -889,6 +914,7 @@ impl Operation {
         match self {
             Operation::Profile(op) => op.enabled,
             Operation::Pocket(op) => op.enabled,
+            Operation::Vcarve(op) => op.enabled,
         }
     }
 
@@ -896,6 +922,7 @@ impl Operation {
         match self {
             Operation::Profile(op) => op.tool,
             Operation::Pocket(op) => op.tool,
+            Operation::Vcarve(op) => op.tool,
         }
     }
 
@@ -904,6 +931,7 @@ impl Operation {
         match self {
             Operation::Profile(op) => (op.start_depth, op.end_depth),
             Operation::Pocket(op) => (op.start_depth, op.end_depth),
+            Operation::Vcarve(op) => (op.start_depth, op.end_depth),
         }
     }
 
@@ -911,6 +939,8 @@ impl Operation {
         match self {
             Operation::Profile(p) => p.entry,
             Operation::Pocket(p) => p.entry,
+            // Paths start at the ends of the axis, mostly at depth 0; others plunge.
+            Operation::Vcarve(_) => Entry::Plunge {},
         }
     }
 
@@ -918,13 +948,16 @@ impl Operation {
         match self {
             Operation::Profile(p) => &p.starts,
             Operation::Pocket(p) => &p.starts,
+            Operation::Vcarve(_) => &[],
         }
     }
 
-    pub fn starts_mut(&mut self) -> &mut Vec<[f64; 2]> {
+    /// None for an operation without start points (a V-carve).
+    pub fn starts_mut(&mut self) -> Option<&mut Vec<[f64; 2]>> {
         match self {
-            Operation::Profile(p) => &mut p.starts,
-            Operation::Pocket(p) => &mut p.starts,
+            Operation::Profile(p) => Some(&mut p.starts),
+            Operation::Pocket(p) => Some(&mut p.starts),
+            Operation::Vcarve(_) => None,
         }
     }
 
@@ -932,6 +965,7 @@ impl Operation {
         match self {
             Operation::Profile(p) => p.lead,
             Operation::Pocket(p) => p.lead,
+            Operation::Vcarve(_) => None,
         }
     }
 
@@ -939,6 +973,8 @@ impl Operation {
         match self {
             Operation::Profile(op) => op.clearance,
             Operation::Pocket(op) => op.clearance,
+            // A V-carve's cut is set by the outline and the angle alone.
+            Operation::Vcarve(_) => 0.0,
         }
     }
 
@@ -946,6 +982,7 @@ impl Operation {
         match self {
             Operation::Profile(op) => &op.select,
             Operation::Pocket(op) => &op.select,
+            Operation::Vcarve(op) => &op.select,
         }
     }
 
@@ -953,6 +990,7 @@ impl Operation {
         match self {
             Operation::Profile(op) => &mut op.select,
             Operation::Pocket(op) => &mut op.select,
+            Operation::Vcarve(op) => &mut op.select,
         }
     }
 }
@@ -1034,6 +1072,30 @@ pub struct PocketOp {
     /// part B). Missing: none.
     #[serde(default)]
     pub lead: Option<Lead>,
+}
+
+/// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide
+/// as the shape (docs/specs/v-carve.md).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VcarveOp {
+    #[serde(default)]
+    pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    pub select: Selector,
+    pub tool: i64,
+    /// The surface carved, mm down from the stock top (0: the top).
+    pub start_depth: f64,
+    /// The deepest the tip goes, mm down from the stock top: wider strokes are carved to it
+    /// and reported (§5).
+    pub end_depth: f64,
+    /// Missing: one pass.
+    #[serde(default)]
+    pub step_down: Option<f64>,
+    pub feed: f64,
+    pub plunge_feed: f64,
 }
 
 /// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
@@ -1285,9 +1347,26 @@ impl Tool {
     /// Value rules of a tool, as "<at>.field: message"; shared by projects and the tool
     /// library.
     pub fn problems(&self, at: &str) -> Vec<String> {
-        positive_problem(at, "diameter", self.diameter)
+        let mut problems: Vec<String> = positive_problem(at, "diameter", self.diameter)
             .into_iter()
-            .collect()
+            .collect();
+        if let Some(angle) = self.angle
+            && !(angle.is_finite() && angle > 0.0 && angle < std::f64::consts::PI)
+        {
+            problems.push(format!(
+                "{at}.angle: must be more than 0 and less than 180 degrees, got {:.3} degrees",
+                angle.to_degrees()
+            ));
+        }
+        if let Some(tip) = self.tip_diameter
+            && !(tip.is_finite() && tip >= 0.0 && tip < self.diameter)
+        {
+            problems.push(format!(
+                "{at}.tip_diameter: must be 0 or more and less than the diameter ({}), got {tip}",
+                self.diameter
+            ));
+        }
+        problems
     }
 }
 
@@ -1349,6 +1428,14 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                     positive(at("stepover"), p.stepover);
+                }
+                Operation::Vcarve(v) => {
+                    positive(at("end_depth"), v.end_depth);
+                    if let Some(step_down) = v.step_down {
+                        positive(at("step_down"), step_down);
+                    }
+                    positive(at("feed"), v.feed);
+                    positive(at("plunge_feed"), v.plunge_feed);
                 }
             }
         }

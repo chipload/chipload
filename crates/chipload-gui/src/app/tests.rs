@@ -633,6 +633,8 @@ mod library {
                 step_down: 0.75,
                 stepover: 0.35,
             }),
+            angle: None,
+            tip_diameter: None,
         }
     }
 
@@ -1164,7 +1166,7 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     );
     match &mut app.edit.as_mut().unwrap().ops[0].op {
         Operation::Pocket(p) => p.feed = 900.0,
-        Operation::Profile(_) => panic!("operation 1 is a pocket"),
+        _ => panic!("operation 1 is a pocket"),
     }
     app.commit();
     assert!(app.toolpath_stale, "the cleared toolpath is noticed");
@@ -1258,4 +1260,33 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     let mut app = ChiploadApp::default();
     app.ask_new();
     assert!(!app.place(chipload_pipeline::placement::Move::Center));
+}
+
+#[test]
+fn a_vcarve_is_added_for_the_selection_and_generated() {
+    // docs/specs/v-carve.md §8: the letters project, its operation replaced by a new one.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v10/vcarve_letters.chipload")));
+    app.edit.as_mut().unwrap().remove(0);
+    select(&mut app, &[1, 2, 3, 4]);
+    let i = app.add_operation(OpKind::Vcarve).unwrap();
+    let edit = app.edit.as_ref().unwrap();
+    let Operation::Vcarve(v) = &edit.ops[i].op else {
+        panic!("a V-carve");
+    };
+    assert_eq!(v.name, "V-carve 1");
+    assert_eq!((v.start_depth, v.step_down), (0.0, None));
+    assert!(app.generate(), "{:?}", app.report);
+    let moves = &app.result.as_ref().unwrap().program.moves;
+    assert!(
+        moves
+            .iter()
+            .any(|m| m.kind == MoveKind::Feed && m.x.is_some() && m.z.is_some()),
+        "cuts in X, Y and Z at once"
+    );
+    // Duplicating keeps the kind and marks the name.
+    let edit = app.edit.as_mut().unwrap();
+    let copy = edit.duplicate(i).unwrap();
+    assert_eq!(edit.ops[copy].op.name(), "V-carve 1 (copy)");
+    assert!(matches!(edit.ops[copy].op, Operation::Vcarve(_)));
 }

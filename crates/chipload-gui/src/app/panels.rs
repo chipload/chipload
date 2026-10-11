@@ -82,6 +82,16 @@ impl ChiploadApp {
                 self.add_operation(OpKind::Pocket);
             }
             if ui
+                .button("New V-carve")
+                .on_hover_text(
+                    "A V-bit along the centre line of the selected closed contours, as deep as \
+                     makes the cut as wide as the shape",
+                )
+                .clicked()
+            {
+                self.add_operation(OpKind::Vcarve);
+            }
+            if ui
                 .add_enabled(
                     self.selector_json().is_some(),
                     egui::Button::new("Copy as selector"),
@@ -347,6 +357,8 @@ fn kind_color(op: &Operation, dark: bool) -> egui::Color32 {
         (Operation::Profile(_), false) => egui::Color32::from_rgb(0x00, 0x79, 0x6b),
         (Operation::Pocket(_), true) => egui::Color32::from_rgb(0xc3, 0xa6, 0xf0),
         (Operation::Pocket(_), false) => egui::Color32::from_rgb(0x6a, 0x3d, 0xb8),
+        (Operation::Vcarve(_), true) => egui::Color32::from_rgb(0xf0, 0xb4, 0x6a),
+        (Operation::Vcarve(_), false) => egui::Color32::from_rgb(0xa8, 0x55, 0x00),
     }
 }
 
@@ -365,6 +377,7 @@ fn op_card(
     let kind = match &entry.op {
         Operation::Profile(_) => "PROFILE",
         Operation::Pocket(_) => "POCKET",
+        Operation::Vcarve(_) => "V-CARVE",
     };
     ui.scope_builder(
         egui::UiBuilder::new()
@@ -402,10 +415,7 @@ fn op_card(
                             .on_hover_text("Enabled: cut this operation")
                             .changed()
                         {
-                            match &mut entry.op {
-                                Operation::Profile(p) => p.enabled = enabled,
-                                Operation::Pocket(p) => p.enabled = enabled,
-                            }
+                            entry.op.set_enabled(enabled);
                         }
                         ui.label(RichText::new(format!("{}", i + 1)).color(text_color));
                         let tag = if selected {

@@ -439,7 +439,9 @@ impl ChiploadApp {
             return;
         };
         let point = [m.at.0, m.at.1];
-        let starts = op.op.starts_mut();
+        let Some(starts) = op.op.starts_mut() else {
+            return;
+        };
         match m.stored.filter(|&k| k < starts.len()) {
             Some(k) => starts[k] = point,
             None => starts.push(point),
@@ -459,7 +461,9 @@ impl ChiploadApp {
         ) else {
             return;
         };
-        let starts = op.op.starts_mut();
+        let Some(starts) = op.op.starts_mut() else {
+            return;
+        };
         if k < starts.len() {
             starts.remove(k);
         }

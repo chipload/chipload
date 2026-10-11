@@ -20,6 +20,7 @@ mod retry;
 pub mod select;
 pub mod start;
 pub mod tabs;
+pub mod vcarve;
 
 pub use plan::{OpSpan, Plan, RingStart, plan_job, validate_job};
 

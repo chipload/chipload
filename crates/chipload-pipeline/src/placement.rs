@@ -90,7 +90,7 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     let mut moved_starts = 0;
     for op in &mut out.operations {
         let select = op.select().clone();
-        for start in op.starts_mut() {
+        for start in op.starts_mut().into_iter().flatten() {
             if nearest_is_imported(&job.drawing.shapes, &select, (start[0], start[1])) {
                 *start = step.apply(*start);
                 moved_starts += 1;

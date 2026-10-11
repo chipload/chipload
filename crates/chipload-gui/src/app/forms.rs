@@ -3,6 +3,7 @@
 
 use super::user_library::{LibraryRows, library_rows};
 use super::*;
+use crate::editor::DEFAULT_STEP_DOWN;
 use chipload_job::Placement;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
@@ -222,10 +223,7 @@ pub(super) fn op_form(
         // Past the sections' indent, so the values line up with theirs.
         .min_col_width(LABEL_WIDTH + ui.spacing().indent)
         .show(ui, |ui| {
-            let name = match &mut entry.op {
-                Operation::Profile(p) => &mut p.name,
-                Operation::Pocket(p) => &mut p.name,
-            };
+            let name = entry.op.name_mut();
             ui.label("Name");
             ui.add(TextEdit::singleline(name).desired_width(200.0));
             ui.end_row();
@@ -389,6 +387,42 @@ pub(super) fn op_form(
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter, true);
             });
+        }
+        Operation::Vcarve(v) => {
+            let passes = v.step_down.map_or("one pass".to_string(), |s| {
+                format!("steps of {} mm", len(s))
+            });
+            let cut = format!(
+                "from {} mm, at most {} mm deep, {passes}",
+                len(v.start_depth),
+                len(v.end_depth)
+            );
+            section(ui, "op-cut", "Cut", &cut, |ui| {
+                ui.label("Start depth").on_hover_text(
+                    "The surface carved, down from the stock top (0: the top; more to carve \
+                     into a pocket floor)",
+                );
+                ui.add(mm(&mut v.start_depth));
+                ui.end_row();
+                ui.label("Max depth").on_hover_text(
+                    "The deepest the tip goes, from the stock top. Wider strokes are carved to \
+                     it and reported",
+                );
+                ui.add(mm(&mut v.end_depth));
+                ui.end_row();
+                ui.label("Passes");
+                let mut stepped = v.step_down.is_some();
+                if ui.checkbox(&mut stepped, "in steps").changed() {
+                    v.step_down = stepped.then_some(DEFAULT_STEP_DOWN);
+                }
+                ui.end_row();
+                if let Some(step) = &mut v.step_down {
+                    ui.label("  step down");
+                    ui.add(mm(step));
+                    ui.end_row();
+                }
+            });
+            feeds_section(ui, &mut v.feed, &mut v.plunge_feed);
         }
     }
     use_selection
@@ -977,6 +1011,56 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
             ui.selectable_value(&mut tool.center_cutting, Some(false), "no");
             ui.selectable_value(&mut tool.center_cutting, None, "unknown");
         });
+    ui.end_row();
+    if tool.kind == ToolType::Vbit {
+        vbit_rows(ui, tool);
+    }
+}
+
+/// A V-bit's included angle (degrees here, radians in the file) and flat tip
+/// (docs/specs/v-carve.md §2). Both can be left unset; V-carving needs the angle.
+fn vbit_rows(ui: &mut egui::Ui, tool: &mut Tool) {
+    ui.label("Angle")
+        .on_hover_text("The included angle of the V; V-carving needs it");
+    ui.horizontal(|ui| {
+        let mut set = tool.angle.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            tool.angle = set.then_some(60f64.to_radians());
+        }
+        if let Some(angle) = &mut tool.angle {
+            let mut degrees = angle.to_degrees();
+            if ui
+                .add(
+                    DragValue::new(&mut degrees)
+                        .speed(0.5)
+                        .range(1.0..=179.0)
+                        .suffix("°"),
+                )
+                .changed()
+            {
+                *angle = degrees.to_radians();
+            }
+        } else {
+            ui.weak("unknown");
+        }
+    });
+    ui.end_row();
+    ui.label("Tip")
+        .on_hover_text("The diameter of the flat tip; not set is taken as pointed");
+    ui.horizontal(|ui| {
+        let mut set = tool.tip_diameter.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            tool.tip_diameter = set.then_some(0.0);
+        }
+        match &mut tool.tip_diameter {
+            Some(tip) => {
+                ui.add(mm(tip));
+            }
+            None => {
+                ui.weak("pointed");
+            }
+        }
+    });
     ui.end_row();
 }
 

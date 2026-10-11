@@ -77,6 +77,12 @@ pub struct ToolValues {
     center_cutting: Option<YesNo>,
     #[arg(long)]
     rpm: Option<f64>,
+    /// V-bits: the included angle, degrees.
+    #[arg(long)]
+    angle: Option<f64>,
+    /// V-bits: the diameter of the flat tip, mm (0: pointed).
+    #[arg(long)]
+    tip: Option<f64>,
     /// The id it gets in a project where that id is free (default 1).
     #[arg(long)]
     id: Option<i64>,
@@ -217,6 +223,8 @@ pub fn tool(action: ToolAction) -> ExitCode {
                 center_cutting: None,
                 rpm: None,
                 cutting: None,
+                angle: None,
+                tip_diameter: None,
             };
             set_tool_values(&mut entry, &values)?;
             library.tools.push(entry);
@@ -312,6 +320,13 @@ fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), L
     }
     if let Some(rpm) = values.rpm {
         entry.rpm = Some(rpm);
+    }
+    // Degrees on the command line, radians in the file.
+    if let Some(angle) = values.angle {
+        entry.angle = Some(angle.to_radians());
+    }
+    if let Some(tip) = values.tip {
+        entry.tip_diameter = Some(tip);
     }
     if let Some(id) = values.id {
         if id < 1 {
@@ -410,6 +425,12 @@ fn list_tools(path: &Path) -> ExitCode {
             "",
         ));
         line.push_str(&optional("rpm", t.rpm, ""));
+        line.push_str(&optional(
+            "angle",
+            t.angle.map(|a| format!("{:.1}", a.to_degrees())),
+            "°",
+        ));
+        line.push_str(&optional("tip", t.tip_diameter, " mm"));
         if let Some(c) = t.cutting {
             line.push_str(&format!(
                 "; feed {} plunge {} mm/min, step down {} mm, stepover {}",

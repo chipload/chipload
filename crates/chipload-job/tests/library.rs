@@ -40,6 +40,8 @@ fn upcut() -> LibraryTool {
             step_down: 2.0,
             stepover: 0.4,
         }),
+        angle: None,
+        tip_diameter: None,
     }
 }
 
@@ -115,8 +117,9 @@ fn both_files_round_trip_with_every_field_written() {
 
     let text = std::fs::read_to_string(&tools_path).unwrap();
     for field in [
-        "\"schema_version\": 1",
+        "\"schema_version\": 2",
         "\"center_cutting\": true",
+        "\"angle\": null",
         "\"stepover\": 0.4",
     ] {
         assert!(text.contains(field), "{field} in {text}");
@@ -164,7 +167,7 @@ fn unknown_versions_and_broken_files_are_refused() {
     let dir = temp_dir("versions");
     let path = dir.join("tools.json");
     for (text, found) in [
-        (r#"{"schema_version": 2, "tools": []}"#, "2"),
+        (r#"{"schema_version": 3, "tools": []}"#, "3"),
         (r#"{"schema_version": 0, "tools": []}"#, "0"),
         (r#"{"tools": []}"#, "(missing)"),
         (r#"{"schema_version": "1", "tools": []}"#, "\"1\""),
@@ -175,7 +178,7 @@ fn unknown_versions_and_broken_files_are_refused() {
                 found: f, current, ..
             } => {
                 assert_eq!(f, found);
-                assert_eq!(current, 1);
+                assert_eq!(current, 2);
             }
             other => panic!("{text}: {other}"),
         }
@@ -193,10 +196,26 @@ fn unknown_versions_and_broken_files_are_refused() {
 }
 
 #[test]
+fn a_version_1_library_loads_with_v_bits_of_unknown_angle() {
+    // docs/specs/v-carve.md §9: tools 1 -> 2 adds nothing; the angle is never guessed.
+    let dir = temp_dir("tools-v1");
+    let path = dir.join("tools.json");
+    let v1 = r#"{"schema_version": 1, "written_by": "chipload 0.10.1", "default_tool": null,
+        "tools": [{"name": "V 60", "id": 3, "type": "vbit", "diameter": 12.0, "flutes": 2,
+                   "center_cutting": null, "rpm": 18000.0, "cutting": null}]}"#;
+    std::fs::write(&path, v1).unwrap();
+    let library = load_tools(&path).unwrap();
+    assert_eq!(library.schema_version, 2);
+    let tool = &library.tools[0];
+    assert_eq!(tool.kind, ToolType::Vbit);
+    assert_eq!((tool.angle, tool.tip_diameter), (None, None));
+}
+
+#[test]
 fn a_broken_library_is_never_overwritten() {
     let dir = temp_dir("broken");
     let path = dir.join("tools.json");
-    let newer = r#"{"schema_version": 2, "tools": [], "from_the_future": true}"#;
+    let newer = r#"{"schema_version": 3, "tools": [], "from_the_future": true}"#;
     std::fs::write(&path, newer).unwrap();
     let err = update_tools(&path, |library| {
         library.tools.push(upcut());

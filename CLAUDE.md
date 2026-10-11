@@ -11,9 +11,9 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v9: embedded drawing and its placement (move, 90° turns), drawn shapes, depth ranges, clearance, optional grid of copies), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014) |
+| `chipload-job` | project file models (schema v10: embedded drawing and its placement (move, 90° turns), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014) |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
-| `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, job planning |
+| `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, V-carving (medial axis via boostvoronoi, ADR 0015), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text |
@@ -91,6 +91,7 @@ cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, no G-code
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
+cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
 cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)

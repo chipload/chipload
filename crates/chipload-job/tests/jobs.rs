@@ -829,3 +829,72 @@ fn quarter_turns_are_0_to_3() {
         assert_eq!(parse_job(data, "p").is_ok(), ok, "{turns}");
     }
 }
+
+// -- V-carving (docs/specs/v-carve.md)
+
+#[test]
+fn v9_to_v10_changes_nothing_but_the_version() {
+    let v9 = raw("v9/turned_part.chipload");
+    let mut current = migrate(v9.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(10));
+    current["schema_version"] = json!(9);
+    assert_eq!(current, v9);
+    let job = parse_job(migrate(v9).unwrap(), "p").unwrap();
+    assert!(
+        job.tools
+            .iter()
+            .all(|t| t.angle.is_none() && t.tip_diameter.is_none())
+    );
+}
+
+/// A v-bit and a V-carve operation, as current-version data.
+fn vcarve_job() -> Value {
+    let mut data = lower_job();
+    data["tools"][0]["type"] = json!("vbit");
+    data["tools"][0]["angle"] = json!(std::f64::consts::FRAC_PI_3);
+    data["tools"][0]["tip_diameter"] = json!(0.2);
+    data["operations"] = json!([{
+        "type": "vcarve", "name": "Letters", "select": {"layer": "TEXT"}, "tool": 1,
+        "start_depth": 0.0, "end_depth": 3.0, "step_down": null,
+        "feed": 1200.0, "plunge_feed": 400.0
+    }]);
+    data
+}
+
+#[test]
+fn a_vcarve_operation_loads() {
+    let job = parse_job(vcarve_job(), "p").unwrap();
+    let Operation::Vcarve(v) = &job.operations[0] else {
+        panic!("a vcarve operation");
+    };
+    assert_eq!((v.start_depth, v.end_depth, v.step_down), (0.0, 3.0, None));
+    assert_eq!(job.tools[0].tip_diameter, Some(0.2));
+    // The optional fields may be left out.
+    let mut data = vcarve_job();
+    let op = data["operations"][0].as_object_mut().unwrap();
+    op.remove("step_down");
+    op.remove("name");
+    assert!(parse_job(data, "p").is_ok());
+}
+
+#[test]
+fn vbit_angle_tip_and_vcarve_values_are_checked() {
+    let cases = [
+        ("/tools/0/angle", json!(0.0), "angle"),
+        ("/tools/0/angle", json!(std::f64::consts::PI), "angle"),
+        ("/tools/0/tip_diameter", json!(-0.1), "tip_diameter"),
+        ("/tools/0/tip_diameter", json!(1000.0), "tip_diameter"),
+        ("/operations/0/step_down", json!(0.0), "step_down"),
+        ("/operations/0/feed", json!(0.0), "feed"),
+        ("/operations/0/end_depth", json!(0.0), "end_depth"),
+    ];
+    for (pointer, value, field) in cases {
+        let mut data = vcarve_job();
+        *data.pointer_mut(pointer).unwrap() = value.clone();
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(field), "{pointer} = {value}: {err}");
+    }
+    let mut data = vcarve_job();
+    data["operations"][0]["side"] = json!("inside");
+    assert!(parse_job(data, "p").is_err(), "a V-carve has no side");
+}

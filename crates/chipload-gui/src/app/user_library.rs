@@ -241,6 +241,8 @@ fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         entry.diameter = tool.diameter;
         entry.rpm = tool.rpm;
         entry.center_cutting = tool.center_cutting;
+        entry.angle = tool.angle;
+        entry.tip_diameter = tool.tip_diameter;
         ui.label("Flutes");
         ui.horizontal(|ui| {
             let mut set = entry.flutes.is_some();
@@ -874,6 +876,8 @@ impl ChiploadApp {
                         center_cutting: None,
                         rpm: Some(DEFAULT_RPM),
                         cutting: None,
+                        angle: None,
+                        tip_diameter: None,
                     },
                 };
                 windows.tool = Some(Draft {

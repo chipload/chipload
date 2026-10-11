@@ -9,7 +9,7 @@ use chipload_core::chain::Contour;
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, Job, Operation, PocketOp, PocketStrategy, ProfileOp,
-    Selector, Side,
+    Selector, Side, VcarveOp,
 };
 
 use crate::view::Kind;
@@ -122,6 +122,7 @@ pub fn default_side(ids: &BTreeSet<usize>, contours: &[Contour]) -> Option<Side>
 pub enum OpKind {
     Profile,
     Pocket,
+    Vcarve,
 }
 
 /// One operation as edited. `side_chosen` is false while a profile's side still has to be
@@ -163,6 +164,12 @@ impl EditJob {
         let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
             Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
+            Operation::Vcarve(v) => (
+                v.step_down.unwrap_or(DEFAULT_STEP_DOWN),
+                v.feed,
+                v.plunge_feed,
+                None,
+            ),
         });
         let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
             Operation::Pocket(p) => Some(p.stepover),
@@ -219,6 +226,7 @@ impl EditJob {
                     (&e.op, kind),
                     (Operation::Profile(_), OpKind::Profile)
                         | (Operation::Pocket(_), OpKind::Pocket)
+                        | (Operation::Vcarve(_), OpKind::Vcarve)
                 )
             })
             .count()
@@ -236,6 +244,8 @@ impl EditJob {
                 ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
             },
             (false, OpKind::Pocket) => Entry::default_helix(diameter),
+            // A V-bit's point goes in along the path; the entry isn't used.
+            (false, OpKind::Vcarve) => Entry::Plunge {},
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
@@ -284,6 +294,20 @@ impl EditJob {
                 }),
                 true,
             ),
+            OpKind::Vcarve => (
+                Operation::Vcarve(VcarveOp {
+                    name: format!("V-carve {number}"),
+                    enabled: true,
+                    select,
+                    tool,
+                    start_depth: 0.0,
+                    end_depth: DEFAULT_DEPTH,
+                    step_down: None,
+                    feed,
+                    plunge_feed,
+                }),
+                true,
+            ),
         };
         self.ops.push(EditOp { op, side_chosen });
         index
@@ -311,6 +335,7 @@ impl EditJob {
                 }
             }
             Operation::Pocket(p) => p.select = select,
+            Operation::Vcarve(v) => v.select = select,
         }
     }
 
@@ -324,11 +349,8 @@ impl EditJob {
 
     pub fn duplicate(&mut self, index: usize) -> Option<usize> {
         let mut copy = self.ops.get(index)?.clone();
-        if let Operation::Profile(p) = &mut copy.op {
-            p.name = format!("{} (copy)", p.name);
-        } else if let Operation::Pocket(p) = &mut copy.op {
-            p.name = format!("{} (copy)", p.name);
-        }
+        let name = copy.op.name_mut();
+        *name = format!("{name} (copy)");
         self.ops.insert(index + 1, copy);
         Some(index + 1)
     }
