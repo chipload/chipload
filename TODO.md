@@ -5,16 +5,19 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md, approved
-  2026-10-10). In this order:
-  - [x] A. Start points: drag where each contour's cut starts.
-  - [x] B. Lead-in/out: go down in the waste and arc onto the path.
-  - [x] C. Helical entry for pockets (helical G2/G3, taught to the checker).
+- **GUI pass:** make the GUI a little more attractive and intuitive (proposal approved
+  2026-10-11, all eight points as recommended).
+  - [x] The report under the canvas: result line, coloured warnings that select their
+    operation, a Drawing section.
+  - [x] Forms in sections with summaries; operations as cards.
+  - [x] A toolbar row (Generate stands out) and a start screen.
+  - [x] A canvas legend, an out-of-date notice, View > Theme, a calmer style.
+  - [ ] Remember the theme between sessions: `settings.json` refuses unknown fields, so
+    this needs a settings schema decision.
 
-## Next
+## Done
 
-- **GUI pass:** make the GUI a little more attractive and intuitive. It is quite good as it
-  is; changes are proposed with screenshots before they're made.
+- **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md), in 0.9.0.
 
 ## Later
 
