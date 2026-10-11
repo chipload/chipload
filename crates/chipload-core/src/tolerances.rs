@@ -13,6 +13,11 @@ pub const DEPTH_TOL_MM: f64 = 0.001;
 pub const Z_NONZERO_TOL_MM: f64 = 0.001;
 /// Float slack when verifying offset distances.
 pub const OFFSET_CHECK_SLACK_MM: f64 = 1e-6;
+/// How much farther than the tool radius a verified profile offset may run: the offset
+/// library's own accuracy (cavalier_contours `offset_dist_eps`). Only the far side: the tool
+/// leaves at most this much material and never cuts into the part (user decision
+/// 2026-10-11, after a valid outside profile was refused 1.6–24 µm too far).
+pub const OFFSET_FAR_SLACK_MM: f64 = 1e-4;
 /// How much a retried offset moves after a numerical failure (docs/specs/offset-retry.md).
 pub const OFFSET_RETRY_NUDGE_MM: f64 = 1e-6;
 /// Uncut pocket material thinner than this is not reported.

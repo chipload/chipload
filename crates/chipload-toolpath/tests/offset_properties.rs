@@ -9,7 +9,7 @@ use cavalier_contours::core::math::Vector2;
 use cavalier_contours::polyline::PlineSource;
 use chipload_core::Point;
 use chipload_core::primitives::Primitive;
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_FAR_SLACK_MM};
 use chipload_job::Side;
 use chipload_toolpath::offset::{contour_pline, offset_rings, pline_segments, point_distance};
 use proptest::prelude::*;
@@ -125,7 +125,7 @@ proptest! {
         let Some(part) = Part::new(&vertices) else { return Ok(()) };
         let rings = offset_rings(&common::bulged(1, &vertices), Side::Outside, radius).unwrap();
         for &p in &rings[0] {
-            prop_assert!(part.distance(p) <= radius + OFFSET_CHECK_SLACK_MM);
+            prop_assert!(part.distance(p) <= radius + OFFSET_FAR_SLACK_MM);
         }
     }
 }

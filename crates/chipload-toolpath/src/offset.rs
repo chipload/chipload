@@ -11,7 +11,9 @@ use cavalier_contours::polyline::{PlineOrientation, PlineSource, PlineSourceMut,
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM};
+use chipload_core::tolerances::{
+    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_FAR_SLACK_MM,
+};
 use chipload_job::Side;
 
 use crate::ToolpathError;
@@ -306,8 +308,9 @@ fn geometry(message: &str) -> ToolpathError {
     ToolpathError::Geometry(message.to_string())
 }
 
-/// Post-condition: never trust the offset blindly. Every vertex must be r from the contour,
-/// every chord midpoint at least r − tolerance (no gouge), all on the requested side.
+/// Post-condition: never trust the offset blindly. Every vertex must be r from the contour
+/// (up to the library's accuracy farther, never nearer), every chord midpoint at least
+/// r − tolerance (no gouge), all on the requested side.
 fn verify_offset(
     contour: &Polyline<f64>,
     segments: &[Primitive],
@@ -317,7 +320,7 @@ fn verify_offset(
     arcs: &ArcTable,
 ) -> Result<(), ToolpathError> {
     let lowest = tool_radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
-    let highest = tool_radius + OFFSET_CHECK_SLACK_MM;
+    let highest = tool_radius + OFFSET_FAR_SLACK_MM;
     let dist = |p: Point| {
         segments
             .iter()
