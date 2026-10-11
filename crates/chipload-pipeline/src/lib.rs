@@ -21,7 +21,7 @@ use chipload_dxf::{
 };
 use chipload_job::{
     CURRENT_VERSION, Drawing, Job, Machine, Operation, Placement, Shape, Spindle, Stock,
-    StockOrigin, Tool, ToolType, Units, WorkZero, ZZero,
+    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, load_builtin_post, render_program_with, render_tool_file,
@@ -313,6 +313,7 @@ pub fn empty_project() -> Job {
             max_feed: None,
             travel: None,
             work_zero: WorkZero::DrawingOrigin {},
+            tool_change: ToolChange::Files,
         },
         tools: vec![Tool {
             id: 1,

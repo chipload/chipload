@@ -4,11 +4,11 @@
 //! out of the project. The rules are in `chipload_job::library`; this only shows and edits
 //! values.
 
-use chipload_job::Tool;
 use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineProfile, same_name, update_machines, update_tools,
 };
+use chipload_job::{Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_RPM, DEFAULT_SAFE_Z, DEFAULT_TOOL_DIAMETER};
 
@@ -980,6 +980,7 @@ impl ChiploadApp {
                         travel: None,
                         work_zero: WorkZero::DrawingOrigin {},
                         max_overcut: DEFAULT_MAX_OVERCUT,
+                        tool_change: ToolChange::Files,
                     },
                 };
                 windows.machine = Some(Draft {

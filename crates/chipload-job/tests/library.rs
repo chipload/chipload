@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use chipload_job::ToolChange;
 use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, UsedTool,
@@ -69,6 +70,7 @@ fn shapeoko() -> MachineProfile {
             corner: StockCorner::BottomLeft,
         },
         max_overcut: 0.3,
+        tool_change: ToolChange::Files,
     }
 }
 
@@ -209,6 +211,28 @@ fn a_version_1_library_loads_with_v_bits_of_unknown_angle() {
     let tool = &library.tools[0];
     assert_eq!(tool.kind, ToolType::Vbit);
     assert_eq!((tool.angle, tool.tip_diameter), (None, None));
+}
+
+#[test]
+fn a_version_1_machine_library_writes_one_file_per_tool() {
+    // docs/specs/tool-per-operation.md §3.3: machines 1 -> 2 adds the tool change setting.
+    let dir = temp_dir("machines-v1");
+    let path = dir.join("machines.json");
+    let v1 = r#"{"schema_version": 1, "written_by": "chipload 0.11.0",
+        "default_machine": "Shapeoko",
+        "machines": [{"name": "Shapeoko", "post": "grbl", "safe_z": 10.0, "spindle": "cw",
+                      "max_feed": 5000.0, "travel": {"x": 830.0, "y": 830.0, "z": 95.0},
+                      "work_zero": {"at": "stock", "corner": "bottom_left"},
+                      "max_overcut": 0.3}]}"#;
+    std::fs::write(&path, v1).unwrap();
+    let library = load_machines(&path).unwrap();
+    assert_eq!(library.schema_version, 2);
+    assert_eq!(library.machines, [shapeoko()]);
+    assert_eq!(library.machines[0].tool_change, ToolChange::Files);
+    // Version 2 needs it.
+    let v2 = v1.replace("\"schema_version\": 1", "\"schema_version\": 2");
+    std::fs::write(&path, v2).unwrap();
+    assert!(load_machines(&path).is_err());
 }
 
 #[test]

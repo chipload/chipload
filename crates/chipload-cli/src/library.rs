@@ -9,7 +9,7 @@ use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineProfile, load_machines, load_tools, update_machines,
     update_tools, use_tool,
 };
-use chipload_job::{Spindle, StockCorner, ToolType, Travel, WorkZero, save_job};
+use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
 use chipload_pipeline::library::{CONFIG_DIR_VAR, machines_path, settings_dir, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_SAFE_Z};
 use clap::{Subcommand, ValueEnum};
@@ -178,6 +178,28 @@ pub struct MachineValues {
     /// How far below the stock a cut may go (into the spoilboard).
     #[arg(long)]
     max_overcut: Option<f64>,
+    /// With several tools: one G-code file per tool, or one file with M6 tool changes
+    /// that your sender handles.
+    #[arg(long)]
+    tool_change: Option<ToolChangeArg>,
+}
+
+/// docs/specs/tool-per-operation.md §3.
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ToolChangeArg {
+    /// One G-code file per tool group.
+    Files,
+    /// One file with `T<n> M6` at each tool change.
+    Program,
+}
+
+impl ToolChangeArg {
+    pub fn value(self) -> ToolChange {
+        match self {
+            ToolChangeArg::Files => ToolChange::Files,
+            ToolChangeArg::Program => ToolChange::Program,
+        }
+    }
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -487,6 +509,7 @@ pub fn machine(action: MachineAction) -> ExitCode {
                 travel: None,
                 work_zero: WorkZero::DrawingOrigin {},
                 max_overcut: DEFAULT_MAX_OVERCUT,
+                tool_change: ToolChange::Files,
             };
             set_machine_values(&mut profile, &values)?;
             library.machines.push(profile);
@@ -583,6 +606,9 @@ fn set_machine_values(
     if let Some(overcut) = values.max_overcut {
         profile.max_overcut = overcut;
     }
+    if let Some(change) = values.tool_change {
+        profile.tool_change = change.value();
+    }
     Ok(())
 }
 
@@ -635,12 +661,13 @@ fn list_machines(path: &Path) -> ExitCode {
             Spindle::Ccw => "ccw",
         };
         let mut line = format!(
-            "  {}{}: post {}, safe Z {} mm, spindle {spindle}, max overcut {} mm",
+            "  {}{}: post {}, safe Z {} mm, spindle {spindle}, max overcut {} mm, tool changes {}",
             m.name,
             mark(is_default),
             m.post,
             m.safe_z,
-            m.max_overcut
+            m.max_overcut,
+            m.tool_change.name()
         );
         line.push_str(&optional("max feed", m.max_feed, " mm/min"));
         if let Some(t) = &m.travel {

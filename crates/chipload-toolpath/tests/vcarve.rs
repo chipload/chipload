@@ -416,7 +416,7 @@ fn vcarve_job(tool: serde_json::Value, step_down: serde_json::Value) -> chipload
             "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
-            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw"},
+            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
             "tools": [tool],
             "operations": [{"type": "vcarve", "select": {"layer": "L"}, "tool": 1,
                             "start_depth": 0.5, "end_depth": 10, "step_down": step_down,

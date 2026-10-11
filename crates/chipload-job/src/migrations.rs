@@ -11,8 +11,8 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 7] = [
-    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11,
+const MIGRATIONS: [Migration; 8] = [
+    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -172,6 +172,15 @@ fn v10_to_v11(mut data: Value) -> Result<Value, String> {
         placement.insert("scale".into(), Value::from(1.0));
     }
     Ok(set_version(data, 11))
+}
+
+/// 11 -> 12: the machine's tool change setting (docs/specs/tool-per-operation.md §3.3).
+/// Older files wrote one file per tool group, or refused several tools: "files" keeps that.
+fn v11_to_v12(mut data: Value) -> Result<Value, String> {
+    if let Some(Value::Object(machine)) = data.get_mut("machine") {
+        machine.insert("tool_change".into(), Value::from("files"));
+    }
+    Ok(set_version(data, 12))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

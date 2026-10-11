@@ -609,6 +609,7 @@ fn drawing_snaps_to_the_drawing_unless_alt_is_held() {
 
 mod library {
     use super::*;
+    use chipload_job::ToolChange;
     use chipload_job::library::{
         Cutting, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, load_machines,
         load_tools, save_machines, save_tools,
@@ -657,6 +658,7 @@ mod library {
                 corner: StockCorner::BottomLeft,
             },
             max_overcut: 0.3,
+            tool_change: ToolChange::Files,
         }
     }
 

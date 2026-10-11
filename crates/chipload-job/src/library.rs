@@ -14,7 +14,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::models::{
-    Job, Machine, Spindle, Tool, ToolType, Travel, WorkZero, max_overcut_problems,
+    Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, WorkZero, max_overcut_problems,
 };
 
 pub const TOOLS_FILE: &str = "tools.json";
@@ -23,7 +23,7 @@ pub const MACHINES_FILE: &str = "machines.json";
 /// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9).
 pub const TOOLS_VERSION: i64 = 2;
 /// Current `schema_version` of `machines.json`.
-pub const MACHINES_VERSION: i64 = 1;
+pub const MACHINES_VERSION: i64 = 2;
 /// App settings: the recent projects (docs/specs/open-recent.md).
 pub const SETTINGS_FILE: &str = "settings.json";
 /// Current `schema_version` of `settings.json`. Version 2 added `theme`.
@@ -282,6 +282,8 @@ pub struct MachineProfile {
     pub work_zero: WorkZero,
     /// Kept under `stock` in projects; it is about the spoilboard, so it belongs here.
     pub max_overcut: f64,
+    /// One file per tool group or one file with M6 (machines.json 2).
+    pub tool_change: ToolChange,
 }
 
 impl MachineProfile {
@@ -297,6 +299,7 @@ impl MachineProfile {
             travel: m.travel.clone(),
             work_zero: m.work_zero,
             max_overcut: job.stock.max_overcut,
+            tool_change: m.tool_change,
         }
     }
 
@@ -310,6 +313,7 @@ impl MachineProfile {
             max_feed: self.max_feed,
             travel: self.travel.clone(),
             work_zero: self.work_zero,
+            tool_change: self.tool_change,
         }
     }
 
@@ -324,6 +328,11 @@ impl MachineProfile {
             }
         };
         differs("post", old.post.clone(), self.post.clone());
+        differs(
+            "tool changes",
+            old.tool_change.name().into(),
+            self.tool_change.name().into(),
+        );
         differs("safe Z", mm(old.safe_z), mm(self.safe_z));
         differs(
             "spindle",
@@ -686,6 +695,7 @@ pub fn tools_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
 
 impl LibraryFile for MachineLibrary {
     const VERSION: i64 = MACHINES_VERSION;
+    const OLDEST: i64 = 1;
     fn validate(&self) -> Vec<String> {
         MachineLibrary::validate(self)
     }
@@ -693,6 +703,22 @@ impl LibraryFile for MachineLibrary {
         self.schema_version = MACHINES_VERSION;
         self.written_by = Some(written_by());
     }
+    fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
+        if from == 1 {
+            machines_v1_to_v2(data);
+        }
+    }
+}
+
+/// Machines 1 -> 2: the tool change setting; every profile gets "files", the only way
+/// there was (docs/specs/tool-per-operation.md §3.3).
+pub fn machines_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
+    if let Some(Value::Array(machines)) = data.get_mut("machines") {
+        for machine in machines.iter_mut().filter_map(Value::as_object_mut) {
+            machine.insert("tool_change".into(), Value::from("files"));
+        }
+    }
+    data.insert("schema_version".into(), Value::from(2));
 }
 
 impl LibraryFile for AppSettings {

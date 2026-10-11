@@ -112,9 +112,14 @@ enum Command {
     Run {
         /// The project (.chipload).
         project: PathBuf,
-        /// Where to write the G-code.
+        /// Where to write the G-code. With several tools and one file per tool:
+        /// part.nc gives part-1-T1.nc, part-2-T2.nc, ...
         #[arg(short, long)]
         output: PathBuf,
+        /// For this run only: one file per tool, or one file with M6 tool changes
+        /// (default: the project's machine setting).
+        #[arg(long)]
+        tool_change: Option<library::ToolChangeArg>,
     },
     /// Render a toolpath JSON (as `plan --json` prints under "program") through a
     /// post-processor. For testing posts; the output is NOT checked, use `run` to cut.
@@ -387,7 +392,11 @@ fn main() -> ExitCode {
             output,
         } => update(&project, &from, units(u), output.as_deref()),
         Command::Plan { project, json } => plan(&project, json),
-        Command::Run { project, output } => run(&project, &output),
+        Command::Run {
+            project,
+            output,
+            tool_change,
+        } => run(&project, &output, tool_change),
         Command::Render { program, post } => render(&program, &post),
         Command::Check {
             gcode,
@@ -928,11 +937,14 @@ fn load(project: &Path) -> Result<Job, ExitCode> {
     load_job(project).map_err(fail)
 }
 
-fn run(project: &Path, output: &Path) -> ExitCode {
-    let job = match load(project) {
+fn run(project: &Path, output: &Path, tool_change: Option<library::ToolChangeArg>) -> ExitCode {
+    let mut job = match load(project) {
         Ok(job) => job,
         Err(code) => return code,
     };
+    if let Some(change) = tool_change {
+        job.machine.tool_change = change.value();
+    }
     let result = match run_job(&job) {
         Ok(result) => result,
         Err(err @ PipelineError::CheckFailed { .. }) => {

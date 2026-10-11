@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 11;
+pub const CURRENT_VERSION: i64 = 12;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -750,6 +750,26 @@ pub enum Spindle {
     Ccw,
 }
 
+/// How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ToolChange {
+    /// One G-code file per tool group; the user changes the tool and sets Z zero between.
+    #[default]
+    Files,
+    /// One file with `T<n> M6` at each change, for a sender that handles it.
+    Program,
+}
+
+impl ToolChange {
+    pub fn name(self) -> &'static str {
+        match self {
+            ToolChange::Files => "files",
+            ToolChange::Program => "program",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Machine {
@@ -768,6 +788,8 @@ pub struct Machine {
     /// Missing in older files: the drawing origin, as before.
     #[serde(default)]
     pub work_zero: WorkZero,
+    /// One file per tool group or one file with M6 (schema 12).
+    pub tool_change: ToolChange,
 }
 
 /// Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.

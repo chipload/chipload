@@ -838,13 +838,17 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(11));
-    // Only v10 -> v11 adds something: the scale.
+    assert_eq!(current["schema_version"], json!(12));
+    // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting.
     current["schema_version"] = json!(9);
     current["drawing"]["source"]["placement"]
         .as_object_mut()
         .unwrap()
         .remove("scale");
+    current["machine"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tool_change");
     assert_eq!(current, v9);
     let job = parse_job(migrate(v9).unwrap(), "p").unwrap();
     assert!(
@@ -912,7 +916,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(11));
+    assert_eq!(current["schema_version"], json!(12));
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
         json!(1.0)
@@ -922,6 +926,10 @@ fn v10_to_v11_gives_a_placement_scale_1() {
         .as_object_mut()
         .unwrap()
         .remove("scale");
+    current["machine"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tool_change");
     assert_eq!(current, v10, "nothing else changes");
     let job = parse_job(migrate(v10).unwrap(), "p").unwrap();
     assert_eq!(
@@ -954,5 +962,47 @@ fn the_scale_is_required_and_in_range() {
         .as_object_mut()
         .unwrap()
         .remove("scale");
+    assert!(parse_job(missing, "p").is_err());
+}
+
+// -- a tool per operation (docs/specs/tool-per-operation.md)
+
+#[test]
+fn v11_to_v12_gives_the_machine_one_file_per_tool() {
+    for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
+        let v11 = raw(sample);
+        let mut current = migrate(v11.clone()).unwrap();
+        assert_eq!(current["schema_version"], json!(12));
+        assert_eq!(current["machine"]["tool_change"], json!("files"));
+        current["schema_version"] = json!(11);
+        current["machine"]
+            .as_object_mut()
+            .unwrap()
+            .remove("tool_change");
+        assert_eq!(current, v11, "{sample}: nothing else changes");
+        let job = parse_job(migrate(v11).unwrap(), "p").unwrap();
+        assert_eq!(job.machine.tool_change, chipload_job::ToolChange::Files);
+    }
+}
+
+#[test]
+fn the_tool_change_setting_is_required_and_known() {
+    let good = migrate(raw("v11/two_tools.chipload")).unwrap();
+    for (value, ok) in [
+        (json!("files"), true),
+        (json!("program"), true),
+        (json!("m6"), false),
+        (json!("Files"), false),
+        (Value::Null, false),
+    ] {
+        let mut data = good.clone();
+        data["machine"]["tool_change"] = value.clone();
+        assert_eq!(parse_job(data, "p").is_ok(), ok, "{value}");
+    }
+    let mut missing = good;
+    missing["machine"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tool_change");
     assert!(parse_job(missing, "p").is_err());
 }

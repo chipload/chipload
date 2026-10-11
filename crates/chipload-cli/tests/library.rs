@@ -174,7 +174,7 @@ fn machines_are_added_listed_and_checked() {
     assert!(
         listed.contains(
             "Shapeoko (default): post grbl, safe Z 10 mm, spindle cw, max overcut 0.3 mm, \
-             max feed 5000 mm/min, travel X830 Y830 Z95 mm, work zero stock bottom left corner"
+             tool changes files, max feed 5000 mm/min, travel X830 Y830 Z95 mm, work zero stock bottom left corner"
         ),
         "{listed}"
     );
