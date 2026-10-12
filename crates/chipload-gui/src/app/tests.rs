@@ -1491,6 +1491,10 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
 
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
+    press_with(app, egui::Modifiers::NONE, key);
+}
+
+fn press_with(app: &mut ChiploadApp, modifiers: egui::Modifiers, key: egui::Key) {
     let ctx = egui::Context::default();
     let input = egui::RawInput {
         events: vec![egui::Event::Key {
@@ -1498,7 +1502,7 @@ fn press(app: &mut ChiploadApp, key: egui::Key) {
             physical_key: None,
             pressed: true,
             repeat: false,
-            modifiers: egui::Modifiers::NONE,
+            modifiers,
         }],
         ..Default::default()
     };
@@ -1931,4 +1935,72 @@ fn the_report_and_the_cards_show_the_estimated_time() {
     edit_feed(&mut app, 650.0);
     assert!(app.result.is_none());
     draw_sidebar(&mut app);
+}
+
+mod keyboard_shortcuts {
+    use super::super::shortcuts::{BINDINGS, OTHERS, keys_text, shortcut_rows, with_keys};
+    use super::*;
+
+    #[test]
+    fn every_shortcut_is_listed_once_and_shift_ones_come_first() {
+        // docs/specs/small-items.md §1
+        let listed: Vec<String> = shortcut_rows()
+            .into_iter()
+            .flat_map(|(_, rows)| rows.into_iter().map(|(keys, _)| keys))
+            .collect();
+        for b in BINDINGS {
+            assert!(listed.contains(&keys_text(&b.keys)), "{:?}", b.action);
+        }
+        for (i, a) in BINDINGS.iter().enumerate() {
+            for later in &BINDINGS[i + 1..] {
+                assert_ne!(a.keys, later.keys, "{:?} twice", a.action);
+                // egui takes Ctrl+Shift+Z for Ctrl+Z too: the one with more modifiers first.
+                let shadows = later.keys.logical_key == a.keys.logical_key
+                    && a.keys.modifiers.contains(later.keys.modifiers)
+                    && a.keys.modifiers != later.keys.modifiers;
+                let shadowed = later.keys.logical_key == a.keys.logical_key
+                    && later.keys.modifiers.contains(a.keys.modifiers)
+                    && a.keys.modifiers != later.keys.modifiers;
+                assert!(
+                    shadows || !shadowed,
+                    "{:?} must come before {:?}",
+                    later.action,
+                    a.action
+                );
+            }
+        }
+        // The keys handled outside the table are listed too.
+        for keys in ["Delete", "Escape", "Enter, double-click", "Backspace"] {
+            assert!(OTHERS.iter().any(|(_, k, _)| *k == keys), "{keys}");
+        }
+        assert_eq!(
+            with_keys("Undo", super::super::shortcuts::Action::Undo),
+            "Undo  (Ctrl+Z)"
+        );
+    }
+
+    #[test]
+    fn f1_opens_the_list_and_shortcuts_act() {
+        let mut app = ChiploadApp::default();
+        press(&mut app, egui::Key::F1);
+        assert!(app.shortcuts_open);
+        let mut app = lower_part();
+        let before = app.edit.as_ref().unwrap().ops.len();
+        press_with(&mut app, egui::Modifiers::COMMAND, egui::Key::Z);
+        assert_eq!(
+            app.edit.as_ref().unwrap().ops.len(),
+            before - 1,
+            "Ctrl+Z undid"
+        );
+        press_with(
+            &mut app,
+            egui::Modifiers::COMMAND.plus(egui::Modifiers::SHIFT),
+            egui::Key::Z,
+        );
+        assert_eq!(
+            app.edit.as_ref().unwrap().ops.len(),
+            before,
+            "Ctrl+Shift+Z redid, not undid"
+        );
+    }
 }

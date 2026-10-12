@@ -1,6 +1,6 @@
 # Spec: small items of the improvement pass
 
-Status: draft (2026-10-12), for review. The small items fitted into the general improvement
+Status: approved (2026-10-12; decisions 1–6 as recommended, chip load warning A). The small items fitted into the general improvement
 pass (TODO.md, approved 2026-10-12): a chip load readout, drag and drop, a measure tool, copy,
 paste and mirror of drawn shapes, and Help → Keyboard shortcuts. Each lands as its own
 commit, in this order: shortcuts, drag and drop, measure, copy/paste/mirror, chip load.

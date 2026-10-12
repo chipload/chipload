@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Keyboard shortcuts, the menu bar and the status bar.
 
+use super::shortcuts::{self, Action, hover_keys, with_keys};
 use super::*;
 
 impl ChiploadApp {
@@ -11,54 +12,10 @@ impl ChiploadApp {
         if ctx.egui_wants_keyboard_input() {
             return;
         }
-        let pressed = |s: &KeyboardShortcut| ctx.input_mut(|i| i.consume_shortcut(s));
-        // Shift variants first: they also contain the plain shortcut.
-        if pressed(&COPY_SELECTOR) {
-            self.copy_selector(ctx);
-        }
-        if pressed(&SAVE_AS) {
-            self.ask_save(true);
-        }
-        if pressed(&REDO) {
-            self.redo();
-        }
-        if pressed(&SAVE) {
-            self.ask_save(false);
-        }
-        if pressed(&UNDO) {
-            self.undo();
-        }
-        if pressed(&NEW) {
-            self.ask_new();
-        }
-        if pressed(&OPEN) {
-            self.ask_open();
-        }
-        if pressed(&IMPORT) {
-            self.ask_import();
-        }
-        if pressed(&EXPORT) {
-            self.export_when_ready();
-        }
-        if pressed(&GENERATE) && self.can_generate() {
-            self.generate();
-        }
-        if let Focus::Op(i) = self.focus {
-            if pressed(&MOVE_UP) && i > 0 {
-                self.move_operation(i, i - 1);
+        for binding in shortcuts::BINDINGS {
+            if ctx.input_mut(|i| i.consume_shortcut(&binding.keys)) {
+                self.act(binding.action, ctx);
             }
-            if pressed(&MOVE_DOWN) {
-                self.move_operation(i, i + 1);
-            }
-        }
-        if pressed(&FIT) {
-            self.fit_pending = true;
-        }
-        if pressed(&TOP_VIEW) {
-            self.view_top();
-        }
-        if pressed(&QUIT) {
-            ctx.send_viewport_cmd(ViewportCommand::Close);
         }
         if self.sketch.is_some() {
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
@@ -87,10 +44,10 @@ impl ChiploadApp {
         let has_result = self.result.is_some();
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("File", |ui| {
-                if ui.button("New project  (Ctrl+N)").clicked() {
+                if ui.button(with_keys("New project", Action::New)).clicked() {
                     self.ask_new();
                 }
-                if ui.button("Open…  (Ctrl+O)").clicked() {
+                if ui.button(with_keys("Open…", Action::Open)).clicked() {
                     self.ask_open();
                 }
                 let recent = self.recent.clone();
@@ -108,7 +65,10 @@ impl ChiploadApp {
                         }
                     });
                 });
-                if ui.button("Import DXF…  (Ctrl+I)").clicked() {
+                if ui
+                    .button(with_keys("Import DXF…", Action::Import))
+                    .clicked()
+                {
                     self.ask_import();
                 }
                 if ui.button("Open path…").clicked() {
@@ -127,13 +87,16 @@ impl ChiploadApp {
                 }
                 ui.separator();
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Save  (Ctrl+S)"))
+                    .add_enabled(has_job, egui::Button::new(with_keys("Save", Action::Save)))
                     .clicked()
                 {
                     self.ask_save(false);
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Save as…  (Ctrl+Shift+S)"))
+                    .add_enabled(
+                        has_job,
+                        egui::Button::new(with_keys("Save as…", Action::SaveAs)),
+                    )
                     .clicked()
                 {
                     self.ask_save(true);
@@ -151,7 +114,7 @@ impl ChiploadApp {
                 if ui
                     .add_enabled(
                         has_result || self.generating(),
-                        egui::Button::new("Export G-code…  (Ctrl+E)"),
+                        egui::Button::new(with_keys("Export G-code…", Action::Export)),
                     )
                     .clicked()
                 {
@@ -167,13 +130,16 @@ impl ChiploadApp {
                     ));
                 }
                 ui.separator();
-                if ui.button("Quit  (Ctrl+Q)").clicked() {
+                if ui.button(with_keys("Quit", Action::Quit)).clicked() {
                     ui.ctx().send_viewport_cmd(ViewportCommand::Close);
                 }
             });
             ui.menu_button("Edit", |ui| {
                 if ui
-                    .add_enabled(!self.undo.is_empty(), egui::Button::new("Undo  (Ctrl+Z)"))
+                    .add_enabled(
+                        !self.undo.is_empty(),
+                        egui::Button::new(with_keys("Undo", Action::Undo)),
+                    )
                     .clicked()
                 {
                     self.undo();
@@ -181,7 +147,7 @@ impl ChiploadApp {
                 if ui
                     .add_enabled(
                         !self.redo.is_empty(),
-                        egui::Button::new("Redo  (Ctrl+Shift+Z)"),
+                        egui::Button::new(with_keys("Redo", Action::Redo)),
                     )
                     .clicked()
                 {
@@ -203,7 +169,7 @@ impl ChiploadApp {
                 if ui
                     .add_enabled(
                         self.selector_json().is_some(),
-                        egui::Button::new("Copy as selector  (Ctrl+Shift+C)"),
+                        egui::Button::new(with_keys("Copy as selector", Action::CopySelector)),
                     )
                     .clicked()
                 {
@@ -216,7 +182,10 @@ impl ChiploadApp {
                         self.cancel_generation();
                     }
                 } else if ui
-                    .add_enabled(self.can_generate(), egui::Button::new("Generate  (F5)"))
+                    .add_enabled(
+                        self.can_generate(),
+                        egui::Button::new(with_keys("Generate", Action::Generate)),
+                    )
                     .clicked()
                 {
                     self.generate();
@@ -243,10 +212,10 @@ impl ChiploadApp {
                 }
             });
             ui.menu_button("View", |ui| {
-                if ui.button("Fit view  (F)").clicked() {
+                if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
                     self.fit_pending = true;
                 }
-                if ui.button("Top view  (T)").clicked() {
+                if ui.button(with_keys("Top view", Action::TopView)).clicked() {
                     self.view_top();
                 }
                 if ui.button("3D view").clicked() {
@@ -296,6 +265,12 @@ impl ChiploadApp {
                 }
             });
             ui.menu_button("Help", |ui| {
+                if ui
+                    .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
+                    .clicked()
+                {
+                    self.shortcuts_open = true;
+                }
                 if ui.button("About and licences").clicked() {
                     self.about_open = true;
                 }
@@ -312,28 +287,28 @@ impl ChiploadApp {
             ui.spacing_mut().button_padding = egui::vec2(8.0, 3.0);
             if ui
                 .button("New")
-                .on_hover_text("New project (Ctrl+N)")
+                .on_hover_text(hover_keys("New project", Action::New))
                 .clicked()
             {
                 self.ask_new();
             }
             if ui
                 .button("Open")
-                .on_hover_text("Open a project (Ctrl+O)")
+                .on_hover_text(hover_keys("Open a project", Action::Open))
                 .clicked()
             {
                 self.ask_open();
             }
             if ui
                 .button("Import DXF")
-                .on_hover_text("New project from a DXF (Ctrl+I)")
+                .on_hover_text(hover_keys("New project from a DXF", Action::Import))
                 .clicked()
             {
                 self.ask_import();
             }
             if ui
                 .add_enabled(has_job, egui::Button::new("Save"))
-                .on_hover_text("Save the project (Ctrl+S)")
+                .on_hover_text(hover_keys("Save the project", Action::Save))
                 .clicked()
             {
                 self.ask_save(false);
@@ -356,7 +331,10 @@ impl ChiploadApp {
                     egui::Button::new(RichText::new("▶ Generate").strong().color(on_accent))
                         .fill(accent),
                 )
-                .on_hover_text("Plan the toolpaths, write and check the G-code (F5)")
+                .on_hover_text(hover_keys(
+                    "Plan the toolpaths, write and check the G-code",
+                    Action::Generate,
+                ))
                 .clicked()
             {
                 self.generate();
@@ -366,18 +344,25 @@ impl ChiploadApp {
                     has_result || self.generating(),
                     egui::Button::new("⬇ Export G-code"),
                 )
-                .on_hover_text(if has_result {
-                    "Save the checked G-code (Ctrl+E)"
-                } else {
-                    "Save the G-code once it is generated (Ctrl+E)"
-                })
+                .on_hover_text(hover_keys(
+                    if has_result {
+                        "Save the checked G-code"
+                    } else {
+                        "Save the G-code once it is generated"
+                    },
+                    Action::Export,
+                ))
                 .on_disabled_hover_text("Generate first")
                 .clicked()
             {
                 self.export_when_ready();
             }
             ui.separator();
-            if ui.button("Fit").on_hover_text("Fit the view (F)").clicked() {
+            if ui
+                .button("Fit")
+                .on_hover_text(hover_keys("Fit the view", Action::Fit))
+                .clicked()
+            {
                 self.fit_pending = true;
             }
             // Top and 3D side by side, one of them on: a two-way switch.
@@ -385,7 +370,7 @@ impl ChiploadApp {
                 ui.spacing_mut().item_spacing.x = 0.0;
                 if ui
                     .add(egui::Button::new("Top").selected(!self.three_d))
-                    .on_hover_text("Look straight down (T)")
+                    .on_hover_text(hover_keys("Look straight down", Action::TopView))
                     .clicked()
                 {
                     self.view_top();

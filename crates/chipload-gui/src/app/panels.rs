@@ -316,7 +316,7 @@ impl ChiploadApp {
         ui.horizontal(|ui| {
             if ui
                 .add_enabled(focused.is_some_and(|i| i > 0), egui::Button::new("↑"))
-                .on_hover_text("Move up (Alt+Up)")
+                .on_hover_text(shortcuts::hover_keys("Move up", shortcuts::Action::MoveUp))
                 .clicked()
                 && let Some(i) = focused
             {
@@ -327,7 +327,10 @@ impl ChiploadApp {
                     focused.is_some_and(|i| i + 1 < count),
                     egui::Button::new("↓"),
                 )
-                .on_hover_text("Move down (Alt+Down)")
+                .on_hover_text(shortcuts::hover_keys(
+                    "Move down",
+                    shortcuts::Action::MoveDown,
+                ))
                 .clicked()
                 && let Some(i) = focused
             {

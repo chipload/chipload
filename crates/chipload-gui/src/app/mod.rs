@@ -28,8 +28,8 @@ use chipload_pipeline::{
 use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::select::select_contours;
 use eframe::egui::{
-    self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, KeyboardShortcut, Layout, MenuBar,
-    Modifiers, Panel, RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
+    self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, MenuBar, Modifiers, Panel,
+    RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
 };
 
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
@@ -48,6 +48,7 @@ mod panels;
 mod problems;
 mod recovery;
 mod report;
+mod shortcuts;
 #[cfg(test)]
 mod tests;
 mod user_library;
@@ -61,25 +62,6 @@ const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
-
-const NEW: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::N);
-const OPEN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::O);
-const IMPORT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::I);
-const SAVE_AS: KeyboardShortcut =
-    KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::S);
-const SAVE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
-const EXPORT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::E);
-const GENERATE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F5);
-const REDO: KeyboardShortcut =
-    KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::Z);
-const UNDO: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Z);
-const MOVE_UP: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::ArrowUp);
-const MOVE_DOWN: KeyboardShortcut = KeyboardShortcut::new(Modifiers::ALT, Key::ArrowDown);
-const FIT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::F);
-const TOP_VIEW: KeyboardShortcut = KeyboardShortcut::new(Modifiers::NONE, Key::T);
-const COPY_SELECTOR: KeyboardShortcut =
-    KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::C);
-const QUIT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Q);
 
 /// What the properties panel shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -216,6 +198,8 @@ pub struct ChiploadApp {
     title: String,
     allow_close: bool,
     about_open: bool,
+    /// Help → Keyboard shortcuts is open.
+    shortcuts_open: bool,
 
     /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
     /// and when there is no home folder.
@@ -281,6 +265,7 @@ impl Default for ChiploadApp {
             title: String::new(),
             allow_close: false,
             about_open: false,
+            shortcuts_open: false,
             settings_dir: None,
             library: chipload_pipeline::library::Library::default(),
             library_windows: LibraryWindows::default(),
@@ -1073,6 +1058,7 @@ impl eframe::App for ChiploadApp {
         });
         self.prompts(&ctx);
         self.about(&ctx);
+        self.shortcuts_window(&ctx);
         self.library_windows_ui(&ctx);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
