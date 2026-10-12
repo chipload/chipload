@@ -16,6 +16,23 @@ it's built (see `CLAUDE.md`).
   (adaptive-fronts.md) and the trochoidal strategy. Then rest machining with a smaller
   tool, its own spec.
 
+- **General improvement pass** (proposed and approved 2026-10-12, in this order):
+  1. Generate in the background, with Cancel, and
+  2. live preview: regenerate by itself shortly after an edit
+     (docs/specs/background-generation.md, draft for review).
+  3. Autosave and crash recovery (a recovery copy while unsaved, a panic hook, restore on
+     start); 4. a `.bak` of the project on save.
+  5. User post-processors from a `posts/` folder in the settings folder, plus built-in
+     LinuxCNC and Mach3/4 posts.
+  6. Problems shown at the field and the operation card while editing, not only after
+     Generate.
+  7. Cycle time estimate per operation and in total; 8. a setup sheet for the operator.
+  - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
+    range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
+    and mirror of drawn shapes, Help → Keyboard shortcuts.
+  - Later from the same pass: a bug-report bundle, inch display and entry, operation
+    presets, toolpath playback.
+
 ## Done
 
 - **Polyline handles easier to read**: the segment middles are round handles in their own
