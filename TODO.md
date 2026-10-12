@@ -18,7 +18,9 @@ it's built (see `CLAUDE.md`).
   main 2026-10-12; three adaptive tests still fail there; the Chaikin rounding experiment
   in its as-built draft: not adopted). To revise at a later date, with a new spec review:
   the loops' air time (length 2–2.9 × the ideal), then offering the strategies again.
-  Rest machining with a smaller tool after that, its own spec.
+  Rest machining with a smaller tool after that, its own spec. Also found 2026-10-12:
+  adaptive refuses an outline with hair-thin spikes (an offset comes back open) that
+  rings take; safe (no G-code), seed in `pocket.proptest-regressions`.
 
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
