@@ -9,6 +9,11 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Bug: material left on a self-overlapping outline** (found 2026-10-12): the property
+  test `material_left_is_out_of_reach_and_complete` (chipload-toolpath tests/pocket.rs)
+  fails on a new random case, an outline whose first edges fold back over each other,
+  with ring pockets. Only the material-left display is affected, not toolpaths. The
+  failing case gets committed with the fix (proptest regression file).
 - **Adaptive as spirals and trochoidal channels on the medial axis**
   (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
   (wide areas by spiral, corners and branches by loops, lifts) is on the branch
