@@ -10,7 +10,8 @@ use chipload_job::ToolChange;
 use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, UsedTool,
-    load_machines, load_tools, save_machines, save_tools, update_tools, use_tool,
+    export, import_into, import_plan, load_machines, load_tools, read_import, save_machines,
+    save_tools, update_tools, use_tool, write_export,
 };
 use chipload_job::{Job, Spindle, StockCorner, ToolType, Travel, WorkZero, load_job};
 
@@ -533,4 +534,179 @@ fn settings_newer_than_known_or_without_a_theme_are_refused() {
     // Version 2 needs its theme: a missing field is not guessed.
     std::fs::write(&path, r#"{"schema_version": 2, "recent_projects": []}"#).unwrap();
     assert!(load_settings(&path).is_err());
+}
+
+// Import and export (docs/specs/library-import-export.md).
+
+fn downcut() -> LibraryTool {
+    LibraryTool {
+        name: "3 mm downcut".into(),
+        id: 2,
+        diameter: 3.0,
+        cutting: None,
+        ..upcut()
+    }
+}
+
+#[test]
+fn export_then_import_into_an_empty_library_gives_the_same_library() {
+    let dir = temp_dir("export-round-trip");
+    let mut library = tools();
+    library.tools.push(downcut());
+    let path = dir.join("backup.json");
+    write_export(&export(&library, &[]).unwrap(), &path).unwrap();
+    let mut empty = ToolLibrary::default();
+    let plan = import_into(
+        &mut empty,
+        &read_import::<ToolLibrary>(&path).unwrap(),
+        false,
+    );
+    assert_eq!(plan.added, ["6 mm upcut", "3 mm downcut"]);
+    assert_eq!(plan.default.as_deref(), Some("6 MM UPCUT"));
+    // The default takes the entry's spelling.
+    assert_eq!(empty.default_tool.as_deref(), Some("6 mm upcut"));
+    assert_eq!(empty.tools, library.tools);
+
+    let path = dir.join("machines.json");
+    write_export(&export(&machines(), &[]).unwrap(), &path).unwrap();
+    let mut empty = MachineLibrary::default();
+    import_into(&mut empty, &read_import(&path).unwrap(), false);
+    assert_eq!(empty, machines());
+    // An export is not a library save: no backup next to it.
+    write_export(&export(&machines(), &[]).unwrap(), &path).unwrap();
+    assert!(!dir.join("machines.json.bak").exists());
+}
+
+#[test]
+fn export_by_name_keeps_the_default_only_when_exported() {
+    let mut library = tools();
+    library.tools.push(downcut());
+    let some = export(&library, &["3 MM DOWNCUT".into()]).unwrap();
+    assert_eq!(some.tools, [downcut()]);
+    assert_eq!(some.default_tool, None);
+    let some = export(&library, &["6 mm upcut".into(), "6 MM UPCUT".into()]).unwrap();
+    assert_eq!(some.tools, [upcut()]);
+    assert!(some.default_tool.is_some());
+    let err = export(&library, &["2 mm".into()]).unwrap_err();
+    assert!(err.to_string().contains("no tool named \"2 mm\""), "{err}");
+}
+
+#[test]
+fn import_adds_new_keeps_or_replaces_differing_and_skips_same() {
+    let mut mine = tools();
+    mine.tools.push(downcut());
+    let mut theirs = ToolLibrary::default();
+    let mut changed = downcut();
+    changed.name = "3 MM DOWNCUT".into();
+    changed.diameter = 3.175;
+    let mut same = upcut();
+    same.name = "6 MM Upcut".into();
+    let mut new = downcut();
+    new.name = "1 mm".into();
+    theirs.tools = vec![new.clone(), changed, same];
+    theirs.default_tool = Some("1 mm".into());
+
+    let mut kept = mine.clone();
+    let plan = import_into(&mut kept, &theirs, false);
+    assert_eq!(plan.added, ["1 mm"]);
+    assert_eq!(plan.same, ["6 mm upcut"]);
+    assert_eq!(
+        plan.differing,
+        [(
+            "3 mm downcut".to_string(),
+            vec!["diameter 3 mm -> 3.175 mm".to_string()]
+        )]
+    );
+    // The library has a default: it stays.
+    assert_eq!(plan.default, None);
+    assert_eq!(kept.default_tool, mine.default_tool);
+    assert_eq!(kept.tools, [upcut(), downcut(), new.clone()]);
+
+    let mut replaced = mine.clone();
+    assert_eq!(import_into(&mut replaced, &theirs, true), plan);
+    let mut wider = downcut();
+    wider.diameter = 3.175;
+    assert_eq!(replaced.tools, [upcut(), wider, new]);
+}
+
+#[test]
+fn differing_tools_and_machines_say_what_differs() {
+    let mut other = upcut();
+    other.id = 4;
+    other.cutting = None;
+    let plan = import_plan(
+        &tools(),
+        &ToolLibrary {
+            tools: vec![other],
+            ..ToolLibrary::default()
+        },
+    );
+    assert_eq!(plan.differing[0].1.len(), 2, "{plan:?}");
+    assert_eq!(plan.differing[0].1[0], "id 1 -> 4");
+    assert!(plan.differing[0].1[1].starts_with("cutting values feed 1200"));
+
+    let mut other = shapeoko();
+    other.safe_z = 5.0;
+    other.max_overcut = 0.5;
+    let plan = import_plan(
+        &machines(),
+        &MachineLibrary {
+            machines: vec![other],
+            ..MachineLibrary::default()
+        },
+    );
+    assert_eq!(
+        plan.differing[0].1,
+        ["safe Z 10 mm -> 5 mm", "max overcut 0.3 mm -> 0.5 mm"]
+    );
+}
+
+#[test]
+fn import_refuses_missing_newer_broken_and_wrong_kind_files() {
+    let dir = temp_dir("import-refused");
+    let missing = read_import::<ToolLibrary>(&dir.join("nothing.json")).unwrap_err();
+    assert!(
+        matches!(missing, LibraryError::Unreadable { .. }),
+        "{missing}"
+    );
+
+    let newer = dir.join("newer.json");
+    std::fs::write(&newer, r#"{"schema_version": 99, "tools": []}"#).unwrap();
+    let err = read_import::<ToolLibrary>(&newer).unwrap_err();
+    assert!(
+        matches!(err, LibraryError::UnsupportedVersion { .. }),
+        "{err}"
+    );
+
+    let broken = dir.join("broken.json");
+    let mut twice = tools();
+    twice.tools.push(upcut());
+    twice.default_tool = None;
+    std::fs::write(&broken, serde_json::to_string(&twice).unwrap()).unwrap();
+    let err = read_import::<ToolLibrary>(&broken).unwrap_err();
+    assert!(err.to_string().contains("used twice"), "{err}");
+
+    let machines_file = dir.join("machines.json");
+    save_machines(&machines(), &machines_file).unwrap();
+    let err = read_import::<ToolLibrary>(&machines_file).unwrap_err();
+    assert!(err.to_string().contains("import it as machines"), "{err}");
+    let tools_file = dir.join("tools.json");
+    save_tools(&tools(), &tools_file).unwrap();
+    let err = read_import::<MachineLibrary>(&tools_file).unwrap_err();
+    assert!(err.to_string().contains("import it as tools"), "{err}");
+}
+
+#[test]
+fn a_version_1_file_imports_migrated() {
+    let dir = temp_dir("import-v1");
+    let path = dir.join("old.json");
+    let v1 = r#"{"schema_version": 1, "written_by": "chipload 0.10.1", "default_machine": null,
+        "machines": [{"name": "Old", "post": "grbl", "safe_z": 5.0, "spindle": "cw",
+                      "max_feed": null, "travel": null, "work_zero": {"at": "drawing_origin"},
+                      "max_overcut": 0.2}]}"#;
+    std::fs::write(&path, v1).unwrap();
+    let file = read_import::<MachineLibrary>(&path).unwrap();
+    let mut library = MachineLibrary::default();
+    import_into(&mut library, &file, false);
+    assert_eq!(library.machines[0].tool_change, ToolChange::Files);
 }

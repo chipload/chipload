@@ -6,11 +6,14 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::library::{
-    Cutting, LibraryError, LibraryTool, MachineProfile, load_machines, load_tools, update_machines,
-    update_tools, use_tool,
+    Collection, Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary,
+    export, import_into, load_library, load_machines, load_tools, read_import, update_library,
+    update_machines, update_tools, use_tool, write_export,
 };
 use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
-use chipload_pipeline::library::{CONFIG_DIR_VAR, machines_path, settings_dir, tools_path};
+use chipload_pipeline::library::{
+    CONFIG_DIR_VAR, machines_path, settings_dir, tools_path, unknown_posts,
+};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_SAFE_Z};
 use clap::{Subcommand, ValueEnum};
 
@@ -18,6 +21,20 @@ use crate::{fail, load};
 
 #[derive(Subcommand)]
 pub enum ToolAction {
+    /// Write the tools to a file: a backup, or for another computer.
+    Export {
+        file: PathBuf,
+        /// Only these (repeatable); default: all.
+        #[arg(long = "name")]
+        names: Vec<String>,
+    },
+    /// Add the tools of an exported file (or another computer's library file).
+    Import {
+        file: PathBuf,
+        /// Overwrite yours where the file has other values under the same name.
+        #[arg(long)]
+        replace: bool,
+    },
     /// List the library's tools and where the library is.
     List,
     /// Add a tool to the library.
@@ -113,6 +130,20 @@ enum YesNo {
 
 #[derive(Subcommand)]
 pub enum MachineAction {
+    /// Write the machine profiles to a file: a backup, or for another computer.
+    Export {
+        file: PathBuf,
+        /// Only these (repeatable); default: all.
+        #[arg(long = "name")]
+        names: Vec<String>,
+    },
+    /// Add the machine profiles of an exported file (or another computer's library file).
+    Import {
+        file: PathBuf,
+        /// Overwrite yours where the file has other values under the same name.
+        #[arg(long)]
+        replace: bool,
+    },
     /// List the machine profiles and where they are kept.
     List,
     /// Add a machine profile. Values not given are the built-in project defaults.
@@ -227,6 +258,12 @@ pub fn tool(action: ToolAction) -> ExitCode {
     let path = tools_path(&dir);
     let result = match action {
         ToolAction::List => return list_tools(&path),
+        ToolAction::Export { file, names } => {
+            return export_file::<ToolLibrary>(&path, &file, &names);
+        }
+        ToolAction::Import { file, replace } => {
+            return import_file::<ToolLibrary>(&path, &file, replace, |_| Vec::new());
+        }
         ToolAction::Add { name, values } => update_tools(&path, |library| {
             if library.find(&name).is_some() {
                 return Err(refused(format!(
@@ -395,6 +432,47 @@ fn rename_default(default: &mut Option<String>, old: &str, new: &str) {
     }
 }
 
+/// `tool export`, `machine export` (docs/specs/library-import-export.md §3).
+fn export_file<L: Collection>(path: &Path, file: &Path, names: &[String]) -> ExitCode {
+    let exported = load_library::<L>(path).and_then(|library| export(&library, names));
+    match exported.and_then(|out| write_export(&out, file).map(|()| out.entries().len())) {
+        Ok(count) => {
+            println!("Exported {}: {count}", L::LIST);
+            println!("Wrote {}", file.display());
+            ExitCode::SUCCESS
+        }
+        Err(err) => fail(err),
+    }
+}
+
+/// `tool import`, `machine import` (§4): one save of the library, then the report.
+fn import_file<L: Collection>(
+    path: &Path,
+    file: &Path,
+    replace: bool,
+    notes: impl Fn(&L) -> Vec<String>,
+) -> ExitCode {
+    let imported = read_import::<L>(file).and_then(|from| {
+        let plan = update_library(path, |library: &mut L| {
+            Ok(import_into(library, &from, replace))
+        })?;
+        Ok((plan, notes(&from)))
+    });
+    match imported {
+        Ok((plan, notes)) => {
+            for line in plan.report(L::LIST, replace).iter().chain(&notes) {
+                println!("{line}");
+            }
+            if !replace && !plan.differing.is_empty() {
+                println!("Use --replace to take the file's values.");
+            }
+            println!("Wrote {}", path.display());
+            ExitCode::SUCCESS
+        }
+        Err(err) => fail(err),
+    }
+}
+
 fn finish(result: Result<String, LibraryError>, path: &Path) -> ExitCode {
     match result {
         Ok(line) => {
@@ -494,6 +572,12 @@ pub fn machine(action: MachineAction) -> ExitCode {
     let path = machines_path(&dir);
     let result = match action {
         MachineAction::List => return list_machines(&path),
+        MachineAction::Export { file, names } => {
+            return export_file::<MachineLibrary>(&path, &file, &names);
+        }
+        MachineAction::Import { file, replace } => {
+            return import_file::<MachineLibrary>(&path, &file, replace, unknown_posts);
+        }
         MachineAction::Add { name, values } => update_machines(&path, |library| {
             if library.find(&name).is_some() {
                 return Err(refused(format!(

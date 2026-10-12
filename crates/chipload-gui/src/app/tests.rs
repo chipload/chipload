@@ -710,6 +710,67 @@ mod library {
     }
 
     #[test]
+    fn tools_are_exported_and_imported_after_a_preview() {
+        // docs/specs/library-import-export.md §6
+        use super::library_transfer::ImportChoice;
+        let (mut old, dir) = app_with_library("export");
+        let file = dir.join("backup.json");
+        assert!(old.export_library(LibraryKind::Tools, &file));
+        assert!(old.library_windows.message.is_some());
+
+        let mut new = ChiploadApp::default();
+        new.set_settings_dir(Some(settings("import-preview")));
+        assert!(new.preview_library_import(LibraryKind::Tools, &file));
+        let pending = new.library_windows.import.as_ref().unwrap();
+        assert!(!pending_differs(pending));
+        // Cancel changes nothing; Import adds the tool and its default.
+        assert!(!new.finish_library_import(ImportChoice::Cancel));
+        assert!(new.library.tools.tools.is_empty());
+        assert!(new.preview_library_import(LibraryKind::Tools, &file));
+        assert!(new.finish_library_import(ImportChoice::Keep));
+        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert_eq!(
+            new.library.tools.default_tool.as_deref(),
+            Some("3 mm upcut")
+        );
+        let (kind, text) = new.library_windows.message.clone().unwrap();
+        assert_eq!(kind, LibraryKind::Tools);
+        assert!(text.contains("Added: 3 mm upcut"), "{text}");
+
+        // A file with other values: kept, or replaced when asked.
+        let mut wider = upcut();
+        wider.diameter = 3.175;
+        let other = dir.join("other.json");
+        save_tools(
+            &ToolLibrary {
+                tools: vec![wider.clone()],
+                ..ToolLibrary::default()
+            },
+            &other,
+        )
+        .unwrap();
+        assert!(new.preview_library_import(LibraryKind::Tools, &other));
+        assert!(pending_differs(
+            new.library_windows.import.as_ref().unwrap()
+        ));
+        assert!(new.finish_library_import(ImportChoice::Keep));
+        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert!(new.preview_library_import(LibraryKind::Tools, &other));
+        assert!(new.finish_library_import(ImportChoice::Replace));
+        assert_eq!(new.library.tools.tools, [wider]);
+
+        // The wrong kind of file is refused with a hint.
+        assert!(!new.preview_library_import(LibraryKind::Machines, &file));
+        let error = new.library_windows.error.clone().unwrap();
+        assert!(error.contains("import it as tools"), "{error}");
+        assert!(new.library_windows.import.is_none());
+    }
+
+    fn pending_differs(pending: &super::library_transfer::PendingImport) -> bool {
+        pending.lines().iter().any(|l| l.starts_with("Differs"))
+    }
+
+    #[test]
     fn without_a_settings_folder_nothing_changes() {
         let mut app = ChiploadApp::default();
         assert!(app.library().is_none());

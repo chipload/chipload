@@ -94,6 +94,7 @@ cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
+cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine export); import with `tool import FILE [--replace]`
 cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)

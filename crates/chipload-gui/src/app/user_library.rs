@@ -13,6 +13,7 @@ use chipload_pipeline::library::{Library, machines_path, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_RPM, DEFAULT_SAFE_Z, DEFAULT_TOOL_DIAMETER};
 
 use super::forms::{feed, machine_rows, mm, tool_rows, work_zero_rows};
+use super::library_transfer::{PendingImport, import_preview};
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -201,7 +202,11 @@ pub(super) struct LibraryWindows {
     pub(super) machines_open: bool,
     tool: Option<Draft<LibraryTool>>,
     machine: Option<Draft<MachineProfile>>,
-    error: Option<String>,
+    pub(super) error: Option<String>,
+    /// What the last import or export did, shown in that window.
+    pub(super) message: Option<(LibraryKind, String)>,
+    /// A file read for import, waiting for Import or Cancel.
+    pub(super) import: Option<PendingImport>,
 }
 
 /// What was clicked in a Settings window; applied after drawing it.
@@ -212,6 +217,8 @@ enum WindowAction {
     Delete,
     MakeDefault,
     Cancel,
+    Import,
+    Export,
 }
 
 /// "New tool", or "New tool 2" … if that is taken.
@@ -371,9 +378,25 @@ fn window_body<T>(
                 ui.end_row();
             }
         });
-    if ui.button(new_label).clicked() {
-        action = Some(WindowAction::New);
-    }
+    ui.horizontal(|ui| {
+        if ui.button(new_label).clicked() {
+            action = Some(WindowAction::New);
+        }
+        if ui
+            .button("Import…")
+            .on_hover_text("Add entries from an exported file or another computer's library")
+            .clicked()
+        {
+            action = Some(WindowAction::Import);
+        }
+        if ui
+            .add_enabled(!names.is_empty(), egui::Button::new("Export…"))
+            .on_hover_text("Write all entries to a file: a backup, or for another computer")
+            .clicked()
+        {
+            action = Some(WindowAction::Export);
+        }
+    });
     if let Some(d) = draft {
         ui.separator();
         form(ui, &mut d.value);
@@ -404,6 +427,14 @@ fn window_body<T>(
         ui.colored_label(ui.visuals().error_fg_color, error);
     }
     action
+}
+
+/// What the last import or export of this window did.
+fn library_message(ui: &mut egui::Ui, message: Option<&(LibraryKind, String)>, kind: LibraryKind) {
+    if let Some((_, text)) = message.filter(|(k, _)| *k == kind) {
+        ui.separator();
+        ui.label(text);
+    }
 }
 
 fn tool_summary(t: &LibraryTool) -> String {
@@ -898,6 +929,7 @@ impl ChiploadApp {
         let problems = self.library.problems.clone();
         let windows = &mut self.library_windows;
         let mut action = None;
+        let mut choice = None;
         egui::Window::new("Tool library")
             .open(&mut open)
             .default_width(440.0)
@@ -913,9 +945,14 @@ impl ChiploadApp {
                         "New tool",
                         tool_entry_form,
                     );
+                    choice = import_preview(ui, windows.import.as_ref(), LibraryKind::Tools);
+                    library_message(ui, windows.message.as_ref(), LibraryKind::Tools);
                 });
             });
         self.library_windows.tools_open = open;
+        if let Some(choice) = choice {
+            self.finish_library_import(choice);
+        }
         if let Some(action) = action {
             self.tool_window_action(action);
         }
@@ -985,6 +1022,8 @@ impl ChiploadApp {
                 }
             }
             WindowAction::Cancel => windows.tool = None,
+            WindowAction::Import => self.import_library_dialog(LibraryKind::Tools),
+            WindowAction::Export => self.export_library_dialog(LibraryKind::Tools),
         }
     }
 
@@ -1002,6 +1041,7 @@ impl ChiploadApp {
         let problems = self.library.problems.clone();
         let windows = &mut self.library_windows;
         let mut action = None;
+        let mut choice = None;
         egui::Window::new("Machines")
             .open(&mut open)
             .default_width(440.0)
@@ -1017,9 +1057,14 @@ impl ChiploadApp {
                         "New machine",
                         machine_entry_form,
                     );
+                    choice = import_preview(ui, windows.import.as_ref(), LibraryKind::Machines);
+                    library_message(ui, windows.message.as_ref(), LibraryKind::Machines);
                 });
             });
         self.library_windows.machines_open = open;
+        if let Some(choice) = choice {
+            self.finish_library_import(choice);
+        }
         if let Some(action) = action {
             self.machine_window_action(action);
         }
@@ -1088,6 +1133,8 @@ impl ChiploadApp {
                 }
             }
             WindowAction::Cancel => windows.machine = None,
+            WindowAction::Import => self.import_library_dialog(LibraryKind::Machines),
+            WindowAction::Export => self.export_library_dialog(LibraryKind::Machines),
         }
     }
 }

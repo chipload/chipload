@@ -450,3 +450,79 @@ fn a_vbit_gets_its_angle_and_tip_and_carves_letters() {
             .any(|l| l.starts_with("G1 X") && l.contains(" Z-"))
     );
 }
+
+#[test]
+fn tools_and_machines_are_exported_and_imported_on_another_computer() {
+    // docs/specs/library-import-export.md
+    let old = temp_dir("export-old");
+    let new = temp_dir("export-new");
+    let backup = temp_dir("export-files");
+    add_upcut(&old);
+    ok(&old, &["tool", "add", "3 mm", "--diameter", "3"]);
+    ok(&old, &["tool", "default", "6 mm upcut"]);
+    add_shapeoko(&old);
+    let tools_file = backup.join("tools-backup.json");
+    let machines_file = backup.join("machines-backup.json");
+    let out = ok(&old, &["tool", "export", path(&tools_file)]);
+    assert!(out.contains("Exported tools: 2"), "{out}");
+    ok(&old, &["machine", "export", path(&machines_file)]);
+
+    let out = ok(&new, &["tool", "import", path(&tools_file)]);
+    assert!(out.contains("Added: 6 mm upcut, 3 mm"), "{out}");
+    assert!(out.contains("Default: 6 mm upcut"), "{out}");
+    let out = ok(&new, &["machine", "import", path(&machines_file)]);
+    assert!(out.contains("Added: Shapeoko"), "{out}");
+    let strip = |mut v: Value| {
+        v.as_object_mut().unwrap().remove("written_by");
+        v
+    };
+    for file in ["tools.json", "machines.json"] {
+        assert_eq!(strip(json(&new.join(file))), strip(json(&old.join(file))));
+    }
+
+    // Again: nothing new. A changed tool is kept until --replace.
+    ok(&new, &["tool", "set", "3 mm", "--diameter", "3.175"]);
+    let out = ok(&new, &["tool", "import", path(&tools_file)]);
+    assert!(out.contains("Already in the library: 6 mm upcut"), "{out}");
+    assert!(
+        out.contains("Kept yours: 3 mm (file: diameter 3.175 mm -> 3 mm)"),
+        "{out}"
+    );
+    assert!(out.contains("--replace"), "{out}");
+    assert_eq!(json(&new.join("tools.json"))["tools"][1]["diameter"], 3.175);
+    let out = ok(&new, &["tool", "import", path(&tools_file), "--replace"]);
+    assert!(out.contains("Replaced: 3 mm"), "{out}");
+    assert_eq!(json(&new.join("tools.json"))["tools"][1]["diameter"], 3.0);
+
+    // By name; unknown names, missing files and the wrong kind are refused.
+    let one = backup.join("one.json");
+    ok(&old, &["tool", "export", path(&one), "--name", "3 MM"]);
+    assert_eq!(json(&one)["tools"].as_array().unwrap().len(), 1);
+    assert!(json(&one)["default_tool"].is_null());
+    let err = refused(&old, &["tool", "export", path(&one), "--name", "2 mm"]);
+    assert!(err.contains("no tool named \"2 mm\""), "{err}");
+    let err = refused(
+        &new,
+        &["tool", "import", path(&backup.join("nothing.json"))],
+    );
+    assert!(err.contains("nothing.json"), "{err}");
+    let err = refused(&new, &["tool", "import", path(&machines_file)]);
+    assert!(err.contains("import it as machines"), "{err}");
+}
+
+#[test]
+fn an_imported_machine_with_an_unknown_post_is_kept_with_a_note() {
+    let settings = temp_dir("import-post");
+    let file = settings.join("other.json");
+    std::fs::write(
+        &file,
+        r#"{"schema_version": 2, "default_machine": null,
+            "machines": [{"name": "Laser", "post": "my-laser", "safe_z": 5.0, "spindle": "cw",
+                          "max_feed": null, "travel": null, "work_zero": {"at": "drawing_origin"},
+                          "max_overcut": 0.2, "tool_change": "files"}]}"#,
+    )
+    .unwrap();
+    let out = ok(&settings, &["machine", "import", path(&file)]);
+    assert!(out.contains("Added: Laser"), "{out}");
+    assert!(out.contains("no post-processor \"my-laser\""), "{out}");
+}

@@ -40,6 +40,7 @@ mod canvas;
 mod dialogs;
 mod drawing;
 mod forms;
+mod library_transfer;
 mod menu;
 mod panels;
 mod report;

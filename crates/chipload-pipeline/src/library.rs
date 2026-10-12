@@ -112,6 +112,22 @@ pub fn apply_library(
     Ok(notes)
 }
 
+/// Notes for imported machine profiles whose post-processor this Chipload doesn't have
+/// (docs/specs/library-import-export.md §4): imported anyway, refused only when used.
+pub fn unknown_posts(file: &MachineLibrary) -> Vec<String> {
+    file.machines
+        .iter()
+        .filter(|m| chipload_post::load_builtin_post(&m.post).is_err())
+        .map(|m| {
+            format!(
+                "Machine \"{}\": this Chipload has no post-processor \"{}\"; projects using \
+                 it can't make G-code until it has",
+                m.name, m.post
+            )
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -10,12 +10,18 @@ it's built (see `CLAUDE.md`).
 ## Next
 
 - **Adaptive as spirals and trochoidal channels on the medial axis**
-  (docs/specs/adaptive-spiral.md, draft 2026-10-11, awaiting review). Replaces the fronts
-  (adaptive-fronts.md, on main since f9fcf79 until the spiral covers every pocket) and the
-  trochoidal strategy. Then rest machining with a smaller tool, its own spec.
+  (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
+  (wide areas by spiral, corners and branches by loops, lifts) is on the branch
+  `adaptive-stage2-wip`, paused 2026-10-12 for the user's test run. Replaces the fronts
+  (adaptive-fronts.md) and the trochoidal strategy. Then rest machining with a smaller
+  tool, its own spec.
 
 ## Done
 
+- **Import/export of the tool library and machine profiles**
+  (docs/specs/library-import-export.md): files in the library's own formats; import adds
+  new entries and keeps yours unless asked to replace (`chipload tool export/import`,
+  `chipload machine export/import`, GUI Import…/Export… in the library windows).
 - **A tool per operation** (docs/specs/tool-per-operation.md): each operation cuts with its
   own tool, in tool groups. Output is one checked file per tool, or one file with `T M6`
   for senders that handle the change (machine setting, project schema 12, machines.json 2).
@@ -46,8 +52,6 @@ it's built (see `CLAUDE.md`).
   its own source and placement (user request 2026-10-11).
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
   update from a new version, placement (user request 2026-10-11).
-- **Import/export the tool library and machine profiles**, e.g. when moving to a new
-  computer or for a backup (user request 2026-10-11).
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
   0015) can make other parts faster or more robust: pocket clearing and adaptive, material
   left, narrow-part checks, distance queries (user request 2026-10-11).

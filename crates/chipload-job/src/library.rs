@@ -320,7 +320,11 @@ impl MachineProfile {
     /// What applying this profile would change in a project, one line per value
     /// ("safe Z 5 -> 10 mm"); empty when the values already match (the name aside).
     pub fn changes(&self, job: &Job) -> Vec<String> {
-        let old = &job.machine;
+        self.changes_from(&job.machine, job.stock.max_overcut)
+    }
+
+    /// As `changes`, from a machine and a max overcut.
+    fn changes_from(&self, old: &Machine, max_overcut: f64) -> Vec<String> {
         let mut changes = Vec::new();
         let mut differs = |what: &str, from: String, to: String| {
             if from != to {
@@ -354,11 +358,7 @@ impl MachineProfile {
             work_zero_name(&old.work_zero),
             work_zero_name(&self.work_zero),
         );
-        differs(
-            "max overcut",
-            mm(job.stock.max_overcut),
-            mm(self.max_overcut),
-        );
+        differs("max overcut", mm(max_overcut), mm(self.max_overcut));
         changes
     }
 
@@ -659,7 +659,7 @@ pub fn use_tool(job: &mut Job, entry: &LibraryTool) -> UsedTool {
 }
 
 /// A library file format: its version, name in messages, and rules.
-trait LibraryFile: Serialize + DeserializeOwned + Default + Clone {
+pub trait LibraryFile: Serialize + DeserializeOwned + Default + Clone {
     const VERSION: i64;
     /// The oldest version still read; older ones are upgraded by `upgrade`.
     const OLDEST: i64 = Self::VERSION;
@@ -814,12 +814,20 @@ fn load<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
         path: shown.clone(),
         reason,
     };
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(L::default()),
-        Err(e) => return Err(unreadable(e.to_string())),
+    match std::fs::read_to_string(path) {
+        Ok(text) => parse(&text, &shown),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(L::default()),
+        Err(e) => Err(unreadable(e.to_string())),
+    }
+}
+
+/// A library file's text, read as `load` does: migrated, then checked.
+fn parse<L: LibraryFile>(text: &str, shown: &str) -> Result<L, LibraryError> {
+    let unreadable = |reason: String| LibraryError::Unreadable {
+        path: shown.to_string(),
+        reason,
     };
-    let data: Value = serde_json::from_str(&text).map_err(|e| unreadable(e.to_string()))?;
+    let data: Value = serde_json::from_str(text).map_err(|e| unreadable(e.to_string()))?;
     let Value::Object(mut object) = data else {
         return Err(unreadable("must contain a JSON object".into()));
     };
@@ -829,7 +837,7 @@ fn load<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
         .filter(|v| (L::OLDEST..=L::VERSION).contains(v))
     else {
         return Err(LibraryError::UnsupportedVersion {
-            path: shown,
+            path: shown.to_string(),
             found: version.map_or_else(|| "(missing)".into(), Value::to_string),
             current: L::VERSION,
         });
@@ -840,10 +848,10 @@ fn load<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
     }
     let data = Value::Object(object);
     let library: L = serde_json::from_value(data).map_err(|e| LibraryError::Invalid {
-        path: shown.clone(),
+        path: shown.to_string(),
         reason: e.to_string(),
     })?;
-    check(&library, &shown)?;
+    check(&library, shown)?;
     Ok(library)
 }
 
@@ -860,6 +868,11 @@ fn check<L: LibraryFile>(library: &L, path: &str) -> Result<(), LibraryError> {
 }
 
 fn save<L: LibraryFile>(library: &L, path: &Path) -> Result<(), LibraryError> {
+    write(library, path, true)
+}
+
+/// Write a library file atomically; `backup` keeps the previous file as `.bak`.
+fn write<L: LibraryFile>(library: &L, path: &Path, backup: bool) -> Result<(), LibraryError> {
     let shown = path.display().to_string();
     check(library, &shown)?;
     let failed = |e: std::io::Error| LibraryError::Unwritable {
@@ -882,8 +895,320 @@ fn save<L: LibraryFile>(library: &L, path: &Path) -> Result<(), LibraryError> {
     };
     let tmp = with_suffix(".tmp");
     std::fs::write(&tmp, crate::ascii_json(&text)).map_err(failed)?;
-    if path.exists() {
+    if backup && path.exists() {
         std::fs::copy(path, with_suffix(".bak")).map_err(failed)?;
     }
     std::fs::rename(&tmp, path).map_err(failed)
+}
+
+// Import and export (docs/specs/library-import-export.md).
+
+/// A library that can be exported and imported: its entries and its default.
+pub trait Collection: LibraryFile {
+    type Entry: Entry;
+    /// The list's field in the file ("tools").
+    const LIST: &'static str;
+    /// One entry in messages ("tool").
+    const ENTRY: &'static str;
+    /// The other library's list field, and what to say when a file holds that one.
+    const OTHER: (&'static str, &'static str);
+    fn entries(&self) -> &[Self::Entry];
+    fn entries_mut(&mut self) -> &mut Vec<Self::Entry>;
+    fn default_name(&self) -> Option<&str>;
+    fn set_default_name(&mut self, name: Option<String>);
+}
+
+/// An entry of a library: a tool or a machine profile.
+pub trait Entry: Clone + PartialEq {
+    fn name(&self) -> &str;
+    /// What taking `other`'s values would change, one line per value ("diameter 6 mm ->
+    /// 8 mm"); empty when they match (the name aside).
+    fn differences(&self, other: &Self) -> Vec<String>;
+    /// The same entry with another name.
+    fn renamed(&self, name: &str) -> Self;
+}
+
+impl Collection for ToolLibrary {
+    type Entry = LibraryTool;
+    const LIST: &'static str = "tools";
+    const ENTRY: &'static str = "tool";
+    const OTHER: (&'static str, &'static str) = (
+        "machines",
+        "this file holds machine profiles, not tools: import it as machines",
+    );
+    fn entries(&self) -> &[LibraryTool] {
+        &self.tools
+    }
+    fn entries_mut(&mut self) -> &mut Vec<LibraryTool> {
+        &mut self.tools
+    }
+    fn default_name(&self) -> Option<&str> {
+        self.default_tool.as_deref()
+    }
+    fn set_default_name(&mut self, name: Option<String>) {
+        self.default_tool = name;
+    }
+}
+
+impl Collection for MachineLibrary {
+    type Entry = MachineProfile;
+    const LIST: &'static str = "machines";
+    const ENTRY: &'static str = "machine";
+    const OTHER: (&'static str, &'static str) = (
+        "tools",
+        "this file holds tools, not machine profiles: import it as tools",
+    );
+    fn entries(&self) -> &[MachineProfile] {
+        &self.machines
+    }
+    fn entries_mut(&mut self) -> &mut Vec<MachineProfile> {
+        &mut self.machines
+    }
+    fn default_name(&self) -> Option<&str> {
+        self.default_machine.as_deref()
+    }
+    fn set_default_name(&mut self, name: Option<String>) {
+        self.default_machine = name;
+    }
+}
+
+impl Entry for LibraryTool {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn renamed(&self, name: &str) -> Self {
+        LibraryTool {
+            name: name.to_string(),
+            ..self.clone()
+        }
+    }
+    fn differences(&self, other: &Self) -> Vec<String> {
+        let mut changes = other.changes(&self.tool(self.id));
+        if self.id != other.id {
+            changes.push(format!("id {} -> {}", self.id, other.id));
+        }
+        if self.cutting != other.cutting {
+            changes.push(format!(
+                "cutting values {} -> {}",
+                cutting_text(self.cutting.as_ref()),
+                cutting_text(other.cutting.as_ref())
+            ));
+        }
+        changes
+    }
+}
+
+impl Entry for MachineProfile {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn renamed(&self, name: &str) -> Self {
+        MachineProfile {
+            name: name.to_string(),
+            ..self.clone()
+        }
+    }
+    fn differences(&self, other: &Self) -> Vec<String> {
+        other.changes_from(&self.machine(), self.max_overcut)
+    }
+}
+
+fn cutting_text(cutting: Option<&Cutting>) -> String {
+    optional(cutting.map(|c| {
+        format!(
+            "feed {} mm/min, plunge {} mm/min, step down {}, stepover {}",
+            c.feed,
+            c.plunge_feed,
+            mm(c.step_down),
+            c.stepover
+        )
+    }))
+}
+
+/// What an import does to a library (§4), by name as the library spells it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ImportPlan {
+    /// Entries the library doesn't have, in the file's order.
+    pub added: Vec<String>,
+    /// Entries the library has with the same values.
+    pub same: Vec<String>,
+    /// Entries the library has with other values, and what importing would change.
+    pub differing: Vec<(String, Vec<String>)>,
+    /// The file's default, taken because the library has none.
+    pub default: Option<String>,
+}
+
+/// What importing `file` into `library` would do; nothing is changed.
+pub fn import_plan<L: Collection>(library: &L, file: &L) -> ImportPlan {
+    let mut plan = ImportPlan::default();
+    for entry in file.entries() {
+        let found = library
+            .entries()
+            .iter()
+            .find(|e| same_name(e.name(), entry.name()));
+        match found {
+            None => plan.added.push(entry.name().to_string()),
+            Some(mine) => {
+                let mut differences = mine.differences(entry);
+                if differences.is_empty() && !same_values(mine, entry) {
+                    differences.push("other values".into());
+                }
+                if differences.is_empty() {
+                    plan.same.push(mine.name().to_string());
+                } else {
+                    plan.differing.push((mine.name().to_string(), differences));
+                }
+            }
+        }
+    }
+    if library.default_name().is_none() {
+        plan.default = file.default_name().map(str::to_string);
+    }
+    plan
+}
+
+/// Equal values, the name's spelling aside.
+fn same_values<E: Entry>(a: &E, b: &E) -> bool {
+    *a == b.renamed(a.name())
+}
+
+/// Import `file` into `library` (§4): new entries are added, differing ones replaced only
+/// with `replace`, the default taken only by a library without one. Returns the plan done.
+pub fn import_into<L: Collection>(library: &mut L, file: &L, replace: bool) -> ImportPlan {
+    let plan = import_plan(library, file);
+    for entry in file.entries() {
+        let found = library
+            .entries()
+            .iter()
+            .position(|e| same_name(e.name(), entry.name()));
+        match found {
+            None => library.entries_mut().push(entry.clone()),
+            Some(i) if replace => {
+                // The library's spelling of the name stays with its position.
+                let taken = entry.renamed(library.entries()[i].name());
+                library.entries_mut()[i] = taken;
+            }
+            Some(_) => {}
+        }
+    }
+    if let Some(name) = &plan.default {
+        let spelled = library
+            .entries()
+            .iter()
+            .find(|e| same_name(e.name(), name))
+            .map(|e| e.name().to_string());
+        library.set_default_name(spelled);
+    }
+    plan
+}
+
+/// The entries named (all when `names` is empty) as a library of their own, keeping the
+/// default when it is among them. An unknown name is refused.
+pub fn export<L: Collection>(library: &L, names: &[String]) -> Result<L, LibraryError> {
+    let mut out = L::default();
+    if names.is_empty() {
+        out.entries_mut().extend(library.entries().iter().cloned());
+    } else {
+        for name in names {
+            let entry = library
+                .entries()
+                .iter()
+                .find(|e| same_name(e.name(), name))
+                .ok_or_else(|| {
+                    LibraryError::Refused(format!("no {} named \"{name}\"", L::ENTRY))
+                })?;
+            if !out.entries().iter().any(|e| same_name(e.name(), name)) {
+                out.entries_mut().push(entry.clone());
+            }
+        }
+    }
+    let default = library
+        .default_name()
+        .filter(|d| out.entries().iter().any(|e| same_name(e.name(), d)));
+    out.set_default_name(default.map(str::to_string));
+    Ok(out)
+}
+
+/// Read a file to import: as the library loader, but a missing file is an error, and a
+/// file of the other library is refused with a hint.
+pub fn read_import<L: Collection>(path: &Path) -> Result<L, LibraryError> {
+    let shown = path.display().to_string();
+    let text = std::fs::read_to_string(path).map_err(|e| LibraryError::Unreadable {
+        path: shown.clone(),
+        reason: e.to_string(),
+    })?;
+    if let Ok(Value::Object(object)) = serde_json::from_str::<Value>(&text) {
+        let (other, hint) = L::OTHER;
+        if !object.contains_key(L::LIST) && object.contains_key(other) {
+            return Err(LibraryError::Refused(format!("{shown}: {hint}")));
+        }
+    }
+    parse(&text, &shown)
+}
+
+/// Write an exported library: the current version, atomically, without a `.bak`.
+pub fn write_export<L: Collection>(library: &L, path: &Path) -> Result<(), LibraryError> {
+    write(library, path, false)
+}
+
+impl ImportPlan {
+    /// The plan as lines for the user; `replace` says whether differing entries were
+    /// replaced or kept, `what` names the entries ("tools").
+    pub fn report(&self, what: &str, replace: bool) -> Vec<String> {
+        let mut lines = Vec::new();
+        if self.added.is_empty() && self.same.is_empty() && self.differing.is_empty() {
+            lines.push(format!("The file holds no {what}."));
+        }
+        if !self.added.is_empty() {
+            lines.push(format!("Added: {}", self.added.join(", ")));
+        }
+        if !self.same.is_empty() {
+            lines.push(format!("Already in the library: {}", self.same.join(", ")));
+        }
+        for (name, differences) in &self.differing {
+            let verb = if replace { "Replaced" } else { "Kept yours" };
+            lines.push(format!("{verb}: {name} (file: {})", differences.join("; ")));
+        }
+        if let Some(name) = &self.default {
+            lines.push(format!("Default: {name}"));
+        }
+        lines
+    }
+
+    /// What importing would do, as lines for the user before it is done.
+    pub fn preview(&self, what: &str) -> Vec<String> {
+        let mut lines = Vec::new();
+        if self.added.is_empty() && self.same.is_empty() && self.differing.is_empty() {
+            lines.push(format!("The file holds no {what}."));
+        }
+        if !self.added.is_empty() {
+            lines.push(format!("New: {}", self.added.join(", ")));
+        }
+        if !self.same.is_empty() {
+            lines.push(format!("Already in the library: {}", self.same.join(", ")));
+        }
+        for (name, differences) in &self.differing {
+            lines.push(format!(
+                "Differs from yours: {name} (file: {})",
+                differences.join("; ")
+            ));
+        }
+        if let Some(name) = &self.default {
+            lines.push(format!("Becomes the default: {name}"));
+        }
+        lines
+    }
+}
+
+/// Load any library file; a missing file is an empty library (as `load_tools`).
+pub fn load_library<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
+    load(path)
+}
+
+/// Change any library file (as `update_tools`).
+pub fn update_library<L: LibraryFile, T>(
+    path: &Path,
+    change: impl FnOnce(&mut L) -> Result<T, LibraryError>,
+) -> Result<T, LibraryError> {
+    update(path, change)
 }
