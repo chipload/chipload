@@ -36,7 +36,7 @@ fn profile(side: &str, starts: Value, tabs: Value) -> Value {
 }
 
 fn pocket(strategy: Value, starts: Value) -> Value {
-    json!([{"type": "pocket", "select": {"layer": "L"}, "tool": 1, "start_depth": 0,
+    json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1, "start_depth": 0,
             "end_depth": 6, "clearance": 0, "step_down": 3, "stepover": 0.4,
             "direction": "climb", "feed": 1500, "plunge_feed": 500, "strategy": strategy,
             "starts": starts}])

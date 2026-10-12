@@ -15,7 +15,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 13;
+pub const CURRENT_VERSION: i64 = 14;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1146,6 +1146,9 @@ pub struct PocketOp {
     /// part B). Missing: none.
     #[serde(default)]
     pub lead: Option<Lead>,
+    /// Rings strategy: the corners of every ring but the wall ring are rounded
+    /// (docs/specs/pocket-round-corners.md, schema 14). Ignored by the other strategies.
+    pub round_corners: bool,
 }
 
 /// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide

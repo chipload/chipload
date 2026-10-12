@@ -553,7 +553,7 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
         {"type": "pocket", "select": {"shapes": [2]}, "tool": 1, "start_depth": 0.0,
          "end_depth": 4.0, "clearance": 0.0, "step_down": 2.0, "stepover": 0.4,
          "direction": "climb", "feed": 1500.0, "plunge_feed": 400.0,
-         "starts": [[150.0, 75.0]]},
+         "starts": [[150.0, 75.0]], "round_corners": false},
         {"type": "profile", "select": {"shapes": [1]}, "side": "outside",
          "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
          "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,

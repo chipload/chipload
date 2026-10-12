@@ -391,7 +391,7 @@ fn pockets_ramp_in_every_strategy() {
         json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
         json!({"type": "adaptive"}),
     ] {
-        let ops = json!([{"type": "pocket", "select": {"layer": "L"}, "tool": 1,
+        let ops = json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1,
             "start_depth": 1, "end_depth": 7, "clearance": 0, "step_down": 3,
             "stepover": 0.4, "direction": "climb", "feed": 1500, "plunge_feed": 500,
             "strategy": strategy, "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}]);

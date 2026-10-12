@@ -1,0 +1,176 @@
+{
+  "schema_version": 14,
+  "written_by": "chipload 0.12.1",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "drawn",
+        "kind": "rectangle",
+        "center": [
+          100.0,
+          80.0
+        ],
+        "length": 120.0,
+        "width": 80.0,
+        "angle": 0.17453292519943295
+      },
+      {
+        "id": 2,
+        "layer": "drawn",
+        "kind": "circle",
+        "center": [
+          75.0,
+          80.0
+        ],
+        "radius": 12.0
+      },
+      {
+        "id": 3,
+        "layer": "drawn",
+        "kind": "polyline",
+        "closed": true,
+        "points": [
+          [
+            110.0,
+            65.0
+          ],
+          [
+            140.0,
+            65.0
+          ],
+          [
+            125.0,
+            95.0
+          ]
+        ],
+        "bulges": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    ],
+    "next_shape_id": 4,
+    "source": null
+  },
+  "stock": {
+    "x": 300.0,
+    "y": 220.0,
+    "thickness": 12.0,
+    "origin": "bottom_left",
+    "z_zero": "top",
+    "max_overcut": 0.5
+  },
+  "machine": {
+    "name": null,
+    "post": "grbl",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": 5000.0,
+    "travel": {
+      "x": 800.0,
+      "y": 600.0,
+      "z": 100.0
+    },
+    "work_zero": {
+      "at": "drawing_origin"
+    },
+    "tool_change": "files"
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": false,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "operations": [
+    {
+      "type": "pocket",
+      "name": "Rounded rings",
+      "enabled": true,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1,
+          2,
+          3
+        ]
+      },
+      "tool": 1,
+      "start_depth": 2.0,
+      "end_depth": 6.0,
+      "clearance": 0.2,
+      "step_down": 2.0,
+      "stepover": 0.4,
+      "direction": "climb",
+      "feed": 1200.0,
+      "plunge_feed": 400.0,
+      "keep_tool_down": false,
+      "strategy": {
+        "type": "rings"
+      },
+      "entry": {
+        "type": "helix",
+        "radius": 1.5,
+        "ramp_angle": 0.05235987755982988
+      },
+      "starts": [
+        [
+          75.0,
+          95.0
+        ]
+      ],
+      "lead": {
+        "radius": 2.0
+      },
+      "round_corners": true
+    },
+    {
+      "type": "profile",
+      "name": "Outline",
+      "enabled": true,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.3,
+      "clearance": -0.3,
+      "step_down": 4.0,
+      "feed": 1800.0,
+      "plunge_feed": 600.0,
+      "tabs": {
+        "count": 4,
+        "width": 6.0,
+        "height": 2.0
+      },
+      "entry": {
+        "type": "ramp",
+        "ramp_angle": 0.05235987755982988
+      },
+      "starts": [
+        [
+          100.0,
+          125.0
+        ]
+      ],
+      "lead": {
+        "radius": 3.0
+      }
+    }
+  ],
+  "copies": null
+}

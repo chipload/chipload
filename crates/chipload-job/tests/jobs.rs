@@ -848,7 +848,8 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(13));
+    assert_eq!(current["schema_version"], json!(14));
+    without_round_corners(&mut current);
     // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting
     // (v12 -> v13 only touches adaptive pockets, and this has none).
     current["schema_version"] = json!(9);
@@ -927,7 +928,8 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(13));
+    assert_eq!(current["schema_version"], json!(14));
+    without_round_corners(&mut current);
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
         json!(1.0)
@@ -983,7 +985,8 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(13));
+        assert_eq!(current["schema_version"], json!(14));
+        without_round_corners(&mut current);
         assert_eq!(current["machine"]["tool_change"], json!("files"));
         current["schema_version"] = json!(11);
         current["machine"]
@@ -1026,7 +1029,8 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(13));
+    assert_eq!(current["schema_version"], json!(14));
+    without_round_corners(&mut current);
     assert_eq!(
         current["operations"][0]["strategy"],
         json!({"type": "adaptive"})
@@ -1046,10 +1050,9 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
 
     // Other pockets keep their stepover; an adaptive without a load can't be carried on.
     let rings = raw("v12/two_tools_program.chipload");
-    assert_eq!(
-        migrate(rings.clone()).unwrap()["operations"],
-        rings["operations"]
-    );
+    let mut migrated = migrate(rings.clone()).unwrap();
+    without_round_corners(&mut migrated);
+    assert_eq!(migrated["operations"], rings["operations"]);
     let mut broken = raw("v12/adaptive.chipload");
     broken["operations"][0]["strategy"]
         .as_object_mut()
@@ -1057,4 +1060,40 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
         .remove("load");
     let err = migrate(broken).unwrap_err().to_string();
     assert!(err.contains("adaptive without a numeric load"), "{err}");
+}
+
+/// Undo v13 -> v14 (`round_corners` on pockets), to compare with an older sample.
+fn without_round_corners(data: &mut Value) {
+    if let Some(ops) = data["operations"].as_array_mut() {
+        for op in ops.iter_mut().filter_map(Value::as_object_mut) {
+            op.remove("round_corners");
+        }
+    }
+}
+
+// -- rounded ring corners (docs/specs/pocket-round-corners.md)
+
+#[test]
+fn v13_to_v14_keeps_every_pocket_sharp() {
+    let v13 = raw("v13/helix_rings.chipload");
+    let mut current = migrate(v13.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(14));
+    assert_eq!(current["operations"][0]["round_corners"], json!(false));
+    // Profiles get nothing.
+    assert!(current["operations"][1].get("round_corners").is_none());
+    current["schema_version"] = json!(13);
+    without_round_corners(&mut current);
+    assert_eq!(current, v13, "nothing else changes");
+    let job = parse_job(migrate(v13).unwrap(), "p").unwrap();
+    let Operation::Pocket(pocket) = &job.operations[0] else {
+        panic!("a pocket");
+    };
+    assert!(!pocket.round_corners);
+    // Required from v14 on.
+    let mut missing = migrate(raw("v13/helix_rings.chipload")).unwrap();
+    missing["operations"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("round_corners");
+    assert!(parse_job(missing, "p").is_err());
 }

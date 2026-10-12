@@ -1561,6 +1561,7 @@ proptest! {
                 starts: &starts,
                 lead: Some(lead),
                 helix: None,
+                round_corners: false,
             },
         );
         let result = match result {

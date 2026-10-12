@@ -9,8 +9,6 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Rounded corners on the clearing rings of a pocket** (docs/specs/pocket-round-corners.md,
-  draft 2026-10-12, awaiting the user's decisions): smoother motion in rings pockets.
 - **Adaptive as spirals and trochoidal channels on the medial axis**
   (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
   (wide areas by spiral, corners and branches by loops, lifts) is on the branch
@@ -20,6 +18,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Rounded corners on the clearing rings of a pocket** (docs/specs/pocket-round-corners.md):
+  every ring but the wall ring gets its corners rounded (radius min(k·s, D), less where that
+  would leave material), for smoother motion; per pocket, on for new ones (schema 14).
 - **Clearer left sidebar** (docs/specs/sidebar-sections.md): the Job row on top, then
   Operations (with + Profile / + Pocket / + V-carve for the selection) and, below a
   draggable split, Shapes (selection, shape editor, layers with counts).
@@ -57,6 +58,9 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
+- **Ring corner radius per corner:** a ring now has one radius, set by its sharpest corner;
+  rounding each corner by its own angle would let acute shapes (triangles) keep larger
+  radii at their other corners (follow-up to docs/specs/pocket-round-corners.md).
 - **A list of every shape** in the Shapes section of the sidebar, drawn and imported, to
   click and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12).
 - **Several DXFs in one project:** import more than one drawing into a project, each with

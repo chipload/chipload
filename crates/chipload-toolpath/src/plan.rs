@@ -359,6 +359,7 @@ fn plan_pocket_op(
                 Entry::Helix { radius, .. } => Some(radius),
                 _ => None,
             },
+            round_corners: op.round_corners,
         },
     )
     .map_err(|err| err.with_context(label))?;

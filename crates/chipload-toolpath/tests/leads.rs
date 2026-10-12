@@ -42,7 +42,7 @@ fn profile(side: &str, extra: Value) -> Value {
 }
 
 fn pocket(strategy: Value, extra: Value) -> Value {
-    let mut op = json!({"type": "pocket", "select": {"layer": "L"}, "tool": 1,
+    let mut op = json!({"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1,
         "start_depth": 0, "end_depth": 6, "clearance": 0, "step_down": 3, "stepover": 0.4,
         "direction": "climb", "feed": 1500, "plunge_feed": 500, "strategy": strategy,
         "lead": {"radius": 3}});
@@ -292,7 +292,7 @@ fn a_pocket_wall_gets_leads_in_every_strategy() {
     ] {
         let plain = plan_job(
             &job(
-                json!([{"type": "pocket", "select": {"layer": "L"}, "tool": 1,
+                json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1,
                 "start_depth": 0, "end_depth": 6, "clearance": 0, "step_down": 3,
                 "stepover": 0.4, "direction": "climb", "feed": 1500, "plunge_feed": 500,
                 "strategy": strategy}]),

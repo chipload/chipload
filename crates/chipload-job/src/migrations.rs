@@ -11,8 +11,9 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 9] = [
-    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12, v12_to_v13,
+const MIGRATIONS: [Migration; 10] = [
+    v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
+    v12_to_v13, v13_to_v14,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -202,6 +203,18 @@ fn v12_to_v13(mut data: Value) -> Result<Value, String> {
         op.insert("stepover".into(), Value::from(load));
     }
     Ok(set_version(data, 13))
+}
+
+/// v14: rings pockets may round the corners of their inner rings
+/// (docs/specs/pocket-round-corners.md). Every older pocket had sharp corners: false, so
+/// nothing changes.
+fn v13_to_v14(mut data: Value) -> Result<Value, String> {
+    for op in operations_mut(&mut data) {
+        if op.get("type").and_then(Value::as_str) == Some("pocket") {
+            op.insert("round_corners".into(), Value::Bool(false));
+        }
+    }
+    Ok(set_version(data, 14))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

@@ -578,6 +578,79 @@ fn ring_tree(
     ))))
 }
 
+/// Rounds of the uncut check, each halving the radii of the rings near material left.
+const ROUNDING_ROUNDS: usize = 12;
+
+/// The smallest scale of a ring's radius before it is left sharp: an eighth.
+const MIN_ROUNDING_SCALE: f64 = 0.125;
+
+/// Radii tried for one ring, each half the one before.
+const ROUNDING_TRIES: usize = 6;
+
+/// Round the corners of every ring but the wall rings (docs/specs/pocket-round-corners.md).
+/// A ring `k` levels in gets the radius `scale · min(k · stepover, max_radius)` (its own
+/// scale, 1 unless rounding there would leave material): its area is
+/// shrunk by that radius and grown back, which turns each corner sharper than the radius into
+/// a tangent arc and leaves the rest where it was. Inner rings come first (they have the
+/// higher indices) and cap the ring outside them at their radius plus a stepover, so every
+/// rounded ring still lies inside the rounded ring outside it. Where rounding would split a
+/// ring, drop part of it or fail, the radius is halved (a narrow inner ring still gets a
+/// small one), up to `ROUNDING_TRIES` radii; then the ring stays sharp.
+fn round_ring_corners(
+    nodes: &mut [Node],
+    roots: &[usize],
+    stepover: f64,
+    max_radius: f64,
+    scales: &[f64],
+) {
+    let mut depth = vec![0usize; nodes.len()];
+    let mut stack: Vec<usize> = roots.to_vec();
+    while let Some(i) = stack.pop() {
+        for &child in &nodes[i].children {
+            depth[child] = depth[i] + 1;
+            stack.push(child);
+        }
+    }
+    let mut radius = vec![0.0f64; nodes.len()];
+    for i in (0..nodes.len()).rev() {
+        if depth[i] == 0 {
+            continue;
+        }
+        let nominal = scales[i] * (depth[i] as f64 * stepover).min(max_radius);
+        let cap = nodes[i]
+            .children
+            .iter()
+            .map(|&c| radius[c] + stepover)
+            .fold(f64::INFINITY, f64::min);
+        let mut rho = nominal.min(cap);
+        for _ in 0..ROUNDING_TRIES {
+            if rho <= ARC_APPROX_TOL_MM {
+                break;
+            }
+            if let Some(area) = opened(&nodes[i].area, rho) {
+                nodes[i].area = area;
+                radius[i] = rho;
+                break;
+            }
+            rho /= 2.0;
+        }
+    }
+}
+
+/// `area` shrunk by `rho` and grown back: one area with as many holes as before, or None
+/// (it would split, lose a part or a hole, or an offset failed).
+fn opened(area: &Area, rho: f64) -> Option<Area> {
+    let shrunk = area.shrunk(rho).ok()?;
+    let [core] = shrunk.as_slice() else {
+        return None;
+    };
+    let mut grown = core.grown(rho).ok()?;
+    if grown.len() != 1 || grown[0].holes.len() != area.holes.len() {
+        return None;
+    }
+    grown.pop()
+}
+
 /// One piece's paths from one attempt (docs/specs/offset-retry.md), with the arcs,
 /// engagement and notes that attempt recorded: only the used attempt's are kept.
 #[derive(Default)]
@@ -594,6 +667,8 @@ struct Attempt {
 /// What a piece is cleared with, and where the tool comes from.
 struct Clearing {
     strategy: PocketStrategy,
+    /// Rings strategy: round the corners of the inner rings.
+    round_corners: bool,
     offset: f64,
     tool_radius: f64,
     stepover: f64,
@@ -637,8 +712,12 @@ fn attempt_piece(
     let offset = c.offset + nudge.wall;
     match c.strategy {
         PocketStrategy::Rings {} => {
-            let (nodes, roots) =
+            let (mut nodes, roots) =
                 ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
+            if c.round_corners {
+                let stepover = c.stepover - nudge.step;
+                rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes);
+            }
             (a.rings, a.walls) = cut_order(
                 &nodes,
                 &roots,
@@ -694,6 +773,79 @@ fn attempt_piece(
         }
     }
     Ok(a)
+}
+
+/// Round the inner rings' corners (docs/specs/pocket-round-corners.md §3). The
+/// uncut-material check (without links: they only cut more) says where the rounding would
+/// leave material; the rings near there get half their radius, down to an eighth, then
+/// none, and the check runs again. If that doesn't clear it, every ring stays sharp, with a
+/// note when the rounding was the reason.
+fn rounded_rings(
+    region: &Area,
+    nodes: &mut [Node],
+    roots: &[usize],
+    stepover: f64,
+    ids: &[usize],
+    c: &Clearing,
+    notes: &mut Vec<String>,
+) {
+    let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
+    let missed = |nodes: &[Node]| {
+        let (rings, _) = cut_order(
+            nodes,
+            roots,
+            c.position,
+            c.direction,
+            c.spindle,
+            &mut ArcTable::default(),
+        );
+        let open = vec![false; rings.len()];
+        let (note, missed) =
+            uncut_material(region, &level0, &rings, &open, &[], c.tool_radius, ids);
+        note.map(|_| missed)
+    };
+    let sharp: Vec<Area> = nodes.iter().map(|n| n.area.clone()).collect();
+    // Rings this far from material left are the ones that could have cut it.
+    let near = c.tool_radius + stepover;
+    let mut scales = vec![1.0; nodes.len()];
+    for _ in 0..ROUNDING_ROUNDS {
+        round_ring_corners(nodes, roots, stepover, 2.0 * c.tool_radius, &scales);
+        let Some(left) = missed(nodes) else {
+            return;
+        };
+        let mut changed = false;
+        let points: Vec<Point> = left
+            .iter()
+            .flat_map(|piece| piece.rings.iter().flatten().copied())
+            .collect();
+        for (i, node) in nodes.iter().enumerate() {
+            let edges = PrimIndex::new(node.area.boundary(), near);
+            let close = points.iter().any(|&p| edges.any_within(p, near));
+            if close && scales[i] > 0.0 {
+                scales[i] = if scales[i] > MIN_ROUNDING_SCALE {
+                    scales[i] / 2.0
+                } else {
+                    0.0
+                };
+                changed = true;
+            }
+        }
+        for (node, area) in nodes.iter_mut().zip(&sharp) {
+            node.area = area.clone();
+        }
+        if !changed {
+            break;
+        }
+    }
+    for (node, area) in nodes.iter_mut().zip(&sharp) {
+        node.area = area.clone();
+    }
+    if missed(nodes).is_none() {
+        notes.push(format!(
+            "contours {}: ring corners not rounded; rounding would leave material",
+            ids_text(ids)
+        ));
+    }
 }
 
 /// The first path that comes closer than r (minus tolerance) to a wall or island or starts
@@ -1195,6 +1347,8 @@ pub struct Choices<'a> {
     pub lead: Option<f64>,
     /// Helix radius (part C).
     pub helix: Option<f64>,
+    /// Rings strategy: round the inner rings' corners (docs/specs/pocket-round-corners.md).
+    pub round_corners: bool,
 }
 
 /// One piece's paths before its links are chosen and it is verified.
@@ -1228,6 +1382,7 @@ pub fn plan_pocket_starting(
         starts,
         lead,
         helix,
+        round_corners,
     } = choices;
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
@@ -1289,6 +1444,7 @@ pub fn plan_pocket_starting(
         }
         let clearing = Clearing {
             strategy,
+            round_corners,
             offset,
             tool_radius,
             stepover,

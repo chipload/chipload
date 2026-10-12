@@ -300,6 +300,8 @@ impl EditJob {
                     entry,
                     starts: Vec::new(),
                     lead: None,
+                    // New pockets round their inner rings (docs/specs/pocket-round-corners.md).
+                    round_corners: true,
                 }),
                 true,
             ),

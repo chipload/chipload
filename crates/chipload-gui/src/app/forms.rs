@@ -402,6 +402,15 @@ pub(super) fn op_form(
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
                 ui.end_row();
+                if matches!(p.strategy, PocketStrategy::Rings {}) {
+                    ui.label("Corners");
+                    ui.checkbox(&mut p.round_corners, "round the inner rings")
+                        .on_hover_text(
+                            "Arcs instead of sharp turns in every ring but the one along the \
+                             wall, for smoother motion; less where that would leave material",
+                        );
+                    ui.end_row();
+                }
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());

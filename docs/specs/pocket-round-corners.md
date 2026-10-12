@@ -1,6 +1,6 @@
 # Spec: rounded corners on the clearing rings of a pocket
 
-Status: draft, awaiting review (2026-10-12). User request 2026-10-12. Applies to the
+Status: approved (2026-10-12; decisions 1–5 as recommended). User request 2026-10-12. Applies to the
 **rings** strategy only (adaptive has its own smoothing).
 
 ## 1. Why
@@ -84,3 +84,27 @@ outside it).
 - A stepover where the full radii would leave material: the fallback and its note.
 - The frozen v13 sample migrates to `round_corners: false` with byte-identical G-code; a
   new golden with rounding on (arcs and lines posts), passing the independent checker.
+
+## 7. As built (2026-10-12)
+
+- `pocket::round_ring_corners` and `rounded_rings`; `Choices::round_corners`; the project
+  field `round_corners` (schema 14, `v13_to_v14` sets false). GUI: *Clearing → Corners*,
+  rings only; new pockets have it on.
+- **Nesting:** rings are rounded innermost first, and each ring's radius is capped at its
+  inner rings' radius plus a stepover, so a rounded ring always lies inside the one outside it
+  even where an inner ring had to use a smaller radius.
+- **Narrow parts:** a ring whose rounding would split it, lose a part or a hole is tried with
+  half the radius, up to six times, then stays sharp (a 1.2 mm wide innermost ring still gets
+  a small radius).
+- **Uncut material (decision 5, refined):** rather than halving every ring's radius, the
+  check says where material would be left and only the rings within r + s of it get half
+  their radius (down to an eighth, then sharp), for up to twelve rounds. Only if that fails
+  does the whole piece stay sharp, with the note. Smaller radii in places get no note: they
+  are not something to act on. Acute corners limit the radius most: in a triangle with 34°
+  corners at a stepover of 0.3–0.5 × D most rings still round, with smaller radii.
+- **Cost:** each round is one uncut check. A 300 × 200 mm pocket with two islands and 57
+  rings plans in 0.33 s with rounding, 0.01 s without (release).
+- **Tests:** tests/round_corners.rs (corner radii, wall ring sharp, narrow neck, acute
+  corners, a property test against gouges and uncut material, timing); migration test and
+  frozen v13 sample `v13/helix_rings` (same G-code as `v7_helix`); golden
+  `v14_round_corners` (a rectangle round two islands, rounding on).
