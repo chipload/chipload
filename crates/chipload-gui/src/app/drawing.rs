@@ -138,41 +138,101 @@ impl ChiploadApp {
         Ok(())
     }
 
-    /// Delete the selected drawn shape. Operations that used it are flagged.
-    pub fn delete_selected_shape(&mut self) {
-        let Some(id) = self.selected_shape() else {
-            return;
+    /// The drawn shapes in the selection (the ones Delete removes), and whether imported
+    /// ones are selected too.
+    pub fn deletable_shapes(&self) -> (Vec<u64>, bool) {
+        let CanvasSelection::Shapes(ids) = &self.selection else {
+            return (Vec::new(), false);
         };
+        let Some(edit) = self.edit.as_ref() else {
+            return (Vec::new(), false);
+        };
+        let mut drawn = Vec::new();
+        let mut imported = false;
+        for shape in edit
+            .settings
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| ids.contains(&s.id))
+        {
+            if shape.is_drawn() {
+                drawn.push(shape.id);
+            } else {
+                imported = true;
+            }
+        }
+        (drawn, imported)
+    }
+
+    /// Delete the selected drawn shape.
+    pub fn delete_selected_shape(&mut self) {
+        self.delete_selected_shapes();
+    }
+
+    /// Delete every drawn shape in the selection (the Delete key). Operations that used one
+    /// are flagged. Imported shapes stay: they change only with the DXF.
+    pub fn delete_selected_shapes(&mut self) {
+        let (ids, imported) = self.deletable_shapes();
+        if ids.is_empty() {
+            if imported {
+                self.error(vec![
+                    "Imported shapes can't be deleted here; change the drawing and use Update \
+                     drawing from DXF."
+                        .to_string(),
+                ]);
+            }
+            return;
+        }
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
         let mut job: Job = edit.settings.clone();
         job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
-        match delete_shape(&job, id) {
-            Ok((out, flagged)) => {
-                edit.settings.drawing = out.drawing;
-                self.error_ops = edit
-                    .ops
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, e)| {
-                        e.op.select()
-                            .shapes
-                            .as_ref()
-                            .is_some_and(|ids| ids.contains(&id))
-                    })
-                    .map(|(i, _)| i)
-                    .collect();
-                self.selection = CanvasSelection::Nothing;
-                self.shape_draft = None;
-                self.drawing_changed(&[]);
-                let mut lines = vec![format!("Deleted shape S{id}.")];
-                lines.extend(flagged);
-                self.set_report(Report::info(lines));
-                self.set_status(format!("Deleted shape S{id}"), STATUS_SECONDS);
+        let mut flagged = Vec::new();
+        for &id in &ids {
+            match delete_shape(&job, id) {
+                Ok((out, lines)) => {
+                    job = out;
+                    flagged.extend(lines);
+                }
+                Err(err) => {
+                    self.error(vec![err.to_string()]);
+                    return;
+                }
             }
-            Err(err) => self.error(vec![err.to_string()]),
         }
+        edit.settings.drawing = job.drawing;
+        self.error_ops = edit
+            .ops
+            .iter()
+            .enumerate()
+            .filter(|(_, e)| {
+                e.op.select()
+                    .shapes
+                    .as_ref()
+                    .is_some_and(|used| used.iter().any(|u| ids.contains(u)))
+            })
+            .map(|(i, _)| i)
+            .collect();
+        self.selection = CanvasSelection::Nothing;
+        self.shape_draft = None;
+        self.drawing_changed(&[]);
+        let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
+        let what = if ids.len() == 1 { "shape" } else { "shapes" };
+        let mut lines = vec![format!("Deleted {what} {}.", names.join(", "))];
+        if imported {
+            lines.push(
+                "Imported shapes in the selection were kept (they change only with the DXF)."
+                    .into(),
+            );
+        }
+        lines.extend(flagged);
+        self.set_report(Report::info(lines));
+        self.set_status(
+            format!("Deleted {what} {}", names.join(", ")),
+            STATUS_SECONDS,
+        );
     }
 
     /// The drawing changed: recompute contours now, so the canvas follows every edit, and

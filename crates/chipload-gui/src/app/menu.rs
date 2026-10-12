@@ -70,6 +70,9 @@ impl ChiploadApp {
                 sketch.undo_point();
             }
         }
+        if self.sketch.is_none() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Delete)) {
+            self.delete_selected_shapes();
+        }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.sketch.is_some() {
                 self.cancel_drawing();
@@ -182,6 +185,18 @@ impl ChiploadApp {
                     self.redo();
                 }
                 ui.separator();
+                if ui
+                    .add_enabled(
+                        !self.deletable_shapes().0.is_empty(),
+                        egui::Button::new("Delete shapes  (Del)"),
+                    )
+                    .on_hover_text(
+                        "Deletes the selected drawn shapes; imported ones change only with the DXF",
+                    )
+                    .clicked()
+                {
+                    self.delete_selected_shapes();
+                }
                 if ui
                     .add_enabled(
                         self.selector_json().is_some(),

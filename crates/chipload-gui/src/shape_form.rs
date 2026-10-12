@@ -115,7 +115,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         ui.colored_label(egui::Color32::from_rgb(0xf2, 0x8b, 0x82), error);
     }
     if ui
-        .button("Delete shape")
+        .button("Delete shape  (Del)")
         .on_hover_text("Operations that use it are flagged until their geometry is chosen again")
         .clicked()
     {

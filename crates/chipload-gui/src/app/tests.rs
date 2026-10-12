@@ -1381,3 +1381,59 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     assert_eq!(edit.ops[copy].op.name(), "V-carve 1 (copy)");
     assert!(matches!(edit.ops[copy].op, Operation::Vcarve(_)));
 }
+
+/// Run the keyboard shortcuts for one frame with `key` pressed.
+fn press(app: &mut ChiploadApp, key: egui::Key) {
+    let ctx = egui::Context::default();
+    let input = egui::RawInput {
+        events: vec![egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }],
+        ..Default::default()
+    };
+    ctx.begin_pass(input);
+    app.shortcuts(&ctx);
+    // The font atlas a first frame makes isn't painted anywhere here.
+    ctx.end_pass().textures_delta.clear();
+}
+
+#[test]
+fn the_delete_key_deletes_the_selected_drawn_shapes() {
+    let mut app = drawn_part();
+    app.click(Some(contour_of(&app, 2)), false);
+    app.click(Some(contour_of(&app, 3)), true);
+    press(&mut app, egui::Key::Delete);
+    assert!(app.shape(2).is_none() && app.shape(3).is_none());
+    assert!(app.shape(1).is_some());
+    assert_eq!(app.selection, CanvasSelection::Nothing);
+    assert!(
+        app.report
+            .iter()
+            .any(|l| l.contains("Deleted shapes S2, S3"))
+    );
+    // One undo step brings both back.
+    app.commit();
+    app.undo();
+    assert!(app.shape(2).is_some() && app.shape(3).is_some());
+    // Nothing selected: the key does nothing.
+    press(&mut app, egui::Key::Delete);
+    assert!(app.shape(1).is_some() && app.shape(2).is_some());
+}
+
+#[test]
+fn the_delete_key_keeps_imported_shapes() {
+    let mut app = lower_part();
+    app.click(Some(4), false);
+    let id = app.selected_shape().unwrap();
+    press(&mut app, egui::Key::Delete);
+    assert!(app.shape(id).is_some());
+    assert!(
+        app.report
+            .iter()
+            .any(|l| l.contains("Imported shapes can't be deleted"))
+    );
+}
