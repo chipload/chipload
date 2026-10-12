@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 
+pub mod chip_load;
 pub mod copies;
 pub mod estimate;
 pub mod library;

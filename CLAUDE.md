@@ -91,7 +91,8 @@ cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units,
 cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end (several tools: out-1-T1.nc, … or --tool-change program); also out-sheet.html (--no-sheet)
 cargo run -p chipload-cli -- sheet part.chipload -o sheet.html   # the operator's setup sheet alone (HTML)
 cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
-cargo run -p chipload-cli -- plan part.chipload --json    # toolpath and time estimate, no G-code
+cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, time estimate and chip load, no G-code
+cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also shape add/set/delete, shape copy IDS --dx --dy
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)

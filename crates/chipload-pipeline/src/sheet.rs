@@ -331,9 +331,13 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
             .find(|(i, _)| *i == index)
             .map_or(0.0, |(_, s)| *s);
         let (feed, plunge) = feeds(op);
+        let load = match crate::chip_load::chip_load(job, op) {
+            known @ crate::chip_load::ChipLoad::Mm(_) => format!("<br>{}", known.text()),
+            _ => String::new(),
+        };
         let _ = writeln!(
             html,
-            "<tr><td>{}</td><td><strong>{}</strong><br>{}</td><td>{}</td><td>{} / {}</td>\
+            "<tr><td>{}</td><td><strong>{}</strong><br>{}</td><td>{}</td><td>{} / {}{load}</td>\
              <td>{}</td><td>{}</td><td>{}</td></tr>",
             index + 1,
             escape(&name),

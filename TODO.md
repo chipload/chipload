@@ -22,15 +22,17 @@ it's built (see `CLAUDE.md`).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Done (problems while editing, see Done).
   7–8. Done (cycle time estimate and the setup sheet, see Done).
-  - Fitted in as small items (docs/specs/small-items.md, approved; chip load without a
-    warning for now): Help → Keyboard shortcuts, drag and drop, the measure tool, copy/paste
-    and mirror of drawn shapes (done); next a chip load readout. Later: copy imported
-    shapes (as drawn polylines).
+  - Small items done (see Done). Later from them: copy imported shapes (as drawn
+    polylines); a chip load range per tool in the library (amber warning, schema change).
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
     presets, toolpath playback.
 
 ## Done
 
+- **Small items of the improvement pass** (docs/specs/small-items.md): Help → Keyboard
+  shortcuts (F1, from one table); drop a project or DXF on the window; View → Measure (M);
+  copy, paste and mirror drawn shapes (Edit menu, Ctrl+C/V, `chipload shape copy/mirror`);
+  the chip load (mm/tooth) beside the feed, on the setup sheet and in `chipload plan`.
 - **Setup sheet for the operator** (docs/specs/setup-sheet.md): an HTML page next to the
   G-code (`part-sheet.html`): stock, X0 Y0 in words on the stock, Z0, a top-view picture
   (parts, each file's cuts, tabs, the zero), each file in order with the tool to load and

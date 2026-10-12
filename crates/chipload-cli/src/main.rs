@@ -18,6 +18,7 @@ use chipload_job::{
     Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
     polyline_segment_count, save_job,
 };
+use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, pitch_for_gap};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
@@ -1352,6 +1353,12 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                     "rapid_mm_min": estimate.rapid_rate,
                     "rapid_assumed": estimate.rapid_assumed,
                 }),
+                "chip_load": job.operations.iter().enumerate()
+                    .filter(|(_, op)| op.enabled())
+                    .map(|(i, op)| json!({
+                        "operation": i,
+                        "chip_load_mm": chip_load(&job, op).mm(),
+                    })).collect::<Vec<_>>(),
             })
         );
     } else {
@@ -1378,6 +1385,9 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
             println!("Copies: {text}");
         }
         for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
+            println!("{line}");
+        }
+        for line in chip_load_lines(&job) {
             println!("{line}");
         }
         if plan.groups.len() > 1 {

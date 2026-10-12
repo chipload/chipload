@@ -1048,3 +1048,24 @@ fn shapes_are_copied_and_mirrored_from_the_command_line() {
     assert!(!refused.status.success());
     assert!(text(&refused.stderr).contains("there is no shape 9"));
 }
+
+#[test]
+fn plan_shows_the_chip_load() {
+    // docs/specs/small-items.md §5: two_tools has 2-flute tools at 20000 and 18000 rpm.
+    let project = corpus("jobs/v11/two_tools.chipload");
+    let said = text(&chipload(&["plan", path(&project)]).stdout);
+    assert!(said.contains("Chip load (at the cutting feed):"), "{said}");
+    assert!(
+        said.contains("  Operation 1 (Holes): 0.030 mm/tooth"),
+        "{said}"
+    );
+    assert!(
+        said.contains("  Operation 2 (Outline): 0.050 mm/tooth"),
+        "{said}"
+    );
+    let out = chipload(&["plan", path(&project), "--json"]);
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(plan["chip_load"][1]["operation"], 1);
+    let mm = plan["chip_load"][1]["chip_load_mm"].as_f64().unwrap();
+    assert!((mm - 0.05).abs() < 1e-12, "{mm}");
+}

@@ -254,6 +254,13 @@ pub(super) fn op_form(
         .iter()
         .find(|t| t.id == entry.op.tool())
         .map_or(0.0, |t| t.diameter);
+    // For the chip load next to the feed.
+    let op_tool: Option<Tool> = choice
+        .tools
+        .iter()
+        .find(|t| t.id == entry.op.tool())
+        .cloned();
+    let op_tool = op_tool.as_ref();
     let summary = geometry_summary(&entry.op, contours);
     let side_chosen = &mut entry.side_chosen;
     ui.heading(format!("Operation {}", index + 1));
@@ -340,7 +347,7 @@ pub(super) fn op_form(
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
             });
-            feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
+            feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());
             section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, None);
@@ -446,7 +453,7 @@ pub(super) fn op_form(
                     ui.end_row();
                 }
             });
-            feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
+            feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());
             section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
@@ -487,7 +494,7 @@ pub(super) fn op_form(
                     ui.end_row();
                 }
             });
-            feeds_section(ui, &mut v.feed, &mut v.plunge_feed);
+            feeds_section(ui, &mut v.feed, &mut v.plunge_feed, op_tool);
         }
     }
     request.use_selection = use_selection;
@@ -589,11 +596,20 @@ fn apply_cutting(op: &mut Operation, c: &Cutting) {
     }
 }
 
-fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64) {
+/// The feeds, and the chip load next to the feed (docs/specs/small-items.md §5) when the
+/// operation's tool is known.
+fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Option<&Tool>) {
     let text = format!("{} / {} mm/min", len(*cut), len(*plunge));
     section(ui, "op-feeds", "Feeds", &text, |ui| {
         ui.label("Feed");
-        flag(ui.add(feed(cut)), ui, "feed");
+        ui.horizontal(|ui| {
+            flag(ui.add(feed(cut)), ui, "feed");
+            if let Some(tool) = tool {
+                let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
+                ui.label(RichText::new(load.text()).weak())
+                    .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+            }
+        });
         ui.end_row();
         ui.label("Plunge feed");
         flag(ui.add(feed(plunge)), ui, "plunge_feed");
