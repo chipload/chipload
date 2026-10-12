@@ -27,6 +27,8 @@ const AXIS_Z: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
 const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
 /// The snap marker: a point of the drawing the cursor is on.
 const SNAP: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
+/// View → Measure's line and text.
+const MEASURE: Color32 = Color32::from_rgb(0x7f, 0xe8, 0xff);
 /// Middle handles of a polyline's segments: they insert a point or bend the segment, unlike
 /// the square point handles, which move a point.
 const MIDDLE_HANDLE: Color32 = Color32::from_rgb(0x78, 0xd9, 0xec);
@@ -511,6 +513,8 @@ pub struct Scene {
     pub middle_handles: Vec<Point>,
     /// The point the cursor snapped to, marked with a diamond.
     pub snap_mark: Option<Point>,
+    /// View → Measure: from, to and the text (docs/specs/small-items.md §3).
+    pub measure: Option<(Point, Point, String)>,
     /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
     pub work_zero: Point,
     /// The stock's (top, bottom) Z, for the 3D view.
@@ -824,6 +828,18 @@ impl Scene {
                     );
                 painter.add(chevron(ahead, marker.heading, START));
             }
+        }
+        if let Some((from, to, text)) = self.measure.as_ref().filter(|_| flat) {
+            let (a, b) = (view.to_screen(*from), view.to_screen(*to));
+            painter.line_segment([a, b], Stroke::new(1.5, MEASURE));
+            for end in [a, b] {
+                painter.circle_stroke(end, 4.0, Stroke::new(1.5, MEASURE));
+            }
+            let label = painter.layout_no_wrap(text.clone(), FontId::monospace(13.0), MEASURE);
+            let at = a.lerp(b, 0.5) + Vec2::new(8.0, -8.0 - label.size().y);
+            let back = Rect::from_min_size(at, label.size()).expand(3.0);
+            painter.rect_filled(back, 3.0, Color32::from_black_alpha(190));
+            painter.galley(at, label, MEASURE);
         }
         if let Some(p) = self.snap_mark {
             let c = view.to_screen(p);

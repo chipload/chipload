@@ -25,6 +25,7 @@ pub(super) enum Action {
     MoveDown,
     Fit,
     TopView,
+    Measure,
     Shortcuts,
 }
 
@@ -107,6 +108,13 @@ pub(super) const BINDINGS: &[Binding] = &[
     ),
     bind(Action::Fit, Modifiers::NONE, Key::F, "View", "Fit the view"),
     bind(Action::TopView, Modifiers::NONE, Key::T, "View", "Top view"),
+    bind(
+        Action::Measure,
+        Modifiers::NONE,
+        Key::M,
+        "View",
+        "Measure: two clicks give the distance and angle",
+    ),
     bind(
         Action::Shortcuts,
         Modifiers::NONE,
@@ -233,6 +241,7 @@ impl ChiploadApp {
             }
             Action::Fit => self.fit_pending = true,
             Action::TopView => self.view_top(),
+            Action::Measure => self.toggle_measure(),
             Action::Shortcuts => self.shortcuts_open = true,
         }
     }

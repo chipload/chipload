@@ -31,7 +31,9 @@ impl ChiploadApp {
             self.delete_selected_shapes();
         }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-            if self.sketch.is_some() {
+            if self.measure.is_some() {
+                self.measure = None;
+            } else if self.sketch.is_some() {
                 self.cancel_drawing();
             } else {
                 self.selection = CanvasSelection::Nothing;
@@ -217,6 +219,16 @@ impl ChiploadApp {
                 }
                 if ui.button(with_keys("Top view", Action::TopView)).clicked() {
                     self.view_top();
+                }
+                if ui
+                    .add(
+                        egui::Button::new(with_keys("Measure", Action::Measure))
+                            .selected(self.measure.is_some()),
+                    )
+                    .on_hover_text("Two clicks give the distance, ΔX, ΔY and the angle")
+                    .clicked()
+                {
+                    self.toggle_measure();
                 }
                 if ui.button("3D view").clicked() {
                     self.view_3d();
@@ -429,6 +441,10 @@ impl ChiploadApp {
             if self.generating() {
                 ui.spinner();
                 ui.label("Generating…");
+            } else if let Some(text) =
+                self.measure_status(snapped.as_ref().map_or("", |(_, name)| name.as_str()))
+            {
+                ui.label(text);
             } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
                 let step = grid_step(self.view.scale);
                 ui.label(format!("{}{name}", sketch.status(*at, step)));

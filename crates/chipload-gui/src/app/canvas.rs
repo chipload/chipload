@@ -11,7 +11,8 @@ impl ChiploadApp {
     pub fn view_3d(&mut self) {
         if !self.three_d {
             self.three_d = true;
-            self.sketch = None; // drawing works in top view only
+            self.sketch = None; // drawing and measuring work in top view only
+            self.measure = None;
             let pivot = self.orbit_pivot();
             self.view
                 .orient(-30f64.to_radians(), 55f64.to_radians(), pivot);
@@ -134,6 +135,7 @@ impl ChiploadApp {
             self.cursor = None;
         }
         if self.sketch.is_some() {
+            self.scene.measure = None;
             let at = self.cursor.map(|c| self.snap_world(c, alt, false));
             if response.double_clicked() {
                 self.finish_drawing();
@@ -156,9 +158,21 @@ impl ChiploadApp {
                 .as_ref()
                 .map(|s| s.points.clone())
                 .unwrap_or_default();
+        } else if self.measure.is_some() {
+            self.scene.preview.clear();
+            self.scene.sketch_points.clear();
+            let at = self.cursor.map(|c| self.snap_world(c, alt, false));
+            if response.clicked()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let p = self.snap_world(self.view.to_world(pos), alt, false);
+                self.measure_click(p);
+            }
+            self.scene.measure = self.measure_scene(at);
         } else {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();
+            self.scene.measure = None;
             if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()

@@ -2026,3 +2026,32 @@ fn dropped_files_open_or_import_after_asking() {
     assert!(fresh.drop_files(&[corpus("jobs/v11/two_tools.chipload")]));
     assert_eq!(fresh.edit.as_ref().unwrap().ops.len(), 2);
 }
+
+#[test]
+fn measuring_changes_nothing_in_the_project() {
+    // docs/specs/small-items.md §3
+    let mut app = drawn_part();
+    let before = app.edit.clone();
+    press(&mut app, egui::Key::M);
+    assert!(app.measure.is_some());
+    app.measure_click((10.0, 10.0));
+    app.measure_click((40.0, 50.0));
+    assert_eq!(
+        app.measure_status("").unwrap(),
+        "L 50.000  ΔX 30.000  ΔY 40.000  53.1°  · click to measure again, Esc or M ends"
+    );
+    app.commit();
+    assert_eq!(app.edit, before);
+    assert!(app.undo.is_empty(), "no undo step");
+    // Esc ends it; so does starting to draw.
+    press(&mut app, egui::Key::Escape);
+    assert!(app.measure.is_none());
+    app.toggle_measure();
+    app.start_drawing(Tool::Circle);
+    assert!(app.measure.is_none() && app.sketch.is_some());
+    // From 3D it goes to the top view.
+    app.cancel_drawing();
+    app.view_3d();
+    app.toggle_measure();
+    assert!(!app.three_d);
+}

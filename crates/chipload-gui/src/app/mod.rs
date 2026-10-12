@@ -44,6 +44,7 @@ mod dropping;
 mod forms;
 mod generation;
 mod library_transfer;
+mod measure;
 mod menu;
 mod panels;
 mod problems;
@@ -148,6 +149,8 @@ pub struct ChiploadApp {
     pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
     pub sketch: Option<Sketch>,
+    /// View → Measure, while on (docs/specs/small-items.md §3).
+    pub measure: Option<measure::Measure>,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
     /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
@@ -236,6 +239,7 @@ impl Default for ChiploadApp {
             show_material_left: true,
             three_d: false,
             sketch: None,
+            measure: None,
             shape_draft: None,
             snap_points: Vec::new(),
             snapped: None,
