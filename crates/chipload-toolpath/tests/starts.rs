@@ -128,7 +128,8 @@ fn each_point_takes_the_nearest_ring_and_a_second_one_is_ignored() {
 
 #[test]
 fn tabs_move_with_the_start() {
-    let tabs = json!({"count": 2, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 2, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let plain = plan_job(&job(profile("outside", json!([]), tabs.clone())), &part()).unwrap();
     let moved = plan_job(&job(profile("outside", json!([[113, 40]]), tabs)), &part()).unwrap();
     assert_eq!(plain.tabs.len(), 2);

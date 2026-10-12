@@ -46,7 +46,8 @@ fn part() -> Vec<Contour> {
 
 #[test]
 fn tabs_lift_on_the_last_pass_and_are_reported_for_display() {
-    let tabs = json!({"count": 4, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
     assert_eq!(plan.tabs.len(), 4);
     let lifts = plan
@@ -63,7 +64,8 @@ fn tabs_lift_on_the_last_pass_and_are_reported_for_display() {
 
 #[test]
 fn tab_as_high_as_the_cut_is_an_error() {
-    let tabs = json!({"count": 4, "width": 8, "height": 12});
+    let tabs =
+        json!({"count": 4, "width": 8, "height": 12, "flank_angle": std::f64::consts::FRAC_PI_2});
     let err = plan_job(&job(profile("outside", tabs)), &part()).unwrap_err();
     assert!(
         matches!(&err, ToolpathError::Job(m) if m.contains("tab height 12")),
@@ -73,7 +75,8 @@ fn tab_as_high_as_the_cut_is_an_error() {
 
 #[test]
 fn tabs_on_an_inside_profile_are_allowed_with_a_warning() {
-    let tabs = json!({"count": 2, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 2, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let plan = plan_job(&job(profile("inside", tabs)), &part()).unwrap();
     assert!(
         plan.notes
@@ -84,7 +87,8 @@ fn tabs_on_an_inside_profile_are_allowed_with_a_warning() {
 
 #[test]
 fn too_many_tabs_names_the_contour() {
-    let tabs = json!({"count": 40, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 40, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let err = plan_job(&job(profile("outside", tabs)), &part()).unwrap_err();
     assert!(
         matches!(&err, ToolpathError::Geometry(m) if m.starts_with("Operation 1, contour #1:")),
@@ -139,7 +143,8 @@ fn outside_profile_leaves_the_inside_corner_of_an_l() {
 
 #[test]
 fn tabs_are_not_material_left() {
-    let tabs = json!({"count": 4, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
     assert!(plan.material_left.is_empty());
 }
@@ -246,7 +251,8 @@ fn passes_run_between_start_and_end_depth() {
 
 #[test]
 fn tabs_must_be_lower_than_the_cut_between_the_depths() {
-    let tabs = json!({"count": 4, "width": 8, "height": 3});
+    let tabs =
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let cut = |start: f64| {
         plan_job(
             &job(profile_with(
@@ -360,7 +366,10 @@ fn a_profile_with_a_tool_that_cant_plunge_is_refused_unless_it_ramps() {
         "{err}"
     );
 
-    let mut ops = profile("outside", json!({"count": 4, "width": 8, "height": 3}));
+    let mut ops = profile(
+        "outside",
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2}),
+    );
     ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": THREE_DEG});
     let plan = plan_job(&not_centre_cutting(ops), &part()).unwrap();
     assert!(plan.notes.is_empty(), "{:?}", plan.notes);

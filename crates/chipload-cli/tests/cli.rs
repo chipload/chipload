@@ -557,7 +557,7 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
         {"type": "profile", "select": {"shapes": [1]}, "side": "outside",
          "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
          "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,
-         "tabs": {"count": 3, "width": 6.0, "height": 2.0}, "starts": [[90.0, 90.0]]}
+         "tabs": {"count": 3, "width": 6.0, "height": 2.0, "flank_angle": std::f64::consts::FRAC_PI_2}, "starts": [[90.0, 90.0]]}
     ]);
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
     let out = ok(&["plan", p]);

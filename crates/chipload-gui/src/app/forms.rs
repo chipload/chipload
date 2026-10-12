@@ -361,6 +361,10 @@ pub(super) fn op_form(
                         count: 4,
                         width: 8.0,
                         height: 3.0,
+                        flank_angle: Tabs::default_flank(
+                            p.entry,
+                            op_tool.and_then(|t| t.center_cutting),
+                        ),
                     });
                 }
                 ui.end_row();

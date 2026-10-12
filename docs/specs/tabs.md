@@ -26,6 +26,7 @@ New optional field on `ProfileOp`, default `null` (no tabs, so existing jobs are
 | `count` | integer ≥ 1, tabs per contour |
 | `width` | mm, **width of the material bridge left on the part**, measured along the part edge (decision 2026-10-08) |
 | `height` | mm, thickness of the bridge, measured **up from the bottom of the cut** |
+| `flank_angle` | radians, 0 < angle ≤ 90°: slope of the tab's flanks; 90° is a straight tab. Added in schema 16 (docs/specs/profile-spiral.md §4); `width` is then the flat top |
 
 Optional with a safe default, so no schema version bump (CLAUDE.md). Job files written
 with tabs can't be read by older Chipload versions, which refuse unknown fields: that's the

@@ -879,8 +879,9 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["schema_version"], json!(16));
     without_custom_post(&mut current);
+    without_flank_angle(&mut current);
     without_round_corners(&mut current);
     // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting
     // (v12 -> v13 only touches adaptive pockets, and this has none).
@@ -960,8 +961,9 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["schema_version"], json!(16));
     without_custom_post(&mut current);
+    without_flank_angle(&mut current);
     without_round_corners(&mut current);
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
@@ -1018,8 +1020,9 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(15));
+        assert_eq!(current["schema_version"], json!(16));
         without_custom_post(&mut current);
+        without_flank_angle(&mut current);
         without_round_corners(&mut current);
         assert_eq!(current["machine"]["tool_change"], json!("files"));
         current["schema_version"] = json!(11);
@@ -1063,8 +1066,9 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["schema_version"], json!(16));
     without_custom_post(&mut current);
+    without_flank_angle(&mut current);
     without_round_corners(&mut current);
     assert_eq!(
         current["operations"][0]["strategy"],
@@ -1087,6 +1091,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     let rings = raw("v12/two_tools_program.chipload");
     let mut migrated = migrate(rings.clone()).unwrap();
     without_custom_post(&mut migrated);
+    without_flank_angle(&mut migrated);
     without_round_corners(&mut migrated);
     assert_eq!(migrated["operations"], rings["operations"]);
     let mut broken = raw("v12/adaptive.chipload");
@@ -1096,6 +1101,17 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
         .remove("load");
     let err = migrate(broken).unwrap_err().to_string();
     assert!(err.contains("adaptive without a numeric load"), "{err}");
+}
+
+/// Undo v15 -> v16 (`flank_angle` on tabs), to compare with an older sample.
+fn without_flank_angle(data: &mut Value) {
+    if let Some(ops) = data["operations"].as_array_mut() {
+        for op in ops.iter_mut() {
+            if let Some(tabs) = op.get_mut("tabs").and_then(Value::as_object_mut) {
+                tabs.remove("flank_angle");
+            }
+        }
+    }
 }
 
 /// Undo v14 -> v15 (`custom_post` on the machine), to compare with an older sample.
@@ -1120,12 +1136,13 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["schema_version"], json!(16));
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
     assert!(current["operations"][1].get("round_corners").is_none());
     current["schema_version"] = json!(13);
     without_custom_post(&mut current);
+    without_flank_angle(&mut current);
     without_round_corners(&mut current);
     assert_eq!(current, v13, "nothing else changes");
     let job = parse_job(migrate(v13).unwrap(), "p").unwrap();
@@ -1148,10 +1165,11 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["schema_version"], json!(16));
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
     without_custom_post(&mut current);
+    without_flank_angle(&mut current);
     assert_eq!(current, v14, "nothing else changes");
     let job = parse_job(migrate(v14).unwrap(), "p").unwrap();
     assert_eq!(job.machine.post, "grbl");
@@ -1206,5 +1224,82 @@ fn every_value_rule_names_its_field() {
         "operations.0.start_depth",
     ] {
         assert!(paths.contains(&path), "{path} in {paths:?}");
+    }
+}
+
+// -- ramped tabs (docs/specs/profile-spiral.md)
+
+#[test]
+fn v15_to_v16_keeps_plunged_tabs_straight() {
+    let v15 = raw("v15/straight_tabs.chipload");
+    let mut current = migrate(v15.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(16));
+    assert_eq!(
+        current["operations"][1]["tabs"]["flank_angle"],
+        json!(std::f64::consts::FRAC_PI_2)
+    );
+    current["schema_version"] = json!(15);
+    without_flank_angle(&mut current);
+    assert_eq!(current, v15, "nothing else changes");
+    let job = parse_job(migrate(v15).unwrap(), "p").unwrap();
+    let Operation::Profile(profile) = &job.operations[1] else {
+        panic!("a profile");
+    };
+    assert!(profile.tabs.as_ref().unwrap().is_straight());
+}
+
+#[test]
+fn v15_to_v16_gives_ramped_tabs_the_default_flank() {
+    // The tool isn't centre-cutting: the flank is the ramp angle (3°).
+    let v15 = raw("v15/linuxcnc_helix.chipload");
+    let current = migrate(v15.clone()).unwrap();
+    let ramp_angle = v15["operations"][1]["entry"]["ramp_angle"].clone();
+    assert_eq!(current["operations"][1]["tabs"]["flank_angle"], ramp_angle);
+    // A tool that can plunge (or isn't marked): 30°.
+    for marked in [json!(true), Value::Null] {
+        let mut data = v15.clone();
+        data["tools"][0]["center_cutting"] = marked;
+        let current = migrate(data).unwrap();
+        assert_eq!(
+            current["operations"][1]["tabs"]["flank_angle"],
+            json!(std::f64::consts::PI / 6.0)
+        );
+    }
+    // Pockets have no tabs and get nothing.
+    assert!(
+        current["operations"][0]
+            .get("tabs")
+            .is_none_or(Value::is_null)
+    );
+    // Required from v16 on.
+    let mut missing = current;
+    missing["operations"][1]["tabs"]
+        .as_object_mut()
+        .unwrap()
+        .remove("flank_angle");
+    assert!(parse_job(missing, "p").is_err());
+}
+
+#[test]
+fn a_flank_angle_must_be_more_than_0_and_at_most_90_degrees() {
+    let data = migrate(raw("v15/straight_tabs.chipload")).unwrap();
+    for (angle, ok) in [
+        (0.0, false),
+        (-0.1, false),
+        (0.01, true),
+        (std::f64::consts::FRAC_PI_2, true),
+        (90f64.to_radians(), true),
+        (1.6, false),
+    ] {
+        let mut data = data.clone();
+        data["operations"][1]["tabs"]["flank_angle"] = json!(angle);
+        let problems = parse_job(data, "p").map(|job| job.problems());
+        let refused = match problems {
+            Ok(problems) => problems
+                .iter()
+                .any(|p| p.path == "operations.1.tabs.flank_angle"),
+            Err(_) => true,
+        };
+        assert_eq!(refused, !ok, "{angle}");
     }
 }

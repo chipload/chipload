@@ -239,7 +239,7 @@ fn a_profile_on_the_line_or_a_huge_lead_is_refused() {
 fn leads_work_with_tabs_and_a_ramp() {
     let mut job = job(profile(
         "outside",
-        json!({"tabs": {"count": 4, "width": 8, "height": 3},
+        json!({"tabs": {"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2},
                "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}),
     ));
     job.tools[0].center_cutting = Some(false);

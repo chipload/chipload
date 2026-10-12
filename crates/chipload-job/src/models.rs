@@ -11,11 +11,11 @@
 use std::collections::BTreeMap;
 
 use chipload_core::primitives::Arc;
-use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 15;
+pub const CURRENT_VERSION: i64 = 16;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -936,6 +936,32 @@ pub struct Tabs {
     pub width: f64,
     /// Bridge thickness up from the bottom of the cut, mm.
     pub height: f64,
+    /// Slope of the tab's flanks, radians, 0 < angle <= 90°; 90° is a straight tab
+    /// (docs/specs/profile-spiral.md §4). `width` is the flat top.
+    pub flank_angle: f64,
+}
+
+/// Straight tabs: up and down vertically.
+pub const STRAIGHT_FLANK_RAD: f64 = std::f64::consts::FRAC_PI_2;
+/// The flank angle new tabs get with a ramp entry and a tool that can plunge: 30°.
+pub const DEFAULT_RAMPED_FLANK_RAD: f64 = std::f64::consts::PI / 6.0;
+
+impl Tabs {
+    /// Straight up and down (90°, within the angle tolerance).
+    pub fn is_straight(&self) -> bool {
+        self.flank_angle >= STRAIGHT_FLANK_RAD - ANGLE_TOL_RAD
+    }
+
+    /// The flank angle new tabs get (docs/specs/profile-spiral.md §4): straight with a
+    /// plunge entry; with a ramp, 30°, or the ramp angle when the tool is marked not
+    /// centre-cutting (a flank's way down is a ramp).
+    pub fn default_flank(entry: Entry, center_cutting: Option<bool>) -> f64 {
+        match entry.ramp_angle() {
+            None => STRAIGHT_FLANK_RAD,
+            Some(ramp_angle) if center_cutting == Some(false) => ramp_angle,
+            Some(_) => DEFAULT_RAMPED_FLANK_RAD,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -1659,6 +1685,19 @@ impl Job {
                 && tabs.count < 1
             {
                 problems.push(format!("operations.{i}.tabs.count: must be at least 1"));
+            }
+            if let Operation::Profile(ProfileOp {
+                tabs: Some(tabs), ..
+            }) = op
+                && !(tabs.flank_angle.is_finite()
+                    && tabs.flank_angle > 0.0
+                    && tabs.flank_angle <= STRAIGHT_FLANK_RAD + ANGLE_TOL_RAD)
+            {
+                problems.push(format!(
+                    "operations.{i}.tabs.flank_angle: must be more than 0 and at most 90 \
+                     degrees, got {:.3} degrees",
+                    tabs.flank_angle.to_degrees()
+                ));
             }
         }
         problems

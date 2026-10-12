@@ -11,9 +11,9 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 11] = [
+const MIGRATIONS: [Migration; 12] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
-    v12_to_v13, v13_to_v14, v14_to_v15,
+    v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -225,6 +225,54 @@ fn v14_to_v15(mut data: Value) -> Result<Value, String> {
         machine.insert("custom_post".into(), Value::Null);
     }
     Ok(set_version(data, 15))
+}
+
+/// 15 -> 16: tabs get a flank angle (docs/specs/profile-spiral.md §7). Tabs of a profile
+/// that plunges stay straight (90°): the same G-code. A ramped profile can't keep its old
+/// toolpath (the back-and-forth ramps after each tab are gone), so its tabs get the
+/// default a new one would: 30°, or the ramp angle when the operation's tool is marked not
+/// centre-cutting.
+fn v15_to_v16(mut data: Value) -> Result<Value, String> {
+    let not_centre_cutting: Vec<i64> = match data.get("tools") {
+        Some(Value::Array(tools)) => tools
+            .iter()
+            .filter(|tool| tool.get("center_cutting") == Some(&Value::Bool(false)))
+            .filter_map(|tool| tool.get("id").and_then(Value::as_i64))
+            .collect(),
+        _ => Vec::new(),
+    };
+    for (i, op) in operations_mut(&mut data).into_iter().enumerate() {
+        if op.get("type").and_then(Value::as_str) != Some("profile") {
+            continue;
+        }
+        let entry = op.get("entry");
+        let ramp_angle = match entry.and_then(|e| e.get("type")).and_then(Value::as_str) {
+            None | Some("plunge") => None,
+            Some("ramp") => match entry
+                .and_then(|e| e.get("ramp_angle"))
+                .and_then(Value::as_f64)
+            {
+                Some(angle) => Some(angle),
+                None => return Err(format!("operations.{i}.entry: a ramp without an angle")),
+            },
+            Some(other) => {
+                return Err(format!(
+                    "operations.{i}.entry: a profile can't have a {other} entry"
+                ));
+            }
+        };
+        let tool = op.get("tool").and_then(Value::as_i64);
+        let Some(Value::Object(tabs)) = op.get_mut("tabs") else {
+            continue;
+        };
+        let flank = match ramp_angle {
+            None => std::f64::consts::FRAC_PI_2,
+            Some(angle) if tool.is_some_and(|id| not_centre_cutting.contains(&id)) => angle,
+            Some(_) => std::f64::consts::PI / 6.0,
+        };
+        tabs.insert("flank_angle".into(), Value::from(flank));
+    }
+    Ok(set_version(data, 16))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {
