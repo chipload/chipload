@@ -18,6 +18,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Polyline handles easier to read**: the segment middles are round handles in their own
+  colour (the points stay squares), and a selected polyline shows how to drag them (move a
+  point, insert one, Shift to bend) under its form and in the status bar.
 - **Rounded corners on the clearing rings of a pocket** (docs/specs/pocket-round-corners.md):
   every ring but the wall ring gets its corners rounded (radius min(k·s, D), less where that
   would leave material), for smoother motion; per pocket, on for new ones (schema 14).

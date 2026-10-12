@@ -69,7 +69,11 @@ impl ChiploadApp {
         }
         let (alt, shift) = ui.input(|i| (i.modifiers.alt, i.modifiers.shift));
         let shape_handles = self.shape_handles();
-        self.scene.handles = shape_handles.iter().map(|&(_, p)| p).collect();
+        let (middles, others): (Vec<_>, Vec<_>) = shape_handles
+            .iter()
+            .partition(|(h, _)| matches!(h, Handle::Middle(_)));
+        self.scene.handles = others.into_iter().map(|&(_, p)| p).collect();
+        self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
         let view = self.view;
         let on_handle = |pos: egui::Pos2| -> Option<Handle> {
             shape_handles
@@ -338,6 +342,15 @@ impl ChiploadApp {
             .into_iter()
             .map(|(h, p)| (h, (p[0], p[1])))
             .collect()
+    }
+
+    /// A drawn polyline is selected and its handles show: the status bar says how to edit it.
+    pub(super) fn polyline_selected(&self) -> bool {
+        !self.shape_handles().is_empty()
+            && self
+                .selected_shape()
+                .and_then(|id| self.shape(id))
+                .is_some_and(|s| matches!(s.geometry, chipload_job::Geometry::Polyline { .. }))
     }
 
     /// Where the cursor at `at` lands (snap point, else grid; exact with Alt), remembered

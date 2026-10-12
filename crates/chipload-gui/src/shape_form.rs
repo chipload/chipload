@@ -109,6 +109,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
             }
         });
     if matches!(draft.geometry, Geometry::Polyline { .. }) {
+        ui.label(egui::RichText::new(POLYLINE_HELP).weak());
         points_table(ui, draft.id, &mut draft.geometry);
     }
     if let Some(error) = &draft.error {
@@ -123,6 +124,11 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
     }
     action
 }
+
+/// How to edit a selected polyline on the canvas: shown under its form and in the status bar.
+pub const POLYLINE_HELP: &str = "On the canvas: drag a square to move a point · drag a round \
+     middle handle to insert a new point there · Shift+drag a middle handle to bend the \
+     segment into an arc (bulge) · Alt: no snapping";
 
 fn centre_row(ui: &mut egui::Ui, center: &mut [f64; 2]) {
     ui.label("Centre");

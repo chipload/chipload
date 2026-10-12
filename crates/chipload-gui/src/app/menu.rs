@@ -415,6 +415,8 @@ impl ChiploadApp {
                 } else {
                     self.status = None;
                 }
+            } else if self.polyline_selected() {
+                ui.label(RichText::new(crate::shape_form::POLYLINE_HELP).weak());
             } else if self.edit.is_some() {
                 ui.label(
                     RichText::new(

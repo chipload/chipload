@@ -539,6 +539,11 @@ fn dragging_a_handle_edits_the_shape_in_one_undo_step() {
     app.click(Some(contour_of(&app, 3)), false);
     assert_eq!(app.selected_shape(), Some(3));
     assert_eq!(app.shape_handles().len(), 3 + 3, "3 points, 3 middles");
+    // The middles are drawn apart, and the status bar says how to use them.
+    draw_canvas(&mut app);
+    assert_eq!(app.scene.handles.len(), 3);
+    assert_eq!(app.scene.middle_handles.len(), 3);
+    assert!(app.polyline_selected());
     app.start_handle_drag(Handle::Point(2));
     app.drag_handle_to((125.0, 100.0), false);
     app.drag_handle_to((126.0, 105.0), false);
@@ -577,6 +582,7 @@ fn handles_only_in_top_view_and_only_for_drawn_shapes() {
     app.click(Some(contour_of(&app, 1)), false);
     // The rectangle: centre, 4 corners, rotation.
     assert_eq!(app.shape_handles().len(), 6);
+    assert!(!app.polyline_selected());
     app.view_3d();
     assert!(app.shape_handles().is_empty());
     app.view_top();
@@ -1497,6 +1503,16 @@ fn the_delete_key_keeps_imported_shapes() {
             .iter()
             .any(|l| l.contains("Imported shapes can't be deleted"))
     );
+}
+
+/// Draw the canvas and the status bar for one frame.
+fn draw_canvas(app: &mut ChiploadApp) {
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+        app.status_bar(ui);
+        app.canvas(ui);
+    });
+    output.textures_delta.clear();
 }
 
 /// Draw the left sidebar for one frame.

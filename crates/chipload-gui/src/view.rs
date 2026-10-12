@@ -27,6 +27,9 @@ const AXIS_Z: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
 const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
 /// The snap marker: a point of the drawing the cursor is on.
 const SNAP: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
+/// Middle handles of a polyline's segments: they insert a point or bend the segment, unlike
+/// the square point handles, which move a point.
+const MIDDLE_HANDLE: Color32 = Color32::from_rgb(0x78, 0xd9, 0xec);
 const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
 /// Contours of the operation selected in the operations list.
 /// Copies of the part: outlines, and the toolpath's colour faded by this much.
@@ -501,6 +504,9 @@ pub struct Scene {
     pub sketch_points: Vec<Point>,
     /// Handles of the selected drawn shape (top view only).
     pub handles: Vec<Point>,
+    /// Middles of the selected polyline's segments, drawn as round handles in their own
+    /// colour (top view only).
+    pub middle_handles: Vec<Point>,
     /// The point the cursor snapped to, marked with a diamond.
     pub snap_mark: Option<Point>,
     /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
@@ -791,6 +797,11 @@ impl Scene {
                 Stroke::new(1.5, SELECTED),
                 eframe::egui::StrokeKind::Middle,
             );
+        }
+        for &p in self.middle_handles.iter().filter(|_| flat) {
+            let at = view.to_screen(p);
+            painter.circle_filled(at, 4.0, Color32::from_gray(20));
+            painter.circle_stroke(at, 4.0, Stroke::new(1.5, MIDDLE_HANDLE));
         }
         for marker in &self.start_markers {
             if flat && highlight.operation == Some(marker.operation) {
