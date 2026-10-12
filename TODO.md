@@ -21,7 +21,7 @@ it's built (see `CLAUDE.md`).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Problems shown at the field and the operation card while editing, not only after
-     Generate.
+     Generate (docs/specs/live-problems.md, draft for review).
   7. Cycle time estimate per operation and in total; 8. a setup sheet for the operator.
   - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
     range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
