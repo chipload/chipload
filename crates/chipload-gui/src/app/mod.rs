@@ -40,6 +40,7 @@ use crate::view::{ContourShape, Highlight, LeftShape, Scene, StartMarker, Toolpa
 mod canvas;
 mod dialogs;
 mod drawing;
+mod dropping;
 mod forms;
 mod generation;
 mod library_transfer;
@@ -1059,6 +1060,7 @@ impl eframe::App for ChiploadApp {
         self.prompts(&ctx);
         self.about(&ctx);
         self.shortcuts_window(&ctx);
+        self.file_drops(&ctx);
         self.library_windows_ui(&ctx);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.

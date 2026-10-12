@@ -144,6 +144,11 @@ pub(super) const OTHERS: &[(&str, &str, &str)] = &[
         "Move where the ring starts",
     ),
     (
+        "Canvas",
+        "Drop a file",
+        "Open a .chipload project, or start one from a .dxf",
+    ),
+    (
         "Drawing",
         "Click",
         "Place a point (snaps to ends, centres and middles)",

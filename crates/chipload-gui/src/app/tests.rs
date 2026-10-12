@@ -2004,3 +2004,25 @@ mod keyboard_shortcuts {
         );
     }
 }
+
+#[test]
+fn dropped_files_open_or_import_after_asking() {
+    // docs/specs/small-items.md §2
+    let mut app = ChiploadApp::default();
+    assert!(app.drop_files(&[corpus("dxf/messy_2.dxf")]));
+    assert!(!app.contours.is_empty(), "a new project from the DXF");
+    // Unsaved changes: ask first.
+    assert!(app.dirty());
+    assert!(app.drop_files(&[corpus("jobs/v11/two_tools.chipload")]));
+    assert!(matches!(
+        app.prompt,
+        Some(Prompt::Discard(Pending::Open(_)))
+    ));
+    // Nothing else is taken.
+    let mut fresh = ChiploadApp::default();
+    assert!(!fresh.drop_files(&[corpus("dxf/messy_2.dxf"), corpus("dxf/messy_2.dxf")]));
+    assert!(!fresh.drop_files(&[PathBuf::from("notes.txt")]));
+    assert!(fresh.edit.is_none());
+    assert!(fresh.drop_files(&[corpus("jobs/v11/two_tools.chipload")]));
+    assert_eq!(fresh.edit.as_ref().unwrap().ops.len(), 2);
+}

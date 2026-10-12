@@ -23,8 +23,8 @@ it's built (see `CLAUDE.md`).
   6. Done (problems while editing, see Done).
   7–8. Done (cycle time estimate and the setup sheet, see Done).
   - Fitted in as small items (docs/specs/small-items.md, approved; chip load without a
-    warning for now): Help → Keyboard shortcuts (done); next drag and drop of a DXF or
-    project, a measure tool, copy/paste and mirror of drawn shapes, a chip load readout.
+    warning for now): Help → Keyboard shortcuts and drag and drop (done); next a measure
+    tool, copy/paste and mirror of drawn shapes, a chip load readout.
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
     presets, toolpath playback.
 
