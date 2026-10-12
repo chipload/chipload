@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc f0fa08c79cbe6f75652a385ac4bb7ff60930a50a06a6f5a896e72e76361678bc # shrinks to ring = [(-2.271829, 20.710521), (-48.488283, 29.330859), (-30.923763, -26.132605)], count = 5, width = 9.690646241303703, height = 1.9966823962181812, flank_deg = 89.0000234276737, ramp_deg = 1.0, step = 4.074599800296355, passes = 1, ramped = false
+cc b61ac88230ce12ef8726aa9ab966a2bbaec40f49a3c3e97456138f4c81c63f83 # shrinks to ring = [(17.566339, 9.561576), (36.127751, 28.409322), (3.703042, 19.654198)], count = 1, width = 1.0, height = 4.579125827267584, flank_deg = 89.99014195693756, ramp_deg = 1.0, step = 1.1845080575242073, passes = 4, ramped = false

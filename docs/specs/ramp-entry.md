@@ -9,6 +9,10 @@ every operation plunged straight down. A tool whose end teeth don't reach the ce
 centre-cutting) can't do that: the uncut core under its centre rubs, burns or breaks the
 tool.
 
+> **Profiles changed 2026-10-12** (docs/specs/profile-spiral.md): a ramped profile now
+> spirals forward down the ring and follows sloped tabs; the out-and-back ramp below is
+> only used by pockets.
+
 ## 1. What changes
 
 With ramp entry the tool goes down into the material **while moving along its own path**,

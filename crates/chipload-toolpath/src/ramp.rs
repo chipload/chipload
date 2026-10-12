@@ -3,7 +3,8 @@
 //! ramp-entry.md). A ramp goes out along the path and back, descending all the way and
 //! never steeper than the ramp angle, until it is back where it began at the pass depth.
 //! So it ends exactly where a plunge would have left the tool, and it only ever moves on the
-//! path the pass cuts anyway.
+//! path the pass cuts anyway. Pockets use it; profiles spiral instead (`lap`,
+//! docs/specs/profile-spiral.md).
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;

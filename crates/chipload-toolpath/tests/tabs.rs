@@ -9,16 +9,44 @@ use std::f64::consts::TAU;
 use chipload_core::Point;
 use chipload_job::{Entry, Side};
 use chipload_toolpath::ToolpathError;
+use chipload_toolpath::arcs::ArcTable;
+use chipload_toolpath::lap::{RingCut, TabSurface, ring_moves};
 use chipload_toolpath::model::Move;
 use chipload_toolpath::offset::offset_rings;
 use chipload_toolpath::profile::orient;
 use chipload_toolpath::tabs::{
-    TAB_MAX_TURN_RAD, place_tabs, ring_length, split_ring, tab_polylines, tabbed_contour_moves,
+    TAB_MAX_TURN_RAD, TabLayout, place_tabs, ring_length, split_ring, tab_polylines,
 };
 use common::polygon;
 use proptest::prelude::*;
 
 const D: f64 = 6.0;
+
+/// A plunged profile with straight tabs, as before ramped tabs.
+fn straight_tabbed(
+    ring: &[Point],
+    layout: &TabLayout,
+    pass_z: &[f64],
+    z_tab: f64,
+) -> Result<Vec<Move>, ToolpathError> {
+    let cut = RingCut {
+        ring,
+        tabs: Some(TabSurface {
+            layout,
+            z_tab,
+            flank_angle: std::f64::consts::FRAC_PI_2,
+        }),
+        leads: None,
+        pass_z,
+        top_z: 0.0,
+        safe_z: 5.0,
+        feed: 1800.0,
+        plunge_feed: 600.0,
+        entry: Entry::Plunge {},
+        tool_diameter: D,
+    };
+    ring_moves(&cut, &ArcTable::default()).map(|r| r.moves)
+}
 
 fn rect_path() -> Vec<Point> {
     let rect = polygon(&[(0.0, 0.0), (100.0, 0.0), (100.0, 60.0), (0.0, 60.0)]);
@@ -172,18 +200,7 @@ fn count_at(moves: &[Move], z: f64) -> usize {
 fn only_passes_below_the_tab_top_lift() {
     let ring = rect_path();
     let layout = place_tabs(&ring, 4, 8.0, D).unwrap();
-    let moves = tabbed_contour_moves(
-        &ring,
-        &layout,
-        &[-6.0, -12.0, -18.0],
-        0.0,
-        -15.0,
-        5.0,
-        1800.0,
-        600.0,
-        Entry::Plunge {},
-    )
-    .unwrap();
+    let moves = straight_tabbed(&ring, &layout, &[-6.0, -12.0, -18.0], -15.0).unwrap();
     let mut levels: Vec<f64> = moves.iter().filter_map(|m| m.z).collect();
     levels.sort_by(f64::total_cmp);
     levels.dedup();
@@ -195,18 +212,7 @@ fn only_passes_below_the_tab_top_lift() {
 fn taller_tabs_lift_on_more_passes() {
     let ring = rect_path();
     let layout = place_tabs(&ring, 4, 8.0, D).unwrap();
-    let moves = tabbed_contour_moves(
-        &ring,
-        &layout,
-        &[-6.0, -12.0, -18.0],
-        0.0,
-        -10.0,
-        5.0,
-        1800.0,
-        600.0,
-        Entry::Plunge {},
-    )
-    .unwrap();
+    let moves = straight_tabbed(&ring, &layout, &[-6.0, -12.0, -18.0], -10.0).unwrap();
     assert_eq!(count_at(&moves, -10.0), 8); // passes -12 and -18
 }
 
@@ -257,10 +263,7 @@ proptest! {
         for (s0, s1) in spans {
             prop_assert!((s1 - s0 - (width + tool)).abs() < 1e-9);
         }
-        // The move builder verifies its own result (lifted length == tab gaps).
-        let plunge = Entry::Plunge {};
-        let built =
-            tabbed_contour_moves(&ring, &layout, &[-3.0, -6.0], 0.0, -4.0, 5.0, 1000.0, 300.0, plunge);
-        prop_assert!(built.is_ok());
+        // The move builder verifies its own result (never below a tab).
+        prop_assert!(straight_tabbed(&ring, &layout, &[-3.0, -6.0], -4.0).is_ok());
     }
 }

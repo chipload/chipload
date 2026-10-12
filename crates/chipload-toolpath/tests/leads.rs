@@ -239,12 +239,21 @@ fn a_profile_on_the_line_or_a_huge_lead_is_refused() {
 fn leads_work_with_tabs_and_a_ramp() {
     let mut job = job(profile(
         "outside",
-        json!({"tabs": {"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2},
+        json!({"tabs": {"count": 4, "width": 8, "height": 3, "flank_angle": THREE_DEG},
                "entry": {"type": "ramp", "ramp_angle": THREE_DEG}}),
     ));
     job.tools[0].center_cutting = Some(false);
     let plan = plan_job(&job, &part()).unwrap();
     assert_eq!(plan.tabs.len(), 4);
+    // One lead-in (docs/specs/profile-spiral.md §5): one travel, and the tool stays down
+    // from there to the rise-out.
+    let travels = plan
+        .program
+        .moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Rapid && m.x.is_some())
+        .count();
+    assert_eq!(travels, 1);
     // Every straight descent while cutting only reaches depths already cut, and every
     // sideways descent is within the ramp angle.
     let at = positions(&plan.program.moves);

@@ -366,25 +366,42 @@ fn a_profile_with_a_tool_that_cant_plunge_is_refused_unless_it_ramps() {
         "{err}"
     );
 
+    // Ramped in, with tabs whose flanks are no steeper than the ramp.
     let mut ops = profile(
         "outside",
-        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2}),
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": THREE_DEG}),
     );
     ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": THREE_DEG});
-    let plan = plan_job(&not_centre_cutting(ops), &part()).unwrap();
-    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
-    // Two passes, each ramped in, and a ramp after each of the 4 tabs on the last pass.
+    let plan = plan_job(&not_centre_cutting(ops.clone()), &part()).unwrap();
+    assert!(
+        plan.notes.iter().all(|n| !n.contains("plunge")),
+        "{:?}",
+        plan.notes
+    );
+    // A spiral down (one lap per pass here), the level lap and the flanks: every descent
+    // is within the ramp angle, and the tool still goes over the four tab tops.
     let ramps = assert_ramps_only(&plan.program.moves, 0.0, THREE_DEG);
-    assert!(ramps >= 2 * 2 + 4 * 2, "{ramps} ramp moves");
-    // Every lap is still cut in full at its depth: the tab verification passed, and the
-    // lifts are the same four.
-    let lifts = plan
-        .program
-        .moves
-        .iter()
-        .filter(|m| m.z == Some(-9.0))
-        .count();
-    assert!(lifts >= 4);
+    assert!(ramps >= 2 * 4, "{ramps} ramp moves");
+    assert!(plan.program.moves.iter().any(|m| m.z == Some(-9.0)));
+
+    // Straight (90°) tabs would plunge after each tab: refused for this tool, a note for a
+    // tool that isn't marked.
+    ops[0]["tabs"]["flank_angle"] = json!(std::f64::consts::FRAC_PI_2);
+    let err = plan_job(&not_centre_cutting(ops.clone()), &part())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("not centre-cutting") && err.contains("flanks (90.0°)"),
+        "{err}"
+    );
+    let plan = plan_job(&job(ops), &part()).unwrap();
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.contains("steeper than the ramp angle")),
+        "{:?}",
+        plan.notes
+    );
 }
 
 #[test]
@@ -542,4 +559,31 @@ fn overlapping_copies_are_refused_at_the_boundary() {
     );
     // One column: dx doesn't matter.
     assert!(ok(1, 3, 5.0, 100.0).is_ok());
+}
+
+#[test]
+fn tabs_whose_feet_meet_get_a_note() {
+    // 3° flanks on 3 mm tabs: 57 mm feet each side, more than the gaps between four tabs
+    // on this 368 mm ring (docs/specs/profile-spiral.md §4).
+    let mut ops = profile(
+        "outside",
+        json!({"count": 4, "width": 8, "height": 3, "flank_angle": THREE_DEG}),
+    );
+    ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": THREE_DEG});
+    let plan = plan_job(&job(ops.clone()), &part()).unwrap();
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.contains("tabs 1 and 2, 2 and 3, 3 and 4, 4 and 1 meet below their top")),
+        "{:?}",
+        plan.notes
+    );
+    // At 30° the feet are 5.2 mm: no note.
+    ops[0]["tabs"]["flank_angle"] = json!(std::f64::consts::PI / 6.0);
+    let plan = plan_job(&job(ops), &part()).unwrap();
+    assert!(
+        plan.notes.iter().all(|n| !n.contains("meet")),
+        "{:?}",
+        plan.notes
+    );
 }

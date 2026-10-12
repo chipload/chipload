@@ -1,6 +1,7 @@
 # Spec: spiral profiles and ramped tabs
 
-Status: **draft 2026-10-12**, for review. Decisions 1, 3–6 approved by the user as
+Status: **approved 2026-10-12**, all decisions as recommended; steps 1 (schema 16) and 2
+(toolpath) built. Decisions 1, 3–6 approved by the user as
 recommended. The user replaced decision 2: "we need to do ramped tabs, it is not good to go
 back and forth after each tab. We have no external users yet so we don't need to worry
 about changing this." Decisions 7–11 are new and need review.
@@ -80,7 +81,11 @@ height over the set width, with sloping flanks on both sides.
   the way up the tool cuts with its side as it rises; on the way down a flank it cuts at
   most one step-down of material (the previous lap cut the flank above), at the flank angle,
   which makes it a ramp.
-- Points where the slope changes split the chords, as tab ends do today.
+- Points where the slope changes split the chords, as tab ends do today. A tab end within
+  the chaining tolerance of a ring vertex is moved onto it (the tab changes by at most
+  0.001 mm), and where a lap meets a flank within that tolerance of a point the tool
+  passes, the flank is a step there (found while building: a near-vertical flank would
+  otherwise be stretched over the whole chord).
 
 ### Flank angle (decisions 9 and 10)
 

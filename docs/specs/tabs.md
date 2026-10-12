@@ -13,6 +13,9 @@ pocket operation is rejected when the job loads.
 Builds on `v0-profile-pipeline.md`. Out of scope: manual tab placement by
 clicking in the viewer (later), and ramped tabs (v1 tabs are square, decision 2026-10-08).
 
+> **Changed 2026-10-12** (docs/specs/profile-spiral.md, schema 16): tabs have a flank
+> angle; below 90° they are trapezoids and the tool follows their flanks.
+
 ## 1. Job model
 
 New optional field on `ProfileOp`, default `null` (no tabs, so existing jobs are unchanged):

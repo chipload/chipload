@@ -13,6 +13,10 @@ Three parts, built and committed in this order: **A** start points, **B** lead-i
 **C** helical entry. A comes first because B needs it, and it is useful on its own (it
 moves the plunge mark of a plain plunge too).
 
+> **Changed 2026-10-12** (docs/specs/profile-spiral.md): a profile with a ramp entry has
+> one lead-in at the start depth and no lead-out (it rises out along the ring); the leads
+> on every pass in part B now apply to plunged profiles only.
+
 ## A. Start points
 
 Today every ring starts at its lowest (then leftmost) vertex, and the user can't change it.

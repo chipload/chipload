@@ -10,6 +10,7 @@ pub mod cancel;
 pub mod fronts;
 pub mod geom;
 pub mod helix;
+pub mod lap;
 pub mod lead;
 pub mod left;
 pub(crate) mod medial;

@@ -946,10 +946,15 @@ pub const STRAIGHT_FLANK_RAD: f64 = std::f64::consts::FRAC_PI_2;
 /// The flank angle new tabs get with a ramp entry and a tool that can plunge: 30°.
 pub const DEFAULT_RAMPED_FLANK_RAD: f64 = std::f64::consts::PI / 6.0;
 
+/// A flank angle of 90° (within the angle tolerance): a straight tab.
+pub fn flank_is_straight(flank_angle: f64) -> bool {
+    flank_angle >= STRAIGHT_FLANK_RAD - ANGLE_TOL_RAD
+}
+
 impl Tabs {
     /// Straight up and down (90°, within the angle tolerance).
     pub fn is_straight(&self) -> bool {
-        self.flank_angle >= STRAIGHT_FLANK_RAD - ANGLE_TOL_RAD
+        flank_is_straight(self.flank_angle)
     }
 
     /// The flank angle new tabs get (docs/specs/profile-spiral.md §4): straight with a

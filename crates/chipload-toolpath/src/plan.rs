@@ -7,24 +7,23 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
     Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, PocketStrategy,
-    Problem, ProfileOp, Side, Tool, ToolType, VcarveOp, ZZero,
+    Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
-use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
 use crate::geom::PrimIndex;
+use crate::lap::{RingCut, TabSurface, ring_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
 use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
-use crate::profile::{
-    TabsAt, contour_moves, cut_clockwise, led_contour_moves, pass_depths, plan_profile,
-};
+use crate::profile::{cut_clockwise, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours};
-use crate::tabs::{place_tabs, tab_polylines, tabbed_contour_moves};
+use crate::tabs::{TabLayout, place_tabs, tab_polylines};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -543,93 +542,54 @@ fn plan_profile_op(
     let mut curved: Vec<usize> = Vec::new();
     for ring in &plan.rings {
         let points = &ring.points;
+        let context = |err: ToolpathError| {
+            err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+        };
         let leads = match op.lead {
             Some(lead) => profile_leads(op, ctx, ring, lead.radius, &mut out.notes),
             None => None,
         };
         if let Some(leads) = &leads {
             leads.tag(&mut out.arcs);
-            let context = |err: ToolpathError| {
-                err.with_context(&format!("{label}, contour #{}", ring.contour_id))
-            };
-            let mut layout = None;
-            if let Some(tabs) = &op.tabs {
-                // Validated: count >= 1.
-                let count = usize::try_from(tabs.count).unwrap_or(0);
-                let placed =
-                    place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
-                if placed.on_curves > 0 {
-                    curved.push(ring.contour_id);
-                }
-                out.tabs.extend(tab_polylines(points, &placed));
-                let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
-                layout = Some((placed, bottom + tabs.height));
-            }
-            out.moves.extend(
-                led_contour_moves(
-                    points,
-                    leads,
-                    layout.as_ref().map(|(layout, z_tab)| TabsAt {
-                        layout,
-                        z_tab: *z_tab,
-                    }),
-                    ctx.pass_z,
-                    ctx.top_z,
-                    machine.safe_z,
-                    op.feed,
-                    op.plunge_feed,
-                    op.entry,
-                )
-                .map_err(context)?,
-            );
-            out.end = leads.lead_out.last().copied().unwrap_or(points[0]);
-            continue;
         }
-        match &op.tabs {
-            None => out.moves.extend(
-                contour_moves(
-                    points,
-                    ctx.pass_z,
-                    ctx.top_z,
-                    machine.safe_z,
-                    op.feed,
-                    op.plunge_feed,
-                    op.entry,
-                )
-                .map_err(|err| {
-                    err.with_context(&format!("{label}, contour #{}", ring.contour_id))
-                })?,
-            ),
-            Some(tabs) => {
-                // Validated: count >= 1.
-                let count = usize::try_from(tabs.count).unwrap_or(0);
-                let context = |err: ToolpathError| {
-                    err.with_context(&format!("{label}, contour #{}", ring.contour_id))
-                };
-                let layout =
-                    place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
-                if layout.on_curves > 0 {
-                    curved.push(ring.contour_id);
-                }
-                let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
-                out.moves.extend(
-                    tabbed_contour_moves(
-                        points,
-                        &layout,
-                        ctx.pass_z,
-                        ctx.top_z,
-                        bottom + tabs.height,
-                        machine.safe_z,
-                        op.feed,
-                        op.plunge_feed,
-                        op.entry,
-                    )
-                    .map_err(context)?,
-                );
-                out.tabs.extend(tab_polylines(points, &layout));
+        let mut layout = None;
+        if let Some(tabs) = &op.tabs {
+            // Validated: count >= 1.
+            let count = usize::try_from(tabs.count).unwrap_or(0);
+            let placed =
+                place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
+            if placed.on_curves > 0 {
+                curved.push(ring.contour_id);
             }
+            out.tabs.extend(tab_polylines(points, &placed));
+            if let Some(note) = joined_feet(&placed, tabs) {
+                out.notes
+                    .push(format!("{label}, contour #{}: {note}", ring.contour_id));
+            }
+            let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
+            layout = Some((placed, bottom + tabs.height, tabs.flank_angle));
         }
-        out.end = points[0];
+        let cut = RingCut {
+            ring: points,
+            tabs: layout
+                .as_ref()
+                .map(|(layout, z_tab, flank_angle)| TabSurface {
+                    layout,
+                    z_tab: *z_tab,
+                    flank_angle: *flank_angle,
+                }),
+            leads: leads.as_ref(),
+            pass_z: ctx.pass_z,
+            top_z: ctx.top_z,
+            safe_z: machine.safe_z,
+            feed: op.feed,
+            plunge_feed: op.plunge_feed,
+            entry: op.entry,
+            tool_diameter: ctx.tool.diameter,
+        };
+        let cut = ring_moves(&cut, &out.arcs).map_err(context)?;
+        out.moves.extend(cut.moves);
+        out.end = cut.end;
     }
     if !curved.is_empty() {
         let ids: Vec<String> = curved.iter().map(|c| format!("#{c}")).collect();
@@ -640,6 +600,36 @@ fn plan_profile_op(
         ));
     }
     Ok(out)
+}
+
+/// A note when neighbouring sloped tabs meet below their top: their feet, each
+/// `height / tan(flank)` long, together are longer than the gap between them
+/// (docs/specs/profile-spiral.md §4).
+fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<String> {
+    if tabs.is_straight() || layout.spans.len() < 2 {
+        return None;
+    }
+    let feet = 2.0 * tabs.height / tabs.flank_angle.tan();
+    let count = layout.spans.len();
+    let mut pairs = Vec::new();
+    for k in 0..count {
+        let (_, end) = layout.spans[k];
+        let next = (k + 1) % count;
+        let mut gap = layout.spans[next].0 - end;
+        if next == 0 {
+            gap += layout.length;
+        }
+        if gap < feet {
+            pairs.push(format!("{} and {}", k + 1, next + 1));
+        }
+    }
+    (!pairs.is_empty()).then(|| {
+        format!(
+            "tabs {} meet below their top (flanks at {:.1}°): they hold as one longer tab",
+            pairs.join(", "),
+            tabs.flank_angle.to_degrees()
+        )
+    })
 }
 
 /// Leads for one profile ring that keep the tool centre at least the ring's offset from its
@@ -969,7 +959,14 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                 )
             }),
             Operation::Profile(p) => plunge_notes(number, "profile", tool, p.entry)
-                .map_err(|e| (at("entry"), numbered.clone(), e)),
+                .map_err(|e| (at("entry"), numbered.clone(), e))
+                .and_then(|mut found| {
+                    found.extend(
+                        flank_notes(number, tool, p)
+                            .map_err(|e| (at("tabs.flank_angle"), numbered.clone(), e))?,
+                    );
+                    Ok(found)
+                }),
             Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
                 let path = if tool.kind == ToolType::Vbit {
                     format!("tools.{k}.angle")
@@ -1082,6 +1079,34 @@ fn pocket_tool_notes(
         )));
     }
     plunge_notes(number, "pocket", tool, entry)
+}
+
+/// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,
+/// flanks steeper than the ramp angle are refused for a tool marked not centre-cutting, and
+/// a note when it's unknown.
+fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, ToolpathError> {
+    let (Some(ramp_angle), Some(tabs)) = (op.entry.ramp_angle(), &op.tabs) else {
+        return Ok(Vec::new());
+    };
+    if tabs.flank_angle <= ramp_angle + ANGLE_TOL_RAD {
+        return Ok(Vec::new());
+    }
+    let (flank, ramp) = (tabs.flank_angle.to_degrees(), ramp_angle.to_degrees());
+    match tool.center_cutting {
+        Some(false) => Err(job_error(format!(
+            "Operation {number}: tool {} is not centre-cutting and the tabs' flanks \
+             ({flank:.1}°) are steeper than the ramp angle ({ramp:.1}°); going down a flank \
+             is a ramp, so make them no steeper than {ramp:.1}°",
+            tool.id
+        ))),
+        None => Ok(vec![format!(
+            "Operation {number}: the tabs' flanks ({flank:.1}°) are steeper than the ramp \
+             angle ({ramp:.1}°); tool {} isn't marked center_cutting, make sure it is a \
+             centre-cutting tool",
+            tool.id
+        )]),
+        Some(true) => Ok(Vec::new()),
+    }
 }
 
 /// A straight plunge needs a centre-cutting tool (docs/specs/ramp-entry.md §6): refused

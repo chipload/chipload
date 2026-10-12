@@ -8,7 +8,8 @@ it's built (see `CLAUDE.md`).
 - **Spiral profiles and ramped tabs** (docs/specs/profile-spiral.md, approved 2026-10-12):
   ramped profiles spiral forward instead of ramping back and forth, tabs get sloped
   flanks, one lead-in and a rise-out. Steps: (1) schema 16 with `tabs.flank_angle` — done;
-  (2) the spiral and ramped tabs in the toolpath, goldens; (3) GUI field and setup sheet.
+  (2) the spiral and ramped tabs in the toolpath, goldens — done; (3) GUI field and setup
+  sheet.
 
 ## State to remember (2026-10-12)
 
