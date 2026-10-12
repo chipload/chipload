@@ -533,6 +533,32 @@ pub(super) fn op_form(
             });
             feeds_section(ui, &mut v.feed, &mut v.plunge_feed, op_tool);
         }
+        Operation::Path(p) => {
+            let cut = format!(
+                "{}–{} mm, steps of {} mm, on the line",
+                len(p.start_depth),
+                len(p.end_depth),
+                len(p.step_down)
+            );
+            section(ui, "op-cut", "Cut", &cut, |ui| {
+                ui.label("Start depth")
+                    .on_hover_text("Where the cut starts, down from the stock top");
+                flag(ui.add(mm(&mut p.start_depth)), ui, "start_depth");
+                ui.end_row();
+                ui.label("End depth")
+                    .on_hover_text("Where the cut ends, down from the stock top");
+                flag(ui.add(mm(&mut p.end_depth)), ui, "end_depth");
+                ui.end_row();
+                ui.label("Step down");
+                flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
+                ui.end_row();
+            });
+            feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
+            let entry_text = entry_summary(&p.entry, None);
+            section(ui, "op-entry", "Entry", &entry_text, |ui| {
+                entry_rows(ui, index, &mut p.entry, None);
+            });
+        }
     }
     request.use_selection = use_selection;
     request
@@ -615,6 +641,9 @@ fn has_cutting_values(op: &Operation, c: &Cutting) -> bool {
         Operation::Vcarve(v) => {
             (v.feed, v.plunge_feed, v.step_down) == (c.feed, c.plunge_feed, Some(c.step_down))
         }
+        Operation::Path(p) => {
+            (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
+        }
     }
 }
 
@@ -629,6 +658,9 @@ fn apply_cutting(op: &mut Operation, c: &Cutting) {
         }
         Operation::Vcarve(v) => {
             (v.feed, v.plunge_feed, v.step_down) = (c.feed, c.plunge_feed, Some(c.step_down));
+        }
+        Operation::Path(p) => {
+            (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
         }
     }
 }
@@ -660,9 +692,9 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
 fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<f64>) {
     ui.label("Entry").on_hover_text(
         "How the tool goes down into the material. A ramp goes down along the path (a \
-         profile spirals down round its ring, a pocket ramps out and back), a helix \
-         (pockets) round a small circle, so the tool needn't be centre-cutting; both use the \
-         cutting feed.",
+         profile spirals down round its ring, a follow path goes down as it goes back and \
+         forth, a pocket ramps out and back), a helix (pockets) round a small circle, so the \
+         tool needn't be centre-cutting; both use the cutting feed.",
     );
     let ramp = Entry::Ramp {
         ramp_angle: DEFAULT_RAMP_ANGLE_RAD,

@@ -38,8 +38,7 @@ it's built (see `CLAUDE.md`).
 
 - **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"), each with its
   own spec first, in this order:
-  1. **Follow path**: an operation that cuts open paths (and closed ones on the line),
-     for engraving, grooves and score lines (docs/specs/follow-path.md, approved).
+  1. **Follow path** — done 2026-10-13 (docs/specs/follow-path.md, schema 17).
   2. **Finishing pass and onion skin** on profiles: a light last pass on the wall; a thin
      skin left on the last pass instead of tabs, cut through at the end.
   3. **Drilling**: drill cycles (G81, G83 peck) for circles that fit a drill, and helical

@@ -6,7 +6,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, PocketStrategy,
+    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PathOp, PocketOp, PocketStrategy,
     Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
@@ -20,9 +20,10 @@ use crate::lap::{RingCut, TabSurface, ring_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
+use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
 use crate::profile::{cut_clockwise, pass_depths, plan_profile};
-use crate::select::{Selection, select_contours};
+use crate::select::{Selection, select_contours, select_paths};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
@@ -128,7 +129,10 @@ pub fn plan_job_cancellable(
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
-        let selection = select_contours(contours, op.select(), &label)?;
+        let selection = match op {
+            Operation::Path(_) => select_paths(contours, op.select(), &label)?,
+            _ => select_contours(contours, op.select(), &label)?,
+        };
         chosen.push((index, label, selection));
     }
     let copies = job
@@ -191,7 +195,8 @@ pub fn plan_job_cancellable(
         // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
         let pass_z: Vec<f64> = match op {
             Operation::Profile(ProfileOp { step_down, .. })
-            | Operation::Pocket(PocketOp { step_down, .. }) => {
+            | Operation::Pocket(PocketOp { step_down, .. })
+            | Operation::Path(PathOp { step_down, .. }) => {
                 pass_depths(start_depth, end_depth, *step_down)?
                     .into_iter()
                     .map(|d| top_z - d)
@@ -238,6 +243,7 @@ pub fn plan_job_cancellable(
                 plan_profile_op(profile, &context, &shifted, position, &starts)
             }
             Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
+            Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         };
         let planned = match planned {
             Ok(planned) => planned,
@@ -439,6 +445,87 @@ fn experimental_note(strategy: PocketStrategy) -> Option<String> {
         "{name} clearing is experimental and will be revised; check the toolpath before \
          cutting, or switch the pocket to rings"
     ))
+}
+
+fn plan_path_op(
+    op: &PathOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label;
+    let mut arcs = ArcTable::default();
+    let mut notes = Vec::new();
+    let paths = order_paths(
+        &selection.contours,
+        start,
+        ctx.job.machine.spindle,
+        &mut arcs,
+        &mut notes,
+    );
+    let mut notes: Vec<String> = notes.iter().map(|n| format!("{label}: {n}")).collect();
+    if let Some(note) = groove_note(ctx.tool, op.end_depth - op.start_depth) {
+        notes.push(format!("{label}: {note}"));
+    }
+    let cut = PathCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        entry: op.entry,
+        tool_diameter: ctx.tool.diameter,
+        spindle: ctx.job.machine.spindle,
+    };
+    let mut moves = Vec::new();
+    let mut end = start;
+    for path in &paths {
+        ctx.cancel.check()?;
+        let (more, at) = path_moves(path, &cut, &arcs)
+            .map_err(|err| err.with_context(&format!("{label}, contour #{}", path.contour_id)))?;
+        moves.extend(more);
+        end = at;
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        left: Vec::new(),
+        arcs,
+        end,
+        starts: Vec::new(),
+    })
+}
+
+/// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5).
+fn groove_note(tool: &Tool, depth: f64) -> Option<String> {
+    if tool.kind != ToolType::Vbit {
+        return None;
+    }
+    let Some(angle) = tool.angle else {
+        return Some(format!(
+            "tool {} is a V-bit without an angle: the groove's width is unknown",
+            tool.id
+        ));
+    };
+    let tip = tool.tip_diameter.unwrap_or(0.0);
+    let width = tip + 2.0 * depth * (angle / 2.0).tan();
+    Some(if width > tool.diameter {
+        format!(
+            "the V-groove is deeper than the V-bit's cone: {} mm wide at the top, with \
+             straight walls above the cone",
+            trim(tool.diameter)
+        )
+    } else {
+        format!("the V-groove is {} mm wide at the top", trim(width))
+    })
+}
+
+/// A length for a note: 3 decimals, no trailing zeros.
+fn trim(value: f64) -> String {
+    let text = format!("{value:.3}");
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 fn plan_vcarve_op(
@@ -851,6 +938,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
             Operation::Profile(p) => (p.feed, p.plunge_feed),
             Operation::Pocket(p) => (p.feed, p.plunge_feed),
             Operation::Vcarve(v) => (v.feed, v.plunge_feed),
+            Operation::Path(p) => (p.feed, p.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
@@ -899,7 +987,16 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
             }
         }
         if let Entry::Helix { radius, .. } = op.entry() {
-            if let Operation::Profile(_) = op {
+            if let Operation::Path(_) = op {
+                problems.push(labelled(
+                    at("entry"),
+                    &label,
+                    format!(
+                        "{label}: helix entry is for pockets; a follow path can ramp in \
+                         (entry: ramp)"
+                    ),
+                ));
+            } else if let Operation::Profile(_) = op {
                 problems.push(labelled(
                     at("entry"),
                     &label,
@@ -967,6 +1064,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                     );
                     Ok(found)
                 }),
+            Operation::Path(p) => path_tool_notes(number, tool, p.entry)
+                .map_err(|e| (at("tool"), numbered.clone(), e)),
             Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
                 let path = if tool.kind == ToolType::Vbit {
                     format!("tools.{k}.angle")
@@ -1079,6 +1178,20 @@ fn pocket_tool_notes(
         )));
     }
     plunge_notes(number, "pocket", tool, entry)
+}
+
+/// A follow path takes an endmill (which must be centre-cutting to plunge) or a V-bit
+/// (centre-cutting by its shape); a drill can't follow a path (docs/specs/follow-path.md §5).
+fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, ToolpathError> {
+    match tool.kind {
+        ToolType::Drill => Err(job_error(format!(
+            "Operation {number}: tool {} is a drill, which can't follow a path; use an \
+             endmill or a V-bit",
+            tool.id
+        ))),
+        ToolType::Vbit => Ok(Vec::new()),
+        ToolType::Endmill => plunge_notes(number, "follow path", tool, entry),
+    }
 }
 
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,

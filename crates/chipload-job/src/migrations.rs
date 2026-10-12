@@ -11,9 +11,9 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 12] = [
+const MIGRATIONS: [Migration; 13] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
-    v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16,
+    v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -273,6 +273,13 @@ fn v15_to_v16(mut data: Value) -> Result<Value, String> {
         tabs.insert("flank_angle".into(), Value::from(flank));
     }
     Ok(set_version(data, 16))
+}
+
+/// 16 -> 17: the follow-path operation (docs/specs/follow-path.md §2). A v16 file has none;
+/// the bump makes an older Chipload refuse v17 files as "newer" instead of tripping over an
+/// unknown operation type. Nothing changes.
+fn v16_to_v17(data: Value) -> Result<Value, String> {
+    Ok(set_version(data, 17))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

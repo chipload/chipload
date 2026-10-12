@@ -11,9 +11,9 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v16: embedded drawing and its placement (move, 90° turns, scale), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, adaptive pockets cutting the stepover, rounded ring corners, a copied user post-processor, tab flank angles), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
+| `chipload-job` | project file models (schema v17: embedded drawing and its placement (move, 90° turns, scale), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, adaptive pockets cutting the stepover, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
-| `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, V-carving (medial axis via boostvoronoi, ADR 0015), job planning |
+| `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs), tabs, pockets, V-carving (medial axis via boostvoronoi, ADR 0015), follow paths, job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text |

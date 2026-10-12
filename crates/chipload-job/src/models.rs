@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 16;
+pub const CURRENT_VERSION: i64 = 17;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -990,6 +990,9 @@ pub enum Operation {
     Profile(ProfileOp),
     Pocket(PocketOp),
     Vcarve(VcarveOp),
+    /// Follow path: the tool centre on the selected shapes, open or closed
+    /// (docs/specs/follow-path.md).
+    Path(PathOp),
 }
 
 fn enabled_default() -> bool {
@@ -1002,6 +1005,7 @@ impl Operation {
             Operation::Profile(op) => &op.name,
             Operation::Pocket(op) => &op.name,
             Operation::Vcarve(op) => &op.name,
+            Operation::Path(op) => &op.name,
         }
     }
 
@@ -1010,6 +1014,7 @@ impl Operation {
             Operation::Profile(op) => &mut op.name,
             Operation::Pocket(op) => &mut op.name,
             Operation::Vcarve(op) => &mut op.name,
+            Operation::Path(op) => &mut op.name,
         }
     }
 
@@ -1018,6 +1023,7 @@ impl Operation {
             Operation::Profile(op) => op.enabled = enabled,
             Operation::Pocket(op) => op.enabled = enabled,
             Operation::Vcarve(op) => op.enabled = enabled,
+            Operation::Path(op) => op.enabled = enabled,
         }
     }
 
@@ -1026,6 +1032,7 @@ impl Operation {
             Operation::Profile(op) => op.enabled,
             Operation::Pocket(op) => op.enabled,
             Operation::Vcarve(op) => op.enabled,
+            Operation::Path(op) => op.enabled,
         }
     }
 
@@ -1034,6 +1041,7 @@ impl Operation {
             Operation::Profile(op) => op.tool,
             Operation::Pocket(op) => op.tool,
             Operation::Vcarve(op) => op.tool,
+            Operation::Path(op) => op.tool,
         }
     }
 
@@ -1042,6 +1050,7 @@ impl Operation {
             Operation::Profile(op) => op.tool = tool,
             Operation::Pocket(op) => op.tool = tool,
             Operation::Vcarve(op) => op.tool = tool,
+            Operation::Path(op) => op.tool = tool,
         }
     }
 
@@ -1051,6 +1060,7 @@ impl Operation {
             Operation::Profile(op) => (op.start_depth, op.end_depth),
             Operation::Pocket(op) => (op.start_depth, op.end_depth),
             Operation::Vcarve(op) => (op.start_depth, op.end_depth),
+            Operation::Path(op) => (op.start_depth, op.end_depth),
         }
     }
 
@@ -1060,6 +1070,7 @@ impl Operation {
             Operation::Pocket(p) => p.entry,
             // Paths start at the ends of the axis, mostly at depth 0; others plunge.
             Operation::Vcarve(_) => Entry::Plunge {},
+            Operation::Path(p) => p.entry,
         }
     }
 
@@ -1068,15 +1079,16 @@ impl Operation {
             Operation::Profile(p) => &p.starts,
             Operation::Pocket(p) => &p.starts,
             Operation::Vcarve(_) => &[],
+            Operation::Path(_) => &[],
         }
     }
 
-    /// None for an operation without start points (a V-carve).
+    /// None for an operation without start points (a V-carve, a follow path).
     pub fn starts_mut(&mut self) -> Option<&mut Vec<[f64; 2]>> {
         match self {
             Operation::Profile(p) => Some(&mut p.starts),
             Operation::Pocket(p) => Some(&mut p.starts),
-            Operation::Vcarve(_) => None,
+            Operation::Vcarve(_) | Operation::Path(_) => None,
         }
     }
 
@@ -1084,7 +1096,7 @@ impl Operation {
         match self {
             Operation::Profile(p) => p.lead,
             Operation::Pocket(p) => p.lead,
-            Operation::Vcarve(_) => None,
+            Operation::Vcarve(_) | Operation::Path(_) => None,
         }
     }
 
@@ -1094,6 +1106,8 @@ impl Operation {
             Operation::Pocket(op) => op.clearance,
             // A V-carve's cut is set by the outline and the angle alone.
             Operation::Vcarve(_) => 0.0,
+            // On the line: no offset.
+            Operation::Path(_) => 0.0,
         }
     }
 
@@ -1102,6 +1116,7 @@ impl Operation {
             Operation::Profile(op) => &op.select,
             Operation::Pocket(op) => &op.select,
             Operation::Vcarve(op) => &op.select,
+            Operation::Path(op) => &op.select,
         }
     }
 
@@ -1110,6 +1125,7 @@ impl Operation {
             Operation::Profile(op) => &mut op.select,
             Operation::Pocket(op) => &mut op.select,
             Operation::Vcarve(op) => &mut op.select,
+            Operation::Path(op) => &mut op.select,
         }
     }
 }
@@ -1218,6 +1234,28 @@ pub struct VcarveOp {
     pub step_down: Option<f64>,
     pub feed: f64,
     pub plunge_feed: f64,
+}
+
+/// Follow path (docs/specs/follow-path.md): the tool centre follows the selected shapes on
+/// the line, open paths back and forth, closed ones round, in depth passes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PathOp {
+    #[serde(default)]
+    pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    pub select: Selector,
+    pub tool: i64,
+    /// Where the cut starts and ends, mm down from the stock top: 0 <= start < end.
+    pub start_depth: f64,
+    pub end_depth: f64,
+    pub step_down: f64,
+    pub feed: f64,
+    pub plunge_feed: f64,
+    /// Plunge or ramp (a helix is for pockets).
+    pub entry: Entry,
 }
 
 /// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
@@ -1575,6 +1613,12 @@ impl Job {
                     }
                     positive(at("feed"), v.feed);
                     positive(at("plunge_feed"), v.plunge_feed);
+                }
+                Operation::Path(p) => {
+                    positive(at("end_depth"), p.end_depth);
+                    positive(at("step_down"), p.step_down);
+                    positive(at("feed"), p.feed);
+                    positive(at("plunge_feed"), p.plunge_feed);
                 }
             }
         }

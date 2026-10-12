@@ -26,7 +26,7 @@ use chipload_pipeline::{
     write_gcode_files,
 };
 use chipload_toolpath::left::LeftKind;
-use chipload_toolpath::select::select_contours;
+use chipload_toolpath::select::{select_contours, select_paths};
 use eframe::egui::{
     self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, MenuBar, Modifiers, Panel,
     RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
@@ -864,7 +864,7 @@ impl ChiploadApp {
 
     /// A job selector for the canvas selection, e.g. {"shapes": [3, 4]}.
     pub fn selector_json(&self) -> Option<String> {
-        let selector = self.selection.selector(&self.contours);
+        let selector = self.selection.selector(&self.contours, false);
         let empty = selector.layer.is_none() && selector.shapes.as_ref().is_none_or(Vec::is_empty);
         (!empty).then(|| selector_text(&selector))
     }
@@ -905,9 +905,32 @@ impl ChiploadApp {
         let Some(entry) = edit.ops.get(i) else {
             return BTreeSet::new();
         };
-        select_contours(&self.contours, entry.op.select(), "Operation")
+        let selected = match entry.op {
+            Operation::Path(_) => select_paths(&self.contours, entry.op.select(), "Operation"),
+            _ => select_contours(&self.contours, entry.op.select(), "Operation"),
+        };
+        selected
             .map(|s| s.contours.iter().map(|c| c.id).collect())
             .unwrap_or_default()
+    }
+
+    /// The open contours an enabled follow path cuts (docs/specs/follow-path.md §7).
+    fn followed_contours(&self) -> BTreeSet<usize> {
+        let Some(edit) = &self.edit else {
+            return BTreeSet::new();
+        };
+        edit.ops
+            .iter()
+            .filter(|e| e.op.enabled() && matches!(e.op, Operation::Path(_)))
+            .filter_map(|e| select_paths(&self.contours, e.op.select(), "Operation").ok())
+            .flat_map(|s| {
+                s.contours
+                    .iter()
+                    .filter(|c| !c.closed)
+                    .map(|c| c.id)
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 
     /// Inputs changed: the old toolpath and G-code no longer apply.

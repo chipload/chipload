@@ -16,6 +16,7 @@ pub mod left;
 pub(crate) mod medial;
 pub mod model;
 pub mod offset;
+pub mod path;
 pub mod plan;
 pub mod pocket;
 pub mod profile;

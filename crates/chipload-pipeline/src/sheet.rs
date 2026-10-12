@@ -358,6 +358,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Profile(p) => (p.feed, p.plunge_feed),
         Operation::Pocket(p) => (p.feed, p.plunge_feed),
         Operation::Vcarve(v) => (v.feed, v.plunge_feed),
+        Operation::Path(p) => (p.feed, p.plunge_feed),
     }
 }
 
@@ -392,6 +393,7 @@ fn kind_text(op: &Operation) -> String {
             )
         }
         Operation::Vcarve(_) => "V-carve".to_string(),
+        Operation::Path(_) => "Follow path, on the line".to_string(),
     };
     if op.clearance() > 0.0 {
         let _ = write!(text, ", leaves {} mm", num(op.clearance()));
@@ -406,6 +408,7 @@ fn depth_text(op: &Operation) -> String {
         Operation::Profile(p) => Some(p.step_down),
         Operation::Pocket(p) => Some(p.step_down),
         Operation::Vcarve(v) => v.step_down,
+        Operation::Path(p) => Some(p.step_down),
     };
     let passes = match step {
         Some(step) if step > 0.0 && step < end - start => format!(", {} per pass", num(step)),

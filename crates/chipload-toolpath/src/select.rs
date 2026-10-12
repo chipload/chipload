@@ -23,6 +23,26 @@ pub fn select_contours<'a>(
     selector: &Selector,
     op: &str,
 ) -> Result<Selection<'a>, ToolpathError> {
+    select(contours, selector, op, false)
+}
+
+/// Every contour whose every segment matches, open or closed, for a follow path
+/// (docs/specs/follow-path.md §1): it follows the drawing as drawn, so a closed contour that
+/// can't be offset (it crosses itself) is followed too. Partly matched contours are refused.
+pub fn select_paths<'a>(
+    contours: &'a [Contour],
+    selector: &Selector,
+    op: &str,
+) -> Result<Selection<'a>, ToolpathError> {
+    select(contours, selector, op, true)
+}
+
+fn select<'a>(
+    contours: &'a [Contour],
+    selector: &Selector,
+    op: &str,
+    paths: bool,
+) -> Result<Selection<'a>, ToolpathError> {
     // Every selected shape must be part of some contour; otherwise it was deleted, or chaining
     // dropped it (a duplicate or zero-length segment). Never skip it silently.
     if let Some(ids) = &selector.shapes {
@@ -61,6 +81,10 @@ pub fn select_contours<'a>(
                 contour.id,
                 contour.layers().join(", ")
             )));
+        }
+        if paths {
+            selected.push(contour);
+            continue;
         }
         if !contour.closed {
             skipped.push(contour);

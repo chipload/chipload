@@ -1,6 +1,11 @@
 # Spec: follow path (cutting open paths)
 
 Status: **approved 2026-10-13**, all decisions as recommended (§9).
+Built 2026-10-13. As built: closed shapes go round the way a climb-milled profile "on" the
+line does (same start, same direction); the canvas selection now keeps open shapes when it
+becomes a follow path's geometry (it left them out for every operation, found by the GUI
+test); open paths end with a straight retract (no rise-out: the tool is at the path's end,
+not against a wall).
 
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 1. Today open contours
 are never cut: profiles and pockets skip them with a note ("skipped open contour"). That is

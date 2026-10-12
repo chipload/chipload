@@ -8,8 +8,8 @@ use std::collections::BTreeSet;
 use chipload_core::chain::Contour;
 use chipload_job::library::Cutting;
 use chipload_job::{
-    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, Job, Operation, PocketOp, PocketStrategy, ProfileOp,
-    Selector, Side, VcarveOp,
+    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, Job, Operation, PathOp, PocketOp, PocketStrategy,
+    ProfileOp, Selector, Side, ToolType, VcarveOp,
 };
 
 use crate::view::Kind;
@@ -77,8 +77,9 @@ impl CanvasSelection {
     }
 
     /// A job selector for it: the shapes of the selected contours, or the layer for a layer
-    /// selection. Open contours are left out, as the pipeline would skip them anyway.
-    pub fn selector(&self, contours: &[Contour]) -> Selector {
+    /// selection. Open contours are left out unless `open` (a follow path cuts them;
+    /// profiles and pockets would skip them anyway).
+    pub fn selector(&self, contours: &[Contour], open: bool) -> Selector {
         match self {
             CanvasSelection::Layer(layer) => Selector {
                 layer: Some(layer.clone()),
@@ -87,7 +88,10 @@ impl CanvasSelection {
             _ => {
                 let ids = self.ids(contours);
                 let mut shapes: Vec<u64> = Vec::new();
-                for c in contours.iter().filter(|c| ids.contains(&c.id) && c.closed) {
+                for c in contours
+                    .iter()
+                    .filter(|c| ids.contains(&c.id) && (c.closed || open))
+                {
                     for id in c.parts.iter().filter_map(|p| p.segment.shape) {
                         if !shapes.contains(&id) {
                             shapes.push(id);
@@ -123,6 +127,8 @@ pub enum OpKind {
     Profile,
     Pocket,
     Vcarve,
+    /// Follow path (docs/specs/follow-path.md).
+    Path,
 }
 
 /// One operation as edited. `side_chosen` is false while a profile's side still has to be
@@ -178,6 +184,7 @@ impl EditJob {
                 v.plunge_feed,
                 None,
             ),
+            Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
         });
         let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
             Operation::Pocket(p) => Some(p.stepover),
@@ -235,11 +242,12 @@ impl EditJob {
                     (Operation::Profile(_), OpKind::Profile)
                         | (Operation::Pocket(_), OpKind::Pocket)
                         | (Operation::Vcarve(_), OpKind::Vcarve)
+                        | (Operation::Path(_), OpKind::Path)
                 )
             })
             .count()
             + 1;
-        let select = selection.selector(contours);
+        let select = selection.selector(contours, kind == OpKind::Path);
         let tool = self.next_tool_id();
         let chosen = self.settings.tools.iter().find(|t| t.id == tool);
         // A tool marked not centre-cutting can't plunge: new profiles ramp in
@@ -255,6 +263,13 @@ impl EditJob {
             (false, OpKind::Pocket) => Entry::default_helix(diameter),
             // A V-bit's point goes in along the path; the entry isn't used.
             (false, OpKind::Vcarve) => Entry::Plunge {},
+            // A pointed V-bit is centre-cutting by its shape (docs/specs/follow-path.md §5).
+            (false, OpKind::Path) if chosen.is_some_and(|t| t.kind == ToolType::Vbit) => {
+                Entry::Plunge {}
+            }
+            (false, OpKind::Path) => Entry::Ramp {
+                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+            },
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
@@ -319,6 +334,21 @@ impl EditJob {
                 }),
                 true,
             ),
+            OpKind::Path => (
+                Operation::Path(PathOp {
+                    name: format!("Follow path {number}"),
+                    enabled: true,
+                    select,
+                    tool,
+                    start_depth: 0.0,
+                    end_depth: DEFAULT_DEPTH,
+                    step_down,
+                    feed,
+                    plunge_feed,
+                    entry,
+                }),
+                true,
+            ),
         };
         self.ops.push(EditOp { op, side_chosen });
         index
@@ -331,7 +361,8 @@ impl EditJob {
         selection: &CanvasSelection,
         contours: &[Contour],
     ) {
-        let select = selection.selector(contours);
+        let open = matches!(self.ops.get(index).map(|e| &e.op), Some(Operation::Path(_)));
+        let select = selection.selector(contours, open);
         let Some(edit) = self.ops.get_mut(index) else {
             return;
         };
@@ -347,6 +378,7 @@ impl EditJob {
             }
             Operation::Pocket(p) => p.select = select,
             Operation::Vcarve(v) => v.select = select,
+            Operation::Path(p) => p.select = select,
         }
     }
 

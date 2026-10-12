@@ -1489,6 +1489,47 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     assert!(matches!(edit.ops[copy].op, Operation::Vcarve(_)));
 }
 
+#[test]
+fn a_follow_path_is_added_for_open_and_closed_shapes_and_generated() {
+    // docs/specs/follow-path.md §7: the follow-path project, its operations replaced.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v17/follow_path.chipload")));
+    let edit = app.edit.as_mut().unwrap();
+    edit.remove(1);
+    edit.remove(0);
+    let open: Vec<usize> = app
+        .contours
+        .iter()
+        .filter(|c| !c.closed)
+        .map(|c| c.id)
+        .collect();
+    let closed = app.contours.iter().find(|c| c.closed).unwrap().id;
+    assert_eq!(open.len(), 2);
+    let mut ids = open.clone();
+    ids.push(closed);
+    select(&mut app, &ids);
+    let i = app.add_operation(OpKind::Path).unwrap();
+    let edit = app.edit.as_ref().unwrap();
+    let Operation::Path(p) = &edit.ops[i].op else {
+        panic!("a follow path");
+    };
+    assert_eq!(p.name, "Follow path 1");
+    assert_eq!(p.start_depth, 0.0);
+    // The open shapes are in its geometry (a profile would leave them out).
+    assert_eq!(p.select.shapes.as_ref().map(Vec::len), Some(3));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    // Every shape is cut: the open paths' ends are reached.
+    let moves = &app.result.as_ref().unwrap().program.moves;
+    for end in [(50.0, 40.0), (150.0, 60.0), (60.0, 110.0), (140.0, 110.0)] {
+        assert!(
+            moves
+                .iter()
+                .any(|m| m.x == Some(end.0) && m.y == Some(end.1)),
+            "{end:?} is never reached"
+        );
+    }
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

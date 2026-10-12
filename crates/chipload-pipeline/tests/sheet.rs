@@ -27,7 +27,7 @@ fn info(project: &str) -> SheetInfo {
 }
 
 /// (golden name, frozen project, G-code output as given to `run -o`).
-const GOLDEN: [(&str, &str, &str); 3] = [
+const GOLDEN: [(&str, &str, &str); 4] = [
     // Two files, one per tool.
     ("v11_two_tools", "jobs/v11/two_tools.chipload", "part.nc"),
     // The same in one file with M6.
@@ -41,6 +41,12 @@ const GOLDEN: [(&str, &str, &str); 3] = [
         "v15_linuxcnc_helix",
         "jobs/v15/linuxcnc_helix.chipload",
         "part.ngc",
+    ),
+    // Follow paths: open and closed shapes, a V-bit groove and a ramped endmill.
+    (
+        "v17_follow_path",
+        "jobs/v17/follow_path.chipload",
+        "part.nc",
     ),
 ];
 

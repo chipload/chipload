@@ -42,6 +42,7 @@ pub fn cutting_feed(op: &Operation) -> f64 {
         Operation::Profile(p) => p.feed,
         Operation::Pocket(p) => p.feed,
         Operation::Vcarve(v) => v.feed,
+        Operation::Path(p) => p.feed,
     }
 }
 

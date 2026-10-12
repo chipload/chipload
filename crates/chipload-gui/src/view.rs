@@ -471,6 +471,8 @@ pub struct Highlight {
     pub operation_contours: BTreeSet<usize>,
     /// That operation's index, whose material left is emphasised.
     pub operation: Option<usize>,
+    /// Open contours that a follow path cuts: drawn solid, not dashed as "not cut".
+    pub followed: BTreeSet<usize>,
     pub show_material_left: bool,
 }
 
@@ -733,7 +735,7 @@ impl Scene {
                 (false, Kind::Open) => (OPEN, 1.5),
                 (false, Kind::Invalid) => (INVALID, 2.5),
             };
-            if c.kind == Kind::Open && !is_selected {
+            if c.kind == Kind::Open && !is_selected && !highlight.followed.contains(&c.id) {
                 dashed(pts, Stroke::new(width, color));
             } else {
                 painter.add(Shape::line(pts, Stroke::new(width, color)));

@@ -259,6 +259,7 @@ impl ChiploadApp {
             selected: self.selection.ids(&self.contours),
             operation_contours: self.focused_contours(),
             operation,
+            followed: self.followed_contours(),
             show_material_left: self.show_material_left,
         };
         self.scene.paint(&painter, &self.view, &highlight);
