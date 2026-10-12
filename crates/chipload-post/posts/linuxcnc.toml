@@ -10,3 +10,5 @@ arcs = true  # G2/G3 with I/J relative to the start (G91.1 in the header)
 # One file per tool: each asks for Z to be set with its tool. One file with M6 would need
 # tool length offsets (G43) from the controller's tool table, which the checker can't see.
 tool_changes = ["files"]
+# Shown on the setup sheet (the template says the same in each program).
+note = "Not yet tested on a real LinuxCNC machine: check the program and air-cut first."

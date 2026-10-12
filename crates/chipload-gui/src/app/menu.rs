@@ -229,6 +229,18 @@ impl ChiploadApp {
                 if ui.button("Machines…").clicked() {
                     self.open_library_window(LibraryKind::Machines);
                 }
+                ui.separator();
+                let mut sheet = self.setup_sheet;
+                if ui
+                    .checkbox(&mut sheet, "Write a setup sheet with the G-code")
+                    .on_hover_text(
+                        "An HTML page for the operator next to the exported files: stock, \
+                         zero, tools in order, operations, times and warnings",
+                    )
+                    .changed()
+                {
+                    self.set_setup_sheet(sheet);
+                }
             });
             ui.menu_button("View", |ui| {
                 if ui.button("Fit view  (F)").clicked() {

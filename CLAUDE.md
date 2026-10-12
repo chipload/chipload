@@ -76,6 +76,7 @@ cargo test --workspace                                    # all tests
 cargo test -p chipload-toolpath                           # one crate, fast loop
 cargo test -p chipload-cli --test golden                  # G-code regression
 CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test golden   # ONLY when a change is intended; review the diff
+cargo test -p chipload-pipeline --test sheet               # golden setup sheets (same CHIPLOAD_UPDATE_GOLDEN rule)
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
@@ -87,7 +88,8 @@ cargo run -p chipload-cli -- place part.chipload --align bottom-left --margin 10
 cargo run -p chipload-cli -- place part.chipload --rotate 90  # turn it in place (90° steps)
 cargo run -p chipload-cli -- place part.chipload --width 100   # scale it about its centre (also --scale 2, --height)
 cargo run -p chipload-cli -- inspect part.chipload        # (or part.dxf) units, contours, issues
-cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end (several tools: out-1-T1.nc, … or --tool-change program)
+cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end (several tools: out-1-T1.nc, … or --tool-change program); also out-sheet.html (--no-sheet)
+cargo run -p chipload-cli -- sheet part.chipload -o sheet.html   # the operator's setup sheet alone (HTML)
 cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath and time estimate, no G-code
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
@@ -138,7 +140,7 @@ These bugs break tools, stock, and machines. Treat them as high-risk:
 
 ## Test corpus
 
-- `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code (with arcs); `expected/lines/` the same programs without arcs (post `arcs = false`), frozen when arc output came (ADR 0013).
+- `tests/corpus/dxf/` holds real and synthetic DXFs; `tests/corpus/expected/` holds golden G-code (with arcs); `expected/lines/` the same programs without arcs (post `arcs = false`), frozen when arc output came (ADR 0013); `expected/sheets/` golden setup sheets.
 - `tests/corpus/jobs/v<N>/` holds frozen projects for every schema version still loaded (v4 on; see schema versioning above). The golden test runs them through their migrations and must give the same G-code.
 - When a user-reported file breaks something, add it (anonymised) to the corpus **with a failing test first**, then fix.
 

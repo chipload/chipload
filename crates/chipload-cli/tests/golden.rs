@@ -111,6 +111,8 @@ fn run(project: &Path, dir: &Path, name: &str) -> Vec<(String, String)> {
         project.as_os_str(),
         "-o".as_ref(),
         out.as_os_str(),
+        // The sheets have golden files of their own (chipload-pipeline tests/sheet.rs).
+        "--no-sheet".as_ref(),
     ]);
     let mut files: Vec<(String, String)> = std::fs::read_dir(dir)
         .unwrap()

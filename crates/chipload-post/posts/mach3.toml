@@ -9,3 +9,5 @@ spindle_dwell_s = 3  # written as seconds; see the template's header note
 arcs = true  # G2/G3 with I/J relative to the start (G91.1 overrides Mach's IJ setting)
 # One file per tool, as for LinuxCNC.
 tool_changes = ["files"]
+# Shown on the setup sheet (the template says the same in each program).
+note = "Not yet tested on a real Mach3 or Mach4 machine: check the program and air-cut first."

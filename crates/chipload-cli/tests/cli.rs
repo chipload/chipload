@@ -953,3 +953,74 @@ fn plan_and_run_say_how_long_the_job_takes() {
     assert!(said.contains("plus 1 tool change"), "{said}");
     assert!(said.contains("  File 2: "), "{said}");
 }
+
+#[test]
+fn run_writes_a_setup_sheet_next_to_the_gcode() {
+    // docs/specs/setup-sheet.md §4
+    let dir = temp_dir("sheet");
+    let project = corpus("jobs/v11/two_tools.chipload");
+    let out = chipload(&["run", path(&project), "-o", path(&dir.join("part.nc"))]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("part-sheet.html (setup sheet)"));
+    let sheet = std::fs::read_to_string(dir.join("part-sheet.html")).unwrap();
+    assert!(sheet.contains("1. part-1-T2.nc") && sheet.contains("2. part-2-T1.nc"));
+    assert!(sheet.contains("Setup sheet: two_tools.chipload"));
+    assert!(sheet.contains(concat!("written by chipload ", env!("CARGO_PKG_VERSION"))));
+
+    // --no-sheet: only the G-code.
+    let other = temp_dir("no-sheet");
+    let out = chipload(&[
+        "run",
+        path(&project),
+        "-o",
+        path(&other.join("part.nc")),
+        "--no-sheet",
+    ]);
+    assert!(out.status.success());
+    let mut names: Vec<String> = std::fs::read_dir(&other)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["part-1-T2.nc", "part-2-T1.nc"]);
+
+    // `sheet`: only the sheet, named for the G-code `run` would write.
+    let alone = temp_dir("sheet-alone");
+    let out = chipload(&[
+        "sheet",
+        path(&project),
+        "-o",
+        path(&alone.join("setup.html")),
+        "--tool-change",
+        "program",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let names: Vec<_> = std::fs::read_dir(&alone).unwrap().collect();
+    let sheet = std::fs::read_to_string(alone.join("setup.html")).unwrap();
+    for d in [dir, other, alone] {
+        std::fs::remove_dir_all(d).unwrap();
+    }
+    assert_eq!(names.len(), 1);
+    assert!(sheet.contains("1. two_tools.nc"), "one file with M6");
+    assert!(sheet.contains("Tool change (M6) to T1"));
+}
+
+#[test]
+fn a_refused_job_gets_no_sheet() {
+    let dir = temp_dir("sheet-refused");
+    let job = dir.join("job.chipload");
+    let mut data: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(corpus("jobs/v4/simple_part_full.chipload")).unwrap(),
+    )
+    .unwrap();
+    // The part is 206 mm wide: the checker refuses the program.
+    data["machine"]["travel"] = serde_json::json!({"x": 100, "y": 600, "z": 100});
+    std::fs::write(&job, data.to_string()).unwrap();
+    let out = chipload(&["sheet", path(&job), "-o", path(&dir.join("s.html"))]);
+    let run = chipload(&["run", path(&job), "-o", path(&dir.join("out.nc"))]);
+    let count = std::fs::read_dir(&dir).unwrap().count();
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert_eq!(run.status.code(), Some(1));
+    assert_eq!(count, 1, "only the project");
+}

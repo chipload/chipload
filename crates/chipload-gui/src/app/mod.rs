@@ -20,6 +20,7 @@ use chipload_job::{
 };
 use chipload_pipeline::report::format_material_left;
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
+use chipload_pipeline::sheet::{SheetInfo, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, update_drawing,
     write_gcode_files,
@@ -145,6 +146,8 @@ pub struct ChiploadApp {
 
     // The last generation.
     pub result: Option<RunResult>,
+    /// The job `result` was made from (for the setup sheet).
+    result_job: Option<Job>,
     /// Operations (indices) the last generation, validation or update complained about.
     pub error_ops: BTreeSet<usize>,
     /// What is wrong with the project as last edited (docs/specs/live-problems.md).
@@ -190,6 +193,8 @@ pub struct ChiploadApp {
     runner: generation::Runner,
     /// View > Update toolpath automatically, kept in the app settings.
     pub auto_generate: bool,
+    /// Settings > Write a setup sheet with the G-code (docs/specs/setup-sheet.md §4).
+    pub setup_sheet: bool,
     /// When the project last changed, while the live preview hasn't generated it yet.
     changed_at: Option<Instant>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
@@ -235,6 +240,7 @@ impl Default for ChiploadApp {
             contours: Vec::new(),
             loaded_drawing: None,
             result: None,
+            result_job: None,
             error_ops: BTreeSet::new(),
             problems: Vec::new(),
             scene: Scene::default(),
@@ -261,6 +267,7 @@ impl Default for ChiploadApp {
             generation: None,
             runner: generation::RUNNER,
             auto_generate: true,
+            setup_sheet: true,
             changed_at: None,
             export_when_done: false,
             recovery: None,
@@ -710,49 +717,87 @@ impl ChiploadApp {
         }
     }
 
-    /// Write the checked G-code of the last generation.
+    /// Write the checked G-code of the last generation, and its setup sheet when the
+    /// setting asks for one (docs/specs/setup-sheet.md §4).
     pub fn export_gcode(&mut self, path: &Path) -> bool {
         let Some(result) = &self.result else {
             self.error(vec!["Generate (F5) before exporting G-code.".into()]);
             return false;
         };
-        match write_gcode_files(path, &result.files) {
-            Ok(written) if written.len() > 1 => {
-                let mut report = Report::default();
-                report.push(
-                    Tone::Good,
-                    format!(
-                        "Exported {} files: change the tool and set Z zero between them, \
-                         keeping X and Y zero.",
-                        written.len()
-                    ),
-                );
-                for file in &result.files {
-                    report.push(Tone::Info, file.describe(path));
-                }
-                self.set_report(report);
-                self.set_status(
-                    format!(
-                        "Exported {} files next to {}",
-                        written.len(),
-                        path.display()
-                    ),
-                    STATUS_SECONDS,
-                );
-                true
-            }
-            Ok(_) => {
-                self.set_status(format!("Exported {}", path.display()), STATUS_SECONDS);
-                true
-            }
+        let written = match write_gcode_files(path, &result.files) {
+            Ok(written) => written,
             Err(err) => {
                 self.error(vec![
                     format!("Could not export {}:", path.display()),
                     err.to_string(),
                 ]);
-                false
+                return false;
             }
+        };
+        let sheet = match (&self.result_job, self.setup_sheet) {
+            (Some(job), true) => {
+                let info = SheetInfo {
+                    project: self
+                        .job_path
+                        .as_deref()
+                        .map_or_else(|| "Untitled project".into(), file_name),
+                    written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
+                };
+                match write_setup_sheet(job, result, path, &info) {
+                    Ok(sheet) => Some(sheet),
+                    Err(err) => {
+                        self.error(vec![
+                            format!(
+                                "Exported the G-code, but could not write the setup sheet {}:",
+                                sheet_path(path).display()
+                            ),
+                            err.to_string(),
+                        ]);
+                        return false;
+                    }
+                }
+            }
+            _ => None,
+        };
+        let and_sheet = match &sheet {
+            Some(sheet) => format!(" and the setup sheet {}", file_name(sheet)),
+            None => String::new(),
+        };
+        if written.len() > 1 {
+            let mut report = Report::default();
+            report.push(
+                Tone::Good,
+                format!(
+                    "Exported {} files: change the tool and set Z zero between them, \
+                     keeping X and Y zero.",
+                    written.len()
+                ),
+            );
+            for file in &result.files {
+                report.push(Tone::Info, file.describe(path));
+            }
+            if let Some(sheet) = &sheet {
+                report.push(
+                    Tone::Info,
+                    format!("Setup sheet for the operator: {}", sheet.display()),
+                );
+            }
+            self.set_report(report);
+            self.set_status(
+                format!(
+                    "Exported {} files{and_sheet} next to {}",
+                    written.len(),
+                    path.display()
+                ),
+                STATUS_SECONDS,
+            );
+        } else {
+            self.set_status(
+                format!("Exported {}{and_sheet}", path.display()),
+                STATUS_SECONDS,
+            );
         }
+        true
     }
 
     /// Save the project (current schema, every field explicit).

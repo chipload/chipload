@@ -686,6 +686,41 @@ mod library {
         assert_eq!(again.theme, Theme::Light);
     }
 
+    #[test]
+    fn export_writes_the_setup_sheet_unless_turned_off() {
+        // docs/specs/setup-sheet.md §4
+        let dir = settings("sheet");
+        let _ = std::fs::remove_file(dir.join("settings.json"));
+        let mut app = lower_part();
+        app.set_settings_dir(Some(dir.clone()));
+        assert!(app.setup_sheet, "on by default");
+        assert!(app.generate_and_wait(), "{:?}", app.report);
+        let out = temp_dir("sheet-export");
+        let project = out.join("lower.chipload");
+        assert!(app.save_project(&project));
+        assert!(app.export_gcode(&out.join("lower.nc")));
+        let sheet = std::fs::read_to_string(out.join("lower-sheet.html")).unwrap();
+        assert!(sheet.contains("Setup sheet: lower.chipload"));
+        assert!(sheet.contains("1. lower.nc"));
+        assert!(
+            app.status
+                .as_ref()
+                .unwrap()
+                .0
+                .contains("setup sheet lower-sheet.html")
+        );
+
+        // Turned off, and kept so for next time.
+        app.set_setup_sheet(false);
+        assert!(app.export_gcode(&out.join("again.nc")));
+        assert!(out.join("again.nc").exists());
+        assert!(!out.join("again-sheet.html").exists());
+        let mut again = ChiploadApp::default();
+        again.set_settings_dir(Some(dir));
+        assert!(!again.setup_sheet);
+        std::fs::remove_dir_all(&out).unwrap();
+    }
+
     fn app_with_library(name: &str) -> (ChiploadApp, PathBuf) {
         let dir = settings(name);
         save_tools(

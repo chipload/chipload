@@ -245,6 +245,7 @@ impl ChiploadApp {
         }
         report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
         self.set_report(report);
+        self.result_job = Some(job.clone());
         self.result = Some(result);
     }
 
@@ -296,6 +297,12 @@ impl ChiploadApp {
                 STATUS_SECONDS,
             );
         }
+    }
+
+    /// Settings > Write a setup sheet with the G-code, kept in the app settings.
+    pub fn set_setup_sheet(&mut self, on: bool) {
+        self.setup_sheet = on;
+        self.change_settings(|settings| settings.setup_sheet = on);
     }
 
     /// View > Update toolpath automatically, kept in the app settings.

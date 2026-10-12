@@ -10,6 +10,7 @@ pub mod posts;
 pub mod recovery;
 pub mod report;
 pub mod shapes;
+pub mod sheet;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -79,6 +80,8 @@ pub struct RunResult {
     pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, for display.
     pub op_spans: Vec<OpSpan>,
+    /// The tool groups, in cut order: one file each, or one file with M6 between them.
+    pub groups: Vec<ToolGroup>,
     /// Rings whose start the user can move, for the start markers.
     pub ring_starts: Vec<RingStart>,
     /// Toolpath warnings.
@@ -208,6 +211,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         pockets: plan.pockets,
         material_left: plan.material_left,
         op_spans: plan.op_spans,
+        groups: plan.groups,
         ring_starts: plan.ring_starts,
         notes,
         check_warnings,

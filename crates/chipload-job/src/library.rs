@@ -530,6 +530,14 @@ pub struct AppSettings {
     /// Generate the toolpath by itself shortly after each edit
     /// (docs/specs/background-generation.md). Since version 3.
     pub auto_generate: bool,
+    /// Write a setup sheet next to exported G-code (docs/specs/setup-sheet.md §4). Missing
+    /// (written before it existed): on.
+    #[serde(default = "setup_sheet_default")]
+    pub setup_sheet: bool,
+}
+
+fn setup_sheet_default() -> bool {
+    true
 }
 
 impl Default for AppSettings {
@@ -540,6 +548,7 @@ impl Default for AppSettings {
             recent_projects: Vec::new(),
             theme: Theme::System,
             auto_generate: true,
+            setup_sheet: true,
         }
     }
 }

@@ -470,6 +470,7 @@ impl ChiploadApp {
         self.recent = settings.recent_projects;
         self.theme = settings.theme;
         self.auto_generate = settings.auto_generate;
+        self.setup_sheet = settings.setup_sheet;
         self.start_recovery();
     }
 

@@ -518,7 +518,21 @@ fn version_1_settings_migrate_to_follow_the_system_theme() {
     assert!(text.contains("\"schema_version\": 3"), "{text}");
     assert!(text.contains("\"theme\": \"dark\""), "{text}");
     assert!(text.contains("\"auto_generate\": true"), "{text}");
+    assert!(text.contains("\"setup_sheet\": true"), "{text}");
     assert_eq!(load_settings(&path).unwrap().theme, Theme::Dark);
+}
+
+#[test]
+fn settings_without_the_setup_sheet_write_one() {
+    // docs/specs/setup-sheet.md §4: an optional field, on when missing.
+    let dir = temp_dir("settings-sheet");
+    let path = dir.join("settings.json");
+    let base =
+        r#""schema_version": 3, "recent_projects": [], "theme": "system", "auto_generate": true"#;
+    std::fs::write(&path, format!("{{{base}}}")).unwrap();
+    assert!(load_settings(&path).unwrap().setup_sheet);
+    std::fs::write(&path, format!("{{{base}, \"setup_sheet\": false}}")).unwrap();
+    assert!(!load_settings(&path).unwrap().setup_sheet);
 }
 
 #[test]

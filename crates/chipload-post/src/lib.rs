@@ -87,6 +87,10 @@ pub struct PostConfig {
     /// never gets asked for it.
     #[serde(default = "default_tool_changes")]
     pub tool_changes: Vec<ToolChange>,
+    /// A word for the operator, shown on the setup sheet (docs/specs/setup-sheet.md §2), e.g.
+    /// that the post isn't tested on a real controller yet. Missing: none.
+    #[serde(default)]
+    pub note: Option<String>,
     /// The template's text for a user post (docs/specs/user-posts.md); None: the built-in
     /// template `template` names. Not part of the file.
     #[serde(skip)]
@@ -698,6 +702,16 @@ mod tests {
         assert_eq!(config.name, "GRBL");
         assert_eq!(config.decimals, 3);
         assert_eq!(config.spindle_dwell_s, 3.0);
+    }
+
+    #[test]
+    fn posts_not_tested_on_a_machine_say_so_in_their_note() {
+        // Shown on the setup sheet (docs/specs/setup-sheet.md §2).
+        assert_eq!(load_builtin_post("grbl").unwrap().note, None);
+        for name in ["linuxcnc", "mach3"] {
+            let note = load_builtin_post(name).unwrap().note.unwrap();
+            assert!(note.starts_with("Not yet tested on a real"), "{note}");
+        }
     }
 
     #[test]

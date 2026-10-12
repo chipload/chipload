@@ -27,9 +27,10 @@ use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
+use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, empty_project, load_drawing, new_project, run_job, set_op_tool, update_drawing,
-    write_gcode_files,
+    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, set_op_tool,
+    update_drawing, write_atomically, write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -119,6 +120,25 @@ enum Command {
         output: PathBuf,
         /// For this run only: one file per tool, or one file with M6 tool changes
         /// (default: the project's machine setting).
+        #[arg(long)]
+        tool_change: Option<library::ToolChangeArg>,
+        /// Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`).
+        #[arg(long)]
+        no_sheet: bool,
+    },
+    /// Write a project's setup sheet for the operator (HTML), without the G-code. The job is
+    /// generated and checked as by `run`.
+    Sheet {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Where to write the sheet (.html).
+        #[arg(short, long)]
+        output: PathBuf,
+        /// The G-code the sheet is for, as given to `run -o`, for its file names
+        /// (default: the project's name with the post's extension).
+        #[arg(long)]
+        gcode: Option<PathBuf>,
+        /// For this sheet only: one file per tool, or one file with M6 tool changes.
         #[arg(long)]
         tool_change: Option<library::ToolChangeArg>,
     },
@@ -402,7 +422,14 @@ fn main() -> ExitCode {
             project,
             output,
             tool_change,
-        } => run(&project, &output, tool_change),
+            no_sheet,
+        } => run(&project, &output, tool_change, !no_sheet),
+        Command::Sheet {
+            project,
+            output,
+            gcode,
+            tool_change,
+        } => sheet(&project, &output, gcode.as_deref(), tool_change),
         Command::Render { program, post } => render(&program, &post),
         Command::Check {
             gcode,
@@ -944,25 +971,72 @@ fn load(project: &Path) -> Result<Job, ExitCode> {
     load_job(project).map_err(fail)
 }
 
-fn run(project: &Path, output: &Path, tool_change: Option<library::ToolChangeArg>) -> ExitCode {
-    let mut job = match load(project) {
-        Ok(job) => job,
-        Err(code) => return code,
-    };
+/// Load a project and run it, as `run` and `sheet` do; errors are printed.
+fn load_and_run(
+    project: &Path,
+    tool_change: Option<library::ToolChangeArg>,
+) -> Result<(Job, RunResult), ExitCode> {
+    let mut job = load(project)?;
     if let Some(change) = tool_change {
         job.machine.tool_change = change.value();
     }
-    let result = match run_job(&job) {
-        Ok(result) => result,
+    match run_job(&job) {
+        Ok(result) => Ok((job, result)),
         Err(err @ PipelineError::CheckFailed { .. }) => {
             eprintln!("error: {err}");
             eprintln!("No output written.");
-            return ExitCode::from(EXIT_FAILED);
+            Err(ExitCode::from(EXIT_FAILED))
         }
         Err(err) => {
             eprintln!("error: {err}");
-            return ExitCode::from(EXIT_FAILED);
+            Err(ExitCode::from(EXIT_FAILED))
         }
+    }
+}
+
+/// What the sheet says it was made from: the project's file name and this version.
+fn sheet_info(project: &Path) -> SheetInfo {
+    SheetInfo {
+        project: project.file_name().map_or_else(
+            || project.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        ),
+        written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
+    }
+}
+
+fn sheet(
+    project: &Path,
+    output: &Path,
+    gcode: Option<&Path>,
+    tool_change: Option<library::ToolChangeArg>,
+) -> ExitCode {
+    let (job, result) = match load_and_run(project, tool_change) {
+        Ok(run) => run,
+        Err(code) => return code,
+    };
+    let gcode = gcode.map_or_else(
+        || project.with_extension(result.post.file_extension.trim_start_matches('.')),
+        Path::to_path_buf,
+    );
+    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project));
+    if let Err(err) = write_atomically(output, &html) {
+        eprintln!("error: cannot write {}: {err}", output.display());
+        return ExitCode::from(EXIT_FAILED);
+    }
+    println!("Wrote {}", output.display());
+    ExitCode::SUCCESS
+}
+
+fn run(
+    project: &Path,
+    output: &Path,
+    tool_change: Option<library::ToolChangeArg>,
+    with_sheet: bool,
+) -> ExitCode {
+    let (job, result) = match load_and_run(project, tool_change) {
+        Ok(run) => run,
+        Err(code) => return code,
     };
     for line in format_import_report(&result.import_report) {
         println!("{line}");
@@ -1008,6 +1082,18 @@ fn run(project: &Path, output: &Path, tool_change: Option<library::ToolChangeArg
             result.files.len(),
             result.post.name
         );
+    }
+    if with_sheet {
+        match write_setup_sheet(&job, &result, output, &sheet_info(project)) {
+            Ok(path) => println!("Wrote {} (setup sheet)", path.display()),
+            Err(err) => {
+                eprintln!(
+                    "error: cannot write the setup sheet {}: {err}",
+                    sheet_path(output).display()
+                );
+                return ExitCode::from(EXIT_FAILED);
+            }
+        }
     }
     ExitCode::SUCCESS
 }

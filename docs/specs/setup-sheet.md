@@ -1,6 +1,6 @@
 # Spec: setup sheet for the operator
 
-Status: draft (2026-10-12), for review. Item 8 of the general improvement pass (TODO.md,
+Status: approved (2026-10-12; decisions 1–7 as recommended). Item 8 of the general improvement pass (TODO.md,
 approved 2026-10-12).
 
 ## 1. Why
@@ -108,3 +108,26 @@ dependency. Numbers are formatted explicitly (as in the G-code: fixed decimals, 
 - CLI: `run` writes `out-sheet.html` and `--no-sheet` doesn't; `sheet` writes only the
   sheet; a run refused by the checker writes neither.
 - GUI: export writes the sheet next to the files when the setting is on, not when off.
+
+## 7. As built (2026-10-12)
+
+- `chipload_pipeline::sheet`: `setup_sheet(job, &RunResult, output, &SheetInfo)`,
+  `write_setup_sheet`, `sheet_path`, `xy_zero_text`. `RunResult::groups` (the tool groups)
+  was added so a one-file job with M6 can be shown group by group. `SheetInfo` carries the
+  project's name and `written_by`, so the golden sheets use a fixed version.
+- The post's warning comes from a new optional `note` in the post config (no post schema
+  bump: an optional field with no effect on the G-code); the LinuxCNC and Mach3/4 posts
+  carry their "not yet tested" note.
+- The picture: the stock, every contour at every copy (grey), each group's cutting moves
+  with its own colour and dash, tabs in orange, the X0 Y0 mark with X+ and Y+ arrows; lines
+  keep their width at any size (`vector-effect`). Coordinates to 0.01 mm.
+- Non-ASCII text is written as character references, as the file goes through the same
+  ASCII-only atomic write as the G-code.
+- CLI: `run` writes `<stem>-sheet.html` unless `--no-sheet`; `chipload sheet PROJECT -o
+  FILE [--gcode PATH] [--tool-change ...]` writes the sheet alone (G-code names from
+  `--gcode`, else the project's name with the post's extension). The G-code golden test
+  runs with `--no-sheet`; the sheets have their own goldens in
+  `tests/corpus/expected/sheets/` (`cargo test -p chipload-pipeline --test sheet`).
+- GUI: export writes the sheet unless Settings → *Write a setup sheet with the G-code* is
+  off (`setup_sheet` in the app settings, optional, on when missing); the status line and,
+  for several files, the report name it.

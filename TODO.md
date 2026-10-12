@@ -21,8 +21,7 @@ it's built (see `CLAUDE.md`).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Done (problems while editing, see Done).
-  7. Done (cycle time estimate, see Done); 8. a setup sheet for the operator: spec draft
-     `docs/specs/setup-sheet.md`, waiting for review.
+  7–8. Done (cycle time estimate and the setup sheet, see Done).
   - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
     range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
     and mirror of drawn shapes, Help → Keyboard shortcuts.
@@ -31,6 +30,14 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Setup sheet for the operator** (docs/specs/setup-sheet.md): an HTML page next to the
+  G-code (`part-sheet.html`): stock, X0 Y0 in words on the stock, Z0, a top-view picture
+  (parts, each file's cuts, tabs, the zero), each file in order with the tool to load and
+  its operations, depths, feeds, entries, tabs, times and deepest cut, then the warnings
+  and the time. Written by `chipload run` (`--no-sheet`), `chipload sheet` and GUI export
+  (Settings → Write a setup sheet with the G-code). Posts can carry a `note` for it.
+  Later: stock material and free notes on the sheet (new project fields), PDF, opening the
+  sheet from the GUI.
 - **Cycle time estimate** (docs/specs/cycle-time.md): total, cutting, rapids, spindle and
   tool changes, per operation and per file, at the programmed feeds (rapids at the max feed,
   else 5000 mm/min assumed); in the report, on the operation cards, in `chipload run/plan`
