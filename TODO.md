@@ -9,11 +9,8 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Bug: material left on a self-overlapping outline** (found 2026-10-12): the property
-  test `material_left_is_out_of_reach_and_complete` (chipload-toolpath tests/pocket.rs)
-  fails on a new random case, an outline whose first edges fold back over each other,
-  with ring pockets. Only the material-left display is affected, not toolpaths. The
-  failing case gets committed with the fix (proptest regression file).
+- **Clearer left sidebar** (user request 2026-10-12): separate operations and shapes
+  clearly. Suggestion made 2026-10-12, awaiting the user's decisions; then a short spec.
 - **Adaptive as spirals and trochoidal channels on the medial axis**
   (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
   (wide areas by spiral, corners and branches by loops, lifts) is on the branch
@@ -23,6 +20,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Material left lost behind a bay of the tool's reach** (bug found 2026-10-12 by the
+  material-left property test): the offset library returned a loop that closes while
+  growing as an open polyline, which was dropped; it is now closed (ends within 0.001 mm)
+  or an error. Display only, toolpaths were not affected.
 - **Import/export of the tool library and machine profiles**
   (docs/specs/library-import-export.md): files in the library's own formats; import adds
   new entries and keeps yours unless asked to replace (`chipload tool export/import`,

@@ -243,7 +243,7 @@ impl Area {
         let mut holes: Vec<Polyline<f64>> = Vec::new();
         // Positive offsets go inwards for counter-clockwise loops.
         let outline = ccw(self.outer.clone());
-        for loop_ in guarded("Pocket offset", || outline.parallel_offset(-d))? {
+        for loop_ in closed_loops(guarded("Pocket offset", || outline.parallel_offset(-d))?)? {
             if !keep(&loop_) {
                 continue;
             }
@@ -256,7 +256,7 @@ impl Area {
         }
         for hole in &self.holes {
             let inside = ccw(hole.clone());
-            for loop_ in guarded("Pocket offset", || inside.parallel_offset(d))? {
+            for loop_ in closed_loops(guarded("Pocket offset", || inside.parallel_offset(d))?)? {
                 if keep(&loop_) {
                     holes.push(cw(loop_));
                 }
@@ -290,6 +290,32 @@ impl Area {
         });
         Ok(areas)
     }
+}
+
+/// The loops of a closed loop's offset, all closed. cavalier_contours can return a loop
+/// that closes up while offsetting (a bay pinched off as the outline grows) as an open
+/// polyline whose ends lie a hair apart; dropping it lost a hole of the tool's reach, and
+/// material left went unshown (material-left property test, 2026-10-12). Such a loop is
+/// closed; one whose ends lie farther apart than `CHAIN_TOL_MM` is an error, never dropped.
+fn closed_loops(loops: Vec<Polyline<f64>>) -> Result<Vec<Polyline<f64>>, ToolpathError> {
+    let mut closed = Vec::with_capacity(loops.len());
+    for mut loop_ in loops {
+        if !loop_.is_closed() {
+            let n = loop_.vertex_count();
+            let ends = match (loop_.get(0), loop_.get(n.saturating_sub(1))) {
+                (Some(a), Some(b)) if n > 2 => ((a.x, a.y), (b.x, b.y)),
+                _ => continue,
+            };
+            if distance(ends.0, ends.1) > CHAIN_TOL_MM {
+                return Err(geometry(
+                    "pocket offset returned an open loop where a closed one was expected".into(),
+                ));
+            }
+            loop_.set_is_closed(true);
+        }
+        closed.push(loop_);
+    }
+    Ok(closed)
 }
 
 /// One selected boundary minus the selected islands inside it.
