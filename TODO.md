@@ -9,22 +9,25 @@ it's built (see `CLAUDE.md`).
 
 ## State to remember (2026-10-12)
 
-- **Release 0.13.0**: tag `v0.13.0` (14a1b71) pushed. The GitHub release is a **draft** with
-  the Linux files only (AppImage, CLI tar.gz, SHA256SUMS) and notes listing every feature
-  for first testers. **To do:** try the AppImage on the target machine, then publish the
-  draft. Old drafts (0.3.0–0.10.1) were deleted; their tags remain.
+- **Release 0.13.0**: tag `v0.13.0` (14a1b71), published on GitHub with the Linux files
+  (AppImage, CLI tar.gz) and, since 2026-10-12, the Windows files (GUI and CLI `.exe`), with
+  `SHA256SUMS.txt` covering all four. The Windows GUI hasn't been started on Windows yet:
+  try it. Old drafts (0.3.0–0.10.1) were deleted; their tags remain.
 - **No GitHub Actions minutes left**: the release workflow can't run. Linux release files
   are built locally with `packaging/linux/build-release-local.sh <version> [out]` (podman,
   Ubuntu 22.04 container, tests first, the same steps as the workflow), then uploaded with
   `gh release create v<version> … --draft --verify-tag`. The `gh` token now has Contents
   read/write on `gntech/chipload` (needed for releases). Remember the usual release steps
   first (docs/releasing.md: version bump, internal pins, `cargo about generate`).
-- **Windows builds**: none since 0.12.1. Plan: install on the Windows side Visual Studio
-  Build Tools ("Desktop development with C++"), rustup (msvc, default) and Git; clone into
-  e.g. `C:\src\chipload` (not over `\\wsl$`), check out the tag, `cargo test`, `cargo build
-  --release -p chipload-gui -p chipload-cli` (static CRT from `.cargo/config.toml`), check
-  with dumpbin that no VC++ runtime DLL is needed, name the files as the workflow does, add
-  them and new checksums to the release (`gh release upload`).
+- **Windows builds** (local, no Actions): Rust (msvc) and the Build Tools are installed on
+  the Windows side, checkout `C:\code\chipload`. From WSL, in that folder: `cmd.exe /c "set
+  PATH=%USERPROFILE%\.cargo\bin;%PATH% && git checkout v<version> && cargo test --workspace
+  --locked && cargo build --release --locked -p chipload-gui -p chipload-cli"`. Copy
+  `target/release/chipload-gui.exe` and `chipload.exe` as
+  `chipload-gui-<version>-windows-x86_64.exe` / `chipload-<version>-windows-x86_64.exe`,
+  check that no VC++ runtime DLL is named (`strings … | grep -i vcruntime` gives nothing),
+  append their checksums to the release's `SHA256SUMS.txt`, then `gh release upload
+  v<version> … --clobber`. Afterwards `git switch main` in the Windows checkout.
 - **The repository is private**: testers can't download releases or open issues without
   being added as collaborators. Decide: make it public, add testers, or another way to
   collect reports (the 0.13.0 notes ask for issues).
