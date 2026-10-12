@@ -6,8 +6,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, Problem, ProfileOp,
-    Side, Tool, ToolType, VcarveOp, ZZero,
+    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, PocketStrategy,
+    Problem, ProfileOp, Side, Tool, ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -380,7 +380,11 @@ fn plan_pocket_op(
     .map_err(|err| err.with_context(label))?;
     let mut out = Planned {
         moves: Vec::new(),
-        notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
+        notes: experimental_note(op.strategy)
+            .into_iter()
+            .chain(plan.notes.iter().cloned())
+            .map(|n| format!("{label}: {n}"))
+            .collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
         left: plan.left,
@@ -422,6 +426,20 @@ fn plan_pocket_op(
     }
     out.pockets = plan.pieces;
     Ok(out)
+}
+
+/// Trochoidal and adaptive clearing are experimental (TODO.md): no longer offered for new
+/// pockets, still planned for projects that use them, with this note.
+fn experimental_note(strategy: PocketStrategy) -> Option<String> {
+    let name = match strategy {
+        PocketStrategy::Rings {} => return None,
+        PocketStrategy::Trochoidal { .. } => "trochoidal",
+        PocketStrategy::Adaptive {} => "adaptive",
+    };
+    Some(format!(
+        "{name} clearing is experimental and will be revised; check the toolpath before \
+         cutting, or switch the pocket to rings"
+    ))
 }
 
 fn plan_vcarve_op(

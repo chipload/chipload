@@ -54,44 +54,34 @@ fn depth_rows(
     ui.end_row();
 }
 
-/// Rings, trochoidal (loop radius, step; docs/specs/trochoidal.md) or adaptive (the pocket's
-/// stepover; docs/specs/adaptive-fronts.md). Switching fills defaults for the current tool,
-/// visibly.
-fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy, diameter: f64) {
+/// Rings is the one strategy offered. Trochoidal (loop radius, step; docs/specs/trochoidal.md)
+/// and adaptive (docs/specs/adaptive-fronts.md) are experimental (TODO.md): a project that
+/// uses one keeps it, marked so, and can switch to rings.
+fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy) {
     ui.label("Strategy");
-    let current = match strategy {
-        PocketStrategy::Rings {} => "rings",
-        PocketStrategy::Trochoidal { .. } => "trochoidal",
-        PocketStrategy::Adaptive { .. } => "adaptive",
+    let experimental = match strategy {
+        PocketStrategy::Rings {} => None,
+        PocketStrategy::Trochoidal { .. } => Some("trochoidal (experimental)"),
+        PocketStrategy::Adaptive { .. } => Some("adaptive (experimental)"),
     };
-    ComboBox::from_id_salt(("strategy", index))
-        .selected_text(current)
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(current == "rings", "rings").clicked() {
-                *strategy = PocketStrategy::Rings {};
-            }
-            if ui
-                .selectable_label(current == "trochoidal", "trochoidal")
-                .on_hover_text(
-                    "Small loops that take a thin bite each: for hard materials and deep cuts",
-                )
-                .clicked()
-                && current != "trochoidal"
-            {
-                *strategy = PocketStrategy::Trochoidal {
-                    loop_radius: 0.25 * diameter,
-                    step: 0.1 * diameter,
-                };
-            }
-            if ui
-                .selectable_label(current == "adaptive", "adaptive")
-                .on_hover_text("Passes that cut the stepover wide everywhere, corners too")
-                .clicked()
-                && current != "adaptive"
-            {
-                *strategy = PocketStrategy::Adaptive {};
-            }
-        });
+    match experimental {
+        None => {
+            ui.label("rings");
+        }
+        Some(name) => {
+            ComboBox::from_id_salt(("strategy", index))
+                .selected_text(RichText::new(name).color(ui.visuals().warn_fg_color))
+                .show_ui(ui, |ui| {
+                    if ui.selectable_label(false, "rings").clicked() {
+                        *strategy = PocketStrategy::Rings {};
+                    }
+                    let _ = ui.selectable_label(true, name).on_hover_text(
+                        "Experimental, to be revised: no longer offered for new pockets. \
+                         Check the toolpath before cutting.",
+                    );
+                });
+        }
+    }
     ui.end_row();
     match strategy {
         PocketStrategy::Rings {} => {}
@@ -421,7 +411,7 @@ pub(super) fn op_form(
             };
             let clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
             section(ui, "op-clearing", "Clearing", &clearing, |ui| {
-                strategy_rows(ui, index, &mut p.strategy, tool_diameter);
+                strategy_rows(ui, index, &mut p.strategy);
                 // Adaptive cuts the stepover wide all along: at most half the tool.
                 let adaptive = matches!(p.strategy, PocketStrategy::Adaptive {});
                 let most = if adaptive { 0.5 } else { 1.0 };

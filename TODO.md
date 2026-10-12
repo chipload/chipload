@@ -9,12 +9,16 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Adaptive as spirals and trochoidal channels on the medial axis**
-  (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
-  (wide areas by spiral, corners and branches by loops, lifts) is on the branch
-  `adaptive-stage2-wip`, paused 2026-10-12 for the user's test run. Replaces the fronts
-  (adaptive-fronts.md) and the trochoidal strategy. Then rest machining with a smaller
-  tool, its own spec.
+- **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's
+  decision). No longer offered as pocket strategies (the GUI offers rings only); projects
+  that use them still load and plan as before, with a note that the strategy is
+  experimental (no format change). The code stays: trochoidal (docs/specs/trochoidal.md),
+  adaptive fronts (adaptive-fronts.md) and the spiral, stage 1 on main
+  (adaptive-spiral.md). Stage 2 is on the local branch `adaptive-stage2-wip` (rebased on
+  main 2026-10-12; three adaptive tests still fail there; the Chaikin rounding experiment
+  in its as-built draft: not adopted). To revise at a later date, with a new spec review:
+  the loops' air time (length 2–2.9 × the ideal), then offering the strategies again.
+  Rest machining with a smaller tool after that, its own spec.
 
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).

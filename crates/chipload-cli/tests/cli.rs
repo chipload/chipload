@@ -1069,3 +1069,23 @@ fn plan_shows_the_chip_load() {
     let mm = plan["chip_load"][1]["chip_load_mm"].as_f64().unwrap();
     assert!((mm - 0.05).abs() < 1e-12, "{mm}");
 }
+
+#[test]
+fn experimental_pocket_strategies_still_plan_with_a_note() {
+    // Trochoidal and adaptive are no longer offered (TODO.md); projects using them keep
+    // working, told that the strategy is experimental.
+    for (job, name) in [
+        ("jobs/v12/adaptive.chipload", "adaptive"),
+        ("jobs/v7/trochoidal.chipload", "trochoidal"),
+    ] {
+        let out = chipload(&["plan", path(&corpus(job))]);
+        let said = text(&out.stdout) + &text(&out.stderr);
+        assert!(out.status.success(), "{job}: {said}");
+        assert!(
+            said.contains(&format!("{name} clearing is experimental")),
+            "{job}: {said}"
+        );
+    }
+    let said = text(&chipload(&["plan", path(&corpus("jobs/v11/two_tools.chipload"))]).stdout);
+    assert!(!said.contains("experimental"), "{said}");
+}

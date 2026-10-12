@@ -85,7 +85,7 @@ stretched in the View menu); **Top view** (T) goes back.
 
 Supported: **profile** operations (inside, outside, on) with optional holding tabs
 (`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
-**pocket** operations with islands, cleared in rings, with trochoidal loops or adaptively; climb or conventional, a start and end depth with
+**pocket** operations with islands, cleared in rings (trochoidal and adaptive clearing are experimental: still planned for projects that use them, no longer offered); climb or conventional, a start and end depth with
 multiple passes, a clearance (positive: larger pocket or smaller part, negative: stock left),
 cuts into the spoilboard up to a set limit, straight plunges, ramp entry (down along the path, for tools that aren't centre-cutting) or, for pockets, helical entry (down round a small circle, written as helical G2/G3), start points chosen per ring (`"starts": [[x, y]]`, each moving the start of the ring nearest to it), lead-in and lead-out arcs from the waste (`"lead": {"radius": 3}`; profiles inside or outside, and pocket walls), one tool per job, and the GRBL post (arcs written as G2/G3).
 G-code is written only if it passes the independent checker. See
