@@ -222,6 +222,19 @@ impl ChiploadApp {
                 .find(|p| p.operation() == Some(i))
                 .map(problems::plain)
         };
+        // Each operation's time from the last generation (docs/specs/cycle-time.md §4).
+        let op_time = |i: usize| {
+            self.result.as_ref().and_then(|r| {
+                r.estimate
+                    .operations
+                    .iter()
+                    .find(|(op, _)| *op == i)
+                    .map(|(_, s)| chipload_pipeline::estimate::duration_text(*s))
+            })
+        };
+        let card_times: Vec<Option<String>> = (0..self.edit.as_ref().map_or(0, |e| e.ops.len()))
+            .map(op_time)
+            .collect();
         let card_problems: Vec<Option<String>> = (0..self.edit.as_ref().map_or(0, |e| e.ops.len()))
             .map(first_problem)
             .collect();
@@ -254,7 +267,14 @@ impl ChiploadApp {
             let problem = card_problems.get(i).cloned().flatten();
             let flagged = missing.contains(&i) || self.error_ops.contains(&i) || problem.is_some();
             let selected = self.focus == Focus::Op(i);
-            let card = op_card(ui, i, entry, &self.contours, selected, flagged, problem);
+            let time = card_times.get(i).cloned().flatten();
+            let state = CardState {
+                selected,
+                flagged,
+                problem,
+                time,
+            };
+            let card = op_card(ui, i, entry, &self.contours, state);
             let response = card.response;
             if response.clicked() {
                 action = Some(CardAction::Focus(i));
@@ -515,15 +535,27 @@ fn kind_color(op: &Operation, dark: bool) -> egui::Color32 {
 
 /// One operation as a card: drag handle, enabled box, number, kind and name; below, its
 /// geometry and depths. The whole card is clickable (selects it) and right-clickable.
+/// How an operation card shows: selected, marked, its first problem and its time.
+struct CardState {
+    selected: bool,
+    flagged: bool,
+    problem: Option<String>,
+    time: Option<String>,
+}
+
 fn op_card(
     ui: &mut egui::Ui,
     i: usize,
     entry: &mut crate::editor::EditOp,
     contours: &[Contour],
-    selected: bool,
-    flagged: bool,
-    problem: Option<String>,
+    state: CardState,
 ) -> egui::InnerResponse<()> {
+    let CardState {
+        selected,
+        flagged,
+        problem,
+        time,
+    } = state;
     let summary = geometry_summary(&entry.op, contours);
     let (start, end) = entry.op.depths();
     let kind = match &entry.op {
@@ -592,8 +624,9 @@ fn op_card(
                         ui.add(egui::Label::new(title).truncate().selectable(false));
                     });
                     let tool = entry.op.tool();
+                    let time = time.map_or(String::new(), |t| format!("  ·  {t}"));
                     let mut detail =
-                        RichText::new(format!("T{tool}  ·  {summary}  ·  {start}–{end} mm"))
+                        RichText::new(format!("T{tool}  ·  {summary}  ·  {start}–{end} mm{time}"))
                             .small();
                     detail = if selected {
                         detail.color(text_color)

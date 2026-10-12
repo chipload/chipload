@@ -1,6 +1,6 @@
 # Spec: cycle time estimate
 
-Status: draft for review. Item 7 of the general improvement pass (TODO.md, approved
+Status: approved (2026-10-12; decisions 1–5 as recommended). Item 7 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
 ## 1. Why
@@ -77,3 +77,17 @@ total by a second.
 - The rapid rate: max feed when set, else 5000 and marked assumed.
 - Formatting of 45 s, 12 min 30 s, 1 h 05 min.
 - The GUI report and cards show it after generating; `plan --json` carries it.
+
+## 8. As built (2026-10-12)
+
+- `chipload_pipeline::estimate`: `estimate(job, program, spans, groups, dwell_s)`,
+  `estimate_lines`, `duration_text`, `ASSUMED_RAPID_MM_MIN`; `RunResult::estimate`.
+  Lengths are 3D from where the last move ended; the first moves from an unknown position
+  add nothing. An operation's time is the sum of its spans (all copies); moves between
+  operations count in the total only.
+- `chipload run` and `plan` print the lines; `plan --json` has `estimate` (`total_s`,
+  `cutting_s`, `rapid_s`, `spindle_s`, `operations`, `groups_s`, `tool_changes`,
+  `rapid_mm_min`, `rapid_assumed`). `plan` takes the dwell from the project's post (none if
+  the post can't be read; `run` refuses that post anyway).
+- GUI: the report lists the estimate after "Generated …"; each operation card ends with its
+  time while the toolpath is current.

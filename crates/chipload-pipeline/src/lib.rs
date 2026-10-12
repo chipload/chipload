@@ -2,6 +2,7 @@
 //! End to end: job + DXF -> checked G-code. The CLI and the GUI both call this.
 
 pub mod copies;
+pub mod estimate;
 pub mod library;
 pub mod notices;
 pub mod placement;
@@ -59,6 +60,8 @@ pub enum PipelineError {
 
 #[derive(Debug, Clone)]
 pub struct RunResult {
+    /// How long the job takes (docs/specs/cycle-time.md).
+    pub estimate: estimate::Estimate,
     /// The checked G-code: one file, or one per tool group (docs/specs/tool-per-operation.md
     /// §3.1), in cut order.
     pub files: Vec<GcodeFile>,
@@ -184,10 +187,18 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let plan = plan_job_cancellable(job, &imported.contours, cancel)?;
     cancel.check()?;
     let (files, check_warnings) = post_and_check(job, &post, &plan.program, &plan.groups)?;
+    let estimate = estimate::estimate(
+        job,
+        &plan.program,
+        &plan.op_spans,
+        &plan.groups,
+        post.spindle_dwell_s,
+    );
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));
     notes.extend(copies_note(job, &plan.program, &plan.op_spans));
     Ok(RunResult {
+        estimate,
         files,
         post,
         import_report: imported.report,

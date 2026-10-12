@@ -1880,3 +1880,20 @@ fn draw_properties(app: &mut ChiploadApp) {
     let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.properties_panel(ui));
     output.textures_delta.clear();
 }
+
+// -- cycle time (docs/specs/cycle-time.md)
+
+#[test]
+fn the_report_and_the_cards_show_the_estimated_time() {
+    let mut app = lower_part();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let text = format!("{:?}", app.report);
+    assert!(text.contains("Estimated time: "), "{text}");
+    let estimate = &app.result.as_ref().unwrap().estimate;
+    assert_eq!(estimate.operations.len(), 2);
+    draw_sidebar(&mut app);
+    // Out of date: the times go with the result.
+    edit_feed(&mut app, 650.0);
+    assert!(app.result.is_none());
+    draw_sidebar(&mut app);
+}

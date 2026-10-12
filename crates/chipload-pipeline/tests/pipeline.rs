@@ -1078,3 +1078,135 @@ fn the_short_message_leaves_out_the_operation() {
     );
     assert!(problem.text.starts_with("Operation 1"), "{}", problem.text);
 }
+
+// -- cycle time (docs/specs/cycle-time.md)
+
+mod cycle_time {
+    use super::*;
+    use chipload_pipeline::estimate::{ASSUMED_RAPID_MM_MIN, estimate};
+    use chipload_toolpath::model::{Move, Program};
+    use chipload_toolpath::{OpSpan, ToolGroup};
+
+    fn rectangle() -> Program {
+        Program {
+            tool_id: 1,
+            tool_diameter: 6.0,
+            rpm: 18000.0,
+            spindle: Spindle::Cw,
+            safe_z: 5.0,
+            moves: vec![
+                Move::rapid_z(5.0),
+                Move::rapid_xy((0.0, 0.0)),
+                Move::feed_z(-3.0, 300.0),
+                Move::feed_xy((100.0, 0.0), 1200.0),
+                Move::feed_xy((100.0, 50.0), 1200.0),
+                Move::feed_xy((0.0, 50.0), 1200.0),
+                Move::feed_xy((0.0, 0.0), 1200.0),
+                Move::rapid_z(5.0),
+            ],
+        }
+    }
+
+    fn group(job: &Job, moves: std::ops::Range<usize>) -> ToolGroup {
+        ToolGroup {
+            tool: job.tools[0].clone(),
+            operations: vec![0],
+            moves,
+        }
+    }
+
+    fn near(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-9
+    }
+
+    #[test]
+    fn a_rectangle_takes_its_length_over_its_feeds() {
+        let mut job = job(json!({}));
+        job.machine.max_feed = None;
+        let program = rectangle();
+        let span = OpSpan {
+            operation: 0,
+            copy: 1,
+            moves: 0..8,
+            tool_radius: 3.0,
+        };
+        let e = estimate(&job, &program, &[span], &[group(&job, 0..8)], 3.0);
+        // Down 8 mm at 300, round 300 mm at 1200; up 8 mm at the assumed rapid rate.
+        let cutting = 8.0 / 300.0 * 60.0 + 300.0 / 1200.0 * 60.0;
+        let rapid = 8.0 / ASSUMED_RAPID_MM_MIN * 60.0;
+        assert!(e.rapid_assumed && near(e.rapid_rate, ASSUMED_RAPID_MM_MIN));
+        assert!(near(e.cutting, cutting), "{}", e.cutting);
+        assert!(near(e.rapid, rapid), "{}", e.rapid);
+        assert!(near(e.spindle, 3.0));
+        assert!(near(e.total, cutting + rapid + 3.0));
+        assert_eq!(e.operations.len(), 1);
+        assert!(near(e.operations[0].1, cutting + rapid));
+        assert_eq!(e.tool_changes, 0);
+
+        // The machine's max feed is the rapid rate.
+        job.machine.max_feed = Some(6000.0);
+        let e = estimate(&job, &program, &[], &[group(&job, 0..8)], 3.0);
+        assert!(!e.rapid_assumed && near(e.rapid, 8.0 / 6000.0 * 60.0));
+    }
+
+    #[test]
+    fn copies_add_up_and_each_tool_group_waits_for_its_spindle() {
+        let job = job(json!({}));
+        let mut program = rectangle();
+        let again = program.moves.clone();
+        program.moves.extend(again);
+        let spans: Vec<OpSpan> = [0..8, 8..16]
+            .into_iter()
+            .enumerate()
+            .map(|(k, moves)| OpSpan {
+                operation: 1,
+                copy: k as u32 + 1,
+                moves,
+                tool_radius: 3.0,
+            })
+            .collect();
+        let one = estimate(&job, &rectangle(), &spans[..1], &[group(&job, 0..8)], 0.0);
+        let two = estimate(
+            &job,
+            &program,
+            &spans,
+            &[group(&job, 0..8), group(&job, 8..16)],
+            2.0,
+        );
+        assert_eq!(two.operations.len(), 1);
+        // The second copy also travels from the first one's end: a little more than twice.
+        assert!(two.operations[0].1 >= 2.0 * one.operations[0].1 - 1e-9);
+        assert!(near(two.spindle, 4.0));
+        assert_eq!(two.tool_changes, 1);
+        assert_eq!(two.groups.len(), 2);
+    }
+
+    #[test]
+    fn a_helix_counts_its_descent() {
+        let job = job(json!({}));
+        let mut program = rectangle();
+        // Down 3 mm while going 4 mm across: 5 mm at 300.
+        program.moves = vec![
+            Move::rapid_z(0.0),
+            Move::rapid_xy((0.0, 0.0)),
+            Move::feed_xyz((4.0, 0.0), -3.0, 300.0),
+        ];
+        let e = estimate(&job, &program, &[], &[group(&job, 0..3)], 0.0);
+        assert!(near(e.cutting, 5.0 / 300.0 * 60.0), "{}", e.cutting);
+    }
+
+    #[test]
+    fn a_run_reports_its_estimate() {
+        let job = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
+        let result = run(&job);
+        let e = &result.estimate;
+        assert_eq!(e.operations.len(), 2);
+        assert_eq!(e.groups.len(), 2);
+        assert_eq!(e.tool_changes, 1);
+        assert!(e.total > e.cutting && e.cutting > 0.0);
+        let lines = chipload_pipeline::estimate::estimate_lines(&job, e, true);
+        assert!(lines[0].starts_with("Estimated time: "), "{lines:?}");
+        assert!(lines[0].ends_with("plus 1 tool change"), "{lines:?}");
+        assert!(lines.iter().any(|l| l.starts_with("  File 2: ")));
+    }
+}

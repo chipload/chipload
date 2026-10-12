@@ -230,6 +230,10 @@ impl ChiploadApp {
                 result.post.name
             ),
         );
+        let several = result.files.len() > 1;
+        for line in chipload_pipeline::estimate::estimate_lines(job, &result.estimate, several) {
+            report.push(Tone::Info, line);
+        }
         for note in &result.notes {
             report.push(Tone::Warning, note.clone());
         }

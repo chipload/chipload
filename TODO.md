@@ -21,8 +21,7 @@ it's built (see `CLAUDE.md`).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Done (problems while editing, see Done).
-  7. Cycle time estimate per operation and in total (docs/specs/cycle-time.md, draft for
-     review); 8. a setup sheet for the operator.
+  7. Done (cycle time estimate, see Done); 8. a setup sheet for the operator.
   - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
     range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
     and mirror of drawn shapes, Help → Keyboard shortcuts.
@@ -31,6 +30,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Cycle time estimate** (docs/specs/cycle-time.md): total, cutting, rapids, spindle and
+  tool changes, per operation and per file, at the programmed feeds (rapids at the max feed,
+  else 5000 mm/min assumed); in the report, on the operation cards, in `chipload run/plan`
+  and `plan --json`. Later: a rapid-rate setting.
 - **Problems shown where they are, while editing** (docs/specs/live-problems.md): after
   each finished edit every rule that needs no geometry is checked; a bad field gets a red
   frame and its message on hover, its section a red dot, the operation card a line, the

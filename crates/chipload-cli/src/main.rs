@@ -18,6 +18,7 @@ use chipload_job::{
     polyline_segment_count, save_job,
 };
 use chipload_pipeline::copies::{copies_text, pitch_for_gap};
+use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::placement::{
     Move as PlaceMove, imported_size, place_drawing, placement_text,
@@ -997,6 +998,9 @@ fn run(project: &Path, output: &Path, tool_change: Option<library::ToolChangeArg
             );
         }
     }
+    for line in estimate_lines(&job, &result.estimate, result.files.len() > 1) {
+        println!("{line}");
+    }
     if result.files.len() > 1 {
         println!(
             "{} files, post {}: change the tool and set Z zero between them, keeping X and Y \
@@ -1155,6 +1159,10 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
             return ExitCode::from(EXIT_FAILED);
         }
     };
+    // The post's spindle wait; a post that can't be read only leaves it out here (`run`
+    // refuses it).
+    let dwell = chipload_pipeline::posts::job_post(&job).map_or(0.0, |p| p.spindle_dwell_s);
+    let estimate = estimate(&job, &plan.program, &plan.op_spans, &plan.groups, dwell);
     if as_json {
         println!(
             "{}",
@@ -1183,6 +1191,20 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                     "start": s.ring.first(),
                     "stored": s.stored,
                 })).collect::<Vec<_>>(),
+                "estimate": json!({
+                    "total_s": estimate.total,
+                    "cutting_s": estimate.cutting,
+                    "rapid_s": estimate.rapid,
+                    "spindle_s": estimate.spindle,
+                    "operations": estimate.operations.iter().map(|(op, s)| json!({
+                        "operation": op,
+                        "seconds": s,
+                    })).collect::<Vec<_>>(),
+                    "groups_s": estimate.groups,
+                    "tool_changes": estimate.tool_changes,
+                    "rapid_mm_min": estimate.rapid_rate,
+                    "rapid_assumed": estimate.rapid_assumed,
+                }),
             })
         );
     } else {
@@ -1207,6 +1229,9 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
         }
         if let Some(text) = copies_text(&job) {
             println!("Copies: {text}");
+        }
+        for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
+            println!("{line}");
         }
         if plan.groups.len() > 1 {
             for (i, g) in plan.groups.iter().enumerate() {

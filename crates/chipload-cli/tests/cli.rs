@@ -934,3 +934,22 @@ fn tool_changes_in_one_file_from_the_machine_or_for_one_run() {
     assert!(!dir.join("part-1-T2.nc").exists());
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn plan_and_run_say_how_long_the_job_takes() {
+    // docs/specs/cycle-time.md §4
+    let project = corpus("jobs/v11/two_tools.chipload");
+    let out = chipload(&["plan", path(&project), "--json"]);
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let estimate = &plan["estimate"];
+    assert!(estimate["total_s"].as_f64().unwrap() > estimate["cutting_s"].as_f64().unwrap());
+    assert_eq!(estimate["tool_changes"], 1);
+    assert_eq!(estimate["operations"].as_array().unwrap().len(), 2);
+    assert_eq!(estimate["groups_s"].as_array().unwrap().len(), 2);
+    assert_eq!(estimate["rapid_assumed"], false);
+    let out = chipload(&["plan", path(&project)]);
+    let said = text(&out.stdout);
+    assert!(said.contains("Estimated time: "), "{said}");
+    assert!(said.contains("plus 1 tool change"), "{said}");
+    assert!(said.contains("  File 2: "), "{said}");
+}
