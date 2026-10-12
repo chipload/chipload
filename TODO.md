@@ -36,6 +36,19 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"), each with its
+  own spec first, in this order:
+  1. **Follow path**: an operation that cuts open paths (and closed ones on the line),
+     for engraving, grooves and score lines (docs/specs/follow-path.md, approved).
+  2. **Finishing pass and onion skin** on profiles: a light last pass on the wall; a thin
+     skin left on the last pass instead of tabs, cut through at the end.
+  3. **Drilling**: drill cycles (G81, G83 peck) for circles that fit a drill, and helical
+     boring of larger holes with an endmill.
+  4. **Dogbone and T-bone corners**: overcuts in inside corners so slot-together parts fit.
+  5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
+  6. **Material-removal simulation**: the stock as a height map, cut by the toolpath in
+     the 3D view (beyond the planned toolpath playback).
+
 - **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's
   decision). No longer offered as pocket strategies (the GUI offers rings only); projects
   that use them still load and plan as before, with a note that the strategy is
