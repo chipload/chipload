@@ -1498,3 +1498,32 @@ fn the_delete_key_keeps_imported_shapes() {
             .any(|l| l.contains("Imported shapes can't be deleted"))
     );
 }
+
+/// Draw the left sidebar for one frame.
+fn draw_sidebar(app: &mut ChiploadApp) {
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.sidebar(ui));
+    // The font atlas a first frame makes isn't painted anywhere here.
+    output.textures_delta.clear();
+}
+
+#[test]
+fn the_sidebar_shows_operations_and_shapes_apart() {
+    // docs/specs/sidebar-sections.md
+    let mut app = ChiploadApp::default();
+    draw_sidebar(&mut app);
+    let mut app = lower_part();
+    draw_sidebar(&mut app);
+    app.click(None, false);
+    draw_sidebar(&mut app);
+    let layers = app.layer_counts();
+    let total: usize = layers.iter().map(|(_, n)| n).sum();
+    assert!(total >= app.contours.len(), "{layers:?}");
+    let names: Vec<&String> = layers.iter().map(|(l, _)| l).collect();
+    let mut sorted = names.clone();
+    sorted.sort();
+    assert_eq!(names, sorted);
+    let mut app = drawn_part();
+    app.click(Some(contour_of(&app, 2)), false);
+    draw_sidebar(&mut app);
+}

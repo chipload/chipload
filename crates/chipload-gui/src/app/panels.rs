@@ -2,7 +2,27 @@
 //! The side panels: operations, selection (with the shape editor), properties.
 
 use super::forms::{JobRequest, OpFormRequest, ToolChoice};
+use std::collections::BTreeMap;
+
 use super::*;
+
+/// The Shapes section's share of the sidebar's height at first.
+const SHAPES_SHARE: f32 = 0.4;
+/// Neither section is dragged smaller than this, in points.
+const SECTION_MIN_HEIGHT: f32 = 120.0;
+
+/// A section's title on a shaded bar across the sidebar.
+fn section_header(ui: &mut egui::Ui, title: &str) {
+    egui::Frame::new()
+        .fill(ui.visuals().widgets.inactive.bg_fill)
+        .inner_margin(egui::Margin::symmetric(6, 4))
+        .corner_radius(2.0)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.strong(title);
+        });
+    ui.add_space(2.0);
+}
 
 impl ChiploadApp {
     /// The selection section's shape part: the editor for a drawn shape, facts for an
@@ -47,86 +67,14 @@ impl ChiploadApp {
         self.shape_draft = Some(draft);
     }
 
-    /// Left: operations in cut order, the canvas selection, layers.
-    pub(super) fn operations_panel(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Project");
+    /// Left: the job row, the operations, and below a draggable split the shapes
+    /// (docs/specs/sidebar-sections.md).
+    pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
         if self.edit.is_none() {
+            ui.heading("Project");
             ui.weak("No project open.");
             return;
         }
-        self.operation_list(ui);
-        ui.separator();
-        ui.heading("Selection");
-        let nothing = self.selection.ids(&self.contours).is_empty();
-        for line in self.selection_lines() {
-            if nothing {
-                ui.weak(line);
-            } else {
-                ui.label(line);
-            }
-        }
-        self.selected_shape_ui(ui);
-        ui.horizontal(|ui| {
-            if ui
-                .button("New profile")
-                .on_hover_text("A profile operation for the selected contours")
-                .clicked()
-            {
-                self.add_operation(OpKind::Profile);
-            }
-            if ui
-                .button("New pocket")
-                .on_hover_text("A pocket operation for the selected contours")
-                .clicked()
-            {
-                self.add_operation(OpKind::Pocket);
-            }
-            if ui
-                .button("New V-carve")
-                .on_hover_text(
-                    "A V-bit along the centre line of the selected closed contours, as deep as \
-                     makes the cut as wide as the shape",
-                )
-                .clicked()
-            {
-                self.add_operation(OpKind::Vcarve);
-            }
-            if ui
-                .add_enabled(
-                    self.selector_json().is_some(),
-                    egui::Button::new("Copy as selector"),
-                )
-                .clicked()
-            {
-                self.copy_selector(ui.ctx());
-            }
-        });
-        ui.collapsing("Layers", |ui| {
-            let mut layers: Vec<(String, usize)> = Vec::new();
-            for c in &self.contours {
-                for layer in c.layers() {
-                    match layers.iter_mut().find(|(l, _)| *l == layer) {
-                        Some((_, n)) => *n += 1,
-                        None => layers.push((layer, 1)),
-                    }
-                }
-            }
-            layers.sort();
-            for (layer, count) in layers {
-                if ui
-                    .button(format!("Select layer {layer} ({count})"))
-                    .clicked()
-                {
-                    self.select_layer(&layer);
-                }
-            }
-        });
-    }
-
-    pub(super) fn operation_list(&mut self, ui: &mut egui::Ui) {
-        let Some(edit) = self.edit.as_mut() else {
-            return;
-        };
         if ui
             .selectable_label(
                 self.focus == Focus::Job,
@@ -136,7 +84,130 @@ impl ChiploadApp {
         {
             self.focus = Focus::Job;
         }
+        ui.add_space(4.0);
+        let height = ui.available_height();
+        Panel::bottom("shapes")
+            .resizable(true)
+            .default_size(height * SHAPES_SHARE)
+            .min_size(SECTION_MIN_HEIGHT)
+            .max_size((height - SECTION_MIN_HEIGHT).max(SECTION_MIN_HEIGHT))
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| {
+                ui.add_space(6.0);
+                section_header(ui, "Shapes");
+                ScrollArea::vertical()
+                    .id_salt("shapes-scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| self.shapes_section(ui));
+            });
+        let count = self.edit.as_ref().map_or(0, |e| e.ops.len());
+        section_header(ui, &format!("Operations ({count})"));
+        self.new_operation_buttons(ui);
+        ScrollArea::vertical()
+            .id_salt("operations-scroll")
+            .auto_shrink([false, false])
+            .show(ui, |ui| self.operation_list(ui));
+    }
+
+    /// + Profile, + Pocket, + V-carve: for the selected shapes.
+    fn new_operation_buttons(&mut self, ui: &mut egui::Ui) {
+        let selected = !self.selection.ids(&self.contours).is_empty();
+        ui.horizontal_wrapped(|ui| {
+            for (label, kind, hover) in [
+                (
+                    "+ Profile",
+                    OpKind::Profile,
+                    "A profile operation for the selected contours",
+                ),
+                (
+                    "+ Pocket",
+                    OpKind::Pocket,
+                    "A pocket operation for the selected contours",
+                ),
+                (
+                    "+ V-carve",
+                    OpKind::Vcarve,
+                    "A V-bit along the centre line of the selected closed contours, as deep \
+                     as makes the cut as wide as the shape",
+                ),
+            ] {
+                if ui
+                    .add_enabled(selected, egui::Button::new(label))
+                    .on_hover_text(hover)
+                    .on_disabled_hover_text("Select shapes first")
+                    .clicked()
+                {
+                    self.add_operation(kind);
+                }
+            }
+        });
         ui.add_space(2.0);
+    }
+
+    /// The selection, the selected shape's editor or facts, and the layers.
+    fn shapes_section(&mut self, ui: &mut egui::Ui) {
+        let nothing = self.selection.ids(&self.contours).is_empty();
+        for line in self.selection_lines() {
+            if nothing {
+                ui.weak(line);
+            } else {
+                ui.label(line);
+            }
+        }
+        self.selected_shape_ui(ui);
+        if ui
+            .add_enabled(
+                self.selector_json().is_some(),
+                egui::Button::new("Copy as selector"),
+            )
+            .on_hover_text("The selection as JSON, for an operation in a project file")
+            .clicked()
+        {
+            self.copy_selector(ui.ctx());
+        }
+        ui.add_space(4.0);
+        ui.strong("Layers");
+        let layers = self.layer_counts();
+        if layers.is_empty() {
+            ui.weak("No shapes yet.");
+        }
+        Grid::new("layer-list")
+            .num_columns(3)
+            .striped(true)
+            .show(ui, |ui| {
+                for (layer, count) in layers {
+                    ui.label(&layer);
+                    ui.weak(format!(
+                        "{count} {}",
+                        if count == 1 { "shape" } else { "shapes" }
+                    ));
+                    if ui
+                        .small_button("Select")
+                        .on_hover_text("Select every shape on this layer")
+                        .clicked()
+                    {
+                        self.select_layer(&layer);
+                    }
+                    ui.end_row();
+                }
+            });
+    }
+
+    /// Every layer with the number of shapes on it, sorted by name.
+    pub(super) fn layer_counts(&self) -> Vec<(String, usize)> {
+        let mut layers: BTreeMap<String, usize> = BTreeMap::new();
+        for c in &self.contours {
+            for layer in c.layers() {
+                *layers.entry(layer).or_default() += 1;
+            }
+        }
+        layers.into_iter().collect()
+    }
+
+    pub(super) fn operation_list(&mut self, ui: &mut egui::Ui) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
         let missing: BTreeSet<usize> = edit.missing().into_iter().map(|(i, _)| i).collect();
         let mut action: Option<CardAction> = None;
         let count = edit.ops.len();

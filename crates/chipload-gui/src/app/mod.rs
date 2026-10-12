@@ -1037,11 +1037,7 @@ impl eframe::App for ChiploadApp {
         Panel::left("operations")
             .resizable(true)
             .default_size(340.0)
-            .show(ui, |ui| {
-                ScrollArea::vertical()
-                    .id_salt("operations-scroll")
-                    .show(ui, |ui| self.operations_panel(ui));
-            });
+            .show(ui, |ui| self.sidebar(ui));
         Panel::right("side")
             .resizable(true)
             .default_size(440.0)

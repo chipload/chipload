@@ -9,8 +9,6 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Clearer left sidebar** (user request 2026-10-12): separate operations and shapes
-  clearly. Suggestion made 2026-10-12, awaiting the user's decisions; then a short spec.
 - **Adaptive as spirals and trochoidal channels on the medial axis**
   (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
   (wide areas by spiral, corners and branches by loops, lifts) is on the branch
@@ -20,6 +18,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Clearer left sidebar** (docs/specs/sidebar-sections.md): the Job row on top, then
+  Operations (with + Profile / + Pocket / + V-carve for the selection) and, below a
+  draggable split, Shapes (selection, shape editor, layers with counts).
 - **Material left lost behind a bay of the tool's reach** (bug found 2026-10-12 by the
   material-left property test): the offset library returned a loop that closes while
   growing as an open polyline, which was dropped; it is now closed (ends within 0.001 mm)
@@ -54,6 +55,8 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
+- **A list of every shape** in the Shapes section of the sidebar, drawn and imported, to
+  click and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12).
 - **Several DXFs in one project:** import more than one drawing into a project, each with
   its own source and placement (user request 2026-10-11).
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
