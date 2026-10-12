@@ -1303,3 +1303,20 @@ fn a_flank_angle_must_be_more_than_0_and_at_most_90_degrees() {
         assert_eq!(refused, !ok, "{angle}");
     }
 }
+
+#[test]
+fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
+    use chipload_job::{DEFAULT_RAMPED_FLANK_RAD, Entry, STRAIGHT_FLANK_RAD, Tabs};
+    let plunge = Entry::Plunge {};
+    let ramp = Entry::Ramp { ramp_angle: 0.05 };
+    for marked in [Some(true), Some(false), None] {
+        assert_eq!(Tabs::default_flank(plunge, marked), STRAIGHT_FLANK_RAD);
+    }
+    assert_eq!(
+        Tabs::default_flank(ramp, Some(true)),
+        DEFAULT_RAMPED_FLANK_RAD
+    );
+    assert_eq!(Tabs::default_flank(ramp, None), DEFAULT_RAMPED_FLANK_RAD);
+    // Going down a flank is a ramp: no steeper than the ramp for a tool that can't plunge.
+    assert_eq!(Tabs::default_flank(ramp, Some(false)), 0.05);
+}

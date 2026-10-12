@@ -1,7 +1,7 @@
 # Spec: spiral profiles and ramped tabs
 
-Status: **approved 2026-10-12**, all decisions as recommended; steps 1 (schema 16) and 2
-(toolpath) built. Decisions 1, 3–6 approved by the user as
+Status: **approved 2026-10-12**, all decisions as recommended; built (schema 16, the
+toolpath, the GUI field and the setup sheet). Decisions 1, 3–6 approved by the user as
 recommended. The user replaced decision 2: "we need to do ramped tabs, it is not good to go
 back and forth after each tab. We have no external users yet so we don't need to worry
 about changing this." Decisions 7–11 are new and need review.

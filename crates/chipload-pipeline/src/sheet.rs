@@ -433,12 +433,19 @@ fn entry_text(op: &Operation) -> String {
 fn tabs_text(op: &Operation) -> String {
     match op {
         Operation::Profile(p) => match &p.tabs {
-            Some(t) if t.count > 0 => format!(
-                "{} \u{d7} {} wide, {} high",
-                t.count,
-                num(t.width),
-                num(t.height)
-            ),
+            Some(t) if t.count > 0 => {
+                let mut text = format!(
+                    "{} \u{d7} {} wide, {} high",
+                    t.count,
+                    num(t.width),
+                    num(t.height)
+                );
+                if !t.is_straight() {
+                    let degrees = trimmed(format!("{:.1}", t.flank_angle.to_degrees()));
+                    let _ = write!(text, ", flanks {degrees}\u{b0}");
+                }
+                text
+            }
             _ => "none".into(),
         },
         _ => "-".into(),

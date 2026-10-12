@@ -9,7 +9,7 @@ use chipload_job::Placement;
 use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
-use chipload_job::{Job, ToolChange};
+use chipload_job::{Job, STRAIGHT_FLANK_RAD, ToolChange};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
@@ -183,6 +183,43 @@ fn section_marked<R>(
         .body_returned
 }
 
+/// The tabs' flank angle in degrees, and how far the feet reach (docs/specs/
+/// profile-spiral.md §4).
+fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
+    ui.label("  flank angle").on_hover_text(
+        "How steeply the tab's sides slope down from its flat top. 90° is a straight tab: \
+         the tool goes straight up and down. Below that the tool follows the slope, so it \
+         never plunges after a tab. Going down a flank is a ramp: with a tool that isn't \
+         centre-cutting, no steeper than the ramp angle.",
+    );
+    ui.horizontal(|ui| {
+        let mut value = tabs.flank_angle.to_degrees();
+        let response = ui.add(
+            DragValue::new(&mut value)
+                .speed(0.5)
+                .range(0.5..=90.0)
+                .suffix("°"),
+        );
+        if response.changed() {
+            tabs.flank_angle = value.to_radians().min(STRAIGHT_FLANK_RAD);
+        }
+        flag(response, ui, "tabs.flank_angle");
+        if tabs.is_straight() {
+            ui.weak("straight");
+        } else if tabs.height > 0.0 {
+            let foot = tabs.height / tabs.flank_angle.tan();
+            ui.weak(format!("feet {} mm each side", len(foot)));
+        }
+    });
+    ui.end_row();
+}
+
+/// Degrees for a summary: one decimal, no trailing zero.
+fn degrees(radians: f64) -> String {
+    let text = format!("{:.1}", radians.to_degrees());
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
 /// A length for a summary: no trailing zeros.
 fn len(value: f64) -> String {
     let text = format!("{value:.3}");
@@ -343,15 +380,20 @@ pub(super) fn op_form(
                 entry_rows(ui, index, &mut p.entry, None);
                 // On the line there is no waste side to put a lead on.
                 let can_lead = p.side != Side::On || p.lead.is_some();
-                lead_rows(ui, &mut p.lead, tool_diameter, can_lead);
+                let spiral = p.entry.ramp_angle().is_some();
+                lead_rows(ui, &mut p.lead, tool_diameter, can_lead, spiral);
             });
             let tabs_text = p.tabs.as_ref().map_or("none".to_string(), |t| {
-                format!(
+                let mut text = format!(
                     "{} × {} mm, {} mm high",
                     t.count,
                     len(t.width),
                     len(t.height)
-                )
+                );
+                if !t.is_straight() {
+                    text += &format!(", flanks {}°", degrees(t.flank_angle));
+                }
+                text
             });
             section(ui, "op-tabs", "Tabs", &tabs_text, |ui| {
                 ui.label("Tabs");
@@ -382,6 +424,7 @@ pub(super) fn op_form(
                     ui.label("  height");
                     flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
                     ui.end_row();
+                    flank_row(ui, tabs);
                 }
             });
         }
@@ -451,7 +494,7 @@ pub(super) fn op_form(
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());
             section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
-                lead_rows(ui, &mut p.lead, tool_diameter, true);
+                lead_rows(ui, &mut p.lead, tool_diameter, true, false);
             });
         }
         Operation::Vcarve(v) => {
@@ -616,9 +659,10 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
 /// down round a helix (docs/specs/helix-and-leads.md part C).
 fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<f64>) {
     ui.label("Entry").on_hover_text(
-        "How the tool goes down into the material. A ramp goes down along the path and back, \
-         a helix (pockets) round a small circle, so the tool needn't be centre-cutting; both \
-         use the cutting feed.",
+        "How the tool goes down into the material. A ramp goes down along the path (a \
+         profile spirals down round its ring, a pocket ramps out and back), a helix \
+         (pockets) round a small circle, so the tool needn't be centre-cutting; both use the \
+         cutting feed.",
     );
     let ramp = Entry::Ramp {
         ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
@@ -678,18 +722,33 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
 
 /// Lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and the radius,
 /// the tool radius by default.
-fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64, enabled: bool) {
-    ui.label("Lead").on_hover_text(
+/// `spiral`: a ramped profile, which leads in once and rises out instead of leading out
+/// (docs/specs/profile-spiral.md §5).
+fn lead_rows(
+    ui: &mut egui::Ui,
+    lead: &mut Option<Lead>,
+    tool_diameter: f64,
+    enabled: bool,
+    spiral: bool,
+) {
+    ui.label("Lead").on_hover_text(if spiral {
+        "Arc onto the path from the waste at the start depth, so the tool goes down in the \
+         waste and leaves no mark on the part. A ramped profile then spirals down without \
+         stopping and, at the end, rises out along the cut instead of arcing off it. A lead \
+         without room shrinks, or is left out (the report says so)."
+    } else {
         "Arc onto the path from the waste and off it again, so the tool goes down in the \
          waste and leaves no mark on the part. A lead without room shrinks, or is left out \
-         (the report says so).",
-    );
+         (the report says so)."
+    });
     let mut on = lead.is_some();
+    let text = if spiral {
+        "lead-in"
+    } else {
+        "lead-in and lead-out"
+    };
     let response = ui
-        .add_enabled(
-            enabled,
-            egui::Checkbox::new(&mut on, "lead-in and lead-out"),
-        )
+        .add_enabled(enabled, egui::Checkbox::new(&mut on, text))
         .on_disabled_hover_text("A profile cut on the line has no waste side for a lead");
     let response = flag(response, ui, "lead");
     if response.changed() {

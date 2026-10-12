@@ -5,11 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Spiral profiles and ramped tabs** (docs/specs/profile-spiral.md, approved 2026-10-12):
-  ramped profiles spiral forward instead of ramping back and forth, tabs get sloped
-  flanks, one lead-in and a rise-out. Steps: (1) schema 16 with `tabs.flank_angle` — done;
-  (2) the spiral and ramped tabs in the toolpath, goldens — done; (3) GUI field and setup
-  sheet.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -67,6 +63,11 @@ it's built (see `CLAUDE.md`).
   tuned for dark). Needs a second canvas palette.
 
 ## Done
+
+- **Spiral profiles and ramped tabs** (2026-10-12, docs/specs/profile-spiral.md): ramped
+  profiles spiral forward down the ring (no back-and-forth), one lead-in, a rise-out at
+  the end; tabs have a flank angle (schema 16) and the tool follows their trapezoid.
+  Commits 160b6c1 (schema), aeeb1b9 (toolpath), and the GUI field and setup sheet text.
 
 - **Colour theme and contrast:** Settings → Colour theme (System, Light, Dark; moved from
   View → Theme). Every kind of text now reads at least 4.5:1 in both themes (brighter dark
