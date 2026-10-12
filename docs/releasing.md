@@ -52,5 +52,24 @@ Ubuntu 22.04 container, with the same steps and the same glibc:
 
 Then create the draft with `gh release create v0.13.0 dist/local/Chipload-*.AppImage
 dist/local/chipload-*.tar.gz dist/local/SHA256SUMS.txt --draft --verify-tag --title
-"Chipload 0.13.0" --notes-file notes.md` (the `gh` token needs Contents read/write). The
-Windows files need a Windows machine with Rust and the Visual Studio Build Tools (TODO.md).
+"Chipload 0.13.0" --notes-file notes.md` (the `gh` token needs Contents read/write).
+
+The Windows files are built on the Windows side of the same machine: Rust (rustup, the
+default `msvc` toolchain), the Visual Studio Build Tools ("Desktop development with C++")
+and Git, with a checkout on a Windows drive (e.g. `C:\code\chipload`, not over `\\wsl$`).
+From WSL, in `/mnt/c/code/chipload`:
+
+    cmd.exe /c "set PATH=%USERPROFILE%\.cargo\bin;%PATH% && git fetch --tags && git checkout v0.13.0 && cargo test --workspace --locked --no-fail-fast && cargo build --release --locked -p chipload-gui -p chipload-cli"
+
+`rust-toolchain.toml` makes rustup install the pinned Rust on the first run. Then:
+
+1. Copy `target/release/chipload-gui.exe` to `chipload-gui-0.13.0-windows-x86_64.exe` and
+   `target/release/chipload.exe` to `chipload-0.13.0-windows-x86_64.exe`.
+2. Check that neither needs the VC++ runtime: `strings -a FILE | grep -iE
+   '^(vcruntime|msvcp|api-ms-win-crt)'` prints nothing.
+3. Add their checksums to the release's `SHA256SUMS.txt` (`gh release download v0.13.0 -p
+   SHA256SUMS.txt`, then `sha256sum *.exe >> SHA256SUMS.txt`).
+4. `gh release upload v0.13.0 chipload-gui-0.13.0-windows-x86_64.exe
+   chipload-0.13.0-windows-x86_64.exe SHA256SUMS.txt --clobber`, and list the Windows files
+   in the release notes.
+5. `git switch main` in the Windows checkout, so it isn't left on the tag.

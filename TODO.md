@@ -20,14 +20,8 @@ it's built (see `CLAUDE.md`).
   read/write on `gntech/chipload` (needed for releases). Remember the usual release steps
   first (docs/releasing.md: version bump, internal pins, `cargo about generate`).
 - **Windows builds** (local, no Actions): Rust (msvc) and the Build Tools are installed on
-  the Windows side, checkout `C:\code\chipload`. From WSL, in that folder: `cmd.exe /c "set
-  PATH=%USERPROFILE%\.cargo\bin;%PATH% && git checkout v<version> && cargo test --workspace
-  --locked && cargo build --release --locked -p chipload-gui -p chipload-cli"`. Copy
-  `target/release/chipload-gui.exe` and `chipload.exe` as
-  `chipload-gui-<version>-windows-x86_64.exe` / `chipload-<version>-windows-x86_64.exe`,
-  check that no VC++ runtime DLL is named (`strings … | grep -i vcruntime` gives nothing),
-  append their checksums to the release's `SHA256SUMS.txt`, then `gh release upload
-  v<version> … --clobber`. Afterwards `git switch main` in the Windows checkout.
+  the Windows side, checkout `C:\code\chipload`; the steps are in docs/releasing.md
+  (*Without GitHub Actions*). 0.13.0 was built and uploaded that way.
 - **The repository is private**: testers can't download releases or open issues without
   being added as collaborators. Decide: make it public, add testers, or another way to
   collect reports (the 0.13.0 notes ask for issues).
