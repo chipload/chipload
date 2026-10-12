@@ -18,8 +18,8 @@ it's built (see `CLAUDE.md`).
 
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
-  3. Autosave and crash recovery (a recovery copy while unsaved, a panic hook, restore on
-     start); 4. a `.bak` of the project on save.
+  3. Autosave and crash recovery (a recovery copy while unsaved, restore on start); 4. a
+     `.bak` of the project on save (docs/specs/autosave-and-backup.md, draft for review).
   5. User post-processors from a `posts/` folder in the settings folder, plus built-in
      LinuxCNC and Mach3/4 posts.
   6. Problems shown at the field and the operation card while editing, not only after
