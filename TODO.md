@@ -7,6 +7,36 @@ it's built (see `CLAUDE.md`).
 
 (nothing)
 
+## State to remember (2026-10-12)
+
+- **Release 0.13.0**: tag `v0.13.0` (14a1b71) pushed. The GitHub release is a **draft** with
+  the Linux files only (AppImage, CLI tar.gz, SHA256SUMS) and notes listing every feature
+  for first testers. **To do:** try the AppImage on the target machine, then publish the
+  draft. Old drafts (0.3.0–0.10.1) were deleted; their tags remain.
+- **No GitHub Actions minutes left**: the release workflow can't run. Linux release files
+  are built locally with `packaging/linux/build-release-local.sh <version> [out]` (podman,
+  Ubuntu 22.04 container, tests first, the same steps as the workflow), then uploaded with
+  `gh release create v<version> … --draft --verify-tag`. The `gh` token now has Contents
+  read/write on `gntech/chipload` (needed for releases). Remember the usual release steps
+  first (docs/releasing.md: version bump, internal pins, `cargo about generate`).
+- **Windows builds**: none since 0.12.1. Plan: install on the Windows side Visual Studio
+  Build Tools ("Desktop development with C++"), rustup (msvc, default) and Git; clone into
+  e.g. `C:\src\chipload` (not over `\\wsl$`), check out the tag, `cargo test`, `cargo build
+  --release -p chipload-gui -p chipload-cli` (static CRT from `.cargo/config.toml`), check
+  with dumpbin that no VC++ runtime DLL is needed, name the files as the workflow does, add
+  them and new checksums to the release (`gh release upload`).
+- **The repository is private**: testers can't download releases or open issues without
+  being added as collaborators. Decide: make it public, add testers, or another way to
+  collect reports (the 0.13.0 notes ask for issues).
+- **Branches**: `adaptive-stage2-wip` (local only, rebased on main 2026-10-12, see the
+  experimental item below); `adaptive-stage2-wip-backup` (the branch before that rebase,
+  can be deleted); `release-0.12` (the 0.12.1 fix branch, kept for history).
+- **Waiting on the user**: real-controller tests of the LinuxCNC and Mach3/4 posts.
+- **Known test flakiness**: proptests use new random seeds on every run, so a release
+  build can fail on a case never seen before (it happened for 0.11.0, 0.12.0 and while
+  preparing 0.13.0). Found and not fixed: `material_left_is_out_of_reach_and_complete`
+  failed once on a ring pocket (display only, the seed was not kept).
+
 ## Next
 
 - **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's

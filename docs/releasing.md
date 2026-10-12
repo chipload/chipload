@@ -42,3 +42,15 @@ Help > About and licences; CLI: `chipload licenses`).
 
 On Windows, `cargo build --release` gives the single-file executables in `target/release/`
 (`.cargo/config.toml` links the C runtime statically).
+
+## Without GitHub Actions
+
+When the workflow can't run (no Actions minutes), build the Linux files locally in an
+Ubuntu 22.04 container, with the same steps and the same glibc:
+
+    packaging/linux/build-release-local.sh 0.13.0 dist/local
+
+Then create the draft with `gh release create v0.13.0 dist/local/Chipload-*.AppImage
+dist/local/chipload-*.tar.gz dist/local/SHA256SUMS.txt --draft --verify-tag --title
+"Chipload 0.13.0" --notes-file notes.md` (the `gh` token needs Contents read/write). The
+Windows files need a Windows machine with Rust and the Visual Studio Build Tools (TODO.md).
