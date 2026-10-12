@@ -3,6 +3,7 @@
 
 use super::shortcuts::{self, Action, hover_keys, with_keys};
 use super::*;
+use chipload_job::edit::Mirror;
 
 impl ChiploadApp {
     // -- user interface
@@ -12,6 +13,7 @@ impl ChiploadApp {
         if ctx.egui_wants_keyboard_input() {
             return;
         }
+        self.clipboard_events(ctx);
         for binding in shortcuts::BINDINGS {
             if ctx.input_mut(|i| i.consume_shortcut(&binding.keys)) {
                 self.act(binding.action, ctx);
@@ -156,9 +158,46 @@ impl ChiploadApp {
                     self.redo();
                 }
                 ui.separator();
+                let drawn = !self.deletable_shapes().0.is_empty();
+                let only_drawn = "Only drawn shapes; imported ones change only with the DXF";
+                if ui
+                    .add_enabled(drawn, egui::Button::new(with_keys("Copy", Action::Copy)))
+                    .on_disabled_hover_text(only_drawn)
+                    .clicked()
+                    && let Some(text) = self.copy_selected_shapes()
+                {
+                    ui.ctx().copy_text(text);
+                }
                 if ui
                     .add_enabled(
-                        !self.deletable_shapes().0.is_empty(),
+                        !self.shape_clipboard.is_empty() && has_job,
+                        egui::Button::new(with_keys("Paste", Action::Paste)),
+                    )
+                    .on_hover_text("10 mm right and up from the copied shapes; Ctrl+V over the canvas pastes at the cursor")
+                    .clicked()
+                {
+                    self.paste(None);
+                }
+                if ui
+                    .add_enabled(drawn, egui::Button::new("Mirror left–right"))
+                    .on_hover_text("Flip the selected drawn shapes about the middle of their box")
+                    .on_disabled_hover_text(only_drawn)
+                    .clicked()
+                {
+                    self.mirror_selected(Mirror::LeftRight);
+                }
+                if ui
+                    .add_enabled(drawn, egui::Button::new("Mirror up–down"))
+                    .on_hover_text("Flip the selected drawn shapes about the middle of their box")
+                    .on_disabled_hover_text(only_drawn)
+                    .clicked()
+                {
+                    self.mirror_selected(Mirror::UpDown);
+                }
+                ui.separator();
+                if ui
+                    .add_enabled(
+                        drawn,
                         egui::Button::new("Delete shapes  (Del)"),
                     )
                     .on_hover_text(

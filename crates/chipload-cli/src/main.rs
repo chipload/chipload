@@ -13,6 +13,7 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
+use chipload_job::edit::Mirror;
 use chipload_job::{
     Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
     polyline_segment_count, save_job,
@@ -26,7 +27,7 @@ use chipload_pipeline::placement::{
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_material_left, format_shapes, severity_name,
 };
-use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
+use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, set_op_tool,
@@ -337,6 +338,44 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Copy drawn shapes, moved by --dx and --dy, on their layers; prints the new ids.
+    Copy {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// How far to move the copies right, mm.
+        #[arg(long, allow_hyphen_values = true)]
+        dx: f64,
+        /// How far to move the copies up, mm.
+        #[arg(long, allow_hyphen_values = true)]
+        dy: f64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Mirror drawn shapes in place, about the middle of the box round them. They keep
+    /// their ids, so the operations that cut them follow.
+    Mirror {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// x: flip the X coordinates (left becomes right); y: flip Y (up becomes down).
+        #[arg(long)]
+        axis: AxisArg,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum AxisArg {
+    X,
+    Y,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -765,6 +804,12 @@ fn shape(action: ShapeAction) -> ExitCode {
         }
         | ShapeAction::Delete {
             project, output, ..
+        }
+        | ShapeAction::Copy {
+            project, output, ..
+        }
+        | ShapeAction::Mirror {
+            project, output, ..
         } => (project.clone(), output.clone()),
     };
     let job = match load(&project) {
@@ -799,6 +844,22 @@ fn shape(action: ShapeAction) -> ExitCode {
             lines.extend(flagged.into_iter().map(|l| format!("warning: {l}")));
             (job, lines)
         }),
+        ShapeAction::Copy { ids, dx, dy, .. } => {
+            copy_shapes(&job, &ids, (dx, dy)).map(|(job, new)| {
+                let names: Vec<String> = new.iter().map(|id| format!("S{id}")).collect();
+                (job, vec![format!("Added shapes {}.", names.join(", "))])
+            })
+        }
+        ShapeAction::Mirror { ids, axis, .. } => {
+            let mirror = match axis {
+                AxisArg::X => Mirror::LeftRight,
+                AxisArg::Y => Mirror::UpDown,
+            };
+            mirror_shapes(&job, &ids, mirror).map(|job| {
+                let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
+                (job, vec![format!("Mirrored shapes {}.", names.join(", "))])
+            })
+        }
     };
     let (job, lines) = match changed {
         Ok(done) => done,

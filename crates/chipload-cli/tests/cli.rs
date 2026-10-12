@@ -1024,3 +1024,27 @@ fn a_refused_job_gets_no_sheet() {
     assert_eq!(run.status.code(), Some(1));
     assert_eq!(count, 1, "only the project");
 }
+
+#[test]
+fn shapes_are_copied_and_mirrored_from_the_command_line() {
+    // docs/specs/small-items.md §4
+    let dir = temp_dir("shape-copy");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&["shape", "copy", p, "2", "3", "--dx", "-20", "--dy", "5"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Added shapes S4, S5."));
+    let out = chipload(&["shape", "mirror", p, "1", "4", "--axis", "y"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Mirrored shapes S1, S4."));
+    let job = chipload_job::load_job(&project).unwrap();
+    assert_eq!(job.drawing.shapes.len(), 5);
+    // The project still runs: the operations follow their shapes.
+    let run = chipload(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
+    let refused = chipload(&["shape", "copy", p, "9", "--dx", "1", "--dy", "1"]);
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert!(run.status.success(), "{}", text(&run.stderr));
+    assert!(!refused.status.success());
+    assert!(text(&refused.stderr).contains("there is no shape 9"));
+}

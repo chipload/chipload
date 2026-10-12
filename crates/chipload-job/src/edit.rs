@@ -265,6 +265,88 @@ pub fn set_closed(geometry: &mut Geometry, close: bool) {
     }
 }
 
+/// A drawn shape moved by `by` (copy and paste, docs/specs/small-items.md §4). None for an
+/// imported path, which only changes with the DXF.
+pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
+    let shift = |p: &[f64; 2]| [p[0] + by[0], p[1] + by[1]];
+    match geometry {
+        Geometry::Path { .. } => None,
+        Geometry::Circle { center, radius } => Some(Geometry::Circle {
+            center: shift(center),
+            radius: *radius,
+        }),
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+        } => Some(Geometry::Rectangle {
+            center: shift(center),
+            length: *length,
+            width: *width,
+            angle: *angle,
+        }),
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => Some(Geometry::Polyline {
+            closed: *closed,
+            points: points.iter().map(shift).collect(),
+            bulges: bulges.clone(),
+        }),
+    }
+}
+
+/// Which way a mirror flips.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mirror {
+    /// About a vertical line `x = about`: left becomes right.
+    LeftRight,
+    /// About a horizontal line `y = about`: up becomes down.
+    UpDown,
+}
+
+/// A drawn shape mirrored about the line `about` (docs/specs/small-items.md §4). A
+/// rectangle's angle becomes −angle (half a turn gives the same rectangle, so this holds
+/// both ways); a polyline's bulges change sign, so its arcs bend the mirrored way. None for
+/// an imported path.
+pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geometry> {
+    let flip = |p: &[f64; 2]| match mirror {
+        Mirror::LeftRight => [2.0 * about - p[0], p[1]],
+        Mirror::UpDown => [p[0], 2.0 * about - p[1]],
+    };
+    // `0.0 - v`, not `-v`: a 0 stays 0, never -0, in the saved file.
+    let negated = |v: f64| 0.0 - v;
+    match geometry {
+        Geometry::Path { .. } => None,
+        Geometry::Circle { center, radius } => Some(Geometry::Circle {
+            center: flip(center),
+            radius: *radius,
+        }),
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+        } => Some(Geometry::Rectangle {
+            center: flip(center),
+            length: *length,
+            width: *width,
+            angle: negated(*angle),
+        }),
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => Some(Geometry::Polyline {
+            closed: *closed,
+            points: points.iter().map(flip).collect(),
+            bulges: bulges.iter().map(|b| negated(*b)).collect(),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

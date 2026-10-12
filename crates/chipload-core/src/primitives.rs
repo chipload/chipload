@@ -112,6 +112,34 @@ impl Primitive {
         }
     }
 
+    /// The exact box round the primitive: (min corner, max corner). An arc's box holds its
+    /// ends and each of its circle's four extreme points that it passes.
+    pub fn bounds(&self) -> (Point, Point) {
+        let mut points = vec![self.start(), self.end()];
+        if let Primitive::Arc(a) = self {
+            let (cx, cy, r) = (a.center.0, a.center.1, a.radius);
+            let extremes = [(cx + r, cy), (cx, cy + r), (cx - r, cy), (cx, cy - r)];
+            for (k, extreme) in extremes.into_iter().enumerate() {
+                let angle = k as f64 * PI / 2.0;
+                let along = if a.sweep >= 0.0 {
+                    (angle - a.start_angle).rem_euclid(TAU)
+                } else {
+                    (a.start_angle - angle).rem_euclid(TAU)
+                };
+                if along <= a.sweep.abs() {
+                    points.push(extreme);
+                }
+            }
+        }
+        let first = points[0];
+        points.iter().fold((first, first), |(lo, hi), p| {
+            (
+                (lo.0.min(p.0), lo.1.min(p.1)),
+                (hi.0.max(p.0), hi.1.max(p.1)),
+            )
+        })
+    }
+
     /// Start to end. Arcs become chords within ARC_APPROX_TOL_MM of the arc.
     pub fn points(&self) -> Vec<Point> {
         match self {
@@ -179,6 +207,49 @@ pub fn signed_area(ring: &[Point]) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn bounds_are_exact_for_arcs() {
+        let circle = Primitive::Arc(Arc {
+            center: (10.0, 5.0),
+            radius: 3.0,
+            start_angle: 0.3,
+            sweep: TAU,
+        });
+        assert_eq!(circle.bounds(), ((7.0, 2.0), (13.0, 8.0)));
+        // A quarter from 45° to 135° passes only the top.
+        let top = Primitive::Arc(Arc {
+            center: (0.0, 0.0),
+            radius: 2.0,
+            start_angle: PI / 4.0,
+            sweep: PI / 2.0,
+        });
+        let ((x0, y0), (x1, y1)) = top.bounds();
+        assert!((x0 + 2f64.sqrt()).abs() < 1e-12 && (x1 - 2f64.sqrt()).abs() < 1e-12);
+        assert!((y0 - 2f64.sqrt()).abs() < 1e-12 && y1 == 2.0);
+        // The same clockwise from 135° to 45°.
+        let cw = Primitive::Arc(Arc {
+            center: (0.0, 0.0),
+            radius: 2.0,
+            start_angle: 3.0 * PI / 4.0,
+            sweep: -PI / 2.0,
+        });
+        assert_eq!(cw.bounds().1.1, 2.0);
+        // Clockwise the other way round passes the bottom, not the top.
+        let under = Primitive::Arc(Arc {
+            center: (0.0, 0.0),
+            radius: 2.0,
+            start_angle: PI / 4.0,
+            sweep: -3.0 * PI / 2.0,
+        });
+        assert_eq!(under.bounds().0.1, -2.0);
+        assert!(under.bounds().1.1 < 2.0);
+        let line = Primitive::Line(Line {
+            start: (3.0, -1.0),
+            end: (1.0, 4.0),
+        });
+        assert_eq!(line.bounds(), ((1.0, -1.0), (3.0, 4.0)));
+    }
+
     use super::*;
 
     #[test]

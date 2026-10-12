@@ -20,6 +20,8 @@ pub(super) enum Action {
     Undo,
     Redo,
     CopySelector,
+    Copy,
+    Paste,
     Generate,
     MoveUp,
     MoveDown,
@@ -66,6 +68,20 @@ pub(super) const BINDINGS: &[Binding] = &[
     ),
     bind(Action::SaveAs, CTRL_SHIFT, Key::S, "File", "Save as"),
     bind(Action::Redo, CTRL_SHIFT, Key::Z, "Edit", "Redo"),
+    bind(
+        Action::Copy,
+        CTRL,
+        Key::C,
+        "Edit",
+        "Copy the selected drawn shapes",
+    ),
+    bind(
+        Action::Paste,
+        CTRL,
+        Key::V,
+        "Edit",
+        "Paste them (at the cursor, over the canvas)",
+    ),
     bind(Action::New, CTRL, Key::N, "File", "New project"),
     bind(Action::Open, CTRL, Key::O, "File", "Open a project"),
     bind(
@@ -222,6 +238,14 @@ impl ChiploadApp {
             Action::Undo => self.undo(),
             Action::Redo => self.redo(),
             Action::CopySelector => self.copy_selector(ctx),
+            Action::Copy => {
+                if let Some(text) = self.copy_selected_shapes() {
+                    ctx.copy_text(text);
+                }
+            }
+            Action::Paste => {
+                self.paste(None);
+            }
             Action::Generate => {
                 if self.can_generate() {
                     self.generate();

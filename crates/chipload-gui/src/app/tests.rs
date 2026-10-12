@@ -2055,3 +2055,137 @@ fn measuring_changes_nothing_in_the_project() {
     app.toggle_measure();
     assert!(!app.three_d);
 }
+
+mod copy_paste_mirror {
+    // docs/specs/small-items.md §4
+    use super::*;
+    use chipload_job::edit::Mirror;
+
+    /// One frame with these input events through the shortcuts; returns what was put on the
+    /// system clipboard.
+    fn events(
+        app: &mut ChiploadApp,
+        events: Vec<egui::Event>,
+        modifiers: egui::Modifiers,
+    ) -> String {
+        let ctx = egui::Context::default();
+        let mut all = vec![egui::Event::ModifiersChanged(modifiers)];
+        all.extend(events);
+        let input = egui::RawInput {
+            events: all,
+            ..Default::default()
+        };
+        ctx.begin_pass(input);
+        app.shortcuts(&ctx);
+        let mut output = ctx.end_pass();
+        output.textures_delta.clear();
+        output
+            .platform_output
+            .commands
+            .iter()
+            .find_map(|c| match c {
+                egui::OutputCommand::CopyText(text) => Some(text.clone()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn copy_and_paste_at_the_cursor_is_one_undo_step() {
+        let mut app = drawn_part();
+        let shapes = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+        app.click(Some(contour_of(&app, 2)), false);
+        // Ctrl+C reaches egui as a Copy event; the text goes to the system clipboard.
+        let text = events(&mut app, vec![egui::Event::Copy], egui::Modifiers::COMMAND);
+        assert!(text.starts_with("{\"chipload_shapes\":1"), "{text}");
+        app.commit();
+        app.cursor = Some((200.0, 150.0));
+        // Ctrl+V: a Paste event with the clipboard's text.
+        events(
+            &mut app,
+            vec![egui::Event::Paste(text)],
+            egui::Modifiers::COMMAND,
+        );
+        app.commit();
+        let drawing = &app.edit.as_ref().unwrap().settings.drawing;
+        assert_eq!(drawing.shapes.len(), shapes + 1);
+        let new = drawing.shapes.last().unwrap();
+        let chipload_job::Geometry::Circle { center, .. } = new.geometry else {
+            panic!("a circle was copied")
+        };
+        assert!(
+            (center[0] - 200.0).abs() < 1e-6 && (center[1] - 150.0).abs() < 1e-6,
+            "{center:?}"
+        );
+        assert_eq!(
+            app.selection,
+            CanvasSelection::Shapes([new.id].into_iter().collect()),
+            "the pasted shapes are selected"
+        );
+        app.undo();
+        assert_eq!(
+            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+            shapes
+        );
+        // Other text on the clipboard pastes nothing.
+        events(
+            &mut app,
+            vec![egui::Event::Paste("hello".into())],
+            egui::Modifiers::COMMAND,
+        );
+        assert_eq!(
+            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+            shapes
+        );
+        // The Edit menu pastes the last copy 10 mm up and right (no cursor on the canvas).
+        app.cursor = None;
+        assert!(app.paste(None));
+        assert_eq!(
+            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+            shapes + 1
+        );
+    }
+
+    #[test]
+    fn ctrl_shift_c_still_copies_the_selector() {
+        let mut app = drawn_part();
+        app.click(Some(contour_of(&app, 2)), false);
+        let modifiers = egui::Modifiers::COMMAND.plus(egui::Modifiers::SHIFT);
+        let text = events(&mut app, vec![egui::Event::Copy], modifiers);
+        assert_eq!(text, app.selector_json().unwrap());
+    }
+
+    #[test]
+    fn mirrored_shapes_keep_their_ids_and_operations_follow() {
+        let mut app = drawn_part();
+        let before = app.edit.clone().unwrap();
+        app.click(Some(contour_of(&app, 1)), false);
+        app.click(Some(contour_of(&app, 3)), true);
+        assert!(app.mirror_selected(Mirror::LeftRight));
+        app.commit();
+        let after = app.edit.as_ref().unwrap();
+        assert_ne!(after.settings.drawing, before.settings.drawing);
+        let ids =
+            |e: &EditJob| -> Vec<u64> { e.settings.drawing.shapes.iter().map(|s| s.id).collect() };
+        assert_eq!(ids(after), ids(&before));
+        assert_eq!(
+            app.shape(2),
+            before.settings.drawing.shapes.iter().find(|s| s.id == 2)
+        );
+        assert!(app.generate_and_wait(), "{:?}", app.report);
+        app.undo();
+        assert_eq!(
+            app.edit.as_ref().unwrap().settings.drawing,
+            before.settings.drawing
+        );
+    }
+
+    #[test]
+    fn imported_shapes_are_not_copied_or_mirrored() {
+        let mut app = lower_part();
+        select(&mut app, &[2]);
+        assert_eq!(app.copy_selected_shapes(), None);
+        assert!(!app.mirror_selected(Mirror::UpDown));
+        assert!(app.status.as_ref().unwrap().0.contains("only drawn ones"));
+    }
+}

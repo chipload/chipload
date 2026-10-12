@@ -133,3 +133,23 @@ stiffness. There's no single safe range. The options:
   - GUI: paste at the cursor and undo; operations follow a mirrored shape.
 - **Chip load:** the formula; missing flutes or rpm give no number; `plan` and
   `plan --json` carry it; the form shows it.
+
+## 8. As built (2026-10-12)
+
+- **Shortcuts:** `app/shortcuts.rs`: one table (`BINDINGS`) that the key handling, menu
+  labels and hover texts read; `OTHERS` lists canvas and drawing keys and mouse actions.
+- **Drag and drop:** `app/dropping.rs`; `.json` (older jobs) opens too, as in File → Open.
+- **Measure:** `app/measure.rs`; it also ends when you start drawing or switch to 3D.
+- **Copy, paste and mirror:**
+  - Unlike §4, the copied shapes also go onto the **system clipboard**, as JSON
+    (`{"chipload_shapes": 1, "shapes": [...]}`, each shape as in a project file). egui only
+    reports Ctrl+V when the system clipboard holds text, and Ctrl+C reaches it as a copy
+    event, not a key press. So pasting into another Chipload window works already. Text that
+    isn't Chipload shapes pastes nothing. The Edit menu's Paste uses the last copy.
+  - This also fixes Ctrl+Shift+C (copy as selector), which arrived as a copy event and so
+    never reached its shortcut.
+  - Pipeline: `copy_shapes`, `paste_shapes`, `mirror_shapes`, `shapes_to_copy`,
+    `shapes_bounds`, `clipboard_text`, `shapes_from_clipboard`; `chipload_job::edit::{translated,
+    mirrored, Mirror}`.
+  - The box round shapes is exact: new `Primitive::bounds` in core (arcs included), so a
+    pasted circle is centred on the cursor exactly.

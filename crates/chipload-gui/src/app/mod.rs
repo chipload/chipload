@@ -38,6 +38,7 @@ use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, LeftShape, Scene, StartMarker, ToolpathShape, View};
 
 mod canvas;
+mod copy_paste;
 mod dialogs;
 mod drawing;
 mod dropping;
@@ -151,6 +152,8 @@ pub struct ChiploadApp {
     pub sketch: Option<Sketch>,
     /// View → Measure, while on (docs/specs/small-items.md §3).
     pub measure: Option<measure::Measure>,
+    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
+    shape_clipboard: Vec<(String, Geometry)>,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
     /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
@@ -240,6 +243,7 @@ impl Default for ChiploadApp {
             three_d: false,
             sketch: None,
             measure: None,
+            shape_clipboard: Vec::new(),
             shape_draft: None,
             snap_points: Vec::new(),
             snapped: None,
