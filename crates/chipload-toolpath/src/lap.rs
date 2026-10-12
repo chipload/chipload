@@ -128,7 +128,7 @@ fn spiral(
         z0: z,
         z1: cut.top_z,
     });
-    let samples = course(cut, along, &legs)?;
+    let samples = course(cut.tabs, along, &legs)?;
     let first = cut.leads.and_then(|l| l.lead_in.first().copied());
     let mut moves = vec![
         Move::rapid_z(cut.safe_z),
@@ -142,7 +142,7 @@ fn spiral(
                 .map(|&p| Move::feed_xy(p, cut.feed)),
         );
     }
-    emit(&mut moves, cut, along, &samples, arcs);
+    emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
     moves.push(Move::rapid_z(cut.safe_z));
     let end = samples
         .last()
@@ -163,7 +163,7 @@ fn passes(
         moves.extend([Move::rapid_z(cut.safe_z), Move::rapid_xy(start)]);
     }
     for &z in cut.pass_z {
-        let samples = course(cut, along, &[Leg::laps(0, 1, along.length, z, z)])?;
+        let samples = course(cut.tabs, along, &[Leg::laps(0, 1, along.length, z, z)])?;
         // The lap's start may be on a tab's flank.
         let z_start = samples.first().map_or(z, |s| s.z);
         match cut.leads {
@@ -179,7 +179,7 @@ fn passes(
                         .iter()
                         .map(|&p| Move::feed_xy(p, cut.feed)),
                 );
-                emit(&mut moves, cut, along, &samples, arcs);
+                emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
                 moves.extend(
                     leads.lead_out[1..]
                         .iter()
@@ -189,7 +189,7 @@ fn passes(
             }
             None => {
                 moves.push(Move::feed_z(z_start, cut.plunge_feed));
-                emit(&mut moves, cut, along, &samples, arcs);
+                emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
             }
         }
     }
@@ -201,6 +201,291 @@ fn passes(
         None => start,
     };
     Ok(RingMoves { moves, end })
+}
+
+/// A finishing or skin lap at the wall, after the roughing (docs/specs/finish-and-skin.md).
+#[derive(Debug, Clone, Copy)]
+pub struct WallLap<'a> {
+    /// The tool-centre ring at the wall, in cutting order.
+    pub ring: &'a [Point],
+    pub tabs: Option<TabSurface<'a>>,
+    /// The roughing rings: their slot is cleared to `slot_z`, so the tool goes down there.
+    /// The ring itself when there was no finishing stock.
+    pub slot: &'a [&'a [Point]],
+    pub slot_z: f64,
+    /// The lap's depth: `slot_z` for a finishing lap, below it for a skin lap.
+    pub z: f64,
+    pub safe_z: f64,
+    pub feed: f64,
+    pub plunge_feed: f64,
+    pub entry: Entry,
+    pub tool_diameter: f64,
+}
+
+/// The moves for one wall lap: down in the roughing slot, across onto the ring, one lap
+/// (a skin lap first goes down its thickness: straight with a plunge entry, spiralling
+/// forward with a ramp, then a level lap and a rise-out), back across into the slot,
+/// retract (docs/specs/finish-and-skin.md §3). With tabs the lap starts in the middle of
+/// the longest gap between them.
+pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathError> {
+    let along = Along::new(lap.ring);
+    let length = along.length;
+    if lap.ring.is_empty() || length <= CHAIN_TOL_MM {
+        return Err(ToolpathError::Geometry(
+            "a profile ring has no length".to_string(),
+        ));
+    }
+    let s0 = lap
+        .tabs
+        .map_or(0.0, |tabs| widest_gap_middle(tabs.layout, &along));
+    let drop = lap.slot_z - lap.z;
+    let mut legs = Vec::new();
+    let mut at: At = (0, s0);
+    let ramp = lap.entry.ramp_angle().filter(|_| drop > DEPTH_TOL_MM);
+    if let Some(ramp_angle) = ramp {
+        let needed = ((drop / ramp_angle.tan() - CHAIN_TOL_MM) / length)
+            .ceil()
+            .max(1.0);
+        if needed > MAX_RAMP_LEGS as f64 {
+            return Err(ToolpathError::Geometry(format!(
+                "The ring is too short to ramp down {drop:.3} mm at {:.1}° ({length:.3} mm \
+                 around); use a steeper ramp angle or a straight plunge with a \
+                 centre-cutting tool",
+                ramp_angle.to_degrees()
+            )));
+        }
+        // Small positive whole number (checked above).
+        let laps = needed as i64;
+        let to = whole_laps(at, laps, length);
+        legs.push(Leg {
+            from: at,
+            to,
+            z0: lap.slot_z,
+            z1: lap.z,
+        });
+        at = (at.0 + laps, s0);
+    }
+    let to = whole_laps(at, 1, length);
+    legs.push(Leg {
+        from: at,
+        to,
+        z0: lap.z,
+        z1: lap.z,
+    });
+    if ramp.is_some() {
+        // Rise out over one tool diameter of path, cut at every depth already.
+        let from = (at.0 + 1, s0);
+        let rise = lap.tool_diameter.min(length);
+        let to = if s0 + rise <= length {
+            (from.0, s0 + rise)
+        } else {
+            (from.0 + 1, s0 + rise - length)
+        };
+        legs.push(Leg {
+            from,
+            to,
+            z0: lap.z,
+            z1: lap.slot_z,
+        });
+    }
+    let samples = course(lap.tabs, &along, &legs)?;
+    let (Some(first), Some(last)) = (samples.first(), samples.last()) else {
+        return Err(ToolpathError::Geometry(
+            "a wall lap has no course".to_string(),
+        ));
+    };
+    let start = along.point(lap.ring, first);
+    let finish = along.point(lap.ring, last);
+    let into = nearest_on_rings(lap.slot, start).map_or(start, |(p, _)| p);
+    let out = nearest_on_rings(lap.slot, finish).map_or(finish, |(p, _)| p);
+    // Down in the slot, to the lap's start height if a tab holds it higher.
+    let down = lap.slot_z.max(first.z);
+    let mut moves = vec![
+        Move::rapid_z(lap.safe_z),
+        Move::rapid_xy(into),
+        Move::feed_z(down, lap.plunge_feed),
+    ];
+    if distance(into, start) > CHAIN_TOL_MM {
+        moves.push(Move::feed_xy(start, lap.feed));
+    }
+    if first.z < down {
+        // A skin lap with a plunge entry: straight down through the skin.
+        moves.push(Move::feed_z(first.z, lap.plunge_feed));
+    }
+    let feeds = Feeds {
+        ring: lap.ring,
+        feed: lap.feed,
+        plunge_feed: lap.plunge_feed,
+    };
+    emit(&mut moves, feeds, &along, &samples, arcs);
+    if distance(finish, out) > CHAIN_TOL_MM {
+        moves.push(Move::feed_xy(out, lap.feed));
+    }
+    moves.push(Move::rapid_z(lap.safe_z));
+    Ok(RingMoves { moves, end: out })
+}
+
+/// `count` whole laps on from `at`, ending exactly at a lap's end when `at` is a lap's
+/// start (so no lap of zero length follows).
+fn whole_laps(at: At, count: i64, length: f64) -> At {
+    if at.1 == 0.0 {
+        (at.0 + count - 1, length)
+    } else {
+        (at.0 + count, at.1)
+    }
+}
+
+/// The middle of the longest stretch between two tabs, measured along the ring; on a ring
+/// vertex if one is within the chaining tolerance.
+fn widest_gap_middle(layout: &TabLayout, along: &Along) -> f64 {
+    let spans = &layout.spans;
+    let length = along.length;
+    let mut best: Option<(f64, f64)> = None; // (gap, middle)
+    for k in 0..spans.len() {
+        let end = spans[k].1;
+        let next = spans[(k + 1) % spans.len()].0;
+        let gap = (next - end).rem_euclid(length);
+        if best.is_none_or(|(g, _)| gap > g) {
+            best = Some((gap, (end + gap / 2.0).rem_euclid(length)));
+        }
+    }
+    let Some((_, middle)) = best else {
+        return 0.0;
+    };
+    along
+        .cum
+        .iter()
+        .copied()
+        .take(along.cum.len() - 1)
+        .find(|&c| (c - middle).abs() <= CHAIN_TOL_MM)
+        .unwrap_or(middle)
+}
+
+/// The point on the rings nearest to `p`, and its distance; None without rings.
+pub fn nearest_on_rings(rings: &[&[Point]], p: Point) -> Option<(Point, f64)> {
+    let mut best: Option<(Point, f64)> = None;
+    for ring in rings {
+        let n = ring.len();
+        for i in 0..n {
+            let q = nearest_on_segment(ring[i], ring[(i + 1) % n], p);
+            let d = distance(p, q);
+            if best.is_none_or(|(_, bd)| d < bd) {
+                best = Some((q, d));
+            }
+        }
+    }
+    best
+}
+
+/// The point on segment `a`-`b` nearest to `p`.
+fn nearest_on_segment(a: Point, b: Point, p: Point) -> Point {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len2 = dx * dx + dy * dy;
+    if len2 <= 0.0 {
+        return a;
+    }
+    let t = (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / len2).clamp(0.0, 1.0);
+    (a.0 + dx * t, a.1 + dy * t)
+}
+
+/// The farthest any point of `ring` is from the `slot` rings: at every vertex and every
+/// `step` mm along each segment (docs/specs/finish-and-skin.md §6).
+pub fn farthest_from(ring: &[Point], slot: &[&[Point]], step: f64) -> f64 {
+    let n = ring.len();
+    let mut farthest: f64 = 0.0;
+    for i in 0..n {
+        let (a, b) = (ring[i], ring[(i + 1) % n]);
+        let seg = distance(a, b);
+        // Small non-negative whole number: a segment is short against the step.
+        let count = (seg / step.max(CHAIN_TOL_MM)).ceil().max(1.0) as usize;
+        for k in 0..count {
+            let t = k as f64 / count as f64;
+            let p = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
+            let d = nearest_on_rings(slot, p).map_or(f64::INFINITY, |(_, d)| d);
+            farthest = farthest.max(d);
+        }
+    }
+    farthest
+}
+
+/// The tabs of a ring at the wall carried over to a roughing ring beside it: each tab end
+/// moved to the nearest point of `onto`. Tabs nearer to another of `others` stay off it.
+/// Spans that come out overlapping are joined; one across `onto`'s start is split there.
+/// Fails if a tab would come out reversed or longer than half the ring.
+pub fn carry_tabs(
+    ring: &[Point],
+    layout: &TabLayout,
+    onto: &[Point],
+    others: &[&[Point]],
+) -> Result<TabLayout, ToolpathError> {
+    let from = Along::new(ring);
+    let to = Along::new(onto);
+    let at = |s: f64| {
+        let i = from
+            .cum
+            .partition_point(|&c| c <= s)
+            .saturating_sub(1)
+            .min(ring.len() - 1);
+        let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+        let seg = distance(a, b);
+        let t = if seg > 0.0 {
+            ((s - from.cum[i]) / seg).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+    };
+    let mut spans: Vec<(f64, f64)> = Vec::new();
+    for &(a, b) in &layout.spans {
+        let middle = at((a + b) / 2.0);
+        let mine = nearest_on_rings(&[onto], middle).map_or(f64::INFINITY, |(_, d)| d);
+        let elsewhere = nearest_on_rings(others, middle).map_or(f64::INFINITY, |(_, d)| d);
+        if elsewhere < mine {
+            continue;
+        }
+        let (pa, pb) = (position_on(&to, onto, at(a)), position_on(&to, onto, at(b)));
+        let forward = (pb - pa).rem_euclid(to.length);
+        if forward > to.length / 2.0 {
+            return Err(ToolpathError::Geometry(format!(
+                "could not carry a tab ({a:.3} to {b:.3} mm along the ring) onto the \
+                 roughing ring"
+            )));
+        }
+        if pa + forward <= to.length {
+            spans.push((pa, pa + forward));
+        } else {
+            spans.push((pa, to.length));
+            spans.push((0.0, pa + forward - to.length));
+        }
+    }
+    spans.sort_by(|x, y| x.0.total_cmp(&y.0));
+    let mut joined: Vec<(f64, f64)> = Vec::new();
+    for span in spans {
+        match joined.last_mut() {
+            Some(last) if span.0 <= last.1 => last.1 = last.1.max(span.1),
+            _ => joined.push(span),
+        }
+    }
+    Ok(TabLayout {
+        spans: joined,
+        length: to.length,
+        on_curves: 0,
+    })
+}
+
+/// How far along `ring` (from its start) its point nearest to `p` is.
+fn position_on(along: &Along, ring: &[Point], p: Point) -> f64 {
+    let n = ring.len();
+    let mut best = (f64::INFINITY, 0.0);
+    for i in 0..n {
+        let (a, b) = (ring[i], ring[(i + 1) % n]);
+        let q = nearest_on_segment(a, b, p);
+        let d = distance(p, q);
+        if d < best.0 {
+            best = (d, along.cum[i] + distance(a, q));
+        }
+    }
+    best.1
 }
 
 /// The ring measured along its length: `cum[i]` is the distance from ring[0] to ring[i],
@@ -292,13 +577,20 @@ struct Piece {
     q: Sample,
     /// The tab is above the lap here: the tool follows the tab.
     binding: bool,
+    /// The first piece of a leg: the depth may bend where it starts.
+    starts_leg: bool,
 }
 
 /// The tool's path along `legs`, following the tab surface where it is higher, verified.
-fn course(cut: &RingCut, along: &Along, legs: &[Leg]) -> Result<Vec<Sample>, ToolpathError> {
-    let surface = cut.tabs.map(|tabs| Surface::new(tabs, along));
+fn course(
+    tabs: Option<TabSurface>,
+    along: &Along,
+    legs: &[Leg],
+) -> Result<Vec<Sample>, ToolpathError> {
+    let surface = tabs.map(|tabs| Surface::new(tabs, along));
     let mut pieces: Vec<Piece> = Vec::new();
     for leg in legs {
+        let first_piece = pieces.len();
         let to_local = leg.to.1;
         let total = (leg.to.0 - leg.from.0) as f64 * along.length + to_local - leg.from.1;
         let depth = |lap: i64, local: f64| {
@@ -320,9 +612,12 @@ fn course(cut: &RingCut, along: &Along, legs: &[Leg]) -> Result<Vec<Sample>, Too
                 lap_pieces(surface.as_ref(), lap, w[0], w[1], &depth, &mut pieces);
             }
         }
+        if let Some(piece) = pieces.get_mut(first_piece) {
+            piece.starts_leg = true;
+        }
     }
     let samples = stitch(&pieces);
-    if let Some(tabs) = cut.tabs {
+    if let Some(tabs) = tabs {
         verify(&samples, tabs, along)?;
     }
     Ok(samples)
@@ -448,6 +743,7 @@ fn lap_pieces(
             p: sample(p, p_vertex, lp),
             q: sample(q, q_vertex, lq),
             binding: false,
+            starts_leg: false,
         });
         return;
     };
@@ -483,11 +779,13 @@ fn lap_pieces(
             p: sample(p, p_vertex, if first { tp.max(lp) } else { lp }),
             q: sample(r, r_vertex, lr),
             binding: first,
+            starts_leg: false,
         });
         pieces.push(Piece {
             p: sample(r, r_vertex, lr),
             q: sample(q, q_vertex, if second { tq.max(lq) } else { lq }),
             binding: second,
+            starts_leg: false,
         });
         return;
     }
@@ -501,11 +799,12 @@ fn lap_pieces(
         p: sample(p, p_vertex, zp),
         q: sample(q, q_vertex, zq),
         binding,
+        starts_leg: false,
     });
 }
 
 /// The pieces as one list of samples. A point between two pieces where the lap's depth
-/// runs straight on (no tab, no vertex) is left out; where the height jumps (a straight
+/// runs straight on (no tab, no vertex, not where a leg starts) is left out; where the height jumps (a straight
 /// tab) both heights are kept, one above the other.
 fn stitch(pieces: &[Piece]) -> Vec<Sample> {
     let mut samples: Vec<Sample> = Vec::new();
@@ -519,7 +818,7 @@ fn stitch(pieces: &[Piece]) -> Vec<Sample> {
             break;
         };
         let end = piece.q;
-        let new_leg_or_lap = next.p.lap != end.lap || next.p.local != end.local;
+        let new_leg_or_lap = next.starts_leg || next.p.lap != end.lap || next.p.local != end.local;
         if end.z != next.p.z {
             samples.push(end);
             samples.push(next.p);
@@ -608,10 +907,28 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
     Ok(())
 }
 
+/// What `emit` needs besides the course.
+#[derive(Debug, Clone, Copy)]
+struct Feeds<'a> {
+    ring: &'a [Point],
+    feed: f64,
+    plunge_feed: f64,
+}
+
+impl<'a> Feeds<'a> {
+    fn of(cut: &RingCut<'a>) -> Self {
+        Feeds {
+            ring: cut.ring,
+            feed: cut.feed,
+            plunge_feed: cut.plunge_feed,
+        }
+    }
+}
+
 /// Moves along the samples, from the first one (where the tool already is). Straight up or
 /// down at the plunge feed; along the ring at the cutting feed, level or not. Whole chords
 /// of an arc keep their circle, so they can be written as arcs (helical when they descend).
-fn emit(moves: &mut Vec<Move>, cut: &RingCut, along: &Along, samples: &[Sample], arcs: &ArcTable) {
+fn emit(moves: &mut Vec<Move>, cut: Feeds, along: &Along, samples: &[Sample], arcs: &ArcTable) {
     let Some(first) = samples.first() else {
         return;
     };

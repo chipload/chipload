@@ -401,7 +401,7 @@ fn kind_text(op: &Operation) -> String {
     text
 }
 
-/// "0 to 6, 2 per pass".
+/// "0 to 6, 2 per pass", with a profile's finishing stock and skin.
 fn depth_text(op: &Operation) -> String {
     let (start, end) = op.depths();
     let step = match op {
@@ -414,7 +414,17 @@ fn depth_text(op: &Operation) -> String {
         Some(step) if step > 0.0 && step < end - start => format!(", {} per pass", num(step)),
         _ => ", one pass".to_string(),
     };
-    format!("{} to {}{passes}", num(start), num(end))
+    let mut text = format!("{} to {}{passes}", num(start), num(end));
+    if let Operation::Profile(p) = op {
+        // docs/specs/finish-and-skin.md §6: "finish 0.3 mm, skin 0.2 mm".
+        if let Some(finish) = p.finish {
+            let _ = write!(text, ", finish {} mm", num(finish.stock));
+        }
+        if let Some(skin) = p.skin {
+            let _ = write!(text, ", skin {} mm", num(skin.thickness));
+        }
+    }
+    text
 }
 
 fn entry_text(op: &Operation) -> String {

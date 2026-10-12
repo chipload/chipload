@@ -5,8 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Finishing pass and onion skin** (docs/specs/finish-and-skin.md, approved 2026-10-13):
-  building.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -40,8 +39,9 @@ it's built (see `CLAUDE.md`).
 - **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"), each with its
   own spec first, in this order:
   1. **Follow path** — done 2026-10-13 (docs/specs/follow-path.md, schema 17).
-  2. **Finishing pass and onion skin** on profiles: a light last pass on the wall; a thin
-     skin left on the last pass instead of tabs, cut through at the end.
+  2. **Finishing pass and onion skin** — done 2026-10-13 (docs/specs/finish-and-skin.md,
+     optional profile fields, no version bump). Later: a separate finishing feed, and a
+     finishing pass for pockets (walls and floor), each with its own spec.
   3. **Drilling**: drill cycles (G81, G83 peck) for circles that fit a drill, and helical
      boring of larger holes with an endmill.
   4. **Dogbone and T-bone corners**: overcuts in inside corners so slot-together parts fit.
@@ -77,6 +77,12 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Finishing pass and onion skin** (2026-10-13, docs/specs/finish-and-skin.md): profiles
+  can rough with stock left on the wall and finish it in one level lap, and stop a skin
+  above the end depth that is cut last; roughing, then finishing, then skins, all leaving
+  the tabs. GUI section "Finish and skin", setup sheet text, golden `v17_finish_skin`.
+- **Follow path** (2026-10-13, docs/specs/follow-path.md, schema 17): open (and closed)
+  paths cut on the line, back and forth or descending while travelling.
 - **Spiral profiles and ramped tabs** (2026-10-12, docs/specs/profile-spiral.md): ramped
   profiles spiral forward down the ring (no back-and-forth), one lead-in, a rise-out at
   the end; tabs have a flank angle (schema 16) and the tool follows their trapezoid.

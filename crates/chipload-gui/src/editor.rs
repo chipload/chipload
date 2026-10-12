@@ -292,6 +292,8 @@ impl EditJob {
                         entry,
                         starts: Vec::new(),
                         lead: None,
+                        finish: None,
+                        skin: None,
                     }),
                     side.is_some(),
                 )

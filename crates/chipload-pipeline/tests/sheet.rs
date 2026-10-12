@@ -27,7 +27,7 @@ fn info(project: &str) -> SheetInfo {
 }
 
 /// (golden name, frozen project, G-code output as given to `run -o`).
-const GOLDEN: [(&str, &str, &str); 4] = [
+const GOLDEN: [(&str, &str, &str); 5] = [
     // Two files, one per tool.
     ("v11_two_tools", "jobs/v11/two_tools.chipload", "part.nc"),
     // The same in one file with M6.
@@ -46,6 +46,12 @@ const GOLDEN: [(&str, &str, &str); 4] = [
     (
         "v17_follow_path",
         "jobs/v17/follow_path.chipload",
+        "part.nc",
+    ),
+    // A finishing pass and an onion skin in the depth column.
+    (
+        "v17_finish_skin",
+        "jobs/v17/finish_skin.chipload",
         "part.nc",
     ),
 ];

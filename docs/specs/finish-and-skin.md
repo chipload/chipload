@@ -1,6 +1,26 @@
 # Spec: finishing pass and onion skin (profiles)
 
 Status: **approved 2026-10-13**, all decisions as recommended (§8).
+Built 2026-10-13. As built:
+- The finishing and skin laps **never use the lead**: they always step across from the
+  roughing slot (§3). A lead's arc can reach past the slot into waste that is uncut at full
+  depth.
+- With tabs, the finishing and skin laps start in the middle of the longest gap between
+  tabs, so the descent in the slot is never onto a tab. Without tabs they start where the
+  ring starts (a start point still applies).
+- Tabs are placed on the wall ring; each roughing ring gets them carried over (each tab end
+  moved to the nearest point of the roughing ring), so every lap leaves the same tabs.
+- §6 as built: the finishing lap is checked against the roughing path at every vertex and
+  every half tool radius. It is refused where it runs a tool radius or more from that path
+  (the roughing couldn't get there, e.g. a hole the roughing ring doesn't fit in), with a
+  note where it runs more than twice the stock from it (sharp inside corners, narrow parts).
+- A finishing pass on a profile "on" the line is refused (there is no wall); a skin is fine.
+- The skin must be thinner than the tab height (§6); "skin plus tab height equal to the
+  cut" in §7 isn't a boundary of these rules, so it isn't refused or tested.
+- Found on the way: where two stretches of a lap met in mid-ring at the same depth (the skin
+  lap's level lap and its rise-out), the meeting point was dropped and the tool rose early.
+  Points where a stretch starts are now always kept (existing programs don't change: their
+  stretches all meet at the ring's start).
 
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 2.
 

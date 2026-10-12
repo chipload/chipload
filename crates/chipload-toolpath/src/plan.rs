@@ -16,13 +16,13 @@ use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
 use crate::geom::PrimIndex;
-use crate::lap::{RingCut, TabSurface, ring_moves};
+use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
 use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
-use crate::profile::{cut_clockwise, pass_depths, plan_profile};
+use crate::profile::{PathRing, cut_clockwise, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
@@ -587,15 +587,34 @@ fn plan_profile_op(
 ) -> Result<Planned, ToolpathError> {
     let label = ctx.label;
     let machine = &ctx.job.machine;
+    let radius = ctx.tool.diameter / 2.0;
+    // The rings at the wall; with a finishing pass the roughing rings run `stock` farther
+    // out (docs/specs/finish-and-skin.md §2).
     let plan = plan_profile(
         op,
         label,
         &selection.contours,
-        ctx.tool.diameter / 2.0,
+        radius,
         machine.spindle,
         start,
         starts,
     )?;
+    let rough_op = op.finish.map(|finish| ProfileOp {
+        clearance: op.clearance - finish.stock,
+        ..op.clone()
+    });
+    let rough = match &rough_op {
+        Some(rough_op) => Some(plan_profile(
+            rough_op,
+            label,
+            &selection.contours,
+            radius,
+            machine.spindle,
+            start,
+            starts,
+        )?),
+        None => None,
+    };
     let mut out = Planned {
         moves: Vec::new(),
         notes: plan.notes,
@@ -611,6 +630,26 @@ fn plan_profile_op(
             .map(|(ring, &stored)| (ring.points.clone(), stored))
             .collect(),
     };
+    if let Some(rough) = &rough {
+        out.arcs.extend(rough.arcs.clone());
+        // The notes on start points are the wall's (above); the roughing may add a narrow
+        // part the wall doesn't have.
+        for note in &rough.notes {
+            if !note.contains("start point") && !out.notes.contains(note) {
+                out.notes.push(note.clone());
+            }
+        }
+    }
+    let end_z = ctx.pass_z.last().copied().unwrap_or(ctx.top_z);
+    // With a skin the roughing stops `thickness` above the end depth.
+    let rough_z: Vec<f64> = match op.skin {
+        Some(skin) => pass_depths(op.start_depth, op.end_depth - skin.thickness, op.step_down)?
+            .into_iter()
+            .map(|d| ctx.top_z - (d - op.start_depth))
+            .collect(),
+        None => ctx.pass_z.to_vec(),
+    };
+    let rough_bottom = rough_z.last().copied().unwrap_or(end_z);
     if let Some(tabs) = &op.tabs {
         let cut = op.end_depth - op.start_depth;
         if tabs.height >= cut {
@@ -626,47 +665,58 @@ fn plan_profile_op(
             ));
         }
     }
+    // The tabs are placed on the wall rings; the roughing rings carry them over.
+    let mut layouts: Vec<Option<TabLayout>> = Vec::with_capacity(plan.rings.len());
     let mut curved: Vec<usize> = Vec::new();
     for ring in &plan.rings {
-        let points = &ring.points;
+        let Some(tabs) = &op.tabs else {
+            layouts.push(None);
+            continue;
+        };
+        // Validated: count >= 1.
+        let count = usize::try_from(tabs.count).unwrap_or(0);
+        let placed = place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
+            .map_err(|err| err.with_context(&format!("{label}, contour #{}", ring.contour_id)))?;
+        if placed.on_curves > 0 {
+            curved.push(ring.contour_id);
+        }
+        out.tabs.extend(tab_polylines(&ring.points, &placed));
+        if let Some(note) = joined_feet(&placed, tabs) {
+            out.notes
+                .push(format!("{label}, contour #{}: {note}", ring.contour_id));
+        }
+        layouts.push(Some(placed));
+    }
+    let surface = |layout: &Option<TabLayout>| -> Option<(TabLayout, f64, f64)> {
+        let tabs = op.tabs.as_ref()?;
+        Some((layout.clone()?, end_z + tabs.height, tabs.flank_angle))
+    };
+    let rough_rings = rough.as_ref().map_or(&plan.rings, |r| &r.rings);
+    let lead_op = rough_op.as_ref().unwrap_or(op);
+    // Roughing: every ring as a profile (spiral or passes), down to the skin.
+    for (k, ring) in rough_rings.iter().enumerate() {
         let context = |err: ToolpathError| {
             err.with_context(&format!("{label}, contour #{}", ring.contour_id))
         };
         let leads = match op.lead {
-            Some(lead) => profile_leads(op, ctx, ring, lead.radius, &mut out.notes),
+            Some(lead) => profile_leads(lead_op, ctx, ring, lead.radius, &mut out.notes),
             None => None,
         };
         if let Some(leads) = &leads {
             leads.tag(&mut out.arcs);
         }
-        let mut layout = None;
-        if let Some(tabs) = &op.tabs {
-            // Validated: count >= 1.
-            let count = usize::try_from(tabs.count).unwrap_or(0);
-            let placed =
-                place_tabs(points, count, tabs.width, ctx.tool.diameter).map_err(context)?;
-            if placed.on_curves > 0 {
-                curved.push(ring.contour_id);
-            }
-            out.tabs.extend(tab_polylines(points, &placed));
-            if let Some(note) = joined_feet(&placed, tabs) {
-                out.notes
-                    .push(format!("{label}, contour #{}: {note}", ring.contour_id));
-            }
-            let bottom = ctx.pass_z.last().copied().unwrap_or(0.0);
-            layout = Some((placed, bottom + tabs.height, tabs.flank_angle));
-        }
+        let layout = if rough.is_some() {
+            carried_tabs(&plan.rings, &layouts, ring, rough_rings).map_err(context)?
+        } else {
+            // The roughing rings are the wall rings.
+            layouts.get(k).cloned().flatten()
+        };
+        let tabs = surface(&layout);
         let cut = RingCut {
-            ring: points,
-            tabs: layout
-                .as_ref()
-                .map(|(layout, z_tab, flank_angle)| TabSurface {
-                    layout,
-                    z_tab: *z_tab,
-                    flank_angle: *flank_angle,
-                }),
+            ring: &ring.points,
+            tabs: as_surface(&tabs),
             leads: leads.as_ref(),
-            pass_z: ctx.pass_z,
+            pass_z: &rough_z,
             top_z: ctx.top_z,
             safe_z: machine.safe_z,
             feed: op.feed,
@@ -678,6 +728,41 @@ fn plan_profile_op(
         out.moves.extend(cut.moves);
         out.end = cut.end;
     }
+    // Then a finishing lap on every wall ring, then a skin lap (§4).
+    let stages = [op.finish.map(|_| rough_bottom), op.skin.map(|_| end_z)];
+    for z in stages.into_iter().flatten() {
+        for (ring, layout) in plan.rings.iter().zip(&layouts) {
+            let context = |err: ToolpathError| {
+                err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+            };
+            let slot: Vec<&[Point]> = rough_rings
+                .iter()
+                .filter(|r| r.contour_id == ring.contour_id)
+                .map(|r| r.points.as_slice())
+                .collect();
+            if let Some(finish) = op.finish
+                && z == rough_bottom
+            {
+                slot_note(ring, &slot, radius, finish.stock, label, &mut out.notes)?;
+            }
+            let tabs = surface(layout);
+            let lap = WallLap {
+                ring: &ring.points,
+                tabs: as_surface(&tabs),
+                slot: &slot,
+                slot_z: rough_bottom,
+                z,
+                safe_z: machine.safe_z,
+                feed: op.feed,
+                plunge_feed: op.plunge_feed,
+                entry: op.entry,
+                tool_diameter: ctx.tool.diameter,
+            };
+            let cut = wall_lap(&lap, &out.arcs).map_err(context)?;
+            out.moves.extend(cut.moves);
+            out.end = cut.end;
+        }
+    }
     if !curved.is_empty() {
         let ids: Vec<String> = curved.iter().map(|c| format!("#{c}")).collect();
         out.notes.push(format!(
@@ -687,6 +772,88 @@ fn plan_profile_op(
         ));
     }
     Ok(out)
+}
+
+/// A tab layout with its top and flank angle, as the laps follow it.
+fn as_surface(tabs: &Option<(TabLayout, f64, f64)>) -> Option<TabSurface<'_>> {
+    tabs.as_ref()
+        .map(|(layout, z_tab, flank_angle)| TabSurface {
+            layout,
+            z_tab: *z_tab,
+            flank_angle: *flank_angle,
+        })
+}
+
+/// The tabs of the wall rings of a contour, carried over to one of its roughing rings
+/// (docs/specs/finish-and-skin.md §2): every lap leaves the same tabs.
+fn carried_tabs(
+    walls: &[PathRing],
+    layouts: &[Option<TabLayout>],
+    ring: &PathRing,
+    rough: &[PathRing],
+) -> Result<Option<TabLayout>, ToolpathError> {
+    let others: Vec<&[Point]> = rough
+        .iter()
+        .filter(|r| r.contour_id == ring.contour_id && !std::ptr::eq(*r, ring))
+        .map(|r| r.points.as_slice())
+        .collect();
+    let mut carried: Option<TabLayout> = None;
+    for (wall, layout) in walls.iter().zip(layouts) {
+        let Some(layout) = layout else { continue };
+        if wall.contour_id != ring.contour_id {
+            continue;
+        }
+        let more = carry_tabs(&wall.points, layout, &ring.points, &others)?;
+        carried = Some(match carried {
+            None => more,
+            Some(mut so_far) => {
+                so_far.spans.extend(more.spans);
+                so_far.spans.sort_by(|a, b| a.0.total_cmp(&b.0));
+                let mut joined: Vec<(f64, f64)> = Vec::new();
+                for span in so_far.spans {
+                    match joined.last_mut() {
+                        Some(last) if span.0 <= last.1 => last.1 = last.1.max(span.1),
+                        _ => joined.push(span),
+                    }
+                }
+                so_far.spans = joined;
+                so_far
+            }
+        });
+    }
+    Ok(carried)
+}
+
+/// The finishing lap must run in the roughing's slot: refused where it is a tool radius or
+/// more from the roughing path (the roughing couldn't get there), a note where it cuts
+/// more than twice the stock (docs/specs/finish-and-skin.md §6).
+fn slot_note(
+    ring: &PathRing,
+    slot: &[&[Point]],
+    radius: f64,
+    stock: f64,
+    label: &str,
+    notes: &mut Vec<String>,
+) -> Result<(), ToolpathError> {
+    let farthest = farthest_from(&ring.points, slot, radius / 2.0);
+    let id = ring.contour_id;
+    if farthest >= radius {
+        return Err(ToolpathError::Geometry(format!(
+            "{label}, contour #{id}: the roughing can't reach part of the wall (the finishing \
+             lap runs {} mm from the roughing path, a tool radius or more): use less \
+             finishing stock or a smaller tool",
+            trim(farthest)
+        )));
+    }
+    if farthest > 2.0 * stock + CHAIN_TOL_MM {
+        notes.push(format!(
+            "{label}, contour #{id}: the finishing lap cuts up to {} mm in corners or narrow \
+             parts (finishing stock {} mm)",
+            trim(farthest),
+            trim(stock)
+        ));
+    }
+    Ok(())
 }
 
 /// A note when neighbouring sloped tabs meet below their top: their feet, each
@@ -968,6 +1135,22 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                 format!(
                     "{label}: clearance {} must be less than the tool radius {}",
                     op.clearance(),
+                    tool.diameter / 2.0
+                ),
+            ));
+        }
+        if let Operation::Profile(ProfileOp {
+            finish: Some(finish),
+            ..
+        }) = op
+            && finish.stock >= tool.diameter / 2.0
+        {
+            problems.push(labelled(
+                at("finish.stock"),
+                &label,
+                format!(
+                    "{label}: finishing stock {} must be less than the tool radius {}",
+                    finish.stock,
                     tool.diameter / 2.0
                 ),
             ));

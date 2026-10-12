@@ -9,7 +9,7 @@ use chipload_job::Placement;
 use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
-use chipload_job::{Job, STRAIGHT_FLANK_RAD, ToolChange};
+use chipload_job::{Finish, Job, ProfileOp, STRAIGHT_FLANK_RAD, Skin, ToolChange};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
@@ -427,6 +427,7 @@ pub(super) fn op_form(
                     flank_row(ui, tabs);
                 }
             });
+            finish_section(ui, p);
         }
         Operation::Pocket(p) => {
             let cut = format!(
@@ -750,6 +751,62 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
         }
         ui.end_row();
     }
+}
+
+/// A profile's finishing pass and onion skin (docs/specs/finish-and-skin.md).
+fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
+    let mut parts = Vec::new();
+    if let Some(finish) = p.finish {
+        parts.push(format!("finish {} mm", len(finish.stock)));
+    }
+    if let Some(skin) = p.skin {
+        parts.push(format!("skin {} mm", len(skin.thickness)));
+    }
+    let summary = if parts.is_empty() {
+        "none".to_string()
+    } else {
+        parts.join(", ")
+    };
+    section(ui, "op-finish", "Finish and skin", &summary, |ui| {
+        ui.label("Finishing pass").on_hover_text(
+            "Rough with this much left on the wall, then cut it away in one light lap at \
+             full depth: a cleaner wall without step marks. The lap goes down in the \
+             roughing's slot, never on the finished wall.",
+        );
+        let mut on = p.finish.is_some();
+        let response = ui
+            .add_enabled(
+                p.side != Side::On || on,
+                egui::Checkbox::new(&mut on, "finishing lap"),
+            )
+            .on_disabled_hover_text("A profile cut on the line has no wall to finish");
+        if flag(response, ui, "finish").changed() {
+            p.finish = on.then_some(Finish { stock: 0.3 });
+        }
+        ui.end_row();
+        if let Some(finish) = &mut p.finish {
+            ui.label("  stock");
+            flag(ui.add(mm(&mut finish.stock)), ui, "finish.stock");
+            ui.end_row();
+        }
+        ui.label("Onion skin").on_hover_text(
+            "Stop this far above the end depth, and cut through the skin last, after every \
+             ring of the operation: small parts stay held until the end. At most one step \
+             down, and thinner than the tabs.",
+        );
+        let mut on = p.skin.is_some();
+        if flag(ui.checkbox(&mut on, "skin cut last"), ui, "skin").changed() {
+            p.skin = on.then_some(Skin {
+                thickness: p.step_down.min(0.3),
+            });
+        }
+        ui.end_row();
+        if let Some(skin) = &mut p.skin {
+            ui.label("  thickness");
+            flag(ui.add(mm(&mut skin.thickness)), ui, "skin.thickness");
+            ui.end_row();
+        }
+    });
 }
 
 /// Lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and the radius,

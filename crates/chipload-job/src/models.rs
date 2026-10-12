@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use chipload_core::primitives::Arc;
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
@@ -1165,6 +1165,31 @@ pub struct ProfileOp {
     /// part B). Missing: none.
     #[serde(default)]
     pub lead: Option<Lead>,
+    /// Rough with stock left on the wall, then one finishing lap at the wall
+    /// (docs/specs/finish-and-skin.md). Missing: none.
+    #[serde(default)]
+    pub finish: Option<Finish>,
+    /// Stop a thin skin above the end depth and cut through it last
+    /// (docs/specs/finish-and-skin.md). Missing: none.
+    #[serde(default)]
+    pub skin: Option<Skin>,
+}
+
+/// A finishing pass on a profile (docs/specs/finish-and-skin.md).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Finish {
+    /// Left on the wall by the roughing laps, mm: more than 0, less than the tool radius.
+    pub stock: f64,
+}
+
+/// An onion skin on a profile (docs/specs/finish-and-skin.md).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Skin {
+    /// Left above the end depth until the last laps, mm: more than 0, at most the step
+    /// down, less than the cut and (with tabs) less than the tab height.
+    pub thickness: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1598,6 +1623,12 @@ impl Job {
                         positive(at("tabs.width"), tabs.width);
                         positive(at("tabs.height"), tabs.height);
                     }
+                    if let Some(finish) = &p.finish {
+                        positive(at("finish.stock"), finish.stock);
+                    }
+                    if let Some(skin) = &p.skin {
+                        positive(at("skin.thickness"), skin.thickness);
+                    }
                 }
                 Operation::Pocket(p) => {
                     positive(at("end_depth"), p.end_depth);
@@ -1748,9 +1779,52 @@ impl Job {
                     tabs.flank_angle.to_degrees()
                 ));
             }
+            if let Operation::Profile(p) = op {
+                problems.extend(finish_skin_problems(p, &format!("operations.{i}")));
+            }
         }
         problems
     }
+}
+
+/// The rules for a profile's finishing pass and skin that need no tool
+/// (docs/specs/finish-and-skin.md §1, §6); the tool radius is checked when planning.
+fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<String> {
+    let mut problems = Vec::new();
+    if p.finish.is_some() && p.side == Side::On {
+        problems.push(format!(
+            "{at}.finish: a profile on the line has no wall to finish; use inside or outside"
+        ));
+    }
+    let Some(skin) = p.skin else {
+        return problems;
+    };
+    let t = skin.thickness;
+    if !(t.is_finite() && t > 0.0) {
+        return problems; // reported as not positive
+    }
+    if t > p.step_down + DEPTH_TOL_MM {
+        problems.push(format!(
+            "{at}.skin.thickness: must be at most the step down ({}), got {t}",
+            p.step_down
+        ));
+    }
+    let cut = p.end_depth - p.start_depth;
+    if t >= cut {
+        problems.push(format!(
+            "{at}.skin.thickness: must be less than the cut ({cut}, end depth minus start \
+             depth), got {t}"
+        ));
+    }
+    if let Some(tabs) = &p.tabs
+        && t >= tabs.height
+    {
+        problems.push(format!(
+            "{at}.skin.thickness: must be less than the tab height ({}), got {t}",
+            tabs.height
+        ));
+    }
+    problems
 }
 
 #[cfg(test)]
