@@ -14,6 +14,7 @@ use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
+use crate::cancel::Cancel;
 use crate::geom::PrimIndex;
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
@@ -95,6 +96,16 @@ pub struct OpSpan {
 }
 
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
+    plan_job_cancellable(job, contours, &Cancel::new())
+}
+
+/// [`plan_job`] that stops with [`ToolpathError::Cancelled`] once `cancel` is set
+/// (docs/specs/background-generation.md). A run that isn't cancelled gives the same plan.
+pub fn plan_job_cancellable(
+    job: &Job,
+    contours: &[Contour],
+    cancel: &Cancel,
+) -> Result<Plan, ToolpathError> {
     let mut notes = validate_job(job)?;
     let top_z = match job.stock.z_zero {
         ZZero::Top => 0.0,
@@ -164,6 +175,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
     let mut seen: Vec<(usize, String)> = Vec::new();
     let mut started: Vec<usize> = Vec::new();
     for (step, (i, k)) in order.into_iter().enumerate() {
+        cancel.check()?;
         let (index, label, selection) = &chosen[i];
         let group = &mut groups[group_of[step]];
         if group.moves.is_empty() {
@@ -201,6 +213,7 @@ pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> 
             pass_z: &pass_z,
             top_z: top_z - start_depth,
             everything: &everything,
+            cancel,
         };
         // A copy is planned from its own, moved contours: built and verified like the
         // original.
@@ -319,6 +332,7 @@ struct Context<'a> {
     top_z: f64,
     /// Every contour of the drawing, moved with the copy; only filled for leads.
     everything: &'a [Contour],
+    cancel: &'a Cancel,
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
@@ -360,6 +374,7 @@ fn plan_pocket_op(
                 _ => None,
             },
             round_corners: op.round_corners,
+            cancel: Some(ctx.cancel),
         },
     )
     .map_err(|err| err.with_context(label))?;

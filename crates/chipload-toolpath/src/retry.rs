@@ -68,6 +68,7 @@ pub(crate) fn nudged<T>(
         };
         match attempt(nudge) {
             Ok(value) => return Ok(value),
+            Err(Failure::Final(ToolpathError::Cancelled)) => return Err(ToolpathError::Cancelled),
             Err(Failure::Final(_)) => break,
             Err(Failure::Numerical { wall, .. }) => move_wall |= wall,
         }

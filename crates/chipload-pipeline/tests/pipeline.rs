@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
 use chipload_job::{Job, Spindle, load_job, parse_job};
-use chipload_pipeline::{PipelineError, RunResult, new_project, run_job, update_drawing};
+use chipload_pipeline::{
+    Cancel, PipelineError, RunResult, new_project, run_job, run_job_cancellable, update_drawing,
+};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::model::MoveKind;
 use serde_json::{Value, json};
@@ -975,4 +977,49 @@ fn a_pocket_of_a_bulged_polyline_passes_the_checker_with_arcs() {
         .map(|p| p.1)
         .fold(f64::INFINITY, f64::min);
     assert!(lowest < 65.0, "{lowest}");
+}
+
+// -- cancelling (docs/specs/background-generation.md)
+
+fn round_corners_job() -> Job {
+    load_job(&corpus("jobs/v14/round_corners.chipload")).unwrap()
+}
+
+#[test]
+fn a_cancelled_run_stops_and_an_uncancelled_one_is_unchanged() {
+    let job = round_corners_job();
+    let cancel = Cancel::new();
+    let same = run_job_cancellable(&job, &cancel).unwrap();
+    assert_eq!(same.files, run(&job).files);
+    cancel.cancel();
+    assert!(matches!(
+        run_job_cancellable(&job, &cancel),
+        Err(PipelineError::Toolpath(ToolpathError::Cancelled))
+    ));
+}
+
+#[test]
+fn a_run_cancelled_from_another_thread_stops_early() {
+    let job = round_corners_job();
+    let started = std::time::Instant::now();
+    run(&job);
+    let full = started.elapsed();
+    if full < std::time::Duration::from_millis(40) {
+        return; // too quick to cancel halfway on this machine
+    }
+    let cancel = std::sync::Arc::new(Cancel::new());
+    let flag = cancel.clone();
+    let canceller = std::thread::spawn(move || {
+        std::thread::sleep(full / 8);
+        flag.cancel();
+    });
+    let started = std::time::Instant::now();
+    let result = run_job_cancellable(&job, &cancel);
+    let took = started.elapsed();
+    canceller.join().unwrap();
+    assert!(matches!(
+        result,
+        Err(PipelineError::Toolpath(ToolpathError::Cancelled))
+    ));
+    assert!(took < full * 3 / 4, "{took:?} of {full:?}");
 }

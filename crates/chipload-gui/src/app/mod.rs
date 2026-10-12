@@ -21,7 +21,7 @@ use chipload_job::{
 use chipload_pipeline::report::format_material_left;
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::{
-    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, update_drawing,
+    PipelineError, RunResult, empty_project, load_drawing, new_project, update_drawing,
     write_gcode_files,
 };
 use chipload_toolpath::left::LeftKind;
@@ -40,6 +40,7 @@ mod canvas;
 mod dialogs;
 mod drawing;
 mod forms;
+mod generation;
 mod library_transfer;
 mod menu;
 mod panels;
@@ -177,8 +178,18 @@ pub struct ChiploadApp {
     pub drawing_facts: Option<DrawingFacts>,
     /// The canvas legend is unfolded.
     pub legend_open: bool,
-    /// The project changed since the last generation, which was cleared.
+    /// The project changed since the last generation, which is shown faded.
     pub toolpath_stale: bool,
+    /// The run in progress (docs/specs/background-generation.md).
+    generation: Option<generation::Generation>,
+    /// What plans a project (a stand-in in tests).
+    runner: generation::Runner,
+    /// View > Update toolpath automatically, kept in the app settings.
+    pub auto_generate: bool,
+    /// When the project last changed, while the live preview hasn't generated it yet.
+    changed_at: Option<Instant>,
+    /// Export G-code once the run in progress has finished (Ctrl+E while generating).
+    export_when_done: bool,
     /// View > Theme, kept in the app settings.
     pub theme: Theme,
     /// The theme last handed to egui.
@@ -235,6 +246,11 @@ impl Default for ChiploadApp {
             drawing_facts: None,
             legend_open: true,
             toolpath_stale: false,
+            generation: None,
+            runner: generation::RUNNER,
+            auto_generate: true,
+            changed_at: None,
+            export_when_done: false,
             theme: Theme::System,
             applied_theme: None,
             status: None,
@@ -676,91 +692,6 @@ impl ChiploadApp {
         }
     }
 
-    pub fn generate(&mut self) -> bool {
-        self.commit();
-        self.toolpath_stale = false;
-        let Some(edit) = &self.edit else {
-            self.error(vec!["Import a DXF or open a project first.".into()]);
-            return false;
-        };
-        let job = match edit.to_job() {
-            Ok(job) => job,
-            Err(problems) => {
-                self.error_ops = problems.iter().filter_map(|p| operation_index(p)).collect();
-                let mut lines = vec!["The project is not complete:".to_string()];
-                lines.extend(problems.into_iter().map(|p| format!("  {p}")));
-                self.error(lines);
-                return false;
-            }
-        };
-        match run_job(&job) {
-            Ok(result) => {
-                self.error_ops.clear();
-                self.scene.toolpath =
-                    Some(ToolpathShape::new(&result.program, false, &result.op_spans));
-                self.scene.tabs.clone_from(&result.tabs);
-                self.scene.left = result.material_left.iter().map(LeftShape::new).collect();
-                self.scene.start_markers = result
-                    .ring_starts
-                    .iter()
-                    .map(|s| StartMarker::new(s.operation, s.ring.clone(), s.stored))
-                    .collect();
-                // Missed pieces on top.
-                self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
-                let mut report = Report::default();
-                let lines: usize = result
-                    .files
-                    .iter()
-                    .map(|f| f.gcode.matches('\n').count())
-                    .sum();
-                let files = match result.files.len() {
-                    1 => String::new(),
-                    n => format!(" in {n} files, one per tool group"),
-                };
-                report.push(
-                    Tone::Good,
-                    format!(
-                        "Generated {lines} lines{files} for {}. Check passed.",
-                        result.post.name
-                    ),
-                );
-                for note in &result.notes {
-                    report.push(Tone::Warning, note.clone());
-                }
-                for warning in &result.check_warnings {
-                    report.push(Tone::Warning, format!("Check: {}", warning.message));
-                }
-                for line in format_material_left(&job, &result.material_left) {
-                    report.push(Tone::Info, line);
-                }
-                report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
-                self.set_report(report);
-                self.result = Some(result);
-                true
-            }
-            Err(PipelineError::CheckFailed { errors, program }) => {
-                self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
-                self.scene.tabs.clear();
-                self.scene.left.clear();
-                self.scene.start_markers.clear();
-                let mut lines = vec!["G-code check FAILED. Nothing can be exported.".to_string()];
-                lines.extend(errors);
-                self.error(lines);
-                false
-            }
-            Err(err) => {
-                self.scene.toolpath = None;
-                self.scene.tabs.clear();
-                self.scene.left.clear();
-                self.scene.start_markers.clear();
-                let message = err.to_string();
-                self.error_ops = operation_index(&message).into_iter().collect();
-                self.error(vec!["Generation failed:".into(), message]);
-                false
-            }
-        }
-    }
-
     /// Write the checked G-code of the last generation.
     pub fn export_gcode(&mut self, path: &Path) -> bool {
         let Some(result) = &self.result else {
@@ -923,6 +854,9 @@ impl ChiploadApp {
 
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
+        self.stop_generation();
+        self.changed_at = None;
+        self.export_when_done = false;
         self.toolpath_stale = false;
         self.result = None;
         self.scene.toolpath = None;
@@ -933,9 +867,21 @@ impl ChiploadApp {
         self.context_start = None;
     }
 
+    /// The project changed: the toolpath shown is kept, faded, until a new one replaces it
+    /// (docs/specs/background-generation.md decision 4); a run in progress is cancelled.
     fn toolpath_out_of_date(&mut self) {
+        self.stop_generation();
+        self.changed_at = Some(Instant::now());
         if self.result.is_some() || self.scene.toolpath.is_some() {
-            self.invalidate();
+            self.result = None;
+            if let Some(path) = &mut self.scene.toolpath {
+                path.stale = true;
+            }
+            self.scene.tabs.clear();
+            self.scene.left.clear();
+            self.scene.start_markers.clear();
+            self.start_drag = None;
+            self.context_start = None;
             self.toolpath_stale = true;
         }
         self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
@@ -1061,6 +1007,16 @@ impl eframe::App for ChiploadApp {
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();
         if !busy {
             self.commit();
+        }
+        if self.generation.is_some() {
+            self.poll_generation();
+            ctx.request_repaint_after(generation::POLL);
+        }
+        if !busy
+            && self.handle_drag.is_none()
+            && let Some(wait) = self.live_preview(Instant::now())
+        {
+            ctx.request_repaint_after(wait);
         }
         self.update_title(&ctx);
     }

@@ -43,7 +43,7 @@ fn first_cut(app: &ChiploadApp) -> (f64, f64) {
 fn import_create_operations_generate_save_and_run_without_the_dxf() {
     let mut app = lower_part();
     assert!(app.dirty(), "a new project is unsaved");
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let dir = temp_dir("save");
     let project = dir.join("lower.chipload");
     let gcode_path = dir.join("lower.nc");
@@ -53,7 +53,7 @@ fn import_create_operations_generate_save_and_run_without_the_dxf() {
     // The saved project is self-contained: run_job on it gives the exported G-code.
     let job = load_job(&project).unwrap();
     assert!(!job.drawing.shapes.is_empty());
-    let again = run_job(&job).unwrap();
+    let again = chipload_pipeline::run_job(&job).unwrap();
     assert_eq!(
         std::fs::read_to_string(&gcode_path).unwrap(),
         again.files[0].gcode
@@ -68,7 +68,7 @@ fn import_create_operations_generate_save_and_run_without_the_dxf() {
 #[test]
 fn generating_shows_the_material_left_until_the_project_changes() {
     let mut app = lower_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     // Bar #4's four square corners. Bar #6's right end is rounded and its left corners
     // lie inside bar #4, which clears them. The outline (operation 1, outside) has no
     // inside corners.
@@ -186,7 +186,7 @@ fn escape_cancels_and_a_new_shape_takes_the_selections_layer() {
 #[test]
 fn editing_the_selected_shape_moves_its_contour_and_operations_follow() {
     let mut app = drawn_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let before = first_cut(&app);
     // S2 is the circle the first operation (Holes) cuts first.
     app.click(Some(contour_of(&app, 2)), false);
@@ -212,7 +212,7 @@ fn editing_the_selected_shape_moves_its_contour_and_operations_follow() {
     assert!(err.contains("radius"), "{err}");
     assert_eq!(app.shape(2).unwrap().geometry, moved);
     app.commit();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!((first_cut(&app).0 - (before.0 - 5.0)).abs() < 1e-9);
 }
 
@@ -229,7 +229,7 @@ fn deleting_a_shape_flags_the_operations_using_it() {
             .any(|l| l.contains("shape S2 no longer exists"))
     );
     app.commit();
-    assert!(!app.generate());
+    assert!(!app.generate_and_wait());
     app.undo();
     assert!(app.shape(2).is_some());
 }
@@ -302,7 +302,7 @@ fn plunges_are_counted_per_operation() {
         p.keep_tool_down = false;
     }
     app.commit();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let path = app.scene.toolpath.clone().unwrap();
     // Two operations, many plunges (every depth pass, every ring change).
     let ops: BTreeSet<Option<usize>> = path.starts.iter().map(|s| s.operation).collect();
@@ -330,11 +330,11 @@ fn plunges_are_counted_per_operation() {
 #[test]
 fn reordering_changes_the_cut_order() {
     let mut app = lower_part();
-    assert!(app.generate());
+    assert!(app.generate_and_wait());
     let pocket_first = first_cut(&app);
     app.move_operation(1, 0);
     assert!(app.result.is_none(), "editing clears the toolpath until F5");
-    assert!(app.generate());
+    assert!(app.generate_and_wait());
     let profile_first = first_cut(&app);
     assert_ne!(pocket_first, profile_first);
     // The outline profile starts on the outline, far from the bars in the middle.
@@ -344,13 +344,13 @@ fn reordering_changes_the_cut_order() {
 #[test]
 fn disabled_operations_are_not_cut() {
     let mut app = lower_part();
-    assert!(app.generate());
+    assert!(app.generate_and_wait());
     let all = app.result.as_ref().unwrap().program.moves.len();
     if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
         p.enabled = false;
     }
     app.commit();
-    assert!(app.generate());
+    assert!(app.generate_and_wait());
     assert!(app.result.as_ref().unwrap().program.moves.len() < all);
 }
 
@@ -383,7 +383,7 @@ fn incomplete_projects_say_what_is_missing() {
     app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
     select(&mut app, &[1, 2]); // a hole and an outer: side must be chosen
     app.add_operation(OpKind::Profile).unwrap();
-    assert!(!app.generate());
+    assert!(!app.generate_and_wait());
     assert!(
         app.report
             .iter()
@@ -439,10 +439,10 @@ fn updating_the_drawing_keeps_operations_and_can_be_undone() {
     // A different drawing: the operations' shapes are gone, so they are flagged.
     assert!(app.update_from(&corpus("dxf/simple_part.dxf"), None));
     assert_eq!(app.error_ops, BTreeSet::from([0, 1]));
-    assert!(!app.generate());
+    assert!(!app.generate_and_wait());
     app.undo();
     assert_eq!(app.edit, before);
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
 }
 
 #[test]
@@ -842,7 +842,7 @@ mod library {
             "{:?}",
             app.report
         );
-        assert!(app.generate(), "{:?}", app.report);
+        assert!(app.generate_and_wait(), "{:?}", app.report);
 
         app.undo();
         app.undo();
@@ -890,7 +890,7 @@ mod library {
         let mut same = ops[0].clone();
         same.set_tool(ops_before[0].tool());
         assert_eq!(same, ops_before[0], "only the tool changed");
-        assert!(app.generate(), "{:?}", app.report);
+        assert!(app.generate_and_wait(), "{:?}", app.report);
         let files = &app.result.as_ref().unwrap().files;
         assert_eq!(files.len(), 2);
         // Exported as one file per tool, named after the chosen file.
@@ -1084,7 +1084,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     let id = app.contours[0].id;
     select(&mut app, &[id]);
     app.add_operation(OpKind::Profile).unwrap();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
 
     // Unsaved changes: a new project asks first.
     app.ask_new();
@@ -1100,14 +1100,14 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     assert!(app.shape(1).is_some());
     assert!(app.contours.len() > 1);
     assert_eq!(app.update_labels().0, "Update drawing from DXF…");
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
 }
 
 #[test]
 fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     // docs/specs/copies-grid.md §6
     let mut app = lower_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let one = app.scene.toolpath.clone().unwrap();
     assert!(one.ghost_feeds.is_empty());
 
@@ -1125,7 +1125,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     app.edit.as_mut().unwrap().settings.stock.x = 1000.0;
     app.edit.as_mut().unwrap().settings.stock.y = 1000.0;
     app.commit();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let result = app.result.as_ref().unwrap();
     let copy_numbers: BTreeSet<u32> = result.op_spans.iter().map(|s| s.copy).collect();
     assert_eq!(copy_numbers, BTreeSet::from([1, 2, 3, 4]));
@@ -1149,7 +1149,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
         .unwrap()
         .dx = 10.0;
     app.commit();
-    assert!(!app.generate());
+    assert!(!app.generate_and_wait());
     assert!(
         app.report.iter().any(|l| l.contains("Copies overlap")),
         "{:?}",
@@ -1161,7 +1161,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
 fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
     // docs/specs/helix-and-leads.md part A
     let mut app = lower_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     app.focus = Focus::Op(1);
     let marker = app
         .scene
@@ -1180,6 +1180,7 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
     let (_, _, d) = chipload_toolpath::start::nearest_on_ring(&ring, on_ring).unwrap();
     assert!(d < 1e-9);
     app.drop_start();
+    assert!(app.wait_for_generation(), "{:?}", app.report);
     let starts = app.edit.as_ref().unwrap().ops[1].op.starts().to_vec();
     assert_eq!(starts, vec![[on_ring.0, on_ring.1]]);
     assert!(app.result.is_some(), "generated again: {:?}", app.report);
@@ -1208,6 +1209,7 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
         .position(|m| m.operation == 1)
         .unwrap();
     app.reset_start(marker);
+    assert!(app.wait_for_generation(), "{:?}", app.report);
     assert!(app.edit.as_ref().unwrap().ops[1].op.starts().is_empty());
     app.undo();
     assert_eq!(app.edit.as_ref().unwrap().ops[1].op.starts().len(), 1);
@@ -1216,7 +1218,7 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
 #[test]
 fn start_markers_are_only_for_the_focused_operation_in_top_view() {
     let mut app = lower_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let marker = &app.scene.start_markers[0];
     let pos = app.view.to_screen(marker.at);
     let operation = marker.operation;
@@ -1236,12 +1238,12 @@ fn start_markers_are_only_for_the_focused_operation_in_top_view() {
 fn a_lead_set_on_an_operation_is_generated_and_saved() {
     // docs/specs/helix-and-leads.md part B
     let mut app = lower_part();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let before = app.result.as_ref().unwrap().program.moves.len();
     if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
         p.lead = Some(Lead { radius: 3.0 });
     }
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let after = app.result.as_ref().unwrap().program.moves.len();
     assert!(
         after > before,
@@ -1270,7 +1272,7 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
     assert!(!app.report_open, "nothing to warn about yet");
     let facts = app.drawing_facts.clone().unwrap();
     assert_eq!((facts.contours, facts.issues), (3, 0));
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     assert_eq!(app.report.lines[0].tone, Tone::Good);
     assert!(app.report_open, "warnings open the report");
     // "Operation 2 (Outline): cuts 0.300 mm below the stock bottom ..."
@@ -1291,7 +1293,7 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
     let drawing_only = crate::view::legend(&app.scene, true).len();
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.toolpath_stale);
     let generated = crate::view::legend(&app.scene, true).len();
     assert!(
@@ -1303,9 +1305,12 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
         _ => panic!("operation 1 is a pocket"),
     }
     app.commit();
-    assert!(app.toolpath_stale, "the cleared toolpath is noticed");
-    assert_eq!(crate::view::legend(&app.scene, true).len(), drawing_only);
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.toolpath_stale, "the old toolpath is noticed");
+    // It stays, faded, until a new one replaces it; it can't be exported.
+    assert!(app.scene.toolpath.as_ref().unwrap().stale);
+    assert!(app.result.is_none());
+    assert!(app.scene.start_markers.is_empty() && app.scene.left.is_empty());
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.toolpath_stale);
     // A project opened afresh has nothing out of date.
     app.commit();
@@ -1434,7 +1439,7 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     };
     assert_eq!(v.name, "V-carve 1");
     assert_eq!((v.start_depth, v.step_down), (0.0, None));
-    assert!(app.generate(), "{:?}", app.report);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     let moves = &app.result.as_ref().unwrap().program.moves;
     assert!(
         moves
@@ -1542,4 +1547,105 @@ fn the_sidebar_shows_operations_and_shapes_apart() {
     let mut app = drawn_part();
     app.click(Some(contour_of(&app, 2)), false);
     draw_sidebar(&mut app);
+}
+
+// -- generating in the background (docs/specs/background-generation.md)
+
+/// Change operation 1's feed and record it as an edit.
+fn edit_feed(app: &mut ChiploadApp, feed: f64) {
+    match &mut app.edit.as_mut().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.feed = feed,
+        _ => panic!("operation 1 is a pocket"),
+    }
+    app.commit();
+}
+
+#[test]
+fn a_result_for_a_project_that_changed_meanwhile_is_dropped() {
+    let mut app = lower_part();
+    assert!(app.generate());
+    assert!(app.generating());
+    // Changed but not yet recorded (a value being dragged): the run isn't cancelled, but
+    // its result is for the project as it was.
+    match &mut app.edit.as_mut().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.feed = 777.0,
+        _ => panic!("operation 1 is a pocket"),
+    }
+    assert!(!app.wait_for_generation());
+    assert!(app.result.is_none() && app.scene.toolpath.is_none());
+    // An edit cancels the run in progress.
+    assert!(app.generate());
+    edit_feed(&mut app, 650.0);
+    assert!(!app.generating());
+}
+
+#[test]
+fn the_live_preview_generates_once_the_project_is_quiet() {
+    let mut app = lower_part();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    edit_feed(&mut app, 650.0);
+    let changed = app.changed_at.unwrap();
+    assert!(app.toolpath_stale && app.result.is_none());
+    // Not yet: it waits for the rest of the quiet time.
+    let wait = app.live_preview(changed + Duration::from_millis(200));
+    assert_eq!(wait, Some(Duration::from_millis(300)));
+    assert!(!app.generating());
+    // Then it runs, quietly.
+    assert_eq!(app.live_preview(changed + generation::QUIET_TIME), None);
+    assert!(app.generating());
+    assert!(app.wait_for_generation(), "{:?}", app.report);
+    assert!(!app.toolpath_stale && app.result.is_some());
+    assert!(!app.scene.toolpath.as_ref().unwrap().stale);
+    // Switched off, an edit waits for Generate.
+    app.auto_generate = false;
+    edit_feed(&mut app, 700.0);
+    assert_eq!(
+        app.live_preview(Instant::now() + Duration::from_secs(5)),
+        None
+    );
+    assert!(!app.generating() && app.toolpath_stale);
+}
+
+#[test]
+fn an_incomplete_project_is_reported_quietly_by_the_live_preview() {
+    let mut app = lower_part();
+    match &mut app.edit.as_mut().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.feed = 0.0,
+        _ => panic!("operation 1 is a pocket"),
+    }
+    app.commit();
+    let changed = app.changed_at.unwrap();
+    app.live_preview(changed + generation::QUIET_TIME);
+    assert!(!app.generating());
+    assert!(app.report.problems() > 0, "{:?}", app.report);
+    assert!(app.status.is_none(), "no red status-bar message");
+    // Generate (F5) says it loudly.
+    assert!(!app.generate());
+    assert!(app.status.is_some());
+}
+
+#[test]
+fn a_panic_while_generating_becomes_an_error_and_keeps_the_project() {
+    let mut app = lower_part();
+    let project = app.edit.clone();
+    app.runner = |_, _| panic!("a geometry library fell over");
+    assert!(!app.generate_and_wait());
+    let text = format!("{:?}", app.report);
+    assert!(text.contains("failed unexpectedly"), "{text}");
+    assert!(text.contains("a geometry library fell over"), "{text}");
+    assert_eq!(app.edit, project);
+    assert!(!app.generating());
+}
+
+#[test]
+fn cancel_stops_the_run_and_export_waits_for_it() {
+    let mut app = lower_part();
+    assert!(app.generate());
+    app.export_when_ready();
+    assert!(app.export_when_done);
+    app.cancel_generation();
+    assert!(!app.generating() && !app.export_when_done);
+    assert!(app.result.is_none());
+    let status = app.status.as_ref().map(|(text, _)| text.clone());
+    assert_eq!(status.as_deref(), Some("Generation cancelled"));
 }

@@ -26,8 +26,9 @@ pub const TOOLS_VERSION: i64 = 2;
 pub const MACHINES_VERSION: i64 = 2;
 /// App settings: the recent projects (docs/specs/open-recent.md).
 pub const SETTINGS_FILE: &str = "settings.json";
-/// Current `schema_version` of `settings.json`. Version 2 added `theme`.
-pub const SETTINGS_VERSION: i64 = 2;
+/// Current `schema_version` of `settings.json`. Version 2 added `theme`, version 3
+/// `auto_generate`.
+pub const SETTINGS_VERSION: i64 = 3;
 /// How many recent projects are kept.
 pub const RECENT_MAX: usize = 10;
 
@@ -524,6 +525,9 @@ pub struct AppSettings {
     pub recent_projects: Vec<String>,
     /// Since version 2.
     pub theme: Theme,
+    /// Generate the toolpath by itself shortly after each edit
+    /// (docs/specs/background-generation.md). Since version 3.
+    pub auto_generate: bool,
 }
 
 impl Default for AppSettings {
@@ -533,6 +537,7 @@ impl Default for AppSettings {
             written_by: None,
             recent_projects: Vec::new(),
             theme: Theme::System,
+            auto_generate: true,
         }
     }
 }
@@ -732,8 +737,10 @@ impl LibraryFile for AppSettings {
         self.written_by = Some(written_by());
     }
     fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
-        if from == 1 {
-            settings_v1_to_v2(data);
+        match from {
+            1 => settings_v1_to_v2(data),
+            2 => settings_v2_to_v3(data),
+            _ => {}
         }
     }
 }
@@ -742,6 +749,13 @@ impl LibraryFile for AppSettings {
 pub fn settings_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
     data.insert("theme".into(), Value::String("system".into()));
     data.insert("schema_version".into(), Value::from(2));
+}
+
+/// Settings 2 -> 3: the toolpath updates by itself after edits, the new default (a UI
+/// setting; projects and G-code are unaffected).
+pub fn settings_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
+    data.insert("auto_generate".into(), Value::Bool(true));
+    data.insert("schema_version".into(), Value::from(3));
 }
 
 fn written_by() -> String {

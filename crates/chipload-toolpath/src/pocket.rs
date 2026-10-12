@@ -26,6 +26,7 @@ use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 use crate::ToolpathError;
 use crate::adaptive::Grid;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
+use crate::cancel::{self, Cancel};
 use crate::fronts;
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
@@ -665,7 +666,7 @@ struct Attempt {
 }
 
 /// What a piece is cleared with, and where the tool comes from.
-struct Clearing {
+struct Clearing<'a> {
     strategy: PocketStrategy,
     /// Rings strategy: round the corners of the inner rings.
     round_corners: bool,
@@ -675,11 +676,13 @@ struct Clearing {
     position: Point,
     direction: Direction,
     spindle: Spindle,
+    cancel: Option<&'a Cancel>,
 }
 
 /// The paths of one piece, checked as soon as they are built and retried with nudged
 /// offsets after a numerical failure (docs/specs/offset-retry.md).
 fn cleared_piece(region: &Area, ids: &[usize], c: &Clearing) -> Result<Attempt, ToolpathError> {
+    cancel::check(c.cancel)?;
     let walls = PrimIndex::new(region.boundary(), c.tool_radius.max(1.0));
     let rings_only = matches!(c.strategy, PocketStrategy::Rings {});
     nudged(|nudge| {
@@ -716,7 +719,8 @@ fn attempt_piece(
                 ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
             if c.round_corners {
                 let stepover = c.stepover - nudge.step;
-                rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes);
+                rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes)
+                    .map_err(Failure::Final)?;
             }
             (a.rings, a.walls) = cut_order(
                 &nodes,
@@ -788,7 +792,7 @@ fn rounded_rings(
     ids: &[usize],
     c: &Clearing,
     notes: &mut Vec<String>,
-) {
+) -> Result<(), ToolpathError> {
     let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
     let missed = |nodes: &[Node]| {
         let (rings, _) = cut_order(
@@ -809,9 +813,10 @@ fn rounded_rings(
     let near = c.tool_radius + stepover;
     let mut scales = vec![1.0; nodes.len()];
     for _ in 0..ROUNDING_ROUNDS {
+        cancel::check(c.cancel)?;
         round_ring_corners(nodes, roots, stepover, 2.0 * c.tool_radius, &scales);
         let Some(left) = missed(nodes) else {
-            return;
+            return Ok(());
         };
         let mut changed = false;
         let points: Vec<Point> = left
@@ -846,6 +851,7 @@ fn rounded_rings(
             ids_text(ids)
         ));
     }
+    Ok(())
 }
 
 /// The first path that comes closer than r (minus tolerance) to a wall or island or starts
@@ -1349,6 +1355,8 @@ pub struct Choices<'a> {
     pub helix: Option<f64>,
     /// Rings strategy: round the inner rings' corners (docs/specs/pocket-round-corners.md).
     pub round_corners: bool,
+    /// Stop with [`ToolpathError::Cancelled`] once set (docs/specs/background-generation.md).
+    pub cancel: Option<&'a Cancel>,
 }
 
 /// One piece's paths before its links are chosen and it is verified.
@@ -1383,6 +1391,7 @@ pub fn plan_pocket_starting(
         lead,
         helix,
         round_corners,
+        cancel,
     } = choices;
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
@@ -1415,6 +1424,7 @@ pub fn plan_pocket_starting(
     let mut position = start;
     let mut drafts: Vec<Draft> = Vec::new();
     while !remaining.is_empty() {
+        cancel::check(cancel)?;
         let here = position;
         let key = |a: &PocketArea| {
             let (y, x) = a.area.sort_key();
@@ -1451,6 +1461,7 @@ pub fn plan_pocket_starting(
             position,
             direction,
             spindle,
+            cancel,
         };
         let Attempt {
             rings,
@@ -1570,6 +1581,7 @@ pub fn plan_pocket_starting(
             }
             None => None,
         };
+        cancel::check(cancel)?;
         let (uncut, missed) =
             uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
         notes.extend(uncut);

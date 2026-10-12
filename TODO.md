@@ -17,9 +17,7 @@ it's built (see `CLAUDE.md`).
   tool, its own spec.
 
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
-  1. Generate in the background, with Cancel, and
-  2. live preview: regenerate by itself shortly after an edit
-     (docs/specs/background-generation.md, draft for review).
+  1–2. Done (background generation and live preview, see Done).
   3. Autosave and crash recovery (a recovery copy while unsaved, a panic hook, restore on
      start); 4. a `.bak` of the project on save.
   5. User post-processors from a `posts/` folder in the settings folder, plus built-in
@@ -35,6 +33,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Generating in the background, and live preview** (docs/specs/background-generation.md):
+  the window stays live while planning, ■ Cancel stops a run, a crash while planning
+  becomes a report error; the toolpath updates by itself 0.5 s after an edit (View →
+  Update toolpath automatically, settings schema 3), the old one faded meanwhile.
+  Follow-up: cancel checks inside the new adaptive planning when stage 2 lands.
 - **Polyline handles easier to read**: the segment middles are round handles in their own
   colour (the points stay squares), and a selected polyline shows how to drag them (move a
   point, insert one, Shift to bend) under its form and in the status bar.

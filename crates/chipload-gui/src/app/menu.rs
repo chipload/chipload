@@ -38,7 +38,7 @@ impl ChiploadApp {
             self.ask_import();
         }
         if pressed(&EXPORT) {
-            self.ask_export();
+            self.export_when_ready();
         }
         if pressed(&GENERATE) && self.can_generate() {
             self.generate();
@@ -149,10 +149,13 @@ impl ChiploadApp {
                 }
                 ui.separator();
                 if ui
-                    .add_enabled(has_result, egui::Button::new("Export G-code…  (Ctrl+E)"))
+                    .add_enabled(
+                        has_result || self.generating(),
+                        egui::Button::new("Export G-code…  (Ctrl+E)"),
+                    )
                     .clicked()
                 {
-                    self.ask_export();
+                    self.export_when_ready();
                 }
                 if ui
                     .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
@@ -208,7 +211,11 @@ impl ChiploadApp {
                 }
             });
             ui.menu_button("Job", |ui| {
-                if ui
+                if self.generating() {
+                    if ui.button("Cancel generation").clicked() {
+                        self.cancel_generation();
+                    }
+                } else if ui
                     .add_enabled(self.can_generate(), egui::Button::new("Generate  (F5)"))
                     .clicked()
                 {
@@ -250,6 +257,14 @@ impl ChiploadApp {
                         }
                     }
                 });
+                let mut auto = self.auto_generate;
+                if ui
+                    .checkbox(&mut auto, "Update toolpath automatically")
+                    .on_hover_text("Generate by itself half a second after each change")
+                    .changed()
+                {
+                    self.set_auto_generate(auto);
+                }
                 ui.checkbox(&mut self.show_material_left, "Show material left")
                     .on_hover_text(
                         "Faint: material the tool can't reach (inside corners, narrow slots). \
@@ -315,7 +330,15 @@ impl ChiploadApp {
             // The main action stands out.
             let accent = ui.visuals().selection.bg_fill;
             let on_accent = ui.visuals().selection.stroke.color;
-            if ui
+            if self.generating() {
+                if ui
+                    .button(RichText::new("■ Cancel").strong())
+                    .on_hover_text("Stop generating")
+                    .clicked()
+                {
+                    self.cancel_generation();
+                }
+            } else if ui
                 .add_enabled(
                     self.can_generate(),
                     egui::Button::new(RichText::new("▶ Generate").strong().color(on_accent))
@@ -327,12 +350,19 @@ impl ChiploadApp {
                 self.generate();
             }
             if ui
-                .add_enabled(has_result, egui::Button::new("⬇ Export G-code"))
-                .on_hover_text("Save the checked G-code (Ctrl+E)")
+                .add_enabled(
+                    has_result || self.generating(),
+                    egui::Button::new("⬇ Export G-code"),
+                )
+                .on_hover_text(if has_result {
+                    "Save the checked G-code (Ctrl+E)"
+                } else {
+                    "Save the G-code once it is generated (Ctrl+E)"
+                })
                 .on_disabled_hover_text("Generate first")
                 .clicked()
             {
-                self.ask_export();
+                self.export_when_ready();
             }
             ui.separator();
             if ui.button("Fit").on_hover_text("Fit the view (F)").clicked() {
@@ -399,7 +429,10 @@ impl ChiploadApp {
                 let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
                 (p, name)
             });
-            if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
+            if self.generating() {
+                ui.spinner();
+                ui.label("Generating…");
+            } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
                 let step = grid_step(self.view.scale);
                 ui.label(format!("{}{name}", sketch.status(*at, step)));
             } else if let (Some(_), Some((at, name))) = (&self.handle_drag, &snapped) {

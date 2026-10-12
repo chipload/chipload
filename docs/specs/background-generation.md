@@ -1,6 +1,6 @@
 # Spec: generating in the background, and live preview
 
-Status: draft for review. Items 1 and 2 of the general improvement pass (TODO.md, approved
+Status: approved (2026-10-12; decisions 1–6 as recommended). Items 1 and 2 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
 ## 1. Why
@@ -83,3 +83,23 @@ press Generate (F5) again to see what the edit did.
 - GUI: a panic in the worker becomes a report error and the app keeps its project (a test
   hook that panics inside the worker).
 - Settings: a frozen v2 settings file migrates to `auto_generate: true`.
+
+## 6. As built (2026-10-12)
+
+- `chipload_toolpath::Cancel` (an atomic flag) and `ToolpathError::Cancelled`;
+  `plan_job_cancellable` and `chipload_pipeline::run_job_cancellable` (`run_job` and
+  `plan_job` call them with a flag that is never set). Checked before each operation and
+  copy, each pocket piece, each attempt at a piece (also between offset retries), each
+  rounding round and the uncut check, and before posting.
+- **Not yet inside adaptive planning:** a long adaptive piece finishes its piece before it
+  stops. Adaptive is being replaced (branch `adaptive-stage2-wip`); its checks go in with
+  the new code.
+- GUI `app/generation.rs`: the worker thread (`catch_unwind` around the run), newest wins,
+  results applied only to the project they were made from, quiet and loud errors, Ctrl+E
+  while generating exports when done. The toolbar's Generate turns into ■ Cancel; the
+  status bar shows a spinner; the canvas badge says "Updating the toolpath…" while the
+  live preview is on its way.
+- The live preview starts after an edit, undo or redo, not when a project is opened or a
+  DXF imported (the import report stays on screen).
+- App settings schema 3 (`auto_generate`, `settings_v2_to_v3`, frozen sample
+  `tests/corpus/settings/v2`).

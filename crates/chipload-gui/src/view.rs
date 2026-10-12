@@ -285,6 +285,8 @@ pub struct ToolpathShape {
     /// cutting move).
     pub lines3: Vec<(Point3, Point3, bool)>,
     pub rejected: bool,
+    /// The project changed since: drawn faded until a new one replaces it.
+    pub stale: bool,
 }
 
 impl ToolpathShape {
@@ -735,10 +737,14 @@ impl Scene {
         }
 
         if let Some(path) = &self.toolpath {
-            let feed = if path.rejected { FEED_REJECTED } else { FEED };
+            let fade = if path.stale { GHOST_FADE } else { 1.0 };
+            let feed = if path.rejected { FEED_REJECTED } else { FEED }.gamma_multiply(fade);
             if flat {
                 for &(a, b) in &path.rapids {
-                    dashed(screen(&[a, b]), Stroke::new(1.0, RAPID));
+                    dashed(
+                        screen(&[a, b]),
+                        Stroke::new(1.0, RAPID.gamma_multiply(fade)),
+                    );
                 }
                 for run in &path.ghost_feeds {
                     let faded = feed.gamma_multiply(GHOST_FADE);

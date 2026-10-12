@@ -267,15 +267,24 @@ impl ChiploadApp {
             ui.scope_builder(top, |ui| {
                 frame.show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(
-                            RichText::new("⚠ Toolpath out of date").color(visuals.warn_fg_color),
-                        );
-                        if ui
-                            .button("▶ Generate")
-                            .on_hover_text("The project changed since it was generated (F5)")
-                            .clicked()
-                        {
-                            self.generate();
+                        // Live preview: the new toolpath is on its way (or about to be).
+                        let coming =
+                            self.generating() || (self.auto_generate && self.changed_at.is_some());
+                        if coming {
+                            ui.spinner();
+                            ui.label("Updating the toolpath…");
+                        } else {
+                            ui.label(
+                                RichText::new("⚠ Toolpath out of date")
+                                    .color(visuals.warn_fg_color),
+                            );
+                            if ui
+                                .button("▶ Generate")
+                                .on_hover_text("The project changed since it was generated (F5)")
+                                .clicked()
+                            {
+                                self.generate();
+                            }
                         }
                     });
                 });

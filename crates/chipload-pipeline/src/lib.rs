@@ -27,11 +27,14 @@ use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, load_builtin_post, render_program_with,
     render_tool_file, render_with_tool_changes,
 };
+pub use chipload_toolpath::Cancel;
 use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
-use chipload_toolpath::{OpSpan, RingStart, ToolGroup, ToolpathError, plan_job, validate_job};
+use chipload_toolpath::{
+    OpSpan, RingStart, ToolGroup, ToolpathError, plan_job_cancellable, validate_job,
+};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PipelineError {
@@ -154,15 +157,21 @@ pub fn write_gcode_files(output: &Path, files: &[GcodeFile]) -> std::io::Result<
     Ok(written)
 }
 
-/// Generate G-code. Fails for anything that is not safe to cut, including a failed
-/// independent check, so unchecked G-code never leaves this function.
 /// Generate G-code from a project. Fails for anything that is not safe to cut, including a
 /// failed independent check, so unchecked G-code never leaves this function.
 pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
+    run_job_cancellable(job, &Cancel::new())
+}
+
+/// [`run_job`] that stops with `ToolpathError::Cancelled` once `cancel` is set, from
+/// another thread (docs/specs/background-generation.md). Not cancelled, it gives the same
+/// result.
+pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, PipelineError> {
     validate_job(job)?;
     let post = load_builtin_post(&job.machine.post)?;
     let imported = load_drawing(job)?;
-    let plan = plan_job(job, &imported.contours)?;
+    let plan = plan_job_cancellable(job, &imported.contours, cancel)?;
+    cancel.check()?;
     let (files, check_warnings) = post_and_check(job, &post, &plan.program, &plan.groups)?;
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));

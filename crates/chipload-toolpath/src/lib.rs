@@ -6,6 +6,7 @@
 
 pub mod adaptive;
 pub mod arcs;
+pub mod cancel;
 pub mod fronts;
 pub mod geom;
 pub mod helix;
@@ -25,7 +26,11 @@ pub mod start;
 pub mod tabs;
 pub mod vcarve;
 
-pub use plan::{OpSpan, Plan, RingStart, ToolGroup, op_tool, plan_job, tool_groups, validate_job};
+pub use cancel::Cancel;
+pub use plan::{
+    OpSpan, Plan, RingStart, ToolGroup, op_tool, plan_job, plan_job_cancellable, tool_groups,
+    validate_job,
+};
 
 /// Why no toolpath could be made. Messages are the user-facing text.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -39,6 +44,9 @@ pub enum ToolpathError {
     /// The geometry can't be machined as asked (tool too big, failed verification, ...).
     #[error("{0}")]
     Geometry(String),
+    /// The run was stopped by its [`cancel::Cancel`] flag.
+    #[error("Generation cancelled")]
+    Cancelled,
 }
 
 impl ToolpathError {
@@ -48,6 +56,7 @@ impl ToolpathError {
             ToolpathError::Job(m) => ToolpathError::Job(format!("{context}: {m}")),
             ToolpathError::Selector(m) => ToolpathError::Selector(format!("{context}: {m}")),
             ToolpathError::Geometry(m) => ToolpathError::Geometry(format!("{context}: {m}")),
+            ToolpathError::Cancelled => ToolpathError::Cancelled,
         }
     }
 }

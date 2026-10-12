@@ -466,6 +466,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         self.recent = settings.recent_projects;
         self.theme = settings.theme;
+        self.auto_generate = settings.auto_generate;
     }
 
     /// View > Theme: used at once and kept in the settings for next time.
@@ -494,7 +495,7 @@ impl ChiploadApp {
         });
     }
 
-    fn change_settings(&mut self, change: impl FnOnce(&mut AppSettings)) {
+    pub(super) fn change_settings(&mut self, change: impl FnOnce(&mut AppSettings)) {
         let Some(dir) = self.settings_dir.clone() else {
             return;
         };
