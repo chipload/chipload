@@ -9,6 +9,8 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Rounded corners on the clearing rings of a pocket** (docs/specs/pocket-round-corners.md,
+  draft 2026-10-12, awaiting the user's decisions): smoother motion in rings pockets.
 - **Adaptive as spirals and trochoidal channels on the medial axis**
   (docs/specs/adaptive-spiral.md, approved). Stage 1 (round pockets) is on main; stage 2
   (wide areas by spiral, corners and branches by loops, lifts) is on the branch
