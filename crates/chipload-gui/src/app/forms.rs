@@ -738,6 +738,9 @@ pub(super) enum JobRequest {
     CopiesGap(f64),
     /// Move the imported drawing (docs/specs/drawing-placement.md).
     Place(PlaceMove),
+    /// Make this the project's post-processor; one of the user's is copied in (again:
+    /// updated) (docs/specs/user-posts.md).
+    Post(String),
 }
 
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
@@ -864,7 +867,10 @@ pub(super) fn job_form(
         }
     );
     section(ui, "job-machine", "Machine", &machine, |ui| {
-        machine_rows(ui, "job", &mut job.machine);
+        if let Some(post) = machine_rows(ui, "job", &mut job.machine, library) {
+            copies_request = Some(JobRequest::Post(post));
+        }
+        post_copy_row(ui, &job.machine, library, &mut copies_request);
         library_rows(ui, &mut request, LibraryRows::machine(job, library));
     });
 
@@ -1191,13 +1197,46 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
     ui.end_row();
 }
 
-/// Post, safe Z, spindle, max feed and travel (the work zero is with the stock).
-pub(super) fn machine_rows(ui: &mut egui::Ui, salt: &str, machine: &mut Machine) {
+/// Post, safe Z, spindle, max feed and travel (the work zero is with the stock). Returns the
+/// post picked, if another one was: the caller sets it (a user post is copied into a
+/// project, a profile only names it).
+pub(super) fn machine_rows(
+    ui: &mut egui::Ui,
+    salt: &str,
+    machine: &mut Machine,
+    library: Option<&Library>,
+) -> Option<String> {
+    let mut picked = None;
     ui.label("Post");
     ComboBox::from_id_salt((salt, "post"))
         .selected_text(machine.post.clone())
         .show_ui(ui, |ui| {
-            ui.selectable_value(&mut machine.post, "grbl".to_string(), "grbl");
+            for name in chipload_pipeline::posts::builtin_posts() {
+                if ui.selectable_label(machine.post == name, name).clicked() {
+                    picked = Some(name.to_string());
+                }
+            }
+            let yours = library.map_or(&[][..], |l| l.user_posts.as_slice());
+            if !yours.is_empty() {
+                ui.separator();
+            }
+            for (name, read) in yours {
+                let label = format!("{name} (yours)");
+                let response = ui.add_enabled(
+                    read.is_ok(),
+                    egui::Button::selectable(machine.post == *name, label),
+                );
+                if let Err(problem) = read {
+                    response.on_disabled_hover_text(problem.as_str());
+                } else if response.clicked() {
+                    picked = Some(name.clone());
+                }
+            }
+        })
+        .response
+        .on_hover_text(match library.and_then(|l| l.posts.as_deref()) {
+            Some(dir) => format!("Your own post-processors go in {}", dir.display()),
+            None => "The built-in post-processors".into(),
         });
     ui.end_row();
     ui.label("Safe Z");
@@ -1254,6 +1293,45 @@ pub(super) fn machine_rows(ui: &mut egui::Ui, salt: &str, machine: &mut Machine)
             ui.add(mm(&mut t.z));
         }
     });
+    ui.end_row();
+    picked
+}
+
+/// For a user post copied into the project: whether the file it came from has changed,
+/// with Update (docs/specs/user-posts.md §2).
+fn post_copy_row(
+    ui: &mut egui::Ui,
+    machine: &Machine,
+    library: Option<&Library>,
+    request: &mut Option<JobRequest>,
+) {
+    let Some(copy) = &machine.custom_post else {
+        return;
+    };
+    let file = library.and_then(|l| l.user_posts.iter().find(|(name, _)| *name == machine.post));
+    ui.label("");
+    match file.map(|(_, read)| read) {
+        Some(Ok(read)) if read.config == copy.config && read.template == copy.template => {
+            ui.label(RichText::new("Yours, copied into the project").weak());
+        }
+        Some(Ok(_)) => {
+            ui.horizontal(|ui| {
+                ui.colored_label(ui.visuals().warn_fg_color, "Your post file has changed");
+                if ui
+                    .button("Update")
+                    .on_hover_text("Copy the post as it is now into the project")
+                    .clicked()
+                {
+                    *request = Some(JobRequest::Post(machine.post.clone()));
+                }
+            });
+        }
+        _ => {
+            ui.label(
+                RichText::new("Yours; the project keeps its copy (the file isn't there)").weak(),
+            );
+        }
+    }
     ui.end_row();
 }
 

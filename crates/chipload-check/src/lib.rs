@@ -17,8 +17,15 @@ use chipload_job::{Job, ZZero};
 /// Positional slack for comparisons against heights and bounds.
 pub const POSITION_TOL_MM: f64 = CHAIN_TOL_MM;
 
-const ALLOWED_G: [i64; 11] = [0, 1, 2, 3, 4, 17, 20, 21, 90, 91, 94];
-const ALLOWED_M: [i64; 5] = [3, 4, 5, 6, 30];
+/// G-codes the checker reads. 40, 49, 54, 61, 64 and 80 only set the controller to a known
+/// state (docs/specs/user-posts.md §4); G91.1 is handled apart, as it is not whole.
+const ALLOWED_G: [i64; 17] = [
+    0, 1, 2, 3, 4, 17, 20, 21, 40, 49, 54, 61, 64, 80, 90, 91, 94,
+];
+/// M7, M8, M9: coolant on and off.
+const ALLOWED_M: [i64; 8] = [3, 4, 5, 6, 7, 8, 9, 30];
+/// How far G64 may let the controller blend corners away from the program, mm.
+pub const MAX_BLEND_MM: f64 = 0.05;
 const MOTION_G: [i64; 4] = [0, 1, 2, 3];
 const VALUE_LETTERS: &str = "XYZIJFSPNT";
 const AXES: [char; 3] = ['X', 'Y', 'Z'];
@@ -167,6 +174,10 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
     let mut state = State::new();
     for (index, raw) in parse::split_lines(text).into_iter().enumerate() {
         let line = index + 1;
+        // `%` alone marks the start or end of a program (LinuxCNC, Mach).
+        if raw.trim() == "%" {
+            continue;
+        }
         let words = match parse::parse_line(raw) {
             Ok(words) => words,
             Err(problem) => {
@@ -245,6 +256,13 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     let mut m_codes: Vec<i64> = Vec::new();
     let mut values: BTreeMap<char, f64> = BTreeMap::new();
     for &(letter, value) in words {
+        if letter == 'G' && value == 91.1 {
+            // Arc centres relative to the start point: what the checker assumes anyway.
+            continue;
+        }
+        if letter == 'G' && value == 90.1 {
+            return vec!["G90.1 (absolute arc centres) is not supported".into()];
+        }
         if letter == 'G' || letter == 'M' {
             if value != value.trunc() {
                 return vec![format!("{letter}{} is not supported", value)];
@@ -336,6 +354,21 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     }
     if g_codes.contains(&4) && !values.contains_key(&'P') {
         problems.push("G4 dwell without P".into());
+    }
+    if g_codes.contains(&64) {
+        match values.get(&'P') {
+            _ if g_codes.contains(&4) => {
+                problems.push("G64 and G4 on one line: P is ambiguous".into());
+            }
+            Some(&p) if (0.0..=MAX_BLEND_MM).contains(&p) => {}
+            Some(&p) => problems.push(format!(
+                "G64 P{p} lets the controller leave the path by more than {MAX_BLEND_MM} mm"
+            )),
+            None => problems.push(format!(
+                "G64 without P lets the controller round corners without limit (use P at \
+                 most {MAX_BLEND_MM})"
+            )),
+        }
     }
     if let Some(&first) = motions.first() {
         state.motion = Some(first);

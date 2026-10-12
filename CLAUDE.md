@@ -11,7 +11,7 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v14: embedded drawing and its placement (move, 90° turns, scale), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, adaptive pockets cutting the stepover, rounded ring corners), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
+| `chipload-job` | project file models (schema v15: embedded drawing and its placement (move, 90° turns, scale), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, adaptive pockets cutting the stepover, rounded ring corners, a copied user post-processor), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-toolpath` | selection, offsets, profiles, tabs, pockets, V-carving (medial axis via boostvoronoi, ADR 0015), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
@@ -95,6 +95,8 @@ cargo run -p chipload-cli -- check out.nc --job part.chipload      # the indepen
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
 cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine export); import with `tool import FILE [--replace]`
+cargo run -p chipload-cli -- post list                   # built-in post-processors (grbl, linuxcnc, mach3) and yours (settings folder posts/)
+cargo run -p chipload-cli -- post use part.chipload --post linuxcnc   # a user post is copied into the project
 cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)

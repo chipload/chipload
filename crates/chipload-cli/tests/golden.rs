@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 25] = [
+const GOLDEN: [(&str, &str); 27] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -74,6 +74,10 @@ const GOLDEN: [(&str, &str); 25] = [
     // A rings pocket round two islands with rounded ring corners
     // (docs/specs/pocket-round-corners.md).
     ("v14_round_corners", "jobs/v14/round_corners.chipload"),
+    // v7_helix (helix, leads, tabs, arcs) with the LinuxCNC and Mach3/4 posts
+    // (docs/specs/user-posts.md §5): the same moves in their dialects.
+    ("v15_linuxcnc_helix", "jobs/v15/linuxcnc_helix.chipload"),
+    ("v15_mach3_helix", "jobs/v15/mach3_helix.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {
@@ -155,13 +159,13 @@ fn golden_gcode() {
     );
 }
 
-/// The same project rendered with the GRBL post but `arcs = false`: what run_job does, with
+/// The same project rendered with its post but `arcs = false`: what run_job does, with
 /// that one setting changed. (file name, G-code) for each file, as `run` names them.
 fn render_without_arcs(project: &Path, name: &str) -> Vec<(String, String)> {
     let job = chipload_job::load_job(project).unwrap();
     let drawing = chipload_pipeline::load_drawing(&job).unwrap();
     let plan = chipload_toolpath::plan_job(&job, &drawing.contours).unwrap();
-    let mut post = chipload_post::load_builtin_post("grbl").unwrap();
+    let mut post = chipload_pipeline::posts::job_post(&job).unwrap();
     post.arcs = false;
     let (files, _) =
         chipload_pipeline::post_and_check(&job, &post, &plan.program, &plan.groups).unwrap();

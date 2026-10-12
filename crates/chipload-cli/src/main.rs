@@ -165,6 +165,11 @@ enum Command {
         #[command(subcommand)]
         action: library::MachineAction,
     },
+    /// Post-processors: the built-in ones and yours (docs/specs/user-posts.md).
+    Post {
+        #[command(subcommand)]
+        action: library::PostAction,
+    },
     /// Cut the part several times in a grid (docs/specs/copies-grid.md).
     Copies {
         /// The project (.chipload).
@@ -408,6 +413,7 @@ fn main() -> ExitCode {
         Command::Shape { action } => shape(action),
         Command::Tool { action } => library::tool(action),
         Command::Machine { action } => library::machine(action),
+        Command::Post { action } => library::post(action),
         Command::Copies {
             project,
             grid,

@@ -1,6 +1,6 @@
 # Spec: your own post-processors, and LinuxCNC and Mach3/4 posts
 
-Status: draft for review. Item 5 of the general improvement pass (TODO.md, approved
+Status: approved (2026-10-12; decisions 1–8 as recommended). Item 5 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
 ## 1. Why
@@ -125,3 +125,24 @@ G-code.
   deleted or changed.
 - CLI `post list` and `post use`; GUI: picking a user post copies it, Update after the
   file changes.
+
+## 9. As built (2026-10-12)
+
+- `chipload_post`: `builtin_posts`, `read_user_post`, `list_user_posts`, `parse_user_post`,
+  `UserPost`; `PostConfig::template_text` (not in the file) holds a user template. Render
+  fuel: 1 000 000 steps plus 2 000 per move.
+- `machine.custom_post` (schema 15, `v14_to_v15` sets null). It is optional with a null
+  default; the rule "its config's name must match `machine.post`" (§3) was dropped: `post`
+  is the file name the copy came from, while a config's `name` is the display name (the
+  built-in `grbl` is called "GRBL").
+- `chipload_pipeline::posts`: `job_post` (what `run_job` renders with), `post_choices`,
+  `choose_post`, `copy_state`, `post_exists`; `library::copy_profile_post` copies a
+  profile's user post when the profile is applied (new projects, `machine use`, GUI). `chipload
+  machine add/set --post` accepts a user post that can be read.
+- CLI `post list`, `post use`. `chipload render` (a bare toolpath) still takes built-in
+  posts only.
+- GUI: the Post box lists built-in posts, then yours (unusable ones greyed, with why); a
+  row under it says whether the project's copy matches your file, with Update.
+- Golden: `v15_linuxcnc_helix`, `v15_mach3_helix` (v7_helix with the new posts: the same
+  moves as `v7_helix`) and their lines-only versions; the lines-only test now renders each
+  project with its own post.

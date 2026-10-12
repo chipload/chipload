@@ -157,7 +157,7 @@ impl ChiploadApp {
             }),
             LibraryKind::Machines => read_import::<MachineLibrary>(file).map(|from| {
                 let (plan, mut lines) = plan_for(&self.library.machines, &from);
-                lines.extend(unknown_posts(&from));
+                lines.extend(unknown_posts(&from, self.library.posts.as_deref()));
                 (ImportFile::Machines(from), plan, lines)
             }),
         };

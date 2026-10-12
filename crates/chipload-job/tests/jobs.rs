@@ -879,7 +879,8 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(14));
+    assert_eq!(current["schema_version"], json!(15));
+    without_custom_post(&mut current);
     without_round_corners(&mut current);
     // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting
     // (v12 -> v13 only touches adaptive pockets, and this has none).
@@ -959,7 +960,8 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(14));
+    assert_eq!(current["schema_version"], json!(15));
+    without_custom_post(&mut current);
     without_round_corners(&mut current);
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
@@ -1016,7 +1018,8 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(14));
+        assert_eq!(current["schema_version"], json!(15));
+        without_custom_post(&mut current);
         without_round_corners(&mut current);
         assert_eq!(current["machine"]["tool_change"], json!("files"));
         current["schema_version"] = json!(11);
@@ -1060,7 +1063,8 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(14));
+    assert_eq!(current["schema_version"], json!(15));
+    without_custom_post(&mut current);
     without_round_corners(&mut current);
     assert_eq!(
         current["operations"][0]["strategy"],
@@ -1082,6 +1086,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     // Other pockets keep their stepover; an adaptive without a load can't be carried on.
     let rings = raw("v12/two_tools_program.chipload");
     let mut migrated = migrate(rings.clone()).unwrap();
+    without_custom_post(&mut migrated);
     without_round_corners(&mut migrated);
     assert_eq!(migrated["operations"], rings["operations"]);
     let mut broken = raw("v12/adaptive.chipload");
@@ -1091,6 +1096,13 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
         .remove("load");
     let err = migrate(broken).unwrap_err().to_string();
     assert!(err.contains("adaptive without a numeric load"), "{err}");
+}
+
+/// Undo v14 -> v15 (`custom_post` on the machine), to compare with an older sample.
+fn without_custom_post(data: &mut Value) {
+    if let Some(machine) = data["machine"].as_object_mut() {
+        machine.remove("custom_post");
+    }
 }
 
 /// Undo v13 -> v14 (`round_corners` on pockets), to compare with an older sample.
@@ -1108,11 +1120,12 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(14));
+    assert_eq!(current["schema_version"], json!(15));
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
     assert!(current["operations"][1].get("round_corners").is_none());
     current["schema_version"] = json!(13);
+    without_custom_post(&mut current);
     without_round_corners(&mut current);
     assert_eq!(current, v13, "nothing else changes");
     let job = parse_job(migrate(v13).unwrap(), "p").unwrap();
@@ -1127,4 +1140,37 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
         .unwrap()
         .remove("round_corners");
     assert!(parse_job(missing, "p").is_err());
+}
+
+// -- user post-processors (docs/specs/user-posts.md)
+
+#[test]
+fn v14_to_v15_keeps_the_built_in_post() {
+    let v14 = raw("v14/round_corners.chipload");
+    let mut current = migrate(v14.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(15));
+    assert_eq!(current["machine"]["custom_post"], Value::Null);
+    current["schema_version"] = json!(14);
+    without_custom_post(&mut current);
+    assert_eq!(current, v14, "nothing else changes");
+    let job = parse_job(migrate(v14).unwrap(), "p").unwrap();
+    assert_eq!(job.machine.post, "grbl");
+    assert!(job.machine.custom_post.is_none());
+}
+
+#[test]
+fn a_copied_post_round_trips_and_stray_fields_are_refused() {
+    let mut data = migrate(raw("v14/round_corners.chipload")).unwrap();
+    data["machine"]["post"] = json!("mine");
+    data["machine"]["custom_post"] = json!({"config": "schema_version = 1\n", "template": "M30\n"});
+    let job = parse_job(data.clone(), "p").unwrap();
+    let post = job.machine.custom_post.clone().unwrap();
+    assert_eq!(post.template, "M30\n");
+    let dir = temp_dir("custom-post");
+    let path = dir.join("p.chipload");
+    chipload_job::save_job(&job, &path).unwrap();
+    assert_eq!(load_job(&path).unwrap().machine.custom_post, Some(post));
+    std::fs::remove_dir_all(&dir).unwrap();
+    data["machine"]["custom_post"]["extra"] = json!(1);
+    assert!(parse_job(data, "p").is_err());
 }

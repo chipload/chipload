@@ -12,7 +12,10 @@ use chipload_job::library::{
 };
 use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
 use chipload_pipeline::library::{
-    CONFIG_DIR_VAR, machines_path, settings_dir, tools_path, unknown_posts,
+    CONFIG_DIR_VAR, copy_profile_post, machines_path, settings_dir, tools_path, unknown_posts,
+};
+use chipload_pipeline::posts::{
+    CopyState, choose_post, copy_state, post_choices, post_exists, posts_dir,
 };
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_SAFE_Z};
 use clap::{Subcommand, ValueEnum};
@@ -570,13 +573,16 @@ pub fn machine(action: MachineAction) -> ExitCode {
         Err(err) => return fail(err),
     };
     let path = machines_path(&dir);
+    let posts = posts_dir(&dir);
     let result = match action {
         MachineAction::List => return list_machines(&path),
         MachineAction::Export { file, names } => {
             return export_file::<MachineLibrary>(&path, &file, &names);
         }
         MachineAction::Import { file, replace } => {
-            return import_file::<MachineLibrary>(&path, &file, replace, unknown_posts);
+            return import_file::<MachineLibrary>(&path, &file, replace, |from| {
+                unknown_posts(from, Some(&posts))
+            });
         }
         MachineAction::Add { name, values } => update_machines(&path, |library| {
             if library.find(&name).is_some() {
@@ -595,7 +601,7 @@ pub fn machine(action: MachineAction) -> ExitCode {
                 max_overcut: DEFAULT_MAX_OVERCUT,
                 tool_change: ToolChange::Files,
             };
-            set_machine_values(&mut profile, &values)?;
+            set_machine_values(&mut profile, &values, &posts)?;
             library.machines.push(profile);
             Ok(format!("Added machine \"{name}\"."))
         }),
@@ -607,7 +613,7 @@ pub fn machine(action: MachineAction) -> ExitCode {
             let i = library
                 .position(&name)
                 .ok_or_else(|| refused(format!("no machine named \"{name}\"")))?;
-            set_machine_values(&mut library.machines[i], &values)?;
+            set_machine_values(&mut library.machines[i], &values, &posts)?;
             if let Some(new) = rename {
                 rename_default(&mut library.default_machine, &name, &new);
                 library.machines[i].name = new;
@@ -630,7 +636,7 @@ pub fn machine(action: MachineAction) -> ExitCode {
             name,
             project,
             output,
-        } => return use_machine(&path, &name, &project, output.as_deref()),
+        } => return use_machine(&path, &posts, &name, &project, output.as_deref()),
         MachineAction::Save {
             project,
             name,
@@ -664,9 +670,15 @@ pub fn machine(action: MachineAction) -> ExitCode {
 fn set_machine_values(
     profile: &mut MachineProfile,
     values: &MachineValues,
+    posts: &Path,
 ) -> Result<(), LibraryError> {
     if let Some(post) = &values.post {
-        chipload_post::load_builtin_post(post).map_err(|e| refused(e.to_string()))?;
+        if !post_exists(post, Some(posts)) {
+            return Err(refused(format!(
+                "no post-processor \"{post}\" (built in or in {}; see `chipload post list`)",
+                posts.display()
+            )));
+        }
         profile.post = post.clone();
     }
     if let Some(z) = values.safe_z {
@@ -770,7 +782,13 @@ fn list_machines(path: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn use_machine(path: &Path, name: &str, project: &Path, output: Option<&Path>) -> ExitCode {
+fn use_machine(
+    path: &Path,
+    posts: &Path,
+    name: &str,
+    project: &Path,
+    output: Option<&Path>,
+) -> ExitCode {
     let library = match load_machines(path) {
         Ok(library) => library,
         Err(err) => return fail(err),
@@ -782,7 +800,8 @@ fn use_machine(path: &Path, name: &str, project: &Path, output: Option<&Path>) -
         Ok(job) => job,
         Err(code) => return code,
     };
-    let changes = profile.apply(&mut job);
+    let mut changes = profile.apply(&mut job);
+    changes.extend(copy_profile_post(&mut job, Some(posts)));
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {
         return fail(err);
@@ -796,4 +815,76 @@ fn use_machine(path: &Path, name: &str, project: &Path, output: Option<&Path>) -
     }
     println!("Wrote {}", target.display());
     ExitCode::SUCCESS
+}
+
+// -- post-processors (docs/specs/user-posts.md §6)
+
+#[derive(Subcommand)]
+pub enum PostAction {
+    /// List the built-in post-processors and yours, and where yours go.
+    List,
+    /// Make a post-processor the project's; one of yours is copied into the project (run
+    /// again after changing it, to update the copy).
+    Use {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The post's name (`chipload post list`).
+        #[arg(long)]
+        post: String,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+}
+
+pub fn post(action: PostAction) -> ExitCode {
+    let dir = match dir() {
+        Ok(dir) => dir,
+        Err(err) => return fail(err),
+    };
+    let posts = posts_dir(&dir);
+    match action {
+        PostAction::List => {
+            println!("Your post-processors: {}", posts.display());
+            for choice in post_choices(Some(&posts)) {
+                let kind = if choice.builtin { "built in" } else { "yours" };
+                match &choice.problem {
+                    None => println!("  {} ({kind})", choice.name),
+                    Some(problem) => {
+                        println!("  {} ({kind}) can't be used: {problem}", choice.name);
+                    }
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        PostAction::Use {
+            project,
+            post,
+            output,
+        } => {
+            let mut job = match load(&project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let before = copy_state(&job, Some(&posts));
+            let was = job.machine.post.clone();
+            if let Err(err) = choose_post(&mut job, &post, Some(&posts)) {
+                return fail(err);
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return fail(err);
+            }
+            match (&job.machine.custom_post, was == post, before) {
+                (None, _, _) => println!("Post-processor: {post} (built in)"),
+                (Some(_), true, CopyState::Same) => {
+                    println!("Post-processor: {post} (yours; the copy was up to date)");
+                }
+                (Some(_), true, _) => println!("Post-processor: {post} (yours; copy updated)"),
+                (Some(_), false, _) => println!("Post-processor: {post} (yours, copied in)"),
+            }
+            println!("Wrote {}", target.display());
+            ExitCode::SUCCESS
+        }
+    }
 }

@@ -1,0 +1,12 @@
+# LinuxCNC mills and routers. Persisted format: see crates/chipload-post/src/lib.rs (ADR 0003,
+# 0007); docs/specs/user-posts.md §5.
+schema_version = 1
+name = "LinuxCNC"
+template = "linuxcnc.ngc.j2"
+decimals = 3
+file_extension = ".ngc"
+spindle_dwell_s = 3  # G4 P is seconds in LinuxCNC
+arcs = true  # G2/G3 with I/J relative to the start (G91.1 in the header)
+# One file per tool: each asks for Z to be set with its tool. One file with M6 would need
+# tool length offsets (G43) from the controller's tool table, which the checker can't see.
+tool_changes = ["files"]

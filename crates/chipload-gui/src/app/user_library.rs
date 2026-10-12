@@ -321,13 +321,16 @@ fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
     });
 }
 
-fn machine_entry_form(ui: &mut egui::Ui, profile: &mut MachineProfile) {
+fn machine_entry_form(ui: &mut egui::Ui, profile: &mut MachineProfile, library: &Library) {
     Grid::new("library-machine").num_columns(2).show(ui, |ui| {
         ui.label("Name");
         ui.text_edit_singleline(&mut profile.name);
         ui.end_row();
         let mut machine = profile.machine();
-        machine_rows(ui, "library", &mut machine);
+        // A profile only names its post; it is copied into a project when used.
+        if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library)) {
+            machine.post = post;
+        }
         work_zero_rows(ui, "library", &mut machine.work_zero, (0.0, 0.0));
         profile.post = machine.post;
         profile.safe_z = machine.safe_z;
@@ -585,6 +588,25 @@ impl ChiploadApp {
         }
     }
 
+    /// Make `name` the project's post-processor; one of the user's is read again and copied
+    /// in (docs/specs/user-posts.md §6). One undo step.
+    pub fn choose_project_post(&mut self, name: &str) -> bool {
+        self.reload_library();
+        let posts = self.library.posts.clone();
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        if let Err(err) =
+            chipload_pipeline::posts::choose_post(&mut edit.settings, name, posts.as_deref())
+        {
+            self.error(vec![format!("Post-processor \"{name}\":"), err.to_string()]);
+            return false;
+        }
+        self.commit();
+        self.set_status(format!("Post-processor: {name}"), STATUS_SECONDS);
+        true
+    }
+
     /// Copy a machine profile's values into the project (one undo step).
     pub fn use_machine_profile(&mut self, name: &str) -> bool {
         self.reload_library();
@@ -595,7 +617,11 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let changes = profile.apply(&mut edit.settings);
+        let mut changes = profile.apply(&mut edit.settings);
+        changes.extend(chipload_pipeline::library::copy_profile_post(
+            &mut edit.settings,
+            self.library.posts.as_deref(),
+        ));
         self.commit();
         self.report_changes(&format!("Machine profile \"{}\"", profile.name), changes);
         true
@@ -1042,6 +1068,7 @@ impl ChiploadApp {
         let default = self.library.machines.default_machine.clone();
         let problems = self.library.problems.clone();
         let windows = &mut self.library_windows;
+        let library = &self.library;
         let mut action = None;
         let mut choice = None;
         egui::Window::new("Machines")
@@ -1057,7 +1084,7 @@ impl ChiploadApp {
                         &mut windows.machine,
                         windows.error.as_deref(),
                         "New machine",
-                        machine_entry_form,
+                        |ui, profile| machine_entry_form(ui, profile, library),
                     );
                     choice = import_preview(ui, windows.import.as_ref(), LibraryKind::Machines);
                     library_message(ui, windows.message.as_ref(), LibraryKind::Machines);

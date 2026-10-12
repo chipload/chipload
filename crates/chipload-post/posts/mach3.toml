@@ -1,0 +1,11 @@
+# Mach3 and Mach4. Persisted format: see crates/chipload-post/src/lib.rs (ADR 0003, 0007);
+# docs/specs/user-posts.md §5.
+schema_version = 1
+name = "Mach3/4"
+template = "mach3.tap.j2"
+decimals = 3
+file_extension = ".tap"
+spindle_dwell_s = 3  # written as seconds; see the template's header note
+arcs = true  # G2/G3 with I/J relative to the start (G91.1 overrides Mach's IJ setting)
+# One file per tool, as for LinuxCNC.
+tool_changes = ["files"]

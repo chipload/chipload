@@ -526,3 +526,107 @@ fn an_imported_machine_with_an_unknown_post_is_kept_with_a_note() {
     assert!(out.contains("Added: Laser"), "{out}");
     assert!(out.contains("no post-processor \"my-laser\""), "{out}");
 }
+
+// -- post-processors (docs/specs/user-posts.md)
+
+/// A user post `name` in the settings folder: the GRBL template with its own first line.
+fn add_user_post(settings: &Path, name: &str, first_line: &str) {
+    let dir = settings.join("posts");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join(format!("{name}.toml")),
+        format!(
+            "schema_version = 1\nname = \"{name}\"\ntemplate = \"{name}.nc.j2\"\n\
+             spindle_dwell_s = 2\narcs = true\n"
+        ),
+    )
+    .unwrap();
+    let grbl = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../chipload-post/templates/grbl.nc.j2"),
+    )
+    .unwrap();
+    let template = grbl.replace("(Chipload - {{ post_name }})", first_line);
+    std::fs::write(dir.join(format!("{name}.nc.j2")), template).unwrap();
+}
+
+#[test]
+fn a_user_post_is_listed_copied_into_the_project_and_kept_there() {
+    let settings = temp_dir("posts");
+    add_user_post(&settings, "shop", "(Shop router)");
+    std::fs::write(settings.join("posts/broken.toml"), "schema_version = 1\n").unwrap();
+    let listed = ok(&settings, &["post", "list"]);
+    for line in [
+        "  grbl (built in)",
+        "  linuxcnc (built in)",
+        "  mach3 (built in)",
+        "  shop (yours)",
+    ] {
+        assert!(listed.lines().any(|l| l == line), "{line}\n{listed}");
+    }
+    assert!(listed.contains("broken (yours) can't be used"), "{listed}");
+
+    let project = settings.join("part.chipload");
+    std::fs::copy(corpus("jobs/v7/helix.chipload"), &project).unwrap();
+    let said = ok(
+        &settings,
+        &["post", "use", path(&project), "--post", "shop"],
+    );
+    assert!(said.contains("shop (yours, copied in)"), "{said}");
+    assert_eq!(json(&project)["machine"]["post"], "shop");
+    assert!(
+        json(&project)["machine"]["custom_post"]["template"]
+            .as_str()
+            .unwrap()
+            .starts_with("(Shop router)")
+    );
+    let out = settings.join("part.nc");
+    ok(&settings, &["run", path(&project), "-o", path(&out)]);
+    let first = std::fs::read_to_string(&out).unwrap();
+    assert!(first.starts_with("(Shop router)\n"), "{first}");
+
+    // The file changes: the project keeps its copy until `post use` again.
+    add_user_post(&settings, "shop", "(Shop router, new)");
+    ok(&settings, &["run", path(&project), "-o", path(&out)]);
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), first);
+    let said = ok(
+        &settings,
+        &["post", "use", path(&project), "--post", "shop"],
+    );
+    assert!(said.contains("copy updated"), "{said}");
+    ok(&settings, &["run", path(&project), "-o", path(&out)]);
+    assert!(
+        std::fs::read_to_string(&out)
+            .unwrap()
+            .starts_with("(Shop router, new)\n")
+    );
+
+    // Gone from the folder: the project still renders from its copy.
+    std::fs::remove_dir_all(settings.join("posts")).unwrap();
+    ok(&settings, &["run", path(&project), "-o", path(&out)]);
+
+    // Back to a built-in: the copy goes.
+    ok(
+        &settings,
+        &["post", "use", path(&project), "--post", "linuxcnc"],
+    );
+    assert_eq!(json(&project)["machine"]["custom_post"], Value::Null);
+    let err = refused(
+        &settings,
+        &["post", "use", path(&project), "--post", "nope"],
+    );
+    assert!(err.contains("nope"), "{err}");
+}
+
+#[test]
+fn a_machine_profile_can_name_a_user_post_which_is_copied_when_used() {
+    let settings = temp_dir("profile-post");
+    let err = refused(&settings, &["machine", "add", "Shop", "--post", "shop"]);
+    assert!(err.contains("no post-processor \"shop\""), "{err}");
+    add_user_post(&settings, "shop", "(Shop router)");
+    ok(&settings, &["machine", "add", "Shop", "--post", "shop"]);
+    let project = settings.join("part.chipload");
+    std::fs::copy(corpus("jobs/v7/helix.chipload"), &project).unwrap();
+    ok(&settings, &["machine", "use", "Shop", path(&project)]);
+    assert_eq!(json(&project)["machine"]["post"], "shop");
+    assert!(json(&project)["machine"]["custom_post"].is_object());
+}

@@ -57,6 +57,11 @@ pub struct Library {
     pub tools: ToolLibrary,
     pub machines: MachineLibrary,
     pub problems: Vec<String>,
+    /// Where the user's post-processors are (docs/specs/user-posts.md); None: no settings
+    /// folder.
+    pub posts: Option<PathBuf>,
+    /// The user's post-processors as read, by name, with why one can't be used.
+    pub user_posts: Vec<(String, Result<chipload_post::UserPost, String>)>,
 }
 
 impl Library {
@@ -70,10 +75,17 @@ impl Library {
             problems.push(format!("{err} (using built-in defaults)"));
             MachineLibrary::default()
         });
+        let posts = crate::posts::posts_dir(dir);
+        let user_posts = chipload_post::list_user_posts(&posts)
+            .into_iter()
+            .map(|(name, read)| (name, read.map_err(|e| e.to_string())))
+            .collect();
         Library {
             tools,
             machines,
             problems,
+            posts: Some(posts),
+            user_posts,
         }
     }
 }
@@ -103,6 +115,7 @@ pub fn apply_library(
     if let Some((profile, how)) = profile {
         profile.apply(job);
         notes.push(format!("machine: {} ({how})", profile.name));
+        notes.extend(copy_profile_post(job, library.posts.as_deref()));
     }
     if let Some(entry) = library.tools.default_entry() {
         let tool = entry.tool(entry.id.max(1));
@@ -112,12 +125,26 @@ pub fn apply_library(
     Ok(notes)
 }
 
-/// Notes for imported machine profiles whose post-processor this Chipload doesn't have
-/// (docs/specs/library-import-export.md §4): imported anyway, refused only when used.
-pub fn unknown_posts(file: &MachineLibrary) -> Vec<String> {
+/// After a machine profile is applied: copy its post in if it is a user post. A post that
+/// can't be read is named in the returned note; the project keeps the name and can't make
+/// G-code until the post is there (or another is chosen).
+pub fn copy_profile_post(job: &mut Job, posts: Option<&Path>) -> Option<String> {
+    let name = job.machine.post.clone();
+    if chipload_post::builtin_posts().contains(&name.as_str()) {
+        return None;
+    }
+    crate::posts::choose_post(job, &name, posts)
+        .err()
+        .map(|err| format!("post-processor \"{name}\": {err}"))
+}
+
+/// Notes for imported machine profiles whose post-processor this Chipload doesn't have,
+/// built in or in `posts` (docs/specs/library-import-export.md §4): imported anyway,
+/// refused only when used.
+pub fn unknown_posts(file: &MachineLibrary, posts: Option<&Path>) -> Vec<String> {
     file.machines
         .iter()
-        .filter(|m| chipload_post::load_builtin_post(&m.post).is_err())
+        .filter(|m| !crate::posts::post_exists(&m.post, posts))
         .map(|m| {
             format!(
                 "Machine \"{}\": this Chipload has no post-processor \"{}\"; projects using \

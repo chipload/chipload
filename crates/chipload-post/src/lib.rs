@@ -20,10 +20,26 @@ use serde::{Deserialize, Serialize};
 pub const CURRENT_VERSION: i64 = 1;
 
 /// Built-in posts: (name, config TOML).
-const BUILTIN_POSTS: [(&str, &str); 1] = [("grbl", include_str!("../posts/grbl.toml"))];
+const BUILTIN_POSTS: [(&str, &str); 3] = [
+    ("grbl", include_str!("../posts/grbl.toml")),
+    ("linuxcnc", include_str!("../posts/linuxcnc.toml")),
+    ("mach3", include_str!("../posts/mach3.toml")),
+];
 
-/// Templates a config may name: (file name, source).
-const TEMPLATES: [(&str, &str); 1] = [("grbl.nc.j2", include_str!("../templates/grbl.nc.j2"))];
+/// Templates a built-in config may name: (file name, source).
+const TEMPLATES: [(&str, &str); 3] = [
+    ("grbl.nc.j2", include_str!("../templates/grbl.nc.j2")),
+    (
+        "linuxcnc.ngc.j2",
+        include_str!("../templates/linuxcnc.ngc.j2"),
+    ),
+    ("mach3.tap.j2", include_str!("../templates/mach3.tap.j2")),
+];
+
+/// Template steps a render may take per move, on top of [`RENDER_FUEL_BASE`]: a template
+/// that loops without end fails instead of hanging (docs/specs/user-posts.md §2).
+const RENDER_FUEL_PER_MOVE: u64 = 2_000;
+const RENDER_FUEL_BASE: u64 = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum PostError {
@@ -71,6 +87,18 @@ pub struct PostConfig {
     /// never gets asked for it.
     #[serde(default = "default_tool_changes")]
     pub tool_changes: Vec<ToolChange>,
+    /// The template's text for a user post (docs/specs/user-posts.md); None: the built-in
+    /// template `template` names. Not part of the file.
+    #[serde(skip)]
+    pub template_text: Option<String>,
+}
+
+/// A user post as read from the posts folder, or as copied into a project: the config's
+/// and the template's text, exactly.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UserPost {
+    pub config: String,
+    pub template: String,
 }
 
 fn default_tool_changes() -> Vec<ToolChange> {
@@ -142,6 +170,71 @@ pub fn load_post_config(path: &Path) -> Result<PostConfig, PostError> {
         ))
     })?;
     parse_post_config(&text)
+}
+
+/// The names of the posts shipped with Chipload, as a machine's `post` names them.
+pub fn builtin_posts() -> Vec<&'static str> {
+    BUILTIN_POSTS.iter().map(|(name, _)| *name).collect()
+}
+
+/// A user post from its texts (a project's copy, or files just read): the config checked as
+/// any post's, and the template compiled, so a syntax error shows now.
+pub fn parse_user_post(post: &UserPost) -> Result<PostConfig, PostError> {
+    let mut config = parse_post_config(&post.config)?;
+    let template = post.template.replace("\r\n", "\n");
+    let env = environment()?;
+    env.template_from_str(&template).map_err(|e| {
+        PostError::Config(format!("Template {:?} can't be read: {e}", config.template))
+    })?;
+    config.template_text = Some(template);
+    Ok(config)
+}
+
+/// Read user post `name` from `dir`: `<name>.toml` and the template file it names, beside
+/// it. A built-in's name is refused, as is a name that isn't a plain file name.
+pub fn read_user_post(dir: &Path, name: &str) -> Result<UserPost, PostError> {
+    if !is_safe_name(name) {
+        return Err(PostError::Config(format!(
+            "Invalid post-processor name {name:?}"
+        )));
+    }
+    if builtin_posts().contains(&name) {
+        return Err(PostError::Config(format!(
+            "{name:?} is the name of a built-in post-processor; rename your file"
+        )));
+    }
+    let read = |path: &Path| {
+        std::fs::read_to_string(path)
+            .map_err(|e| PostError::Config(format!("Cannot read {}: {e}", path.display())))
+    };
+    let config = read(&dir.join(format!("{name}.toml")))?;
+    // The template's name comes from the config, checked to be a plain file name.
+    let template_name = parse_post_config(&config)?.template;
+    let template = read(&dir.join(template_name))?;
+    let post = UserPost { config, template };
+    parse_user_post(&post)?;
+    Ok(post)
+}
+
+/// Every user post in `dir` (each `<name>.toml`), by name, with why it can't be used.
+pub fn list_user_posts(dir: &Path) -> Vec<(String, Result<UserPost, PostError>)> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut names: Vec<String> = entries
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "toml"))
+        .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+        .collect();
+    names.sort();
+    names
+        .into_iter()
+        .map(|name| {
+            let post = read_user_post(dir, &name);
+            (name, post)
+        })
+        .collect()
 }
 
 /// Load a post shipped with Chipload, e.g. "grbl".
@@ -535,32 +628,45 @@ fn tool_list(parts: &[ToolPart], decimals: u32) -> Vec<String> {
     lines
 }
 
-fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostError> {
-    let failed = |e: minijinja::Error| {
-        PostError::Render(format!("Template {:?} failed: {e}", config.template))
-    };
-    let source = TEMPLATES
-        .iter()
-        .find(|(name, _)| *name == config.template)
-        .map(|(_, source)| *source)
-        .ok_or_else(|| PostError::Config(format!("Unknown template {:?}", config.template)))?;
+/// The template environment every post renders in: Jinja-style whitespace, strict
+/// undefined, no escaping. minijinja sees nothing but the context, so templates are
+/// sandboxed by design.
+fn environment() -> Result<Environment<'static>, PostError> {
     let mut env = Environment::new();
-    // Jinja-style whitespace handling. minijinja has no access to anything but the context,
-    // so templates are sandboxed by design.
     env.set_syntax(
         SyntaxConfig::builder()
             .trim_blocks(true)
             .lstrip_blocks(true)
             .keep_trailing_newline(true)
             .build()
-            .map_err(failed)?,
+            .map_err(|e| PostError::Config(format!("Template syntax settings: {e}")))?,
     );
     env.set_undefined_behavior(UndefinedBehavior::Strict);
     env.set_auto_escape_callback(|_| AutoEscape::None);
+    Ok(env)
+}
+
+fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostError> {
+    let failed = |e: minijinja::Error| {
+        PostError::Render(format!("Template {:?} failed: {e}", config.template))
+    };
+    let source = match &config.template_text {
+        Some(text) => text.as_str(),
+        None => TEMPLATES
+            .iter()
+            .find(|(name, _)| *name == config.template)
+            .map(|(_, source)| *source)
+            .ok_or_else(|| PostError::Config(format!("Unknown template {:?}", config.template)))?,
+    };
+    let mut env = environment()?;
+    let moves: usize = context.segments.iter().map(|s| s.moves.len()).sum();
+    env.set_fuel(Some(
+        RENDER_FUEL_BASE.saturating_add(RENDER_FUEL_PER_MOVE.saturating_mul(moves as u64)),
+    ));
     // The same output on every platform, whatever line endings the template was checked
     // out with (git may give a Windows build CRLF).
     let source = source.replace("\r\n", "\n");
-    env.add_template(&config.template, &source)
+    env.add_template_owned(config.template.clone(), source)
         .map_err(failed)?;
     let text = env
         .get_template(&config.template)

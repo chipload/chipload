@@ -5,6 +5,7 @@ pub mod copies;
 pub mod library;
 pub mod notices;
 pub mod placement;
+pub mod posts;
 pub mod recovery;
 pub mod report;
 pub mod shapes;
@@ -25,8 +26,8 @@ use chipload_job::{
     StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{
-    FileHeader, PostConfig, PostError, ToolPart, load_builtin_post, render_program_with,
-    render_tool_file, render_with_tool_changes,
+    FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
+    render_with_tool_changes,
 };
 pub use chipload_toolpath::Cancel;
 use chipload_toolpath::left::MaterialLeft;
@@ -169,7 +170,7 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
 /// result.
 pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, PipelineError> {
     validate_job(job)?;
-    let post = load_builtin_post(&job.machine.post)?;
+    let post = posts::job_post(job)?;
     let imported = load_drawing(job)?;
     let plan = plan_job_cancellable(job, &imported.contours, cancel)?;
     cancel.check()?;
@@ -362,6 +363,7 @@ pub fn empty_project() -> Job {
             travel: None,
             work_zero: WorkZero::DrawingOrigin {},
             tool_change: ToolChange::Files,
+            custom_post: None,
         },
         tools: vec![Tool {
             id: 1,

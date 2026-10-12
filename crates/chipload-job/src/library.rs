@@ -315,6 +315,8 @@ impl MachineProfile {
             travel: self.travel.clone(),
             work_zero: self.work_zero,
             tool_change: self.tool_change,
+            // A user post is copied in by the caller, which knows the posts folder.
+            custom_post: None,
         }
     }
 

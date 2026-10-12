@@ -91,7 +91,7 @@ fn bad_programs_are_flagged() {
             "without I/J",
         ),
         (format!("{h}G28\n"), "G28 is not supported"),
-        (format!("{h}M8\n"), "M8 is not supported"),
+        (format!("{h}M10\n"), "M10 is not supported"),
         (format!("{h}G0 X10 Y10 X20\n"), "twice"),
         (format!("{h}G0 G1 X10\n"), "more than one motion"),
         (format!("{h}G0 X10 Y10 (unclosed\n"), "comment"),
@@ -382,4 +382,47 @@ fn after_a_tool_change_the_stock_margin_is_the_new_tools() {
     };
     assert!(!outside(&program("")));
     assert!(outside(&program(CHANGE)));
+}
+
+// -- setup codes of LinuxCNC and Mach programs (docs/specs/user-posts.md §4)
+
+#[test]
+fn setup_codes_coolant_and_percent_lines_pass() {
+    let program = format!(
+        "%\n(LinuxCNC)\nG21 G90 G17 G94 G40 G49 G80 G54 G64 P0.01 G91.1\nG61\nM8\n{}\
+         {GOOD_BODY}M9\n{FOOTER}%\n",
+        &HEADER["G21 G90 G17 G94\n".len()..]
+    );
+    let report = check_gcode(&program, &limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+}
+
+#[test]
+fn codes_that_move_the_tool_off_the_checked_path_stay_refused() {
+    let cases = [
+        (
+            "G64",
+            "G64 without P lets the controller round corners without limit (use P at most 0.05)",
+        ),
+        (
+            "G64 P0.1",
+            "G64 P0.1 lets the controller leave the path by more than 0.05 mm",
+        ),
+        ("G4 G64 P0.01", "G64 and G4 on one line: P is ambiguous"),
+        ("G90.1", "G90.1 (absolute arc centres) is not supported"),
+        ("G55", "G55 is not supported"),
+        ("G43", "G43 is not supported"),
+        ("G41", "G41 is not supported"),
+        ("G28", "G28 is not supported"),
+        ("G53", "G53 is not supported"),
+        ("M2", "M2 is not supported"),
+    ];
+    for (line, message) in cases {
+        let program = format!("{HEADER}{line}\n{GOOD_BODY}{FOOTER}");
+        assert_eq!(errors(&program), [message], "{line}");
+    }
+    // `%` only alone on a line.
+    let program = format!("{HEADER}G0 X1 %\n{GOOD_BODY}{FOOTER}");
+    assert_eq!(errors(&program), [r#"Cannot parse "%""#]);
 }

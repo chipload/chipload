@@ -19,8 +19,7 @@ it's built (see `CLAUDE.md`).
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
-  5. User post-processors from a `posts/` folder in the settings folder, plus built-in
-     LinuxCNC and Mach3/4 posts (docs/specs/user-posts.md, draft for review).
+  5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Problems shown at the field and the operation card while editing, not only after
      Generate.
   7. Cycle time estimate per operation and in total; 8. a setup sheet for the operator.
@@ -32,6 +31,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Your own post-processors, and LinuxCNC and Mach3/4 posts** (docs/specs/user-posts.md,
+  ADR 0016): posts from `posts/` in the settings folder, copied into the project when chosen
+  (schema 15, Update when the file changes); the checker accepts LinuxCNC/Mach setup codes;
+  `chipload post list/use`. The new posts are untested on real controllers (their header
+  says so). Later: one file with tool changes (G43) for LinuxCNC/Mach.
 - **Recovery copies and a backup on save** (docs/specs/autosave-and-backup.md): while a
   project has unsaved changes, a copy is kept in the settings folder (2 s after each edit);
   after a crash, *Recover unsaved work* offers it at the next start. Saving over a project
