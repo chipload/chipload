@@ -20,7 +20,7 @@ it's built (see `CLAUDE.md`).
   1–2. Done (background generation and live preview, see Done).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. User post-processors from a `posts/` folder in the settings folder, plus built-in
-     LinuxCNC and Mach3/4 posts.
+     LinuxCNC and Mach3/4 posts (docs/specs/user-posts.md, draft for review).
   6. Problems shown at the field and the operation card while editing, not only after
      Generate.
   7. Cycle time estimate per operation and in total; 8. a setup sheet for the operator.
