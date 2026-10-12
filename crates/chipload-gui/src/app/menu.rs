@@ -251,6 +251,21 @@ impl ChiploadApp {
                 {
                     self.set_setup_sheet(sheet);
                 }
+                ui.separator();
+                ui.label("Colour theme");
+                for (choice, label, hover) in [
+                    (Theme::System, "System", "Light or dark, as the operating system is set"),
+                    (Theme::Light, "Light", "Light panels (the canvas stays dark)"),
+                    (Theme::Dark, "Dark", "Dark panels"),
+                ] {
+                    if ui
+                        .radio(self.theme == choice, label)
+                        .on_hover_text(hover)
+                        .clicked()
+                    {
+                        self.set_theme(choice);
+                    }
+                }
             });
             ui.menu_button("View", |ui| {
                 if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
@@ -278,17 +293,6 @@ impl ChiploadApp {
                     }
                 });
                 ui.checkbox(&mut self.legend_open, "Show legend");
-                ui.menu_button("Theme", |ui| {
-                    for (choice, label) in [
-                        (Theme::System, "Follow system"),
-                        (Theme::Light, "Light"),
-                        (Theme::Dark, "Dark"),
-                    ] {
-                        if ui.radio(self.theme == choice, label).clicked() {
-                            self.set_theme(choice);
-                        }
-                    }
-                });
                 let mut auto = self.auto_generate;
                 if ui
                     .checkbox(&mut auto, "Update toolpath automatically")

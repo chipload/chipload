@@ -113,7 +113,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         points_table(ui, draft.id, &mut draft.geometry);
     }
     if let Some(error) = &draft.error {
-        ui.colored_label(egui::Color32::from_rgb(0xf2, 0x8b, 0x82), error);
+        ui.colored_label(ui.visuals().error_fg_color, error);
     }
     if ui
         .button("Delete shape  (Del)")

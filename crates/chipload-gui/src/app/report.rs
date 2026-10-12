@@ -34,8 +34,7 @@ impl Tone {
     pub fn color(self, visuals: &egui::Visuals) -> Color32 {
         match self {
             Tone::Info => visuals.text_color(),
-            Tone::Good if visuals.dark_mode => Color32::from_rgb(0x7f, 0xd8, 0x8f),
-            Tone::Good => Color32::from_rgb(0x1e, 0x7e, 0x34),
+            Tone::Good => crate::style::good_color(visuals),
             Tone::Warning => visuals.warn_fg_color,
             Tone::Error => visuals.error_fg_color,
         }

@@ -16,7 +16,7 @@ const OUTER: Color32 = Color32::from_rgb(0xe8, 0xea, 0xed);
 const HOLE: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
 const OPEN: Color32 = Color32::from_rgb(0xfb, 0xbc, 0x04);
 const INVALID: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
-const STOCK: Color32 = Color32::from_rgb(0x5f, 0x63, 0x68);
+const STOCK: Color32 = Color32::from_rgb(0x80, 0x86, 0x8b);
 const FEED: Color32 = Color32::from_rgb(0x34, 0xa8, 0x53);
 const FEED_REJECTED: Color32 = Color32::from_rgb(0xea, 0x43, 0x35);
 const RAPID: Color32 = Color32::from_rgb(0x9a, 0xa0, 0xa6);
@@ -36,7 +36,7 @@ const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
 /// Contours of the operation selected in the operations list.
 /// Copies of the part: outlines, and the toolpath's colour faded by this much.
 const GHOST: Color32 = Color32::from_rgb(0x6b, 0x6f, 0x75);
-const GHOST_FADE: f32 = 0.4;
+const GHOST_FADE: f32 = 0.65;
 const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
 /// Start markers of the focused operation's rings: as bright as the operation's outline.
 const START: Color32 = OPERATION;
@@ -856,7 +856,7 @@ impl Scene {
 }
 
 /// The toolpath in 3D: rapids dashed, cutting moves (plunges included) shaded from light at
-/// the highest cut to dark at the deepest.
+/// the highest cut to the plain colour at the deepest.
 fn paint_path_3d(painter: &Painter, view: &View, path: &ToolpathShape, feed: Color32) {
     let (high, low) = path.cut_z_range().unwrap_or((0.0, 0.0));
     let span = (high - low).max(f64::EPSILON);
@@ -876,11 +876,15 @@ fn paint_path_3d(painter: &Painter, view: &View, path: &ToolpathShape, feed: Col
     }
 }
 
-/// `color` at depth 0, darkening towards a third of its brightness at depth 1.
+/// How far towards white the highest cut in 3D is lightened.
+const SHADE_LIGHTEN: f32 = 0.5;
+
+/// `color` lightened at depth 0, the plain colour at depth 1: the deepest cut stays as easy
+/// to see on the dark canvas as a cut in top view.
 fn shade(color: Color32, depth: f32) -> Color32 {
-    let k = 1.0 - 0.65 * depth;
-    let scale = |c: u8| (f32::from(c) * k).round() as u8;
-    Color32::from_rgb(scale(color.r()), scale(color.g()), scale(color.b()))
+    let k = SHADE_LIGHTEN * (1.0 - depth);
+    let lighten = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * k).round() as u8;
+    Color32::from_rgb(lighten(color.r()), lighten(color.g()), lighten(color.b()))
 }
 
 /// A ">" pointing along `angle` (world, CCW from +X); screen Y is down, so it flips.
@@ -909,6 +913,47 @@ mod tests {
     use super::*;
     use chipload_job::Spindle;
     use chipload_toolpath::model::Move;
+
+    /// Every line and mark on the canvas stands out from it by at least 3:1 (WCAG's minimum
+    /// for graphics), faded and 3D-shaded ones included; the measure text by 4.5:1.
+    #[test]
+    fn canvas_colours_stand_out_from_the_background() {
+        use crate::style::contrast;
+        let over = |c: Color32, bg: Color32| bg.blend(c);
+        let faded = |c: Color32| over(c.gamma_multiply(GHOST_FADE), BACKGROUND);
+        let lines = [
+            ("outline", OUTER),
+            ("hole", HOLE),
+            ("open", OPEN),
+            ("invalid", INVALID),
+            ("stock", STOCK),
+            ("feed", FEED),
+            ("rejected feed", FEED_REJECTED),
+            ("rapid", RAPID),
+            ("label", LABEL),
+            ("axis x", AXIS_X),
+            ("axis y", AXIS_Y),
+            ("axis z", AXIS_Z),
+            ("selected", SELECTED),
+            ("snap", SNAP),
+            ("measure", MEASURE),
+            ("middle handle", MIDDLE_HANDLE),
+            ("tab", TAB),
+            ("copies", GHOST),
+            ("operation", OPERATION),
+            ("stale feed", faded(FEED)),
+            ("stale rapid", faded(RAPID)),
+            ("deepest cut in 3D", shade(FEED, 1.0)),
+            ("deepest rejected cut in 3D", shade(FEED_REJECTED, 1.0)),
+            ("highest cut in 3D", shade(FEED, 0.0)),
+        ];
+        for (what, color) in lines {
+            let ratio = contrast(color, BACKGROUND);
+            assert!(ratio >= 3.0, "{what} is {ratio:.2}:1 on the canvas");
+        }
+        let behind_measure = over(Color32::from_black_alpha(190), BACKGROUND);
+        assert!(contrast(MEASURE, behind_measure) >= 4.5);
+    }
 
     #[test]
     fn world_and_screen_round_trip_with_y_up() {

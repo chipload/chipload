@@ -26,9 +26,17 @@ it's built (see `CLAUDE.md`).
     polylines); a chip load range per tool in the library (amber warning, schema change).
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
     presets, toolpath playback.
+- A light canvas for the light theme (the canvas is dark in both themes; its colours are
+  tuned for dark). Needs a second canvas palette.
 
 ## Done
 
+- **Colour theme and contrast:** Settings → Colour theme (System, Light, Dark; moved from
+  View → Theme). Every kind of text now reads at least 4.5:1 in both themes (brighter dark
+  text, weak text and errors; darker light-theme warnings and errors; white on the dark
+  accent; subtler card hover), and every canvas line at least 3:1 (lighter stock outline,
+  less fading for stale toolpaths and copies, 3D depth shaded from light to the plain
+  colour instead of to near black). Tests check the ratios (`style.rs`, `view.rs`).
 - **Small items of the improvement pass** (docs/specs/small-items.md): Help → Keyboard
   shortcuts (F1, from one table); drop a project or DXF on the window; View → Measure (M);
   copy, paste and mirror drawn shapes (Edit menu, Ctrl+C/V, `chipload shape copy/mirror`);

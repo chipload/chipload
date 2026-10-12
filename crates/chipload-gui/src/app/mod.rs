@@ -195,7 +195,7 @@ pub struct ChiploadApp {
     recovery_due: Option<Instant>,
     /// Recovery copies left by windows that closed without saving, offered at start.
     pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
-    /// View > Theme, kept in the app settings.
+    /// Settings > Colour theme, kept in the app settings.
     pub theme: Theme,
     /// The theme last handed to egui.
     applied_theme: Option<Theme>,

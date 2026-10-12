@@ -576,7 +576,7 @@ fn op_card(
             let fill = if selected {
                 visuals.selection.bg_fill
             } else if hovered {
-                visuals.widgets.hovered.weak_bg_fill
+                crate::style::card_hover(&visuals)
             } else {
                 visuals.faint_bg_color
             };

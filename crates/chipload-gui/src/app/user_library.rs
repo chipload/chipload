@@ -474,7 +474,7 @@ impl ChiploadApp {
         self.start_recovery();
     }
 
-    /// View > Theme: used at once and kept in the settings for next time.
+    /// Settings > Colour theme: used at once and kept in the settings for next time.
     pub fn set_theme(&mut self, theme: Theme) {
         self.theme = theme;
         self.change_settings(|settings| settings.theme = theme);
