@@ -5,7 +5,8 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **Finishing pass and onion skin** (docs/specs/finish-and-skin.md, approved 2026-10-13):
+  building.
 
 ## State to remember (2026-10-12)
 
