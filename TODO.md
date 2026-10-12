@@ -21,7 +21,8 @@ it's built (see `CLAUDE.md`).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
   6. Done (problems while editing, see Done).
-  7. Done (cycle time estimate, see Done); 8. a setup sheet for the operator.
+  7. Done (cycle time estimate, see Done); 8. a setup sheet for the operator: spec draft
+     `docs/specs/setup-sheet.md`, waiting for review.
   - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
     range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
     and mirror of drawn shapes, Help → Keyboard shortcuts.
