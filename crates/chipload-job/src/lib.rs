@@ -96,17 +96,31 @@ pub(crate) fn ascii_json(text: &str) -> String {
 }
 
 /// Save as the current schema version, via a temporary file and a rename so a reader never
-/// sees a half-written job.
+/// sees a half-written job. A file already there is kept as `<name>.bak` first
+/// (docs/specs/autosave-and-backup.md §3); if that fails, nothing is changed.
 pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
     let failed = |e: std::io::Error| JobError::Unreadable {
         path: path.display().to_string(),
         reason: format!("cannot write: {e}"),
     };
     let text = dump_job(job)?;
-    let mut tmp_name = path.file_name().unwrap_or_default().to_os_string();
-    tmp_name.push(".tmp");
-    let tmp = path.with_file_name(tmp_name);
+    let with_suffix = |suffix: &str| {
+        let mut name = path.file_name().unwrap_or_default().to_os_string();
+        name.push(suffix);
+        path.with_file_name(name)
+    };
+    let tmp = with_suffix(".tmp");
     std::fs::write(&tmp, text).map_err(failed)?;
+    if path.exists()
+        && let Err(e) = std::fs::copy(path, with_suffix(".bak"))
+    {
+        // The project stays as it was; the half-done save leaves nothing behind.
+        let _ = std::fs::remove_file(&tmp);
+        return Err(JobError::Unreadable {
+            path: path.display().to_string(),
+            reason: format!("cannot keep the previous version as .bak: {e}"),
+        });
+    }
     std::fs::rename(&tmp, path).map_err(failed)
 }
 

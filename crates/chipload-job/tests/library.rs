@@ -729,3 +729,37 @@ fn a_version_1_file_imports_migrated() {
     import_into(&mut library, &file, false);
     assert_eq!(library.machines[0].tool_change, ToolChange::Files);
 }
+
+// Recovery notes (docs/specs/autosave-and-backup.md §2).
+
+#[test]
+fn a_recovery_note_round_trips_and_odd_ones_are_refused() {
+    use chipload_job::library::{RecoveryNote, load_recovery_note, save_recovery_note};
+    let dir = temp_dir("recovery-note");
+    let path = dir.join("note.json");
+    assert!(
+        load_recovery_note(&path).is_err(),
+        "a missing note is an error"
+    );
+    let note = RecoveryNote {
+        project_path: Some("/home/ann/cnc/sign.chipload".into()),
+        ..RecoveryNote::default()
+    };
+    save_recovery_note(&note, &path).unwrap();
+    let read = load_recovery_note(&path).unwrap();
+    assert_eq!(read.schema_version, 1);
+    assert!(read.written_by.unwrap().starts_with("chipload "));
+    assert_eq!(read.project_path, note.project_path);
+    std::fs::write(&path, r#"{"schema_version": 2, "project_path": null}"#).unwrap();
+    assert!(matches!(
+        load_recovery_note(&path).unwrap_err(),
+        LibraryError::UnsupportedVersion { .. }
+    ));
+    std::fs::write(&path, r#"{"schema_version": 1}"#).unwrap();
+    assert!(
+        load_recovery_note(&path).is_err(),
+        "project_path is required"
+    );
+    std::fs::write(&path, "{\"schema_version\": 1, \"project_path\"").unwrap();
+    assert!(load_recovery_note(&path).is_err());
+}

@@ -44,6 +44,7 @@ mod generation;
 mod library_transfer;
 mod menu;
 mod panels;
+mod recovery;
 mod report;
 #[cfg(test)]
 mod tests;
@@ -190,6 +191,13 @@ pub struct ChiploadApp {
     changed_at: Option<Instant>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
     export_when_done: bool,
+    /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
+    /// settings folder.
+    recovery: Option<chipload_pipeline::recovery::Session>,
+    /// When the project last changed, while its recovery copy isn't written yet.
+    recovery_due: Option<Instant>,
+    /// Recovery copies left by windows that closed without saving, offered at start.
+    pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
     /// View > Theme, kept in the app settings.
     pub theme: Theme,
     /// The theme last handed to egui.
@@ -251,6 +259,9 @@ impl Default for ChiploadApp {
             auto_generate: true,
             changed_at: None,
             export_when_done: false,
+            recovery: None,
+            recovery_due: None,
+            leftovers: Vec::new(),
             theme: Theme::System,
             applied_theme: None,
             status: None,
@@ -368,6 +379,8 @@ impl ChiploadApp {
 
     /// Start editing `job` as a fresh document (no undo history).
     fn start_editing(&mut self, job: EditJob, saved: bool, path: Option<PathBuf>) {
+        // The previous project was saved or its changes deliberately dropped.
+        self.clear_recovery();
         self.saved = saved.then(|| job.clone());
         self.committed = Some(job.clone());
         self.edit = Some(job);
@@ -764,6 +777,7 @@ impl ChiploadApp {
         self.committed = Some(saved.clone());
         self.saved = Some(saved);
         self.job_path = Some(path.to_path_buf());
+        self.clear_recovery();
         self.set_status(format!("Saved {}", path.display()), STATUS_SECONDS);
         self.record_recent(path);
         true
@@ -872,6 +886,7 @@ impl ChiploadApp {
     fn toolpath_out_of_date(&mut self) {
         self.stop_generation();
         self.changed_at = Some(Instant::now());
+        self.recovery_due = self.changed_at;
         if self.result.is_some() || self.scene.toolpath.is_some() {
             self.result = None;
             if let Some(path) = &mut self.scene.toolpath {
@@ -916,6 +931,7 @@ impl ChiploadApp {
     fn run_pending(&mut self, action: Pending, ctx: &egui::Context) {
         match action {
             Pending::Close => {
+                self.clear_recovery();
                 self.allow_close = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
@@ -967,9 +983,13 @@ impl ChiploadApp {
 impl eframe::App for ChiploadApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        if ctx.input(|i| i.viewport().close_requested()) && self.dirty() && !self.allow_close {
-            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
-            self.prompt = Some(Prompt::Discard(Pending::Close));
+        if ctx.input(|i| i.viewport().close_requested()) {
+            if self.dirty() && !self.allow_close {
+                ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+                self.prompt = Some(Prompt::Discard(Pending::Close));
+            } else if !self.dirty() {
+                self.clear_recovery(); // nothing unsaved: no copy to leave behind
+            }
         }
         if self.applied_theme != Some(self.theme) {
             ctx.set_theme(theme_preference(self.theme));
@@ -1003,6 +1023,7 @@ impl eframe::App for ChiploadApp {
         self.prompts(&ctx);
         self.about(&ctx);
         self.library_windows_ui(&ctx);
+        self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();
         if !busy {
@@ -1016,6 +1037,9 @@ impl eframe::App for ChiploadApp {
             && self.handle_drag.is_none()
             && let Some(wait) = self.live_preview(Instant::now())
         {
+            ctx.request_repaint_after(wait);
+        }
+        if !busy && let Some(wait) = self.recovery_tick(Instant::now()) {
             ctx.request_repaint_after(wait);
         }
         self.update_title(&ctx);

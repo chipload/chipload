@@ -5,6 +5,7 @@ pub mod copies;
 pub mod library;
 pub mod notices;
 pub mod placement;
+pub mod recovery;
 pub mod report;
 pub mod shapes;
 

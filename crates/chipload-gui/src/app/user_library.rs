@@ -467,6 +467,7 @@ impl ChiploadApp {
         self.recent = settings.recent_projects;
         self.theme = settings.theme;
         self.auto_generate = settings.auto_generate;
+        self.start_recovery();
     }
 
     /// View > Theme: used at once and kept in the settings for next time.

@@ -190,6 +190,37 @@ fn round_trip_keeps_the_job() {
 }
 
 #[test]
+fn saving_over_a_project_keeps_the_previous_one_as_bak() {
+    // docs/specs/autosave-and-backup.md §3
+    let mut job = load_job(&corpus().join("v4/simple_part_full.chipload")).unwrap();
+    let dir = temp_dir("bak");
+    let path = dir.join("part.chipload");
+    let bak = dir.join("part.chipload.bak");
+    let _ = std::fs::remove_file(&bak);
+    chipload_job::save_job(&job, &path).unwrap();
+    assert!(!bak.exists(), "a first save makes no backup");
+    let first = std::fs::read(&path).unwrap();
+    job.stock.thickness += 1.0;
+    chipload_job::save_job(&job, &path).unwrap();
+    assert_eq!(std::fs::read(&bak).unwrap(), first);
+    assert_ne!(std::fs::read(&path).unwrap(), first);
+
+    // A backup that can't be written stops the save; the project is untouched.
+    let blocked = dir.join("blocked.chipload");
+    chipload_job::save_job(&job, &blocked).unwrap();
+    let before = std::fs::read(&blocked).unwrap();
+    std::fs::create_dir_all(dir.join("blocked.chipload.bak")).unwrap();
+    job.stock.thickness += 1.0;
+    let err = chipload_job::save_job(&job, &blocked)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains(".bak"), "{err}");
+    assert_eq!(std::fs::read(&blocked).unwrap(), before);
+    assert!(!dir.join("blocked.chipload.tmp").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn every_corpus_job_survives_save_and_load() {
     for path in all_corpus_jobs() {
         let job = load_job(&path).unwrap();

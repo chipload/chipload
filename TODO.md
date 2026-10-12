@@ -18,8 +18,7 @@ it's built (see `CLAUDE.md`).
 
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
-  3. Autosave and crash recovery (a recovery copy while unsaved, restore on start); 4. a
-     `.bak` of the project on save (docs/specs/autosave-and-backup.md, draft for review).
+  3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. User post-processors from a `posts/` folder in the settings folder, plus built-in
      LinuxCNC and Mach3/4 posts.
   6. Problems shown at the field and the operation card while editing, not only after
@@ -33,6 +32,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Recovery copies and a backup on save** (docs/specs/autosave-and-backup.md): while a
+  project has unsaved changes, a copy is kept in the settings folder (2 s after each edit);
+  after a crash, *Recover unsaved work* offers it at the next start. Saving over a project
+  keeps the previous file as `.bak` (GUI and CLI).
 - **Generating in the background, and live preview** (docs/specs/background-generation.md):
   the window stays live while planning, ■ Cancel stops a run, a crash while planning
   becomes a report error; the toolpath updates by itself 0.5 s after an edit (View →

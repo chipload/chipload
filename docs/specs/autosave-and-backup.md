@@ -1,6 +1,6 @@
 # Spec: autosave, crash recovery and a backup on save
 
-Status: draft for review. Items 3 and 4 of the general improvement pass (TODO.md, approved
+Status: approved (2026-10-12; decisions 1–7 as recommended). Items 3 and 4 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
 ## 1. Why
@@ -97,3 +97,18 @@ has nothing to recover. The copies are ordinary project files the CLI can `inspe
 - Left-over detection: a set whose lock is held (as by a running window) is not offered; a
   set with a free lock is; Open restores it as unsaved with the original path; Delete
   removes all three files; a corrupt copy is listed and not deleted.
+
+## 7. As built (2026-10-12)
+
+- `chipload_job::save_job` keeps `<name>.bak` (written after the temporary file, before the
+  rename; a failure removes the temporary file and leaves the project as it was).
+- `chipload_job::library::RecoveryNote` (schema 1; `project_path` required, null for never
+  saved), `load_recovery_note`, `save_recovery_note`.
+- `chipload_pipeline::recovery`: `Session` (start, write, clear; dropping it releases and
+  removes its lock, keeping any copy) and `leftovers` (taking each free lock, tidying lock
+  and note files without a copy, newest first). Copies are written with
+  `write_atomically`, so they get no `.bak` of their own.
+- GUI `app/recovery.rs`: written 2 s after a finished edit, cleared on save, on opening or
+  starting another project, and on closing (after Don't save, or with nothing unsaved).
+  The *Recover unsaved work* window (centred) offers Open, Delete, Later; Open is disabled
+  while the current project has unsaved changes.
