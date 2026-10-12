@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The property forms: one operation, and the job settings.
 
+use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
@@ -30,24 +31,26 @@ fn depth_rows(
 ) {
     ui.label("Start depth")
         .on_hover_text("Where the cut starts, down from the stock top");
-    ui.add(mm(start));
+    flag(ui.add(mm(start)), ui, "start_depth");
     ui.end_row();
     ui.label("End depth")
         .on_hover_text("Where the cut ends, down from the stock top");
-    ui.add(mm(end));
+    flag(ui.add(mm(end)), ui, "end_depth");
     ui.end_row();
     ui.label("Clearance").on_hover_text(
         "How far the cut moves into the material that is kept: positive makes a pocket \
          larger or a part smaller, negative leaves material. Less than the tool radius.",
     );
-    ui.add_enabled(
-        can_clear,
-        DragValue::new(clearance)
-            .speed(0.01)
-            .range(-100_000.0..=100_000.0)
-            .suffix(" mm"),
-    )
-    .on_disabled_hover_text("A profile on the line has no side to clear towards");
+    let response = ui
+        .add_enabled(
+            can_clear,
+            DragValue::new(clearance)
+                .speed(0.01)
+                .range(-100_000.0..=100_000.0)
+                .suffix(" mm"),
+        )
+        .on_disabled_hover_text("A profile on the line has no side to clear towards");
+    flag(response, ui, "clearance");
     ui.end_row();
 }
 
@@ -137,8 +140,32 @@ pub(super) fn section<R>(
     summary: &str,
     rows: impl FnOnce(&mut egui::Ui) -> R,
 ) -> Option<R> {
+    let marked = problems::section_has_problem(ui, key);
+    section_marked(ui, key, title, summary, marked, rows)
+}
+
+/// A section whose header has a red dot when `marked`: a field in it has a problem
+/// (docs/specs/live-problems.md §3).
+fn section_marked<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    marked: bool,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
     let mut header = egui::text::LayoutJob::default();
     let style = ui.style().clone();
+    if marked {
+        RichText::new("● ")
+            .color(ui.visuals().error_fg_color)
+            .append_to(
+                &mut header,
+                &style,
+                egui::FontSelection::Default,
+                Align::Center,
+            );
+    }
     RichText::new(title).strong().append_to(
         &mut header,
         &style,
@@ -240,7 +267,7 @@ pub(super) fn op_form(
             ui.add(TextEdit::singleline(name).desired_width(200.0));
             ui.end_row();
             ui.label("Geometry");
-            ui.horizontal(|ui| {
+            let geometry = ui.horizontal(|ui| {
                 ui.label(&summary);
                 if ui
                     .button("Use selection")
@@ -250,6 +277,7 @@ pub(super) fn op_form(
                     use_selection = true;
                 }
             });
+            flag(geometry.response, ui, "select");
             ui.end_row();
             tool_row(ui, index, &mut entry.op, &choice, &mut request);
             if let Operation::Profile(p) = &mut entry.op {
@@ -263,7 +291,7 @@ pub(super) fn op_form(
                 } else {
                     "— choose —"
                 };
-                ComboBox::from_id_salt(("side", index))
+                let side = ComboBox::from_id_salt(("side", index))
                     .selected_text(text)
                     .show_ui(ui, |ui| {
                         for (side, label) in [
@@ -280,6 +308,7 @@ pub(super) fn op_form(
                             }
                         }
                     });
+                flag(side.response, ui, "side");
                 ui.end_row();
             }
         });
@@ -308,7 +337,7 @@ pub(super) fn op_form(
                     can_clear,
                 );
                 ui.label("Step down");
-                ui.add(mm(&mut p.step_down));
+                flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed);
@@ -340,13 +369,17 @@ pub(super) fn op_form(
                 ui.end_row();
                 if let Some(tabs) = &mut p.tabs {
                     ui.label("  count");
-                    ui.add(DragValue::new(&mut tabs.count).range(1..=100));
+                    flag(
+                        ui.add(DragValue::new(&mut tabs.count).range(1..=100)),
+                        ui,
+                        "tabs.count",
+                    );
                     ui.end_row();
                     ui.label("  width");
-                    ui.add(mm(&mut tabs.width));
+                    flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");
                     ui.end_row();
                     ui.label("  height");
-                    ui.add(mm(&mut tabs.height));
+                    flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
                     ui.end_row();
                 }
             });
@@ -371,7 +404,7 @@ pub(super) fn op_form(
                     true,
                 );
                 ui.label("Step down");
-                ui.add(mm(&mut p.step_down));
+                flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
             });
             let strategy = match p.strategy {
@@ -392,12 +425,13 @@ pub(super) fn op_form(
                 } else {
                     "How far each ring moves on, as a fraction of the tool diameter"
                 });
-                ui.add(
+                let stepover = ui.add(
                     DragValue::new(&mut p.stepover)
                         .speed(0.01)
                         .range(0.01..=most)
                         .suffix(" × D"),
                 );
+                flag(stepover, ui, "stepover");
                 ui.end_row();
                 ui.label("Links");
                 ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
@@ -433,13 +467,13 @@ pub(super) fn op_form(
                     "The surface carved, down from the stock top (0: the top; more to carve \
                      into a pocket floor)",
                 );
-                ui.add(mm(&mut v.start_depth));
+                flag(ui.add(mm(&mut v.start_depth)), ui, "start_depth");
                 ui.end_row();
                 ui.label("Max depth").on_hover_text(
                     "The deepest the tip goes, from the stock top. Wider strokes are carved to \
                      it and reported",
                 );
-                ui.add(mm(&mut v.end_depth));
+                flag(ui.add(mm(&mut v.end_depth)), ui, "end_depth");
                 ui.end_row();
                 ui.label("Passes");
                 let mut stepped = v.step_down.is_some();
@@ -449,7 +483,7 @@ pub(super) fn op_form(
                 ui.end_row();
                 if let Some(step) = &mut v.step_down {
                     ui.label("  step down");
-                    ui.add(mm(step));
+                    flag(ui.add(mm(step)), ui, "step_down");
                     ui.end_row();
                 }
             });
@@ -477,7 +511,7 @@ fn tool_row(
         .find(|t| t.id == current)
         .map_or(format!("T{current} (not in the project)"), tool_label);
     ui.label("Tool");
-    ComboBox::from_id_salt(("op-tool", index))
+    let combo = ComboBox::from_id_salt(("op-tool", index))
         .selected_text(selected)
         .width(240.0)
         .show_ui(ui, |ui| {
@@ -501,6 +535,7 @@ fn tool_row(
                 }
             }
         });
+    flag(combo.response, ui, "tool");
     ui.end_row();
     if let Some(cutting) = choice.cutting
         && !has_cutting_values(op, &cutting)
@@ -558,10 +593,10 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64) {
     let text = format!("{} / {} mm/min", len(*cut), len(*plunge));
     section(ui, "op-feeds", "Feeds", &text, |ui| {
         ui.label("Feed");
-        ui.add(feed(cut));
+        flag(ui.add(feed(cut)), ui, "feed");
         ui.end_row();
         ui.label("Plunge feed");
-        ui.add(feed(plunge));
+        flag(ui.add(feed(plunge)), ui, "plunge_feed");
         ui.end_row();
     });
 }
@@ -578,7 +613,7 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
     let ramp = Entry::Ramp {
         ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
     };
-    ComboBox::from_id_salt(("entry", index))
+    let combo = ComboBox::from_id_salt(("entry", index))
         .selected_text(match entry {
             Entry::Plunge {} => "straight plunge",
             Entry::Ramp { .. } => "ramp",
@@ -603,13 +638,14 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
                 *entry = Entry::default_helix(diameter);
             }
         });
+    flag(combo.response, ui, "entry");
     ui.end_row();
     if let Entry::Helix { radius, .. } = entry {
         ui.label("  helix radius").on_hover_text(
             "Of the circle the tool centre follows: less than the tool radius, so no core is \
              left standing",
         );
-        ui.add(mm(radius));
+        flag(ui.add(mm(radius)), ui, "entry");
         ui.end_row();
     }
     if let Entry::Ramp { ramp_angle } | Entry::Helix { ramp_angle, .. } = entry {
@@ -645,6 +681,7 @@ fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64, ena
             egui::Checkbox::new(&mut on, "lead-in and lead-out"),
         )
         .on_disabled_hover_text("A profile cut on the line has no waste side for a lead");
+    let response = flag(response, ui, "lead");
     if response.changed() {
         *lead = on.then_some(Lead {
             radius: tool_diameter / 2.0,
@@ -653,7 +690,7 @@ fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64, ena
     ui.end_row();
     if let Some(lead) = lead {
         ui.label("  radius");
-        ui.add(mm(&mut lead.radius));
+        flag(ui.add(mm(&mut lead.radius)), ui, "lead");
         ui.end_row();
     }
 }
@@ -791,18 +828,22 @@ pub(super) fn job_form(
     section(ui, "job-stock", "Stock", &stock, |ui| {
         ui.label("Size X × Y");
         ui.horizontal(|ui| {
-            ui.add(mm(&mut job.stock.x));
-            ui.add(mm(&mut job.stock.y));
+            flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+            flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
         });
         ui.end_row();
         ui.label("Thickness");
-        ui.add(mm(&mut job.stock.thickness));
+        flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
         ui.end_row();
         ui.label("Max depth below stock").on_hover_text(
             "How far a cut may go below the stock (into the spoilboard). Cuts within it are \
              warned about; deeper ones are refused.",
         );
-        ui.add(mm(&mut job.stock.max_overcut));
+        flag(
+            ui.add(mm(&mut job.stock.max_overcut)),
+            ui,
+            "stock.max_overcut",
+        );
         ui.end_row();
         // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
         // zero: that's the work zero below (docs/specs/work-zero.md).
@@ -958,23 +999,32 @@ fn tools_section(
             _ => format!("operations {}", users.join(", ")),
         };
         let title = tool_label(tool);
-        section(ui, &format!("job-tool-{id}"), &title, &summary, |ui| {
-            library_rows(ui, request, LibraryRows::tool(&job.tools[index], library));
-            tool_rows(ui, &format!("job-tool-{id}"), &mut job.tools[index]);
-            ui.label("");
-            let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
-            if users.is_empty() {
-                if button.clicked() {
-                    remove = Some(index);
+        let at = format!("tools.{index}");
+        let marked = problems::has_problem_under(ui, &at);
+        section_marked(
+            ui,
+            &format!("job-tool-{id}"),
+            &title,
+            &summary,
+            marked,
+            |ui| {
+                library_rows(ui, request, LibraryRows::tool(&job.tools[index], library));
+                tool_rows(ui, &format!("job-tool-{id}"), &at, &mut job.tools[index]);
+                ui.label("");
+                let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
+                if users.is_empty() {
+                    if button.clicked() {
+                        remove = Some(index);
+                    }
+                } else {
+                    button.on_disabled_hover_text(format!(
+                        "Used by operations {}; give them another tool first",
+                        users.join(", ")
+                    ));
                 }
-            } else {
-                button.on_disabled_hover_text(format!(
-                    "Used by operations {}; give them another tool first",
-                    users.join(", ")
-                ));
-            }
-            ui.end_row();
-        });
+                ui.end_row();
+            },
+        );
     }
     if let Some(index) = remove {
         job.tools.remove(index);
@@ -1154,21 +1204,30 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
     ui.label("  columns × rows");
     ui.horizontal(|ui| {
         let count = 1..=MAX_COPIES_PER_SIDE;
-        ui.add(DragValue::new(&mut grid.columns).range(count.clone()));
-        ui.add(DragValue::new(&mut grid.rows).range(count));
+        flag(
+            ui.add(DragValue::new(&mut grid.columns).range(count.clone())),
+            ui,
+            "copies.columns",
+        );
+        flag(
+            ui.add(DragValue::new(&mut grid.rows).range(count)),
+            ui,
+            "copies.rows",
+        );
         ui.label(format!("= {}", grid.count()));
     });
     ui.end_row();
     ui.label("  pitch X Y")
         .on_hover_text("Copy to copy, mm. Negative grows to the left or down.");
     ui.horizontal(|ui| {
-        for value in [&mut grid.dx, &mut grid.dy] {
-            ui.add(
+        for (name, value) in [("copies.dx", &mut grid.dx), ("copies.dy", &mut grid.dy)] {
+            let response = ui.add(
                 DragValue::new(value)
                     .speed(0.1)
                     .range(-100_000.0..=100_000.0)
                     .suffix(" mm"),
             );
+            flag(response, ui, name);
         }
     });
     ui.end_row();
@@ -1240,7 +1299,11 @@ pub(super) fn machine_rows(
         });
     ui.end_row();
     ui.label("Safe Z");
-    ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm"));
+    flag(
+        ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm")),
+        ui,
+        "machine.safe_z",
+    );
     ui.end_row();
     ui.label("Spindle");
     ComboBox::from_id_salt((salt, "spindle"))
@@ -1288,9 +1351,9 @@ pub(super) fn machine_rows(
             });
         }
         if let Some(t) = &mut machine.travel {
-            ui.add(mm(&mut t.x));
-            ui.add(mm(&mut t.y));
-            ui.add(mm(&mut t.z));
+            flag(ui.add(mm(&mut t.x)), ui, "machine.travel.x");
+            flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
+            flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
         }
     });
     ui.end_row();
@@ -1343,7 +1406,8 @@ fn tool_change_name(change: ToolChange) -> &'static str {
 }
 
 /// Type, diameter, spindle speed and centre cutting.
-pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
+/// `at`: the tool's path in the project (`tools.0`), for its problems; empty elsewhere.
+pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool) {
     ui.label("Type");
     ComboBox::from_id_salt((salt, "tool-type"))
         .selected_text(match tool.kind {
@@ -1358,19 +1422,21 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
         });
     ui.end_row();
     ui.label("Diameter");
-    ui.add(mm(&mut tool.diameter));
+    flag(
+        ui.add(mm(&mut tool.diameter)),
+        ui,
+        &format!("{at}.diameter"),
+    );
     ui.end_row();
     ui.label("Spindle speed");
     let mut rpm = tool.rpm.unwrap_or(0.0);
-    if ui
-        .add(
-            DragValue::new(&mut rpm)
-                .speed(100.0)
-                .range(0.0..=100_000.0)
-                .suffix(" rpm"),
-        )
-        .changed()
-    {
+    let response = ui.add(
+        DragValue::new(&mut rpm)
+            .speed(100.0)
+            .range(0.0..=100_000.0)
+            .suffix(" rpm"),
+    );
+    if flag(response, ui, &format!("{at}.rpm")).changed() {
         tool.rpm = (rpm > 0.0).then_some(rpm);
     }
     ui.end_row();
@@ -1388,16 +1454,16 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, tool: &mut Tool) {
         });
     ui.end_row();
     if tool.kind == ToolType::Vbit {
-        vbit_rows(ui, tool);
+        vbit_rows(ui, at, tool);
     }
 }
 
 /// A V-bit's included angle (degrees here, radians in the file) and flat tip
 /// (docs/specs/v-carve.md §2). Both can be left unset; V-carving needs the angle.
-fn vbit_rows(ui: &mut egui::Ui, tool: &mut Tool) {
+fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
     ui.label("Angle")
         .on_hover_text("The included angle of the V; V-carving needs it");
-    ui.horizontal(|ui| {
+    let angle_row = ui.horizontal(|ui| {
         let mut set = tool.angle.is_some();
         if ui.checkbox(&mut set, "").changed() {
             tool.angle = set.then_some(60f64.to_radians());
@@ -1419,6 +1485,7 @@ fn vbit_rows(ui: &mut egui::Ui, tool: &mut Tool) {
             ui.weak("unknown");
         }
     });
+    flag(angle_row.response, ui, &format!("{at}.angle"));
     ui.end_row();
     ui.label("Tip")
         .on_hover_text("The diameter of the flat tip; not set is taken as pointed");
@@ -1429,7 +1496,7 @@ fn vbit_rows(ui: &mut egui::Ui, tool: &mut Tool) {
         }
         match &mut tool.tip_diameter {
             Some(tip) => {
-                ui.add(mm(tip));
+                flag(ui.add(mm(tip)), ui, &format!("{at}.tip_diameter"));
             }
             None => {
                 ui.weak("pointed");

@@ -268,6 +268,11 @@ impl ChiploadApp {
         if !self.auto_generate || self.edit.is_none() {
             return None;
         }
+        if !self.problems.is_empty() {
+            // Nothing to make until they are fixed; the Problems strip says so.
+            self.changed_at = None;
+            return None;
+        }
         if since < QUIET_TIME {
             return Some(QUIET_TIME - since);
         }

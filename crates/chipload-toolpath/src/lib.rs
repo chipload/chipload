@@ -28,8 +28,8 @@ pub mod vcarve;
 
 pub use cancel::Cancel;
 pub use plan::{
-    OpSpan, Plan, RingStart, ToolGroup, op_tool, plan_job, plan_job_cancellable, tool_groups,
-    validate_job,
+    OpSpan, Plan, RingStart, ToolGroup, job_problems, op_tool, plan_job, plan_job_cancellable,
+    tool_groups, validate_job,
 };
 
 /// Why no toolpath could be made. Messages are the user-facing text.

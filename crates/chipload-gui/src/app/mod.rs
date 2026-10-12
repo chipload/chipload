@@ -44,6 +44,7 @@ mod generation;
 mod library_transfer;
 mod menu;
 mod panels;
+mod problems;
 mod recovery;
 mod report;
 #[cfg(test)]
@@ -146,6 +147,8 @@ pub struct ChiploadApp {
     pub result: Option<RunResult>,
     /// Operations (indices) the last generation, validation or update complained about.
     pub error_ops: BTreeSet<usize>,
+    /// What is wrong with the project as last edited (docs/specs/live-problems.md).
+    pub problems: Vec<chipload_job::Problem>,
 
     // The canvas.
     pub scene: Scene,
@@ -233,6 +236,7 @@ impl Default for ChiploadApp {
             loaded_drawing: None,
             result: None,
             error_ops: BTreeSet::new(),
+            problems: Vec::new(),
             scene: Scene::default(),
             view: View::default(),
             fit_pending: false,
@@ -393,6 +397,7 @@ impl ChiploadApp {
         self.invalidate();
         self.loaded_drawing = None;
         self.refresh_drawing();
+        self.refresh_problems();
         self.fit_pending = true;
     }
 
@@ -884,6 +889,7 @@ impl ChiploadApp {
     /// The project changed: the toolpath shown is kept, faded, until a new one replaces it
     /// (docs/specs/background-generation.md decision 4); a run in progress is cancelled.
     fn toolpath_out_of_date(&mut self) {
+        self.refresh_problems();
         self.stop_generation();
         self.changed_at = Some(Instant::now());
         self.recovery_due = self.changed_at;

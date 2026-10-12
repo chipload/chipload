@@ -1607,7 +1607,8 @@ fn the_live_preview_generates_once_the_project_is_quiet() {
 }
 
 #[test]
-fn an_incomplete_project_is_reported_quietly_by_the_live_preview() {
+fn the_live_preview_waits_while_the_project_has_problems() {
+    // docs/specs/live-problems.md decision 4: the Problems strip says why.
     let mut app = lower_part();
     match &mut app.edit.as_mut().unwrap().ops[0].op {
         Operation::Pocket(p) => p.feed = 0.0,
@@ -1615,9 +1616,12 @@ fn an_incomplete_project_is_reported_quietly_by_the_live_preview() {
     }
     app.commit();
     let changed = app.changed_at.unwrap();
-    app.live_preview(changed + generation::QUIET_TIME);
+    assert_eq!(app.live_preview(changed + generation::QUIET_TIME), None);
     assert!(!app.generating());
-    assert!(app.report.problems() > 0, "{:?}", app.report);
+    assert!(
+        app.changed_at.is_none(),
+        "not tried again until the next edit"
+    );
     assert!(app.status.is_none(), "no red status-bar message");
     // Generate (F5) says it loudly.
     assert!(!app.generate());
@@ -1791,4 +1795,88 @@ fn a_user_post_is_chosen_copied_in_and_updated() {
     assert!(app.choose_project_post("grbl"));
     let job = app.edit.as_ref().unwrap().to_job().unwrap();
     assert!(job.machine.custom_post.is_none());
+}
+
+// -- problems while editing (docs/specs/live-problems.md)
+
+fn problem_paths(app: &ChiploadApp) -> Vec<String> {
+    app.problems.iter().map(|p| p.path.clone()).collect()
+}
+
+#[test]
+fn a_bad_value_is_flagged_at_its_field_once_the_edit_is_finished() {
+    let mut app = lower_part();
+    assert!(app.problems.is_empty(), "{:?}", app.problems);
+    match &mut app.edit.as_mut().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.feed = 0.0,
+        _ => panic!("operation 1 is a pocket"),
+    }
+    assert!(
+        app.problems.is_empty(),
+        "not while the value is being edited"
+    );
+    app.commit();
+    assert_eq!(problem_paths(&app), ["operations.0.feed"]);
+    let fields = app.form_problem_map(Focus::Op(0));
+    assert_eq!(
+        fields.get("feed").map(String::as_str),
+        Some("Must be greater than 0, got 0")
+    );
+    assert!(app.form_problem_map(Focus::Op(1)).is_empty());
+    assert!(app.form_problem_map(Focus::Job).is_empty());
+    assert_eq!(
+        problems::plain(&app.problems[0]),
+        "Feed: must be greater than 0, got 0"
+    );
+    // The forms, cards and strip draw with it.
+    app.focus = Focus::Op(0);
+    draw_sidebar(&mut app);
+    draw_properties(&mut app);
+    // Fixed: gone.
+    edit_feed(&mut app, 900.0);
+    assert!(app.problems.is_empty(), "{:?}", app.problems);
+}
+
+#[test]
+fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
+    let mut app = lower_part();
+    app.edit.as_mut().unwrap().settings.machine.safe_z = -2.0;
+    app.commit();
+    assert_eq!(problem_paths(&app), ["machine.safe_z"]);
+    assert_eq!(app.job_problems().count(), 1);
+    assert_eq!(
+        problems::plain(&app.problems[0]),
+        "Safe Z: must be above the stock top (Z 0)"
+    );
+    let fields = app.form_problem_map(Focus::Job);
+    assert_eq!(
+        fields.get("machine.safe_z").map(String::as_str),
+        Some("Must be above the stock top (Z 0)")
+    );
+    app.focus = Focus::Job;
+    draw_sidebar(&mut app);
+    draw_properties(&mut app);
+    app.undo();
+    assert!(app.problems.is_empty());
+    app.redo();
+    assert_eq!(problem_paths(&app), ["machine.safe_z"]);
+}
+
+#[test]
+fn an_operation_without_shapes_is_a_problem_of_the_operation() {
+    let mut app = lower_part();
+    app.edit.as_mut().unwrap().ops[1].op.select_mut().shapes = Some(Vec::new());
+    app.commit();
+    assert_eq!(problem_paths(&app), ["operations.1.select"]);
+    assert_eq!(
+        problems::plain(&app.problems[0]),
+        "Geometry: no geometry: select contours, then Use selection"
+    );
+}
+
+/// Draw the properties panel for one frame.
+fn draw_properties(app: &mut ChiploadApp) {
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.properties_panel(ui));
+    output.textures_delta.clear();
 }

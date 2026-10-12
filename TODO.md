@@ -20,8 +20,7 @@ it's built (see `CLAUDE.md`).
   1–2. Done (background generation and live preview, see Done).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
   5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
-  6. Problems shown at the field and the operation card while editing, not only after
-     Generate (docs/specs/live-problems.md, draft for review).
+  6. Done (problems while editing, see Done).
   7. Cycle time estimate per operation and in total; 8. a setup sheet for the operator.
   - Fitted in as small items: a chip load readout next to the feed (mm per tooth, warning
     range to be decided); drag and drop of a DXF or project, a measure tool, copy/paste
@@ -31,6 +30,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Problems shown where they are, while editing** (docs/specs/live-problems.md): after
+  each finished edit every rule that needs no geometry is checked; a bad field gets a red
+  frame and its message on hover, its section a red dot, the operation card a line, the
+  Job row a count, and a Problems strip lists them all (click to go there). The live
+  preview waits until they are fixed. Later: warnings (amber) the same way.
 - **Your own post-processors, and LinuxCNC and Mach3/4 posts** (docs/specs/user-posts.md,
   ADR 0016): posts from `posts/` in the settings folder, copied into the project when chosen
   (schema 15, Update when the file changes); the checker accepts LinuxCNC/Mach setup codes;

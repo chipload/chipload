@@ -395,6 +395,42 @@ impl EditJob {
         out
     }
 
+    /// Every problem that needs no geometry to find, each with its field
+    /// (docs/specs/live-problems.md): what an operation still lacks, then the project's
+    /// rules.
+    pub fn problems(&self) -> Vec<chipload_job::Problem> {
+        let mut problems: Vec<chipload_job::Problem> = Vec::new();
+        for (i, edit) in self.ops.iter().enumerate() {
+            let select = edit.op.select();
+            if !edit.side_chosen {
+                let what = "choose the profile side (inside, outside or on)";
+                problems.push(chipload_job::Problem::new(
+                    format!("operations.{i}.side"),
+                    what,
+                    format!("Operation {}: {what}", i + 1),
+                ));
+            }
+            if !(select.layer.is_some() || select.shapes.as_ref().is_some_and(|s| !s.is_empty())) {
+                let what = "no geometry: select contours, then Use selection";
+                problems.push(chipload_job::Problem::new(
+                    format!("operations.{i}.select"),
+                    what,
+                    format!("Operation {}: {what}", i + 1),
+                ));
+            }
+        }
+        let mut job = self.settings.clone();
+        job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+        // The project's own rule for an empty selection says the same less helpfully.
+        let lacking: Vec<String> = problems.iter().map(|p| p.path.clone()).collect();
+        problems.extend(
+            chipload_pipeline::job_problems(&job)
+                .into_iter()
+                .filter(|p| !lacking.contains(&p.path)),
+        );
+        problems
+    }
+
     /// The job to run or save, or every reason it isn't complete and valid.
     pub fn to_job(&self) -> Result<Job, Vec<String>> {
         let mut problems: Vec<String> = self

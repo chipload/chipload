@@ -1462,6 +1462,15 @@ impl Tool {
 }
 
 impl Job {
+    /// Every value rule the project breaks, with the field it is about
+    /// (docs/specs/live-problems.md).
+    pub fn problems(&self) -> Vec<crate::Problem> {
+        self.validate()
+            .iter()
+            .map(|text| crate::Problem::from_path_text(text))
+            .collect()
+    }
+
     /// Value constraints the serde types can't express.
     /// Returns every violation as "path: message".
     pub fn validate(&self) -> Vec<String> {

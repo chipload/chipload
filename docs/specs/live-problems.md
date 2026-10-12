@@ -1,6 +1,6 @@
 # Spec: problems shown where they are, while you edit
 
-Status: draft for review. Item 6 of the general improvement pass (TODO.md, approved
+Status: approved (2026-10-12; decisions 1–6 as recommended). Item 6 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
 ## 1. Why
@@ -81,3 +81,21 @@ report appears by itself, but it still points at a path, not at the field.
   strip after the edit is finished, not before; fixing it clears them; a job-level problem
   (safe Z inside the stock) flags the Job row; the live preview doesn't start while there
   are problems; clicking a strip line focuses the operation.
+
+## 7. As built (2026-10-12)
+
+- `chipload_job::Problem` (`path`, `short`, `text`; `operation()`, `field()`);
+  `Job::problems` (the value rules, from their "path: message" wording);
+  `chipload_toolpath::job_problems` collects every pre-planning rule, and `validate_job`
+  returns the first (the same error as before: no CLI, pipeline or golden change);
+  `chipload_pipeline::job_problems` gives both.
+- GUI `app/problems.rs`: `EditJob::problems` adds what an operation lacks (`side`,
+  `select`; the project's own empty-selection rule is then left out, it says the same).
+  Problems refresh after each finished edit, undo, redo and when a project opens. The
+  form's problems are kept in egui's temporary data while it draws, so its rows mark
+  themselves (`flag`) without passing them along; section headers get a red dot from a
+  table of the fields each section holds; tool sections from `tools.<i>`.
+- Plain words: at the field the short message capitalised; elsewhere the field's label
+  first ("Feed: …", "Safe Z: …") unless the message already starts with it.
+- The Job row shows a red "● N" beside it rather than turning red (readable when
+  selected).

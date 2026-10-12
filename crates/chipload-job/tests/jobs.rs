@@ -1174,3 +1174,37 @@ fn a_copied_post_round_trips_and_stray_fields_are_refused() {
     data["machine"]["custom_post"]["extra"] = json!(1);
     assert!(parse_job(data, "p").is_err());
 }
+
+// -- problems with their fields (docs/specs/live-problems.md)
+
+#[test]
+fn every_value_rule_names_its_field() {
+    let mut job = load_job(&corpus().join("v14/round_corners.chipload")).unwrap();
+    job.stock.x = 0.0;
+    job.stock.thickness = -1.0;
+    job.stock.max_overcut = -1.0;
+    job.tools[0].diameter = 0.0;
+    if let Operation::Pocket(p) = &mut job.operations[0] {
+        p.feed = 0.0;
+        p.stepover = 0.0;
+        p.start_depth = 9.0;
+    }
+    let problems = job.problems();
+    assert!(problems.len() >= 7, "{problems:?}");
+    for problem in &problems {
+        assert!(!problem.path.is_empty(), "{problem:?}");
+        assert_eq!(problem.text, format!("{}: {}", problem.path, problem.short));
+    }
+    let paths: Vec<&str> = problems.iter().map(|p| p.path.as_str()).collect();
+    for path in [
+        "stock.x",
+        "stock.thickness",
+        "stock.max_overcut",
+        "tools.0.diameter",
+        "operations.0.feed",
+        "operations.0.stepover",
+        "operations.0.start_depth",
+    ] {
+        assert!(paths.contains(&path), "{path} in {paths:?}");
+    }
+}

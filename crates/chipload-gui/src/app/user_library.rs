@@ -267,7 +267,7 @@ fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         ui.add(DragValue::new(&mut entry.id).range(1..=9999));
         ui.end_row();
         let mut tool = entry.tool(entry.id);
-        tool_rows(ui, "library", &mut tool);
+        tool_rows(ui, "library", "", &mut tool);
         entry.kind = tool.kind;
         entry.diameter = tool.diameter;
         entry.rpm = tool.rpm;

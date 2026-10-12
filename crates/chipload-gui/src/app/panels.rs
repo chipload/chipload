@@ -75,13 +75,23 @@ impl ChiploadApp {
             ui.weak("No project open.");
             return;
         }
-        if ui
-            .selectable_label(
-                self.focus == Focus::Job,
-                "⚙ Job settings (stock, machine, tools)",
-            )
-            .clicked()
-        {
+        let job_problems = self.job_problems().count();
+        let clicked = ui
+            .horizontal(|ui| {
+                let clicked = ui
+                    .selectable_label(
+                        self.focus == Focus::Job,
+                        "⚙ Job settings (stock, machine, tools)",
+                    )
+                    .clicked();
+                if job_problems > 0 {
+                    ui.colored_label(ui.visuals().error_fg_color, format!("● {job_problems}"))
+                        .on_hover_text("Problems in the job settings");
+                }
+                clicked
+            })
+            .inner;
+        if clicked {
             self.focus = Focus::Job;
         }
         ui.add_space(4.0);
@@ -205,6 +215,16 @@ impl ChiploadApp {
     }
 
     pub(super) fn operation_list(&mut self, ui: &mut egui::Ui) {
+        // Each operation's first problem, for its card (docs/specs/live-problems.md §3).
+        let first_problem = |i: usize| {
+            self.problems
+                .iter()
+                .find(|p| p.operation() == Some(i))
+                .map(problems::plain)
+        };
+        let card_problems: Vec<Option<String>> = (0..self.edit.as_ref().map_or(0, |e| e.ops.len()))
+            .map(first_problem)
+            .collect();
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
@@ -231,9 +251,10 @@ impl ChiploadApp {
                 }
                 last_tool = Some(tool);
             }
-            let flagged = missing.contains(&i) || self.error_ops.contains(&i);
+            let problem = card_problems.get(i).cloned().flatten();
+            let flagged = missing.contains(&i) || self.error_ops.contains(&i) || problem.is_some();
             let selected = self.focus == Focus::Op(i);
-            let card = op_card(ui, i, entry, &self.contours, selected, flagged);
+            let card = op_card(ui, i, entry, &self.contours, selected, flagged, problem);
             let response = card.response;
             if response.clicked() {
                 action = Some(CardAction::Focus(i));
@@ -324,8 +345,13 @@ impl ChiploadApp {
 
     /// Right: the selected operation's fields, or the project settings.
     pub(super) fn properties_panel(&mut self, ui: &mut egui::Ui) {
-        let Some(edit) = self.edit.as_mut() else {
+        if self.edit.is_none() {
             ui.label("No project open.");
+            return;
+        }
+        self.problems_strip(ui);
+        problems::set_form_problems(ui, self.form_problem_map(self.focus));
+        let Some(edit) = self.edit.as_mut() else {
             return;
         };
         let focus = self.focus;
@@ -354,6 +380,8 @@ impl ChiploadApp {
                 }
             }
         });
+        // The map was for this form only (library windows draw the same rows).
+        problems::set_form_problems(ui, std::collections::BTreeMap::new());
         if op_request.use_selection {
             self.use_selection();
         }
@@ -494,6 +522,7 @@ fn op_card(
     contours: &[Contour],
     selected: bool,
     flagged: bool,
+    problem: Option<String>,
 ) -> egui::InnerResponse<()> {
     let summary = geometry_summary(&entry.op, contours);
     let (start, end) = entry.op.depths();
@@ -575,6 +604,13 @@ fn op_card(
                         ui.add_space(22.0);
                         ui.add(egui::Label::new(detail).truncate().selectable(false));
                     });
+                    if let Some(problem) = problem {
+                        let text = RichText::new(problem).small().color(visuals.error_fg_color);
+                        ui.horizontal(|ui| {
+                            ui.add_space(22.0);
+                            ui.add(egui::Label::new(text).truncate().selectable(false));
+                        });
+                    }
                 });
         },
     )

@@ -159,6 +159,15 @@ pub fn write_gcode_files(output: &Path, files: &[GcodeFile]) -> std::io::Result<
     Ok(written)
 }
 
+/// Every problem that keeps a project from being planned and needs no geometry to find:
+/// the file's value rules, then the job rules checked before planning, each with its field
+/// (docs/specs/live-problems.md).
+pub fn job_problems(job: &Job) -> Vec<chipload_job::Problem> {
+    let mut problems = job.problems();
+    problems.extend(chipload_toolpath::job_problems(job));
+    problems
+}
+
 /// Generate G-code from a project. Fails for anything that is not safe to cut, including a
 /// failed independent check, so unchecked G-code never leaves this function.
 pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {

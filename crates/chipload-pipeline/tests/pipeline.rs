@@ -1023,3 +1023,58 @@ fn a_run_cancelled_from_another_thread_stops_early() {
     ));
     assert!(took < full * 3 / 4, "{took:?} of {full:?}");
 }
+
+// -- problems while editing (docs/specs/live-problems.md)
+
+fn paths(job: &Job) -> Vec<String> {
+    chipload_pipeline::job_problems(job)
+        .into_iter()
+        .map(|p| p.path)
+        .collect()
+}
+
+#[test]
+fn every_problem_is_found_at_once_with_its_field() {
+    assert!(paths(&job(json!({}))).is_empty());
+    // Built valid, then broken the way the editor can (parsing would refuse it).
+    let mut bad = job(json!({
+        "machine": {"max_feed": 1000.0},
+        "operations": [op(json!({"clearance": 5.0})), op(json!({}))],
+    }));
+    bad.machine.safe_z = -1.0;
+    if let chipload_job::Operation::Profile(p) = &mut bad.operations[0] {
+        p.feed = 0.0;
+    }
+    if let chipload_job::Operation::Profile(p) = &mut bad.operations[1] {
+        p.plunge_feed = 2000.0;
+    }
+    let found = paths(&bad);
+    for path in [
+        "operations.0.feed",
+        "machine.safe_z",
+        "operations.0.clearance",
+        "operations.1.plunge_feed",
+    ] {
+        assert!(found.iter().any(|p| p == path), "{path} in {found:?}");
+    }
+    // The first job rule is still the error a run gives.
+    let first = chipload_toolpath::job_problems(&bad).remove(0);
+    let PipelineError::Toolpath(ToolpathError::Job(message)) = error(&bad) else {
+        panic!("a job error");
+    };
+    assert_eq!(first.text, message);
+    assert!(first.text.starts_with("safe_z -1"), "{}", first.text);
+    assert_eq!(first.short, "must be above the stock top (Z 0)");
+}
+
+#[test]
+fn the_short_message_leaves_out_the_operation() {
+    let bad = job(json!({"operations": [op(json!({"clearance": 5.0}))]}));
+    let problem = chipload_toolpath::job_problems(&bad).remove(0);
+    assert_eq!(problem.path, "operations.0.clearance");
+    assert_eq!(
+        problem.short,
+        "clearance 5 must be less than the tool radius 3"
+    );
+    assert!(problem.text.starts_with("Operation 1"), "{}", problem.text);
+}

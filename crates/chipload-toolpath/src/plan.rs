@@ -6,8 +6,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, ProfileOp, Side, Tool,
-    ToolType, VcarveOp, ZZero,
+    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PocketOp, Problem, ProfileOp,
+    Side, Tool, ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -742,13 +742,43 @@ pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathErr
 /// Generation-time rules from the specs, each operation against its own tool. Returns
 /// warnings.
 pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
+    let (problems, notes) = check_job(job);
+    match problems.into_iter().next() {
+        Some(first) => Err(job_error(first.text)),
+        None => Ok(notes),
+    }
+}
+
+/// Every rule checked before planning that the job breaks, each with the field it is
+/// about (docs/specs/live-problems.md); [`validate_job`] refuses the job for the first.
+pub fn job_problems(job: &Job) -> Vec<Problem> {
+    check_job(job).0
+}
+
+/// A problem whose full text starts with `prefix` and ": " (an operation's label): the
+/// field shows the rest.
+fn labelled(path: String, prefix: &str, text: String) -> Problem {
+    let short = text
+        .strip_prefix(prefix)
+        .and_then(|rest| rest.strip_prefix(": "))
+        .unwrap_or(&text)
+        .to_string();
+    Problem::new(path, short, text)
+}
+
+/// The problems, in the order the checks were always made (so the first is the error
+/// `validate_job` always gave), and the notes of a job without problems.
+fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
+    let mut problems = Vec::new();
     if job.operations.is_empty() {
-        return Err(job_error("Job has no operations".into()));
+        let text = "Job has no operations";
+        problems.push(Problem::new("operations", text, text));
+        return (problems, Vec::new());
     }
     if !job.operations.iter().any(Operation::enabled) {
-        return Err(job_error(
-            "Every operation is disabled: nothing to cut".into(),
-        ));
+        let text = "Every operation is disabled: nothing to cut";
+        problems.push(Problem::new("operations", text, text));
+        return (problems, Vec::new());
     }
     let enabled = || {
         job.operations
@@ -756,13 +786,30 @@ pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
             .enumerate()
             .filter(|(_, op)| op.enabled())
     };
-    for (_, op) in enabled() {
-        let tool = op_tool(job, op)?;
-        if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
-            return Err(job_error(format!(
-                "Tool {} has no spindle speed (rpm)",
-                tool.id
-            )));
+    let tool_index = |id: i64| job.tools.iter().position(|t| t.id == id);
+    let mut no_rpm: Vec<i64> = Vec::new();
+    for (index, op) in enabled() {
+        match tool_index(op.tool()) {
+            None => {
+                let text = format!("Tool {} is not defined in the job", op.tool());
+                problems.push(Problem::new(
+                    format!("operations.{index}.tool"),
+                    text.clone(),
+                    text,
+                ));
+            }
+            Some(k) => {
+                let tool = &job.tools[k];
+                if tool.rpm.is_none_or(|rpm| rpm <= 0.0) && !no_rpm.contains(&tool.id) {
+                    no_rpm.push(tool.id);
+                    let text = format!("Tool {} has no spindle speed (rpm)", tool.id);
+                    problems.push(Problem::new(
+                        format!("tools.{k}.rpm"),
+                        "no spindle speed",
+                        text,
+                    ));
+                }
+            }
         }
     }
     let (top, z_zero) = match job.stock.z_zero {
@@ -770,19 +817,28 @@ pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
         ZZero::Bottom => (job.stock.thickness, "bottom"),
     };
     if job.machine.safe_z <= top {
-        return Err(job_error(format!(
-            "safe_z {} must be above the stock top (Z {top}); z_zero is '{z_zero}'",
-            job.machine.safe_z
-        )));
+        problems.push(Problem::new(
+            "machine.safe_z",
+            format!("must be above the stock top (Z {top})"),
+            format!(
+                "safe_z {} must be above the stock top (Z {top}); z_zero is '{z_zero}'",
+                job.machine.safe_z
+            ),
+        ));
     }
     let mut notes = tool_group_notes(job);
     for (index, op) in enabled() {
-        let tool = op_tool(job, op)?;
+        let Some(k) = tool_index(op.tool()) else {
+            continue; // reported above
+        };
+        let tool = &job.tools[k];
         let number = index + 1;
         let label = match op.name() {
             "" => format!("Operation {number}"),
             name => format!("Operation {number} ({name})"),
         };
+        let numbered = format!("Operation {number}");
+        let at = |field: &str| format!("operations.{index}.{field}");
         let (feed, plunge_feed) = match op {
             Operation::Profile(p) => (p.feed, p.plunge_feed),
             Operation::Pocket(p) => (p.feed, p.plunge_feed),
@@ -794,72 +850,123 @@ pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
         let thickness = job.stock.thickness;
         let below = end_depth - thickness;
         if below > job.stock.max_overcut + DEPTH_TOL_MM {
-            return Err(job_error(format!(
-                "{label}: end depth {end_depth} is {below:.3} mm below the stock \
-                 ({thickness} mm thick), more than the allowed {} mm (max depth below stock)",
-                job.stock.max_overcut
-            )));
-        }
-        if below > DEPTH_TOL_MM {
+            problems.push(labelled(
+                at("end_depth"),
+                &label,
+                format!(
+                    "{label}: end depth {end_depth} is {below:.3} mm below the stock \
+                     ({thickness} mm thick), more than the allowed {} mm (max depth below \
+                     stock)",
+                    job.stock.max_overcut
+                ),
+            ));
+        } else if below > DEPTH_TOL_MM {
             notes.push(format!(
                 "{label}: cuts {below:.3} mm below the stock (into the spoilboard)"
             ));
         }
         if op.clearance() >= tool.diameter / 2.0 {
-            return Err(job_error(format!(
-                "{label}: clearance {} must be less than the tool radius {}",
-                op.clearance(),
-                tool.diameter / 2.0
-            )));
+            problems.push(labelled(
+                at("clearance"),
+                &label,
+                format!(
+                    "{label}: clearance {} must be less than the tool radius {}",
+                    op.clearance(),
+                    tool.diameter / 2.0
+                ),
+            ));
         }
         if let Some(max_feed) = job.machine.max_feed {
             for (name, value) in [("feed", feed), ("plunge_feed", plunge_feed)] {
                 if value > max_feed {
-                    return Err(job_error(format!(
-                        "Operation {number}: {name} {value} exceeds machine max_feed {max_feed}"
-                    )));
+                    problems.push(labelled(
+                        at(name),
+                        &numbered,
+                        format!(
+                            "Operation {number}: {name} {value} exceeds machine max_feed \
+                             {max_feed}"
+                        ),
+                    ));
                 }
             }
         }
         if let Entry::Helix { radius, .. } = op.entry() {
             if let Operation::Profile(_) = op {
-                return Err(job_error(format!(
-                    "{label}: helix entry is for pockets; a profile can ramp in (entry: ramp)"
-                )));
-            }
-            if radius >= tool.diameter / 2.0 {
-                return Err(job_error(format!(
-                    "{label}: helix radius {radius} must be less than the tool radius {}, or \
-                     it leaves a core standing in the middle",
-                    tool.diameter / 2.0
-                )));
+                problems.push(labelled(
+                    at("entry"),
+                    &label,
+                    format!(
+                        "{label}: helix entry is for pockets; a profile can ramp in (entry: \
+                         ramp)"
+                    ),
+                ));
+            } else if radius >= tool.diameter / 2.0 {
+                problems.push(labelled(
+                    at("entry"),
+                    &label,
+                    format!(
+                        "{label}: helix radius {radius} must be less than the tool radius {}, \
+                         or it leaves a core standing in the middle",
+                        tool.diameter / 2.0
+                    ),
+                ));
             }
         }
         if let Some(lead) = op.lead() {
             let longest = MAX_LEAD_DIAMETERS * tool.diameter;
             if lead.radius > longest {
-                return Err(job_error(format!(
-                    "{label}: lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
-                     diameter ({longest:.3} mm)",
-                    lead.radius
-                )));
+                problems.push(labelled(
+                    at("lead"),
+                    &label,
+                    format!(
+                        "{label}: lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
+                         diameter ({longest:.3} mm)",
+                        lead.radius
+                    ),
+                ));
             }
             if let Operation::Profile(p) = op
                 && p.side == Side::On
             {
-                return Err(job_error(format!(
-                    "{label}: a profile cut on the line has no waste side for a lead; cut \
-                     inside or outside, or remove the lead"
-                )));
+                problems.push(labelled(
+                    at("lead"),
+                    &label,
+                    format!(
+                        "{label}: a profile cut on the line has no waste side for a lead; cut \
+                         inside or outside, or remove the lead"
+                    ),
+                ));
             }
         }
-        match op {
-            Operation::Pocket(p) => notes.extend(pocket_tool_notes(number, tool, p.entry)?),
-            Operation::Profile(p) => notes.extend(plunge_notes(number, "profile", tool, p.entry)?),
-            Operation::Vcarve(_) => notes.extend(vcarve_tool_notes(&label, tool)?),
+        let tool_notes = match op {
+            Operation::Pocket(p) => pocket_tool_notes(number, tool, p.entry).map_err(|e| {
+                (
+                    at(if tool.kind == ToolType::Endmill {
+                        "entry"
+                    } else {
+                        "tool"
+                    }),
+                    numbered.clone(),
+                    e,
+                )
+            }),
+            Operation::Profile(p) => plunge_notes(number, "profile", tool, p.entry)
+                .map_err(|e| (at("entry"), numbered.clone(), e)),
+            Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
+                let path = if tool.kind == ToolType::Vbit {
+                    format!("tools.{k}.angle")
+                } else {
+                    at("tool")
+                };
+                (path, label.clone(), e)
+            }),
+        };
+        match tool_notes {
+            Ok(more) => notes.extend(more),
+            Err((path, prefix, err)) => problems.push(labelled(path, &prefix, err.to_string())),
         }
     }
-    Ok(notes)
+    (problems, notes)
 }
 
 /// The enabled operations in tool groups: runs of operations next to each other (disabled

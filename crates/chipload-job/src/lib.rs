@@ -9,6 +9,7 @@ pub mod edit;
 pub mod library;
 pub mod migrations;
 pub mod models;
+pub mod problem;
 
 use std::path::Path;
 
@@ -16,6 +17,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 pub use models::*;
+pub use problem::Problem;
 
 #[derive(Debug, Error)]
 pub enum JobError {
