@@ -62,7 +62,7 @@ a picture has its own X, Y and width.
 With **Trace: centre lines**, each black stroke becomes a path along its middle: open, or
 closed for a ring like an O. A [follow path](../operations/path.md) cuts each stroke in one
 pass at the depth you choose, as wide as the bit, whatever the pen did. Select the image and
-**+ Follow path**.
+**Follow** (ribbon, OPERATION).
 
 - **Junctions:** where strokes meet (a T, a Y), their paths end at the same point.
 - **Ends:** a path stops half a stroke's width short of a round stroke end, at the middle of
@@ -86,8 +86,8 @@ path…* takes the picture's path instead.
   updated as you change the settings.
 - **Right:** the settings, the width, the corner and the layer, and what was traced (with the
   threshold *auto* picked).
-- **Import:** puts the shapes into the project and selects the image, so **+ V-carve** carves
-  them (or, for centre lines, **+ Follow path** cuts them). It is one undo step.
+- **Import:** puts the shapes into the project and selects the image, so **V-carve** carves
+  them (or, for centre lines, **Follow** cuts them). It is one undo step.
 
 ![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
 

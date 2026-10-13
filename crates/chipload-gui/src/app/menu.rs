@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Keyboard shortcuts, the menu bar and the status bar.
+//! Keyboard shortcuts, the menus' items (shown from the header, header.rs) and the status
+//! bar.
 
-use super::shortcuts::{self, Action, hover_keys, with_keys};
+use super::shortcuts::{self, Action, with_keys};
 use super::*;
 use chipload_job::edit::Mirror;
 
@@ -43,506 +44,355 @@ impl ChiploadApp {
         }
     }
 
-    pub(super) fn menu(&mut self, ui: &mut egui::Ui) {
+    /// The File menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn file_menu(&mut self, ui: &mut egui::Ui) {
         let has_job = self.edit.is_some();
         let has_result = self.result.is_some();
-        MenuBar::new().ui(ui, |ui| {
-            ui.menu_button("File", |ui| {
-                if ui.button(with_keys("New project", Action::New)).clicked() {
-                    self.ask_new();
-                }
-                if ui.button(with_keys("Open…", Action::Open)).clicked() {
-                    self.ask_open();
-                }
-                let recent = self.recent.clone();
-                ui.add_enabled_ui(!recent.is_empty(), |ui| {
-                    ui.menu_button("Open recent", |ui| {
-                        for path in &recent {
-                            let name = file_name(Path::new(path));
-                            if ui.button(name).on_hover_text(path).clicked() {
-                                self.open_recent(path);
-                            }
-                        }
-                        ui.separator();
-                        if ui.button("Clear list").clicked() {
-                            self.forget_recent(None);
-                        }
-                    });
-                });
-                if ui
-                    .button(with_keys("Import DXF…", Action::Import))
-                    .clicked()
-                {
-                    self.ask_import();
-                }
-                if ui
-                    .button("Import image…")
-                    .on_hover_text("Trace a picture into shapes, for V-carving")
-                    .clicked()
-                {
-                    self.import_image_dialog();
-                }
-                if ui.button("Open path…").clicked() {
-                    self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
-                }
-                if ui.button("Import image from path…").clicked() {
-                    self.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
-                }
-                ui.separator();
-                let (update, update_path) = self.update_labels();
-                // With several DXFs, each is updated from its row in the Browser.
-                let one = has_job && self.dxf_count() <= 1;
-                let several = "Several DXFs: update one from the Browser (right-click it)";
-                if ui
-                    .add_enabled(one, egui::Button::new(update))
-                    .on_disabled_hover_text(several)
-                    .clicked()
-                {
-                    self.ask_update();
-                }
-                if ui
-                    .add_enabled(one, egui::Button::new(update_path))
-                    .on_disabled_hover_text(several)
-                    .clicked()
-                {
-                    self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
-                }
-                let adding = has_job && self.dxf_count() > 0;
-                if ui
-                    .add_enabled(adding, egui::Button::new("Add DXF to project…"))
-                    .on_hover_text("Another part: a DXF placed and updated on its own")
-                    .clicked()
-                {
-                    self.ask_add_dxf();
-                }
-                if ui
-                    .add_enabled(adding, egui::Button::new("Add DXF from path…"))
-                    .clicked()
-                {
-                    self.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
-                }
-                ui.separator();
-                if ui
-                    .add_enabled(has_job, egui::Button::new(with_keys("Save", Action::Save)))
-                    .clicked()
-                {
-                    self.ask_save(false);
-                }
-                if ui
-                    .add_enabled(
-                        has_job,
-                        egui::Button::new(with_keys("Save as…", Action::SaveAs)),
-                    )
-                    .clicked()
-                {
-                    self.ask_save(true);
-                }
-                if ui
-                    .add_enabled(has_job, egui::Button::new("Save to path…"))
-                    .clicked()
-                {
-                    self.prompt = Some(Prompt::Path(
-                        PathPurpose::Save,
-                        self.default_project_path().display().to_string(),
-                    ));
-                }
-                ui.separator();
-                if ui
-                    .add_enabled(
-                        has_result || self.generating(),
-                        egui::Button::new(with_keys("Export G-code…", Action::Export)),
-                    )
-                    .clicked()
-                {
-                    self.export_when_ready();
-                }
-                if ui
-                    .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
-                    .clicked()
-                {
-                    self.prompt = Some(Prompt::Path(
-                        PathPurpose::Export,
-                        self.default_export_path().display().to_string(),
-                    ));
-                }
-                ui.separator();
-                if ui.button(with_keys("Quit", Action::Quit)).clicked() {
-                    ui.ctx().send_viewport_cmd(ViewportCommand::Close);
-                }
-            });
-            ui.menu_button("Edit", |ui| {
-                if ui
-                    .add_enabled(
-                        !self.undo.is_empty(),
-                        egui::Button::new(with_keys("Undo", Action::Undo)),
-                    )
-                    .clicked()
-                {
-                    self.undo();
-                }
-                if ui
-                    .add_enabled(
-                        !self.redo.is_empty(),
-                        egui::Button::new(with_keys("Redo", Action::Redo)),
-                    )
-                    .clicked()
-                {
-                    self.redo();
-                }
-                ui.separator();
-                let drawn = !self.deletable_shapes().0.is_empty();
-                let only_drawn = "Only drawn shapes; imported ones change only with the DXF";
-                if ui
-                    .add_enabled(drawn, egui::Button::new(with_keys("Copy", Action::Copy)))
-                    .on_disabled_hover_text(only_drawn)
-                    .clicked()
-                    && let Some(text) = self.copy_selected_shapes()
-                {
-                    ui.ctx().copy_text(text);
-                }
-                if ui
-                    .add_enabled(
-                        !self.shape_clipboard.is_empty() && has_job,
-                        egui::Button::new(with_keys("Paste", Action::Paste)),
-                    )
-                    .on_hover_text("10 mm right and up from the copied shapes; Ctrl+V over the canvas pastes at the cursor")
-                    .clicked()
-                {
-                    self.paste(None);
-                }
-                if ui
-                    .add_enabled(drawn, egui::Button::new("Mirror left–right"))
-                    .on_hover_text("Flip the selected drawn shapes about the middle of their box")
-                    .on_disabled_hover_text(only_drawn)
-                    .clicked()
-                {
-                    self.mirror_selected(Mirror::LeftRight);
-                }
-                if ui
-                    .add_enabled(drawn, egui::Button::new("Mirror up–down"))
-                    .on_hover_text("Flip the selected drawn shapes about the middle of their box")
-                    .on_disabled_hover_text(only_drawn)
-                    .clicked()
-                {
-                    self.mirror_selected(Mirror::UpDown);
-                }
-                ui.separator();
-                if ui
-                    .add_enabled(
-                        drawn,
-                        egui::Button::new("Delete shapes  (Del)"),
-                    )
-                    .on_hover_text(
-                        "Deletes the selected drawn shapes; imported ones change only with the DXF",
-                    )
-                    .clicked()
-                {
-                    self.delete_selected_shapes();
-                }
-                if ui
-                    .add_enabled(
-                        self.selector_json().is_some(),
-                        egui::Button::new(with_keys("Copy as selector", Action::CopySelector)),
-                    )
-                    .clicked()
-                {
-                    self.copy_selector(ui.ctx());
-                }
-            });
-            ui.menu_button("Job", |ui| {
-                if self.generating() {
-                    if ui.button("Cancel generation").clicked() {
-                        self.cancel_generation();
-                    }
-                } else if ui
-                    .add_enabled(
-                        self.can_generate(),
-                        egui::Button::new(with_keys("Generate", Action::Generate)),
-                    )
-                    .clicked()
-                {
-                    self.generate();
-                }
-            });
-            ui.menu_button("Settings", |ui| {
-                if ui.button("Tool library…").clicked() {
-                    self.open_library_window(LibraryKind::Tools);
-                }
-                if ui.button("Machines…").clicked() {
-                    self.open_library_window(LibraryKind::Machines);
-                }
-                ui.separator();
-                let mut sheet = self.setup_sheet;
-                if ui
-                    .checkbox(&mut sheet, "Write a setup sheet with the G-code")
-                    .on_hover_text(
-                        "An HTML page for the operator next to the exported files: stock, \
-                         zero, tools in order, operations, times and warnings",
-                    )
-                    .changed()
-                {
-                    self.set_setup_sheet(sheet);
-                }
-                ui.separator();
-                ui.label("Colour theme");
-                for (choice, label, hover) in [
-                    (Theme::System, "System", "Light or dark, as the operating system is set"),
-                    (Theme::Light, "Light", "Light panels (the canvas stays dark)"),
-                    (Theme::Dark, "Dark", "Dark panels"),
-                ] {
-                    if ui
-                        .radio(self.theme == choice, label)
-                        .on_hover_text(hover)
-                        .clicked()
-                    {
-                        self.set_theme(choice);
+
+        if ui.button(with_keys("New project", Action::New)).clicked() {
+            self.ask_new();
+        }
+        if ui.button(with_keys("Open…", Action::Open)).clicked() {
+            self.ask_open();
+        }
+        let recent = self.recent.clone();
+        ui.add_enabled_ui(!recent.is_empty(), |ui| {
+            ui.menu_button("Open recent", |ui| {
+                for path in &recent {
+                    let name = file_name(Path::new(path));
+                    if ui.button(name).on_hover_text(path).clicked() {
+                        self.open_recent(path);
                     }
                 }
-            });
-            ui.menu_button("View", |ui| {
-                if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
-                    self.fit_pending = true;
-                }
-                if ui.button(with_keys("Top view", Action::TopView)).clicked() {
-                    self.view_top();
-                }
-                if ui
-                    .add(
-                        egui::Button::new(with_keys("Measure", Action::Measure))
-                            .selected(self.measure.is_some()),
-                    )
-                    .on_hover_text("Two clicks give the distance, ΔX, ΔY and the angle")
-                    .clicked()
-                {
-                    self.toggle_measure();
-                }
-                if ui.button("3D view").clicked() {
-                    self.view_3d();
-                }
-                ui.menu_button("Z scale in 3D", |ui| {
-                    for factor in [1.0, 2.0, 5.0, 10.0] {
-                        ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
-                    }
-                });
-                ui.checkbox(&mut self.legend_open, "Show legend");
-                let mut auto = self.auto_generate;
-                if ui
-                    .checkbox(&mut auto, "Update toolpath automatically")
-                    .on_hover_text("Generate by itself half a second after each change")
-                    .changed()
-                {
-                    self.set_auto_generate(auto);
-                }
-                ui.checkbox(&mut self.show_toolpath, "Show toolpath")
-                    .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
-                ui.checkbox(&mut self.show_images, "Show images")
-                    .on_hover_text("The pictures traced into shapes, faintly under the drawing");
-                let mut sim = self.show_simulation;
-                if ui
-                    .checkbox(&mut sim, "Show simulation")
-                    .on_hover_text(SIMULATION_HINT)
-                    .changed()
-                {
-                    self.set_show_simulation(sim);
-                }
-            });
-            ui.menu_button("Draw", |ui| {
-                let can_draw = self.can_draw();
-                for (tool, label) in [
-                    (Tool::Circle, "Circle"),
-                    (Tool::Rectangle, "Rectangle"),
-                    (Tool::Polyline, "Polyline"),
-                ] {
-                    if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
-                        self.start_drawing(tool);
-                    }
-                }
-            });
-            ui.menu_button("Help", |ui| {
-                if ui.button("User guide").clicked() {
-                    self.open_user_guide(ui.ctx());
-                }
-                if ui
-                    .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
-                    .clicked()
-                {
-                    self.shortcuts_open = true;
-                }
-                if ui.button("About and licences").clicked() {
-                    self.about_open = true;
+                ui.separator();
+                if ui.button("Clear list").clicked() {
+                    self.forget_recent(None);
                 }
             });
         });
+        if ui
+            .button(with_keys("Import DXF…", Action::Import))
+            .clicked()
+        {
+            self.ask_import();
+        }
+        if ui
+            .button("Import image…")
+            .on_hover_text("Trace a picture into shapes, for V-carving")
+            .clicked()
+        {
+            self.import_image_dialog();
+        }
+        if ui.button("Open path…").clicked() {
+            self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
+        }
+        if ui.button("Import image from path…").clicked() {
+            self.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
+        }
+        ui.separator();
+        let (update, update_path) = self.update_labels();
+        // With several DXFs, each is updated from its row in the Browser.
+        let one = has_job && self.dxf_count() <= 1;
+        let several = "Several DXFs: update one from the Browser (right-click it)";
+        if ui
+            .add_enabled(one, egui::Button::new(update))
+            .on_disabled_hover_text(several)
+            .clicked()
+        {
+            self.ask_update();
+        }
+        if ui
+            .add_enabled(one, egui::Button::new(update_path))
+            .on_disabled_hover_text(several)
+            .clicked()
+        {
+            self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
+        }
+        let adding = has_job && self.dxf_count() > 0;
+        if ui
+            .add_enabled(adding, egui::Button::new("Add DXF to project…"))
+            .on_hover_text("Another part: a DXF placed and updated on its own")
+            .clicked()
+        {
+            self.ask_add_dxf();
+        }
+        if ui
+            .add_enabled(adding, egui::Button::new("Add DXF from path…"))
+            .clicked()
+        {
+            self.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
+        }
+        ui.separator();
+        if ui
+            .add_enabled(has_job, egui::Button::new(with_keys("Save", Action::Save)))
+            .clicked()
+        {
+            self.ask_save(false);
+        }
+        if ui
+            .add_enabled(
+                has_job,
+                egui::Button::new(with_keys("Save as…", Action::SaveAs)),
+            )
+            .clicked()
+        {
+            self.ask_save(true);
+        }
+        if ui
+            .add_enabled(has_job, egui::Button::new("Save to path…"))
+            .clicked()
+        {
+            self.prompt = Some(Prompt::Path(
+                PathPurpose::Save,
+                self.default_project_path().display().to_string(),
+            ));
+        }
+        ui.separator();
+        if ui
+            .add_enabled(
+                has_result || self.generating(),
+                egui::Button::new(with_keys("Export G-code…", Action::Export)),
+            )
+            .clicked()
+        {
+            self.export_when_ready();
+        }
+        if ui
+            .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
+            .clicked()
+        {
+            self.prompt = Some(Prompt::Path(
+                PathPurpose::Export,
+                self.default_export_path().display().to_string(),
+            ));
+        }
+        ui.separator();
+        if ui.button(with_keys("Quit", Action::Quit)).clicked() {
+            ui.ctx().send_viewport_cmd(ViewportCommand::Close);
+        }
     }
 
-    /// The toolbar under the menu: file | generate and export | view | draw.
-    pub(super) fn toolbar(&mut self, ui: &mut egui::Ui) {
+    /// Undo and redo.
+    pub(super) fn undo_menu(&mut self, ui: &mut egui::Ui) {
+        if ui
+            .add_enabled(
+                !self.undo.is_empty(),
+                egui::Button::new(with_keys("Undo", Action::Undo)),
+            )
+            .clicked()
+        {
+            self.undo();
+        }
+        if ui
+            .add_enabled(
+                !self.redo.is_empty(),
+                egui::Button::new(with_keys("Redo", Action::Redo)),
+            )
+            .clicked()
+        {
+            self.redo();
+        }
+    }
+
+    /// The selected drawn shapes' items: copy, paste, mirror, delete; and Copy as selector.
+    pub(super) fn shape_menu(&mut self, ui: &mut egui::Ui) {
         let has_job = self.edit.is_some();
-        let has_result = self.result.is_some();
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 4.0;
-            ui.spacing_mut().button_padding = egui::vec2(8.0, 3.0);
+        let drawn = !self.deletable_shapes().0.is_empty();
+        let only_drawn = "Only drawn shapes; imported ones change only with the DXF";
+        if ui
+            .add_enabled(drawn, egui::Button::new(with_keys("Copy", Action::Copy)))
+            .on_disabled_hover_text(only_drawn)
+            .clicked()
+            && let Some(text) = self.copy_selected_shapes()
+        {
+            ui.ctx().copy_text(text);
+        }
+        if ui
+            .add_enabled(
+                !self.shape_clipboard.is_empty() && has_job,
+                egui::Button::new(with_keys("Paste", Action::Paste)),
+            )
+            .on_hover_text("10 mm right and up from the copied shapes; Ctrl+V over the canvas pastes at the cursor")
+            .clicked()
+        {
+            self.paste(None);
+        }
+        if ui
+            .add_enabled(drawn, egui::Button::new("Mirror left–right"))
+            .on_hover_text("Flip the selected drawn shapes about the middle of their box")
+            .on_disabled_hover_text(only_drawn)
+            .clicked()
+        {
+            self.mirror_selected(Mirror::LeftRight);
+        }
+        if ui
+            .add_enabled(drawn, egui::Button::new("Mirror up–down"))
+            .on_hover_text("Flip the selected drawn shapes about the middle of their box")
+            .on_disabled_hover_text(only_drawn)
+            .clicked()
+        {
+            self.mirror_selected(Mirror::UpDown);
+        }
+        ui.separator();
+        if ui
+            .add_enabled(drawn, egui::Button::new("Delete shapes  (Del)"))
+            .on_hover_text(
+                "Deletes the selected drawn shapes; imported ones change only with the DXF",
+            )
+            .clicked()
+        {
+            self.delete_selected_shapes();
+        }
+        if ui
+            .add_enabled(
+                self.selector_json().is_some(),
+                egui::Button::new(with_keys("Copy as selector", Action::CopySelector)),
+            )
+            .clicked()
+        {
+            self.copy_selector(ui.ctx());
+        }
+    }
+
+    /// The Job menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn job_menu(&mut self, ui: &mut egui::Ui) {
+        if self.generating() {
+            if ui.button("Cancel generation").clicked() {
+                self.cancel_generation();
+            }
+        } else if ui
+            .add_enabled(
+                self.can_generate(),
+                egui::Button::new(with_keys("Generate", Action::Generate)),
+            )
+            .clicked()
+        {
+            self.generate();
+        }
+    }
+
+    /// The Settings menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn settings_menu(&mut self, ui: &mut egui::Ui) {
+        if ui.button("Tool library…").clicked() {
+            self.open_library_window(LibraryKind::Tools);
+        }
+        if ui.button("Machines…").clicked() {
+            self.open_library_window(LibraryKind::Machines);
+        }
+        ui.separator();
+        let mut sheet = self.setup_sheet;
+        if ui
+            .checkbox(&mut sheet, "Write a setup sheet with the G-code")
+            .on_hover_text(
+                "An HTML page for the operator next to the exported files: stock, \
+                 zero, tools in order, operations, times and warnings",
+            )
+            .changed()
+        {
+            self.set_setup_sheet(sheet);
+        }
+        ui.separator();
+        ui.label("Colour theme");
+        for (choice, label, hover) in [
+            (
+                Theme::System,
+                "System",
+                "Light or dark, as the operating system is set",
+            ),
+            (
+                Theme::Light,
+                "Light",
+                "Light panels (the canvas stays dark)",
+            ),
+            (Theme::Dark, "Dark", "Dark panels"),
+        ] {
             if ui
-                .button("New")
-                .on_hover_text(hover_keys("New project", Action::New))
+                .radio(self.theme == choice, label)
+                .on_hover_text(hover)
                 .clicked()
             {
-                self.ask_new();
+                self.set_theme(choice);
             }
-            if ui
-                .button("Open")
-                .on_hover_text(hover_keys("Open a project", Action::Open))
-                .clicked()
-            {
-                self.ask_open();
-            }
-            if ui
-                .button("Import DXF")
-                .on_hover_text(hover_keys("New project from a DXF", Action::Import))
-                .clicked()
-            {
-                self.ask_import();
-            }
-            if ui
-                .add_enabled(has_job, egui::Button::new("Save"))
-                .on_hover_text(hover_keys("Save the project", Action::Save))
-                .clicked()
-            {
-                self.ask_save(false);
-            }
-            ui.separator();
-            // The main action stands out.
-            let accent = ui.visuals().selection.bg_fill;
-            let on_accent = ui.visuals().selection.stroke.color;
-            if self.generating() {
-                if ui
-                    .button(RichText::new("■ Cancel").strong())
-                    .on_hover_text("Stop generating")
-                    .clicked()
-                {
-                    self.cancel_generation();
-                }
-            } else if ui
-                .add_enabled(
-                    self.can_generate(),
-                    egui::Button::new(RichText::new("▶ Generate").strong().color(on_accent))
-                        .fill(accent),
-                )
-                .on_hover_text(hover_keys(
-                    "Plan the toolpaths, write and check the G-code",
-                    Action::Generate,
-                ))
-                .clicked()
-            {
-                self.generate();
-            }
-            if ui
-                .add_enabled(
-                    has_result || self.generating(),
-                    egui::Button::new("⬇ Export G-code"),
-                )
-                .on_hover_text(hover_keys(
-                    if has_result {
-                        "Save the checked G-code"
-                    } else {
-                        "Save the G-code once it is generated"
-                    },
-                    Action::Export,
-                ))
-                .on_disabled_hover_text("Generate first")
-                .clicked()
-            {
-                self.export_when_ready();
-            }
-            ui.separator();
-            if ui
-                .button("Fit")
-                .on_hover_text(hover_keys("Fit the view", Action::Fit))
-                .clicked()
-            {
-                self.fit_pending = true;
-            }
-            // Top and 3D side by side, one of them on: a two-way switch.
-            ui.scope(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
-                if ui
-                    .add(egui::Button::new("Top").selected(!self.three_d))
-                    .on_hover_text(hover_keys("Look straight down", Action::TopView))
-                    .clicked()
-                {
-                    self.view_top();
-                }
-                // Z stretch is labelled whenever it isn't true scale (docs/specs/3d-view.md §4).
-                let three_d = if self.view.z_scale == 1.0 {
-                    "3D".to_string()
-                } else {
-                    format!("3D (Z × {})", self.view.z_scale)
-                };
-                if ui
-                    .add(egui::Button::new(three_d).selected(self.three_d))
-                    .on_hover_text("Left-drag turns and tilts; right-drag or Shift+drag pans")
-                    .clicked()
-                {
-                    self.view_3d();
-                }
-            });
-            let label = if self.simulating() {
-                "Simulating…"
-            } else {
-                "Simulation"
-            };
-            let response = ui.add_enabled(
-                self.result.is_some(),
-                egui::Button::new(label).selected(self.show_simulation),
-            );
-            if response
-                .on_hover_text(SIMULATION_HINT)
-                .on_disabled_hover_text("Generate the toolpath first")
-                .clicked()
-            {
-                self.set_show_simulation(!self.show_simulation);
-            }
-            ui.separator();
-            let selected = !self.selection.ids(&self.contours).is_empty();
-            for (label, kind, hover) in super::browser::NEW_OPERATIONS {
-                if ui
-                    .add_enabled(selected, egui::Button::new(format!("+ {label}")))
-                    .on_hover_text(hover)
-                    .on_disabled_hover_text("Select shapes first")
-                    .clicked()
-                {
-                    self.add_operation(kind);
-                }
-            }
-            ui.separator();
-            let can_draw = self.can_draw();
-            for (tool, label, hint) in [
-                (
-                    Tool::Circle,
-                    "○ Circle",
-                    "Draw a circle: centre, then a point on it",
-                ),
-                (
-                    Tool::Rectangle,
-                    "▭ Rectangle",
-                    "Draw a rectangle: two opposite corners",
-                ),
-                (
-                    Tool::Polyline,
-                    "✎ Polyline",
-                    "Draw a polyline: click points",
-                ),
-            ] {
-                let active = self.sketch.as_ref().is_some_and(|s| s.tool == tool);
-                if ui
-                    .add_enabled(can_draw, egui::Button::new(label).selected(active))
-                    .on_hover_text(hint)
-                    .clicked()
-                {
-                    self.start_drawing(tool);
-                }
+        }
+    }
+
+    /// The View menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn view_menu(&mut self, ui: &mut egui::Ui) {
+        if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
+            self.fit_pending = true;
+        }
+        if ui.button(with_keys("Top view", Action::TopView)).clicked() {
+            self.view_top();
+        }
+        if ui
+            .add(
+                egui::Button::new(with_keys("Measure", Action::Measure))
+                    .selected(self.measure.is_some()),
+            )
+            .on_hover_text("Two clicks give the distance, ΔX, ΔY and the angle")
+            .clicked()
+        {
+            self.toggle_measure();
+        }
+        if ui.button("3D view").clicked() {
+            self.view_3d();
+        }
+        ui.menu_button("Z scale in 3D", |ui| {
+            for factor in [1.0, 2.0, 5.0, 10.0] {
+                ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
         });
+        ui.checkbox(&mut self.legend_open, "Show legend");
+        let mut auto = self.auto_generate;
+        if ui
+            .checkbox(&mut auto, "Update toolpath automatically")
+            .on_hover_text("Generate by itself half a second after each change")
+            .changed()
+        {
+            self.set_auto_generate(auto);
+        }
+        ui.checkbox(&mut self.show_toolpath, "Show toolpath")
+            .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
+        ui.checkbox(&mut self.show_images, "Show images")
+            .on_hover_text("The pictures traced into shapes, faintly under the drawing");
+        let mut sim = self.show_simulation;
+        if ui
+            .checkbox(&mut sim, "Show simulation")
+            .on_hover_text(SIMULATION_HINT)
+            .changed()
+        {
+            self.set_show_simulation(sim);
+        }
+    }
+
+    /// The Draw menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn draw_menu(&mut self, ui: &mut egui::Ui) {
+        let can_draw = self.can_draw();
+        for (tool, label) in [
+            (Tool::Circle, "Circle"),
+            (Tool::Rectangle, "Rectangle"),
+            (Tool::Polyline, "Polyline"),
+        ] {
+            if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
+                self.start_drawing(tool);
+            }
+        }
+    }
+
+    /// The Help menu's items (a ribbon caption's or the top bar's drop-down).
+    pub(super) fn help_menu(&mut self, ui: &mut egui::Ui) {
+        if ui.button("User guide").clicked() {
+            self.open_user_guide(ui.ctx());
+        }
+        if ui
+            .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
+            .clicked()
+        {
+            self.shortcuts_open = true;
+        }
+        if ui.button("About and licences").clicked() {
+            self.about_open = true;
+        }
     }
 
     pub(super) fn status_bar(&mut self, ui: &mut egui::Ui) {
@@ -591,7 +441,26 @@ impl ChiploadApp {
                 .and_then(|e| e.settings.copies)
                 .map(|c| c.count())
                 .filter(|&n| n > 1);
+            // The units, the post and the cycle time once generated, at the far right
+            // (docs/specs/browser-and-layout.md §6).
+            let post = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+            let time = self
+                .result
+                .as_ref()
+                .map(|r| chipload_pipeline::estimate::duration_text(r.estimate.total));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if let Some(post) = post {
+                    ui.weak("mm");
+                    ui.separator();
+                    ui.weak(post)
+                        .on_hover_text("The post-processor (Job settings > Machine)");
+                    ui.separator();
+                }
+                if let Some(time) = time {
+                    ui.weak(format!("cycle {time}"))
+                        .on_hover_text("Estimated cycle time (the report has the details)");
+                    ui.separator();
+                }
                 if let Some(n) = copies {
                     ui.label(format!("{n} copies"));
                     ui.separator();
@@ -618,5 +487,5 @@ impl ChiploadApp {
 }
 
 /// What the simulation toggle does (docs/specs/simulation.md §4).
-const SIMULATION_HINT: &str = "Show the stock as the program leaves it: every move cut with \
+pub(super) const SIMULATION_HINT: &str = "Show the stock as the program leaves it: every move cut with \
     the tool's shape (darker is deeper; red is below the stock). Display only.";

@@ -24,11 +24,11 @@ Warnings appear in the report under the canvas after generating, on the command 
 
 ## Generating
 
-- **F5** (*Job > Generate*) plans the toolpath, writes the G-code and runs the
+- **F5** (**Generate** at the ribbon's right end) plans the toolpath, writes the G-code and runs the
   [checker](../concepts/checker.md).
 - With *View > Update toolpath automatically* (on by default), this happens by itself half
   a second after each change, in the background. The app stays responsive, and a running
-  generation can be cancelled from the Job menu.
+  generation can be cancelled: **Cancel** takes Generate's place meanwhile.
 - **Out of date:** a toolpath on the canvas that no longer matches the project is drawn
   faded until the next generation.
 

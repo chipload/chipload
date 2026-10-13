@@ -26,8 +26,8 @@ use chipload_pipeline::{
 };
 use chipload_toolpath::select::{select_contours, select_paths};
 use eframe::egui::{
-    self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, MenuBar, Modifiers, Panel,
-    RichText, ScrollArea, Sense, TextEdit, ViewportCommand,
+    self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, Modifiers, Panel, RichText,
+    ScrollArea, Sense, TextEdit, ViewportCommand,
 };
 
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
@@ -43,6 +43,7 @@ mod drawing;
 mod dropping;
 mod forms;
 mod generation;
+mod header;
 mod images;
 mod library_transfer;
 mod measure;
@@ -1275,8 +1276,15 @@ impl eframe::App for ChiploadApp {
             self.applied_theme = Some(self.theme);
         }
         self.shortcuts(&ctx);
-        Panel::top("menu").show(ui, |ui| self.menu(ui));
-        Panel::top("toolbar").show(ui, |ui| self.toolbar(ui));
+        Panel::top("top-bar")
+            .exact_size(header::TOP_BAR_HEIGHT)
+            .frame(
+                egui::Frame::new()
+                    .fill(crate::style::top_bar_fill(ui.visuals()))
+                    .inner_margin(egui::Margin::symmetric(6, 0)),
+            )
+            .show(ui, |ui| self.top_bar(ui));
+        Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
         self.report_panel(ui);
         Panel::left("operations")

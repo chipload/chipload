@@ -12,7 +12,7 @@ it's built (see `CLAUDE.md`).
   2. Properties on the right: the selection read-out and the drawn-shape editor move there.
      **Done.**
   3. The header: a top bar and a ribbon (FILE, DRAW, OPERATION, VIEW) in place of the menu
-     bar and toolbar; the overall look.
+     bar and toolbar; the overall look. **Done** (the panel fills against the canvas come with step 4).
   4. The canvas: a drawn grid on the snap steps, axis lines, a theme gradient, a navigation
      bar and an orientation cube.
 

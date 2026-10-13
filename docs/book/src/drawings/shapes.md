@@ -7,7 +7,8 @@ DXF, or a project without one:
 - **Rectangle:** centre, length and width, and a rotation.
 - **Polyline:** points joined by straight or arc segments, open or closed.
 
-*Draw > Circle / Rectangle / Polyline*, then click on the canvas. Anything more is CAD's job:
+**Circle**, **Rectangle** or **Polyline** in the ribbon's DRAW group, then click on the
+canvas. Anything more is CAD's job:
 draw it there and import the DXF.
 
 ## Editing
@@ -16,9 +17,9 @@ draw it there and import the DXF.
   centres and middles; hold Alt to turn snapping off.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
   selected shape has its exact numbers and its layer.
-- **Copy and paste:** Ctrl+C and Ctrl+V. *Edit > Paste* puts the copy 10 mm right and up;
+- **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
-- **Mirror:** *Edit > Mirror left–right* and *Mirror up–down* flip shapes about the middle
+- **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
   of their box.
 - **Delete:** Del. Operations that cut the shape are flagged.
 - **Undo:** Ctrl+Z.

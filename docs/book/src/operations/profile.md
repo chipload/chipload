@@ -5,7 +5,7 @@ A profile cuts along a closed contour:
 - **inside** it, to cut a hole;
 - **on** the line.
 
-Select the contours, then **+ Profile**. See [Side and direction](../concepts/side-direction.md)
+Select the contours, then **Profile** (ribbon, OPERATION). See [Side and direction](../concepts/side-direction.md)
 and [Depths and clearance](../concepts/depths.md) for what every profile shares.
 
 Open contours (centre lines, construction lines) in the selection are skipped with a note.

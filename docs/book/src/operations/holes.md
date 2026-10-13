@@ -2,7 +2,7 @@
 
 **Holes** cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
-note), then **+ Holes**. Circles drawn in Chipload count, and so do imported circles,
+note), then **Holes** (ribbon, OPERATION). Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.
 
 The tool decides how:

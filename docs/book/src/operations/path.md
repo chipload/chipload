@@ -4,7 +4,7 @@
 to the end depth in passes. Use it for engraving, V-grooves, score and fold lines, or a
 single cut through thin material.
 
-Select the shapes, then **+ Follow path**. A picture of handwriting or line art can be
+Select the shapes, then **Follow** (ribbon, OPERATION). A picture of handwriting or line art can be
 traced into [centre lines](../drawings/images.md#centre-lines) for it.
 - **Open lines** are cut back and forth, pass by pass.
 - **Closed shapes** go round, as a profile on the line does.

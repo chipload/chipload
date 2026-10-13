@@ -236,3 +236,10 @@ follows the zoom (`draw::grid_step`) exists, but it isn't drawn. Following Solid
   of it, so *Use selection* and the selection stay in view together. It folds away.
 - **Drawn shapes** are listed directly in the Drawing folder, by kind (Rectangles,
   Circles, Polylines), without a "Drawn shapes" folder in between.
+- **Header (§5):** the Edit menu is split by what it acts on. Undo and redo go under
+  FILE ▾ (and the top bar); copy, paste, mirror, delete and *Copy as selector* go under
+  DRAW ▾. The Job menu's Generate is under OPERATION ▾. The colour theme stays under
+  Settings (the gear), not VIEW ▾. VIEW also has a **Measure** button.
+- **The view buttons** stay in the ribbon until step 4 moves them onto the canvas.
+- **Status bar (§6):** it shows the cycle time and post as "cycle 1 min 36 s · grbl · mm".
+  The grid step comes with step 4.

@@ -24,7 +24,7 @@ outside profile. The same steps follow in the app and on the command line.
    - Ctrl+click adds more;
    - right-click selects a whole layer;
    - or click a DXF or one of its layers in the Browser.
-4. **Add an operation:** **+ Profile**.
+4. **Add an operation:** **Profile**, in the ribbon's OPERATION group.
    - **Side:** Chipload picks *outside* for an outline and *inside* for holes, and asks
      when a selection mixes both.
    - **End depth:** for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a

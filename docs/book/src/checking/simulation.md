@@ -2,7 +2,7 @@
 
 ## 3D view
 
-**3D** (toolbar) shows the toolpath at its real depths.
+**3D** (ribbon, VIEW) shows the toolpath at its real depths.
 - **Turn:** left-drag.
 - **Pan:** right-drag.
 - **Zoom:** the scroll wheel.
@@ -12,7 +12,7 @@
 ## Simulation
 
 The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; *View > Show simulation* (or **Simulation** on the toolbar) turns it
+on when the app starts; *View > Show simulation* (or **Simulation** in the ribbon) turns it
 off and on.
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.

@@ -32,6 +32,21 @@ pub enum Icon {
     Holes,
     Eye,
     EyeOff,
+    New,
+    Open,
+    Save,
+    Import,
+    Undo,
+    Redo,
+    Help,
+    Generate,
+    Stop,
+    Export,
+    Fit,
+    Top,
+    ThreeD,
+    Simulation,
+    Measure,
 }
 
 /// Line width of the icons, points.
@@ -143,6 +158,115 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.circle((0.5, 0.5), 0.34);
             pen.line([(0.5, 0.28), (0.5, 0.72)]);
             pen.line([(0.28, 0.5), (0.72, 0.5)]);
+        }
+        Icon::New => {
+            pen.sheet();
+            pen.line([(0.36, 0.6), (0.66, 0.6)]);
+            pen.line([(0.51, 0.45), (0.51, 0.75)]);
+        }
+        Icon::Open => {
+            pen.closed(&[
+                (0.08, 0.25),
+                (0.38, 0.25),
+                (0.46, 0.35),
+                (0.92, 0.35),
+                (0.92, 0.82),
+                (0.08, 0.82),
+            ]);
+            pen.line([(0.08, 0.48), (0.92, 0.48)]);
+        }
+        Icon::Save => {
+            pen.closed(&[
+                (0.12, 0.12),
+                (0.75, 0.12),
+                (0.88, 0.25),
+                (0.88, 0.88),
+                (0.12, 0.88),
+            ]);
+            pen.closed(&[(0.3, 0.12), (0.66, 0.12), (0.66, 0.36), (0.3, 0.36)]);
+            pen.closed(&[(0.28, 0.56), (0.72, 0.56), (0.72, 0.88), (0.28, 0.88)]);
+        }
+        Icon::Import => {
+            pen.sheet();
+            pen.line([(0.51, 0.38), (0.51, 0.78)]);
+            pen.poly(&[(0.36, 0.63), (0.51, 0.78), (0.66, 0.63)]);
+        }
+        Icon::Undo | Icon::Redo => {
+            let flip = |p: (f32, f32)| {
+                if icon == Icon::Redo {
+                    (1.0 - p.0, p.1)
+                } else {
+                    p
+                }
+            };
+            // Over the top from right to left, the head at the left end.
+            let arc: Vec<(f32, f32)> = pen
+                .arc((0.5, 0.62), 0.3, 0.0, -PI)
+                .into_iter()
+                .map(flip)
+                .collect();
+            pen.poly(&arc);
+            pen.poly(&[flip((0.06, 0.5)), flip((0.2, 0.66)), flip((0.34, 0.5))]);
+        }
+        Icon::Help => {
+            pen.circle((0.5, 0.5), 0.4);
+            let hook = pen.arc((0.5, 0.4), 0.14, -PI, FRAC_PI_2);
+            pen.poly(&hook);
+            pen.line([(0.5, 0.54), (0.5, 0.62)]);
+            pen.dot((0.5, 0.74), 0.05);
+        }
+        Icon::Generate => {
+            let points = vec![
+                pen.at((0.25, 0.15)),
+                pen.at((0.85, 0.5)),
+                pen.at((0.25, 0.85)),
+            ];
+            painter.add(Shape::convex_polygon(points, color, Stroke::NONE));
+        }
+        Icon::Stop => {
+            let r = Rect::from_min_max(pen.at((0.22, 0.22)), pen.at((0.78, 0.78)));
+            painter.rect_filled(r, 1.0, color);
+        }
+        Icon::Export => {
+            pen.line([(0.5, 0.1), (0.5, 0.62)]);
+            pen.poly(&[(0.3, 0.42), (0.5, 0.62), (0.7, 0.42)]);
+            pen.poly(&[(0.12, 0.6), (0.12, 0.88), (0.88, 0.88), (0.88, 0.6)]);
+        }
+        Icon::Fit => {
+            for (x, y, dx, dy) in [
+                (0.1, 0.1, 1.0, 1.0),
+                (0.9, 0.1, -1.0, 1.0),
+                (0.9, 0.9, -1.0, -1.0),
+                (0.1, 0.9, 1.0, -1.0),
+            ] {
+                pen.poly(&[(x, y + 0.25 * dy), (x, y), (x + 0.25 * dx, y)]);
+            }
+            pen.closed(&[(0.35, 0.35), (0.65, 0.35), (0.65, 0.65), (0.35, 0.65)]);
+        }
+        Icon::Top => {
+            pen.closed(&[(0.15, 0.15), (0.85, 0.15), (0.85, 0.85), (0.15, 0.85)]);
+            pen.line([(0.15, 0.5), (0.85, 0.5)]);
+            pen.line([(0.5, 0.15), (0.5, 0.85)]);
+        }
+        Icon::ThreeD => pen.cube(),
+        Icon::Simulation => {
+            pen.poly(&[(0.08, 0.4), (0.08, 0.85), (0.92, 0.85), (0.92, 0.4)]);
+            pen.poly(&[
+                (0.08, 0.4),
+                (0.3, 0.4),
+                (0.3, 0.62),
+                (0.62, 0.62),
+                (0.62, 0.4),
+                (0.92, 0.4),
+            ]);
+            pen.closed(&[(0.42, 0.08), (0.5, 0.08), (0.5, 0.5), (0.42, 0.5)]);
+        }
+        Icon::Measure => {
+            pen.closed(&[(0.06, 0.62), (0.62, 0.06), (0.94, 0.38), (0.38, 0.94)]);
+            for t in [0.25_f32, 0.4, 0.55, 0.7] {
+                let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
+                pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
+            }
         }
         Icon::Eye | Icon::EyeOff => {
             pen.eye();

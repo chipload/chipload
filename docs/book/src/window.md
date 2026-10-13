@@ -1,5 +1,32 @@
 # The window
 
+## The header
+
+At the top, a slim **top bar**:
+- **Left:** Open, Save, Undo and Redo.
+- **Middle:** the project's name on a tab. A dot on it means unsaved changes.
+- **Right:** **⚙ Settings** (tool library, machines, setup sheet, colour theme), **?
+  Help** (user guide, keyboard shortcuts, about) and the version.
+
+Under it, the **ribbon** groups the buttons:
+
+| Group | Buttons | Its caption's menu also has |
+|---|---|---|
+| FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
+| DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
+| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
+| VIEW | Fit, Top, 3D, Simulation, Measure | Z scale, legend, show toolpath, images, simulation, update automatically |
+
+**Generate** (F5) and **Export** sit at the right end.
+
+Each group's caption (**FILE ▾** …) opens its whole menu. This guide writes those menus as
+*File > …*, *Draw > …* and *View > …*. *Settings > …* and *Help > …* are the gear and the
+question mark in the top bar.
+
+The **status bar** at the bottom gives hints on the left. On the right it shows the
+cursor's position, the number of copies, the cycle time once generated, the
+post-processor and the units.
+
 ## The Browser
 
 The **Browser** on the left holds the whole project as a tree:

@@ -1,7 +1,7 @@
 # Pocket
 
 A pocket clears everything inside closed contours, down to the end depth, leaving islands
-standing. Select the contours, then **+ Pocket**.
+standing. Select the contours, then **Pocket** (ribbon, OPERATION).
 
 ## What gets cleared
 

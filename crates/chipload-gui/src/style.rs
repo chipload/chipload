@@ -25,7 +25,19 @@ const GOOD_LIGHT: Color32 = Color32::from_rgb(0x1e, 0x7e, 0x34);
 /// A hovered card in a list: subtler than a hovered button, so weak text on it still reads.
 const CARD_HOVER_DARK: Color32 = Color32::from_gray(45);
 const CARD_HOVER_LIGHT: Color32 = Color32::from_gray(232);
+/// The header's top bar.
+const TOP_BAR_DARK: Color32 = Color32::from_gray(20);
+const TOP_BAR_LIGHT: Color32 = Color32::from_gray(222);
 const ROUNDING: u8 = 4;
+
+/// The top bar's fill: a step darker than the panels in either theme.
+pub fn top_bar_fill(visuals: &egui::Visuals) -> Color32 {
+    if visuals.dark_mode {
+        TOP_BAR_DARK
+    } else {
+        TOP_BAR_LIGHT
+    }
+}
 
 /// The fill of a hovered card (an operation in the list).
 pub fn card_hover(visuals: &egui::Visuals) -> Color32 {

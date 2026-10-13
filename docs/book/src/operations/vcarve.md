@@ -6,7 +6,7 @@ and inlay outlines, with a V-bit:
 - it goes as deep as makes the cut exactly as wide as the shape at the surface.
 
 Narrow strokes come out shallow and wide ones deep, and sharp outside corners such as serif
-tips stay sharp. Select the closed contours, then **+ V-carve**. A logo or sketch that is
+tips stay sharp. Select the closed contours, then **V-carve** (ribbon, OPERATION). A logo or sketch that is
 only a picture can be [traced into shapes](../drawings/images.md) first.
 
 ## The V-bit
