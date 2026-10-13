@@ -7,6 +7,7 @@
 pub mod adaptive;
 pub mod arcs;
 pub mod cancel;
+pub mod corners;
 pub mod fronts;
 pub mod geom;
 pub mod helix;

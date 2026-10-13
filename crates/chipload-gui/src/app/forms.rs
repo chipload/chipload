@@ -7,7 +7,7 @@ use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
 use chipload_job::Placement;
 use chipload_job::library::Cutting;
-use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
+use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_job::{
     Finish, HoleMethod, HolesOp, Job, ProfileOp, STRAIGHT_FLANK_RAD, Skin, ToolChange,
@@ -375,6 +375,7 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
+                corner_rows(ui, index, &mut p.corners, can_clear);
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());
@@ -453,6 +454,7 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
+                corner_rows(ui, index, &mut p.corners, true);
             });
             let strategy = match p.strategy {
                 PocketStrategy::Rings {} => "rings",
@@ -755,6 +757,58 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
             .changed()
         {
             *ramp_angle = degrees.to_radians();
+        }
+        ui.end_row();
+    }
+}
+
+/// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7). `allowed`: false
+/// for a profile on the line, which has no inside corners to clear.
+fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, allowed: bool) {
+    ui.label("Corners").on_hover_text(
+        "Inside corners a round tool leaves round: a dogbone goes into the corner along its \
+         middle, a T-bone along the longer wall (the notch is in the shorter one), so a \
+         square part fits all the way in",
+    );
+    let angle = corners.map_or(DEFAULT_CORNER_ANGLE_RAD, |c| c.max_angle());
+    let name = match corners {
+        None => "round",
+        Some(Corners::Dogbone { .. }) => "dogbones",
+        Some(Corners::Tbone { .. }) => "T-bones",
+    };
+    let combo = ui.add_enabled_ui(allowed || corners.is_some(), |ui| {
+        ComboBox::from_id_salt(("corners", index))
+            .selected_text(name)
+            .show_ui(ui, |ui| {
+                for (choice, label) in [
+                    (None, "round"),
+                    (Some(Corners::Dogbone { max_angle: angle }), "dogbones"),
+                    (Some(Corners::Tbone { max_angle: angle }), "T-bones"),
+                ] {
+                    if ui.selectable_label(name == label, label).clicked() {
+                        *corners = choice;
+                    }
+                }
+            })
+    });
+    let response = combo
+        .response
+        .on_disabled_hover_text("A profile cut on the line has no inside corners");
+    flag(response, ui, "corners");
+    ui.end_row();
+    if let Some(Corners::Dogbone { max_angle } | Corners::Tbone { max_angle }) = corners {
+        ui.label("  up to").on_hover_text(
+            "Only corners this sharp or sharper (90° corners drawn slightly off still count)",
+        );
+        let mut degrees = max_angle.to_degrees();
+        let response = ui.add(
+            DragValue::new(&mut degrees)
+                .speed(1.0)
+                .range(1.0..=179.0)
+                .suffix("°"),
+        );
+        if flag(response, ui, "corners.max_angle").changed() {
+            *max_angle = degrees.to_radians();
         }
         ui.end_row();
     }

@@ -1,6 +1,29 @@
 # Spec: dogbone and T-bone corners
 
 Status: **approved 2026-10-13**, all decisions as recommended (§9).
+Built 2026-10-13. As built:
+- §3: `C′` is the corner of the walls moved `c` into the part, which is `c / sin(θ/2)`
+  along the bisector, not `c`. Every wall then holds the clearance up to the corner.
+- §3: a leg at the vertex where the ring starts goes at the ring's end, so the ring still
+  leaves its start along the wall (leads and spirals start there).
+- §5: the ring's vertex for a corner is the nearest one on the tool's side within 1.25 ×
+  the straight-wall distance that turns at least half as much as the corner. A wall that
+  is an arc moves the vertex a little: 5 % for a line meeting a half circle at 90°.
+- §4, pockets: crossing boundaries are separate pieces, each cleared on its own. A corner
+  of one that lies inside another boundary of the same pocket is in waste the other
+  clears, so it gets no dogbone. The leg check (§6) doesn't count the pocket's other
+  boundaries, because both sides of them are waste near a corner. Islands and every other
+  contour still count. An island is a contour wholly inside an odd number of the others,
+  so crossing contours don't count as islands.
+- §6: after each leg is added, the ring must reach the tip from its vertex and leave back
+  to it, or planning stops. An early version spliced a start-vertex leg wrongly into a
+  pocket ring that doesn't repeat its start, which cut along a wall; the tests caught it.
+- §6: the material-left display is geometric, not taken from the moves. Pieces that lie
+  wholly within the tool radius of a leg are left out of it.
+- Robustness sweep: dogbones and T-bones on every profile and pocket of the corpus
+  projects. 56 of 60 runs pass the checker. The other four are all `messy_2_lower`,
+  refused by decision 6: a pocket wall runs 0.5 mm from another contour, and a pocket runs
+  past the part's outline.
 
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 4. A round tool can't
 cut a sharp inside corner: it leaves a fillet of its own radius. A square tenon then

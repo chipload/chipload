@@ -1572,6 +1572,33 @@ fn holes_take_the_tools_method_and_generate() {
     );
 }
 
+#[test]
+fn dogbones_are_set_on_a_profile_and_generated() {
+    // docs/specs/dogbones.md §7: the slot of the dogbones project, as round corners first.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/dogbones.chipload")));
+    let edit = app.edit.as_mut().unwrap();
+    edit.remove(2);
+    edit.remove(0);
+    let Operation::Profile(p) = &mut edit.ops[0].op else {
+        panic!("the slot");
+    };
+    p.corners = None;
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let round = app.result.as_ref().unwrap().program.moves.len();
+    let edit = app.edit.as_mut().unwrap();
+    let Operation::Profile(p) = &mut edit.ops[0].op else {
+        panic!("the slot");
+    };
+    p.corners = Some(chipload_job::Corners::Dogbone {
+        max_angle: chipload_job::DEFAULT_CORNER_ANGLE_RAD,
+    });
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    // Two more moves per corner, at every depth pass.
+    let moves = app.result.as_ref().unwrap().program.moves.len();
+    assert_eq!(moves, round + 4 * 2 * 3);
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

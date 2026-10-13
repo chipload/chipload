@@ -46,7 +46,8 @@ it's built (see `CLAUDE.md`).
      Later (§9 there): canned cycles G81/G83 as a post option, DXF points as hole centres,
      a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers, counterbores in one
      operation.
-  4. **Dogbone and T-bone corners**: overcuts in inside corners so slot-together parts fit.
+  4. **Dogbone and T-bone corners** — done 2026-10-13 (docs/specs/dogbones.md, optional
+     `corners` field, no version bump). Later: a choice per corner on the canvas.
   5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
   6. **Material-removal simulation**: the stock as a height map, cut by the toolpath in
      the 3D view (beyond the planned toolpath playback).
@@ -79,6 +80,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Dogbone and T-bone corners** (2026-10-13, docs/specs/dogbones.md): profiles and pockets
+  take `corners` (dogbone or T-bone, up to `max_angle`, default 100°). In every inside
+  corner on the tool's side the ring goes out to a tip from which the tool's edge touches
+  the corner (moved by the clearance) and back: along the bisector, or along the longer
+  wall. Profiles: every ring, the roughing rings `stock` short. Pockets: the wall rings,
+  islands included. Tabs slide off the legs. A leg that would cut into another contour is
+  refused; a corner the tool can't reach gets a note. Golden v18_dogbones.
 - **Holes: drilling and helical boring** (2026-10-13, docs/specs/holes.md, schema 18): a
   Holes operation cuts the selected circles; a drill drills those of its size (±0.1 mm) at
   the centre, in pecks that rise to the safe height and rapid back into the hole to 0.5 mm

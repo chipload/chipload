@@ -23,6 +23,11 @@ fn dot(a: Point, b: Point) -> f64 {
 }
 
 /// Closest point to `p` on the segment a–b.
+/// Distance from `p` to the segment a–b.
+pub(crate) fn point_segment_distance(p: Point, a: Point, b: Point) -> f64 {
+    distance(p, closest_on_segment(p, a, b))
+}
+
 fn closest_on_segment(p: Point, a: Point, b: Point) -> Point {
     let ab = sub(b, a);
     let len2 = dot(ab, ab);

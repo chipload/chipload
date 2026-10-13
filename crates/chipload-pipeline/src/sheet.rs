@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use chipload_core::Point;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
-    Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketStrategy, Side, Spindle, Tool,
-    ToolChange, ToolType, WorkZero, ZZero,
+    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketStrategy, Side, Spindle,
+    Tool, ToolChange, ToolType, WorkZero, ZZero,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -411,6 +411,18 @@ fn kind_text(op: &Operation) -> String {
     };
     if op.clearance() > 0.0 {
         let _ = write!(text, ", leaves {} mm", num(op.clearance()));
+    }
+    // docs/specs/dogbones.md §7.
+    if let Some(corners) = op.corners() {
+        let style = match corners {
+            Corners::Dogbone { .. } => "dogbones",
+            Corners::Tbone { .. } => "T-bones",
+        };
+        let _ = write!(
+            text,
+            ", {style} at corners up to {}\u{b0}",
+            num(corners.max_angle().to_degrees())
+        );
     }
     text
 }

@@ -1104,6 +1104,15 @@ impl Operation {
         }
     }
 
+    /// Dogbones or T-bones (docs/specs/dogbones.md): profiles and pockets only.
+    pub fn corners(&self) -> Option<Corners> {
+        match self {
+            Operation::Profile(p) => p.corners,
+            Operation::Pocket(p) => p.corners,
+            _ => None,
+        }
+    }
+
     pub fn lead(&self) -> Option<Lead> {
         match self {
             Operation::Profile(p) => p.lead,
@@ -1189,7 +1198,33 @@ pub struct ProfileOp {
     /// (docs/specs/finish-and-skin.md). Missing: none.
     #[serde(default)]
     pub skin: Option<Skin>,
+    /// Dogbones or T-bones in the inside corners (docs/specs/dogbones.md). Missing: none.
+    #[serde(default)]
+    pub corners: Option<Corners>,
 }
+
+/// How the tool reaches into the inside corners it would leave round
+/// (docs/specs/dogbones.md): every corner on the tool's side up to `max_angle` (radians,
+/// 0 < angle < 180°).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+pub enum Corners {
+    /// In along the corner's bisector.
+    Dogbone { max_angle: f64 },
+    /// In along the longer wall: the notch is in the shorter one.
+    Tbone { max_angle: f64 },
+}
+
+impl Corners {
+    pub fn max_angle(&self) -> f64 {
+        match *self {
+            Corners::Dogbone { max_angle } | Corners::Tbone { max_angle } => max_angle,
+        }
+    }
+}
+
+/// The largest corner angle new dogbones get: 100°, so 90° corners drawn slightly off count.
+pub const DEFAULT_CORNER_ANGLE_RAD: f64 = 100.0 * std::f64::consts::PI / 180.0;
 
 /// A finishing pass on a profile (docs/specs/finish-and-skin.md).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -1251,6 +1286,9 @@ pub struct PocketOp {
     /// Rings strategy: the corners of every ring but the wall ring are rounded
     /// (docs/specs/pocket-round-corners.md, schema 14). Ignored by the other strategies.
     pub round_corners: bool,
+    /// Dogbones or T-bones in the wall's corners (docs/specs/dogbones.md). Missing: none.
+    #[serde(default)]
+    pub corners: Option<Corners>,
 }
 
 /// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide
@@ -1826,6 +1864,24 @@ impl Job {
                      degrees, got {:.3} degrees",
                     ramp_angle.to_degrees()
                 ));
+            }
+            if let Some(corners) = op.corners() {
+                let angle = corners.max_angle();
+                if !(angle.is_finite() && angle > 0.0 && angle < std::f64::consts::PI) {
+                    problems.push(format!(
+                        "operations.{i}.corners.max_angle: must be more than 0 and less than \
+                         180 degrees, got {:.3} degrees",
+                        angle.to_degrees()
+                    ));
+                }
+                if let Operation::Profile(p) = op
+                    && p.side == Side::On
+                {
+                    problems.push(format!(
+                        "operations.{i}.corners: a profile on the line has no inside corners \
+                         to clear"
+                    ));
+                }
             }
             if let Operation::Holes(HolesOp {
                 method: HoleMethod::Bore { ramp_angle, .. },

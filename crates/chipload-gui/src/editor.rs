@@ -317,6 +317,7 @@ impl EditJob {
                         lead: None,
                         finish: None,
                         skin: None,
+                        corners: None,
                     }),
                     side.is_some(),
                 )
@@ -342,6 +343,7 @@ impl EditJob {
                     lead: None,
                     // New pockets round their inner rings (docs/specs/pocket-round-corners.md).
                     round_corners: true,
+                    corners: None,
                 }),
                 true,
             ),

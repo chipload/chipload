@@ -1409,3 +1409,38 @@ fn a_tool_gets_its_hole_method() {
     assert_eq!(step_down, 3.0);
     assert_eq!(HoleMethod::default_for(ToolType::Vbit, 6.0), None);
 }
+
+// -- dogbones (docs/specs/dogbones.md)
+
+#[test]
+fn corners_round_trip_and_their_values_are_checked() {
+    let job = load_job(&corpus().join("v18/dogbones.chipload")).unwrap();
+    assert!(matches!(
+        job.operations[1].corners(),
+        Some(chipload_job::Corners::Tbone { .. })
+    ));
+    let dir = temp_dir("dogbones");
+    let file = dir.join("d.chipload");
+    chipload_job::save_job(&job, &file).unwrap();
+    assert_eq!(load_job(&file).unwrap(), job);
+    std::fs::remove_dir_all(&dir).unwrap();
+    // A profile without the field loads as round corners.
+    let mut data = raw("v18/dogbones.chipload");
+    data["operations"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("corners");
+    let loaded = parse_job(data, "d").unwrap();
+    assert_eq!(loaded.operations[1].corners(), None);
+    // Out of range, and on the line.
+    let mut data = raw("v18/dogbones.chipload");
+    data["operations"][0]["corners"]["max_angle"] = json!(4.0);
+    data["operations"][1]["side"] = json!("on");
+    data["operations"][1]["clearance"] = json!(0.0);
+    let err = parse_job(data, "d").unwrap_err().to_string();
+    assert!(err.contains("operations.0.corners.max_angle"), "{err}");
+    assert!(
+        err.contains("operations.1.corners: a profile on the line has no inside corners"),
+        "{err}"
+    );
+}

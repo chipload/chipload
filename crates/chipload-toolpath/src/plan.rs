@@ -15,6 +15,9 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
+use crate::corners::{
+    CornerCut, Leg, RingSlot, add_legs, find_corners, unreached_note, without_cleared,
+};
 use crate::geom::PrimIndex;
 use crate::holes::{
     Bore, DRILL_FIT_MM, HoleCut, bore_moves, bore_radius, drill_moves, find_holes, order_holes,
@@ -224,7 +227,8 @@ pub fn plan_job_cancellable(
             Operation::Holes(_) => vec![top_z - end_depth],
         };
         // Leads keep clear of every contour of the drawing (moved with the copy).
-        let everything: Vec<Contour> = if op.lead().is_some() {
+        // Dogbone legs keep clear of them too (docs/specs/dogbones.md §6).
+        let everything: Vec<Contour> = if op.lead().is_some() || op.corners().is_some() {
             contours.iter().map(|c| c.translated(offset)).collect()
         } else {
             Vec::new()
@@ -403,12 +407,34 @@ fn plan_pocket_op(
         },
     )
     .map_err(|err| err.with_context(label))?;
+    let mut plan = plan;
+    let mut corner_notes = Vec::new();
+    if let Some(style) = op.corners {
+        let boundaries = pocket_boundaries(&selection.contours);
+        let cut = CornerCut {
+            style,
+            tool_radius: ctx.tool.diameter / 2.0,
+            clearance: op.clearance,
+            everything: ctx.everything,
+            // Another boundary of the pocket has waste on both sides near a corner.
+            exempt: &boundaries,
+            label,
+        };
+        let mut legs = Vec::new();
+        for piece in &mut plan.pieces {
+            let (more, unreached) = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
+            legs.extend(more);
+            corner_notes.extend(unreached.iter().map(|c| unreached_note(label, c, style)));
+        }
+        plan.left = without_cleared(plan.left, &legs, cut.tool_radius);
+    }
     let mut out = Planned {
         moves: Vec::new(),
         notes: experimental_note(op.strategy)
             .into_iter()
             .chain(plan.notes.iter().cloned())
             .map(|n| format!("{label}: {n}"))
+            .chain(corner_notes)
             .collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
@@ -451,6 +477,112 @@ fn plan_pocket_op(
     }
     out.pockets = plan.pieces;
     Ok(out)
+}
+
+/// Dogbones in a pocket piece's wall rings (docs/specs/dogbones.md §4): the corners of the
+/// piece's boundaries (cut inside) and islands (cut outside); the leads' ranges move with
+/// the added points. Returns the legs and the corners no wall ring reaches.
+fn pocket_legs(
+    piece: &mut PocketPiece,
+    contours: &[&Contour],
+    boundaries: &[usize],
+    cut: &CornerCut,
+) -> Result<(Vec<Leg>, Vec<crate::corners::Corner>), ToolpathError> {
+    let mut corners = Vec::new();
+    for contour in contours
+        .iter()
+        .filter(|c| piece.contour_ids.contains(&c.id))
+    {
+        let is_boundary = boundaries.contains(&contour.id);
+        // A corner inside another of the operation's boundaries is in waste that is cleared
+        // anyway; one inside another island is no corner of the wall.
+        let inside_another = |p: Point| {
+            contours.iter().any(|o| {
+                o.id != contour.id
+                    && boundaries.contains(&o.id) == is_boundary
+                    && crate::corners::encloses(o, p)
+            })
+        };
+        corners.extend(
+            find_corners(contour, is_boundary, cut.style.max_angle())
+                .into_iter()
+                .filter(|c| !inside_another(c.at)),
+        );
+    }
+    let walls: Vec<usize> = (0..piece.rings.len())
+        .filter(|&k| piece.walls.get(k).copied().unwrap_or(false))
+        .collect();
+    let mut slots: Vec<RingSlot> = Vec::new();
+    for (k, ring) in piece.rings.iter_mut().enumerate() {
+        if !walls.contains(&k) {
+            continue;
+        }
+        let range = piece.leads[k].clone().unwrap_or(0..ring.len());
+        slots.push(RingSlot {
+            points: ring,
+            range,
+        });
+    }
+    let added = add_legs(&corners, &mut slots, cut)?;
+    for (count, k) in added.points.iter().zip(&walls) {
+        if let Some(range) = &mut piece.leads[*k] {
+            range.end += count;
+        }
+    }
+    Ok((added.legs, added.unreached))
+}
+
+/// The pocket's boundaries among its contours: those wholly inside an even number of the
+/// others (islands are inside an odd number; crossing contours don't count), as the pocket
+/// builds its areas.
+fn pocket_boundaries(contours: &[&Contour]) -> Vec<usize> {
+    contours
+        .iter()
+        .filter(|contour| {
+            let points = contour.points();
+            let around = contours
+                .iter()
+                .filter(|o| {
+                    o.id != contour.id && points.iter().all(|&p| crate::corners::encloses(o, p))
+                })
+                .count();
+            around % 2 == 0
+        })
+        .map(|c| c.id)
+        .collect()
+}
+
+/// Dogbones in a profile's rings (docs/specs/dogbones.md §4), each contour's corners in its
+/// own rings, reaching the corner moved by `cut.clearance`.
+fn profile_legs(
+    rings: &mut [PathRing],
+    contours: &[&Contour],
+    side: Side,
+    cut: &CornerCut,
+) -> Result<(Vec<Leg>, Vec<crate::corners::Corner>), ToolpathError> {
+    let mut legs = Vec::new();
+    let mut unreached = Vec::new();
+    for contour in contours {
+        let corners = find_corners(contour, side == Side::Inside, cut.style.max_angle());
+        if corners.is_empty() {
+            continue;
+        }
+        let mut slots: Vec<RingSlot> = rings
+            .iter_mut()
+            .filter(|r| r.contour_id == contour.id)
+            .map(|r| {
+                let range = 0..r.points.len();
+                RingSlot {
+                    points: &mut r.points,
+                    range,
+                }
+            })
+            .collect();
+        let added = add_legs(&corners, &mut slots, cut)?;
+        legs.extend(added.legs);
+        unreached.extend(added.unreached);
+    }
+    Ok((legs, unreached))
 }
 
 /// Trochoidal and adaptive clearing are experimental (TODO.md): no longer offered for new
@@ -748,7 +880,7 @@ fn plan_profile_op(
     let radius = ctx.tool.diameter / 2.0;
     // The rings at the wall; with a finishing pass the roughing rings run `stock` farther
     // out (docs/specs/finish-and-skin.md §2).
-    let plan = plan_profile(
+    let mut plan = plan_profile(
         op,
         label,
         &selection.contours,
@@ -773,6 +905,29 @@ fn plan_profile_op(
         )?),
         None => None,
     };
+    let mut rough = rough;
+    // Dogbones go into every ring before the tabs are placed (docs/specs/dogbones.md §4).
+    if let Some(style) = op.corners {
+        let cut = CornerCut {
+            style,
+            tool_radius: radius,
+            clearance: op.clearance,
+            everything: ctx.everything,
+            exempt: &[],
+            label,
+        };
+        let (legs, unreached) = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
+        plan.notes
+            .extend(unreached.iter().map(|c| unreached_note(label, c, style)));
+        plan.left = without_cleared(plan.left, &legs, radius);
+        if let (Some(rough), Some(rough_op)) = (&mut rough, &rough_op) {
+            let rough_cut = CornerCut {
+                clearance: rough_op.clearance,
+                ..cut
+            };
+            profile_legs(&mut rough.rings, &selection.contours, op.side, &rough_cut)?;
+        }
+    }
     let mut out = Planned {
         moves: Vec::new(),
         notes: plan.notes,
