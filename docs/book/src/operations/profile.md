@@ -32,6 +32,17 @@ In the operation's **Cut** settings, right after the step down:
 In the file, `entry` is `{"type": "ramp", "ramp_angle": …}` for the spiral ramp and
 `{"type": "plunge"}` for a straight plunge.
 
+## Holding the part
+
+**Holding** chooses how a part that is cut out stays in place: *none*, *tabs*, *onion
+skin*, or *onion skin and tabs*. Only the chosen kind's settings show.
+
+- **Tabs** keep the part attached at a few points until you cut it free.
+- **An onion skin** holds it all round during the roughing; the last lap then cuts
+  through the skin, and the part is free during that lap.
+- **Both:** the skin holds it all round during the roughing, and the tabs keep it from
+  moving while the last lap cuts through the skin.
+
 ## Tabs
 
 Tabs are bridges of material left at the bottom of the cut, so a part cut out doesn't come
@@ -83,7 +94,8 @@ there are no step marks from the passes. The stock must be less than the tool ra
 - one last lap cuts through the skin.
 
 Small parts stay held until the very end, on a vacuum table or instead of tabs. The skin is
-at most one step down, and thinner than the tab height when there are tabs.
+at most one step down, and thinner than the tab height when there are tabs (*onion skin and
+tabs* under Holding).
 
 ## Dogbones and T-bones
 

@@ -379,50 +379,7 @@ pub(super) fn op_form(
                 corner_rows(ui, index, &mut p.corners, can_clear);
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let tabs_text = p.tabs.as_ref().map_or("none".to_string(), |t| {
-                let mut text = format!(
-                    "{} × {} mm, {} mm high",
-                    t.count,
-                    len(t.width),
-                    len(t.height)
-                );
-                if !t.is_straight() {
-                    text += &format!(", flanks {}°", degrees(t.flank_angle));
-                }
-                text
-            });
-            section(ui, "op-tabs", "Tabs", &tabs_text, |ui| {
-                ui.label("Tabs");
-                let mut has_tabs = p.tabs.is_some();
-                if ui.checkbox(&mut has_tabs, "holding tabs").changed() {
-                    p.tabs = has_tabs.then_some(Tabs {
-                        count: 4,
-                        width: 8.0,
-                        height: 3.0,
-                        flank_angle: Tabs::default_flank(
-                            p.entry,
-                            op_tool.and_then(|t| t.center_cutting),
-                        ),
-                    });
-                }
-                ui.end_row();
-                if let Some(tabs) = &mut p.tabs {
-                    ui.label("  count");
-                    flag(
-                        ui.add(DragValue::new(&mut tabs.count).range(1..=100)),
-                        ui,
-                        "tabs.count",
-                    );
-                    ui.end_row();
-                    ui.label("  width");
-                    flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");
-                    ui.end_row();
-                    ui.label("  height");
-                    flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
-                    ui.end_row();
-                    flank_row(ui, tabs);
-                }
-            });
+            holding_section(ui, p, op_tool);
             finish_section(ui, p);
         }
         Operation::Pocket(p) => {
@@ -1012,21 +969,142 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
     }
 }
 
-/// A profile's finishing pass and onion skin (docs/specs/finish-and-skin.md).
-fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
-    let mut parts = Vec::new();
-    if let Some(finish) = p.finish {
-        parts.push(format!("finish {} mm", len(finish.stock)));
+/// How a profile holds its part (docs/specs/holding.md): none, tabs, an onion skin, or
+/// both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Holding {
+    None,
+    Tabs,
+    Skin,
+    SkinAndTabs,
+}
+
+impl Holding {
+    pub(super) const ALL: [Holding; 4] = [
+        Holding::None,
+        Holding::Tabs,
+        Holding::Skin,
+        Holding::SkinAndTabs,
+    ];
+
+    pub(super) fn of(p: &ProfileOp) -> Holding {
+        match (p.tabs.is_some(), p.skin.is_some()) {
+            (false, false) => Holding::None,
+            (true, false) => Holding::Tabs,
+            (false, true) => Holding::Skin,
+            (true, true) => Holding::SkinAndTabs,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Holding::None => "none",
+            Holding::Tabs => "tabs",
+            Holding::Skin => "onion skin",
+            Holding::SkinAndTabs => "onion skin and tabs",
+        }
+    }
+
+    fn has_tabs(self) -> bool {
+        matches!(self, Holding::Tabs | Holding::SkinAndTabs)
+    }
+
+    fn has_skin(self) -> bool {
+        matches!(self, Holding::Skin | Holding::SkinAndTabs)
+    }
+
+    /// Set `p` to this choice, keeping the tabs or skin it already has where they stay.
+    pub(super) fn apply(self, p: &mut ProfileOp, center_cutting: Option<bool>) {
+        if !self.has_tabs() {
+            p.tabs = None;
+        } else if p.tabs.is_none() {
+            p.tabs = Some(Tabs {
+                count: 4,
+                width: 8.0,
+                height: 3.0,
+                flank_angle: Tabs::default_flank(p.entry, center_cutting),
+            });
+        }
+        if !self.has_skin() {
+            p.skin = None;
+        } else if p.skin.is_none() {
+            p.skin = Some(Skin {
+                thickness: p.step_down.min(0.3),
+            });
+        }
+    }
+}
+
+/// A profile's tabs and onion skin as one choice, with the chosen kind's rows
+/// (docs/specs/holding.md §2).
+fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Option<&Tool>) {
+    let holding = Holding::of(p);
+    let mut summary = holding.name().to_string();
+    if let Some(t) = &p.tabs {
+        summary += &format!(
+            ": {} × {} mm, {} mm high",
+            t.count,
+            len(t.width),
+            len(t.height)
+        );
     }
     if let Some(skin) = p.skin {
-        parts.push(format!("skin {} mm", len(skin.thickness)));
+        summary += &format!(", skin {} mm", len(skin.thickness));
     }
-    let summary = if parts.is_empty() {
-        "none".to_string()
-    } else {
-        parts.join(", ")
-    };
-    section(ui, "op-finish", "Finish and skin", &summary, |ui| {
+    section(ui, "op-holding", "Holding", &summary, |ui| {
+        ui.label("Hold the part").on_hover_text(
+            "How a part cut out stays in place.\n\
+             Tabs: bridges left at the bottom of the cut; the part stays attached until you \
+             cut it free.\n\
+             Onion skin: a thin skin left all round during the roughing, then a last lap \
+             after every ring of the operation cuts through it. The part is free during that \
+             lap: add tabs if the parts must not move then.",
+        );
+        let mut chosen = holding;
+        ComboBox::from_id_salt("holding")
+            .selected_text(holding.name())
+            .show_ui(ui, |ui| {
+                for choice in Holding::ALL {
+                    ui.selectable_value(&mut chosen, choice, choice.name());
+                }
+            });
+        if chosen != holding {
+            chosen.apply(p, op_tool.and_then(|t| t.center_cutting));
+        }
+        ui.end_row();
+        if let Some(tabs) = &mut p.tabs {
+            ui.label("  tab count");
+            flag(
+                ui.add(DragValue::new(&mut tabs.count).range(1..=100)),
+                ui,
+                "tabs.count",
+            );
+            ui.end_row();
+            ui.label("  width");
+            flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");
+            ui.end_row();
+            ui.label("  height");
+            flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
+            ui.end_row();
+            flank_row(ui, tabs);
+        }
+        if let Some(skin) = &mut p.skin {
+            ui.label("  skin thickness").on_hover_text(
+                "Left above the end depth until the last lap: at most one step down, and \
+                 thinner than the tabs",
+            );
+            flag(ui.add(mm(&mut skin.thickness)), ui, "skin.thickness");
+            ui.end_row();
+        }
+    });
+}
+
+/// A profile's finishing pass (docs/specs/finish-and-skin.md).
+fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
+    let summary = p.finish.map_or("none".to_string(), |f| {
+        format!("{} mm left, then one lap", len(f.stock))
+    });
+    section(ui, "op-finish", "Finishing pass", &summary, |ui| {
         ui.label("Finishing pass").on_hover_text(
             "Rough with this much left on the wall, then cut it away in one light lap at \
              full depth: a cleaner wall without step marks. The lap goes down in the \
@@ -1046,23 +1124,6 @@ fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
         if let Some(finish) = &mut p.finish {
             ui.label("  stock");
             flag(ui.add(mm(&mut finish.stock)), ui, "finish.stock");
-            ui.end_row();
-        }
-        ui.label("Onion skin").on_hover_text(
-            "Stop this far above the end depth, and cut through the skin last, after every \
-             ring of the operation: small parts stay held until the end. At most one step \
-             down, and thinner than the tabs.",
-        );
-        let mut on = p.skin.is_some();
-        if flag(ui.checkbox(&mut on, "skin cut last"), ui, "skin").changed() {
-            p.skin = on.then_some(Skin {
-                thickness: p.step_down.min(0.3),
-            });
-        }
-        ui.end_row();
-        if let Some(skin) = &mut p.skin {
-            ui.label("  thickness");
-            flag(ui.add(mm(&mut skin.thickness)), ui, "skin.thickness");
             ui.end_row();
         }
     });

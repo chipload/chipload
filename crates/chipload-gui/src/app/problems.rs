@@ -73,7 +73,7 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         ],
         "op-feeds" => &["feed", "plunge_feed"],
         "op-entry" => &["entry", "lead"],
-        "op-tabs" => &["tabs"],
+        "op-holding" => &["tabs", "skin"],
         "op-clearing" => &["stepover", "strategy"],
         "job-stock" => &["stock"],
         "part-copies" => &["parts"],

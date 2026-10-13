@@ -3065,3 +3065,54 @@ fn a_profiles_spiral_ramp_and_lead_draw_in_its_cut_settings() {
     let fields = super::problems::section_fields("op-profile-cut");
     assert!(fields.contains(&"entry") && fields.contains(&"lead"));
 }
+
+// -- holding the part (docs/specs/holding.md)
+
+#[test]
+fn tabs_and_onion_skin_are_one_choice_and_switching_keeps_what_stays() {
+    use super::forms::Holding;
+    let mut app = lower_part();
+    let i = app
+        .edit
+        .as_ref()
+        .unwrap()
+        .ops
+        .iter()
+        .position(|e| matches!(e.op, Operation::Profile(_)))
+        .unwrap();
+    let profile = |app: &mut ChiploadApp| -> chipload_job::ProfileOp {
+        match &app.edit.as_ref().unwrap().ops[i].op {
+            Operation::Profile(p) => p.clone(),
+            _ => unreachable!(),
+        }
+    };
+    let mut p = profile(&mut app);
+    p.tabs = None;
+    p.skin = None;
+    assert_eq!(Holding::of(&p), Holding::None);
+    Holding::Tabs.apply(&mut p, None);
+    assert!(p.tabs.is_some() && p.skin.is_none());
+    // Tabs changed by hand stay when the skin is added.
+    p.tabs.as_mut().unwrap().count = 6;
+    Holding::SkinAndTabs.apply(&mut p, None);
+    assert_eq!(p.tabs.as_ref().unwrap().count, 6);
+    let skin = p.skin.unwrap().thickness;
+    assert!(skin <= p.step_down && skin < p.tabs.as_ref().unwrap().height);
+    Holding::Skin.apply(&mut p, None);
+    assert!(p.tabs.is_none() && p.skin == Some(chipload_job::Skin { thickness: skin }));
+    Holding::None.apply(&mut p, None);
+    assert_eq!(Holding::of(&p), Holding::None);
+    // Each choice draws, and a tab problem marks the Holding section.
+    app.focus = Focus::Op(i);
+    for holding in Holding::ALL {
+        let mut p = profile(&mut app);
+        holding.apply(&mut p, None);
+        app.edit.as_mut().unwrap().ops[i].op = Operation::Profile(p);
+        app.commit();
+        draw_properties(&mut app);
+    }
+    assert_eq!(
+        super::problems::section_fields("op-holding"),
+        ["tabs", "skin"]
+    );
+}

@@ -97,6 +97,8 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Holding the part** (2026-10-13, docs/specs/holding.md): tabs and the onion skin as one
+  choice (none, tabs, onion skin, both) in a Holding section; Finishing pass on its own.
 - **A tidier profile form** (2026-10-13, docs/specs/profile-form.md): *Spiral ramp* and
   its angle right after the step down; the lead only with straight plunges (an existing
   spiral-plus-lead stays, shown); the profile's Entry and lead section is gone.
