@@ -25,9 +25,10 @@ use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
     shapes_from_dxf_scaled,
 };
+use chipload_job::library::Cutting;
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Job, Machine, Operation, Placement, Shape, Spindle, Stock,
-    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
+    CURRENT_VERSION, Drawing, Entry, Job, Machine, Operation, Placement, PocketOp, Shape, Spindle,
+    Stock, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
@@ -183,6 +184,97 @@ pub fn set_op_rest(job: &mut Job, number: usize, after: Option<i64>) -> Result<(
     };
     pocket.rest = after.map(|after_tool| chipload_job::Rest { after_tool });
     Ok(())
+}
+
+/// A rest pocket for `pocket`, cut with project tool `tool` (docs/specs/rest-machining.md
+/// §10): its shapes, depths and settings, rest after its tool. The feeds and step down are
+/// `cutting`'s (the library's values for the tool) when given, else the pocket's. Refused,
+/// with the reason, for a rest pocket and for a tool that isn't a smaller endmill.
+pub fn rest_pocket_of(
+    pocket: &PocketOp,
+    tools: &[Tool],
+    tool: i64,
+    cutting: Option<&Cutting>,
+) -> Result<PocketOp, String> {
+    if pocket.rest.is_some() {
+        return Err("it is a rest pocket itself; add the rest pocket to the first one".into());
+    }
+    let small = tools
+        .iter()
+        .find(|t| t.id == tool)
+        .ok_or_else(|| format!("the project has no tool {tool}"))?;
+    let large = tools
+        .iter()
+        .find(|t| t.id == pocket.tool)
+        .ok_or_else(|| format!("the project has no tool {}", pocket.tool))?;
+    if small.kind != ToolType::Endmill {
+        return Err(format!("tool {tool} is not an endmill"));
+    }
+    if small.diameter >= large.diameter {
+        return Err(format!(
+            "tool {tool} ({} mm) is not smaller than the pocket's tool {} ({} mm)",
+            small.diameter, large.id, large.diameter
+        ));
+    }
+    let entry = match pocket.entry {
+        Entry::Helix { .. } => Entry::default_helix(small.diameter),
+        Entry::Plunge {} if small.center_cutting == Some(false) => {
+            Entry::default_helix(small.diameter)
+        }
+        other => other,
+    };
+    let name = match pocket.name.as_str() {
+        "" => "Rest".to_string(),
+        name => format!("{name} (rest)"),
+    };
+    let mut rest = PocketOp {
+        name,
+        enabled: true,
+        tool,
+        entry,
+        starts: Vec::new(),
+        lead: None,
+        corners: None,
+        rest: Some(chipload_job::Rest {
+            after_tool: pocket.tool,
+        }),
+        ..pocket.clone()
+    };
+    if let Some(c) = cutting {
+        rest.feed = c.feed;
+        rest.plunge_feed = c.plunge_feed;
+        rest.step_down = c.step_down;
+        rest.stepover = c.stepover;
+    }
+    Ok(rest)
+}
+
+/// Add a rest pocket for pocket `number` (1-based) with tool `tool`, right after it
+/// (docs/specs/rest-machining.md §10). Returns the new operation's index.
+pub fn add_rest_pocket(
+    job: &mut Job,
+    number: usize,
+    tool: i64,
+    cutting: Option<&Cutting>,
+) -> Result<usize, PipelineError> {
+    let count = job.operations.len();
+    let index = number
+        .checked_sub(1)
+        .filter(|&i| i < count)
+        .ok_or_else(|| {
+            PipelineError::Job(format!(
+                "there is no operation {number}; the project has {count}"
+            ))
+        })?;
+    let Operation::Pocket(pocket) = &job.operations[index] else {
+        return Err(PipelineError::Job(format!(
+            "operation {number} is not a pocket; only pockets rest machine"
+        )));
+    };
+    let rest = rest_pocket_of(pocket, &job.tools, tool, cutting)
+        .map_err(|e| PipelineError::Job(format!("operation {number}: {e}")))?;
+    job.operations.insert(index + 1, Operation::Pocket(rest));
+    Ok(index + 1)
 }
 
 /// Write every file of a run, each atomically. Returns the paths written.

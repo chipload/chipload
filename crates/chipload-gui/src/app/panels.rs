@@ -259,8 +259,24 @@ impl ChiploadApp {
         // The tool of the enabled operation before: a line marks each tool change
         // (docs/specs/tool-per-operation.md §8).
         let mut last_tool: Option<i64> = None;
+        let tools = edit.settings.tools.clone();
         for i in 0..count {
             let entry = &mut edit.ops[i];
+            // Smaller endmills a rest pocket for this pocket can use
+            // (docs/specs/rest-machining.md §10).
+            let rest_tools: Vec<&chipload_job::Tool> = match &entry.op {
+                Operation::Pocket(p) if p.rest.is_none() => {
+                    let diameter = tools.iter().find(|t| t.id == p.tool).map(|t| t.diameter);
+                    tools
+                        .iter()
+                        .filter(|t| {
+                            t.kind == chipload_job::ToolType::Endmill
+                                && diameter.is_some_and(|d| t.diameter < d)
+                        })
+                        .collect()
+                }
+                _ => Vec::new(),
+            };
             if entry.op.enabled() {
                 let tool = entry.op.tool();
                 if last_tool.is_some_and(|t| t != tool) {
@@ -306,6 +322,21 @@ impl ChiploadApp {
                 }
                 if ui.button("Duplicate").clicked() {
                     action = Some(CardAction::Duplicate(i));
+                }
+                if !rest_tools.is_empty() {
+                    ui.menu_button("Add rest pocket", |ui| {
+                        for tool in &rest_tools {
+                            let label = format!("T{} · {} mm endmill", tool.id, tool.diameter);
+                            if ui.button(label).clicked() {
+                                action = Some(CardAction::AddRest(i, tool.id));
+                            }
+                        }
+                    })
+                    .response
+                    .on_hover_text(
+                        "A pocket after this one with the same shapes and depths, cut with a \
+                         smaller tool, that clears only what this pocket's tool leaves",
+                    );
                 }
                 if ui.button("Delete").clicked() {
                     action = Some(CardAction::Delete(i));
@@ -374,6 +405,7 @@ impl ChiploadApp {
                 self.focus = Focus::Op(i);
                 self.delete_operation();
             }
+            Some(CardAction::AddRest(i, tool)) => self.add_rest_pocket(i, tool),
             None => {}
         }
     }
@@ -534,6 +566,8 @@ enum CardAction {
     Move(usize, usize),
     Duplicate(usize),
     Delete(usize),
+    /// A rest pocket for pocket i with this tool (docs/specs/rest-machining.md §10).
+    AddRest(usize, i64),
 }
 
 /// The kind's tag colour: pockets and profiles told apart at a glance.

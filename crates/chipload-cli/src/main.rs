@@ -31,8 +31,8 @@ use chipload_pipeline::report::{
 use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, set_op_rest,
-    set_op_tool, update_drawing, write_atomically, write_gcode_files,
+    PipelineError, RunResult, add_rest_pocket, empty_project, load_drawing, new_project, run_job,
+    set_op_rest, set_op_tool, update_drawing, write_atomically, write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -372,6 +372,21 @@ enum OpAction {
         #[arg(long)]
         op: usize,
         /// The tool's id in the project.
+        #[arg(long)]
+        tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Add a rest pocket after a pocket (docs/specs/rest-machining.md §10): its shapes and
+    /// depths, cut with a smaller tool, clearing only what the pocket's tool leaves.
+    AddRest {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The pocket, 1-based as listed.
+        #[arg(long)]
+        op: usize,
+        /// The smaller tool's id in the project.
         #[arg(long)]
         tool: i64,
         /// Where to write the result; default: the project itself.
@@ -1587,6 +1602,46 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 return out.fail(err);
             }
             out.line(format!("Operation {op} now cuts with tool {tool}."));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddRest {
+            project,
+            op,
+            tool,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            // The library's cutting values for the tool, as for a new operation.
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let cutting = job.tools.iter().find(|t| t.id == tool).and_then(|t| {
+                let entry = library.tools.find(t.name.as_deref()?)?;
+                entry.same_values(t).then_some(entry.cutting).flatten()
+            });
+            let index = match add_rest_pocket(&mut job, op, tool, cutting.as_ref()) {
+                Ok(index) => index,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            let from = if cutting.is_some() {
+                "the library's cutting values for the tool"
+            } else {
+                "the pocket's feeds and step down; check them for the smaller tool"
+            };
+            out.line(format!(
+                "Added operation {} ({}), rest after operation {op}'s tool, with {from}.",
+                index + 1,
+                job.operations[index].name()
+            ));
+            out.set("operation", json!(index));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

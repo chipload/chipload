@@ -92,6 +92,7 @@ cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end 
 cargo run -p chipload-cli -- sheet part.chipload -o sheet.html   # the operator's setup sheet alone (HTML)
 cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
 cargo run -p chipload-cli -- op rest part.chipload --op 3 --after-tool 1   # pocket 3 clears only what tool 1 leaves (--none: whole pocket)
+cargo run -p chipload-cli -- op add-rest part.chipload --op 1 --tool 2   # a rest pocket after pocket 1: same shapes and depths, tool 2
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, time estimate and chip load, no G-code
 cargo run -p chipload-cli -- simulate part.chipload -o sim.png   # material-removal simulation: numbers and a shaded top view
 cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also shape add/set/delete, shape copy IDS --dx --dy

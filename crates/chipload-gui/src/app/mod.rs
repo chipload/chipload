@@ -725,6 +725,37 @@ impl ChiploadApp {
         }
     }
 
+    /// Add a rest pocket after pocket `i`, cut with `tool` (docs/specs/rest-machining.md
+    /// §10), and select it.
+    pub fn add_rest_pocket(&mut self, i: usize, tool: i64) {
+        let cutting = self.tool_cutting(tool);
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let Some(Operation::Pocket(pocket)) = edit.ops.get(i).map(|e| &e.op) else {
+            return;
+        };
+        match chipload_pipeline::rest_pocket_of(
+            pocket,
+            &edit.settings.tools,
+            tool,
+            cutting.as_ref(),
+        ) {
+            Ok(rest) => {
+                edit.ops.insert(
+                    i + 1,
+                    crate::editor::EditOp {
+                        op: Operation::Pocket(rest),
+                        side_chosen: true,
+                    },
+                );
+                self.focus = Focus::Op(i + 1);
+                self.commit();
+            }
+            Err(err) => self.error(vec![format!("Could not add a rest pocket: {err}")]),
+        }
+    }
+
     pub fn delete_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {
             edit.remove(i);

@@ -86,6 +86,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Add rest pocket** (2026-10-13, docs/specs/rest-machining.md §10): from a pocket, a rest
+  pocket right after it with the same shapes, depths and settings, a smaller tool, rest
+  after the pocket's tool; library cutting values when the tool has them. GUI: the
+  operation card's right-click menu; CLI: `op add-rest`. Copies at creation (option B);
+  a live link to the operation (A) only if drift turns out to be a nuisance.
 - **Scripting** (2026-10-13, docs/specs/scripting.md; user guide docs/scripting.md):
   - `--json` on every command, with one envelope (`chipload_json`, `ok`, `notes`,
     `written`, and `error` with the problems' paths) and each command's own keys;

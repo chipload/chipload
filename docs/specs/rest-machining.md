@@ -174,3 +174,43 @@ Warnings, which allow generating (decision 4):
 5. **Stored by tool id** (`after_tool`), not a diameter. **Recommended**: it follows the
    tool's edits, and the warning in §5 can look for the earlier pocket. Alternative: a plain
    diameter, for a tool that isn't in the project.
+
+## 10. Addendum: "Add rest pocket" (2026-10-13, built the same day)
+
+User question: rest after an *operation* rather than a tool, inheriting its tool, shapes and
+depths. Two ways were weighed:
+- **A, a live link:** "after operation N". Operations have no stable ids, so this needs
+  ids, a schema bump, inherited read-only fields, and handling of broken links.
+- **B, an action that copies at creation.**
+
+The user chose **B**: no format change. The existing warning (§5) catches a rest pocket that
+drifts from its pocket later. A can still come later if drift turns out to be a nuisance.
+
+**The action:** pocket N plus a smaller project endmill T gives a new pocket, inserted right
+after N, enabled:
+- **Copied from N:** the shapes (`select`), start and end depth, clearance, direction,
+  stepover, keep-tool-down and round corners.
+- **Set:**
+  - `tool` is T;
+  - `rest` is `{after_tool: N's tool}`;
+  - the name is "N's name (rest)", or "Rest" if N has no name.
+- **Feeds and step down:** the library's cutting values for T when it has them, as when an
+  operation is created with a tool (tool-library §3); otherwise N's values, for the user to
+  check.
+- **Entry:** N's, made to fit T:
+  - a helix gets T's default helix (N's radius would be too large for T);
+  - a plunge with a T marked not centre-cutting becomes a helix;
+  - a ramp stays a ramp.
+- **Not copied:** start points and the lead (they belong to N's rings), and dogbones (§5:
+  not combined with rest).
+
+**Refused:**
+- N is not a pocket;
+- N is itself a rest pocket (rest after the rest tool is the user's to set);
+- T is not in the project, not an endmill, or not smaller than N's tool.
+
+**Where:**
+- **GUI:** the operation card's right-click menu, *Add rest pocket ▸*, which lists the
+  project's endmills smaller than the pocket's tool.
+- **CLI:** `chipload op add-rest part.chipload --op 1 --tool 2`. It prints the new
+  operation's number; `--json` gives `operation` (0-based).

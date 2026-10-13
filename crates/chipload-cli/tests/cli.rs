@@ -1165,5 +1165,29 @@ fn op_rest_sets_and_removes_rest_machining() {
     // One of --after-tool and --none.
     let out = chipload(&["op", "rest", path(&project), "--op", "2"]);
     assert_eq!(out.status.code(), Some(2));
+
+    // op add-rest: a copy of pocket 1 with tool 2, after it (§10).
+    let fresh = dir.join("fresh.chipload");
+    let out = chipload(&[
+        "set",
+        path(&project),
+        "operations.0.rest=null",
+        "-o",
+        path(&fresh),
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["op", "add-rest", path(&fresh), "--op", "1", "--tool", "2"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout)
+            .contains("Added operation 2 (Rough (rest)), rest after operation 1's tool"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", path(&fresh), "operations.1.rest"]);
+    assert_eq!(text(&out.stdout), "{\n  \"after_tool\": 1\n}\n");
+    let out = chipload(&["op", "add-rest", path(&fresh), "--op", "2", "--tool", "2"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("it is a rest pocket itself"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
