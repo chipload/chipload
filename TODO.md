@@ -49,6 +49,7 @@ it's built (see `CLAUDE.md`).
   4. **Dogbone and T-bone corners** — done 2026-10-13 (docs/specs/dogbones.md, optional
      `corners` field, no version bump). Later: a choice per corner on the canvas.
   5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
+     Skipped for now (user, 2026-10-13): after the simulation.
   6. **Material-removal simulation**: the stock as a height map, cut by the toolpath in
      the 3D view (beyond the planned toolpath playback).
 
