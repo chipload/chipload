@@ -89,6 +89,8 @@ it's built (see `CLAUDE.md`).
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
+- **Traced pictures with arcs, and centre lines for follow path**
+  (docs/specs/image-arcs-centrelines.md, draft 2026-10-13, schema 20): awaiting review.
 - **Pocket refusals still found by soaking** (2026-10-13, docs/specs/offset-retry.md §6):
   two random pockets in about 4000 are refused ("failed verification", or "an island outside
   every area"), safely, also before 0.14. Replay by adding the line to
