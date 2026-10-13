@@ -67,7 +67,12 @@ impl Part {
     fn new(vertices: &[(f64, f64, f64)]) -> Option<Part> {
         let contour = common::bulged(1, vertices);
         let pline = contour_pline(&contour);
-        if pline.scan_for_self_intersect() || pline.area().abs() < 1.0 {
+        // Contours that fold back on themselves are refused on import
+        // (docs/specs/folded-contours.md), so they never reach an offset.
+        if pline.scan_for_self_intersect()
+            || pline.area().abs() < 1.0
+            || chipload_core::fold::fold_point(&contour.points()).is_some()
+        {
             return None;
         }
         Some(Part {
