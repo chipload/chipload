@@ -16,7 +16,7 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs, finishing laps, onion skins, dogbones), tabs, pockets, V-carving (medial axis via boostvoronoi, ADR 0015), follow paths, holes (drill cycles, helical bores), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
-| `chipload-pipeline` | app services: job + DXF → checked G-code, report text |
+| `chipload-pipeline` | app services: job + DXF → checked G-code, report text, the material-removal simulation (height map) |
 | `chipload-cli` | the `chipload` command line |
 | `chipload-gui` | the egui desktop app (`chipload-gui`) |
 
@@ -92,6 +92,7 @@ cargo run -p chipload-cli -- run part.chipload -o out.nc  # headless end to end 
 cargo run -p chipload-cli -- sheet part.chipload -o sheet.html   # the operator's setup sheet alone (HTML)
 cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, time estimate and chip load, no G-code
+cargo run -p chipload-cli -- simulate part.chipload -o sim.png   # material-removal simulation: numbers and a shaded top view
 cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also shape add/set/delete, shape copy IDS --dx --dy
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker

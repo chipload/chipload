@@ -305,7 +305,9 @@ impl ChiploadApp {
                 });
             });
         }
-        let items = crate::view::legend(&self.scene, self.show_material_left);
+        // The simulation hides the material-left shading (docs/specs/simulation.md §4).
+        let left = self.show_material_left && self.scene.sim.is_none();
+        let items = crate::view::legend(&self.scene, left);
         // Anchored at the bottom: placed by its height last frame (estimated on the first).
         let size_id = egui::Id::new("legend-height");
         let rows = if self.legend_open { items.len() } else { 0 };

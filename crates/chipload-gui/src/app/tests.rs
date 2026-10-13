@@ -1599,6 +1599,47 @@ fn dogbones_are_set_on_a_profile_and_generated() {
     assert_eq!(moves, round + 4 * 2 * 3);
 }
 
+#[test]
+fn the_simulation_follows_the_toggle_and_the_toolpath() {
+    // docs/specs/simulation.md §7 (GUI).
+    let ctx = egui::Context::default();
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/holes.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    // Off by default: nothing computed.
+    assert!(!app.simulating());
+    assert!(app.scene.sim.is_none());
+    app.set_show_simulation(true);
+    assert!(app.wait_for_simulation(&ctx));
+    let sim = app.scene.sim.as_ref().unwrap();
+    assert!(sim.surface.columns * sim.surface.rows <= simulation::SURFACE_CELLS);
+    assert!(sim.surface.columns > 1 && sim.surface.rows > 1);
+    // The 3D surface: a vertex per cell, two triangles per quad.
+    let view = View {
+        tilt: 0.5,
+        ..View::default()
+    };
+    let mesh = sim.surface.mesh(&view, false);
+    assert_eq!(mesh.vertices.len(), sim.surface.columns * sim.surface.rows);
+    assert_eq!(
+        mesh.indices.len(),
+        6 * (sim.surface.columns - 1) * (sim.surface.rows - 1)
+    );
+    assert!(
+        app.report
+            .lines
+            .iter()
+            .any(|l| l.text.starts_with("Simulation:"))
+    );
+    // A new toolpath replaces it; switching off drops it.
+    assert!(app.generate_and_wait());
+    assert!(app.scene.sim.is_none());
+    assert!(app.wait_for_simulation(&ctx));
+    assert!(app.scene.sim.is_some());
+    app.set_show_simulation(false);
+    assert!(app.scene.sim.is_none() && app.simulation.is_none());
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

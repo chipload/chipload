@@ -12,6 +12,7 @@ pub mod recovery;
 pub mod report;
 pub mod shapes;
 pub mod sheet;
+pub mod simulate;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};

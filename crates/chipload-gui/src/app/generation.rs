@@ -247,6 +247,10 @@ impl ChiploadApp {
         self.set_report(report);
         self.result_job = Some(job.clone());
         self.result = Some(result);
+        // A new program: the old simulation goes, a new one starts if switched on.
+        self.result_serial += 1;
+        self.drop_simulation();
+        self.start_simulation();
     }
 
     /// The toolpath and everything shown with it, gone.
@@ -255,6 +259,8 @@ impl ChiploadApp {
         self.scene.tabs.clear();
         self.scene.left.clear();
         self.scene.start_markers.clear();
+        self.result_serial += 1;
+        self.drop_simulation();
     }
 
     /// An error in the report; also in the status bar when the user asked for the run.

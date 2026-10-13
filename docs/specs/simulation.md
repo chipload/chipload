@@ -1,6 +1,22 @@
 # Spec: material-removal simulation
 
 Status: **approved 2026-10-13**, all decisions as recommended (§10).
+Built 2026-10-13. As built:
+- §6: `chipload simulate` plans, posts and checks the project as `run` does (no G-code is
+  written), then simulates. A program the checker refuses isn't simulated.
+- §7: the exactness test compares 1 200 random moves over four tool shapes with a
+  200 000-sample reference. The exact minimum is never above it and never more than 1 µm
+  below it; 1 000 samples are too coarse to resolve 1 µm on a steep cone.
+- §7: the golden hash is over the heights rounded to 1 µm, so the last bit of a platform's
+  trigonometry doesn't change it. Goldens: `expected/sim/` for simple_part_tabs,
+  helix_rings and vcarve_letters.
+- §4, 3D: the surface's vertices are the coarse grid's cell centres. Walls are steep
+  triangles one coarse cell wide, not separate vertical faces. The toolpath lines are
+  drawn over the surface, also where it would hide them.
+- §4: the top-view image is coarsened (lowest height per block) when the grid is wider or
+  taller than the GPU's largest texture. The toggle (View → Show simulation, and the
+  toolbar's "Simulation") is off at start and isn't saved in the settings.
+- §5: the time the simulation took isn't shown anywhere.
 
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 6 (surfacing, 5, is
 skipped for now). Today the canvas shows the toolpath as lines and the material left as

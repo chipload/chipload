@@ -306,6 +306,14 @@ impl ChiploadApp {
                         "Faint: material the tool can't reach (inside corners, narrow slots). \
                          Red: material the toolpath missed.",
                     );
+                let mut sim = self.show_simulation;
+                if ui
+                    .checkbox(&mut sim, "Show simulation")
+                    .on_hover_text(SIMULATION_HINT)
+                    .changed()
+                {
+                    self.set_show_simulation(sim);
+                }
             });
             ui.menu_button("Draw", |ui| {
                 let can_draw = self.can_draw();
@@ -444,6 +452,22 @@ impl ChiploadApp {
                     self.view_3d();
                 }
             });
+            let label = if self.simulating() {
+                "Simulating…"
+            } else {
+                "Simulation"
+            };
+            let response = ui.add_enabled(
+                self.result.is_some(),
+                egui::Button::new(label).selected(self.show_simulation),
+            );
+            if response
+                .on_hover_text(SIMULATION_HINT)
+                .on_disabled_hover_text("Generate the toolpath first")
+                .clicked()
+            {
+                self.set_show_simulation(!self.show_simulation);
+            }
             ui.separator();
             let can_draw = self.can_draw();
             for (tool, label, hint) in [
@@ -546,3 +570,7 @@ impl ChiploadApp {
         });
     }
 }
+
+/// What the simulation toggle does (docs/specs/simulation.md §4).
+const SIMULATION_HINT: &str = "Show the stock as the program leaves it: every move cut with \
+    the tool's shape (darker is deeper; red is below the stock). Display only.";

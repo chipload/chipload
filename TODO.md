@@ -50,8 +50,11 @@ it's built (see `CLAUDE.md`).
      `corners` field, no version bump). Later: a choice per corner on the canvas.
   5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
      Skipped for now (user, 2026-10-13): after the simulation.
-  6. **Material-removal simulation**: the stock as a height map, cut by the toolpath in
-     the 3D view (beyond the planned toolpath playback).
+  6. **Material-removal simulation** — done 2026-10-13 (docs/specs/simulation.md). Later:
+     playback (a slider up to a move), comparing with the design (gouges), holders and
+     flute length.
+
+  The user will test features 1–4 and 6 and give feedback (2026-10-13).
 
 - **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's
   decision). No longer offered as pocket strategies (the GUI offers rings only); projects
@@ -81,6 +84,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Material-removal simulation** (2026-10-13, docs/specs/simulation.md): the stock as a
+  height map cut by every planned move with its tool's shape (flat endmill, V-bit cone with
+  its tip, drill with a 118° point), the lowest point per cell worked out exactly. View →
+  Show simulation (and the toolbar's "Simulation") shows it as a shaded image in top view
+  and a shaded surface in 3D, computed in the background after each generation; the report
+  gets the volume removed and the deepest cut. `chipload simulate` prints the numbers and
+  writes a PNG (`png` crate, already in the tree). Display only.
 - **Dogbone and T-bone corners** (2026-10-13, docs/specs/dogbones.md): profiles and pockets
   take `corners` (dogbone or T-bone, up to `max_angle`, default 100°). In every inside
   corner on the tool's side the ring goes out to a tip from which the tool's edge touches

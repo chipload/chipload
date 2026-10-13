@@ -52,6 +52,7 @@ mod problems;
 mod recovery;
 mod report;
 mod shortcuts;
+mod simulation;
 #[cfg(test)]
 mod tests;
 mod user_library;
@@ -146,6 +147,14 @@ pub struct ChiploadApp {
     context_pick: Option<usize>,
     /// View > Show material left (docs/specs/material-left.md).
     pub show_material_left: bool,
+    /// View > Show simulation (docs/specs/simulation.md §4).
+    pub show_simulation: bool,
+    sim_run: Option<simulation::SimRun>,
+    /// The last simulation, and its image's texture (kept alive while shown).
+    pub simulation: Option<chipload_pipeline::simulate::Simulation>,
+    sim_texture: Option<egui::TextureHandle>,
+    /// Counts the results shown: a simulation is for one of them.
+    result_serial: u64,
     /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
     pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
@@ -240,6 +249,11 @@ impl Default for ChiploadApp {
             selection: CanvasSelection::Nothing,
             context_pick: None,
             show_material_left: true,
+            show_simulation: false,
+            sim_run: None,
+            simulation: None,
+            sim_texture: None,
+            result_serial: 0,
             three_d: false,
             sketch: None,
             measure: None,
@@ -1111,6 +1125,9 @@ impl eframe::App for ChiploadApp {
         }
         if self.generation.is_some() {
             self.poll_generation();
+            ctx.request_repaint_after(generation::POLL);
+        }
+        if self.poll_simulation(&ctx) {
             ctx.request_repaint_after(generation::POLL);
         }
         if !busy

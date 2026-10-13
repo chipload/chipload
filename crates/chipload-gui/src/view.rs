@@ -495,6 +495,88 @@ fn lines_3d(program: &Program) -> Vec<(Point3, Point3, bool)> {
     lines
 }
 
+/// The simulated stock, ready to paint (docs/specs/simulation.md §4): an image for the top
+/// view (its texture kept alive by the app) and a coarser surface for 3D.
+#[derive(Debug, Clone)]
+pub struct SimLayer {
+    pub texture: eframe::egui::TextureId,
+    /// The grid's lower left and upper right corners, drawing coordinates.
+    pub min: Point,
+    pub max: Point,
+    pub surface: SimSurface,
+}
+
+/// A height map as a surface: one vertex per cell centre, row 0 at the lowest Y.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SimSurface {
+    pub origin: Point,
+    pub cell: f64,
+    pub columns: usize,
+    pub rows: usize,
+    pub heights: Vec<f32>,
+    pub colors: Vec<Color32>,
+}
+
+impl SimSurface {
+    /// The surface as projected triangles, far quads first so near ones cover them.
+    pub fn mesh(&self, view: &View, fade: bool) -> Mesh {
+        let mut mesh = Mesh::default();
+        if self.columns < 2 || self.rows < 2 {
+            return mesh;
+        }
+        let tint = if fade { GHOST_FADE } else { 1.0 };
+        mesh.reserve_vertices(self.columns * self.rows);
+        for j in 0..self.rows {
+            for i in 0..self.columns {
+                let k = j * self.columns + i;
+                let x = self.origin.0 + (i as f64 + 0.5) * self.cell;
+                let y = self.origin.1 + (j as f64 + 0.5) * self.cell;
+                let at = view.to_screen3((x, y, f64::from(self.heights[k])));
+                mesh.colored_vertex(at, self.colors[k].gamma_multiply(tint));
+            }
+        }
+        // Depth into the screen grows with x·sin(turn) + y·cos(turn) (View::camera).
+        let (sin_t, cos_t) = view.turn.sin_cos();
+        let mut quads: Vec<(f64, u32)> = Vec::with_capacity((self.columns - 1) * (self.rows - 1));
+        for j in 0..self.rows - 1 {
+            for i in 0..self.columns - 1 {
+                let depth = i as f64 * sin_t + j as f64 * cos_t;
+                // The grid's size is far within u32 (at most 250 000 cells).
+                quads.push((depth, (j * self.columns + i) as u32));
+            }
+        }
+        quads.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
+        mesh.reserve_triangles(2 * quads.len());
+        let columns = self.columns as u32;
+        for (_, k) in quads {
+            let (a, b, c, d) = (k, k + 1, k + columns + 1, k + columns);
+            mesh.add_triangle(a, b, c);
+            mesh.add_triangle(a, c, d);
+        }
+        mesh
+    }
+}
+
+impl SimLayer {
+    fn paint(&self, painter: &Painter, view: &View, fade: bool) {
+        if view.is_top() {
+            let rect = Rect::from_two_pos(
+                view.to_screen((self.min.0, self.max.1)),
+                view.to_screen((self.max.0, self.min.1)),
+            );
+            let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
+            let tint = if fade {
+                Color32::WHITE.gamma_multiply(GHOST_FADE)
+            } else {
+                Color32::WHITE
+            };
+            painter.image(self.texture, rect, uv, tint);
+        } else {
+            painter.add(Shape::mesh(self.surface.mesh(view, fade)));
+        }
+    }
+}
+
 /// Everything on the canvas, in world coordinates.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
@@ -524,6 +606,8 @@ pub struct Scene {
     /// Where the copies of the part are, as shifts of the drawing (copy 1 excluded): drawn
     /// faded, never picked (docs/specs/copies-grid.md).
     pub copies: Vec<Point>,
+    /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
+    pub sim: Option<SimLayer>,
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
     /// part A); the focused operation's are shown and can be dragged.
     pub start_markers: Vec<StartMarker>,
@@ -714,7 +798,14 @@ impl Scene {
                 Stroke::new(2.0, AXIS_Z),
             );
         }
-        self.paint_left(painter, view, highlight);
+        // The simulation shows what the material-left shading shows, in more detail.
+        match &self.sim {
+            Some(sim) => {
+                let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);
+                sim.paint(painter, view, fade);
+            }
+            None => self.paint_left(painter, view, highlight),
+        }
 
         for &(dx, dy) in &self.copies {
             for c in &self.contours {

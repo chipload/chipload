@@ -128,6 +128,25 @@ enum Command {
         #[arg(long)]
         no_sheet: bool,
     },
+    /// Simulate the material a project's program removes (docs/specs/simulation.md): print
+    /// the numbers and write a shaded top view (PNG). The job is generated and checked as by
+    /// `run`; no G-code is written.
+    Simulate {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Where to write the image (.png); default: the project's name with `-sim.png`.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Cell size, mm (default: automatic, from the stock's size).
+        #[arg(long)]
+        cell: Option<f64>,
+        /// Print the numbers only.
+        #[arg(long)]
+        no_image: bool,
+        /// Also print a hash of the heights (for regression tests).
+        #[arg(long, hide = true)]
+        hash: bool,
+    },
     /// Write a project's setup sheet for the operator (HTML), without the G-code. The job is
     /// generated and checked as by `run`.
     Sheet {
@@ -470,6 +489,13 @@ fn main() -> ExitCode {
             gcode,
             tool_change,
         } => sheet(&project, &output, gcode.as_deref(), tool_change),
+        Command::Simulate {
+            project,
+            output,
+            cell,
+            no_image,
+            hash,
+        } => simulate(&project, output.as_deref(), cell, !no_image, hash),
         Command::Render { program, post } => render(&program, &post),
         Command::Check {
             gcode,
@@ -1087,6 +1113,62 @@ fn sheet(
         return ExitCode::from(EXIT_FAILED);
     }
     println!("Wrote {}", output.display());
+    ExitCode::SUCCESS
+}
+
+fn simulate(
+    project: &Path,
+    output: Option<&Path>,
+    cell: Option<f64>,
+    image: bool,
+    hash: bool,
+) -> ExitCode {
+    let (job, result) = match load_and_run(project, None) {
+        Ok(run) => run,
+        Err(code) => return code,
+    };
+    let sim = match chipload_pipeline::simulate::simulate(
+        &job,
+        &result.program,
+        &result.groups,
+        cell,
+        &chipload_pipeline::Cancel::new(),
+    ) {
+        Ok(sim) => sim,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    for line in sim.lines() {
+        println!("{line}");
+    }
+    if hash {
+        println!("Heights hash: {:016x}", sim.heights_hash());
+    }
+    if image {
+        let path = output.map_or_else(
+            || {
+                let stem = project
+                    .file_stem()
+                    .map_or_else(|| "part".into(), |s| s.to_string_lossy().into_owned());
+                project.with_file_name(format!("{stem}-sim.png"))
+            },
+            Path::to_path_buf,
+        );
+        let bytes = match sim.png(chipload_pipeline::simulate::PRINT_PALETTE) {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                eprintln!("error: {err}");
+                return ExitCode::from(EXIT_FAILED);
+            }
+        };
+        if let Err(err) = std::fs::write(&path, bytes) {
+            eprintln!("error: cannot write {}: {err}", path.display());
+            return ExitCode::from(EXIT_FAILED);
+        }
+        println!("Wrote {}", path.display());
+    }
     ExitCode::SUCCESS
 }
 

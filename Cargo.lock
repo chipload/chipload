@@ -780,6 +780,7 @@ dependencies = [
  "chipload-job",
  "chipload-post",
  "chipload-toolpath",
+ "png",
  "proptest",
  "serde_json",
  "sha2",
