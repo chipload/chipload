@@ -1217,3 +1217,52 @@ mod cycle_time {
         assert!(lines.iter().any(|l| l.starts_with("  File 2: ")));
     }
 }
+
+// -- parts (docs/specs/parts.md §6)
+
+#[test]
+fn the_report_gives_each_parts_time_over_its_operations() {
+    let job = load_job(&corpus_path("jobs/v22/two_parts.chipload")).unwrap();
+    let result = run(&job);
+    let lines =
+        chipload_pipeline::estimate::estimate_lines(&job, &result.estimate, result.files.len() > 1);
+    let part = |n: usize| {
+        lines
+            .iter()
+            .position(|l| l.starts_with(&format!("  Part {n} ")))
+    };
+    let (one, two) = (part(1).unwrap(), part(2).unwrap());
+    assert!(
+        lines[one].starts_with("  Part 1 (simple part): "),
+        "{lines:?}"
+    );
+    assert!(lines[two].starts_with("  Part 2 (part B): "), "{lines:?}");
+    // Each part's operations under it.
+    assert!(
+        lines[one + 1].starts_with("    Operation 1 (Holes): "),
+        "{lines:?}"
+    );
+    assert!(
+        lines[two + 1].starts_with("    Operation 4 (Outline B): "),
+        "{lines:?}"
+    );
+    // One part: as before parts.
+    let one_part = run(&job_of_one_part());
+    let lines =
+        chipload_pipeline::estimate::estimate_lines(&job_of_one_part(), &one_part.estimate, false);
+    assert!(lines.iter().all(|l| !l.contains("Part ")), "{lines:?}");
+    assert!(
+        lines.iter().any(|l| l.starts_with("  Operation 1")),
+        "{lines:?}"
+    );
+}
+
+fn job_of_one_part() -> Job {
+    job(json!({}))
+}
+
+fn corpus_path(rel: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus")
+        .join(rel)
+}

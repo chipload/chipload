@@ -151,13 +151,42 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
         duration_text(estimate.rapid),
         duration_text(estimate.spindle)
     )];
+    // With two parts or more, each part's time over its operations' (docs/specs/parts.md
+    // §6); one part reads as before parts.
+    let several_parts = job.parts.len() > 1;
+    let mut part_shown: Option<u64> = None;
     for &(index, seconds) in &estimate.operations {
-        let name = job.operations.get(index).map_or("", |op| op.name());
-        let label = match name {
+        let Some(op) = job.operations.get(index) else {
+            continue;
+        };
+        if several_parts && part_shown != Some(op.part()) {
+            part_shown = Some(op.part());
+            if let Some((number, part)) = job
+                .parts
+                .iter()
+                .enumerate()
+                .find(|(_, p)| p.id == op.part())
+            {
+                let total: f64 = estimate
+                    .operations
+                    .iter()
+                    .filter(|(i, _)| job.operations.get(*i).is_some_and(|o| o.part() == part.id))
+                    .map(|(_, s)| s)
+                    .sum();
+                lines.push(format!(
+                    "  Part {} ({}): {}",
+                    number + 1,
+                    part.name,
+                    duration_text(total)
+                ));
+            }
+        }
+        let label = match op.name() {
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         };
-        lines.push(format!("  {label}: {}", duration_text(seconds)));
+        let indent = if several_parts { "    " } else { "  " };
+        lines.push(format!("{indent}{label}: {}", duration_text(seconds)));
     }
     if several_files {
         for (i, seconds) in estimate.groups.iter().enumerate() {

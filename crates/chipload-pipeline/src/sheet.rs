@@ -346,10 +346,32 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
         "<div class=\"scroll\"><table class=\"ops\">\n<tr><th>#</th><th>Operation</th>\
          <th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>\n",
     );
+    // With two parts or more, a heading row where each part starts (docs/specs/parts.md §6).
+    let mut part_shown: Option<u64> = None;
     for &index in operations {
         let Some(op) = job.operations.get(index) else {
             continue;
         };
+        if job.parts.len() > 1
+            && part_shown != Some(op.part())
+            && let Some((number, part)) = job
+                .parts
+                .iter()
+                .enumerate()
+                .find(|(_, p)| p.id == op.part())
+        {
+            part_shown = Some(part.id);
+            let copies = match part.count() {
+                1 => String::new(),
+                n => format!(", {n} copies"),
+            };
+            let _ = writeln!(
+                html,
+                "<tr class=\"part\"><th colspan=\"7\">Part {}: {}{copies}</th></tr>",
+                number + 1,
+                escape(&part.name)
+            );
+        }
         let name = match op.name() {
             "" => format!("Operation {}", index + 1),
             name => name.to_string(),

@@ -3,8 +3,9 @@
 ## Cycle time
 
 After generating, the report gives the program's estimated time, split into cutting,
-rapids and spindle start-up, with one line per operation. With several tools, it also
-gives a time per file and the number of tool changes. Hovering an operation in the
+rapids and spindle start-up, with one line per operation. With several
+[parts](../operations/parts.md), each part's time comes first, with its operations under it.
+With several tools, it also gives a time per file and the number of tool changes. Hovering an operation in the
 Browser shows its time, and so does the setup sheet.
 
 - **Feeds as programmed:** the estimate uses the programmed feeds, and moves at the full

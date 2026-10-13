@@ -9,7 +9,7 @@ it's built (see `CLAUDE.md`).
   1. The format, the migration, the planner (part by part, copies per part, overlap
      between parts, a comment where each part starts) and the command line (`part …`,
      `op part`, `copies --part`). **Done.**
-  2. The setup sheet and the report: parts listed with their operations, times by part.
+  2. The setup sheet and the report: parts listed with their operations, times by part. **Done.**
   3. The app: Parts in the Browser, the active part, part properties with the copies.
 
 ## State to remember (2026-10-12)

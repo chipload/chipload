@@ -27,7 +27,7 @@ fn info(project: &str) -> SheetInfo {
 }
 
 /// (golden name, frozen project, G-code output as given to `run -o`).
-const GOLDEN: [(&str, &str, &str); 11] = [
+const GOLDEN: [(&str, &str, &str); 12] = [
     // Two files, one per tool.
     ("v11_two_tools", "jobs/v11/two_tools.chipload", "part.nc"),
     // The same in one file with M6.
@@ -71,6 +71,8 @@ const GOLDEN: [(&str, &str, &str); 11] = [
         "part.nc",
     ),
     ("v21_two_dxfs", "jobs/v21/two_dxfs.chipload", "part.nc"),
+    // Two parts (docs/specs/parts.md §6): each part named over its operations.
+    ("v22_two_parts", "jobs/v22/two_parts.chipload", "part.nc"),
 ];
 
 #[test]
