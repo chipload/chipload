@@ -24,6 +24,16 @@ echo "Built the guide for Chipload $version: target/book/index.html"
 if [ "${1:-}" = "zip" ]; then
     zip_path="target/chipload-guide-$version.zip"
     rm -f "$zip_path"
-    (cd target && cp -r book "chipload-guide-$version" && zip -qr "chipload-guide-$version.zip" "chipload-guide-$version" && rm -rf "chipload-guide-$version")
+    (
+        cd target
+        rm -rf "chipload-guide-$version"
+        cp -r book "chipload-guide-$version"
+        if command -v zip > /dev/null; then
+            zip -qr "chipload-guide-$version.zip" "chipload-guide-$version"
+        else
+            python3 -m zipfile -c "chipload-guide-$version.zip" "chipload-guide-$version"
+        fi
+        rm -rf "chipload-guide-$version"
+    )
     echo "Wrote $zip_path"
 fi
