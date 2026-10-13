@@ -89,6 +89,8 @@ it's built (see `CLAUDE.md`).
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
+- **Several DXFs and pictures per project, the Drawing panel, hiding, hide the toolpath**
+  (docs/specs/drawing-sources.md, draft 2026-10-13, schema 21): awaiting review.
 - **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
   against thousands before; find which pictures are slow (centre lines on noise?) and
   whether a user could hit it.
