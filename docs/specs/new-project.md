@@ -2,6 +2,8 @@
 
 Status: **implemented 2026-10-10.** Approved with all decisions as recommended (§5).
 
+Guide: docs/book/src/drawings/update.md.
+
 User request (2026-10-10): "Start a project without importing a DXF (draw first, import DXF
 geometry later)."
 

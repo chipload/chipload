@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (Q1–Q6 in §8: all as recommended).
 
+Guide: docs/book/src/drawings/shapes.md.
+
 User request (2026-10-10): draw rectangles, polylines and circles directly in the app, and
 adjust their defining values in the UI after creating them:
 - circle: centre point and radius;

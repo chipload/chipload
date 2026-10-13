@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–5 as recommended). Item 7 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
+Guide: docs/book/src/checking/time.md.
+
 ## 1. Why
 
 Before cutting, the user wants to know how long the job takes: to plan the day, to choose

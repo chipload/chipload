@@ -22,6 +22,8 @@ Built 2026-10-13. As built:
   Points where a stretch starts are now always kept (existing programs don't change: their
   stretches all meet at the ring's start).
 
+Guide: docs/book/src/operations/profile.md.
+
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 2.
 
 - **Finishing pass:** the profile roughs with a little stock left on the wall, then one light

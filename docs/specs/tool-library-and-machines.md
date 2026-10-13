@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (decisions 1–10 as recommended). ADR 0014.
 
+Guide: docs/book/src/library/tools.md, docs/book/src/library/machines.md.
+
 User request (2026-10-10): save a tool library per user, and machine preferences (XYZ
 travel etc.), so they aren't entered again for every project. "Give a suggestion for a
 simple and robust solution."

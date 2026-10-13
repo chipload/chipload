@@ -280,6 +280,33 @@ impl ChiploadApp {
         self.playback = Some(next);
     }
 
+    /// Set up what the user guide's screenshots show (docs/specs/user-guide.md §3), from
+    /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d` and
+    /// `half` (the playback half way). Only in builds made for screenshots.
+    #[cfg(feature = "screenshots")]
+    pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
+        let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
+        // The legend would cover part of the canvas.
+        self.legend_open = false;
+        if steps.contains(&"simulation") {
+            self.show_simulation = true;
+        }
+        if steps.contains(&"generate") || steps.contains(&"simulation") {
+            self.generate_and_wait();
+        }
+        if steps.contains(&"simulation") {
+            self.wait_for_simulation(ctx);
+        }
+        if steps.contains(&"3d") {
+            self.view_3d();
+        }
+        if steps.contains(&"half")
+            && let Some(playback) = &mut self.playback
+        {
+            playback.set_time(playback.total() / 2.0);
+        }
+    }
+
     /// Put the playback's state into the scene: the progress, and the stock as cut so far
     /// (only when the moves done change).
     pub(super) fn sync_playback(&mut self, ctx: &egui::Context) {

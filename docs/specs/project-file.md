@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-09** (answers to Q1–Q2 folded in)
 
+Guide: docs/book/src/drawings/update.md.
+
 **Superseded in part (2026-10-10):** jobs from before projects (schema 1-3) are no longer
 read, so the external-drawing mode, `handles` selectors, *Embed drawing* and
 `chipload import --into` (§1 `external`, §3, D3, D5) were removed in schema v6. Projects

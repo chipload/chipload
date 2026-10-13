@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–8 as recommended). Item 5 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
+Guide: docs/book/src/posts.md.
+
 ## 1. Why
 
 Chipload ships one post-processor, GRBL, and the pipeline only loads built-in posts,

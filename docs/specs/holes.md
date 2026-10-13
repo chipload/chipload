@@ -18,6 +18,8 @@ Built 2026-10-13. As built:
   highlighted (that rule is the planner's, the GUI doesn't repeat it), and the note says
   so.
 
+Guide: docs/book/src/operations/holes.md.
+
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 3. Today a round hole
 is cut as an inside profile: a plunge or ramp, then laps round the hole in depth steps. That
 is slow for small holes, and a drill can't be used at all (every operation refuses a

@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-11**, with all decisions as recommended (§7).
 
+Guide: docs/book/src/drawings/placement.md.
+
 User report (2026-10-11): in a project started empty, with shapes drawn on the stock, an
 imported DXF lands wherever its author drew it, and neither it nor the stock can be moved.
 

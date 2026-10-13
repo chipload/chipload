@@ -4,6 +4,8 @@ Status: **approved 2026-10-11**, with all decisions as recommended (§9). Revise
 approval: both one file per tool and one file with tool changes, as a machine setting (user
 request). Built as described, with the differences in §11.
 
+Guide: docs/book/src/concepts/tools.md.
+
 User request (2026-10-11): each operation picks its own tool, with a tool change between
 them, instead of one tool per project. It is also what the V-carve flat floor needs (a V-bit
 for the walls, an endmill for the floor; TODO.md, Later).

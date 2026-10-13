@@ -25,6 +25,8 @@ Built 2026-10-13. As built:
   refused by decision 6: a pocket wall runs 0.5 mm from another contour, and a pocket runs
   past the part's outline.
 
+Guide: docs/book/src/operations/profile.md, docs/book/src/operations/pocket.md.
+
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 4. A round tool can't
 cut a sharp inside corner: it leaves a fillet of its own radius. A square tenon then
 doesn't go into a mortise cut with a profile or pocket, and slot-together parts don't fit.

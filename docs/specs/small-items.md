@@ -5,6 +5,8 @@ pass (TODO.md, approved 2026-10-12): a chip load readout, drag and drop, a measu
 paste and mirror of drawn shapes, and Help → Keyboard shortcuts. Each lands as its own
 commit, in this order: shortcuts, drag and drop, measure, copy/paste/mirror, chip load.
 
+Guide: docs/book/src/checking/time.md.
+
 ## 1. Help → Keyboard shortcuts
 
 A window listing every shortcut and mouse action, grouped as File, Edit, Generate, View,

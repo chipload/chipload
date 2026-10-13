@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–5 as recommended). User request 2026-10-12. Applies to the
 **rings** strategy only (adaptive has its own smoothing).
 
+Guide: docs/book/src/operations/pocket.md.
+
 ## 1. Why
 
 A rings pocket cuts offsets of the pocket, wall ring first at the tool radius r, then

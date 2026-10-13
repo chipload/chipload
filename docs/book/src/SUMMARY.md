@@ -9,42 +9,42 @@
 
 # Concepts
 
-- [Units and coordinates]()
-- [Stock and work zero]()
-- [Depths and clearance]()
-- [Side and direction]()
-- [Tools and tool changes]()
-- [The checker]()
+- [Units and coordinates](concepts/units.md)
+- [Stock and work zero](concepts/stock.md)
+- [Depths and clearance](concepts/depths.md)
+- [Side and direction](concepts/side-direction.md)
+- [Tools and tool changes](concepts/tools.md)
+- [The checker](concepts/checker.md)
 
 # Drawings
 
-- [Importing a DXF]()
-- [Placing the drawing]()
-- [Updating from a new DXF]()
-- [Drawing shapes]()
-- [Copies]()
+- [Importing a DXF](drawings/import.md)
+- [Placing the drawing](drawings/placement.md)
+- [Updating from a new DXF](drawings/update.md)
+- [Drawing shapes](drawings/shapes.md)
+- [Copies](drawings/copies.md)
 
 # Operations
 
-- [Profile]()
-- [Pocket]()
-- [Rest machining]()
-- [V-carve]()
-- [Follow path]()
-- [Holes]()
+- [Profile](operations/profile.md)
+- [Pocket](operations/pocket.md)
+- [Rest machining](operations/rest.md)
+- [V-carve](operations/vcarve.md)
+- [Follow path](operations/path.md)
+- [Holes](operations/holes.md)
 
 # Tools, machines and posts
 
-- [Tool library]()
-- [Machine profiles]()
+- [Tool library](library/tools.md)
+- [Machine profiles](library/machines.md)
 - [Post-processors](posts.md)
 
 # Before cutting
 
-- [Problems]()
-- [3D view, simulation and playback]()
-- [Cycle time and chip load]()
-- [Setup sheet]()
+- [Problems](checking/problems.md)
+- [3D view, simulation and playback](checking/simulation.md)
+- [Cycle time and chip load](checking/time.md)
+- [Setup sheet](checking/sheet.md)
 
 # Scripting
 
@@ -60,4 +60,4 @@
 
 # Help
 
-- [Troubleshooting]()
+- [Troubleshooting](troubleshooting.md)

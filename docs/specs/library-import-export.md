@@ -3,6 +3,8 @@
 Status: approved (2026-10-12). Builds on docs/specs/tool-library-and-machines.md
 (ADR 0014). User request 2026-10-11: moving to a new computer, backups.
 
+Guide: docs/book/src/library/tools.md, docs/book/src/library/machines.md.
+
 ## 1. The idea in one paragraph
 
 **Export** writes the library's tools (or machine profiles) to a file the user chooses.

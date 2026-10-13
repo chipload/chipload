@@ -47,6 +47,11 @@ fn main() -> ExitCode {
             if let Some(file) = &file {
                 app.open(file);
             }
+            // The user guide's screenshots (packaging/docs/screenshots.sh).
+            #[cfg(feature = "screenshots")]
+            if let Ok(steps) = std::env::var("CHIPLOAD_SCREENSHOT_SETUP") {
+                app.screenshot_setup(&cc.egui_ctx, &steps);
+            }
             Ok(Box::new(app))
         }),
     );

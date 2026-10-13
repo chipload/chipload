@@ -16,7 +16,7 @@ outside profile. The same steps follow in the app and on the command line.
    - the GRBL post, a safe height of 5 mm;
    - a 6 mm endmill at 18 000 rpm.
 
-   With a [tool library](reference/tools-file.md) and machine profiles set up, your
+   With a [tool library](library/tools.md) and [machine profiles](library/machines.md) set up, your
    defaults come instead. Set the real stock thickness now: depths are measured from its
    top.
 3. **Select what to cut:**
@@ -37,6 +37,8 @@ outside profile. The same steps follow in the app and on the command line.
      dashed, and each operation's number sits at its first plunge.
    - Problems show in red on the field they're about.
    - Warnings appear in the report.
+
+   ![A generated toolpath: the operations on the left, the canvas, the job settings on the right and the report below](images/toolpath.png)
 6. **Look at it:** **3D** shows the toolpath at its real depths. *View > Show simulation*
    shows the stock as cut, and the slider under the canvas plays the program back.
 7. **Export:** *File > Export G-code…* (Ctrl+E).

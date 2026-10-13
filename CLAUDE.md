@@ -132,7 +132,8 @@ Run the relevant tests after every change. Do not report a task done until they 
   updates its guide page. The reference pages (`docs/book/src/reference/`) are generated
   (`chipload reference …`) and checked by `cargo test -p chipload-cli --test guide`;
   regenerate them with `CHIPLOAD_UPDATE_GOLDEN=1`. Build the site with
-  `packaging/docs/build-book.sh` (mdBook 0.5.4).
+  `packaging/docs/build-book.sh` (mdBook 0.5.4); renew its screenshots with
+  `packaging/docs/screenshots.sh` (the GUI's `screenshots` feature).
 
 ## Safety rules for toolpath and G-code code
 

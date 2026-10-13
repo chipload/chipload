@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-09** (answers to Q1–Q4 in §8: all as recommended).
 
+Guide: docs/book/src/operations/pocket.md.
+
 User request (2): material the cutter can't reach, such as sharp inside corners or narrow
 necks, is "not an error but could be highlighted discretely".
 

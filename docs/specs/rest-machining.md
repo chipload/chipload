@@ -11,6 +11,8 @@ Built 2026-10-13. As built:
   than a DXF: a pocket with an 8 mm slot and a round island, 12 mm then a 4 mm rest pocket.
   The result test runs the material-removal simulation (pipeline `tests/simulate.rs`).
 
+Guide: docs/book/src/operations/rest.md.
+
 Approved plan (2026-10-13, ADR 0017), item 2. A large tool clears a pocket fast and leaves
 material where it doesn't fit: inside corners rounded to its radius, and slots and necks
 narrower than it. A **rest pocket** with a smaller tool cuts only that material, instead of

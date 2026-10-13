@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-08**
 
+Guide: docs/book/src/operations/profile.md.
+
 The first end-to-end version. Scope is deliberately small: closed-contour profiling only,
 straight G1 output, one tool per program, GRBL post. Everything here is reachable from the CLI.
 

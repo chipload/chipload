@@ -18,6 +18,8 @@ Built 2026-10-13. As built:
   toolbar's "Simulation") is off at start and isn't saved in the settings.
 - §5: the time the simulation took isn't shown anywhere.
 
+Guide: docs/book/src/checking/simulation.md.
+
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 6 (surfacing, 5, is
 skipped for now). Today the canvas shows the toolpath as lines and the material left as
 shaded areas worked out from the geometry. Neither shows the part as it will come off the

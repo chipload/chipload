@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–7 as recommended). Item 8 of the general improvement pass (TODO.md,
 approved 2026-10-12).
 
+Guide: docs/book/src/checking/sheet.md.
+
 ## 1. Why
 
 At the machine, the operator (often the user, later) needs to know what stock to load, where

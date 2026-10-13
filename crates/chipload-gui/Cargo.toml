@@ -26,5 +26,10 @@ serde_json = "1"
 # (winit's own default) is fine. See ADR 0008.
 winit = { version = "0.30.13", default-features = false, features = ["wayland-csd-adwaita"] }
 
+[features]
+# Screenshots for the user guide (packaging/docs/screenshots.sh): eframe saves the first
+# frame, and CHIPLOAD_SCREENSHOT_SETUP sets up what it shows. Never in release builds.
+screenshots = ["eframe/__screenshot"]
+
 [lints]
 workspace = true

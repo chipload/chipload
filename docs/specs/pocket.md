@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-08**
 
+Guide: docs/book/src/operations/pocket.md.
+
 Clears all material inside selected closed contours down to a depth, leaving islands standing.
 It builds on the v0 pipeline (`v0-profile-pipeline.md`): same import, selection, depth passes,
 post-processor and independent checker.

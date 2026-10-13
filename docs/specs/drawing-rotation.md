@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-11**, with all decisions as recommended (§7).
 
+Guide: docs/book/src/drawings/placement.md.
+
 User request (2026-10-11): rotate the imported drawing in 90° steps, a follow-up to
 docs/specs/drawing-placement.md (moving it).
 

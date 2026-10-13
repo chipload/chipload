@@ -20,7 +20,11 @@ publish it.
 4. The workflow checks that the tag matches the workspace version, runs the tests on Linux
    and Windows, builds the files, and creates a draft release with them and `SHA256SUMS.txt`.
 5. Download and try the AppImage and the Windows `.exe`, edit the notes, then **Publish**.
-6. Build the user guide and attach it to the release (docs/specs/user-guide.md §5):
+6. Build the user guide and attach it to the release (docs/specs/user-guide.md §5). First
+   renew its screenshots (needs a display) and commit them if they changed:
+
+       packaging/docs/screenshots.sh         # docs/book/src/images/*.png
+
 
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
        gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip

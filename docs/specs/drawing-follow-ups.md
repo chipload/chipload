@@ -3,6 +3,8 @@
 Status: **approved 2026-10-10** (Q1–Q4 as recommended). Implemented; details settled while
 building it are marked *Implemented:*.
 
+Guide: docs/book/src/drawings/shapes.md.
+
 Builds on docs/specs/drawing-tools.md, which left these out: dragging handles on the canvas,
 snapping to existing geometry, and arcs in polylines.
 

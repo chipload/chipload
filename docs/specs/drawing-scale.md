@@ -3,6 +3,8 @@
 Status: **approved 2026-10-11**, with all decisions as recommended (§8). Built as described,
 with the differences in §9.
 
+Guide: docs/book/src/drawings/placement.md.
+
 User request (2026-10-11): scale the imported drawing, as well as move and turn it. This
 follows docs/specs/drawing-placement.md (moving) and docs/specs/drawing-rotation.md (turning).
 

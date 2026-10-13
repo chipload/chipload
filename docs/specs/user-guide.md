@@ -1,6 +1,21 @@
 # Spec: user guide (documentation website)
 
 Status: **approved 2026-10-13** ("All yes"), all decisions as recommended (§8).
+Built 2026-10-13. As built:
+- §4: mdBook has no link check of its own, so `tests/guide.rs` checks that every link
+  between pages points at a file that exists. The coverage test checks that every command
+  (`chipload …`), every operation type (`"type": "…"`) and every operation field (in
+  backticks) appears on a written page. Each operation page has an "In the file" table
+  mapping its settings to their fields.
+- §3: screenshots come from the GUI built with the `screenshots` feature (eframe's
+  first-frame screenshot, plus a setup read from `CHIPLOAD_SCREENSHOT_SETUP`), which release
+  builds don't have. `packaging/docs/screenshots.sh` makes three: the toolpath, the
+  simulation in 3D, and playback half way.
+- §4: the generated references take their descriptions from the code's doc comments, some of
+  which are written for developers ("None: …", spec references) or missing. Rewriting them
+  for users is a follow-up (TODO).
+- `inspect --json` gained each contour's shape ids, found while writing the first-part
+  example: without them a script can't select single imported shapes.
 
 User request (2026-10-13): a documentation website that is always kept up to date with the
 app's features. Decided already:

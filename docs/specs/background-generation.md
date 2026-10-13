@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–6 as recommended). Items 1 and 2 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
+Guide: docs/book/src/checking/problems.md.
+
 ## 1. Why
 
 `generate()` in the GUI calls `run_job` on the UI thread. While a large pocket, rounded

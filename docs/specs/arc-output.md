@@ -3,6 +3,8 @@
 Status: **approved 2026-10-10** (Q1–Q5 as recommended). Implemented as described in ADR 0013;
 notes on where the implementation differs in detail are marked *Implemented:*.
 
+Guide: docs/book/src/posts.md.
+
 Today every arc becomes a run of short G1 chords (ADR 0002 chose G1 for the first version).
 The offsets already have true arcs (cavalier_contours, ADR 0006); they're flattened just
 before the moves are made. Writing them as G2/G3 gives:

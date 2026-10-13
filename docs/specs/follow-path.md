@@ -7,6 +7,8 @@ becomes a follow path's geometry (it left them out for every operation, found by
 test); open paths end with a straight retract (no rise-out: the tool is at the path's end,
 not against a wall).
 
+Guide: docs/book/src/operations/path.md.
+
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 1. Today open contours
 are never cut: profiles and pockets skip them with a note ("skipped open contour"). That is
 right for centrelines drawn on cutting layers (user-drawing-conventions), but leaves no way

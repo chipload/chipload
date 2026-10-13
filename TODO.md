@@ -5,8 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **User guide** (documentation website, in this repository, built locally until the repository
-  is public): spec drafted 2026-10-13 (docs/specs/user-guide.md), waiting for review.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -87,6 +86,12 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **User guide** (2026-10-13, docs/specs/user-guide.md): mdBook in `docs/book/`, every page
+  written; generated reference pages (CLI, project, tools, machines, posts) and a coverage
+  test; build `packaging/docs/build-book.sh` (zip for releases), screenshots
+  `packaging/docs/screenshots.sh`, publishing `publish-book.sh` once the repository is
+  public. Help > User guide. Later: rewrite the model doc comments for users (they are the
+  reference pages' descriptions; some are developer notes or missing).
 - **Add rest pocket** (2026-10-13, docs/specs/rest-machining.md §10): from a pocket, a rest
   pocket right after it with the same shapes, depths and settings, a smaller tool, rest
   after the pocket's tool; library cutting values when the tool has them. GUI: the

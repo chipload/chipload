@@ -3,6 +3,8 @@
 Status: **approved 2026-10-11**, all decisions as recommended (§11). Built as described;
 the details in §4 and §8 were settled while building it (noted there).
 
+Guide: docs/book/src/operations/vcarve.md.
+
 User request (2026-10-11): engrave text with serifs (from a DXF, later typed in the app or
 traced from a black-and-white picture) with a V-bit that follows the centre line of each
 shape and varies its depth so the cut is exactly as wide as the shape.

@@ -26,17 +26,23 @@ pub fn cli_page(root: &Command) -> String {
          [Scripting](../scripting.md)). `chipload --help` and `chipload COMMAND --help` print \
          the same help in the terminal.\n"
     );
-    for sub in root.get_subcommands().filter(|c| !c.is_hide_set()) {
+    for sub in visible(root) {
         command_section(&mut page, &[], sub);
     }
     page
+}
+
+/// The subcommands to document: not hidden, and not clap's own `help`.
+fn visible(cmd: &Command) -> impl Iterator<Item = &Command> {
+    cmd.get_subcommands()
+        .filter(|c| !c.is_hide_set() && c.get_name() != "help")
 }
 
 fn command_section(page: &mut String, parents: &[&str], cmd: &Command) {
     let mut path: Vec<&str> = parents.to_vec();
     path.push(cmd.get_name());
     let name = format!("chipload {}", path.join(" "));
-    let subcommands: Vec<&Command> = cmd.get_subcommands().filter(|c| !c.is_hide_set()).collect();
+    let subcommands: Vec<&Command> = visible(cmd).collect();
     let level = if parents.is_empty() { "##" } else { "###" };
     let _ = writeln!(page, "{level} `{name}`\n");
     if let Some(about) = cmd.get_long_about().or(cmd.get_about()) {

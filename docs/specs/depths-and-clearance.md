@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (Q1–Q5 as recommended; the stock-depth limit changed, see §2).
 
+Guide: docs/book/src/concepts/depths.md.
+
 User request (2026-10-10):
 - Each operation gets a **start depth** and an **end depth**. Today the cut always starts
   at the stock top and `depth` is the end depth.

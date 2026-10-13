@@ -32,7 +32,9 @@ responsible for every program you run:**
    without cutting, with a hand on the stop button.
 3. Only then cut, and never leave a running machine unattended.
 
-Chipload comes with no warranty (GPL-3.0, sections 15 and 16).
+Chipload comes with no warranty (GPL-3.0, sections 15 and 16). Its licence and the
+licences of everything it is built with are under *Help > About and licences*, and
+`chipload licenses` prints them.
 
 ## What Chipload doesn't do
 
@@ -50,6 +52,7 @@ This guide is for Chipload's version in the title.
 - **Concepts:** what every operation shares: units, stock and zero, depths, sides,
   tools, and the checker.
 - **One page per kind of operation**, then tools, machines and posts.
-- **[Before cutting](first-part.md#before-you-cut):** the checks worth doing.
+- **[Before cutting](checking/problems.md):** problems, the simulation, times and the setup
+  sheet.
 - **[Scripting](scripting.md)** and the generated **reference** pages, for every command
   and every field of the files.

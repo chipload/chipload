@@ -3,6 +3,8 @@
 Status: approved (2026-10-12; decisions 1–6 as recommended). Item 6 of the general improvement pass (TODO.md, approved
 2026-10-12).
 
+Guide: docs/book/src/checking/problems.md.
+
 ## 1. Why
 
 A value that makes the project invalid (a feed of 0, a start depth below the end depth, a

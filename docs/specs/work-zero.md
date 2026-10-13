@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (Q1–Q4 in §7: all as recommended).
 
+Guide: docs/book/src/concepts/stock.md.
+
 User request (2026-10-10): pick the zero point of the exported G-code independently of how
 the geometry is drawn: the stock centre, a stock corner or any point, without moving the
 geometry. A translation at export only.

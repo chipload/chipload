@@ -6,6 +6,8 @@ recommended. The user replaced decision 2: "we need to do ramped tabs, it is not
 back and forth after each tab. We have no external users yet so we don't need to worry
 about changing this." Decisions 7–11 are new and need review.
 
+Guide: docs/book/src/operations/profile.md.
+
 User report (2026-10-12): "the ramp function on profile goes back and forth, I think it
 probably should just go forward. Also, the lead in/lead out should only be active on the
 first and last pass."

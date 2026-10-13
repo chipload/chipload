@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (Q1–Q3 in §5: all as recommended).
 
+Guide: docs/book/src/drawings/import.md.
+
 User decision 2026-10-10: degenerate outlines are rejected up front, with a clear message,
 instead of failing later inside the geometry library.
 

@@ -19,6 +19,8 @@ Built 2026-10-13. As built:
 - §5: `chipload simulate --after N` cuts only the first N moves (N up to the number of
   moves; more is an error).
 
+Guide: docs/book/src/checking/simulation.md.
+
 User request (2026-10-13): a slider like PrusaSlicer's, to drag the program's progress back
 and forth and see the toolpath, and the stock as cut so far, at any point. It builds on the
 simulation (docs/specs/simulation.md, which left playback for its own spec) and replaces the

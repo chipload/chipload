@@ -4,6 +4,8 @@ Status: **approved and implemented 2026-10-10.** Decisions 2-4 as recommended; d
 1 changed by the user: the cut order is a setting ("there should be an user option
 between operation by operation or part by part").
 
+Guide: docs/book/src/drawings/copies.md.
+
 User request (2026-10-10): "Nesting: basic 2D grid of copies, no rotation; copies shown in a
 ghost colour."
 

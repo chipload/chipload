@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-10** (Q1–Q5 as recommended).
 
+Guide: docs/book/src/checking/simulation.md.
+
 User request (2026-10-10): view the canvas in 3D to see the depth of the generated paths,
 with a button back to the top view. The drawing's geometry always sits on top of the stock.
 

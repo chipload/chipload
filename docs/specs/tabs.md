@@ -2,6 +2,8 @@
 
 Status: **approved 2026-10-08**
 
+Guide: docs/book/src/operations/profile.md.
+
 Tabs are short bridges of material left at the bottom of a profile cut so the part stays
 attached to the stock after the last pass. Without them a through-cut part comes loose on the
 last pass and can move into the cutter or be thrown.

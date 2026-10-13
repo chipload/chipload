@@ -4,6 +4,8 @@ Status: **approved 2026-10-10**, ramp only. The user: "do only ramp down now for
 and pocket". The helical entry of the first draft is postponed (§8). Decisions as
 recommended.
 
+Guide: docs/book/src/operations/profile.md, docs/book/src/operations/pocket.md.
+
 User request (2026-10-10): "Spiral plunge for tools that are not end-cutting." Until now
 every operation plunged straight down. A tool whose end teeth don't reach the centre (not
 centre-cutting) can't do that: the uncut core under its centre rubs, burns or breaks the

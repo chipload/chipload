@@ -18,6 +18,8 @@ Built 2026-10-13. As built:
   attribution that notice asks for.
 - §5: the recipes are in `docs/book/src/scripting.md` (user guide), linked from the README.
 
+Guide: docs/book/src/scripting.md.
+
 Approved plan (2026-10-13, ADR 0017), item 3. This is for power users who drive Chipload
 from scripts: generate or change projects, run them, and read the results, without
 screen-scraping text.

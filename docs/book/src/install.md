@@ -45,8 +45,9 @@ one folder:
 
 | System | Folder |
 |---|---|
-| Linux | `~/.config/chipload/` |
+| Linux | `$XDG_CONFIG_HOME/chipload/`, usually `~/.config/chipload/` |
 | Windows | `%APPDATA%\chipload\` |
+| macOS (built from source) | `~/Library/Application Support/chipload/` |
 | Any | the folder in the environment variable `CHIPLOAD_CONFIG_DIR`, if set |
 
 A project keeps its own copy of the tools, machine and post it uses, so it cuts the same on

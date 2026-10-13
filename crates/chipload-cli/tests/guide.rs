@@ -99,3 +99,54 @@ fn links_between_pages_point_at_pages_that_exist() {
     }
     assert!(broken.is_empty(), "broken links: {broken:#?}");
 }
+
+/// The text of every written page (not the generated reference).
+fn written() -> String {
+    let mut all = Vec::new();
+    pages(&book(), &mut all);
+    all.sort();
+    all.iter()
+        .filter(|p| !p.starts_with(book().join("reference")))
+        .map(|p| std::fs::read_to_string(p).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn every_command_operation_and_field_is_on_a_written_page() {
+    // docs/specs/user-guide.md §4: a word search, so nothing new goes unmentioned.
+    let text = written();
+    let mut missing = Vec::new();
+    // Every command, as `chipload …`, from the generated command-line page's headings.
+    for line in generated("cli").lines() {
+        let Some(command) = line
+            .trim_start_matches('#')
+            .trim()
+            .strip_prefix("`chipload ")
+            .and_then(|rest| rest.strip_suffix('`'))
+        else {
+            continue;
+        };
+        if !text.contains(&format!("chipload {command}")) {
+            missing.push(format!("command: chipload {command}"));
+        }
+    }
+    // Every operation type and its fields, from the project file's schema.
+    let schema = chipload_job::schema::schema(chipload_job::schema::Format::Project);
+    let variants = schema["$defs"]["Operation"]["oneOf"].as_array().unwrap();
+    for variant in variants {
+        let kind = variant["properties"]["type"]["const"].as_str().unwrap();
+        if !text.contains(&format!("\"type\": \"{kind}\"")) {
+            missing.push(format!("operation type: {kind}"));
+        }
+        for field in variant["properties"].as_object().unwrap().keys() {
+            if field != "type" && !text.contains(&format!("`{field}`")) {
+                missing.push(format!("{kind} field: {field}"));
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "not on any written page of docs/book/src: {missing:#?}"
+    );
+}
