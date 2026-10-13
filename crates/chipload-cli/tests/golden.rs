@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 34] = [
+const GOLDEN: [(&str, &str); 36] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -92,6 +92,14 @@ const GOLDEN: [(&str, &str); 34] = [
     // Two DXFs (the second added, scaled and moved), a profile of a layer both have, an
     // outline limited to each, and a traced logo V-carved (docs/specs/drawing-sources.md §8).
     ("v21_two_dxfs", "jobs/v21/two_dxfs.chipload"),
+    // v7_copies cut copy by copy, frozen by Chipload 0.16.0 with `order: by_part` and its
+    // G-code from that binary: v22 renames the order `by_copy` and moves the copies into
+    // the one part; the G-code stays the same (docs/specs/parts.md §4).
+    ("v21_copies_by_part", "jobs/v21/copies_by_part.chipload"),
+    // Two parts (docs/specs/parts.md): DXF 1 with its holes, outline and a V-carved logo,
+    // then DXF 2's outline in a 1 × 2 grid. Part by part: T1, T2, then T1 again, and a
+    // comment where each part starts.
+    ("v22_two_parts", "jobs/v22/two_parts.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

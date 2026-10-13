@@ -151,7 +151,14 @@ pub fn merge_arcs(program: &Program) -> Result<Program, ToolpathError> {
                 (x, y, z) = (Some(nx), Some(ny), n.z.or(z));
                 j += 1;
             }
+            let first = out.len();
             emit_run(&mut out, &vertices, &heights, &sweeps, circle, m.feed)?;
+            // A comment on the run's first chord stays on its first piece.
+            if let Some(piece) = out.get_mut(first)
+                && m.comment.is_some()
+            {
+                piece.comment = m.comment;
+            }
             i = j;
             continue;
         }
@@ -242,6 +249,7 @@ fn push_piece(
                 z: h,
                 feed,
                 circle: None,
+                comment: None,
             });
         }
         return;
@@ -257,6 +265,7 @@ fn push_piece(
         z: heights.last().copied().flatten(),
         feed,
         circle: Some(circle),
+        comment: None,
     });
 }
 
@@ -302,6 +311,7 @@ mod tests {
             spindle: Spindle::Cw,
             safe_z: 5.0,
             moves,
+            comments: Vec::new(),
         }
     }
 

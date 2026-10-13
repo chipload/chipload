@@ -53,6 +53,7 @@ in mm, feeds in mm/min, angles in radians.
 |---|---|
 | `name` | Name |
 | `enabled` | the tick on the operation's row in the Browser |
+| `part` | the [part](parts.md) it belongs to |
 | `select` | the geometry: `{"layer": "NAME"}` or `{"shapes": [ids]}` |
 | `tool` | Tool: the project tool's id |
 | `start_depth` | Start depth |

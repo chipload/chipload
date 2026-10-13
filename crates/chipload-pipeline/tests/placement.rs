@@ -94,8 +94,12 @@ fn profile(select: serde_json::Value, starts: serde_json::Value) -> serde_json::
     })
 }
 
-fn with_ops(job: &Job, ops: serde_json::Value) -> Job {
+fn with_ops(job: &Job, mut ops: serde_json::Value) -> Job {
     let mut data = serde_json::to_value(job).unwrap();
+    // Written without a part: the project's one part.
+    for op in ops.as_array_mut().unwrap() {
+        op["part"] = data["parts"][0]["id"].clone();
+    }
     data["operations"] = ops;
     parse_job(data, "test").unwrap()
 }

@@ -26,6 +26,7 @@ fn program(spindle: Spindle) -> Program {
             Move::feed_xy((10.0, 10.0), 1000.0),
             Move::rapid_z(5.0),
         ],
+        comments: Vec::new(),
     }
 }
 

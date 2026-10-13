@@ -920,6 +920,7 @@ proptest! {
         let program = Program {
             tool_id: 1, tool_diameter: 2.0 * radius, rpm: 18000.0, spindle: Spindle::Cw,
             safe_z: 5.0, moves,
+            comments: Vec::new(),
         };
         let merged = merge_arcs(&program).unwrap();
         let (mut x, mut y) = (0.0, 0.0);

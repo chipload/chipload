@@ -208,6 +208,19 @@ impl EditJob {
         EditJob { settings, ops }
     }
 
+    /// Where an operation added to part `id` goes: after the part's last operation, or,
+    /// for a part without operations, after the operations of the parts before it
+    /// (as `Job::insert_index`).
+    pub fn insert_index(&self, id: u64) -> usize {
+        let order: Vec<u64> = self.settings.parts.iter().map(|p| p.id).collect();
+        let rank = |part: u64| order.iter().position(|p| *p == part).unwrap_or(usize::MAX);
+        let mine = rank(id);
+        self.ops
+            .iter()
+            .rposition(|e| rank(e.op.part()) <= mine)
+            .map_or(0, |i| i + 1)
+    }
+
     /// The tool a new operation gets: the last operation's, else the project's first
     /// (docs/specs/tool-per-operation.md §8).
     pub fn next_tool_id(&self) -> i64 {
@@ -280,7 +293,9 @@ impl EditJob {
         contours: &[Contour],
         cutting: Option<&Cutting>,
     ) -> usize {
-        let index = self.ops.len();
+        // Into the active part, after its operations (docs/specs/parts.md §8).
+        let part = self.settings.active_part_id().unwrap_or(1);
+        let index = self.insert_index(part);
         let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting);
         let number = self
             .ops
@@ -330,6 +345,7 @@ impl EditJob {
                     Operation::Profile(ProfileOp {
                         name: format!("Profile {number}"),
                         enabled: true,
+                        part,
                         select,
                         side: side.unwrap_or(Side::Outside),
                         direction: Direction::Climb,
@@ -355,6 +371,7 @@ impl EditJob {
                 Operation::Pocket(PocketOp {
                     name: format!("Pocket {number}"),
                     enabled: true,
+                    part,
                     select,
                     tool,
                     start_depth: 0.0,
@@ -381,6 +398,7 @@ impl EditJob {
                 Operation::Vcarve(VcarveOp {
                     name: format!("V-carve {number}"),
                     enabled: true,
+                    part,
                     select,
                     tool,
                     start_depth: 0.0,
@@ -395,6 +413,7 @@ impl EditJob {
                 Operation::Path(PathOp {
                     name: format!("Follow path {number}"),
                     enabled: true,
+                    part,
                     select,
                     tool,
                     start_depth: 0.0,
@@ -420,6 +439,7 @@ impl EditJob {
                     Operation::Holes(HolesOp {
                         name: format!("Holes {number}"),
                         enabled: true,
+                        part,
                         select,
                         tool,
                         start_depth: 0.0,
@@ -432,7 +452,7 @@ impl EditJob {
                 )
             }
         };
-        self.ops.push(EditOp { op, side_chosen });
+        self.ops.insert(index, EditOp { op, side_chosen });
         index
     }
 

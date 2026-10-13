@@ -283,6 +283,9 @@ pub struct PostMove {
     pub i: Option<String>,
     pub j: Option<String>,
     pub f: Option<String>,
+    /// A comment to write before the move, made safe (a part's start,
+    /// docs/specs/parts.md §6). Templates that don't use it lose nothing that is cut.
+    pub comment: Option<String>,
 }
 
 /// Omit axis and feed words that have not changed; drop moves that go nowhere. Arcs always
@@ -292,7 +295,12 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
     let mut last: [Option<String>; 3] = [None, None, None];
     let mut last_f: Option<String> = None;
     let mut result = Vec::new();
+    // A comment on a move that goes nowhere waits for the next move that is written.
+    let mut pending: Option<String> = None;
     for m in &program.moves {
+        if let Some(text) = m.comment.and_then(|k| program.comments.get(k as usize)) {
+            pending = Some(comment_safe(text));
+        }
         let arc = matches!(m.kind, MoveKind::ArcCw | MoveKind::ArcCcw);
         let mut words: [Option<String>; 3] = [None, None, None];
         for (axis, value) in [m.x, m.y, m.z].into_iter().enumerate() {
@@ -359,6 +367,7 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
             i,
             j,
             f: feed,
+            comment: pending.take(),
         });
     }
     Ok(result)
@@ -743,6 +752,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_part_comment_is_written_before_its_move_even_if_that_move_goes_nowhere() {
+        // docs/specs/parts.md §6: the comment on a move that is dropped (already at safe Z)
+        // goes with the next move written.
+        let mut start = Move::rapid_z(5.0);
+        start.comment = Some(0);
+        let program = Program {
+            tool_id: 1,
+            tool_diameter: 6.0,
+            rpm: 18000.0,
+            spindle: Spindle::Cw,
+            safe_z: 5.0,
+            moves: vec![Move::rapid_z(5.0), start, Move::rapid_xy((1.0, 2.0))],
+            comments: vec!["Part 2: Lådor (box), 2 copies".into()],
+        };
+        let config = load_builtin_post("grbl").unwrap();
+        let text = render_program(&program, &config).unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        let at = lines
+            .iter()
+            .position(|l| *l == "(Part 2: Lador [box], 2 copies)")
+            .unwrap_or_else(|| panic!("{text}"));
+        assert_eq!(lines[at + 1], "G0 X1.000 Y2.000");
+    }
+
+    #[test]
     fn comments_are_ascii_and_never_end_early() {
         assert_eq!(comment_safe("60° V-bit (fine)"), "60deg V-bit [fine]");
         assert_eq!(comment_safe("Lådor; Öppning"), "Lador, Oppning");
@@ -819,6 +853,7 @@ mod tests {
             spindle: Spindle::Cw,
             safe_z: 5.0,
             moves: vec![Move::rapid_z(5.0), Move::rapid_xy((1.0, 2.0))],
+            comments: Vec::new(),
         };
         let config = load_builtin_post("grbl").unwrap();
         let text = render_program_with(&program, &config, Some("x (y); z")).unwrap();
@@ -843,6 +878,7 @@ mod tests {
                 Move::feed_xy((10.0, 5.0), 1000.0),
                 Move::rapid_z(5.0),
             ],
+            comments: Vec::new(),
         };
         let config = load_builtin_post("grbl").unwrap();
         let text = render_program(&program, &config).unwrap();

@@ -1151,7 +1151,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     let one = app.scene.toolpath.clone().unwrap();
     assert!(one.ghost_feeds.is_empty());
 
-    app.edit.as_mut().unwrap().settings.copies = Some(chipload_job::Copies {
+    app.edit.as_mut().unwrap().settings.parts[0].copies = Some(chipload_job::Copies {
         columns: 2,
         rows: 2,
         dx: 0.0,
@@ -1159,7 +1159,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
         order: chipload_job::CopyOrder::ByOperation,
     });
     app.set_copies_gap(5.0);
-    let copies = app.edit.as_ref().unwrap().settings.copies.unwrap();
+    let copies = app.edit.as_ref().unwrap().settings.parts[0].copies.unwrap();
     assert!(copies.dx > 5.0 && copies.dy > 5.0, "{copies:?}");
     // Generating again: the copies are cut, the gap leaves them apart.
     app.edit.as_mut().unwrap().settings.stock.x = 1000.0;
@@ -1175,15 +1175,12 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     assert_eq!(path.ghost_feeds.len(), 3 * one.feeds.len());
     assert_eq!(path.starts.len(), one.starts.len());
     assert_eq!(
-        app.edit.as_ref().unwrap().to_job().unwrap().copies,
+        app.edit.as_ref().unwrap().to_job().unwrap().parts[0].copies,
         Some(copies)
     );
 
     // An overlapping pitch is refused with the size it needs.
-    app.edit
-        .as_mut()
-        .unwrap()
-        .settings
+    app.edit.as_mut().unwrap().settings.parts[0]
         .copies
         .as_mut()
         .unwrap()

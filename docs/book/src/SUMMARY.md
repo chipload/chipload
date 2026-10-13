@@ -29,6 +29,7 @@
 
 # Operations
 
+- [Parts](operations/parts.md)
 - [Profile](operations/profile.md)
 - [Pocket](operations/pocket.md)
 - [Rest machining](operations/rest.md)

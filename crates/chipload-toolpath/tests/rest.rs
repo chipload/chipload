@@ -8,7 +8,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::model::MoveKind;
 use chipload_toolpath::{Plan, job_problems, plan_job, validate_job};
 use common::{circle, polygon_id, rect};
@@ -20,7 +20,7 @@ const SLACK: f64 = 0.02;
 fn job(tools: Value, operations: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 400, "y": 300, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},

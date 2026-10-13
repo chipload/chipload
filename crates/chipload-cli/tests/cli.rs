@@ -411,7 +411,7 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     let mut job: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
     job["operations"] = serde_json::json!([{
-        "type": "profile", "name": "Disc", "enabled": true,
+        "type": "profile", "part": 1, "name": "Disc", "enabled": true,
         "select": {"layer": null, "shapes": [1]},
         "side": "outside", "direction": "climb", "tool": 1,
         "start_depth": 0.0, "end_depth": 10.0, "clearance": -0.3, "step_down": 3.0,
@@ -461,7 +461,7 @@ fn copies_are_set_from_the_command_line() {
     let copies = || {
         let job: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
-        job["copies"].clone()
+        job["parts"][0]["copies"].clone()
     };
 
     let (code, _, err) = run(&["copies", p, "--pitch", "200,150"]);
@@ -487,14 +487,17 @@ fn copies_are_set_from_the_command_line() {
                            "order": "by_operation"})
     );
     // Only what is given changes.
+    run(&["copies", p, "--order", "by-copy"]);
+    assert_eq!(copies()["order"], "by_copy");
+    // The old name still works on the command line.
     run(&["copies", p, "--order", "by-part"]);
-    assert_eq!(copies()["order"], "by_part");
+    assert_eq!(copies()["order"], "by_copy");
     assert_eq!(copies()["dx"], 200.0);
     // A gap: the cut's size plus the gap.
     let (_, out, _) = run(&["copies", p, "--gap", "10"]);
     // It keeps the direction: the rows still grow down.
     assert!(
-        out.contains("pitch 154.665 × -122.221 mm, part by part"),
+        out.contains("pitch 154.665 × -122.221 mm, copy by copy"),
         "{out}"
     );
     assert!(ok_inspect(p).contains("Copies: 3 × 2 copies"));
@@ -506,8 +509,79 @@ fn copies_are_set_from_the_command_line() {
     assert_eq!(code, Some(1));
     assert!(err.contains("Copies overlap"), "{err}");
     let (_, out, _) = run(&["copies", p, "--off"]);
-    assert!(out.contains("Copies: off (one part)"), "{out}");
+    assert!(out.contains("Copies: off (one copy)"), "{out}");
     assert!(copies().is_null());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn parts_are_added_changed_and_removed_from_the_command_line() {
+    // docs/specs/parts.md §7
+    let dir = temp_dir("parts");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let parts = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job
+    };
+    let (code, out, _) = run(&["part", "list", p]);
+    assert_eq!(code, Some(0));
+    assert!(
+        out.contains("1 Part 1 (active): one; operations 1, 2"),
+        "{out}"
+    );
+
+    let (code, out, _) = run(&["part", "add", p, "--name", "lid"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("Added part 2, now the active part"), "{out}");
+    assert_eq!(parts()["active_part"], 2);
+    let (code, _, err) = run(&["part", "add", p, "--name", "LID"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("Another part is named \"LID\""), "{err}");
+
+    // With two parts, copies need --part.
+    let (code, _, err) = run(&["copies", p, "--grid", "2x1", "--pitch", "300,0"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("give --part ID"), "{err}");
+
+    // Operation 1 into the lid: it goes after part 1's operations, so it becomes 2.
+    let (code, out, _) = run(&["op", "part", p, "--op", "1", "--part", "2"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Operation 1 is now operation 2 in part 2."),
+        "{out}"
+    );
+    assert_eq!(parts()["operations"][0]["part"], 1);
+    assert_eq!(parts()["operations"][1]["part"], 2);
+    let (code, _, err) = run(&["part", "remove", p, "2"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("Part lid has 1 operation"), "{err}");
+    let (code, _, _) = run(&["part", "set", p, "2", "--off"]);
+    assert_eq!(code, Some(0));
+    assert_eq!(parts()["parts"][1]["enabled"], false);
+    let (_, out, _) = run(&["part", "list", p]);
+    assert!(
+        out.contains("2 lid (active), off: one; operations 2"),
+        "{out}"
+    );
+    run(&["part", "set", p, "2", "--on", "--name", "box"]);
+    let (code, out, _) = run(&["part", "list", p]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("2 box (active): one; operations 2"), "{out}");
+    run(&["part", "activate", p, "1"]);
+    assert_eq!(parts()["active_part"], 1);
+    let (code, _, _) = run(&["part", "remove", p, "2", "--with-operations"]);
+    assert_eq!(code, Some(0));
+    assert_eq!(parts()["operations"].as_array().unwrap().len(), 1);
+    let (code, _, err) = run(&["part", "remove", p, "1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("at least one part"), "{err}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -547,11 +621,11 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
     let mut job: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
     job["operations"] = serde_json::json!([
-        {"type": "pocket", "select": {"shapes": [2]}, "tool": 1, "start_depth": 0.0,
+        {"type": "pocket", "part": 1, "select": {"shapes": [2]}, "tool": 1, "start_depth": 0.0,
          "end_depth": 4.0, "clearance": 0.0, "step_down": 2.0, "stepover": 0.4,
          "direction": "climb", "feed": 1500.0, "plunge_feed": 400.0,
          "starts": [[150.0, 75.0]], "round_corners": false},
-        {"type": "profile", "select": {"shapes": [1]}, "side": "outside",
+        {"type": "profile", "part": 1, "select": {"shapes": [1]}, "side": "outside",
          "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
          "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,
          "tabs": {"count": 3, "width": 6.0, "height": 2.0, "flank_angle": std::f64::consts::FRAC_PI_2}, "starts": [[90.0, 90.0]]}

@@ -7,7 +7,7 @@ mod common;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::{Plan, plan_job};
 use serde_json::{Value, json};
@@ -18,7 +18,7 @@ const SAFE_Z: f64 = 5.0;
 fn job_with(operations: Value, copies: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
@@ -339,7 +339,7 @@ fn the_finishing_and_skin_laps_start_between_tabs() {
 fn refused(extra: Value, side: &str, words: &str) {
     let err = match parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},

@@ -9,7 +9,7 @@ use std::f64::consts::{PI, TAU};
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::holes::{PECK_CLEARANCE_MM, circle_of};
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::{Plan, plan_job};
@@ -63,7 +63,7 @@ fn square(id: usize, x: f64, y: f64, side: f64) -> Contour {
 fn job_with(operations: Value, tools: Value, copies: Value, thickness: f64) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": thickness, "origin": "bottom_left",
                       "max_overcut": 0.5},

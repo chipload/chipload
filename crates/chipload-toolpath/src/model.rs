@@ -28,6 +28,9 @@ pub struct Move {
     /// On a feed: the chord lies on this circle (docs/specs/arc-output.md). On an arc: its
     /// circle. None otherwise.
     pub circle: Option<Circle>,
+    /// A comment written before this move: an index into the program's `comments` (a
+    /// part's start, docs/specs/parts.md §6). None for nearly every move.
+    pub comment: Option<u32>,
 }
 
 impl Move {
@@ -39,6 +42,7 @@ impl Move {
             z: Some(z),
             feed: None,
             circle: None,
+            comment: None,
         }
     }
 
@@ -50,6 +54,7 @@ impl Move {
             z: None,
             feed: None,
             circle: None,
+            comment: None,
         }
     }
 
@@ -61,6 +66,7 @@ impl Move {
             z: Some(z),
             feed: Some(feed),
             circle: None,
+            comment: None,
         }
     }
 
@@ -73,6 +79,7 @@ impl Move {
             z: Some(z),
             feed: Some(feed),
             circle: None,
+            comment: None,
         }
     }
 
@@ -84,6 +91,7 @@ impl Move {
             z: None,
             feed: Some(feed),
             circle: None,
+            comment: None,
         }
     }
 }
@@ -96,4 +104,6 @@ pub struct Program {
     pub spindle: Spindle,
     pub safe_z: f64,
     pub moves: Vec<Move>,
+    /// Texts of the moves' comments, by index.
+    pub comments: Vec<String>,
 }

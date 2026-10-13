@@ -11,7 +11,7 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, line-and-arc fitting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v21: embedded drawings, several DXFs each with its placement (move, 90° turns, scale), hidden groups, drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations, holes operations, dogbone and T-bone corners, rest pockets, images traced into shapes or centre lines, with arcs), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
+| `chipload-job` | project file models (schema v22: embedded drawings, several DXFs each with its placement (move, 90° turns, scale), hidden groups, drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations, holes operations, dogbone and T-bone corners, rest pockets, images traced into shapes or centre lines, with arcs, parts each with its operations, copies and on/off, cut part by part), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-image` | pictures (PNG, JPEG, BMP) into black and white and traced loops for V-carving, with arcs (docs/specs/image-trace.md, image-arcs-centrelines.md); core only, no file I/O |
 | `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs, finishing laps, onion skins, dogbones), tabs, pockets (with rest machining), V-carving (medial axis via boostvoronoi, ADR 0015), centre lines of traced strokes, follow paths, holes (drill cycles, helical bores), job planning |
@@ -85,7 +85,8 @@ cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p 
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)
-cargo run -p chipload-cli -- copies part.chipload --grid 3x2 --gap 10   # a grid of copies of the part
+cargo run -p chipload-cli -- copies part.chipload --grid 3x2 --gap 10   # a grid of copies of the part (--part ID with several)
+cargo run -p chipload-cli -- part add part.chipload --name box   # parts: groups of operations cut one after the other (also part list/set/activate/remove, op part)
 cargo run -p chipload-cli -- place part.chipload --align bottom-left --margin 10   # move the imported drawing onto the stock
 cargo run -p chipload-cli -- place part.chipload --rotate 90  # turn it in place (90° steps)
 cargo run -p chipload-cli -- place part.chipload --width 100   # scale it about its centre (also --scale 2, --height)

@@ -787,8 +787,13 @@ impl ChiploadApp {
             return;
         };
         // The part alone: the grid being set may not be valid yet (a pitch of 0).
+        let Some(id) = edit.settings.active_part_id() else {
+            return;
+        };
         let mut part = edit.clone();
-        part.settings.copies = None;
+        for p in &mut part.settings.parts {
+            p.copies = None;
+        }
         let job = match part.to_job() {
             Ok(job) => job,
             Err(problems) => {
@@ -796,10 +801,21 @@ impl ChiploadApp {
                 return;
             }
         };
-        let current = edit.settings.copies.map_or((0.0, 0.0), |c| (c.dx, c.dy));
-        match chipload_pipeline::copies::pitch_for_gap(&job, gap, current) {
+        let current = edit
+            .settings
+            .part(id)
+            .and_then(|p| p.copies)
+            .map_or((0.0, 0.0), |c| (c.dx, c.dy));
+        match chipload_pipeline::copies::pitch_for_gap(&job, id, gap, current) {
             Ok((dx, dy)) => {
-                if let Some(copies) = self.edit.as_mut().and_then(|e| e.settings.copies.as_mut()) {
+                let copies = self.edit.as_mut().and_then(|e| {
+                    e.settings
+                        .parts
+                        .iter_mut()
+                        .find(|p| p.id == id)
+                        .and_then(|p| p.copies.as_mut())
+                });
+                if let Some(copies) = copies {
                     copies.dx = dx;
                     copies.dy = dy;
                 }

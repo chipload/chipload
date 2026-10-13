@@ -8,6 +8,7 @@
 mod dxfs;
 mod images;
 mod library;
+mod parts;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -21,7 +22,7 @@ use chipload_job::{
     polyline_segment_count, save_job,
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
-use chipload_pipeline::copies::{copies_text, pitch_for_gap};
+use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::placement::{
@@ -245,10 +246,19 @@ enum Command {
         #[command(subcommand)]
         action: library::PostAction,
     },
-    /// Cut the part several times in a grid (docs/specs/copies-grid.md).
+    /// A project's parts: groups of operations, each cut with its copies before the next
+    /// (docs/specs/parts.md).
+    Part {
+        #[command(subcommand)]
+        action: parts::PartAction,
+    },
+    /// Cut a part several times in a grid (docs/specs/copies-grid.md).
     Copies {
         /// The project (.chipload).
         project: PathBuf,
+        /// Which part (as `part list` shows it); needed when the project has several.
+        #[arg(long)]
+        part: Option<u64>,
         /// Columns x rows, e.g. "3x2".
         #[arg(long)]
         grid: Option<String>,
@@ -261,7 +271,7 @@ enum Command {
         /// The cut order.
         #[arg(long)]
         order: Option<OrderArg>,
-        /// Back to a single part.
+        /// Back to one copy.
         #[arg(long, conflicts_with_all = ["grid", "pitch", "gap", "order"])]
         off: bool,
         /// Where to write the result; default: the project itself.
@@ -382,12 +392,14 @@ enum AlignArg {
 enum OrderArg {
     /// Each operation on every copy, then the next operation.
     ByOperation,
-    /// Every operation on one copy, then the next copy.
-    ByPart,
+    /// Every operation on one copy, then the next copy (was `by-part`).
+    #[value(alias = "by-part")]
+    ByCopy,
 }
 
 /// What `chipload copies` was asked to change.
 struct CopiesArgs {
+    part: Option<u64>,
     grid: Option<String>,
     pitch: Option<String>,
     gap: Option<f64>,
@@ -423,6 +435,21 @@ enum OpAction {
         /// The smaller tool's id in the project.
         #[arg(long)]
         tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Move an operation into another part, at the end of its operations
+    /// (docs/specs/parts.md §7). Operations are numbered again in the new order.
+    Part {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation, 1-based as listed.
+        #[arg(long)]
+        op: usize,
+        /// The part's id (as `part list` shows it).
+        #[arg(long)]
+        part: u64,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -656,8 +683,10 @@ fn main() -> ExitCode {
         Command::Tool { action } => library::tool(&mut out, action),
         Command::Machine { action } => library::machine(&mut out, action),
         Command::Post { action } => library::post(&mut out, action),
+        Command::Part { action } => parts::part(&mut out, action),
         Command::Copies {
             project,
+            part,
             grid,
             pitch,
             gap,
@@ -668,6 +697,7 @@ fn main() -> ExitCode {
             &mut out,
             &project,
             CopiesArgs {
+                part,
                 grid,
                 pitch,
                 gap,
@@ -873,8 +903,18 @@ fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>
         Ok(job) => job,
         Err(err) => return out.fail(err),
     };
-    match changed_copies(&job, args) {
-        Ok(copies) => job.copies = copies,
+    let part = match (args.part, job.parts.as_slice()) {
+        (Some(id), _) => id,
+        (None, [only]) => only.id,
+        (None, _) => {
+            return out.fail("the project has several parts: give --part ID (see `part list`)");
+        }
+    };
+    let Some(at) = job.parts.iter().position(|p| p.id == part) else {
+        return out.fail(format!("no part {part} in the project (see `part list`)"));
+    };
+    match changed_copies(&job, part, args) {
+        Ok(copies) => job.parts[at].copies = copies,
         Err(err) => return out.fail(err),
     }
     let problems = job.validate();
@@ -885,15 +925,16 @@ fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>
     if let Err(err) = save_job(&job, target) {
         return out.fail(err);
     }
-    match copies_text(&job) {
+    match job.parts[at].copies.as_ref().map(grid_text) {
         Some(text) => out.line(format!("Copies: {text}")),
-        None => out.line("Copies: off (one part)"),
+        None => out.line("Copies: off (one copy)"),
     }
     // Overlap is refused when the project is run; say so now.
-    if job.copies.is_some_and(|c| c.count() > 1)
+    if job.parts[at].count() > 1
         && let Ok(drawing) = load_drawing(&job)
         && let Err(err) = plan_job(&job, &drawing.contours)
-        && err.to_string().starts_with("Copies overlap")
+        && (err.to_string().starts_with("Copies overlap")
+            || err.to_string().contains(" overlaps part "))
     {
         out.err(format!("warning: {err}"));
     }
@@ -901,19 +942,20 @@ fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>
     ExitCode::SUCCESS
 }
 
-fn changed_copies(job: &Job, args: CopiesArgs) -> Result<Option<Copies>, String> {
+fn changed_copies(job: &Job, part: u64, args: CopiesArgs) -> Result<Option<Copies>, String> {
     if args.off {
         return Ok(None);
     }
-    let mut copies = job.copies.unwrap_or(Copies {
+    let current = job.part(part).and_then(|p| p.copies);
+    let mut copies = current.unwrap_or(Copies {
         columns: 1,
         rows: 1,
         dx: 0.0,
         dy: 0.0,
         order: CopyOrder::ByOperation,
     });
-    if job.copies.is_none() && args.grid.is_none() {
-        return Err("the project has no copies yet: give --grid (and --pitch or --gap)".into());
+    if current.is_none() && args.grid.is_none() {
+        return Err("the part has no copies yet: give --grid (and --pitch or --gap)".into());
     }
     if let Some(grid) = &args.grid {
         let (columns, rows) = grid
@@ -929,13 +971,13 @@ fn changed_copies(job: &Job, args: CopiesArgs) -> Result<Option<Copies>, String>
     if let Some(order) = args.order {
         copies.order = match order {
             OrderArg::ByOperation => CopyOrder::ByOperation,
-            OrderArg::ByPart => CopyOrder::ByPart,
+            OrderArg::ByCopy => CopyOrder::ByCopy,
         };
     }
     if let Some(gap) = args.gap {
         (copies.dx, copies.dy) =
-            pitch_for_gap(job, gap, (copies.dx, copies.dy)).map_err(|e| e.to_string())?;
-    } else if job.copies.is_none() && args.pitch.is_none() && copies.count() > 1 {
+            pitch_for_gap(job, part, gap, (copies.dx, copies.dy)).map_err(|e| e.to_string())?;
+    } else if current.is_none() && args.pitch.is_none() && copies.count() > 1 {
         return Err("give the spacing with --pitch DX,DY or --gap MM".into());
     }
     Ok(Some(copies))
@@ -1796,6 +1838,36 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
+        OpAction::Part {
+            project,
+            op,
+            part,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let (job, at) =
+                match chipload_pipeline::parts::move_operation_to_part(&job, index, part) {
+                    Ok(done) => done,
+                    Err(err) => return out.fail(err),
+                };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            out.line(format!(
+                "Operation {op} is now operation {} in part {part}.",
+                at + 1
+            ));
+            out.set("operation", json!(at));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
         OpAction::Rest {
             project,
             op,
@@ -1915,6 +1987,7 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
                 z: optional(m, "z")?,
                 feed: optional(m, "feed")?,
                 circle,
+                comment: None,
             })
         })
         .collect::<Result<Vec<Move>, String>>()?;
@@ -1928,6 +2001,7 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
         spindle,
         safe_z: number(value, "safe_z")?,
         moves,
+        comments: Vec::new(),
     })
 }
 
@@ -1976,7 +2050,7 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
             })).collect::<Vec<_>>(),
             "estimate": estimate_json(&estimate),
             "chip_load": job.operations.iter().enumerate()
-                .filter(|(_, op)| op.enabled())
+                .filter(|(i, _)| job.cuts(*i))
                 .map(|(i, op)| json!({
                     "operation": i,
                     "chip_load_mm": chip_load(&job, op).mm(),
@@ -2001,6 +2075,9 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
         }
         if let Some(text) = copies_text(&job) {
             out.line(format!("Copies: {text}"));
+        }
+        for line in parts_lines(&job) {
+            out.line(line);
         }
         for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
             out.line(line.to_string());
@@ -2081,7 +2158,7 @@ fn program_json(program: &Program) -> Value {
 fn inspect(out: &mut Out, path: &Path, units: Option<Units>) -> ExitCode {
     let mut shapes = None;
     let mut work_zero = None;
-    let mut copies_line = None;
+    let mut copies_line: Vec<String> = Vec::new();
     let mut placement_line = None;
     let loaded = if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
@@ -2092,7 +2169,11 @@ fn inspect(out: &mut Out, path: &Path, units: Option<Units>) -> ExitCode {
             if job.machine.work_zero != (WorkZero::DrawingOrigin {}) {
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
-            copies_line = copies_text(&job).map(|text| format!("Copies: {text}"));
+            copies_line = copies_text(&job)
+                .map(|text| format!("Copies: {text}"))
+                .into_iter()
+                .chain(parts_lines(&job))
+                .collect();
             let several = job.drawing.dxfs.len() > 1;
             placement_line = Some(
                 job.drawing

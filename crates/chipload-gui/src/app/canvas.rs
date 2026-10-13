@@ -26,6 +26,27 @@ impl ChiploadApp {
         self.view.orient(0.0, 0.0, pivot);
     }
 
+    /// Each contour's copies, as (contour id, shift), copy 1 left out.
+    fn copy_shifts(&self) -> Vec<(usize, Point)> {
+        let Some(edit) = &self.edit else {
+            return Vec::new();
+        };
+        if edit.settings.parts.iter().all(|p| p.count() < 2) {
+            return Vec::new();
+        }
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        chipload_pipeline::sheet::contour_copies(&job, &self.contours)
+            .into_iter()
+            .flat_map(|(c, shifts)| {
+                shifts
+                    .into_iter()
+                    .filter(|s| *s != (0.0, 0.0))
+                    .map(move |s| (c.id, s))
+            })
+            .collect()
+    }
+
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
     pub(super) fn orbit_pivot(&self) -> Point {
         self.scene.stock.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
@@ -41,17 +62,9 @@ impl ChiploadApp {
             .edit
             .as_ref()
             .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
-        // Copies of the part, faded (docs/specs/copies-grid.md); copy 1 is the drawing.
-        self.scene.copies = self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.copies)
-            .map(|c| {
-                let mut shifts: Vec<Point> = c.in_cut_order().into_iter().map(|(_, s)| s).collect();
-                shifts.retain(|&s| s != (0.0, 0.0));
-                shifts
-            })
-            .unwrap_or_default();
+        // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
+        // its operations cut; copy 1 is the drawing.
+        self.scene.copies = self.copy_shifts();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
         if let Some(edit) = &self.edit {
             let stock = &edit.settings.stock;

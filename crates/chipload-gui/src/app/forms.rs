@@ -1221,12 +1221,18 @@ pub(super) fn job_form(
         ui.end_row();
     });
 
-    let copies = job.copies.map_or("one part".to_string(), |c| {
-        format!("{} × {} = {}", c.columns, c.rows, c.count())
-    });
-    section(ui, "job-copies", "Copies", &copies, |ui| {
-        copies_rows(ui, &mut job.copies, &mut copies_request);
-    });
+    // The active part's copies, until parts get their own properties
+    // (docs/specs/parts.md §8).
+    let active = job.active_part_id();
+    if let Some(part) = job.parts.iter_mut().find(|p| Some(p.id) == active) {
+        let copies = part.copies.map_or("one".to_string(), |c| {
+            format!("{} × {} = {}", c.columns, c.rows, c.count())
+        });
+        let title = format!("Copies of {}", part.name);
+        section(ui, "job-copies", &title, &copies, |ui| {
+            copies_rows(ui, &mut part.copies, &mut copies_request);
+        });
+    }
 
     let machine = format!(
         "{}, safe Z {} mm, {}",
@@ -1586,7 +1592,7 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
     ComboBox::from_id_salt("copies-order")
         .selected_text(order_name(grid.order))
         .show_ui(ui, |ui| {
-            for order in [CopyOrder::ByOperation, CopyOrder::ByPart] {
+            for order in [CopyOrder::ByOperation, CopyOrder::ByCopy] {
                 ui.selectable_value(&mut grid.order, order, order_name(order));
             }
         });

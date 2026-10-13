@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 17] = [
+const MIGRATIONS: [Migration; 18] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21,
+    v20_to_v21, v21_to_v22,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -349,6 +349,30 @@ fn v20_to_v21(mut data: Value) -> Result<Value, String> {
     drawing.insert("dxfs".into(), Value::Array(dxfs));
     drawing.insert("hidden".into(), Value::Array(Vec::new()));
     Ok(set_version(data, 21))
+}
+
+/// v21 -> v22: parts (docs/specs/parts.md §4). One part, "Part 1", holds every operation
+/// and takes the job's copies; the copies' `by_part` order is renamed `by_copy`. With one
+/// part the cut order is exactly the old one.
+fn v21_to_v22(mut data: Value) -> Result<Value, String> {
+    let map = data.as_object_mut().ok_or("the project is not an object")?;
+    let mut copies = map.remove("copies").unwrap_or(Value::Null);
+    if let Some(order) = copies.get_mut("order")
+        && order.as_str() == Some("by_part")
+    {
+        *order = Value::from("by_copy");
+    }
+    if let Some(operations) = map.get_mut("operations").and_then(Value::as_array_mut) {
+        for op in operations.iter_mut().filter_map(Value::as_object_mut) {
+            op.insert("part".into(), Value::from(1));
+        }
+    }
+    map.insert(
+        "parts".into(),
+        serde_json::json!([{"id": 1, "name": "Part 1", "enabled": true, "copies": copies}]),
+    );
+    map.insert("active_part".into(), Value::Null);
+    Ok(set_version(data, 22))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

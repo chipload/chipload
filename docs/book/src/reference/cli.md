@@ -184,6 +184,21 @@ chipload op add-rest <PROJECT> [OPTIONS]
 | `--tool <TOOL>` | The smaller tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op part`
+
+Move an operation into another part, at the end of its operations (docs/specs/parts.md §7). Operations are numbered again in the new order
+
+```text
+chipload op part <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation, 1-based as listed. Required. |
+| `--part <PART>` | The part's id (as `part list` shows it) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op rest`
 
 Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md)
@@ -732,9 +747,85 @@ chipload post use <PROJECT> [OPTIONS]
 | `--post <POST>` | The post's name (`chipload post list`) Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload part`
+
+A project's parts: groups of operations, each cut with its copies before the next (docs/specs/parts.md)
+
+### `chipload part list`
+
+The project's parts: id, name, on or off, copies and operations
+
+```text
+chipload part list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload part add`
+
+Add an empty part at the end; it becomes the active part
+
+```text
+chipload part add <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--name <NAME>` | Its name; default: "Part N". |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part set`
+
+Rename a part, or turn it off or on (a part that is off isn't cut)
+
+```text
+chipload part set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The part's id (as `part list` shows it) |
+| `--name <NAME>` | Its new name. |
+| `--off` | Leave the part and its operations out of the program. |
+| `--on` | Cut the part again. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part activate`
+
+Make a part the active one: where the app adds new operations
+
+```text
+chipload part activate <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The part's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part remove`
+
+Remove a part. Refused while it has operations, unless --with-operations
+
+```text
+chipload part remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The part's id. |
+| `--with-operations` | Remove its operations with it. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload copies`
 
-Cut the part several times in a grid (docs/specs/copies-grid.md)
+Cut a part several times in a grid (docs/specs/copies-grid.md)
 
 ```text
 chipload copies <PROJECT> [OPTIONS]
@@ -743,11 +834,12 @@ chipload copies <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part (as `part list` shows it); needed when the project has several. |
 | `--grid <GRID>` | Columns x rows, e.g. "3x2". |
 | `--pitch <PITCH>` | Pitch "DX,DY" in mm, copy to copy; negative grows left or down. |
 | `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |
-| `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every copy, then the next operation), `by-part` (Every operation on one copy, then the next copy). |
-| `--off` | Back to a single part. |
+| `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every copy, then the next operation), `by-copy` (Every operation on one copy, then the next copy (was `by-part`)). |
+| `--off` | Back to one copy. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload place`

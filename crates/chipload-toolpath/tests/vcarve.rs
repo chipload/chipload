@@ -467,7 +467,7 @@ fn vcarve_job(tool: serde_json::Value, step_down: serde_json::Value) -> chipload
     use chipload_job::migrations::migrate;
     chipload_job::parse_job(
         migrate(serde_json::json!({
-            "schema_version": chipload_job::CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},

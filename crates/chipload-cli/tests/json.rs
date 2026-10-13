@@ -181,7 +181,7 @@ fn every_command_prints_one_json_object() {
         "plan",
         "part.chipload",
         "--set",
-        "operations.0={\"type\": \"profile\", \"select\": {\"layer\": null, \"shapes\": [1]}, \"side\": \"outside\", \"direction\": \"climb\", \"tool\": 1, \"start_depth\": 0, \"end_depth\": 2, \"clearance\": 0, \"step_down\": 2, \"feed\": 1000, \"plunge_feed\": 300}",
+        "operations.0={\"type\": \"profile\", \"part\": 1, \"select\": {\"layer\": null, \"shapes\": [1]}, \"side\": \"outside\", \"direction\": \"climb\", \"tool\": 1, \"start_depth\": 0, \"end_depth\": 2, \"clearance\": 0, \"step_down\": 2, \"feed\": 1000, \"plunge_feed\": 300}",
     ]);
     std::fs::write(dir.join("program.json"), part["program"].to_string()).unwrap();
     let rendered = keys(&["render", "program.json", "--post", "grbl"]);

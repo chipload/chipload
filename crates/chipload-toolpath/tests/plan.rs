@@ -6,14 +6,14 @@ mod common;
 
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::{ToolpathError, plan_job};
 use serde_json::{Value, json};
 
 fn job(operations: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             // plan_job gets its contours directly; the drawing isn't used here.
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
@@ -361,7 +361,7 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
     ops[0]["entry"] = json!({"type": "ramp", "ramp_angle": 0.6});
     let err = parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
@@ -383,7 +383,7 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
 
 fn with_copies(ops: Value, copies: Value) -> Job {
     let mut job = job(ops);
-    job.copies = serde_json::from_value(copies).unwrap();
+    job.parts[0].copies = serde_json::from_value(copies).unwrap();
     job
 }
 
@@ -449,7 +449,7 @@ fn copies_are_cut_operation_by_operation_in_a_serpentine() {
 
 #[test]
 fn copies_can_be_cut_part_by_part() {
-    let grid = json!({"columns": 3, "rows": 1, "dx": -120, "dy": 0, "order": "by_part"});
+    let grid = json!({"columns": 3, "rows": 1, "dx": -120, "dy": 0, "order": "by_copy"});
     let plan = plan_job(&with_copies(two_profiles(), grid), &part()).unwrap();
     let order: Vec<(usize, u32)> = plan
         .op_spans
@@ -552,4 +552,112 @@ fn removed_pocket_strategies_are_refused_until_switched_to_rings() {
         pocket.strategy = chipload_job::PocketStrategy::Rings {};
         assert!(plan_job(&job, &part).is_ok());
     }
+}
+
+// -- parts (docs/specs/parts.md)
+
+fn on_layer(mut contour: Contour, layer: &str) -> Contour {
+    for part in &mut contour.parts {
+        part.segment.layer = layer.into();
+    }
+    contour
+}
+
+/// A square on layer A cut by part 1 and one on layer B cut by part 2 ("B"), both with
+/// tool 1; part 2 with `copies`. Each square is 40 mm, cut outside with a 6 mm tool: 46 mm.
+fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>) {
+    let mut ops = profile("outside", Value::Null);
+    ops[0]["select"] = json!({"layer": "A"});
+    let mut b = ops[0].clone();
+    b["select"] = json!({"layer": "B"});
+    ops.as_array_mut().unwrap().push(b);
+    let mut job = job(ops);
+    job.parts[0].copies = serde_json::from_value(a_copies).unwrap();
+    job.parts.push(chipload_job::Part {
+        id: 2,
+        name: "B".into(),
+        enabled: true,
+        copies: serde_json::from_value(b_copies).unwrap(),
+    });
+    job.operations[1].set_part(2);
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    let contours = vec![
+        on_layer(common::rect(1, 0.0, 0.0, 40.0, 40.0), "A"),
+        on_layer(common::rect(2, b_at, 0.0, b_at + 40.0, 40.0), "B"),
+    ];
+    (job, contours)
+}
+
+#[test]
+fn parts_are_cut_one_after_the_other_each_with_its_copies() {
+    let grid = |dx: f64| json!({"columns": 2, "rows": 1, "dx": dx, "dy": 0});
+    let (job, contours) = two_parts(100.0, grid(-60.0), grid(60.0));
+    let plan = plan_job(&job, &contours).unwrap();
+    let order: Vec<(usize, u32)> = plan
+        .op_spans
+        .iter()
+        .map(|s| (s.operation, s.copy))
+        .collect();
+    // Part 1 with both its copies, then part 2 with both of its: one tool, one group.
+    assert_eq!(order, [(0, 1), (0, 2), (1, 1), (1, 2)]);
+    assert_eq!(plan.groups.len(), 1);
+    // Each part's copies are its own: part 1 grows left, part 2 right.
+    let ((x0, _), _) = extent_of(&plan, 2);
+    assert!(x0 < -50.0, "{x0}");
+    // A comment where each part starts.
+    assert_eq!(
+        plan.program.comments,
+        ["Part 1: Part 1, 2 copies", "Part 2: B, 2 copies"]
+    );
+    let marked: Vec<usize> = plan
+        .program
+        .moves
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| m.comment.is_some())
+        .map(|(i, _)| i)
+        .collect();
+    assert_eq!(
+        marked,
+        [plan.op_spans[0].moves.start, plan.op_spans[2].moves.start]
+    );
+}
+
+#[test]
+fn a_part_that_is_off_is_left_out_and_one_part_has_no_comment() {
+    let (mut job, contours) = two_parts(100.0, Value::Null, Value::Null);
+    job.parts[1].enabled = false;
+    let plan = plan_job(&job, &contours).unwrap();
+    let operations: Vec<usize> = plan.op_spans.iter().map(|s| s.operation).collect();
+    assert_eq!(operations, [0]);
+    // Two parts, one off: still a comment for the one cut.
+    assert_eq!(plan.program.comments, ["Part 1: Part 1"]);
+    // One part: no comments at all, as before parts.
+    let plain = plan_job(&job_of_one_part(), &part()).unwrap();
+    assert!(plain.program.comments.is_empty());
+}
+
+fn job_of_one_part() -> Job {
+    job(profile("outside", Value::Null))
+}
+
+#[test]
+fn a_copy_may_not_cut_into_another_part_but_the_parts_as_drawn_may_overlap() {
+    // The area is the tool centre's path widened by the tool radius: part 1 cuts -6..46;
+    // part 2, drawn at 200, cuts 194..246, and its copy 2 194 + dx.
+    let refused = |dx: f64| {
+        let grid = json!({"columns": 2, "rows": 1, "dx": dx, "dy": 0});
+        let (job, contours) = two_parts(200.0, Value::Null, grid);
+        plan_job(&job, &contours).err().map(|e| e.to_string())
+    };
+    // Touching: copy 2 cuts 46..98.
+    assert_eq!(refused(-148.0), None);
+    let err = refused(-148.1).unwrap();
+    assert!(
+        err.contains("Part \"B\" copy 2 overlaps part \"Part 1\" copy 1"),
+        "{err}"
+    );
+    // Drawn on top of each other, without copies: allowed (an engraving over a cut-out).
+    let (job, contours) = two_parts(20.0, Value::Null, Value::Null);
+    assert!(plan_job(&job, &contours).is_ok());
 }

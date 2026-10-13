@@ -714,15 +714,15 @@ fn pocket_strategy_defaults_to_rings_and_removed_ones_still_load() {
 fn copies_round_trip_default_to_one_part_and_are_checked() {
     let with_copies = |copies: Value| {
         let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
-        data["copies"] = copies;
+        data["parts"][0]["copies"] = copies;
         data
     };
-    // Missing: one part, written explicitly as null.
+    // None: one copy, written explicitly as null.
     let data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
     let job = parse_job(data, "p").unwrap();
-    assert_eq!(job.copies, None);
+    assert_eq!(job.parts[0].copies, None);
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["copies"], Value::Null);
+    assert_eq!(saved["parts"][0]["copies"], Value::Null);
 
     // A missing order is by operation, written explicitly.
     let job = parse_job(
@@ -732,16 +732,19 @@ fn copies_round_trip_default_to_one_part_and_are_checked() {
     .unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
     assert_eq!(
-        saved["copies"],
+        saved["parts"][0]["copies"],
         json!({"columns": 3, "rows": 2, "dx": 120.5, "dy": -80.0, "order": "by_operation"})
     );
-    let by_part = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_part"});
-    let job = parse_job(with_copies(by_part.clone()), "p").unwrap();
+    let by_copy = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_copy"});
+    let job = parse_job(with_copies(by_copy.clone()), "p").unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["copies"], by_part);
+    assert_eq!(saved["parts"][0]["copies"], by_copy);
+    // Renamed in schema 22 (docs/specs/parts.md §4): the old name is refused in a current file.
+    let by_part = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_part"});
+    assert!(parse_job(with_copies(by_part), "p").is_err());
 
     // Copies numbered row by row, cut in a serpentine.
-    let grid = job.copies.map(|mut c| {
+    let grid = job.parts[0].copies.map(|mut c| {
         c.columns = 3;
         c.rows = 2;
         c.dx = 10.0;
@@ -780,6 +783,97 @@ fn copies_round_trip_default_to_one_part_and_are_checked() {
     ] {
         assert!(parse_job(with_copies(good.clone()), "p").is_ok(), "{good}");
     }
+}
+
+// -- parts (docs/specs/parts.md)
+
+#[test]
+fn v21_to_v22_puts_every_operation_in_one_part_with_the_copies() {
+    let mut v21 = lower_job();
+    // As a v21 file: no parts, copies at the top, the old order name.
+    let map = v21.as_object_mut().unwrap();
+    map.remove("parts");
+    map.remove("active_part");
+    for op in map["operations"].as_array_mut().unwrap() {
+        op.as_object_mut().unwrap().remove("part");
+    }
+    map.insert(
+        "copies".into(),
+        json!({"columns": 2, "rows": 1, "dx": 50, "dy": 0, "order": "by_part"}),
+    );
+    map.insert("schema_version".into(), json!(21));
+    let job = parse_job(migrate(v21).unwrap(), "p").unwrap();
+    assert_eq!(job.parts.len(), 1);
+    let part = &job.parts[0];
+    assert_eq!(
+        (part.id, part.name.as_str(), part.enabled),
+        (1, "Part 1", true)
+    );
+    let copies = part.copies.unwrap();
+    assert_eq!(
+        (copies.columns, copies.order),
+        (2, chipload_job::CopyOrder::ByCopy)
+    );
+    assert!(job.operations.iter().all(|op| op.part() == 1));
+    assert_eq!(job.active_part, None);
+    assert_eq!(job.active_part_id(), Some(1));
+}
+
+#[test]
+fn part_rules_are_enforced() {
+    let refused = |data: Value, why: &str| {
+        let err = parse_job(data.clone(), "p").unwrap_err().to_string();
+        assert!(err.contains(why), "{why}: {err}");
+    };
+    let two = || {
+        let mut data = lower_job();
+        data["parts"] = json!([
+            {"id": 1, "name": "lid", "enabled": true, "copies": null},
+            {"id": 2, "name": "box", "enabled": true, "copies": null},
+        ]);
+        data["operations"][1]["part"] = json!(2);
+        data
+    };
+    parse_job(two(), "p").unwrap();
+    let mut data = two();
+    data["parts"] = json!([]);
+    refused(data, "parts: a project needs at least one part");
+    let mut data = two();
+    data["parts"][1]["id"] = json!(1);
+    refused(data, "parts.1.id: part 1 is listed twice");
+    let mut data = two();
+    data["parts"][1]["name"] = json!(" LID");
+    refused(data, "parts.1.name: another part is named");
+    let mut data = two();
+    data["parts"][1]["name"] = json!("  ");
+    refused(data, "parts.1.name: must not be empty");
+    let mut data = two();
+    data["operations"][1]["part"] = json!(7);
+    refused(data, "operations.1.part: no part 7 in parts");
+    // Out of the parts' order: part 2's operation before part 1's.
+    let mut data = two();
+    data["operations"][0]["part"] = json!(2);
+    data["operations"][1]["part"] = json!(1);
+    refused(
+        data,
+        "operations.1.part: part 1's operations must all come before part 2's",
+    );
+    let mut data = two();
+    data["parts"][0]["copies"] = json!({"columns": 0, "rows": 1, "dx": 10, "dy": 10});
+    refused(data, "parts.0.copies.columns");
+    // A part without operations is fine; an active part that doesn't exist means the first.
+    let mut data = two();
+    data["operations"][1]["part"] = json!(1);
+    data["active_part"] = json!(9);
+    let job = parse_job(data, "p").unwrap();
+    assert_eq!(job.active_part_id(), Some(1));
+    // A part that is off: its operations aren't cut.
+    let mut data = two();
+    data["parts"][1]["enabled"] = json!(false);
+    let job = parse_job(data, "p").unwrap();
+    assert!(job.cuts(0) && !job.cuts(1));
+    assert_eq!(job.insert_index(1), 1);
+    assert_eq!(job.insert_index(2), 2);
 }
 
 // -- placement of the imported drawing (docs/specs/drawing-placement.md)
@@ -878,7 +972,7 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -910,7 +1004,7 @@ fn vcarve_job() -> Value {
     data["tools"][0]["angle"] = json!(std::f64::consts::FRAC_PI_3);
     data["tools"][0]["tip_diameter"] = json!(0.2);
     data["operations"] = json!([{
-        "type": "vcarve", "name": "Letters", "select": {"layer": "TEXT"}, "tool": 1,
+        "type": "vcarve", "part": 1, "name": "Letters", "select": {"layer": "TEXT"}, "tool": 1,
         "start_depth": 0.0, "end_depth": 3.0, "step_down": null,
         "feed": 1200.0, "plunge_feed": 400.0
     }]);
@@ -961,7 +1055,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1021,7 +1115,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(21));
+        assert_eq!(current["schema_version"], json!(22));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
@@ -1068,7 +1162,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1096,6 +1190,9 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     without_custom_post(&mut migrated);
     without_flank_angle(&mut migrated);
     without_round_corners(&mut migrated);
+    for op in migrated["operations"].as_array_mut().unwrap() {
+        op.as_object_mut().unwrap().remove("part");
+    }
     assert_eq!(migrated["operations"], rings["operations"]);
     let mut broken = raw("v12/adaptive.chipload");
     broken["operations"][0]["strategy"]
@@ -1136,8 +1233,27 @@ fn without_dxf_ids(data: &Value) -> Value {
     data
 }
 
+/// Undo v21 -> v22: the one part's copies back at the top (`by_copy` back to `by_part`),
+/// operations without `part`.
+fn without_parts(data: &mut Value) {
+    let map = data.as_object_mut().unwrap();
+    assert_eq!(map.remove("active_part"), Some(Value::Null));
+    let mut parts = map.remove("parts").unwrap();
+    let parts = parts.as_array_mut().unwrap();
+    assert_eq!(parts.len(), 1);
+    let mut copies = parts[0]["copies"].take();
+    if copies["order"] == json!("by_copy") {
+        copies["order"] = json!("by_part");
+    }
+    map.insert("copies".into(), copies);
+    for op in map["operations"].as_array_mut().unwrap() {
+        assert_eq!(op.as_object_mut().unwrap().remove("part"), Some(json!(1)));
+    }
+}
+
 /// Undo v20 -> v21: DXF 1 back to `source`, shapes without `dxf`, nothing hidden.
 fn without_dxfs(data: &mut Value) {
+    without_parts(data);
     let drawing = data["drawing"].as_object_mut().unwrap();
     assert_eq!(drawing.remove("hidden"), Some(json!([])));
     let mut dxfs = drawing.remove("dxfs").unwrap();
@@ -1177,7 +1293,7 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
@@ -1207,7 +1323,7 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
@@ -1276,7 +1392,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1371,7 +1487,7 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_images(&mut current);
     current["schema_version"] = json!(16);
     assert_eq!(current, v16, "nothing else changes");
@@ -1405,7 +1521,7 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(21));
+        assert_eq!(current["schema_version"], json!(22));
         without_images(&mut current);
         current["schema_version"] = json!(17);
         assert_eq!(current, v17, "{sample}: nothing else changes");
@@ -1514,7 +1630,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(21));
+        assert_eq!(current["schema_version"], json!(22));
         without_images(&mut current);
         current["schema_version"] = json!(18);
         assert_eq!(current, v18, "{sample}: nothing else changes");
@@ -1527,7 +1643,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
     let mut current = migrate(v19.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     without_dxfs(&mut current);
     let images = current["drawing"]["images"].as_array_mut().unwrap();
     assert!(!images.is_empty());
@@ -1546,7 +1662,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
 fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     let v20 = raw("v20/scaled_part.chipload");
     let mut current = migrate(v20.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(21));
+    assert_eq!(current["schema_version"], json!(22));
     let dxf = &current["drawing"]["dxfs"][0];
     assert_eq!(
         (&dxf["id"], &dxf["name"]),

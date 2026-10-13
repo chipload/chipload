@@ -47,7 +47,7 @@
     },
     "Copies": {
       "additionalProperties": false,
-      "description": "A grid of copies of the whole part: copy (column c, row r) is the drawing moved by\n(c·dx, r·dy) mm.",
+      "description": "A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)\nmm.",
       "properties": {
         "columns": {
           "description": "Copies along X, at least 1.",
@@ -68,7 +68,7 @@
         "order": {
           "$ref": "#/$defs/CopyOrder",
           "default": "by_operation",
-          "description": "`by_operation`: each operation on every copy, then the next; `by_part`: every\noperation on one copy, then the next copy."
+          "description": "`by_operation`: each operation on every copy, then the next; `by_copy`: every\noperation on one copy, then the next copy."
         },
         "rows": {
           "description": "Copies along Y, at least 1.",
@@ -94,8 +94,8 @@
           "type": "string"
         },
         {
-          "const": "by_part",
-          "description": "Every operation on one copy, then the next copy.",
+          "const": "by_copy",
+          "description": "Every operation on one copy, then the next copy. Called `by_part` before parts\ncame (schema 22).",
           "type": "string"
         }
       ]
@@ -770,6 +770,12 @@
               "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
               "type": "string"
             },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "The feed going down into the material, mm/min.",
               "format": "double",
@@ -843,6 +849,7 @@
           },
           "required": [
             "type",
+            "part",
             "select",
             "side",
             "direction",
@@ -924,6 +931,12 @@
               "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
               "type": "string"
             },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "The feed going down into the material, mm/min.",
               "format": "double",
@@ -997,6 +1010,7 @@
           },
           "required": [
             "type",
+            "part",
             "select",
             "tool",
             "start_depth",
@@ -1035,6 +1049,12 @@
               "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
               "type": "string"
             },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "The feed for moves steeper than 45°, mm/min.",
               "format": "double",
@@ -1070,6 +1090,7 @@
           },
           "required": [
             "type",
+            "part",
             "select",
             "tool",
             "start_depth",
@@ -1107,6 +1128,12 @@
               "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
               "type": "string"
             },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "The feed going down into the material, mm/min.",
               "format": "double",
@@ -1138,6 +1165,7 @@
           },
           "required": [
             "type",
+            "part",
             "select",
             "tool",
             "start_depth",
@@ -1177,6 +1205,12 @@
               "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
               "type": "string"
             },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "A drill's feed down, or a bore's feed straight down to the start depth, mm/min.",
               "format": "double",
@@ -1203,6 +1237,7 @@
           },
           "required": [
             "type",
+            "part",
             "select",
             "tool",
             "start_depth",
@@ -1214,6 +1249,43 @@
           "type": "object"
         }
       ]
+    },
+    "Part": {
+      "additionalProperties": false,
+      "description": "A part: a named group of operations, cut together, with its own copies\n(docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.",
+      "properties": {
+        "copies": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Copies"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cut the part several times in a grid. Null: once."
+        },
+        "enabled": {
+          "description": "False: the part and all its operations stay in the project but aren't cut.",
+          "type": "boolean"
+        },
+        "id": {
+          "description": "Its number, unique in the project: what operations name it by.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Its name, unique in the project, shown in the Browser, the report and the sheet.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "enabled"
+      ],
+      "type": "object"
     },
     "PathSegment": {
       "oneOf": [
@@ -1926,19 +1998,17 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 21. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 22. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
-    "copies": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/Copies"
-        },
-        {
-          "type": "null"
-        }
-      ],
+    "active_part": {
       "default": null,
-      "description": "Cut the part several times in a grid. Null: once."
+      "description": "The part new operations go into (its id). Null or no such part: the first part.\nOnly the app and the command line read it; it changes nothing that is cut.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
     },
     "drawing": {
       "$ref": "#/$defs/Drawing",
@@ -1949,14 +2019,21 @@
       "description": "The machine: post-processor, safe height, limits and zero."
     },
     "operations": {
-      "description": "The operations, cut in this order.",
+      "description": "The operations, cut in this order: grouped by part, in the parts' order.",
       "items": {
         "$ref": "#/$defs/Operation"
       },
       "type": "array"
     },
+    "parts": {
+      "description": "The parts: groups of operations, each cut with its copies before the next part.\nAt least one.",
+      "items": {
+        "$ref": "#/$defs/Part"
+      },
+      "type": "array"
+    },
     "schema_version": {
-      "const": 21,
+      "const": 22,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {
@@ -1985,6 +2062,7 @@
     "stock",
     "machine",
     "tools",
+    "parts",
     "operations"
   ],
   "title": "Chipload project",

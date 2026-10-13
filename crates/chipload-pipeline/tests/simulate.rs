@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, Spindle, parse_job};
+use chipload_job::{Job, Spindle, parse_job};
 use chipload_pipeline::Cancel;
 use chipload_pipeline::simulate::{
     DISPLAY_CELLS, History, PRINT_PALETTE, Simulation, simulate, simulate_with_history,
@@ -18,7 +18,7 @@ const CELL: f64 = 0.1;
 fn job(tool: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 60, "y": 40, "thickness": 10, "origin": "bottom_left",
                       "max_overcut": 1.0},
@@ -47,6 +47,7 @@ fn run(job: &Job, moves: Vec<Move>) -> Simulation {
         spindle: Spindle::Cw,
         safe_z: 5.0,
         moves,
+        comments: Vec::new(),
     };
     let groups = vec![ToolGroup {
         tool: job.tools[0].clone(),
@@ -201,6 +202,7 @@ fn a_cell_size_out_of_range_or_too_fine_is_refused() {
         spindle: Spindle::Cw,
         safe_z: 5.0,
         moves: Vec::new(),
+        comments: Vec::new(),
     };
     for cell in [0.01, 20.0] {
         let err = simulate(&job, &program, &[], Some(cell), &Cancel::new()).unwrap_err();
@@ -260,6 +262,7 @@ fn program_of(job: &Job, moves: Vec<Move>) -> (Program, Vec<ToolGroup>) {
         spindle: Spindle::Cw,
         safe_z: 5.0,
         moves,
+        comments: Vec::new(),
     };
     let groups = vec![ToolGroup {
         tool: job.tools[0].clone(),
@@ -381,7 +384,7 @@ fn rest_job(rest: bool) -> Job {
     }
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [{"id": 1, "layer": "L", "kind": "rectangle",
                 "center": [30, 20], "length": 40, "width": 30, "angle": 0}],
                 "next_shape_id": 2, "dxfs": []},

@@ -30,6 +30,11 @@ fn read(rel: &str) -> Value {
 /// `base` with `changes` merged in: objects one level deep are updated, the rest replaced.
 fn with(mut base: Value, changes: Value) -> Job {
     for (key, value) in changes.as_object().unwrap() {
+        // The copies belong to the one part (docs/specs/parts.md §4).
+        if key == "copies" {
+            base["parts"][0]["copies"] = value.clone();
+            continue;
+        }
         match (base.get_mut(key), value) {
             (Some(Value::Object(target)), Value::Object(update)) => {
                 for (k, v) in update {
@@ -295,7 +300,7 @@ fn copies_are_cut_tool_group_by_tool_group() {
             "by_operation",
             [(0, 1), (0, 2), (1, 1), (1, 2), (2, 1), (2, 2)],
         ),
-        ("by_part", [(0, 1), (1, 1), (0, 2), (1, 2), (2, 1), (2, 2)]),
+        ("by_copy", [(0, 1), (1, 1), (0, 2), (1, 2), (2, 1), (2, 2)]),
     ];
     for (order, cut) in expected {
         let copies = json!({"columns": 2, "rows": 1, "dx": 250.0, "dy": 0.0, "order": order});
@@ -1105,6 +1110,7 @@ mod cycle_time {
                 Move::feed_xy((0.0, 0.0), 1200.0),
                 Move::rapid_z(5.0),
             ],
+            comments: Vec::new(),
         }
     }
 

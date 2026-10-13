@@ -9,6 +9,7 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use chipload_core::Point;
+use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
     Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
@@ -16,6 +17,7 @@ use chipload_job::{
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
+use chipload_toolpath::select::{select_contours, select_paths};
 
 use crate::estimate::{duration_text, estimate_lines};
 use crate::{GcodeFile, RunResult, copies, write_atomically};
@@ -144,6 +146,10 @@ fn setup(html: &mut String, job: &Job) {
     );
     if let Some(text) = copies::copies_text(job) {
         let _ = writeln!(html, "<tr><th>Copies</th><td>{}</td></tr>", escape(&text));
+    }
+    // Several parts: each with its copies (docs/specs/parts.md §6).
+    for line in copies::parts_lines(job) {
+        let _ = writeln!(html, "<tr><th>Part</th><td>{}</td></tr>", escape(&line));
     }
     // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
     if job.drawing.dxfs.len() + job.drawing.images.len() > 1 {
@@ -646,15 +652,12 @@ fn picture(html: &mut String, job: &Job, result: &RunResult) {
         svg_num(sx1 - sx0),
         svg_num(sy1 - sy0)
     );
-    // The parts, at every copy.
-    let shifts: Vec<(f64, f64)> = match &job.copies {
-        Some(c) => c.in_cut_order().into_iter().map(|(_, s)| s).collect(),
-        None => vec![(0.0, 0.0)],
-    };
+    // The drawing, at every copy of every part: with one part the whole drawing as
+    // before; with several, each part's copies of the contours its operations cut.
     let mut parts = String::new();
-    for contour in &result.contours {
+    for (contour, shifts) in contour_copies(job, &result.contours) {
         let points = contour.points();
-        for &(dx, dy) in &shifts {
+        for (dx, dy) in shifts {
             let moved: Vec<Point> = points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
             path_data(&mut parts, &moved, contour.closed);
         }
@@ -788,6 +791,52 @@ fn cutting_path(program: &Program, group: &ToolGroup) -> String {
         let _ = write!(d, "L{} {} ", svg_num(tx), svg_num(-ty));
     }
     d
+}
+
+/// Each contour with the shifts it is drawn at: every copy of the parts that cut it
+/// (docs/specs/parts.md §6). With one part, every contour at every copy, as before parts.
+/// A contour no part cuts is drawn once, where it is.
+pub fn contour_copies<'a>(job: &Job, contours: &'a [Contour]) -> Vec<(&'a Contour, Vec<Point>)> {
+    let shifts_of = |part: &chipload_job::Part| -> Vec<Point> {
+        part.in_cut_order().into_iter().map(|(_, s)| s).collect()
+    };
+    if let [part] = job.parts.as_slice() {
+        let shifts = shifts_of(part);
+        return contours.iter().map(|c| (c, shifts.clone())).collect();
+    }
+    let mut cut_by: Vec<Vec<Point>> = vec![Vec::new(); contours.len()];
+    for part in &job.parts {
+        let mut ids: Vec<usize> = Vec::new();
+        for op in job.operations.iter().filter(|op| op.part() == part.id) {
+            let picked = match op {
+                Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), ""),
+                _ => select_contours(contours, op.select(), ""),
+            };
+            if let Ok(selection) = picked {
+                ids.extend(selection.contours.iter().map(|c| c.id));
+            }
+        }
+        for (k, contour) in contours.iter().enumerate() {
+            if ids.contains(&contour.id) {
+                for shift in shifts_of(part) {
+                    if !cut_by[k].contains(&shift) {
+                        cut_by[k].push(shift);
+                    }
+                }
+            }
+        }
+    }
+    contours
+        .iter()
+        .zip(cut_by)
+        .map(|(c, shifts)| {
+            if shifts.is_empty() {
+                (c, vec![(0.0, 0.0)])
+            } else {
+                (c, shifts)
+            }
+        })
+        .collect()
 }
 
 fn path_data(d: &mut String, points: &[Point], closed: bool) {

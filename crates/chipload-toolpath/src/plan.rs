@@ -6,8 +6,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, PathOp,
-    PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
+    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, Part,
+    PathOp, PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
@@ -68,6 +68,7 @@ impl ToolGroup {
             spindle: program.spindle,
             safe_z: program.safe_z,
             moves: program.moves[self.moves.clone()].to_vec(),
+            comments: program.comments.clone(),
         }
     }
 }
@@ -121,7 +122,7 @@ pub fn plan_job_cancellable(
     // Every enabled operation's selection, chosen once on the drawing as drawn.
     let mut chosen: Vec<(usize, String, Selection)> = Vec::new();
     for (index, op) in job.operations.iter().enumerate() {
-        if !op.enabled() {
+        if !job.cuts(index) {
             continue; // kept in the file, skipped here; numbering stays as listed
         }
         let label = match op.name() {
@@ -137,14 +138,11 @@ pub fn plan_job_cancellable(
         };
         chosen.push((index, label, selection));
     }
-    let copies = job
-        .copies
-        .map_or_else(|| vec![(1, (0.0, 0.0))], |c| c.in_cut_order());
-    let several = copies.len() > 1;
-    // (operation, copy) pairs in cut order (docs/specs/copies-grid.md §3), tool group by
-    // tool group (docs/specs/tool-per-operation.md §2): the copies' order applies within a
-    // group, so a grid needs one tool change, not one per part.
-    let mut order: Vec<(usize, usize)> = Vec::new();
+    // (operation, copy number, shift) in cut order: part by part (docs/specs/parts.md §3),
+    // each part with its copies (docs/specs/copies-grid.md §3), tool group by tool group
+    // (docs/specs/tool-per-operation.md §2). A part's copies' order applies within a group,
+    // so a grid needs one tool change, not one per copy.
+    let mut order: Vec<(usize, u32, Point)> = Vec::new();
     let mut group_of: Vec<usize> = Vec::new();
     let mut groups: Vec<ToolGroup> = Vec::new();
     for (tool_id, indexes) in tool_groups(job) {
@@ -157,15 +155,28 @@ pub fn plan_job_cancellable(
             .filter(|i| indexes.contains(&chosen[*i].0))
             .collect();
         let before = order.len();
-        match job.copies.map(|c| c.order) {
-            Some(CopyOrder::ByPart) => {
-                for k in 0..copies.len() {
-                    order.extend(members.iter().map(|i| (*i, k)));
-                }
+        // A group can run on from one part into the next: each part's run with its copies.
+        let mut runs: Vec<Vec<usize>> = Vec::new();
+        for i in members {
+            let part = job.operations[chosen[i].0].part();
+            match runs.last_mut() {
+                Some(run) if job.operations[chosen[run[0]].0].part() == part => run.push(i),
+                _ => runs.push(vec![i]),
             }
-            _ => {
-                for i in &members {
-                    order.extend((0..copies.len()).map(|k| (*i, k)));
+        }
+        for run in runs {
+            let part = job.part_of(&job.operations[chosen[run[0]].0]);
+            let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
+            match part.and_then(|p| p.copies).map(|c| c.order) {
+                Some(CopyOrder::ByCopy) => {
+                    for &(number, shift) in &copies {
+                        order.extend(run.iter().map(|i| (*i, number, shift)));
+                    }
+                }
+                _ => {
+                    for i in &run {
+                        order.extend(copies.iter().map(|&(number, shift)| (*i, number, shift)));
+                    }
                 }
             }
         }
@@ -178,8 +189,11 @@ pub fn plan_job_cancellable(
     }
     // Every copy repeats the original's notes: each is listed once per operation.
     let mut seen: Vec<(usize, String)> = Vec::new();
+    // With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
+    let mut comments: Vec<String> = Vec::new();
+    let mut part_started: Option<u64> = None;
     let mut started: Vec<usize> = Vec::new();
-    for (step, (i, k)) in order.into_iter().enumerate() {
+    for (step, (i, number, offset)) in order.into_iter().enumerate() {
         cancel.check()?;
         let (index, label, selection) = &chosen[i];
         let group = &mut groups[group_of[step]];
@@ -191,8 +205,9 @@ pub fn plan_job_cancellable(
             started.push(*index);
             notes.extend(selection.notes.iter().cloned());
         }
-        let (number, offset) = copies[k];
         let op = &job.operations[*index];
+        let part = job.part_of(op);
+        let several = part.is_some_and(|p| p.count() > 1);
         let (start_depth, end_depth) = op.depths();
         // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
         let pass_z: Vec<f64> = match op {
@@ -264,11 +279,28 @@ pub fn plan_job_cancellable(
         };
         let planned = match planned {
             Ok(planned) => planned,
+            Err(err) if several && job.parts.len() > 1 => {
+                let name = part.map_or("", |p| p.name.as_str());
+                return Err(err.with_context(&format!("part {name}, copy {number}")));
+            }
             Err(err) if several => return Err(err.with_context(&format!("copy {number}"))),
             Err(err) => return Err(err),
         };
         let first = moves.len();
         moves.extend(planned.moves);
+        if job.parts.len() > 1
+            && part_started != Some(op.part())
+            && let (Some(part), Some(start)) = (part, moves.get_mut(first))
+        {
+            part_started = Some(op.part());
+            let copies = match part.count() {
+                1 => String::new(),
+                n => format!(", {n} copies"),
+            };
+            let number = job.parts.iter().position(|p| p.id == part.id).unwrap_or(0) + 1;
+            start.comment = u32::try_from(comments.len()).ok();
+            comments.push(format!("Part {number}: {}{copies}", part.name));
+        }
         op_spans.push(OpSpan {
             operation: *index,
             copy: number,
@@ -296,9 +328,7 @@ pub fn plan_job_cancellable(
         arcs.extend(planned.arcs);
         position = planned.end;
     }
-    if let Some(grid) = &job.copies {
-        check_copies_apart(grid, &moves, &op_spans)?;
-    }
+    check_parts_apart(job, &moves, &op_spans)?;
     let first = groups
         .first()
         .ok_or_else(|| job_error("Every operation is disabled: nothing to cut".into()))?;
@@ -312,6 +342,7 @@ pub fn plan_job_cancellable(
             spindle: job.machine.spindle,
             safe_z: job.machine.safe_z,
             moves,
+            comments,
         },
         notes,
         tabs,
@@ -1239,6 +1270,60 @@ pub fn cut_extent(moves: &[Move], spans: &[OpSpan], copy: Option<u32>) -> Option
     extent
 }
 
+/// What each part cuts, copy by copy: (part index, copy number, area). The area is the
+/// box of the cutting moves widened by the tool radius.
+type PartAreas = Vec<(usize, u32, (Point, Point))>;
+
+/// Copies must not cut into each other or into other parts (docs/specs/copies-grid.md
+/// §4, docs/specs/parts.md §5). Copies 1, the parts as drawn, may overlap each other.
+fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), ToolpathError> {
+    let mut areas: PartAreas = Vec::new();
+    for (p, part) in job.parts.iter().enumerate() {
+        let mine: Vec<OpSpan> = spans
+            .iter()
+            .filter(|s| {
+                job.operations
+                    .get(s.operation)
+                    .is_some_and(|op| op.part() == part.id)
+            })
+            .cloned()
+            .collect();
+        if let Some(grid) = &part.copies {
+            check_copies_apart(grid, moves, &mine)?;
+        }
+        for (number, _) in part.in_cut_order() {
+            if let Some(area) = cut_extent(moves, &mine, Some(number)) {
+                areas.push((p, number, area));
+            }
+        }
+    }
+    for (k, &(p, number, a)) in areas.iter().enumerate() {
+        for &(q, other, b) in &areas[..k] {
+            let generated = number > 1 || other > 1;
+            if p == q || !generated || !boxes_overlap(a, b) {
+                continue;
+            }
+            let ((x0, y0), (x1, y1)) = a;
+            return Err(job_error(format!(
+                "Part \"{}\" copy {number} overlaps part \"{}\" copy {other} (X{x0:.3} to \
+                 {x1:.3}, Y{y0:.3} to {y1:.3}): move the copies apart or change the grid",
+                job.parts[p].name, job.parts[q].name
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Whether two boxes overlap by more than the chaining tolerance.
+fn boxes_overlap(a: (Point, Point), b: (Point, Point)) -> bool {
+    let ((ax0, ay0), (ax1, ay1)) = a;
+    let ((bx0, by0), (bx1, by1)) = b;
+    ax0 + CHAIN_TOL_MM < bx1
+        && bx0 + CHAIN_TOL_MM < ax1
+        && ay0 + CHAIN_TOL_MM < by1
+        && by0 + CHAIN_TOL_MM < ay1
+}
+
 /// Neighbouring copies must not cut into each other (docs/specs/copies-grid.md §4): with
 /// more than one column the pitch dx is at least the cut's width, likewise dy and height.
 fn check_copies_apart(
@@ -1313,7 +1398,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         problems.push(Problem::new("operations", text, text));
         return (problems, Vec::new());
     }
-    if !job.operations.iter().any(Operation::enabled) {
+    if !(0..job.operations.len()).any(|i| job.cuts(i)) {
         let text = "Every operation is disabled: nothing to cut";
         problems.push(Problem::new("operations", text, text));
         return (problems, Vec::new());
@@ -1322,7 +1407,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         job.operations
             .iter()
             .enumerate()
-            .filter(|(_, op)| op.enabled())
+            .filter(|(i, _)| job.cuts(*i))
     };
     let tool_index = |id: i64| job.tools.iter().position(|t| t.id == id);
     let mut no_rpm: Vec<i64> = Vec::new();
@@ -1630,7 +1715,7 @@ fn rest_check(
 pub fn tool_groups(job: &Job) -> Vec<(i64, Vec<usize>)> {
     let mut groups: Vec<(i64, Vec<usize>)> = Vec::new();
     for (index, op) in job.operations.iter().enumerate() {
-        if !op.enabled() {
+        if !job.cuts(index) {
             continue;
         }
         match groups.last_mut() {
@@ -1644,7 +1729,27 @@ pub fn tool_groups(job: &Job) -> Vec<(i64, Vec<usize>)> {
 /// A note for each tool that comes back after another one: putting its operations next to
 /// each other saves a tool change.
 fn tool_group_notes(job: &Job) -> Vec<String> {
-    let groups = tool_groups(job);
+    // Within a part only: parts are cut one after the other, so a tool coming back in the
+    // next part is expected (docs/specs/parts.md §3).
+    let mut notes = Vec::new();
+    for part in &job.parts {
+        let mut groups: Vec<(i64, Vec<usize>)> = Vec::new();
+        for (index, op) in job.operations.iter().enumerate() {
+            if !job.cuts(index) || op.part() != part.id {
+                continue;
+            }
+            match groups.last_mut() {
+                Some((tool, ops)) if *tool == op.tool() => ops.push(index),
+                _ => groups.push((op.tool(), vec![index])),
+            }
+        }
+        notes.extend(returning_tool_notes(&groups));
+    }
+    notes
+}
+
+/// The notes for tools used in more than one of `groups`.
+fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<String> {
     let mut tools: Vec<i64> = groups.iter().map(|(tool, _)| *tool).collect();
     tools.sort_unstable();
     tools.dedup();

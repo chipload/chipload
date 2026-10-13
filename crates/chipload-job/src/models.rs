@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 21;
+pub const CURRENT_VERSION: i64 = 22;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -39,20 +39,54 @@ pub struct Job {
     pub machine: Machine,
     /// The tools the operations cut with.
     pub tools: Vec<Tool>,
-    /// The operations, cut in this order.
+    /// The parts: groups of operations, each cut with its copies before the next part.
+    /// At least one.
+    // Spec: docs/specs/parts.md.
+    pub parts: Vec<Part>,
+    /// The part new operations go into (its id). Null or no such part: the first part.
+    /// Only the app and the command line read it; it changes nothing that is cut.
+    #[serde(default)]
+    pub active_part: Option<u64>,
+    /// The operations, cut in this order: grouped by part, in the parts' order.
     pub operations: Vec<Operation>,
+}
+
+/// A part: a named group of operations, cut together, with its own copies
+/// (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Part {
+    /// Its number, unique in the project: what operations name it by.
+    pub id: u64,
+    /// Its name, unique in the project, shown in the Browser, the report and the sheet.
+    pub name: String,
+    /// False: the part and all its operations stay in the project but aren't cut.
+    pub enabled: bool,
     /// Cut the part several times in a grid. Null: once.
     // Spec: docs/specs/copies-grid.md.
-    #[serde(default)]
     pub copies: Option<Copies>,
+}
+
+impl Part {
+    /// How many times the part is cut.
+    pub fn count(&self) -> u32 {
+        self.copies.map_or(1, |c| c.count())
+    }
+
+    /// Its copies as (number, shift) in cut order; one, unshifted, without a grid.
+    pub fn in_cut_order(&self) -> Vec<(u32, (f64, f64))> {
+        self.copies
+            .map_or_else(|| vec![(1, (0.0, 0.0))], |c| c.in_cut_order())
+    }
 }
 
 /// Most columns or rows of copies, and most copies in all.
 pub const MAX_COPIES_PER_SIDE: u32 = 100;
 pub const MAX_COPIES: u32 = 1000;
 
-/// A grid of copies of the whole part: copy (column c, row r) is the drawing moved by
-/// (c·dx, r·dy) mm.
+/// A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)
+/// mm.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -65,7 +99,7 @@ pub struct Copies {
     pub dx: f64,
     /// Distance from copy to copy along Y, mm; negative grows downwards.
     pub dy: f64,
-    /// `by_operation`: each operation on every copy, then the next; `by_part`: every
+    /// `by_operation`: each operation on every copy, then the next; `by_copy`: every
     /// operation on one copy, then the next copy.
     #[serde(default)]
     pub order: CopyOrder,
@@ -79,8 +113,9 @@ pub enum CopyOrder {
     /// Each operation on every copy, then the next operation.
     #[default]
     ByOperation,
-    /// Every operation on one copy, then the next copy.
-    ByPart,
+    /// Every operation on one copy, then the next copy. Called `by_part` before parts
+    /// came (schema 22).
+    ByCopy,
 }
 
 impl Copies {
@@ -109,28 +144,29 @@ impl Copies {
         out
     }
 
-    /// What is wrong with the grid, as "copies.field: message".
-    pub fn problems(&self) -> Vec<String> {
+    /// What is wrong with the grid, as "{at}.field: message" (`at` is its path, e.g.
+    /// "parts.0.copies").
+    pub fn problems(&self, at: &str) -> Vec<String> {
         let mut problems = Vec::new();
         for (name, n) in [("columns", self.columns), ("rows", self.rows)] {
             if !(1..=MAX_COPIES_PER_SIDE).contains(&n) {
                 problems.push(format!(
-                    "copies.{name}: must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"
+                    "{at}.{name}: must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"
                 ));
             }
         }
         if self.count() > MAX_COPIES {
             problems.push(format!(
-                "copies: at most {MAX_COPIES} copies in all, got {}",
+                "{at}: at most {MAX_COPIES} copies in all, got {}",
                 self.count()
             ));
         }
         for (name, pitch, n) in [("dx", self.dx, self.columns), ("dy", self.dy, self.rows)] {
             if !pitch.is_finite() {
-                problems.push(format!("copies.{name}: must be a number, got {pitch}"));
+                problems.push(format!("{at}.{name}: must be a number, got {pitch}"));
             } else if n > 1 && pitch == 0.0 {
                 problems.push(format!(
-                    "copies.{name}: must not be 0 with more than one copy that way"
+                    "{at}.{name}: must not be 0 with more than one copy that way"
                 ));
             }
         }
@@ -1152,6 +1188,44 @@ impl StockCorner {
 }
 
 impl Job {
+    /// The part with this id.
+    pub fn part(&self, id: u64) -> Option<&Part> {
+        self.parts.iter().find(|p| p.id == id)
+    }
+
+    /// The part operation `op` belongs to.
+    pub fn part_of(&self, op: &Operation) -> Option<&Part> {
+        self.part(op.part())
+    }
+
+    /// Whether operation `index` is cut: it is on and so is its part (docs/specs/parts.md
+    /// §3).
+    pub fn cuts(&self, index: usize) -> bool {
+        self.operations
+            .get(index)
+            .is_some_and(|op| op.enabled() && self.part_of(op).is_some_and(|p| p.enabled))
+    }
+
+    /// The id of the part new operations go into: `active_part` when it names a part, else
+    /// the first part.
+    pub fn active_part_id(&self) -> Option<u64> {
+        self.active_part
+            .filter(|id| self.part(*id).is_some())
+            .or_else(|| self.parts.first().map(|p| p.id))
+    }
+
+    /// Where an operation added to part `id` goes: after the part's last operation, or,
+    /// for a part without operations, after the last operation of the parts before it.
+    pub fn insert_index(&self, id: u64) -> usize {
+        let order: Vec<u64> = self.parts.iter().map(|p| p.id).collect();
+        let rank = |part: u64| order.iter().position(|p| *p == part).unwrap_or(usize::MAX);
+        let mine = rank(id);
+        self.operations
+            .iter()
+            .rposition(|op| rank(op.part()) <= mine)
+            .map_or(0, |i| i + 1)
+    }
+
     /// The work zero in drawing coordinates: subtract it from every X, Y of the toolpath to
     /// get program coordinates.
     pub fn work_zero_xy(&self) -> (f64, f64) {
@@ -1370,6 +1444,27 @@ impl Operation {
         }
     }
 
+    /// The id of its part.
+    pub fn part(&self) -> u64 {
+        match self {
+            Operation::Profile(op) => op.part,
+            Operation::Pocket(op) => op.part,
+            Operation::Vcarve(op) => op.part,
+            Operation::Path(op) => op.part,
+            Operation::Holes(op) => op.part,
+        }
+    }
+
+    pub fn set_part(&mut self, part: u64) {
+        match self {
+            Operation::Profile(op) => op.part = part,
+            Operation::Pocket(op) => op.part = part,
+            Operation::Vcarve(op) => op.part = part,
+            Operation::Path(op) => op.part = part,
+            Operation::Holes(op) => op.part = part,
+        }
+    }
+
     pub fn tool(&self) -> i64 {
         match self {
             Operation::Profile(op) => op.tool,
@@ -1492,6 +1587,9 @@ pub struct ProfileOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a
@@ -1614,6 +1712,9 @@ pub struct PocketOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -1704,6 +1805,9 @@ pub struct VcarveOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -1735,6 +1839,9 @@ pub struct PathOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -1769,6 +1876,9 @@ pub struct HolesOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
     /// What the operation cuts: the circles among the shapes on a layer, or shapes by id.
     /// Other shapes are skipped with a note.
     pub select: Selector,
@@ -2212,6 +2322,61 @@ impl Job {
             .collect()
     }
 
+    /// The parts' rules (docs/specs/parts.md §4): at least one, unique ids and names,
+    /// valid copies, every operation in a part, and the operations grouped by part in the
+    /// parts' order.
+    fn part_problems(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        if self.parts.is_empty() {
+            problems.push("parts: a project needs at least one part".to_string());
+        }
+        for (i, part) in self.parts.iter().enumerate() {
+            if part.id == 0 {
+                problems.push(format!("parts.{i}.id: must be 1 or more"));
+            }
+            if self.parts[..i].iter().any(|p| p.id == part.id) {
+                problems.push(format!("parts.{i}.id: part {} is listed twice", part.id));
+            }
+            let name = part.name.trim();
+            if name.is_empty() {
+                problems.push(format!("parts.{i}.name: must not be empty"));
+            } else if self.parts[..i]
+                .iter()
+                .any(|p| p.name.trim().eq_ignore_ascii_case(name))
+            {
+                problems.push(format!("parts.{i}.name: another part is named \"{name}\""));
+            }
+            if let Some(copies) = &part.copies {
+                problems.extend(copies.problems(&format!("parts.{i}.copies")));
+            }
+        }
+        let rank = |id: u64| self.parts.iter().position(|p| p.id == id);
+        let mut last: Option<(usize, u64)> = None;
+        for (i, op) in self.operations.iter().enumerate() {
+            let Some(here) = rank(op.part()) else {
+                problems.push(format!(
+                    "operations.{i}.part: no part {} in parts",
+                    op.part()
+                ));
+                continue;
+            };
+            if let Some((before, before_id)) = last
+                && here < before
+            {
+                problems.push(format!(
+                    "operations.{i}.part: part {}'s operations must all come before part \
+                     {}'s",
+                    op.part(),
+                    before_id
+                ));
+            }
+            if last.is_none_or(|(before, _)| here > before) {
+                last = Some((here, op.part()));
+            }
+        }
+        problems
+    }
+
     /// Value constraints the serde types can't express.
     /// Returns every violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
@@ -2315,9 +2480,7 @@ impl Job {
             }
         }
         problems.extend(max_overcut_problems("stock", self.stock.max_overcut));
-        if let Some(copies) = &self.copies {
-            problems.extend(copies.problems());
-        }
+        problems.extend(self.part_problems());
         for (i, op) in self.operations.iter().enumerate() {
             let (start, end) = op.depths();
             if !(start.is_finite() && start >= 0.0) {

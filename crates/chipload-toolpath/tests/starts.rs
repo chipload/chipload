@@ -7,7 +7,7 @@ mod common;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::model::MoveKind;
 use chipload_toolpath::{Plan, plan_job};
 use serde_json::{Value, json};
@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 fn job(operations: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
@@ -144,7 +144,7 @@ fn tabs_move_with_the_start() {
 #[test]
 fn copies_use_the_point_moved_with_them() {
     let mut job = job(profile("outside", json!([[60, 76]]), Value::Null));
-    job.copies =
+    job.parts[0].copies =
         serde_json::from_value(json!({"columns": 2, "rows": 1, "dx": 150, "dy": 0})).unwrap();
     let plan = plan_job(&job, &part()).unwrap();
     let rapids = rapids(&plan);

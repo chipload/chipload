@@ -68,6 +68,7 @@ cut).
 | `segments` | the program in parts: one, or one per tool with tool changes |
 | `segment.change` | before every part but the first: `comment`, `tool_id`, `rpm`; otherwise none |
 | `segment.moves` | the moves: `code` (`G0`, `G1`, `G2`, `G3`), and `x`, `y`, `z`, `i`, `j`, `f` (each none when unchanged) |
+| `move.comment` | text to write as a comment before the move, made safe for G-code: where each [part](operations/parts.md) starts, with two parts or more; otherwise none |
 
 Numbers come already formatted with the settings' `decimals`. The built-in GRBL template
 shows how they fit together:
@@ -78,6 +79,9 @@ G21 G90 G17 G94
 {% if dwell is not none %}G4 P{{ dwell }}{% endif %}
 {% for s in segments %}
 {% for m in s.moves %}
+{% if m.comment is not none %}
+({{ m.comment }})
+{% endif %}
 {{ m.code }}{% if m.x is not none %} X{{ m.x }}{% endif %}{% if m.y is not none %} Y{{ m.y }}{% endif %}{% if m.z is not none %} Z{{ m.z }}{% endif %}{% if m.i is not none %} I{{ m.i }} J{{ m.j }}{% endif %}{% if m.f is not none %} F{{ m.f }}{% endif %}
 {% endfor %}
 {% endfor %}

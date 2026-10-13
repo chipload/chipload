@@ -8,7 +8,7 @@ use chipload_core::Point;
 use chipload_core::chain::{Contour, OrientedSegment, Segment};
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::plan_job;
 use proptest::prelude::*;
@@ -57,7 +57,7 @@ fn open(id: usize, vertices: &[(f64, f64, f64)]) -> Contour {
 fn job(operations: Value, tools: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},

@@ -7,7 +7,7 @@ mod common;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::{Plan, plan_job};
@@ -18,7 +18,7 @@ const THREE_DEG: f64 = 0.052_359_877_559_829_88;
 fn job(operations: Value) -> Job {
     let mut job = parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},

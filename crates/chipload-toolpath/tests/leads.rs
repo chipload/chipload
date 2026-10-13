@@ -7,7 +7,7 @@ mod common;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
-use chipload_job::{CURRENT_VERSION, Job, parse_job};
+use chipload_job::{Job, parse_job};
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::{Plan, plan_job};
 use serde_json::{Value, json};
@@ -17,7 +17,7 @@ const THREE_DEG: f64 = 0.052_359_877_559_829_88;
 fn job(operations: Value) -> Job {
     parse_job(
         migrate(json!({
-            "schema_version": CURRENT_VERSION,
+            "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
@@ -277,16 +277,16 @@ fn copies_count_the_leads_in_their_size() {
     // Without leads the cut is 72 mm high (60 + 2 × 6). The leads, on the top edge where
     // the ring starts, reach 3 mm higher: the pitch that was enough is now too small.
     let mut plain = job(profile("outside", json!({})));
-    plain.operations = serde_json::from_value(json!([{"type": "profile",
+    plain.operations = serde_json::from_value(json!([{"type": "profile", "part": 1,
         "select": {"layer": "L"}, "side": "outside", "direction": "climb", "tool": 1,
         "start_depth": 0, "end_depth": 12, "clearance": 0, "step_down": 6, "feed": 1500,
         "plunge_feed": 500}]))
     .unwrap();
-    plain.copies =
+    plain.parts[0].copies =
         serde_json::from_value(json!({"columns": 1, "rows": 2, "dx": 0, "dy": 72})).unwrap();
     plan_job(&plain, &part()).unwrap();
     let mut led = job(profile("outside", json!({})));
-    led.copies = plain.copies;
+    led.parts[0].copies = plain.parts[0].copies;
     let err = plan_job(&led, &part()).unwrap_err().to_string();
     assert!(err.contains("Copies overlap"), "{err}");
 }

@@ -4,17 +4,18 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 21. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 22. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `copies` | [Copies](#copies) or null | no | Cut the part several times in a grid. Null: once. |
+| `active_part` | integer or null | no | The part new operations go into (its id). Null or no such part: the first part. Only the app and the command line read it; it changes nothing that is cut. |
 | `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
-| `operations` | list of [Operation](#operation) | yes | The operations, cut in this order. |
-| `schema_version` | `21` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
+| `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
+| `schema_version` | `22` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -38,14 +39,14 @@ One of: `"auto"`.
 
 ## Copies
 
-A grid of copies of the whole part: copy (column c, row r) is the drawing moved by (c·dx, r·dy) mm.
+A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `columns` | integer | yes | Copies along X, at least 1. |
 | `dx` | number | yes | Distance from copy to copy along X, mm; negative grows to the left. |
 | `dy` | number | yes | Distance from copy to copy along Y, mm; negative grows downwards. |
-| `order` | [CopyOrder](#copyorder) | no | `by_operation`: each operation on every copy, then the next; `by_part`: every operation on one copy, then the next copy. |
+| `order` | [CopyOrder](#copyorder) | no | `by_operation`: each operation on every copy, then the next; `by_copy`: every operation on one copy, then the next copy. |
 | `rows` | integer | yes | Copies along Y, at least 1. |
 
 ## CopyOrder
@@ -54,7 +55,7 @@ In which order the copies are cut.
 
 - `"by_operation"`: Each operation on every copy, then the next operation.
 
-- `"by_part"`: Every operation on one copy, then the next copy.
+- `"by_copy"`: Every operation on one copy, then the next copy. Called `by_part` before parts came (schema 22).
 
 ## Corners
 
@@ -261,6 +262,7 @@ Quarter-circle lead-in and lead-out.
 | `finish` | [Finish](#finish) or null | no | A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap at full depth takes it off. Null: none. |
 | `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the waste side onto the path. Null: none. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `side` | [Side](#side) | yes | Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a hole) or `on` the line. |
@@ -285,6 +287,7 @@ Quarter-circle lead-in and lead-out.
 | `keep_tool_down` | boolean | no | Between rings, feed across at depth instead of lifting, where the move stays clear of the walls and is at most a tool diameter. Missing: false. |
 | `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
 | `round_corners` | boolean | yes | Round the corners of every ring but the one along the wall, for smoother motion. |
@@ -306,6 +309,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
 | `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
@@ -323,6 +327,7 @@ Follow path: the tool centre on the selected shapes, open or closed.
 | `entry` | [Entry](#entry) | yes | How the tool goes down at the start of each pass: `plunge` or `ramp` along the path. |
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
@@ -340,10 +345,22 @@ Holes: drilled with a drill, bored with a helix with an endmill.
 | `feed` | number | yes | A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it. |
 | `method` | [HoleMethod](#holemethod) | yes | How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | A drill's feed down, or a bore's feed straight down to the start depth, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the circles among the shapes on a layer, or shapes by id. Other shapes are skipped with a note. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
+
+## Part
+
+A part: a named group of operations, cut together, with its own copies (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `copies` | [Copies](#copies) or null | no | Cut the part several times in a grid. Null: once. |
+| `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
+| `id` | integer | yes | Its number, unique in the project: what operations name it by. |
+| `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 
 ## PathSegment
 

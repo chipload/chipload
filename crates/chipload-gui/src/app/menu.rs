@@ -443,11 +443,18 @@ impl ChiploadApp {
                     .weak(),
                 );
             }
+            // Pieces in all, from every part that is cut (docs/specs/parts.md §8).
             let copies = self
                 .edit
                 .as_ref()
-                .and_then(|e| e.settings.copies)
-                .map(|c| c.count())
+                .map(|e| {
+                    e.settings
+                        .parts
+                        .iter()
+                        .filter(|p| p.enabled)
+                        .map(|p| p.count())
+                        .sum::<u32>()
+                })
                 .filter(|&n| n > 1);
             // The units, the post and the cycle time once generated, at the far right
             // (docs/specs/browser-and-layout.md §6).

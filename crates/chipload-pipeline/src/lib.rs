@@ -8,6 +8,7 @@ pub mod estimate;
 pub mod images;
 pub mod library;
 pub mod notices;
+pub mod parts;
 pub mod placement;
 pub mod posts;
 pub mod recovery;
@@ -322,7 +323,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));
     notes.extend(dxfs::layer_clash_notes(job));
-    notes.extend(copies_note(job, &plan.program, &plan.op_spans));
+    notes.extend(copies_notes(job, &plan.program, &plan.op_spans));
     Ok(RunResult {
         estimate,
         files,
@@ -521,8 +522,14 @@ pub fn empty_project() -> Job {
             angle: None,
             tip_diameter: None,
         }],
+        parts: vec![chipload_job::Part {
+            id: 1,
+            name: "Part 1".into(),
+            enabled: true,
+            copies: None,
+        }],
+        active_part: Some(1),
         operations: Vec::new(),
-        copies: None,
     }
 }
 
@@ -627,22 +634,43 @@ pub fn drawing_sha256(path: &Path) -> std::io::Result<String> {
     Ok(sha256_hex(&std::fs::read(path)?))
 }
 
-/// A note when copies reach beyond the stock (docs/specs/copies-grid.md §4).
-fn copies_note(job: &Job, program: &Program, spans: &[OpSpan]) -> Option<String> {
-    let copies = job.copies.filter(|c| c.count() > 1)?;
-    let ((x0, y0), (x1, y1)) = cut_extent(&program.moves, spans, None)?;
-    let (lo, hi) = job.stock.xy_bounds();
-    let tol = CHAIN_TOL_MM;
-    let fits = x0 >= lo.0 - tol && y0 >= lo.1 - tol && x1 <= hi.0 + tol && y1 <= hi.1 + tol;
-    (!fits).then(|| {
-        format!(
-            "The {} copies cut X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}, beyond the stock \
-             ({:.3} × {:.3} mm); check the stock or the copies under Job settings.",
-            copies.count(),
+/// A note for each part whose copies reach beyond the stock (docs/specs/copies-grid.md §4,
+/// parts.md §5).
+fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<String> {
+    let mut notes = Vec::new();
+    for part in job.parts.iter().filter(|p| p.count() > 1) {
+        let mine: Vec<OpSpan> = spans
+            .iter()
+            .filter(|s| {
+                job.operations
+                    .get(s.operation)
+                    .is_some_and(|op| op.part() == part.id)
+            })
+            .cloned()
+            .collect();
+        let Some(((x0, y0), (x1, y1))) = cut_extent(&program.moves, &mine, None) else {
+            continue;
+        };
+        let (lo, hi) = job.stock.xy_bounds();
+        let tol = CHAIN_TOL_MM;
+        let fits = x0 >= lo.0 - tol && y0 >= lo.1 - tol && x1 <= hi.0 + tol && y1 <= hi.1 + tol;
+        if fits {
+            continue;
+        }
+        let whose = if job.parts.len() > 1 {
+            format!("Part {}: the", part.name)
+        } else {
+            "The".to_string()
+        };
+        notes.push(format!(
+            "{whose} {} copies cut X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}, beyond the stock \
+             ({:.3} × {:.3} mm); check the stock or the part's copies.",
+            part.count(),
             job.stock.x,
             job.stock.y
-        )
-    })
+        ));
+    }
+    notes
 }
 
 fn extent_notes(job: &Job, report: &ImportReport) -> Vec<String> {

@@ -757,9 +757,9 @@ pub struct Scene {
     pub work_zero: Point,
     /// The stock's (top, bottom) Z, for the 3D view.
     pub stock_z: Option<(f64, f64)>,
-    /// Where the copies of the part are, as shifts of the drawing (copy 1 excluded): drawn
-    /// faded, never picked (docs/specs/copies-grid.md).
-    pub copies: Vec<Point>,
+    /// The copies (copy 1 excluded): a contour's id and a shift, one for each copy of each
+    /// part that cuts it. Drawn faded, never picked (docs/specs/copies-grid.md, parts.md).
+    pub copies: Vec<(usize, Point)>,
     /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
     pub sim: Option<SimLayer>,
     /// The project's pictures, when shown (docs/specs/image-trace.md §6).
@@ -832,12 +832,19 @@ impl Scene {
             on_top((zx, zy)),
             on_top((zx + AXIS_LENGTH_MM, zy + AXIS_LENGTH_MM)),
         ];
-        for shift in std::iter::once((0.0, 0.0)).chain(self.copies.iter().copied()) {
-            points.extend(self.contours.iter().flat_map(|c| {
-                c.points
-                    .iter()
-                    .map(move |&p| on_top((p.0 + shift.0, p.1 + shift.1)))
-            }));
+        points.extend(
+            self.contours
+                .iter()
+                .flat_map(|c| c.points.iter().map(|&p| on_top(p))),
+        );
+        for &(id, shift) in &self.copies {
+            if let Some(c) = self.contours.iter().find(|c| c.id == id) {
+                points.extend(
+                    c.points
+                        .iter()
+                        .map(|&p| on_top((p.0 + shift.0, p.1 + shift.1))),
+                );
+            }
         }
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let (top, bottom) = self.stock_z.unwrap_or((top_z, top_z));
@@ -1054,8 +1061,8 @@ impl Scene {
             sim.paint(painter, view, fade);
         }
 
-        for &(dx, dy) in &self.copies {
-            for c in &self.contours {
+        for &(id, (dx, dy)) in &self.copies {
+            if let Some(c) = self.contours.iter().find(|c| c.id == id) {
                 let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
                 painter.add(Shape::line(screen(&moved), Stroke::new(1.0, pal.ghost)));
             }
@@ -1485,6 +1492,7 @@ mod tests {
                 Move::feed_z(-4.0, 300.0),
                 Move::feed_xy((0.0, 0.0), 1000.0),
             ],
+            comments: Vec::new(),
         };
         let shape = ToolpathShape::new(&program, false, &[]);
         assert!(
@@ -1557,6 +1565,7 @@ mod tests {
                 Move::feed_z(-1.0, 300.0),
                 Move::feed_xy((60.0, 50.0), 1000.0),
             ],
+            comments: Vec::new(),
         };
         let spans = [
             OpSpan {
