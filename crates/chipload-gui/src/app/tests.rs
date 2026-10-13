@@ -3116,3 +3116,36 @@ fn tabs_and_onion_skin_are_one_choice_and_switching_keeps_what_stays() {
         ["tabs", "skin"]
     );
 }
+
+#[test]
+fn clicking_a_traced_contour_selects_the_whole_picture() {
+    // User report 2026-10-13: a V-carve made after clicking a traced contour selected its
+    // shape by id, which is refused (it changes each time the picture is traced again).
+    let mut app = two_parts();
+    let traced = app
+        .contours
+        .iter()
+        .find(|c| {
+            c.parts
+                .iter()
+                .all(|p| p.segment.from == Some(chipload_core::chain::ShapeFrom::Image(1)))
+        })
+        .map(|c| c.id)
+        .unwrap();
+    app.click(Some(traced), false);
+    assert_eq!(
+        app.selection,
+        CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1))
+    );
+    let index = app.add_operation(OpKind::Vcarve).unwrap();
+    let op = &app.edit.as_ref().unwrap().ops[index].op;
+    assert_eq!(op.select().image, Some(1));
+    assert!(op.select().shapes.as_ref().is_none_or(|s| s.is_empty()));
+    assert!(
+        !app.problems
+            .iter()
+            .any(|p| problems::plain(p).contains("traced from an image")),
+        "{:?}",
+        app.problems
+    );
+}

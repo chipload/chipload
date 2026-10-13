@@ -1105,6 +1105,23 @@ impl ChiploadApp {
     /// A click on the canvas: `picked` is the contour hit (if any); `toggle` (Ctrl) adds or
     /// removes it instead of replacing the selection. Selections are kept as shape ids.
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
+        // A traced contour selects its whole picture: traced shapes get new ids each time
+        // the picture is traced again, so operations select the picture, not its shapes
+        // (docs/specs/image-trace.md §4, decision 6; user report 2026-10-13).
+        let traced = picked
+            .and_then(|id| self.contours.iter().find(|c| c.id == id))
+            .and_then(|c| match c.parts.first().and_then(|p| p.segment.from) {
+                Some(from @ chipload_core::chain::ShapeFrom::Image(_))
+                    if c.parts.iter().all(|p| p.segment.from == Some(from)) =>
+                {
+                    Some(from)
+                }
+                _ => None,
+            });
+        if let (Some(from), false) = (traced, toggle) {
+            self.selection = CanvasSelection::Source(from);
+            return;
+        }
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
             (CanvasSelection::Layer(..) | CanvasSelection::Source(_), true) => {
