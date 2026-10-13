@@ -1,8 +1,8 @@
 # Placing the drawing
 
 The imported drawing can be moved, turned in 90° steps and scaled on the stock, without
-changing the DXF. In the [Browser](../window.md#the-browser), double-click the DXF or
-right-click it > **Place…**; or `chipload place`:
+changing the DXF. In the app, click the DXF in the [Browser](../window.md#the-browser): its
+**Position and scale** rows are in Properties. On the command line, `chipload place`:
 
 | | App | Command line |
 |---|---|---|

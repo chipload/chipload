@@ -16,9 +16,11 @@ project, so its settings can be changed later.
 
 ## Size and place
 
-You give the picture's **width in mm**; its height follows from the picture. Chipload
-doesn't use the picture's DPI, which is often missing or wrong. Its lower-left corner goes at
-X, Y (0, 0 unless you say).
+A new picture comes in half the stock's width, with its lower-left corner at X0 Y0. Its
+**width in mm** and **corner** are set in its properties: click it in the Browser (it is
+selected right after importing). Its height follows from the picture. Chipload doesn't use
+the picture's DPI, which is often missing or wrong. On the command line, give `--width` and
+`--at`.
 
 ## Black and white
 
@@ -84,17 +86,19 @@ none is open. Without a file dialog (see [Install](../install.md)), *File > Impo
 path…* takes the picture's path instead.
 - **Left:** the picture as black and white, with the traced outlines over it in orange,
   updated as you change the settings.
-- **Right:** the settings, the width, the corner and the layer, and what was traced (with the
-  threshold *auto* picked).
+- **Right:** the conversion settings, and what was traced (with the threshold *auto*
+  picked). The size, place and layer are not here: they are the picture's properties.
 - **Import:** puts the shapes into the project and selects the image, so **V-carve** carves
   them (or, for centre lines, **Follow** cuts them). It is one undo step.
 
 ![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
 
 **Afterwards:**
-- **Change it:** in the [Browser](../window.md#the-browser), double-click the image, or
-  right-click it > **Edit…**: the same window opens (its button says **Apply**).
-  Right-click > **Remove** removes the picture and its shapes.
+- **Move or resize it:** click it in the [Browser](../window.md#the-browser) and change its
+  width, corner or layer in Properties.
+- **Trace it differently:** double-click it, or right-click it > **Trace settings…**: the
+  same window opens (its button says **Apply**).
+- **Remove it:** right-click > **Remove** removes the picture and its shapes.
 - **See it:** *View > Show images* shows the pictures faintly under the drawing, for
   comparing the traced shapes with the picture.
 - **Operations:** clicking traced shapes on the canvas and adding an operation selects the

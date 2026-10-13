@@ -433,7 +433,7 @@ impl ChiploadApp {
         if !open {
             return;
         }
-        let problems = self.job_problems().count();
+        let problems = self.settings_problems().count();
         let job = Row::new(Id::new("browser-job"), 1, "Job settings")
             .icon(Icon::Settings)
             .selected(self.focus == Focus::Job)
@@ -462,27 +462,51 @@ impl ChiploadApp {
             return;
         };
         let tools = edit.settings.tools.clone();
-        let row = Row::new(Id::new("browser-tools"), 1, "Tools")
+        let marked: Vec<bool> = (0..tools.len())
+            .map(|k| {
+                let prefix = format!("tools.{k}.");
+                self.job_problems().any(|p| p.field().starts_with(&prefix))
+            })
+            .collect();
+        let flagged = |k: usize| marked.get(k).copied().unwrap_or(false);
+        let any = marked.iter().any(|m| *m);
+        let id = Id::new("browser-tools");
+        let open_id = id.with("folder-open");
+        let open = folder_open(ui, open_id, false);
+        let out = Row::new(id, 1, "Tools")
+            .folder(open)
             .icon(Icon::Tools)
-            .trailing(tools.len().to_string());
-        let (open, _) = folder(ui, row, false);
+            .trailing(tools.len().to_string())
+            .selected(self.focus == Focus::Tools)
+            .alert(any)
+            .show(ui);
+        if out.toggled {
+            toggle_folder(ui, open_id, false);
+        }
+        // A click shows every tool, to add one or compare them
+        // (docs/specs/properties-for-tools-and-dxfs.md §2).
+        if out
+            .response
+            .on_hover_text("The project's tools: click to see them all and add one")
+            .clicked()
+        {
+            self.focus = Focus::Tools;
+        }
         if !open {
             return;
         }
-        for tool in &tools {
+        for (k, tool) in tools.iter().enumerate() {
             let row = Row::new(
                 Id::new(("browser-tool", tool.id)),
                 2,
                 forms::tool_label(tool),
             )
             .icon(tool_icon(tool.kind))
+            .selected(self.focus == Focus::Tool(tool.id))
+            .alert(flagged(k))
             .show(ui);
-            if row
-                .response
-                .on_hover_text("Edited in the job settings")
-                .clicked()
-            {
-                self.focus = Focus::Job;
+            if row.response.clicked() {
+                self.focus = Focus::Tool(tool.id);
             }
         }
     }

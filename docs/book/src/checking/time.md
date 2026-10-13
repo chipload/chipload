@@ -35,6 +35,6 @@ number and doesn't judge it. As a rough guide:
 Check the tool maker's figures.
 
 Setting it up:
-- **Flutes and spindle speed:** the tool needs both, under Job settings > Tools or in the
-  tool library.
+- **Flutes and spindle speed:** the tool needs both, on the tool (click it in the Browser) or
+  in the tool library.
 - **Feed:** a drill's chip load uses its feed down; everything else uses the cutting feed.

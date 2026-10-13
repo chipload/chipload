@@ -10,7 +10,7 @@ the same on another computer, or after you change the library.
 - **Add, change and remove** tools there.
 - **Mark one as the default:** new projects start with it.
 
-In Job settings > Tools:
+In the project's tools (click *Tools* or a tool in the Browser):
 - **Use library tool…** copies a library tool into the project.
 - **Save to library…** saves a project tool to the library.
 - **Update from library** appears when a project tool came from the library and the library

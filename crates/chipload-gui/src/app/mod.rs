@@ -78,6 +78,12 @@ pub enum Focus {
     Op(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
+    /// The project's tools; one tool, by id; an imported DXF; a picture
+    /// (docs/specs/properties-for-tools-and-dxfs.md).
+    Tools,
+    Tool(i64),
+    Dxf(u64),
+    Image(u64),
 }
 
 /// Something that would throw away unsaved changes, waiting for confirmation.
@@ -260,8 +266,6 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
-    /// The DXF whose placement window is open (the Browser's Place…).
-    pub(super) place_open: Option<u64>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
     pub(super) hidden_contours: BTreeSet<usize>,
     /// View > Show images: the pictures faintly under the drawing.
@@ -346,7 +350,6 @@ impl Default for ChiploadApp {
             recent: Vec::new(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
-            place_open: None,
             hidden_contours: BTreeSet::new(),
             show_images: true,
             show_toolpath: true,
@@ -1415,7 +1418,6 @@ impl eframe::App for ChiploadApp {
         self.next_drop();
         self.library_windows_ui(&ctx);
         self.image_window(&ctx);
-        self.place_window(&ctx);
         self.sync_pictures(&ctx);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.

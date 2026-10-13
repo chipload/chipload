@@ -76,11 +76,15 @@ impl ChiploadApp {
                 .ops
                 .get(i)
                 .and_then(|e| self_tool_cutting(library, &edit.settings.tools, e.op.tool())),
-            Focus::Job | Focus::Part(_) => None,
+            _ => None,
         };
         ui.scope(|ui| match focus {
             Focus::Job => request = job_form(ui, edit, library),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
+            Focus::Tools => request = forms::tools_form(ui, edit, library),
+            Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
+            Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
+            Focus::Image(id) => request = forms::image_form(ui, edit, id),
             Focus::Op(i) => {
                 let choice = ToolChoice {
                     tools: &edit.settings.tools,
@@ -111,7 +115,28 @@ impl ChiploadApp {
             Some(JobRequest::Place(dxf, how)) => {
                 self.place_dxf(Some(dxf), how);
             }
-            None => {}
+            Some(JobRequest::ToolRemoved) => self.focus = Focus::Tools,
+            Some(JobRequest::UpdateDxf(dxf)) => {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("DXF drawings", &["dxf"])
+                    .pick_file()
+                {
+                    self.update_dxf_from(Some(dxf), &path, None);
+                }
+            }
+            Some(JobRequest::RemoveDxf(dxf)) if self.remove_dxf(dxf) => {
+                self.focus = Focus::Job;
+            }
+            Some(JobRequest::TraceSettings(image)) => {
+                self.edit_image(image);
+            }
+            Some(JobRequest::ImagePlace(image, place)) => {
+                self.set_image_place(image, &place);
+            }
+            Some(JobRequest::RemoveImage(image)) if self.remove_image(image) => {
+                self.focus = Focus::Job;
+            }
+            Some(JobRequest::RemoveDxf(_) | JobRequest::RemoveImage(_)) | None => {}
         }
     }
 }

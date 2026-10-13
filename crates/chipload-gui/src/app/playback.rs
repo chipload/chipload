@@ -316,7 +316,7 @@ impl ChiploadApp {
             if last != first {
                 self.toggle_hidden(&format!("dxf:{last}"));
             }
-            self.place_open = Some(first);
+            self.focus = Focus::Dxf(first);
         }
         let first_drawn = self.edit.as_ref().and_then(|e| {
             e.settings
@@ -354,6 +354,7 @@ impl ChiploadApp {
             && let Some(id) = first_image
             && self.edit_image(id)
         {
+            self.focus = Focus::Image(id);
             self.wait_for_image_preview(ctx);
         }
     }

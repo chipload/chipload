@@ -2,7 +2,8 @@
 
 ## The project's tools
 
-Job settings > **Tools** lists the tools the project cuts with. Each has an id (T1, T2, …),
+**Tools** in the [Browser](../window.md#the-browser) lists the tools the project cuts with;
+click it to see them all in Properties, or click one tool. Each has an id (T1, T2, …),
 which is the tool number in the G-code, and:
 
 | Setting | |

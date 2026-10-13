@@ -5,13 +5,13 @@ use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
-use chipload_job::Placement;
 use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_job::{
-    Finish, HoleMethod, HolesOp, Job, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
+    Finish, HoleMethod, HolesOp, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
+use chipload_job::{ImageTrace, Placement, Units};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::{Move as PlaceMove, factor_text};
@@ -1121,11 +1121,191 @@ pub(super) enum JobRequest {
     CopiesGap(u64, f64),
     /// Make part `id` the active part (docs/specs/parts.md §8).
     Activate(u64),
+    /// The open tool was removed: show the tools instead.
+    ToolRemoved,
+    /// DXF `id`: update it from a file, or remove it (docs/specs/properties-for-tools-and-
+    /// dxfs.md §3).
+    UpdateDxf(u64),
+    RemoveDxf(u64),
+    /// Picture `id`: its window, a new size, place and layer, or removed (§3b).
+    TraceSettings(u64),
+    ImagePlace(u64, ImagePlace),
+    RemoveImage(u64),
     /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:
     /// updated) (docs/specs/user-posts.md).
     Post(String),
+}
+
+/// A picture's size, place and layer, as edited in its properties.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct ImagePlace {
+    pub width: f64,
+    pub x: f64,
+    pub y: f64,
+    pub layer: String,
+}
+
+/// An imported DXF's properties (docs/specs/properties-for-tools-and-dxfs.md §3): what it
+/// is, its placement, and buttons to update or remove it.
+pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
+    let drawing = &edit.settings.drawing;
+    let source = drawing.dxfs.iter().find(|d| d.id == id)?;
+    let size = chipload_pipeline::placement::dxf_size(&drawing.shapes, id);
+    let shapes = drawing
+        .shapes
+        .iter()
+        .filter(|s| s.dxf() == Some(id))
+        .count();
+    let mut request = None;
+    super::browser::title_line(ui, crate::icons::Icon::Dxf, None, &source.name);
+    Grid::new(("dxf-facts", id))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label("File");
+            ui.label(&source.file);
+            ui.end_row();
+            ui.label("Units");
+            ui.label(match source.units {
+                Units::Mm => "mm",
+                Units::Inch => "inch (converted to mm)",
+            });
+            ui.end_row();
+            ui.label("Shapes");
+            ui.label(shapes.to_string());
+            ui.end_row();
+            if let Some((w, h)) = size {
+                ui.label("Size");
+                ui.label(format!("{} × {} mm", len(w), len(h)));
+                ui.end_row();
+            }
+        });
+    section(ui, "dxf-place", "Position and scale", "", |ui| {
+        placement_rows(ui, id, source.placement, size, &mut request);
+    });
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        if ui
+            .button("Update from a DXF…")
+            .on_hover_text("A new version of the drawing: operations keep their layers")
+            .clicked()
+        {
+            request = Some(JobRequest::UpdateDxf(id));
+        }
+        if ui
+            .button("Remove")
+            .on_hover_text("Remove this DXF and its shapes")
+            .clicked()
+        {
+            request = Some(JobRequest::RemoveDxf(id));
+        }
+    });
+    request
+}
+
+/// A picture's properties (§3b): what it is, then its width, corner and layer. Each change
+/// applies when the edit is finished, as one undo step, and traces the picture again.
+pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
+    let image = edit.settings.drawing.images.iter().find(|i| i.id == id)?;
+    let mut request = None;
+    super::browser::title_line(ui, crate::icons::Icon::Image, None, &image.file);
+    // The fields edit a copy kept between frames; it is sent once the edit is finished.
+    let key = egui::Id::new(("image-place", id));
+    let stored = ImagePlace {
+        width: image.width,
+        x: image.x,
+        y: image.y,
+        layer: image.layer.clone(),
+    };
+    let mut draft: ImagePlace = ui
+        .data(|d| d.get_temp::<(ImagePlace, ImagePlace)>(key))
+        .filter(|(from, _)| *from == stored)
+        .map_or_else(|| stored.clone(), |(_, draft)| draft);
+    // The picture's size in pixels, decoded once per picture (not every frame).
+    let size_key = egui::Id::new(("image-pixels", id, image.sha256.clone()));
+    let pixels: Option<(u32, u32)> = match ui.data(|d| d.get_temp::<Option<(u32, u32)>>(size_key)) {
+        Some(known) => known,
+        None => {
+            let decoded = chipload_pipeline::images::picture_bytes(image)
+                .ok()
+                .and_then(|bytes| chipload_pipeline::images::decode_picture(&bytes).ok())
+                .map(|p| (p.width, p.height));
+            ui.data_mut(|d| d.insert_temp(size_key, decoded));
+            decoded
+        }
+    };
+    let mut finished = false;
+    Grid::new(("image-form", id))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            if let Some((w, h)) = pixels {
+                ui.label("Picture");
+                ui.label(format!("{w} × {h} pixels"));
+                ui.end_row();
+            }
+            ui.label("Traced as");
+            ui.label(match image.trace {
+                ImageTrace::Outline => "outlines",
+                ImageTrace::CentreLine => "centre lines",
+            });
+            ui.end_row();
+            ui.label("Width");
+            let response = ui.add(
+                DragValue::new(&mut draft.width)
+                    .range(0.1..=10_000.0)
+                    .speed(0.5)
+                    .suffix(" mm"),
+            );
+            finished |= response.drag_stopped() || response.lost_focus();
+            ui.end_row();
+            if let Some((w, h)) = pixels.filter(|(w, _)| *w > 0) {
+                ui.label("Height");
+                ui.label(format!(
+                    "{} mm",
+                    len(draft.width * f64::from(h) / f64::from(w))
+                ));
+                ui.end_row();
+            }
+            ui.label("Lower-left corner");
+            ui.horizontal(|ui| {
+                for (value, axis) in [(&mut draft.x, "X "), (&mut draft.y, "Y ")] {
+                    let response =
+                        ui.add(DragValue::new(value).speed(0.5).prefix(axis).suffix(" mm"));
+                    finished |= response.drag_stopped() || response.lost_focus();
+                }
+            });
+            ui.end_row();
+            ui.label("Layer")
+                .on_hover_text("The layer its shapes are on, for operations that select it");
+            let response = ui.add(TextEdit::singleline(&mut draft.layer).desired_width(160.0));
+            finished |= response.lost_focus();
+            ui.end_row();
+        });
+    if finished && draft != stored {
+        request = Some(JobRequest::ImagePlace(id, draft.clone()));
+    }
+    ui.data_mut(|d| d.insert_temp(key, (stored, draft)));
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        if ui
+            .button("Trace settings…")
+            .on_hover_text("Threshold, smoothing, outlines or centre lines, with a preview")
+            .clicked()
+        {
+            request = Some(JobRequest::TraceSettings(id));
+        }
+        if ui
+            .button("Remove")
+            .on_hover_text("Remove the picture and its shapes")
+            .clicked()
+        {
+            request = Some(JobRequest::RemoveImage(id));
+        }
+    });
+    request
 }
 
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
@@ -1138,29 +1318,8 @@ pub(super) fn job_form(
 ) -> Option<JobRequest> {
     let mut request = None;
     let mut copies_request = None;
-    // The operations live in the editor until saved: which tool each uses.
-    let op_tools: Vec<i64> = edit.ops.iter().map(|e| e.op.tool()).collect();
     let job = &mut edit.settings;
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, "Job settings");
-    Grid::new("job-form")
-        .num_columns(2)
-        // Past the sections' indent, so the values line up with theirs.
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
-        .show(ui, |ui| {
-            // The DXFs and images themselves are in the Browser
-            // (docs/specs/drawing-sources.md §4).
-            ui.label("Drawing");
-            let d = &job.drawing;
-            ui.label(format!(
-                "{} shapes: {} DXF{}, {} image{} (in the Browser)",
-                d.shapes.len(),
-                d.dxfs.len(),
-                if d.dxfs.len() == 1 { "" } else { "s" },
-                d.images.len(),
-                if d.images.len() == 1 { "" } else { "s" }
-            ));
-            ui.end_row();
-        });
 
     let stock = format!(
         "{} × {} × {} mm",
@@ -1241,7 +1400,6 @@ pub(super) fn job_form(
         library_rows(ui, &mut request, LibraryRows::machine(job, library));
     });
 
-    tools_section(ui, job, &op_tools, library, &mut request);
     copies_request.or(request.map(JobRequest::Library))
 }
 
@@ -1259,74 +1417,74 @@ pub(super) fn tool_label(tool: &Tool) -> String {
     format!("T{} {kind} Ø{} mm{name}", tool.id, len(tool.diameter))
 }
 
+/// The operations (1-based numbers) that cut with tool `id`.
+fn tool_users(edit: &EditJob, id: i64) -> Vec<String> {
+    edit.ops
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.op.tool() == id)
+        .map(|(i, _)| (i + 1).to_string())
+        .collect()
+}
+
 /// The project's tools, each in a section of its own, and buttons to add one
-/// (docs/specs/tool-per-operation.md §8). A tool an operation uses can't be removed.
-fn tools_section(
+/// (docs/specs/tool-per-operation.md §8, properties-for-tools-and-dxfs.md §2). A tool an
+/// operation uses can't be removed.
+pub(super) fn tools_form(
     ui: &mut egui::Ui,
-    job: &mut Job,
-    op_tools: &[i64],
+    edit: &mut EditJob,
     library: Option<&Library>,
-    request: &mut Option<LibraryRequest>,
-) {
-    let summary = match job.tools.len() {
-        1 => "1 tool".to_string(),
-        n => format!("{n} tools"),
-    };
-    section(ui, "job-tools", "Tools", &summary, |ui| {
-        ui.label("");
-        ui.horizontal(|ui| {
-            let names: Vec<String> = library
-                .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect())
-                .unwrap_or_default();
-            ui.add_enabled_ui(!names.is_empty(), |ui| {
-                ComboBox::from_id_salt("add-library-tool")
-                    .selected_text("Add from library…")
-                    .show_ui(ui, |ui| {
-                        for name in names {
-                            if ui.selectable_label(false, &name).clicked() {
-                                *request = Some(LibraryRequest::AddTool(name));
-                            }
+) -> Option<JobRequest> {
+    let mut request = None;
+    super::browser::title_line(ui, crate::icons::Icon::Tools, None, "Tools");
+    ui.horizontal(|ui| {
+        let names: Vec<String> = library
+            .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect())
+            .unwrap_or_default();
+        ui.add_enabled_ui(!names.is_empty(), |ui| {
+            ComboBox::from_id_salt("add-library-tool")
+                .selected_text("Add from library…")
+                .show_ui(ui, |ui| {
+                    for name in names {
+                        if ui.selectable_label(false, &name).clicked() {
+                            request = Some(LibraryRequest::AddTool(name));
                         }
-                    });
-            });
-            if ui
-                .button("New tool")
-                .on_hover_text("A 6 mm endmill to edit; operations pick it in their Tool row")
-                .clicked()
-            {
-                let id = job.tools.iter().map(|t| t.id).max().unwrap_or(0).max(0) + 1;
-                job.tools.push(Tool {
-                    id,
-                    name: None,
-                    kind: ToolType::Endmill,
-                    diameter: chipload_pipeline::DEFAULT_TOOL_DIAMETER,
-                    flutes: None,
-                    center_cutting: None,
-                    rpm: Some(chipload_pipeline::DEFAULT_RPM),
-                    angle: None,
-                    tip_diameter: None,
+                    }
                 });
-            }
         });
-        ui.end_row();
+        if ui
+            .button("New tool")
+            .on_hover_text("A 6 mm endmill to edit; operations pick it in their Tool row")
+            .clicked()
+        {
+            let job = &mut edit.settings;
+            let id = job.tools.iter().map(|t| t.id).max().unwrap_or(0).max(0) + 1;
+            job.tools.push(Tool {
+                id,
+                name: None,
+                kind: ToolType::Endmill,
+                diameter: chipload_pipeline::DEFAULT_TOOL_DIAMETER,
+                flutes: None,
+                center_cutting: None,
+                rpm: Some(chipload_pipeline::DEFAULT_RPM),
+                angle: None,
+                tip_diameter: None,
+            });
+        }
     });
+    ui.add_space(4.0);
     let mut remove = None;
-    for index in 0..job.tools.len() {
-        let tool = &job.tools[index];
-        let id = tool.id;
-        let users: Vec<String> = op_tools
-            .iter()
-            .enumerate()
-            .filter(|(_, tool)| **tool == id)
-            .map(|(i, _)| (i + 1).to_string())
-            .collect();
+    for index in 0..edit.settings.tools.len() {
+        let id = edit.settings.tools[index].id;
+        let users = tool_users(edit, id);
         let summary = match users.len() {
             0 => "not used".to_string(),
             _ => format!("operations {}", users.join(", ")),
         };
-        let title = tool_label(tool);
+        let title = tool_label(&edit.settings.tools[index]);
         let at = format!("tools.{index}");
         let marked = problems::has_problem_under(ui, &at);
+        let tool = &mut edit.settings.tools[index];
         section_marked(
             ui,
             &format!("job-tool-{id}"),
@@ -1334,27 +1492,80 @@ fn tools_section(
             &summary,
             marked,
             |ui| {
-                library_rows(ui, request, LibraryRows::tool(&job.tools[index], library));
-                tool_rows(ui, &format!("job-tool-{id}"), &at, &mut job.tools[index]);
-                ui.label("");
-                let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
-                if users.is_empty() {
-                    if button.clicked() {
-                        remove = Some(index);
-                    }
-                } else {
-                    button.on_disabled_hover_text(format!(
-                        "Used by operations {}; give them another tool first",
-                        users.join(", ")
-                    ));
+                if tool_body(ui, tool, &at, &users, library, &mut request) {
+                    remove = Some(index);
                 }
-                ui.end_row();
             },
         );
     }
     if let Some(index) = remove {
-        job.tools.remove(index);
+        edit.settings.tools.remove(index);
     }
+    request.map(JobRequest::Library)
+}
+
+/// One tool alone (docs/specs/properties-for-tools-and-dxfs.md §2).
+pub(super) fn tool_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    library: Option<&Library>,
+    id: i64,
+) -> Option<JobRequest> {
+    let index = edit.settings.tools.iter().position(|t| t.id == id)?;
+    let users = tool_users(edit, id);
+    let mut request = None;
+    let icon = match edit.settings.tools[index].kind {
+        ToolType::Endmill => crate::icons::Icon::Endmill,
+        ToolType::Drill => crate::icons::Icon::Drill,
+        ToolType::Vbit => crate::icons::Icon::Vbit,
+    };
+    super::browser::title_line(ui, icon, None, &tool_label(&edit.settings.tools[index]));
+    ui.weak(match users.len() {
+        0 => "Not used by an operation".to_string(),
+        _ => format!("Cuts operations {}", users.join(", ")),
+    });
+    let at = format!("tools.{index}");
+    let tool = &mut edit.settings.tools[index];
+    let mut removed = false;
+    Grid::new(("tool-form", id))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH)
+        .show(ui, |ui| {
+            removed = tool_body(ui, tool, &at, &users, library, &mut request);
+        });
+    if removed {
+        edit.settings.tools.remove(index);
+        return Some(JobRequest::ToolRemoved);
+    }
+    request.map(JobRequest::Library)
+}
+
+/// A tool's rows: its library line, its values and *Remove tool*. True when *Remove* was
+/// pressed.
+fn tool_body(
+    ui: &mut egui::Ui,
+    tool: &mut Tool,
+    at: &str,
+    users: &[String],
+    library: Option<&Library>,
+    request: &mut Option<LibraryRequest>,
+) -> bool {
+    let salt = format!("job-tool-{}", tool.id);
+    library_rows(ui, request, LibraryRows::tool(tool, library));
+    tool_rows(ui, &salt, at, tool);
+    ui.label("");
+    let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
+    let mut remove = false;
+    if users.is_empty() {
+        remove = button.clicked();
+    } else {
+        button.on_disabled_hover_text(format!(
+            "Used by operations {}; give them another tool first",
+            users.join(", ")
+        ));
+    }
+    ui.end_row();
+    remove
 }
 
 /// Margin the *Bottom left* button starts with, mm; only an input, never saved.

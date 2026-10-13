@@ -266,11 +266,17 @@ impl ChiploadApp {
             }
             ImageTarget::Existing(id) => {
                 let mut job = edit.settings.clone();
+                // The window changes the conversion settings only: the size, place and
+                // layer are the project's, set in the picture's properties
+                // (docs/specs/properties-for-tools-and-dxfs.md §3b).
                 if let Some(image) = job.drawing.images.iter_mut().find(|i| i.id == *id) {
-                    let (data, sha256) = (image.data.clone(), image.sha256.clone());
                     *image = Image {
-                        data,
-                        sha256,
+                        data: image.data.clone(),
+                        sha256: image.sha256.clone(),
+                        layer: image.layer.clone(),
+                        x: image.x,
+                        y: image.y,
+                        width: image.width,
                         ..draft.clone()
                     };
                 }
@@ -287,12 +293,15 @@ impl ChiploadApp {
                 self.selection = super::CanvasSelection::Source(
                     chipload_core::chain::ShapeFrom::Image(report.id),
                 );
+                // Its size and place are in its properties, right after importing.
+                self.focus = super::Focus::Image(report.id);
                 self.commit();
                 let mut lines = report.lines.clone();
-                lines.push(format!(
-                    "Layer {} is selected: + V-carve carves it.",
-                    draft.layer
-                ));
+                lines.push(
+                    "The picture is selected: V-carve (ribbon) carves it. Set its size and \
+                     place in Properties."
+                        .to_string(),
+                );
                 self.set_report(Report::info(lines));
                 self.set_status(format!("Traced {}", draft.file), STATUS_SECONDS);
                 true
@@ -301,6 +310,42 @@ impl ChiploadApp {
                 if let Some(dialog) = self.image_dialog.as_mut() {
                     dialog.preview = Some(Err(err.to_string()));
                 }
+                false
+            }
+        }
+    }
+
+    /// A picture's new size, place and layer from its properties, traced again, as one
+    /// undo step (docs/specs/properties-for-tools-and-dxfs.md §3b).
+    pub(super) fn set_image_place(&mut self, id: u64, place: &super::forms::ImagePlace) -> bool {
+        let Some(edit) = self.edit.as_ref() else {
+            return false;
+        };
+        let mut job = edit.settings.clone();
+        let Some(image) = job.drawing.images.iter_mut().find(|i| i.id == id) else {
+            return false;
+        };
+        image.width = place.width;
+        (image.x, image.y) = (place.x, place.y);
+        image.layer.clone_from(&place.layer);
+        match retrace(&job, id) {
+            Ok((job, report)) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.settings = job;
+                }
+                self.drawing_changed(&[]);
+                self.selection = super::CanvasSelection::Source(
+                    chipload_core::chain::ShapeFrom::Image(report.id),
+                );
+                self.commit();
+                self.set_report(Report::info(report.lines));
+                true
+            }
+            Err(err) => {
+                self.error(vec![
+                    "Could not trace the picture at that size:".into(),
+                    err.to_string(),
+                ]);
                 false
             }
         }
@@ -413,7 +458,7 @@ impl ChiploadApp {
         }
         let title = match &dialog.target {
             ImageTarget::New { file, .. } => format!("Import image: {file}"),
-            ImageTarget::Existing(id) => format!("Image {id}: {}", dialog.draft.file),
+            ImageTarget::Existing(_) => format!("Trace {}", dialog.draft.file),
         };
         let mut open = true;
         let mut apply = false;
@@ -429,12 +474,11 @@ impl ChiploadApp {
                     picture_view(ui, dialog);
                     ui.vertical(|ui| {
                         ui.set_min_width(SETTINGS_WIDTH);
-                        let size = picture_size(dialog);
                         let picked = match &dialog.preview {
                             Some(Ok(p)) => Some(p.trace.threshold),
                             _ => None,
                         };
-                        settings_form(ui, &mut dialog.draft, size, picked);
+                        settings_form(ui, &mut dialog.draft, picked);
                         ui.separator();
                         summary(ui, dialog);
                         ui.add_space(6.0);
@@ -500,43 +544,10 @@ fn picture_view(ui: &mut egui::Ui, dialog: &ImageDialog) {
 
 /// The settings of spec §2, the size and the place. `picked`: the threshold the last
 /// preview used, which the slider shows (and starts from) while *auto* is on.
-fn settings_form(ui: &mut egui::Ui, draft: &mut Image, (w, h): (u32, u32), picked: Option<u8>) {
+fn settings_form(ui: &mut egui::Ui, draft: &mut Image, picked: Option<u8>) {
     egui::Grid::new("image-settings")
         .num_columns(2)
         .show(ui, |ui| {
-            ui.label("Width");
-            ui.add(
-                egui::DragValue::new(&mut draft.width)
-                    .range(0.1..=10_000.0)
-                    .speed(0.5)
-                    .suffix(" mm"),
-            );
-            ui.end_row();
-            ui.label("Height");
-            ui.label(format!(
-                "{:.1} mm",
-                draft.width * f64::from(h) / f64::from(w)
-            ));
-            ui.end_row();
-            ui.label("Lower-left corner");
-            ui.horizontal(|ui| {
-                ui.add(
-                    egui::DragValue::new(&mut draft.x)
-                        .speed(0.5)
-                        .prefix("X ")
-                        .suffix(" mm"),
-                );
-                ui.add(
-                    egui::DragValue::new(&mut draft.y)
-                        .speed(0.5)
-                        .prefix("Y ")
-                        .suffix(" mm"),
-                );
-            });
-            ui.end_row();
-            ui.label("Layer");
-            ui.text_edit_singleline(&mut draft.layer);
-            ui.end_row();
             ui.label("Threshold").on_hover_text(
                 "Grey values below it are black (0 black, 255 white). Auto picks the value that \
                  best separates the dark and light parts.",

@@ -97,6 +97,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Tools, DXFs and pictures in Properties** (2026-10-13,
+  docs/specs/properties-for-tools-and-dxfs.md): clicking *Tools* or a tool, a DXF (or its
+  layer) or a picture in the Browser shows its properties; Job settings keeps stock,
+  machine and post; the Place window is gone; the picture window keeps the trace
+  settings only.
 - **Parts** (2026-10-13, docs/specs/parts.md, schema 22): operations grouped into parts,
   cut part by part, each with its copies and on/off; one active part for new operations;
   copies may not cut into other parts; a G-code comment where each part starts; the

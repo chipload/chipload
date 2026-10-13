@@ -9,12 +9,8 @@ use chipload_core::chain::ShapeFrom;
 use chipload_job::Drawing;
 
 use super::browser::Row;
-use super::forms::{JobRequest, placement_rows};
 use super::*;
 use crate::icons::Icon;
-
-/// The placement window's width, px.
-const PLACE_WINDOW_WIDTH: f32 = 540.0;
 
 /// One group of the Browser's Drawing folder.
 #[derive(Debug, Clone, PartialEq)]
@@ -154,9 +150,6 @@ impl ChiploadApp {
                     entry.side_chosen = old.side_chosen;
                 }
                 self.edit = Some(next);
-                if self.place_open == Some(id) {
-                    self.place_open = None;
-                }
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::info(lines));
@@ -257,11 +250,19 @@ impl ChiploadApp {
             Some(PanelAction::SelectGroup(key)) => {
                 let selection = self.group_selection(&key);
                 self.select_row(selection, add);
+                // A DXF or picture shows its properties too
+                // (docs/specs/properties-for-tools-and-dxfs.md §3, §3b).
+                if let Some(focus) = source_focus(&key) {
+                    self.focus = focus;
+                }
             }
             Some(PanelAction::SelectLayer(layer, from)) => {
                 self.select_row(CanvasSelection::Layer(layer, from), add);
+                if let Some(ShapeFrom::Dxf(dxf)) = from {
+                    self.focus = Focus::Dxf(dxf);
+                }
             }
-            Some(PanelAction::Place(dxf)) => self.place_open = Some(dxf),
+            Some(PanelAction::Place(dxf)) => self.focus = Focus::Dxf(dxf),
             Some(PanelAction::Update(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("DXF drawings", &["dxf"])
@@ -277,6 +278,7 @@ impl ChiploadApp {
                 self.remove_dxf(dxf);
             }
             Some(PanelAction::EditImage(image)) => {
+                self.focus = Focus::Image(image);
                 self.edit_image(image);
             }
             Some(PanelAction::RemoveImage(image)) => {
@@ -330,11 +332,11 @@ impl ChiploadApp {
         let hover = match group.kind {
             GroupKind::Dxf(_) => {
                 "Click selects the whole DXF: an operation made from it follows its updates. \
-                 Double-click places it; right-click for more"
+                 Its position and scale show in Properties; right-click for more"
             }
             GroupKind::Image(_) => {
                 "Click selects the whole picture: an operation made from it follows its \
-                 retracing. Double-click edits it; right-click for more"
+                 retracing. Its size and place show in Properties; double-click for its trace settings"
             }
             GroupKind::Drawn => "Click selects these shapes; Ctrl+click adds them",
         };
@@ -350,7 +352,7 @@ impl ChiploadApp {
                     ui.separator();
                     if ui
                         .button("Place…")
-                        .on_hover_text("Move, turn or scale this DXF")
+                        .on_hover_text("Move, turn or scale this DXF, in its properties")
                         .clicked()
                     {
                         *action = Some(PanelAction::Place(dxf));
@@ -373,8 +375,8 @@ impl ChiploadApp {
                 GroupKind::Image(image) => {
                     ui.separator();
                     if ui
-                        .button("Edit…")
-                        .on_hover_text("Change its size, place and tracing")
+                        .button("Trace settings…")
+                        .on_hover_text("Threshold, smoothing, outlines or centre lines; its size and place are in its properties")
                         .clicked()
                     {
                         *action = Some(PanelAction::EditImage(image));
@@ -433,46 +435,16 @@ impl ChiploadApp {
                 });
         }
     }
+}
 
-    /// The placement window of the DXF whose *Place…* was pressed.
-    pub(super) fn place_window(&mut self, ctx: &egui::Context) {
-        let Some(dxf) = self.place_open else {
-            return;
-        };
-        let Some(edit) = &self.edit else {
-            self.place_open = None;
-            return;
-        };
-        let drawing = &edit.settings.drawing;
-        let Some(source) = drawing.dxfs.iter().find(|d| d.id == dxf).cloned() else {
-            self.place_open = None;
-            return;
-        };
-        let size = chipload_pipeline::placement::dxf_size(&drawing.shapes, dxf);
-        let mut open = true;
-        let mut request: Option<JobRequest> = None;
-        egui::Window::new(format!("Place {}", source.name))
-            .id(egui::Id::new("place-window"))
-            .open(&mut open)
-            .resizable(false)
-            .collapsible(false)
-            .fade_in(false)
-            .pivot(egui::Align2::CENTER_CENTER)
-            .default_pos(ctx.content_rect().center())
-            .show(ctx, |ui| {
-                // Wide enough on its first frame for the longest row and its Reset button.
-                ui.set_min_width(PLACE_WINDOW_WIDTH);
-                egui::Grid::new("place-grid").num_columns(2).show(ui, |ui| {
-                    placement_rows(ui, dxf, source.placement, size, &mut request);
-                });
-            });
-        if !open {
-            self.place_open = None;
-        }
-        if let Some(JobRequest::Place(id, how)) = request {
-            self.place_dxf(Some(id), how);
-        }
+/// The properties a group's row shows: a DXF's or a picture's.
+fn source_focus(key: &str) -> Option<Focus> {
+    if let Some(id) = key.strip_prefix("dxf:").and_then(|id| id.parse().ok()) {
+        return Some(Focus::Dxf(id));
     }
+    key.strip_prefix("image:")
+        .and_then(|id| id.parse().ok())
+        .map(Focus::Image)
 }
 
 /// The ids of the contours hidden in `drawing`: those whose every shape is hidden.

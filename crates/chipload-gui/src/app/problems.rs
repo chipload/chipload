@@ -172,22 +172,49 @@ impl ChiploadApp {
         self.problems.iter().filter(|p| p.operation().is_none())
     }
 
+    /// The problems of the job settings form itself: not of a tool, a part or the drawing,
+    /// which have forms of their own (docs/specs/properties-for-tools-and-dxfs.md).
+    pub(super) fn settings_problems(&self) -> impl Iterator<Item = &Problem> {
+        self.job_problems().filter(|p| {
+            let field = p.field();
+            !(field.starts_with("tools")
+                || field.starts_with("parts")
+                || field.starts_with("drawing"))
+        })
+    }
+
+    /// The problems under `prefix` ("tools.0."), of the job's own settings.
+    fn problems_under(&self, prefix: Option<String>) -> impl Iterator<Item = &Problem> {
+        self.job_problems().filter(move |p| {
+            prefix
+                .as_ref()
+                .is_some_and(|prefix| p.field().starts_with(prefix.as_str()))
+        })
+    }
+
     /// The problems the form for `focus` shows, by field.
     pub(super) fn form_problem_map(&self, focus: Focus) -> BTreeMap<String, String> {
+        let settings = self.edit.as_ref().map(|e| &e.settings);
+        let index_of = |list: Option<usize>, what: &str| list.map(|k| format!("{what}.{k}."));
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
             Focus::Op(i) => Box::new(self.op_problems(i)),
-            Focus::Job => Box::new(self.job_problems()),
+            Focus::Job => Box::new(self.settings_problems()),
+            Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
             Focus::Part(id) => {
-                let index = self
-                    .edit
-                    .as_ref()
-                    .and_then(|e| e.settings.parts.iter().position(|p| p.id == id));
-                let prefix = index.map(|k| format!("parts.{k}."));
-                Box::new(self.job_problems().filter(move |p| {
-                    prefix
-                        .as_ref()
-                        .is_some_and(|prefix| p.field().starts_with(prefix.as_str()))
-                }))
+                let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
+                Box::new(self.problems_under(index_of(k, "parts")))
+            }
+            Focus::Tool(id) => {
+                let k = settings.and_then(|s| s.tools.iter().position(|t| t.id == id));
+                Box::new(self.problems_under(index_of(k, "tools")))
+            }
+            Focus::Dxf(id) => {
+                let k = settings.and_then(|s| s.drawing.dxfs.iter().position(|d| d.id == id));
+                Box::new(self.problems_under(index_of(k, "drawing.dxfs")))
+            }
+            Focus::Image(id) => {
+                let k = settings.and_then(|s| s.drawing.images.iter().position(|i| i.id == id));
+                Box::new(self.problems_under(index_of(k, "drawing.images")))
             }
         };
         let mut map = BTreeMap::new();
@@ -209,6 +236,11 @@ impl ChiploadApp {
             .edit
             .as_ref()
             .map(|e| e.settings.parts.iter().map(|p| p.id).collect())
+            .unwrap_or_default();
+        let tools: Vec<i64> = self
+            .edit
+            .as_ref()
+            .map(|e| e.settings.tools.iter().map(|t| t.id).collect())
             .unwrap_or_default();
         let mut go = None;
         egui::Frame::new()
@@ -233,17 +265,22 @@ impl ChiploadApp {
                         .on_hover_text("Show it")
                         .clicked()
                     {
-                        // A part's field opens the part (docs/specs/parts.md §8).
-                        let part = problem
-                            .field()
-                            .strip_prefix("parts.")
-                            .and_then(|rest| rest.split('.').next())
-                            .and_then(|k| k.parse::<usize>().ok())
-                            .and_then(|k| parts.get(k).copied());
-                        go = Some(match (problem.operation(), part) {
-                            (Some(i), _) => Focus::Op(i),
-                            (None, Some(id)) => Focus::Part(id),
-                            (None, None) => Focus::Job,
+                        // A part's or a tool's field opens it (docs/specs/parts.md §8,
+                        // properties-for-tools-and-dxfs.md §2).
+                        let index = |what: &str| {
+                            problem
+                                .field()
+                                .strip_prefix(what)
+                                .and_then(|rest| rest.split('.').next())
+                                .and_then(|k| k.parse::<usize>().ok())
+                        };
+                        let part = index("parts.").and_then(|k| parts.get(k).copied());
+                        let tool = index("tools.").and_then(|k| tools.get(k).copied());
+                        go = Some(match (problem.operation(), part, tool) {
+                            (Some(i), _, _) => Focus::Op(i),
+                            (None, Some(id), _) => Focus::Part(id),
+                            (None, None, Some(id)) => Focus::Tool(id),
+                            (None, None, None) => Focus::Job,
                         });
                     }
                 }

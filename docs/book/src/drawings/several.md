@@ -24,14 +24,15 @@ shapes come from:
 - **The shapes drawn in Chipload**, by kind: rectangles, circles, polylines.
 
 ![The Browser: two DXFs with their layers, the second hidden, an image, and the
-first DXF's placement window](../images/drawing.png)
+first DXF's position and scale in Properties](../images/drawing.png)
 
 - **A click** selects the whole group, or one layer of one DXF; Ctrl+click adds. An
-  operation added from it cuts only that (its selector names the DXF or image).
+  operation added from it cuts only that (its selector names the DXF or image). A DXF or
+  picture also shows its properties: position and scale, or size and place.
 - **Right-click** has the rest:
-  - **For a DXF:** *Place…* (move, turn, scale: [Placing the drawing](placement.md); also
-    a double-click), *Update from a DXF…* or *from a path…*, and *Remove*.
-  - **For an image:** *Edit…* (also a double-click) and *Remove*.
+  - **For a DXF:** *Place…* (its properties: [Placing the drawing](placement.md)),
+    *Update from a DXF…* or *from a path…*, and *Remove*.
+  - **For an image:** *Trace settings…* (also a double-click) and *Remove*.
 - **The eye hides** a group or a layer on the canvas: it isn't drawn and can't be
   clicked. **Hidden shapes are still cut.** An operation that cuts some says so on its row
   ("3 hidden · T1"), and its toolpath still shows. To stop cutting them, untick the

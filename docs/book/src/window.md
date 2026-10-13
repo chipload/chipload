@@ -48,12 +48,12 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Click** a row to select it.
   - A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
     to the selection.
-  - An operation's row, a part's row, or *Job settings* shows its settings on the right.
-- **Double-click** a DXF to place it, a picture to edit it, or a part to make it the
-  active part.
+  - An operation, a part, a tool, *Tools*, *Job settings*, a DXF (or one of its layers)
+    or a picture shows its settings on the right, in [Properties](#properties).
+- **Double-click** a picture for its trace settings, or a part to make it the active part.
 - **Right-click** a row for the rest:
-  - **A DXF:** *Place…*, *Update from a DXF…* and *Remove*.
-  - **A picture:** *Edit…* and *Remove*.
+  - **A DXF:** *Place…* (its properties), *Update from a DXF…* and *Remove*.
+  - **A picture:** *Trace settings…* and *Remove*.
   - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*, *Add
     rest pocket* and *Delete*.
   - **The Drawing folder:** *Add DXF…* and *Import image…*.
@@ -104,9 +104,17 @@ navigation bar](images/simulation-3d.png)
 
 ## Properties
 
-The **Properties** panel on the right shows what is open: the job settings, a part (its
-name, on or off, and its [copies](drawings/copies.md)), or an operation's settings under
-its kind and number ("Pocket · Operation 1").
+The **Properties** panel on the right shows what is open, under a title:
+- **Job settings:** the stock, the machine and the post.
+- **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
+  *Save to library…* and *Remove tool*.
+- **A DXF:** its file, units and size, its [position and scale](drawings/placement.md),
+  *Update from a DXF…* and *Remove*.
+- **A picture:** its width, lower-left corner and layer. A change applies when you finish
+  the edit, and traces the picture again. *Trace settings…* opens its
+  [window](drawings/images.md).
+- **A part:** its name, on or off, and its [copies](drawings/copies.md).
+- **An operation:** its settings, under its kind and number ("Pocket · Operation 1").
 
 While shapes are selected, a **Selection** section comes first. It holds:
 - what is selected, by contour number;
