@@ -1,8 +1,8 @@
 # Copies
 
-Each [part](../operations/parts.md) can be cut several times, in a grid of its own: Job
-settings > **Copies** (of the active part), or `chipload copies`. With several parts, give
-`--part`.
+Each [part](../operations/parts.md) can be cut several times, in a grid of its own: click
+the part in the Browser and set **Copies** in its properties, or use `chipload copies`.
+With several parts, give `--part`.
 
 ```sh
 chipload copies part.chipload --grid 3x2 --gap 10     # 3 columns, 2 rows, 10 mm between cuts

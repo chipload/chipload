@@ -1116,8 +1116,11 @@ pub(super) fn work_zero_rows(
 pub(super) enum JobRequest {
     /// docs/specs/tool-library-and-machines.md §8.
     Library(LibraryRequest),
-    /// Set the copies' pitch so this many mm are left between their cuts.
-    CopiesGap(f64),
+    /// Set part `id`'s pitch so this many mm are left between its copies' cuts
+    /// (docs/specs/copies-grid.md decision 2).
+    CopiesGap(u64, f64),
+    /// Make part `id` the active part (docs/specs/parts.md §8).
+    Activate(u64),
     /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:
@@ -1220,19 +1223,6 @@ pub(super) fn job_form(
             });
         ui.end_row();
     });
-
-    // The active part's copies, until parts get their own properties
-    // (docs/specs/parts.md §8).
-    let active = job.active_part_id();
-    if let Some(part) = job.parts.iter_mut().find(|p| Some(p.id) == active) {
-        let copies = part.copies.map_or("one".to_string(), |c| {
-            format!("{} × {} = {}", c.columns, c.rows, c.count())
-        });
-        let title = format!("Copies of {}", part.name);
-        section(ui, "job-copies", &title, &copies, |ui| {
-            copies_rows(ui, &mut part.copies, &mut copies_request);
-        });
-    }
 
     let machine = format!(
         "{}, safe Z {} mm, {}",
@@ -1521,8 +1511,76 @@ fn size_rows(
     ui.end_row();
 }
 
-/// The part cut several times in a grid (docs/specs/copies-grid.md).
-fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Option<JobRequest>) {
+/// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the
+/// active part, and its copies.
+pub(super) fn part_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Option<JobRequest> {
+    let mut request = None;
+    let active = edit.settings.active_part_id() == Some(id);
+    let numbers: Vec<String> = (0..edit.ops.len())
+        .filter(|i| edit.ops[*i].op.part() == id)
+        .map(|i| (i + 1).to_string())
+        .collect();
+    let index = edit.settings.parts.iter().position(|p| p.id == id)?;
+    let several = edit.settings.parts.len() > 1;
+    let part = &mut edit.settings.parts[index];
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Part,
+        None,
+        &format!("Part {} · {}", index + 1, part.name),
+    );
+    let at = |field: &str| format!("parts.{index}.{field}");
+    Grid::new(("part-form", id))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label("Name");
+            let response = ui.add(TextEdit::singleline(&mut part.name).desired_width(200.0));
+            flag(response, ui, &at("name"));
+            ui.end_row();
+            ui.label("Cut")
+                .on_hover_text("Off: the part and its operations stay in the project, not cut");
+            ui.checkbox(&mut part.enabled, "this part and its operations");
+            ui.end_row();
+            ui.label("Active").on_hover_text(
+                "New operations go into the active part. Right-click a part to activate it",
+            );
+            if active {
+                ui.label("yes: new operations go here");
+            } else if ui.button("Activate").clicked() {
+                request = Some(JobRequest::Activate(id));
+            }
+            ui.end_row();
+            ui.label("Operations");
+            ui.label(if numbers.is_empty() {
+                "none yet".to_string()
+            } else {
+                numbers.join(", ")
+            });
+            ui.end_row();
+        });
+    let copies = part.copies.map_or("one".to_string(), |c| {
+        format!("{} × {} = {}", c.columns, c.rows, c.count())
+    });
+    section(ui, "part-copies", "Copies", &copies, |ui| {
+        copies_rows(ui, &mut part.copies, &mut request, &at("copies"), id);
+    });
+    if several {
+        ui.add_space(4.0);
+        ui.weak("Parts are cut one after the other, each with its copies.");
+    }
+    request
+}
+
+/// A part cut several times in a grid (docs/specs/copies-grid.md); `at` is the copies'
+/// path, for the problems at its fields.
+fn copies_rows(
+    ui: &mut egui::Ui,
+    copies: &mut Option<Copies>,
+    request: &mut Option<JobRequest>,
+    at: &str,
+    part: u64,
+) {
     ui.label("Copies").on_hover_text(
         "Cut the part several times in a grid. The copies are drawn faded; only the drawing \
          itself can be selected.",
@@ -1537,7 +1595,7 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
             order: CopyOrder::ByOperation,
         });
         if on {
-            *request = Some(JobRequest::CopiesGap(DEFAULT_COPIES_GAP));
+            *request = Some(JobRequest::CopiesGap(part, DEFAULT_COPIES_GAP));
         }
     }
     ui.end_row();
@@ -1550,12 +1608,12 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
         flag(
             ui.add(DragValue::new(&mut grid.columns).range(count.clone())),
             ui,
-            "copies.columns",
+            &format!("{at}.columns"),
         );
         flag(
             ui.add(DragValue::new(&mut grid.rows).range(count)),
             ui,
-            "copies.rows",
+            &format!("{at}.rows"),
         );
         ui.label(format!("= {}", grid.count()));
     });
@@ -1563,14 +1621,14 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
     ui.label("  pitch X Y")
         .on_hover_text("Copy to copy, mm. Negative grows to the left or down.");
     ui.horizontal(|ui| {
-        for (name, value) in [("copies.dx", &mut grid.dx), ("copies.dy", &mut grid.dy)] {
+        for (name, value) in [("dx", &mut grid.dx), ("dy", &mut grid.dy)] {
             let response = ui.add(
                 DragValue::new(value)
                     .speed(0.1)
                     .range(-100_000.0..=100_000.0)
                     .suffix(" mm"),
             );
-            flag(response, ui, name);
+            flag(response, ui, &format!("{at}.{name}"));
         }
     });
     ui.end_row();
@@ -1579,12 +1637,12 @@ fn copies_rows(ui: &mut egui::Ui, copies: &mut Option<Copies>, request: &mut Opt
          The project keeps the pitch.",
     );
     ui.horizontal(|ui| {
-        let id = egui::Id::new("copies-gap");
+        let id = egui::Id::new(("copies-gap", part));
         let mut gap = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_COPIES_GAP));
         ui.add(mm(&mut gap));
         ui.data_mut(|d| d.insert_temp(id, gap));
         if ui.button("Set pitch").clicked() {
-            *request = Some(JobRequest::CopiesGap(gap));
+            *request = Some(JobRequest::CopiesGap(part, gap));
         }
     });
     ui.end_row();

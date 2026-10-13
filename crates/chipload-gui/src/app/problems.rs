@@ -67,7 +67,7 @@ fn section_fields(key: &str) -> &'static [&'static str] {
         "op-tabs" => &["tabs"],
         "op-clearing" => &["stepover", "strategy"],
         "job-stock" => &["stock"],
-        "job-copies" => &["copies"],
+        "part-copies" => &["parts"],
         "job-machine" => &["machine"],
         "job-tools" => &["tools"],
         "job-placement" => &["drawing"],
@@ -93,7 +93,9 @@ fn field_label(field: &str) -> &'static str {
         ["stock", "max_overcut"] => return "Max depth below stock",
         ["machine", "safe_z"] => return "Safe Z",
         ["machine", "travel", ..] => return "Travel",
-        ["copies", ..] => return "Copies",
+        ["parts", _, "copies", ..] => return "Copies",
+        ["parts", _, "name"] => return "Part name",
+        ["parts", ..] => return "Parts",
         ["tools", _, "diameter"] => return "Tool diameter",
         ["tools", _, "rpm"] => return "Spindle speed",
         ["tools", _, "angle"] => return "V-bit angle",
@@ -111,6 +113,7 @@ fn field_label(field: &str) -> &'static str {
         "entry" => "Entry",
         "lead" => "Lead",
         "tool" => "Tool",
+        "part" => "Part",
         "side" => "Side",
         "select" => "Geometry",
         f if f.starts_with("tabs") => "Tabs",
@@ -174,6 +177,18 @@ impl ChiploadApp {
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
             Focus::Op(i) => Box::new(self.op_problems(i)),
             Focus::Job => Box::new(self.job_problems()),
+            Focus::Part(id) => {
+                let index = self
+                    .edit
+                    .as_ref()
+                    .and_then(|e| e.settings.parts.iter().position(|p| p.id == id));
+                let prefix = index.map(|k| format!("parts.{k}."));
+                Box::new(self.job_problems().filter(move |p| {
+                    prefix
+                        .as_ref()
+                        .is_some_and(|prefix| p.field().starts_with(prefix.as_str()))
+                }))
+            }
         };
         let mut map = BTreeMap::new();
         for problem in pick {
@@ -190,6 +205,11 @@ impl ChiploadApp {
             return;
         }
         let color = ui.visuals().error_fg_color;
+        let parts: Vec<u64> = self
+            .edit
+            .as_ref()
+            .map(|e| e.settings.parts.iter().map(|p| p.id).collect())
+            .unwrap_or_default();
         let mut go = None;
         egui::Frame::new()
             .stroke(egui::Stroke::new(1.0, color))
@@ -213,9 +233,17 @@ impl ChiploadApp {
                         .on_hover_text("Show it")
                         .clicked()
                     {
-                        go = Some(match problem.operation() {
-                            Some(i) => Focus::Op(i),
-                            None => Focus::Job,
+                        // A part's field opens the part (docs/specs/parts.md §8).
+                        let part = problem
+                            .field()
+                            .strip_prefix("parts.")
+                            .and_then(|rest| rest.split('.').next())
+                            .and_then(|k| k.parse::<usize>().ok())
+                            .and_then(|k| parts.get(k).copied());
+                        go = Some(match (problem.operation(), part) {
+                            (Some(i), _) => Focus::Op(i),
+                            (None, Some(id)) => Focus::Part(id),
+                            (None, None) => Focus::Job,
                         });
                     }
                 }

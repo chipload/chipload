@@ -18,8 +18,9 @@ fn index_of(job: &Job, id: u64) -> Result<usize, PipelineError> {
         .ok_or_else(|| refused(format!("No part {id} in the project")))
 }
 
-/// A name no part has: `wanted`, or "Part N" for the lowest free N.
-fn free_name(job: &Job, wanted: Option<&str>) -> Result<String, PipelineError> {
+/// A name no part has: `wanted`, or "Part N", N one more than the parts there are (the
+/// next free one above that).
+pub fn free_name(job: &Job, wanted: Option<&str>) -> Result<String, PipelineError> {
     let taken = |name: &str| {
         job.parts
             .iter()
@@ -37,7 +38,7 @@ fn free_name(job: &Job, wanted: Option<&str>) -> Result<String, PipelineError> {
         }
         return Ok(name.trim().to_string());
     }
-    Ok((1..)
+    Ok((job.parts.len() + 1..)
         .map(|n| format!("Part {n}"))
         .find(|name| !taken(name))
         .unwrap_or_default())

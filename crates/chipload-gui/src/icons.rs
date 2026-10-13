@@ -24,7 +24,6 @@ pub enum Icon {
     Rectangle,
     Polyline,
     Paths,
-    Operations,
     Profile,
     Pocket,
     Vcarve,
@@ -49,6 +48,8 @@ pub enum Icon {
     Measure,
     Grid,
     Toolpath,
+    Part,
+    Parts,
 }
 
 /// Line width of the icons, points.
@@ -128,17 +129,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             (0.75, 0.65),
             (0.9, 0.4),
         ]),
-        Icon::Operations => {
-            pen.poly(&[
-                (0.12, 0.25),
-                (0.88, 0.25),
-                (0.88, 0.5),
-                (0.12, 0.5),
-                (0.12, 0.75),
-            ]);
-            pen.poly(&[(0.12, 0.75), (0.75, 0.75)]);
-            pen.poly(&[(0.65, 0.65), (0.78, 0.75), (0.65, 0.85)]);
-        }
         Icon::Profile => {
             pen.closed(&[(0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7)]);
             pen.rounded((0.5, 0.5), 0.35, 0.12);
@@ -269,6 +259,31 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::Part => {
+            pen.closed(&[
+                (0.12, 0.22),
+                (0.88, 0.22),
+                (0.88, 0.78),
+                (0.55, 0.78),
+                (0.55, 0.6),
+                (0.45, 0.6),
+                (0.45, 0.78),
+                (0.12, 0.78),
+            ]);
+            pen.circle((0.3, 0.45), 0.08);
+            pen.circle((0.7, 0.45), 0.08);
+        }
+        Icon::Parts => {
+            pen.closed(&[(0.25, 0.1), (0.9, 0.1), (0.9, 0.55), (0.25, 0.55)]);
+            pen.poly(&[
+                (0.25, 0.3),
+                (0.1, 0.3),
+                (0.1, 0.9),
+                (0.75, 0.9),
+                (0.75, 0.55),
+            ]);
+            pen.circle((0.57, 0.32), 0.07);
         }
         Icon::Grid => {
             for t in [0.15, 0.38, 0.62, 0.85] {

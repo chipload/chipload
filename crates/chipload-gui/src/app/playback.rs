@@ -285,7 +285,7 @@ impl ChiploadApp {
     /// `half` (the playback half way), `notoolpath` (View > Show toolpath off), `image` (the
     /// first image's window, traced) and `drawing` (the last DXF hidden, the first one's
     /// placement window open), `select` (the first drawn shape selected, with operation 1
-    /// open). Only in builds made for screenshots.
+    /// open), `part` (the last part's properties). Only in builds made for screenshots.
     #[cfg(feature = "screenshots")]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
@@ -331,6 +331,15 @@ impl ChiploadApp {
         {
             self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
             self.focus = Focus::Op(0);
+        }
+        let last_part = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.parts.last().map(|p| p.id));
+        if steps.contains(&"part")
+            && let Some(id) = last_part
+        {
+            self.focus = Focus::Part(id);
         }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback

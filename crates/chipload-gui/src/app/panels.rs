@@ -76,10 +76,11 @@ impl ChiploadApp {
                 .ops
                 .get(i)
                 .and_then(|e| self_tool_cutting(library, &edit.settings.tools, e.op.tool())),
-            Focus::Job => None,
+            Focus::Job | Focus::Part(_) => None,
         };
         ui.scope(|ui| match focus {
             Focus::Job => request = job_form(ui, edit, library),
+            Focus::Part(id) => request = forms::part_form(ui, edit, id),
             Focus::Op(i) => {
                 let choice = ToolChoice {
                     tools: &edit.settings.tools,
@@ -102,7 +103,8 @@ impl ChiploadApp {
         }
         match request {
             Some(JobRequest::Library(request)) => self.library_request(request),
-            Some(JobRequest::CopiesGap(gap)) => self.set_copies_gap(gap),
+            Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
+            Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {
                 self.choose_project_post(&name);
             }

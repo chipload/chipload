@@ -25,4 +25,5 @@ shot playback tests/corpus/jobs/v18/dogbones.chipload simulation,half
 shot image tests/corpus/jobs/v19/image_vcarve.chipload image
 shot drawing tests/corpus/jobs/v21/two_dxfs.chipload drawing
 shot properties tests/corpus/jobs/v18/dogbones.chipload generate,select
+shot parts tests/corpus/jobs/v22/two_parts.chipload generate,part
 echo "Wrote $out/"

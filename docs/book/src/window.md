@@ -38,7 +38,8 @@ The **Browser** on the left holds the whole project as a tree:
   - **Drawing:** what the shapes come from. Each DXF has its layers under it; then come
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
-  - **Operations**, in cutting order. A line marks each tool change.
+  - **Parts**, each with its operations under it, in cutting order. A line marks each
+    tool change. See [Parts](operations/parts.md).
 
 ![The Browser: two DXFs with their layers, the second hidden, a picture, and four
 operations; the first DXF's placement window is open](images/drawing.png)
@@ -47,30 +48,37 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Click** a row to select it.
   - A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
     to the selection.
-  - An operation's row, or *Job settings*, shows its settings on the right.
-- **Double-click** a DXF to place it, or a picture to edit it.
+  - An operation's row, a part's row, or *Job settings* shows its settings on the right.
+- **Double-click** a DXF to place it, a picture to edit it, or a part to make it the
+  active part.
 - **Right-click** a row for the rest:
   - **A DXF:** *Place…*, *Update from a DXF…* and *Remove*.
   - **A picture:** *Edit…* and *Remove*.
   - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*, *Add
     rest pocket* and *Delete*.
   - **The Drawing folder:** *Add DXF…* and *Import image…*.
-  - **The Operations folder:** a new operation for the selected shapes.
+  - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
+    down* and *Delete part* (with its operations).
+  - **The Parts folder:** *New part*.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like
   *Tools*.
 
 **The eye** hides a DXF, layer, picture or kind of drawn shape on the canvas: it isn't
 drawn and can't be clicked. **Hidden shapes are still cut.**
 
-**The tick** in front of an operation turns it on or off. An operation that is off isn't
-in the program, and its row is dimmed.
+**The tick** in front of an operation or a part turns it on or off. One that is off isn't
+in the program, and its row is dimmed; a part that is off takes its operations with it.
+
+**The active part** is in bold, marked *active*. New operations from the ribbon go into
+it, whatever is open. Its name is also in the status bar.
 
 **On an operation's row:**
 - **Right end:** its tool, and how many hidden contours it cuts ("3 hidden · T1").
 - **A red dot** marks a problem.
 - **Hover** the row for its kind, its geometry, its depths, its time once generated and
   its first problem.
-- **Drag** the row onto another to move it there.
+- **Drag** the row onto another to move it there, or onto a part to move it to the end of
+  that part.
 
 ## The canvas
 
@@ -96,8 +104,9 @@ navigation bar](images/simulation-3d.png)
 
 ## Properties
 
-The **Properties** panel on the right shows what is open: the job settings, or an
-operation's settings under its kind and number ("Pocket · Operation 1").
+The **Properties** panel on the right shows what is open: the job settings, a part (its
+name, on or off, and its [copies](drawings/copies.md)), or an operation's settings under
+its kind and number ("Pocket · Operation 1").
 
 While shapes are selected, a **Selection** section comes first. It holds:
 - what is selected, by contour number;

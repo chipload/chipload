@@ -76,6 +76,8 @@ pub const PROJECT_EXTENSION: &str = "chipload";
 pub enum Focus {
     Job,
     Op(usize),
+    /// A part, by id (docs/specs/parts.md §8).
+    Part(u64),
 }
 
 /// Something that would throw away unsaved changes, waiting for confirmation.
@@ -781,15 +783,12 @@ impl ChiploadApp {
         }
     }
 
-    pub fn set_copies_gap(&mut self, gap: f64) {
+    pub fn set_copies_gap(&mut self, id: u64, gap: f64) {
         self.commit();
         let Some(edit) = &self.edit else {
             return;
         };
         // The part alone: the grid being set may not be valid yet (a pitch of 0).
-        let Some(id) = edit.settings.active_part_id() else {
-            return;
-        };
         let mut part = edit.clone();
         for p in &mut part.settings.parts {
             p.copies = None;
@@ -849,6 +848,83 @@ impl ChiploadApp {
         {
             edit.move_op(from, to);
             self.focus = Focus::Op(to);
+            self.commit();
+        }
+    }
+
+    // -- parts (docs/specs/parts.md §8)
+
+    /// A new, empty part at the end: it becomes active and opens in the properties.
+    pub fn add_part(&mut self) -> Option<u64> {
+        let id = self.edit.as_mut()?.add_part();
+        self.focus = Focus::Part(id);
+        self.commit();
+        Some(id)
+    }
+
+    /// Make part `id` the one new operations go into.
+    pub fn activate_part(&mut self, id: u64) {
+        if let Some(edit) = self.edit.as_mut()
+            && edit.settings.part(id).is_some()
+        {
+            edit.settings.active_part = Some(id);
+            self.commit();
+        }
+    }
+
+    /// Delete part `id` with its operations, as one undo step; the last part stays.
+    pub fn delete_part(&mut self, id: u64) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let name = edit
+            .settings
+            .part(id)
+            .map(|p| p.name.clone())
+            .unwrap_or_default();
+        match edit.delete_part(id) {
+            Some(ops) => {
+                self.focus = Focus::Job;
+                self.commit();
+                let what = match ops {
+                    0 => String::new(),
+                    1 => " and its operation".into(),
+                    n => format!(" and its {n} operations"),
+                };
+                self.set_status(
+                    format!("Deleted part {name}{what} (Ctrl+Z brings it back)"),
+                    STATUS_SECONDS,
+                );
+            }
+            None => self.set_status("A project needs at least one part".into(), STATUS_SECONDS),
+        }
+    }
+
+    /// Move part `id` one place up or down, with its operations.
+    pub fn move_part(&mut self, id: u64, up: bool) {
+        if let Some(edit) = self.edit.as_mut() {
+            edit.move_part(id, up);
+            self.focus = Focus::Part(id);
+            self.commit();
+        }
+    }
+
+    /// Move operation `from` to the end of part `id`.
+    pub fn move_operation_to_part(&mut self, from: usize, id: u64) {
+        if let Some(at) = self.edit.as_mut().and_then(|e| e.move_op_to_part(from, id)) {
+            self.focus = Focus::Op(at);
+            self.commit();
+        }
+    }
+
+    /// Turn part `id` on or off.
+    pub fn toggle_part(&mut self, id: u64) {
+        if let Some(part) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.settings.parts.iter_mut().find(|p| p.id == id))
+        {
+            part.enabled = !part.enabled;
             self.commit();
         }
     }

@@ -486,11 +486,77 @@ impl EditJob {
     }
 
     /// Move the operation at `from` so it ends up at position `to` (cut order).
+    /// Move operation `from` to `to`. It takes the part of the operation it lands on, so
+    /// moving past the first or last operation of a part moves it into the next part and
+    /// the list stays grouped by part (docs/specs/parts.md §8).
     pub fn move_op(&mut self, from: usize, to: usize) {
         if from < self.ops.len() && to < self.ops.len() && from != to {
-            let op = self.ops.remove(from);
+            let part = self.ops[to].op.part();
+            let mut op = self.ops.remove(from);
+            op.op.set_part(part);
             self.ops.insert(to, op);
         }
+    }
+
+    /// Move operation `from` to the end of part `id`'s operations. Returns its new index.
+    pub fn move_op_to_part(&mut self, from: usize, id: u64) -> Option<usize> {
+        if from >= self.ops.len() || self.settings.part(id).is_none() {
+            return None;
+        }
+        let mut op = self.ops.remove(from);
+        op.op.set_part(id);
+        let at = self.insert_index(id);
+        self.ops.insert(at, op);
+        Some(at)
+    }
+
+    /// A new, empty part at the end, which becomes the active part. Returns its id.
+    pub fn add_part(&mut self) -> u64 {
+        let id = self.settings.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
+        let name = chipload_pipeline::parts::free_name(&self.settings, None).unwrap_or_default();
+        self.settings.parts.push(chipload_job::Part {
+            id,
+            name,
+            enabled: true,
+            copies: None,
+        });
+        self.settings.active_part = Some(id);
+        id
+    }
+
+    /// Remove part `id` and its operations; the last part stays. Returns how many
+    /// operations went with it.
+    pub fn delete_part(&mut self, id: u64) -> Option<usize> {
+        if self.settings.parts.len() < 2 {
+            return None;
+        }
+        let at = self.settings.parts.iter().position(|p| p.id == id)?;
+        self.settings.parts.remove(at);
+        let before = self.ops.len();
+        self.ops.retain(|e| e.op.part() != id);
+        if self.settings.active_part == Some(id) {
+            self.settings.active_part = self.settings.parts.first().map(|p| p.id);
+        }
+        Some(before - self.ops.len())
+    }
+
+    /// Move part `id` one place earlier (`up`) or later, with its operations.
+    pub fn move_part(&mut self, id: u64, up: bool) {
+        let Some(at) = self.settings.parts.iter().position(|p| p.id == id) else {
+            return;
+        };
+        let to = if up { at.checked_sub(1) } else { Some(at + 1) };
+        let Some(to) = to.filter(|t| *t < self.settings.parts.len()) else {
+            return;
+        };
+        self.settings.parts.swap(at, to);
+        let order: Vec<u64> = self.settings.parts.iter().map(|p| p.id).collect();
+        self.ops.sort_by_key(|e| {
+            order
+                .iter()
+                .position(|p| *p == e.op.part())
+                .unwrap_or(usize::MAX)
+        });
     }
 
     pub fn duplicate(&mut self, index: usize) -> Option<usize> {

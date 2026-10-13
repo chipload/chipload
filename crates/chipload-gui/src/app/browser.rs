@@ -34,6 +34,7 @@ pub(super) struct Row {
     dim: bool,
     alert: bool,
     drag: bool,
+    strong: bool,
 }
 
 /// What happened to a row this frame.
@@ -63,7 +64,14 @@ impl Row {
             dim: false,
             alert: false,
             drag: false,
+            strong: false,
         }
+    }
+
+    /// The label in bold: the active part.
+    pub(super) fn strong(mut self, strong: bool) -> Self {
+        self.strong = strong;
+        self
     }
 
     /// A folder: open or closed, with a triangle.
@@ -252,7 +260,11 @@ impl Row {
             painter.galley(at, galley.clone(), line_color);
             right -= galley.size().x + GAP * 2.0;
         }
-        let galley = egui::WidgetText::from(RichText::new(&self.label)).into_galley(
+        let mut label = RichText::new(&self.label);
+        if self.strong {
+            label = label.strong();
+        }
+        let galley = egui::WidgetText::from(label).into_galley(
             ui,
             Some(egui::TextWrapMode::Truncate),
             (right - x).max(0.0),
@@ -351,7 +363,16 @@ enum OpAction {
     Delete(usize),
     /// A rest pocket for pocket i with this tool (docs/specs/rest-machining.md §10).
     AddRest(usize, i64),
-    New(OpKind),
+    /// Into part `id`, at the end of its operations (dropped on the part's row).
+    ToPart(usize, u64),
+    PartFocus(u64),
+    PartActivate(u64),
+    PartToggle(u64),
+    PartMove(u64, bool),
+    PartDelete(u64),
+    /// A new operation of this kind in part `id`: it becomes the active part first.
+    NewIn(OpKind, u64),
+    NewPart,
 }
 
 /// The kinds of new operation: label, kind and what it does.
@@ -466,38 +487,34 @@ impl ChiploadApp {
         }
     }
 
-    /// Operations: one row each, in cutting order, with a line at each tool change.
+    /// Parts (docs/specs/parts.md §8): each part with its operations, in cutting order,
+    /// with a line at each tool change.
     fn operation_rows(&mut self, ui: &mut egui::Ui) {
-        let count = self.edit.as_ref().map_or(0, |e| e.ops.len());
-        let selected = !self.selection.ids(&self.contours).is_empty();
-        let row = Row::new(Id::new("browser-operations"), 1, "Operations")
-            .icon(Icon::Operations)
-            .trailing(count.to_string());
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        let parts = edit.settings.parts.clone();
+        let active = edit.settings.active_part_id();
+        let count = edit.ops.len();
+        let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
+        let row = Row::new(Id::new("browser-parts"), 1, "Parts")
+            .icon(Icon::Parts)
+            .trailing(parts.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
         let mut action: Option<OpAction> = None;
-        folder_row.response.context_menu(|ui| {
-            for (label, kind, hover) in NEW_OPERATIONS {
-                if ui
-                    .add_enabled(selected, egui::Button::new(format!("New {label}")))
-                    .on_hover_text(hover)
-                    .on_disabled_hover_text("Select shapes first")
-                    .clicked()
-                {
-                    action = Some(OpAction::New(kind));
+        folder_row
+            .response
+            .on_hover_text(
+                "Each part is cut with its copies before the next; right-click for a new part",
+            )
+            .context_menu(|ui| {
+                if ui.button("New part").clicked() {
+                    action = Some(OpAction::NewPart);
                 }
-            }
-        });
+            });
         if open {
-            if count == 0 {
-                ui.add_space(2.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(PAD + 3.0 * INDENT);
-                    ui.weak("Select shapes, then add an operation");
-                });
-                ui.add_space(2.0);
-            }
-            for i in 0..count {
-                if let Some(a) = self.operation_row(ui, i, count) {
+            for (k, part) in parts.iter().enumerate() {
+                if let Some(a) = self.part_rows(ui, part, k, &parts, active, &op_parts, count) {
                     action = Some(a);
                 }
             }
@@ -520,11 +537,153 @@ impl ChiploadApp {
                 self.delete_operation();
             }
             Some(OpAction::AddRest(i, tool)) => self.add_rest_pocket(i, tool),
-            Some(OpAction::New(kind)) => {
+            Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
+            Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
+            Some(OpAction::PartActivate(id)) => self.activate_part(id),
+            Some(OpAction::PartToggle(id)) => self.toggle_part(id),
+            Some(OpAction::PartMove(id, up)) => self.move_part(id, up),
+            Some(OpAction::PartDelete(id)) => self.delete_part(id),
+            Some(OpAction::NewIn(kind, id)) => {
+                self.activate_part(id);
                 self.add_operation(kind);
+            }
+            Some(OpAction::NewPart) => {
+                self.add_part();
             }
             None => {}
         }
+    }
+
+    /// Part `part`'s row (the `k`th part) and, when it is open, its operations.
+    #[allow(clippy::too_many_arguments)]
+    fn part_rows(
+        &mut self,
+        ui: &mut egui::Ui,
+        part: &chipload_job::Part,
+        k: usize,
+        parts: &[chipload_job::Part],
+        active: Option<u64>,
+        op_parts: &[u64],
+        count: usize,
+    ) -> Option<OpAction> {
+        let mine: Vec<usize> = (0..count).filter(|i| op_parts[*i] == part.id).collect();
+        let flagged = mine.iter().any(|i| {
+            self.problems.iter().any(|p| p.operation() == Some(*i)) || self.error_ops.contains(i)
+        }) || !self.form_problem_map(Focus::Part(part.id)).is_empty();
+        let is_active = active == Some(part.id);
+        let mut trailing = Vec::new();
+        if is_active && parts.len() > 1 {
+            trailing.push("active".to_string());
+        }
+        if part.count() > 1 {
+            trailing.push(format!("×{}", part.count()));
+        }
+        let id = Id::new(("browser-part", part.id));
+        let open_id = id.with("folder-open");
+        let open = folder_open(ui, open_id, true);
+        let out = Row::new(id, 2, &part.name)
+            .folder(open)
+            .tick(part.enabled)
+            .icon(Icon::Part)
+            .trailing(trailing.join(" · "))
+            .selected(self.focus == Focus::Part(part.id))
+            .dim(!part.enabled)
+            .alert(flagged)
+            .strong(is_active && parts.len() > 1)
+            .show(ui);
+        let mut action = None;
+        if out.toggled {
+            toggle_folder(ui, open_id, true);
+        }
+        if out.tick {
+            action = Some(OpAction::PartToggle(part.id));
+        } else if out.response.double_clicked() {
+            action = Some(OpAction::PartActivate(part.id));
+        } else if out.response.clicked() {
+            action = Some(OpAction::PartFocus(part.id));
+        }
+        if let Some(from) = out.response.dnd_release_payload::<usize>() {
+            action = Some(OpAction::ToPart(*from, part.id));
+        } else if out.response.dnd_hover_payload::<usize>().is_some() {
+            ui.painter().rect_stroke(
+                out.response.rect,
+                0.0,
+                Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                egui::StrokeKind::Inside,
+            );
+        }
+        let selected = !self.selection.ids(&self.contours).is_empty();
+        let hover = if is_active {
+            "The active part: new operations go here. Click for its copies; right-click for more"
+        } else {
+            "Click for its copies; double-click to make it the active part; right-click for more"
+        };
+        out.response.on_hover_text(hover).context_menu(|ui| {
+            if ui
+                .add_enabled(!is_active, egui::Button::new("Activate"))
+                .on_hover_text("New operations go into the active part")
+                .clicked()
+            {
+                action = Some(OpAction::PartActivate(part.id));
+            }
+            ui.menu_button("New operation", |ui| {
+                for (label, kind, hover) in NEW_OPERATIONS {
+                    if ui
+                        .add_enabled(selected, egui::Button::new(label))
+                        .on_hover_text(hover)
+                        .on_disabled_hover_text("Select shapes first")
+                        .clicked()
+                    {
+                        action = Some(OpAction::NewIn(kind, part.id));
+                    }
+                }
+            });
+            ui.separator();
+            if ui
+                .add_enabled(k > 0, egui::Button::new("Move up"))
+                .clicked()
+            {
+                action = Some(OpAction::PartMove(part.id, true));
+            }
+            if ui
+                .add_enabled(k + 1 < parts.len(), egui::Button::new("Move down"))
+                .clicked()
+            {
+                action = Some(OpAction::PartMove(part.id, false));
+            }
+            ui.separator();
+            let what = match mine.len() {
+                0 => "Delete part".to_string(),
+                1 => "Delete part and its operation".to_string(),
+                n => format!("Delete part and its {n} operations"),
+            };
+            if ui
+                .add_enabled(parts.len() > 1, egui::Button::new(what))
+                .on_disabled_hover_text("A project needs at least one part")
+                .clicked()
+            {
+                action = Some(OpAction::PartDelete(part.id));
+            }
+        });
+        if !open {
+            return action;
+        }
+        if mine.is_empty() {
+            ui.horizontal(|ui| {
+                ui.add_space(PAD + 4.0 * INDENT);
+                ui.weak(if is_active {
+                    "Select shapes, then add an operation"
+                } else {
+                    "No operations: drag one here"
+                });
+            });
+        }
+        for i in mine {
+            if let Some(a) = self.operation_row(ui, i, count) {
+                action = Some(a);
+            }
+        }
+        action
     }
 
     /// Operation `i`'s row (and the tool change line above it).
@@ -532,13 +691,18 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         let entry = edit.ops.get(i)?;
         let op = &entry.op;
+        // An operation is cut when it and its part are on (docs/specs/parts.md §3).
+        let cut = |op: &Operation| {
+            op.enabled() && edit.settings.part(op.part()).is_some_and(|p| p.enabled)
+        };
         // A line marks each tool change (docs/specs/tool-per-operation.md §8).
         let previous = edit.ops[..i]
             .iter()
             .rev()
-            .find(|e| e.op.enabled())
+            .find(|e| cut(&e.op))
             .map(|e| e.op.tool());
-        if op.enabled() && previous.is_some_and(|t| t != op.tool()) {
+        let is_cut = cut(op);
+        if is_cut && previous.is_some_and(|t| t != op.tool()) {
             tool_change(ui, op.tool());
         }
         let problem = self
@@ -581,12 +745,12 @@ impl ChiploadApp {
         };
         let hover = self.operation_hover(i, problem.as_deref(), hidden);
         let dark = ui.visuals().dark_mode;
-        let row = Row::new(Id::new(("browser-op", i)), 2, format!("{}  {name}", i + 1))
+        let row = Row::new(Id::new(("browser-op", i)), 3, format!("{}  {name}", i + 1))
             .tick(op.enabled())
             .icon_colored(op_icon(op), kind_color(op, dark))
             .trailing(trailing)
             .selected(self.focus == Focus::Op(i))
-            .dim(!op.enabled())
+            .dim(!is_cut)
             .alert(flagged)
             .draggable()
             .show(ui);
@@ -741,7 +905,7 @@ fn tool_change(ui: &mut egui::Ui, tool: i64) {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 16.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let color = ui.visuals().weak_text_color();
-    let left = rect.left() + PAD + 2.0 * INDENT + INDENT;
+    let left = rect.left() + PAD + 3.0 * INDENT + INDENT;
     let galley = egui::WidgetText::from(RichText::new(format!("tool change → T{tool}")).small())
         .into_galley(
             ui,
@@ -753,7 +917,7 @@ fn tool_change(ui: &mut egui::Ui, tool: i64) {
     let line_from = left + galley.size().x + GAP * 2.0;
     painter.galley(text_at, galley, color);
     let guide = Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color);
-    for level in 1..=2 {
+    for level in 1..=3 {
         let x = rect.left() + PAD + (level as f32 - 0.5) * INDENT;
         painter.vline(x.round() + 0.5, rect.y_range(), guide);
     }

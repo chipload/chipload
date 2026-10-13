@@ -464,7 +464,20 @@ impl ChiploadApp {
                 .as_ref()
                 .map(|r| chipload_pipeline::estimate::duration_text(r.estimate.total));
             let grid = (self.show_grid && self.edit.is_some()).then(|| grid_step(self.view.scale));
+            // With two parts or more, the one new operations go into (docs/specs/parts.md §8).
+            let active = self.edit.as_ref().and_then(|e| {
+                let parts = &e.settings.parts;
+                let id = e.settings.active_part_id()?;
+                (parts.len() > 1)
+                    .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
+            });
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if let Some(name) = active {
+                    ui.weak(format!("active part: {name}")).on_hover_text(
+                        "New operations go into the active part (Browser, right-click a part)",
+                    );
+                    ui.separator();
+                }
                 if let Some(post) = post {
                     ui.weak("mm");
                     ui.separator();
@@ -484,7 +497,16 @@ impl ChiploadApp {
                     ui.separator();
                 }
                 if let Some(n) = copies {
-                    ui.label(format!("{n} copies"));
+                    // With parts, what comes off the sheet (docs/specs/parts.md §8).
+                    let several = self
+                        .edit
+                        .as_ref()
+                        .is_some_and(|e| e.settings.parts.len() > 1);
+                    ui.label(if several {
+                        format!("{n} pieces")
+                    } else {
+                        format!("{n} copies")
+                    });
                     ui.separator();
                 }
                 if let Some((x, y)) = self.cursor {

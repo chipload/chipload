@@ -249,3 +249,19 @@ chipload copies part.chipload --part 2 --grid 2x1 --gap 10   # --part needed wit
     (§5b). *Recommended.*
     - Different material is a separate project for now, or later a "setup" level above
       parts.
+
+## As built
+
+- **Moving an operation across a part's edge:** with Alt+↑/↓, or by dropping it on an
+  operation of another part, it takes the part of the operation it lands on. Dropped on
+  a part's row, it goes to the end of that part. Either way the list stays grouped.
+- **Default names:** "Part N", where N is one more than the number of parts (the next
+  free number above that). The lowest free number would have named a third part "Part
+  1" next to two renamed ones.
+- **Status bar:** "active part: box", and the pieces in all ("3 pieces"), with two parts
+  or more.
+- **G-code comment:** it is carried by the moves (`Move.comment`, an index into
+  `Program.comments`) and written by the templates' `m.comment`. A comment on a move the
+  post drops waits for the next move that is written.
+- **Overlap between parts:** checked on each copy's box (the tool-centre path widened by
+  the tool radius), the same measure the grid check uses.

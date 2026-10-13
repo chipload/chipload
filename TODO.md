@@ -5,12 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Parts** (docs/specs/parts.md, approved 2026-10-13, schema 22), three steps:
-  1. The format, the migration, the planner (part by part, copies per part, overlap
-     between parts, a comment where each part starts) and the command line (`part …`,
-     `op part`, `copies --part`). **Done.**
-  2. The setup sheet and the report: parts listed with their operations, times by part. **Done.**
-  3. The app: Parts in the Browser, the active part, part properties with the copies.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -102,6 +97,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Parts** (2026-10-13, docs/specs/parts.md, schema 22): operations grouped into parts,
+  cut part by part, each with its copies and on/off; one active part for new operations;
+  copies may not cut into other parts; a G-code comment where each part starts; the
+  `part` commands, `op part`, `copies --part`; parts on the setup sheet and in the report;
+  the Browser's Parts folder with part properties. Golden v21_copies_by_part (frozen by
+  0.16.0) and v22_two_parts. Later, if missed: grouping by tool across parts, dimming the
+  other parts on the canvas, a "setup" level (stock and zero) above parts.
 - **The Browser and a more professional layout** (2026-10-13,
   docs/specs/browser-and-layout.md, GUI only): the Browser (one tree: project, Job
   settings, Tools, Drawing, Operations; painted icons, eyes, ticks, right-click menus, drag
