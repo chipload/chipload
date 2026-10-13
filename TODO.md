@@ -5,7 +5,8 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **Operation presets and layer rules**: spec drafted 2026-10-13 (docs/specs/presets.md),
+  waiting for review of its decisions.
 
 ## State to remember (2026-10-12)
 
@@ -25,8 +26,7 @@ it's built (see `CLAUDE.md`).
 - **The repository is private**: testers can't download releases or open issues without
   being added as collaborators. Decide: make it public, add testers, or another way to
   collect reports (the 0.13.0 notes ask for issues).
-- **Branches**: `adaptive-stage2-wip` and `adaptive-stage2-wip-backup` (local only; the
-  strategies were removed, see below); `release-0.12` (the 0.12.1 fix branch, kept for
+- **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
   history). Tag `adaptive-final` (local): main before the removal.
 - **Waiting on the user**: real-controller tests of the LinuxCNC and Mach3/4 posts.
 - **Known test flakiness**: proptests use new random seeds on every run, so a release
@@ -58,9 +58,18 @@ it's built (see `CLAUDE.md`).
   (2026-10-13).
 
 - **Trochoidal and adaptive clearing: removed 2026-10-13** (docs/decisions/0017-scope.md).
-  The code is at the local tag `adaptive-final`; the local branches `adaptive-stage2-wip`
-  and `adaptive-stage2-wip-backup` can be deleted when the user agrees. Projects that use
+  The code is at the local tag `adaptive-final` (the work branches were deleted
+  2026-10-13, with the user's agreement). Projects that use
   them load and are refused when generating ("switch the pocket to rings").
+- **Lean plan** (approved 2026-10-13, ADR 0017), in this order, each with a spec first:
+  1. Operation presets and layer rules (in progress).
+  2. Rest machining.
+  3. Scripting: a JSON Schema for the project file, JSON output from every CLI command,
+     batch runs.
+  4. Feeds and speeds per material in the library, with a chip-load warning.
+  5. Merge the material-left display into the simulation (keep the check).
+  6. Fuzz the DXF importer.
+  Also: the drawing tools are frozen (ADR 0017); real-machine validation (the user).
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
   3–4. Done (recovery copies and the `.bak` on save, see Done).
@@ -70,7 +79,7 @@ it's built (see `CLAUDE.md`).
   - Small items done (see Done). Later from them: copy imported shapes (as drawn
     polylines); a chip load range per tool in the library (amber warning, schema change).
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
-    presets (toolpath playback: done, see Done).
+    presets (now in the lean plan; toolpath playback: done, see Done).
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
