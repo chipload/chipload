@@ -5,16 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **The Browser and a more professional layout** (docs/specs/browser-and-layout.md,
-  approved 2026-10-13), four steps:
-  1. The Browser: one tree (project, Job settings, Tools, Drawing, Operations) with painted
-     icons, eyes, ticks, right-click menus and drag reordering. **Done.**
-  2. Properties on the right: the selection read-out and the drawn-shape editor move there.
-     **Done.**
-  3. The header: a top bar and a ribbon (FILE, DRAW, OPERATION, VIEW) in place of the menu
-     bar and toolbar; the overall look. **Done** (the panel fills against the canvas come with step 4).
-  4. The canvas: a drawn grid on the snap steps, axis lines, a theme gradient, a navigation
-     bar and an orientation cube.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -106,6 +97,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **The Browser and a more professional layout** (2026-10-13,
+  docs/specs/browser-and-layout.md, GUI only): the Browser (one tree: project, Job
+  settings, Tools, Drawing, Operations; painted icons, eyes, ticks, right-click menus, drag
+  reordering); Properties with the selection and the shape editor; a top bar and a ribbon
+  (FILE, DRAW, OPERATION, VIEW, captions open the menus) in place of the menu bar and
+  toolbar; the canvas with a grid on the snap steps (G, `show_grid` in settings), axis
+  lines, a gradient and a light palette, a navigation bar and an orientation cube.
 - **Several DXFs and pictures per project, the Drawing panel, hiding, hide the toolpath**
   (2026-10-13, docs/specs/drawing-sources.md, schema 21): `drawing.dxfs` with a placement
   each, `dxf add/list/remove`, `place --dxf`, `update --dxf`; selectors limited to a DXF or

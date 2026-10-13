@@ -48,6 +48,7 @@ mod images;
 mod library_transfer;
 mod measure;
 mod menu;
+mod navigation;
 mod panels;
 mod playback;
 mod problems;
@@ -219,6 +220,8 @@ pub struct ChiploadApp {
     pub auto_generate: bool,
     /// Settings > Write a setup sheet with the G-code (docs/specs/setup-sheet.md §4).
     pub setup_sheet: bool,
+    /// View → Show grid (kept in the app settings).
+    pub show_grid: bool,
     /// When the project last changed, while the live preview hasn't generated it yet.
     changed_at: Option<Instant>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
@@ -320,6 +323,7 @@ impl Default for ChiploadApp {
             runner: generation::RUNNER,
             auto_generate: true,
             setup_sheet: true,
+            show_grid: true,
             changed_at: None,
             export_when_done: false,
             recovery: None,

@@ -8,8 +8,9 @@ DXF, or a project without one:
 - **Polyline:** points joined by straight or arc segments, open or closed.
 
 **Circle**, **Rectangle** or **Polyline** in the ribbon's DRAW group, then click on the
-canvas. Anything more is CAD's job:
-draw it there and import the DXF.
+canvas. Clicks snap to the drawing's ends, centres and middles, else to the
+[grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm"). Anything more
+is CAD's job: draw it there and import the DXF.
 
 ## Editing
 

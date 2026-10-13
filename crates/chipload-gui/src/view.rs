@@ -10,39 +10,138 @@ use chipload_toolpath::OpSpan;
 use chipload_toolpath::model::{MoveKind, Program};
 use eframe::egui::{Align2, Color32, FontId, Mesh, Painter, Pos2, Rect, Shape, Stroke, Vec2};
 
-pub const BACKGROUND: Color32 = Color32::from_rgb(0x1f, 0x21, 0x24);
-const OUTER: Color32 = Color32::from_rgb(0xe8, 0xea, 0xed);
-const HOLE: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
-const OPEN: Color32 = Color32::from_rgb(0xfb, 0xbc, 0x04);
-const INVALID: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
-const STOCK: Color32 = Color32::from_rgb(0x80, 0x86, 0x8b);
-const FEED: Color32 = Color32::from_rgb(0x34, 0xa8, 0x53);
-const FEED_REJECTED: Color32 = Color32::from_rgb(0xea, 0x43, 0x35);
-const RAPID: Color32 = Color32::from_rgb(0x9a, 0xa0, 0xa6);
-const LABEL: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
-const AXIS_X: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
-const AXIS_Y: Color32 = Color32::from_rgb(0x81, 0xc9, 0x95);
-const AXIS_Z: Color32 = Color32::from_rgb(0x8a, 0xb4, 0xf8);
-const SELECTED: Color32 = Color32::from_rgb(0xff, 0x8b, 0xcb);
-/// The snap marker: a point of the drawing the cursor is on.
-const SNAP: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
-/// View → Measure's line and text.
-const MEASURE: Color32 = Color32::from_rgb(0x7f, 0xe8, 0xff);
-/// Middle handles of a polyline's segments: they insert a point or bend the segment, unlike
-/// the square point handles, which move a point.
-const MIDDLE_HANDLE: Color32 = Color32::from_rgb(0x78, 0xd9, 0xec);
-const TAB: Color32 = Color32::from_rgb(0xff, 0x9e, 0x40);
-/// Contours of the operation selected in the operations list.
-/// Copies of the part: outlines, and the toolpath's colour faded by this much.
-const GHOST: Color32 = Color32::from_rgb(0x6b, 0x6f, 0x75);
+/// The canvas's colours, one set for each theme (docs/specs/browser-and-layout.md §6b).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Palette {
+    /// The background: a gradient from the top colour to the bottom one (`background`).
+    pub background_top: Color32,
+    pub background: Color32,
+    /// The grid's lines: every step, and every tenth.
+    pub grid_minor: Color32,
+    pub grid_major: Color32,
+    pub outer: Color32,
+    pub hole: Color32,
+    pub open: Color32,
+    pub invalid: Color32,
+    pub stock: Color32,
+    pub feed: Color32,
+    pub feed_rejected: Color32,
+    pub rapid: Color32,
+    pub label: Color32,
+    pub axis_x: Color32,
+    pub axis_y: Color32,
+    pub axis_z: Color32,
+    pub selected: Color32,
+    /// The snap marker: a point of the drawing the cursor is on.
+    pub snap: Color32,
+    /// View → Measure's line and text, and the box behind the text.
+    pub measure: Color32,
+    pub measure_back: Color32,
+    /// Middle handles of a polyline's segments: they insert a point or bend the segment,
+    /// unlike the square point handles, which move a point.
+    pub middle_handle: Color32,
+    /// Inside the handles.
+    pub handle_fill: Color32,
+    pub tab: Color32,
+    /// Copies of the part: outlines, and the toolpath's colour faded by GHOST_FADE.
+    pub ghost: Color32,
+    /// Contours of the operation selected in the Browser, and its rings' start markers.
+    pub operation: Color32,
+    /// The playback's tool.
+    pub tool_mark: Color32,
+    /// What the highest cut in 3D is shaded towards (the deepest is the plain colour).
+    pub shade_toward: Color32,
+}
+
+impl Palette {
+    /// The dark canvas.
+    pub const DARK: Palette = Palette {
+        background_top: Color32::from_rgb(0x1f, 0x21, 0x24),
+        background: Color32::from_rgb(0x16, 0x17, 0x1a),
+        grid_minor: Color32::from_rgba_premultiplied(9, 9, 9, 9),
+        grid_major: Color32::from_rgba_premultiplied(22, 22, 22, 22),
+        outer: Color32::from_rgb(0xe8, 0xea, 0xed),
+        hole: Color32::from_rgb(0x8a, 0xb4, 0xf8),
+        open: Color32::from_rgb(0xfb, 0xbc, 0x04),
+        invalid: Color32::from_rgb(0xf2, 0x8b, 0x82),
+        stock: Color32::from_rgb(0x80, 0x86, 0x8b),
+        feed: Color32::from_rgb(0x34, 0xa8, 0x53),
+        feed_rejected: Color32::from_rgb(0xea, 0x43, 0x35),
+        rapid: Color32::from_rgb(0x9a, 0xa0, 0xa6),
+        label: Color32::from_rgb(0xfd, 0xd6, 0x63),
+        axis_x: Color32::from_rgb(0xf2, 0x8b, 0x82),
+        axis_y: Color32::from_rgb(0x81, 0xc9, 0x95),
+        axis_z: Color32::from_rgb(0x8a, 0xb4, 0xf8),
+        selected: Color32::from_rgb(0xff, 0x8b, 0xcb),
+        snap: Color32::from_rgb(0xfd, 0xd6, 0x63),
+        measure: Color32::from_rgb(0x7f, 0xe8, 0xff),
+        measure_back: Color32::from_black_alpha(190),
+        middle_handle: Color32::from_rgb(0x78, 0xd9, 0xec),
+        handle_fill: Color32::from_gray(20),
+        tab: Color32::from_rgb(0xff, 0x9e, 0x40),
+        ghost: Color32::from_rgb(0x74, 0x78, 0x7e),
+        operation: Color32::from_rgb(0xc5, 0x8a, 0xf9),
+        tool_mark: Color32::from_rgb(0xfd, 0xd6, 0x63),
+        shade_toward: Color32::WHITE,
+    };
+
+    /// The light canvas: the same meanings in darker inks.
+    pub const LIGHT: Palette = Palette {
+        background_top: Color32::from_rgb(0xf3, 0xf5, 0xf7),
+        background: Color32::from_rgb(0xdc, 0xe0, 0xe5),
+        grid_minor: Color32::from_rgba_premultiplied(0, 0, 0, 14),
+        grid_major: Color32::from_rgba_premultiplied(0, 0, 0, 34),
+        outer: Color32::from_rgb(0x20, 0x21, 0x24),
+        hole: Color32::from_rgb(0x1a, 0x56, 0xc4),
+        open: Color32::from_rgb(0x8a, 0x4b, 0x00),
+        invalid: Color32::from_rgb(0xb3, 0x26, 0x1e),
+        stock: Color32::from_rgb(0x5f, 0x63, 0x68),
+        feed: Color32::from_rgb(0x0a, 0x4f, 0x22),
+        feed_rejected: Color32::from_rgb(0xb3, 0x26, 0x1e),
+        rapid: Color32::from_rgb(0x3c, 0x40, 0x43),
+        label: Color32::from_rgb(0x8a, 0x4b, 0x00),
+        axis_x: Color32::from_rgb(0xc5, 0x22, 0x1f),
+        axis_y: Color32::from_rgb(0x13, 0x73, 0x33),
+        axis_z: Color32::from_rgb(0x1a, 0x56, 0xc4),
+        selected: Color32::from_rgb(0xb0, 0x0e, 0x5a),
+        snap: Color32::from_rgb(0x8a, 0x4b, 0x00),
+        measure: Color32::from_rgb(0x00, 0x5f, 0x70),
+        measure_back: Color32::from_rgba_premultiplied(220, 220, 220, 220),
+        middle_handle: Color32::from_rgb(0x00, 0x6d, 0x77),
+        handle_fill: Color32::WHITE,
+        tab: Color32::from_rgb(0xb3, 0x47, 0x00),
+        ghost: Color32::from_rgb(0x5f, 0x63, 0x68),
+        operation: Color32::from_rgb(0x7b, 0x1f, 0xa2),
+        tool_mark: Color32::from_rgb(0x8a, 0x4b, 0x00),
+        shade_toward: Color32::BLACK,
+    };
+
+    /// The palette for a theme.
+    pub fn of(dark: bool) -> Palette {
+        if dark { Palette::DARK } else { Palette::LIGHT }
+    }
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Palette::DARK
+    }
+}
+
+/// How far a stale toolpath and the copies are faded.
 const GHOST_FADE: f32 = 0.65;
-const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
-/// Start markers of the focused operation's rings: as bright as the operation's outline.
-const START: Color32 = OPERATION;
 
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
 const AXIS_LENGTH_MM: f64 = 15.0;
+/// A stronger grid line every this many steps.
+const GRID_MAJOR_EVERY: i64 = 10;
+/// More lines than this across the area and the finer ones are left out.
+const GRID_MAX_LINES: usize = 400;
+/// In 3D the grid reaches at least this far past the stock.
+const GRID_MARGIN_MM: f64 = 50.0;
+/// The axis lines across the grid, against the short strokes at the zero.
+const AXIS_LINE_FADE: f32 = 0.55;
 /// How close (on screen) a click must be to a contour line.
 pub const PICK_TOLERANCE_PX: f32 = 6.0;
 const DASH_PX: f32 = 6.0;
@@ -441,12 +540,11 @@ pub struct ToolLook {
 
 /// How faint the moves still to come are drawn.
 const TO_COME_FADE: f32 = 0.3;
-const TOOL_MARK: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
 
 impl Progress {
     /// The moves done over the faint toolpath, the move under way up to the tool, and the
     /// tool.
-    fn paint(&self, painter: &Painter, view: &View, path: &ToolpathShape) {
+    fn paint(&self, painter: &Painter, view: &View, path: &ToolpathShape, pal: &Palette) {
         let (high, low) = path.cut_z_range().unwrap_or((0.0, 0.0));
         let span = (high - low).max(f64::EPSILON);
         let flat = view.is_top();
@@ -464,31 +562,31 @@ impl Progress {
             let ends = [view.to_screen3(a), view.to_screen3(b)];
             if cutting {
                 let color = if flat {
-                    FEED
+                    pal.feed
                 } else {
                     let depth = ((high - (a.2 + b.2) / 2.0) / span).clamp(0.0, 1.0) as f32;
-                    shade(FEED, depth)
+                    shade(pal.feed, depth, pal.shade_toward)
                 };
                 painter.line_segment(ends, Stroke::new(2.0, color));
             } else if !flat || (a.0, a.1) != (b.0, b.1) {
                 painter.extend(Shape::dashed_line(
                     &ends,
-                    Stroke::new(1.0, RAPID),
+                    Stroke::new(1.0, pal.rapid),
                     DASH_PX,
                     GAP_PX,
                 ));
             }
         }
         if let Some(at) = self.tool_at {
-            self.paint_tool(painter, view, at);
+            self.paint_tool(painter, view, at, pal.tool_mark);
         }
     }
 
     /// A circle of the tool's size at its point; in 3D also its outline: a cylinder, or a
     /// cone on a cylinder.
-    fn paint_tool(&self, painter: &Painter, view: &View, (x, y, z): Point3) {
+    fn paint_tool(&self, painter: &Painter, view: &View, (x, y, z): Point3, mark: Color32) {
         let r = self.tool.radius;
-        let stroke = Stroke::new(2.0, TOOL_MARK);
+        let stroke = Stroke::new(2.0, mark);
         let ring = |z: f64, radius: f64| -> Vec<Pos2> {
             (0..=32)
                 .map(|k| {
@@ -499,7 +597,7 @@ impl Progress {
         };
         if view.is_top() {
             painter.add(Shape::line(ring(z, r), stroke));
-            painter.circle_filled(view.to_screen3((x, y, z)), 2.5, TOOL_MARK);
+            painter.circle_filled(view.to_screen3((x, y, z)), 2.5, mark);
             return;
         }
         // The cutting end: flat, or a cone up to the full radius.
@@ -674,6 +772,11 @@ pub struct Scene {
     /// View → Show toolpath off: the toolpath, its plunges, tabs and ring starts aren't drawn;
     /// a playback's tool still is (docs/specs/drawing-sources.md §5).
     pub hide_toolpath: bool,
+    /// The canvas's colours, for the app's theme.
+    pub palette: Palette,
+    /// View → Show grid: lines on the snap grid, on the stock top (docs/specs/
+    /// browser-and-layout.md §6b).
+    pub grid: bool,
 }
 
 /// A ring's start that can be dragged along the ring.
@@ -778,9 +881,131 @@ impl Scene {
             .collect()
     }
 
+    /// Where the grid goes: what is on screen; in 3D, where the plane runs off to the
+    /// horizon, no further than around the stock (or the drawing).
+    fn grid_area(&self, painter: &Painter, view: &View) -> (Point, Point) {
+        let rect = painter.clip_rect();
+        let corners = [
+            rect.left_top(),
+            rect.right_top(),
+            rect.right_bottom(),
+            rect.left_bottom(),
+        ]
+        .map(|c| view.to_world(c));
+        let lo = corners.iter().fold((f64::INFINITY, f64::INFINITY), |a, c| {
+            (a.0.min(c.0), a.1.min(c.1))
+        });
+        let hi = corners
+            .iter()
+            .fold((f64::NEG_INFINITY, f64::NEG_INFINITY), |a, c| {
+                (a.0.max(c.0), a.1.max(c.1))
+            });
+        if view.is_top() {
+            return (lo, hi);
+        }
+        let around = self.stock.or_else(|| {
+            let points = self.contours.iter().flat_map(|c| c.points.iter());
+            let (mut min, mut max) = (
+                (f64::INFINITY, f64::INFINITY),
+                (f64::NEG_INFINITY, f64::NEG_INFINITY),
+            );
+            for p in points {
+                min = (min.0.min(p.0), min.1.min(p.1));
+                max = (max.0.max(p.0), max.1.max(p.1));
+            }
+            (min.0 <= max.0).then_some((min, max))
+        });
+        let ((x0, y0), (x1, y1)) = around.unwrap_or(((-100.0, -100.0), (100.0, 100.0)));
+        let margin = ((x1 - x0).max(y1 - y0) * 0.5).max(GRID_MARGIN_MM);
+        (
+            (lo.0.max(x0 - margin), lo.1.max(y0 - margin)),
+            (hi.0.min(x1 + margin), hi.1.min(y1 + margin)),
+        )
+    }
+
+    /// The grid: a line every snap step (draw::grid_step), a stronger one every ten, so a
+    /// click lands on a line it can see.
+    fn paint_grid(&self, painter: &Painter, view: &View) {
+        let pal = &self.palette;
+        let step = crate::draw::grid_step(view.scale);
+        let major = step * GRID_MAJOR_EVERY as f64;
+        let ((x0, y0), (x1, y1)) = self.grid_area(painter, view);
+        if x0 >= x1 || y0 >= y1 {
+            return;
+        }
+        // Too many lines (a steep 3D view): the major ones alone.
+        let count = ((x1 - x0) / step + (y1 - y0) / step) as usize;
+        let minor = count <= GRID_MAX_LINES;
+        let z = view.top_z;
+        let line = |a: Point, b: Point, color: Color32| {
+            painter.line_segment(
+                [
+                    view.to_screen3((a.0, a.1, z)),
+                    view.to_screen3((b.0, b.1, z)),
+                ],
+                Stroke::new(1.0, color),
+            );
+        };
+        for (spacing, color, is_major) in
+            [(step, pal.grid_minor, false), (major, pal.grid_major, true)]
+        {
+            if !is_major && !minor {
+                continue;
+            }
+            if (x1 - x0) / spacing + (y1 - y0) / spacing > (2 * GRID_MAX_LINES) as f64 {
+                continue;
+            }
+            let first = (x0 / spacing).ceil() as i64;
+            let last = (x1 / spacing).floor() as i64;
+            for k in first..=last {
+                if !is_major && k.rem_euclid(GRID_MAJOR_EVERY) == 0 {
+                    continue;
+                }
+                let x = k as f64 * spacing;
+                line((x, y0), (x, y1), color);
+            }
+            let first = (y0 / spacing).ceil() as i64;
+            let last = (y1 / spacing).floor() as i64;
+            for k in first..=last {
+                if !is_major && k.rem_euclid(GRID_MAJOR_EVERY) == 0 {
+                    continue;
+                }
+                let y = k as f64 * spacing;
+                line((x0, y), (x1, y), color);
+            }
+        }
+    }
+
+    /// Lines through the work zero across the grid: X red, Y green; the short thick
+    /// strokes drawn after them point the positive way.
+    fn paint_axis_lines(&self, painter: &Painter, view: &View) {
+        let pal = &self.palette;
+        let ((x0, y0), (x1, y1)) = self.grid_area(painter, view);
+        let (zx, zy) = self.work_zero;
+        let z = view.top_z;
+        let faint = |c: Color32| c.gamma_multiply(AXIS_LINE_FADE);
+        if (y0..=y1).contains(&zy) {
+            painter.line_segment(
+                [view.to_screen3((x0, zy, z)), view.to_screen3((x1, zy, z))],
+                Stroke::new(1.0, faint(pal.axis_x)),
+            );
+        }
+        if (x0..=x1).contains(&zx) {
+            painter.line_segment(
+                [view.to_screen3((zx, y0, z)), view.to_screen3((zx, y1, z))],
+                Stroke::new(1.0, faint(pal.axis_y)),
+            );
+        }
+    }
+
     pub fn paint(&self, painter: &Painter, view: &View, highlight: &Highlight) {
         let (selected, operation) = (&highlight.selected, &highlight.operation_contours);
-        painter.rect_filled(painter.clip_rect(), 0.0, BACKGROUND);
+        let pal = &self.palette;
+        paint_background(painter, pal);
+        if self.grid {
+            self.paint_grid(painter, view);
+        }
+        self.paint_axis_lines(painter, view);
         let screen =
             |pts: &[Point]| -> Vec<Pos2> { pts.iter().map(|&p| view.to_screen(p)).collect() };
         let dashed = |pts: Vec<Pos2>, stroke: Stroke| {
@@ -790,14 +1015,14 @@ impl Scene {
         let flat = view.is_top();
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
-            dashed(screen(&corners), Stroke::new(1.0, STOCK));
+            dashed(screen(&corners), Stroke::new(1.0, pal.stock));
             // In 3D the stock is a box: its bottom outline and the vertical edges.
             if !flat && let Some((top, bottom)) = self.stock_z {
                 let at = |p: Point, z: f64| view.to_screen3((p.0, p.1, z));
                 let bottom_ring: Vec<Pos2> = corners.iter().map(|&p| at(p, bottom)).collect();
-                dashed(bottom_ring, Stroke::new(1.0, STOCK));
+                dashed(bottom_ring, Stroke::new(1.0, pal.stock));
                 for &p in &corners[..4] {
-                    dashed(vec![at(p, top), at(p, bottom)], Stroke::new(1.0, STOCK));
+                    dashed(vec![at(p, top), at(p, bottom)], Stroke::new(1.0, pal.stock));
                 }
             }
         }
@@ -806,11 +1031,11 @@ impl Scene {
         let origin = view.to_screen((zx, zy));
         painter.line_segment(
             [origin, view.to_screen((zx + AXIS_LENGTH_MM, zy))],
-            Stroke::new(2.0, AXIS_X),
+            Stroke::new(2.0, pal.axis_x),
         );
         painter.line_segment(
             [origin, view.to_screen((zx, zy + AXIS_LENGTH_MM))],
-            Stroke::new(2.0, AXIS_Y),
+            Stroke::new(2.0, pal.axis_y),
         );
         if !flat {
             painter.line_segment(
@@ -818,7 +1043,7 @@ impl Scene {
                     origin,
                     view.to_screen3((zx, zy, view.top_z + AXIS_LENGTH_MM / view.z_scale)),
                 ],
-                Stroke::new(2.0, AXIS_Z),
+                Stroke::new(2.0, pal.axis_z),
             );
         }
         for picture in &self.pictures {
@@ -832,21 +1057,21 @@ impl Scene {
         for &(dx, dy) in &self.copies {
             for c in &self.contours {
                 let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
-                painter.add(Shape::line(screen(&moved), Stroke::new(1.0, GHOST)));
+                painter.add(Shape::line(screen(&moved), Stroke::new(1.0, pal.ghost)));
             }
         }
         for c in &self.contours {
             let pts = screen(&c.points);
             let is_selected = selected.contains(&c.id);
             if operation.contains(&c.id) {
-                painter.add(Shape::line(pts.clone(), Stroke::new(6.0, OPERATION)));
+                painter.add(Shape::line(pts.clone(), Stroke::new(6.0, pal.operation)));
             }
             let (color, width) = match (is_selected, c.kind) {
-                (true, _) => (SELECTED, 3.0),
-                (false, Kind::Outer) => (OUTER, 1.5),
-                (false, Kind::Hole) => (HOLE, 1.5),
-                (false, Kind::Open) => (OPEN, 1.5),
-                (false, Kind::Invalid) => (INVALID, 2.5),
+                (true, _) => (pal.selected, 3.0),
+                (false, Kind::Outer) => (pal.outer, 1.5),
+                (false, Kind::Hole) => (pal.hole, 1.5),
+                (false, Kind::Open) => (pal.open, 1.5),
+                (false, Kind::Invalid) => (pal.invalid, 2.5),
             };
             if c.kind == Kind::Open && !is_selected && !highlight.followed.contains(&c.id) {
                 dashed(pts, Stroke::new(width, color));
@@ -863,12 +1088,17 @@ impl Scene {
                 (None, true) => GHOST_FADE,
                 (None, false) => 1.0,
             };
-            let feed = if path.rejected { FEED_REJECTED } else { FEED }.gamma_multiply(fade);
+            let feed = if path.rejected {
+                pal.feed_rejected
+            } else {
+                pal.feed
+            }
+            .gamma_multiply(fade);
             if flat {
                 for &(a, b) in &path.rapids {
                     dashed(
                         screen(&[a, b]),
-                        Stroke::new(1.0, RAPID.gamma_multiply(fade)),
+                        Stroke::new(1.0, pal.rapid.gamma_multiply(fade)),
                     );
                 }
                 for run in &path.ghost_feeds {
@@ -882,7 +1112,7 @@ impl Scene {
                     painter.add(chevron(view.to_screen(at), angle, feed));
                 }
             } else {
-                paint_path_3d(painter, view, path, feed);
+                paint_path_3d(painter, view, path, feed, pal);
             }
             // Each operation is numbered once, at its first plunge (its number in the
             // operations list); other plunges get a small marker, once per position.
@@ -891,25 +1121,25 @@ impl Scene {
             for plunge in &path.starts {
                 let dot = view.to_screen(plunge.at);
                 if plunge.operation.is_some() && labelled.insert(plunge.operation) {
-                    painter.circle_stroke(dot, 5.0, Stroke::new(2.0, LABEL));
+                    painter.circle_stroke(dot, 5.0, Stroke::new(2.0, pal.label));
                     painter.text(
                         dot + Vec2::new(7.0, -19.0),
                         Align2::LEFT_TOP,
                         plunge.operation.map_or(0, |op| op + 1).to_string(),
                         FontId::proportional(14.0),
-                        LABEL,
+                        pal.label,
                     );
                 } else if !marked.contains(&plunge.at) {
-                    painter.circle_stroke(dot, 3.0, Stroke::new(1.0, LABEL));
+                    painter.circle_stroke(dot, 3.0, Stroke::new(1.0, pal.label));
                 }
                 marked.push(plunge.at);
             }
         }
         match (&self.progress, shown_path) {
-            (Some(progress), Some(path)) => progress.paint(painter, view, path),
+            (Some(progress), Some(path)) => progress.paint(painter, view, path, pal),
             (Some(progress), None) => {
                 if let Some(at) = progress.tool_at {
-                    progress.paint_tool(painter, view, at);
+                    progress.paint_tool(painter, view, at, pal.tool_mark);
                 }
             }
             _ => {}
@@ -917,59 +1147,59 @@ impl Scene {
         // Tabs are marked in top view; in 3D the toolpath's lift over them shows them.
         for line in self.tabs.iter().filter(|_| flat && !self.hide_toolpath) {
             if line.len() > 1 {
-                painter.add(Shape::line(screen(line), Stroke::new(6.0, TAB)));
+                painter.add(Shape::line(screen(line), Stroke::new(6.0, pal.tab)));
             }
         }
         for line in &self.preview {
             if line.len() > 1 {
-                dashed(screen(line), Stroke::new(1.5, SELECTED));
+                dashed(screen(line), Stroke::new(1.5, pal.selected));
             }
         }
         for &p in &self.sketch_points {
-            painter.circle_stroke(view.to_screen(p), 4.0, Stroke::new(1.5, SELECTED));
+            painter.circle_stroke(view.to_screen(p), 4.0, Stroke::new(1.5, pal.selected));
         }
         for &p in self.handles.iter().filter(|_| flat) {
             let square = Rect::from_center_size(view.to_screen(p), Vec2::splat(7.0));
-            painter.rect_filled(square, 0.0, Color32::from_gray(20));
+            painter.rect_filled(square, 0.0, pal.handle_fill);
             painter.rect_stroke(
                 square,
                 0.0,
-                Stroke::new(1.5, SELECTED),
+                Stroke::new(1.5, pal.selected),
                 eframe::egui::StrokeKind::Middle,
             );
         }
         for &p in self.middle_handles.iter().filter(|_| flat) {
             let at = view.to_screen(p);
-            painter.circle_filled(at, 4.0, Color32::from_gray(20));
-            painter.circle_stroke(at, 4.0, Stroke::new(1.5, MIDDLE_HANDLE));
+            painter.circle_filled(at, 4.0, pal.handle_fill);
+            painter.circle_stroke(at, 4.0, Stroke::new(1.5, pal.middle_handle));
         }
         for marker in self.start_markers.iter().filter(|_| !self.hide_toolpath) {
             if flat && highlight.operation == Some(marker.operation) {
                 let at = view.to_screen(marker.at);
-                painter.circle_filled(at, 6.0, BACKGROUND);
-                painter.circle_stroke(at, 6.0, Stroke::new(2.0, START));
+                painter.circle_filled(at, 6.0, pal.background);
+                painter.circle_stroke(at, 6.0, Stroke::new(2.0, pal.operation));
                 if marker.stored.is_some() {
-                    painter.circle_filled(at, 3.0, START);
+                    painter.circle_filled(at, 3.0, pal.operation);
                 }
                 let ahead = at
                     + Vec2::new(
                         (16.0 * marker.heading.cos()) as f32,
                         (-16.0 * marker.heading.sin()) as f32,
                     );
-                painter.add(chevron(ahead, marker.heading, START));
+                painter.add(chevron(ahead, marker.heading, pal.operation));
             }
         }
         if let Some((from, to, text)) = self.measure.as_ref().filter(|_| flat) {
             let (a, b) = (view.to_screen(*from), view.to_screen(*to));
-            painter.line_segment([a, b], Stroke::new(1.5, MEASURE));
+            painter.line_segment([a, b], Stroke::new(1.5, pal.measure));
             for end in [a, b] {
-                painter.circle_stroke(end, 4.0, Stroke::new(1.5, MEASURE));
+                painter.circle_stroke(end, 4.0, Stroke::new(1.5, pal.measure));
             }
-            let label = painter.layout_no_wrap(text.clone(), FontId::monospace(13.0), MEASURE);
+            let label = painter.layout_no_wrap(text.clone(), FontId::monospace(13.0), pal.measure);
             let at = a.lerp(b, 0.5) + Vec2::new(8.0, -8.0 - label.size().y);
             let back = Rect::from_min_size(at, label.size()).expand(3.0);
-            painter.rect_filled(back, 3.0, Color32::from_black_alpha(190));
-            painter.galley(at, label, MEASURE);
+            painter.rect_filled(back, 3.0, pal.measure_back);
+            painter.galley(at, label, pal.measure);
         }
         if let Some(p) = self.snap_mark {
             let c = view.to_screen(p);
@@ -980,25 +1210,31 @@ impl Scene {
                 c + Vec2::new(0.0, r),
                 c + Vec2::new(-r, 0.0),
             ];
-            painter.add(Shape::closed_line(diamond, Stroke::new(1.5, SNAP)));
+            painter.add(Shape::closed_line(diamond, Stroke::new(1.5, pal.snap)));
         }
     }
 }
 
 /// The toolpath in 3D: rapids dashed, cutting moves (plunges included) shaded from light at
 /// the highest cut to the plain colour at the deepest.
-fn paint_path_3d(painter: &Painter, view: &View, path: &ToolpathShape, feed: Color32) {
+fn paint_path_3d(
+    painter: &Painter,
+    view: &View,
+    path: &ToolpathShape,
+    feed: Color32,
+    pal: &Palette,
+) {
     let (high, low) = path.cut_z_range().unwrap_or((0.0, 0.0));
     let span = (high - low).max(f64::EPSILON);
     for &(a, b, cutting) in &path.lines3 {
         let ends = [view.to_screen3(a), view.to_screen3(b)];
         if cutting {
             let depth = ((high - (a.2 + b.2) / 2.0) / span).clamp(0.0, 1.0) as f32;
-            painter.line_segment(ends, Stroke::new(2.0, shade(feed, depth)));
+            painter.line_segment(ends, Stroke::new(2.0, shade(feed, depth, pal.shade_toward)));
         } else {
             painter.extend(Shape::dashed_line(
                 &ends,
-                Stroke::new(1.0, RAPID),
+                Stroke::new(1.0, pal.rapid),
                 DASH_PX,
                 GAP_PX,
             ));
@@ -1009,12 +1245,30 @@ fn paint_path_3d(painter: &Painter, view: &View, path: &ToolpathShape, feed: Col
 /// How far towards white the highest cut in 3D is lightened.
 const SHADE_LIGHTEN: f32 = 0.5;
 
-/// `color` lightened at depth 0, the plain colour at depth 1: the deepest cut stays as easy
-/// to see on the dark canvas as a cut in top view.
-fn shade(color: Color32, depth: f32) -> Color32 {
+/// `color` moved towards `toward` (white on the dark canvas, black on the light one) at
+/// depth 0, the plain colour at depth 1: the deepest cut stays as easy to see as a cut in
+/// top view.
+fn shade(color: Color32, depth: f32, toward: Color32) -> Color32 {
     let k = SHADE_LIGHTEN * (1.0 - depth);
-    let lighten = |c: u8| (f32::from(c) + (255.0 - f32::from(c)) * k).round() as u8;
-    Color32::from_rgb(lighten(color.r()), lighten(color.g()), lighten(color.b()))
+    let mix = |c: u8, t: u8| (f32::from(c) + (f32::from(t) - f32::from(c)) * k).round() as u8;
+    Color32::from_rgb(
+        mix(color.r(), toward.r()),
+        mix(color.g(), toward.g()),
+        mix(color.b(), toward.b()),
+    )
+}
+
+/// The background gradient, from `background_top` down to `background`.
+fn paint_background(painter: &Painter, pal: &Palette) {
+    let rect = painter.clip_rect();
+    let mut mesh = Mesh::default();
+    mesh.colored_vertex(rect.left_top(), pal.background_top);
+    mesh.colored_vertex(rect.right_top(), pal.background_top);
+    mesh.colored_vertex(rect.right_bottom(), pal.background);
+    mesh.colored_vertex(rect.left_bottom(), pal.background);
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+    painter.add(Shape::mesh(mesh));
 }
 
 /// A ">" pointing along `angle` (world, CCW from +X); screen Y is down, so it flips.
@@ -1045,44 +1299,58 @@ mod tests {
     use chipload_toolpath::model::Move;
 
     /// Every line and mark on the canvas stands out from it by at least 3:1 (WCAG's minimum
-    /// for graphics), faded and 3D-shaded ones included; the measure text by 4.5:1.
+    /// for graphics), faded and 3D-shaded ones included; the measure text by 4.5:1. In both
+    /// palettes, against both ends of the background gradient.
     #[test]
     fn canvas_colours_stand_out_from_the_background() {
         use crate::style::contrast;
         let over = |c: Color32, bg: Color32| bg.blend(c);
-        let faded = |c: Color32| over(c.gamma_multiply(GHOST_FADE), BACKGROUND);
-        let lines = [
-            ("outline", OUTER),
-            ("hole", HOLE),
-            ("open", OPEN),
-            ("invalid", INVALID),
-            ("stock", STOCK),
-            ("feed", FEED),
-            ("rejected feed", FEED_REJECTED),
-            ("rapid", RAPID),
-            ("label", LABEL),
-            ("axis x", AXIS_X),
-            ("axis y", AXIS_Y),
-            ("axis z", AXIS_Z),
-            ("selected", SELECTED),
-            ("snap", SNAP),
-            ("measure", MEASURE),
-            ("middle handle", MIDDLE_HANDLE),
-            ("tab", TAB),
-            ("copies", GHOST),
-            ("operation", OPERATION),
-            ("stale feed", faded(FEED)),
-            ("stale rapid", faded(RAPID)),
-            ("deepest cut in 3D", shade(FEED, 1.0)),
-            ("deepest rejected cut in 3D", shade(FEED_REJECTED, 1.0)),
-            ("highest cut in 3D", shade(FEED, 0.0)),
-        ];
-        for (what, color) in lines {
-            let ratio = contrast(color, BACKGROUND);
-            assert!(ratio >= 3.0, "{what} is {ratio:.2}:1 on the canvas");
+        for (name, pal) in [("dark", Palette::DARK), ("light", Palette::LIGHT)] {
+            for background in [pal.background_top, pal.background] {
+                let faded = |c: Color32| over(c.gamma_multiply(GHOST_FADE), background);
+                let lines = [
+                    ("outline", pal.outer),
+                    ("hole", pal.hole),
+                    ("open", pal.open),
+                    ("invalid", pal.invalid),
+                    ("stock", pal.stock),
+                    ("feed", pal.feed),
+                    ("rejected feed", pal.feed_rejected),
+                    ("rapid", pal.rapid),
+                    ("label", pal.label),
+                    ("axis x", pal.axis_x),
+                    ("axis y", pal.axis_y),
+                    ("axis z", pal.axis_z),
+                    ("selected", pal.selected),
+                    ("snap", pal.snap),
+                    ("measure", pal.measure),
+                    ("middle handle", pal.middle_handle),
+                    ("tab", pal.tab),
+                    ("copies", pal.ghost),
+                    ("operation", pal.operation),
+                    ("tool", pal.tool_mark),
+                    ("stale feed", faded(pal.feed)),
+                    ("stale rapid", faded(pal.rapid)),
+                    ("deepest cut in 3D", shade(pal.feed, 1.0, pal.shade_toward)),
+                    (
+                        "deepest rejected cut in 3D",
+                        shade(pal.feed_rejected, 1.0, pal.shade_toward),
+                    ),
+                    ("highest cut in 3D", shade(pal.feed, 0.0, pal.shade_toward)),
+                ];
+                for (what, color) in lines {
+                    let ratio = contrast(color, background);
+                    assert!(ratio >= 3.0, "{name}: {what} is {ratio:.2}:1 on the canvas");
+                }
+                let behind_measure = over(pal.measure_back, background);
+                let ratio = contrast(pal.measure, behind_measure);
+                assert!(ratio >= 4.5, "{name}: measure text {ratio:.2}:1");
+            }
+            // The grid stays in the background: fainter than any line drawn on it.
+            let bottom = pal.background;
+            let major = contrast(over(pal.grid_major, bottom), bottom);
+            assert!(major < 1.6, "{name}: the grid shouts ({major:.2}:1)");
         }
-        let behind_measure = over(Color32::from_black_alpha(190), BACKGROUND);
-        assert!(contrast(MEASURE, behind_measure) >= 4.5);
     }
 
     #[test]
@@ -1339,24 +1607,29 @@ pub enum Swatch {
 /// What the canvas shows, explained: contours always; the toolpath and what goes with it once
 /// generated; copies when there are some.
 pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
+    let pal = &scene.palette;
     let mut items = vec![
-        (Swatch::Line(OUTER, 1.5), "outline"),
-        (Swatch::Line(HOLE, 1.5), "hole"),
-        (Swatch::Dashed(OPEN), "open contour (not cut)"),
-        (Swatch::Line(SELECTED, 3.0), "selected"),
-        (Swatch::Line(OPERATION, 6.0), "the operation's contours"),
-        (Swatch::Dashed(STOCK), "stock"),
+        (Swatch::Line(pal.outer, 1.5), "outline"),
+        (Swatch::Line(pal.hole, 1.5), "hole"),
+        (Swatch::Dashed(pal.open), "open contour (not cut)"),
+        (Swatch::Line(pal.selected, 3.0), "selected"),
+        (Swatch::Line(pal.operation, 6.0), "the operation's contours"),
+        (Swatch::Dashed(pal.stock), "stock"),
     ];
     if !scene.copies.is_empty() {
-        items.push((Swatch::Line(GHOST, 1.0), "copies"));
+        items.push((Swatch::Line(pal.ghost, 1.0), "copies"));
     }
     if let Some(path) = scene.toolpath.as_ref().filter(|_| !scene.hide_toolpath) {
-        let feed = if path.rejected { FEED_REJECTED } else { FEED };
+        let feed = if path.rejected {
+            pal.feed_rejected
+        } else {
+            pal.feed
+        };
         items.push((Swatch::Line(feed, 2.0), "cutting move"));
-        items.push((Swatch::Dashed(RAPID), "rapid, above the stock"));
+        items.push((Swatch::Dashed(pal.rapid), "rapid, above the stock"));
         items.push((Swatch::Plunge, "where the tool goes down"));
         if !scene.tabs.is_empty() {
-            items.push((Swatch::Line(TAB, 6.0), "tab"));
+            items.push((Swatch::Line(pal.tab, 6.0), "tab"));
         }
         if !scene.start_markers.is_empty() {
             items.push((Swatch::Start, "ring start (drag to move)"));
@@ -1366,8 +1639,8 @@ pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
 }
 
 /// Paint a swatch in `rect`, on the canvas background.
-pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch) {
-    painter.rect_filled(rect, 2.0, BACKGROUND);
+pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch, pal: &Palette) {
+    painter.rect_filled(rect, 2.0, pal.background);
     let (left, right) = (rect.left_center(), rect.right_center());
     let (a, b) = (left + Vec2::new(3.0, 0.0), right - Vec2::new(3.0, 0.0));
     match swatch {
@@ -1383,10 +1656,10 @@ pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch) {
             ));
         }
         Swatch::Plunge => {
-            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, LABEL));
+            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, pal.label));
         }
         Swatch::Start => {
-            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, START));
+            painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, pal.operation));
         }
     }
 }

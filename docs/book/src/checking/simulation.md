@@ -2,24 +2,28 @@
 
 ## 3D view
 
-**3D** (ribbon, VIEW) shows the toolpath at its real depths.
+**3D**, on the canvas's [navigation bar](../window.md#the-canvas), shows the toolpath at
+its real depths.
 - **Turn:** left-drag.
 - **Pan:** right-drag.
 - **Zoom:** the scroll wheel.
-- **Back to top view:** *View > Top view* (T).
+- **Back to top view:** **Top** on the navigation bar, *View > Top view* or T.
+- **Straight at a side:** click a face of the cube in the canvas's top right corner (TOP,
+  FRONT, RIGHT, …).
 - **Shallow cuts:** *View > Z scale in 3D* stretches depth, for cuts too shallow to see.
 
 ## Simulation
 
 The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; *View > Show simulation* (or **Simulation** in the ribbon) turns it
+on when the app starts; *View > Show simulation* (or **Simulation** on the navigation bar) turns it
 off and on.
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its
   tip, and a drill's 118° point.
 - **When:** it runs in the background after each generation.
-- **Without the toolpath:** *View > Show toolpath* (also a checkbox on the canvas legend)
+- **Without the toolpath:** *View > Show toolpath* (also **Toolpath** in the ribbon
+  and a checkbox on the canvas legend)
   hides the toolpath's lines, plunges and tabs, to see the simulated stock alone. During
   playback, the tool still shows where it is.
 

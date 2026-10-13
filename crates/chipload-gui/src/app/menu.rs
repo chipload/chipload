@@ -342,6 +342,14 @@ impl ChiploadApp {
                 ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
         });
+        let mut grid = self.show_grid;
+        if ui
+            .checkbox(&mut grid, with_keys("Show grid", Action::Grid))
+            .on_hover_text("Lines on the snap grid, a stronger one every ten")
+            .changed()
+        {
+            self.set_show_grid(grid);
+        }
         ui.checkbox(&mut self.legend_open, "Show legend");
         let mut auto = self.auto_generate;
         if ui
@@ -448,10 +456,17 @@ impl ChiploadApp {
                 .result
                 .as_ref()
                 .map(|r| chipload_pipeline::estimate::duration_text(r.estimate.total));
+            let grid = (self.show_grid && self.edit.is_some()).then(|| grid_step(self.view.scale));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if let Some(post) = post {
                     ui.weak("mm");
                     ui.separator();
+                    if let Some(step) = grid {
+                        ui.weak(format!("grid {step} mm")).on_hover_text(
+                            "The grid's step: clicks while drawing snap to it (G hides it)",
+                        );
+                        ui.separator();
+                    }
                     ui.weak(post)
                         .on_hover_text("The post-processor (Job settings > Machine)");
                     ui.separator();

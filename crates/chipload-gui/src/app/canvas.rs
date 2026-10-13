@@ -27,7 +27,7 @@ impl ChiploadApp {
     }
 
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
-    fn orbit_pivot(&self) -> Point {
+    pub(super) fn orbit_pivot(&self) -> Point {
         self.scene.stock.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
             ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
         })
@@ -35,6 +35,8 @@ impl ChiploadApp {
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.scene.hide_toolpath = !self.show_toolpath;
+        self.scene.grid = self.show_grid;
+        self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self
             .edit
             .as_ref()
@@ -267,6 +269,8 @@ impl ChiploadApp {
         };
         self.scene.paint(&painter, &self.view, &highlight);
         self.canvas_overlays(ui, rect);
+        self.navigation_bar(ui, rect);
+        self.orientation(ui, rect);
     }
 
     /// On top of the canvas, inside it: the out-of-date notice and the legend.
@@ -354,7 +358,7 @@ impl ChiploadApp {
             ui.horizontal(|ui| {
                 let (swatch_rect, _) =
                     ui.allocate_exact_size(egui::vec2(30.0, 14.0), Sense::hover());
-                crate::view::paint_swatch(ui.painter(), swatch_rect, swatch);
+                crate::view::paint_swatch(ui.painter(), swatch_rect, swatch, &self.scene.palette);
                 ui.label(RichText::new(text).small());
             });
         }

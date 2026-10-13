@@ -567,9 +567,17 @@ pub struct AppSettings {
     /// (written before it existed): on.
     #[serde(default = "setup_sheet_default")]
     pub setup_sheet: bool,
+    /// Draw the grid on the canvas (docs/specs/browser-and-layout.md §6b). Missing
+    /// (written before it existed): on.
+    #[serde(default = "show_grid_default")]
+    pub show_grid: bool,
 }
 
 fn setup_sheet_default() -> bool {
+    true
+}
+
+fn show_grid_default() -> bool {
     true
 }
 
@@ -582,6 +590,7 @@ impl Default for AppSettings {
             theme: Theme::System,
             auto_generate: true,
             setup_sheet: true,
+            show_grid: true,
         }
     }
 }

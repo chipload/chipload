@@ -15,7 +15,7 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
-| VIEW | Fit, Top, 3D, Simulation, Measure | Z scale, legend, show toolpath, images, simulation, update automatically |
+| VIEW | Measure, Toolpath and Images (shown or not) | fit, top and 3D view, Z scale, grid, legend, simulation, update automatically |
 
 **Generate** (F5) and **Export** sit at the right end.
 
@@ -71,6 +71,28 @@ in the program, and its row is dimmed.
 - **Hover** the row for its kind, its geometry, its depths, its time once generated and
   its first problem.
 - **Drag** the row onto another to move it there.
+
+## The canvas
+
+The canvas shows the stock, the drawing and the toolpath on a soft gradient. It follows the
+colour theme: dark, or light grey.
+
+- **The grid** lies on the stock top, in top view and in 3D.
+  - Its fine lines are where clicks snap while drawing. A stronger line comes every ten.
+  - It follows the zoom, and the status bar gives its step ("grid 5 mm").
+  - **G** or *View > Show grid* hides it, and Chipload remembers that.
+- **The axes:** a red line along X and a green one along Y run through the program's zero.
+  Short thick strokes point the positive way, and in 3D a blue one points up Z.
+- **The navigation bar** floats at the bottom: **Fit** (F), **Top** (T), **3D**,
+  **Simulation** and **Grid**.
+- **The corner:**
+  - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
+    FRONT, RIGHT, BACK, LEFT) to look straight at it.
+  - In top view, the corner has an X–Y sign instead.
+- **The legend** (bottom left) explains the colours.
+
+![The canvas in 3D: the simulated stock on the grid, the cube in the corner and the
+navigation bar](images/simulation-3d.png)
 
 ## Properties
 

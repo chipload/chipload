@@ -47,6 +47,8 @@ pub enum Icon {
     ThreeD,
     Simulation,
     Measure,
+    Grid,
+    Toolpath,
 }
 
 /// Line width of the icons, points.
@@ -267,6 +269,23 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::Grid => {
+            for t in [0.15, 0.38, 0.62, 0.85] {
+                pen.line([(t, 0.1), (t, 0.9)]);
+                pen.line([(0.1, t), (0.9, t)]);
+            }
+        }
+        Icon::Toolpath => {
+            pen.poly(&[
+                (0.1, 0.25),
+                (0.75, 0.25),
+                (0.75, 0.5),
+                (0.25, 0.5),
+                (0.25, 0.75),
+                (0.9, 0.75),
+            ]);
+            pen.dot((0.1, 0.25), 0.06);
         }
         Icon::Eye | Icon::EyeOff => {
             pen.eye();

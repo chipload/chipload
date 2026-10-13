@@ -536,6 +536,19 @@ fn settings_without_the_setup_sheet_write_one() {
 }
 
 #[test]
+fn settings_without_the_grid_show_it() {
+    // docs/specs/browser-and-layout.md §6b: an optional field, on when missing.
+    let dir = temp_dir("settings-grid");
+    let path = dir.join("settings.json");
+    let base =
+        r#""schema_version": 3, "recent_projects": [], "theme": "system", "auto_generate": true"#;
+    std::fs::write(&path, format!("{{{base}}}")).unwrap();
+    assert!(load_settings(&path).unwrap().show_grid);
+    std::fs::write(&path, format!("{{{base}, \"show_grid\": false}}")).unwrap();
+    assert!(!load_settings(&path).unwrap().show_grid);
+}
+
+#[test]
 fn version_2_settings_migrate_to_update_the_toolpath_by_itself() {
     let dir = temp_dir("settings-v2");
     let path = dir.join("settings.json");

@@ -243,3 +243,18 @@ follows the zoom (`draw::grid_step`) exists, but it isn't drawn. Following Solid
 - **The view buttons** stay in the ribbon until step 4 moves them onto the canvas.
 - **Status bar (§6):** it shows the cycle time and post as "cycle 1 min 36 s · grbl · mm".
   The grid step comes with step 4.
+- **Canvas (§6b):**
+  - **Axes:** the short thick axis strokes stay, to show the positive way. The axis lines
+    across the grid come in addition, fainter.
+  - **Dark gradient:** it runs from today's canvas colour at the top to a darker bottom,
+    because a lighter top cost the faded (out-of-date) toolpath its 3:1 contrast.
+  - **Light palette:** every canvas colour has a light-theme version, tested at 3:1 against
+    both ends of both gradients.
+  - **Ribbon:** with Fit, Top, 3D and Simulation on the canvas, VIEW gets Measure,
+    Toolpath and Images toggles.
+  - **Panel fills:** they stay egui's per theme. The 1 px panel borders and the darker
+    top bar set the panels off from the canvas well enough.
+- **Show grid** (`show_grid` in settings.json) is an optional field, on when missing, as
+  `setup_sheet` was. No settings version bump. As with `setup_sheet`, 0.16 refuses a
+  settings file that has the field, because it refuses unknown fields: it starts with
+  default settings.

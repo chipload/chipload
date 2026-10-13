@@ -302,6 +302,12 @@ impl ChiploadApp {
     }
 
     /// Settings > Write a setup sheet with the G-code, kept in the app settings.
+    /// View → Show grid: kept in the settings for next time.
+    pub fn set_show_grid(&mut self, on: bool) {
+        self.show_grid = on;
+        self.change_settings(|settings| settings.show_grid = on);
+    }
+
     pub fn set_setup_sheet(&mut self, on: bool) {
         self.setup_sheet = on;
         self.change_settings(|settings| settings.setup_sheet = on);

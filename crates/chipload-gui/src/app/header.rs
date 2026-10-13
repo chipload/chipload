@@ -5,7 +5,6 @@
 
 use eframe::egui::{Color32, Rect, Response, WidgetInfo, WidgetType, vec2};
 
-use super::menu::SIMULATION_HINT;
 use super::shortcuts::{Action, hover_keys};
 use super::*;
 use crate::icons::{self, Icon};
@@ -350,46 +349,6 @@ impl ChiploadApp {
                 ui,
                 "View",
                 |app, ui| {
-                    if ribbon_button(ui, Icon::Fit, "Fit", has_job, false)
-                        .on_hover_text(hover_keys("Fit the view", Action::Fit))
-                        .clicked()
-                    {
-                        app.fit_pending = true;
-                    }
-                    if ribbon_button(ui, Icon::Top, "Top", has_job, !app.three_d)
-                        .on_hover_text(hover_keys("Look straight down", Action::TopView))
-                        .clicked()
-                    {
-                        app.view_top();
-                    }
-                    // Z stretch is labelled whenever it isn't true scale (docs/specs/3d-view.md §4).
-                    let three_d = if app.view.z_scale == 1.0 {
-                        "3D".to_string()
-                    } else {
-                        format!("3D ×{}", app.view.z_scale)
-                    };
-                    if ribbon_button(ui, Icon::ThreeD, &three_d, has_job, app.three_d)
-                        .on_hover_text("Left-drag turns and tilts; right-drag or Shift+drag pans")
-                        .clicked()
-                    {
-                        app.view_3d();
-                    }
-                    let label = if app.simulating() {
-                        "Simulating"
-                    } else {
-                        "Simulation"
-                    };
-                    let can = app.result.is_some();
-                    if ribbon_button(ui, Icon::Simulation, label, can, app.show_simulation)
-                        .on_hover_text(if can {
-                            SIMULATION_HINT
-                        } else {
-                            "Generate the toolpath first"
-                        })
-                        .clicked()
-                    {
-                        app.set_show_simulation(!app.show_simulation);
-                    }
                     if ribbon_button(ui, Icon::Measure, "Measure", has_job, app.measure.is_some())
                         .on_hover_text(hover_keys(
                             "Two clicks give the distance, ΔX, ΔY and the angle",
@@ -398,6 +357,22 @@ impl ChiploadApp {
                         .clicked()
                     {
                         app.toggle_measure();
+                    }
+                    let shown = app.show_toolpath;
+                    if ribbon_button(ui, Icon::Toolpath, "Toolpath", has_job, shown)
+                        .on_hover_text(
+                            "Show the toolpath; off, the drawing or the simulated stock alone",
+                        )
+                        .clicked()
+                    {
+                        app.show_toolpath = !shown;
+                    }
+                    let images = app.show_images;
+                    if ribbon_button(ui, Icon::Image, "Images", has_job, images)
+                        .on_hover_text("The pictures traced into shapes, faintly under the drawing")
+                        .clicked()
+                    {
+                        app.show_images = !images;
                     }
                 },
                 |app, ui| app.view_menu(ui),
@@ -541,27 +516,42 @@ fn generate_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) ->
 
 /// A small square icon button for the top bar.
 fn quick_button(ui: &mut egui::Ui, icon: Icon, hover: &str, enabled: bool) -> Response {
+    icon_button(ui, icon, hover, enabled, false, QUICK_BUTTON)
+}
+
+/// A square icon button of `side` points: for the top bar and the canvas's navigation bar.
+/// A selected one is filled with the accent.
+pub(super) fn icon_button(
+    ui: &mut egui::Ui,
+    icon: Icon,
+    hover: &str,
+    enabled: bool,
+    selected: bool,
+    side: f32,
+) -> Response {
     let sense = if enabled {
         Sense::click()
     } else {
         Sense::hover()
     };
-    let (rect, response) = ui.allocate_exact_size(vec2(QUICK_BUTTON, QUICK_BUTTON), sense);
-    response.widget_info(|| WidgetInfo::labeled(WidgetType::Button, enabled, hover));
+    let (rect, response) = ui.allocate_exact_size(vec2(side, side), sense);
+    response.widget_info(|| WidgetInfo::selected(WidgetType::Button, enabled, selected, hover));
     let visuals = ui.visuals();
-    if enabled && response.hovered() {
-        ui.painter().rect_filled(
-            rect,
-            visuals.widgets.inactive.corner_radius,
-            visuals.widgets.hovered.weak_bg_fill,
-        );
-    }
-    let color = if enabled {
+    let corner = visuals.widgets.inactive.corner_radius;
+    let color = if selected {
+        ui.painter()
+            .rect_filled(rect, corner, visuals.selection.bg_fill);
+        visuals.selection.stroke.color
+    } else if enabled {
+        if response.hovered() {
+            ui.painter()
+                .rect_filled(rect, corner, visuals.widgets.hovered.weak_bg_fill);
+        }
         visuals.text_color()
     } else {
         visuals.weak_text_color().gamma_multiply(0.7)
     };
-    icons::paint(ui.painter(), rect.shrink(5.0), icon, color);
+    icons::paint(ui.painter(), rect.shrink(side * 0.21), icon, color);
     response.on_hover_text(hover)
 }
 

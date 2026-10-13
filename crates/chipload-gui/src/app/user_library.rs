@@ -471,6 +471,7 @@ impl ChiploadApp {
         self.theme = settings.theme;
         self.auto_generate = settings.auto_generate;
         self.setup_sheet = settings.setup_sheet;
+        self.show_grid = settings.show_grid;
         self.start_recovery();
     }
 

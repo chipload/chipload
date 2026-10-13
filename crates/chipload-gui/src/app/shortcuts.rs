@@ -27,6 +27,7 @@ pub(super) enum Action {
     MoveDown,
     Fit,
     TopView,
+    Grid,
     Measure,
     Shortcuts,
 }
@@ -124,6 +125,13 @@ pub(super) const BINDINGS: &[Binding] = &[
     ),
     bind(Action::Fit, Modifiers::NONE, Key::F, "View", "Fit the view"),
     bind(Action::TopView, Modifiers::NONE, Key::T, "View", "Top view"),
+    bind(
+        Action::Grid,
+        Modifiers::NONE,
+        Key::G,
+        "View",
+        "Show or hide the grid",
+    ),
     bind(
         Action::Measure,
         Modifiers::NONE,
@@ -265,6 +273,7 @@ impl ChiploadApp {
             }
             Action::Fit => self.fit_pending = true,
             Action::TopView => self.view_top(),
+            Action::Grid => self.set_show_grid(!self.show_grid),
             Action::Measure => self.toggle_measure(),
             Action::Shortcuts => self.shortcuts_open = true,
         }

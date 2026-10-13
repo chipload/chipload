@@ -134,8 +134,11 @@ impl ChiploadApp {
     /// With no project open, the canvas offers the ways to start one, and recent projects.
     pub(super) fn start_screen(&mut self, ui: &mut egui::Ui) {
         // The canvas's own background, so the window doesn't change colour on opening.
-        ui.painter()
-            .rect_filled(ui.max_rect(), 0.0, crate::view::BACKGROUND);
+        ui.painter().rect_filled(
+            ui.max_rect(),
+            0.0,
+            crate::view::Palette::of(ui.visuals().dark_mode).background,
+        );
         ui.add_space((ui.available_height() * 0.18).max(16.0));
         ui.vertical_centered(|ui| {
             egui::Frame::new()
