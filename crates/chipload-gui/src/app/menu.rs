@@ -90,9 +90,9 @@ impl ChiploadApp {
                 }
                 ui.separator();
                 let (update, update_path) = self.update_labels();
-                // With several DXFs, each is updated from its row in the Drawing panel.
+                // With several DXFs, each is updated from its row in the Browser.
                 let one = has_job && self.dxf_count() <= 1;
-                let several = "Several DXFs: update one from the Drawing panel";
+                let several = "Several DXFs: update one from the Browser (right-click it)";
                 if ui
                     .add_enabled(one, egui::Button::new(update))
                     .on_disabled_hover_text(several)
@@ -501,6 +501,18 @@ impl ChiploadApp {
                 .clicked()
             {
                 self.set_show_simulation(!self.show_simulation);
+            }
+            ui.separator();
+            let selected = !self.selection.ids(&self.contours).is_empty();
+            for (label, kind, hover) in super::browser::NEW_OPERATIONS {
+                if ui
+                    .add_enabled(selected, egui::Button::new(format!("+ {label}")))
+                    .on_hover_text(hover)
+                    .on_disabled_hover_text("Select shapes first")
+                    .clicked()
+                {
+                    self.add_operation(kind);
+                }
             }
             ui.separator();
             let can_draw = self.can_draw();

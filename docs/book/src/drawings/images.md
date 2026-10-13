@@ -92,9 +92,9 @@ path…* takes the picture's path instead.
 ![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
 
 **Afterwards:**
-- **Change it:** in the [Drawing panel](several.md#the-drawing-panel), the image's row has
-  **⋯ > Edit…**, which opens the same window (its button says **Apply**), and **Remove**,
-  which removes the picture and its shapes.
+- **Change it:** in the [Browser](../window.md#the-browser), double-click the image, or
+  right-click it > **Edit…**: the same window opens (its button says **Apply**).
+  Right-click > **Remove** removes the picture and its shapes.
 - **See it:** *View > Show images* shows the pictures faintly under the drawing, for
   comparing the traced shapes with the picture.
 - **Operations:** clicking traced shapes on the canvas and adding an operation selects the

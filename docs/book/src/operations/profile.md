@@ -96,7 +96,7 @@ in mm, feeds in mm/min, angles in radians.
 | Field | Setting |
 |---|---|
 | `name` | Name |
-| `enabled` | the tick in the operation list |
+| `enabled` | the tick on the operation's row in the Browser |
 | `select` | the geometry: `{"layer": "NAME"}` or `{"shapes": [ids]}` |
 | `tool` | Tool: the project tool's id |
 | `start_depth` | Start depth |

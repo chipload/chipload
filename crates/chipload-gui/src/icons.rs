@@ -1,0 +1,328 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Small line icons painted with egui's painter, for the Browser and the header
+//! (docs/specs/browser-and-layout.md §2, decision 8). Painted, not taken from an icon font,
+//! so no font file or licence comes with them.
+
+use std::f32::consts::{FRAC_PI_2, PI, TAU};
+
+use eframe::egui::{Color32, Painter, Pos2, Rect, Shape, Stroke, pos2};
+
+/// Every icon the interface paints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Icon {
+    Project,
+    Settings,
+    Tools,
+    Endmill,
+    Drill,
+    Vbit,
+    Drawing,
+    Dxf,
+    Layer,
+    Image,
+    Circle,
+    Rectangle,
+    Polyline,
+    Paths,
+    Operations,
+    Profile,
+    Pocket,
+    Vcarve,
+    FollowPath,
+    Holes,
+    Eye,
+    EyeOff,
+}
+
+/// Line width of the icons, points.
+const LINE: f32 = 1.2;
+/// Segments of a painted circle.
+const CIRCLE_STEPS: usize = 24;
+
+/// Paint `icon` into `rect` (square is best) in `color`.
+pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
+    let pen = Pen {
+        painter,
+        rect,
+        stroke: Stroke::new(LINE, color),
+    };
+    match icon {
+        Icon::Project => pen.cube(),
+        Icon::Settings => pen.gear(),
+        Icon::Tools => {
+            pen.endmill(0.3);
+            pen.line([(0.62, 0.15), (0.62, 0.85)]);
+            pen.line([(0.62, 0.85), (0.78, 0.85)]);
+        }
+        Icon::Endmill => pen.endmill(0.5),
+        Icon::Drill => {
+            pen.poly(&[
+                (0.38, 0.1),
+                (0.38, 0.7),
+                (0.5, 0.92),
+                (0.62, 0.7),
+                (0.62, 0.1),
+            ]);
+            pen.line([(0.38, 0.45), (0.62, 0.3)]);
+            pen.line([(0.38, 0.65), (0.62, 0.5)]);
+        }
+        Icon::Vbit => {
+            pen.poly(&[
+                (0.4, 0.1),
+                (0.4, 0.45),
+                (0.25, 0.45),
+                (0.5, 0.92),
+                (0.75, 0.45),
+            ]);
+            pen.poly(&[(0.75, 0.45), (0.6, 0.45), (0.6, 0.1)]);
+        }
+        Icon::Drawing | Icon::Dxf => {
+            pen.sheet();
+            if icon == Icon::Dxf {
+                pen.line([(0.3, 0.5), (0.7, 0.5)]);
+                pen.line([(0.3, 0.68), (0.7, 0.68)]);
+            } else {
+                pen.circle((0.5, 0.6), 0.16);
+            }
+        }
+        Icon::Layer => {
+            pen.closed(&[(0.5, 0.2), (0.9, 0.4), (0.5, 0.6), (0.1, 0.4)]);
+            pen.poly(&[(0.1, 0.6), (0.5, 0.8), (0.9, 0.6)]);
+        }
+        Icon::Image => {
+            pen.closed(&[(0.1, 0.2), (0.9, 0.2), (0.9, 0.8), (0.1, 0.8)]);
+            pen.poly(&[
+                (0.15, 0.75),
+                (0.4, 0.45),
+                (0.58, 0.62),
+                (0.7, 0.52),
+                (0.85, 0.7),
+            ]);
+            pen.circle((0.68, 0.36), 0.06);
+        }
+        Icon::Circle => pen.circle((0.5, 0.5), 0.36),
+        Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),
+        Icon::Polyline => pen.poly(&[(0.1, 0.8), (0.3, 0.3), (0.55, 0.65), (0.9, 0.2)]),
+        Icon::Paths => pen.poly(&[
+            (0.1, 0.6),
+            (0.25, 0.35),
+            (0.4, 0.35),
+            (0.6, 0.65),
+            (0.75, 0.65),
+            (0.9, 0.4),
+        ]),
+        Icon::Operations => {
+            pen.poly(&[
+                (0.12, 0.25),
+                (0.88, 0.25),
+                (0.88, 0.5),
+                (0.12, 0.5),
+                (0.12, 0.75),
+            ]);
+            pen.poly(&[(0.12, 0.75), (0.75, 0.75)]);
+            pen.poly(&[(0.65, 0.65), (0.78, 0.75), (0.65, 0.85)]);
+        }
+        Icon::Profile => {
+            pen.closed(&[(0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7)]);
+            pen.rounded((0.5, 0.5), 0.35, 0.12);
+        }
+        Icon::Pocket => {
+            pen.closed(&[(0.12, 0.12), (0.88, 0.12), (0.88, 0.88), (0.12, 0.88)]);
+            pen.closed(&[(0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7)]);
+            pen.line([(0.45, 0.5), (0.55, 0.5)]);
+        }
+        Icon::Vcarve => {
+            pen.poly(&[(0.1, 0.25), (0.5, 0.85), (0.9, 0.25)]);
+            pen.line([(0.1, 0.25), (0.9, 0.25)]);
+        }
+        Icon::FollowPath => {
+            pen.wave();
+            pen.dot((0.12, 0.62), 0.07);
+        }
+        Icon::Holes => {
+            pen.circle((0.5, 0.5), 0.34);
+            pen.line([(0.5, 0.28), (0.5, 0.72)]);
+            pen.line([(0.28, 0.5), (0.72, 0.5)]);
+        }
+        Icon::Eye | Icon::EyeOff => {
+            pen.eye();
+            if icon == Icon::EyeOff {
+                pen.line([(0.15, 0.85), (0.85, 0.15)]);
+            }
+        }
+    }
+}
+
+/// Paint the open (pointing down) or closed (pointing right) triangle of a folder.
+pub fn chevron(painter: &Painter, rect: Rect, open: bool, color: Color32) {
+    let c = rect.center();
+    let r = rect.width().min(rect.height()) * 0.22;
+    let points = if open {
+        vec![
+            pos2(c.x - r, c.y - r * 0.6),
+            pos2(c.x + r, c.y - r * 0.6),
+            pos2(c.x, c.y + r * 0.8),
+        ]
+    } else {
+        vec![
+            pos2(c.x - r * 0.6, c.y - r),
+            pos2(c.x + r * 0.8, c.y),
+            pos2(c.x - r * 0.6, c.y + r),
+        ]
+    };
+    painter.add(Shape::convex_polygon(points, color, Stroke::NONE));
+}
+
+/// Paint a tick box: ticked or empty.
+pub fn tick_box(painter: &Painter, rect: Rect, ticked: bool, color: Color32, fill: Color32) {
+    let side = rect.width().min(rect.height()) * 0.72;
+    let square = Rect::from_center_size(rect.center(), eframe::egui::vec2(side, side));
+    if ticked {
+        painter.rect_filled(square, 2.0, fill);
+    }
+    painter.rect_stroke(
+        square,
+        2.0,
+        Stroke::new(LINE, color),
+        eframe::egui::StrokeKind::Inside,
+    );
+    if ticked {
+        let at = |x: f32, y: f32| square.min + eframe::egui::vec2(x * side, y * side);
+        painter.add(Shape::line(
+            vec![at(0.22, 0.52), at(0.42, 0.72), at(0.78, 0.3)],
+            Stroke::new(LINE * 1.4, color),
+        ));
+    }
+}
+
+/// Lines in unit coordinates of the icon's square (0,0 top left, 1,1 bottom right).
+struct Pen<'a> {
+    painter: &'a Painter,
+    rect: Rect,
+    stroke: Stroke,
+}
+
+impl Pen<'_> {
+    fn at(&self, (x, y): (f32, f32)) -> Pos2 {
+        let side = self.rect.width().min(self.rect.height());
+        let left = self.rect.center().x - side / 2.0;
+        let top = self.rect.center().y - side / 2.0;
+        pos2(left + x * side, top + y * side)
+    }
+
+    fn line(&self, ends: [(f32, f32); 2]) {
+        self.painter
+            .line_segment([self.at(ends[0]), self.at(ends[1])], self.stroke);
+    }
+
+    fn poly(&self, points: &[(f32, f32)]) {
+        let points = points.iter().map(|&p| self.at(p)).collect();
+        self.painter.add(Shape::line(points, self.stroke));
+    }
+
+    fn closed(&self, points: &[(f32, f32)]) {
+        let points = points.iter().map(|&p| self.at(p)).collect();
+        self.painter.add(Shape::closed_line(points, self.stroke));
+    }
+
+    fn arc(&self, centre: (f32, f32), r: f32, from: f32, to: f32) -> Vec<(f32, f32)> {
+        (0..=CIRCLE_STEPS)
+            .map(|i| {
+                let t = from + (to - from) * i as f32 / CIRCLE_STEPS as f32;
+                (centre.0 + r * t.cos(), centre.1 + r * t.sin())
+            })
+            .collect()
+    }
+
+    fn circle(&self, centre: (f32, f32), r: f32) {
+        let points = self.arc(centre, r, 0.0, TAU);
+        self.closed(&points[..CIRCLE_STEPS]);
+    }
+
+    fn dot(&self, centre: (f32, f32), r: f32) {
+        let side = self.rect.width().min(self.rect.height());
+        self.painter
+            .circle_filled(self.at(centre), r * side, self.stroke.color);
+    }
+
+    /// A square of half-side `half` with corners rounded by `r`.
+    fn rounded(&self, (cx, cy): (f32, f32), half: f32, r: f32) {
+        let inner = half - r;
+        let mut points = Vec::new();
+        for (k, (sx, sy)) in [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]
+            .into_iter()
+            .enumerate()
+        {
+            let start = k as f32 * FRAC_PI_2;
+            points.extend(self.arc(
+                (cx + sx * inner, cy + sy * inner),
+                r,
+                start,
+                start + FRAC_PI_2,
+            ));
+        }
+        self.closed(&points);
+    }
+
+    fn cube(&self) {
+        let top = (0.5, 0.12);
+        let left = (0.14, 0.31);
+        let right = (0.86, 0.31);
+        let middle = (0.5, 0.5);
+        self.closed(&[top, right, middle, left]);
+        self.poly(&[left, (0.14, 0.7), (0.5, 0.9), (0.86, 0.7), right]);
+        self.line([middle, (0.5, 0.9)]);
+    }
+
+    fn gear(&self) {
+        self.circle((0.5, 0.5), 0.24);
+        self.circle((0.5, 0.5), 0.08);
+        for k in 0..8 {
+            let a = k as f32 * PI / 4.0;
+            let (s, c) = a.sin_cos();
+            self.line([
+                (0.5 + 0.26 * c, 0.5 + 0.26 * s),
+                (0.5 + 0.4 * c, 0.5 + 0.4 * s),
+            ]);
+        }
+    }
+
+    /// An endmill centred at `x`: a shank, and flutes below.
+    fn endmill(&self, x: f32) {
+        let w = 0.13;
+        self.closed(&[(x - w, 0.1), (x + w, 0.1), (x + w, 0.9), (x - w, 0.9)]);
+        self.line([(x - w, 0.5), (x + w, 0.38)]);
+        self.line([(x - w, 0.68), (x + w, 0.56)]);
+        self.line([(x - w, 0.86), (x + w, 0.74)]);
+    }
+
+    /// A sheet of paper with its top right corner folded.
+    fn sheet(&self) {
+        self.closed(&[
+            (0.2, 0.08),
+            (0.62, 0.08),
+            (0.82, 0.28),
+            (0.82, 0.92),
+            (0.2, 0.92),
+        ]);
+        self.poly(&[(0.62, 0.08), (0.62, 0.28), (0.82, 0.28)]);
+    }
+
+    fn wave(&self) {
+        let points: Vec<(f32, f32)> = (0..=CIRCLE_STEPS)
+            .map(|i| {
+                let t = i as f32 / CIRCLE_STEPS as f32;
+                (0.12 + 0.76 * t, 0.5 - 0.12 * (t * TAU).sin())
+            })
+            .collect();
+        self.poly(&points);
+    }
+
+    fn eye(&self) {
+        let mut upper = self.arc((0.5, 0.95), 0.62, -2.35, -0.79);
+        let lower = self.arc((0.5, 0.05), 0.62, 0.79, 2.35);
+        upper.extend(lower);
+        self.closed(&upper);
+        self.circle((0.5, 0.5), 0.13);
+    }
+}

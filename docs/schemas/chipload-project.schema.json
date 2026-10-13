@@ -272,7 +272,7 @@
           "type": "array"
         },
         "name": {
-          "description": "Its name in the Drawing panel and messages; the file's name without its extension\nat first.",
+          "description": "Its name in the Browser and messages; the file's name without its extension\nat first.",
           "type": "string"
         },
         "placement": {

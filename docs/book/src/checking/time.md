@@ -4,8 +4,8 @@
 
 After generating, the report gives the program's estimated time, split into cutting,
 rapids and spindle start-up, with one line per operation. With several tools, it also
-gives a time per file and the number of tool changes. The operation list shows each
-operation's time, and so does the setup sheet.
+gives a time per file and the number of tool changes. Hovering an operation in the
+Browser shows its time, and so does the setup sheet.
 
 - **Feeds as programmed:** the estimate uses the programmed feeds, and moves at the full
   feed from start to end.

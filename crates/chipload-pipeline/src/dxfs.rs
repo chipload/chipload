@@ -197,7 +197,7 @@ pub fn layer_clash_notes(job: &Job) -> Vec<String> {
         if sources.len() > 1 {
             notes.push(format!(
                 "{}: layer \"{layer}\" is in {}; it cuts all of them. Limit it to one \
-                 (select the layer under that DXF in the Drawing panel)",
+                 (select the layer under that DXF in the Browser)",
                 op_label(i, op),
                 sources.into_iter().collect::<Vec<_>>().join(" and ")
             ));

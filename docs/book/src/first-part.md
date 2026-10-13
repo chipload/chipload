@@ -9,8 +9,8 @@ outside profile. The same steps follow in the app and on the command line.
    - If the DXF doesn't say whether it's in mm or inches, Chipload asks. It never guesses.
    - The report under the canvas lists what was imported, and anything skipped or
      repaired: duplicate lines, gaps it closed, splines turned into arcs.
-2. **Check the job settings:** click **⚙ Job settings (stock, machine, tools)** above the
-   operations. A new project starts with:
+2. **Check the job settings:** click **Job settings** in the [Browser](window.md#the-browser)
+   on the left. A new project starts with:
    - stock just covering the drawing, 10 mm thick;
    - work zero at the drawing's origin, Z zero on the stock top;
    - the GRBL post, a safe height of 5 mm;
@@ -22,7 +22,8 @@ outside profile. The same steps follow in the app and on the command line.
 3. **Select what to cut:**
    - click the outline on the canvas;
    - Ctrl+click adds more;
-   - right-click selects a whole layer.
+   - right-click selects a whole layer;
+   - or click a DXF or one of its layers in the Browser.
 4. **Add an operation:** **+ Profile**.
    - **Side:** Chipload picks *outside* for an outline and *inside* for holes, and asks
      when a selection mixes both.
@@ -38,7 +39,7 @@ outside profile. The same steps follow in the app and on the command line.
    - Problems show in red on the field they're about.
    - Warnings appear in the report.
 
-   ![A generated toolpath: the operations on the left, the canvas, the job settings on the right and the report below](images/toolpath.png)
+   ![A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below](images/toolpath.png)
 6. **Look at it:** **3D** shows the toolpath at its real depths. *View > Show simulation*
    shows the stock as cut, and the slider under the canvas plays the program back.
 7. **Export:** *File > Export G-code…* (Ctrl+E).

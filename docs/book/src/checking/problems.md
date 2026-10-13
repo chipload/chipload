@@ -4,7 +4,8 @@ The app checks the project while you edit, before anything is generated:
 - **On the field:** a field with a problem turns red, e.g. an end depth above the start
   depth, a clearance as large as the tool radius, or a tool without a spindle speed.
   Hovering it says why.
-- **On the operation:** its card in the list shows the first problem.
+- **On the operation:** its row in the Browser gets a red dot, and hovering it shows the
+  first problem.
 - **Above the form:** a strip lists them all; click one to go to its operation.
 
 Generating is blocked until they're fixed; warnings don't block it. On the command line,

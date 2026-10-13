@@ -22,7 +22,7 @@ the project keeps its own copy, so it cuts the same later.
 ## Tool changes
 
 Operations run in the list's order. A run of operations next to each other with the same
-tool is a **tool group**, and between groups the tool changes. The operation list draws a
+tool is a **tool group**, and between groups the tool changes. The Browser draws a
 line at each change.
 
 **Tool changes** (Job settings > Machine) says how a job with several tools is written:

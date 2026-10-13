@@ -14,32 +14,33 @@ chipload dxf remove part.chipload 2                   # it and its shapes
 
 In the app: *File > Add DXF to project…*, or drop the DXF on the window.
 
-## The Drawing panel
+## In the Browser
 
-The **Drawing** panel, above the operations, lists what the project's shapes come from:
+The **Drawing** folder of the [Browser](../window.md#the-browser) lists what the project's
+shapes come from:
 
 - **Each DXF**, with its layers inside.
 - **Each image.**
 - **The shapes drawn in Chipload**, by kind: rectangles, circles, polylines.
 
-![The Drawing panel: two DXFs with their layers, the second hidden, an image, and the
+![The Browser: two DXFs with their layers, the second hidden, an image, and the
 first DXF's placement window](../images/drawing.png)
 
-- **Select** selects the whole group, or one layer of one DXF. An operation added from it
-  cuts only that (its selector names the DXF or image).
-- **⋯** has the rest:
-  - **For a DXF:** *Place…* (move, turn, scale: [Placing the drawing](placement.md)),
-    *Update from a DXF…* or *from a path…*, and *Remove*.
-  - **For an image:** *Edit…* and *Remove*.
-- **The checkbox hides** a group or a layer on the canvas: it isn't drawn and can't be
-  clicked. **Hidden shapes are still cut.** An operation that cuts some says so on its card
-  ("cuts 3 hidden contours"), and its toolpath still shows. To stop cutting them, turn the
-  operation off.
+- **A click** selects the whole group, or one layer of one DXF; Ctrl+click adds. An
+  operation added from it cuts only that (its selector names the DXF or image).
+- **Right-click** has the rest:
+  - **For a DXF:** *Place…* (move, turn, scale: [Placing the drawing](placement.md); also
+    a double-click), *Update from a DXF…* or *from a path…*, and *Remove*.
+  - **For an image:** *Edit…* (also a double-click) and *Remove*.
+- **The eye hides** a group or a layer on the canvas: it isn't drawn and can't be
+  clicked. **Hidden shapes are still cut.** An operation that cuts some says so on its row
+  ("3 hidden · T1"), and its toolpath still shows. To stop cutting them, untick the
+  operation.
 - **Saved:** what is hidden is saved in the project (`drawing.hidden`). Changing it is a
   step you can undo.
 
 *File > Update drawing from DXF…* works while the project has one DXF. With several, update
-each from its ⋯ menu.
+each from its row's right-click menu.
 
 - **Where it goes:** a new DXF lands where its file has it, often on top of the first.
   [Place](placement.md) it afterwards.
@@ -63,9 +64,9 @@ An operation selects a **DXF or image as a whole**, a **layer** within one, or *
 
 A DXF or an image selected as a whole, or one of its layers, follows the DXF when it is
 updated and the picture when it is traced again. In the app:
-- **Select** on a group in the Drawing panel picks the whole DXF or image.
-- **Select** on a layer, or right-click *Select layer* on the canvas, picks that layer of
-  that DXF only.
+- **A click** on a DXF or image in the Browser picks the whole DXF or image.
+- **A click** on a layer in the Browser, or right-click *Select layer* on the canvas, picks
+  that layer of that DXF only.
 
 **Adding a DXF never changes what an existing operation cuts.** An operation that
 selected a layer by its name alone, made while the project had one DXF, keeps cutting that

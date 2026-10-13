@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The Drawing panel (docs/specs/drawing-sources.md §4): the project's DXFs with their
-//! layers, its images and its drawn shapes by kind, each to select, hide, and for DXFs and
-//! images to place, update, edit or remove.
+//! The Browser's Drawing folder (docs/specs/drawing-sources.md §4, browser-and-layout.md
+//! §2): the project's DXFs with their layers, its images and its drawn shapes by kind, each
+//! to select, hide, and for DXFs and images to place, update, edit or remove.
 
 use std::collections::BTreeMap;
 
 use chipload_core::chain::ShapeFrom;
 use chipload_job::Drawing;
 
+use super::browser::Row;
 use super::forms::{JobRequest, placement_rows};
 use super::*;
+use crate::icons::Icon;
 
 /// The placement window's width, px.
 const PLACE_WINDOW_WIDTH: f32 = 540.0;
 
-/// One group of the Drawing panel.
+/// One group of the Browser's Drawing folder.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct Group {
     /// Its `drawing.hidden` key: `dxf:1`, `image:2`, `drawn:circle`, …
@@ -44,6 +46,8 @@ enum PanelAction {
     RemoveDxf(u64),
     EditImage(u64),
     RemoveImage(u64),
+    AddDxf,
+    AddImage,
 }
 
 impl ChiploadApp {
@@ -92,9 +96,9 @@ impl ChiploadApp {
             );
         }
         for (key, title) in [
-            ("drawn:rectangle", "Drawn: rectangles"),
-            ("drawn:circle", "Drawn: circles"),
-            ("drawn:polyline", "Drawn: polylines"),
+            ("drawn:rectangle", "Rectangles"),
+            ("drawn:circle", "Circles"),
+            ("drawn:polyline", "Polylines"),
             ("paths", "Other paths"),
         ] {
             push(key.into(), title.into(), GroupKind::Drawn);
@@ -124,34 +128,10 @@ impl ChiploadApp {
         self.refresh_drawing();
     }
 
-    /// Select a group: a DXF or image as a whole (so an operation made from it follows its
-    /// updates), drawn shapes by their ids.
+    /// Select a group: a DXF or image as a whole, drawn shapes by their ids.
+    #[cfg(test)]
     pub fn select_group(&mut self, key: &str) {
-        let source = key
-            .strip_prefix("dxf:")
-            .and_then(|id| id.parse().ok())
-            .map(ShapeFrom::Dxf)
-            .or_else(|| {
-                key.strip_prefix("image:")
-                    .and_then(|id| id.parse().ok())
-                    .map(ShapeFrom::Image)
-            });
-        if let Some(source) = source {
-            self.selection = CanvasSelection::Source(source);
-            return;
-        }
-        let Some(edit) = &self.edit else {
-            return;
-        };
-        let shapes: BTreeSet<u64> = edit
-            .settings
-            .drawing
-            .shapes
-            .iter()
-            .filter(|s| Drawing::group_key(s) == key)
-            .map(|s| s.id)
-            .collect();
-        self.selection = CanvasSelection::Shapes(shapes);
+        self.selection = self.group_selection(key);
     }
 
     /// Remove DXF `id` and its shapes, as one undo step.
@@ -189,131 +169,97 @@ impl ChiploadApp {
         }
     }
 
-    /// The groups as a tree: each with its eye (shown or hidden), its count and its
-    /// buttons; a DXF's layers inside it.
-    pub(super) fn drawing_tree(&mut self, ui: &mut egui::Ui) {
-        let groups = self.drawing_groups();
-        if groups.is_empty() {
-            ui.weak("No shapes yet.");
+    /// The selection a group's row makes: a DXF or image as a whole (so an operation made
+    /// from it follows its updates and retracing), drawn shapes by their ids.
+    pub(super) fn group_selection(&self, key: &str) -> CanvasSelection {
+        let source = key
+            .strip_prefix("dxf:")
+            .and_then(|id| id.parse().ok())
+            .map(ShapeFrom::Dxf)
+            .or_else(|| {
+                key.strip_prefix("image:")
+                    .and_then(|id| id.parse().ok())
+                    .map(ShapeFrom::Image)
+            });
+        if let Some(source) = source {
+            return CanvasSelection::Source(source);
+        }
+        let Some(edit) = &self.edit else {
+            return CanvasSelection::Nothing;
+        };
+        let shapes: BTreeSet<u64> = edit
+            .settings
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| Drawing::group_key(s) == key)
+            .map(|s| s.id)
+            .collect();
+        CanvasSelection::Shapes(shapes)
+    }
+
+    /// Select what a row stands for; with Ctrl, add its contours to the selection.
+    pub(super) fn select_row(&mut self, selection: CanvasSelection, add: bool) {
+        if !add || self.selection == CanvasSelection::Nothing {
+            self.selection = selection;
             return;
         }
+        let mut ids = self.selection.ids(&self.contours);
+        ids.extend(selection.ids(&self.contours));
+        self.selection = CanvasSelection::of_contours(&ids, &self.contours);
+    }
+
+    /// Drawing: each DXF with its layers, each image, and the drawn shapes by kind
+    /// (docs/specs/browser-and-layout.md §2), with an eye to hide them.
+    pub(super) fn drawing_rows(&mut self, ui: &mut egui::Ui) {
+        let groups = self.drawing_groups();
+        let shapes: usize = groups.iter().map(|g| g.shapes).sum();
+        let row = Row::new(egui::Id::new("browser-drawing"), 1, "Drawing")
+            .icon(Icon::Drawing)
+            .trailing(shapes.to_string());
+        let (open, folder_row) = super::browser::folder(ui, row, true);
         let mut action: Option<PanelAction> = None;
-        for group in &groups {
-            let id = ui.make_persistent_id(("drawing-group", &group.key));
-            let hidden = self.is_hidden_key(&group.key);
-            // A DXF opens on its layers: they are what is selected and hidden most.
-            let state = egui::collapsing_header::CollapsingState::load_with_default_open(
-                ui.ctx(),
-                id,
-                true,
-            );
-            let header = |ui: &mut egui::Ui, action: &mut Option<PanelAction>| {
-                eye(ui, hidden, &group.key, action);
-                let title = RichText::new(&group.title);
-                ui.label(if hidden { title.weak() } else { title.strong() });
-                ui.weak(count_text(group.shapes));
+        folder_row
+            .response
+            .on_hover_text("DXFs, pictures and drawn shapes; right-click to add one")
+            .context_menu(|ui| {
+                let adding = self.dxf_count() > 0;
                 if ui
-                    .small_button("Select")
-                    .on_hover_text("Select every shape of it")
+                    .add_enabled(adding, egui::Button::new("Add DXF…"))
+                    .on_hover_text("Another part: a DXF placed and updated on its own")
+                    .on_disabled_hover_text("File > Import DXF starts a project from one")
                     .clicked()
                 {
-                    *action = Some(PanelAction::SelectGroup(group.key.clone()));
+                    action = Some(PanelAction::AddDxf);
                 }
-                if group.kind == GroupKind::Drawn {
-                    return;
+                if ui
+                    .button("Import image…")
+                    .on_hover_text("Trace a picture into shapes, for V-carving")
+                    .clicked()
+                {
+                    action = Some(PanelAction::AddImage);
                 }
-                ui.menu_button("⋯", |ui| match group.kind {
-                    GroupKind::Dxf(dxf) => {
-                        if ui
-                            .button("Place…")
-                            .on_hover_text("Move, turn or scale this DXF")
-                            .clicked()
-                        {
-                            *action = Some(PanelAction::Place(dxf));
-                            ui.close();
-                        }
-                        if ui.button("Update from a DXF…").clicked() {
-                            *action = Some(PanelAction::Update(dxf));
-                            ui.close();
-                        }
-                        if ui.button("Update from a path…").clicked() {
-                            *action = Some(PanelAction::UpdatePath(dxf));
-                            ui.close();
-                        }
-                        ui.separator();
-                        if ui
-                            .button("Remove")
-                            .on_hover_text("Remove this DXF and its shapes")
-                            .clicked()
-                        {
-                            *action = Some(PanelAction::RemoveDxf(dxf));
-                            ui.close();
-                        }
-                    }
-                    GroupKind::Image(image) => {
-                        if ui
-                            .button("Edit…")
-                            .on_hover_text("Change its size, place and tracing")
-                            .clicked()
-                        {
-                            *action = Some(PanelAction::EditImage(image));
-                            ui.close();
-                        }
-                        ui.separator();
-                        if ui
-                            .button("Remove")
-                            .on_hover_text("Remove the picture and its shapes")
-                            .clicked()
-                        {
-                            *action = Some(PanelAction::RemoveImage(image));
-                            ui.close();
-                        }
-                    }
-                    GroupKind::Drawn => {}
-                });
-            };
-            if group.layers.is_empty() {
+            });
+        if open {
+            if groups.is_empty() {
                 ui.horizontal(|ui| {
-                    ui.add_space(ui.spacing().indent);
-                    header(ui, &mut action);
+                    ui.add_space(4.0 + 3.0 * 14.0);
+                    ui.weak("No shapes yet.");
                 });
-                continue;
             }
-            state
-                .show_header(ui, |ui| header(ui, &mut action))
-                .body(|ui| {
-                    let from = match group.kind {
-                        GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
-                        GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
-                        GroupKind::Drawn => None,
-                    };
-                    for (layer, count) in &group.layers {
-                        let key = Drawing::layer_key(&group.key, layer);
-                        let layer_hidden = hidden || self.is_hidden_key(&key);
-                        ui.horizontal(|ui| {
-                            eye(ui, self.is_hidden_key(&key), &key, &mut action);
-                            let name = RichText::new(layer);
-                            ui.label(if layer_hidden { name.weak() } else { name });
-                            ui.weak(count_text(*count));
-                            if ui
-                                .small_button("Select")
-                                .on_hover_text(
-                                    "Select this layer of this DXF: an operation made from it \
-                                     cuts only this DXF's layer",
-                                )
-                                .clicked()
-                            {
-                                action = Some(PanelAction::SelectLayer(layer.clone(), from));
-                            }
-                        });
-                    }
-                });
+            for group in &groups {
+                self.group_rows(ui, group, &mut action);
+            }
         }
+        let add = ui.input(|i| i.modifiers.command);
         match action {
             Some(PanelAction::Toggle(key)) => self.toggle_hidden(&key),
-            Some(PanelAction::SelectGroup(key)) => self.select_group(&key),
+            Some(PanelAction::SelectGroup(key)) => {
+                let selection = self.group_selection(&key);
+                self.select_row(selection, add);
+            }
             Some(PanelAction::SelectLayer(layer, from)) => {
-                self.selection = CanvasSelection::Layer(layer, from);
+                self.select_row(CanvasSelection::Layer(layer, from), add);
             }
             Some(PanelAction::Place(dxf)) => self.place_open = Some(dxf),
             Some(PanelAction::Update(dxf)) => {
@@ -336,7 +282,155 @@ impl ChiploadApp {
             Some(PanelAction::RemoveImage(image)) => {
                 self.remove_image(image);
             }
+            Some(PanelAction::AddDxf) => self.ask_add_dxf(),
+            Some(PanelAction::AddImage) => self.import_image_dialog(),
             None => {}
+        }
+    }
+
+    /// One group's row, and a DXF's layers under it when it is open.
+    fn group_rows(&self, ui: &mut egui::Ui, group: &Group, action: &mut Option<PanelAction>) {
+        let hidden = self.is_hidden_key(&group.key);
+        let icon = match (group.kind, group.key.as_str()) {
+            (GroupKind::Dxf(_), _) => Icon::Dxf,
+            (GroupKind::Image(_), _) => Icon::Image,
+            (GroupKind::Drawn, "drawn:circle") => Icon::Circle,
+            (GroupKind::Drawn, "drawn:rectangle") => Icon::Rectangle,
+            (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
+            (GroupKind::Drawn, _) => Icon::Paths,
+        };
+        let id = egui::Id::new(("browser-group", &group.key));
+        let open_id = id.with("folder-open");
+        let has_layers = !group.layers.is_empty();
+        let open = has_layers && super::browser::folder_open(ui, open_id, true);
+        let mut row = Row::new(id, 2, &group.title)
+            .eye(!hidden)
+            .icon(icon)
+            .trailing(group.shapes.to_string())
+            .dim(hidden)
+            .selected(self.selection == self.group_selection(&group.key));
+        if has_layers {
+            row = row.folder(open);
+        }
+        let out = row.show(ui);
+        if out.toggled {
+            super::browser::toggle_folder(ui, open_id, true);
+        }
+        if out.eye {
+            *action = Some(PanelAction::Toggle(group.key.clone()));
+        } else if out.response.double_clicked() {
+            match group.kind {
+                GroupKind::Dxf(dxf) => *action = Some(PanelAction::Place(dxf)),
+                GroupKind::Image(image) => *action = Some(PanelAction::EditImage(image)),
+                GroupKind::Drawn => {}
+            }
+        } else if out.response.clicked() {
+            *action = Some(PanelAction::SelectGroup(group.key.clone()));
+        }
+        let hover = match group.kind {
+            GroupKind::Dxf(_) => {
+                "Click selects the whole DXF: an operation made from it follows its updates. \
+                 Double-click places it; right-click for more"
+            }
+            GroupKind::Image(_) => {
+                "Click selects the whole picture: an operation made from it follows its \
+                 retracing. Double-click edits it; right-click for more"
+            }
+            GroupKind::Drawn => "Click selects these shapes; Ctrl+click adds them",
+        };
+        out.response.on_hover_text(hover).context_menu(|ui| {
+            if ui.button("Select").clicked() {
+                *action = Some(PanelAction::SelectGroup(group.key.clone()));
+            }
+            if ui.button(if hidden { "Show" } else { "Hide" }).clicked() {
+                *action = Some(PanelAction::Toggle(group.key.clone()));
+            }
+            match group.kind {
+                GroupKind::Dxf(dxf) => {
+                    ui.separator();
+                    if ui
+                        .button("Place…")
+                        .on_hover_text("Move, turn or scale this DXF")
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Place(dxf));
+                    }
+                    if ui.button("Update from a DXF…").clicked() {
+                        *action = Some(PanelAction::Update(dxf));
+                    }
+                    if ui.button("Update from a path…").clicked() {
+                        *action = Some(PanelAction::UpdatePath(dxf));
+                    }
+                    ui.separator();
+                    if ui
+                        .button("Remove")
+                        .on_hover_text("Remove this DXF and its shapes")
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::RemoveDxf(dxf));
+                    }
+                }
+                GroupKind::Image(image) => {
+                    ui.separator();
+                    if ui
+                        .button("Edit…")
+                        .on_hover_text("Change its size, place and tracing")
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::EditImage(image));
+                    }
+                    ui.separator();
+                    if ui
+                        .button("Remove")
+                        .on_hover_text("Remove the picture and its shapes")
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::RemoveImage(image));
+                    }
+                }
+                GroupKind::Drawn => {}
+            }
+        });
+        if !open {
+            return;
+        }
+        let from = match group.kind {
+            GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
+            GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
+            GroupKind::Drawn => None,
+        };
+        for (layer, count) in &group.layers {
+            let key = Drawing::layer_key(&group.key, layer);
+            let layer_hidden = self.is_hidden_key(&key);
+            let selection = CanvasSelection::Layer(layer.clone(), from);
+            let out = Row::new(egui::Id::new(("browser-layer", &key)), 3, layer)
+                .eye(!layer_hidden)
+                .icon(Icon::Layer)
+                .trailing(count.to_string())
+                .dim(hidden || layer_hidden)
+                .selected(self.selection == selection)
+                .show(ui);
+            if out.eye {
+                *action = Some(PanelAction::Toggle(key.clone()));
+            } else if out.response.clicked() {
+                *action = Some(PanelAction::SelectLayer(layer.clone(), from));
+            }
+            out.response
+                .on_hover_text(
+                    "Click selects this layer of this DXF: an operation made from it cuts only \
+                     this DXF's layer",
+                )
+                .context_menu(|ui| {
+                    if ui.button("Select").clicked() {
+                        *action = Some(PanelAction::SelectLayer(layer.clone(), from));
+                    }
+                    if ui
+                        .button(if layer_hidden { "Show" } else { "Hide" })
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Toggle(key.clone()));
+                    }
+                });
         }
     }
 
@@ -379,26 +473,6 @@ impl ChiploadApp {
             self.place_dxf(Some(id), how);
         }
     }
-}
-
-/// The eye: checked is shown. A click asks to toggle `key`.
-fn eye(ui: &mut egui::Ui, hidden: bool, key: &str, action: &mut Option<PanelAction>) {
-    let mut shown = !hidden;
-    if ui
-        .checkbox(&mut shown, "")
-        .on_hover_text(if hidden {
-            "Hidden on the canvas (still cut): show it"
-        } else {
-            "Hide it on the canvas; it is still cut"
-        })
-        .changed()
-    {
-        *action = Some(PanelAction::Toggle(key.to_string()));
-    }
-}
-
-fn count_text(n: usize) -> String {
-    format!("{n} {}", if n == 1 { "shape" } else { "shapes" })
 }
 
 /// The ids of the contours hidden in `drawing`: those whose every shape is hidden.

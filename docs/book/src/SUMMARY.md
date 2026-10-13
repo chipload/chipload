@@ -6,6 +6,7 @@
 
 - [Installing](install.md)
 - [Your first part](first-part.md)
+- [The window](window.md)
 
 # Concepts
 

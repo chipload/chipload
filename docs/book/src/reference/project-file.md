@@ -113,7 +113,7 @@ Provenance of the imported shapes.
 | `ignored` | object | no | How many entities of each type were left out (text, dimensions, …). |
 | `imported` | object | no | How many entities of each type were imported. |
 | `issues` | list of [SourceIssue](#sourceissue) | no | What the import found: the import report. |
-| `name` | string | yes | Its name in the Drawing panel and messages; the file's name without its extension at first. |
+| `name` | string | yes | Its name in the Browser and messages; the file's name without its extension at first. |
 | `placement` | [Placement](#placement) | yes | How the imported drawing was moved, turned and scaled on the stock. |
 | `sha256` | string | yes | The DXF's SHA-256, to tell whether it changed. |
 | `units` | [Units](#units) | yes | The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import. |

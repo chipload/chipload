@@ -1131,12 +1131,12 @@ pub(super) fn job_form(
         // Past the sections' indent, so the values line up with theirs.
         .min_col_width(LABEL_WIDTH + ui.spacing().indent)
         .show(ui, |ui| {
-            // The DXFs and images themselves are in the Drawing panel
+            // The DXFs and images themselves are in the Browser
             // (docs/specs/drawing-sources.md §4).
             ui.label("Drawing");
             let d = &job.drawing;
             ui.label(format!(
-                "{} shapes: {} DXF{}, {} image{} (Drawing panel)",
+                "{} shapes: {} DXF{}, {} image{} (in the Browser)",
                 d.shapes.len(),
                 d.dxfs.len(),
                 if d.dxfs.len() == 1 { "" } else { "s" },

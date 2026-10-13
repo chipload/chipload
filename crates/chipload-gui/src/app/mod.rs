@@ -35,6 +35,7 @@ use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_o
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
 
+mod browser;
 mod canvas;
 mod copy_paste;
 mod dialogs;
@@ -96,7 +97,7 @@ enum PathPurpose {
     Image,
     /// Another DXF for the project (File > Add DXF from path…).
     AddDxf,
-    /// A new version of the project's DXF with this id (the Drawing panel's Update…).
+    /// A new version of the project's DXF with this id (the Browser's Update…).
     UpdateDxf(u64),
 }
 
@@ -253,7 +254,7 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
-    /// The DXF whose placement window is open (the Drawing panel's Place…).
+    /// The DXF whose placement window is open (the Browser's Place…).
     pub(super) place_open: Option<u64>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
     pub(super) hidden_contours: BTreeSet<usize>,

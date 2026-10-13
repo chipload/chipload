@@ -879,7 +879,7 @@ pub struct SourceIssue {
 pub struct DrawingSource {
     /// The DXF's id, which its shapes and selectors name.
     pub id: u64,
-    /// Its name in the Drawing panel and messages; the file's name without its extension
+    /// Its name in the Browser and messages; the file's name without its extension
     /// at first.
     pub name: String,
     /// The DXF's file name.

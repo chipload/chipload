@@ -9,7 +9,7 @@ whole pocket again.
 
 ## Adding one
 
-- **From the pocket:** right-click the large tool's pocket in the operation list, then *Add
+- **From the pocket:** right-click the large tool's pocket in the Browser, then *Add
   rest pocket*, and pick the smaller endmill. Command line: `chipload op add-rest
   part.chipload --op 1 --tool 2`.
 - **What you get:** a new pocket right after it, with the same shapes, depths, clearance
