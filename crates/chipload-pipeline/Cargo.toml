@@ -7,13 +7,13 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-check = { version = "0.17.1", path = "../chipload-check" }
-chipload-core = { version = "0.17.1", path = "../chipload-core" }
-chipload-dxf = { version = "0.17.1", path = "../chipload-dxf" }
-chipload-image = { version = "0.17.1", path = "../chipload-image" }
-chipload-job = { version = "0.17.1", path = "../chipload-job" }
-chipload-post = { version = "0.17.1", path = "../chipload-post" }
-chipload-toolpath = { version = "0.17.1", path = "../chipload-toolpath" }
+chipload-check = { version = "0.17.2", path = "../chipload-check" }
+chipload-core = { version = "0.17.2", path = "../chipload-core" }
+chipload-dxf = { version = "0.17.2", path = "../chipload-dxf" }
+chipload-image = { version = "0.17.2", path = "../chipload-image" }
+chipload-job = { version = "0.17.2", path = "../chipload-job" }
+chipload-post = { version = "0.17.2", path = "../chipload-post" }
+chipload-toolpath = { version = "0.17.2", path = "../chipload-toolpath" }
 # The simulation image (docs/specs/simulation.md §6); MIT OR Apache-2.0, already in the
 # tree through eframe.
 png = "0.18.1"
