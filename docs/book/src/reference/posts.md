@@ -8,20 +8,20 @@ A post-processor is a small TOML file (`name.toml`) and a Jinja template (`name.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `arcs` | boolean | no | Write arcs as G2/G3 (docs/specs/arc-output.md). Missing: false, chords as G1, which is what every post wrote before this setting existed. |
-| `decimals` | integer | no |  |
-| `file_extension` | string | no |  |
-| `name` | string | yes |  |
-| `note` | string or null | no | A word for the operator, shown on the setup sheet (docs/specs/setup-sheet.md §2), e.g. that the post isn't tested on a real controller yet. Missing: none. |
-| `schema_version` | integer | yes |  |
-| `spindle_dwell_s` | number | yes | Required: a silent 0 s default could cut at low rpm. |
-| `template` | string | yes | File name of a built-in template. |
-| `tool_changes` | list of [ToolChange](#toolchange) | no | How the template can write a job with several tools (docs/specs/tool-per-operation.md §3.2): "files" (one program per tool) and, if it writes the commands, "program" (one file with tool changes). Missing: files only, so a template that knows nothing of M6 never gets asked for it. |
-| `written_by` | string or null | no |  |
+| `arcs` | boolean | no | Write arcs as G2/G3; false writes them as short lines (G1). Missing: false. |
+| `decimals` | integer | no | Decimals for coordinates and feeds. Missing: 3. |
+| `file_extension` | string | no | The G-code file's extension, e.g. `.nc`. Missing: `.nc`. |
+| `name` | string | yes | The post's display name, e.g. "GRBL". |
+| `note` | string or null | no | A word for the operator, shown on the setup sheet, e.g. that the post isn't tested on a real controller yet. Missing: none. |
+| `schema_version` | integer | yes | The version of the settings format: 1. |
+| `spindle_dwell_s` | number | yes | Seconds to wait after starting the spindle, for it to reach speed; 0 for none. Required: a silent default could start cutting at low speed. |
+| `template` | string | yes | The template's file name, next to this file, e.g. `myrouter.nc.j2`. |
+| `tool_changes` | list of [ToolChange](#toolchange) | no | How the template can write a job with several tools: `files` (one program per tool), and `program` (one file with tool changes) if the template writes them. Missing: files only. |
+| `written_by` | string or null | no | Who or what wrote the file, for reference. |
 
 ## ToolChange
 
-How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
+How a job with several tools is written.
 
 - `"files"`: One G-code file per tool group; the user changes the tool and sets Z zero between.
 

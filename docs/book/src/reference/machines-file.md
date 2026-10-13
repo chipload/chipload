@@ -10,10 +10,10 @@ Schema version 2. Older files load through Chipload's migrations; this schema de
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `default_machine` | string or null | no | The machine a new project starts with. |
-| `machines` | list of [MachineProfile](#machineprofile) | yes |  |
-| `schema_version` | `2` | yes |  |
-| `written_by` | string or null | no |  |
+| `default_machine` | string or null | no | The name of the profile new projects start with. Null: the built-in values. |
+| `machines` | list of [MachineProfile](#machineprofile) | yes | The profiles. |
+| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## MachineProfile
 
@@ -21,15 +21,15 @@ One machine profile: a project's machine values plus the spoilboard allowance.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `max_feed` | number or null | no |  |
-| `max_overcut` | number | yes | Kept under `stock` in projects; it is about the spoilboard, so it belongs here. |
-| `name` | string | yes |  |
-| `post` | string | yes |  |
-| `safe_z` | number | yes |  |
-| `spindle` | [Spindle](#spindle) | yes |  |
-| `tool_change` | [ToolChange](#toolchange) | yes | One file per tool group or one file with M6 (machines.json 2). |
-| `travel` | [Travel](#travel) or null | no |  |
-| `work_zero` | [WorkZero](#workzero) | yes | The work zero this machine is usually set up with. |
+| `max_feed` | number or null | no | The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time uses it for rapids. Null: unknown. |
+| `max_overcut` | number | yes | How far a new project's cuts may go below the stock bottom, mm (`stock.max_overcut`). |
+| `name` | string | yes | The profile's name, unique in the file. |
+| `post` | string | yes | The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own. |
+| `safe_z` | number | yes | The height for rapid moves sideways, mm above Z0. Above the stock top. |
+| `spindle` | [Spindle](#spindle) | yes | The spindle's direction: `cw` (M3) or `ccw` (M4). |
+| `tool_change` | [ToolChange](#toolchange) | yes | With several tools: `files` (one file per tool) or `program` (one file with tool changes). |
+| `travel` | [Travel](#travel) or null | no | The machine's travel, mm. When set, a program that moves farther is refused. Null: not checked. |
+| `work_zero` | [WorkZero](#workzero) | yes | The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's origin. |
 
 ## Spindle
 
@@ -43,7 +43,7 @@ One of: `"center"`, `"bottom_left"`, `"bottom_right"`, `"top_left"`, `"top_right
 
 ## ToolChange
 
-How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
+How a job with several tools is written.
 
 - `"files"`: One G-code file per tool group; the user changes the tool and sets Z zero between.
 
@@ -53,9 +53,9 @@ How a job with several tool groups is written (docs/specs/tool-per-operation.md 
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `x` | number | yes |  |
-| `y` | number | yes |  |
-| `z` | number | yes |  |
+| `x` | number | yes | Travel along X, mm. |
+| `y` | number | yes | Travel along Y, mm. |
+| `z` | number | yes | Travel along Z, mm. |
 
 ## WorkZero
 

@@ -56,7 +56,11 @@ pub fn schema(format: Format) -> Value {
         );
     }
     if let Some(field) = value.pointer_mut("/properties/schema_version") {
-        *field = json!({"const": version});
+        *field = json!({
+            "const": version,
+            "description": "The version of the file format. Chipload upgrades older files when it \
+                            reads them, and refuses newer ones."
+        });
     }
     value
 }

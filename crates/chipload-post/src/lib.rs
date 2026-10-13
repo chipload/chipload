@@ -66,30 +66,37 @@ fn default_extension() -> String {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PostConfig {
+    /// The version of the settings format: 1.
     pub schema_version: i64,
+    /// Who or what wrote the file, for reference.
     #[serde(default)]
     pub written_by: Option<String>,
+    /// The post's display name, e.g. "GRBL".
     pub name: String,
-    /// File name of a built-in template.
+    /// The template's file name, next to this file, e.g. `myrouter.nc.j2`.
     pub template: String,
+    /// Decimals for coordinates and feeds. Missing: 3.
     #[serde(default = "default_decimals")]
     pub decimals: u32,
+    /// The G-code file's extension, e.g. `.nc`. Missing: `.nc`.
     #[serde(default = "default_extension")]
     pub file_extension: String,
-    /// Required: a silent 0 s default could cut at low rpm.
+    /// Seconds to wait after starting the spindle, for it to reach speed; 0 for none.
+    /// Required: a silent default could start cutting at low speed.
     pub spindle_dwell_s: f64,
-    /// Write arcs as G2/G3 (docs/specs/arc-output.md). Missing: false, chords as G1, which
-    /// is what every post wrote before this setting existed.
+    /// Write arcs as G2/G3; false writes them as short lines (G1). Missing: false.
+    // Spec: docs/specs/arc-output.md.
     #[serde(default)]
     pub arcs: bool,
-    /// How the template can write a job with several tools (docs/specs/tool-per-operation.md
-    /// §3.2): "files" (one program per tool) and, if it writes the commands, "program" (one
-    /// file with tool changes). Missing: files only, so a template that knows nothing of M6
-    /// never gets asked for it.
+    /// How the template can write a job with several tools: `files` (one program per tool),
+    /// and `program` (one file with tool changes) if the template writes them. Missing:
+    /// files only.
+    // Spec: docs/specs/tool-per-operation.md §3.2.
     #[serde(default = "default_tool_changes")]
     pub tool_changes: Vec<ToolChange>,
-    /// A word for the operator, shown on the setup sheet (docs/specs/setup-sheet.md §2), e.g.
-    /// that the post isn't tested on a real controller yet. Missing: none.
+    /// A word for the operator, shown on the setup sheet, e.g. that the post isn't tested
+    /// on a real controller yet. Missing: none.
+    // Spec: docs/specs/setup-sheet.md §2.
     #[serde(default)]
     pub note: Option<String>,
     /// The template's text for a user post (docs/specs/user-posts.md); None: the built-in

@@ -10,14 +10,14 @@ Schema version 18. Older files load through Chipload's migrations; this schema d
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `copies` | [Copies](#copies) or null | no | The part cut several times in a grid (docs/specs/copies-grid.md); None: once. |
-| `drawing` | [Drawing](#drawing) | yes |  |
-| `machine` | [Machine](#machine) | yes |  |
-| `operations` | list of [Operation](#operation) | yes |  |
-| `schema_version` | `18` | yes |  |
-| `stock` | [Stock](#stock) | yes |  |
-| `tools` | list of [Tool](#tool) | yes |  |
-| `written_by` | string or null | no |  |
+| `copies` | [Copies](#copies) or null | no | Cut the part several times in a grid. Null: once. |
+| `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
+| `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
+| `operations` | list of [Operation](#operation) | yes | The operations, cut in this order. |
+| `schema_version` | `18` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `stock` | [Stock](#stock) | yes | The material on the machine. |
+| `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
+| `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
 
 ## ArcSegment
 
@@ -25,10 +25,10 @@ From `start_angle` through `sweep` radians (positive = counter-clockwise).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `center` | 2 × number | yes |  |
-| `radius` | number | yes |  |
-| `start_angle` | number | yes |  |
-| `sweep` | number | yes |  |
+| `center` | 2 × number | yes | Centre, mm. |
+| `radius` | number | yes | Radius, mm. |
+| `start_angle` | number | yes | Where the arc starts, radians from +X, counter-clockwise. |
+| `sweep` | number | yes | How far it turns, radians: positive counter-clockwise. |
 
 ## Copies
 
@@ -36,11 +36,11 @@ A grid of copies of the whole part: copy (column c, row r) is the drawing moved 
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `columns` | integer | yes |  |
-| `dx` | number | yes |  |
-| `dy` | number | yes |  |
-| `order` | [CopyOrder](#copyorder) | no |  |
-| `rows` | integer | yes |  |
+| `columns` | integer | yes | Copies along X, at least 1. |
+| `dx` | number | yes | Distance from copy to copy along X, mm; negative grows to the left. |
+| `dy` | number | yes | Distance from copy to copy along Y, mm; negative grows downwards. |
+| `order` | [CopyOrder](#copyorder) | no | `by_operation`: each operation on every copy, then the next; `by_part`: every operation on one copy, then the next copy. |
+| `rows` | integer | yes | Copies along Y, at least 1. |
 
 ## CopyOrder
 
@@ -52,7 +52,7 @@ In which order the copies are cut.
 
 ## Corners
 
-How the tool reaches into the inside corners it would leave round (docs/specs/dogbones.md): every corner on the tool's side up to `max_angle` (radians, 0 < angle < 180°).
+How the tool reaches into the inside corners it would leave round, so a square part fits: every corner on the tool's side up to `max_angle`.
 
 ### `"type": "dogbone"`
 
@@ -60,7 +60,7 @@ In along the corner's bisector.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `max_angle` | number | yes |  |
+| `max_angle` | number | yes | Only corners this sharp or sharper, radians (1.745 = 100°). |
 
 ### `"type": "tbone"`
 
@@ -68,7 +68,7 @@ In along the longer wall: the notch is in the shorter one.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `max_angle` | number | yes |  |
+| `max_angle` | number | yes | Only corners this sharp or sharper, radians (1.745 = 100°). |
 
 ## CustomPost
 
@@ -76,8 +76,8 @@ A user post-processor's config and template, exactly as read from the posts fold
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `config` | string | yes | The config, TOML text. |
-| `template` | string | yes | The template the config names, text. |
+| `config` | string | yes | The post's settings file (TOML), as copied. |
+| `template` | string | yes | The post's template, as copied. |
 
 ## Direction
 
@@ -90,8 +90,8 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
-| `shapes` | list of [Shape](#shape) | yes |  |
-| `source` | [DrawingSource](#drawingsource) or null | no | Where the imported shapes came from (the last import or update). |
+| `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
+| `source` | [DrawingSource](#drawingsource) or null | no | The DXF the imported shapes came from, at the last import or update. Null: no DXF yet. |
 
 ## DrawingSource
 
@@ -99,19 +99,19 @@ Provenance of the imported shapes.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `file` | string | yes |  |
-| `flattened` | object | no |  |
-| `ignored` | object | no |  |
-| `imported` | object | no |  |
-| `issues` | list of [SourceIssue](#sourceissue) | no |  |
-| `placement` | [Placement](#placement) | yes | How far the imported shapes are moved from where the DXF has them; the stored shapes are the moved ones (docs/specs/drawing-placement.md). |
-| `sha256` | string | yes |  |
-| `units` | [Units](#units) | yes |  |
-| `units_from` | [UnitsFrom](#unitsfrom) | yes |  |
+| `file` | string | yes | The DXF's file name. |
+| `flattened` | object | no | How many curves of each type (splines, ellipses) were turned into arcs. |
+| `ignored` | object | no | How many entities of each type were left out (text, dimensions, …). |
+| `imported` | object | no | How many entities of each type were imported. |
+| `issues` | list of [SourceIssue](#sourceissue) | no | What the import found: the import report. |
+| `placement` | [Placement](#placement) | yes | How the imported drawing was moved, turned and scaled on the stock. |
+| `sha256` | string | yes | The DXF's SHA-256, to tell whether it changed. |
+| `units` | [Units](#units) | yes | The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import. |
+| `units_from` | [UnitsFrom](#unitsfrom) | yes | Where the units came from: the DXF itself, or the user's choice. |
 
 ## Entry
 
-How the tool goes down into the material at the start of each pass (docs/specs/ramp-entry.md).
+How the tool goes down into the material at the start of each pass.
 
 ### `"type": "plunge"`
 
@@ -123,36 +123,36 @@ Down along the path and back, never steeper than `ramp_angle` (radians, 0 < angl
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `ramp_angle` | number | yes |  |
+| `ramp_angle` | number | yes | The steepest the ramp goes, radians: more than 0, at most 30° (0.5236). |
 
 ### `"type": "helix"`
 
-Pockets only: down round a circle of `radius` (of the tool centre, mm, less than the tool radius), never steeper than `ramp_angle` (docs/specs/helix-and-leads.md part C).
+Pockets only: down round a circle of `radius` (the tool centre's), never steeper than `ramp_angle`.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `radius` | number | yes |  |
-| `ramp_angle` | number | yes |  |
+| `radius` | number | yes | The helix's radius, mm: less than the tool radius. |
+| `ramp_angle` | number | yes | The steepest the helix goes, radians: more than 0, at most 30° (0.5236). |
 
 ## Finish
 
-A finishing pass on a profile (docs/specs/finish-and-skin.md).
+A finishing pass on a profile.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `stock` | number | yes | Left on the wall by the roughing laps, mm: more than 0, less than the tool radius. |
+| `stock` | number | yes | Left on the wall by the roughing passes, mm: more than 0, less than the tool radius. |
 
 ## HoleMethod
 
-How a Holes operation cuts (docs/specs/holes.md §2).
+How a Holes operation cuts.
 
 ### `"type": "drill"`
 
-Straight down at the centre; `peck` mm at a time (None: in one go).
+Straight down at the hole's centre, `peck` mm at a time.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `peck` | number or null | no |  |
+| `peck` | number or null | no | Drill this many mm at a time, lifting out between pecks to clear chips. Null: in one go. |
 
 ### `"type": "bore"`
 
@@ -160,9 +160,9 @@ A helix at the wall, at most `step_down` mm per turn and never steeper than `ram
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `direction` | [Direction](#direction) | yes |  |
-| `ramp_angle` | number | yes |  |
-| `step_down` | number | yes |  |
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional`, as for a profile inside the hole. |
+| `ramp_angle` | number | yes | The steepest the helix goes, radians: more than 0, at most 30° (0.5236). |
+| `step_down` | number | yes | The most the helix goes down per turn, mm. |
 
 ## IssueSeverity
 
@@ -170,32 +170,32 @@ One of: `"warning"`, `"error"`.
 
 ## Lead
 
-Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
+Quarter-circle lead-in and lead-out.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `radius` | number | yes | Of the arcs the tool centre follows, mm: more than 0, at most 10 × the tool diameter. |
+| `radius` | number | yes | Radius of the lead arcs, mm: more than 0, at most 10 tool diameters. Smaller where there's no room. |
 
 ## LineSegment
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `end` | 2 × number | yes |  |
-| `start` | 2 × number | yes |  |
+| `end` | 2 × number | yes | End point, mm. |
+| `start` | 2 × number | yes | Start point, mm. |
 
 ## Machine
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `custom_post` | [CustomPost](#custompost) or null | no | A user post-processor as copied into the project when it was chosen (docs/specs/user-posts.md §3); null: `post` names a built-in post. Since schema 15. |
-| `max_feed` | number or null | no |  |
-| `name` | string or null | no | The machine profile these values came from (docs/specs/tool-library-and-machines.md §4). Only a note: planning and G-code never read it. |
-| `post` | string | yes |  |
-| `safe_z` | number | yes |  |
-| `spindle` | [Spindle](#spindle) | yes |  |
-| `tool_change` | [ToolChange](#toolchange) | yes | One file per tool group or one file with M6 (schema 12). |
-| `travel` | [Travel](#travel) or null | no |  |
-| `work_zero` | [WorkZero](#workzero) | no | The drawing point that becomes X0 Y0 in the G-code (docs/specs/work-zero.md). Missing in older files: the drawing origin, as before. |
+| `custom_post` | [CustomPost](#custompost) or null | no | Your own post-processor, copied into the project when chosen, so it gives the same G-code anywhere. Null: `post` is a built-in one. |
+| `max_feed` | number or null | no | The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time uses it for rapids. Null: unknown. |
+| `name` | string or null | no | The machine profile these values came from, for reference; nothing reads it. |
+| `post` | string | yes | The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own. |
+| `safe_z` | number | yes | The height for rapid moves sideways, mm above Z0. Above the stock top. |
+| `spindle` | [Spindle](#spindle) | yes | The spindle's direction: `cw` (M3) or `ccw` (M4). |
+| `tool_change` | [ToolChange](#toolchange) | yes | With several tools: `files` (one file per tool) or `program` (one file with tool changes). |
+| `travel` | [Travel](#travel) or null | no | The machine's travel, mm. When set, a program that moves farther is refused. Null: not checked. |
+| `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's origin. |
 
 ## Operation
 
@@ -203,99 +203,99 @@ Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive gives a larger pocket or a smaller part, negative leaves material. Less than the tool radius. |
-| `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the inside corners (docs/specs/dogbones.md). Missing: none. |
-| `direction` | [Direction](#direction) | yes |  |
-| `enabled` | boolean | no | Disabled operations stay in the file and are skipped when generating. |
-| `end_depth` | number | yes |  |
-| `entry` | [Entry](#entry) | no | Missing: straight down, as before (docs/specs/ramp-entry.md). |
-| `feed` | number | yes |  |
-| `finish` | [Finish](#finish) or null | no | Rough with stock left on the wall, then one finishing lap at the wall (docs/specs/finish-and-skin.md). Missing: none. |
-| `lead` | [Lead](#lead) or null | no | Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md, part B). Missing: none. |
-| `name` | string | no |  |
-| `plunge_feed` | number | yes |  |
-| `select` | [Selector](#selector) | yes |  |
-| `side` | [Side](#side) | yes |  |
-| `skin` | [Skin](#skin) or null | no | Stop a thin skin above the end depth and cut through it last (docs/specs/finish-and-skin.md). Missing: none. |
-| `start_depth` | number | yes | Where the cut starts and ends, mm down from the stock top (docs/specs/ depths-and-clearance.md): 0 <= start_depth < end_depth. |
-| `starts` | list of 2 × number | no | Where rings start, in drawing coordinates (mm): each point moves the start of the ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none. |
-| `step_down` | number | yes |  |
-| `tabs` | [Tabs](#tabs) or null | no |  |
-| `tool` | integer | yes |  |
+| `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius. |
+| `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round. |
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
+| `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `finish` | [Finish](#finish) or null | no | A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap at full depth takes it off. Null: none. |
+| `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the waste side onto the path. Null: none. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
+| `side` | [Side](#side) | yes | Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a hole) or `on` the line. |
+| `skin` | [Skin](#skin) or null | no | An onion skin: the passes stop `thickness` mm above the end depth, and one last lap cuts through it. Null: none. |
+| `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
+| `starts` | list of 2 × number | no | Where the cut starts, as points in drawing coordinates (mm): each moves the start of the ring (contour) nearest to it. Empty: chosen by Chipload. |
+| `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
+| `tabs` | [Tabs](#tabs) or null | no | Holding tabs left at the bottom of the cut, so a part cut out doesn't come loose. Null: none. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "pocket"`
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive gives a larger pocket or a smaller part, negative leaves material. Less than the tool radius. |
-| `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the wall's corners (docs/specs/dogbones.md). Missing: none. |
-| `direction` | [Direction](#direction) | yes |  |
-| `enabled` | boolean | no | Disabled operations stay in the file and are skipped when generating. |
-| `end_depth` | number | yes |  |
-| `entry` | [Entry](#entry) | no | Missing: straight down, as before (docs/specs/ramp-entry.md). |
-| `feed` | number | yes |  |
-| `keep_tool_down` | boolean | no | Stay at depth between rings where that is safe. |
-| `lead` | [Lead](#lead) or null | no | Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md, part B). Missing: none. |
-| `name` | string | no |  |
-| `plunge_feed` | number | yes |  |
-| `rest` | [Rest](#rest) or null | no | Clear only what a larger tool leaves (docs/specs/rest-machining.md). Missing: the whole pocket. |
-| `round_corners` | boolean | yes | Rings strategy: the corners of every ring but the wall ring are rounded (docs/specs/pocket-round-corners.md, schema 14). Ignored by the other strategies. |
-| `select` | [Selector](#selector) | yes |  |
-| `start_depth` | number | yes | Where the cut starts and ends, mm down from the stock top (docs/specs/ depths-and-clearance.md): 0 <= start_depth < end_depth. |
-| `starts` | list of 2 × number | no | Where rings start, in drawing coordinates (mm): each point moves the start of the ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none. |
-| `step_down` | number | yes |  |
-| `stepover` | number | yes | Fraction of the tool diameter, 0 < stepover <= 1. |
-| `strategy` | [PocketStrategy](#pocketstrategy) | no | How the pocket is cleared (docs/specs/trochoidal.md). Missing: rings, as before. |
-| `tool` | integer | yes |  |
+| `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius. |
+| `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round. |
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
+| `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `keep_tool_down` | boolean | no | Between rings, feed across at depth instead of lifting, where the move stays clear of the walls and is at most a tool diameter. Missing: false. |
+| `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
+| `round_corners` | boolean | yes | Round the corners of every ring but the one along the wall, for smoother motion. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
+| `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
+| `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
+| `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
+| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter: more than 0, at most 1. |
+| `strategy` | [PocketStrategy](#pocketstrategy) | no | How the pocket is cleared: `{"type": "rings"}`. (`trochoidal` and `adaptive` were removed in 0.14: such projects load but don't generate.) Missing: rings. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "vcarve"`
 
-A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide as the shape (docs/specs/v-carve.md).
+V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide as the shape.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `enabled` | boolean | no | Disabled operations stay in the file and are skipped when generating. |
-| `end_depth` | number | yes | The deepest the tip goes, mm down from the stock top: wider strokes are carved to it and reported (§5). |
-| `feed` | number | yes |  |
-| `name` | string | no |  |
-| `plunge_feed` | number | yes |  |
-| `select` | [Selector](#selector) | yes |  |
-| `start_depth` | number | yes | The surface carved, mm down from the stock top (0: the top). |
-| `step_down` | number or null | no | Missing: one pass. |
-| `tool` | integer | yes |  |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
+| `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
+| `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
+| `step_down` | number or null | no | Carve in passes no deeper than this, mm. Null: one pass. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "path"`
 
-Follow path: the tool centre on the selected shapes, open or closed (docs/specs/follow-path.md).
+Follow path: the tool centre on the selected shapes, open or closed.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `enabled` | boolean | no | Disabled operations stay in the file and are skipped when generating. |
-| `end_depth` | number | yes |  |
-| `entry` | [Entry](#entry) | yes | Plunge or ramp (a helix is for pockets). |
-| `feed` | number | yes |  |
-| `name` | string | no |  |
-| `plunge_feed` | number | yes |  |
-| `select` | [Selector](#selector) | yes |  |
-| `start_depth` | number | yes | Where the cut starts and ends, mm down from the stock top: 0 <= start < end. |
-| `step_down` | number | yes |  |
-| `tool` | integer | yes |  |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
+| `entry` | [Entry](#entry) | yes | How the tool goes down at the start of each pass: `plunge` or `ramp` along the path. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
+| `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
+| `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "holes"`
 
-Holes: drilled with a drill, bored with a helix with an endmill (docs/specs/holes.md).
+Holes: drilled with a drill, bored with a helix with an endmill.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `enabled` | boolean | no | Disabled operations stay in the file and are skipped when generating. |
-| `end_depth` | number | yes |  |
-| `feed` | number | yes | The bore's helix and circle; a drill doesn't use it. |
-| `method` | [HoleMethod](#holemethod) | yes | Matches the tool: `drill` for a drill, `bore` for an endmill. |
-| `name` | string | no |  |
-| `plunge_feed` | number | yes | The drill's feed down; the bore's straight descent to the start depth. |
-| `select` | [Selector](#selector) | yes |  |
-| `start_depth` | number | yes | Where the cut starts and ends, mm down from the stock top: 0 <= start < end. For a drill, the end is the depth of its point. |
-| `tool` | integer | yes |  |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | Where the hole ends, mm down from the stock top. For a drill, the depth of its point. |
+| `feed` | number | yes | A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it. |
+| `method` | [HoleMethod](#holemethod) | yes | How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `plunge_feed` | number | yes | A drill's feed down, or a bore's feed straight down to the start depth, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the circles among the shapes on a layer, or shapes by id. Other shapes are skipped with a note. |
+| `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ## PathSegment
 
@@ -305,14 +305,14 @@ Holes: drilled with a drill, bored with a helix with an endmill (docs/specs/hole
 
 ## Placement
 
-Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy), turned about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/ drawing-rotation.md), scaled about the origin (docs/specs/drawing-scale.md), then moved by (dx, dy) mm.
+Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy), turned and scaled about the DXF's origin.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `dx` | number | yes |  |
-| `dy` | number | yes |  |
-| `quarter_turns` | integer | yes | 0 to 3. |
-| `scale` | number | yes | Uniform, `MIN_SCALE` to `MAX_SCALE`. |
+| `dx` | number | yes | Then moved along X, mm. |
+| `dy` | number | yes | Then moved along Y, mm. |
+| `quarter_turns` | integer | yes | Turned counter-clockwise about the DXF's origin, in quarter turns (0–3), after the scale. |
+| `scale` | number | yes | Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn. |
 
 ## PocketStrategy
 
@@ -324,54 +324,52 @@ Rings parallel to the walls, cut from the inside out. An empty struct variant (n
 
 ### `"type": "trochoidal"`
 
-Removed 2026-10-13 (docs/decisions/0017-scope.md): read so older files still load, refused when generating (until switched to rings). Was: loops of `loop_radius` moving `step` mm along backbones.
+Removed in 0.14: still read, so older projects load, but refused when generating until switched to rings.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `loop_radius` | number | yes |  |
-| `step` | number | yes |  |
+| `loop_radius` | number | yes | Removed in 0.14; kept so old projects load. |
+| `step` | number | yes | Removed in 0.14; kept so old projects load. |
 
 ### `"type": "adaptive"`
 
-Removed 2026-10-13, as `Trochoidal`. Was: adaptive fronts (docs/specs/adaptive-fronts.md).
+Removed in 0.14, as `trochoidal`.
 
 ## Rest
 
-Rest machining (docs/specs/rest-machining.md): the pocket clears only the material a disk of the larger tool `after_tool` (a project tool id) can't reach in its shapes.
+Rest machining: the pocket clears only the material the larger tool `after_tool` can't reach in its shapes.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `after_tool` | integer | yes |  |
+| `after_tool` | integer | yes | The id of the larger project tool whose leftovers this pocket clears. |
 
 ## Selector
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `layer` | string or null | no |  |
-| `shapes` | list of integer or null | no | Shape ids of the project's drawing. |
+| `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
+| `shapes` | list of integer or null | no | These shapes, by id. |
 
 ## Shape
 
-One shape of the drawing: imported (a path of lines and arcs, one per DXF entity) or drawn in Chipload (circle, rectangle, polyline; docs/specs/drawing-tools.md).
-
-In the file it is one flat object: `id`, `layer`, `kind`, then the fields of that kind.
+One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF entity), or drawn in Chipload (`circle`, `rectangle`, `polyline`). One flat object: `id`, `layer`, `kind`, then the fields of that kind.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number or null | no |  |
-| `bulges` | list of number or null | no |  |
-| `center` | 2 × number or null | no |  |
-| `closed` | boolean or null | no |  |
-| `dxf_handle` | string or null | no |  |
-| `dxf_type` | string or null | no |  |
-| `id` | integer | yes |  |
-| `kind` | [ShapeKind](#shapekind) | yes |  |
-| `layer` | string | yes |  |
-| `length` | number or null | no |  |
-| `points` | list of 2 × number or null | no |  |
-| `radius` | number or null | no |  |
-| `segments` | list of [PathSegment](#pathsegment) or null | no |  |
-| `width` | number or null | no |  |
+| `angle` | number or null | no | rectangle: its rotation about the centre, radians, counter-clockwise. |
+| `bulges` | list of number or null | no | polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise. |
+| `center` | 2 × number or null | no | circle, rectangle: the centre, mm. |
+| `closed` | boolean or null | no | path, polyline: whether it ends where it starts. |
+| `dxf_handle` | string or null | no | path: the handle of the DXF entity it came from, which keeps its id when the DXF is updated. |
+| `dxf_type` | string or null | no | path: the DXF entity's type, e.g. LWPOLYLINE. |
+| `id` | integer | yes | The shape's id, which operations select it by. |
+| `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`. |
+| `layer` | string | yes | Its layer. |
+| `length` | number or null | no | rectangle: its size along its own X axis, mm. |
+| `points` | list of 2 × number or null | no | polyline: its points, mm. |
+| `radius` | number or null | no | circle: the radius, mm. |
+| `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |
+| `width` | number or null | no | rectangle: its size along its own Y axis, mm. |
 
 ## ShapeKind
 
@@ -383,11 +381,11 @@ One of: `"inside"`, `"outside"`, `"on"`.
 
 ## Skin
 
-An onion skin on a profile (docs/specs/finish-and-skin.md).
+An onion skin on a profile.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `thickness` | number | yes | Left above the end depth until the last laps, mm: more than 0, at most the step down, less than the cut and (with tabs) less than the tab height. |
+| `thickness` | number | yes | Left above the end depth until the last lap, mm: more than 0, at most the step down. |
 
 ## SourceIssue
 
@@ -395,9 +393,9 @@ An import-time issue that can't be recomputed from the shapes.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `code` | string | yes |  |
-| `message` | string | yes |  |
-| `severity` | [IssueSeverity](#issueseverity) | yes |  |
+| `code` | string | yes | What kind of issue, e.g. `duplicate` or `open_contour` (see the import page of the guide). |
+| `message` | string | yes | What it is, in words. |
+| `severity` | [IssueSeverity](#issueseverity) | yes | `warning` or `error`. |
 
 ## Spindle
 
@@ -409,12 +407,12 @@ An import-time issue that can't be recomputed from the shapes.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `max_overcut` | number | yes | How far below the stock bottom a cut may go (into the spoilboard), mm, >= 0. Cuts below the stock within this are warned about; deeper ones are refused. |
-| `origin` | [StockOrigin](#stockorigin) | no |  |
-| `thickness` | number | yes |  |
-| `x` | number | yes |  |
-| `y` | number | yes |  |
-| `z_zero` | [ZZero](#zzero) | no |  |
+| `max_overcut` | number | yes | How far a cut may go below the stock bottom, into the spoilboard, mm. |
+| `origin` | [StockOrigin](#stockorigin) | no | Where the stock lies around the drawing's origin: its `bottom_left` corner or its `center` there. |
+| `thickness` | number | yes | Thickness, mm. Depths count down from the top. |
+| `x` | number | yes | Size along X, mm. |
+| `y` | number | yes | Size along Y, mm. |
+| `z_zero` | [ZZero](#zzero) | no | Where Z0 is: the stock `top` or `bottom`. |
 
 ## StockCorner
 
@@ -428,28 +426,28 @@ One of: `"bottom_left"`, `"center"`.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `count` | integer | yes |  |
-| `flank_angle` | number | yes | Slope of the tab's flanks, radians, 0 < angle <= 90°; 90° is a straight tab (docs/specs/profile-spiral.md §4). `width` is the flat top. |
-| `height` | number | yes | Bridge thickness up from the bottom of the cut, mm. |
-| `width` | number | yes | Bridge left on the part, mm (the tool lifts for width + tool diameter). |
+| `count` | integer | yes | Tabs per contour, at least 1. |
+| `flank_angle` | number | yes | The slope of the tab's sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows. |
+| `height` | number | yes | The bridge's thickness, up from the bottom of the cut, mm. |
+| `width` | number | yes | The bridge left on the part, along its edge, mm (the flat top of a sloped tab). |
 
 ## Tool
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number or null | no | V-bits: the included angle, radians, 0 < angle < π (docs/specs/v-carve.md §2). None = unknown: a V-carve refuses the tool until it is set. |
-| `center_cutting` | boolean or null | no | None = unknown. Pockets plunge straight down, so they need a centre-cutting endmill. |
-| `diameter` | number | yes |  |
-| `flutes` | integer or null | no |  |
-| `id` | integer | yes |  |
-| `name` | string or null | no | The library tool these values came from (docs/specs/tool-library-and-machines.md §4). Only a note: planning and G-code never read it. |
-| `rpm` | number or null | no |  |
-| `tip_diameter` | number or null | no | V-bits: the diameter of the flat tip, mm, 0 <= tip < diameter. None = pointed. |
-| `type` | [ToolType](#tooltype) | no |  |
+| `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. |
+| `center_cutting` | boolean or null | no | Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown. |
+| `diameter` | number | yes | Diameter, mm. For a V-bit, its widest cutting diameter. |
+| `flutes` | integer or null | no | Number of flutes, for the chip load. Null: unknown. |
+| `id` | integer | yes | The tool's number: what operations name it by, and its T number in the G-code. |
+| `name` | string or null | no | The library tool it came from, for reference. |
+| `rpm` | number or null | no | Spindle speed, rpm. Needed to generate. |
+| `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. |
+| `type` | [ToolType](#tooltype) | no | `endmill`, `drill` or `vbit`. |
 
 ## ToolChange
 
-How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
+How a job with several tools is written.
 
 - `"files"`: One G-code file per tool group; the user changes the tool and sets Z zero between.
 
@@ -463,9 +461,9 @@ One of: `"endmill"`, `"drill"`, `"vbit"`.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `x` | number | yes |  |
-| `y` | number | yes |  |
-| `z` | number | yes |  |
+| `x` | number | yes | Travel along X, mm. |
+| `y` | number | yes | Travel along Y, mm. |
+| `z` | number | yes | Travel along Z, mm. |
 
 ## Units
 

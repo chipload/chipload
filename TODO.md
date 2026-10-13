@@ -93,8 +93,9 @@ it's built (see `CLAUDE.md`).
   written; generated reference pages (CLI, project, tools, machines, posts) and a coverage
   test; build `packaging/docs/build-book.sh` (zip for releases), screenshots
   `packaging/docs/screenshots.sh`, publishing `publish-book.sh` once the repository is
-  public. Help > User guide. Later: rewrite the model doc comments for users (they are the
-  reference pages' descriptions; some are developer notes or missing).
+  public. Help > User guide.
+  The file formats' doc comments were rewritten for users on 2026-10-13 (they are the
+  reference pages' and the JSON Schemas' descriptions).
 - **Add rest pocket** (2026-10-13, docs/specs/rest-machining.md §10): from a pocket, a rest
   pocket right after it with the same shapes, depths and settings, a smaller tool, rest
   after the pocket's tool; library cutting values when the tool has them. GUI: the

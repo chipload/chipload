@@ -5,19 +5,22 @@
       "description": "Values filled into an operation when it is created with this tool. Never applied to an\nexisting operation.",
       "properties": {
         "feed": {
+          "description": "Cutting feed, mm/min.",
           "format": "double",
           "type": "number"
         },
         "plunge_feed": {
+          "description": "Plunge feed, mm/min.",
           "format": "double",
           "type": "number"
         },
         "step_down": {
+          "description": "Step down, mm.",
           "format": "double",
           "type": "number"
         },
         "stepover": {
-          "description": "Fraction of the tool diameter, 0 < stepover <= 1 (pockets).",
+          "description": "Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.",
           "format": "double",
           "type": "number"
         }
@@ -36,7 +39,7 @@
       "properties": {
         "angle": {
           "default": null,
-          "description": "V-bits: included angle, radians; None = unknown.",
+          "description": "V-bits: the included angle, radians. Null: unknown.",
           "format": "double",
           "type": [
             "number",
@@ -45,6 +48,7 @@
         },
         "center_cutting": {
           "default": null,
+          "description": "Whether it can plunge straight down. Null: unknown.",
           "type": [
             "boolean",
             "null"
@@ -59,14 +63,17 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "Feeds, step down and stepover a new operation with this tool starts with. Never\nchanges an existing operation. Null: none."
         },
         "diameter": {
+          "description": "Diameter, mm.",
           "format": "double",
           "type": "number"
         },
         "flutes": {
           "default": null,
+          "description": "Number of flutes. Null: unknown.",
           "format": "int64",
           "type": [
             "integer",
@@ -74,15 +81,17 @@
           ]
         },
         "id": {
-          "description": "The id it gets in a project when that id is free there.",
+          "description": "The tool number it gets in a project, when that number is free there.",
           "format": "int64",
           "type": "integer"
         },
         "name": {
+          "description": "The tool's name, unique in the library (upper or lower case don't matter).",
           "type": "string"
         },
         "rpm": {
           "default": null,
+          "description": "Spindle speed, rpm. Null: unknown.",
           "format": "double",
           "type": [
             "number",
@@ -91,7 +100,7 @@
         },
         "tip_diameter": {
           "default": null,
-          "description": "V-bits: flat tip diameter, mm; None = pointed.",
+          "description": "V-bits: the flat tip's diameter, mm. Null: pointed.",
           "format": "double",
           "type": [
             "number",
@@ -100,7 +109,8 @@
         },
         "type": {
           "$ref": "#/$defs/ToolType",
-          "default": "endmill"
+          "default": "endmill",
+          "description": "`endmill`, `drill` or `vbit`."
         }
       },
       "required": [
@@ -125,16 +135,18 @@
   "properties": {
     "default_tool": {
       "default": null,
-      "description": "The tool a new project starts with.",
+      "description": "The name of the tool new projects start with. Null: the built-in 6 mm endmill.",
       "type": [
         "string",
         "null"
       ]
     },
     "schema_version": {
-      "const": 2
+      "const": 2,
+      "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "tools": {
+      "description": "The tools.",
       "items": {
         "$ref": "#/$defs/LibraryTool"
       },
@@ -142,6 +154,7 @@
     },
     "written_by": {
       "default": null,
+      "description": "The Chipload version that wrote the file.",
       "type": [
         "string",
         "null"

@@ -61,10 +61,13 @@ pub enum LibraryError {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Cutting {
+    /// Cutting feed, mm/min.
     pub feed: f64,
+    /// Plunge feed, mm/min.
     pub plunge_feed: f64,
+    /// Step down, mm.
     pub step_down: f64,
-    /// Fraction of the tool diameter, 0 < stepover <= 1 (pockets).
+    /// Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.
     pub stepover: f64,
 }
 
@@ -73,24 +76,32 @@ pub struct Cutting {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LibraryTool {
+    /// The tool's name, unique in the library (upper or lower case don't matter).
     pub name: String,
-    /// The id it gets in a project when that id is free there.
+    /// The tool number it gets in a project, when that number is free there.
     pub id: i64,
+    /// `endmill`, `drill` or `vbit`.
     #[serde(default, rename = "type")]
     pub kind: ToolType,
+    /// Diameter, mm.
     pub diameter: f64,
+    /// Number of flutes. Null: unknown.
     #[serde(default)]
     pub flutes: Option<i64>,
+    /// Whether it can plunge straight down. Null: unknown.
     #[serde(default)]
     pub center_cutting: Option<bool>,
+    /// Spindle speed, rpm. Null: unknown.
     #[serde(default)]
     pub rpm: Option<f64>,
+    /// Feeds, step down and stepover a new operation with this tool starts with. Never
+    /// changes an existing operation. Null: none.
     #[serde(default)]
     pub cutting: Option<Cutting>,
-    /// V-bits: included angle, radians; None = unknown.
+    /// V-bits: the included angle, radians. Null: unknown.
     #[serde(default)]
     pub angle: Option<f64>,
-    /// V-bits: flat tip diameter, mm; None = pointed.
+    /// V-bits: the flat tip's diameter, mm. Null: pointed.
     #[serde(default)]
     pub tip_diameter: Option<f64>,
 }
@@ -184,12 +195,15 @@ impl LibraryTool {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ToolLibrary {
+    /// The version of the file format.
     pub schema_version: i64,
+    /// The Chipload version that wrote the file.
     #[serde(default)]
     pub written_by: Option<String>,
-    /// The tool a new project starts with.
+    /// The name of the tool new projects start with. Null: the built-in 6 mm endmill.
     #[serde(default)]
     pub default_tool: Option<String>,
+    /// The tools.
     pub tools: Vec<LibraryTool>,
 }
 
@@ -275,19 +289,30 @@ impl ToolLibrary {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MachineProfile {
+    /// The profile's name, unique in the file.
     pub name: String,
+    /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
+    /// The height for rapid moves sideways, mm above Z0. Above the stock top.
     pub safe_z: f64,
+    /// The spindle's direction: `cw` (M3) or `ccw` (M4).
     pub spindle: Spindle,
+    /// The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time
+    /// uses it for rapids. Null: unknown.
     #[serde(default)]
     pub max_feed: Option<f64>,
+    /// The machine's travel, mm. When set, a program that moves farther is refused. Null:
+    /// not checked.
     #[serde(default)]
     pub travel: Option<Travel>,
-    /// The work zero this machine is usually set up with.
+    /// The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's
+    /// origin.
     pub work_zero: WorkZero,
-    /// Kept under `stock` in projects; it is about the spoilboard, so it belongs here.
+    /// How far a new project's cuts may go below the stock bottom, mm
+    /// (`stock.max_overcut`).
     pub max_overcut: f64,
-    /// One file per tool group or one file with M6 (machines.json 2).
+    /// With several tools: `files` (one file per tool) or `program` (one file with tool
+    /// changes).
     pub tool_change: ToolChange,
 }
 
@@ -429,12 +454,15 @@ fn work_zero_name(zero: &WorkZero) -> String {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MachineLibrary {
+    /// The version of the file format.
     pub schema_version: i64,
+    /// The Chipload version that wrote the file.
     #[serde(default)]
     pub written_by: Option<String>,
-    /// The machine a new project starts with.
+    /// The name of the profile new projects start with. Null: the built-in values.
     #[serde(default)]
     pub default_machine: Option<String>,
+    /// The profiles.
     pub machines: Vec<MachineProfile>,
 }
 

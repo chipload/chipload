@@ -6,6 +6,7 @@
       "properties": {
         "max_feed": {
           "default": null,
+          "description": "The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time\nuses it for rapids. Null: unknown.",
           "format": "double",
           "type": [
             "number",
@@ -13,26 +14,30 @@
           ]
         },
         "max_overcut": {
-          "description": "Kept under `stock` in projects; it is about the spoilboard, so it belongs here.",
+          "description": "How far a new project's cuts may go below the stock bottom, mm\n(`stock.max_overcut`).",
           "format": "double",
           "type": "number"
         },
         "name": {
+          "description": "The profile's name, unique in the file.",
           "type": "string"
         },
         "post": {
+          "description": "The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.",
           "type": "string"
         },
         "safe_z": {
+          "description": "The height for rapid moves sideways, mm above Z0. Above the stock top.",
           "format": "double",
           "type": "number"
         },
         "spindle": {
-          "$ref": "#/$defs/Spindle"
+          "$ref": "#/$defs/Spindle",
+          "description": "The spindle's direction: `cw` (M3) or `ccw` (M4)."
         },
         "tool_change": {
           "$ref": "#/$defs/ToolChange",
-          "description": "One file per tool group or one file with M6 (machines.json 2)."
+          "description": "With several tools: `files` (one file per tool) or `program` (one file with tool\nchanges)."
         },
         "travel": {
           "anyOf": [
@@ -43,11 +48,12 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "The machine's travel, mm. When set, a program that moves farther is refused. Null:\nnot checked."
         },
         "work_zero": {
           "$ref": "#/$defs/WorkZero",
-          "description": "The work zero this machine is usually set up with."
+          "description": "The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's\norigin."
         }
       },
       "required": [
@@ -86,7 +92,7 @@
       "type": "string"
     },
     "ToolChange": {
-      "description": "How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).",
+      "description": "How a job with several tools is written.",
       "oneOf": [
         {
           "const": "files",
@@ -104,14 +110,17 @@
       "additionalProperties": false,
       "properties": {
         "x": {
+          "description": "Travel along X, mm.",
           "format": "double",
           "type": "number"
         },
         "y": {
+          "description": "Travel along Y, mm.",
           "format": "double",
           "type": "number"
         },
         "z": {
+          "description": "Travel along Z, mm.",
           "format": "double",
           "type": "number"
         }
@@ -149,7 +158,8 @@
               "type": "string"
             },
             "corner": {
-              "$ref": "#/$defs/StockCorner"
+              "$ref": "#/$defs/StockCorner",
+              "description": "`center`, `bottom_left`, `bottom_right`, `top_left` or `top_right` of the stock."
             }
           },
           "required": [
@@ -167,10 +177,12 @@
               "type": "string"
             },
             "x": {
+              "description": "X of the point, drawing coordinates, mm.",
               "format": "double",
               "type": "number"
             },
             "y": {
+              "description": "Y of the point, drawing coordinates, mm.",
               "format": "double",
               "type": "number"
             }
@@ -191,23 +203,26 @@
   "properties": {
     "default_machine": {
       "default": null,
-      "description": "The machine a new project starts with.",
+      "description": "The name of the profile new projects start with. Null: the built-in values.",
       "type": [
         "string",
         "null"
       ]
     },
     "machines": {
+      "description": "The profiles.",
       "items": {
         "$ref": "#/$defs/MachineProfile"
       },
       "type": "array"
     },
     "schema_version": {
-      "const": 2
+      "const": 2,
+      "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "written_by": {
       "default": null,
+      "description": "The Chipload version that wrote the file.",
       "type": [
         "string",
         "null"

@@ -10,10 +10,10 @@ Schema version 2. Older files load through Chipload's migrations; this schema de
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `default_tool` | string or null | no | The tool a new project starts with. |
-| `schema_version` | `2` | yes |  |
-| `tools` | list of [LibraryTool](#librarytool) | yes |  |
-| `written_by` | string or null | no |  |
+| `default_tool` | string or null | no | The name of the tool new projects start with. Null: the built-in 6 mm endmill. |
+| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `tools` | list of [LibraryTool](#librarytool) | yes | The tools. |
+| `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## Cutting
 
@@ -21,10 +21,10 @@ Values filled into an operation when it is created with this tool. Never applied
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `feed` | number | yes |  |
-| `plunge_feed` | number | yes |  |
-| `step_down` | number | yes |  |
-| `stepover` | number | yes | Fraction of the tool diameter, 0 < stepover <= 1 (pockets). |
+| `feed` | number | yes | Cutting feed, mm/min. |
+| `plunge_feed` | number | yes | Plunge feed, mm/min. |
+| `step_down` | number | yes | Step down, mm. |
+| `stepover` | number | yes | Pocket stepover, a fraction of the tool diameter: more than 0, at most 1. |
 
 ## LibraryTool
 
@@ -32,16 +32,16 @@ One tool of the library: a project tool with a name and optional cutting values.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number or null | no | V-bits: included angle, radians; None = unknown. |
-| `center_cutting` | boolean or null | no |  |
-| `cutting` | [Cutting](#cutting) or null | no |  |
-| `diameter` | number | yes |  |
-| `flutes` | integer or null | no |  |
-| `id` | integer | yes | The id it gets in a project when that id is free there. |
-| `name` | string | yes |  |
-| `rpm` | number or null | no |  |
-| `tip_diameter` | number or null | no | V-bits: flat tip diameter, mm; None = pointed. |
-| `type` | [ToolType](#tooltype) | no |  |
+| `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown. |
+| `center_cutting` | boolean or null | no | Whether it can plunge straight down. Null: unknown. |
+| `cutting` | [Cutting](#cutting) or null | no | Feeds, step down and stepover a new operation with this tool starts with. Never changes an existing operation. Null: none. |
+| `diameter` | number | yes | Diameter, mm. |
+| `flutes` | integer or null | no | Number of flutes. Null: unknown. |
+| `id` | integer | yes | The tool number it gets in a project, when that number is free there. |
+| `name` | string | yes | The tool's name, unique in the library (upper or lower case don't matter). |
+| `rpm` | number or null | no | Spindle speed, rpm. Null: unknown. |
+| `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. |
+| `type` | [ToolType](#tooltype) | no | `endmill`, `drill` or `vbit`. |
 
 ## ToolType
 

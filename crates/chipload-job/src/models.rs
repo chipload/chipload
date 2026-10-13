@@ -25,15 +25,24 @@ pub const OLDEST_VERSION: i64 = 4;
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Job {
+    /// The version of the file format. Chipload upgrades older projects when it opens them,
+    /// and refuses newer ones.
     pub schema_version: i64,
+    /// The Chipload version that wrote the file, for reference.
     #[serde(default)]
     pub written_by: Option<String>,
+    /// The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload.
     pub drawing: Drawing,
+    /// The material on the machine.
     pub stock: Stock,
+    /// The machine: post-processor, safe height, limits and zero.
     pub machine: Machine,
+    /// The tools the operations cut with.
     pub tools: Vec<Tool>,
+    /// The operations, cut in this order.
     pub operations: Vec<Operation>,
-    /// The part cut several times in a grid (docs/specs/copies-grid.md); None: once.
+    /// Cut the part several times in a grid. Null: once.
+    // Spec: docs/specs/copies-grid.md.
     #[serde(default)]
     pub copies: Option<Copies>,
 }
@@ -48,10 +57,16 @@ pub const MAX_COPIES: u32 = 1000;
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Copies {
+    /// Copies along X, at least 1.
     pub columns: u32,
+    /// Copies along Y, at least 1.
     pub rows: u32,
+    /// Distance from copy to copy along X, mm; negative grows to the left.
     pub dx: f64,
+    /// Distance from copy to copy along Y, mm; negative grows downwards.
     pub dy: f64,
+    /// `by_operation`: each operation on every copy, then the next; `by_part`: every
+    /// operation on one copy, then the next copy.
     #[serde(default)]
     pub order: CopyOrder,
 }
@@ -137,18 +152,20 @@ pub enum Units {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Drawing {
+    /// The shapes, imported and drawn.
     pub shapes: Vec<Shape>,
     /// The id the next new shape gets. Ids are never reused.
     pub next_shape_id: u64,
-    /// Where the imported shapes came from (the last import or update).
+    /// The DXF the imported shapes came from, at the last import or update. Null: no DXF
+    /// yet.
     #[serde(default)]
     pub source: Option<DrawingSource>,
 }
 
-/// One shape of the drawing: imported (a path of lines and arcs, one per DXF entity) or
-/// drawn in Chipload (circle, rectangle, polyline; docs/specs/drawing-tools.md).
-///
-/// In the file it is one flat object: `id`, `layer`, `kind`, then the fields of that kind.
+/// One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF
+/// entity), or drawn in Chipload (`circle`, `rectangle`, `polyline`). One flat object:
+/// `id`, `layer`, `kind`, then the fields of that kind.
+// Spec: docs/specs/drawing-tools.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(try_from = "RawShape", into = "RawShape")]
@@ -337,33 +354,46 @@ pub enum ShapeKind {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 struct RawShape {
+    /// The shape's id, which operations select it by.
     id: u64,
+    /// Its layer.
     layer: String,
+    /// `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`,
+    /// `polyline`.
     kind: ShapeKind,
-    // path: dxf_handle and dxf_type are always written (null if unknown).
+    /// path: the handle of the DXF entity it came from, which keeps its id when the DXF is
+    /// updated.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     dxf_handle: Option<Option<String>>,
+    /// path: the DXF entity's type, e.g. LWPOLYLINE.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     dxf_type: Option<Option<String>>,
-    // path, polyline
+    /// path, polyline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
+    /// path: its lines and arcs, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     segments: Option<Vec<PathSegment>>,
-    // circle, rectangle
+    /// circle, rectangle: the centre, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     center: Option<[f64; 2]>,
+    /// circle: the radius, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     radius: Option<f64>,
+    /// rectangle: its size along its own X axis, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     length: Option<f64>,
+    /// rectangle: its size along its own Y axis, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     width: Option<f64>,
+    /// rectangle: its rotation about the centre, radians, counter-clockwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     angle: Option<f64>,
-    // polyline
+    /// polyline: its points, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     points: Option<Vec<[f64; 2]>>,
+    /// polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a
+    /// counter-clockwise half circle, -1 clockwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bulges: Option<Vec<f64>>,
 }
@@ -593,7 +623,9 @@ impl PathSegment {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LineSegment {
+    /// Start point, mm.
     pub start: [f64; 2],
+    /// End point, mm.
     pub end: [f64; 2],
 }
 
@@ -602,9 +634,13 @@ pub struct LineSegment {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ArcSegment {
+    /// Centre, mm.
     pub center: [f64; 2],
+    /// Radius, mm.
     pub radius: f64,
+    /// Where the arc starts, radians from +X, counter-clockwise.
     pub start_angle: f64,
+    /// How far it turns, radians: positive counter-clockwise.
     pub sweep: f64,
 }
 
@@ -631,8 +667,12 @@ pub enum IssueSeverity {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct SourceIssue {
+    /// `warning` or `error`.
     pub severity: IssueSeverity,
+    /// What kind of issue, e.g. `duplicate` or `open_contour` (see the import page of the
+    /// guide).
     pub code: String,
+    /// What it is, in words.
     pub message: String,
 }
 
@@ -641,36 +681,46 @@ pub struct SourceIssue {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DrawingSource {
+    /// The DXF's file name.
     pub file: String,
+    /// The DXF's SHA-256, to tell whether it changed.
     pub sha256: String,
+    /// The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import.
     pub units: Units,
+    /// Where the units came from: the DXF itself, or the user's choice.
     pub units_from: UnitsFrom,
+    /// How many entities of each type were imported.
     #[serde(default)]
     pub imported: BTreeMap<String, usize>,
+    /// How many curves of each type (splines, ellipses) were turned into arcs.
     #[serde(default)]
     pub flattened: BTreeMap<String, usize>,
+    /// How many entities of each type were left out (text, dimensions, …).
     #[serde(default)]
     pub ignored: BTreeMap<String, usize>,
+    /// What the import found: the import report.
     #[serde(default)]
     pub issues: Vec<SourceIssue>,
-    /// How far the imported shapes are moved from where the DXF has them; the stored shapes
-    /// are the moved ones (docs/specs/drawing-placement.md).
+    /// How the imported drawing was moved, turned and scaled on the stock.
+    // Spec: docs/specs/drawing-placement.md.
     pub placement: Placement,
 }
 
 /// Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy),
-/// turned about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/
-/// drawing-rotation.md), scaled about the origin (docs/specs/drawing-scale.md), then moved
-/// by (dx, dy) mm.
+/// turned and scaled about the DXF's origin.
+// Spec: docs/specs/drawing-rotation.md; docs/specs/drawing-scale.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Placement {
-    /// Uniform, `MIN_SCALE` to `MAX_SCALE`.
+    /// Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn.
     pub scale: f64,
-    /// 0 to 3.
+    /// Turned counter-clockwise about the DXF's origin, in quarter turns (0–3), after the
+    /// scale.
     pub quarter_turns: u8,
+    /// Then moved along X, mm.
     pub dx: f64,
+    /// Then moved along Y, mm.
     pub dy: f64,
 }
 
@@ -730,15 +780,20 @@ pub enum ZZero {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Stock {
+    /// Size along X, mm.
     pub x: f64,
+    /// Size along Y, mm.
     pub y: f64,
+    /// Thickness, mm. Depths count down from the top.
     pub thickness: f64,
+    /// Where the stock lies around the drawing's origin: its `bottom_left` corner or its
+    /// `center` there.
     #[serde(default)]
     pub origin: StockOrigin,
+    /// Where Z0 is: the stock `top` or `bottom`.
     #[serde(default)]
     pub z_zero: ZZero,
-    /// How far below the stock bottom a cut may go (into the spoilboard), mm, >= 0. Cuts
-    /// below the stock within this are warned about; deeper ones are refused.
+    /// How far a cut may go below the stock bottom, into the spoilboard, mm.
     pub max_overcut: f64,
 }
 
@@ -756,8 +811,11 @@ impl Stock {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Travel {
+    /// Travel along X, mm.
     pub x: f64,
+    /// Travel along Y, mm.
     pub y: f64,
+    /// Travel along Z, mm.
     pub z: f64,
 }
 
@@ -771,7 +829,8 @@ pub enum Spindle {
     Ccw,
 }
 
-/// How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
+/// How a job with several tools is written.
+// Spec: docs/specs/tool-per-operation.md §3.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
@@ -796,25 +855,35 @@ impl ToolChange {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Machine {
-    /// The machine profile these values came from (docs/specs/tool-library-and-machines.md
-    /// §4). Only a note: planning and G-code never read it.
+    /// The machine profile these values came from, for reference; nothing reads it.
+    // Spec: docs/specs/tool-library-and-machines.md §4.
     #[serde(default)]
     pub name: Option<String>,
+    /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
+    /// The height for rapid moves sideways, mm above Z0. Above the stock top.
     pub safe_z: f64,
+    /// The spindle's direction: `cw` (M3) or `ccw` (M4).
     pub spindle: Spindle,
+    /// The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time
+    /// uses it for rapids. Null: unknown.
     #[serde(default)]
     pub max_feed: Option<f64>,
+    /// The machine's travel, mm. When set, a program that moves farther is refused. Null:
+    /// not checked.
     #[serde(default)]
     pub travel: Option<Travel>,
-    /// The drawing point that becomes X0 Y0 in the G-code (docs/specs/work-zero.md).
-    /// Missing in older files: the drawing origin, as before.
+    /// The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's
+    /// origin.
+    // Spec: docs/specs/work-zero.md.
     #[serde(default)]
     pub work_zero: WorkZero,
-    /// One file per tool group or one file with M6 (schema 12).
+    /// With several tools: `files` (one file per tool) or `program` (one file with tool
+    /// changes).
     pub tool_change: ToolChange,
-    /// A user post-processor as copied into the project when it was chosen
-    /// (docs/specs/user-posts.md §3); null: `post` names a built-in post. Since schema 15.
+    /// Your own post-processor, copied into the project when chosen, so it gives the same
+    /// G-code anywhere. Null: `post` is a built-in one.
+    // Spec: docs/specs/user-posts.md §3.
     #[serde(default)]
     pub custom_post: Option<CustomPost>,
 }
@@ -824,9 +893,9 @@ pub struct Machine {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct CustomPost {
-    /// The config, TOML text.
+    /// The post's settings file (TOML), as copied.
     pub config: String,
-    /// The template the config names, text.
+    /// The post's template, as copied.
     pub template: String,
 }
 
@@ -839,9 +908,17 @@ pub enum WorkZero {
     /// variant, not a unit one, so serde refuses stray fields here too.
     DrawingOrigin {},
     /// A corner or the centre of the stock, as placed by `stock.origin`.
-    Stock { corner: StockCorner },
+    Stock {
+        /// `center`, `bottom_left`, `bottom_right`, `top_left` or `top_right` of the stock.
+        corner: StockCorner,
+    },
     /// Any point, in drawing coordinates (mm).
-    Point { x: f64, y: f64 },
+    Point {
+        /// X of the point, drawing coordinates, mm.
+        x: f64,
+        /// Y of the point, drawing coordinates, mm.
+        y: f64,
+    },
 }
 
 impl Default for WorkZero {
@@ -922,26 +999,32 @@ pub enum ToolType {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tool {
+    /// The tool's number: what operations name it by, and its T number in the G-code.
     pub id: i64,
-    /// The library tool these values came from (docs/specs/tool-library-and-machines.md
-    /// §4). Only a note: planning and G-code never read it.
+    /// The library tool it came from, for reference.
+    // Spec: docs/specs/tool-library-and-machines.md §4.
     #[serde(default)]
     pub name: Option<String>,
+    /// `endmill`, `drill` or `vbit`.
     #[serde(default, rename = "type")]
     pub kind: ToolType,
+    /// Diameter, mm. For a V-bit, its widest cutting diameter.
     pub diameter: f64,
+    /// Number of flutes, for the chip load. Null: unknown.
     #[serde(default)]
     pub flutes: Option<i64>,
-    /// None = unknown. Pockets plunge straight down, so they need a centre-cutting endmill.
+    /// Whether it can plunge straight down. False: profiles ramp in and pockets go down
+    /// round a helix. Null: unknown.
     #[serde(default)]
     pub center_cutting: Option<bool>,
+    /// Spindle speed, rpm. Needed to generate.
     #[serde(default)]
     pub rpm: Option<f64>,
-    /// V-bits: the included angle, radians, 0 < angle < π (docs/specs/v-carve.md §2).
-    /// None = unknown: a V-carve refuses the tool until it is set.
+    /// V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool.
+    // Spec: docs/specs/v-carve.md §2.
     #[serde(default)]
     pub angle: Option<f64>,
-    /// V-bits: the diameter of the flat tip, mm, 0 <= tip < diameter. None = pointed.
+    /// V-bits: the flat tip's diameter, mm. Null: pointed.
     #[serde(default)]
     pub tip_diameter: Option<f64>,
 }
@@ -950,9 +1033,10 @@ pub struct Tool {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Selector {
+    /// Every shape on this layer (upper or lower case don't matter).
     #[serde(default)]
     pub layer: Option<String>,
-    /// Shape ids of the project's drawing.
+    /// These shapes, by id.
     #[serde(default)]
     pub shapes: Option<Vec<u64>>,
 }
@@ -961,13 +1045,15 @@ pub struct Selector {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tabs {
+    /// Tabs per contour, at least 1.
     pub count: i64,
-    /// Bridge left on the part, mm (the tool lifts for width + tool diameter).
+    /// The bridge left on the part, along its edge, mm (the flat top of a sloped tab).
     pub width: f64,
-    /// Bridge thickness up from the bottom of the cut, mm.
+    /// The bridge's thickness, up from the bottom of the cut, mm.
     pub height: f64,
-    /// Slope of the tab's flanks, radians, 0 < angle <= 90°; 90° is a straight tab
-    /// (docs/specs/profile-spiral.md §4). `width` is the flat top.
+    /// The slope of the tab's sides, radians: π/2 (90°) straight, less for sloped tabs a
+    /// ramped profile follows.
+    // Spec: docs/specs/profile-spiral.md §4.
     pub flank_angle: f64,
 }
 
@@ -1023,11 +1109,11 @@ pub enum Operation {
     Profile(ProfileOp),
     Pocket(PocketOp),
     Vcarve(VcarveOp),
-    /// Follow path: the tool centre on the selected shapes, open or closed
-    /// (docs/specs/follow-path.md).
+    /// Follow path: the tool centre on the selected shapes, open or closed.
+    // Spec: docs/specs/follow-path.md.
     Path(PathOp),
-    /// Holes: drilled with a drill, bored with a helix with an endmill
-    /// (docs/specs/holes.md).
+    /// Holes: drilled with a drill, bored with a helix with an endmill.
+    // Spec: docs/specs/holes.md.
     Holes(HolesOp),
 }
 
@@ -1192,62 +1278,91 @@ impl Operation {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProfileOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
     #[serde(default)]
     pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
+    /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
+    /// Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a
+    /// hole) or `on` the line.
     pub side: Side,
+    /// `climb` or `conventional` milling.
     pub direction: Direction,
+    /// The id of the project tool it cuts with (`tools`).
     pub tool: i64,
-    /// Where the cut starts and ends, mm down from the stock top (docs/specs/
-    /// depths-and-clearance.md): 0 <= start_depth < end_depth.
+    /// Where the cut starts, mm down from the stock top: 0 for the top, more when an
+    /// earlier operation already cut down to there.
+    // Spec: docs/specs/depths-and-clearance.md.
     pub start_depth: f64,
+    /// Where the cut ends, mm down from the stock top. More than the start depth; below the
+    /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
-    /// How far the cut moves into the material that is kept, mm: positive gives a larger
-    /// pocket or a smaller part, negative leaves material. Less than the tool radius.
+    /// How far the cut moves into the material that is kept, mm: positive removes more (a
+    /// larger pocket, a smaller part), negative leaves material. Less than the tool radius.
     pub clearance: f64,
+    /// The deepest each pass goes, mm. The passes are equal, and the last one ends exactly
+    /// at the end depth.
     pub step_down: f64,
+    /// The cutting feed, mm/min.
     pub feed: f64,
+    /// The feed going down into the material, mm/min.
     pub plunge_feed: f64,
+    /// Holding tabs left at the bottom of the cut, so a part cut out doesn't come loose.
+    /// Null: none.
     #[serde(default)]
     pub tabs: Option<Tabs>,
-    /// Missing: straight down, as before (docs/specs/ramp-entry.md).
+    /// How the tool goes down at the start of each pass: `plunge` (straight down; needs a
+    /// centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing:
+    /// plunge.
+    // Spec: docs/specs/ramp-entry.md.
     #[serde(default)]
     pub entry: Entry,
-    /// Where rings start, in drawing coordinates (mm): each point moves the start of the
-    /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
+    /// Where the cut starts, as points in drawing coordinates (mm): each moves the start of
+    /// the ring (contour) nearest to it. Empty: chosen by Chipload.
+    // Spec: docs/specs/helix-and-leads.md, part A.
     #[serde(default)]
     pub starts: Vec<[f64; 2]>,
-    /// Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,
-    /// part B). Missing: none.
+    /// A quarter-circle lead-in and lead-out from the waste side onto the path. Null: none.
+    // Spec: docs/specs/helix-and-leads.md, part B.
     #[serde(default)]
     pub lead: Option<Lead>,
-    /// Rough with stock left on the wall, then one finishing lap at the wall
-    /// (docs/specs/finish-and-skin.md). Missing: none.
+    /// A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap
+    /// at full depth takes it off. Null: none.
+    // Spec: docs/specs/finish-and-skin.md.
     #[serde(default)]
     pub finish: Option<Finish>,
-    /// Stop a thin skin above the end depth and cut through it last
-    /// (docs/specs/finish-and-skin.md). Missing: none.
+    /// An onion skin: the passes stop `thickness` mm above the end depth, and one last lap
+    /// cuts through it. Null: none.
+    // Spec: docs/specs/finish-and-skin.md.
     #[serde(default)]
     pub skin: Option<Skin>,
-    /// Dogbones or T-bones in the inside corners (docs/specs/dogbones.md). Missing: none.
+    /// Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners
+    /// stay round.
+    // Spec: docs/specs/dogbones.md.
     #[serde(default)]
     pub corners: Option<Corners>,
 }
 
-/// How the tool reaches into the inside corners it would leave round
-/// (docs/specs/dogbones.md): every corner on the tool's side up to `max_angle` (radians,
-/// 0 < angle < 180°).
+/// How the tool reaches into the inside corners it would leave round, so a square part
+/// fits: every corner on the tool's side up to `max_angle`.
+// Spec: docs/specs/dogbones.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum Corners {
     /// In along the corner's bisector.
-    Dogbone { max_angle: f64 },
+    Dogbone {
+        /// Only corners this sharp or sharper, radians (1.745 = 100°).
+        max_angle: f64,
+    },
     /// In along the longer wall: the notch is in the shorter one.
-    Tbone { max_angle: f64 },
+    Tbone {
+        /// Only corners this sharp or sharper, radians (1.745 = 100°).
+        max_angle: f64,
+    },
 }
 
 impl Corners {
@@ -1261,22 +1376,23 @@ impl Corners {
 /// The largest corner angle new dogbones get: 100°, so 90° corners drawn slightly off count.
 pub const DEFAULT_CORNER_ANGLE_RAD: f64 = 100.0 * std::f64::consts::PI / 180.0;
 
-/// A finishing pass on a profile (docs/specs/finish-and-skin.md).
+/// A finishing pass on a profile.
+// Spec: docs/specs/finish-and-skin.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Finish {
-    /// Left on the wall by the roughing laps, mm: more than 0, less than the tool radius.
+    /// Left on the wall by the roughing passes, mm: more than 0, less than the tool radius.
     pub stock: f64,
 }
 
-/// An onion skin on a profile (docs/specs/finish-and-skin.md).
+/// An onion skin on a profile.
+// Spec: docs/specs/finish-and-skin.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Skin {
-    /// Left above the end depth until the last laps, mm: more than 0, at most the step
-    /// down, less than the cut and (with tabs) less than the tab height.
+    /// Left above the end depth until the last lap, mm: more than 0, at most the step down.
     pub thickness: f64,
 }
 
@@ -1284,149 +1400,206 @@ pub struct Skin {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PocketOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
     #[serde(default)]
     pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
+    /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`).
     pub tool: i64,
-    /// Where the cut starts and ends, mm down from the stock top (docs/specs/
-    /// depths-and-clearance.md): 0 <= start_depth < end_depth.
+    /// Where the cut starts, mm down from the stock top: 0 for the top, more when an
+    /// earlier operation already cut down to there.
+    // Spec: docs/specs/depths-and-clearance.md.
     pub start_depth: f64,
+    /// Where the cut ends, mm down from the stock top. More than the start depth; below the
+    /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
-    /// How far the cut moves into the material that is kept, mm: positive gives a larger
-    /// pocket or a smaller part, negative leaves material. Less than the tool radius.
+    /// How far the cut moves into the material that is kept, mm: positive removes more (a
+    /// larger pocket, a smaller part), negative leaves material. Less than the tool radius.
     pub clearance: f64,
+    /// The deepest each pass goes, mm. The passes are equal, and the last one ends exactly
+    /// at the end depth.
     pub step_down: f64,
-    /// Fraction of the tool diameter, 0 < stepover <= 1.
+    /// The distance between the clearing rings, as a fraction of the tool diameter: more
+    /// than 0, at most 1.
     pub stepover: f64,
+    /// `climb` or `conventional` milling.
     pub direction: Direction,
+    /// The cutting feed, mm/min.
     pub feed: f64,
+    /// The feed going down into the material, mm/min.
     pub plunge_feed: f64,
-    /// Stay at depth between rings where that is safe.
+    /// Between rings, feed across at depth instead of lifting, where the move stays clear
+    /// of the walls and is at most a tool diameter. Missing: false.
     #[serde(default)]
     pub keep_tool_down: bool,
-    /// How the pocket is cleared (docs/specs/trochoidal.md). Missing: rings, as before.
+    /// How the pocket is cleared: `{"type": "rings"}`. (`trochoidal` and `adaptive` were
+    /// removed in 0.14: such projects load but don't generate.) Missing: rings.
+    // Spec: docs/specs/trochoidal.md.
     #[serde(default)]
     pub strategy: PocketStrategy,
-    /// Missing: straight down, as before (docs/specs/ramp-entry.md).
+    /// How the tool goes down at the start of each pass: `plunge` (straight down; needs a
+    /// centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing:
+    /// plunge.
+    // Spec: docs/specs/ramp-entry.md.
     #[serde(default)]
     pub entry: Entry,
-    /// Where rings start, in drawing coordinates (mm): each point moves the start of the
-    /// ring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.
+    /// Where each wall ring starts, as points in drawing coordinates (mm): each moves the
+    /// start of the wall ring nearest to it. Empty: chosen by Chipload.
+    // Spec: docs/specs/helix-and-leads.md, part A.
     #[serde(default)]
     pub starts: Vec<[f64; 2]>,
-    /// Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,
-    /// part B). Missing: none.
+    /// A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null:
+    /// none.
+    // Spec: docs/specs/helix-and-leads.md, part B.
     #[serde(default)]
     pub lead: Option<Lead>,
-    /// Rings strategy: the corners of every ring but the wall ring are rounded
-    /// (docs/specs/pocket-round-corners.md, schema 14). Ignored by the other strategies.
+    /// Round the corners of every ring but the one along the wall, for smoother motion.
+    // Spec: docs/specs/pocket-round-corners.md.
     pub round_corners: bool,
-    /// Dogbones or T-bones in the wall's corners (docs/specs/dogbones.md). Missing: none.
+    /// Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners
+    /// stay round.
+    // Spec: docs/specs/dogbones.md.
     #[serde(default)]
     pub corners: Option<Corners>,
-    /// Clear only what a larger tool leaves (docs/specs/rest-machining.md). Missing: the
+    /// Rest machining: clear only what a larger tool leaves in these shapes. Null: the
     /// whole pocket.
+    // Spec: docs/specs/rest-machining.md.
     #[serde(default)]
     pub rest: Option<Rest>,
 }
 
-/// Rest machining (docs/specs/rest-machining.md): the pocket clears only the material a
-/// disk of the larger tool `after_tool` (a project tool id) can't reach in its shapes.
+/// Rest machining: the pocket clears only the material the larger tool `after_tool` can't
+/// reach in its shapes.
+// Spec: docs/specs/rest-machining.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Rest {
+    /// The id of the larger project tool whose leftovers this pocket clears.
     pub after_tool: i64,
 }
 
-/// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide
-/// as the shape (docs/specs/v-carve.md).
+/// V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the cut
+/// exactly as wide as the shape.
+// Spec: docs/specs/v-carve.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct VcarveOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
     #[serde(default)]
     pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
+    /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`).
     pub tool: i64,
-    /// The surface carved, mm down from the stock top (0: the top).
+    /// The surface carved, mm down from the stock top: 0 for the top, more to carve on a
+    /// floor an earlier pocket cut.
     pub start_depth: f64,
-    /// The deepest the tip goes, mm down from the stock top: wider strokes are carved to it
-    /// and reported (§5).
+    /// The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need
+    /// more are carved to it, narrower than drawn, with a warning.
     pub end_depth: f64,
-    /// Missing: one pass.
+    /// Carve in passes no deeper than this, mm. Null: one pass.
     #[serde(default)]
     pub step_down: Option<f64>,
+    /// The feed, mm/min, for moves no steeper than 45°.
     pub feed: f64,
+    /// The feed for moves steeper than 45°, mm/min.
     pub plunge_feed: f64,
 }
 
-/// Follow path (docs/specs/follow-path.md): the tool centre follows the selected shapes on
-/// the line, open paths back and forth, closed ones round, in depth passes.
+/// Follow path: the tool centre on the selected shapes, open or closed, in depth passes.
+// Spec: docs/specs/follow-path.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PathOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
     #[serde(default)]
     pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
+    /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`).
     pub tool: i64,
-    /// Where the cut starts and ends, mm down from the stock top: 0 <= start < end.
+    /// Where the cut starts, mm down from the stock top: 0 for the top, more when an
+    /// earlier operation already cut down to there.
     pub start_depth: f64,
+    /// Where the cut ends, mm down from the stock top. More than the start depth; below the
+    /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
+    /// The deepest each pass goes, mm. The passes are equal, and the last one ends exactly
+    /// at the end depth.
     pub step_down: f64,
+    /// The cutting feed, mm/min.
     pub feed: f64,
+    /// The feed going down into the material, mm/min.
     pub plunge_feed: f64,
-    /// Plunge or ramp (a helix is for pockets).
+    /// How the tool goes down at the start of each pass: `plunge` or `ramp` along the path.
     pub entry: Entry,
 }
 
-/// Holes (docs/specs/holes.md): every selected circle, drilled at its centre with a drill
-/// or bored with a helix at its wall with an endmill.
+/// Holes: every selected circle, drilled with a drill or bored with a helix with an
+/// endmill.
+// Spec: docs/specs/holes.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct HolesOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
     #[serde(default)]
     pub name: String,
-    /// Disabled operations stay in the file and are skipped when generating.
+    /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
+    /// What the operation cuts: the circles among the shapes on a layer, or shapes by id.
+    /// Other shapes are skipped with a note.
     pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`).
     pub tool: i64,
-    /// Where the cut starts and ends, mm down from the stock top: 0 <= start < end. For a
-    /// drill, the end is the depth of its point.
+    /// Where the cut starts, mm down from the stock top: 0 for the top, more when an
+    /// earlier operation already cut down to there.
     pub start_depth: f64,
+    /// Where the hole ends, mm down from the stock top. For a drill, the depth of its
+    /// point.
     pub end_depth: f64,
-    /// The bore's helix and circle; a drill doesn't use it.
+    /// A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it.
     pub feed: f64,
-    /// The drill's feed down; the bore's straight descent to the start depth.
+    /// A drill's feed down, or a bore's feed straight down to the start depth, mm/min.
     pub plunge_feed: f64,
-    /// Matches the tool: `drill` for a drill, `bore` for an endmill.
+    /// How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill.
     pub method: HoleMethod,
 }
 
-/// How a Holes operation cuts (docs/specs/holes.md §2).
+/// How a Holes operation cuts.
+// Spec: docs/specs/holes.md §2.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum HoleMethod {
-    /// Straight down at the centre; `peck` mm at a time (None: in one go).
-    Drill { peck: Option<f64> },
+    /// Straight down at the hole's centre, `peck` mm at a time.
+    Drill {
+        /// Drill this many mm at a time, lifting out between pecks to clear chips. Null: in
+        /// one go.
+        peck: Option<f64>,
+    },
     /// A helix at the wall, at most `step_down` mm per turn and never steeper than
     /// `ramp_angle` (radians, 0 < angle <= 30°), then one level circle.
     Bore {
+        /// The most the helix goes down per turn, mm.
         step_down: f64,
+        /// The steepest the helix goes, radians: more than 0, at most 30° (0.5236).
         ramp_angle: f64,
+        /// `climb` or `conventional`, as for a profile inside the hole.
         direction: Direction,
     },
 }
@@ -1455,20 +1628,22 @@ impl HoleMethod {
     }
 }
 
-/// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
+/// Quarter-circle lead-in and lead-out.
+// Spec: docs/specs/helix-and-leads.md part B.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Lead {
-    /// Of the arcs the tool centre follows, mm: more than 0, at most 10 × the tool diameter.
+    /// Radius of the lead arcs, mm: more than 0, at most 10 tool diameters. Smaller where
+    /// there's no room.
     pub radius: f64,
 }
 
 /// The longest lead allowed, in tool diameters.
 pub const MAX_LEAD_DIAMETERS: f64 = 10.0;
 
-/// How the tool goes down into the material at the start of each pass
-/// (docs/specs/ramp-entry.md).
+/// How the tool goes down into the material at the start of each pass.
+// Spec: docs/specs/ramp-entry.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
@@ -1477,11 +1652,19 @@ pub enum Entry {
     Plunge {},
     /// Down along the path and back, never steeper than `ramp_angle` (radians,
     /// 0 < angle <= 30°).
-    Ramp { ramp_angle: f64 },
-    /// Pockets only: down round a circle of `radius` (of the tool centre, mm, less than
-    /// the tool radius), never steeper than `ramp_angle` (docs/specs/helix-and-leads.md
-    /// part C).
-    Helix { radius: f64, ramp_angle: f64 },
+    Ramp {
+        /// The steepest the ramp goes, radians: more than 0, at most 30° (0.5236).
+        ramp_angle: f64,
+    },
+    /// Pockets only: down round a circle of `radius` (the tool centre's), never steeper
+    /// than `ramp_angle`.
+    // Spec: docs/specs/helix-and-leads.md part C.
+    Helix {
+        /// The helix's radius, mm: less than the tool radius.
+        radius: f64,
+        /// The steepest the helix goes, radians: more than 0, at most 30° (0.5236).
+        ramp_angle: f64,
+    },
 }
 
 impl Entry {
@@ -1524,10 +1707,17 @@ pub enum PocketStrategy {
     /// Rings parallel to the walls, cut from the inside out. An empty struct variant (not a
     /// unit one) so serde refuses stray fields here too.
     Rings {},
-    /// Removed 2026-10-13 (docs/decisions/0017-scope.md): read so older files still load,
-    /// refused when generating (until switched to rings). Was: loops of `loop_radius` moving `step` mm along backbones.
-    Trochoidal { loop_radius: f64, step: f64 },
-    /// Removed 2026-10-13, as `Trochoidal`. Was: adaptive fronts (docs/specs/adaptive-fronts.md).
+    /// Removed in 0.14: still read, so older projects load, but refused when generating
+    /// until switched to rings.
+    // Spec: docs/decisions/0017-scope.md.
+    Trochoidal {
+        /// Removed in 0.14; kept so old projects load.
+        loop_radius: f64,
+        /// Removed in 0.14; kept so old projects load.
+        step: f64,
+    },
+    /// Removed in 0.14, as `trochoidal`.
+    // Spec: docs/specs/adaptive-fronts.md.
     Adaptive {},
 }
 
