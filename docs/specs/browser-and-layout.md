@@ -225,3 +225,14 @@ follows the zoom (`draw::grid_step`) exists, but it isn't drawn. Following Solid
 - The right-click actions do what the old buttons did, through the same functions.
 - Drag reordering and Alt+↑/↓ give the same order as ↑ ↓ did.
 - The screenshots (`packaging/docs/screenshots.sh`) are renewed and looked at in both themes.
+
+## As built
+
+- **Job settings** is one row, with no Stock or Machine rows under it: the job form
+  shows all of them at once.
+- **Operations** are duplicated and deleted from their right-click menu only. There's no
+  Ctrl+D, and the Delete key stays with the canvas, where it deletes drawn shapes.
+- **Selection** (§4) shows above the open form whenever shapes are selected, not instead
+  of it, so *Use selection* and the selection stay in view together. It folds away.
+- **Drawn shapes** are listed directly in the Drawing folder, by kind (Rectangles,
+  Circles, Polylines), without a "Drawn shapes" folder in between.

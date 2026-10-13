@@ -52,10 +52,16 @@ impl ChiploadApp {
     /// Right: the selected operation's fields, or the project settings.
     pub(super) fn properties_panel(&mut self, ui: &mut egui::Ui) {
         if self.edit.is_none() {
-            ui.label("No project open.");
+            ui.weak("No project open.");
             return;
         }
         self.problems_strip(ui);
+        if !self.selection.ids(&self.contours).is_empty() {
+            self.selection_section(ui);
+            ui.add_space(4.0);
+            ui.separator();
+            ui.add_space(4.0);
+        }
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
         let Some(edit) = self.edit.as_mut() else {
             return;

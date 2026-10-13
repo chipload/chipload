@@ -10,6 +10,7 @@ it's built (see `CLAUDE.md`).
   1. The Browser: one tree (project, Job settings, Tools, Drawing, Operations) with painted
      icons, eyes, ticks, right-click menus and drag reordering. **Done.**
   2. Properties on the right: the selection read-out and the drawn-shape editor move there.
+     **Done.**
   3. The header: a top bar and a ribbon (FILE, DRAW, OPERATION, VIEW) in place of the menu
      bar and toolbar; the overall look.
   4. The canvas: a drawn grid on the snap steps, axis lines, a theme gradient, a navigation

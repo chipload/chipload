@@ -14,7 +14,8 @@ draw it there and import the DXF.
 
 - **Handles:** drag a selected shape's handles to change it. A drag snaps to end points,
   centres and middles; hold Alt to turn snapping off.
-- **Exact values:** the panel for a selected shape has its exact numbers and its layer.
+- **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
+  selected shape has its exact numbers and its layer.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Edit > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Edit > Mirror left–right* and *Mirror up–down* flip shapes about the middle

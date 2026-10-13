@@ -1287,6 +1287,7 @@ impl eframe::App for ChiploadApp {
             .resizable(true)
             .default_size(440.0)
             .show(ui, |ui| {
+                browser::caption(ui, "Properties");
                 ScrollArea::vertical()
                     .id_salt("properties-scroll")
                     .auto_shrink([false, true])

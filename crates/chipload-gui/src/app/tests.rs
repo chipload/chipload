@@ -1885,6 +1885,10 @@ fn the_sidebar_shows_operations_and_shapes_apart() {
     let mut app = drawn_part();
     app.click(Some(contour_of(&app, 2)), false);
     draw_sidebar(&mut app);
+    // The selection and the drawn shape's editor are in Properties
+    // (docs/specs/browser-and-layout.md §4).
+    draw_properties(&mut app);
+    assert!(app.shape_draft.is_some());
 }
 
 // -- generating in the background (docs/specs/background-generation.md)

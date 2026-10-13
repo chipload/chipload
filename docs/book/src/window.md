@@ -45,5 +45,16 @@ in the program, and its row is dimmed.
   its first problem.
 - **Drag** the row onto another to move it there.
 
-Under the tree, the Browser says what is selected. A selected drawn shape can be edited
-there. *Copy as selector* copies the selection as JSON for a project file.
+## Properties
+
+The **Properties** panel on the right shows what is open: the job settings, or an
+operation's settings under its kind and number ("Pocket · Operation 1").
+
+While shapes are selected, a **Selection** section comes first. It holds:
+- what is selected, by contour number;
+- a drawn shape's exact values, to edit;
+- *Copy as selector*, which copies the selection as JSON for a project file.
+
+Its triangle folds it away, so the operation's settings come up.
+
+![Properties: a drawn polyline selected, with its points, above operation 1's settings](images/properties.png)

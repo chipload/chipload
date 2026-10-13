@@ -268,7 +268,20 @@ pub(super) fn op_form(
     let op_tool = op_tool.as_ref();
     let summary = geometry_summary(&entry.op, contours);
     let side_chosen = &mut entry.side_chosen;
-    ui.heading(format!("Operation {}", index + 1));
+    let kind = match &entry.op {
+        Operation::Profile(_) => "Profile",
+        Operation::Pocket(_) => "Pocket",
+        Operation::Vcarve(_) => "V-carve",
+        Operation::Path(_) => "Follow path",
+        Operation::Holes(_) => "Holes",
+    };
+    let color = super::browser::kind_color(&entry.op, ui.visuals().dark_mode);
+    super::browser::title_line(
+        ui,
+        super::browser::op_icon(&entry.op),
+        Some(color),
+        &format!("{kind} · Operation {}", index + 1),
+    );
     Grid::new(("op-form", index))
         .num_columns(2)
         // Past the sections' indent, so the values line up with theirs.
@@ -1125,7 +1138,7 @@ pub(super) fn job_form(
     // The operations live in the editor until saved: which tool each uses.
     let op_tools: Vec<i64> = edit.ops.iter().map(|e| e.op.tool()).collect();
     let job = &mut edit.settings;
-    ui.heading("Job settings");
+    super::browser::title_line(ui, crate::icons::Icon::Settings, None, "Job settings");
     Grid::new("job-form")
         .num_columns(2)
         // Past the sections' indent, so the values line up with theirs.

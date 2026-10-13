@@ -310,6 +310,18 @@ pub(super) fn caption(ui: &mut egui::Ui, text: &str) {
     ui.add_space(2.0);
 }
 
+/// The Properties panel's title: an icon and what the panel shows.
+pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, text: &str) {
+    ui.horizontal(|ui| {
+        let size = ui.text_style_height(&egui::TextStyle::Heading);
+        let (rect, _) = ui.allocate_exact_size(vec2(size, size), Sense::hover());
+        let color = color.unwrap_or_else(|| ui.visuals().text_color());
+        icons::paint(ui.painter(), rect.shrink(1.0), icon, color);
+        ui.heading(text);
+    });
+    ui.add_space(2.0);
+}
+
 /// The icon of an operation's kind.
 pub(super) fn op_icon(op: &Operation) -> Icon {
     match op {
@@ -387,9 +399,6 @@ impl ChiploadApp {
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
                 self.browser_tree(ui);
-                ui.spacing_mut().item_spacing.y = 4.0;
-                ui.add_space(8.0);
-                self.selection_section(ui);
             });
     }
 
@@ -693,27 +702,37 @@ impl ChiploadApp {
         lines.join("\n")
     }
 
-    /// The selection, the selected shape's editor or facts, and Copy as selector.
-    fn selection_section(&mut self, ui: &mut egui::Ui) {
-        let nothing = self.selection.ids(&self.contours).is_empty();
-        for line in self.selection_lines() {
-            if nothing {
-                ui.weak(line);
-            } else {
-                ui.label(line);
-            }
+    /// Properties: the selection, the selected shape's editor or facts, and Copy as
+    /// selector (docs/specs/browser-and-layout.md §4). Only while something is selected.
+    pub(super) fn selection_section(&mut self, ui: &mut egui::Ui) {
+        if self.selection.ids(&self.contours).is_empty() {
+            return;
         }
-        self.selected_shape_ui(ui);
-        if ui
-            .add_enabled(
-                self.selector_json().is_some(),
-                egui::Button::new("Copy as selector"),
-            )
-            .on_hover_text("The selection as JSON, for an operation in a project file")
-            .clicked()
-        {
-            self.copy_selector(ui.ctx());
-        }
+        let icon = match &self.selection {
+            CanvasSelection::Layer(..) => Icon::Layer,
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(_)) => Icon::Dxf,
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(_)) => Icon::Image,
+            _ => Icon::Polyline,
+        };
+        let id = ui.make_persistent_id("properties-selection");
+        egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
+            .show_header(ui, |ui| title_line(ui, icon, None, "Selection"))
+            .body(|ui| {
+                for line in self.selection_lines() {
+                    ui.label(line);
+                }
+                self.selected_shape_ui(ui);
+                if ui
+                    .add_enabled(
+                        self.selector_json().is_some(),
+                        egui::Button::new("Copy as selector"),
+                    )
+                    .on_hover_text("The selection as JSON, for an operation in a project file")
+                    .clicked()
+                {
+                    self.copy_selector(ui.ctx());
+                }
+            });
     }
 }
 
