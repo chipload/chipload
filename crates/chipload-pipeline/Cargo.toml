@@ -10,12 +10,16 @@ rust-version.workspace = true
 chipload-check = { version = "0.14.1", path = "../chipload-check" }
 chipload-core = { version = "0.14.1", path = "../chipload-core" }
 chipload-dxf = { version = "0.14.1", path = "../chipload-dxf" }
+chipload-image = { version = "0.14.1", path = "../chipload-image" }
 chipload-job = { version = "0.14.1", path = "../chipload-job" }
 chipload-post = { version = "0.14.1", path = "../chipload-post" }
 chipload-toolpath = { version = "0.14.1", path = "../chipload-toolpath" }
 # The simulation image (docs/specs/simulation.md §6); MIT OR Apache-2.0, already in the
 # tree through eframe.
 png = "0.18.1"
+# Pictures embedded in projects (docs/specs/image-trace.md §4); MIT OR Apache-2.0, already
+# in the tree.
+base64 = "0.22.1"
 serde_json = "1"
 sha2 = "0.10"
 thiserror = "2"

@@ -83,7 +83,7 @@ impl Settings {
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq)]
 pub enum ImageError {
     #[error("the picture is {0} bytes; at most 20 MB is supported: scale it down")]
     TooLarge(usize),

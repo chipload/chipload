@@ -63,6 +63,7 @@ fn every_command_prints_one_json_object() {
     let dir = temp_dir("all");
     std::fs::copy(corpus("jobs/v18/rest.chipload"), dir.join("rest.chipload")).unwrap();
     std::fs::copy(corpus("dxf/simple_part.dxf"), dir.join("part.dxf")).unwrap();
+    std::fs::copy(corpus("images/logo.png"), dir.join("logo.png")).unwrap();
     let commands: &[&[&str]] = &[
         &["inspect", "part.dxf"],
         &["import", "part.dxf", "--units", "mm", "-o", "part.chipload"],
@@ -103,6 +104,13 @@ fn every_command_prints_one_json_object() {
             "--dy",
             "0",
         ],
+        &["new", "-o", "img.chipload"],
+        &["image", "add", "img.chipload", "logo.png", "--width", "80"],
+        &["image", "set", "img.chipload", "1", "--threshold", "100"],
+        &["image", "list", "img.chipload"],
+        &["image", "preview", "img.chipload", "1", "-o", "bw.png"],
+        &["set", "img.chipload", "drawing.images.0.blur=2"],
+        &["image", "remove", "img.chipload", "1"],
         &["copies", "rest.chipload", "--grid", "2x1", "--gap", "10"],
         &["place", "part.chipload"],
         &["get", "rest.chipload", "stock"],
@@ -354,5 +362,34 @@ fn text_output_is_unchanged_without_the_flag() {
     let run = chipload(&dir, &["schema", "tools", "--json"]);
     let schema: Value = serde_json::from_str(&run.stdout).unwrap();
     assert_eq!(schema["title"], json!("Chipload tool library"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn an_image_traces_again_when_set_changes_it() {
+    // docs/specs/image-trace.md §5.
+    let dir = temp_dir("image");
+    std::fs::copy(corpus("images/logo.png"), dir.join("logo.png")).unwrap();
+    let ok = |args: &[&str]| {
+        let mut all = args.to_vec();
+        all.push("--json");
+        let value = json_of(&chipload(&dir, &all), &all);
+        assert_eq!(value["ok"], json!(true), "{all:?}: {value}");
+        value
+    };
+    ok(&["new", "-o", "p.chipload"]);
+    let added = ok(&["image", "add", "p.chipload", "logo.png", "--width", "80"]);
+    assert_eq!(added["image"]["shapes"].as_array().unwrap().len(), 4);
+    let set = ok(&["set", "p.chipload", "drawing.images.0.invert=true"]);
+    assert_eq!(set["image"]["black_at_border"], json!(true), "{set}");
+    let listed = ok(&["image", "list", "p.chipload"]);
+    assert_eq!(listed["images"][0]["invert"], json!(true));
+    assert_eq!(listed["images"][0]["shapes"], json!(5));
+    // A threshold out of range is refused before anything is written.
+    let run = chipload(
+        &dir,
+        &["image", "set", "p.chipload", "1", "--threshold", "255"],
+    );
+    assert_ne!(run.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }

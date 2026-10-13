@@ -5,7 +5,9 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **Images traced into shapes for V-carving** (docs/specs/image-trace.md, approved
+  2026-10-13): the tracing crate, schema 19, the pipeline and `chipload image` are done;
+  next the app's *File > Import image…* dialog and its sidebar settings.
 
 ## State to remember (2026-10-12)
 

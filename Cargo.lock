@@ -835,9 +835,11 @@ dependencies = [
 name = "chipload-pipeline"
 version = "0.14.1"
 dependencies = [
+ "base64",
  "chipload-check",
  "chipload-core",
  "chipload-dxf",
+ "chipload-image",
  "chipload-job",
  "chipload-post",
  "chipload-toolpath",

@@ -2245,6 +2245,21 @@ impl Job {
                     "operations.{i}.select: selector needs a layer or shapes"
                 ));
             }
+            // Traced shapes get new ids each time their image is traced again
+            // (docs/specs/image-trace.md §4, decision 6).
+            let traced = selector.shapes.iter().flatten().find_map(|id| {
+                self.drawing
+                    .shapes
+                    .iter()
+                    .find(|s| s.id == *id && s.image().is_some())
+            });
+            if let Some(shape) = traced {
+                problems.push(format!(
+                    "operations.{i}.select: shape {} is traced from an image and changes \
+                     each time the image is traced again: select its layer \"{}\" instead",
+                    shape.id, shape.layer
+                ));
+            }
             if let Entry::Helix { radius, .. } = op.entry()
                 && !(radius.is_finite() && radius > 0.0)
             {

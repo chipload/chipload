@@ -4,6 +4,7 @@
 pub mod chip_load;
 pub mod copies;
 pub mod estimate;
+pub mod images;
 pub mod library;
 pub mod notices;
 pub mod placement;
@@ -50,6 +51,8 @@ pub enum PipelineError {
     Import(#[from] ImportError),
     #[error(transparent)]
     Toolpath(#[from] ToolpathError),
+    #[error(transparent)]
+    Image(#[from] chipload_image::ImageError),
     #[error(transparent)]
     Post(#[from] PostError),
     /// The independent checker rejected the program. No G-code is returned; `program` is

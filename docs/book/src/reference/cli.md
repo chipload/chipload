@@ -296,6 +296,94 @@ chipload shape mirror <PROJECT> <IDS>... [OPTIONS]
 | `--axis <AXIS>` | x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: `x`, `y`. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload image`
+
+Pictures traced into shapes for V-carving: add, change, list, preview, remove
+
+### `chipload image add`
+
+Add a picture (PNG, JPEG or BMP) and trace it into shapes on its own layer
+
+```text
+chipload image add <PROJECT> <PICTURE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<PICTURE>` | The picture. |
+| `--width <WIDTH>` | The picture's width on the stock, mm; its height follows. Required. |
+| `--layer <LAYER>` | The layer for its shapes; default: the picture's file name. |
+| `--invert` | Carve the light parts instead of the dark ones. |
+| `--at <AT>` | Where the picture's lower-left corner goes: X,Y in mm (default 0,0) |
+| `--threshold <THRESHOLD>` | Grey values (0–255) below this are black: 1 to 254, or auto (default) |
+| `--blur <BLUR>` | Blur before the threshold, px, 0 to 10 (default 1) |
+| `--min-area <MIN_AREA>` | Drop specks smaller than this, mm², 0 to 100 (default 0.5) |
+| `--smoothing <SMOOTHING>` | How far an edge may be simplified, mm, 0.01 to 1 (default 0.05) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload image set`
+
+Change an image's settings, position or size, and trace it again
+
+```text
+chipload image set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The image's id (as `image list` shows it) |
+| `--width <WIDTH>` | The picture's width on the stock, mm. |
+| `--layer <LAYER>` | The layer for its shapes. |
+| `--invert <INVERT>` | Carve the light parts instead (true or false) One of: `true`, `false`. |
+| `--at <AT>` | Where the picture's lower-left corner goes: X,Y in mm (default 0,0) |
+| `--threshold <THRESHOLD>` | Grey values (0–255) below this are black: 1 to 254, or auto (default) |
+| `--blur <BLUR>` | Blur before the threshold, px, 0 to 10 (default 1) |
+| `--min-area <MIN_AREA>` | Drop specks smaller than this, mm², 0 to 100 (default 0.5) |
+| `--smoothing <SMOOTHING>` | How far an edge may be simplified, mm, 0.01 to 1 (default 0.05) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload image list`
+
+The project's images: picture, place, settings and shapes
+
+```text
+chipload image list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload image preview`
+
+Write an image as black and white, as it is traced (PNG)
+
+```text
+chipload image preview <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The image's id. |
+| `-o, --output <OUTPUT>` | The PNG to write. Required. |
+
+### `chipload image remove`
+
+Remove an image and its shapes
+
+```text
+chipload image remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The image's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload tool`
 
 Your tool library: tools kept for every project (copied into a project when used)

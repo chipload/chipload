@@ -5,6 +5,7 @@
 // A CLI's job is to print; the workspace-wide lint is meant for library crates.
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
+mod images;
 mod library;
 
 use std::path::{Path, PathBuf};
@@ -214,6 +215,11 @@ enum Command {
     Shape {
         #[command(subcommand)]
         action: ShapeAction,
+    },
+    /// Pictures traced into shapes for V-carving: add, change, list, preview, remove.
+    Image {
+        #[command(subcommand)]
+        action: images::ImageAction,
     },
     /// Your tool library: tools kept for every project (copied into a project when used).
     Tool {
@@ -632,6 +638,7 @@ fn main() -> ExitCode {
         Command::Check { gcode, job, tool } => check(&mut out, &gcode, &job, tool),
         Command::Op { action } => op(&mut out, action),
         Command::Shape { action } => shape(&mut out, action),
+        Command::Image { action } => images::image(&mut out, action),
         Command::Tool { action } => library::tool(&mut out, action),
         Command::Machine { action } => library::machine(&mut out, action),
         Command::Post { action } => library::post(&mut out, action),
@@ -1328,7 +1335,16 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
         .map(|text| chipload_job::paths::assignment(text))
         .collect::<Result<Vec<_>, String>>()
         .map_err(|e| out.fail(e))?;
-    chipload_job::paths::set_all(&job, &assignments).map_err(|e| out.fail(e))
+    let changed = chipload_job::paths::set_all(&job, &assignments).map_err(|e| out.fail(e))?;
+    // An image whose settings changed is traced again (docs/specs/image-trace.md §5).
+    let (traced, reports) =
+        chipload_pipeline::images::retrace_changed(&job, &changed).map_err(|e| out.fail(e))?;
+    for report in &reports {
+        for line in &report.lines {
+            out.line(line.clone());
+        }
+    }
+    Ok(traced)
 }
 
 /// Load a project and run it, as `run` and `sheet` do; errors are printed.
@@ -1618,12 +1634,20 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
         Ok(changed) => changed,
         Err(err) => return out.fail(err),
     };
+    // An image whose settings changed is traced again (docs/specs/image-trace.md §5).
+    let (changed, reports) = match chipload_pipeline::images::retrace_changed(&job, &changed) {
+        Ok(traced) => traced,
+        Err(err) => return out.fail(err),
+    };
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&changed, target) {
         return out.fail(err);
     }
     for (path, value) in &assignments {
         out.line(format!("Set {path} = {value}"));
+    }
+    for report in &reports {
+        images::reported(out, report);
     }
     let problems = chipload_pipeline::job_problems(&changed);
     problem_lines(out, &problems);

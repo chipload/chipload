@@ -99,6 +99,7 @@ cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, time estim
 cargo run -p chipload-cli -- simulate part.chipload -o sim.png   # material-removal simulation: numbers and a shaded top view
 cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also shape add/set/delete, shape copy IDS --dx --dy
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
+cargo run -p chipload-cli -- image add part.chipload logo.png --width 120   # trace a picture into shapes on layer "logo" (also image set/list/preview/remove)
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- get part.chipload operations.0.end_depth   # any value by path (0-based, as problem paths)
 cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # checked, then written; `run/plan --set PATH=VALUE` for one run
