@@ -53,6 +53,7 @@ mod recovery;
 mod report;
 mod shortcuts;
 mod simulation;
+mod sources;
 #[cfg(test)]
 mod tests;
 mod user_library;
@@ -95,6 +96,8 @@ enum PathPurpose {
     Image,
     /// Another DXF for the project (File > Add DXF from path…).
     AddDxf,
+    /// A new version of the project's DXF with this id (the Drawing panel's Update…).
+    UpdateDxf(u64),
 }
 
 /// What a DXF without units was being brought in for.
@@ -250,6 +253,10 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
+    /// The DXF whose placement window is open (the Drawing panel's Place…).
+    pub(super) place_open: Option<u64>,
+    /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
+    pub(super) hidden_contours: BTreeSet<usize>,
     /// View > Show images: the pictures faintly under the drawing.
     pub show_images: bool,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
@@ -331,6 +338,8 @@ impl Default for ChiploadApp {
             recent: Vec::new(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
+            place_open: None,
+            hidden_contours: BTreeSet::new(),
             show_images: true,
             show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
@@ -472,12 +481,20 @@ impl ChiploadApp {
         match load_drawing(&job) {
             Ok(imported) => {
                 self.contours = imported.contours;
-                self.scene.contours = self.contours.iter().map(ContourShape::new).collect();
+                // Hidden groups and layers aren't drawn, so they can't be clicked either.
+                self.hidden_contours = sources::hidden_contours(&job.drawing, &self.contours);
+                self.scene.contours = self
+                    .contours
+                    .iter()
+                    .filter(|c| !self.hidden_contours.contains(&c.id))
+                    .map(ContourShape::new)
+                    .collect();
                 self.snap_points = snap_points(&self.contours);
                 self.drawing_facts = Some(DrawingFacts::new(&imported.report, &self.contours));
             }
             Err(err) => {
                 self.contours.clear();
+                self.hidden_contours.clear();
                 self.scene.contours.clear();
                 self.snap_points.clear();
                 self.drawing_facts = Some(DrawingFacts::failed(err.to_string()));
@@ -702,9 +719,10 @@ impl ChiploadApp {
         let cutting = self.tool_cutting(tool);
         // Shapes traced from one image are selected by its layer: their ids change each time
         // it is traced again (docs/specs/image-trace.md §4).
-        let selection = self
-            .traced_layer()
-            .map_or_else(|| self.selection.clone(), CanvasSelection::Layer);
+        let selection = self.traced_layer().map_or_else(
+            || self.selection.clone(),
+            |(layer, from)| CanvasSelection::Layer(layer, from),
+        );
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
@@ -989,7 +1007,7 @@ impl ChiploadApp {
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
-            (CanvasSelection::Layer(_), true) => {
+            (CanvasSelection::Layer(..), true) => {
                 let ids = self.selection.ids(&self.contours);
                 match CanvasSelection::of_contours(&ids, &self.contours) {
                     CanvasSelection::Shapes(shapes) => shapes,
@@ -1015,7 +1033,7 @@ impl ChiploadApp {
     }
 
     pub fn select_layer(&mut self, layer: &str) {
-        self.selection = CanvasSelection::Layer(layer.to_string());
+        self.selection = CanvasSelection::Layer(layer.to_string(), None);
     }
 
     /// A job selector for the canvas selection, e.g. {"shapes": [3, 4]}.
@@ -1031,7 +1049,7 @@ impl ChiploadApp {
             return vec!["Nothing selected.".into()];
         }
         let what = match &self.selection {
-            CanvasSelection::Layer(layer) => format!("layer {layer}"),
+            CanvasSelection::Layer(layer, _) => format!("layer {layer}"),
             _ => "contours".into(),
         };
         let list: Vec<String> = ids.iter().map(|i| format!("#{i}")).collect();
@@ -1058,17 +1076,22 @@ impl ChiploadApp {
         let (Focus::Op(i), Some(edit)) = (self.focus, &self.edit) else {
             return BTreeSet::new();
         };
-        let Some(entry) = edit.ops.get(i) else {
-            return BTreeSet::new();
-        };
-        let selected = match entry.op {
+        edit.ops
+            .get(i)
+            .map(|entry| self.op_contours(&entry.op))
+            .unwrap_or_default()
+    }
+
+    /// The contours an operation cuts, as planning selects them.
+    pub(super) fn op_contours(&self, op: &Operation) -> BTreeSet<usize> {
+        let selected = match op {
             Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(&self.contours, entry.op.select(), "Operation")
+                select_paths(&self.contours, op.select(), "Operation")
             }
-            _ => select_contours(&self.contours, entry.op.select(), "Operation"),
+            _ => select_contours(&self.contours, op.select(), "Operation"),
         };
         // Holes cut circles only: other shapes stay unhighlighted (docs/specs/holes.md §7).
-        let holes = matches!(entry.op, Operation::Holes(_));
+        let holes = matches!(op, Operation::Holes(_));
         selected
             .map(|s| {
                 s.contours
@@ -1078,6 +1101,16 @@ impl ChiploadApp {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    /// How many of an operation's contours are hidden (docs/specs/drawing-sources.md §4).
+    pub(super) fn hidden_cut(&self, op: &Operation) -> usize {
+        if self.hidden_contours.is_empty() {
+            return 0;
+        }
+        self.op_contours(op)
+            .intersection(&self.hidden_contours)
+            .count()
     }
 
     /// The open contours an enabled follow path cuts (docs/specs/follow-path.md §7).
@@ -1270,6 +1303,7 @@ impl eframe::App for ChiploadApp {
         self.next_drop();
         self.library_windows_ui(&ctx);
         self.image_window(&ctx);
+        self.place_window(&ctx);
         self.sync_pictures(&ctx);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.

@@ -1,7 +1,8 @@
 # Placing the drawing
 
 The imported drawing can be moved, turned in 90° steps and scaled on the stock, without
-changing the DXF. Job settings > **Drawing position**, or `chipload place`:
+changing the DXF. In the [Drawing panel](several.md#the-drawing-panel), the DXF's **⋯ >
+Place…**, or `chipload place`:
 
 | | App | Command line |
 |---|---|---|

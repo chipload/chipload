@@ -1947,6 +1947,39 @@ impl Default for PocketStrategy {
 }
 
 impl Drawing {
+    /// The `hidden` key of the group a shape is in (docs/specs/drawing-sources.md §4):
+    /// `dxf:1`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`, or `paths`
+    /// for a path from neither.
+    pub fn group_key(shape: &Shape) -> String {
+        if let Some(dxf) = shape.dxf() {
+            return format!("dxf:{dxf}");
+        }
+        if let Some(image) = shape.image() {
+            return format!("image:{image}");
+        }
+        match shape.geometry {
+            Geometry::Circle { .. } => "drawn:circle".into(),
+            Geometry::Rectangle { .. } => "drawn:rectangle".into(),
+            Geometry::Polyline { .. } => "drawn:polyline".into(),
+            Geometry::Path { .. } => "paths".into(),
+        }
+    }
+
+    /// The `hidden` key of a layer within a group: `dxf:1/layer:Cut`.
+    pub fn layer_key(group: &str, layer: &str) -> String {
+        format!("{group}/layer:{layer}")
+    }
+
+    /// Whether the shape's group, or its layer within the group, is hidden.
+    pub fn is_hidden(&self, shape: &Shape) -> bool {
+        if self.hidden.is_empty() {
+            return false;
+        }
+        let group = Self::group_key(shape);
+        let layer = Self::layer_key(&group, &shape.layer);
+        self.hidden.iter().any(|h| *h == group || *h == layer)
+    }
+
     /// Structural rules of the drawing, as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();

@@ -5,7 +5,7 @@
 
 use std::collections::BTreeSet;
 
-use chipload_core::chain::Contour;
+use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
@@ -31,8 +31,9 @@ pub enum CanvasSelection {
     Nothing,
     /// The shapes of the clicked contours.
     Shapes(BTreeSet<u64>),
-    /// Every contour on one layer.
-    Layer(String),
+    /// Every contour on one layer; with a source, only that DXF's or image's
+    /// (docs/specs/drawing-sources.md §4).
+    Layer(String, Option<ShapeFrom>),
 }
 
 /// The shape ids a contour is made of.
@@ -68,9 +69,10 @@ impl CanvasSelection {
                 .filter(|c| !shapes_of(c).is_disjoint(shapes))
                 .map(|c| c.id)
                 .collect(),
-            CanvasSelection::Layer(layer) => contours
+            CanvasSelection::Layer(layer, from) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
+                .filter(|c| from.is_none() || c.parts.iter().all(|p| p.segment.from == *from))
                 .map(|c| c.id)
                 .collect(),
         }
@@ -81,8 +83,16 @@ impl CanvasSelection {
     /// profiles and pockets would skip them anyway).
     pub fn selector(&self, contours: &[Contour], open: bool) -> Selector {
         match self {
-            CanvasSelection::Layer(layer) => Selector {
+            CanvasSelection::Layer(layer, from) => Selector {
                 layer: Some(layer.clone()),
+                dxf: match from {
+                    Some(ShapeFrom::Dxf(id)) => Some(*id),
+                    _ => None,
+                },
+                image: match from {
+                    Some(ShapeFrom::Image(id)) => Some(*id),
+                    _ => None,
+                },
                 ..Selector::default()
             },
             _ => {
@@ -610,7 +620,7 @@ mod tests {
         let a = job.add(OpKind::Pocket, &ids(&[4, 6, 7]), &contours); // #7 is open: left out
         let b = job.add(
             OpKind::Profile,
-            &CanvasSelection::Layer("upper".into()),
+            &CanvasSelection::Layer("upper".into(), None),
             &contours,
         );
         let Operation::Pocket(pocket) = &job.ops[a].op else {

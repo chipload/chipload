@@ -14,7 +14,7 @@ use chipload_job::{
 };
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
-use chipload_pipeline::placement::{Move as PlaceMove, dxf_size, factor_text, placement_text};
+use chipload_pipeline::placement::{Move as PlaceMove, factor_text};
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -1105,16 +1105,11 @@ pub(super) enum JobRequest {
     Library(LibraryRequest),
     /// Set the copies' pitch so this many mm are left between their cuts.
     CopiesGap(f64),
-    /// Move the imported drawing (docs/specs/drawing-placement.md).
-    /// Move DXF `id`.
+    /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:
     /// updated) (docs/specs/user-posts.md).
     Post(String),
-    /// Open the image window for this image (docs/specs/image-trace.md §6).
-    EditImage(u64),
-    /// Remove this image and its shapes.
-    RemoveImage(u64),
 }
 
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
@@ -1127,7 +1122,6 @@ pub(super) fn job_form(
 ) -> Option<JobRequest> {
     let mut request = None;
     let mut copies_request = None;
-    let mut image_request = None;
     // The operations live in the editor until saved: which tool each uses.
     let op_tools: Vec<i64> = edit.ops.iter().map(|e| e.op.tool()).collect();
     let job = &mut edit.settings;
@@ -1137,44 +1131,19 @@ pub(super) fn job_form(
         // Past the sections' indent, so the values line up with theirs.
         .min_col_width(LABEL_WIDTH + ui.spacing().indent)
         .show(ui, |ui| {
+            // The DXFs and images themselves are in the Drawing panel
+            // (docs/specs/drawing-sources.md §4).
             ui.label("Drawing");
-            ui.label(format!("{} shapes", job.drawing.shapes.len()));
+            let d = &job.drawing;
+            ui.label(format!(
+                "{} shapes: {} DXF{}, {} image{} (Drawing panel)",
+                d.shapes.len(),
+                d.dxfs.len(),
+                if d.dxfs.len() == 1 { "" } else { "s" },
+                d.images.len(),
+                if d.images.len() == 1 { "" } else { "s" }
+            ));
             ui.end_row();
-            for source in &job.drawing.dxfs {
-                ui.label(format!("DXF {}", source.id));
-                ui.label(format!(
-                    "{} from {} ({})",
-                    source.name,
-                    source.file,
-                    match source.units {
-                        Units::Mm => "mm",
-                        Units::Inch => "inch, converted to mm",
-                    }
-                ));
-                ui.end_row();
-            }
-            // Pictures traced into shapes (docs/specs/image-trace.md §6).
-            for image in &job.drawing.images {
-                ui.label(format!("Image {}", image.id));
-                ui.horizontal(|ui| {
-                    ui.label(format!("{} on layer {}", image.file, image.layer));
-                    if ui
-                        .small_button("Edit…")
-                        .on_hover_text("Change its size, place and black-and-white settings")
-                        .clicked()
-                    {
-                        image_request = Some(JobRequest::EditImage(image.id));
-                    }
-                    if ui
-                        .small_button("Remove")
-                        .on_hover_text("Remove the picture and its shapes")
-                        .clicked()
-                    {
-                        image_request = Some(JobRequest::RemoveImage(image.id));
-                    }
-                });
-                ui.end_row();
-            }
         });
 
     let stock = format!(
@@ -1239,22 +1208,6 @@ pub(super) fn job_form(
         ui.end_row();
     });
 
-    let several = job.drawing.dxfs.len() > 1;
-    for source in &job.drawing.dxfs {
-        let placement = source.placement;
-        let summary = placement_text(placement);
-        let title = if several {
-            format!("Position of {}", source.name)
-        } else {
-            "Drawing position".to_string()
-        };
-        let id = format!("job-placement-{}", source.id);
-        section(ui, &id, &title, &summary, |ui| {
-            let size = dxf_size(&job.drawing.shapes, source.id);
-            placement_rows(ui, source.id, placement, size, &mut copies_request);
-        });
-    }
-
     let copies = job.copies.map_or("one part".to_string(), |c| {
         format!("{} × {} = {}", c.columns, c.rows, c.count())
     });
@@ -1280,9 +1233,7 @@ pub(super) fn job_form(
     });
 
     tools_section(ui, job, &op_tools, library, &mut request);
-    image_request
-        .or(copies_request)
-        .or(request.map(JobRequest::Library))
+    copies_request.or(request.map(JobRequest::Library))
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
@@ -1403,7 +1354,7 @@ const DEFAULT_PLACE_MARGIN: f64 = 10.0;
 /// Moving, turning and scaling the imported drawing (docs/specs/drawing-placement.md §5,
 /// drawing-scale.md §5). The values typed here are inputs only: nothing moves until a button
 /// is pressed, so each change is one undo step.
-fn placement_rows(
+pub(super) fn placement_rows(
     ui: &mut egui::Ui,
     dxf: u64,
     placement: Placement,

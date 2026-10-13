@@ -236,6 +236,7 @@ impl ChiploadApp {
             PathPurpose::Update => ("Update drawing", "The DXF:"),
             PathPurpose::Image => ("Import image", "A picture (PNG, JPEG or BMP):"),
             PathPurpose::AddDxf => ("Add DXF", "The DXF to add to the project:"),
+            PathPurpose::UpdateDxf(_) => ("Update DXF", "The new version of the DXF:"),
         };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
@@ -276,6 +277,9 @@ impl ChiploadApp {
             }
             PathPurpose::AddDxf => {
                 self.add_dxf_from(&path, None);
+            }
+            PathPurpose::UpdateDxf(id) => {
+                self.update_dxf_from(Some(id), &path, None);
             }
         }
     }

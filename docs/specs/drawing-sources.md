@@ -1,6 +1,6 @@
 # Spec: several drawings and pictures in one project, a Drawing panel, hiding
 
-Status: **approved** (2026-10-13, all recommendations taken). Built: §5, §2, §3 (as built: §10).
+Status: **approved** (2026-10-13, all recommendations taken). Built: all (as built: §10).
 
 The user's request:
 - Import several DXFs and pictures into one project, each with its own position and scale.
@@ -246,3 +246,15 @@ Each step comes with its tests and guide pages, as usual.
   brought in one at a time: a DXF without units asks, a picture opens its window, and the
   rest wait. *File > Add DXF to project…* (and *from path…*) do the same for one DXF;
   *Update drawing* is off with several DXFs until the Drawing panel picks which.
+- **§4, the Drawing panel** (2026-10-13):
+  - **Row actions:** each row has *Select*, and a **⋯** menu with the rest (*Place…*,
+    *Update from a DXF…* / *from a path…*, *Remove*; *Edit…* / *Remove* for an image). Four
+    buttons don't fit the sidebar.
+  - **Groups:** DXF groups open on their layers. *Select* on a layer under a DXF is a layer
+    selection that names its source, and so does an imported image's layer (the
+    operation's selector gets `dxf` or `image`).
+  - **Hidden** is a contour whose every shape is hidden: it is left out of the canvas's
+    scene, so it is neither drawn nor picked. There is no box selection in the app, so §7's
+    line about it has nothing to do. The operation card says "cuts N hidden contours".
+  - **Job settings** keep one line about the drawing (how many shapes, DXFs and images),
+    pointing at the panel.

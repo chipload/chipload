@@ -282,8 +282,9 @@ impl ChiploadApp {
 
     /// Set up what the user guide's screenshots show (docs/specs/user-guide.md §3), from
     /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d`,
-    /// `half` (the playback half way), `notoolpath` (View > Show toolpath off) and `image` (the
-    /// first image's window, traced). Only in builds made for screenshots.
+    /// `half` (the playback half way), `notoolpath` (View > Show toolpath off), `image` (the
+    /// first image's window, traced) and `drawing` (the last DXF hidden, the first one's
+    /// placement window open). Only in builds made for screenshots.
     #[cfg(feature = "screenshots")]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
@@ -302,6 +303,19 @@ impl ChiploadApp {
         }
         if steps.contains(&"notoolpath") {
             self.show_toolpath = false;
+        }
+        let dxfs: Vec<u64> = self
+            .edit
+            .as_ref()
+            .map(|e| e.settings.drawing.dxfs.iter().map(|d| d.id).collect())
+            .unwrap_or_default();
+        if steps.contains(&"drawing")
+            && let (Some(&first), Some(&last)) = (dxfs.first(), dxfs.last())
+        {
+            if last != first {
+                self.toggle_hidden(&format!("dxf:{last}"));
+            }
+            self.place_open = Some(first);
         }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback

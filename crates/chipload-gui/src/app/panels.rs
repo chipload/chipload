@@ -2,7 +2,6 @@
 //! The side panels: operations, selection (with the shape editor), properties.
 
 use super::forms::{JobRequest, OpFormRequest, ToolChoice};
-use std::collections::BTreeMap;
 
 use super::*;
 
@@ -104,7 +103,7 @@ impl ChiploadApp {
             .frame(egui::Frame::NONE)
             .show(ui, |ui| {
                 ui.add_space(6.0);
-                section_header(ui, "Shapes");
+                section_header(ui, "Drawing");
                 ScrollArea::vertical()
                     .id_salt("shapes-scroll")
                     .auto_shrink([false, false])
@@ -166,8 +165,11 @@ impl ChiploadApp {
         ui.add_space(2.0);
     }
 
-    /// The selection, the selected shape's editor or facts, and the layers.
+    /// The DXFs, images and drawn shapes (docs/specs/drawing-sources.md §4), then the
+    /// selection and the selected shape's editor or facts.
     fn shapes_section(&mut self, ui: &mut egui::Ui) {
+        self.drawing_tree(ui);
+        ui.separator();
         let nothing = self.selection.ids(&self.contours).is_empty();
         for line in self.selection_lines() {
             if nothing {
@@ -187,43 +189,6 @@ impl ChiploadApp {
         {
             self.copy_selector(ui.ctx());
         }
-        ui.add_space(4.0);
-        ui.strong("Layers");
-        let layers = self.layer_counts();
-        if layers.is_empty() {
-            ui.weak("No shapes yet.");
-        }
-        Grid::new("layer-list")
-            .num_columns(3)
-            .striped(true)
-            .show(ui, |ui| {
-                for (layer, count) in layers {
-                    ui.label(&layer);
-                    ui.weak(format!(
-                        "{count} {}",
-                        if count == 1 { "shape" } else { "shapes" }
-                    ));
-                    if ui
-                        .small_button("Select")
-                        .on_hover_text("Select every shape on this layer")
-                        .clicked()
-                    {
-                        self.select_layer(&layer);
-                    }
-                    ui.end_row();
-                }
-            });
-    }
-
-    /// Every layer with the number of shapes on it, sorted by name.
-    pub(super) fn layer_counts(&self) -> Vec<(String, usize)> {
-        let mut layers: BTreeMap<String, usize> = BTreeMap::new();
-        for c in &self.contours {
-            for layer in c.layers() {
-                *layers.entry(layer).or_default() += 1;
-            }
-        }
-        layers.into_iter().collect()
     }
 
     pub(super) fn operation_list(&mut self, ui: &mut egui::Ui) {
@@ -250,6 +215,17 @@ impl ChiploadApp {
         let card_problems: Vec<Option<String>> = (0..self.edit.as_ref().map_or(0, |e| e.ops.len()))
             .map(first_problem)
             .collect();
+        // Hidden contours an operation still cuts (docs/specs/drawing-sources.md §4).
+        let card_hidden: Vec<usize> = self
+            .edit
+            .as_ref()
+            .map(|e| {
+                e.ops
+                    .iter()
+                    .map(|entry| self.hidden_cut(&entry.op))
+                    .collect()
+            })
+            .unwrap_or_default();
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
@@ -303,6 +279,16 @@ impl ChiploadApp {
                 time,
             };
             let card = op_card(ui, i, entry, &self.contours, state);
+            if let Some(&n) = card_hidden.get(i).filter(|&&n| n > 0) {
+                ui.weak(
+                    RichText::new(format!(
+                        "  cuts {n} hidden {}",
+                        if n == 1 { "contour" } else { "contours" }
+                    ))
+                    .small(),
+                )
+                .on_hover_text("Hidden in the Drawing panel, still cut: show them to see them");
+            }
             let response = card.response;
             if response.clicked() {
                 action = Some(CardAction::Focus(i));
@@ -463,12 +449,6 @@ impl ChiploadApp {
             }
             Some(JobRequest::Place(dxf, how)) => {
                 self.place_dxf(Some(dxf), how);
-            }
-            Some(JobRequest::EditImage(id)) => {
-                self.edit_image(id);
-            }
-            Some(JobRequest::RemoveImage(id)) => {
-                self.remove_image(id);
             }
             None => {}
         }

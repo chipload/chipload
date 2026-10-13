@@ -89,10 +89,6 @@ it's built (see `CLAUDE.md`).
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
-- **Several DXFs and pictures per project, the Drawing panel, hiding, hide the toolpath**
-  (docs/specs/drawing-sources.md, approved 2026-10-13, schema 21): hide the toolpath and
-  several DXFs (`dxf add/list/remove`, `--dxf`) done; next: dropping files, the Drawing
-  panel with hiding.
 - **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
   against thousands before; find which pictures are slow (centre lines on noise?) and
   whether a user could hit it.
@@ -101,6 +97,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Several DXFs and pictures per project, the Drawing panel, hiding, hide the toolpath**
+  (2026-10-13, docs/specs/drawing-sources.md, schema 21): `drawing.dxfs` with a placement
+  each, `dxf add/list/remove`, `place --dxf`, `update --dxf`; selectors limited to a DXF or
+  image, a note when a layer is in several; dropping DXFs and pictures adds them; the
+  Drawing panel (was Shapes) with groups, Select, ⋯ (place, update, edit, remove) and
+  hiding (still cut, noted on the card); View > Show toolpath. Golden v20_scaled_part,
+  v21_two_dxfs. Later: drag a DXF on the canvas to move it.
 - **Traced pictures with arcs, and centre lines for follow path** (2026-10-13,
   docs/specs/image-arcs-centrelines.md, schema 20): images get `trace` (outlines or centre
   lines) and `arcs`; v19 images migrate as outlines without arcs. A greedy line-and-arc

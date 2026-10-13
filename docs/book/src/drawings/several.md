@@ -14,6 +14,33 @@ chipload dxf remove part.chipload 2                   # it and its shapes
 
 In the app: *File > Add DXF to project…*, or drop the DXF on the window.
 
+## The Drawing panel
+
+The **Drawing** panel, under the operations, lists what the project's shapes come from:
+
+- **Each DXF**, with its layers inside.
+- **Each image.**
+- **The shapes drawn in Chipload**, by kind: rectangles, circles, polylines.
+
+![The Drawing panel: two DXFs with their layers, the second hidden, an image, and the
+first DXF's placement window](../images/drawing.png)
+
+- **Select** selects the whole group, or one layer of one DXF. An operation added from a
+  DXF's layer cuts only that DXF's layer (its selector names the DXF).
+- **⋯** has the rest:
+  - **For a DXF:** *Place…* (move, turn, scale: [Placing the drawing](placement.md)),
+    *Update from a DXF…* or *from a path…*, and *Remove*.
+  - **For an image:** *Edit…* and *Remove*.
+- **The checkbox hides** a group or a layer on the canvas: it isn't drawn and can't be
+  clicked. **Hidden shapes are still cut.** An operation that cuts some says so on its card
+  ("cuts 3 hidden contours"), and its toolpath still shows. To stop cutting them, turn the
+  operation off.
+- **Saved:** what is hidden is saved in the project (`drawing.hidden`). Changing it is a
+  step you can undo.
+
+*File > Update drawing from DXF…* works while the project has one DXF. With several, update
+each from its ⋯ menu.
+
 - **Where it goes:** a new DXF lands where its file has it, often on top of the first.
   [Place](placement.md) it afterwards.
 - **Which one:** with several DXFs, `place` and `update` need `--dxf ID`. With one, they

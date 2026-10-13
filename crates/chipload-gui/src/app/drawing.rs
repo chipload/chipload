@@ -85,7 +85,7 @@ impl ChiploadApp {
 
     /// A new shape's layer: the selection's, if it is all on one layer; else 0.
     pub(super) fn default_layer(&self) -> String {
-        if let CanvasSelection::Layer(layer) = &self.selection {
+        if let CanvasSelection::Layer(layer, _) = &self.selection {
             return layer.clone();
         }
         let ids = self.selection.ids(&self.contours);

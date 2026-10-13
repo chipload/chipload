@@ -284,7 +284,10 @@ impl ChiploadApp {
                 }
                 self.image_dialog = None;
                 self.drawing_changed(&[]);
-                self.select_layer(&draft.layer);
+                self.selection = super::CanvasSelection::Layer(
+                    draft.layer.clone(),
+                    Some(chipload_core::chain::ShapeFrom::Image(report.id)),
+                );
                 self.commit();
                 let mut lines = report.lines.clone();
                 lines.push(format!(
@@ -336,9 +339,9 @@ impl ChiploadApp {
         }
     }
 
-    /// The layer of the image every selected shape was traced from, if they all come from
-    /// one image.
-    pub(super) fn traced_layer(&self) -> Option<String> {
+    /// The layer of the image every selected shape was traced from, with that image, if
+    /// they all come from one image.
+    pub(super) fn traced_layer(&self) -> Option<(String, Option<chipload_core::chain::ShapeFrom>)> {
         let edit = self.edit.as_ref()?;
         let super::CanvasSelection::Shapes(ids) = &self.selection else {
             return None;
@@ -346,11 +349,14 @@ impl ChiploadApp {
         let mut layers = std::collections::BTreeSet::new();
         for id in ids {
             let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
-            shape.image()?;
-            layers.insert(shape.layer.clone());
+            let image = shape.image()?;
+            layers.insert((shape.layer.clone(), image));
         }
         match layers.len() {
-            1 => layers.into_iter().next(),
+            1 => layers
+                .into_iter()
+                .next()
+                .map(|(layer, image)| (layer, Some(chipload_core::chain::ShapeFrom::Image(image)))),
             _ => None,
         }
     }
