@@ -218,6 +218,7 @@ impl ChiploadApp {
             PathPurpose::Save => ("Save project", "Save the project to:"),
             PathPurpose::Export => ("Export G-code", "Export the checked G-code to:"),
             PathPurpose::Update => ("Update drawing", "The DXF:"),
+            PathPurpose::Image => ("Import image", "A picture (PNG, JPEG or BMP):"),
         };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
@@ -252,6 +253,9 @@ impl ChiploadApp {
             }
             PathPurpose::Update => {
                 self.update_from(&path, None);
+            }
+            PathPurpose::Image => {
+                self.import_image(&path);
             }
         }
     }

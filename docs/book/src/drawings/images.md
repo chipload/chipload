@@ -48,7 +48,8 @@ a picture has its own X, Y and width.
 ## In the app
 
 **File > Import image…** picks a picture and opens its window. A project is made first if
-none is open.
+none is open. Without a file dialog (see [Install](../install.md)), *File > Import image from
+path…* takes the picture's path instead.
 - **Left:** the picture as black and white, with the traced outlines over it in orange,
   updated as you change the settings.
 - **Right:** the settings, the width, the corner and the layer, and what was traced (with the

@@ -85,6 +85,9 @@ impl ChiploadApp {
                 if ui.button("Open path…").clicked() {
                     self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
                 }
+                if ui.button("Import image from path…").clicked() {
+                    self.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
+                }
                 ui.separator();
                 let (update, update_path) = self.update_labels();
                 if ui.add_enabled(has_job, egui::Button::new(update)).clicked() {

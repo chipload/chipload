@@ -91,6 +91,8 @@ enum PathPurpose {
     Save,
     Export,
     Update,
+    /// A picture to trace (File > Import image from path…).
+    Image,
 }
 
 /// A small modal asking for something before an action can continue.

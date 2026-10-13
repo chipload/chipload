@@ -19,7 +19,8 @@ chmod +x Chipload-*.AppImage
 - **Command line:** it's in `chipload-X.Y.Z-linux-x86_64.tar.gz`. Unpack it and put
   `chipload` on your `PATH`.
 - **File dialogs:** these need an XDG desktop portal or `zenity`. Without them, use *File >
-  Open path…*, or give the files on the command line.
+  Open path…* (and *Import image from path…*, *Update drawing from path…*), or give the files
+  on the command line.
 
 ## Windows
 
