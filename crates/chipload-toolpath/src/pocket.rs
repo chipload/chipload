@@ -29,9 +29,7 @@ use crate::cancel::{self, Cancel};
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
-use crate::left::{
-    LeftKind, LeftPiece, cleared, left_by, reach, rest_areas, sort_pieces, unreachable_inside,
-};
+use crate::left::{cleared, left_by, rest_areas};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
@@ -77,8 +75,6 @@ pub struct PocketPlan {
     pub pieces: Vec<PocketPiece>,
     /// Warnings: narrow parts, uncut material.
     pub notes: Vec<String>,
-    /// Material left, for display (unreachable corners and slots, missed spots).
-    pub left: Vec<LeftPiece>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
 }
@@ -806,7 +802,7 @@ fn rounded_rings(
         let mut changed = false;
         let points: Vec<Point> = left
             .iter()
-            .flat_map(|piece| piece.rings.iter().flatten().copied())
+            .flat_map(|piece| piece.iter().flatten().copied())
             .collect();
         for (i, node) in nodes.iter().enumerate() {
             let edges = PrimIndex::new(node.area.boundary(), near);
@@ -1089,7 +1085,7 @@ fn uncut_material(
     links: &[bool],
     radius: f64,
     ids: &[usize],
-) -> (Option<String>, Vec<LeftPiece>) {
+) -> (Option<String>, Vec<Missed>) {
     let eps = REST_TOL_MM;
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
@@ -1162,14 +1158,10 @@ fn uncut_material(
     if spots.is_empty() {
         return (None, Vec::new());
     }
-    let mut missed: Vec<LeftPiece> = spots
+    let missed: Vec<Missed> = spots
         .iter()
-        .map(|spot| LeftPiece {
-            kind: LeftKind::Missed,
-            rings: spot.iter().map(|&i| square(cells[i])).collect(),
-        })
+        .map(|spot| spot.iter().map(|&i| square(cells[i])).collect())
         .collect();
-    sort_pieces(&mut missed);
     let area =
         |spot: &[usize]| -> f64 { spot.iter().map(|&i| (2.0 * cells[i].half).powi(2)).sum() };
     let bounds = |spot: &[usize]| {
@@ -1224,6 +1216,9 @@ fn uncut_material(
     );
     (Some(note), missed)
 }
+
+/// A spot of missed material: the squares it is made of.
+type Missed = Vec<Vec<Point>>;
 
 /// A cell as a counter-clockwise square.
 fn square(cell: Cell) -> Vec<Point> {
@@ -1405,18 +1400,13 @@ pub fn plan_pocket_starting(
     }
     let mut pieces = Vec::new();
     let mut notes = Vec::new();
-    let mut left = Vec::new();
     let mut arcs = ArcTable::default();
-    // Rest machining: only the larger tool's leftovers are cleared; kept for the display.
-    let mut rest_left: Option<Vec<Area>> = None;
+    // Rest machining: only the larger tool's leftovers are cleared.
     if let Some(large) = rest {
         let found = rest_pieces(&remaining, large, tool_radius, clearance, offset)?;
         remaining = found.pieces;
         notes.extend(found.notes);
-        rest_left = Some(found.left);
     }
-    // Every region with where the tool centre can go in it, for the material left.
-    let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
     let mut drafts: Vec<Draft> = Vec::new();
     while !remaining.is_empty() {
@@ -1567,11 +1557,8 @@ pub fn plan_pocket_starting(
             None => None,
         };
         cancel::check(cancel)?;
-        let (uncut, missed) =
-            uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
+        let (uncut, _) = uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
         notes.extend(uncut);
-        left.extend(missed);
-        reachable.push((region, level0));
         pieces.push(PocketPiece {
             rings,
             open,
@@ -1583,27 +1570,9 @@ pub fn plan_pocket_starting(
             helix,
         });
     }
-    // Display only: any failure, even a panic in the geometry library, becomes a note.
-    let unreachable = guarded("Material left", || match &rest_left {
-        Some(material) => unreachable_after_rest(material, &reachable, tool_radius),
-        None => unreachable_in_pockets(&reachable, tool_radius, clearance),
-    })
-    .and_then(|result| result);
-    match unreachable {
-        Ok(pieces) => left.extend(pieces),
-        Err(_) => {
-            let mut ids: Vec<usize> = contours.iter().map(|c| c.id).collect();
-            ids.sort_unstable();
-            notes.push(format!(
-                "contours {}: could not compute the material left for display",
-                ids_text(&ids)
-            ));
-        }
-    }
     Ok(PocketPlan {
         pieces,
         notes,
-        left,
         arcs,
     })
 }
@@ -1758,26 +1727,6 @@ fn choose_starts(
     }
 }
 
-/// Material no pocket of the operation reaches. Crossing pockets clear each other's
-/// corners, so each region is checked against the reach of all of them.
-fn unreachable_in_pockets(
-    regions: &[(Area, Vec<Area>)],
-    radius: f64,
-    clearance: f64,
-) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let mut reached = Vec::new();
-    for (_, level0) in regions {
-        reached.extend(reach(level0, radius)?);
-    }
-    let mut pieces = Vec::new();
-    for (region, _) in regions {
-        for target in cleared(region, clearance)? {
-            pieces.extend(unreachable_inside(&target, &reached)?);
-        }
-    }
-    Ok(pieces)
-}
-
 /// What a rest pocket clears (docs/specs/rest-machining.md §3).
 struct RestPieces {
     /// The areas to pocket, each with its region's contours.
@@ -1849,24 +1798,6 @@ fn rest_pieces(
         ));
     }
     Ok(found)
-}
-
-/// Material left after a rest pocket: the larger tool's leftovers that this one doesn't
-/// reach either.
-fn unreachable_after_rest(
-    material: &[Area],
-    regions: &[(Area, Vec<Area>)],
-    radius: f64,
-) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let mut reached = Vec::new();
-    for (_, level0) in regions {
-        reached.extend(reach(level0, radius)?);
-    }
-    let mut pieces = Vec::new();
-    for area in material {
-        pieces.extend(unreachable_inside(area, &reached)?);
-    }
-    Ok(pieces)
 }
 
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.

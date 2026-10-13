@@ -205,14 +205,11 @@ impl ChiploadApp {
         self.error_ops.clear();
         self.scene.toolpath = Some(ToolpathShape::new(&result.program, false, &result.op_spans));
         self.scene.tabs.clone_from(&result.tabs);
-        self.scene.left = result.material_left.iter().map(LeftShape::new).collect();
         self.scene.start_markers = result
             .ring_starts
             .iter()
             .map(|s| StartMarker::new(s.operation, s.ring.clone(), s.stored))
             .collect();
-        // Missed pieces on top.
-        self.scene.left.sort_by_key(|l| l.kind == LeftKind::Missed);
         let mut report = Report::default();
         let lines: usize = result
             .files
@@ -240,9 +237,6 @@ impl ChiploadApp {
         for warning in &result.check_warnings {
             report.push(Tone::Warning, format!("Check: {}", warning.message));
         }
-        for line in format_material_left(job, &result.material_left) {
-            report.push(Tone::Info, line);
-        }
         report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
         self.set_report(report);
         self.result_job = Some(job.clone());
@@ -258,7 +252,6 @@ impl ChiploadApp {
     fn clear_toolpath(&mut self) {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
-        self.scene.left.clear();
         self.scene.start_markers.clear();
         self.result_serial += 1;
         self.drop_simulation();

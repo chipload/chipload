@@ -1,6 +1,16 @@
 # Spec: let the simulation show material left
 
-Status: **draft 2026-10-13**, for review (decisions in §5).
+Status: **approved 2026-10-13** ("Go ahead"), all decisions as recommended (§5).
+Built 2026-10-13. As built:
+- The missed spots are still found as squares inside the pocket planner. The ring-corner
+  rounding uses them to round less where it would leave material; they're just no longer
+  returned for display.
+- The dogbone legs were returned only to take them out of the display; the planner no longer
+  returns them.
+- `left.rs` keeps what rest machining needs (`reach`, `left_by`, `rest_areas`, `cleared`
+  and the boolean helpers), and its tests now run through `left_by`.
+- Golden setup sheets changed as §4 says: only the "can't reach" lines went; the rest
+  pocket's sheet now says "Nothing was reported."
 
 Approved plan (2026-10-13, ADR 0017), item 5: "merge the material-left display into the
 simulation, keep the check". Two features now answer the same question, "what does the tool

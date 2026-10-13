@@ -146,17 +146,6 @@ fn a_square_pocket_gets_its_four_corners_and_nothing_else() {
     // Four pieces, one per corner.
     let pieces = plan.pockets.len();
     assert_eq!(pieces, 1 + 4, "{pieces} pocket pieces");
-    // The rest pocket leaves only the small tool's corners: four, smaller than before.
-    let left: Vec<_> = plan
-        .material_left
-        .iter()
-        .filter(|m| m.operation == 1)
-        .collect();
-    assert_eq!(left.len(), 4);
-    for piece in left {
-        let ((x0, y0), (x1, y1)) = piece.bounds();
-        assert!(x1 - x0 < 1.5 && y1 - y0 < 1.5, "{:?}", piece.bounds());
-    }
 }
 
 #[test]

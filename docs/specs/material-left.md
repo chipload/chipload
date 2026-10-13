@@ -1,6 +1,9 @@
 # Spec: showing material the toolpath leaves
 
 Status: **approved 2026-10-09** (answers to Q1–Q4 in §8: all as recommended).
+**Superseded 2026-10-13** by docs/specs/material-left-merge.md: the display and its
+computation were removed; the simulation shows what the tools leave. The missed-material
+warning (pocket.md §3) stays.
 
 Guide: docs/book/src/operations/pocket.md.
 

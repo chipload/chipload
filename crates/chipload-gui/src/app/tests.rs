@@ -66,21 +66,20 @@ fn import_create_operations_generate_save_and_run_without_the_dxf() {
 }
 
 #[test]
-fn generating_shows_the_material_left_until_the_project_changes() {
+fn the_simulation_is_on_from_the_start_and_shows_what_the_tools_leave() {
+    // docs/specs/material-left-merge.md: the simulation, not a separate shading, shows the
+    // material left, and the report has no "can't reach" lines any more.
     let mut app = lower_part();
+    assert!(app.show_simulation);
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    // Bar #4's four square corners. Bar #6's right end is rounded and its left corners
-    // lie inside bar #4, which clears them. The outline (operation 1, outside) has no
-    // inside corners.
-    assert!(app.scene.left.iter().all(|l| l.operation == 0));
-    assert_eq!(app.scene.left.len(), 4);
+    let ctx = egui::Context::default();
+    assert!(app.wait_for_simulation(&ctx));
+    assert!(app.simulation.is_some());
     assert!(
-        app.report
+        !app.report
             .iter()
-            .any(|l| l.contains("the tool can't reach material in 4 places"))
+            .any(|l| l.contains("can't reach material"))
     );
-    app.toolpath_out_of_date();
-    assert!(app.scene.left.is_empty());
 }
 
 // -- drawing (docs/specs/drawing-tools.md)
@@ -1327,10 +1326,10 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
 fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
-    let drawing_only = crate::view::legend(&app.scene, true).len();
+    let drawing_only = crate::view::legend(&app.scene).len();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.toolpath_stale);
-    let generated = crate::view::legend(&app.scene, true).len();
+    let generated = crate::view::legend(&app.scene).len();
     assert!(
         generated > drawing_only,
         "the legend explains the toolpath too"
@@ -1344,7 +1343,7 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     // It stays, faded, until a new one replaces it; it can't be exported.
     assert!(app.scene.toolpath.as_ref().unwrap().stale);
     assert!(app.result.is_none());
-    assert!(app.scene.start_markers.is_empty() && app.scene.left.is_empty());
+    assert!(app.scene.start_markers.is_empty());
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.toolpath_stale);
     // A project opened afresh has nothing out of date.
@@ -1605,8 +1604,9 @@ fn the_simulation_follows_the_toggle_and_the_toolpath() {
     let ctx = egui::Context::default();
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v18/holes.chipload")));
+    // Switched off: nothing computed.
+    app.set_show_simulation(false);
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    // Off by default: nothing computed.
     assert!(!app.simulating());
     assert!(app.scene.sim.is_none());
     app.set_show_simulation(true);

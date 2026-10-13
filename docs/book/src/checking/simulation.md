@@ -11,8 +11,9 @@
 
 ## Simulation
 
-*View > Show simulation* (or **Simulation** on the toolbar) cuts the stock with every move
-of the program and shows the result.
+The simulation cuts the stock with every move of the program and shows the result. It is
+on when the app starts; *View > Show simulation* (or **Simulation** on the toolbar) turns it
+off and on.
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its

@@ -35,7 +35,6 @@ use chipload_post::{
     render_with_tool_changes,
 };
 pub use chipload_toolpath::Cancel;
-use chipload_toolpath::left::MaterialLeft;
 use chipload_toolpath::model::Program;
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
@@ -79,8 +78,6 @@ pub struct RunResult {
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece (rings and links), for display.
     pub pockets: Vec<PocketPiece>,
-    /// Material each operation leaves (unreachable corners, missed spots), for display.
-    pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, for display.
     pub op_spans: Vec<OpSpan>,
     /// The tool groups, in cut order: one file each, or one file with M6 between them.
@@ -332,7 +329,6 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         program: plan.program,
         tabs: plan.tabs,
         pockets: plan.pockets,
-        material_left: plan.material_left,
         op_spans: plan.op_spans,
         groups: plan.groups,
         ring_starts: plan.ring_starts,

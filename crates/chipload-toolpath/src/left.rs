@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Material an operation leaves behind, for display only. See docs/specs/material-left.md.
-//!
-//! Unreachable material is where no tool disk fits: R − opening(R, r) for a pocket or an
-//! inside profile, closing(P, r) − P for an outside profile. Nothing here changes a toolpath,
-//! and callers turn a failure into a note instead of an error.
+//! What a tool leaves in a pocket, for rest machining (docs/specs/rest-machining.md): the
+//! region minus the area a disk of the tool's radius reaches in it, worked out with
+//! cavalier_contours' booleans, checked by area and nudged when they misjudge a near
+//! coincidence. Until 0.14 this also drew the material left on the canvas
+//! (docs/specs/material-left.md); the simulation does that now
+//! (docs/specs/material-left-merge.md).
 
 use cavalier_contours::polyline::{
     BooleanOp, BooleanResult, PlineContainsResult, PlineSource, Polyline,
 };
-use chipload_core::Point;
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
@@ -27,67 +27,6 @@ const OUTSIDE_LIMIT_MM: f64 = ARC_APPROX_TOL_MM + OFFSET_CHECK_SLACK_MM;
 /// the wall gap. Pieces this small are dropped anyway (`too_small`, `keep_visible`).
 const AREA_SLACK_MM2: f64 = WALL_GAP_MM * WALL_GAP_MM;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LeftKind {
-    /// No tool disk fits: inside corners, slots narrower than the tool. Normal.
-    Unreachable,
-    /// The tool fits but the toolpath doesn't pass close enough (also a warning).
-    Missed,
-}
-
-impl LeftKind {
-    pub fn name(self) -> &'static str {
-        match self {
-            LeftKind::Unreachable => "unreachable",
-            LeftKind::Missed => "missed",
-        }
-    }
-}
-
-/// One piece of material left by one operation.
-#[derive(Debug, Clone, PartialEq)]
-pub struct MaterialLeft {
-    /// Index in `job.operations`.
-    pub operation: usize,
-    pub kind: LeftKind,
-    /// Closed rings, arcs flattened, filled even-odd: an outline and its holes, or for missed
-    /// material the squares it is made of.
-    pub rings: Vec<Vec<Point>>,
-}
-
-impl MaterialLeft {
-    /// (min, max) corners of the piece.
-    pub fn bounds(&self) -> (Point, Point) {
-        bounds_of(&self.rings)
-    }
-}
-
-/// A piece before it is attached to an operation.
-#[derive(Debug, Clone, PartialEq)]
-pub struct LeftPiece {
-    pub kind: LeftKind,
-    pub rings: Vec<Vec<Point>>,
-}
-
-pub(crate) fn bounds_of(rings: &[Vec<Point>]) -> (Point, Point) {
-    rings.iter().flatten().fold(
-        (
-            (f64::INFINITY, f64::INFINITY),
-            (f64::NEG_INFINITY, f64::NEG_INFINITY),
-        ),
-        |((x0, y0), (x1, y1)), p| ((x0.min(p.0), y0.min(p.1)), (x1.max(p.0), y1.max(p.1))),
-    )
-}
-
-/// Deterministic order: by (min y, min x).
-pub(crate) fn sort_pieces(pieces: &mut [LeftPiece]) {
-    pieces.sort_by(|a, b| {
-        let ((ax, ay), _) = bounds_of(&a.rings);
-        let ((bx, by), _) = bounds_of(&b.rings);
-        ay.total_cmp(&by).then(ax.total_cmp(&bx))
-    });
-}
-
 /// Where a tool of `radius` reaches, given where its centre can go (`level0`, the area
 /// shrunk by the radius), grown by a small gap so it never shares an edge with a wall.
 pub fn reach(level0: &[Area], radius: f64) -> Result<Vec<Area>, ToolpathError> {
@@ -96,31 +35,6 @@ pub fn reach(level0: &[Area], radius: f64) -> Result<Vec<Area>, ToolpathError> {
         areas.extend(area.grown(radius + WALL_GAP_MM)?);
     }
     Ok(areas)
-}
-
-/// Material inside `region` that the tool reaches nowhere. `reached` is everywhere the
-/// operation's tool reaches ([`reach`]): this region's own pockets, and other pockets of the
-/// same operation, which clear each other's corners where they cross.
-pub fn unreachable_inside(
-    region: &Area,
-    reached: &[Area],
-) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let mut pieces = vec![region.clone()];
-    for area in reached {
-        pieces = minus_area(pieces, area)?;
-    }
-    let pieces = keep_visible(pieces)?;
-    for piece in &pieces {
-        let outside = flatten(&piece.outer)
-            .into_iter()
-            .any(|p| region.distance(p) > OUTSIDE_LIMIT_MM);
-        if outside {
-            return Err(geometry(
-                "material left lies outside the area it was computed for".into(),
-            ));
-        }
-    }
-    Ok(finish(pieces))
 }
 
 /// Rest machining (docs/specs/rest-machining.md §2): the material inside `region` a tool
@@ -167,8 +81,6 @@ pub fn rest_areas(region: &Area, left: &[Area], grow: f64) -> Result<Vec<Area>, 
     Ok(areas)
 }
 
-/// Material outside the closed `contour` that no tool disk of `radius` beside it reaches:
-/// the inside corners of a part cut with an outside profile.
 /// The area meant to be cleared once the clearance is applied: grown by a positive
 /// clearance, shrunk by a negative one (docs/specs/depths-and-clearance.md). Material left
 /// is judged against this, so stock left on purpose isn't shown as unreachable.
@@ -177,59 +89,6 @@ pub fn cleared(region: &Area, clearance: f64) -> Result<Vec<Area>, ToolpathError
         return Ok(vec![region.clone()]);
     }
     region.grown(clearance)
-}
-
-/// `offset` is how far the tool centre runs from the contour (the tool radius minus any
-/// clearance); `radius` is the tool's.
-pub fn unreachable_outside(
-    contour: &Polyline<f64>,
-    offset: f64,
-    radius: f64,
-) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let drawn = ccw(contour.clone());
-    // The part as it should come out: shrunk by a positive clearance, grown by a negative.
-    let clearance = radius - offset;
-    let part = if clearance == 0.0 {
-        drawn.clone()
-    } else {
-        let kept = guarded("Material left offset", || drawn.parallel_offset(clearance))?
-            .into_iter()
-            .filter(|p| p.is_closed())
-            .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()));
-        let Some(kept) = kept else {
-            return Ok(Vec::new());
-        };
-        ccw(kept)
-    };
-    let grown = guarded("Material left offset", || drawn.parallel_offset(-offset))?
-        .into_iter()
-        .filter(|p| p.is_closed())
-        .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()));
-    let Some(grown) = grown else {
-        return Ok(Vec::new());
-    };
-    let closing = Area {
-        outer: ccw(grown),
-        holes: Vec::new(),
-    }
-    .shrunk(radius + WALL_GAP_MM)?;
-    let mut pieces = Vec::new();
-    for area in &closing {
-        pieces.extend(difference(area, &part)?);
-    }
-    let pieces = keep_visible(pieces)?;
-    let part_area = Area::of(part.clone());
-    for piece in &pieces {
-        let inside = flatten(&piece.outer)
-            .into_iter()
-            .any(|p| part_area.contains(p) && part_area.edge_distance(p) > OUTSIDE_LIMIT_MM);
-        if inside {
-            return Err(geometry(
-                "material left lies inside the part it was computed for".into(),
-            ));
-        }
-    }
-    Ok(finish(pieces))
 }
 
 /// Drop pieces that hold no disk of diameter REST_TOL_MM (chord and float noise).
@@ -241,21 +100,6 @@ fn keep_visible(pieces: Vec<Area>) -> Result<Vec<Area>, ToolpathError> {
         }
     }
     Ok(kept)
-}
-
-fn finish(pieces: Vec<Area>) -> Vec<LeftPiece> {
-    let mut out: Vec<LeftPiece> = pieces
-        .iter()
-        .map(|a| LeftPiece {
-            kind: LeftKind::Unreachable,
-            rings: std::iter::once(&a.outer)
-                .chain(&a.holes)
-                .map(flatten)
-                .collect(),
-        })
-        .collect();
-    sort_pieces(&mut out);
-    out
 }
 
 /// Every piece minus `area` (its outer loop minus its holes).
@@ -442,6 +286,7 @@ fn invalid() -> ToolpathError {
 mod tests {
     use super::*;
     use cavalier_contours::polyline::PlineSourceMut;
+    use chipload_core::Point;
     use std::f64::consts::PI;
 
     fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> Polyline<f64> {
@@ -452,7 +297,24 @@ mod tests {
         p
     }
 
-    fn area_of(piece: &LeftPiece) -> f64 {
+    /// A leftover as rings (its outline, then its holes), flattened, for the checks below.
+    struct Piece {
+        rings: Vec<Vec<Point>>,
+    }
+
+    impl Piece {
+        fn bounds_check(&self) -> (Point, Point) {
+            self.rings.iter().flatten().fold(
+                (
+                    (f64::INFINITY, f64::INFINITY),
+                    (f64::NEG_INFINITY, f64::NEG_INFINITY),
+                ),
+                |((x0, y0), (x1, y1)), p| ((x0.min(p.0), y0.min(p.1)), (x1.max(p.0), y1.max(p.1))),
+            )
+        }
+    }
+
+    fn area_of(piece: &Piece) -> f64 {
         piece
             .rings
             .iter()
@@ -462,15 +324,31 @@ mod tests {
     }
 
     /// A square corner left by a tool of radius r: r²(1 − π/4), less the gap along the arc.
-    fn is_corner(piece: &LeftPiece, r: f64) -> bool {
+    fn is_corner(piece: &Piece, r: f64) -> bool {
         let full = r * r * (1.0 - PI / 4.0);
         let a = area_of(piece);
         a <= full && a >= full - WALL_GAP_MM * PI / 2.0 * r - 0.005
     }
 
-    fn inside(region: &Area, radius: f64) -> Vec<LeftPiece> {
+    /// What a tool of `radius` leaves in `region`, by (min y, min x).
+    fn inside(region: &Area, radius: f64) -> Vec<Piece> {
         let level0 = region.shrunk(radius).unwrap();
-        unreachable_inside(region, &reach(&level0, radius).unwrap()).unwrap()
+        let mut pieces: Vec<Piece> = left_by(region, &level0, radius)
+            .unwrap()
+            .iter()
+            .map(|a| Piece {
+                rings: std::iter::once(&a.outer)
+                    .chain(&a.holes)
+                    .map(flatten)
+                    .collect(),
+            })
+            .collect();
+        pieces.sort_by(|a, b| {
+            let ((ax, ay), _) = a.bounds_check();
+            let ((bx, by), _) = b.bounds_check();
+            ay.total_cmp(&by).then(ax.total_cmp(&bx))
+        });
+        pieces
     }
 
     #[test]
@@ -637,65 +515,6 @@ mod tests {
         }));
     }
 
-    #[test]
-    fn outside_profile_leaves_the_inside_corners_of_a_part() {
-        let r = 3.0;
-        assert!(
-            unreachable_outside(&rect(0.0, 0.0, 50.0, 30.0), r, r)
-                .unwrap()
-                .is_empty()
-        );
-        let mut l = Polyline::new_closed();
-        for (x, y) in [
-            (0.0, 0.0),
-            (50.0, 0.0),
-            (50.0, 20.0),
-            (20.0, 20.0),
-            (20.0, 40.0),
-            (0.0, 40.0),
-        ] {
-            l.add(x, y, 0.0);
-        }
-        let pieces = unreachable_outside(&l, r, r).unwrap();
-        assert_eq!(pieces.len(), 1);
-        let ((x0, y0), (x1, y1)) = pieces[0].bounds_check();
-        assert!((x0 - 20.0).abs() < 1e-6 && (y0 - 20.0).abs() < 1e-6);
-        assert!(x1 < 20.0 + r && y1 < 20.0 + r);
-        assert!(is_corner(&pieces[0], r), "{}", area_of(&pieces[0]));
-        // Clockwise input gives the same answer.
-        let mut reversed = l.clone();
-        reversed.invert_direction_mut();
-        assert_eq!(unreachable_outside(&reversed, r, r).unwrap(), pieces);
-    }
-
-    #[test]
-    fn a_bay_narrower_than_the_tool_is_unreachable_from_outside() {
-        // A U shape whose 4 mm gap is narrower than the tool (D 6).
-        let mut u = Polyline::new_closed();
-        for (x, y) in [
-            (0.0, 0.0),
-            (24.0, 0.0),
-            (24.0, 30.0),
-            (14.0, 30.0),
-            (14.0, 10.0),
-            (10.0, 10.0),
-            (10.0, 30.0),
-            (0.0, 30.0),
-        ] {
-            u.add(x, y, 0.0);
-        }
-        let pieces = unreachable_outside(&u, 3.0, 3.0).unwrap();
-        assert_eq!(pieces.len(), 1);
-        // The 4 x 20 bay, less the dip of a tool disk into its mouth (under 1 mm).
-        assert!(area_of(&pieces[0]) > 4.0 * 19.0, "{}", area_of(&pieces[0]));
-    }
-
-    impl LeftPiece {
-        fn bounds_check(&self) -> (Point, Point) {
-            bounds_of(&self.rings)
-        }
-    }
-
     /// A pocket whose island has a shallow notch: the reach's hole has a vertex almost on
     /// the island's edge there, and the boolean put the notch on the wrong side (found by
     /// the material-left property on Windows CI). The notch must still be shown.
@@ -747,8 +566,7 @@ mod tests {
             holes: vec![cw(island), cw(neighbour)],
         };
         let radius = 4.130773022615462;
-        let reached = reach(&region.shrunk(radius).unwrap(), radius).unwrap();
-        let pieces = unreachable_inside(&region, &reached).unwrap();
+        let pieces = inside(&region, radius);
         let notch = (-12.5, 9.0);
         let shown = pieces.iter().any(|piece| {
             let rings: Vec<Polyline<f64>> = piece.rings.iter().map(|r| poly(r)).collect();

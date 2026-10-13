@@ -301,11 +301,6 @@ impl ChiploadApp {
                 {
                     self.set_auto_generate(auto);
                 }
-                ui.checkbox(&mut self.show_material_left, "Show material left")
-                    .on_hover_text(
-                        "Faint: material the tool can't reach (inside corners, narrow slots). \
-                         Red: material the toolpath missed.",
-                    );
                 let mut sim = self.show_simulation;
                 if ui
                     .checkbox(&mut sim, "Show simulation")

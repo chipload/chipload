@@ -7,7 +7,6 @@ use std::collections::BTreeSet;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_toolpath::OpSpan;
-use chipload_toolpath::left::{LeftKind, MaterialLeft};
 use chipload_toolpath::model::{MoveKind, Program};
 use eframe::egui::{Align2, Color32, FontId, Mesh, Painter, Pos2, Rect, Shape, Stroke, Vec2};
 
@@ -40,10 +39,6 @@ const GHOST_FADE: f32 = 0.65;
 const OPERATION: Color32 = Color32::from_rgb(0xc5, 0x8a, 0xf9);
 /// Start markers of the focused operation's rings: as bright as the operation's outline.
 const START: Color32 = OPERATION;
-/// Material the tool can't reach: faint, it's normal (docs/specs/material-left.md).
-const LEFT_UNREACHABLE: Color32 = Color32::from_rgb(0xae, 0xcb, 0xfa);
-/// Material the toolpath missed: stronger, it comes with a warning.
-const LEFT_MISSED: Color32 = Color32::from_rgb(0xf2, 0x8b, 0x82);
 
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
@@ -388,81 +383,6 @@ impl ToolpathShape {
     }
 }
 
-/// One piece of material an operation leaves, ready to fill.
-#[derive(Debug, Clone)]
-pub struct LeftShape {
-    pub operation: usize,
-    pub kind: LeftKind,
-    /// Width and height of its bounding box (mm).
-    pub size: (f64, f64),
-    rings: Vec<Vec<Point>>,
-    /// The even-odd fill as trapezoids, world coordinates.
-    trapezoids: Vec<[Point; 4]>,
-}
-
-impl LeftShape {
-    pub fn new(left: &MaterialLeft) -> Self {
-        let ((x0, y0), (x1, y1)) = left.bounds();
-        LeftShape {
-            operation: left.operation,
-            kind: left.kind,
-            size: (x1 - x0, y1 - y0),
-            trapezoids: trapezoids(&left.rings),
-            rings: left.rings.clone(),
-        }
-    }
-
-    /// Even-odd point in polygon, as it is filled.
-    pub fn contains(&self, p: Point) -> bool {
-        let mut inside = false;
-        for ring in &self.rings {
-            let n = ring.len();
-            for i in 0..n {
-                let (a, b) = (ring[i], ring[(i + 1) % n]);
-                if (a.1 > p.1) != (b.1 > p.1) && p.0 < a.0 + (p.1 - a.1) / (b.1 - a.1) * (b.0 - a.0)
-                {
-                    inside = !inside;
-                }
-            }
-        }
-        inside
-    }
-}
-
-/// Even-odd fill of closed rings as trapezoids [bottom left, bottom right, top right, top
-/// left]. egui only fills convex polygons, and these pieces aren't. Between two successive
-/// vertex heights no edge starts or ends, so the edges crossing that band pair up left to
-/// right into trapezoids.
-pub fn trapezoids(rings: &[Vec<Point>]) -> Vec<[Point; 4]> {
-    let edges: Vec<(Point, Point)> = rings
-        .iter()
-        .flat_map(|ring| {
-            let n = ring.len();
-            (0..n).map(move |i| (ring[i], ring[(i + 1) % n]))
-        })
-        .filter(|(a, b)| a.1 != b.1)
-        .collect();
-    let mut ys: Vec<f64> = rings.iter().flatten().map(|p| p.1).collect();
-    ys.sort_by(f64::total_cmp);
-    ys.dedup();
-    let x_at = |(a, b): (Point, Point), y: f64| a.0 + (y - a.1) / (b.1 - a.1) * (b.0 - a.0);
-    let mut out = Vec::new();
-    for band in ys.windows(2) {
-        let (y0, y1) = (band[0], band[1]);
-        let mid = (y0 + y1) / 2.0;
-        let mut crossing: Vec<(f64, f64, f64)> = edges
-            .iter()
-            .filter(|(a, b)| (a.1 > mid) != (b.1 > mid))
-            .map(|&e| (x_at(e, mid), x_at(e, y0), x_at(e, y1)))
-            .collect();
-        crossing.sort_by(|a, b| a.0.total_cmp(&b.0));
-        for [left, right] in crossing.as_chunks::<2>().0 {
-            out.push([(left.1, y0), (right.1, y0), (right.2, y1), (left.2, y1)]);
-        }
-    }
-    out
-}
-
 /// What to emphasise when painting.
 #[derive(Debug, Clone, Default)]
 pub struct Highlight {
@@ -471,11 +391,10 @@ pub struct Highlight {
     /// Contours of the operation selected in the operations list (drawn wider, under the
     /// selection colour).
     pub operation_contours: BTreeSet<usize>,
-    /// That operation's index, whose material left is emphasised.
+    /// That operation's index.
     pub operation: Option<usize>,
     /// Open contours that a follow path cuts: drawn solid, not dashed as "not cut".
     pub followed: BTreeSet<usize>,
-    pub show_material_left: bool,
 }
 
 /// Every move as a 3D segment, once the tool's position is known on all three axes.
@@ -691,8 +610,6 @@ pub struct Scene {
     pub stock: Option<(Point, Point)>,
     pub toolpath: Option<ToolpathShape>,
     pub tabs: Vec<Vec<Point>>,
-    /// Missed pieces after unreachable ones, so they are painted on top.
-    pub left: Vec<LeftShape>,
     /// The shape being drawn, as it would be with the cursor's point.
     pub preview: Vec<Vec<Point>>,
     /// The points clicked so far while drawing.
@@ -811,15 +728,6 @@ impl Scene {
             .map(|(_, id)| id)
     }
 
-    /// Material left under the cursor: missed before unreachable, the highlighted operation
-    /// first.
-    pub fn left_at(&self, p: Point, operation: Option<usize>) -> Option<&LeftShape> {
-        self.left
-            .iter()
-            .filter(|l| l.contains(p))
-            .min_by_key(|l| (l.kind != LeftKind::Missed, Some(l.operation) != operation))
-    }
-
     /// Plunges (indices into the toolpath's starts) within pick distance of a screen point.
     pub fn plunges_at(&self, view: &View, at: Pos2) -> Vec<usize> {
         let Some(path) = &self.toolpath else {
@@ -831,37 +739,6 @@ impl Scene {
             .filter(|(_, s)| view.to_screen(s.at).distance(at) <= PICK_TOLERANCE_PX)
             .map(|(i, _)| i)
             .collect()
-    }
-
-    /// Material left: under everything else, so it never hides a line.
-    fn paint_left(&self, painter: &Painter, view: &View, highlight: &Highlight) {
-        if !highlight.show_material_left {
-            return;
-        }
-        let mut mesh = Mesh::default();
-        for piece in &self.left {
-            let (base, normal) = match piece.kind {
-                LeftKind::Unreachable => (LEFT_UNREACHABLE, 0.22),
-                LeftKind::Missed => (LEFT_MISSED, 0.55),
-            };
-            let factor = match highlight.operation {
-                None => normal,
-                Some(op) if op == piece.operation => normal * 1.8,
-                Some(_) => normal * 0.4,
-            };
-            let color = base.gamma_multiply(factor);
-            for quad in &piece.trapezoids {
-                let first = mesh.vertices.len() as u32;
-                for &p in quad {
-                    mesh.colored_vertex(view.to_screen(p), color);
-                }
-                mesh.add_triangle(first, first + 1, first + 2);
-                mesh.add_triangle(first, first + 2, first + 3);
-            }
-        }
-        if !mesh.is_empty() {
-            painter.add(Shape::mesh(mesh));
-        }
     }
 
     pub fn paint(&self, painter: &Painter, view: &View, highlight: &Highlight) {
@@ -907,13 +784,9 @@ impl Scene {
                 Stroke::new(2.0, AXIS_Z),
             );
         }
-        // The simulation shows what the material-left shading shows, in more detail.
-        match &self.sim {
-            Some(sim) => {
-                let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);
-                sim.paint(painter, view, fade);
-            }
-            None => self.paint_left(painter, view, highlight),
+        if let Some(sim) = &self.sim {
+            let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);
+            sim.paint(painter, view, fade);
         }
 
         for &(dx, dy) in &self.copies {
@@ -1403,69 +1276,6 @@ mod tests {
         assert_eq!(shape.arrows.len(), 3);
         assert_eq!(shape.arrows[0], ((50.0, 0.0), 0.0));
     }
-
-    fn polygon_area(ring: &[Point]) -> f64 {
-        let n = ring.len();
-        (0..n)
-            .map(|i| {
-                let (a, b) = (ring[i], ring[(i + 1) % n]);
-                a.0 * b.1 - b.0 * a.1
-            })
-            .sum::<f64>()
-            / 2.0
-    }
-
-    fn trapezoid_area(rings: &[Vec<Point>]) -> f64 {
-        trapezoids(rings)
-            .iter()
-            .map(|q| polygon_area(q).abs())
-            .sum()
-    }
-
-    #[test]
-    fn concave_pieces_fill_exactly() {
-        let l = vec![
-            (0.0, 0.0),
-            (50.0, 0.0),
-            (50.0, 20.0),
-            (20.0, 20.0),
-            (20.0, 40.0),
-            (0.0, 40.0),
-        ];
-        assert!((trapezoid_area(std::slice::from_ref(&l)) - polygon_area(&l)).abs() < 1e-9);
-        // A corner fillet: two walls and a concave arc, flattened.
-        let mut fillet = vec![(0.0, 0.0), (3.0, 0.0)];
-        fillet.extend((1..20).map(|i| {
-            let a =
-                -std::f64::consts::FRAC_PI_2 - f64::from(i) * std::f64::consts::FRAC_PI_2 / 20.0;
-            (3.0 + 3.0 * a.cos(), 3.0 + 3.0 * a.sin())
-        }));
-        fillet.push((0.0, 3.0));
-        let area = polygon_area(&fillet).abs();
-        assert!((trapezoid_area(&[fillet]) - area).abs() < 1e-9);
-    }
-
-    #[test]
-    fn holes_and_touching_squares_fill_even_odd() {
-        let square =
-            |x0: f64, y0: f64, s: f64| vec![(x0, y0), (x0 + s, y0), (x0 + s, y0 + s), (x0, y0 + s)];
-        // A 10 x 10 outline with a 4 x 4 hole.
-        let rings = [square(0.0, 0.0, 10.0), square(3.0, 3.0, 4.0)];
-        assert!((trapezoid_area(&rings) - 84.0).abs() < 1e-9);
-        let piece = LeftShape::new(&MaterialLeft {
-            operation: 0,
-            kind: LeftKind::Unreachable,
-            rings: rings.to_vec(),
-        });
-        assert!(piece.contains((1.0, 1.0)) && !piece.contains((5.0, 5.0)));
-        // Quadtree cells of missed material share edges.
-        let cells = [
-            square(0.0, 0.0, 1.0),
-            square(1.0, 0.0, 1.0),
-            square(0.0, 1.0, 0.5),
-        ];
-        assert!((trapezoid_area(&cells) - 2.25).abs() < 1e-9);
-    }
 }
 
 /// What a legend entry looks like: drawn the way the canvas draws that thing.
@@ -1473,8 +1283,6 @@ mod tests {
 pub enum Swatch {
     Line(Color32, f32),
     Dashed(Color32),
-    /// A filled patch at this opacity.
-    Patch(Color32, f32),
     /// A plunge: the ring the canvas draws where the tool goes down.
     Plunge,
     /// A ring's start marker.
@@ -1482,8 +1290,8 @@ pub enum Swatch {
 }
 
 /// What the canvas shows, explained: contours always; the toolpath and what goes with it once
-/// generated; material left when shown; copies when there are some.
-pub fn legend(scene: &Scene, material_left: bool) -> Vec<(Swatch, &'static str)> {
+/// generated; copies when there are some.
+pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
     let mut items = vec![
         (Swatch::Line(OUTER, 1.5), "outline"),
         (Swatch::Line(HOLE, 1.5), "hole"),
@@ -1507,15 +1315,6 @@ pub fn legend(scene: &Scene, material_left: bool) -> Vec<(Swatch, &'static str)>
             items.push((Swatch::Start, "ring start (drag to move)"));
         }
     }
-    if material_left && !scene.left.is_empty() {
-        items.push((
-            Swatch::Patch(LEFT_UNREACHABLE, 0.4),
-            "material the tool can't reach",
-        ));
-        if scene.left.iter().any(|l| l.kind == LeftKind::Missed) {
-            items.push((Swatch::Patch(LEFT_MISSED, 0.6), "material missed"));
-        }
-    }
     items
 }
 
@@ -1535,9 +1334,6 @@ pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch) {
                 4.0,
                 3.0,
             ));
-        }
-        Swatch::Patch(color, alpha) => {
-            painter.rect_filled(rect.shrink(2.0), 1.0, color.gamma_multiply(alpha));
         }
         Swatch::Plunge => {
             painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, LABEL));

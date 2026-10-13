@@ -10,9 +10,7 @@ use chipload_job::{Direction, ProfileOp, Side, Spindle};
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
 use crate::lead::roomiest_start;
-use crate::left::{LeftPiece, cleared, reach, unreachable_inside, unreachable_outside};
-use crate::offset::{contour_pline, offset_rings_tagged, start_index};
-use crate::pocket::{Area, ccw, guarded};
+use crate::offset::{offset_rings_tagged, start_index};
 use crate::start::{assign, point_text, restart};
 
 /// Travel direction around the ring.
@@ -127,8 +125,6 @@ pub struct ProfilePlan {
     pub rings: Vec<PathRing>,
     /// Warnings for the user, e.g. material left in a narrow neck.
     pub notes: Vec<String>,
-    /// Material the tool can't reach (inside corners), for display.
-    pub left: Vec<LeftPiece>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
     /// For each ring, the index in `starts` of the point that set its start.
@@ -157,7 +153,6 @@ pub fn plan_profile(
     }
     let mut rings = Vec::new();
     let mut notes = Vec::new();
-    let mut left = Vec::new();
     let mut arcs = ArcTable::default();
     for contour in contours {
         let paths = offset_rings_tagged(contour, op.side, offset, &mut arcs)
@@ -169,18 +164,6 @@ pub fn plan_profile(
                 contour.id,
                 paths.len()
             ));
-        }
-        // Display only: any failure, even a panic in the geometry library, becomes a note.
-        let unreachable = guarded("Material left", || {
-            unreachable_beside(contour, op.side, offset, tool_radius)
-        })
-        .and_then(|result| result);
-        match unreachable {
-            Ok(pieces) => left.extend(pieces),
-            Err(_) => notes.push(format!(
-                "{label}, contour #{}: could not compute the material left for display",
-                contour.id
-            )),
         }
         let depth = contour.nesting_depth.unwrap_or(0);
         rings.extend(paths.iter().map(|p| PathRing {
@@ -211,7 +194,6 @@ pub fn plan_profile(
     Ok(ProfilePlan {
         rings,
         notes,
-        left,
         arcs,
         chosen,
     })
@@ -250,29 +232,4 @@ fn apply_starts(
         ));
     }
     chosen.iter().map(|c| c.map(|c| c.index)).collect()
-}
-
-/// Material on the cut side of the contour that the tool can't reach (spec material-left.md
-/// section 2). Nothing for a cut on the line.
-fn unreachable_beside(
-    contour: &Contour,
-    side: Side,
-    offset: f64,
-    tool_radius: f64,
-) -> Result<Vec<LeftPiece>, ToolpathError> {
-    let pline = contour_pline(contour);
-    match side {
-        Side::On => Ok(Vec::new()),
-        Side::Outside => unreachable_outside(&pline, offset, tool_radius),
-        Side::Inside => {
-            let region = Area::of(ccw(pline));
-            let level0 = region.shrunk(offset)?;
-            let reached = reach(&level0, tool_radius)?;
-            let mut pieces = Vec::new();
-            for target in cleared(&region, tool_radius - offset)? {
-                pieces.extend(unreachable_inside(&target, &reached)?);
-            }
-            Ok(pieces)
-        }
-    }
 }

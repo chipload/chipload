@@ -71,8 +71,9 @@ it's built (see `CLAUDE.md`).
   3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/book/src/scripting.md). Batch
      runs: shell recipes instead of a command (decision 8).
   4. Feeds and speeds per material in the library, with a chip-load warning.
-  5. Merge the material-left display into the simulation (keep the check).
-  6. Fuzz the DXF importer.
+  5. Material left merged into the simulation — done 2026-10-13
+     (docs/specs/material-left-merge.md).
+  6. Fuzz the DXF importer — done 2026-10-13 (fuzz/README.md; one overflow found and fixed).
   Also: the drawing tools are frozen (ADR 0017); real-machine validation (the user).
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
@@ -89,6 +90,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Material left → the simulation** (2026-10-13, docs/specs/material-left-merge.md): the
+  geometric material-left display, its computation, the View toggle, the "can't reach"
+  report lines and `plan --json`'s `material_left` are gone; the simulation is on at start
+  and shows what the tools leave. The missed-material warning stays.
+- **DXF fuzzing** (2026-10-13, fuzz/README.md): a cargo-fuzz target on the importer. Found
+  a 127-digit coordinate overflowing the contour joining: entities beyond 1 km (or not a
+  number) are now skipped and reported, and the grid lookup saturates.
 - **User guide** (2026-10-13, docs/specs/user-guide.md): mdBook in `docs/book/`, every page
   written; generated reference pages (CLI, project, tools, machines, posts) and a coverage
   test; build `packaging/docs/build-book.sh` (zip for releases), screenshots

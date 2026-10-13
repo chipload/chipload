@@ -18,14 +18,12 @@ use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
     StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
-use chipload_pipeline::report::format_material_left;
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, update_drawing,
     write_gcode_files,
 };
-use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::select::{select_contours, select_paths};
 use eframe::egui::{
     self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, MenuBar, Modifiers, Panel,
@@ -35,7 +33,7 @@ use eframe::egui::{
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
-use crate::view::{ContourShape, Highlight, LeftShape, Scene, StartMarker, ToolpathShape, View};
+use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
 
 mod canvas;
 mod copy_paste;
@@ -146,8 +144,6 @@ pub struct ChiploadApp {
     fit_pending: bool,
     pub selection: CanvasSelection,
     context_pick: Option<usize>,
-    /// View > Show material left (docs/specs/material-left.md).
-    pub show_material_left: bool,
     /// View > Show simulation (docs/specs/simulation.md §4).
     pub show_simulation: bool,
     sim_run: Option<simulation::SimRun>,
@@ -257,8 +253,9 @@ impl Default for ChiploadApp {
             fit_pending: false,
             selection: CanvasSelection::Nothing,
             context_pick: None,
-            show_material_left: true,
-            show_simulation: false,
+            // On at start: it is how the canvas shows what the tools leave
+            // (docs/specs/material-left-merge.md, decision 2).
+            show_simulation: true,
             sim_run: None,
             simulation: None,
             sim_texture: None,
@@ -1010,7 +1007,6 @@ impl ChiploadApp {
         self.result = None;
         self.scene.toolpath = None;
         self.scene.tabs.clear();
-        self.scene.left.clear();
         self.scene.start_markers.clear();
         self.start_drag = None;
         self.context_start = None;
@@ -1029,7 +1025,6 @@ impl ChiploadApp {
                 path.stale = true;
             }
             self.scene.tabs.clear();
-            self.scene.left.clear();
             self.scene.start_markers.clear();
             self.start_drag = None;
             self.context_start = None;

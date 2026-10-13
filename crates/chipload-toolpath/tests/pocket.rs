@@ -10,14 +10,11 @@ use cavalier_contours::polyline::PlineSource;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::fold::fold_point;
-use chipload_core::primitives::Line;
 use chipload_core::primitives::{Primitive, distance, signed_area};
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM};
 use chipload_job::{Direction, Entry, Spindle};
 use chipload_toolpath::ToolpathError;
-use chipload_toolpath::geom::PrimIndex;
 use chipload_toolpath::geom::segment_distance;
-use chipload_toolpath::left::{LeftKind, LeftPiece};
 use chipload_toolpath::model::MoveKind;
 use chipload_toolpath::offset::{contour_pline, pline_segments, point_distance};
 use chipload_toolpath::pocket::{PocketPlan, build_region, plan_pocket, pocket_moves};
@@ -298,81 +295,8 @@ fn normal_stepover_leaves_nothing() {
     assert!(plan(&[outline()], false).notes.is_empty());
 }
 
-// -- material left (docs/specs/material-left.md)
-
-/// Even-odd point in rings, as the GUI fills them.
-fn in_rings(rings: &[Vec<Point>], p: Point) -> bool {
-    let mut inside = false;
-    for ring in rings {
-        let n = ring.len();
-        for i in 0..n {
-            let (a, b) = (ring[i], ring[(i + 1) % n]);
-            if (a.1 > p.1) != (b.1 > p.1) && p.0 < a.0 + (p.1 - a.1) / (b.1 - a.1) * (b.0 - a.0) {
-                inside = !inside;
-            }
-        }
-    }
-    inside
-}
-
-fn of_kind(result: &PocketPlan, kind: LeftKind) -> Vec<&LeftPiece> {
-    result.left.iter().filter(|m| m.kind == kind).collect()
-}
-
 #[test]
-fn sharp_corners_are_unreachable_and_nothing_is_missed() {
-    let result = plan(&[outline()], false);
-    assert_eq!(of_kind(&result, LeftKind::Unreachable).len(), 4);
-    assert!(of_kind(&result, LeftKind::Missed).is_empty());
-}
-
-#[test]
-fn crossing_pockets_in_one_operation_clear_each_others_corners() {
-    // A T: the crossbar's end corners lie inside the upright, which clears them.
-    let contours = [
-        rect(1, 0.0, 0.0, 20.0, 60.0),
-        rect(2, 10.0, 40.0, 80.0, 50.0),
-    ];
-    let result = plan(&contours, false);
-    let unreachable = of_kind(&result, LeftKind::Unreachable);
-    // Upright: 4 corners; crossbar: only its 2 right-hand corners.
-    assert_eq!(unreachable.len(), 6);
-    assert!(!unreachable.iter().any(|m| in_rings(&m.rings, (10.3, 40.3))));
-    assert!(unreachable.iter().any(|m| in_rings(&m.rings, (79.7, 40.3))));
-}
-
-#[test]
-fn missed_material_is_shown_where_the_warning_says() {
-    let result = plan_with(&[outline()], 6.0, Direction::Climb, Spindle::Cw, false).unwrap();
-    let note = result
-        .notes
-        .iter()
-        .find(|n| n.contains("uncut material"))
-        .unwrap();
-    // "... near (x, y); reduce the stepover ..."
-    let near = note.split("near (").nth(1).unwrap();
-    let (x, rest) = near.split_once(", ").unwrap();
-    let y = rest.split_once(')').unwrap().0;
-    let at: Point = (x.parse().unwrap(), y.parse().unwrap());
-    let missed = of_kind(&result, LeftKind::Missed);
-    assert!(!missed.is_empty());
-    // The note rounds to 0.1 mm, so look within that.
-    let hit = missed.iter().any(|m| {
-        [
-            (0.0, 0.0),
-            (0.05, 0.05),
-            (-0.05, -0.05),
-            (0.05, -0.05),
-            (-0.05, 0.05),
-        ]
-        .iter()
-        .any(|(dx, dy)| in_rings(&m.rings, (at.0 + dx, at.1 + dy)))
-    });
-    assert!(hit, "{note}");
-}
-
-#[test]
-fn a_slot_narrower_than_the_tool_is_unreachable_and_still_warned() {
+fn a_slot_narrower_than_the_tool_is_warned() {
     // Two 40 x 40 rooms joined by a 4 mm wide, 20 mm long passage; tool D 6.
     let room = polygon_id(
         1,
@@ -393,8 +317,6 @@ fn a_slot_narrower_than_the_tool_is_unreachable_and_still_warned() {
     );
     let result = plan(&[room], false);
     assert!(result.notes.iter().any(|n| n.contains("narrow part")));
-    let unreachable = of_kind(&result, LeftKind::Unreachable);
-    assert!(unreachable.iter().any(|m| in_rings(&m.rings, (50.0, 20.0))));
 }
 
 #[test]
@@ -836,81 +758,6 @@ proptest! {
             !result.notes.iter().any(|n| n.contains("uncut material")),
             "{:?}", result.notes
         );
-    }
-}
-
-proptest! {
-    #![proptest_config(common::proptest_config(30))]
-
-    /// Unreachable material lies in the pocket, out of the tool's reach, and everything the
-    /// tool leaves (beyond noise) is shown as unreachable or missed.
-    #[test]
-    fn material_left_is_out_of_reach_and_complete(
-        contours in pocket_with_islands(),
-        radius in 1.0f64..5.0,
-        fraction in 0.1f64..0.5,
-    ) {
-        let refs: Vec<&Contour> = contours.iter().collect();
-        let Ok(result) = plan_pocket(&refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
-            (0.0, 0.0),
-        ) else {
-            return Ok(());
-        };
-        prop_assert!(
-            !result.notes.iter().any(|n| n.contains("could not compute")),
-            "{:?}", result.notes
-        );
-        let plines: Vec<_> = contours.iter().map(contour_pline).collect();
-        let in_region = |p: Point| {
-            let wind = |i: usize| {
-                plines[i].winding_number(cavalier_contours::core::math::Vector2::new(p.0, p.1))
-                    != 0
-            };
-            wind(0) && !(1..plines.len()).any(wind)
-        };
-        let walls = PrimIndex::new(
-            plines.iter().flat_map(pline_segments).collect(),
-            radius,
-        );
-        let cuts = PrimIndex::new(
-            result
-                .pieces
-                .iter()
-                .flat_map(|piece| &piece.rings)
-                .flat_map(|ring| {
-                    let n = ring.len();
-                    (0..n).map(move |i| Primitive::Line(Line { start: ring[i], end: ring[(i + 1) % n] }))
-                })
-                .collect(),
-            radius,
-        );
-        let reach = radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
-        for piece in &result.left {
-            prop_assert_eq!(piece.kind, LeftKind::Unreachable);
-            for &p in piece.rings.iter().flatten() {
-                let on_wall = walls.any_within(p, ARC_APPROX_TOL_MM + OFFSET_CHECK_SLACK_MM);
-                prop_assert!(in_region(p) || on_wall, "{:?} outside the pocket", p);
-                prop_assert!(!cuts.any_within(p, reach), "{:?} within reach", p);
-            }
-        }
-        let step = 0.5;
-        for i in -130..=130 {
-            for j in -130..=130 {
-                let p = (f64::from(i) * step, f64::from(j) * step);
-                if !in_region(p) {
-                    continue;
-                }
-                let shown = result.left.iter().any(|m| in_rings(&m.rings, p));
-                if shown {
-                    prop_assert!(!cuts.any_within(p, reach), "{:?} shown but within reach", p);
-                } else {
-                    prop_assert!(
-                        cuts.any_within(p, radius + 2.0 * REST_TOL_MM),
-                        "{:?} is left but not shown", p
-                    );
-                }
-            }
-        }
     }
 }
 

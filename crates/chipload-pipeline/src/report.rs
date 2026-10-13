@@ -3,8 +3,7 @@
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity, UnitsFrom, units_name};
-use chipload_job::{Geometry, Job, Shape};
-use chipload_toolpath::left::{LeftKind, MaterialLeft};
+use chipload_job::{Geometry, Shape};
 
 pub fn severity_name(severity: Severity) -> &'static str {
     match severity {
@@ -78,41 +77,6 @@ pub fn format_contours(contours: &[Contour]) -> Vec<String> {
             "  #{:<4} {state:<8} layer {:<16} X {x0:.3} .. {x1:.3}  Y {y0:.3} .. {y1:.3}",
             c.id,
             c.layers().join(", ")
-        ));
-    }
-    lines
-}
-
-/// One info line per operation that leaves material the tool can't reach (spec
-/// material-left.md section 4). Missed material already has its own warning.
-pub fn format_material_left(job: &Job, left: &[MaterialLeft]) -> Vec<String> {
-    let mut lines = Vec::new();
-    for (index, op) in job.operations.iter().enumerate() {
-        let pieces: Vec<&MaterialLeft> = left
-            .iter()
-            .filter(|m| m.operation == index && m.kind == LeftKind::Unreachable)
-            .collect();
-        let size = |m: &MaterialLeft| {
-            let ((x0, y0), (x1, y1)) = m.bounds();
-            (x1 - x0, y1 - y0)
-        };
-        // Largest by bounding box area; ties keep the first (lowest, then leftmost).
-        let Some(largest) = pieces.iter().copied().reduce(|best, m| {
-            let (a, b) = (size(best), size(m));
-            if b.0 * b.1 > a.0 * a.1 { m } else { best }
-        }) else {
-            continue;
-        };
-        let label = match op.name() {
-            "" => format!("Operation {}", index + 1),
-            name => format!("Operation {} ({name})", index + 1),
-        };
-        let count = pieces.len();
-        let (w, h) = size(largest);
-        lines.push(format!(
-            "{label}: the tool can't reach material in {count} place{}, largest about \
-             {w:.2} x {h:.2} mm",
-            if count > 1 { "s" } else { "" }
         ));
     }
     lines

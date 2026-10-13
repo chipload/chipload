@@ -26,7 +26,7 @@ use chipload_pipeline::placement::{
     Move as PlaceMove, imported_size, place_drawing, placement_text,
 };
 use chipload_pipeline::report::{
-    format_contours, format_import_report, format_material_left, format_shapes, severity_name,
+    format_contours, format_import_report, format_shapes, severity_name,
 };
 use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
@@ -1512,9 +1512,6 @@ fn run(
     for warning in &result.check_warnings {
         out.line(format!("check warning: {}", warning.message));
     }
-    for line in format_material_left(&job, &result.material_left) {
-        out.line(line.to_string());
-    }
     out.line(format!("Work zero: {}", job.work_zero_text()));
     if let Err(err) = write_gcode_files(output, &result.files) {
         out.err(format!("error: cannot write {}: {err}", output.display()));
@@ -1909,11 +1906,6 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
                 "open": p.open,
                 "feed_links": p.feed_links,
             })).collect::<Vec<_>>(),
-            "material_left": plan.material_left.iter().map(|m| json!({
-                "operation": m.operation,
-                "kind": m.kind.name(),
-                "rings": m.rings,
-            })).collect::<Vec<_>>(),
             "ring_starts": plan.ring_starts.iter().map(|s| json!({
                 "operation": s.operation,
                 "start": s.ring.first(),
@@ -1930,9 +1922,6 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
     } else {
         for note in &plan.notes {
             out.line(format!("warning: {note}"));
-        }
-        for line in format_material_left(&job, &plan.material_left) {
-            out.line(line.to_string());
         }
         for start in &plan.ring_starts {
             let Some((x, y)) = start.ring.first() else {

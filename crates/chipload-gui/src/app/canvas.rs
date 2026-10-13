@@ -247,20 +247,12 @@ impl ChiploadApp {
         } else if !plunges.is_empty() && !response.dragged() {
             let text = self.plunge_text(&plunges);
             response.on_hover_text_at_pointer(text);
-        } else if self.show_material_left
-            && !response.dragged()
-            && let Some(at) = self.cursor
-            && let Some(piece) = self.scene.left_at(at, operation)
-        {
-            let text = self.material_left_text(piece);
-            response.on_hover_text_at_pointer(text);
         }
         let highlight = Highlight {
             selected: self.selection.ids(&self.contours),
             operation_contours: self.focused_contours(),
             operation,
             followed: self.followed_contours(),
-            show_material_left: self.show_material_left,
         };
         self.scene.paint(&painter, &self.view, &highlight);
         self.canvas_overlays(ui, rect);
@@ -305,9 +297,7 @@ impl ChiploadApp {
                 });
             });
         }
-        // The simulation hides the material-left shading (docs/specs/simulation.md §4).
-        let left = self.show_material_left && self.scene.sim.is_none();
-        let items = crate::view::legend(&self.scene, left);
+        let items = crate::view::legend(&self.scene);
         // Anchored at the bottom: placed by its height last frame (estimated on the first).
         let size_id = egui::Id::new("legend-height");
         let rows = if self.legend_open { items.len() } else { 0 };
@@ -555,17 +545,5 @@ impl ChiploadApp {
             "" => format!("Operation {}", index + 1),
             name => format!("Operation {} ({name})", index + 1),
         }
-    }
-
-    pub(super) fn material_left_text(&self, piece: &LeftShape) -> String {
-        let label = self.op_label(piece.operation);
-        let what = match piece.kind {
-            LeftKind::Unreachable => "material the tool can't reach",
-            LeftKind::Missed => "material the toolpath missed (see the warning)",
-        };
-        format!(
-            "{label}: {what}, about {:.2} x {:.2} mm",
-            piece.size.0, piece.size.1
-        )
     }
 }

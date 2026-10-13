@@ -18,7 +18,6 @@ use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
 
 use crate::estimate::{duration_text, estimate_lines};
-use crate::report::format_material_left;
 use crate::{GcodeFile, RunResult, copies, write_atomically};
 
 /// What the sheet says about where it comes from.
@@ -62,7 +61,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
     for (i, name) in names.iter().enumerate() {
         file_section(&mut html, job, result, i, name, several);
     }
-    watch_out(&mut html, job, result);
+    watch_out(&mut html, result);
     let _ = writeln!(html, "<section class=\"total\">\n<h2>Time</h2>");
     for line in estimate_lines(job, &result.estimate, several) {
         let _ = writeln!(html, "<p>{}</p>", escape(line.trim_start()));
@@ -558,7 +557,7 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup) -> Option<S
     Some(text)
 }
 
-fn watch_out(html: &mut String, job: &Job, result: &RunResult) {
+fn watch_out(html: &mut String, result: &RunResult) {
     let mut items: Vec<String> = Vec::new();
     if let Some(note) = &result.post.note {
         items.push(format!("Post {}: {note}", result.post.name));
@@ -570,7 +569,6 @@ fn watch_out(html: &mut String, job: &Job, result: &RunResult) {
             .iter()
             .map(|w| format!("Check: {}", w.message)),
     );
-    items.extend(format_material_left(job, &result.material_left));
     html.push_str("<section class=\"warn\">\n<h2>Watch out</h2>\n");
     if items.is_empty() {
         html.push_str("<p>Nothing was reported.</p>\n");

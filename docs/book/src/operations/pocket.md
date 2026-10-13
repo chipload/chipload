@@ -27,14 +27,14 @@ The pocket is cleared in **rings**:
 - **Keep the tool down where safe:** between rings, the tool feeds across at depth instead
   of retracting, when the move stays clear of the walls and is at most one tool diameter.
 
-Chipload checks every pocket for material it misses:
-- **Unreachable:** the tool can't reach some material, such as inside corners or slots
-  narrower than the tool. It's shaded faintly on the canvas (*View > Show material left*),
-  with a line in the report. That's normal.
-- **Missed:** the rings don't pass close enough to some material (a stepover too large for
-  the shape). That is a warning, shaded red.
+What a round tool leaves is normal: inside corners keep the tool's radius, and slots
+narrower than the tool stay uncut. The [simulation](../checking/simulation.md) shows it.
+Chipload also warns about two things:
+- **Uncut material:** the rings don't pass close enough to some material (a stepover too
+  large for the shape). Lower the stepover.
 - **A narrow part:** the tool doesn't fit through a narrow part of the pocket. The pocket
-  is cleared as separate areas, with a warning.
+  is cleared as separate areas, and material stays in between; a [rest
+  pocket](rest.md) with a smaller tool can clear it.
 
 ## Entry
 

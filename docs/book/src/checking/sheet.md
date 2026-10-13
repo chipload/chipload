@@ -15,7 +15,7 @@ it, `part-sheet.html`. Open it in a browser, or print it. It holds:
   - their depths and passes;
   - feeds with the chip load;
   - entry, tabs and time.
-- **Watch out:** every warning and check warning, and the material the tools can't reach.
+- **Watch out:** every warning and check warning.
 
 The sheet is written:
 - in the app, by *File > Export G-code…* when *Settings > Write a setup sheet with the

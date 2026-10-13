@@ -531,21 +531,3 @@ proptest! {
         }
     }
 }
-
-#[test]
-fn the_material_left_display_drops_the_cleared_corners() {
-    let contours = [rect(1, 0.0, 0.0, 40.0, 20.0)];
-    let round = plan(profile("inside", Value::Null, json!({})), &contours);
-    assert_eq!(round.material_left.len(), 4, "a fillet in every corner");
-    for kind in ["dogbone", "tbone"] {
-        let square = plan(
-            profile("inside", corners(kind, 100.0), json!({})),
-            &contours,
-        );
-        assert!(
-            square.material_left.is_empty(),
-            "{kind}: {:?}",
-            square.material_left
-        );
-    }
-}

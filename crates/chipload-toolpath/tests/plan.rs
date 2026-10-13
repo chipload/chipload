@@ -7,7 +7,6 @@ mod common;
 use chipload_core::chain::Contour;
 use chipload_job::migrations::migrate;
 use chipload_job::{CURRENT_VERSION, Job, parse_job};
-use chipload_toolpath::left::LeftKind;
 use chipload_toolpath::{ToolpathError, plan_job};
 use serde_json::{Value, json};
 
@@ -94,59 +93,6 @@ fn too_many_tabs_names_the_contour() {
         matches!(&err, ToolpathError::Geometry(m) if m.starts_with("Operation 1, contour #1:")),
         "{err}"
     );
-}
-
-// -- material left (docs/specs/material-left.md)
-
-fn unreachable(side: &str, contours: &[Contour]) -> Vec<chipload_toolpath::left::MaterialLeft> {
-    let plan = plan_job(&job(profile(side, Value::Null)), contours).unwrap();
-    assert!(
-        plan.material_left
-            .iter()
-            .all(|m| m.operation == 0 && m.kind == LeftKind::Unreachable)
-    );
-    plan.material_left
-}
-
-#[test]
-fn inside_profile_leaves_the_corners_of_the_hole() {
-    let left = unreachable("inside", &part());
-    assert_eq!(left.len(), 4);
-    // Ordered by (min y, min x): bottom left first.
-    assert_eq!(left[0].bounds().0, (10.0, 10.0));
-}
-
-#[test]
-fn outside_profile_of_a_convex_part_and_a_cut_on_the_line_leave_nothing() {
-    assert!(unreachable("outside", &part()).is_empty());
-    assert!(unreachable("on", &part()).is_empty());
-}
-
-#[test]
-fn outside_profile_leaves_the_inside_corner_of_an_l() {
-    let l = vec![common::polygon(&[
-        (0.0, 0.0),
-        (50.0, 0.0),
-        (50.0, 20.0),
-        (20.0, 20.0),
-        (20.0, 40.0),
-        (0.0, 40.0),
-    ])];
-    let left = unreachable("outside", &l);
-    assert_eq!(left.len(), 1);
-    let (x, y) = left[0].bounds().0;
-    assert!(
-        (x - 20.0).abs() < 1e-9 && (y - 20.0).abs() < 1e-9,
-        "{x}, {y}"
-    );
-}
-
-#[test]
-fn tabs_are_not_material_left() {
-    let tabs =
-        json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
-    let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
-    assert!(plan.material_left.is_empty());
 }
 
 #[test]
@@ -301,23 +247,6 @@ fn cuts_below_the_stock_warn_within_the_overcut_and_fail_beyond() {
     )
     .unwrap();
     assert!(!flush.notes.iter().any(|n| n.contains("below the stock")));
-}
-
-#[test]
-fn stock_left_on_purpose_is_not_shown_as_unreachable() {
-    // Found with the v7 corpus sample: a negative clearance leaves a band of stock on the
-    // part, and material left must be judged against the cleared outline, not the drawn one.
-    let left = |side: &str, c: f64| {
-        plan_job(&job(profile_with(side, json!({"clearance": c}))), &part())
-            .unwrap()
-            .material_left
-    };
-    assert!(left("outside", -0.5).is_empty()); // a square part: no inside corners
-    assert!(left("outside", 0.5).is_empty());
-    // A square hole: its four corners, whatever the clearance, never one band.
-    for c in [-0.5, 0.0, 0.5] {
-        assert_eq!(left("inside", c).len(), 4, "clearance {c}");
-    }
 }
 
 // -- ramp entry (docs/specs/ramp-entry.md)

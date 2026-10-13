@@ -13,7 +13,6 @@ use chipload_job::Corners;
 
 use crate::ToolpathError;
 use crate::geom::segment_distance;
-use crate::left::LeftPiece;
 
 /// An inside corner of a drawn contour, seen from the tool's side.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -394,23 +393,4 @@ pub fn unreached_note(label: &str, corner: &Corner, style: Corners) -> String {
         "{label}: corner at ({:.3}, {:.3}): the tool can't reach into it; {style}",
         corner.at.0, corner.at.1
     )
-}
-
-/// The material-left pieces the legs clear (every point within the tool radius of a leg)
-/// are left out.
-pub fn without_cleared(pieces: Vec<LeftPiece>, legs: &[Leg], tool_radius: f64) -> Vec<LeftPiece> {
-    if legs.is_empty() {
-        return pieces;
-    }
-    pieces
-        .into_iter()
-        .filter(|piece| {
-            !piece.rings.iter().flatten().all(|&p| {
-                legs.iter().any(|leg| {
-                    crate::geom::point_segment_distance(p, leg.from, leg.tip)
-                        <= tool_radius + ARC_APPROX_TOL_MM
-                })
-            })
-        })
-        .collect()
 }

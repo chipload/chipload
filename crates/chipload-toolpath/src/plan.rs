@@ -15,16 +15,13 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
-use crate::corners::{
-    CornerCut, Leg, RingSlot, add_legs, find_corners, unreached_note, without_cleared,
-};
+use crate::corners::{CornerCut, RingSlot, add_legs, find_corners, unreached_note};
 use crate::geom::PrimIndex;
 use crate::holes::{
     Bore, DRILL_FIT_MM, HoleCut, bore_moves, bore_radius, drill_moves, find_holes, order_holes,
 };
 use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
-use crate::left::{LeftPiece, MaterialLeft, bounds_of};
 use crate::model::{Move, MoveKind, Program};
 use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
@@ -42,9 +39,6 @@ pub struct Plan {
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece in cut order (rings and links), for display and conformance tests.
     pub pockets: Vec<PocketPiece>,
-    /// Material each operation leaves (on the part, copy 1), for display; by operation,
-    /// kind, then (y, x).
-    pub material_left: Vec<MaterialLeft>,
     /// Which moves of `program` each operation made, in cut order, for display.
     pub op_spans: Vec<OpSpan>,
     /// Every ring whose start the user can move (on the part, copy 1), for the start
@@ -120,7 +114,6 @@ pub fn plan_job_cancellable(
     let mut moves: Vec<Move> = Vec::new();
     let mut tabs: Vec<Vec<Point>> = Vec::new();
     let mut pockets: Vec<PocketPiece> = Vec::new();
-    let mut material_left: Vec<MaterialLeft> = Vec::new();
     let mut op_spans: Vec<OpSpan> = Vec::new();
     let mut ring_starts: Vec<RingStart> = Vec::new();
     let mut arcs = ArcTable::default();
@@ -292,9 +285,8 @@ pub fn plan_job_cancellable(
         }
         tabs.extend(planned.tabs);
         pockets.extend(planned.pockets);
-        // Material left describes the part: the copies leave the same.
+        // Start markers are drawn on the part: the copies' are the same.
         if number == 1 {
-            material_left.extend(attach(*index, planned.left));
             ring_starts.extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
                 operation: *index,
                 ring,
@@ -324,31 +316,10 @@ pub fn plan_job_cancellable(
         notes,
         tabs,
         pockets,
-        material_left,
         op_spans,
         ring_starts,
         groups,
     })
-}
-
-/// One operation's pieces, ordered by kind, then (min y, min x).
-fn attach(operation: usize, mut pieces: Vec<LeftPiece>) -> Vec<MaterialLeft> {
-    pieces.sort_by(|a, b| {
-        let ((ax, ay), _) = bounds_of(&a.rings);
-        let ((bx, by), _) = bounds_of(&b.rings);
-        a.kind
-            .cmp(&b.kind)
-            .then(ay.total_cmp(&by))
-            .then(ax.total_cmp(&bx))
-    });
-    pieces
-        .into_iter()
-        .map(|piece| MaterialLeft {
-            operation,
-            kind: piece.kind,
-            rings: piece.rings,
-        })
-        .collect()
 }
 
 /// What every operation needs from the job.
@@ -370,7 +341,6 @@ struct Planned {
     notes: Vec<String>,
     tabs: Vec<Vec<Point>>,
     pockets: Vec<PocketPiece>,
-    left: Vec<LeftPiece>,
     arcs: ArcTable,
     end: Point,
     /// Rings whose start can be moved, and the stored point that set it.
@@ -438,13 +408,10 @@ fn plan_pocket_op(
             exempt: &boundaries,
             label,
         };
-        let mut legs = Vec::new();
         for piece in &mut plan.pieces {
-            let (more, unreached) = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
-            legs.extend(more);
+            let unreached = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
             corner_notes.extend(unreached.iter().map(|c| unreached_note(label, c, style)));
         }
-        plan.left = without_cleared(plan.left, &legs, cut.tool_radius);
     }
     let mut out = Planned {
         moves: Vec::new(),
@@ -456,7 +423,6 @@ fn plan_pocket_op(
             .collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
-        left: plan.left,
         arcs: plan.arcs,
         end: start,
         starts: Vec::new(),
@@ -499,13 +465,13 @@ fn plan_pocket_op(
 
 /// Dogbones in a pocket piece's wall rings (docs/specs/dogbones.md §4): the corners of the
 /// piece's boundaries (cut inside) and islands (cut outside); the leads' ranges move with
-/// the added points. Returns the legs and the corners no wall ring reaches.
+/// the added points. Returns the corners no wall ring reaches.
 fn pocket_legs(
     piece: &mut PocketPiece,
     contours: &[&Contour],
     boundaries: &[usize],
     cut: &CornerCut,
-) -> Result<(Vec<Leg>, Vec<crate::corners::Corner>), ToolpathError> {
+) -> Result<Vec<crate::corners::Corner>, ToolpathError> {
     let mut corners = Vec::new();
     for contour in contours
         .iter()
@@ -547,7 +513,7 @@ fn pocket_legs(
             range.end += count;
         }
     }
-    Ok((added.legs, added.unreached))
+    Ok(added.unreached)
 }
 
 /// The pocket's boundaries among its contours: those wholly inside an even number of the
@@ -577,8 +543,7 @@ fn profile_legs(
     contours: &[&Contour],
     side: Side,
     cut: &CornerCut,
-) -> Result<(Vec<Leg>, Vec<crate::corners::Corner>), ToolpathError> {
-    let mut legs = Vec::new();
+) -> Result<Vec<crate::corners::Corner>, ToolpathError> {
     let mut unreached = Vec::new();
     for contour in contours {
         let corners = find_corners(contour, side == Side::Inside, cut.style.max_angle());
@@ -597,10 +562,9 @@ fn profile_legs(
             })
             .collect();
         let added = add_legs(&corners, &mut slots, cut)?;
-        legs.extend(added.legs);
         unreached.extend(added.unreached);
     }
-    Ok((legs, unreached))
+    Ok(unreached)
 }
 
 fn plan_path_op(
@@ -647,7 +611,6 @@ fn plan_path_op(
         notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
-        left: Vec::new(),
         arcs,
         end,
         starts: Vec::new(),
@@ -785,7 +748,6 @@ fn plan_holes_op(
         notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
-        left: Vec::new(),
         arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
@@ -865,7 +827,6 @@ fn plan_vcarve_op(
         notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
-        left: Vec::new(),
         arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
@@ -920,10 +881,9 @@ fn plan_profile_op(
             exempt: &[],
             label,
         };
-        let (legs, unreached) = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
+        let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
         plan.notes
             .extend(unreached.iter().map(|c| unreached_note(label, c, style)));
-        plan.left = without_cleared(plan.left, &legs, radius);
         if let (Some(rough), Some(rough_op)) = (&mut rough, &rough_op) {
             let rough_cut = CornerCut {
                 clearance: rough_op.clearance,
@@ -937,7 +897,6 @@ fn plan_profile_op(
         notes: plan.notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
-        left: plan.left,
         arcs: plan.arcs,
         end: start,
         starts: plan
