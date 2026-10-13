@@ -78,3 +78,30 @@ fn the_image_is_written_and_the_same_every_time() {
     assert!(!out.status.success());
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn after_n_moves_cuts_less() {
+    let project = corpus("jobs/v4/simple_part_tabs.chipload");
+    let removed = |extra: &[&str]| -> f64 {
+        let mut args = vec!["--no-image"];
+        args.extend(extra);
+        let out = simulate(&project, &args);
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let text = String::from_utf8(out.stdout).unwrap();
+        let line = text.lines().find(|l| l.starts_with("Simulation:")).unwrap();
+        line.split_whitespace().nth(1).unwrap().parse().unwrap()
+    };
+    let (none, half, all) = (
+        removed(&["--after", "0"]),
+        removed(&["--after", "200"]),
+        removed(&[]),
+    );
+    assert_eq!(none, 0.0);
+    assert!(0.0 < half && half < all, "{half} of {all}");
+    let out = simulate(&project, &["--no-image", "--after", "999999"]);
+    assert!(!out.status.success());
+}

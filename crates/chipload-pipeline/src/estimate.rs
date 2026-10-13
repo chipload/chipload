@@ -58,6 +58,19 @@ fn move_times(program: &Program, rapid_rate: f64) -> Vec<(f64, f64)> {
         .collect()
 }
 
+/// The seconds each move of `program` takes, at the job's rapid rate (as the estimate
+/// counts them), for the playback slider (docs/specs/playback.md §2).
+pub fn move_seconds(job: &Job, program: &Program) -> Vec<f64> {
+    let rapid_rate = match job.machine.max_feed {
+        Some(max) if max > 0.0 => max,
+        _ => ASSUMED_RAPID_MM_MIN,
+    };
+    move_times(program, rapid_rate)
+        .into_iter()
+        .map(|(cut, rapid)| cut + rapid)
+        .collect()
+}
+
 /// Estimate a planned job: `dwell_s` is the post's spindle wait, at each tool group's
 /// start (one per file, or one after each tool change in one file).
 pub fn estimate(

@@ -1640,6 +1640,93 @@ fn the_simulation_follows_the_toggle_and_the_toolpath() {
     assert!(app.scene.sim.is_none() && app.simulation.is_none());
 }
 
+#[test]
+fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
+    // docs/specs/playback.md §8 (GUI).
+    let ctx = egui::Context::default();
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/dogbones.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let total = app.playback.as_ref().unwrap().total();
+    assert!(total > 0.0);
+    // At the end: the canvas as without playback.
+    app.sync_playback(&ctx);
+    assert!(app.scene.progress.is_none());
+    // One mark per operation (numbered) and none for tool changes (one tool).
+    let labels: Vec<String> = app
+        .playback
+        .as_ref()
+        .unwrap()
+        .marks
+        .iter()
+        .map(|m| m.1.clone())
+        .collect();
+    assert_eq!(labels, vec!["1", "2", "3"]);
+    let pb = app.playback.as_mut().unwrap();
+    pb.set_time(0.0);
+    // Moves that take no time (the first rapids, before every axis is known) are done at 0.
+    let at_start = pb.done();
+    pb.step_move(true);
+    assert!(pb.done() > at_start);
+    pb.step_move(false);
+    assert_eq!(pb.done(), at_start);
+    // Marks: the first operation's is at 0; on to the second's, the third's, and back.
+    pb.set_time(0.0);
+    assert_eq!(pb.marks[0].0, 0.0);
+    pb.step_mark(true);
+    assert_eq!(pb.time, pb.marks[1].0);
+    pb.step_mark(true);
+    assert_eq!(pb.time, pb.marks[2].0);
+    pb.step_mark(false);
+    assert_eq!(pb.time, pb.marks[1].0);
+    // Half way: progress with the tool marker.
+    pb.set_time(total / 2.0);
+    app.sync_playback(&ctx);
+    let progress = app.scene.progress.clone().unwrap();
+    assert!(progress.tool_at.is_some());
+    assert_eq!(progress.tool.radius, 3.0);
+    assert!(
+        app.playback
+            .as_ref()
+            .unwrap()
+            .readout(None)
+            .contains(" of ")
+    );
+    // With the simulation: the stock half way, then the full image back at the end.
+    app.set_show_simulation(true);
+    assert!(app.wait_for_simulation(&ctx));
+    app.sync_playback(&ctx);
+    let done = app.playback.as_ref().unwrap().done();
+    let half = app.scene.sim.as_ref().unwrap().surface.heights.clone();
+    let numbers = app.simulation.as_ref().unwrap().numbers.clone();
+    let expected = app
+        .sim_history
+        .as_ref()
+        .unwrap()
+        .after(done, &numbers)
+        .heights;
+    assert_eq!(half, expected);
+    let full = app.sim_full_layer.as_ref().unwrap().surface.heights.clone();
+    assert_ne!(half, full, "less is cut half way");
+    let pb = app.playback.as_mut().unwrap();
+    pb.set_time(pb.total());
+    app.sync_playback(&ctx);
+    assert!(app.scene.progress.is_none());
+    assert_eq!(app.scene.sim.as_ref().unwrap().surface.heights, full);
+    // Play runs to the end and stops.
+    let pb = app.playback.as_mut().unwrap();
+    let start = Instant::now();
+    pb.play(start);
+    assert_eq!(pb.time, 0.0, "play from the end starts over");
+    pb.speed = 100.0;
+    pb.tick(start + Duration::from_secs_f64(total / 100.0 + 1.0));
+    assert!(pb.at_end() && !pb.playing());
+    // A new generation of the same program keeps a time part way.
+    pb.set_time(total / 3.0);
+    assert!(app.generate_and_wait());
+    assert_eq!(app.playback.as_ref().unwrap().time, total / 3.0);
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

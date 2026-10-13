@@ -286,6 +286,8 @@ pub struct ToolpathShape {
     /// Every move in 3D for the 3D view, plunges and retracts included: (from, to, is a
     /// cutting move).
     pub lines3: Vec<(Point3, Point3, bool)>,
+    /// The move each of `lines3` is (index in the program), for playback.
+    pub line_moves: Vec<usize>,
     pub rejected: bool,
     /// The project changed since: drawn faded until a new one replaces it.
     pub stale: bool,
@@ -357,7 +359,7 @@ impl ToolpathShape {
             (x, y) = (nx, ny);
         }
         shape.flush(&mut run, ghost);
-        shape.lines3 = lines_3d(program);
+        (shape.lines3, shape.line_moves) = lines_3d(program);
         shape
     }
 
@@ -477,10 +479,13 @@ pub struct Highlight {
 }
 
 /// Every move as a 3D segment, once the tool's position is known on all three axes.
-fn lines_3d(program: &Program) -> Vec<(Point3, Point3, bool)> {
+type Lines3 = (Vec<(Point3, Point3, bool)>, Vec<usize>);
+
+fn lines_3d(program: &Program) -> Lines3 {
     let mut lines = Vec::new();
+    let mut moves = Vec::new();
     let (mut x, mut y, mut z): (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
-    for m in &program.moves {
+    for (index, m) in program.moves.iter().enumerate() {
         let from = match (x, y, z) {
             (Some(x), Some(y), Some(z)) => Some((x, y, z)),
             _ => None,
@@ -490,9 +495,111 @@ fn lines_3d(program: &Program) -> Vec<(Point3, Point3, bool)> {
             && from != (x, y, z)
         {
             lines.push((from, (x, y, z), m.kind != MoveKind::Rapid));
+            moves.push(index);
         }
     }
-    lines
+    (lines, moves)
+}
+
+/// Where playback is (docs/specs/playback.md §1): the moves done, the one under way and
+/// the tool on it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Progress {
+    /// Moves `0..done` are done.
+    pub done: usize,
+    /// The tool's point on move `done` (it is under way), if known.
+    pub tool_at: Option<Point3>,
+    pub tool: ToolLook,
+}
+
+/// The tool's outline for the playback marker.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ToolLook {
+    pub radius: f64,
+    /// A cone's flat tip radius and how much it rises per mm out; None: a flat end.
+    pub cone: Option<(f64, f64)>,
+}
+
+/// How faint the moves still to come are drawn.
+const TO_COME_FADE: f32 = 0.3;
+const TOOL_MARK: Color32 = Color32::from_rgb(0xfd, 0xd6, 0x63);
+
+impl Progress {
+    /// The moves done over the faint toolpath, the move under way up to the tool, and the
+    /// tool.
+    fn paint(&self, painter: &Painter, view: &View, path: &ToolpathShape) {
+        let (high, low) = path.cut_z_range().unwrap_or((0.0, 0.0));
+        let span = (high - low).max(f64::EPSILON);
+        let flat = view.is_top();
+        for (k, &(a, b, cutting)) in path.lines3.iter().enumerate() {
+            let index = path.line_moves.get(k).copied().unwrap_or(usize::MAX);
+            let b = if index < self.done {
+                b
+            } else if index == self.done
+                && let Some(t) = self.tool_at
+            {
+                t
+            } else {
+                continue;
+            };
+            let ends = [view.to_screen3(a), view.to_screen3(b)];
+            if cutting {
+                let color = if flat {
+                    FEED
+                } else {
+                    let depth = ((high - (a.2 + b.2) / 2.0) / span).clamp(0.0, 1.0) as f32;
+                    shade(FEED, depth)
+                };
+                painter.line_segment(ends, Stroke::new(2.0, color));
+            } else if !flat || (a.0, a.1) != (b.0, b.1) {
+                painter.extend(Shape::dashed_line(
+                    &ends,
+                    Stroke::new(1.0, RAPID),
+                    DASH_PX,
+                    GAP_PX,
+                ));
+            }
+        }
+        if let Some(at) = self.tool_at {
+            self.paint_tool(painter, view, at);
+        }
+    }
+
+    /// A circle of the tool's size at its point; in 3D also its outline: a cylinder, or a
+    /// cone on a cylinder.
+    fn paint_tool(&self, painter: &Painter, view: &View, (x, y, z): Point3) {
+        let r = self.tool.radius;
+        let stroke = Stroke::new(2.0, TOOL_MARK);
+        let ring = |z: f64, radius: f64| -> Vec<Pos2> {
+            (0..=32)
+                .map(|k| {
+                    let a = k as f64 / 32.0 * std::f64::consts::TAU;
+                    view.to_screen3((x + radius * a.cos(), y + radius * a.sin(), z))
+                })
+                .collect()
+        };
+        if view.is_top() {
+            painter.add(Shape::line(ring(z, r), stroke));
+            painter.circle_filled(view.to_screen3((x, y, z)), 2.5, TOOL_MARK);
+            return;
+        }
+        // The cutting end: flat, or a cone up to the full radius.
+        let (tip, rise) = match self.tool.cone {
+            Some((tip, slope)) => (tip, slope * (r - tip)),
+            None => (r, 0.0),
+        };
+        let shank = (z + rise, z + rise + 3.0 * r);
+        painter.add(Shape::line(ring(z, tip), stroke));
+        painter.add(Shape::line(ring(shank.0, r), stroke));
+        painter.add(Shape::line(ring(shank.1, r), stroke));
+        for k in 0..4 {
+            let a = k as f64 * std::f64::consts::FRAC_PI_2 + view.turn;
+            let (c, s) = (a.cos(), a.sin());
+            let at = |radius: f64, z: f64| view.to_screen3((x + radius * c, y + radius * s, z));
+            painter.line_segment([at(tip, z), at(r, shank.0)], stroke);
+            painter.line_segment([at(r, shank.0), at(r, shank.1)], stroke);
+        }
+    }
 }
 
 /// The simulated stock, ready to paint (docs/specs/simulation.md §4): an image for the top
@@ -608,6 +715,8 @@ pub struct Scene {
     pub copies: Vec<Point>,
     /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
     pub sim: Option<SimLayer>,
+    /// Playback away from the end (docs/specs/playback.md); None at the end.
+    pub progress: Option<Progress>,
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
     /// part A); the focused operation's are shown and can be dragged.
     pub start_markers: Vec<StartMarker>,
@@ -834,7 +943,12 @@ impl Scene {
         }
 
         if let Some(path) = &self.toolpath {
-            let fade = if path.stale { GHOST_FADE } else { 1.0 };
+            // While playing back, the whole toolpath faint; the moves done go on top.
+            let fade = match (&self.progress, path.stale) {
+                (Some(_), _) => TO_COME_FADE,
+                (None, true) => GHOST_FADE,
+                (None, false) => 1.0,
+            };
             let feed = if path.rejected { FEED_REJECTED } else { FEED }.gamma_multiply(fade);
             if flat {
                 for &(a, b) in &path.rapids {
@@ -876,6 +990,9 @@ impl Scene {
                 }
                 marked.push(plunge.at);
             }
+        }
+        if let (Some(progress), Some(path)) = (&self.progress, &self.toolpath) {
+            progress.paint(painter, view, path);
         }
         // Tabs are marked in top view; in 3D the toolpath's lift over them shows them.
         for line in self.tabs.iter().filter(|_| flat) {

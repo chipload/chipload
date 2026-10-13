@@ -143,6 +143,10 @@ enum Command {
         /// Print the numbers only.
         #[arg(long)]
         no_image: bool,
+        /// The stock after only the first N moves of the program (docs/specs/playback.md
+        /// §5), for tests and scripts.
+        #[arg(long, value_name = "N")]
+        after: Option<usize>,
         /// Also print a hash of the heights (for regression tests).
         #[arg(long, hide = true)]
         hash: bool,
@@ -494,8 +498,9 @@ fn main() -> ExitCode {
             output,
             cell,
             no_image,
+            after,
             hash,
-        } => simulate(&project, output.as_deref(), cell, !no_image, hash),
+        } => simulate(&project, output.as_deref(), cell, after, !no_image, hash),
         Command::Render { program, post } => render(&program, &post),
         Command::Check {
             gcode,
@@ -1120,6 +1125,7 @@ fn simulate(
     project: &Path,
     output: Option<&Path>,
     cell: Option<f64>,
+    after: Option<usize>,
     image: bool,
     hash: bool,
 ) -> ExitCode {
@@ -1127,9 +1133,19 @@ fn simulate(
         Ok(run) => run,
         Err(code) => return code,
     };
+    let mut program = result.program.clone();
+    if let Some(done) = after {
+        let total = program.moves.len();
+        if done > total {
+            eprintln!("error: --after {done}: the program has {total} moves");
+            return ExitCode::from(EXIT_FAILED);
+        }
+        program.moves.truncate(done);
+        println!("After {done} of {total} moves");
+    }
     let sim = match chipload_pipeline::simulate::simulate(
         &job,
-        &result.program,
+        &program,
         &result.groups,
         cell,
         &chipload_pipeline::Cancel::new(),

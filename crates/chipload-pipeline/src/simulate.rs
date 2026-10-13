@@ -19,6 +19,11 @@ pub const MAX_CELLS: usize = 16_000_000;
 /// The range a chosen cell size must lie in, mm (§6).
 pub const MIN_CELL_MM: f64 = 0.05;
 pub const MAX_CELL_MM: f64 = 10.0;
+/// The display grid's budget: the 3D surface and the playback's stock (docs/specs/
+/// playback.md §3).
+pub const DISPLAY_CELLS: usize = 250_000;
+/// The most history entries kept; past it, playback shows no stock (playback.md §3).
+pub const MAX_HISTORY_ENTRIES: usize = 64_000_000;
 /// A drill's point angle, radians: the usual 118° (decision 3).
 pub const DRILL_POINT_RAD: f64 = 118.0 * std::f64::consts::PI / 180.0;
 /// A V-bit without an angle is simulated with this one.
@@ -121,6 +126,29 @@ pub fn simulate(
     cell: Option<f64>,
     cancel: &Cancel,
 ) -> Result<Simulation, PipelineError> {
+    run(job, program, groups, cell, cancel, false).map(|(sim, _)| sim)
+}
+
+/// [`simulate`], also recording every cell's history on the display grid (docs/specs/
+/// playback.md §3). The history is None when it would pass [`MAX_HISTORY_ENTRIES`].
+pub fn simulate_with_history(
+    job: &Job,
+    program: &Program,
+    groups: &[ToolGroup],
+    cell: Option<f64>,
+    cancel: &Cancel,
+) -> Result<(Simulation, Option<History>), PipelineError> {
+    run(job, program, groups, cell, cancel, true)
+}
+
+fn run(
+    job: &Job,
+    program: &Program,
+    groups: &[ToolGroup],
+    cell: Option<f64>,
+    cancel: &Cancel,
+    with_history: bool,
+) -> Result<(Simulation, Option<History>), PipelineError> {
     let stock = &job.stock;
     let cell = match cell {
         Some(cell) => {
@@ -162,12 +190,17 @@ pub fn simulate(
         drill_point_assumed: false,
         vbit_angle_assumed: false,
     };
+    let recorder = with_history.then(|| {
+        let factor = factor_for_size(columns, rows, DISPLAY_CELLS, usize::MAX);
+        Recorder::new(columns.div_ceil(factor), rows.div_ceil(factor), factor, top)
+    });
     let mut grid = Grid {
         origin,
         cell,
         columns,
         rows,
         heights: vec![top as f32; columns * rows],
+        recorder,
     };
     let mut here: (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
     for (k, m) in program.moves.iter().enumerate() {
@@ -188,6 +221,10 @@ pub fn simulate(
         let Some(tool) = tool_at(job, groups, k) else {
             continue;
         };
+        if let Some(recorder) = &mut grid.recorder {
+            // Indexes of a program's moves fit in u32 (far fewer than 4 billion moves).
+            recorder.current = k as u32;
+        }
         let shape = shape_of(tool, &mut numbers);
         grid.cut((x0, y0, z0), (x1, y1, z1), shape);
     }
@@ -203,7 +240,21 @@ pub fn simulate(
             numbers.below_bottom = Some(bottom - lowest);
         }
     }
-    Ok(Simulation {
+    let history = grid.recorder.take().and_then(|r| {
+        let (factor, columns, rows) = (r.factor, r.columns, r.rows);
+        r.finish(History {
+            origin,
+            cell: cell * factor as f64,
+            columns,
+            rows,
+            top,
+            bottom,
+            size: (stock.x, stock.y),
+            starts: Vec::new(),
+            entries: Vec::new(),
+        })
+    });
+    let sim = Simulation {
         origin,
         cell,
         columns,
@@ -213,7 +264,152 @@ pub fn simulate(
         bottom,
         size: (stock.x, stock.y),
         numbers,
-    })
+    };
+    Ok((sim, history))
+}
+
+/// The smallest factor that brings a `columns` × `rows` grid within `cells` cells and
+/// `side` cells per side.
+pub fn factor_for_size(columns: usize, rows: usize, cells: usize, side: usize) -> usize {
+    let mut factor = 1;
+    while columns.div_ceil(factor) * rows.div_ceil(factor) > cells.max(1)
+        || columns.div_ceil(factor) > side.max(1)
+        || rows.div_ceil(factor) > side.max(1)
+    {
+        factor += 1;
+    }
+    factor
+}
+
+/// Every cell's history on the display grid (docs/specs/playback.md §3): each time the
+/// cell was lowered, the move and the new height, in move order.
+#[derive(Debug, Clone, PartialEq)]
+pub struct History {
+    pub origin: (f64, f64),
+    pub cell: f64,
+    pub columns: usize,
+    pub rows: usize,
+    pub top: f64,
+    pub bottom: f64,
+    pub size: (f64, f64),
+    /// Cell `c`'s entries are `entries[starts[c]..starts[c + 1]]`.
+    starts: Vec<usize>,
+    entries: Vec<(u32, f32)>,
+}
+
+impl History {
+    /// The heights once the first `done` moves are cut (0: the stock as it comes).
+    pub fn heights_after(&self, done: usize) -> Vec<f32> {
+        let cells = self.columns * self.rows;
+        (0..cells)
+            .map(|c| {
+                let run = &self.entries[self.starts[c]..self.starts[c + 1]];
+                let n = run.partition_point(|&(k, _)| (k as usize) < done);
+                if n == 0 {
+                    self.top as f32
+                } else {
+                    run[n - 1].1
+                }
+            })
+            .collect()
+    }
+
+    /// The stock after the first `done` moves as a (display-grid) simulation, shaded on
+    /// `numbers`' scale (the final one, so colours don't shift while scrubbing).
+    pub fn after(&self, done: usize, numbers: &Numbers) -> Simulation {
+        Simulation {
+            origin: self.origin,
+            cell: self.cell,
+            columns: self.columns,
+            rows: self.rows,
+            heights: self.heights_after(done),
+            top: self.top,
+            bottom: self.bottom,
+            size: self.size,
+            numbers: numbers.clone(),
+        }
+    }
+
+    /// Cell `c`'s entries: (move, height after it), in move order.
+    pub fn cell_entries(&self, c: usize) -> &[(u32, f32)] {
+        &self.entries[self.starts[c]..self.starts[c + 1]]
+    }
+
+    /// How many entries are kept.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+/// Builds a [`History`] while the grid is cut.
+struct Recorder {
+    columns: usize,
+    rows: usize,
+    factor: usize,
+    /// The display grid's current heights.
+    heights: Vec<f32>,
+    cells: Vec<Vec<(u32, f32)>>,
+    count: usize,
+    overflow: bool,
+    /// The move being cut.
+    current: u32,
+}
+
+impl Recorder {
+    fn new(columns: usize, rows: usize, factor: usize, top: f64) -> Self {
+        Recorder {
+            columns,
+            rows,
+            factor,
+            heights: vec![top as f32; columns * rows],
+            cells: vec![Vec::new(); columns * rows],
+            count: 0,
+            overflow: false,
+            current: 0,
+        }
+    }
+
+    /// Full cell (i, j) went down to `z`.
+    fn lowered(&mut self, i: usize, j: usize, z: f32) {
+        if self.overflow {
+            return;
+        }
+        let c = (j / self.factor) * self.columns + i / self.factor;
+        if z >= self.heights[c] {
+            return;
+        }
+        self.heights[c] = z;
+        let cell = &mut self.cells[c];
+        match cell.last_mut() {
+            Some(last) if last.0 == self.current => last.1 = z,
+            _ => {
+                cell.push((self.current, z));
+                self.count += 1;
+                if self.count > MAX_HISTORY_ENTRIES {
+                    self.overflow = true;
+                    self.cells = Vec::new();
+                }
+            }
+        }
+    }
+
+    fn finish(self, mut history: History) -> Option<History> {
+        if self.overflow {
+            return None;
+        }
+        history.starts = Vec::with_capacity(self.cells.len() + 1);
+        history.entries = Vec::with_capacity(self.count);
+        history.starts.push(0);
+        for cell in self.cells {
+            history.entries.extend(cell);
+            history.starts.push(history.entries.len());
+        }
+        Some(history)
+    }
 }
 
 /// The tool of the group that move `k` belongs to.
@@ -228,6 +424,7 @@ struct Grid {
     columns: usize,
     rows: usize,
     heights: Vec<f32>,
+    recorder: Option<Recorder>,
 }
 
 impl Grid {
@@ -275,6 +472,9 @@ impl Grid {
                     let z = z as f32;
                     if z < *h {
                         *h = z;
+                        if let Some(recorder) = &mut self.recorder {
+                            recorder.lowered(i, j, z);
+                        }
                     }
                 }
             }
@@ -465,14 +665,7 @@ impl Simulation {
     /// The smallest factor that brings the grid within `cells` cells and `side` cells per
     /// side.
     pub fn factor_for(&self, cells: usize, side: usize) -> usize {
-        let mut factor = 1;
-        while self.columns.div_ceil(factor) * self.rows.div_ceil(factor) > cells.max(1)
-            || self.columns.div_ceil(factor) > side.max(1)
-            || self.rows.div_ceil(factor) > side.max(1)
-        {
-            factor += 1;
-        }
-        factor
+        factor_for_size(self.columns, self.rows, cells, side)
     }
 
     /// The shaded image as PNG bytes, fixed settings (§6).

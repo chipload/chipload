@@ -48,6 +48,7 @@ mod library_transfer;
 mod measure;
 mod menu;
 mod panels;
+mod playback;
 mod problems;
 mod recovery;
 mod report;
@@ -153,6 +154,14 @@ pub struct ChiploadApp {
     /// The last simulation, and its image's texture (kept alive while shown).
     pub simulation: Option<chipload_pipeline::simulate::Simulation>,
     sim_texture: Option<egui::TextureHandle>,
+    /// The texture of the stock part way through playback (docs/specs/playback.md).
+    sim_playback_texture: Option<egui::TextureHandle>,
+    /// The simulation's layer at the end of the program, shown when playback is there.
+    sim_full_layer: Option<crate::view::SimLayer>,
+    /// Every display cell's history, for playback; None: too long, or no simulation.
+    sim_history: Option<chipload_pipeline::simulate::History>,
+    /// The playback slider's state, once a toolpath has been generated.
+    pub playback: Option<playback::Playback>,
     /// Counts the results shown: a simulation is for one of them.
     result_serial: u64,
     /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
@@ -253,6 +262,10 @@ impl Default for ChiploadApp {
             sim_run: None,
             simulation: None,
             sim_texture: None,
+            sim_playback_texture: None,
+            sim_full_layer: None,
+            sim_history: None,
+            playback: None,
             result_serial: 0,
             three_d: false,
             sketch: None,
@@ -1106,6 +1119,10 @@ impl eframe::App for ChiploadApp {
                     .show(ui, |ui| self.properties_panel(ui));
             });
         CentralPanel::no_frame().show(ui, |ui| {
+            if self.edit.is_some() && self.playback.is_some() {
+                Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
+                self.sync_playback(&ctx);
+            }
             if self.edit.is_some() {
                 self.canvas(ui);
             } else {

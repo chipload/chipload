@@ -5,7 +5,9 @@
 use chipload_job::migrations::migrate;
 use chipload_job::{CURRENT_VERSION, Job, Spindle, parse_job};
 use chipload_pipeline::Cancel;
-use chipload_pipeline::simulate::{PRINT_PALETTE, Simulation, simulate};
+use chipload_pipeline::simulate::{
+    DISPLAY_CELLS, History, PRINT_PALETTE, Simulation, simulate, simulate_with_history,
+};
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{Move, Program};
 use serde_json::{Value, json};
@@ -212,4 +214,153 @@ fn a_cell_size_out_of_range_or_too_fine_is_refused() {
     big.stock.y = 1000.0;
     let err = simulate(&big, &program, &[], Some(0.1), &Cancel::new()).unwrap_err();
     assert!(err.to_string().contains("use a larger cell"), "{err}");
+}
+
+// -- history for playback (docs/specs/playback.md §8)
+
+/// A program of plunges, slots and ramps at various depths, from a seed.
+fn wandering(seed: u64) -> Vec<Move> {
+    let mut state = seed;
+    let mut next = || {
+        state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        ((state >> 11) as f64) / ((1u64 << 53) as f64)
+    };
+    let mut moves = vec![Move::rapid_z(5.0), Move::rapid_xy((30.0, 20.0))];
+    for _ in 0..40 {
+        let p = (5.0 + next() * 50.0, 5.0 + next() * 30.0);
+        let z = -next() * 6.0;
+        match (next() * 3.0) as u32 {
+            0 => moves.push(Move::feed_xyz(p, z, 1000.0)),
+            1 => moves.push(Move::feed_xy(p, 1000.0)),
+            _ => {
+                moves.push(Move::rapid_z(5.0));
+                moves.push(Move::rapid_xy(p));
+                moves.push(Move::feed_z(z, 300.0));
+            }
+        }
+    }
+    moves.push(Move::rapid_z(5.0));
+    moves
+}
+
+fn with_history(job: &Job, moves: &[Move], cell: f64) -> (Simulation, History) {
+    let (program, groups) = program_of(job, moves.to_vec());
+    let (sim, history) =
+        simulate_with_history(job, &program, &groups, Some(cell), &Cancel::new()).unwrap();
+    (sim, history.unwrap())
+}
+
+fn program_of(job: &Job, moves: Vec<Move>) -> (Program, Vec<ToolGroup>) {
+    let program = Program {
+        tool_id: 1,
+        tool_diameter: job.tools[0].diameter,
+        rpm: 18000.0,
+        spindle: Spindle::Cw,
+        safe_z: 5.0,
+        moves,
+    };
+    let groups = vec![ToolGroup {
+        tool: job.tools[0].clone(),
+        operations: vec![0],
+        moves: 0..program.moves.len(),
+    }];
+    (program, groups)
+}
+
+#[test]
+fn the_history_gives_the_stock_after_any_move() {
+    let vbit = json!({"id": 1, "type": "vbit", "diameter": 6, "angle": 1.0, "rpm": 18000});
+    for (tool, cell) in [(endmill(4.0), 0.1), (endmill(4.0), 0.05), (vbit, 0.1)] {
+        let job = job(tool);
+        let moves = wandering(7);
+        let (sim, history) = with_history(&job, &moves, cell);
+        let factor = sim.factor_for(DISPLAY_CELLS, usize::MAX);
+        assert_eq!((history.columns, history.rows), {
+            let c = sim.coarsened(factor);
+            (c.columns, c.rows)
+        });
+        for done in [0, 1, 5, 17, 40, 77, moves.len()] {
+            let done = done.min(moves.len());
+            let (program, groups) = program_of(&job, moves[..done].to_vec());
+            let fresh = simulate(&job, &program, &groups, Some(cell), &Cancel::new())
+                .unwrap()
+                .coarsened(factor);
+            assert_eq!(
+                history.heights_after(done),
+                fresh.heights,
+                "cell {cell}, after {done} moves"
+            );
+        }
+        // At the end: the display grid of the full simulation.
+        assert_eq!(
+            history.heights_after(moves.len()),
+            sim.coarsened(factor).heights
+        );
+        // Each cell's entries in move order, going down.
+        for c in 0..history.columns * history.rows {
+            let run = history.cell_entries(c);
+            for w in run.windows(2) {
+                assert!(w[0].0 < w[1].0 && w[0].1 > w[1].1, "{w:?}");
+            }
+        }
+        assert!(!history.is_empty());
+    }
+}
+
+/// The per-frame work while dragging the playback slider (docs/specs/playback.md §4), on a
+/// 600 × 400 mm sheet with a long program. Printed, not asserted (machines differ): run
+/// with `cargo test --release -p chipload-pipeline --test simulate -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn playback_frame_timing() {
+    let mut job = job(endmill(6.0));
+    job.stock.x = 600.0;
+    job.stock.y = 400.0;
+    // Rows of cuts over the whole sheet in three depth passes: about 10 000 moves.
+    let mut moves = vec![Move::rapid_z(5.0), Move::rapid_xy((10.0, 10.0))];
+    for pass in 1..=3 {
+        moves.push(Move::feed_z(-2.0 * f64::from(pass), 300.0));
+        for row in 0..80 {
+            let y = 10.0 + f64::from(row) * 4.8;
+            for step in 0..42 {
+                let x = if row % 2 == 0 {
+                    10.0 + f64::from(step) * 14.0
+                } else {
+                    584.0 - f64::from(step) * 14.0
+                };
+                moves.push(Move::feed_xy((x, y), 2000.0));
+            }
+        }
+    }
+    let (program, groups) = program_of(&job, moves);
+    let started = std::time::Instant::now();
+    let (sim, history) =
+        simulate_with_history(&job, &program, &groups, None, &Cancel::new()).unwrap();
+    let history = history.unwrap();
+    println!(
+        "{} moves; simulation with history: {:.0} ms; cells {} ({} × {}); display {} × {}; \
+         {} history entries ({:.0} MB)",
+        program.moves.len(),
+        started.elapsed().as_secs_f64() * 1000.0,
+        sim.cell,
+        sim.columns,
+        sim.rows,
+        history.columns,
+        history.rows,
+        history.len(),
+        history.len() as f64 * 8.0 / 1e6
+    );
+    let frames = 20;
+    let started = std::time::Instant::now();
+    for f in 0..frames {
+        let stock = history.after(program.moves.len() * f / frames, &sim.numbers);
+        let pixels = stock.shaded(PRINT_PALETTE);
+        assert!(!pixels.is_empty());
+    }
+    println!(
+        "per frame (heights + shading): {:.1} ms",
+        started.elapsed().as_secs_f64() * 1000.0 / frames as f64
+    );
 }

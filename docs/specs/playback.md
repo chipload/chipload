@@ -1,6 +1,23 @@
 # Spec: toolpath playback slider
 
 Status: **approved 2026-10-13**, all decisions as recommended (§9).
+Built 2026-10-13. As built:
+- §4, measured (release, a 600 × 400 mm sheet at 0.25 mm cells, about 10 000 moves): the
+  simulation with its history takes 0.6 s; the history is 670 000 entries (5 MB, against
+  the 40 MB estimate); heights plus shading per frame take 5.7 ms at the 600 × 400 display
+  grid. The ignored test `playback_frame_timing` prints these.
+- §2: the slider's total is the moves' time, without the spindle's start-up dwell the
+  cycle time estimate adds (so 1 min 33 s against the estimate's 1 min 36 s).
+- §2: moves that take no time (the first rapids, before every axis is known) count as
+  done at time 0.
+- §1: the slider is a strip under the canvas, from the first generation on, with the play
+  button, the speed (×10 at start), the marks (operation numbers where the operation
+  changes; "T2" at tool changes) and the readout under it. Keys work whenever no text
+  field has the keyboard.
+- §3: the playback's stock uses its own texture; at the end the full-resolution layer is
+  shown again unchanged.
+- §5: `chipload simulate --after N` cuts only the first N moves (N up to the number of
+  moves; more is an error).
 
 User request (2026-10-13): a slider like PrusaSlicer's, to drag the program's progress back
 and forth and see the toolpath, and the stock as cut so far, at any point. It builds on the

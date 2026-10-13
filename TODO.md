@@ -51,10 +51,11 @@ it's built (see `CLAUDE.md`).
   5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
      Skipped for now (user, 2026-10-13): after the simulation.
   6. **Material-removal simulation** — done 2026-10-13 (docs/specs/simulation.md). Later:
-     playback (a slider up to a move), comparing with the design (gouges), holders and
-     flute length.
+     comparing with the design (gouges), holders and flute length. Playback done
+     2026-10-13 (docs/specs/playback.md); later: a G-code panel with the current line.
 
-  The user will test features 1–4 and 6 and give feedback (2026-10-13).
+  The user will test features 1–4 and 6, and the playback slider, and give feedback
+  (2026-10-13).
 
 - **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's
   decision). No longer offered as pocket strategies (the GUI offers rings only); projects
@@ -78,12 +79,19 @@ it's built (see `CLAUDE.md`).
   - Small items done (see Done). Later from them: copy imported shapes (as drawn
     polylines); a chip load range per tool in the library (amber warning, schema change).
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
-    presets, toolpath playback.
+    presets (toolpath playback: done, see Done).
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
 ## Done
 
+- **Playback slider** (2026-10-13, docs/specs/playback.md): a slider by time under the
+  canvas over the last program: moves done drawn as today, the rest faint, the tool (its
+  size; a cone for V-bits and drills in 3D) at the current point, marks at operations and
+  tool changes, a readout (time, operation and copy, X Y Z, feed); ← → by move, Shift by
+  mark, Home/End; play at ×1/×10/×100. With the simulation on, the stock as cut so far
+  from per-cell histories recorded with the simulation (both directions cost the same,
+  about 6 ms a frame on a 600 × 400 sheet). `chipload simulate --after N`.
 - **Material-removal simulation** (2026-10-13, docs/specs/simulation.md): the stock as a
   height map cut by every planned move with its tool's shape (flat endmill, V-bit cone with
   its tip, drill with a 118° point), the lowest point per cell worked out exactly. View →

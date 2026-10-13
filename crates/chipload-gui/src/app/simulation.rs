@@ -8,13 +8,16 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
 
 use chipload_pipeline::Cancel;
-use chipload_pipeline::simulate::{Palette, Simulation, simulate};
+use chipload_pipeline::simulate::{
+    DISPLAY_CELLS, History, Palette, Simulation, simulate_with_history,
+};
 
 use super::*;
 use crate::view::{SimLayer, SimSurface};
 
-/// The 3D surface's budget, cells (§4).
-pub(super) const SURFACE_CELLS: usize = 250_000;
+/// The 3D surface's budget, cells (§4): the display grid's, which the playback's history
+/// uses too.
+pub(super) const SURFACE_CELLS: usize = DISPLAY_CELLS;
 
 /// The canvas's colours: the stock top a muted wood, the deepest cut dark, the spoilboard
 /// warning red (the canvas is dark in both themes).
@@ -24,7 +27,7 @@ const CANVAS_PALETTE: Palette = Palette {
     below: [190, 70, 60],
 };
 
-type Outcome = Result<Result<Simulation, PipelineError>, String>;
+type Outcome = Result<Result<(Simulation, Option<History>), PipelineError>, String>;
 
 /// A simulation in progress.
 pub(super) struct SimRun {
@@ -67,7 +70,7 @@ impl ChiploadApp {
             .name("simulate".into())
             .spawn(move || {
                 let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                    simulate(&job, &program, &groups, None, &flag)
+                    simulate_with_history(&job, &program, &groups, None, &flag)
                 }))
                 .map_err(|_| "the simulation stopped unexpectedly".to_string());
                 let _ = sender.send(outcome);
@@ -95,7 +98,13 @@ impl ChiploadApp {
         self.stop_simulation();
         self.scene.sim = None;
         self.sim_texture = None;
+        self.sim_playback_texture = None;
+        self.sim_full_layer = None;
+        self.sim_history = None;
         self.simulation = None;
+        if let Some(playback) = &mut self.playback {
+            playback.shown = None;
+        }
     }
 
     /// Show the worker's result if it has arrived. Returns whether one is still running.
@@ -132,8 +141,8 @@ impl ChiploadApp {
         if serial != self.result_serial || !self.show_simulation {
             return; // made for an older toolpath, or switched off meanwhile
         }
-        let sim = match outcome {
-            Ok(Ok(sim)) => sim,
+        let (sim, history) = match outcome {
+            Ok(Ok(done)) => done,
             Ok(Err(PipelineError::Toolpath(chipload_toolpath::ToolpathError::Cancelled))) => {
                 return;
             }
@@ -150,33 +159,48 @@ impl ChiploadApp {
         };
         let side = ctx.input(|i| i.max_texture_side);
         let image = sim.coarsened(sim.factor_for(usize::MAX, side));
-        let pixels = image.shaded(CANVAS_PALETTE);
-        let texture = ctx.load_texture(
-            "simulation",
-            egui::ColorImage::from_rgba_unmultiplied([image.columns, image.rows], &pixels),
-            egui::TextureOptions::LINEAR,
-        );
+        let texture =
+            ctx.load_texture("simulation", image_of(&image), egui::TextureOptions::LINEAR);
         let surface = surface_of(&sim.coarsened(sim.factor_for(SURFACE_CELLS, usize::MAX)));
         let max = (
             sim.origin.0 + sim.columns as f64 * sim.cell,
             sim.origin.1 + sim.rows as f64 * sim.cell,
         );
-        self.scene.sim = Some(SimLayer {
+        let layer = SimLayer {
             texture: texture.id(),
             min: sim.origin,
             max,
             surface,
-        });
+        };
+        self.scene.sim = Some(layer.clone());
+        self.sim_full_layer = Some(layer);
         for line in sim.lines() {
             self.report.push(Tone::Info, line);
+        }
+        if history.is_none() {
+            self.report.push(
+                Tone::Info,
+                "  The program is too long to play back the stock; the slider shows the \
+                 toolpath only"
+                    .into(),
+            );
+        }
+        self.sim_history = history;
+        if let Some(playback) = &mut self.playback {
+            playback.shown = None; // redrawn from the history on the next frame
         }
         self.sim_texture = Some(texture);
         self.simulation = Some(sim);
     }
 }
 
+/// A simulation's shaded image for a texture.
+pub(super) fn image_of(sim: &Simulation) -> egui::ColorImage {
+    egui::ColorImage::from_rgba_unmultiplied([sim.columns, sim.rows], &sim.shaded(CANVAS_PALETTE))
+}
+
 /// The surface of a (coarse) simulation: its heights and shaded colours.
-fn surface_of(sim: &Simulation) -> SimSurface {
+pub(super) fn surface_of(sim: &Simulation) -> SimSurface {
     let pixels = sim.shaded(CANVAS_PALETTE);
     // `shaded` runs from the top row (highest Y) down; the surface from the bottom row up.
     let mut colors = Vec::with_capacity(sim.columns * sim.rows);
