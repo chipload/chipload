@@ -5,7 +5,8 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **User guide** (documentation website, in this repository, built locally until the repository
+  is public): spec drafted 2026-10-13 (docs/specs/user-guide.md), waiting for review.
 
 ## State to remember (2026-10-12)
 
