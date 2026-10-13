@@ -239,8 +239,12 @@ impl ChiploadApp {
             Action::New => self.ask_new(),
             Action::Open => self.ask_open(),
             Action::Import => self.ask_import(),
-            Action::Save => self.ask_save(false),
-            Action::SaveAs => self.ask_save(true),
+            Action::Save => {
+                self.ask_save(false);
+            }
+            Action::SaveAs => {
+                self.ask_save(true);
+            }
             Action::Export => self.export_when_ready(),
             Action::Quit => ctx.send_viewport_cmd(ViewportCommand::Close),
             Action::Undo => self.undo(),

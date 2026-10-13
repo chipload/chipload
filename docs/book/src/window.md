@@ -5,6 +5,8 @@
 At the top, a slim **top bar**:
 - **Left:** Open, Save, Undo and Redo.
 - **Middle:** the project's name on a tab. A dot on it means unsaved changes.
+  Closing, opening or starting a project with unsaved changes asks first, in the middle of
+  the window: **Save** (then go on), **Don't save** or **Cancel**.
 - **Right:** **⚙ Settings** (tool library, machines, setup sheet, colour theme), **?
   Help** (user guide, keyboard shortcuts, about) and the version.
 

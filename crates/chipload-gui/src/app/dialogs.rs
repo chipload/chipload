@@ -79,21 +79,23 @@ impl ChiploadApp {
         }
     }
 
-    pub(super) fn ask_save(&mut self, save_as: bool) {
+    /// Save the project, asking where when it has no file yet (or `save_as`). True when it
+    /// was saved: not when the dialog was cancelled or saving failed.
+    pub(super) fn ask_save(&mut self, save_as: bool) -> bool {
         if self.edit.is_none() {
-            return;
+            return false;
         }
         let current = self
             .job_path
             .clone()
             .filter(|p| p.extension().is_some_and(|e| e == PROJECT_EXTENSION));
         if !save_as && let Some(path) = current {
-            self.save_project(&path);
-            return;
+            return self.save_project(&path);
         }
         let suggested = self.default_project_path();
-        if let Some(path) = save_dialog(&suggested, "Chipload projects", PROJECT_EXTENSION) {
-            self.save_project(&path);
+        match save_dialog(&suggested, "Chipload projects", PROJECT_EXTENSION) {
+            Some(path) => self.save_project(&path),
+            None => false,
         }
     }
 
@@ -193,28 +195,56 @@ impl ChiploadApp {
                     });
             }
             Prompt::Discard(action) => {
-                let mut answer: Option<bool> = None;
-                egui::Window::new("Unsaved changes")
-                    .collapsible(false)
-                    .resizable(false)
-                    .show(ctx, |ui| {
-                        ui.label("The project has unsaved changes. Discard them?");
-                        ui.horizontal(|ui| {
-                            if ui.button("Discard").clicked() {
-                                answer = Some(true);
-                            }
-                            if ui.button("Cancel").clicked() {
-                                answer = Some(false);
-                            }
-                        });
+                // In the middle of the window, over a dimmed app, so it can't be missed.
+                let mut answer: Option<Unsaved> = None;
+                let modal = egui::Modal::new(egui::Id::new("unsaved-changes")).show(ctx, |ui| {
+                    ui.set_width(360.0);
+                    ui.heading("Unsaved changes");
+                    ui.add_space(4.0);
+                    ui.label("The project has changes that aren't saved. Save them first?");
+                    ui.add_space(8.0);
+                    ui.horizontal(|ui| {
+                        let accent = ui.visuals().selection.bg_fill;
+                        let on_accent = ui.visuals().selection.stroke.color;
+                        if ui
+                            .add(
+                                egui::Button::new(RichText::new("Save").color(on_accent))
+                                    .fill(accent),
+                            )
+                            .on_hover_text("Save, then go on")
+                            .clicked()
+                        {
+                            answer = Some(Unsaved::Save);
+                        }
+                        if ui
+                            .button("Don't save")
+                            .on_hover_text("Throw the changes away and go on")
+                            .clicked()
+                        {
+                            answer = Some(Unsaved::Discard);
+                        }
+                        if ui.button("Cancel").clicked() {
+                            answer = Some(Unsaved::Cancel);
+                        }
                     });
+                });
+                if modal.should_close() && answer.is_none() {
+                    answer = Some(Unsaved::Cancel);
+                }
                 match answer {
-                    Some(true) => {
+                    Some(Unsaved::Save) => {
+                        self.prompt = None;
+                        // Cancelled or failed: stay, with the changes (an error says why).
+                        if self.ask_save(false) {
+                            self.run_pending(action, ctx);
+                        }
+                    }
+                    Some(Unsaved::Discard) => {
                         self.prompt = None;
                         self.saved.clone_from(&self.edit); // nothing left to protect
                         self.run_pending(action, ctx);
                     }
-                    Some(false) => self.prompt = None,
+                    Some(Unsaved::Cancel) => self.prompt = None,
                     None => {}
                 }
             }
@@ -303,6 +333,13 @@ impl ChiploadApp {
             self.title = title;
         }
     }
+}
+
+/// What the unsaved-changes question was answered.
+enum Unsaved {
+    Save,
+    Discard,
+    Cancel,
 }
 
 pub(super) fn save_dialog(suggested: &Path, filter: &str, ext: &str) -> Option<PathBuf> {

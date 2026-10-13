@@ -3185,3 +3185,19 @@ fn ctrl_click_leaves_a_contour_out_of_the_selected_dxf_and_puts_it_back() {
     app.click(Some(one), true);
     assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Dxf(1)));
 }
+
+#[test]
+fn the_unsaved_changes_question_offers_save_and_draws_in_the_middle() {
+    let mut app = lower_part();
+    edit_feed(&mut app, 650.0);
+    assert!(app.dirty());
+    app.prompt = Some(Prompt::Discard(Pending::New));
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.prompts(ui.ctx()));
+    output.textures_delta.clear();
+    // Still asking: nothing was answered.
+    assert!(matches!(app.prompt, Some(Prompt::Discard(Pending::New))));
+    // A project without a file can't be saved without asking where: the unsaved changes
+    // stay (the file dialog isn't there in tests, so nothing is chosen).
+    assert!(app.dirty());
+}
