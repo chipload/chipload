@@ -80,6 +80,7 @@ cargo test -p chipload-pipeline --test sheet               # golden setup sheets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
+cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)

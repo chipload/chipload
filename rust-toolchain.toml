@@ -2,5 +2,6 @@
 [toolchain]
 channel = "1.99.0"
 components = ["clippy", "rustfmt"]
-targets = ["x86_64-unknown-linux-gnu"]
+# wasm32: CI checks that the libraries still compile for the browser (docs/specs/web.md).
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 profile = "minimal"

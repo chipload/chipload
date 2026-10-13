@@ -21,3 +21,8 @@ workspace = true
 cavalier_contours = "0.9.0"
 proptest = "1"
 serde_json = "1"
+
+# Browser builds only (docs/specs/web.md): boostvoronoi's map seeds a random generator, which
+# needs getrandom's browser backend (with the cfg in .cargo/config.toml).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3.4", features = ["wasm_js"] }

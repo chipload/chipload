@@ -39,6 +39,11 @@ jobs:
         shell: bash
         run: |
           for f in $(git ls-files -m -o -- '*.proptest-regressions'); do echo "== $f"; cat "$f"; done
+      - name: The libraries still compile for the browser (docs/specs/web.md)
+        run: >
+          cargo check --locked --target wasm32-unknown-unknown
+          -p chipload-core -p chipload-job -p chipload-dxf -p chipload-toolpath
+          -p chipload-post -p chipload-check -p chipload-pipeline
       - run: cargo deny check licenses bans sources
       - name: Third-party notices are up to date
         run: |

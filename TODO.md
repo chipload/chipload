@@ -85,6 +85,10 @@ it's built (see `CLAUDE.md`).
     polylines); a chip load range per tool in the library (amber warning, schema change).
   - Later from the same pass: a bug-report bundle, inch display and entry, operation
     presets (now in the lean plan; toolpath playback: done, see Done).
+- **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+  compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
+  download, browser storage, a bundled font), after user testing; its decisions are
+  proposals to review then.
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
