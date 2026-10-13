@@ -671,6 +671,9 @@ pub struct Scene {
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
     /// part A); the focused operation's are shown and can be dragged.
     pub start_markers: Vec<StartMarker>,
+    /// View → Show toolpath off: the toolpath, its plunges, tabs and ring starts aren't drawn;
+    /// a playback's tool still is (docs/specs/drawing-sources.md §5).
+    pub hide_toolpath: bool,
 }
 
 /// A ring's start that can be dragged along the ring.
@@ -764,7 +767,7 @@ impl Scene {
 
     /// Plunges (indices into the toolpath's starts) within pick distance of a screen point.
     pub fn plunges_at(&self, view: &View, at: Pos2) -> Vec<usize> {
-        let Some(path) = &self.toolpath else {
+        let Some(path) = self.toolpath.as_ref().filter(|_| !self.hide_toolpath) else {
             return Vec::new();
         };
         path.starts
@@ -852,7 +855,8 @@ impl Scene {
             }
         }
 
-        if let Some(path) = &self.toolpath {
+        let shown_path = self.toolpath.as_ref().filter(|_| !self.hide_toolpath);
+        if let Some(path) = shown_path {
             // While playing back, the whole toolpath faint; the moves done go on top.
             let fade = match (&self.progress, path.stale) {
                 (Some(_), _) => TO_COME_FADE,
@@ -901,11 +905,17 @@ impl Scene {
                 marked.push(plunge.at);
             }
         }
-        if let (Some(progress), Some(path)) = (&self.progress, &self.toolpath) {
-            progress.paint(painter, view, path);
+        match (&self.progress, shown_path) {
+            (Some(progress), Some(path)) => progress.paint(painter, view, path),
+            (Some(progress), None) => {
+                if let Some(at) = progress.tool_at {
+                    progress.paint_tool(painter, view, at);
+                }
+            }
+            _ => {}
         }
         // Tabs are marked in top view; in 3D the toolpath's lift over them shows them.
-        for line in self.tabs.iter().filter(|_| flat) {
+        for line in self.tabs.iter().filter(|_| flat && !self.hide_toolpath) {
             if line.len() > 1 {
                 painter.add(Shape::line(screen(line), Stroke::new(6.0, TAB)));
             }
@@ -933,7 +943,7 @@ impl Scene {
             painter.circle_filled(at, 4.0, Color32::from_gray(20));
             painter.circle_stroke(at, 4.0, Stroke::new(1.5, MIDDLE_HANDLE));
         }
-        for marker in &self.start_markers {
+        for marker in self.start_markers.iter().filter(|_| !self.hide_toolpath) {
             if flat && highlight.operation == Some(marker.operation) {
                 let at = view.to_screen(marker.at);
                 painter.circle_filled(at, 6.0, BACKGROUND);
@@ -1340,7 +1350,7 @@ pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
     if !scene.copies.is_empty() {
         items.push((Swatch::Line(GHOST, 1.0), "copies"));
     }
-    if let Some(path) = &scene.toolpath {
+    if let Some(path) = scene.toolpath.as_ref().filter(|_| !scene.hide_toolpath) {
         let feed = if path.rejected { FEED_REJECTED } else { FEED };
         items.push((Swatch::Line(feed, 2.0), "cutting move"));
         items.push((Swatch::Dashed(RAPID), "rapid, above the stock"));

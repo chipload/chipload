@@ -2678,3 +2678,21 @@ fn the_image_window_previews_centre_lines_and_imports_them() {
         "the T's strokes"
     );
 }
+
+#[test]
+fn a_hidden_toolpath_leaves_the_legend_and_the_plunges() {
+    // docs/specs/drawing-sources.md §5.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v7/leads.chipload")));
+    let drawing_only = crate::view::legend(&app.scene).len();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let plunge = app.scene.toolpath.as_ref().unwrap().starts[0].at;
+    let at = app.view.to_screen(plunge);
+    assert!(!app.scene.plunges_at(&app.view, at).is_empty());
+    app.show_toolpath = false;
+    app.scene.hide_toolpath = !app.show_toolpath;
+    assert_eq!(crate::view::legend(&app.scene).len(), drawing_only);
+    assert!(app.scene.plunges_at(&app.view, at).is_empty());
+    // The toolpath itself stays: showing it again needs no new generation.
+    assert!(app.scene.toolpath.is_some() && app.result.is_some());
+}

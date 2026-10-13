@@ -1,6 +1,6 @@
 # Spec: several drawings and pictures in one project, a Drawing panel, hiding
 
-Status: **draft, for review** (2026-10-13).
+Status: **approved** (2026-10-13, all recommendations taken). Built: §5 (as built: §10).
 
 The user's request:
 - Import several DXFs and pictures into one project, each with its own position and scale.
@@ -217,3 +217,10 @@ Each step comes with its tests and guide pages, as usual.
 9. **Pictures keep their width as their size** (no separate scale field). **Recommended**
    (image-trace.md decision 7).
 10. **Order:** §6, starting with the toolpath toggle, since it is small. **Recommended.**
+
+## 10. As built
+
+- **§5, hide the toolpath** (2026-10-13): *View > Show toolpath* and a checkbox at the top of
+  the open legend. It hides the toolpath, its plunges, tabs and ring starts (which can't be
+  hovered or dragged while hidden); playback's tool still shows. Like *Show images*, it is
+  set for the session, not remembered: the app has no remembered view settings yet.

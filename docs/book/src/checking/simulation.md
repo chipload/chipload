@@ -19,6 +19,9 @@ off and on.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its
   tip, and a drill's 118° point.
 - **When:** it runs in the background after each generation.
+- **Without the toolpath:** *View > Show toolpath* (also a checkbox on the canvas legend)
+  hides the toolpath's lines, plunges and tabs, to see the simulated stock alone. During
+  playback, the tool still shows where it is.
 
 Use it to see what the toolpath really leaves:
 - material in corners;

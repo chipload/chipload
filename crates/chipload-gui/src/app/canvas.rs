@@ -34,6 +34,7 @@ impl ChiploadApp {
     }
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
+        self.scene.hide_toolpath = !self.show_toolpath;
         self.scene.work_zero = self
             .edit
             .as_ref()
@@ -332,6 +333,13 @@ impl ChiploadApp {
         if !self.legend_open {
             return;
         }
+        if self.scene.toolpath.is_some() {
+            ui.checkbox(
+                &mut self.show_toolpath,
+                RichText::new("Show toolpath").small(),
+            )
+            .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
+        }
         for (swatch, text) in items {
             ui.horizontal(|ui| {
                 let (swatch_rect, _) =
@@ -433,7 +441,7 @@ impl ChiploadApp {
         let Focus::Op(operation) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch.is_some() {
+        if self.three_d || self.sketch.is_some() || self.scene.hide_toolpath {
             return None;
         }
         self.scene

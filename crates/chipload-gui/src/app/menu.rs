@@ -311,6 +311,8 @@ impl ChiploadApp {
                 {
                     self.set_auto_generate(auto);
                 }
+                ui.checkbox(&mut self.show_toolpath, "Show toolpath")
+                    .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
                 ui.checkbox(&mut self.show_images, "Show images")
                     .on_hover_text("The pictures traced into shapes, faintly under the drawing");
                 let mut sim = self.show_simulation;

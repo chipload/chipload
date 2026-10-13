@@ -237,6 +237,8 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// View > Show images: the pictures faintly under the drawing.
     pub show_images: bool,
+    /// View → Show toolpath (docs/specs/drawing-sources.md §5).
+    pub show_toolpath: bool,
     /// The pictures' textures, for the images they were made from.
     picture_textures: images::PictureTextures,
 }
@@ -314,6 +316,7 @@ impl Default for ChiploadApp {
             recent: Vec::new(),
             image_dialog: None,
             show_images: true,
+            show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
         }
     }

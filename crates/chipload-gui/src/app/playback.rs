@@ -282,8 +282,8 @@ impl ChiploadApp {
 
     /// Set up what the user guide's screenshots show (docs/specs/user-guide.md §3), from
     /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d`,
-    /// `half` (the playback half way) and `image` (the first image's window, traced). Only in
-    /// builds made for screenshots.
+    /// `half` (the playback half way), `notoolpath` (View > Show toolpath off) and `image` (the
+    /// first image's window, traced). Only in builds made for screenshots.
     #[cfg(feature = "screenshots")]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
@@ -299,6 +299,9 @@ impl ChiploadApp {
         }
         if steps.contains(&"3d") {
             self.view_3d();
+        }
+        if steps.contains(&"notoolpath") {
+            self.show_toolpath = false;
         }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
