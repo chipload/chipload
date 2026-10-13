@@ -1,5 +1,5 @@
 (Chipload - GRBL)
-(File 2 of 2: tool 2, 12.700 mm V-bit "V-bit 60")
+(File 2 of 2: tool 2, 12.700 mm V-bit "60deg V-bit")
 (Operations 4)
 (Set Z zero with this tool. Keep X and Y zero.)
 (Tool 2: 12.700 mm)

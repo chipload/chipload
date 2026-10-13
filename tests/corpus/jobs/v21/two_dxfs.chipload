@@ -907,7 +907,7 @@
     },
     {
       "id": 2,
-      "name": "V-bit 60",
+      "name": "60° V-bit",
       "type": "vbit",
       "diameter": 12.7,
       "flutes": 2,

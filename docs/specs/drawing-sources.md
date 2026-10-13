@@ -240,5 +240,5 @@ Each step comes with its tests and guide pages, as usual.
   - **The setup sheet** lists the DXFs and images with their placements when there are two
     or more; single-drawing sheets are unchanged.
   - **Found on the way:** a tool or operation name with a character outside ASCII ("60°
-    V-bit") in a program split per tool stops the G-code from being written. Fixed next,
-    on its own.
+    V-bit") in a program split per tool stopped the G-code from being written. Fixed on its
+    own: G-code comments are made ASCII ("60deg V-bit", "Lador").

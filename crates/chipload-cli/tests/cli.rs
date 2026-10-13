@@ -1188,3 +1188,18 @@ fn op_rest_sets_and_removes_rest_machining() {
     assert!(text(&out.stderr).contains("it is a rest pocket itself"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_tool_named_outside_ascii_is_written_in_ascii() {
+    // A V-bit named "60° V-bit" in a program split per tool: its header comment says
+    // "60deg V-bit", and the files are written (G-code is ASCII).
+    let dir = temp_dir("ascii");
+    let project = corpus("jobs/v21/two_dxfs.chipload");
+    let nc = dir.join("two.nc");
+    let out = chipload(&["run", path(&project), "-o", path(&nc)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let second = std::fs::read_to_string(dir.join("two-2-T2.nc")).unwrap();
+    assert!(second.is_ascii());
+    assert!(second.contains("\"60deg V-bit\""), "{second}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

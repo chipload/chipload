@@ -454,9 +454,56 @@ pub struct FileHeader {
     pub operations: Vec<usize>,
 }
 
-/// Parentheses would end a G-code comment early, and ';' starts one.
+/// Text for a G-code comment: parentheses would end it early and ';' starts one, and
+/// G-code is ASCII, so letters with accents lose them ("Lådor" -> "Lador"), a few signs
+/// become words or letters ("60°" -> "60deg") and anything else becomes '?'.
 fn comment_safe(text: &str) -> String {
-    text.replace('(', "[").replace(')', "]").replace(';', ",")
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '(' => out.push('['),
+            ')' => out.push(']'),
+            ';' => out.push(','),
+            c if c.is_ascii() && !c.is_ascii_control() => out.push(c),
+            c => out.push_str(ascii_for(c)),
+        }
+    }
+    out
+}
+
+/// A plain ASCII stand-in for a character outside it.
+fn ascii_for(c: char) -> &'static str {
+    match c {
+        'å' | 'ä' | 'à' | 'á' | 'â' | 'ã' => "a",
+        'Å' | 'Ä' | 'À' | 'Á' | 'Â' | 'Ã' => "A",
+        'ö' | 'ø' | 'ò' | 'ó' | 'ô' | 'õ' => "o",
+        'Ö' | 'Ø' | 'Ò' | 'Ó' | 'Ô' | 'Õ' => "O",
+        'é' | 'è' | 'ê' | 'ë' => "e",
+        'É' | 'È' | 'Ê' | 'Ë' => "E",
+        'ü' | 'ú' | 'ù' | 'û' => "u",
+        'Ü' | 'Ú' | 'Ù' | 'Û' => "U",
+        'í' | 'ì' | 'î' | 'ï' => "i",
+        'Í' | 'Ì' | 'Î' | 'Ï' => "I",
+        'ç' => "c",
+        'Ç' => "C",
+        'ñ' => "n",
+        'Ñ' => "N",
+        'ß' => "ss",
+        'æ' => "ae",
+        'Æ' => "AE",
+        '°' => "deg",
+        '×' => "x",
+        '±' => "+/-",
+        'µ' => "u",
+        '²' => "2",
+        '³' => "3",
+        '–' | '—' => "-",
+        '‘' | '’' => "'",
+        '“' | '”' => "\"",
+        '…' => "...",
+        ' ' | '\t' => " ",
+        _ => "?",
+    }
 }
 
 /// `tool 2, 3.000 mm endmill "3 mm downcut"`: the tool as a G-code comment shows it.
@@ -524,7 +571,7 @@ fn render(
         program.clone()
     };
     let context = Context {
-        post_name: config.name.clone(),
+        post_name: comment_safe(&config.name),
         tool_id: program.tool_id,
         tool_diameter: fmt(program.tool_diameter),
         rpm: format_number(program.rpm, 0),
@@ -603,7 +650,7 @@ pub fn render_with_tool_changes(
         });
     }
     let context = Context {
-        post_name: config.name.clone(),
+        post_name: comment_safe(&config.name),
         tool_id: first.program.tool_id,
         tool_diameter: fmt(first.program.tool_diameter),
         rpm: format_number(first.program.rpm, 0),
@@ -694,6 +741,14 @@ fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostE
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn comments_are_ascii_and_never_end_early() {
+        assert_eq!(comment_safe("60° V-bit (fine)"), "60deg V-bit [fine]");
+        assert_eq!(comment_safe("Lådor; Öppning"), "Lador, Oppning");
+        assert_eq!(comment_safe("Ø6 ×2 ☃"), "O6 x2 ?");
+        assert!(comment_safe("\u{1f600}\nx").is_ascii());
+    }
     use chipload_toolpath::model::Move;
 
     #[test]
