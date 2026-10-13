@@ -377,7 +377,7 @@ fn direction_text(direction: Direction) -> &'static str {
     }
 }
 
-/// "Profile, outside, climb, leaves 0.2 mm".
+/// "Profile, outside, climb, leaves 0.2 mm" (a negative clearance).
 fn kind_text(op: &Operation) -> String {
     let mut text = match op {
         Operation::Profile(p) => {
@@ -409,8 +409,13 @@ fn kind_text(op: &Operation) -> String {
             }
         },
     };
-    if op.clearance() > 0.0 {
-        let _ = write!(text, ", leaves {} mm", num(op.clearance()));
+    // Positive clearance cuts into the material that is kept, negative leaves some
+    // (docs/specs/depths-and-clearance.md §3).
+    let clearance = op.clearance();
+    if clearance > 0.0 {
+        let _ = write!(text, ", cuts {} mm past the line", num(clearance));
+    } else if clearance < 0.0 {
+        let _ = write!(text, ", leaves {} mm", num(-clearance));
     }
     // docs/specs/dogbones.md §7.
     if let Some(corners) = op.corners() {
