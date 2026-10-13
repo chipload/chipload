@@ -769,6 +769,7 @@ dependencies = [
  "chipload-post",
  "chipload-toolpath",
  "clap",
+ "schemars",
  "serde_json",
 ]
 
@@ -844,6 +845,7 @@ dependencies = [
  "chipload-job",
  "chipload-toolpath",
  "minijinja",
+ "schemars",
  "serde",
  "thiserror 2.0.21",
  "toml",

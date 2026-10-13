@@ -42,6 +42,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
 mod out;
+mod reference;
 
 use out::{EXIT_FAILED, Out};
 
@@ -111,8 +112,8 @@ enum Command {
     Plan {
         /// The project (.chipload).
         project: PathBuf,
-        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
-        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        /// For this run only: set a project value by path, e.g. `stock.thickness=18`
+        /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
         sets: Vec<String>,
     },
@@ -131,8 +132,8 @@ enum Command {
         /// Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`).
         #[arg(long)]
         no_sheet: bool,
-        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
-        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        /// For this run only: set a project value by path, e.g. `stock.thickness=18`
+        /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
         sets: Vec<String>,
     },
@@ -158,8 +159,8 @@ enum Command {
         /// Also print a hash of the heights (for regression tests).
         #[arg(long, hide = true)]
         hash: bool,
-        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
-        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        /// For this run only: set a project value by path, e.g. `stock.thickness=18`
+        /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
         sets: Vec<String>,
     },
@@ -178,8 +179,8 @@ enum Command {
         /// For this sheet only: one file per tool, or one file with M6 tool changes.
         #[arg(long)]
         tool_change: Option<library::ToolChangeArg>,
-        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
-        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        /// For this run only: set a project value by path, e.g. `stock.thickness=18`
+        /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
         sets: Vec<String>,
     },
@@ -319,11 +320,26 @@ enum Command {
         /// The project (.chipload).
         project: PathBuf,
     },
+    /// Print a page of the user guide's reference (docs/specs/user-guide.md §4).
+    #[command(hide = true)]
+    Reference {
+        #[arg(value_enum)]
+        page: ReferencePage,
+    },
     /// Print the JSON Schema of a file format (docs/specs/scripting.md §2).
     Schema {
         #[arg(value_enum)]
         format: SchemaArg,
     },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum ReferencePage {
+    Cli,
+    Project,
+    Tools,
+    Machines,
+    Posts,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -667,6 +683,10 @@ fn main() -> ExitCode {
             },
             output.as_deref(),
         ),
+        Command::Reference { page } => {
+            out.text("text", &reference_page(page));
+            ExitCode::SUCCESS
+        }
         Command::Schema { format } => {
             let format = match format {
                 SchemaArg::Project => chipload_job::schema::Format::Project,
@@ -688,6 +708,77 @@ fn main() -> ExitCode {
         }
     };
     out.finish(code)
+}
+
+/// A generated page of the user guide (docs/specs/user-guide.md §4).
+fn reference_page(page: ReferencePage) -> String {
+    use chipload_job::schema::{Format, schema};
+    match page {
+        ReferencePage::Cli => {
+            // Built, so every argument knows its value count.
+            let mut root = <Cli as clap::CommandFactory>::command();
+            root.build();
+            reference::cli_page(&root)
+        }
+        ReferencePage::Project => reference::schema_page(
+            "Project file",
+            "A project (`.chipload`) is a JSON file. Chipload writes every field; when you write \
+             one by hand or with a script, the fields marked *no* may be left out. Lengths are \
+             in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the \
+             JSON Schema this page is made from.",
+            &schema(Format::Project),
+        ),
+        ReferencePage::Tools => reference::schema_page(
+            "Tool library file",
+            "Your tool library (`tools.json` in the settings folder) and the files `tool export` \
+             writes. Lengths in mm, angles in radians, feeds in mm/min.",
+            &schema(Format::Tools),
+        ),
+        ReferencePage::Machines => reference::schema_page(
+            "Machine profiles file",
+            "Your machine profiles (`machines.json` in the settings folder) and the files \
+             `machine export` writes. Lengths in mm, feeds in mm/min.",
+            &schema(Format::Machines),
+        ),
+        ReferencePage::Posts => posts_page(),
+    }
+}
+
+/// The post-processors' reference: the config's fields, then each built-in post's values.
+fn posts_page() -> String {
+    use std::fmt::Write as _;
+    let config = schemars::SchemaGenerator::default()
+        .into_root_schema_for::<chipload_post::PostConfig>()
+        .to_value();
+    let mut page = reference::schema_page(
+        "Post-processors",
+        "A post-processor is a small TOML file (`name.toml`) and a Jinja template \
+         (`name.*.j2`); see [Post-processors](../posts.md) for writing your own. The TOML \
+         file's fields:",
+        &config,
+    );
+    page.push_str("## Built-in post-processors\n\n");
+    page.push_str(
+        "| Name | File extension | Decimals | Arcs | Spindle wait (s) | Tool changes | Note |\n\
+         |---|---|---|---|---|---|---|\n",
+    );
+    for name in chipload_post::builtin_posts() {
+        let Ok(post) = load_builtin_post(name) else {
+            continue;
+        };
+        let changes: Vec<&str> = post.tool_changes.iter().map(|c| c.name()).collect();
+        let _ = writeln!(
+            page,
+            "| `{name}` | `{}` | {} | {} | {} | {} | {} |",
+            post.file_extension,
+            post.decimals,
+            if post.arcs { "G2/G3" } else { "lines" },
+            post.spindle_dwell_s,
+            changes.join(", "),
+            post.note.as_deref().unwrap_or("")
+        );
+    }
+    page
 }
 
 fn is_dxf(path: &Path) -> bool {
@@ -1995,8 +2086,13 @@ fn import_json(result: &ImportResult) -> Value {
                 c.parts.iter().map(|p| p.segment.handle.as_str()).collect();
             handles.sort_unstable();
             handles.dedup();
+            // The project's shape ids (`select.shapes`); none for a plain DXF.
+            let mut shapes: Vec<u64> = c.parts.iter().filter_map(|p| p.segment.shape).collect();
+            shapes.sort_unstable();
+            shapes.dedup();
             json!({
                 "id": c.id,
+                "shapes": shapes,
                 "closed": c.closed,
                 "layers": c.layers(),
                 "handles": handles,

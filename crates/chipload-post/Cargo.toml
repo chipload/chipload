@@ -13,6 +13,11 @@ minijinja = { version = "3.0.0", features = ["serde", "fuel"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 toml = "1"
+# The config's JSON Schema, for the user guide's reference (docs/specs/user-guide.md §4).
+schemars = { version = "1.2.3", optional = true }
+
+[features]
+schema = ["dep:schemars", "chipload-job/schema"]
 
 [lints]
 workspace = true

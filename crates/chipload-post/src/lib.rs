@@ -63,6 +63,7 @@ fn default_extension() -> String {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PostConfig {
     pub schema_version: i64,

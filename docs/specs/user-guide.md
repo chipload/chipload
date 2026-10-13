@@ -1,6 +1,6 @@
 # Spec: user guide (documentation website)
 
-Status: **draft 2026-10-13**, for review (decisions in §8).
+Status: **approved 2026-10-13** ("All yes"), all decisions as recommended (§8).
 
 User request (2026-10-13): a documentation website that is always kept up to date with the
 app's features. Decided already:

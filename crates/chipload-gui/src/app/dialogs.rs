@@ -3,7 +3,24 @@
 
 use super::*;
 
+/// Where the user guide is published; None until the repository is public
+/// (docs/specs/user-guide.md §5).
+const USER_GUIDE_URL: Option<&str> = None;
+
 impl ChiploadApp {
+    /// Help > User guide (docs/specs/user-guide.md §6): the published guide once there is
+    /// one; until then, where to find it.
+    pub(super) fn open_user_guide(&mut self, ctx: &egui::Context) {
+        match USER_GUIDE_URL {
+            Some(url) => ctx.open_url(egui::OpenUrl::new_tab(url)),
+            None => self.set_report(super::report::Report::info([
+                "The user guide comes with each release as chipload-guide-<version>.zip \
+                 (open index.html). From the source: packaging/docs/build-book.sh."
+                    .to_string(),
+            ])),
+        }
+    }
+
     // -- dialogs
 
     pub(super) fn open_dialog(&mut self) {

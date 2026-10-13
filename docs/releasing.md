@@ -20,6 +20,12 @@ publish it.
 4. The workflow checks that the tag matches the workspace version, runs the tests on Linux
    and Windows, builds the files, and creates a draft release with them and `SHA256SUMS.txt`.
 5. Download and try the AppImage and the Windows `.exe`, edit the notes, then **Publish**.
+6. Build the user guide and attach it to the release (docs/specs/user-guide.md §5):
+
+       packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
+       gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip
+
+   Once the repository is public, also publish it: `packaging/docs/publish-book.sh vX.Y.Z --yes`.
 
 ## Files
 
@@ -30,6 +36,7 @@ publish it.
 | `chipload-X.Y.Z-linux-x86_64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
 | `chipload-X.Y.Z-windows-x86_64.exe` | Windows command line |
 | `SHA256SUMS.txt` | checksums of the above |
+| `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`), attached by hand (step 6) |
 
 GitHub attaches the source archives of the tag, which with `LICENSE` covers the GPL's
 corresponding-source requirement. Every binary also carries the licence texts (GUI:

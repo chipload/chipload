@@ -328,6 +328,9 @@ impl ChiploadApp {
                 }
             });
             ui.menu_button("Help", |ui| {
+                if ui.button("User guide").clicked() {
+                    self.open_user_guide(ui.ctx());
+                }
                 if ui
                     .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
                     .clicked()

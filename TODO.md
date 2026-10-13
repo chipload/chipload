@@ -66,7 +66,7 @@ it's built (see `CLAUDE.md`).
      (docs/specs/presets.md, decisions not reviewed).
   2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md). Later: rest
      profiles if missed; dogbones on a rest pocket.
-  3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/scripting.md). Batch
+  3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/book/src/scripting.md). Batch
      runs: shell recipes instead of a command (decision 8).
   4. Feeds and speeds per material in the library, with a chip-load warning.
   5. Merge the material-left display into the simulation (keep the check).
@@ -92,7 +92,7 @@ it's built (see `CLAUDE.md`).
   after the pocket's tool; library cutting values when the tool has them. GUI: the
   operation card's right-click menu; CLI: `op add-rest`. Copies at creation (option B);
   a live link to the operation (A) only if drift turns out to be a nuisance.
-- **Scripting** (2026-10-13, docs/specs/scripting.md; user guide docs/scripting.md):
+- **Scripting** (2026-10-13, docs/specs/scripting.md; user guide docs/book/src/scripting.md):
   - `--json` on every command, with one envelope (`chipload_json`, `ok`, `notes`,
     `written`, and `error` with the problems' paths) and each command's own keys;
   - `get` and `set` by path (0-based, as problem paths), checked before writing;

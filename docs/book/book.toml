@@ -1,0 +1,19 @@
+# The Chipload user guide (docs/specs/user-guide.md). Build with packaging/docs/build-book.sh.
+[book]
+title = "Chipload user guide"
+authors = ["Gustav Näslund"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../../target/book"
+# Unwritten pages stay drafts; never create empty files for them.
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+no-section-label = true
+
+[output.html.search]
+enable = true

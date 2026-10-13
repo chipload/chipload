@@ -94,7 +94,7 @@ limitations.
 
 For scripts: every command takes `--json`, `chipload get`/`set` read and change any project
 value by path, and `chipload schema project` prints the project file's JSON Schema. See
-`docs/scripting.md`.
+`docs/book/src/scripting.md` (user guide).
 
 The GUI uses installed system fonts (e.g. DejaVu Sans). On Linux, native file dialogs need
 an XDG desktop portal or `zenity`; without them use *File → Open path…* or pass the files

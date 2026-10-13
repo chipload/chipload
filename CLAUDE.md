@@ -102,7 +102,7 @@ cargo run -p chipload-cli -- get part.chipload operations.0.end_depth   # any va
 cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # checked, then written; `run/plan --set PATH=VALUE` for one run
 cargo run -p chipload-cli -- check-project part.chipload           # the project's problems with their paths
 cargo run -p chipload-cli -- schema project                        # JSON Schema (also tools, machines); copies in docs/schemas/
-cargo run -p chipload-cli -- plan part.chipload --json             # --json on any command: one object (docs/scripting.md)
+cargo run -p chipload-cli -- plan part.chipload --json             # --json on any command: one object (docs/book/src/scripting.md)
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
 cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine export); import with `tool import FILE [--replace]`
@@ -127,6 +127,12 @@ Run the relevant tests after every change. Do not report a task done until they 
 - If something is ambiguous (units, offset side, climb vs conventional, machine behaviour), **stop and ask** instead of choosing silently.
 - Do not add dependencies without stating the license and why it's needed. Every dependency must be compatible with **GPL-3.0-or-later**. Allowed: MIT, BSD-2/3-Clause, ISC, Zlib, Apache-2.0, MPL-2.0, LGPL-2.1-or-later/3.0, GPL-2.0-or-later, GPL-3.0(-or-later), Unicode-3.0, BSL-1.0 (approved 2026-10-09). **Forbidden:** GPL-2.0-only (incompatible), proprietary, unknown or no license. **Needs explicit approval:** AGPL-3.0 (adds network obligations) and anything not listed. `deny.toml` encodes this list.
 - Keep `docs/decisions/` updated with a short ADR for any significant architectural or library decision.
+- **The user guide** (`docs/book/`, mdBook, docs/specs/user-guide.md) is kept up to date in the
+  same commit as the feature: a commit that adds or changes anything a user sees or uses
+  updates its guide page. The reference pages (`docs/book/src/reference/`) are generated
+  (`chipload reference …`) and checked by `cargo test -p chipload-cli --test guide`;
+  regenerate them with `CHIPLOAD_UPDATE_GOLDEN=1`. Build the site with
+  `packaging/docs/build-book.sh` (mdBook 0.5.4).
 
 ## Safety rules for toolpath and G-code code
 

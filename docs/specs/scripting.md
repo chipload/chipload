@@ -16,7 +16,7 @@ Built 2026-10-13. As built:
   optional. Loading checks each kind's own fields. The `THIRD-PARTY-LICENSES.txt` entry for
   schemars carries a file it copied from regex-syntax with its MIT notice, which is the
   attribution that notice asks for.
-- §5: the recipes are in `docs/scripting.md`, linked from the README.
+- §5: the recipes are in `docs/book/src/scripting.md` (user guide), linked from the README.
 
 Approved plan (2026-10-13, ADR 0017), item 3. This is for power users who drive Chipload
 from scripts: generate or change projects, run them, and read the results, without
@@ -60,7 +60,7 @@ screen-scraping text.
   - a golden-style test keeps them equal to the generated ones (`CHIPLOAD_UPDATE_GOLDEN=1`
     to update, with the diff reviewed like any golden).
 - **Editors:** VS Code can be pointed at the schema for `*.chipload` (a `json.schemas`
-  setting, documented in `docs/scripting.md`). That gives completion and red squiggles. No
+  setting, documented in `docs/book/src/scripting.md` (user guide)). That gives completion and red squiggles. No
   `$schema` key goes into project files (decision 4).
 - **Tests:**
   - every frozen corpus project at the current version validates against the schema, and
@@ -161,7 +161,7 @@ one value: they check tools, move drawings and keep ids.
 
 A loop in the shell already runs many projects, in parallel if wanted (`xargs -P`), and
 `--json` makes the result of each easy to collect. A `batch` command would duplicate the
-shell. Per ADR 0017 (question 1), it is left out. Instead, `docs/scripting.md` gives the
+shell. Per ADR 0017 (question 1), it is left out. Instead, `docs/book/src/scripting.md` (user guide) gives the
 recipes:
 
 - every project in a folder to G-code, with a summary of failures;
@@ -173,7 +173,7 @@ The recipes are written for POSIX shells and for PowerShell (Windows users).
 
 ## 6. Documentation
 
-- `docs/scripting.md`, a new user document:
+- `docs/book/src/scripting.md` (user guide), a new user document:
   - the envelope;
   - each command's keys;
   - path syntax;
