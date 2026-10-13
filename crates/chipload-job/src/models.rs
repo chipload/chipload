@@ -2350,9 +2350,10 @@ impl Job {
         for (i, op) in self.operations.iter().enumerate() {
             let selector = op.select();
             let has_shapes = selector.shapes.as_ref().is_some_and(|s| !s.is_empty());
-            if selector.layer.is_none() && !has_shapes {
+            let has_source = selector.dxf.is_some() || selector.image.is_some();
+            if selector.layer.is_none() && !has_shapes && !has_source {
                 problems.push(format!(
-                    "operations.{i}.select: selector needs a layer or shapes"
+                    "operations.{i}.select: selector needs a DXF, an image, a layer or shapes"
                 ));
             }
             if let Some(dxf) = selector.dxf
@@ -2385,25 +2386,29 @@ impl Job {
             if let Some(shape) = traced {
                 problems.push(format!(
                     "operations.{i}.select: shape {} is traced from an image and changes \
-                     each time the image is traced again: select its layer \"{}\" instead",
-                    shape.id, shape.layer
+                     each time the image is traced again: select the image instead \
+                     ({{\"image\": {}}})",
+                    shape.id,
+                    shape.image().unwrap_or_default()
                 ));
             }
             // Centre lines are paths to follow, not areas
             // (docs/specs/image-arcs-centrelines.md §5).
-            let centre_lines = selector.layer.as_ref().and_then(|layer| {
-                self.drawing.images.iter().find(|image| {
-                    image.trace == ImageTrace::CentreLine
-                        && image.layer.to_lowercase() == layer.to_lowercase()
-                })
+            let centre_lines = self.drawing.images.iter().find(|image| {
+                image.trace == ImageTrace::CentreLine
+                    && (selector.image == Some(image.id)
+                        || selector.dxf.is_none()
+                            && selector.layer.as_ref().is_some_and(|layer| {
+                                image.layer.to_lowercase() == layer.to_lowercase()
+                            }))
             });
             if let Some(image) = centre_lines
                 && !matches!(op, Operation::Path(_))
             {
                 problems.push(format!(
-                    "operations.{i}.select: layer \"{}\" holds the centre lines of image {}: \
-                     cut them with a follow path, or trace the image as outlines",
-                    image.layer, image.id
+                    "operations.{i}.select: image {} is traced as centre lines: cut them with \
+                     a follow path, or trace the image as outlines",
+                    image.id
                 ));
             }
             if let Entry::Helix { radius, .. } = op.entry()

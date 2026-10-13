@@ -34,6 +34,9 @@ pub enum CanvasSelection {
     /// Every contour on one layer; with a source, only that DXF's or image's
     /// (docs/specs/drawing-sources.md §4).
     Layer(String, Option<ShapeFrom>),
+    /// Every contour of one DXF or image, whatever its layers: an operation made from it
+    /// follows the DXF's updates and the image's retracing.
+    Source(ShapeFrom),
 }
 
 /// The shape ids a contour is made of.
@@ -69,6 +72,11 @@ impl CanvasSelection {
                 .filter(|c| !shapes_of(c).is_disjoint(shapes))
                 .map(|c| c.id)
                 .collect(),
+            CanvasSelection::Source(from) => contours
+                .iter()
+                .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(*from)))
+                .map(|c| c.id)
+                .collect(),
             CanvasSelection::Layer(layer, from) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
@@ -83,6 +91,17 @@ impl CanvasSelection {
     /// profiles and pockets would skip them anyway).
     pub fn selector(&self, contours: &[Contour], open: bool) -> Selector {
         match self {
+            CanvasSelection::Source(from) => Selector {
+                dxf: match from {
+                    ShapeFrom::Dxf(id) => Some(*id),
+                    ShapeFrom::Image(_) => None,
+                },
+                image: match from {
+                    ShapeFrom::Image(id) => Some(*id),
+                    ShapeFrom::Dxf(_) => None,
+                },
+                ..Selector::default()
+            },
             CanvasSelection::Layer(layer, from) => Selector {
                 layer: Some(layer.clone()),
                 dxf: match from {

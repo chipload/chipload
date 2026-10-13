@@ -170,9 +170,14 @@ fn describe(selector: &Selector) -> String {
         parts.push(format!("shapes {}", ids.join(", ")));
     }
     let text = parts.join(" and ");
-    match (selector.dxf, selector.image) {
-        (Some(dxf), _) => format!("{text} of DXF {dxf}"),
-        (None, Some(image)) => format!("{text} of image {image}"),
-        (None, None) => text,
+    let source = match (selector.dxf, selector.image) {
+        (Some(dxf), _) => format!("DXF {dxf}"),
+        (None, Some(image)) => format!("image {image}"),
+        (None, None) => return text,
+    };
+    if text.is_empty() {
+        source
+    } else {
+        format!("{text} of {source}")
     }
 }

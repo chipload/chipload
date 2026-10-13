@@ -719,10 +719,9 @@ impl ChiploadApp {
         let cutting = self.tool_cutting(tool);
         // Shapes traced from one image are selected by its layer: their ids change each time
         // it is traced again (docs/specs/image-trace.md §4).
-        let selection = self.traced_layer().map_or_else(
-            || self.selection.clone(),
-            |(layer, from)| CanvasSelection::Layer(layer, from),
-        );
+        let selection = self
+            .traced_image()
+            .map_or_else(|| self.selection.clone(), CanvasSelection::Source);
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
@@ -1007,7 +1006,7 @@ impl ChiploadApp {
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
-            (CanvasSelection::Layer(..), true) => {
+            (CanvasSelection::Layer(..) | CanvasSelection::Source(_), true) => {
                 let ids = self.selection.ids(&self.contours);
                 match CanvasSelection::of_contours(&ids, &self.contours) {
                     CanvasSelection::Shapes(shapes) => shapes,
@@ -1032,6 +1031,7 @@ impl ChiploadApp {
         };
     }
 
+    #[cfg(test)]
     pub fn select_layer(&mut self, layer: &str) {
         self.selection = CanvasSelection::Layer(layer.to_string(), None);
     }
@@ -1050,6 +1050,12 @@ impl ChiploadApp {
         }
         let what = match &self.selection {
             CanvasSelection::Layer(layer, _) => format!("layer {layer}"),
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(id)) => {
+                format!("DXF {id}")
+            }
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(id)) => {
+                format!("image {id}")
+            }
             _ => "contours".into(),
         };
         let list: Vec<String> = ids.iter().map(|i| format!("#{i}")).collect();

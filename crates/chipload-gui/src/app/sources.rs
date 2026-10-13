@@ -124,8 +124,22 @@ impl ChiploadApp {
         self.refresh_drawing();
     }
 
-    /// Select every shape of a group.
+    /// Select a group: a DXF or image as a whole (so an operation made from it follows its
+    /// updates), drawn shapes by their ids.
     pub fn select_group(&mut self, key: &str) {
+        let source = key
+            .strip_prefix("dxf:")
+            .and_then(|id| id.parse().ok())
+            .map(ShapeFrom::Dxf)
+            .or_else(|| {
+                key.strip_prefix("image:")
+                    .and_then(|id| id.parse().ok())
+                    .map(ShapeFrom::Image)
+            });
+        if let Some(source) = source {
+            self.selection = CanvasSelection::Source(source);
+            return;
+        }
         let Some(edit) = &self.edit else {
             return;
         };

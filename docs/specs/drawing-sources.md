@@ -258,3 +258,11 @@ Each step comes with its tests and guide pages, as usual.
     line about it has nothing to do. The operation card says "cuts N hidden contours".
   - **Job settings** keep one line about the drawing (how many shapes, DXFs and images),
     pointing at the panel.
+- **Selecting a source as a whole** (2026-10-13, after the user asked whether depending on
+  layers is practical, prompted by the clash note): a selector may name only a DXF or an
+  image (`{"dxf": 2}`, `{"image": 1}`); a layer narrows within it. The panel's group *Select*
+  and an imported image give that; right-click *Select layer* gives the layer of the picked
+  contour's source. **Adding a DXF pins** an operation that selected a layer of one DXF by
+  name alone to that DXF, when the new DXF has the layer too, so adding a part never
+  changes an existing operation. The clash note remains only for selectors written by hand
+  or before. Images are selected as a whole, not by their layer.

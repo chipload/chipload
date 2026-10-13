@@ -51,8 +51,8 @@ X, Y (0, 0 unless you say).
 - **Not editable:** the shapes can't be edited in Chipload.
 
 **Changing a setting traces the picture again** and replaces its shapes, which get new ids.
-So select the image's **layer** in the operation, never the shapes one by one: Chipload refuses
-an operation that selects traced shapes by id.
+So an operation selects the **image** as a whole (`"select": {"image": 1}`), never its
+shapes one by one: Chipload refuses an operation that selects traced shapes by id.
 
 The drawing's [placement](placement.md) moves only the DXF's shapes, never a traced picture;
 a picture has its own X, Y and width.
@@ -61,8 +61,8 @@ a picture has its own X, Y and width.
 
 With **Trace: centre lines**, each black stroke becomes a path along its middle: open, or
 closed for a ring like an O. A [follow path](../operations/path.md) cuts each stroke in one
-pass at the depth you choose, as wide as the bit, whatever the pen did. Select the image's
-layer and **+ Follow path**.
+pass at the depth you choose, as wide as the bit, whatever the pen did. Select the image and
+**+ Follow path**.
 
 - **Junctions:** where strokes meet (a T, a Y), their paths end at the same point.
 - **Ends:** a path stops half a stroke's width short of a round stroke end, at the middle of
@@ -74,7 +74,7 @@ layer and **+ Follow path**.
   out and counted in the report.
 - **For strokes only:** a filled area's centre line is a branching skeleton. That is correct,
   but rarely what you want; a wide range in the stroke widths shows it.
-- **Only a follow path:** a profile, pocket or V-carve of a centre-line layer is refused,
+- **Only a follow path:** a profile, pocket or V-carve of a centre-line image is refused,
   with a hint to use a follow path or trace the image as outlines.
 
 ## In the app
@@ -86,7 +86,7 @@ path…* takes the picture's path instead.
   updated as you change the settings.
 - **Right:** the settings, the width, the corner and the layer, and what was traced (with the
   threshold *auto* picked).
-- **Import:** puts the shapes into the project and selects their layer, so **+ V-carve** carves
+- **Import:** puts the shapes into the project and selects the image, so **+ V-carve** carves
   them (or, for centre lines, **+ Follow path** cuts them). It is one undo step.
 
 ![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
@@ -97,8 +97,8 @@ path…* takes the picture's path instead.
   which removes the picture and its shapes.
 - **See it:** *View > Show images* shows the pictures faintly under the drawing, for
   comparing the traced shapes with the picture.
-- **Operations:** clicking traced shapes on the canvas and adding an operation selects their
-  layer, not the shapes.
+- **Operations:** clicking traced shapes on the canvas and adding an operation selects the
+  whole image, not the shapes.
 
 ## On the command line
 

@@ -25,8 +25,8 @@ The **Drawing** panel, under the operations, lists what the project's shapes com
 ![The Drawing panel: two DXFs with their layers, the second hidden, an image, and the
 first DXF's placement window](../images/drawing.png)
 
-- **Select** selects the whole group, or one layer of one DXF. An operation added from a
-  DXF's layer cuts only that DXF's layer (its selector names the DXF).
+- **Select** selects the whole group, or one layer of one DXF. An operation added from it
+  cuts only that (its selector names the DXF or image).
 - **⋯** has the rest:
   - **For a DXF:** *Place…* (move, turn, scale: [Placing the drawing](placement.md)),
     *Update from a DXF…* or *from a path…*, and *Remove*.
@@ -50,18 +50,31 @@ each from its ⋯ menu.
 - **Removing** a DXF removes its shapes. The report names the operations that used them;
   they can't run until you give them geometry again.
 
-## The same layer in two DXFs
+## What an operation selects
 
-An operation that selects a layer cuts that layer in every DXF: both parts' "HOLES". When a
-layer is in more than one, the report says so: *layer "HOLES" is in lid and part; it cuts
-all of them*. To cut only one part's layer, limit the selector to its DXF:
+An operation selects a **DXF or image as a whole**, a **layer** within one, or **shapes**:
 
-```json
-"select": {"layer": "HOLES", "dxf": 2}
+```text
+"select": {"dxf": 2}                       // all of part B, whatever its layers
+"select": {"dxf": 2, "layer": "HOLES"}     // part B's holes
+"select": {"image": 1}                     // a traced picture
+"select": {"shapes": [12, 14]}             // these shapes
 ```
 
-A selector's `dxf` (or `image`, for a picture's traced shapes) keeps it to that source's
-shapes. Without one, it means every source, as it always did.
+A DXF or an image selected as a whole, or one of its layers, follows the DXF when it is
+updated and the picture when it is traced again. In the app:
+- **Select** on a group in the Drawing panel picks the whole DXF or image.
+- **Select** on a layer, or right-click *Select layer* on the canvas, picks that layer of
+  that DXF only.
+
+**Adding a DXF never changes what an existing operation cuts.** An operation that
+selected a layer by its name alone, made while the project had one DXF, keeps cutting that
+DXF when the new one has the same layer. The report says so: *Operations 1, 2 keep cutting
+part only*.
+
+A selector with a layer and no DXF (written by hand, or by Chipload before 0.16) means that
+layer in every DXF. When a layer is in more than one, the report says so: *layer "HOLES" is
+in lid and part; it cuts all of them*.
 
 The [setup sheet](../checking/sheet.md) lists every DXF and image with where it was
 put, when there is more than one.

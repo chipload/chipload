@@ -59,9 +59,64 @@ pub fn add_named_dxf(
         }
     ));
     out.drawing.dxfs.push(imported.source);
+    report.lines.extend(pin_layers(&mut out, id));
     report.lines.extend(stock_fit_note(&out));
     report.lines.extend(layer_clash_notes(&out));
     Ok((out, report))
+}
+
+/// Operations that select a layer of one DXF, by its name alone, keep cutting that DXF
+/// only when DXF `added` brings the same layer: their selector gets that DXF. Adding a part
+/// never changes what an existing operation cuts. Returns the report's lines.
+fn pin_layers(job: &mut Job, added: u64) -> Vec<String> {
+    let mut pinned: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    let shapes = job.drawing.shapes.clone();
+    for (i, op) in job.operations.iter_mut().enumerate() {
+        let select = op.select_mut();
+        let Some(layer) = select.layer.clone() else {
+            continue;
+        };
+        if select.dxf.is_some() || select.image.is_some() {
+            continue;
+        }
+        let on = |s: &&Shape| s.layer.to_lowercase() == layer.to_lowercase();
+        if !shapes.iter().filter(on).any(|s| s.dxf() == Some(added)) {
+            continue;
+        }
+        // Where the layer was before: one DXF, and nothing else.
+        let before: BTreeSet<Option<u64>> = shapes
+            .iter()
+            .filter(on)
+            .filter(|s| s.dxf() != Some(added))
+            .map(|s| if s.image().is_some() { None } else { s.dxf() })
+            .collect();
+        if let [Some(dxf)] = before.into_iter().collect::<Vec<_>>()[..] {
+            select.dxf = Some(dxf);
+            let name = job
+                .drawing
+                .dxfs
+                .iter()
+                .find(|d| d.id == dxf)
+                .map_or_else(|| format!("DXF {dxf}"), |d| d.name.clone());
+            pinned.entry(name).or_default().push(i + 1);
+        }
+    }
+    pinned
+        .into_iter()
+        .map(|(name, ops)| {
+            let list = ops
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!(
+                "Operation{} {list} keep{} cutting {name} only: the new DXF has {} layers too.",
+                if ops.len() == 1 { "" } else { "s" },
+                if ops.len() == 1 { "s" } else { "" },
+                if ops.len() == 1 { "its" } else { "their" }
+            )
+        })
+        .collect()
 }
 
 /// Remove DXF `id` and its shapes, and anything hidden of it. Operations that selected its

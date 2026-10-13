@@ -23,6 +23,26 @@ fn two() -> (Job, Job) {
     (one, two)
 }
 
+#[test]
+fn adding_a_dxf_never_changes_what_an_operation_cuts() {
+    let one = load_job(&corpus("jobs/v20/scaled_part.chipload")).unwrap();
+    let (two, report) = add_dxf(&one, &corpus("dxf/simple_part.dxf"), None).unwrap();
+    // Both operations select a layer the new DXF has too: they stay on the first.
+    assert!(
+        report.lines.iter().any(|l| l
+            == "Operations 1, 2 keep cutting simple_part only: the new DXF has their layers too."),
+        "{:?}",
+        report.lines
+    );
+    assert!(two.operations.iter().all(|op| op.select().dxf == Some(1)));
+    assert!(!report.lines.iter().any(|l| l.contains("is in")));
+    let (two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
+    assert_eq!(
+        run_job(&two).unwrap().files[0].gcode,
+        run_job(&one).unwrap().files[0].gcode
+    );
+}
+
 fn shapes_of(job: &Job, dxf: u64) -> Vec<chipload_job::Shape> {
     job.drawing
         .shapes
@@ -52,11 +72,15 @@ fn a_second_dxf_is_added_where_its_file_has_it() {
 }
 
 #[test]
-fn a_layer_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
+fn a_layer_alone_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
     let (one, two) = two();
     // Apart, as parts are: on top of each other, one part's holes would lie inside the
     // other's outline, which changes their nesting and so their order.
     let (mut two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
+    // As a hand-written file could have them: by layer alone.
+    for op in &mut two.operations {
+        op.select_mut().dxf = None;
+    }
     let result = run_job(&two).unwrap();
     let clashes: Vec<&String> = result
         .notes
@@ -135,4 +159,26 @@ fn removing_a_dxf_removes_its_shapes_and_names_the_operations_that_used_it() {
         "{problems:?}"
     );
     assert!(remove_dxf(&removed, 2).is_err());
+}
+
+#[test]
+fn a_selector_may_name_a_whole_dxf() {
+    // An outline profile of all of DXF 2: its outline and its holes, whatever their layers.
+    let (_, two) = two();
+    let (mut two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
+    let select = two.operations[1].select_mut();
+    *select = chipload_job::Selector {
+        dxf: Some(2),
+        ..Default::default()
+    };
+    assert!(two.validate().is_empty(), "{:?}", two.validate());
+    let result = run_job(&two).unwrap();
+    assert!(!result.files[0].gcode.is_empty());
+    // Nothing at all is still refused.
+    *two.operations[1].select_mut() = chipload_job::Selector::default();
+    assert!(
+        two.validate()
+            .iter()
+            .any(|p| p.contains("needs a DXF, an image, a layer or shapes"))
+    );
 }

@@ -284,9 +284,8 @@ impl ChiploadApp {
                 }
                 self.image_dialog = None;
                 self.drawing_changed(&[]);
-                self.selection = super::CanvasSelection::Layer(
-                    draft.layer.clone(),
-                    Some(chipload_core::chain::ShapeFrom::Image(report.id)),
+                self.selection = super::CanvasSelection::Source(
+                    chipload_core::chain::ShapeFrom::Image(report.id),
                 );
                 self.commit();
                 let mut lines = report.lines.clone();
@@ -339,24 +338,24 @@ impl ChiploadApp {
         }
     }
 
-    /// The layer of the image every selected shape was traced from, with that image, if
-    /// they all come from one image.
-    pub(super) fn traced_layer(&self) -> Option<(String, Option<chipload_core::chain::ShapeFrom>)> {
+    /// The image every selected shape was traced from, if they all come from one: an
+    /// operation selects the image, never its shapes, whose ids change each time it is
+    /// traced again (docs/specs/image-trace.md §4).
+    pub(super) fn traced_image(&self) -> Option<chipload_core::chain::ShapeFrom> {
         let edit = self.edit.as_ref()?;
         let super::CanvasSelection::Shapes(ids) = &self.selection else {
             return None;
         };
-        let mut layers = std::collections::BTreeSet::new();
+        let mut images = std::collections::BTreeSet::new();
         for id in ids {
             let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
-            let image = shape.image()?;
-            layers.insert((shape.layer.clone(), image));
+            images.insert(shape.image()?);
         }
-        match layers.len() {
-            1 => layers
+        match images.len() {
+            1 => images
                 .into_iter()
                 .next()
-                .map(|(layer, image)| (layer, Some(chipload_core::chain::ShapeFrom::Image(image)))),
+                .map(chipload_core::chain::ShapeFrom::Image),
             _ => None,
         }
     }

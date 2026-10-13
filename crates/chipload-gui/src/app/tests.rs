@@ -2559,7 +2559,7 @@ fn the_feed_shows_the_chip_load_once_the_tool_has_flutes() {
 // -- Images (docs/specs/image-trace.md §6)
 
 #[test]
-fn an_imported_image_is_traced_selected_by_layer_and_v_carved() {
+fn an_imported_image_is_traced_selected_as_a_whole_and_v_carved() {
     let mut app = ChiploadApp::default();
     assert!(app.import_image(&corpus("images/logo.png")));
     // No project was open: a new one was made for it.
@@ -2581,19 +2581,11 @@ fn an_imported_image_is_traced_selected_by_layer_and_v_carved() {
     );
     assert_eq!(
         app.selection,
-        CanvasSelection::Layer(
-            "logo".into(),
-            Some(chipload_core::chain::ShapeFrom::Image(1))
-        )
+        CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1))
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().ops[index].op;
-    assert_eq!(op.select().layer.as_deref(), Some("logo"));
-    assert_eq!(
-        op.select().image,
-        Some(1),
-        "the image's layer, not another's"
-    );
+    assert_eq!(op.select().image, Some(1), "the image itself");
     // One undo step takes the image away again (and one more the operation).
     app.undo();
     app.undo();
@@ -2609,7 +2601,7 @@ fn an_imported_image_is_traced_selected_by_layer_and_v_carved() {
 }
 
 #[test]
-fn clicked_traced_shapes_become_their_layer_in_a_new_operation() {
+fn clicked_traced_shapes_become_their_image_in_a_new_operation() {
     let mut app = ChiploadApp::default();
     assert!(app.import_image(&corpus("images/logo.png")));
     app.image_dialog.as_mut().unwrap().draft.width = 80.0;
@@ -2619,8 +2611,8 @@ fn clicked_traced_shapes_become_their_layer_in_a_new_operation() {
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
     assert_eq!(
-        (select.layer.as_deref(), select.shapes),
-        (Some("logo"), None)
+        (select.image, select.layer.as_deref(), select.shapes),
+        (Some(1), None, None)
     );
 }
 

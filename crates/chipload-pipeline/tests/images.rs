@@ -108,7 +108,7 @@ fn a_changed_setting_traces_again_and_operations_follow_the_layer() {
 }
 
 #[test]
-fn traced_shapes_are_selected_by_layer_not_by_id() {
+fn traced_shapes_are_selected_by_their_image_not_by_id() {
     let bytes = logo();
     let corpus =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/jobs/v18/rest.chipload");
@@ -123,7 +123,7 @@ fn traced_shapes_are_selected_by_layer_not_by_id() {
     assert!(
         problems
             .iter()
-            .any(|p| p.contains("select its layer \"logo\"")),
+            .any(|p| p.contains("select the image instead ({\"image\": 1})")),
         "{problems:?}"
     );
 }
@@ -242,7 +242,19 @@ fn only_a_follow_path_may_cut_centre_lines() {
     assert!(
         problems
             .iter()
-            .any(|p| p.contains("centre lines of image 1") && p.contains("follow path")),
+            .any(|p| p.contains("image 1 is traced as centre lines") && p.contains("follow path")),
         "{problems:?}"
+    );
+    // Selecting the image itself is refused the same way.
+    *job.operations[0].select_mut() = Selector {
+        image: Some(1),
+        ..Selector::default()
+    };
+    assert!(
+        job.validate()
+            .iter()
+            .any(|p| p.contains("image 1 is traced as centre lines")),
+        "{:?}",
+        job.validate()
     );
 }

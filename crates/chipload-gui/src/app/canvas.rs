@@ -194,6 +194,16 @@ impl ChiploadApp {
             .context_pick
             .and_then(|id| self.contours.iter().find(|c| c.id == id));
         let layers: Vec<String> = picked.map(Contour::layers).unwrap_or_default();
+        // The layer within the picked contour's DXF or image, not across all of them
+        // (docs/specs/drawing-sources.md §2).
+        let from = picked.and_then(|c| {
+            let first = c.parts.first()?.segment.from;
+            c.parts
+                .iter()
+                .all(|p| p.segment.from == first)
+                .then_some(first)
+                .flatten()
+        });
         let picked_id = picked.map(|c| c.id);
         response.context_menu(|ui| match (context_start, picked_id) {
             (Some(marker), _) => {
@@ -218,7 +228,7 @@ impl ChiploadApp {
                 }
                 for layer in &layers {
                     if ui.button(format!("Select layer {layer}")).clicked() {
-                        self.select_layer(layer);
+                        self.selection = CanvasSelection::Layer(layer.clone(), from);
                         ui.close();
                     }
                 }
