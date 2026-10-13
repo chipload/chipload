@@ -3,7 +3,7 @@
 //! (docs/specs/small-items.md §5). Shown, not judged: a good value depends on the material,
 //! the tool and the machine (decision 6, option A).
 
-use chipload_job::{Job, Operation, Tool};
+use chipload_job::{HoleMethod, Job, Operation, Tool};
 
 /// An operation's chip load, or what is missing to know it.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,6 +43,11 @@ pub fn cutting_feed(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.feed,
         Operation::Vcarve(v) => v.feed,
         Operation::Path(p) => p.feed,
+        // A drill cuts going down (docs/specs/holes.md §3).
+        Operation::Holes(h) => match h.method {
+            HoleMethod::Drill { .. } => h.plunge_feed,
+            HoleMethod::Bore { .. } => h.feed,
+        },
     }
 }
 

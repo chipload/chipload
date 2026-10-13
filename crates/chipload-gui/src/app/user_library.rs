@@ -668,6 +668,11 @@ impl ChiploadApp {
             return false;
         };
         entry.op.set_tool(id);
+        if let Some(edit) = &mut self.edit
+            && let Some(entry) = edit.ops.get_mut(op)
+        {
+            crate::editor::fit_hole_method(&mut entry.op, &edit.settings.tools);
+        }
         self.commit();
         true
     }

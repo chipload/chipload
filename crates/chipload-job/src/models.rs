@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 17;
+pub const CURRENT_VERSION: i64 = 18;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -993,6 +993,9 @@ pub enum Operation {
     /// Follow path: the tool centre on the selected shapes, open or closed
     /// (docs/specs/follow-path.md).
     Path(PathOp),
+    /// Holes: drilled with a drill, bored with a helix with an endmill
+    /// (docs/specs/holes.md).
+    Holes(HolesOp),
 }
 
 fn enabled_default() -> bool {
@@ -1006,6 +1009,7 @@ impl Operation {
             Operation::Pocket(op) => &op.name,
             Operation::Vcarve(op) => &op.name,
             Operation::Path(op) => &op.name,
+            Operation::Holes(op) => &op.name,
         }
     }
 
@@ -1015,6 +1019,7 @@ impl Operation {
             Operation::Pocket(op) => &mut op.name,
             Operation::Vcarve(op) => &mut op.name,
             Operation::Path(op) => &mut op.name,
+            Operation::Holes(op) => &mut op.name,
         }
     }
 
@@ -1024,6 +1029,7 @@ impl Operation {
             Operation::Pocket(op) => op.enabled = enabled,
             Operation::Vcarve(op) => op.enabled = enabled,
             Operation::Path(op) => op.enabled = enabled,
+            Operation::Holes(op) => op.enabled = enabled,
         }
     }
 
@@ -1033,6 +1039,7 @@ impl Operation {
             Operation::Pocket(op) => op.enabled,
             Operation::Vcarve(op) => op.enabled,
             Operation::Path(op) => op.enabled,
+            Operation::Holes(op) => op.enabled,
         }
     }
 
@@ -1042,6 +1049,7 @@ impl Operation {
             Operation::Pocket(op) => op.tool,
             Operation::Vcarve(op) => op.tool,
             Operation::Path(op) => op.tool,
+            Operation::Holes(op) => op.tool,
         }
     }
 
@@ -1051,6 +1059,7 @@ impl Operation {
             Operation::Pocket(op) => op.tool = tool,
             Operation::Vcarve(op) => op.tool = tool,
             Operation::Path(op) => op.tool = tool,
+            Operation::Holes(op) => op.tool = tool,
         }
     }
 
@@ -1061,6 +1070,7 @@ impl Operation {
             Operation::Pocket(op) => (op.start_depth, op.end_depth),
             Operation::Vcarve(op) => (op.start_depth, op.end_depth),
             Operation::Path(op) => (op.start_depth, op.end_depth),
+            Operation::Holes(op) => (op.start_depth, op.end_depth),
         }
     }
 
@@ -1071,6 +1081,8 @@ impl Operation {
             // Paths start at the ends of the axis, mostly at depth 0; others plunge.
             Operation::Vcarve(_) => Entry::Plunge {},
             Operation::Path(p) => p.entry,
+            // Holes go down their own way (docs/specs/holes.md §3, §4).
+            Operation::Holes(_) => Entry::Plunge {},
         }
     }
 
@@ -1079,16 +1091,16 @@ impl Operation {
             Operation::Profile(p) => &p.starts,
             Operation::Pocket(p) => &p.starts,
             Operation::Vcarve(_) => &[],
-            Operation::Path(_) => &[],
+            Operation::Path(_) | Operation::Holes(_) => &[],
         }
     }
 
-    /// None for an operation without start points (a V-carve, a follow path).
+    /// None for an operation without start points (a V-carve, a follow path, holes).
     pub fn starts_mut(&mut self) -> Option<&mut Vec<[f64; 2]>> {
         match self {
             Operation::Profile(p) => Some(&mut p.starts),
             Operation::Pocket(p) => Some(&mut p.starts),
-            Operation::Vcarve(_) | Operation::Path(_) => None,
+            Operation::Vcarve(_) | Operation::Path(_) | Operation::Holes(_) => None,
         }
     }
 
@@ -1096,7 +1108,7 @@ impl Operation {
         match self {
             Operation::Profile(p) => p.lead,
             Operation::Pocket(p) => p.lead,
-            Operation::Vcarve(_) | Operation::Path(_) => None,
+            Operation::Vcarve(_) | Operation::Path(_) | Operation::Holes(_) => None,
         }
     }
 
@@ -1108,6 +1120,8 @@ impl Operation {
             Operation::Vcarve(_) => 0.0,
             // On the line: no offset.
             Operation::Path(_) => 0.0,
+            // Cut to the drawn size (docs/specs/holes.md decision 9).
+            Operation::Holes(_) => 0.0,
         }
     }
 
@@ -1117,6 +1131,7 @@ impl Operation {
             Operation::Pocket(op) => &op.select,
             Operation::Vcarve(op) => &op.select,
             Operation::Path(op) => &op.select,
+            Operation::Holes(op) => &op.select,
         }
     }
 
@@ -1126,6 +1141,7 @@ impl Operation {
             Operation::Pocket(op) => &mut op.select,
             Operation::Vcarve(op) => &mut op.select,
             Operation::Path(op) => &mut op.select,
+            Operation::Holes(op) => &mut op.select,
         }
     }
 }
@@ -1281,6 +1297,69 @@ pub struct PathOp {
     pub plunge_feed: f64,
     /// Plunge or ramp (a helix is for pockets).
     pub entry: Entry,
+}
+
+/// Holes (docs/specs/holes.md): every selected circle, drilled at its centre with a drill
+/// or bored with a helix at its wall with an endmill.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HolesOp {
+    #[serde(default)]
+    pub name: String,
+    /// Disabled operations stay in the file and are skipped when generating.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    pub select: Selector,
+    pub tool: i64,
+    /// Where the cut starts and ends, mm down from the stock top: 0 <= start < end. For a
+    /// drill, the end is the depth of its point.
+    pub start_depth: f64,
+    pub end_depth: f64,
+    /// The bore's helix and circle; a drill doesn't use it.
+    pub feed: f64,
+    /// The drill's feed down; the bore's straight descent to the start depth.
+    pub plunge_feed: f64,
+    /// Matches the tool: `drill` for a drill, `bore` for an endmill.
+    pub method: HoleMethod,
+}
+
+/// How a Holes operation cuts (docs/specs/holes.md §2).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+pub enum HoleMethod {
+    /// Straight down at the centre; `peck` mm at a time (None: in one go).
+    Drill { peck: Option<f64> },
+    /// A helix at the wall, at most `step_down` mm per turn and never steeper than
+    /// `ramp_angle` (radians, 0 < angle <= 30°), then one level circle.
+    Bore {
+        step_down: f64,
+        ramp_angle: f64,
+        direction: Direction,
+    },
+}
+
+impl HoleMethod {
+    /// The method a tool of `kind` and `diameter` takes, with its defaults
+    /// (docs/specs/holes.md §7); None for a V-bit.
+    pub fn default_for(kind: ToolType, diameter: f64) -> Option<HoleMethod> {
+        match kind {
+            ToolType::Drill => Some(HoleMethod::Drill { peck: None }),
+            ToolType::Endmill => Some(HoleMethod::Bore {
+                step_down: 0.5 * diameter,
+                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+                direction: Direction::Climb,
+            }),
+            ToolType::Vbit => None,
+        }
+    }
+
+    /// The tool type this method needs.
+    pub fn tool_type(&self) -> ToolType {
+        match self {
+            HoleMethod::Drill { .. } => ToolType::Drill,
+            HoleMethod::Bore { .. } => ToolType::Endmill,
+        }
+    }
 }
 
 /// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
@@ -1651,6 +1730,21 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Holes(h) => {
+                    positive(at("end_depth"), h.end_depth);
+                    positive(at("feed"), h.feed);
+                    positive(at("plunge_feed"), h.plunge_feed);
+                    match h.method {
+                        HoleMethod::Drill { peck } => {
+                            if let Some(peck) = peck {
+                                positive(at("method.peck"), peck);
+                            }
+                        }
+                        HoleMethod::Bore { step_down, .. } => {
+                            positive(at("method.step_down"), step_down);
+                        }
+                    }
+                }
             }
         }
         problems.extend(max_overcut_problems("stock", self.stock.max_overcut));
@@ -1729,6 +1823,20 @@ impl Job {
             {
                 problems.push(format!(
                     "operations.{i}.entry.ramp_angle: must be more than 0 and at most 30 \
+                     degrees, got {:.3} degrees",
+                    ramp_angle.to_degrees()
+                ));
+            }
+            if let Operation::Holes(HolesOp {
+                method: HoleMethod::Bore { ramp_angle, .. },
+                ..
+            }) = op
+                && !(ramp_angle.is_finite()
+                    && *ramp_angle > 0.0
+                    && *ramp_angle <= MAX_RAMP_ANGLE_RAD)
+            {
+                problems.push(format!(
+                    "operations.{i}.method.ramp_angle: must be more than 0 and at most 30 \
                      degrees, got {:.3} degrees",
                     ramp_angle.to_degrees()
                 ));

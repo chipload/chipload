@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use chipload_core::Point;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
-    Direction, Entry, Job, Operation, PocketStrategy, Side, Spindle, Tool, ToolChange, ToolType,
-    WorkZero, ZZero,
+    Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketStrategy, Side, Spindle, Tool,
+    ToolChange, ToolType, WorkZero, ZZero,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -331,20 +331,27 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
             .find(|(i, _)| *i == index)
             .map_or(0.0, |(_, s)| *s);
         let (feed, plunge) = feeds(op);
+        // A drill only goes down (docs/specs/holes.md §2): its one feed.
+        let feeds_text = match op {
+            Operation::Holes(HolesOp {
+                method: HoleMethod::Drill { .. },
+                ..
+            }) => format!("{} down", num(plunge)),
+            _ => format!("{} / {}", num(feed), num(plunge)),
+        };
         let load = match crate::chip_load::chip_load(job, op) {
             known @ crate::chip_load::ChipLoad::Mm(_) => format!("<br>{}", known.text()),
             _ => String::new(),
         };
         let _ = writeln!(
             html,
-            "<tr><td>{}</td><td><strong>{}</strong><br>{}</td><td>{}</td><td>{} / {}{load}</td>\
+            "<tr><td>{}</td><td><strong>{}</strong><br>{}</td><td>{}</td><td>{}{load}</td>\
              <td>{}</td><td>{}</td><td>{}</td></tr>",
             index + 1,
             escape(&name),
             escape(&kind_text(op)),
             escape(&depth_text(op)),
-            num(feed),
-            num(plunge),
+            feeds_text,
             escape(&entry_text(op)),
             escape(&tabs_text(op)),
             duration_text(seconds)
@@ -359,6 +366,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Pocket(p) => (p.feed, p.plunge_feed),
         Operation::Vcarve(v) => (v.feed, v.plunge_feed),
         Operation::Path(p) => (p.feed, p.plunge_feed),
+        Operation::Holes(h) => (h.feed, h.plunge_feed),
     }
 }
 
@@ -394,6 +402,12 @@ fn kind_text(op: &Operation) -> String {
         }
         Operation::Vcarve(_) => "V-carve".to_string(),
         Operation::Path(_) => "Follow path, on the line".to_string(),
+        Operation::Holes(h) => match h.method {
+            HoleMethod::Drill { .. } => "Holes, drilled".to_string(),
+            HoleMethod::Bore { direction, .. } => {
+                format!("Holes, helical bore, {}", direction_text(direction))
+            }
+        },
     };
     if op.clearance() > 0.0 {
         let _ = write!(text, ", leaves {} mm", num(op.clearance()));
@@ -409,10 +423,28 @@ fn depth_text(op: &Operation) -> String {
         Operation::Pocket(p) => Some(p.step_down),
         Operation::Vcarve(v) => v.step_down,
         Operation::Path(p) => Some(p.step_down),
+        Operation::Holes(_) => None,
     };
-    let passes = match step {
-        Some(step) if step > 0.0 && step < end - start => format!(", {} per pass", num(step)),
-        _ => ", one pass".to_string(),
+    let passes = match op {
+        // docs/specs/holes.md §6: a drill's depth is its point's.
+        Operation::Holes(HolesOp {
+            method: HoleMethod::Drill { peck },
+            ..
+        }) => {
+            let pecks = match peck {
+                Some(peck) if *peck < end - start => format!(", pecks {} mm", num(*peck)),
+                _ => ", in one go".to_string(),
+            };
+            format!(" (the drill's point){pecks}")
+        }
+        Operation::Holes(HolesOp {
+            method: HoleMethod::Bore { step_down, .. },
+            ..
+        }) => format!(", {} per turn", num(*step_down)),
+        _ => match step {
+            Some(step) if step > 0.0 && step < end - start => format!(", {} per pass", num(step)),
+            _ => ", one pass".to_string(),
+        },
     };
     let mut text = format!("{} to {}{passes}", num(start), num(end));
     if let Operation::Profile(p) = op {
@@ -428,6 +460,14 @@ fn depth_text(op: &Operation) -> String {
 }
 
 fn entry_text(op: &Operation) -> String {
+    if let Operation::Holes(h) = op {
+        return match h.method {
+            HoleMethod::Drill { .. } => "straight down".to_string(),
+            HoleMethod::Bore { ramp_angle, .. } => {
+                format!("helix {}\u{b0}", num(ramp_angle.to_degrees()))
+            }
+        };
+    }
     let mut text = match op.entry() {
         Entry::Plunge {} => "plunge".to_string(),
         Entry::Ramp { ramp_angle } => format!("ramp {}\u{b0}", num(ramp_angle.to_degrees())),

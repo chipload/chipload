@@ -6,8 +6,8 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
-    Copies, CopyOrder, Entry, Job, MAX_LEAD_DIAMETERS, Operation, PathOp, PocketOp, PocketStrategy,
-    Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
+    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, PathOp,
+    PocketOp, PocketStrategy, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -16,6 +16,9 @@ use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
 use crate::geom::PrimIndex;
+use crate::holes::{
+    Bore, DRILL_FIT_MM, HoleCut, bore_moves, bore_radius, drill_moves, find_holes, order_holes,
+};
 use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::left::{LeftPiece, MaterialLeft, bounds_of};
@@ -130,7 +133,10 @@ pub fn plan_job_cancellable(
             name => format!("Operation {} ({name})", index + 1),
         };
         let selection = match op {
-            Operation::Path(_) => select_paths(contours, op.select(), &label)?,
+            // Holes take every matching shape and skip what isn't a circle with a note.
+            Operation::Path(_) | Operation::Holes(_) => {
+                select_paths(contours, op.select(), &label)?
+            }
             _ => select_contours(contours, op.select(), &label)?,
         };
         chosen.push((index, label, selection));
@@ -203,6 +209,19 @@ pub fn plan_job_cancellable(
                     .collect()
             }
             Operation::Vcarve(_) => Vec::new(),
+            // A drill's pecks (docs/specs/holes.md §3); a bore goes to the end in one helix.
+            Operation::Holes(HolesOp {
+                method: HoleMethod::Drill { peck },
+                ..
+            }) => pass_depths(
+                start_depth,
+                end_depth,
+                peck.unwrap_or(end_depth - start_depth),
+            )?
+            .into_iter()
+            .map(|d| top_z - d)
+            .collect(),
+            Operation::Holes(_) => vec![top_z - end_depth],
         };
         // Leads keep clear of every contour of the drawing (moved with the copy).
         let everything: Vec<Contour> = if op.lead().is_some() {
@@ -244,6 +263,7 @@ pub fn plan_job_cancellable(
             }
             Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
             Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
+            Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         };
         let planned = match planned {
             Ok(planned) => planned,
@@ -493,6 +513,144 @@ fn plan_path_op(
         pockets: Vec::new(),
         left: Vec::new(),
         arcs,
+        end,
+        starts: Vec::new(),
+    })
+}
+
+fn plan_holes_op(
+    op: &HolesOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label;
+    let tool = ctx.tool;
+    let (found, others) = find_holes(&selection.contours);
+    let mut notes = Vec::new();
+    if others > 0 {
+        let what = if others == 1 {
+            "1 shape that isn't a circle".to_string()
+        } else {
+            format!("{others} shapes that aren't circles")
+        };
+        notes.push(format!("{label}: skipped {what}"));
+    }
+    let tool_radius = tool.diameter / 2.0;
+    // Holes this tool can't cut, by diameter: (diameter text, count).
+    let mut unfit: std::collections::BTreeMap<String, usize> = Default::default();
+    let mut cores = 0;
+    let mut holes = Vec::new();
+    for hole in found {
+        let diameter = trim(2.0 * hole.radius);
+        let fits = match op.method {
+            HoleMethod::Drill { .. } => {
+                (2.0 * hole.radius - tool.diameter).abs() <= DRILL_FIT_MM + CHAIN_TOL_MM
+            }
+            HoleMethod::Bore { .. } => {
+                bore_radius(&hole, tool_radius) >= MIN_LEAD_DIAMETERS * tool.diameter - CHAIN_TOL_MM
+            }
+        };
+        if !fits {
+            *unfit.entry(diameter).or_default() += 1;
+            continue;
+        }
+        if let HoleMethod::Bore { .. } = op.method
+            && bore_radius(&hole, tool_radius) > tool_radius + CHAIN_TOL_MM
+        {
+            // A core is left standing inside the helix's ring (docs/specs/holes.md §4).
+            if op.end_depth < ctx.job.stock.thickness - DEPTH_TOL_MM {
+                return Err(job_error(format!(
+                    "{label}: hole {diameter} mm is blind and more than twice the {} mm tool; \
+                     use a pocket",
+                    trim(tool.diameter)
+                )));
+            }
+            cores += 1;
+        }
+        holes.push(hole);
+    }
+    for (diameter, count) in &unfit {
+        let holes_text = if *count == 1 {
+            format!("hole {diameter} mm")
+        } else {
+            format!("{count} holes of {diameter} mm")
+        };
+        notes.push(match op.method {
+            HoleMethod::Drill { .. } => format!(
+                "{label}: {holes_text}: not the {} mm drill's size (within {} mm); not drilled",
+                trim(tool.diameter),
+                trim(DRILL_FIT_MM)
+            ),
+            HoleMethod::Bore { .. } => format!(
+                "{label}: {holes_text}: too small for the {} mm tool to bore; not cut",
+                trim(tool.diameter)
+            ),
+        });
+    }
+    if cores > 0 {
+        let holes_text = if cores == 1 {
+            "1 hole leaves".to_string()
+        } else {
+            format!("{cores} holes leave")
+        };
+        notes.push(format!(
+            "{label}: {holes_text} a loose core (hole more than twice the tool); hold it down \
+             or use a pocket"
+        ));
+    }
+    if holes.is_empty() {
+        return Err(job_error(format!(
+            "{label}: no selected circle can be cut with tool {} ({} mm {})",
+            tool.id,
+            trim(tool.diameter),
+            type_name(tool.kind)
+        )));
+    }
+    let end_z = ctx
+        .pass_z
+        .last()
+        .copied()
+        .ok_or_else(|| job_error(format!("{label}: no depth to cut to")))?;
+    let cut = HoleCut {
+        top_z: ctx.top_z,
+        end_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        tool_radius,
+    };
+    let mut moves = Vec::new();
+    let mut end = start;
+    for hole in order_holes(holes, start) {
+        ctx.cancel.check()?;
+        match op.method {
+            HoleMethod::Drill { .. } => moves.extend(drill_moves(hole.center, ctx.pass_z, &cut)),
+            HoleMethod::Bore {
+                step_down,
+                ramp_angle,
+                direction,
+            } => {
+                let bore = Bore {
+                    step_down,
+                    ramp_angle,
+                    direction,
+                    spindle: ctx.job.machine.spindle,
+                };
+                moves.extend(bore_moves(&hole, &bore, &cut).map_err(|err| {
+                    err.with_context(&format!("{label}, contour #{}", hole.contour_id))
+                })?);
+            }
+        }
+        end = hole.center;
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        left: Vec::new(),
+        arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
     })
@@ -1106,6 +1264,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
             Operation::Pocket(p) => (p.feed, p.plunge_feed),
             Operation::Vcarve(v) => (v.feed, v.plunge_feed),
             Operation::Path(p) => (p.feed, p.plunge_feed),
+            Operation::Holes(h) => (h.feed, h.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
@@ -1249,6 +1408,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                 }),
             Operation::Path(p) => path_tool_notes(number, tool, p.entry)
                 .map_err(|e| (at("tool"), numbered.clone(), e)),
+            Operation::Holes(h) => holes_tool_notes(number, tool, h.method)
+                .map_err(|e| (at("tool"), numbered.clone(), e)),
             Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
                 let path = if tool.kind == ToolType::Vbit {
                     format!("tools.{k}.angle")
@@ -1375,6 +1536,40 @@ fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<Strin
         ToolType::Vbit => Ok(Vec::new()),
         ToolType::Endmill => plunge_notes(number, "follow path", tool, entry),
     }
+}
+
+/// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match
+/// the tool; a V-bit can't cut holes.
+fn holes_tool_notes(
+    number: usize,
+    tool: &Tool,
+    method: HoleMethod,
+) -> Result<Vec<String>, ToolpathError> {
+    if tool.kind == ToolType::Vbit {
+        return Err(job_error(format!(
+            "Operation {number}: tool {} is a V-bit, which can't cut holes; use a drill or an \
+             endmill",
+            tool.id
+        )));
+    }
+    let wanted = method.tool_type();
+    if tool.kind != wanted {
+        let (method_name, fits) = match method {
+            HoleMethod::Drill { .. } => ("drill", "a drill"),
+            HoleMethod::Bore { .. } => ("bore", "an endmill"),
+        };
+        let is = match tool.kind {
+            ToolType::Drill => "a drill",
+            ToolType::Endmill => "an endmill",
+            ToolType::Vbit => "a V-bit",
+        };
+        return Err(job_error(format!(
+            "Operation {number}: the method is {method_name}, which needs {fits}; tool {} is \
+             {is}",
+            tool.id
+        )));
+    }
+    Ok(Vec::new())
 }
 
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,

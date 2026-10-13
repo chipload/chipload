@@ -9,7 +9,9 @@ use chipload_job::Placement;
 use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
-use chipload_job::{Finish, Job, ProfileOp, STRAIGHT_FLANK_RAD, Skin, ToolChange};
+use chipload_job::{
+    Finish, HoleMethod, HolesOp, Job, ProfileOp, STRAIGHT_FLANK_RAD, Skin, ToolChange,
+};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
@@ -560,6 +562,7 @@ pub(super) fn op_form(
                 entry_rows(ui, index, &mut p.entry, None);
             });
         }
+        Operation::Holes(h) => holes_sections(ui, index, h, op_tool),
     }
     request.use_selection = use_selection;
     request
@@ -592,6 +595,7 @@ fn tool_row(
                     .clicked()
                 {
                     op.set_tool(tool.id);
+                    crate::editor::fit_hole_method(op, choice.tools);
                 }
             }
             if let Some(names) = &choice.library
@@ -645,6 +649,8 @@ fn has_cutting_values(op: &Operation, c: &Cutting) -> bool {
         Operation::Path(p) => {
             (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
         }
+        // A hole has no step down in the library's sense: only the feeds.
+        Operation::Holes(h) => (h.feed, h.plunge_feed) == (c.feed, c.plunge_feed),
     }
 }
 
@@ -663,6 +669,7 @@ fn apply_cutting(op: &mut Operation, c: &Cutting) {
         Operation::Path(p) => {
             (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
         }
+        Operation::Holes(h) => (h.feed, h.plunge_feed) = (c.feed, c.plunge_feed),
     }
 }
 
@@ -750,6 +757,102 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
             *ramp_angle = degrees.to_radians();
         }
         ui.end_row();
+    }
+}
+
+/// A Holes operation's cut, method and feeds (docs/specs/holes.md §7): a drill shows its
+/// pecks and plunge feed, an endmill the helix.
+fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option<&Tool>) {
+    let method = match h.method {
+        HoleMethod::Drill { peck: Some(peck) } => format!("drilled, pecks {} mm", len(peck)),
+        HoleMethod::Drill { peck: None } => "drilled in one go".to_string(),
+        HoleMethod::Bore {
+            step_down,
+            direction,
+            ..
+        } => format!(
+            "helical bore, {} mm per turn, {}",
+            len(step_down),
+            direction_name(direction)
+        ),
+    };
+    let cut = format!("{}–{} mm, {method}", len(h.start_depth), len(h.end_depth));
+    section(ui, "op-cut", "Cut", &cut, |ui| {
+        ui.label("Start depth")
+            .on_hover_text("Where the cut starts, down from the stock top");
+        flag(ui.add(mm(&mut h.start_depth)), ui, "start_depth");
+        ui.end_row();
+        let drill = matches!(h.method, HoleMethod::Drill { .. });
+        ui.label("End depth").on_hover_text(if drill {
+            "Where the drill's point ends, down from the stock top: the full diameter stops \
+             about 0.3 × the drill's diameter higher"
+        } else {
+            "Where the cut ends, down from the stock top"
+        });
+        flag(ui.add(mm(&mut h.end_depth)), ui, "end_depth");
+        ui.end_row();
+        match &mut h.method {
+            HoleMethod::Drill { peck } => {
+                ui.label("Pecks").on_hover_text(
+                    "Drill this deep at a time, rising out of the hole in between to clear \
+                     the chips",
+                );
+                let mut on = peck.is_some();
+                if flag(ui.checkbox(&mut on, "in pecks"), ui, "method.peck").changed() {
+                    *peck = on.then_some(DEFAULT_STEP_DOWN);
+                }
+                ui.end_row();
+                if let Some(peck) = peck {
+                    ui.label("  peck");
+                    flag(ui.add(mm(peck)), ui, "method.peck");
+                    ui.end_row();
+                }
+            }
+            HoleMethod::Bore {
+                step_down,
+                ramp_angle,
+                direction,
+            } => {
+                ui.label("Direction");
+                direction_combo(ui, ("direction", index), direction);
+                ui.end_row();
+                ui.label("Step per turn")
+                    .on_hover_text("The most the helix goes down in one turn");
+                flag(ui.add(mm(step_down)), ui, "method.step_down");
+                ui.end_row();
+                ui.label("Ramp angle")
+                    .on_hover_text("The helix is never steeper than this");
+                let mut degrees = ramp_angle.to_degrees();
+                let response = ui.add(
+                    DragValue::new(&mut degrees)
+                        .speed(0.1)
+                        .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
+                        .suffix("°"),
+                );
+                if flag(response, ui, "method.ramp_angle").changed() {
+                    *ramp_angle = degrees.to_radians();
+                }
+                ui.end_row();
+            }
+        }
+    });
+    if matches!(h.method, HoleMethod::Drill { .. }) {
+        // A drill only goes down: no cutting feed to show.
+        let text = format!("{} mm/min down", len(h.plunge_feed));
+        section(ui, "op-feeds", "Feeds", &text, |ui| {
+            ui.label("Drill feed");
+            ui.horizontal(|ui| {
+                flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
+                if let Some(tool) = tool {
+                    let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
+                    ui.label(RichText::new(load.text()).weak())
+                        .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+                }
+            });
+            ui.end_row();
+        });
+    } else {
+        feeds_section(ui, &mut h.feed, &mut h.plunge_feed, tool);
     }
 }
 

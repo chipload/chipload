@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
-use chipload_job::Lead;
+use chipload_job::{HoleMethod, Lead};
 use chipload_toolpath::model::MoveKind;
 
 fn corpus(rel: &str) -> PathBuf {
@@ -1528,6 +1528,48 @@ fn a_follow_path_is_added_for_open_and_closed_shapes_and_generated() {
             "{end:?} is never reached"
         );
     }
+}
+
+#[test]
+fn holes_take_the_tools_method_and_generate() {
+    // docs/specs/holes.md §7: the holes project, its operations replaced.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/holes.chipload")));
+    let edit = app.edit.as_mut().unwrap();
+    edit.remove(1);
+    edit.remove(0);
+    let circles: Vec<usize> = app
+        .contours
+        .iter()
+        .filter(|c| chipload_toolpath::holes::circle_of(c).is_some())
+        .map(|c| c.id)
+        .collect();
+    assert_eq!(circles.len(), 4);
+    // The two 8 mm holes, with the drill (tool 2).
+    select(&mut app, &circles[..2]);
+    let i = app.add_operation(OpKind::Holes).unwrap();
+    let edit = app.edit.as_mut().unwrap();
+    edit.ops[i].op.set_tool(2);
+    crate::editor::fit_hole_method(&mut edit.ops[i].op, &edit.settings.tools);
+    let Operation::Holes(h) = &edit.ops[i].op else {
+        panic!("holes");
+    };
+    assert_eq!(h.name, "Holes 1");
+    assert_eq!(h.method, HoleMethod::Drill { peck: None });
+    // Back to the endmill: a bore with its defaults.
+    edit.ops[i].op.set_tool(1);
+    crate::editor::fit_hole_method(&mut edit.ops[i].op, &edit.settings.tools);
+    let Operation::Holes(h) = &edit.ops[i].op else {
+        panic!("holes");
+    };
+    assert!(matches!(h.method, HoleMethod::Bore { step_down, .. } if step_down == 3.0));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let moves = &app.result.as_ref().unwrap().program.moves;
+    assert!(
+        moves
+            .iter()
+            .any(|m| m.z == Some(-crate::editor::DEFAULT_DEPTH))
+    );
 }
 
 /// Run the keyboard shortcuts for one frame with `key` pressed.

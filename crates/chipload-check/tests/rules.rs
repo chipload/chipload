@@ -426,3 +426,47 @@ fn codes_that_move_the_tool_off_the_checked_path_stay_refused() {
     let program = format!("{HEADER}G0 X1 %\n{GOOD_BODY}{FOOTER}");
     assert_eq!(errors(&program), [r#"Cannot parse "%""#]);
 }
+
+// -- rapids back into a drilled hole (docs/specs/holes.md §6)
+
+/// Drilled to Z-4 at (10, 10), then out to the safe height.
+const PECKED: &str = "G0 X10 Y10\nG1 Z-4 F300\nG0 Z5\n";
+
+#[test]
+fn a_peck_may_rapid_back_into_its_hole() {
+    let program = format!("{HEADER}{PECKED}G0 Z-3.5\nG1 Z-8 F300\nG0 Z5\nG0 Z-7.5\n{FOOTER}");
+    assert!(errors(&program).is_empty(), "{:?}", errors(&program));
+}
+
+#[test]
+fn only_back_into_the_hole_and_not_too_deep() {
+    let cases = [
+        // Deeper than 0.5 mm above the bottom.
+        format!("{HEADER}{PECKED}G0 Z-3.6\n{FOOTER}"),
+        // Another hole: the tool moved in XY.
+        format!("{HEADER}{PECKED}G0 X30\nG0 Z-3.5\n{FOOTER}"),
+        // Back to the same place after an XY move: forgotten.
+        format!("{HEADER}{PECKED}G0 X30\nG0 X10\nG0 Z-3.5\n{FOOTER}"),
+        // The spindle stopped and started again.
+        format!("{HEADER}{PECKED}M5\nM3 S18000\nG0 Z-3.5\n{FOOTER}"),
+        // A cut that went sideways is not a hole.
+        format!("{HEADER}G0 X10 Y10\nG1 Z-4 F300\nG1 X12\nG1 X10\nG0 Z5\nG0 Z-3.5\n{FOOTER}"),
+    ];
+    for program in cases {
+        let found = errors(&program);
+        assert!(
+            found.iter().any(|e| e.contains("rapid into material")),
+            "{program}\n{found:?}"
+        );
+    }
+}
+
+#[test]
+fn a_new_tool_forgets_the_hole() {
+    let program = format!("{HEADER}{PECKED}M5\nT2 M6\nM3 S18000\nG0 Z-3.5\n{FOOTER}");
+    let found = errors(&program);
+    assert!(
+        found.iter().any(|e| e.contains("rapid into material")),
+        "{found:?}"
+    );
+}

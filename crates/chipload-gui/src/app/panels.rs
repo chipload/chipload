@@ -119,7 +119,7 @@ impl ChiploadApp {
             .show(ui, |ui| self.operation_list(ui));
     }
 
-    /// + Profile, + Pocket, + V-carve, + Follow path: for the selected shapes.
+    /// + Profile, + Pocket, + V-carve, + Follow path, + Holes: for the selected shapes.
     fn new_operation_buttons(&mut self, ui: &mut egui::Ui) {
         let selected = !self.selection.ids(&self.contours).is_empty();
         ui.horizontal_wrapped(|ui| {
@@ -145,6 +145,12 @@ impl ChiploadApp {
                     OpKind::Path,
                     "The tool on the line of the selected shapes, open or closed: engraving, \
                      grooves and score lines",
+                ),
+                (
+                    "+ Holes",
+                    OpKind::Holes,
+                    "The selected circles: drilled with a drill, or bored with a helix with an \
+                     endmill",
                 ),
             ] {
                 if ui
@@ -541,6 +547,8 @@ fn kind_color(op: &Operation, dark: bool) -> egui::Color32 {
         (Operation::Vcarve(_), false) => egui::Color32::from_rgb(0xa8, 0x55, 0x00),
         (Operation::Path(_), true) => egui::Color32::from_rgb(0x8f, 0xbc, 0xf5),
         (Operation::Path(_), false) => egui::Color32::from_rgb(0x1f, 0x5c, 0xb0),
+        (Operation::Holes(_), true) => egui::Color32::from_rgb(0xf0, 0x9a, 0xb4),
+        (Operation::Holes(_), false) => egui::Color32::from_rgb(0xa8, 0x1e, 0x55),
     }
 }
 
@@ -574,6 +582,7 @@ fn op_card(
         Operation::Pocket(_) => "POCKET",
         Operation::Vcarve(_) => "V-CARVE",
         Operation::Path(_) => "PATH",
+        Operation::Holes(_) => "HOLES",
     };
     ui.scope_builder(
         egui::UiBuilder::new()

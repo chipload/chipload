@@ -24,6 +24,10 @@ const ALLOWED_G: [i64; 17] = [
 ];
 /// M7, M8, M9: coolant on and off.
 const ALLOWED_M: [i64; 8] = [3, 4, 5, 6, 7, 8, 9, 30];
+/// How far above the depth already drilled a rapid back into a hole must stop, mm
+/// (docs/specs/holes.md §6). The generator has its own constant: this copy is the
+/// checker's, on purpose.
+pub const PECK_CLEARANCE_MM: f64 = 0.5;
 /// How far G64 may let the controller blend corners away from the program, mm.
 pub const MAX_BLEND_MM: f64 = 0.05;
 const MOTION_G: [i64; 4] = [0, 1, 2, 3];
@@ -145,6 +149,10 @@ struct State {
     radius: Option<f64>,
     /// After M6 the spindle must be started again with a speed.
     needs_speed: bool,
+    /// The hole the tool last fed straight down into, (x, y, deepest z), while it has only
+    /// moved straight up and down since: a rapid back into it is allowed
+    /// (docs/specs/holes.md §6).
+    hole: Option<(f64, f64, f64)>,
 }
 
 impl State {
@@ -165,6 +173,7 @@ impl State {
             tool: None,
             radius: None,
             needs_speed: false,
+            hole: None,
         }
     }
 }
@@ -336,6 +345,10 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
             state.tool = Some(t as i64);
         }
     }
+    // A new tool or a spindle start or stop: no rapid back into an earlier hole.
+    if [3, 4, 5, 6].iter().any(|m| m_codes.contains(m)) {
+        state.hole = None;
+    }
     // A controller changes the tool before it starts or stops the spindle.
     if m_codes.contains(&6) {
         problems.extend(tool_change(state, limits));
@@ -456,6 +469,7 @@ fn move_to(
         }
         if let Some(z) = at('Z')
             && z < limits.stock_top_z - POSITION_TOL_MM
+            && !(!xy_changes && back_into_hole(state, current('X'), current('Y'), z))
         {
             problems.push(format!(
                 "Rapid to Z{z:.3}, below the stock top (rapid into material)"
@@ -519,8 +533,43 @@ fn move_to(
             *hi = hi.max(v);
         }
     }
+    update_hole(state, motion, xy_changes, current('Z'), &target);
     state.pos = target;
     problems
+}
+
+/// Whether a rapid down to `z` at (x, y) goes back into the hole the tool just came out of,
+/// stopping at least [`PECK_CLEARANCE_MM`] above its bottom.
+fn back_into_hole(state: &State, x: Option<f64>, y: Option<f64>, z: f64) -> bool {
+    let (Some(x), Some(y), Some((hx, hy, bottom))) = (x, y, state.hole) else {
+        return false;
+    };
+    (x - hx).hypot(y - hy) <= POSITION_TOL_MM && z >= bottom + PECK_CLEARANCE_MM - POSITION_TOL_MM
+}
+
+/// After a move: a straight feed down records (or deepens) the hole; any XY move or arc
+/// forgets it; straight up and down rapids keep it.
+fn update_hole(
+    state: &mut State,
+    motion: i64,
+    xy_changes: bool,
+    z_before: Option<f64>,
+    target: &BTreeMap<char, Option<f64>>,
+) {
+    let at = |a: char| target.get(&a).copied().flatten();
+    if xy_changes || motion == 2 || motion == 3 {
+        state.hole = None;
+        return;
+    }
+    let (Some(x), Some(y), Some(z)) = (at('X'), at('Y'), at('Z')) else {
+        state.hole = None;
+        return;
+    };
+    let down = z_before.is_some_and(|before| z < before);
+    if motion == 1 && down {
+        let bottom = state.hole.map_or(z, |(_, _, b)| b.min(z));
+        state.hole = Some((x, y, bottom));
+    }
 }
 
 /// An arc's problems, and the points where it is furthest left, right, down and up (those

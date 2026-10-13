@@ -8,8 +8,8 @@ use std::collections::BTreeSet;
 use chipload_core::chain::Contour;
 use chipload_job::library::Cutting;
 use chipload_job::{
-    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, Job, Operation, PathOp, PocketOp, PocketStrategy,
-    ProfileOp, Selector, Side, ToolType, VcarveOp,
+    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
+    PocketOp, PocketStrategy, ProfileOp, Selector, Side, ToolType, VcarveOp,
 };
 
 use crate::view::Kind;
@@ -129,6 +129,25 @@ pub enum OpKind {
     Vcarve,
     /// Follow path (docs/specs/follow-path.md).
     Path,
+    /// Holes (docs/specs/holes.md).
+    Holes,
+}
+
+/// A Holes operation's method follows its tool (docs/specs/holes.md §7): after the tool
+/// changes between a drill and an endmill, the method becomes that tool's, with its
+/// defaults. A V-bit keeps the method (the planner refuses the tool).
+pub fn fit_hole_method(op: &mut Operation, tools: &[chipload_job::Tool]) {
+    let Operation::Holes(h) = op else {
+        return;
+    };
+    let Some(tool) = tools.iter().find(|t| t.id == h.tool) else {
+        return;
+    };
+    if h.method.tool_type() != tool.kind
+        && let Some(method) = HoleMethod::default_for(tool.kind, tool.diameter)
+    {
+        h.method = method;
+    }
 }
 
 /// One operation as edited. `side_chosen` is false while a profile's side still has to be
@@ -185,6 +204,7 @@ impl EditJob {
                 None,
             ),
             Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
+            Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
         });
         let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
             Operation::Pocket(p) => Some(p.stepover),
@@ -243,6 +263,7 @@ impl EditJob {
                         | (Operation::Pocket(_), OpKind::Pocket)
                         | (Operation::Vcarve(_), OpKind::Vcarve)
                         | (Operation::Path(_), OpKind::Path)
+                        | (Operation::Holes(_), OpKind::Holes)
                 )
             })
             .count()
@@ -270,6 +291,8 @@ impl EditJob {
             (false, OpKind::Path) => Entry::Ramp {
                 ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
             },
+            // Holes go down their own way; the entry isn't used.
+            (false, OpKind::Holes) => Entry::Plunge {},
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
@@ -351,6 +374,31 @@ impl EditJob {
                 }),
                 true,
             ),
+            OpKind::Holes => {
+                // A drill drills; anything else gets a bore, which the planner refuses for
+                // a V-bit with a message.
+                let method = chosen
+                    .and_then(|t| HoleMethod::default_for(t.kind, t.diameter))
+                    .unwrap_or(HoleMethod::Bore {
+                        step_down: 0.5 * diameter,
+                        ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+                        direction: Direction::Climb,
+                    });
+                (
+                    Operation::Holes(HolesOp {
+                        name: format!("Holes {number}"),
+                        enabled: true,
+                        select,
+                        tool,
+                        start_depth: 0.0,
+                        end_depth: DEFAULT_DEPTH,
+                        feed,
+                        plunge_feed,
+                        method,
+                    }),
+                    true,
+                )
+            }
         };
         self.ops.push(EditOp { op, side_chosen });
         index
@@ -381,6 +429,7 @@ impl EditJob {
             Operation::Pocket(p) => p.select = select,
             Operation::Vcarve(v) => v.select = select,
             Operation::Path(p) => p.select = select,
+            Operation::Holes(h) => h.select = select,
         }
     }
 

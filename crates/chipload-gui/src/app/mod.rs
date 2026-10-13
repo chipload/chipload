@@ -906,11 +906,21 @@ impl ChiploadApp {
             return BTreeSet::new();
         };
         let selected = match entry.op {
-            Operation::Path(_) => select_paths(&self.contours, entry.op.select(), "Operation"),
+            Operation::Path(_) | Operation::Holes(_) => {
+                select_paths(&self.contours, entry.op.select(), "Operation")
+            }
             _ => select_contours(&self.contours, entry.op.select(), "Operation"),
         };
+        // Holes cut circles only: other shapes stay unhighlighted (docs/specs/holes.md §7).
+        let holes = matches!(entry.op, Operation::Holes(_));
         selected
-            .map(|s| s.contours.iter().map(|c| c.id).collect())
+            .map(|s| {
+                s.contours
+                    .iter()
+                    .filter(|c| !holes || chipload_toolpath::holes::circle_of(c).is_some())
+                    .map(|c| c.id)
+                    .collect()
+            })
             .unwrap_or_default()
     }
 

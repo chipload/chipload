@@ -42,8 +42,10 @@ it's built (see `CLAUDE.md`).
   2. **Finishing pass and onion skin** — done 2026-10-13 (docs/specs/finish-and-skin.md,
      optional profile fields, no version bump). Later: a separate finishing feed, and a
      finishing pass for pockets (walls and floor), each with its own spec.
-  3. **Drilling**: drill cycles (G81, G83 peck) for circles that fit a drill, and helical
-     boring of larger holes with an endmill.
+  3. **Drilling and helical boring** — done 2026-10-13 (docs/specs/holes.md, schema 18).
+     Later (§9 there): canned cycles G81/G83 as a post option, DXF points as hole centres,
+     a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers, counterbores in one
+     operation.
   4. **Dogbone and T-bone corners**: overcuts in inside corners so slot-together parts fit.
   5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
   6. **Material-removal simulation**: the stock as a height map, cut by the toolpath in
@@ -77,6 +79,14 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Holes: drilling and helical boring** (2026-10-13, docs/specs/holes.md, schema 18): a
+  Holes operation cuts the selected circles; a drill drills those of its size (±0.1 mm) at
+  the centre, in pecks that rise to the safe height and rapid back into the hole to 0.5 mm
+  above the depth drilled; an endmill bores them with a helix at the wall (at most the step
+  per turn, never steeper than the ramp angle) and a level circle. Holes more than twice the
+  tool leave a core: noted in a through hole, refused in a blind one. Plain G0/G1, so GRBL
+  runs them too. The checker allows a rapid only back into the hole the tool just came out
+  of. GUI: "+ Holes", the method follows the tool. Golden v18_holes.
 - **Finishing pass and onion skin** (2026-10-13, docs/specs/finish-and-skin.md): profiles
   can rough with stock left on the wall and finish it in one level lap, and stop a skin
   above the end depth that is cut last; roughing, then finishing, then skins, all leaving

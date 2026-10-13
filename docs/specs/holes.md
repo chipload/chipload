@@ -1,6 +1,22 @@
 # Spec: holes (drilling and helical boring)
 
 Status: **approved 2026-10-13**, all decisions as recommended (§10).
+Built 2026-10-13. As built:
+- §3: pecks are even, each at most `peck` mm, the last exactly at the end depth (as depth
+  passes are); "merged within the depth tolerance" follows from that.
+- §4 step 5: the tool steps off the wall toward the centre only when the centre is cut
+  (`rc ≤ r`). With a core it retracts straight up at the wall, as a profile does: any move
+  inward would run into the core.
+- §4: a pocket's helix gives no centre-cutting note (a helix never plunges), so neither
+  does a bore.
+- §6: the setup sheet shows "Holes, drilled", "0 to 12 (the drill's point), pecks 4 mm",
+  the feed column "300 down" for a drill, and "helix 3°" as the entry; it doesn't count
+  the holes (the notes list the ones skipped).
+- §6: the checker also forgets the hole at a tool change and when the spindle starts or
+  stops.
+- §7: the canvas highlights every selected circle; one a drill skips for its size stays
+  highlighted (that rule is the planner's, the GUI doesn't repeat it), and the note says
+  so.
 
 User request (2026-10-13): commercial-CAM features 1–5 and 7; this is 3. Today a round hole
 is cut as an inside profile: a plunge or ramp, then laps round the hole in depth steps. That
