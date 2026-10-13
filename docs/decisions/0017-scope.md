@@ -20,6 +20,11 @@ the project file are first-class) as well as in the GUI.
 - Leverage for people who use it a lot: the CLI, a stable and documented project format,
   the tool and machine library, presets (rules keyed to the drawing's layers).
 
+- **Images traced into shapes** for V-carving (added 2026-10-13, docs/specs/image-trace.md):
+  another tool can trace, but the threshold and smoothing are judged against the carve,
+  which only Chipload shows, and it feeds the existing V-carving. Picture editing, colour
+  separation and centreline tracing stay out.
+
 ## Out of scope (another tool does it better)
 - **Nesting** parts on a sheet: dedicated nesters (Deepnest and the like) or CAD.
 - **3D surface machining**: real 3D CAM.
