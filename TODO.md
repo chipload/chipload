@@ -95,6 +95,9 @@ it's built (see `CLAUDE.md`).
   `crates/chipload-toolpath/tests/pocket.proptest-regressions`:
   - `rest_pockets_never_gouge`: `cc 6021a985a4b60bd11dcd0cdc76e48236ef994042dcdada69d299e432a6bc4d9c`
   - `pocket_never_gouges_and_clears_everything`: `cc 64ec37268b504d79135288dd1395513619834b7fca1bdae1d883ef9c65e40890`
+- **Import image from a typed path** (found 2026-10-13, 0.15.0): File > Import image… needs
+  a native file dialog; without an XDG portal or zenity (WSL, minimal Linux) there's no way to
+  pick a picture in the app. Add it to the *Open path…* prompts.
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
