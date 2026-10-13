@@ -89,11 +89,22 @@ it's built (see `CLAUDE.md`).
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
+- **Pocket refusals still found by soaking** (2026-10-13, docs/specs/offset-retry.md §6):
+  two random pockets in about 4000 are refused ("failed verification", or "an island outside
+  every area"), safely, also before 0.14. Replay by adding the line to
+  `crates/chipload-toolpath/tests/pocket.proptest-regressions`:
+  - `rest_pockets_never_gouge`: `cc 6021a985a4b60bd11dcd0cdc76e48236ef994042dcdada69d299e432a6bc4d9c`
+  - `pocket_never_gouges_and_clears_everything`: `cc 64ec37268b504d79135288dd1395513619834b7fca1bdae1d883ef9c65e40890`
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
 ## Done
 
+- **Rest pocket refusals fixed** (2026-10-13, docs/specs/offset-retry.md §6): pocket
+  shape offsets get a last retry with a tight slice tolerance, and a stray island's offset
+  that touches no area is dropped. Three rest pockets the property test found refused now
+  clear; two plain pockets that the tight tolerance as a default would break guard against
+  that. Golden files unchanged.
 - **Material left → the simulation** (2026-10-13, docs/specs/material-left-merge.md): the
   geometric material-left display, its computation, the View toggle, the "can't reach"
   report lines and `plan --json`'s `material_left` are gone; the simulation is on at start

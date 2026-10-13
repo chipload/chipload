@@ -19,7 +19,7 @@ use chipload_core::chain::Contour;
 use chipload_core::nesting::{Ring, contains};
 use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
-    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
+    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_TIGHT_SLICE_EPS_MM, REST_TOL_MM,
 };
 use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 
@@ -33,7 +33,7 @@ use crate::left::{cleared, left_by, rest_areas};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
-use crate::retry::{Failure, Nudge, nudged};
+use crate::retry::{Failure, Nudge, nudged_or_tight};
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -176,8 +176,13 @@ impl Area {
     /// The area shrunk by `d`: every part farther than `d` from the boundary.
     /// Negative `d` grows it.
     pub(crate) fn shrunk(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
+        self.shrunk_with(d, false)
+    }
+
+    /// [`Area::shrunk`], with the tight slice tolerance when `tight` (a pocket's last retry).
+    fn shrunk_with(&self, d: f64, tight: bool) -> Result<Vec<Area>, ToolpathError> {
         let plines = std::iter::once(self.outer.clone()).chain(self.holes.iter().cloned());
-        offset_loops(plines, d)
+        offset_loops_with(plines, d, tight)
     }
 }
 
@@ -187,9 +192,31 @@ pub(crate) fn offset_loops(
     plines: impl Iterator<Item = Polyline<f64>>,
     d: f64,
 ) -> Result<Vec<Area>, ToolpathError> {
-    let shape = Shape::from_plines(plines);
+    offset_loops_with(plines, d, false)
+}
+
+fn offset_loops_with(
+    plines: impl Iterator<Item = Polyline<f64>>,
+    d: f64,
+    tight: bool,
+) -> Result<Vec<Area>, ToolpathError> {
+    let plines: Vec<Polyline<f64>> = plines.collect();
+    match offset_once(&plines, d, tight) {
+        // An island across an area is the loose slice tolerance's doing (found by the rest
+        // machining property test, 2026-10-13): the tight one gets it right.
+        Err(error) if !tight => offset_once(&plines, d, true).map_err(|_| error),
+        result => result,
+    }
+}
+
+fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area>, ToolpathError> {
+    let shape = Shape::from_plines(plines.iter().cloned());
     let offset = guarded("Pocket offset", || {
-        shape.parallel_offset(d, &ShapeOffsetOptions::new())
+        let mut options = ShapeOffsetOptions::new();
+        if tight {
+            options.offset_dist_eps = OFFSET_TIGHT_SLICE_EPS_MM;
+        }
+        shape.parallel_offset(d, &options)
     })?;
     let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
     let mut areas: Vec<Area> = offset
@@ -213,13 +240,19 @@ pub(crate) fn offset_loops(
             .iter_mut()
             .filter(|a| encloses(&a.outer, inside))
             .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
-        match parent {
-            Some(area) => area.holes.push(hole),
-            None => {
-                return Err(geometry(
-                    "pocket offset produced an island outside every area".into(),
-                ));
-            }
+        if let Some(area) = parent {
+            area.holes.push(hole);
+            continue;
+        }
+        // The shape offset can return an island's offset after the area around it has
+        // shrunk away (a rest area shrunk to four scraps beside a grown island, found by
+        // the rest machining property test, 2026-10-13). An island that neither crosses nor
+        // holds any area takes nothing away from them.
+        let apart = |a: &Area| matches!(a.outer.contains(&hole), PlineContainsResult::Disjoint);
+        if !areas.iter().all(apart) {
+            return Err(geometry(
+                "pocket offset produced an island outside every area".into(),
+            ));
         }
     }
     areas.sort_by(|a, b| {
@@ -549,7 +582,10 @@ fn ring_tree(
     let stepover = stepover - nudge.step;
     let mut nodes: Vec<Node> = Vec::new();
     let mut roots = Vec::new();
-    for area in region.shrunk(wall_offset).map_err(numerical(true))? {
+    for area in region
+        .shrunk_with(wall_offset, nudge.tight)
+        .map_err(numerical(true))?
+    {
         roots.push(nodes.len());
         nodes.push(Node {
             area,
@@ -571,7 +607,7 @@ fn ring_tree(
     let mut level = roots.clone();
     for k in 1..=MAX_RING_LEVELS {
         let areas = region
-            .shrunk(wall_offset + k as f64 * stepover)
+            .shrunk_with(wall_offset + k as f64 * stepover, nudge.tight)
             .map_err(numerical(false))?;
         if areas.is_empty() {
             return Ok((nodes, roots));
@@ -708,7 +744,7 @@ struct Clearing<'a> {
 fn cleared_piece(region: &Area, ids: &[usize], c: &Clearing) -> Result<Attempt, ToolpathError> {
     cancel::check(c.cancel)?;
     let walls = PrimIndex::new(region.boundary(), c.tool_radius.max(1.0));
-    nudged(|nudge| {
+    nudged_or_tight(|nudge| {
         let mut a = attempt_piece(region, ids, c, nudge)?;
         if let Some(k) = first_unclear(region, &walls, &a.rings, &a.open, c.offset, &a.arcs) {
             return Err(Failure::Numerical {

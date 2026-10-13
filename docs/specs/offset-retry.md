@@ -92,3 +92,28 @@ r + kε, the distance it was asked for: the no-gouge bound only gets stricter.
    a machining choice, only a way past a library limitation; the spec documents it.
 4. **Profiles** get the same retry now, without a known failing case. *Recommendation: yes*,
    so a profile doesn't hit the same wall later.
+
+## 6. The tight slice tolerance (2026-10-13)
+
+The rest machining property test found pockets that the nudges in §2 don't save (rest
+areas, which are unions of circles, and once a plain pocket). cavalier_contours' shape
+offset keeps a slice of the raw offset when it lies at least `offset_dist_eps` short of
+the offset distance; the default 1e-4 kept, here, a joining arc that runs 0.028 mm too
+close to a corner. That is caught by the verification, so it's a refusal, never a gouge.
+In other cases, the same thing left an island's offset outside every area.
+
+With `offset_dist_eps` = 1e-6 (`OFFSET_TIGHT_SLICE_EPS_MM`), those offsets are exact. Not as
+the default: on another pocket it lost a whole area (42 × 22 mm left uncut), so it is a
+retry only:
+
+- **Pocket rings:** after the nudged attempts of §2 have all failed, one more attempt
+  without a nudge and with the tight tolerance (`nudged_or_tight`). Profiles keep `nudged`:
+  their single-loop offsets don't use the shape offset.
+- **Any pocket shape offset** that ends in an error (an island across an area, a library
+  panic) is computed once more with the tight tolerance before the error is returned.
+- **An island's offset that neither crosses nor holds any area** is dropped: it takes
+  nothing away from them.
+
+As before, output only changes where Chipload used to refuse: the golden files don't change.
+Two rarer cases (about 1 in 4000 random pockets) are still refused; their seeds are in
+TODO.md.

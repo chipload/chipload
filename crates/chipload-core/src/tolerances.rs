@@ -20,6 +20,10 @@ pub const OFFSET_CHECK_SLACK_MM: f64 = 1e-6;
 pub const OFFSET_FAR_SLACK_MM: f64 = 1e-4;
 /// How much a retried offset moves after a numerical failure (docs/specs/offset-retry.md).
 pub const OFFSET_RETRY_NUDGE_MM: f64 = 1e-6;
+/// The pocket shape offset's slice tolerance on its last retry (cavalier_contours
+/// `offset_dist_eps`, default 1e-4), after a result that came too close to a wall
+/// (docs/specs/offset-retry.md §6). Not the default: it loses whole areas elsewhere.
+pub const OFFSET_TIGHT_SLICE_EPS_MM: f64 = 1e-6;
 /// Uncut pocket material thinner than this is not reported.
 pub const REST_TOL_MM: f64 = 0.05;
 /// Boundary points closer than ARC_APPROX_TOL_MM but farther apart than this along the
