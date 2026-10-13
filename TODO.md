@@ -5,7 +5,8 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **Scripting** (lean plan item 3): spec drafted 2026-10-13 (docs/specs/scripting.md),
+  waiting for review of its decisions.
 
 ## State to remember (2026-10-12)
 
