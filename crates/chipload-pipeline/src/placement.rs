@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Moving, turning and scaling the imported drawing (docs/specs/drawing-placement.md,
 //! docs/specs/drawing-rotation.md, docs/specs/drawing-scale.md). The stored shapes are the placed ones and
-//! `drawing.source.placement` records the placement, so an update from the DXF can put the
-//! new shapes in the same place. The CLI and the GUI both go through here.
+//! each DXF's `placement` records its placement, so an update from the DXF can put the new
+//! shapes in the same place. Each DXF of a project is placed on its own
+//! (docs/specs/drawing-sources.md §2). The CLI and the GUI both go through here.
 
 use std::f64::consts::TAU;
 
@@ -63,17 +64,43 @@ pub struct PlaceReport {
     pub lines: Vec<String>,
 }
 
-/// Move, turn or scale the imported drawing, with the start points that belong to it. Drawn
-/// shapes and a work zero at a point stay where they are.
+/// Move, turn or scale the project's one DXF ([`place_dxf`]); refused when it has several.
 pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), PipelineError> {
-    let Some(source) = &job.drawing.source else {
-        return Err(nothing_imported());
+    match job.drawing.dxfs.as_slice() {
+        [] => Err(nothing_imported()),
+        [only] => place_dxf(job, only.id, how),
+        several => Err(PipelineError::Job(format!(
+            "the project has {} DXFs ({}): say which to place",
+            several.len(),
+            dxf_list(several)
+        ))),
+    }
+}
+
+/// "1 part-a, 2 part-b".
+pub fn dxf_list(dxfs: &[chipload_job::DrawingSource]) -> String {
+    dxfs.iter()
+        .map(|d| format!("{} {}", d.id, d.name))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Move, turn or scale DXF `id`, with the start points that belong to it. Its shapes alone
+/// move: other DXFs, drawn and traced shapes and a work zero at a point stay where they are.
+pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), PipelineError> {
+    let Some(source) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
+        return Err(PipelineError::Job(format!("there is no DXF {id}")));
+    };
+    let what = if job.drawing.dxfs.len() > 1 {
+        source.name.clone()
+    } else {
+        "the imported drawing".to_string()
     };
     let imported: Vec<Shape> = job
         .drawing
         .shapes
         .iter()
-        .filter(|s| s.from_dxf())
+        .filter(|s| s.dxf() == Some(id))
         .cloned()
         .collect();
     if imported.is_empty() {
@@ -103,13 +130,13 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     for op in &mut out.operations {
         let select = op.select().clone();
         for start in op.starts_mut().into_iter().flatten() {
-            if nearest_is_imported(&job.drawing.shapes, &select, (start[0], start[1])) {
+            if nearest_is_from(&job.drawing.shapes, &select, (start[0], start[1]), id) {
                 *start = step.apply(*start);
                 moved_starts += 1;
             }
         }
     }
-    apply_to_imported(&mut out.drawing.shapes, step);
+    apply_to_imported(&mut out.drawing.shapes, step, Some(id));
     // The old placement followed by the step: turns add up, scales multiply, and the old
     // move turns, scales and moves too. Reset is exactly the DXF's placement.
     let old = source.placement;
@@ -124,13 +151,13 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
             dy: pdy,
         }
     };
-    if let Some(source) = &mut out.drawing.source {
+    if let Some(source) = out.drawing.dxfs.iter_mut().find(|d| d.id == id) {
         source.placement = placement;
     }
 
     let done = match how {
         Move::Turn(k) => format!(
-            "Turned the imported drawing {}° {}",
+            "Turned {what} {}° {}",
             90 * k.unsigned_abs(),
             if k > 0 {
                 "counter-clockwise"
@@ -138,24 +165,27 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
                 "clockwise"
             }
         ),
-        Move::Reset => "Put the imported drawing back where the DXF has it".to_string(),
+        Move::Reset => format!("Put {what} back where the DXF has it"),
         Move::Scale(_) | Move::Width(_) | Move::Height(_) => {
-            let size = imported_size(&out.drawing.shapes)
+            let size = dxf_size(&out.drawing.shapes, id)
                 .map(|(w, h)| format!(" (now {w:.3} × {h:.3} mm)"))
                 .unwrap_or_default();
-            format!("Scaled the imported drawing ×{}{size}", factor_text(scale))
+            format!("Scaled {what} ×{}{size}", factor_text(scale))
         }
-        _ => format!("Moved the imported drawing by X{dx:.3} Y{dy:.3} mm"),
+        _ => format!("Moved {what} by X{dx:.3} Y{dy:.3} mm"),
     };
     let mut lines = vec![format!("{done}; it is now {}.", placement_text(placement))];
     if scale != 1.0 {
-        lines.extend(scale_notes(&job.drawing.shapes, &out.drawing.shapes, scale));
+        lines.extend(scale_notes(&imported, &out.drawing.shapes, id, scale));
     }
     if moved_starts > 0 {
         lines.push(format!("Moved {moved_starts} start point(s) with it."));
     }
     if job.drawing.shapes.iter().any(Shape::is_drawn) {
         lines.push("Shapes drawn in Chipload stay where they are.".into());
+    }
+    if job.drawing.dxfs.len() > 1 {
+        lines.push("The other DXFs stay where they are.".into());
     }
     if let WorkZero::Point { x, y } = job.machine.work_zero {
         lines.push(format!(
@@ -200,20 +230,44 @@ pub fn factor_text(factor: f64) -> String {
     text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
-/// Width and height of the imported shapes' bounding box, mm.
+/// Width and height of the bounding box of every DXF's shapes, mm.
 pub fn imported_size(shapes: &[Shape]) -> Option<(f64, f64)> {
-    let imported: Vec<Shape> = shapes.iter().filter(|s| s.from_dxf()).cloned().collect();
-    let ((x0, y0), (x1, y1)) = contours_from_shapes(&imported, None).report.bbox?;
+    let imported: Vec<Shape> = shapes
+        .iter()
+        .filter(|s| s.dxf().is_some())
+        .cloned()
+        .collect();
+    size_of(&imported)
+}
+
+/// Width and height of DXF `id`'s shapes, mm.
+pub fn dxf_size(shapes: &[Shape], id: u64) -> Option<(f64, f64)> {
+    let imported: Vec<Shape> = shapes
+        .iter()
+        .filter(|s| s.dxf() == Some(id))
+        .cloned()
+        .collect();
+    size_of(&imported)
+}
+
+fn size_of(shapes: &[Shape]) -> Option<(f64, f64)> {
+    let ((x0, y0), (x1, y1)) = contours_from_shapes(shapes, &[]).report.bbox?;
     Some((x1 - x0, y1 - y0))
 }
 
-/// What scaling by `factor` may have changed beyond the size (docs/specs/drawing-scale.md
-/// §3): curves approximated at the old size, contours that join differently, units.
-fn scale_notes(before: &[Shape], after: &[Shape], factor: f64) -> Vec<String> {
+/// What scaling DXF `id` by `factor` may have changed beyond the size
+/// (docs/specs/drawing-scale.md §3): curves approximated at the old size, contours that join
+/// differently, units. `before` is that DXF's shapes before.
+fn scale_notes(before: &[Shape], after: &[Shape], id: u64, factor: f64) -> Vec<String> {
     let mut notes = Vec::new();
+    let after: Vec<Shape> = after
+        .iter()
+        .filter(|s| s.dxf() == Some(id))
+        .cloned()
+        .collect();
     let curves = after
         .iter()
-        .filter(|s| s.from_dxf() && matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
+        .filter(|s| matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
         .count();
     if curves > 0 && factor > 1.0 {
         notes.push(format!(
@@ -226,13 +280,13 @@ fn scale_notes(before: &[Shape], after: &[Shape], factor: f64) -> Vec<String> {
         ));
     }
     let closed = |shapes: &[Shape]| {
-        contours_from_shapes(shapes, None)
+        contours_from_shapes(shapes, &[])
             .contours
             .iter()
             .filter(|c| c.closed)
             .count()
     };
-    let (was, now) = (closed(before), closed(after));
+    let (was, now) = (closed(before), closed(&after));
     if was != now {
         notes.push(format!(
             "{was} closed contour(s) before, {now} now: gaps are joined within {:.3} mm at \
@@ -269,7 +323,7 @@ fn step_for(
         dy,
     };
     let bbox = || {
-        contours_from_shapes(imported, None)
+        contours_from_shapes(imported, &[])
             .report
             .bbox
             .ok_or_else(nothing_imported)
@@ -378,8 +432,8 @@ fn size_factor(what: &str, wanted: f64, current: f64) -> Result<f64, PipelineErr
     Ok(wanted / current)
 }
 
-/// Put shapes read from the DXF at the placement's scale (`shapes_from_dxf_scaled`) where
-/// the placement says: turn and move only. Drawn shapes stay.
+/// Put shapes read from a DXF at the placement's scale (`shapes_from_dxf_scaled`) where
+/// the placement says: turn and move only.
 pub(crate) fn place_scaled_import(shapes: &mut [Shape], placement: Placement) {
     apply_to_imported(
         shapes,
@@ -389,18 +443,18 @@ pub(crate) fn place_scaled_import(shapes: &mut [Shape], placement: Placement) {
             dx: placement.dx,
             dy: placement.dy,
         },
+        None,
     );
 }
 
-/// Turn, scale, then move every shape from the DXF; drawn and traced shapes stay.
-fn apply_to_imported(shapes: &mut [Shape], step: Step) {
+/// Turn, scale, then move the shapes from DXF `id` (None: from any DXF); other shapes stay.
+fn apply_to_imported(shapes: &mut [Shape], step: Step, id: Option<u64>) {
     for shape in shapes {
-        if let Geometry::Path {
-            segments,
-            image: None,
-            ..
-        } = &mut shape.geometry
-        {
+        let from = shape.dxf();
+        if from.is_none() || (id.is_some() && from != id) {
+            continue;
+        }
+        if let Geometry::Path { segments, .. } = &mut shape.geometry {
             for segment in segments.iter_mut() {
                 let turned = segment.quarter_turned(step.turns);
                 let scaled = if step.scale == 1.0 {
@@ -425,6 +479,7 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 closed: ca,
                 segments: sa,
                 image: ia,
+                dxf: da,
             },
             Geometry::Path {
                 dxf_handle: hb,
@@ -432,12 +487,14 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 closed: cb,
                 segments: sb,
                 image: ib,
+                dxf: db,
             },
         ) => {
             a.layer == b.layer
                 && ha == hb
                 && ta == tb
                 && ia == ib
+                && da == db
                 && ca == cb
                 && sa.len() == sb.len()
                 && sa.iter().zip(sb).all(|(x, y)| same_segment(x, y))
@@ -469,8 +526,8 @@ fn same_segment(a: &PathSegment, b: &PathSegment) -> bool {
 }
 
 /// Whether the shape nearest to `p`, among those the selector picks (all shapes when it
-/// picks none), is imported. Ties go to the earlier shape.
-fn nearest_is_imported(shapes: &[Shape], select: &Selector, p: Point) -> bool {
+/// picks none), comes from DXF `id`. Ties go to the earlier shape.
+fn nearest_is_from(shapes: &[Shape], select: &Selector, p: Point, id: u64) -> bool {
     let picked: Vec<&Shape> = shapes.iter().filter(|s| selects(select, s)).collect();
     let candidates: Vec<&Shape> = if picked.is_empty() {
         shapes.iter().collect()
@@ -482,7 +539,7 @@ fn nearest_is_imported(shapes: &[Shape], select: &Selector, p: Point) -> bool {
         for segment in shape.segments() {
             let d = distance_to_segment(&segment, p);
             if best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, shape.from_dxf()));
+                best = Some((d, shape.dxf() == Some(id)));
             }
         }
     }
@@ -492,6 +549,11 @@ fn nearest_is_imported(shapes: &[Shape], select: &Selector, p: Point) -> bool {
 /// As planning matches segments (chipload_toolpath::select): layer names ignore case, and an
 /// empty id list selects by layer only.
 fn selects(select: &Selector, shape: &Shape) -> bool {
+    if select.dxf.is_some_and(|d| shape.dxf() != Some(d))
+        || select.image.is_some_and(|i| shape.image() != Some(i))
+    {
+        return false;
+    }
     if let Some(layer) = &select.layer
         && shape.layer.to_lowercase() != layer.to_lowercase()
     {

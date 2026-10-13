@@ -461,8 +461,8 @@ impl ChiploadApp {
             Some(JobRequest::Post(name)) => {
                 self.choose_project_post(&name);
             }
-            Some(JobRequest::Place(how)) => {
-                self.place(how);
+            Some(JobRequest::Place(dxf, how)) => {
+                self.place_dxf(Some(dxf), how);
             }
             Some(JobRequest::EditImage(id)) => {
                 self.edit_image(id);

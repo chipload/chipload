@@ -64,7 +64,7 @@ fn job_with(operations: Value, tools: Value, copies: Value, thickness: f64) -> J
     parse_job(
         migrate(json!({
             "schema_version": CURRENT_VERSION,
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": thickness, "origin": "bottom_left",
                       "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},

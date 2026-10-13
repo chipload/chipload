@@ -15,7 +15,7 @@ fn job(operations: Value) -> Job {
         migrate(json!({
             "schema_version": CURRENT_VERSION,
             // plan_job gets its contours directly; the drawing isn't used here.
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
@@ -362,7 +362,7 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
     let err = parse_job(
         migrate(json!({
             "schema_version": CURRENT_VERSION,
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
             "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],

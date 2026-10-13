@@ -61,14 +61,14 @@ fn shape(job: &Job, id: u64) -> &Shape {
 
 /// Bounding box of one shape.
 fn bbox(job: &Job, id: u64) -> ((f64, f64), (f64, f64)) {
-    contours_from_shapes(std::slice::from_ref(shape(job, id)), None)
+    contours_from_shapes(std::slice::from_ref(shape(job, id)), &[])
         .report
         .bbox
         .unwrap()
 }
 
 fn placement(job: &Job) -> Placement {
-    job.drawing.source.as_ref().unwrap().placement
+    job.drawing.dxfs[0].placement
 }
 
 fn near(a: f64, b: f64) -> bool {

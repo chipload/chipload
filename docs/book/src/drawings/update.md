@@ -7,6 +7,8 @@ part.chipload --from part.dxf`, takes in the new version and keeps the operation
   entity, which CAD programs keep when you edit. An operation that selected a shape keeps it.
 - **Placed as before:** the new drawing gets the same move, turn and scale.
 - **Drawn shapes stay:** shapes drawn in Chipload are kept, with their ids.
+- **Several DXFs:** `--dxf ID` says which one the new file replaces; the others stay as
+  they are ([Several drawings](several.md)).
 - **The report** lists what's unchanged, changed, added and removed, and what that means
   for each operation:
   - *geometry changed; check its toolpath*;

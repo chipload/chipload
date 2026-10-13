@@ -90,7 +90,9 @@ it's built (see `CLAUDE.md`).
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
 - **Several DXFs and pictures per project, the Drawing panel, hiding, hide the toolpath**
-  (docs/specs/drawing-sources.md, draft 2026-10-13, schema 21): awaiting review.
+  (docs/specs/drawing-sources.md, approved 2026-10-13, schema 21): hide the toolpath and
+  several DXFs (`dxf add/list/remove`, `--dxf`) done; next: dropping files, the Drawing
+  panel with hiding.
 - **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
   against thousands before; find which pictures are slow (centre lines on noise?) and
   whether a user could hit it.

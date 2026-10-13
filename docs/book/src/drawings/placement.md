@@ -21,7 +21,8 @@ changing the DXF. Job settings > **Drawing position**, or `chipload place`:
 - **Where it is now:** `chipload place part.chipload` with no option prints the placement
   and size.
 
-Shapes drawn in Chipload aren't part of the imported drawing and stay where they are.
+Shapes drawn in Chipload aren't part of the imported drawing and stay where they are. With
+[several DXFs](several.md), each is placed on its own: `--dxf ID` says which.
 
 To have the G-code's zero somewhere else, without moving anything, set the [work
 zero](../concepts/stock.md#work-zero) instead.

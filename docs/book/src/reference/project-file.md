@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 20. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 21. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -14,7 +14,7 @@ Schema version 20. Older files load through Chipload's migrations; this schema d
 | `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order. |
-| `schema_version` | `20` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `21` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -95,10 +95,11 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `dxfs` | list of [DrawingSource](#drawingsource) | no | The DXFs the imported shapes came from, each as at its last import or update, with its own placement. |
+| `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
 | `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
-| `source` | [DrawingSource](#drawingsource) or null | no | The DXF the imported shapes came from, at the last import or update. Null: no DXF yet. |
 
 ## DrawingSource
 
@@ -108,9 +109,11 @@ Provenance of the imported shapes.
 |---|---|---|---|
 | `file` | string | yes | The DXF's file name. |
 | `flattened` | object | no | How many curves of each type (splines, ellipses) were turned into arcs. |
+| `id` | integer | yes | The DXF's id, which its shapes and selectors name. |
 | `ignored` | object | no | How many entities of each type were left out (text, dimensions, …). |
 | `imported` | object | no | How many entities of each type were imported. |
 | `issues` | list of [SourceIssue](#sourceissue) | no | What the import found: the import report. |
+| `name` | string | yes | Its name in the Drawing panel and messages; the file's name without its extension at first. |
 | `placement` | [Placement](#placement) | yes | How the imported drawing was moved, turned and scaled on the stock. |
 | `sha256` | string | yes | The DXF's SHA-256, to tell whether it changed. |
 | `units` | [Units](#units) | yes | The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import. |
@@ -392,6 +395,8 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `dxf` | integer or null | no | Only shapes from this DXF (an id in `drawing.dxfs`). |
+| `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
 
@@ -405,6 +410,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `bulges` | list of number or null | no | polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise. |
 | `center` | 2 × number or null | no | circle, rectangle: the centre, mm. |
 | `closed` | boolean or null | no | path, polyline: whether it ends where it starts. |
+| `dxf` | integer or null | no | path: the DXF it was imported from (its id in `drawing.dxfs`). |
 | `dxf_handle` | string or null | no | path: the handle of the DXF entity it came from, which keeps its id when the DXF is updated. |
 | `dxf_type` | string or null | no | path: the DXF entity's type, e.g. LWPOLYLINE. |
 | `id` | integer | yes | The shape's id, which operations select it by. |

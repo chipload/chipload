@@ -3,6 +3,7 @@
 
 pub mod chip_load;
 pub mod copies;
+pub mod dxfs;
 pub mod estimate;
 pub mod images;
 pub mod library;
@@ -15,7 +16,6 @@ pub mod shapes;
 pub mod sheet;
 pub mod simulate;
 
-use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use chipload_check::{CheckIssue, CheckLimits, check_gcode, limits_for_tool, limits_from_job};
@@ -24,12 +24,11 @@ use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
-    shapes_from_dxf_scaled,
 };
 use chipload_job::library::Cutting;
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Entry, Job, Machine, Operation, Placement, PocketOp, Shape, Spindle,
-    Stock, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
+    CURRENT_VERSION, Drawing, Entry, Job, Machine, Operation, PocketOp, Spindle, Stock,
+    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
@@ -322,6 +321,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     );
     let mut notes = plan.notes;
     notes.extend(extent_notes(job, &imported.report));
+    notes.extend(dxfs::layer_clash_notes(job));
     notes.extend(copies_note(job, &plan.program, &plan.op_spans));
     Ok(RunResult {
         estimate,
@@ -464,10 +464,7 @@ pub fn in_work_coordinates(program: &Program, (zx, zy): (f64, f64)) -> Program {
 
 /// The project's contours and import report (from its embedded shapes).
 pub fn load_drawing(job: &Job) -> Result<ImportResult, PipelineError> {
-    Ok(contours_from_shapes(
-        &job.drawing.shapes,
-        job.drawing.source.as_ref(),
-    ))
+    Ok(contours_from_shapes(&job.drawing.shapes, &job.drawing.dxfs))
 }
 
 /// Defaults for a new project (docs/specs/job-editor.md §6): all visible and editable.
@@ -490,8 +487,9 @@ pub fn empty_project() -> Job {
         drawing: Drawing {
             shapes: Vec::new(),
             next_shape_id: 1,
-            source: None,
+            dxfs: Vec::new(),
             images: Vec::new(),
+            hidden: Vec::new(),
         },
         stock: Stock {
             x: DEFAULT_EMPTY_STOCK.0,
@@ -531,7 +529,7 @@ pub fn empty_project() -> Job {
 /// A new project holding an imported drawing: stock covering it (origin bottom left if it
 /// lies in the first quadrant, else centred), GRBL, one 6 mm endmill, no operations.
 pub fn new_project(imported: ImportedShapes) -> Job {
-    let bbox = contours_from_shapes(&imported.shapes, Some(&imported.source))
+    let bbox = contours_from_shapes(&imported.shapes, std::slice::from_ref(&imported.source))
         .report
         .bbox;
     let ((x0, y0), (x1, y1)) = bbox.unwrap_or(((0.0, 0.0), (100.0, 100.0)));
@@ -549,8 +547,9 @@ pub fn new_project(imported: ImportedShapes) -> Job {
     job.drawing = Drawing {
         shapes: imported.shapes,
         next_shape_id,
-        source: Some(imported.source),
+        dxfs: vec![imported.source],
         images: Vec::new(),
+        hidden: Vec::new(),
     };
     job.stock.x = x.max(1.0);
     job.stock.y = y.max(1.0);
@@ -561,7 +560,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
 /// A note when the drawing reaches beyond the stock (docs/specs/new-project.md §3); None
 /// when it fits or is empty.
 pub fn stock_fit_note(job: &Job) -> Option<String> {
-    let bbox = contours_from_shapes(&job.drawing.shapes, job.drawing.source.as_ref())
+    let bbox = contours_from_shapes(&job.drawing.shapes, &job.drawing.dxfs)
         .report
         .bbox?;
     let ((x0, y0), (x1, y1)) = bbox;
@@ -579,14 +578,14 @@ pub fn stock_fit_note(job: &Job) -> Option<String> {
     })
 }
 
-fn op_label(index: usize, op: &Operation) -> String {
+pub(crate) fn op_label(index: usize, op: &Operation) -> String {
     match op.name() {
         "" => format!("Operation {}", index + 1),
         name => format!("Operation {} ({name})", index + 1),
     }
 }
 
-fn ids_text(ids: &[u64]) -> String {
+pub(crate) fn ids_text(ids: &[u64]) -> String {
     ids.iter()
         .map(|id| format!("S{id}"))
         .collect::<Vec<_>>()
@@ -605,135 +604,22 @@ pub struct UpdateReport {
     pub lines: Vec<String>,
 }
 
-/// Replace the imported shapes with those of `dxf`, keeping ids of shapes that match by
-/// (DXF handle, n-th shape with that handle). Shapes drawn in Chipload are kept. `units`
-/// overrides the units recorded at the last import (needed only if they differ).
+/// Update the project's one DXF from `dxf` ([`dxfs::update_dxf`]); with none, `dxf` becomes
+/// its first ([`dxfs::add_dxf`]). Refused when it has several: name the DXF.
 pub fn update_drawing(
     job: &Job,
     dxf: &Path,
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
-    let expected = units.or(job.drawing.source.as_ref().map(|s| s.units));
-    // The new drawing goes where the old one was put (docs/specs/drawing-placement.md), read
-    // at its scale so curves are approximated at that size (docs/specs/drawing-scale.md).
-    let placed = job
-        .drawing
-        .source
-        .as_ref()
-        .map(|s| s.placement)
-        .unwrap_or_default();
-    let mut imported = shapes_from_dxf_scaled(dxf, expected, placed.scale)?;
-    placement::place_scaled_import(&mut imported.shapes, placed);
-    imported.source.placement = placed;
-    let old = &job.drawing;
-    // Old imported shapes by handle, in order; each can be matched once.
-    let mut by_handle: BTreeMap<&str, Vec<&Shape>> = BTreeMap::new();
-    for shape in &old.shapes {
-        if let Some(handle) = shape.dxf_handle() {
-            by_handle.entry(handle).or_default().push(shape);
-        }
+    match job.drawing.dxfs.as_slice() {
+        [] => dxfs::add_dxf(job, dxf, units),
+        [only] => dxfs::update_dxf(job, only.id, dxf, units),
+        several => Err(PipelineError::Job(format!(
+            "the project has {} DXFs ({}): say which to update",
+            several.len(),
+            placement::dxf_list(several)
+        ))),
     }
-    // How many shapes with each handle the new drawing has used so far.
-    let mut taken: BTreeMap<String, usize> = BTreeMap::new();
-    let mut next = old.next_shape_id;
-    let mut report = UpdateReport::default();
-    let mut shapes: Vec<Shape> = Vec::new();
-    for mut shape in imported.shapes {
-        let handle = shape.dxf_handle().unwrap_or_default().to_string();
-        let k = taken.entry(handle.clone()).or_default();
-        let matched = by_handle
-            .get(handle.as_str())
-            .and_then(|list| list.get(*k))
-            .copied();
-        *k += 1;
-        match matched {
-            Some(previous) => {
-                shape.id = previous.id;
-                let same = placement::same_shape(previous, &shape);
-                if same {
-                    report.unchanged.push(shape.id);
-                } else {
-                    report.changed.push(shape.id);
-                }
-            }
-            None => {
-                shape.id = next;
-                next += 1;
-                report.added.push(shape.id);
-            }
-        }
-        shapes.push(shape);
-    }
-    let kept: BTreeSet<u64> = shapes.iter().map(|s| s.id).collect();
-    report.removed = old
-        .shapes
-        .iter()
-        .filter(|s| s.dxf_handle().is_some() && !kept.contains(&s.id))
-        .map(|s| s.id)
-        .collect();
-    // Shapes drawn in Chipload stay as they are.
-    shapes.extend(
-        old.shapes
-            .iter()
-            .filter(|s| s.dxf_handle().is_none())
-            .cloned(),
-    );
-
-    let mut out = job.clone();
-    out.drawing = Drawing {
-        shapes,
-        next_shape_id: next,
-        source: Some(imported.source),
-        images: old.images.clone(),
-    };
-    report.lines.push(format!(
-        "Updated from {}: {} unchanged, {} changed, {} added, {} removed.",
-        dxf.display(),
-        report.unchanged.len(),
-        report.changed.len(),
-        report.added.len(),
-        report.removed.len()
-    ));
-    if placed != Placement::default() {
-        report.lines.push(format!(
-            "Placed as before: {}.",
-            placement::placement_text(placed)
-        ));
-    }
-    report.lines.extend(stock_fit_note(&out));
-    for (i, op) in out.operations.iter().enumerate() {
-        let label = op_label(i, op);
-        let select = op.select();
-        if let Some(ids) = &select.shapes {
-            let lost: Vec<u64> = ids
-                .iter()
-                .copied()
-                .filter(|id| report.removed.contains(id))
-                .collect();
-            let changed: Vec<u64> = ids
-                .iter()
-                .copied()
-                .filter(|id| report.changed.contains(id))
-                .collect();
-            if !lost.is_empty() {
-                report.lost.push(i);
-                report.lines.push(format!(
-                    "{label}: shapes {} no longer exist; choose its geometry again",
-                    ids_text(&lost)
-                ));
-            } else if !changed.is_empty() {
-                report.lines.push(format!(
-                    "{label}: geometry changed (shapes {}); check its toolpath",
-                    ids_text(&changed)
-                ));
-            }
-        } else if let Some(layer) = &select.layer {
-            report.lines.push(format!(
-                "{label}: layer {layer} now uses the updated drawing; check its toolpath"
-            ));
-        }
-    }
-    Ok((out, report))
 }
 
 /// The sha256 of a drawing file, lowercase hex, as stored in a project.

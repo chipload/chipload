@@ -644,8 +644,15 @@ impl ChiploadApp {
 
     /// Set the copies' pitch so `gap` mm are left between their cuts (docs/specs/
     /// copies-grid.md §6). It plans the part once, so the project must be complete.
-    /// Move the imported drawing (docs/specs/drawing-placement.md), as one undo step.
+    /// Move the project's one DXF (docs/specs/drawing-placement.md), as one undo step.
+    #[cfg(test)]
     pub fn place(&mut self, how: chipload_pipeline::placement::Move) -> bool {
+        self.place_dxf(None, how)
+    }
+
+    /// Move DXF `dxf` (None: the project's one DXF), as one undo step
+    /// (docs/specs/drawing-sources.md §2).
+    pub fn place_dxf(&mut self, dxf: Option<u64>, how: chipload_pipeline::placement::Move) -> bool {
         self.commit();
         let Some(edit) = &self.edit else {
             return false;
@@ -657,7 +664,11 @@ impl ChiploadApp {
                 return false;
             }
         };
-        match chipload_pipeline::placement::place_drawing(&job, how) {
+        let placed = match dxf {
+            Some(id) => chipload_pipeline::placement::place_dxf(&job, id, how),
+            None => chipload_pipeline::placement::place_drawing(&job, how),
+        };
+        match placed {
             Ok((placed, report)) => {
                 let mut next = EditJob::from_job(&placed);
                 // Keep "side not chosen" marks; placing only moves start points.
@@ -1101,7 +1112,7 @@ impl ChiploadApp {
         let first = self
             .edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.source.is_none());
+            .is_some_and(|e| e.settings.drawing.dxfs.is_empty());
         if first {
             (
                 "Import DXF into project…",
@@ -1118,7 +1129,7 @@ impl ChiploadApp {
         }
         self.edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.source.as_ref())
+            .and_then(|e| e.settings.drawing.dxfs.first())
             .map(|s| Path::new(&s.file).with_extension(PROJECT_EXTENSION))
             .unwrap_or_else(|| PathBuf::from(format!("project.{PROJECT_EXTENSION}")))
     }

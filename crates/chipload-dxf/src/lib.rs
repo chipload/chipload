@@ -21,7 +21,7 @@ use std::path::Path;
 
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
-use chipload_core::chain::{Contour, Segment, chain_segments};
+use chipload_core::chain::{Contour, Segment, ShapeFrom, chain_segments};
 use chipload_core::fold::fold_point;
 use chipload_core::nesting;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
@@ -135,7 +135,7 @@ pub fn import_dxf(path: &Path, units: Option<Units>) -> Result<ImportResult, Imp
     let imported = shapes_from_dxf(path, units)?;
     Ok(contours_from_shapes(
         &imported.shapes,
-        Some(&imported.source),
+        std::slice::from_ref(&imported.source),
     ))
 }
 
@@ -146,7 +146,7 @@ pub fn import_drawing(
     let imported = shapes_from_drawing(drawing, units)?;
     Ok(contours_from_shapes(
         &imported.shapes,
-        Some(&imported.source),
+        std::slice::from_ref(&imported.source),
     ))
 }
 
@@ -195,6 +195,7 @@ pub fn shapes_from_dxf_bytes(
     let drawing = parsed.map_err(|err| unreadable(err.to_string()))?;
     let mut imported = shapes_from_drawing_scaled(&drawing, units, scale)?;
     imported.source.file = name.to_string();
+    imported.source.name = chipload_job::migrations::dxf_name(name);
     imported.source.sha256 = sha256_hex(bytes);
     Ok(imported)
 }
@@ -276,10 +277,13 @@ pub fn shapes_from_drawing_scaled(
                 closed: is_closed(&segments),
                 segments,
                 image: None,
+                dxf: Some(1),
             },
         })
         .collect();
     let source = DrawingSource {
+        id: 1,
+        name: String::new(),
         file: String::new(),
         sha256: String::new(),
         units: file_units,
@@ -342,9 +346,10 @@ pub fn is_closed(segments: &[PathSegment]) -> bool {
     }
 }
 
-/// Contours and the import report for a project's shapes: `source.issues` first, then the
-/// chaining and classification issues recomputed from the shapes.
-pub fn contours_from_shapes(shapes: &[Shape], source: Option<&DrawingSource>) -> ImportResult {
+/// Contours and the import report for a project's shapes: the DXFs' own issues first (named
+/// by their DXF when there are several), then the chaining and classification issues
+/// recomputed from the shapes. Units are the first DXF's; counts add up over all of them.
+pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> ImportResult {
     let segments: Vec<Segment> = shapes
         .iter()
         .flat_map(|shape| {
@@ -354,23 +359,35 @@ pub fn contours_from_shapes(shapes: &[Shape], source: Option<&DrawingSource>) ->
             let source_type = shape
                 .dxf_type()
                 .map_or_else(|| shape.kind_name().to_uppercase(), str::to_string);
+            let from = match (shape.dxf(), shape.image()) {
+                (Some(dxf), _) => Some(ShapeFrom::Dxf(dxf)),
+                (None, Some(image)) => Some(ShapeFrom::Image(image)),
+                (None, None) => None,
+            };
             shape.segments().into_iter().map(move |seg| Segment {
                 prim: primitive(&seg),
                 layer: shape.layer.clone(),
                 handle: handle.clone(),
                 source_type: source_type.clone(),
                 shape: Some(shape.id),
+                from,
             })
         })
         .collect();
-    let mut issues: Vec<Issue> = source
-        .map(|s| {
-            s.issues
-                .iter()
-                .map(|i| Issue::new(i.severity, &i.code, i.message.clone()))
-                .collect()
+    let several = sources.len() > 1;
+    let mut issues: Vec<Issue> = sources
+        .iter()
+        .flat_map(|s| {
+            s.issues.iter().map(move |i| {
+                let message = if several {
+                    format!("{}: {}", s.name, i.message)
+                } else {
+                    i.message.clone()
+                };
+                Issue::new(i.severity, &i.code, message)
+            })
         })
-        .unwrap_or_default();
+        .collect();
 
     let chained = chain_segments(&segments);
     for seg in &chained.zero_length {
@@ -405,13 +422,23 @@ pub fn contours_from_shapes(shapes: &[Shape], source: Option<&DrawingSource>) ->
     }
 
     let contours = classify(chained.contours, &mut issues);
+    let first = sources.first();
+    let summed = |counts: fn(&DrawingSource) -> &BTreeMap<String, usize>| {
+        let mut total: BTreeMap<String, usize> = BTreeMap::new();
+        for source in sources {
+            for (kind, n) in counts(source) {
+                *total.entry(kind.clone()).or_default() += n;
+            }
+        }
+        total
+    };
     let report = ImportReport {
-        units: source.map_or(Units::Mm, |s| s.units),
-        units_from: source.map_or(UnitsFrom::User, |s| s.units_from),
+        units: first.map_or(Units::Mm, |s| s.units),
+        units_from: first.map_or(UnitsFrom::User, |s| s.units_from),
         bbox: bbox(&segments),
-        imported: source.map(|s| s.imported.clone()).unwrap_or_default(),
-        flattened: source.map(|s| s.flattened.clone()).unwrap_or_default(),
-        ignored: source.map(|s| s.ignored.clone()).unwrap_or_default(),
+        imported: summed(|s| &s.imported),
+        flattened: summed(|s| &s.flattened),
+        ignored: summed(|s| &s.ignored),
         issues,
     };
     ImportResult { contours, report }

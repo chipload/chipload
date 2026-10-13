@@ -14,7 +14,7 @@ use chipload_job::{
 };
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
-use chipload_pipeline::placement::{Move as PlaceMove, factor_text, imported_size, placement_text};
+use chipload_pipeline::placement::{Move as PlaceMove, dxf_size, factor_text, placement_text};
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -1106,7 +1106,8 @@ pub(super) enum JobRequest {
     /// Set the copies' pitch so this many mm are left between their cuts.
     CopiesGap(f64),
     /// Move the imported drawing (docs/specs/drawing-placement.md).
-    Place(PlaceMove),
+    /// Move DXF `id`.
+    Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:
     /// updated) (docs/specs/user-posts.md).
     Post(String),
@@ -1137,23 +1138,21 @@ pub(super) fn job_form(
         .min_col_width(LABEL_WIDTH + ui.spacing().indent)
         .show(ui, |ui| {
             ui.label("Drawing");
-            match &job.drawing.source {
-                Some(source) => {
-                    ui.label(format!(
-                        "{} shapes from {} ({})",
-                        job.drawing.shapes.len(),
-                        source.file,
-                        match source.units {
-                            Units::Mm => "mm",
-                            Units::Inch => "inch, converted to mm",
-                        }
-                    ));
-                }
-                None => {
-                    ui.label(format!("{} shapes", job.drawing.shapes.len()));
-                }
-            }
+            ui.label(format!("{} shapes", job.drawing.shapes.len()));
             ui.end_row();
+            for source in &job.drawing.dxfs {
+                ui.label(format!("DXF {}", source.id));
+                ui.label(format!(
+                    "{} from {} ({})",
+                    source.name,
+                    source.file,
+                    match source.units {
+                        Units::Mm => "mm",
+                        Units::Inch => "inch, converted to mm",
+                    }
+                ));
+                ui.end_row();
+            }
             // Pictures traced into shapes (docs/specs/image-trace.md §6).
             for image in &job.drawing.images {
                 ui.label(format!("Image {}", image.id));
@@ -1240,13 +1239,19 @@ pub(super) fn job_form(
         ui.end_row();
     });
 
-    let imported = job.drawing.shapes.iter().any(|s| !s.is_drawn());
-    if let (true, Some(source)) = (imported, &job.drawing.source) {
+    let several = job.drawing.dxfs.len() > 1;
+    for source in &job.drawing.dxfs {
         let placement = source.placement;
         let summary = placement_text(placement);
-        section(ui, "job-placement", "Drawing position", &summary, |ui| {
-            let size = imported_size(&job.drawing.shapes);
-            placement_rows(ui, placement, size, &mut copies_request);
+        let title = if several {
+            format!("Position of {}", source.name)
+        } else {
+            "Drawing position".to_string()
+        };
+        let id = format!("job-placement-{}", source.id);
+        section(ui, &id, &title, &summary, |ui| {
+            let size = dxf_size(&job.drawing.shapes, source.id);
+            placement_rows(ui, source.id, placement, size, &mut copies_request);
         });
     }
 
@@ -1400,6 +1405,7 @@ const DEFAULT_PLACE_MARGIN: f64 = 10.0;
 /// is pressed, so each change is one undo step.
 fn placement_rows(
     ui: &mut egui::Ui,
+    dxf: u64,
     placement: Placement,
     size: Option<(f64, f64)>,
     request: &mut Option<JobRequest>,
@@ -1429,7 +1435,7 @@ fn placement_rows(
                 .on_hover_text("Back to where the DXF has it: no turn, no scale, no move.")
                 .clicked()
         {
-            *request = Some(JobRequest::Place(PlaceMove::Reset));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Reset));
         }
     });
     ui.end_row();
@@ -1440,19 +1446,19 @@ fn placement_rows(
             .on_hover_text("Counter-clockwise, about the drawing's centre.")
             .clicked()
         {
-            *request = Some(JobRequest::Place(PlaceMove::Turn(1)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Turn(1)));
         }
         if ui
             .button("⟳ 90°")
             .on_hover_text("Clockwise, about the drawing's centre.")
             .clicked()
         {
-            *request = Some(JobRequest::Place(PlaceMove::Turn(-1)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Turn(-1)));
         }
     });
     ui.end_row();
     if let Some((width, height)) = size {
-        size_rows(ui, width, height, request);
+        size_rows(ui, dxf, width, height, request);
     }
     ui.label("  on the stock");
     ui.horizontal(|ui| {
@@ -1463,12 +1469,12 @@ fn placement_rows(
             .on_hover_text("The drawing's lower-left corner this far in from the stock's.")
             .clicked()
         {
-            *request = Some(JobRequest::Place(PlaceMove::BottomLeft { margin }));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::BottomLeft { margin }));
         }
         ui.add(mm(&mut margin).prefix("margin "));
         ui.data_mut(|d| d.insert_temp(id, margin));
         if ui.button("Centre").clicked() {
-            *request = Some(JobRequest::Place(PlaceMove::Center));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Center));
         }
     });
     ui.end_row();
@@ -1486,7 +1492,7 @@ fn placement_rows(
         }
         ui.data_mut(|d| d.insert_temp(id, (dx, dy)));
         if ui.button("Move").clicked() {
-            *request = Some(JobRequest::Place(PlaceMove::By(dx, dy)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::By(dx, dy)));
         }
     });
     ui.end_row();
@@ -1494,7 +1500,13 @@ fn placement_rows(
 
 /// Scaling the imported drawing about its centre, to a width, a height or by a factor
 /// (docs/specs/drawing-scale.md §5). The inputs start at the drawing's current size.
-fn size_rows(ui: &mut egui::Ui, width: f64, height: f64, request: &mut Option<JobRequest>) {
+fn size_rows(
+    ui: &mut egui::Ui,
+    dxf: u64,
+    width: f64,
+    height: f64,
+    request: &mut Option<JobRequest>,
+) {
     // Keyed by the current size, so the inputs follow the drawing after each change.
     let key = (width.to_bits(), height.to_bits());
     let range = 0.001..=100_000.0;
@@ -1512,11 +1524,11 @@ fn size_rows(ui: &mut egui::Ui, width: f64, height: f64, request: &mut Option<Jo
                 .suffix(" mm"),
         );
         if ui.button("Set width").clicked() {
-            *request = Some(JobRequest::Place(PlaceMove::Width(w)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Width(w)));
         }
         ui.add(DragValue::new(&mut h).speed(0.1).range(range).suffix(" mm"));
         if ui.button("Set height").clicked() {
-            *request = Some(JobRequest::Place(PlaceMove::Height(h)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Height(h)));
         }
         ui.data_mut(|d| d.insert_temp(id, (w, h)));
     });
@@ -1533,7 +1545,7 @@ fn size_rows(ui: &mut egui::Ui, width: f64, height: f64, request: &mut Option<Jo
         );
         ui.data_mut(|d| d.insert_temp(id, factor));
         if ui.button("Scale").clicked() {
-            *request = Some(JobRequest::Place(PlaceMove::Scale(factor)));
+            *request = Some(JobRequest::Place(dxf, PlaceMove::Scale(factor)));
         }
     });
     ui.end_row();

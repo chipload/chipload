@@ -468,7 +468,7 @@ fn vcarve_job(tool: serde_json::Value, step_down: serde_json::Value) -> chipload
     chipload_job::parse_job(
         migrate(serde_json::json!({
             "schema_version": chipload_job::CURRENT_VERSION,
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},

@@ -195,6 +195,7 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
                 closed: path.closed,
                 segments: segments(&path.pieces, image.x, image.y),
                 image: Some(id),
+                dxf: None,
             },
         });
     }

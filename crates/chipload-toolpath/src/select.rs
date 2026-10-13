@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Match job selectors against imported contours. See docs/specs/v0-profile-pipeline.md §3.
 
-use chipload_core::chain::{Contour, Segment};
+use chipload_core::chain::{Contour, Segment, ShapeFrom};
 use chipload_job::Selector;
 
 use crate::ToolpathError;
@@ -133,6 +133,16 @@ fn select<'a>(
 }
 
 fn matches(segment: &Segment, selector: &Selector) -> bool {
+    if let Some(dxf) = selector.dxf
+        && segment.from != Some(ShapeFrom::Dxf(dxf))
+    {
+        return false;
+    }
+    if let Some(image) = selector.image
+        && segment.from != Some(ShapeFrom::Image(image))
+    {
+        return false;
+    }
     // DXF layer names are case-insensitive.
     if let Some(layer) = &selector.layer
         && segment.layer.to_lowercase() != layer.to_lowercase()
@@ -159,5 +169,10 @@ fn describe(selector: &Selector) -> String {
         let ids: Vec<String> = shapes.iter().map(|id| format!("S{id}")).collect();
         parts.push(format!("shapes {}", ids.join(", ")));
     }
-    parts.join(" and ")
+    let text = parts.join(" and ");
+    match (selector.dxf, selector.image) {
+        (Some(dxf), _) => format!("{text} of DXF {dxf}"),
+        (None, Some(image)) => format!("{text} of image {image}"),
+        (None, None) => text,
+    }
 }

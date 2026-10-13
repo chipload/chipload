@@ -21,6 +21,7 @@
 - [Importing a DXF](drawings/import.md)
 - [Placing the drawing](drawings/placement.md)
 - [Updating from a new DXF](drawings/update.md)
+- [Several drawings](drawings/several.md)
 - [Drawing shapes](drawings/shapes.md)
 - [Images](drawings/images.md)
 - [Copies](drawings/copies.md)

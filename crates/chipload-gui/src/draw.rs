@@ -417,6 +417,7 @@ mod tests {
                         handle: String::new(),
                         source_type: String::new(),
                         shape: None,
+                        from: None,
                     },
                     reversed: false,
                 })

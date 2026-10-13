@@ -19,7 +19,7 @@ fn job(tool: Value) -> Job {
     parse_job(
         migrate(json!({
             "schema_version": CURRENT_VERSION,
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 60, "y": 40, "thickness": 10, "origin": "bottom_left",
                       "max_overcut": 1.0},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
@@ -384,7 +384,7 @@ fn rest_job(rest: bool) -> Job {
             "schema_version": CURRENT_VERSION,
             "drawing": {"shapes": [{"id": 1, "layer": "L", "kind": "rectangle",
                 "center": [30, 20], "length": 40, "width": 30, "angle": 0}],
-                "next_shape_id": 2, "source": null},
+                "next_shape_id": 2, "dxfs": []},
             "stock": {"x": 60, "y": 40, "thickness": 10, "origin": "bottom_left",
                       "max_overcut": 1.0},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "program"},

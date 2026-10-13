@@ -233,6 +233,7 @@ impl<'a> Converter<'a> {
                 handle: place.root_handle.clone(),
                 source_type: kind.clone(),
                 shape: None,
+                from: None,
             });
             self.entity_of.push(entity);
         }

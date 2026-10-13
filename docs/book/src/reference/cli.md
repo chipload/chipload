@@ -58,6 +58,7 @@ chipload update <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--from <FROM>` | The new DXF. Required. |
 | `--units <UNITS>` | Units of the new DXF, if they differ from the last import. One of: `mm`, `inch`. |
+| `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload plan`
@@ -386,6 +387,52 @@ chipload image remove <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The image's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+## `chipload dxf`
+
+A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)
+
+### `chipload dxf add`
+
+Add a DXF to the project, where the file has it; move it with `place --dxf ID`
+
+```text
+chipload dxf add <PROJECT> <DXF> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<DXF>` | The DXF. |
+| `--units <UNITS>` | The DXF's units, if it doesn't say. |
+| `--name <NAME>` | Its name; default: the file's name without its extension. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload dxf list`
+
+The project's DXFs: id, name, file, placement and shapes
+
+```text
+chipload dxf list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload dxf remove`
+
+Remove a DXF and its shapes
+
+```text
+chipload dxf remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The DXF's id (as `dxf list` shows it) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload tool`
@@ -723,6 +770,7 @@ chipload place <PROJECT> [OPTIONS]
 | `--width <WIDTH>` | Scale it about its centre until it is this wide, mm (the height follows) |
 | `--height <HEIGHT>` | Scale it about its centre until it is this high, mm (the width follows) |
 | `--reset` | Back to where the DXF has it: no turn, no scale, no move. |
+| `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload licenses`

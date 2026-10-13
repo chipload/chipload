@@ -397,7 +397,7 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     let job: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
     assert_eq!(job["drawing"]["shapes"].as_array().unwrap().len(), 0);
-    assert!(job["drawing"]["source"].is_null());
+    assert_eq!(job["drawing"]["dxfs"], serde_json::json!([]));
     assert_eq!(job["stock"]["x"], 300.0);
     assert_eq!(job["stock"]["y"], 200.0);
     assert_eq!(job["stock"]["origin"], "bottom_left");
@@ -423,17 +423,14 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     // The DXF comes later: its shapes are added, the drawn circle keeps its id.
     let dxf = corpus("dxf/simple_part.dxf");
     let out = ok(&["update", p, "--from", path(&dxf)]);
-    assert!(
-        out.contains("0 unchanged, 0 changed, 7 added, 0 removed"),
-        "{out}"
-    );
+    assert!(out.contains("as DXF 1 \"simple_part\": 7 shapes"), "{out}");
     assert!(!out.contains("beyond the stock"), "{out}");
     let job: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
     let shapes = job["drawing"]["shapes"].as_array().unwrap();
     assert_eq!(shapes.len(), 8);
     assert!(shapes.iter().any(|s| s["id"] == 1 && s["kind"] == "circle"));
-    assert_eq!(job["drawing"]["source"]["file"], "simple_part.dxf");
+    assert_eq!(job["drawing"]["dxfs"][0]["file"], "simple_part.dxf");
     assert_eq!(job["stock"]["x"], 300.0, "the stock is left as it is");
     ok(&["run", p, "-o", path(&dir.join("disc2.nc"))]);
 
@@ -593,7 +590,7 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     let placement = || {
         let job: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
-        job["drawing"]["source"]["placement"].clone()
+        job["drawing"]["dxfs"][0]["placement"].clone()
     };
     let extents = || {
         ok_inspect(p)

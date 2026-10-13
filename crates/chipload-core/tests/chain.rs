@@ -16,6 +16,7 @@ fn seg(prim: Primitive) -> Segment {
         handle: "H".into(),
         shape: None,
         source_type: "LINE".into(),
+        from: None,
     }
 }
 

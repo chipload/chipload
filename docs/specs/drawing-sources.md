@@ -1,6 +1,6 @@
 # Spec: several drawings and pictures in one project, a Drawing panel, hiding
 
-Status: **approved** (2026-10-13, all recommendations taken). Built: §5 (as built: §10).
+Status: **approved** (2026-10-13, all recommendations taken). Built: §5, §2 (as built: §10).
 
 The user's request:
 - Import several DXFs and pictures into one project, each with its own position and scale.
@@ -224,3 +224,21 @@ Each step comes with its tests and guide pages, as usual.
   the open legend. It hides the toolpath, its plunges, tabs and ring starts (which can't be
   hovered or dragged while hidden); playback's tool still shows. Like *Show images*, it is
   set for the session, not remembered: the app has no remembered view settings yet.
+- **§2, several DXFs** (2026-10-13, schema 21):
+  - **Commands:** `chipload dxf add|list|remove`, and `--dxf ID` on the existing `place` and
+    `update`, instead of also `dxf place` and `dxf update`, which would have repeated them.
+    `update` on a project with no DXF adds one.
+  - **Selectors:** a segment knows where its shape came from (`chipload_core::chain::ShapeFrom`),
+    so a selector's `dxf` or `image` is matched in planning, and its messages say "layer
+    'HOLES' of DXF 2".
+  - **The note** for a layer in several sources is a planning note (the report, `run`, the
+    setup sheet), not a project problem: cutting all of them may be what was meant.
+  - **Shape order:** an updated DXF's shapes take its old shapes' place in the list, so
+    the cut order doesn't change. Two DXFs on top of each other change each other's
+    nesting (a hole inside the other part's outline), and so the order: the test places
+    them apart, as parts are.
+  - **The setup sheet** lists the DXFs and images with their placements when there are two
+    or more; single-drawing sheets are unchanged.
+  - **Found on the way:** a tool or operation name with a character outside ASCII ("60°
+    V-bit") in a program split per tool stops the G-code from being written. Fixed next,
+    on its own.

@@ -308,7 +308,7 @@ fn operations_are_enabled_unless_the_file_says_otherwise() {
 
 fn project(shapes: Value, next: u64, select: Value) -> Value {
     let mut data = lower_job();
-    data["drawing"] = json!({"shapes": shapes, "next_shape_id": next, "source": null});
+    data["drawing"] = json!({"shapes": shapes, "next_shape_id": next, "dxfs": []});
     data["operations"] = json!([data["operations"][1].clone()]);
     data["operations"][0]["select"] = select;
     data
@@ -790,13 +790,17 @@ fn v7_to_v8_places_an_imported_drawing_where_the_dxf_has_it() {
     let shapes = v7["drawing"]["shapes"].clone();
     let current = migrate(v7).unwrap();
     assert_eq!(
-        current["drawing"]["source"]["placement"],
+        current["drawing"]["dxfs"][0]["placement"],
         json!({"scale": 1.0, "quarter_turns": 0, "dx": 0.0, "dy": 0.0})
     );
-    assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
+    assert_eq!(
+        without_dxf_ids(&current)["drawing"]["shapes"],
+        shapes,
+        "nothing moves"
+    );
     // Without an imported drawing there is nothing to place.
     let drawn = migrate(raw("v7/leads.chipload")).unwrap();
-    assert_eq!(drawn["drawing"]["source"], Value::Null);
+    assert_eq!(drawn["drawing"]["dxfs"], json!([]));
     load_job(&corpus().join("v7/simple_part_full.chipload")).unwrap();
 }
 
@@ -804,19 +808,19 @@ fn v7_to_v8_places_an_imported_drawing_where_the_dxf_has_it() {
 fn a_v8_drawing_source_needs_a_finite_placement() {
     let good = migrate(raw("v7/simple_part_full.chipload")).unwrap();
     let mut missing = good.clone();
-    missing["drawing"]["source"]
+    missing["drawing"]["dxfs"][0]
         .as_object_mut()
         .unwrap()
         .remove("placement");
     assert!(parse_job(missing, "p").is_err());
     let mut stray = good.clone();
-    stray["drawing"]["source"]["placement"]["angle"] = json!(0.0);
+    stray["drawing"]["dxfs"][0]["placement"]["angle"] = json!(0.0);
     assert!(parse_job(stray, "p").is_err());
     let mut moved = good;
-    moved["drawing"]["source"]["placement"] =
+    moved["drawing"]["dxfs"][0]["placement"] =
         json!({"scale": 1.0, "quarter_turns": 0, "dx": -12.5, "dy": 3.0});
     let mut job = parse_job(moved, "p").unwrap();
-    let source = job.drawing.source.as_mut().unwrap();
+    let source = job.drawing.dxfs.first_mut().unwrap();
     assert_eq!(
         source.placement,
         chipload_job::Placement {
@@ -831,7 +835,7 @@ fn a_v8_drawing_source_needs_a_finite_placement() {
     assert!(
         job.validate()
             .iter()
-            .any(|p| p.starts_with("drawing.source.placement"))
+            .any(|p| p.starts_with("drawing.dxfs.0.placement"))
     );
 }
 
@@ -843,10 +847,14 @@ fn v8_to_v9_gives_a_placement_no_turn() {
     let shapes = v8["drawing"]["shapes"].clone();
     let current = migrate(v8).unwrap();
     assert_eq!(
-        current["drawing"]["source"]["placement"],
+        current["drawing"]["dxfs"][0]["placement"],
         json!({"scale": 1.0, "quarter_turns": 0, "dx": -20.0, "dy": 30.0})
     );
-    assert_eq!(current["drawing"]["shapes"], shapes, "nothing moves");
+    assert_eq!(
+        without_dxf_ids(&current)["drawing"]["shapes"],
+        shapes,
+        "nothing moves"
+    );
 }
 
 #[test]
@@ -859,7 +867,7 @@ fn quarter_turns_are_0_to_3() {
         (json!(1.5), false),
     ] {
         let mut data = good.clone();
-        data["drawing"]["source"]["placement"]["quarter_turns"] = turns.clone();
+        data["drawing"]["dxfs"][0]["placement"]["quarter_turns"] = turns.clone();
         assert_eq!(parse_job(data, "p").is_ok(), ok, "{turns}");
     }
 }
@@ -870,7 +878,7 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -953,7 +961,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -974,7 +982,7 @@ fn v10_to_v11_gives_a_placement_scale_1() {
     assert_eq!(current, v10, "nothing else changes");
     let job = parse_job(migrate(v10).unwrap(), "p").unwrap();
     assert_eq!(
-        job.drawing.source.unwrap().placement,
+        job.drawing.dxfs[0].placement,
         chipload_job::Placement::default()
     );
 }
@@ -995,11 +1003,11 @@ fn the_scale_is_required_and_in_range() {
         (Value::Null, false),
     ] {
         let mut data = good.clone();
-        data["drawing"]["source"]["placement"]["scale"] = scale.clone();
+        data["drawing"]["dxfs"][0]["placement"]["scale"] = scale.clone();
         assert_eq!(parse_job(data, "p").is_ok(), ok, "{scale}");
     }
     let mut missing = good;
-    missing["drawing"]["source"]["placement"]
+    missing["drawing"]["dxfs"][0]["placement"]
         .as_object_mut()
         .unwrap()
         .remove("scale");
@@ -1013,7 +1021,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(20));
+        assert_eq!(current["schema_version"], json!(21));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
@@ -1060,7 +1068,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1112,9 +1120,40 @@ fn without_flank_angle(data: &mut Value) {
 /// Undo v14 -> v15 (`custom_post` on the machine), to compare with an older sample.
 /// v18 -> v19 adds an empty image list (docs/specs/image-trace.md §4): take it out, so a
 /// test of an older step sees only what that step did.
+/// Undo v18 -> v19 (`images`) and every later step, to compare with an older sample.
 fn without_images(data: &mut Value) {
+    without_dxfs(data);
     let drawing = data["drawing"].as_object_mut().unwrap();
     assert_eq!(drawing.remove("images"), Some(json!([])));
+}
+
+/// The data with its shapes' `dxf` (added by v20 -> v21) left out.
+fn without_dxf_ids(data: &Value) -> Value {
+    let mut data = data.clone();
+    for shape in data["drawing"]["shapes"].as_array_mut().unwrap() {
+        shape.as_object_mut().unwrap().remove("dxf");
+    }
+    data
+}
+
+/// Undo v20 -> v21: DXF 1 back to `source`, shapes without `dxf`, nothing hidden.
+fn without_dxfs(data: &mut Value) {
+    let drawing = data["drawing"].as_object_mut().unwrap();
+    assert_eq!(drawing.remove("hidden"), Some(json!([])));
+    let mut dxfs = drawing.remove("dxfs").unwrap();
+    let source = match dxfs.as_array_mut().unwrap().pop() {
+        Some(mut source) => {
+            let source_map = source.as_object_mut().unwrap();
+            assert_eq!(source_map.remove("id"), Some(json!(1)));
+            source_map.remove("name").unwrap();
+            source
+        }
+        None => Value::Null,
+    };
+    drawing.insert("source".into(), source);
+    for shape in drawing["shapes"].as_array_mut().unwrap() {
+        shape.as_object_mut().unwrap().remove("dxf");
+    }
 }
 
 fn without_custom_post(data: &mut Value) {
@@ -1138,7 +1177,7 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
@@ -1168,7 +1207,7 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
@@ -1237,7 +1276,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1332,7 +1371,7 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
     without_images(&mut current);
     current["schema_version"] = json!(16);
     assert_eq!(current, v16, "nothing else changes");
@@ -1354,7 +1393,7 @@ fn a_follow_path_round_trips() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
     // A side or tabs mean nothing on the line: refused as unknown fields.
-    let mut data = raw("v17/follow_path.chipload");
+    let mut data = migrate(raw("v17/follow_path.chipload")).unwrap();
     data["operations"][0]["side"] = json!("outside");
     assert!(parse_job(data, "p").is_err());
 }
@@ -1366,7 +1405,7 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(20));
+        assert_eq!(current["schema_version"], json!(21));
         without_images(&mut current);
         current["schema_version"] = json!(17);
         assert_eq!(current, v17, "{sample}: nothing else changes");
@@ -1389,11 +1428,11 @@ fn a_holes_operation_round_trips_and_its_values_are_checked() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
     // A hole has no side or entry: refused as unknown fields.
-    let mut data = raw("v18/holes.chipload");
+    let mut data = migrate(raw("v18/holes.chipload")).unwrap();
     data["operations"][0]["entry"] = json!({"type": "plunge"});
     assert!(parse_job(data, "h").is_err());
     // Value rules name their field.
-    let mut data = raw("v18/holes.chipload");
+    let mut data = migrate(raw("v18/holes.chipload")).unwrap();
     data["operations"][0]["method"]["peck"] = json!(0.0);
     data["operations"][1]["method"]["step_down"] = json!(-1.0);
     data["operations"][1]["method"]["ramp_angle"] = json!(1.0);
@@ -1439,7 +1478,7 @@ fn corners_round_trip_and_their_values_are_checked() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
     // A profile without the field loads as round corners.
-    let mut data = raw("v18/dogbones.chipload");
+    let mut data = migrate(raw("v18/dogbones.chipload")).unwrap();
     data["operations"][1]
         .as_object_mut()
         .unwrap()
@@ -1447,7 +1486,7 @@ fn corners_round_trip_and_their_values_are_checked() {
     let loaded = parse_job(data, "d").unwrap();
     assert_eq!(loaded.operations[1].corners(), None);
     // Out of range, and on the line.
-    let mut data = raw("v18/dogbones.chipload");
+    let mut data = migrate(raw("v18/dogbones.chipload")).unwrap();
     data["operations"][0]["corners"]["max_angle"] = json!(4.0);
     data["operations"][1]["side"] = json!("on");
     data["operations"][1]["clearance"] = json!(0.0);
@@ -1475,7 +1514,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(20));
+        assert_eq!(current["schema_version"], json!(21));
         without_images(&mut current);
         current["schema_version"] = json!(18);
         assert_eq!(current, v18, "{sample}: nothing else changes");
@@ -1488,7 +1527,8 @@ fn v18_to_v19_adds_an_empty_image_list() {
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
     let mut current = migrate(v19.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(20));
+    assert_eq!(current["schema_version"], json!(21));
+    without_dxfs(&mut current);
     let images = current["drawing"]["images"].as_array_mut().unwrap();
     assert!(!images.is_empty());
     for image in images.iter_mut() {
@@ -1500,10 +1540,67 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     assert_eq!(current, v19, "nothing else changes");
 }
 
+/// docs/specs/drawing-sources.md §2: the DXF becomes DXF 1 of a list, named after its file,
+/// and its shapes name it; nothing is hidden; nothing else changes.
+#[test]
+fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
+    let v20 = raw("v20/scaled_part.chipload");
+    let mut current = migrate(v20.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(21));
+    let dxf = &current["drawing"]["dxfs"][0];
+    assert_eq!(
+        (&dxf["id"], &dxf["name"]),
+        (&json!(1), &json!("simple_part"))
+    );
+    assert_eq!(dxf["placement"], v20["drawing"]["source"]["placement"]);
+    assert!(
+        current["drawing"]["shapes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s["dxf"] == json!(1))
+    );
+    without_dxfs(&mut current);
+    current["schema_version"] = json!(20);
+    assert_eq!(current, v20, "nothing else changes");
+    // Without a DXF: an empty list, and traced shapes name no DXF.
+    let images = migrate(raw("v20/image_centre_line.chipload")).unwrap();
+    assert_eq!(images["drawing"]["dxfs"], json!([]));
+    assert!(
+        images["drawing"]["shapes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s.get("dxf").is_none())
+    );
+}
+
+#[test]
+fn selectors_and_shapes_name_dxfs_that_exist() {
+    let mut data = migrate(raw("v20/scaled_part.chipload")).unwrap();
+    data["operations"][0]["select"]["dxf"] = json!(1);
+    let job = parse_job(data.clone(), "p").unwrap();
+    assert_eq!(job.operations[0].select().dxf, Some(1));
+    let mut bad = data.clone();
+    bad["operations"][0]["select"]["dxf"] = json!(7);
+    bad["drawing"]["shapes"][0]["dxf"] = json!(9);
+    bad["drawing"]["dxfs"][0]["name"] = json!(" ");
+    let text = parse_job(bad, "p").unwrap_err().to_string();
+    for wanted in [
+        "operations.0.select.dxf: no DXF 7",
+        "dxf: no DXF 9",
+        "drawing.dxfs.0.name",
+    ] {
+        assert!(text.contains(wanted), "{wanted}: {text}");
+    }
+    let mut both = data;
+    both["operations"][0]["select"]["image"] = json!(1);
+    assert!(parse_job(both, "p").is_err());
+}
+
 #[test]
 fn images_and_their_traced_shapes_are_checked() {
-    let mut data = raw("v18/holes.chipload");
-    data["schema_version"] = json!(20);
+    let mut data = migrate(raw("v18/holes.chipload")).unwrap();
     let image = json!({
         "id": 1, "file": "logo.png", "sha256": "00", "data": "iVBORw0KGgo=",
         "layer": "logo", "x": 0.0, "y": 0.0, "width": 100.0,

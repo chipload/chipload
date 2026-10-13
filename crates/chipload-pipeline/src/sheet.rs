@@ -145,6 +145,31 @@ fn setup(html: &mut String, job: &Job) {
     if let Some(text) = copies::copies_text(job) {
         let _ = writeln!(html, "<tr><th>Copies</th><td>{}</td></tr>", escape(&text));
     }
+    // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
+    if job.drawing.dxfs.len() + job.drawing.images.len() > 1 {
+        for dxf in &job.drawing.dxfs {
+            let _ = writeln!(
+                html,
+                "<tr><th>DXF {}</th><td>{} ({}), {}</td></tr>",
+                dxf.id,
+                escape(&dxf.name),
+                escape(&dxf.file),
+                escape(&crate::placement::placement_text(dxf.placement))
+            );
+        }
+        for image in &job.drawing.images {
+            let _ = writeln!(
+                html,
+                "<tr><th>Image {}</th><td>{} on layer {}, {} mm wide at X{} Y{}</td></tr>",
+                image.id,
+                escape(&image.file),
+                escape(&image.layer),
+                num(image.width),
+                num(image.x),
+                num(image.y)
+            );
+        }
+    }
     html.push_str("</table>\n</section>\n");
 }
 

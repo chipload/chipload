@@ -599,7 +599,7 @@ fn shapes_survive_json_and_give_the_same_contours() {
     let json = serde_json::to_string(&imported.shapes).unwrap();
     let back: Vec<chipload_job::Shape> = serde_json::from_str(&json).unwrap();
     assert_eq!(back, imported.shapes, "exact f64 round trip");
-    let again = contours_from_shapes(&back, Some(&imported.source));
+    let again = contours_from_shapes(&back, std::slice::from_ref(&imported.source));
     assert_eq!(again, direct);
 }
 
@@ -622,7 +622,7 @@ fn a_drawn_circle_is_exactly_an_imported_circle() {
     };
     assert_eq!(drawn.segments(), imported.shapes[0].segments());
     // And both become one closed contour.
-    let result = chipload_dxf::contours_from_shapes(&[drawn], None);
+    let result = chipload_dxf::contours_from_shapes(&[drawn], &[]);
     assert_eq!(result.contours.len(), 1);
     assert!(result.contours[0].closed);
 }

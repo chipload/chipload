@@ -116,8 +116,8 @@ fn traced_shapes_are_selected_by_layer_not_by_id() {
     let (mut job, report) = add_image(&project, NewImage::new("logo.png", &bytes, 80.0)).unwrap();
     assert!(job.validate().is_empty(), "{:?}", job.validate());
     *job.operations[0].select_mut() = Selector {
-        layer: None,
         shapes: Some(vec![report.shapes[0]]),
+        ..Selector::default()
     };
     let problems = job.validate();
     assert!(
@@ -236,7 +236,7 @@ fn only_a_follow_path_may_cut_centre_lines() {
     let (mut job, _) = add_image(&project, new).unwrap();
     *job.operations[0].select_mut() = Selector {
         layer: Some("strokes".into()),
-        shapes: None,
+        ..Selector::default()
     };
     let problems = job.validate();
     assert!(

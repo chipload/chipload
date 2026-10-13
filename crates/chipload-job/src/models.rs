@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 20;
+pub const CURRENT_VERSION: i64 = 21;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -156,14 +156,20 @@ pub struct Drawing {
     pub shapes: Vec<Shape>,
     /// The id the next new shape gets. Ids are never reused.
     pub next_shape_id: u64,
-    /// The DXF the imported shapes came from, at the last import or update. Null: no DXF
-    /// yet.
+    /// The DXFs the imported shapes came from, each as at its last import or update, with
+    /// its own placement.
+    // Spec: docs/specs/drawing-sources.md §2.
     #[serde(default)]
-    pub source: Option<DrawingSource>,
+    pub dxfs: Vec<DrawingSource>,
     /// Pictures traced into shapes, for V-carving.
     // Spec: docs/specs/image-trace.md §4.
     #[serde(default)]
     pub images: Vec<Image>,
+    /// Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,
+    /// `dxf:1/layer:Cut`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`.
+    // Spec: docs/specs/drawing-sources.md §4.
+    #[serde(default)]
+    pub hidden: Vec<String>,
 }
 
 /// A picture traced into shapes: the picture itself, where it goes, and how it becomes black
@@ -329,8 +335,10 @@ pub enum Geometry {
         /// The last segment ends where the first starts.
         closed: bool,
         segments: Vec<PathSegment>,
-        /// The image it was traced from (docs/specs/image-trace.md §4); None: from a DXF.
+        /// The image it was traced from (docs/specs/image-trace.md §4).
         image: Option<u64>,
+        /// The DXF it was imported from (an id in `drawing.dxfs`).
+        dxf: Option<u64>,
     },
     Circle {
         center: [f64; 2],
@@ -384,10 +392,17 @@ impl Shape {
         }
     }
 
-    /// Imported from the DXF: a path not traced from an image. The DXF's placement moves
-    /// these.
+    /// Imported from a DXF: a path not traced from an image. Its DXF's placement moves it.
     pub fn from_dxf(&self) -> bool {
         matches!(self.geometry, Geometry::Path { image: None, .. })
+    }
+
+    /// The DXF this shape was imported from.
+    pub fn dxf(&self) -> Option<u64> {
+        match &self.geometry {
+            Geometry::Path { dxf, .. } => *dxf,
+            _ => None,
+        }
     }
 
     /// The image this shape was traced from.
@@ -529,6 +544,9 @@ struct RawShape {
     /// path: the image it was traced from; absent for shapes from a DXF.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     image: Option<u64>,
+    /// path: the DXF it was imported from (its id in `drawing.dxfs`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dxf: Option<u64>,
     /// path, polyline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
@@ -568,6 +586,7 @@ impl RawShape {
             dxf_handle: None,
             dxf_type: None,
             image: None,
+            dxf: None,
             closed: None,
             segments: None,
             center: None,
@@ -586,6 +605,7 @@ impl RawShape {
             ("dxf_handle", self.dxf_handle.is_some()),
             ("dxf_type", self.dxf_type.is_some()),
             ("image", self.image.is_some()),
+            ("dxf", self.dxf.is_some()),
             ("closed", self.closed.is_some()),
             ("segments", self.segments.is_some()),
             ("center", self.center.is_some()),
@@ -618,10 +638,12 @@ impl From<Shape> for RawShape {
                 closed,
                 segments,
                 image,
+                dxf,
             } => {
                 raw.dxf_handle = Some(dxf_handle);
                 raw.dxf_type = Some(dxf_type);
                 raw.image = image;
+                raw.dxf = dxf;
                 raw.closed = Some(closed);
                 raw.segments = Some(segments);
             }
@@ -660,7 +682,14 @@ impl TryFrom<RawShape> for Shape {
     fn try_from(raw: RawShape) -> Result<Self, String> {
         let kind = raw.kind;
         let allowed: &[&str] = match kind {
-            ShapeKind::Path => &["dxf_handle", "dxf_type", "image", "closed", "segments"],
+            ShapeKind::Path => &[
+                "dxf_handle",
+                "dxf_type",
+                "image",
+                "dxf",
+                "closed",
+                "segments",
+            ],
             ShapeKind::Circle => &["center", "radius"],
             ShapeKind::Rectangle => &["center", "length", "width", "angle"],
             ShapeKind::Polyline => &["closed", "points", "bulges"],
@@ -680,6 +709,7 @@ impl TryFrom<RawShape> for Shape {
                 closed: raw.closed.ok_or_else(|| missing("closed"))?,
                 segments: raw.segments.ok_or_else(|| missing("segments"))?,
                 image: raw.image,
+                dxf: raw.dxf,
             },
             ShapeKind::Circle => Geometry::Circle {
                 center: raw.center.ok_or_else(|| missing("center"))?,
@@ -847,6 +877,11 @@ pub struct SourceIssue {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DrawingSource {
+    /// The DXF's id, which its shapes and selectors name.
+    pub id: u64,
+    /// Its name in the Drawing panel and messages; the file's name without its extension
+    /// at first.
+    pub name: String,
     /// The DXF's file name.
     pub file: String,
     /// The DXF's SHA-256, to tell whether it changed.
@@ -1195,7 +1230,7 @@ pub struct Tool {
     pub tip_diameter: Option<f64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Selector {
@@ -1205,6 +1240,13 @@ pub struct Selector {
     /// These shapes, by id.
     #[serde(default)]
     pub shapes: Option<Vec<u64>>,
+    /// Only shapes from this DXF (an id in `drawing.dxfs`).
+    // Spec: docs/specs/drawing-sources.md §2.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dxf: Option<u64>,
+    /// Only shapes traced from this image (an id in `drawing.images`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1931,6 +1973,16 @@ impl Drawing {
             {
                 problems.push(format!("{at}.image: no image {image} in drawing.images"));
             }
+            if let Some(dxf) = shape.dxf()
+                && !self.dxfs.iter().any(|d| d.id == dxf)
+            {
+                problems.push(format!("{at}.dxf: no DXF {dxf} in drawing.dxfs"));
+            }
+            if shape.image().is_some() && shape.dxf().is_some() {
+                problems.push(format!(
+                    "{at}: a shape comes from an image or a DXF, not both"
+                ));
+            }
         }
         let mut ids = std::collections::BTreeSet::new();
         for (i, image) in self.images.iter().enumerate() {
@@ -1938,6 +1990,15 @@ impl Drawing {
                 problems.push(format!("drawing.images.{i}.id: {} is used twice", image.id));
             }
             problems.extend(image.problems(i));
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for (i, dxf) in self.dxfs.iter().enumerate() {
+            if !ids.insert(dxf.id) {
+                problems.push(format!("drawing.dxfs.{i}.id: {} is used twice", dxf.id));
+            }
+            if dxf.name.trim().is_empty() {
+                problems.push(format!("drawing.dxfs.{i}.name: must not be empty"));
+            }
         }
         problems
     }
@@ -2123,7 +2184,8 @@ impl Job {
     pub fn validate(&self) -> Vec<String> {
         let mut problems = self.drawing.validate();
         problems.extend(self.machine.problems("machine"));
-        if let Some(source) = &self.drawing.source {
+        for (i, source) in self.drawing.dxfs.iter().enumerate() {
+            let at = format!("drawing.dxfs.{i}.placement");
             let Placement {
                 scale,
                 quarter_turns,
@@ -2132,19 +2194,17 @@ impl Job {
             } = source.placement;
             if !Placement::scale_in_range(scale) {
                 problems.push(format!(
-                    "drawing.source.placement.scale: must be {} to {}, got {scale}",
+                    "{at}.scale: must be {} to {}, got {scale}",
                     Placement::MIN_SCALE,
                     Placement::MAX_SCALE
                 ));
             }
             if !(dx.is_finite() && dy.is_finite()) {
-                problems.push(format!(
-                    "drawing.source.placement: must be numbers, got ({dx}, {dy})"
-                ));
+                problems.push(format!("{at}: must be numbers, got ({dx}, {dy})"));
             }
             if quarter_turns > 3 {
                 problems.push(format!(
-                    "drawing.source.placement.quarter_turns: must be 0 to 3, got {quarter_turns}"
+                    "{at}.quarter_turns: must be 0 to 3, got {quarter_turns}"
                 ));
             }
         }
@@ -2260,6 +2320,25 @@ impl Job {
             if selector.layer.is_none() && !has_shapes {
                 problems.push(format!(
                     "operations.{i}.select: selector needs a layer or shapes"
+                ));
+            }
+            if let Some(dxf) = selector.dxf
+                && !self.drawing.dxfs.iter().any(|d| d.id == dxf)
+            {
+                problems.push(format!(
+                    "operations.{i}.select.dxf: no DXF {dxf} in drawing.dxfs"
+                ));
+            }
+            if let Some(image) = selector.image
+                && !self.drawing.images.iter().any(|d| d.id == image)
+            {
+                problems.push(format!(
+                    "operations.{i}.select.image: no image {image} in drawing.images"
+                ));
+            }
+            if selector.dxf.is_some() && selector.image.is_some() {
+                problems.push(format!(
+                    "operations.{i}.select: a selector names a DXF or an image, not both"
                 ));
             }
             // Traced shapes get new ids each time their image is traced again

@@ -194,6 +194,7 @@ fn contour(id: usize, ring: &[Point]) -> Contour {
                 handle: String::new(),
                 source_type: "IMAGE".into(),
                 shape: None,
+                from: None,
             },
             reversed: false,
         })

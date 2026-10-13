@@ -13,6 +13,7 @@ pub fn segment(prim: Primitive) -> OrientedSegment {
             handle: "1".into(),
             source_type: "LWPOLYLINE".into(),
             shape: None,
+            from: None,
         },
         reversed: false,
     }

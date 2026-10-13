@@ -11,9 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 16] = [
+const MIGRATIONS: [Migration; 17] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
+    v20_to_v21,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -315,6 +316,53 @@ fn v19_to_v20(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 20))
+}
+
+/// The project's DXF, if any, becomes DXF 1 of a list, named after its file, and its shapes
+/// name it; nothing is hidden (docs/specs/drawing-sources.md §2). Nothing moves.
+fn v20_to_v21(mut data: Value) -> Result<Value, String> {
+    let drawing = data
+        .get_mut("drawing")
+        .and_then(Value::as_object_mut)
+        .ok_or("the project has no drawing")?;
+    let source = drawing.remove("source").unwrap_or(Value::Null);
+    let mut dxfs = Vec::new();
+    if let Value::Object(mut source) = source {
+        let file = source
+            .get("file")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+        source.insert("id".into(), Value::from(1));
+        source.insert("name".into(), Value::from(dxf_name(&file)));
+        dxfs.push(Value::Object(source));
+        if let Some(shapes) = drawing.get_mut("shapes").and_then(Value::as_array_mut) {
+            for shape in shapes.iter_mut().filter_map(Value::as_object_mut) {
+                let is_path = shape.get("kind").and_then(Value::as_str) == Some("path");
+                let traced = shape.get("image").is_some_and(|i| !i.is_null());
+                if is_path && !traced {
+                    shape.insert("dxf".into(), Value::from(1));
+                }
+            }
+        }
+    }
+    drawing.insert("dxfs".into(), Value::Array(dxfs));
+    drawing.insert("hidden".into(), Value::Array(Vec::new()));
+    Ok(set_version(data, 21))
+}
+
+/// A DXF's name from its file: the file's name without its extension.
+pub fn dxf_name(file: &str) -> String {
+    let stem = std::path::Path::new(file)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .trim();
+    if stem.is_empty() {
+        "drawing".into()
+    } else {
+        stem.to_string()
+    }
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

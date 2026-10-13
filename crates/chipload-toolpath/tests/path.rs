@@ -24,6 +24,7 @@ fn segment(prim: Primitive) -> OrientedSegment {
             handle: "1".into(),
             source_type: "LWPOLYLINE".into(),
             shape: None,
+            from: None,
         },
         reversed: false,
     }
@@ -57,7 +58,7 @@ fn job(operations: Value, tools: Value) -> Job {
     parse_job(
         migrate(json!({
             "schema_version": CURRENT_VERSION,
-            "drawing": {"shapes": [], "next_shape_id": 1, "source": null},
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
             "stock": {"x": 300, "y": 200, "thickness": 18, "origin": "bottom_left",
                       "max_overcut": 0.5},
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},

@@ -5,6 +5,7 @@
 // A CLI's job is to print; the workspace-wide lint is meant for library crates.
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
+mod dxfs;
 mod images;
 mod library;
 
@@ -24,7 +25,7 @@ use chipload_pipeline::copies::{copies_text, pitch_for_gap};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::placement::{
-    Move as PlaceMove, imported_size, place_drawing, placement_text,
+    Move as PlaceMove, dxf_list, dxf_size, place_drawing, place_dxf, placement_text,
 };
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_shapes, severity_name,
@@ -105,6 +106,9 @@ enum Command {
         /// Units of the new DXF, if they differ from the last import.
         #[arg(long)]
         units: Option<UnitsArg>,
+        /// Which DXF of the project (as `dxf list` shows); needed when it has several.
+        #[arg(long)]
+        dxf: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -221,6 +225,11 @@ enum Command {
         #[command(subcommand)]
         action: images::ImageAction,
     },
+    /// A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md).
+    Dxf {
+        #[command(subcommand)]
+        action: dxfs::DxfAction,
+    },
     /// Your tool library: tools kept for every project (copied into a project when used).
     Tool {
         #[command(subcommand)]
@@ -296,6 +305,9 @@ enum Command {
             conflicts_with_all = ["by", "to", "align", "margin", "rotate", "scale", "width", "height"]
         )]
         reset: bool,
+        /// Which DXF of the project (as `dxf list` shows); needed when it has several.
+        #[arg(long)]
+        dxf: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -583,8 +595,9 @@ fn main() -> ExitCode {
             project,
             from,
             units: u,
+            dxf,
             output,
-        } => update(&mut out, &project, &from, units(u), output.as_deref()),
+        } => update(&mut out, &project, &from, units(u), dxf, output.as_deref()),
         Command::Plan { project, sets } => plan(&mut out, &project, &sets),
         Command::Get { project, path } => get(&mut out, &project, &path),
         Command::Set {
@@ -639,6 +652,7 @@ fn main() -> ExitCode {
         Command::Op { action } => op(&mut out, action),
         Command::Shape { action } => shape(&mut out, action),
         Command::Image { action } => images::image(&mut out, action),
+        Command::Dxf { action } => dxfs::dxf(&mut out, action),
         Command::Tool { action } => library::tool(&mut out, action),
         Command::Machine { action } => library::machine(&mut out, action),
         Command::Post { action } => library::post(&mut out, action),
@@ -673,6 +687,7 @@ fn main() -> ExitCode {
             width,
             height,
             reset,
+            dxf,
             output,
         } => place(
             &mut out,
@@ -687,6 +702,7 @@ fn main() -> ExitCode {
                 width,
                 height,
                 reset,
+                dxf,
             },
             output.as_deref(),
         ),
@@ -936,6 +952,7 @@ struct PlaceArgs {
     width: Option<f64>,
     height: Option<f64>,
     reset: bool,
+    dxf: Option<u64>,
 }
 
 fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
@@ -943,15 +960,28 @@ fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) 
         Ok(job) => job,
         Err(err) => return out.fail(err),
     };
+    let which = args.dxf;
     let steps = match place_moves(args) {
         Ok(steps) => steps,
         Err(err) => return out.fail(err),
     };
     if steps.is_empty() {
-        return match &job.drawing.source {
+        let source = match which {
+            Some(id) => job.drawing.dxfs.iter().find(|d| d.id == id),
+            None if job.drawing.dxfs.len() == 1 => job.drawing.dxfs.first(),
+            None if job.drawing.dxfs.len() > 1 => {
+                return out.fail(format!(
+                    "the project has {} DXFs ({}): say which with --dxf",
+                    job.drawing.dxfs.len(),
+                    dxf_list(&job.drawing.dxfs)
+                ));
+            }
+            None => None,
+        };
+        return match source {
             Some(source) => {
                 out.line(format!("Drawing: {}", placement_text(source.placement)));
-                let size = imported_size(&job.drawing.shapes);
+                let size = dxf_size(&job.drawing.shapes, source.id);
                 if let Some((w, h)) = size {
                     out.line(format!("Size: {w:.3} × {h:.3} mm"));
                 }
@@ -965,7 +995,11 @@ fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) 
     let mut placed = job;
     let mut lines = Vec::new();
     for how in steps {
-        match place_drawing(&placed, how) {
+        let done = match which {
+            Some(id) => place_dxf(&placed, id, how),
+            None => place_drawing(&placed, how),
+        };
+        match done {
             Ok((next, report)) => {
                 placed = next;
                 lines.extend(report.lines);
@@ -1043,13 +1077,18 @@ fn update(
     project: &Path,
     from: &Path,
     units: Option<Units>,
+    dxf: Option<u64>,
     output: Option<&Path>,
 ) -> ExitCode {
     let job = match load_job(project) {
         Ok(job) => job,
         Err(err) => return out.fail(err),
     };
-    let (updated, report) = match update_drawing(&job, from, units) {
+    let updated = match dxf {
+        Some(id) => chipload_pipeline::dxfs::update_dxf(&job, id, from, units),
+        None => update_drawing(&job, from, units),
+    };
+    let (updated, report) = match updated {
         Ok(done) => done,
         Err(err) => return out.fail(err),
     };
@@ -2054,12 +2093,23 @@ fn inspect(out: &mut Out, path: &Path, units: Option<Units>) -> ExitCode {
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
             copies_line = copies_text(&job).map(|text| format!("Copies: {text}"));
-            placement_line = job
-                .drawing
-                .source
-                .as_ref()
-                .filter(|s| s.placement != Placement::default())
-                .map(|s| format!("Drawing: {}", placement_text(s.placement)));
+            let several = job.drawing.dxfs.len() > 1;
+            placement_line = Some(
+                job.drawing
+                    .dxfs
+                    .iter()
+                    .filter(|s| several || s.placement != Placement::default())
+                    .map(|s| {
+                        if several {
+                            format!("DXF {} {}: {}", s.id, s.name, placement_text(s.placement))
+                        } else {
+                            format!("Drawing: {}", placement_text(s.placement))
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+            .filter(|text| !text.is_empty());
             load_drawing(&job).map_err(|e| e.to_string())
         })
     };

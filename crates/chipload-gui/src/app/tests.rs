@@ -470,8 +470,8 @@ fn unitless_drawing_asks_for_units() {
     assert!(matches!(app.prompt, Some(Prompt::Units(_, false))));
     assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(!app.contours.is_empty());
-    let source = app.edit.as_ref().unwrap().settings.drawing.source.clone();
-    assert_eq!(source.unwrap().units_from, chipload_job::UnitsFrom::User);
+    let source = app.edit.as_ref().unwrap().settings.drawing.dxfs[0].clone();
+    assert_eq!(source.units_from, chipload_job::UnitsFrom::User);
 }
 
 #[test]
@@ -1099,7 +1099,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     assert_eq!(app.update_labels().0, "Update drawing from DXF…");
     app.ask_new();
     let job = app.edit.as_ref().unwrap().settings.clone();
-    assert!(job.drawing.shapes.is_empty() && job.drawing.source.is_none());
+    assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
     assert_eq!((job.stock.x, job.stock.y), (300.0, 200.0));
     assert!(app.job_path.is_none() && app.contours.is_empty());
     assert_eq!(app.update_labels().0, "Import DXF into project…");
@@ -1373,17 +1373,8 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert!(app.update_from(&corpus("dxf/simple_part.dxf"), None));
     let circle = |app: &ChiploadApp| app.shape(1).unwrap().geometry.clone();
     let before = circle(&app);
-    let placement = |app: &ChiploadApp| {
-        app.edit
-            .as_ref()
-            .unwrap()
-            .settings
-            .drawing
-            .source
-            .as_ref()
-            .unwrap()
-            .placement
-    };
+    let placement =
+        |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.dxfs[0].placement;
     assert_eq!(placement(&app), chipload_job::Placement::default());
     // simple_part's outline (the outer contour) is 50 .. 250 × 50 .. 170.
     let outline = |app: &ChiploadApp| {

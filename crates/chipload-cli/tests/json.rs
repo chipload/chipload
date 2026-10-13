@@ -442,3 +442,44 @@ fn an_image_traces_into_centre_lines_and_back() {
     assert_ne!(run.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn dxfs_are_added_listed_placed_updated_and_removed() {
+    // docs/specs/drawing-sources.md §2.
+    let dir = temp_dir("dxfs");
+    std::fs::copy(corpus("dxf/simple_part.dxf"), dir.join("part.dxf")).unwrap();
+    let ok = |args: &[&str]| {
+        let mut all = args.to_vec();
+        all.push("--json");
+        let value = json_of(&chipload(&dir, &all), &all);
+        assert_eq!(value["ok"], json!(true), "{all:?}: {value}");
+        value
+    };
+    ok(&["import", "part.dxf", "-o", "p.chipload"]);
+    let added = ok(&["dxf", "add", "p.chipload", "part.dxf", "--name", "lid"]);
+    assert_eq!(added["dxf"], json!(2));
+    assert_eq!(added["added"].as_array().unwrap().len(), 7);
+    let listed = ok(&["dxf", "list", "p.chipload"]);
+    assert_eq!(listed["dxfs"][1]["name"], json!("lid"));
+    assert_eq!(listed["dxfs"][1]["shapes"], json!(7));
+    // With two DXFs, place and update need --dxf.
+    let run = chipload(&dir, &["place", "p.chipload", "--by", "10,0"]);
+    assert_ne!(run.code, Some(0));
+    ok(&["place", "p.chipload", "--dxf", "2", "--by", "300,0"]);
+    let listed = ok(&["dxf", "list", "p.chipload"]);
+    assert_eq!(listed["dxfs"][1]["placement"]["dx"], json!(300.0));
+    assert_eq!(listed["dxfs"][0]["placement"]["dx"], json!(0.0));
+    let updated = ok(&["update", "p.chipload", "--from", "part.dxf", "--dxf", "2"]);
+    assert_eq!(
+        updated["unchanged"].as_array().unwrap().len(),
+        7,
+        "{updated}"
+    );
+    ok(&["dxf", "remove", "p.chipload", "1"]);
+    let listed = ok(&["dxf", "list", "p.chipload"]);
+    assert_eq!(listed["dxfs"].as_array().unwrap().len(), 1);
+    assert_eq!(listed["dxfs"][0]["id"], json!(2));
+    let run = chipload(&dir, &["dxf", "remove", "p.chipload", "1"]);
+    assert_ne!(run.code, Some(0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

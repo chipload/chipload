@@ -83,7 +83,7 @@ impl CanvasSelection {
         match self {
             CanvasSelection::Layer(layer) => Selector {
                 layer: Some(layer.clone()),
-                shapes: None,
+                ..Selector::default()
             },
             _ => {
                 let ids = self.ids(contours);
@@ -99,8 +99,8 @@ impl CanvasSelection {
                     }
                 }
                 Selector {
-                    layer: None,
                     shapes: Some(shapes),
+                    ..Selector::default()
                 }
             }
         }

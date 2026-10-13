@@ -758,7 +758,8 @@ fn new_projects_embed_the_drawing_and_run_without_it() {
     square_dxf(&dxf, &[("A1", "CUT", 10.0, 10.0, 50.0)]);
     let job = project_with_profile(&dxf);
     assert_eq!(job.drawing.next_shape_id, 2);
-    assert_eq!(job.drawing.source.as_ref().unwrap().file, "part.dxf");
+    assert_eq!(job.drawing.dxfs[0].file, "part.dxf");
+    assert_eq!(job.drawing.dxfs[0].name, "part");
     std::fs::remove_file(&dxf).unwrap(); // the DXF is no longer needed
     let result = run_job(&job).unwrap();
     assert_eq!(result.contours.len(), 1);
