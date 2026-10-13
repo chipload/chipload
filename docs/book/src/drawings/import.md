@@ -29,7 +29,7 @@ without saying so. The report under the canvas (and from `inspect`) lists:
 | `duplicate` | a line or arc drawn twice on top of itself; one is kept |
 | `zero_length` | a line or arc of no length; left out |
 | `nonzero_z` | the drawing has Z values (3D); they are ignored, the drawing is read flat |
-| `entity_skipped` | an entity Chipload doesn't read (text, dimensions, hatches, …) |
+| `entity_skipped` | an entity Chipload doesn't read (text, dimensions, hatches, …), or one with a coordinate beyond 1 km or not a number, which only a broken file has |
 | `block_depth` | blocks nested too deep; the inner ones are skipped |
 | `open_contour` | a contour that doesn't close: profiles and pockets skip it |
 | `branch_point` | three or more lines meet at a point, so the contour's path is ambiguous |

@@ -163,23 +163,39 @@ pub fn shapes_from_dxf_scaled(
     units: Option<Units>,
     scale: f64,
 ) -> Result<ImportedShapes, ImportError> {
-    let unreadable = |reason: String| ImportError::Unreadable {
+    let bytes = std::fs::read(path).map_err(|err| ImportError::Unreadable {
         path: path.display().to_string(),
+        reason: err.to_string(),
+    })?;
+    let name = path.file_name().map_or_else(
+        || path.display().to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    shapes_from_dxf_bytes(&bytes, &name, units, scale)
+}
+
+/// [`shapes_from_dxf_scaled`] for a DXF already read into memory; `name` is the file name
+/// recorded in the source and used in errors. Also the entry point of the fuzzer
+/// (fuzz/fuzz_targets/dxf_import.rs).
+pub fn shapes_from_dxf_bytes(
+    bytes: &[u8],
+    name: &str,
+    units: Option<Units>,
+    scale: f64,
+) -> Result<ImportedShapes, ImportError> {
+    let unreadable = |reason: String| ImportError::Unreadable {
+        path: name.to_string(),
         reason,
     };
-    let bytes = std::fs::read(path).map_err(|err| unreadable(err.to_string()))?;
-    let cleaned = sanitize::strip_unused(&bytes);
+    let cleaned = sanitize::strip_unused(bytes);
     // The parser is third-party code fed hostile input: a panic in it becomes an import
     // error instead of taking the application down.
     let parsed = std::panic::catch_unwind(|| Drawing::load(&mut cleaned.as_slice()))
         .map_err(|_| unreadable("the DXF parser crashed on this file".into()))?;
     let drawing = parsed.map_err(|err| unreadable(err.to_string()))?;
     let mut imported = shapes_from_drawing_scaled(&drawing, units, scale)?;
-    imported.source.file = path.file_name().map_or_else(
-        || path.display().to_string(),
-        |n| n.to_string_lossy().into_owned(),
-    );
-    imported.source.sha256 = sha256_hex(&bytes);
+    imported.source.file = name.to_string();
+    imported.source.sha256 = sha256_hex(bytes);
     Ok(imported)
 }
 

@@ -21,6 +21,12 @@ use crate::{Issue, Severity};
 
 /// Guards against hostile, self-referencing or absurdly deep block nesting.
 pub const MAX_BLOCK_DEPTH: usize = 32;
+/// The largest coordinate, radius or extent an entity may have, mm (1 km): far beyond any
+/// machine, and far inside what the contour joining's grid of `CHAIN_TOL_MM` cells can index.
+/// An entity past it, or with a value that isn't a number (`inf`, `NaN`), is skipped and
+/// reported; a hostile DXF with a 127-digit coordinate made the joining overflow (found by
+/// fuzzing, 2026-10-13).
+pub const MAX_COORDINATE_MM: f64 = 1.0e6;
 
 /// `p ↦ m·p + t` in the XY plane.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -208,6 +214,14 @@ impl<'a> Converter<'a> {
         let Some(pieces) = self.pieces(entity, &kind, &place.to_mm) else {
             return;
         };
+        if !pieces.prims.iter().all(in_range) {
+            self.skip(
+                entity,
+                &kind,
+                &format!("a coordinate is not a number or beyond {MAX_COORDINATE_MM} mm"),
+            );
+            return;
+        }
         *self.imported.entry(kind.clone()).or_default() += 1;
         self.track_z(pieces.max_abs_z);
         let entity = self.entities;
@@ -554,6 +568,17 @@ fn map_arc(frame: &Affine, arc: &Arc) -> Vec<Primitive> {
             })
         })
         .collect()
+}
+
+/// Every number of `prim` is finite and within [`MAX_COORDINATE_MM`].
+fn in_range(prim: &Primitive) -> bool {
+    let numbers = match prim {
+        Primitive::Line(l) => vec![l.start.0, l.start.1, l.end.0, l.end.1],
+        Primitive::Arc(a) => vec![a.center.0, a.center.1, a.radius, a.start_angle, a.sweep],
+    };
+    numbers
+        .iter()
+        .all(|v| v.is_finite() && v.abs() <= MAX_COORDINATE_MM)
 }
 
 #[cfg(test)]

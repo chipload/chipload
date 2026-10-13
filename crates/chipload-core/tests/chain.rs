@@ -146,3 +146,11 @@ fn contour_ids_follow_drawing_order() {
     );
     assert_eq!(result.contours[0].points()[0], (0.0, 0.0));
 }
+
+#[test]
+fn coordinates_at_the_edge_of_the_grid_dont_overflow() {
+    // The grid's cell index saturates; its neighbours mustn't overflow (fuzzing, 2026-10-13).
+    let far = 1.0e300;
+    let result = chain_segments(&[line((far, far), (far, 0.0)), line((0.0, 0.0), (1.0, 0.0))]);
+    assert_eq!(result.contours.len(), 2);
+}

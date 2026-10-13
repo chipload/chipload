@@ -112,7 +112,9 @@ struct NodeIndex {
 
 impl NodeIndex {
     fn cell(&self, p: Point) -> (i64, i64) {
-        // Drawing coordinates divided by 0.001 mm stay far inside i64.
+        // Imported coordinates are limited (chipload-dxf's MAX_COORDINATE_MM), which keeps
+        // these far inside i64; `as` saturates and the neighbours below add saturating, so
+        // anything else can't overflow either.
         (
             (p.0 / self.tol).floor() as i64,
             (p.1 / self.tol).floor() as i64,
@@ -124,7 +126,8 @@ impl NodeIndex {
         let mut best: Option<usize> = None;
         for dx in -1..=1 {
             for dy in -1..=1 {
-                for &node in self.grid.get(&(cx + dx, cy + dy)).into_iter().flatten() {
+                let near = (cx.saturating_add(dx), cy.saturating_add(dy));
+                for &node in self.grid.get(&near).into_iter().flatten() {
                     if distance(self.positions[node], p) <= self.tol {
                         best = Some(best.map_or(node, |b| b.min(node)));
                     }

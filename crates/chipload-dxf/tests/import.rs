@@ -98,3 +98,26 @@ fn garbage_is_an_error_not_a_crash() {
     std::fs::remove_dir_all(&dir).unwrap();
     assert!(matches!(result, Err(ImportError::Unreadable { .. })));
 }
+
+/// Files the fuzzer broke (fuzz/README.md): each imports, or is refused, without a panic.
+#[test]
+fn a_coordinate_too_large_skips_its_entity_with_a_warning() {
+    // A 127-digit coordinate made the contour joining overflow (fuzzing, 2026-10-13).
+    let result = import_dxf(&corpus("fuzz/huge_coordinate.dxf"), Some(Units::Mm)).unwrap();
+    assert!(codes(&result).contains(&"entity_skipped"));
+    let issue = result
+        .report
+        .issues
+        .iter()
+        .find(|i| i.code == "entity_skipped")
+        .unwrap();
+    assert!(
+        issue
+            .message
+            .contains("LWPOLYLINE (A1): a coordinate is not a number or beyond"),
+        "{}",
+        issue.message
+    );
+    // The other two polylines import as usual.
+    assert_eq!(result.contours.len(), 2);
+}
