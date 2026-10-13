@@ -20,7 +20,8 @@ use chipload_pipeline::posts::{
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_SAFE_Z};
 use clap::{Subcommand, ValueEnum};
 
-use crate::{fail, load};
+use crate::load;
+use crate::out::Out;
 
 #[derive(Subcommand)]
 pub enum ToolAction {
@@ -253,19 +254,19 @@ fn refused(text: String) -> LibraryError {
     LibraryError::Refused(text)
 }
 
-pub fn tool(action: ToolAction) -> ExitCode {
+pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
     let dir = match dir() {
         Ok(dir) => dir,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let path = tools_path(&dir);
     let result = match action {
-        ToolAction::List => return list_tools(&path),
+        ToolAction::List => return list_tools(out, &path),
         ToolAction::Export { file, names } => {
-            return export_file::<ToolLibrary>(&path, &file, &names);
+            return export_file::<ToolLibrary>(out, &path, &file, &names);
         }
         ToolAction::Import { file, replace } => {
-            return import_file::<ToolLibrary>(&path, &file, replace, |_| Vec::new());
+            return import_file::<ToolLibrary>(out, &path, &file, replace, |_| Vec::new());
         }
         ToolAction::Add { name, values } => update_tools(&path, |library| {
             if library.find(&name).is_some() {
@@ -323,19 +324,19 @@ pub fn tool(action: ToolAction) -> ExitCode {
             name,
             project,
             output,
-        } => return use_library_tool(&path, &name, &project, output.as_deref()),
+        } => return use_library_tool(out, &path, &name, &project, output.as_deref()),
         ToolAction::Save {
             project,
             tool,
             name,
             replace,
         } => {
-            let job = match load(&project) {
+            let job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
             let Some(found) = job.tools.iter().find(|t| t.id == tool) else {
-                return fail(format!("the project has no tool {tool}"));
+                return out.fail(format!("the project has no tool {tool}"));
             };
             let entry = LibraryTool::from_tool(&name, found, None);
             update_tools(&path, |library| {
@@ -360,7 +361,7 @@ pub fn tool(action: ToolAction) -> ExitCode {
             })
         }
     };
-    finish(result, &path)
+    finish(out, result, &path)
 }
 
 fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), LibraryError> {
@@ -436,20 +437,26 @@ fn rename_default(default: &mut Option<String>, old: &str, new: &str) {
 }
 
 /// `tool export`, `machine export` (docs/specs/library-import-export.md §3).
-fn export_file<L: Collection>(path: &Path, file: &Path, names: &[String]) -> ExitCode {
+fn export_file<L: Collection>(
+    out: &mut Out,
+    path: &Path,
+    file: &Path,
+    names: &[String],
+) -> ExitCode {
     let exported = load_library::<L>(path).and_then(|library| export(&library, names));
     match exported.and_then(|out| write_export(&out, file).map(|()| out.entries().len())) {
         Ok(count) => {
-            println!("Exported {}: {count}", L::LIST);
-            println!("Wrote {}", file.display());
+            out.line(format!("Exported {}: {count}", L::LIST));
+            out.wrote(file, "");
             ExitCode::SUCCESS
         }
-        Err(err) => fail(err),
+        Err(err) => out.fail(err),
     }
 }
 
 /// `tool import`, `machine import` (§4): one save of the library, then the report.
 fn import_file<L: Collection>(
+    out: &mut Out,
     path: &Path,
     file: &Path,
     replace: bool,
@@ -464,26 +471,31 @@ fn import_file<L: Collection>(
     match imported {
         Ok((plan, notes)) => {
             for line in plan.report(L::LIST, replace).iter().chain(&notes) {
-                println!("{line}");
+                out.line(line.to_string());
             }
             if !replace && !plan.differing.is_empty() {
-                println!("Use --replace to take the file's values.");
+                out.line("Use --replace to take the file's values.");
             }
-            println!("Wrote {}", path.display());
+            let differing: Vec<&String> = plan.differing.iter().map(|(name, _)| name).collect();
+            out.set("added", serde_json::json!(plan.added));
+            out.set("same", serde_json::json!(plan.same));
+            out.set("differing", serde_json::json!(differing));
+            out.set("replaced", serde_json::json!(replace));
+            out.wrote(path, "");
             ExitCode::SUCCESS
         }
-        Err(err) => fail(err),
+        Err(err) => out.fail(err),
     }
 }
 
-fn finish(result: Result<String, LibraryError>, path: &Path) -> ExitCode {
+fn finish(out: &mut Out, result: Result<String, LibraryError>, path: &Path) -> ExitCode {
     match result {
         Ok(line) => {
-            println!("{line}");
-            println!("Wrote {}", path.display());
+            out.line(line.to_string());
+            out.wrote(path, "");
             ExitCode::SUCCESS
         }
-        Err(err) => fail(err),
+        Err(err) => out.fail(err),
     }
 }
 
@@ -495,14 +507,17 @@ fn optional<T: std::fmt::Display>(label: &str, value: Option<T>, unit: &str) -> 
     value.map_or_else(String::new, |v| format!(", {label} {v}{unit}"))
 }
 
-fn list_tools(path: &Path) -> ExitCode {
+fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
     let library = match load_tools(path) {
         Ok(library) => library,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
-    println!("Tool library: {}", path.display());
+    out.line(format!("Tool library: {}", path.display()));
+    out.set("path", serde_json::json!(path.display().to_string()));
+    out.set("default", serde_json::json!(library.default_tool));
+    out.set("tools", serde_json::json!(library.tools));
     if library.tools.is_empty() {
-        println!("  (no tools)");
+        out.line("  (no tools)");
     }
     for t in &library.tools {
         let is_default = library
@@ -540,47 +555,55 @@ fn list_tools(path: &Path) -> ExitCode {
                 c.feed, c.plunge_feed, c.step_down, c.stepover
             ));
         }
-        println!("{line}");
+        out.line(line.to_string());
     }
     ExitCode::SUCCESS
 }
 
-fn use_library_tool(path: &Path, name: &str, project: &Path, output: Option<&Path>) -> ExitCode {
+fn use_library_tool(
+    out: &mut Out,
+    path: &Path,
+    name: &str,
+    project: &Path,
+    output: Option<&Path>,
+) -> ExitCode {
     let library = match load_tools(path) {
         Ok(library) => library,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let Some(entry) = library.find(name) else {
-        return fail(format!("no tool named \"{name}\" in {}", path.display()));
+        return out.fail(format!("no tool named \"{name}\" in {}", path.display()));
     };
-    let mut job = match load(project) {
+    let mut job = match load(out, project) {
         Ok(job) => job,
         Err(code) => return code,
     };
     let used = use_tool(&mut job, entry);
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {
-        return fail(err);
+        return out.fail(err);
     }
-    println!("\"{}\": {}", entry.name, used.describe(entry.id));
-    println!("Wrote {}", target.display());
+    out.line(format!("\"{}\": {}", entry.name, used.describe(entry.id)));
+    out.set("id", serde_json::json!(used.id));
+    out.set("added", serde_json::json!(used.added));
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 
-pub fn machine(action: MachineAction) -> ExitCode {
+pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
     let dir = match dir() {
         Ok(dir) => dir,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let path = machines_path(&dir);
     let posts = posts_dir(&dir);
     let result = match action {
-        MachineAction::List => return list_machines(&path),
+        MachineAction::List => return list_machines(out, &path),
         MachineAction::Export { file, names } => {
-            return export_file::<MachineLibrary>(&path, &file, &names);
+            return export_file::<MachineLibrary>(out, &path, &file, &names);
         }
         MachineAction::Import { file, replace } => {
-            return import_file::<MachineLibrary>(&path, &file, replace, |from| {
+            return import_file::<MachineLibrary>(out, &path, &file, replace, |from| {
                 unknown_posts(from, Some(&posts))
             });
         }
@@ -636,13 +659,13 @@ pub fn machine(action: MachineAction) -> ExitCode {
             name,
             project,
             output,
-        } => return use_machine(&path, &posts, &name, &project, output.as_deref()),
+        } => return use_machine(out, &path, &posts, &name, &project, output.as_deref()),
         MachineAction::Save {
             project,
             name,
             replace,
         } => {
-            let job = match load(&project) {
+            let job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
@@ -664,7 +687,7 @@ pub fn machine(action: MachineAction) -> ExitCode {
             })
         }
     };
-    finish(result, &path)
+    finish(out, result, &path)
 }
 
 fn set_machine_values(
@@ -738,14 +761,17 @@ fn work_zero_arg(text: &str) -> Result<WorkZero, String> {
     Ok(WorkZero::Stock { corner })
 }
 
-fn list_machines(path: &Path) -> ExitCode {
+fn list_machines(out: &mut Out, path: &Path) -> ExitCode {
     let library = match load_machines(path) {
         Ok(library) => library,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
-    println!("Machine profiles: {}", path.display());
+    out.line(format!("Machine profiles: {}", path.display()));
+    out.set("path", serde_json::json!(path.display().to_string()));
+    out.set("default", serde_json::json!(library.default_machine));
+    out.set("machines", serde_json::json!(library.machines));
     if library.machines.is_empty() {
-        println!("  (no machines)");
+        out.line("  (no machines)");
     }
     for m in &library.machines {
         let is_default = library
@@ -777,12 +803,13 @@ fn list_machines(path: &Path) -> ExitCode {
                 WorkZero::Point { x, y } => format!("point X{x} Y{y}"),
             }
         ));
-        println!("{line}");
+        out.line(line.to_string());
     }
     ExitCode::SUCCESS
 }
 
 fn use_machine(
+    out: &mut Out,
     path: &Path,
     posts: &Path,
     name: &str,
@@ -791,12 +818,12 @@ fn use_machine(
 ) -> ExitCode {
     let library = match load_machines(path) {
         Ok(library) => library,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let Some(profile) = library.find(name) else {
-        return fail(format!("no machine named \"{name}\" in {}", path.display()));
+        return out.fail(format!("no machine named \"{name}\" in {}", path.display()));
     };
-    let mut job = match load(project) {
+    let mut job = match load(out, project) {
         Ok(job) => job,
         Err(code) => return code,
     };
@@ -804,16 +831,16 @@ fn use_machine(
     changes.extend(copy_profile_post(&mut job, Some(posts)));
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {
-        return fail(err);
+        return out.fail(err);
     }
-    println!("Machine \"{}\":", profile.name);
+    out.line(format!("Machine \"{}\":", profile.name));
     if changes.is_empty() {
-        println!("  no values changed");
+        out.line("  no values changed");
     }
     for change in changes {
-        println!("  {change}");
+        out.line(format!("  {change}"));
     }
-    println!("Wrote {}", target.display());
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 
@@ -837,21 +864,39 @@ pub enum PostAction {
     },
 }
 
-pub fn post(action: PostAction) -> ExitCode {
+pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
     let dir = match dir() {
         Ok(dir) => dir,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let posts = posts_dir(&dir);
     match action {
         PostAction::List => {
-            println!("Your post-processors: {}", posts.display());
-            for choice in post_choices(Some(&posts)) {
+            out.line(format!("Your post-processors: {}", posts.display()));
+            let choices = post_choices(Some(&posts));
+            out.set("path", serde_json::json!(posts.display().to_string()));
+            out.set(
+                "posts",
+                serde_json::json!(
+                    choices
+                        .iter()
+                        .map(|c| serde_json::json!({
+                            "name": c.name,
+                            "builtin": c.builtin,
+                            "problem": c.problem,
+                        }))
+                        .collect::<Vec<_>>()
+                ),
+            );
+            for choice in choices {
                 let kind = if choice.builtin { "built in" } else { "yours" };
                 match &choice.problem {
-                    None => println!("  {} ({kind})", choice.name),
+                    None => out.line(format!("  {} ({kind})", choice.name)),
                     Some(problem) => {
-                        println!("  {} ({kind}) can't be used: {problem}", choice.name);
+                        out.line(format!(
+                            "  {} ({kind}) can't be used: {problem}",
+                            choice.name
+                        ));
                     }
                 }
             }
@@ -862,28 +907,34 @@ pub fn post(action: PostAction) -> ExitCode {
             post,
             output,
         } => {
-            let mut job = match load(&project) {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
             let before = copy_state(&job, Some(&posts));
             let was = job.machine.post.clone();
             if let Err(err) = choose_post(&mut job, &post, Some(&posts)) {
-                return fail(err);
+                return out.fail(err);
             }
             let target = output.as_deref().unwrap_or(&project);
             if let Err(err) = save_job(&job, target) {
-                return fail(err);
+                return out.fail(err);
             }
             match (&job.machine.custom_post, was == post, before) {
-                (None, _, _) => println!("Post-processor: {post} (built in)"),
+                (None, _, _) => out.line(format!("Post-processor: {post} (built in)")),
                 (Some(_), true, CopyState::Same) => {
-                    println!("Post-processor: {post} (yours; the copy was up to date)");
+                    out.line(format!(
+                        "Post-processor: {post} (yours; the copy was up to date)"
+                    ));
                 }
-                (Some(_), true, _) => println!("Post-processor: {post} (yours; copy updated)"),
-                (Some(_), false, _) => println!("Post-processor: {post} (yours, copied in)"),
+                (Some(_), true, _) => {
+                    out.line(format!("Post-processor: {post} (yours; copy updated)"))
+                }
+                (Some(_), false, _) => {
+                    out.line(format!("Post-processor: {post} (yours, copied in)"))
+                }
             }
-            println!("Wrote {}", target.display());
+            out.wrote(target, "");
             ExitCode::SUCCESS
         }
     }

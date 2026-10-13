@@ -22,6 +22,7 @@ pub const CURRENT_VERSION: i64 = 18;
 pub const OLDEST_VERSION: i64 = 4;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Job {
     pub schema_version: i64,
@@ -44,6 +45,7 @@ pub const MAX_COPIES: u32 = 1000;
 /// A grid of copies of the whole part: copy (column c, row r) is the drawing moved by
 /// (c·dx, r·dy) mm.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Copies {
     pub columns: u32,
@@ -56,6 +58,7 @@ pub struct Copies {
 
 /// In which order the copies are cut.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum CopyOrder {
     /// Each operation on every copy, then the next operation.
@@ -121,6 +124,7 @@ impl Copies {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum Units {
     Mm,
@@ -130,6 +134,7 @@ pub enum Units {
 /// The project's drawing: shapes in millimetres, or (only for jobs from before v4) a
 /// reference to a DXF that still has to be embedded.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Drawing {
     pub shapes: Vec<Shape>,
@@ -145,6 +150,7 @@ pub struct Drawing {
 ///
 /// In the file it is one flat object: `id`, `layer`, `kind`, then the fields of that kind.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(try_from = "RawShape", into = "RawShape")]
 pub struct Shape {
     pub id: u64,
@@ -316,6 +322,7 @@ fn lines_through(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum ShapeKind {
     Path,
@@ -327,6 +334,7 @@ pub enum ShapeKind {
 /// A shape as it appears in the file: every field a kind may have. Fields of other kinds are
 /// refused, never ignored.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 struct RawShape {
     id: u64,
@@ -520,6 +528,7 @@ impl RawShape {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum PathSegment {
     Line(LineSegment),
@@ -581,6 +590,7 @@ impl PathSegment {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LineSegment {
     pub start: [f64; 2],
@@ -589,6 +599,7 @@ pub struct LineSegment {
 
 /// From `start_angle` through `sweep` radians (positive = counter-clockwise).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ArcSegment {
     pub center: [f64; 2],
@@ -598,6 +609,7 @@ pub struct ArcSegment {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum UnitsFrom {
     /// Declared by the DXF ($INSUNITS).
@@ -607,6 +619,7 @@ pub enum UnitsFrom {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum IssueSeverity {
     Warning,
@@ -615,6 +628,7 @@ pub enum IssueSeverity {
 
 /// An import-time issue that can't be recomputed from the shapes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct SourceIssue {
     pub severity: IssueSeverity,
@@ -624,6 +638,7 @@ pub struct SourceIssue {
 
 /// Provenance of the imported shapes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct DrawingSource {
     pub file: String,
@@ -648,6 +663,7 @@ pub struct DrawingSource {
 /// drawing-rotation.md), scaled about the origin (docs/specs/drawing-scale.md), then moved
 /// by (dx, dy) mm.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Placement {
     /// Uniform, `MIN_SCALE` to `MAX_SCALE`.
@@ -693,6 +709,7 @@ pub fn quarter_turned(p: [f64; 2], k: u8) -> [f64; 2] {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum StockOrigin {
     #[default]
@@ -701,6 +718,7 @@ pub enum StockOrigin {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum ZZero {
     #[default]
@@ -709,6 +727,7 @@ pub enum ZZero {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Stock {
     pub x: f64,
@@ -734,6 +753,7 @@ impl Stock {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Travel {
     pub x: f64,
@@ -742,6 +762,7 @@ pub struct Travel {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum Spindle {
     /// M3
@@ -752,6 +773,7 @@ pub enum Spindle {
 
 /// How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum ToolChange {
     /// One G-code file per tool group; the user changes the tool and sets Z zero between.
@@ -771,6 +793,7 @@ impl ToolChange {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Machine {
     /// The machine profile these values came from (docs/specs/tool-library-and-machines.md
@@ -798,6 +821,7 @@ pub struct Machine {
 
 /// A user post-processor's config and template, exactly as read from the posts folder.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct CustomPost {
     /// The config, TOML text.
@@ -808,6 +832,7 @@ pub struct CustomPost {
 
 /// Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "at", rename_all = "snake_case", deny_unknown_fields)]
 pub enum WorkZero {
     /// The drawing's own origin (the only choice before work_zero existed). An empty struct
@@ -826,6 +851,7 @@ impl Default for WorkZero {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum StockCorner {
     Center,
@@ -883,6 +909,7 @@ impl Job {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum ToolType {
     #[default]
@@ -892,6 +919,7 @@ pub enum ToolType {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tool {
     pub id: i64,
@@ -919,6 +947,7 @@ pub struct Tool {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Selector {
     #[serde(default)]
@@ -929,6 +958,7 @@ pub struct Selector {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Tabs {
     pub count: i64,
@@ -970,6 +1000,7 @@ impl Tabs {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum Side {
     Inside,
@@ -978,6 +1009,7 @@ pub enum Side {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum Direction {
     Climb,
@@ -985,6 +1017,7 @@ pub enum Direction {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Operation {
     Profile(ProfileOp),
@@ -1156,6 +1189,7 @@ impl Operation {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ProfileOp {
     #[serde(default)]
@@ -1207,6 +1241,7 @@ pub struct ProfileOp {
 /// (docs/specs/dogbones.md): every corner on the tool's side up to `max_angle` (radians,
 /// 0 < angle < 180°).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum Corners {
     /// In along the corner's bisector.
@@ -1228,6 +1263,7 @@ pub const DEFAULT_CORNER_ANGLE_RAD: f64 = 100.0 * std::f64::consts::PI / 180.0;
 
 /// A finishing pass on a profile (docs/specs/finish-and-skin.md).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Finish {
     /// Left on the wall by the roughing laps, mm: more than 0, less than the tool radius.
@@ -1236,6 +1272,7 @@ pub struct Finish {
 
 /// An onion skin on a profile (docs/specs/finish-and-skin.md).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Skin {
     /// Left above the end depth until the last laps, mm: more than 0, at most the step
@@ -1244,6 +1281,7 @@ pub struct Skin {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PocketOp {
     #[serde(default)]
@@ -1298,6 +1336,7 @@ pub struct PocketOp {
 /// Rest machining (docs/specs/rest-machining.md): the pocket clears only the material a
 /// disk of the larger tool `after_tool` (a project tool id) can't reach in its shapes.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Rest {
     pub after_tool: i64,
@@ -1306,6 +1345,7 @@ pub struct Rest {
 /// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide
 /// as the shape (docs/specs/v-carve.md).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct VcarveOp {
     #[serde(default)]
@@ -1330,6 +1370,7 @@ pub struct VcarveOp {
 /// Follow path (docs/specs/follow-path.md): the tool centre follows the selected shapes on
 /// the line, open paths back and forth, closed ones round, in depth passes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct PathOp {
     #[serde(default)]
@@ -1352,6 +1393,7 @@ pub struct PathOp {
 /// Holes (docs/specs/holes.md): every selected circle, drilled at its centre with a drill
 /// or bored with a helix at its wall with an endmill.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct HolesOp {
     #[serde(default)]
@@ -1375,6 +1417,7 @@ pub struct HolesOp {
 
 /// How a Holes operation cuts (docs/specs/holes.md §2).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum HoleMethod {
     /// Straight down at the centre; `peck` mm at a time (None: in one go).
@@ -1414,6 +1457,7 @@ impl HoleMethod {
 
 /// Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Lead {
     /// Of the arcs the tool centre follows, mm: more than 0, at most 10 × the tool diameter.
@@ -1426,6 +1470,7 @@ pub const MAX_LEAD_DIAMETERS: f64 = 10.0;
 /// How the tool goes down into the material at the start of each pass
 /// (docs/specs/ramp-entry.md).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum Entry {
     /// Straight down: needs a centre-cutting tool. An empty struct variant, as `Rings`.
@@ -1473,6 +1518,7 @@ pub const DEFAULT_RAMP_ANGLE_RAD: f64 = 3.0 * std::f64::consts::PI / 180.0;
 
 /// Clearing strategy of a pocket.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
 pub enum PocketStrategy {
     /// Rings parallel to the walls, cut from the inside out. An empty struct variant (not a

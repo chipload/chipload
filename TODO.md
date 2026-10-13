@@ -5,8 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Scripting** (lean plan item 3): spec drafted 2026-10-13 (docs/specs/scripting.md),
-  waiting for review of its decisions.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -66,8 +65,8 @@ it's built (see `CLAUDE.md`).
      (docs/specs/presets.md, decisions not reviewed).
   2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md). Later: rest
      profiles if missed; dogbones on a rest pocket.
-  3. Scripting: a JSON Schema for the project file, JSON output from every CLI command,
-     batch runs.
+  3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/scripting.md). Batch
+     runs: shell recipes instead of a command (decision 8).
   4. Feeds and speeds per material in the library, with a chip-load warning.
   5. Merge the material-left display into the simulation (keep the check).
   6. Fuzz the DXF importer.
@@ -87,6 +86,16 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Scripting** (2026-10-13, docs/specs/scripting.md; user guide docs/scripting.md):
+  - `--json` on every command, with one envelope (`chipload_json`, `ok`, `notes`,
+    `written`, and `error` with the problems' paths) and each command's own keys;
+  - `get` and `set` by path (0-based, as problem paths), checked before writing;
+  - `--set` for one run of `run`, `plan`, `simulate` and `sheet`;
+  - `check-project`;
+  - JSON Schemas for projects, tools and machines (`chipload schema`, `docs/schemas/`),
+    generated with schemars and validated against every frozen sample in tests (boon,
+    a dev-dependency only);
+  - no batch command: recipes for bash and PowerShell instead.
 - **Rest machining** (2026-10-13, docs/specs/rest-machining.md): a pocket can rest after a
   larger project tool (`rest: {after_tool}`, an optional field, no schema bump). It then
   clears only what that tool's size leaves (rounded corners, slots and gaps it doesn't fit

@@ -58,6 +58,7 @@ pub enum LibraryError {
 /// Values filled into an operation when it is created with this tool. Never applied to an
 /// existing operation.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Cutting {
     pub feed: f64,
@@ -69,6 +70,7 @@ pub struct Cutting {
 
 /// One tool of the library: a project tool with a name and optional cutting values.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct LibraryTool {
     pub name: String,
@@ -179,6 +181,7 @@ impl LibraryTool {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct ToolLibrary {
     pub schema_version: i64,
@@ -269,6 +272,7 @@ impl ToolLibrary {
 
 /// One machine profile: a project's machine values plus the spoilboard allowance.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MachineProfile {
     pub name: String,
@@ -422,6 +426,7 @@ fn work_zero_name(zero: &WorkZero) -> String {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct MachineLibrary {
     pub schema_version: i64,

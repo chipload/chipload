@@ -17,7 +17,7 @@ chipload-dxf = { version = "0.13.0", path = "../chipload-dxf" }
 chipload-pipeline = { version = "0.13.0", path = "../chipload-pipeline" }
 chipload-post = { version = "0.13.0", path = "../chipload-post" }
 chipload-toolpath = { version = "0.13.0", path = "../chipload-toolpath" }
-chipload-job = { version = "0.13.0", path = "../chipload-job" }
+chipload-job = { version = "0.13.0", path = "../chipload-job", features = ["schema"] }
 clap = { version = "4.6.7", features = ["derive"] }
 serde_json = "1.0.151"
 
@@ -26,3 +26,5 @@ workspace = true
 
 [dev-dependencies]
 serde_json = "1"
+# Validates the generated JSON Schemas against the corpus (tests only; docs/specs/scripting.md §7).
+boon = "0.6.1"

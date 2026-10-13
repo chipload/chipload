@@ -1,6 +1,22 @@
 # Spec: scripting (JSON Schema, JSON output, editing by path, batch)
 
-Status: **draft 2026-10-13**, for review (decisions in §8).
+Status: **approved 2026-10-13** ("Go ahead"), all decisions as recommended (§8).
+Built 2026-10-13. As built:
+- §3: every command's output goes through `Out` (crates/chipload-cli/src/out.rs), which
+  prints text or collects the JSON. `--json` is a global flag, and it replaces the old
+  per-command `--json` of `inspect`, `plan` and `check`, which are spelt the same way.
+- §3: `plan --json` already had its warnings under `notes`, the envelope's key with the
+  same meaning.
+- §3: library imports give `added`, `same`, `differing` and `replaced` (the import plan's
+  own words) instead of "added, skipped, replaced".
+- §3: an `update` that loses geometry fails with its warning as the error message.
+- §4: `check-project`'s error names the first problem. `set` refuses a value the format
+  doesn't load with "the project wouldn't load after setting PATH: …".
+- §2: shapes are one flat object in the file, so the schema lists every shape field as
+  optional. Loading checks each kind's own fields. The `THIRD-PARTY-LICENSES.txt` entry for
+  schemars carries a file it copied from regex-syntax with its MIT notice, which is the
+  attribution that notice asks for.
+- §5: the recipes are in `docs/scripting.md`, linked from the README.
 
 Approved plan (2026-10-13, ADR 0017), item 3. This is for power users who drive Chipload
 from scripts: generate or change projects, run them, and read the results, without
@@ -9,7 +25,7 @@ screen-scraping text.
 ## 1. Where things stand
 
 - Three commands print JSON already: `inspect --json`, `plan --json` and `check --json`. Each
-  has its own shape. `plan --json` leaves out the warnings that the text output prints.
+  has its own shape. `plan --json` has its warnings under `notes`.
 - Every other command prints text only, and errors go to stderr as `error: …`.
 - Exit codes are 0 for done, 1 for failed (including a program the checker refuses), and 2
   for a usage error (clap).
@@ -77,7 +93,8 @@ and nothing else, also on failure. Without it, nothing changes.
 **Each command's own keys**, next to the envelope's:
 
 - `plan`: today's keys unchanged (`program`, `groups`, `pockets`, `material_left`,
-  `ring_starts`, `estimate`, `chip_load`), plus the warnings in `notes`.
+  `ring_starts`, `estimate`, `chip_load`, and the warnings in `notes`, which is the
+  envelope's key with the same meaning).
   - The old `plan --json` flag is the same flag, so existing scripts keep working, and gain
     the envelope keys.
 - `inspect`: today's keys unchanged. `check`: today's keys unchanged; its `ok` already means

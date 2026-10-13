@@ -1,0 +1,1687 @@
+{
+  "$defs": {
+    "ArcSegment": {
+      "additionalProperties": false,
+      "description": "From `start_angle` through `sweep` radians (positive = counter-clockwise).",
+      "properties": {
+        "center": {
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "radius": {
+          "format": "double",
+          "type": "number"
+        },
+        "start_angle": {
+          "format": "double",
+          "type": "number"
+        },
+        "sweep": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "center",
+        "radius",
+        "start_angle",
+        "sweep"
+      ],
+      "type": "object"
+    },
+    "Copies": {
+      "additionalProperties": false,
+      "description": "A grid of copies of the whole part: copy (column c, row r) is the drawing moved by\n(c·dx, r·dy) mm.",
+      "properties": {
+        "columns": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "dx": {
+          "format": "double",
+          "type": "number"
+        },
+        "dy": {
+          "format": "double",
+          "type": "number"
+        },
+        "order": {
+          "$ref": "#/$defs/CopyOrder",
+          "default": "by_operation"
+        },
+        "rows": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "columns",
+        "rows",
+        "dx",
+        "dy"
+      ],
+      "type": "object"
+    },
+    "CopyOrder": {
+      "description": "In which order the copies are cut.",
+      "oneOf": [
+        {
+          "const": "by_operation",
+          "description": "Each operation on every copy, then the next operation.",
+          "type": "string"
+        },
+        {
+          "const": "by_part",
+          "description": "Every operation on one copy, then the next copy.",
+          "type": "string"
+        }
+      ]
+    },
+    "Corners": {
+      "description": "How the tool reaches into the inside corners it would leave round\n(docs/specs/dogbones.md): every corner on the tool's side up to `max_angle` (radians,\n0 < angle < 180°).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "In along the corner's bisector.",
+          "properties": {
+            "max_angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "dogbone",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "max_angle"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "In along the longer wall: the notch is in the shorter one.",
+          "properties": {
+            "max_angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "tbone",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "max_angle"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CustomPost": {
+      "additionalProperties": false,
+      "description": "A user post-processor's config and template, exactly as read from the posts folder.",
+      "properties": {
+        "config": {
+          "description": "The config, TOML text.",
+          "type": "string"
+        },
+        "template": {
+          "description": "The template the config names, text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "config",
+        "template"
+      ],
+      "type": "object"
+    },
+    "Direction": {
+      "enum": [
+        "climb",
+        "conventional"
+      ],
+      "type": "string"
+    },
+    "Drawing": {
+      "additionalProperties": false,
+      "description": "The project's drawing: shapes in millimetres, or (only for jobs from before v4) a\nreference to a DXF that still has to be embedded.",
+      "properties": {
+        "next_shape_id": {
+          "description": "The id the next new shape gets. Ids are never reused.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "shapes": {
+          "items": {
+            "$ref": "#/$defs/Shape"
+          },
+          "type": "array"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DrawingSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the imported shapes came from (the last import or update)."
+        }
+      },
+      "required": [
+        "shapes",
+        "next_shape_id"
+      ],
+      "type": "object"
+    },
+    "DrawingSource": {
+      "additionalProperties": false,
+      "description": "Provenance of the imported shapes.",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "flattened": {
+          "additionalProperties": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "ignored": {
+          "additionalProperties": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "imported": {
+          "additionalProperties": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "issues": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SourceIssue"
+          },
+          "type": "array"
+        },
+        "placement": {
+          "$ref": "#/$defs/Placement",
+          "description": "How far the imported shapes are moved from where the DXF has them; the stored shapes\nare the moved ones (docs/specs/drawing-placement.md)."
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "units": {
+          "$ref": "#/$defs/Units"
+        },
+        "units_from": {
+          "$ref": "#/$defs/UnitsFrom"
+        }
+      },
+      "required": [
+        "file",
+        "sha256",
+        "units",
+        "units_from",
+        "placement"
+      ],
+      "type": "object"
+    },
+    "Entry": {
+      "description": "How the tool goes down into the material at the start of each pass\n(docs/specs/ramp-entry.md).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Straight down: needs a centre-cutting tool. An empty struct variant, as `Rings`.",
+          "properties": {
+            "type": {
+              "const": "plunge",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Down along the path and back, never steeper than `ramp_angle` (radians,\n0 < angle <= 30°).",
+          "properties": {
+            "ramp_angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "ramp",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "ramp_angle"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Pockets only: down round a circle of `radius` (of the tool centre, mm, less than\nthe tool radius), never steeper than `ramp_angle` (docs/specs/helix-and-leads.md\npart C).",
+          "properties": {
+            "radius": {
+              "format": "double",
+              "type": "number"
+            },
+            "ramp_angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "helix",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "radius",
+            "ramp_angle"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Finish": {
+      "additionalProperties": false,
+      "description": "A finishing pass on a profile (docs/specs/finish-and-skin.md).",
+      "properties": {
+        "stock": {
+          "description": "Left on the wall by the roughing laps, mm: more than 0, less than the tool radius.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "stock"
+      ],
+      "type": "object"
+    },
+    "HoleMethod": {
+      "description": "How a Holes operation cuts (docs/specs/holes.md §2).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Straight down at the centre; `peck` mm at a time (None: in one go).",
+          "properties": {
+            "peck": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "drill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A helix at the wall, at most `step_down` mm per turn and never steeper than\n`ramp_angle` (radians, 0 < angle <= 30°), then one level circle.",
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/Direction"
+            },
+            "ramp_angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "bore",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "step_down",
+            "ramp_angle",
+            "direction"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "IssueSeverity": {
+      "enum": [
+        "warning",
+        "error"
+      ],
+      "type": "string"
+    },
+    "Lead": {
+      "additionalProperties": false,
+      "description": "Quarter-circle lead-in and lead-out (docs/specs/helix-and-leads.md part B).",
+      "properties": {
+        "radius": {
+          "description": "Of the arcs the tool centre follows, mm: more than 0, at most 10 × the tool diameter.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "radius"
+      ],
+      "type": "object"
+    },
+    "LineSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "start": {
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "Machine": {
+      "additionalProperties": false,
+      "properties": {
+        "custom_post": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CustomPost"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A user post-processor as copied into the project when it was chosen\n(docs/specs/user-posts.md §3); null: `post` names a built-in post. Since schema 15."
+        },
+        "max_feed": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "name": {
+          "default": null,
+          "description": "The machine profile these values came from (docs/specs/tool-library-and-machines.md\n§4). Only a note: planning and G-code never read it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post": {
+          "type": "string"
+        },
+        "safe_z": {
+          "format": "double",
+          "type": "number"
+        },
+        "spindle": {
+          "$ref": "#/$defs/Spindle"
+        },
+        "tool_change": {
+          "$ref": "#/$defs/ToolChange",
+          "description": "One file per tool group or one file with M6 (schema 12)."
+        },
+        "travel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Travel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "work_zero": {
+          "$ref": "#/$defs/WorkZero",
+          "default": {
+            "at": "drawing_origin"
+          },
+          "description": "The drawing point that becomes X0 Y0 in the G-code (docs/specs/work-zero.md).\nMissing in older files: the drawing origin, as before."
+        }
+      },
+      "required": [
+        "post",
+        "safe_z",
+        "spindle",
+        "tool_change"
+      ],
+      "type": "object"
+    },
+    "Operation": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "clearance": {
+              "description": "How far the cut moves into the material that is kept, mm: positive gives a larger\npocket or a smaller part, negative leaves material. Less than the tool radius.",
+              "format": "double",
+              "type": "number"
+            },
+            "corners": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Corners"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dogbones or T-bones in the inside corners (docs/specs/dogbones.md). Missing: none."
+            },
+            "direction": {
+              "$ref": "#/$defs/Direction"
+            },
+            "enabled": {
+              "default": true,
+              "description": "Disabled operations stay in the file and are skipped when generating.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "format": "double",
+              "type": "number"
+            },
+            "entry": {
+              "$ref": "#/$defs/Entry",
+              "default": {
+                "type": "plunge"
+              },
+              "description": "Missing: straight down, as before (docs/specs/ramp-entry.md)."
+            },
+            "feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "finish": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Finish"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Rough with stock left on the wall, then one finishing lap at the wall\n(docs/specs/finish-and-skin.md). Missing: none."
+            },
+            "lead": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Lead"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,\npart B). Missing: none."
+            },
+            "name": {
+              "default": "",
+              "type": "string"
+            },
+            "plunge_feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector"
+            },
+            "side": {
+              "$ref": "#/$defs/Side"
+            },
+            "skin": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Skin"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Stop a thin skin above the end depth and cut through it last\n(docs/specs/finish-and-skin.md). Missing: none."
+            },
+            "start_depth": {
+              "description": "Where the cut starts and ends, mm down from the stock top (docs/specs/\ndepths-and-clearance.md): 0 <= start_depth < end_depth.",
+              "format": "double",
+              "type": "number"
+            },
+            "starts": {
+              "default": [],
+              "description": "Where rings start, in drawing coordinates (mm): each point moves the start of the\nring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.",
+              "items": {
+                "items": {
+                  "format": "double",
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "step_down": {
+              "format": "double",
+              "type": "number"
+            },
+            "tabs": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Tabs"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "tool": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "profile",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "select",
+            "side",
+            "direction",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "clearance",
+            "step_down",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "clearance": {
+              "description": "How far the cut moves into the material that is kept, mm: positive gives a larger\npocket or a smaller part, negative leaves material. Less than the tool radius.",
+              "format": "double",
+              "type": "number"
+            },
+            "corners": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Corners"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Dogbones or T-bones in the wall's corners (docs/specs/dogbones.md). Missing: none."
+            },
+            "direction": {
+              "$ref": "#/$defs/Direction"
+            },
+            "enabled": {
+              "default": true,
+              "description": "Disabled operations stay in the file and are skipped when generating.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "format": "double",
+              "type": "number"
+            },
+            "entry": {
+              "$ref": "#/$defs/Entry",
+              "default": {
+                "type": "plunge"
+              },
+              "description": "Missing: straight down, as before (docs/specs/ramp-entry.md)."
+            },
+            "feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "keep_tool_down": {
+              "default": false,
+              "description": "Stay at depth between rings where that is safe.",
+              "type": "boolean"
+            },
+            "lead": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Lead"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Arc onto the path from the waste and off it again (docs/specs/helix-and-leads.md,\npart B). Missing: none."
+            },
+            "name": {
+              "default": "",
+              "type": "string"
+            },
+            "plunge_feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "rest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Rest"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Clear only what a larger tool leaves (docs/specs/rest-machining.md). Missing: the\nwhole pocket."
+            },
+            "round_corners": {
+              "description": "Rings strategy: the corners of every ring but the wall ring are rounded\n(docs/specs/pocket-round-corners.md, schema 14). Ignored by the other strategies.",
+              "type": "boolean"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector"
+            },
+            "start_depth": {
+              "description": "Where the cut starts and ends, mm down from the stock top (docs/specs/\ndepths-and-clearance.md): 0 <= start_depth < end_depth.",
+              "format": "double",
+              "type": "number"
+            },
+            "starts": {
+              "default": [],
+              "description": "Where rings start, in drawing coordinates (mm): each point moves the start of the\nring nearest to it (docs/specs/helix-and-leads.md, part A). Missing: none.",
+              "items": {
+                "items": {
+                  "format": "double",
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "step_down": {
+              "format": "double",
+              "type": "number"
+            },
+            "stepover": {
+              "description": "Fraction of the tool diameter, 0 < stepover <= 1.",
+              "format": "double",
+              "type": "number"
+            },
+            "strategy": {
+              "$ref": "#/$defs/PocketStrategy",
+              "default": {
+                "type": "rings"
+              },
+              "description": "How the pocket is cleared (docs/specs/trochoidal.md). Missing: rings, as before."
+            },
+            "tool": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "pocket",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "clearance",
+            "step_down",
+            "stepover",
+            "direction",
+            "feed",
+            "plunge_feed",
+            "round_corners"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide\nas the shape (docs/specs/v-carve.md).",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "description": "Disabled operations stay in the file and are skipped when generating.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "description": "The deepest the tip goes, mm down from the stock top: wider strokes are carved to it\nand reported (§5).",
+              "format": "double",
+              "type": "number"
+            },
+            "feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "name": {
+              "default": "",
+              "type": "string"
+            },
+            "plunge_feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector"
+            },
+            "start_depth": {
+              "description": "The surface carved, mm down from the stock top (0: the top).",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "Missing: one pass.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "tool": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "vcarve",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Follow path: the tool centre on the selected shapes, open or closed\n(docs/specs/follow-path.md).",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "description": "Disabled operations stay in the file and are skipped when generating.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "format": "double",
+              "type": "number"
+            },
+            "entry": {
+              "$ref": "#/$defs/Entry",
+              "description": "Plunge or ramp (a helix is for pockets)."
+            },
+            "feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "name": {
+              "default": "",
+              "type": "string"
+            },
+            "plunge_feed": {
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector"
+            },
+            "start_depth": {
+              "description": "Where the cut starts and ends, mm down from the stock top: 0 <= start < end.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "format": "double",
+              "type": "number"
+            },
+            "tool": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "step_down",
+            "feed",
+            "plunge_feed",
+            "entry"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Holes: drilled with a drill, bored with a helix with an endmill\n(docs/specs/holes.md).",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "description": "Disabled operations stay in the file and are skipped when generating.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "format": "double",
+              "type": "number"
+            },
+            "feed": {
+              "description": "The bore's helix and circle; a drill doesn't use it.",
+              "format": "double",
+              "type": "number"
+            },
+            "method": {
+              "$ref": "#/$defs/HoleMethod",
+              "description": "Matches the tool: `drill` for a drill, `bore` for an endmill."
+            },
+            "name": {
+              "default": "",
+              "type": "string"
+            },
+            "plunge_feed": {
+              "description": "The drill's feed down; the bore's straight descent to the start depth.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector"
+            },
+            "start_depth": {
+              "description": "Where the cut starts and ends, mm down from the stock top: 0 <= start < end. For a\ndrill, the end is the depth of its point.",
+              "format": "double",
+              "type": "number"
+            },
+            "tool": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "holes",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "feed",
+            "plunge_feed",
+            "method"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "PathSegment": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "line": {
+              "$ref": "#/$defs/LineSegment"
+            }
+          },
+          "required": [
+            "line"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "arc": {
+              "$ref": "#/$defs/ArcSegment"
+            }
+          },
+          "required": [
+            "arc"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Placement": {
+      "additionalProperties": false,
+      "description": "Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy),\nturned about the DXF origin by `quarter_turns` × 90° counter-clockwise (docs/specs/\ndrawing-rotation.md), scaled about the origin (docs/specs/drawing-scale.md), then moved\nby (dx, dy) mm.",
+      "properties": {
+        "dx": {
+          "format": "double",
+          "type": "number"
+        },
+        "dy": {
+          "format": "double",
+          "type": "number"
+        },
+        "quarter_turns": {
+          "description": "0 to 3.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "scale": {
+          "description": "Uniform, `MIN_SCALE` to `MAX_SCALE`.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "scale",
+        "quarter_turns",
+        "dx",
+        "dy"
+      ],
+      "type": "object"
+    },
+    "PocketStrategy": {
+      "description": "Clearing strategy of a pocket.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Rings parallel to the walls, cut from the inside out. An empty struct variant (not a\nunit one) so serde refuses stray fields here too.",
+          "properties": {
+            "type": {
+              "const": "rings",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Removed 2026-10-13 (docs/decisions/0017-scope.md): read so older files still load,\nrefused when generating (until switched to rings). Was: loops of `loop_radius` moving `step` mm along backbones.",
+          "properties": {
+            "loop_radius": {
+              "format": "double",
+              "type": "number"
+            },
+            "step": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "trochoidal",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "loop_radius",
+            "step"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Removed 2026-10-13, as `Trochoidal`. Was: adaptive fronts (docs/specs/adaptive-fronts.md).",
+          "properties": {
+            "type": {
+              "const": "adaptive",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Rest": {
+      "additionalProperties": false,
+      "description": "Rest machining (docs/specs/rest-machining.md): the pocket clears only the material a\ndisk of the larger tool `after_tool` (a project tool id) can't reach in its shapes.",
+      "properties": {
+        "after_tool": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "after_tool"
+      ],
+      "type": "object"
+    },
+    "Selector": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shapes": {
+          "default": null,
+          "description": "Shape ids of the project's drawing.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Shape": {
+      "additionalProperties": false,
+      "description": "One shape of the drawing: imported (a path of lines and arcs, one per DXF entity) or\ndrawn in Chipload (circle, rectangle, polyline; docs/specs/drawing-tools.md).\n\nIn the file it is one flat object: `id`, `layer`, `kind`, then the fields of that kind.",
+      "properties": {
+        "angle": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bulges": {
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "center": {
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "closed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "dxf_handle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dxf_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "layer": {
+          "type": "string"
+        },
+        "length": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "points": {
+          "items": {
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "radius": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/PathSegment"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "width": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "layer",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ShapeKind": {
+      "enum": [
+        "path",
+        "circle",
+        "rectangle",
+        "polyline"
+      ],
+      "type": "string"
+    },
+    "Side": {
+      "enum": [
+        "inside",
+        "outside",
+        "on"
+      ],
+      "type": "string"
+    },
+    "Skin": {
+      "additionalProperties": false,
+      "description": "An onion skin on a profile (docs/specs/finish-and-skin.md).",
+      "properties": {
+        "thickness": {
+          "description": "Left above the end depth until the last laps, mm: more than 0, at most the step\ndown, less than the cut and (with tabs) less than the tab height.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "thickness"
+      ],
+      "type": "object"
+    },
+    "SourceIssue": {
+      "additionalProperties": false,
+      "description": "An import-time issue that can't be recomputed from the shapes.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/IssueSeverity"
+        }
+      },
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "Spindle": {
+      "oneOf": [
+        {
+          "const": "cw",
+          "description": "M3",
+          "type": "string"
+        },
+        {
+          "const": "ccw",
+          "description": "M4",
+          "type": "string"
+        }
+      ]
+    },
+    "Stock": {
+      "additionalProperties": false,
+      "properties": {
+        "max_overcut": {
+          "description": "How far below the stock bottom a cut may go (into the spoilboard), mm, >= 0. Cuts\nbelow the stock within this are warned about; deeper ones are refused.",
+          "format": "double",
+          "type": "number"
+        },
+        "origin": {
+          "$ref": "#/$defs/StockOrigin",
+          "default": "bottom_left"
+        },
+        "thickness": {
+          "format": "double",
+          "type": "number"
+        },
+        "x": {
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "format": "double",
+          "type": "number"
+        },
+        "z_zero": {
+          "$ref": "#/$defs/ZZero",
+          "default": "top"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "thickness",
+        "max_overcut"
+      ],
+      "type": "object"
+    },
+    "StockCorner": {
+      "enum": [
+        "center",
+        "bottom_left",
+        "bottom_right",
+        "top_left",
+        "top_right"
+      ],
+      "type": "string"
+    },
+    "StockOrigin": {
+      "enum": [
+        "bottom_left",
+        "center"
+      ],
+      "type": "string"
+    },
+    "Tabs": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "flank_angle": {
+          "description": "Slope of the tab's flanks, radians, 0 < angle <= 90°; 90° is a straight tab\n(docs/specs/profile-spiral.md §4). `width` is the flat top.",
+          "format": "double",
+          "type": "number"
+        },
+        "height": {
+          "description": "Bridge thickness up from the bottom of the cut, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "width": {
+          "description": "Bridge left on the part, mm (the tool lifts for width + tool diameter).",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "count",
+        "width",
+        "height",
+        "flank_angle"
+      ],
+      "type": "object"
+    },
+    "Tool": {
+      "additionalProperties": false,
+      "properties": {
+        "angle": {
+          "default": null,
+          "description": "V-bits: the included angle, radians, 0 < angle < π (docs/specs/v-carve.md §2).\nNone = unknown: a V-carve refuses the tool until it is set.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "center_cutting": {
+          "default": null,
+          "description": "None = unknown. Pockets plunge straight down, so they need a centre-cutting endmill.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "diameter": {
+          "format": "double",
+          "type": "number"
+        },
+        "flutes": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "id": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "default": null,
+          "description": "The library tool these values came from (docs/specs/tool-library-and-machines.md\n§4). Only a note: planning and G-code never read it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rpm": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tip_diameter": {
+          "default": null,
+          "description": "V-bits: the diameter of the flat tip, mm, 0 <= tip < diameter. None = pointed.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/ToolType",
+          "default": "endmill"
+        }
+      },
+      "required": [
+        "id",
+        "diameter"
+      ],
+      "type": "object"
+    },
+    "ToolChange": {
+      "description": "How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).",
+      "oneOf": [
+        {
+          "const": "files",
+          "description": "One G-code file per tool group; the user changes the tool and sets Z zero between.",
+          "type": "string"
+        },
+        {
+          "const": "program",
+          "description": "One file with `T<n> M6` at each change, for a sender that handles it.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolType": {
+      "enum": [
+        "endmill",
+        "drill",
+        "vbit"
+      ],
+      "type": "string"
+    },
+    "Travel": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "format": "double",
+          "type": "number"
+        },
+        "z": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "type": "object"
+    },
+    "Units": {
+      "enum": [
+        "mm",
+        "inch"
+      ],
+      "type": "string"
+    },
+    "UnitsFrom": {
+      "oneOf": [
+        {
+          "const": "dxf",
+          "description": "Declared by the DXF ($INSUNITS).",
+          "type": "string"
+        },
+        {
+          "const": "user",
+          "description": "The DXF declared none; the user chose.",
+          "type": "string"
+        }
+      ]
+    },
+    "WorkZero": {
+      "description": "Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "The drawing's own origin (the only choice before work_zero existed). An empty struct\nvariant, not a unit one, so serde refuses stray fields here too.",
+          "properties": {
+            "at": {
+              "const": "drawing_origin",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A corner or the centre of the stock, as placed by `stock.origin`.",
+          "properties": {
+            "at": {
+              "const": "stock",
+              "type": "string"
+            },
+            "corner": {
+              "$ref": "#/$defs/StockCorner"
+            }
+          },
+          "required": [
+            "at",
+            "corner"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Any point, in drawing coordinates (mm).",
+          "properties": {
+            "at": {
+              "const": "point",
+              "type": "string"
+            },
+            "x": {
+              "format": "double",
+              "type": "number"
+            },
+            "y": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "at",
+            "x",
+            "y"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ZZero": {
+      "enum": [
+        "top",
+        "bottom"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Schema version 18. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "properties": {
+    "copies": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Copies"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The part cut several times in a grid (docs/specs/copies-grid.md); None: once."
+    },
+    "drawing": {
+      "$ref": "#/$defs/Drawing"
+    },
+    "machine": {
+      "$ref": "#/$defs/Machine"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/Operation"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 18
+    },
+    "stock": {
+      "$ref": "#/$defs/Stock"
+    },
+    "tools": {
+      "items": {
+        "$ref": "#/$defs/Tool"
+      },
+      "type": "array"
+    },
+    "written_by": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "drawing",
+    "stock",
+    "machine",
+    "tools",
+    "operations"
+  ],
+  "title": "Chipload project",
+  "type": "object"
+}

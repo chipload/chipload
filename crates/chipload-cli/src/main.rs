@@ -41,7 +41,9 @@ use chipload_toolpath::plan_job;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
-const EXIT_FAILED: u8 = 1;
+mod out;
+
+use out::{EXIT_FAILED, Out};
 
 #[derive(Parser)]
 #[command(
@@ -52,6 +54,10 @@ const EXIT_FAILED: u8 = 1;
 struct Cli {
     #[command(subcommand)]
     command: Command,
+    /// Print one JSON object: the result, notes, files written, or the error with the
+    /// project's problems (docs/specs/scripting.md §3).
+    #[arg(long, global = true)]
+    json: bool,
 }
 
 #[derive(Subcommand)]
@@ -63,9 +69,6 @@ enum Command {
         /// Units of a DXF that does not declare them.
         #[arg(long)]
         units: Option<UnitsArg>,
-        /// Print the result as JSON.
-        #[arg(long)]
-        json: bool,
     },
     /// Create an empty project, to draw in or import a DXF into later (`update --from`).
     New {
@@ -108,9 +111,10 @@ enum Command {
     Plan {
         /// The project (.chipload).
         project: PathBuf,
-        /// Print the toolpath as JSON.
-        #[arg(long)]
-        json: bool,
+        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
+        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        #[arg(long = "set", value_name = "PATH=VALUE")]
+        sets: Vec<String>,
     },
     /// Generate checked G-code from a project.
     Run {
@@ -127,6 +131,10 @@ enum Command {
         /// Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`).
         #[arg(long)]
         no_sheet: bool,
+        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
+        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        #[arg(long = "set", value_name = "PATH=VALUE")]
+        sets: Vec<String>,
     },
     /// Simulate the material a project's program removes (docs/specs/simulation.md): print
     /// the numbers and write a shaded top view (PNG). The job is generated and checked as by
@@ -150,6 +158,10 @@ enum Command {
         /// Also print a hash of the heights (for regression tests).
         #[arg(long, hide = true)]
         hash: bool,
+        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
+        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        #[arg(long = "set", value_name = "PATH=VALUE")]
+        sets: Vec<String>,
     },
     /// Write a project's setup sheet for the operator (HTML), without the G-code. The job is
     /// generated and checked as by `run`.
@@ -166,6 +178,10 @@ enum Command {
         /// For this sheet only: one file per tool, or one file with M6 tool changes.
         #[arg(long)]
         tool_change: Option<library::ToolChangeArg>,
+        /// For this run only: set a project value (docs/specs/scripting.md §4), e.g.
+        /// `stock.thickness=18`. Repeatable; the project file isn't changed.
+        #[arg(long = "set", value_name = "PATH=VALUE")]
+        sets: Vec<String>,
     },
     /// Render a toolpath JSON (as `plan --json` prints under "program") through a
     /// post-processor. For testing posts; the output is NOT checked, use `run` to cut.
@@ -187,9 +203,6 @@ enum Command {
         /// set written one file per tool). Default: the largest tool the project uses.
         #[arg(long)]
         tool: Option<i64>,
-        /// Print the result as JSON.
-        #[arg(long)]
-        json: bool,
     },
     /// Change an operation of a project.
     Op {
@@ -282,6 +295,45 @@ enum Command {
     },
     /// Print Chipload's licence and the licences of every third-party component.
     Licenses,
+    /// Print a project value by path, as JSON (docs/specs/scripting.md §4), e.g.
+    /// `operations.1.end_depth`: keys and indexes from 0, as in the file.
+    Get {
+        /// The project (.chipload).
+        project: PathBuf,
+        path: String,
+    },
+    /// Set project values by path (docs/specs/scripting.md §4): `operations.1.end_depth=6.5`.
+    /// A value is JSON when it parses (6.5, true, null, {"after_tool": 1}), else text. The
+    /// project must still load; problems are listed but don't stop the write.
+    Set {
+        /// The project (.chipload).
+        project: PathBuf,
+        #[arg(required = true, value_name = "PATH=VALUE")]
+        values: Vec<String>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// List a project's problems with their paths, without planning; exits 1 if any.
+    CheckProject {
+        /// The project (.chipload).
+        project: PathBuf,
+    },
+    /// Print the JSON Schema of a file format (docs/specs/scripting.md §2).
+    Schema {
+        #[arg(value_enum)]
+        format: SchemaArg,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum SchemaArg {
+    /// A project file (.chipload).
+    Project,
+    /// The tool library (tools.json, and `tool export` files).
+    Tools,
+    /// The machine profiles (machines.json, and `machine export` files).
+    Machines,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -473,13 +525,12 @@ fn main() -> ExitCode {
             UnitsArg::Inch => Units::Inch,
         })
     };
-    match Cli::parse().command {
-        Command::Inspect {
-            file,
-            units: u,
-            json,
-        } => inspect(&file, units(u), json),
+    let cli = Cli::parse();
+    let mut out = Out::new(cli.json);
+    let code = match cli.command {
+        Command::Inspect { file, units: u } => inspect(&mut out, &file, units(u)),
         Command::New { output, machine } => create(
+            &mut out,
             empty_project(),
             "New empty project.",
             &output,
@@ -490,26 +541,42 @@ fn main() -> ExitCode {
             units: u,
             output,
             machine,
-        } => import(&dxf, units(u), &output, machine.as_deref()),
+        } => import(&mut out, &dxf, units(u), &output, machine.as_deref()),
         Command::Update {
             project,
             from,
             units: u,
             output,
-        } => update(&project, &from, units(u), output.as_deref()),
-        Command::Plan { project, json } => plan(&project, json),
+        } => update(&mut out, &project, &from, units(u), output.as_deref()),
+        Command::Plan { project, sets } => plan(&mut out, &project, &sets),
+        Command::Get { project, path } => get(&mut out, &project, &path),
+        Command::Set {
+            project,
+            values,
+            output,
+        } => set(&mut out, &project, &values, output.as_deref()),
+        Command::CheckProject { project } => check_project(&mut out, &project),
         Command::Run {
             project,
             output,
             tool_change,
             no_sheet,
-        } => run(&project, &output, tool_change, !no_sheet),
+            sets,
+        } => run(&mut out, &project, &output, tool_change, !no_sheet, &sets),
         Command::Sheet {
             project,
             output,
             gcode,
             tool_change,
-        } => sheet(&project, &output, gcode.as_deref(), tool_change),
+            sets,
+        } => sheet(
+            &mut out,
+            &project,
+            &output,
+            gcode.as_deref(),
+            tool_change,
+            &sets,
+        ),
         Command::Simulate {
             project,
             output,
@@ -517,19 +584,26 @@ fn main() -> ExitCode {
             no_image,
             after,
             hash,
-        } => simulate(&project, output.as_deref(), cell, after, !no_image, hash),
-        Command::Render { program, post } => render(&program, &post),
-        Command::Check {
-            gcode,
-            job,
-            tool,
-            json,
-        } => check(&gcode, &job, tool, json),
-        Command::Op { action } => op(action),
-        Command::Shape { action } => shape(action),
-        Command::Tool { action } => library::tool(action),
-        Command::Machine { action } => library::machine(action),
-        Command::Post { action } => library::post(action),
+            sets,
+        } => simulate(
+            &mut out,
+            &project,
+            output.as_deref(),
+            SimulateArgs {
+                cell,
+                after,
+                image: !no_image,
+                hash,
+            },
+            &sets,
+        ),
+        Command::Render { program, post } => render(&mut out, &program, &post),
+        Command::Check { gcode, job, tool } => check(&mut out, &gcode, &job, tool),
+        Command::Op { action } => op(&mut out, action),
+        Command::Shape { action } => shape(&mut out, action),
+        Command::Tool { action } => library::tool(&mut out, action),
+        Command::Machine { action } => library::machine(&mut out, action),
+        Command::Post { action } => library::post(&mut out, action),
         Command::Copies {
             project,
             grid,
@@ -539,6 +613,7 @@ fn main() -> ExitCode {
             off,
             output,
         } => copies(
+            &mut out,
             &project,
             CopiesArgs {
                 grid,
@@ -562,6 +637,7 @@ fn main() -> ExitCode {
             reset,
             output,
         } => place(
+            &mut out,
             &project,
             PlaceArgs {
                 by,
@@ -576,18 +652,27 @@ fn main() -> ExitCode {
             },
             output.as_deref(),
         ),
-        Command::Licenses => {
-            println!("{}\n", chipload_pipeline::notices::short_notice());
-            println!("{}", chipload_pipeline::notices::LICENSE);
-            println!("{}", chipload_pipeline::notices::THIRD_PARTY);
+        Command::Schema { format } => {
+            let format = match format {
+                SchemaArg::Project => chipload_job::schema::Format::Project,
+                SchemaArg::Tools => chipload_job::schema::Format::Tools,
+                SchemaArg::Machines => chipload_job::schema::Format::Machines,
+            };
+            out.document(chipload_job::schema::schema(format));
             ExitCode::SUCCESS
         }
-    }
-}
-
-fn fail(err: impl std::fmt::Display) -> ExitCode {
-    eprintln!("error: {err}");
-    ExitCode::from(EXIT_FAILED)
+        Command::Licenses => {
+            let text = format!(
+                "{}\n\n{}\n{}\n",
+                chipload_pipeline::notices::short_notice(),
+                chipload_pipeline::notices::LICENSE,
+                chipload_pipeline::notices::THIRD_PARTY
+            );
+            out.text("text", &text);
+            ExitCode::SUCCESS
+        }
+    };
+    out.finish(code)
 }
 
 fn is_dxf(path: &Path) -> bool {
@@ -595,63 +680,85 @@ fn is_dxf(path: &Path) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
 }
 
-fn import(dxf: &Path, units: Option<Units>, output: &Path, machine: Option<&str>) -> ExitCode {
+fn import(
+    out: &mut Out,
+    dxf: &Path,
+    units: Option<Units>,
+    output: &Path,
+    machine: Option<&str>,
+) -> ExitCode {
     let imported = match shapes_from_dxf(dxf, units) {
         Ok(imported) => imported,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let line = format!(
         "Imported {} ({} shapes).",
         imported.source.file,
         imported.shapes.len()
     );
-    create(new_project(imported), &line, output, machine)
+    let code = create(out, new_project(imported), &line, output, machine);
+    if out.json() && code == ExitCode::SUCCESS {
+        // The import report as `inspect --json` gives it for the new project.
+        if let Ok(result) = load_job(output)
+            .map_err(|e| e.to_string())
+            .and_then(|job| load_drawing(&job).map_err(|e| e.to_string()))
+        {
+            out.set("report", import_json(&result));
+        }
+    }
+    code
 }
 
 /// Write a new project, started from the library's machine profile and default tool.
-fn create(mut job: Job, line: &str, output: &Path, machine: Option<&str>) -> ExitCode {
+fn create(
+    out: &mut Out,
+    mut job: Job,
+    line: &str,
+    output: &Path,
+    machine: Option<&str>,
+) -> ExitCode {
     // The library only gives starting values; without a settings folder there is none.
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
         .unwrap_or_default();
     let notes = match apply_library(&mut job, &library, machine) {
         Ok(notes) => notes,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     if let Err(err) = save_job(&job, output) {
-        return fail(err);
+        return out.fail(err);
     }
-    println!("{line}");
+    out.line(line.to_string());
     for problem in &library.problems {
-        eprintln!("warning: {problem}");
+        out.err(format!("warning: {problem}"));
     }
     for note in notes {
-        println!("{note}");
+        out.line(note.to_string());
     }
-    println!("Wrote {}", output.display());
+    out.wrote(output, "");
     ExitCode::SUCCESS
 }
 
-fn copies(project: &Path, args: CopiesArgs, output: Option<&Path>) -> ExitCode {
+fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>) -> ExitCode {
     let mut job = match load_job(project) {
         Ok(job) => job,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     match changed_copies(&job, args) {
         Ok(copies) => job.copies = copies,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     }
     let problems = job.validate();
     if !problems.is_empty() {
-        return fail(problems.join("; "));
+        return out.fail(problems.join("; "));
     }
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {
-        return fail(err);
+        return out.fail(err);
     }
     match copies_text(&job) {
-        Some(text) => println!("Copies: {text}"),
-        None => println!("Copies: off (one part)"),
+        Some(text) => out.line(format!("Copies: {text}")),
+        None => out.line("Copies: off (one part)"),
     }
     // Overlap is refused when the project is run; say so now.
     if job.copies.is_some_and(|c| c.count() > 1)
@@ -659,9 +766,9 @@ fn copies(project: &Path, args: CopiesArgs, output: Option<&Path>) -> ExitCode {
         && let Err(err) = plan_job(&job, &drawing.contours)
         && err.to_string().starts_with("Copies overlap")
     {
-        eprintln!("warning: {err}");
+        out.err(format!("warning: {err}"));
     }
-    println!("Wrote {}", target.display());
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 
@@ -718,25 +825,28 @@ struct PlaceArgs {
     reset: bool,
 }
 
-fn place(project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
+fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
     let job = match load_job(project) {
         Ok(job) => job,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let steps = match place_moves(args) {
         Ok(steps) => steps,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     if steps.is_empty() {
         return match &job.drawing.source {
             Some(source) => {
-                println!("Drawing: {}", placement_text(source.placement));
-                if let Some((w, h)) = imported_size(&job.drawing.shapes) {
-                    println!("Size: {w:.3} × {h:.3} mm");
+                out.line(format!("Drawing: {}", placement_text(source.placement)));
+                let size = imported_size(&job.drawing.shapes);
+                if let Some((w, h)) = size {
+                    out.line(format!("Size: {w:.3} × {h:.3} mm"));
                 }
+                out.set("placement", json!(source.placement));
+                out.set("size", json!(size.map(|(w, h)| [w, h])));
                 ExitCode::SUCCESS
             }
-            None => fail("the project has no imported drawing"),
+            None => out.fail("the project has no imported drawing"),
         };
     }
     let mut placed = job;
@@ -747,17 +857,17 @@ fn place(project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
                 placed = next;
                 lines.extend(report.lines);
             }
-            Err(err) => return fail(err),
+            Err(err) => return out.fail(err),
         }
     }
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&placed, target) {
-        return fail(err);
+        return out.fail(err);
     }
     for line in &lines {
-        println!("{line}");
+        out.line(line.to_string());
     }
-    println!("Wrote {}", target.display());
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 
@@ -815,35 +925,46 @@ fn place_move(
     }))
 }
 
-fn update(project: &Path, from: &Path, units: Option<Units>, output: Option<&Path>) -> ExitCode {
+fn update(
+    out: &mut Out,
+    project: &Path,
+    from: &Path,
+    units: Option<Units>,
+    output: Option<&Path>,
+) -> ExitCode {
     let job = match load_job(project) {
         Ok(job) => job,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let (updated, report) = match update_drawing(&job, from, units) {
         Ok(done) => done,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&updated, target) {
-        return fail(err);
+        return out.fail(err);
     }
     for line in &report.lines {
-        println!("{line}");
+        out.line(line.to_string());
     }
-    println!("Wrote {}", target.display());
+    out.wrote(target, "");
+    out.set("unchanged", json!(report.unchanged));
+    out.set("changed", json!(report.changed));
+    out.set("added", json!(report.added));
+    out.set("removed", json!(report.removed));
+    out.set("lost", json!(report.lost));
     if report.lost.is_empty() {
         ExitCode::SUCCESS
     } else {
-        eprintln!(
+        out.err(format!(
             "warning: {} operation(s) lost geometry and can't run until fixed",
             report.lost.len()
-        );
+        ));
         ExitCode::from(EXIT_FAILED)
     }
 }
 
-fn shape(action: ShapeAction) -> ExitCode {
+fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     let (project, output) = match &action {
         ShapeAction::Add {
             project, output, ..
@@ -861,11 +982,13 @@ fn shape(action: ShapeAction) -> ExitCode {
             project, output, ..
         } => (project.clone(), output.clone()),
     };
-    let job = match load(&project) {
+    let job = match load(out, &project) {
         Ok(job) => job,
         Err(code) => return code,
     };
     let mut flagged_ops = 0;
+    // The new shapes' ids (`shape add`, `shape copy`).
+    let mut new_ids: Option<Vec<u64>> = None;
     let changed = match action {
         ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
             .map_err(PipelineError::Job)
@@ -873,7 +996,10 @@ fn shape(action: ShapeAction) -> ExitCode {
                 let layer = values.layer.as_deref().unwrap_or("0");
                 add_shape(&job, layer, geometry)
             })
-            .map(|(job, id)| (job, vec![format!("Added shape S{id}.")])),
+            .map(|(job, id)| {
+                new_ids = Some(vec![id]);
+                (job, vec![format!("Added shape S{id}.")])
+            }),
         ShapeAction::Set { id, values, .. } => job
             .drawing
             .shapes
@@ -896,6 +1022,7 @@ fn shape(action: ShapeAction) -> ExitCode {
         ShapeAction::Copy { ids, dx, dy, .. } => {
             copy_shapes(&job, &ids, (dx, dy)).map(|(job, new)| {
                 let names: Vec<String> = new.iter().map(|id| format!("S{id}")).collect();
+                new_ids = Some(new.clone());
                 (job, vec![format!("Added shapes {}.", names.join(", "))])
             })
         }
@@ -912,16 +1039,19 @@ fn shape(action: ShapeAction) -> ExitCode {
     };
     let (job, lines) = match changed {
         Ok(done) => done,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let target = output.as_deref().unwrap_or(&project);
     if let Err(err) = save_job(&job, target) {
-        return fail(err);
+        return out.fail(err);
     }
     for line in lines {
-        println!("{line}");
+        out.line(line.to_string());
     }
-    println!("Wrote {}", target.display());
+    out.wrote(target, "");
+    if let Some(ids) = new_ids {
+        out.set("ids", json!(ids));
+    }
     if flagged_ops == 0 {
         ExitCode::SUCCESS
     } else {
@@ -1077,28 +1207,45 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
     Ok(geometry)
 }
 
-fn load(project: &Path) -> Result<Job, ExitCode> {
-    load_job(project).map_err(fail)
+fn load(out: &mut Out, project: &Path) -> Result<Job, ExitCode> {
+    load_job(project).map_err(|e| out.fail(e))
+}
+
+/// Load a project with `--set` values applied for this run (docs/specs/scripting.md §4).
+fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitCode> {
+    let job = load(out, project)?;
+    if sets.is_empty() {
+        return Ok(job);
+    }
+    let assignments = sets
+        .iter()
+        .map(|text| chipload_job::paths::assignment(text))
+        .collect::<Result<Vec<_>, String>>()
+        .map_err(|e| out.fail(e))?;
+    chipload_job::paths::set_all(&job, &assignments).map_err(|e| out.fail(e))
 }
 
 /// Load a project and run it, as `run` and `sheet` do; errors are printed.
 fn load_and_run(
+    out: &mut Out,
     project: &Path,
     tool_change: Option<library::ToolChangeArg>,
+    sets: &[String],
 ) -> Result<(Job, RunResult), ExitCode> {
-    let mut job = load(project)?;
+    let mut job = load_set(out, project, sets)?;
     if let Some(change) = tool_change {
         job.machine.tool_change = change.value();
     }
     match run_job(&job) {
         Ok(result) => Ok((job, result)),
         Err(err @ PipelineError::CheckFailed { .. }) => {
-            eprintln!("error: {err}");
-            eprintln!("No output written.");
+            out.err(format!("error: {err}"));
+            out.err("No output written.");
             Err(ExitCode::from(EXIT_FAILED))
         }
         Err(err) => {
-            eprintln!("error: {err}");
+            out.err(format!("error: {err}"));
+            out.problems(chipload_pipeline::job_problems(&job));
             Err(ExitCode::from(EXIT_FAILED))
         }
     }
@@ -1116,12 +1263,14 @@ fn sheet_info(project: &Path) -> SheetInfo {
 }
 
 fn sheet(
+    out: &mut Out,
     project: &Path,
     output: &Path,
     gcode: Option<&Path>,
     tool_change: Option<library::ToolChangeArg>,
+    sets: &[String],
 ) -> ExitCode {
-    let (job, result) = match load_and_run(project, tool_change) {
+    let (job, result) = match load_and_run(out, project, tool_change, sets) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -1131,22 +1280,35 @@ fn sheet(
     );
     let html = setup_sheet(&job, &result, &gcode, &sheet_info(project));
     if let Err(err) = write_atomically(output, &html) {
-        eprintln!("error: cannot write {}: {err}", output.display());
+        out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
     }
-    println!("Wrote {}", output.display());
+    out.wrote(output, "");
     ExitCode::SUCCESS
 }
 
-fn simulate(
-    project: &Path,
-    output: Option<&Path>,
+/// `simulate`'s options.
+struct SimulateArgs {
     cell: Option<f64>,
     after: Option<usize>,
     image: bool,
     hash: bool,
+}
+
+fn simulate(
+    out: &mut Out,
+    project: &Path,
+    output: Option<&Path>,
+    args: SimulateArgs,
+    sets: &[String],
 ) -> ExitCode {
-    let (job, result) = match load_and_run(project, None) {
+    let SimulateArgs {
+        cell,
+        after,
+        image,
+        hash,
+    } = args;
+    let (job, result) = match load_and_run(out, project, None, sets) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -1154,11 +1316,13 @@ fn simulate(
     if let Some(done) = after {
         let total = program.moves.len();
         if done > total {
-            eprintln!("error: --after {done}: the program has {total} moves");
+            out.err(format!(
+                "error: --after {done}: the program has {total} moves"
+            ));
             return ExitCode::from(EXIT_FAILED);
         }
         program.moves.truncate(done);
-        println!("After {done} of {total} moves");
+        out.line(format!("After {done} of {total} moves"));
     }
     let sim = match chipload_pipeline::simulate::simulate(
         &job,
@@ -1169,16 +1333,30 @@ fn simulate(
     ) {
         Ok(sim) => sim,
         Err(err) => {
-            eprintln!("error: {err}");
+            out.err(format!("error: {err}"));
             return ExitCode::from(EXIT_FAILED);
         }
     };
     for line in sim.lines() {
-        println!("{line}");
+        out.line(line.to_string());
     }
     if hash {
-        println!("Heights hash: {:016x}", sim.heights_hash());
+        out.line(format!("Heights hash: {:016x}", sim.heights_hash()));
     }
+    out.set(
+        "numbers",
+        json!({
+            "removed_cm3": sim.numbers.removed_cm3,
+            "deepest_z": sim.numbers.deepest,
+            "below_bottom_mm": sim.numbers.below_bottom,
+            "drill_point_assumed": sim.numbers.drill_point_assumed,
+            "vbit_angle_assumed": sim.numbers.vbit_angle_assumed,
+            "cell_mm": sim.cell,
+            "columns": sim.columns,
+            "rows": sim.rows,
+        }),
+    );
+    out.set("image", Value::Null);
     if image {
         let path = output.map_or_else(
             || {
@@ -1192,82 +1370,99 @@ fn simulate(
         let bytes = match sim.png(chipload_pipeline::simulate::PRINT_PALETTE) {
             Ok(bytes) => bytes,
             Err(err) => {
-                eprintln!("error: {err}");
+                out.err(format!("error: {err}"));
                 return ExitCode::from(EXIT_FAILED);
             }
         };
         if let Err(err) = std::fs::write(&path, bytes) {
-            eprintln!("error: cannot write {}: {err}", path.display());
+            out.err(format!("error: cannot write {}: {err}", path.display()));
             return ExitCode::from(EXIT_FAILED);
         }
-        println!("Wrote {}", path.display());
+        out.wrote(&path, "");
+        let shown = std::path::absolute(&path).unwrap_or(path);
+        out.set("image", json!(shown.display().to_string()));
     }
     ExitCode::SUCCESS
 }
 
 fn run(
+    out: &mut Out,
     project: &Path,
     output: &Path,
     tool_change: Option<library::ToolChangeArg>,
     with_sheet: bool,
+    sets: &[String],
 ) -> ExitCode {
-    let (job, result) = match load_and_run(project, tool_change) {
+    let (job, result) = match load_and_run(out, project, tool_change, sets) {
         Ok(run) => run,
         Err(code) => return code,
     };
     for line in format_import_report(&result.import_report) {
-        println!("{line}");
+        out.line(line.to_string());
     }
     for note in &result.notes {
-        println!("warning: {note}");
+        out.line(format!("warning: {note}"));
     }
     for warning in &result.check_warnings {
-        println!("check warning: {}", warning.message);
+        out.line(format!("check warning: {}", warning.message));
     }
     for line in format_material_left(&job, &result.material_left) {
-        println!("{line}");
+        out.line(line.to_string());
     }
-    println!("Work zero: {}", job.work_zero_text());
+    out.line(format!("Work zero: {}", job.work_zero_text()));
     if let Err(err) = write_gcode_files(output, &result.files) {
-        eprintln!("error: cannot write {}: {err}", output.display());
+        out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
     }
+    let mut files = Vec::new();
     for file in &result.files {
         let lines = file.gcode.matches('\n').count();
+        let path = file.path(output);
         if file.suffix.is_some() {
-            println!(
-                "Wrote {} ({lines} lines, tool {}, operations {})",
-                file.path(output).display(),
+            let detail = format!(
+                " ({lines} lines, tool {}, operations {})",
                 file.tool,
                 chipload_post::operations_text(&file.operations)
             );
+            out.wrote(&path, &detail);
         } else {
-            println!(
-                "Wrote {} ({lines} lines, post {})",
-                output.display(),
-                result.post.name
+            out.wrote(
+                &path,
+                &format!(" ({lines} lines, post {})", result.post.name),
             );
         }
+        files.push(json!({
+            "path": std::path::absolute(&path).unwrap_or(path).display().to_string(),
+            "tool": file.tool,
+            "operations": file.operations,
+        }));
     }
+    out.set("files", json!(files));
+    out.set("estimate", estimate_json(&result.estimate));
+    out.set("sheet", Value::Null);
     for line in estimate_lines(&job, &result.estimate, result.files.len() > 1) {
-        println!("{line}");
+        out.line(line.to_string());
     }
     if result.files.len() > 1 {
-        println!(
+        out.line(format!(
             "{} files, post {}: change the tool and set Z zero between them, keeping X and Y \
              zero.",
             result.files.len(),
             result.post.name
-        );
+        ));
     }
     if with_sheet {
         match write_setup_sheet(&job, &result, output, &sheet_info(project)) {
-            Ok(path) => println!("Wrote {} (setup sheet)", path.display()),
+            Ok(path) => {
+                out.wrote(&path, " (setup sheet)");
+                let shown = std::path::absolute(&path).unwrap_or(path);
+                out.set("sheet", json!(shown.display().to_string()));
+            }
             Err(err) => {
-                eprintln!(
+                out.err(format!(
                     "error: cannot write the setup sheet {}: {err}",
                     sheet_path(output).display()
-                );
+                ));
                 return ExitCode::from(EXIT_FAILED);
             }
         }
@@ -1275,7 +1470,104 @@ fn run(
     ExitCode::SUCCESS
 }
 
-fn op(action: OpAction) -> ExitCode {
+/// `get` (docs/specs/scripting.md §4): the value as JSON.
+fn get(out: &mut Out, project: &Path, path: &str) -> ExitCode {
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let value = match serde_json::to_value(&job) {
+        Ok(value) => value,
+        Err(err) => return out.fail(err),
+    };
+    match chipload_job::paths::get(&value, path) {
+        Ok(found) => {
+            if out.json() {
+                out.set("value", found.clone());
+            } else {
+                match serde_json::to_string_pretty(found) {
+                    Ok(text) => out.line(text),
+                    Err(err) => return out.fail(err),
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        Err(err) => out.fail(err),
+    }
+}
+
+/// `set` (§4): every value set, the result loaded again, then written; its problems are
+/// listed but don't stop the write.
+fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) -> ExitCode {
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let assignments = match values
+        .iter()
+        .map(|text| chipload_job::paths::assignment(text))
+        .collect::<Result<Vec<_>, String>>()
+    {
+        Ok(assignments) => assignments,
+        Err(err) => return out.fail(err),
+    };
+    let changed = match chipload_job::paths::set_all(&job, &assignments) {
+        Ok(changed) => changed,
+        Err(err) => return out.fail(err),
+    };
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&changed, target) {
+        return out.fail(err);
+    }
+    for (path, value) in &assignments {
+        out.line(format!("Set {path} = {value}"));
+    }
+    let problems = chipload_pipeline::job_problems(&changed);
+    problem_lines(out, &problems);
+    out.wrote(target, "");
+    ExitCode::SUCCESS
+}
+
+/// `check-project` (§4): the problems the GUI shows, with their paths.
+fn check_project(out: &mut Out, project: &Path) -> ExitCode {
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let problems = chipload_pipeline::job_problems(&job);
+    problem_lines(out, &problems);
+    if problems.is_empty() {
+        out.line("No problems.");
+        ExitCode::SUCCESS
+    } else {
+        let count = problems.len();
+        let first = problems[0].text.clone();
+        out.problems(problems);
+        out.err(match count {
+            1 => format!("error: 1 problem: {first}"),
+            _ => format!("error: {count} problems, the first: {first}"),
+        });
+        ExitCode::from(EXIT_FAILED)
+    }
+}
+
+/// One line per problem ("problem: operations.0.rest: …"), and the list as JSON.
+fn problem_lines(out: &mut Out, problems: &[chipload_job::Problem]) {
+    for p in problems {
+        out.line(format!("problem: {}: {}", p.path, p.text));
+    }
+    out.set(
+        "problems",
+        json!(
+            problems
+                .iter()
+                .map(|p| json!({"path": p.path, "short": p.short, "text": p.text}))
+                .collect::<Vec<_>>()
+        ),
+    );
+}
+
+fn op(out: &mut Out, action: OpAction) -> ExitCode {
     match action {
         OpAction::Tool {
             project,
@@ -1283,19 +1575,19 @@ fn op(action: OpAction) -> ExitCode {
             tool,
             output,
         } => {
-            let mut job = match load(&project) {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
             if let Err(err) = set_op_tool(&mut job, op, tool) {
-                return fail(err);
+                return out.fail(err);
             }
             let target = output.as_deref().unwrap_or(&project);
             if let Err(err) = save_job(&job, target) {
-                return fail(err);
+                return out.fail(err);
             }
-            println!("Operation {op} now cuts with tool {tool}.");
-            println!("Wrote {}", target.display());
+            out.line(format!("Operation {op} now cuts with tool {tool}."));
+            out.wrote(target, "");
             ExitCode::SUCCESS
         }
         OpAction::Rest {
@@ -1305,28 +1597,30 @@ fn op(action: OpAction) -> ExitCode {
             none: _,
             output,
         } => {
-            let mut job = match load(&project) {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
             if let Err(err) = set_op_rest(&mut job, op, after_tool) {
-                return fail(err);
+                return out.fail(err);
             }
             let target = output.as_deref().unwrap_or(&project);
             if let Err(err) = save_job(&job, target) {
-                return fail(err);
+                return out.fail(err);
             }
             match after_tool {
-                Some(tool) => println!("Operation {op} now rest machines after tool {tool}."),
-                None => println!("Operation {op} now clears the whole pocket."),
+                Some(tool) => out.line(format!(
+                    "Operation {op} now rest machines after tool {tool}."
+                )),
+                None => out.line(format!("Operation {op} now clears the whole pocket.")),
             }
-            println!("Wrote {}", target.display());
+            out.wrote(target, "");
             ExitCode::SUCCESS
         }
     }
 }
 
-fn render(program_path: &Path, post_name: &str) -> ExitCode {
+fn render(out: &mut Out, program_path: &Path, post_name: &str) -> ExitCode {
     let parsed = std::fs::read_to_string(program_path)
         .map_err(|e| format!("cannot read {}: {e}", program_path.display()))
         .and_then(|text| serde_json::from_str::<Value>(&text).map_err(|e| e.to_string()))
@@ -1334,17 +1628,17 @@ fn render(program_path: &Path, post_name: &str) -> ExitCode {
     let program = match parsed {
         Ok(program) => program,
         Err(err) => {
-            eprintln!("error: {err}");
+            out.err(format!("error: {err}"));
             return ExitCode::from(EXIT_FAILED);
         }
     };
     match load_builtin_post(post_name).and_then(|post| render_program(&program, &post)) {
         Ok(text) => {
-            print!("{text}");
+            out.text("gcode", &text);
             ExitCode::SUCCESS
         }
         Err(err) => {
-            eprintln!("error: {err}");
+            out.err(format!("error: {err}"));
             ExitCode::from(EXIT_FAILED)
         }
     }
@@ -1431,82 +1725,68 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
     })
 }
 
-fn plan(project: &Path, as_json: bool) -> ExitCode {
-    let job = match load(project) {
+fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
+    let job = match load_set(out, project, sets) {
         Ok(job) => job,
         Err(code) => return code,
     };
     let imported = match load_drawing(&job) {
         Ok(result) => result,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
     let plan = match plan_job(&job, &imported.contours) {
         Ok(plan) => plan,
         Err(err) => {
-            eprintln!("error: {err}");
-            return ExitCode::from(EXIT_FAILED);
+            out.problems(chipload_pipeline::job_problems(&job));
+            return out.fail(err);
         }
     };
     // The post's spindle wait; a post that can't be read only leaves it out here (`run`
     // refuses it).
     let dwell = chipload_pipeline::posts::job_post(&job).map_or(0.0, |p| p.spindle_dwell_s);
     let estimate = estimate(&job, &plan.program, &plan.op_spans, &plan.groups, dwell);
-    if as_json {
-        println!(
-            "{}",
-            json!({
-                "program": program_with_groups(&plan.program, plan.groups.len()),
-                "groups": plan.groups.iter().map(|g| json!({
-                    "tool": g.tool.id,
-                    "operations": g.operations,
-                    "moves": [g.moves.start, g.moves.end],
+    if out.json() {
+        for note in &plan.notes {
+            out.line(note.clone());
+        }
+        out.set_all(json!({
+            "program": program_with_groups(&plan.program, plan.groups.len()),
+            "groups": plan.groups.iter().map(|g| json!({
+                "tool": g.tool.id,
+                "operations": g.operations,
+                "moves": [g.moves.start, g.moves.end],
+            })).collect::<Vec<_>>(),
+            "tabs": plan.tabs,
+            "pockets": plan.pockets.iter().map(|p| json!({
+                "contour_ids": p.contour_ids,
+                "rings": p.rings,
+                "open": p.open,
+                "feed_links": p.feed_links,
+            })).collect::<Vec<_>>(),
+            "material_left": plan.material_left.iter().map(|m| json!({
+                "operation": m.operation,
+                "kind": m.kind.name(),
+                "rings": m.rings,
+            })).collect::<Vec<_>>(),
+            "ring_starts": plan.ring_starts.iter().map(|s| json!({
+                "operation": s.operation,
+                "start": s.ring.first(),
+                "stored": s.stored,
+            })).collect::<Vec<_>>(),
+            "estimate": estimate_json(&estimate),
+            "chip_load": job.operations.iter().enumerate()
+                .filter(|(_, op)| op.enabled())
+                .map(|(i, op)| json!({
+                    "operation": i,
+                    "chip_load_mm": chip_load(&job, op).mm(),
                 })).collect::<Vec<_>>(),
-                "notes": plan.notes,
-                "tabs": plan.tabs,
-                "pockets": plan.pockets.iter().map(|p| json!({
-                    "contour_ids": p.contour_ids,
-                    "rings": p.rings,
-                    "open": p.open,
-                    "feed_links": p.feed_links,
-                })).collect::<Vec<_>>(),
-                "material_left": plan.material_left.iter().map(|m| json!({
-                    "operation": m.operation,
-                    "kind": m.kind.name(),
-                    "rings": m.rings,
-                })).collect::<Vec<_>>(),
-                "ring_starts": plan.ring_starts.iter().map(|s| json!({
-                    "operation": s.operation,
-                    "start": s.ring.first(),
-                    "stored": s.stored,
-                })).collect::<Vec<_>>(),
-                "estimate": json!({
-                    "total_s": estimate.total,
-                    "cutting_s": estimate.cutting,
-                    "rapid_s": estimate.rapid,
-                    "spindle_s": estimate.spindle,
-                    "operations": estimate.operations.iter().map(|(op, s)| json!({
-                        "operation": op,
-                        "seconds": s,
-                    })).collect::<Vec<_>>(),
-                    "groups_s": estimate.groups,
-                    "tool_changes": estimate.tool_changes,
-                    "rapid_mm_min": estimate.rapid_rate,
-                    "rapid_assumed": estimate.rapid_assumed,
-                }),
-                "chip_load": job.operations.iter().enumerate()
-                    .filter(|(_, op)| op.enabled())
-                    .map(|(i, op)| json!({
-                        "operation": i,
-                        "chip_load_mm": chip_load(&job, op).mm(),
-                    })).collect::<Vec<_>>(),
-            })
-        );
+        }));
     } else {
         for note in &plan.notes {
-            println!("warning: {note}");
+            out.line(format!("warning: {note}"));
         }
         for line in format_material_left(&job, &plan.material_left) {
-            println!("{line}");
+            out.line(line.to_string());
         }
         for start in &plan.ring_starts {
             let Some((x, y)) = start.ring.first() else {
@@ -1516,33 +1796,51 @@ fn plan(project: &Path, as_json: bool) -> ExitCode {
                 Some(k) => format!("start point {}", k + 1),
                 None => "default".into(),
             };
-            println!(
+            out.line(format!(
                 "Operation {}: a ring starts at ({x:.3}, {y:.3}) ({from})",
                 start.operation + 1
-            );
+            ));
         }
         if let Some(text) = copies_text(&job) {
-            println!("Copies: {text}");
+            out.line(format!("Copies: {text}"));
         }
         for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
-            println!("{line}");
+            out.line(line.to_string());
         }
         for line in chip_load_lines(&job) {
-            println!("{line}");
+            out.line(line.to_string());
         }
         if plan.groups.len() > 1 {
             for (i, g) in plan.groups.iter().enumerate() {
-                println!(
+                out.line(format!(
                     "Tool group {}: tool {}, operations {}",
                     i + 1,
                     g.tool.id,
                     chipload_post::operations_text(&g.operations)
-                );
+                ));
             }
         }
-        println!("Planned {} moves.", plan.program.moves.len());
+        out.line(format!("Planned {} moves.", plan.program.moves.len()));
     }
     ExitCode::SUCCESS
+}
+
+/// The cycle time estimate as `plan` and `run` print it with `--json`.
+fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) -> Value {
+    json!({
+        "total_s": estimate.total,
+        "cutting_s": estimate.cutting,
+        "rapid_s": estimate.rapid,
+        "spindle_s": estimate.spindle,
+        "operations": estimate.operations.iter().map(|(op, s)| json!({
+            "operation": op,
+            "seconds": s,
+        })).collect::<Vec<_>>(),
+        "groups_s": estimate.groups,
+        "tool_changes": estimate.tool_changes,
+        "rapid_mm_min": estimate.rapid_rate,
+        "rapid_assumed": estimate.rapid_assumed,
+    })
 }
 
 /// The program as `render` reads it, with how many tool groups it has: `render` refuses a
@@ -1582,7 +1880,7 @@ fn program_json(program: &Program) -> Value {
     })
 }
 
-fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
+fn inspect(out: &mut Out, path: &Path, units: Option<Units>) -> ExitCode {
     let mut shapes = None;
     let mut work_zero = None;
     let mut copies_line = None;
@@ -1608,10 +1906,10 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
     };
     let result = match loaded {
         Ok(result) => result,
-        Err(err) => return fail(err),
+        Err(err) => return out.fail(err),
     };
-    if as_json {
-        println!("{}", import_json(&result));
+    if out.json() {
+        out.set_all(import_json(&result));
         return ExitCode::SUCCESS;
     }
     for line in format_import_report(&result.report)
@@ -1622,7 +1920,7 @@ fn inspect(path: &Path, units: Option<Units>, as_json: bool) -> ExitCode {
         .chain(work_zero)
         .chain(copies_line)
     {
-        println!("{line}");
+        out.line(line.to_string());
     }
     ExitCode::SUCCESS
 }
@@ -1671,18 +1969,18 @@ fn import_json(result: &ImportResult) -> Value {
     })
 }
 
-fn check(gcode: &Path, job_path: &Path, tool: Option<i64>, as_json: bool) -> ExitCode {
+fn check(out: &mut Out, gcode: &Path, job_path: &Path, tool: Option<i64>) -> ExitCode {
     let job = match load_job(job_path) {
         Ok(job) => job,
         Err(err) => {
-            eprintln!("error: {err}");
+            out.err(format!("error: {err}"));
             return ExitCode::from(EXIT_FAILED);
         }
     };
     let text = match std::fs::read_to_string(gcode) {
         Ok(text) => text,
         Err(err) => {
-            eprintln!("error: cannot read {}: {err}", gcode.display());
+            out.err(format!("error: cannot read {}: {err}", gcode.display()));
             return ExitCode::from(EXIT_FAILED);
         }
     };
@@ -1690,36 +1988,35 @@ fn check(gcode: &Path, job_path: &Path, tool: Option<i64>, as_json: bool) -> Exi
         None => limits_from_job(&job),
         Some(id) => match limits_for_tool(&job, id) {
             Some(limits) => limits,
-            None => return fail(format!("the project has no tool {id}")),
+            None => return out.fail(format!("the project has no tool {id}")),
         },
     };
     let report = check_gcode(&text, &limits);
-    if as_json {
+    if out.json() {
         let issues = |list: &[CheckIssue]| -> Vec<serde_json::Value> {
             list.iter()
                 .map(|i| json!({"line": i.line, "message": i.message}))
                 .collect()
         };
-        let out = json!({
+        out.set_all(json!({
             "ok": report.ok(),
             "errors": issues(&report.errors),
             "warnings": issues(&report.warnings),
-        });
-        println!("{out}");
+        }));
     } else {
         for e in &report.errors {
-            println!("error (line {}): {}", e.line, e.message);
+            out.line(format!("error (line {}): {}", e.line, e.message));
         }
         for w in &report.warnings {
-            println!("warning: {}", w.message);
+            out.line(format!("warning: {}", w.message));
         }
-        println!(
-            "{}",
-            if report.ok() {
+        out.line(
+            (if report.ok() {
                 "Check passed."
             } else {
                 "Check FAILED."
-            }
+            })
+            .to_string(),
         );
     }
     if report.ok() {

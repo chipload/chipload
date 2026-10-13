@@ -17,7 +17,7 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text, the material-removal simulation (height map) |
-| `chipload-cli` | the `chipload` command line |
+| `chipload-cli` | the `chipload` command line (`--json` on every command through `out::Out`; no printing elsewhere) |
 | `chipload-gui` | the egui desktop app (`chipload-gui`) |
 
 ## Architecture rules (non-negotiable)
@@ -97,6 +97,11 @@ cargo run -p chipload-cli -- simulate part.chipload -o sim.png   # material-remo
 cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also shape add/set/delete, shape copy IDS --dx --dy
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
+cargo run -p chipload-cli -- get part.chipload operations.0.end_depth   # any value by path (0-based, as problem paths)
+cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # checked, then written; `run/plan --set PATH=VALUE` for one run
+cargo run -p chipload-cli -- check-project part.chipload           # the project's problems with their paths
+cargo run -p chipload-cli -- schema project                        # JSON Schema (also tools, machines); copies in docs/schemas/
+cargo run -p chipload-cli -- plan part.chipload --json             # --json on any command: one object (docs/scripting.md)
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
 cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine export); import with `tool import FILE [--replace]`

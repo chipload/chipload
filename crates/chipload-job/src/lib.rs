@@ -9,7 +9,10 @@ pub mod edit;
 pub mod library;
 pub mod migrations;
 pub mod models;
+pub mod paths;
 pub mod problem;
+#[cfg(feature = "schema")]
+pub mod schema;
 
 use std::path::Path;
 

@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "MachineProfile": {
+      "additionalProperties": false,
+      "description": "One machine profile: a project's machine values plus the spoilboard allowance.",
+      "properties": {
+        "max_feed": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_overcut": {
+          "description": "Kept under `stock` in projects; it is about the spoilboard, so it belongs here.",
+          "format": "double",
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "post": {
+          "type": "string"
+        },
+        "safe_z": {
+          "format": "double",
+          "type": "number"
+        },
+        "spindle": {
+          "$ref": "#/$defs/Spindle"
+        },
+        "tool_change": {
+          "$ref": "#/$defs/ToolChange",
+          "description": "One file per tool group or one file with M6 (machines.json 2)."
+        },
+        "travel": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Travel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "work_zero": {
+          "$ref": "#/$defs/WorkZero",
+          "description": "The work zero this machine is usually set up with."
+        }
+      },
+      "required": [
+        "name",
+        "post",
+        "safe_z",
+        "spindle",
+        "work_zero",
+        "max_overcut",
+        "tool_change"
+      ],
+      "type": "object"
+    },
+    "Spindle": {
+      "oneOf": [
+        {
+          "const": "cw",
+          "description": "M3",
+          "type": "string"
+        },
+        {
+          "const": "ccw",
+          "description": "M4",
+          "type": "string"
+        }
+      ]
+    },
+    "StockCorner": {
+      "enum": [
+        "center",
+        "bottom_left",
+        "bottom_right",
+        "top_left",
+        "top_right"
+      ],
+      "type": "string"
+    },
+    "ToolChange": {
+      "description": "How a job with several tool groups is written (docs/specs/tool-per-operation.md §3).",
+      "oneOf": [
+        {
+          "const": "files",
+          "description": "One G-code file per tool group; the user changes the tool and sets Z zero between.",
+          "type": "string"
+        },
+        {
+          "const": "program",
+          "description": "One file with `T<n> M6` at each change, for a sender that handles it.",
+          "type": "string"
+        }
+      ]
+    },
+    "Travel": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "format": "double",
+          "type": "number"
+        },
+        "z": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "type": "object"
+    },
+    "WorkZero": {
+      "description": "Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "The drawing's own origin (the only choice before work_zero existed). An empty struct\nvariant, not a unit one, so serde refuses stray fields here too.",
+          "properties": {
+            "at": {
+              "const": "drawing_origin",
+              "type": "string"
+            }
+          },
+          "required": [
+            "at"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A corner or the centre of the stock, as placed by `stock.origin`.",
+          "properties": {
+            "at": {
+              "const": "stock",
+              "type": "string"
+            },
+            "corner": {
+              "$ref": "#/$defs/StockCorner"
+            }
+          },
+          "required": [
+            "at",
+            "corner"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Any point, in drawing coordinates (mm).",
+          "properties": {
+            "at": {
+              "const": "point",
+              "type": "string"
+            },
+            "x": {
+              "format": "double",
+              "type": "number"
+            },
+            "y": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "at",
+            "x",
+            "y"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "properties": {
+    "default_machine": {
+      "default": null,
+      "description": "The machine a new project starts with.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "machines": {
+      "items": {
+        "$ref": "#/$defs/MachineProfile"
+      },
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "written_by": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "machines"
+  ],
+  "title": "Chipload machine profiles",
+  "type": "object"
+}

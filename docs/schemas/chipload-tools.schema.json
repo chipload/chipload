@@ -1,0 +1,157 @@
+{
+  "$defs": {
+    "Cutting": {
+      "additionalProperties": false,
+      "description": "Values filled into an operation when it is created with this tool. Never applied to an\nexisting operation.",
+      "properties": {
+        "feed": {
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "format": "double",
+          "type": "number"
+        },
+        "step_down": {
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "Fraction of the tool diameter, 0 < stepover <= 1 (pockets).",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feed",
+        "plunge_feed",
+        "step_down",
+        "stepover"
+      ],
+      "type": "object"
+    },
+    "LibraryTool": {
+      "additionalProperties": false,
+      "description": "One tool of the library: a project tool with a name and optional cutting values.",
+      "properties": {
+        "angle": {
+          "default": null,
+          "description": "V-bits: included angle, radians; None = unknown.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "center_cutting": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cutting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cutting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "diameter": {
+          "format": "double",
+          "type": "number"
+        },
+        "flutes": {
+          "default": null,
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "The id it gets in a project when that id is free there.",
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "rpm": {
+          "default": null,
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "tip_diameter": {
+          "default": null,
+          "description": "V-bits: flat tip diameter, mm; None = pointed.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/ToolType",
+          "default": "endmill"
+        }
+      },
+      "required": [
+        "name",
+        "id",
+        "diameter"
+      ],
+      "type": "object"
+    },
+    "ToolType": {
+      "enum": [
+        "endmill",
+        "drill",
+        "vbit"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "properties": {
+    "default_tool": {
+      "default": null,
+      "description": "The tool a new project starts with.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "tools": {
+      "items": {
+        "$ref": "#/$defs/LibraryTool"
+      },
+      "type": "array"
+    },
+    "written_by": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "tools"
+  ],
+  "title": "Chipload tool library",
+  "type": "object"
+}
