@@ -33,7 +33,7 @@ use crate::left::{cleared, left_by, rest_areas};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
-use crate::retry::{Failure, Nudge, nudged_or_tight};
+use crate::retry::{Failure, NUDGES, Nudge, nudged_or_tight};
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -1775,6 +1775,24 @@ struct RestPieces {
 /// The areas a rest pocket clears in each region: within a diameter of what a tool of
 /// radius `large` leaves. An area this pocket's tool fits nowhere in is skipped, with a
 /// note.
+/// `area` shrunk by `d`; when the offset fails, shrunk farther by each of the retry nudges
+/// in turn (docs/specs/offset-retry.md §7). For rest machining, where farther is the safe
+/// side: the larger tool is taken to reach a little less, so the rest pocket cuts a little
+/// more. An offset can fail at one exact distance and 3 nm beyond it, but not 10 nm beyond
+/// (an island's offset across an area, found by the rest machining property test).
+fn shrunk_farther(area: &Area, d: f64) -> Result<Vec<Area>, ToolpathError> {
+    let error = match area.shrunk(d) {
+        Ok(areas) => return Ok(areas),
+        Err(error) => error,
+    };
+    for by in NUDGES {
+        if let Ok(areas) = area.shrunk(d + by) {
+            return Ok(areas);
+        }
+    }
+    Err(error)
+}
+
 fn rest_pieces(
     regions: &[PocketArea],
     large: f64,
@@ -1790,13 +1808,13 @@ fn rest_pieces(
     // (width, height) of the leftovers too small for this tool too.
     let mut skipped: Vec<(f64, f64)> = Vec::new();
     for region in regions {
-        let level0 = region.area.shrunk(large - clearance)?;
+        let level0 = shrunk_farther(&region.area, large - clearance)?;
         let mut material = Vec::new();
         for target in cleared(&region.area, clearance)? {
             material.extend(left_by(&target, &level0, large)?);
         }
         for area in rest_areas(&region.area, &material, 2.0 * tool_radius)? {
-            if area.shrunk(offset)?.is_empty() {
+            if shrunk_farther(&area, offset)?.is_empty() {
                 skipped.extend(
                     material
                         .iter()

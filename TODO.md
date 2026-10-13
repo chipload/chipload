@@ -91,17 +91,15 @@ it's built (see `CLAUDE.md`).
   proposals to review then.
 - **Traced pictures with arcs, and centre lines for follow path**
   (docs/specs/image-arcs-centrelines.md, draft 2026-10-13, schema 20): awaiting review.
-- **Pocket refusals still found by soaking** (2026-10-13, docs/specs/offset-retry.md §6):
-  two random pockets in about 4000 are refused ("failed verification", or "an island outside
-  every area"), safely, also before 0.14. Replay by adding the line to
-  `crates/chipload-toolpath/tests/pocket.proptest-regressions`:
-  - `rest_pockets_never_gouge`: `cc 6021a985a4b60bd11dcd0cdc76e48236ef994042dcdada69d299e432a6bc4d9c`
-  - `pocket_never_gouges_and_clears_everything`: `cc 64ec37268b504d79135288dd1395513619834b7fca1bdae1d883ef9c65e40890`
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
 ## Done
 
+- **The last pocket refusals fixed** (2026-10-13, docs/specs/offset-retry.md §7): offsets that
+  fail at one distance and the next few nanometres get three 10 nm nudges after the 1 nm ones, and
+  rest machining's own shrinks are retried farther. The two seeds found by soaking pass, as
+  explicit tests; goldens unchanged.
 - **Import image from a typed path** (2026-10-13): *File > Import image from path…*, for
   systems without a native file dialog (WSL, minimal Linux).
 - **Images traced into shapes for V-carving** (2026-10-13, docs/specs/image-trace.md,

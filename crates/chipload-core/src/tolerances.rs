@@ -24,6 +24,9 @@ pub const OFFSET_RETRY_NUDGE_MM: f64 = 1e-6;
 /// `offset_dist_eps`, default 1e-4), after a result that came too close to a wall
 /// (docs/specs/offset-retry.md §6). Not the default: it loses whole areas elsewhere.
 pub const OFFSET_TIGHT_SLICE_EPS_MM: f64 = 1e-6;
+/// The wider nudge, after three of [`OFFSET_RETRY_NUDGE_MM`] have failed: an offset can fail
+/// at one exact distance and the next few nanometres (docs/specs/offset-retry.md §7).
+pub const OFFSET_RETRY_WIDE_NUDGE_MM: f64 = 1e-5;
 /// Image tracing (docs/specs/image-trace.md): a traced edge crosses between two pixel
 /// centres at least this fraction of the pixel spacing away from either, so a pixel exactly
 /// at the threshold never puts two loops through one point.

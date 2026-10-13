@@ -1004,6 +1004,163 @@ proptest! {
     }
 }
 
+/// A rest pocket whose areas' offsets put an island across an area at the small tool's
+/// radius and the next 3 nm, but not 10 nm on (docs/specs/offset-retry.md §7; the rest
+/// machining property test's minimal case, 2026-10-13).
+#[test]
+fn a_rest_pocket_offset_failing_for_a_few_nanometres_is_retried_farther() {
+    let contours = vec![
+        polygon_id(
+            1,
+            &[
+                (33.595689, 0.252138),
+                (57.688623, 1.309138),
+                (36.454244, 25.449755),
+                (-36.677502, 31.793465),
+                (-46.573885, 20.697082),
+                (-40.873847, -10.03958),
+                (-47.235603, -25.263857),
+                (12.941601, -48.638113),
+                (20.771191, -25.269273),
+            ],
+        ),
+        polygon_id(
+            2,
+            &[
+                (-2.421503, -4.78619),
+                (-2.984589, -4.932658),
+                (-1.412154, -3.60878),
+                (-3.884336, -4.056389),
+                (-4.498733, -4.183733),
+                (-7.992499, -3.737546),
+                (-5.481322, -6.63786),
+            ],
+        ),
+        polygon_id(
+            3,
+            &[
+                (6.682977, 4.830564),
+                (4.340816, 4.525362),
+                (4.686365, 4.94042),
+                (3.969669, 4.637116),
+                (4.656649, 5.433751),
+                (4.429437, 7.469242),
+                (0.274271, 6.55713),
+                (-0.527002, 4.962413),
+                (-0.438116, 3.590918),
+                (1.663206, 2.843283),
+                (2.648945, 2.109079),
+                (4.391235, 0.610591),
+            ],
+        ),
+        polygon_id(
+            4,
+            &[
+                (-2.710797, -11.325537),
+                (-4.753909, -10.203427),
+                (-8.011285, -10.463343),
+                (-4.782148, -11.887069),
+            ],
+        ),
+    ];
+    let (radius, times, fraction) = (2.447143409889017, 1.8999644467026537, 0.3796415167916837);
+    let refs: Vec<&Contour> = contours.iter().collect();
+    let result = chipload_toolpath::pocket::plan_pocket_starting(
+        &refs,
+        radius,
+        0.0,
+        fraction * 2.0 * radius,
+        Direction::Climb,
+        Spindle::Cw,
+        false,
+        (0.0, 0.0),
+        chipload_job::PocketStrategy::Rings {},
+        chipload_toolpath::pocket::Choices {
+            rest: Some(times * radius),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert_clear(&contours, &result, radius);
+}
+
+/// A pocket whose rings failed verification with every 1 nm nudge and the tight tolerance,
+/// and passes with a 10 nm one (docs/specs/offset-retry.md §7; the pocket property test's
+/// minimal case, 2026-10-13).
+#[test]
+fn a_pocket_failing_for_a_few_nanometres_is_retried_farther() {
+    let contours = vec![
+        polygon_id(
+            1,
+            &[
+                (47.283164, 0.0),
+                (53.889635, 0.028217),
+                (33.657884, 16.642072),
+                (27.535261, 41.054136),
+                (-4.164544, 55.386662),
+                (-9.665888, 35.748941),
+                (-38.375347, 7.278848),
+                (-26.303816, -45.140099),
+                (-12.363046, -52.545086),
+                (10.982632, -47.495362),
+                (43.162672, -20.108745),
+            ],
+        ),
+        polygon_id(
+            2,
+            &[
+                (12.241347, 1.209205),
+                (13.022205, 1.471434),
+                (12.503767, 4.378144),
+                (11.513291, 4.637524),
+                (10.677452, 2.284448),
+                (10.058932, 2.513899),
+                (7.646611, 3.098123),
+                (8.405537, 2.410719),
+                (8.737981, 0.66109),
+                (11.841748, -2.036709),
+                (11.798304, 0.159574),
+                (11.892798, 0.319051),
+                (13.454511, -0.001826),
+            ],
+        ),
+        polygon_id(
+            3,
+            &[
+                (-8.190897, -3.867558),
+                (-9.315381, -4.512003),
+                (-10.260768, -3.041486),
+                (-10.9834, -3.554382),
+                (-12.062186, -3.248025),
+                (-11.704315, -5.070747),
+                (-11.809718, -5.896462),
+                (-12.912228, -7.495292),
+                (-12.033023, -7.069513),
+                (-11.419557, -7.44209),
+                (-10.67087, -7.738487),
+                (-10.463305, -8.387925),
+                (-8.391145, -8.140723),
+                (-8.460356, -7.085073),
+                (-8.530779, -6.353565),
+            ],
+        ),
+    ];
+    let (radius, fraction) = (3.8034814349297092, 0.4429968779362151);
+    let refs: Vec<&Contour> = contours.iter().collect();
+    let result = plan_pocket(
+        &refs,
+        radius,
+        0.0,
+        fraction * 2.0 * radius,
+        Direction::Climb,
+        Spindle::Cw,
+        true,
+        (0.0, 0.0),
+    )
+    .unwrap();
+    assert_clear(&contours, &result, radius);
+}
+
 proptest! {
     #![proptest_config(common::proptest_config(40))]
 

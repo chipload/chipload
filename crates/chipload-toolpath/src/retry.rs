@@ -2,12 +2,20 @@
 //! Retrying an offset that hit a numerical coincidence with a negligibly different one
 //! (docs/specs/offset-retry.md).
 
-use chipload_core::tolerances::OFFSET_RETRY_NUDGE_MM;
+use chipload_core::tolerances::{OFFSET_RETRY_NUDGE_MM, OFFSET_RETRY_WIDE_NUDGE_MM};
 
 use crate::ToolpathError;
 
-/// Attempts after the first failed one.
-const OFFSET_RETRIES: u32 = 3;
+/// How far each attempt after the first failed one moves its offsets, mm: three of
+/// [`OFFSET_RETRY_NUDGE_MM`], then three of [`OFFSET_RETRY_WIDE_NUDGE_MM`] (spec §7).
+pub(crate) const NUDGES: [f64; 6] = [
+    OFFSET_RETRY_NUDGE_MM,
+    2.0 * OFFSET_RETRY_NUDGE_MM,
+    3.0 * OFFSET_RETRY_NUDGE_MM,
+    OFFSET_RETRY_WIDE_NUDGE_MM,
+    2.0 * OFFSET_RETRY_WIDE_NUDGE_MM,
+    3.0 * OFFSET_RETRY_WIDE_NUDGE_MM,
+];
 
 /// How far an attempt moves its offsets, in mm: both zero on the first attempt.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -44,8 +52,8 @@ impl From<ToolpathError> for Failure {
     }
 }
 
-/// The first attempt that succeeds; after a numerical failure up to three more, each nudged
-/// by one more [`OFFSET_RETRY_NUDGE_MM`]. If none succeeds, the first attempt's error.
+/// The first attempt that succeeds; after a numerical failure up to six more, nudged by each
+/// of [`NUDGES`] in turn. If none succeeds, the first attempt's error.
 pub(crate) fn nudged<T>(
     attempt: impl FnMut(Nudge) -> Result<T, Failure>,
 ) -> Result<T, ToolpathError> {
@@ -70,8 +78,7 @@ fn retried<T>(
         Err(Failure::Final(error)) => return Err(error),
         Err(Failure::Numerical { error, wall }) => (error, wall),
     };
-    for k in 1..=OFFSET_RETRIES {
-        let by = f64::from(k) * OFFSET_RETRY_NUDGE_MM;
+    for by in NUDGES {
         let nudge = Nudge {
             step: by,
             wall: if move_wall { by } else { 0.0 },
@@ -131,26 +138,22 @@ mod tests {
             ))
         });
         assert_eq!(result, Err(ToolpathError::Geometry("attempt 1".into())));
-        let e = OFFSET_RETRY_NUDGE_MM;
+        let (e, w) = (OFFSET_RETRY_NUDGE_MM, OFFSET_RETRY_WIDE_NUDGE_MM);
+        let nudge = |step: f64, wall: f64| Nudge {
+            step,
+            wall,
+            tight: false,
+        };
         assert_eq!(
             seen,
             [
                 Nudge::NONE,
-                Nudge {
-                    step: e,
-                    wall: 0.0,
-                    tight: false
-                },
-                Nudge {
-                    step: 2.0 * e,
-                    wall: 2.0 * e,
-                    tight: false
-                },
-                Nudge {
-                    step: 3.0 * e,
-                    wall: 3.0 * e,
-                    tight: false
-                },
+                nudge(e, 0.0),
+                nudge(2.0 * e, 2.0 * e),
+                nudge(3.0 * e, 3.0 * e),
+                nudge(w, w),
+                nudge(2.0 * w, 2.0 * w),
+                nudge(3.0 * w, 3.0 * w),
             ]
         );
     }
@@ -215,22 +218,22 @@ mod tests {
                 Err(numerical("wall", true))
             }
         });
-        assert_eq!(result, Ok(5));
+        assert_eq!(result, Ok(8));
         assert_eq!(
-            seen[4],
+            seen[7],
             Nudge {
                 tight: true,
                 ..Nudge::NONE
             }
         );
-        assert!(seen[..4].iter().all(|n| !n.tight));
+        assert!(seen[..7].iter().all(|n| !n.tight));
         let mut calls = 0;
         let result: Result<(), _> = nudged(|_| {
             calls += 1;
             Err(numerical("verification", false))
         });
         assert_eq!(result, Err(ToolpathError::Geometry("verification".into())));
-        assert_eq!(calls, 4);
+        assert_eq!(calls, 7);
         let result: Result<(), _> =
             nudged_or_tight(|n| Err(numerical(if n.tight { "tight" } else { "first" }, false)));
         assert_eq!(result, Err(ToolpathError::Geometry("first".into())));

@@ -115,5 +115,24 @@ retry only:
   nothing away from them.
 
 As before, output only changes where Chipload used to refuse: the golden files don't change.
-Two rarer cases (about 1 in 4000 random pockets) are still refused; their seeds are in
-TODO.md.
+Two rarer cases (about 1 in 4000 random pockets) were still refused; §7 fixes them.
+
+## 7. Wider nudges (2026-10-13)
+
+The two rarer refusals fail at one exact distance **and the next few nanometres**: the shape
+offset put an island's offset across an area at the small tool's radius and at +1, +2 and +3
+nm (tight tolerance or not), but not at +10 nm or at −1 nm. A ring set failed verification
+the same way.
+
+- **The ladder** (`retry::NUDGES`): after the three 1 nm nudges, three of 10 nm
+  (`OFFSET_RETRY_WIDE_NUDGE_MM`), then the tight attempt as in §6. Earlier attempts are
+  unchanged, so a pocket or profile that used to succeed gets exactly the same paths.
+- **Rest machining's own shrinks** (where the larger tool's centre can go, and whether a rest
+  area fits the smaller tool) weren't retried at all. On an error, they're now shrunk
+  farther by each nudge in turn. Farther is the safe side: the larger tool is taken to reach
+  up to 30 nm less, so the rest pocket cuts a little more. That's far below the 0.01 mm wall
+  gap that material left keeps, so it never shows as material.
+- **The cost:** a wall nudged by 30 nm leaves up to 30 nm more on that wall, against the
+  100 nm (`OFFSET_FAR_SLACK_MM`) a profile may already leave.
+
+Both minimal cases are tests (`…_retried_farther` in `tests/pocket.rs`).
