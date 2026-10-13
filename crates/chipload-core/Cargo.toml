@@ -10,5 +10,8 @@ rust-version.workspace = true
 cavalier_contours = "0.9.0"
 thiserror = "2.0.21"
 
+[dev-dependencies]
+proptest = "1"
+
 [lints]
 workspace = true
