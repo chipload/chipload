@@ -16,7 +16,7 @@ In the app: *File > Add DXF to project…*, or drop the DXF on the window.
 
 ## The Drawing panel
 
-The **Drawing** panel, under the operations, lists what the project's shapes come from:
+The **Drawing** panel, above the operations, lists what the project's shapes come from:
 
 - **Each DXF**, with its layers inside.
 - **Each image.**

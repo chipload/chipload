@@ -66,8 +66,8 @@ impl ChiploadApp {
         self.shape_draft = Some(draft);
     }
 
-    /// Left: the job row, the operations, and below a draggable split the shapes
-    /// (docs/specs/sidebar-sections.md).
+    /// Left: the job row, the drawing, and below a draggable split the operations made from
+    /// it (docs/specs/sidebar-sections.md, drawing-sources.md §4).
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
         if self.edit.is_none() {
             ui.heading("Project");
@@ -95,20 +95,20 @@ impl ChiploadApp {
         }
         ui.add_space(4.0);
         let height = ui.available_height();
-        Panel::bottom("shapes")
+        Panel::top("shapes")
             .resizable(true)
             .default_size(height * SHAPES_SHARE)
             .min_size(SECTION_MIN_HEIGHT)
             .max_size((height - SECTION_MIN_HEIGHT).max(SECTION_MIN_HEIGHT))
             .frame(egui::Frame::NONE)
             .show(ui, |ui| {
-                ui.add_space(6.0);
                 section_header(ui, "Drawing");
                 ScrollArea::vertical()
                     .id_salt("shapes-scroll")
                     .auto_shrink([false, false])
                     .show(ui, |ui| self.shapes_section(ui));
             });
+        ui.add_space(6.0);
         let count = self.edit.as_ref().map_or(0, |e| e.ops.len());
         section_header(ui, &format!("Operations ({count})"));
         self.new_operation_buttons(ui);
