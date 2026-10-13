@@ -65,7 +65,20 @@ fn select<'a>(
     }
     let mut selected = Vec::new();
     let mut skipped: Vec<&Contour> = Vec::new();
+    // Shapes left out of a whole DXF or image: their contours, whole, aren't selected
+    // (docs/specs/leave-out-shapes.md §3).
+    let left_out = |contour: &Contour| {
+        selector.exclude.as_ref().is_some_and(|ids| {
+            contour
+                .parts
+                .iter()
+                .any(|p| p.segment.shape.is_some_and(|s| ids.contains(&s)))
+        })
+    };
     for contour in contours {
+        if left_out(contour) {
+            continue;
+        }
         let matches: Vec<bool> = contour
             .parts
             .iter()
@@ -170,11 +183,15 @@ fn describe(selector: &Selector) -> String {
         parts.push(format!("shapes {}", ids.join(", ")));
     }
     let text = parts.join(" and ");
-    let source = match (selector.dxf, selector.image) {
+    let mut source = match (selector.dxf, selector.image) {
         (Some(dxf), _) => format!("DXF {dxf}"),
         (None, Some(image)) => format!("image {image}"),
         (None, None) => return text,
     };
+    if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
+        let ids: Vec<String> = exclude.iter().map(|id| format!("S{id}")).collect();
+        source += &format!(" but {}", ids.join(", "));
+    }
     if text.is_empty() {
         source
     } else {

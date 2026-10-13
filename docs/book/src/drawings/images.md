@@ -105,6 +105,8 @@ path…* takes the picture's path instead.
 - **Remove it:** right-click > **Remove** removes the picture and its shapes.
 - **See it:** *View > Show images* shows the pictures faintly under the drawing, for
   comparing the traced shapes with the picture.
+- **Leaving shapes out:** with the picture selected, Ctrl+click a shape to leave it out of
+  the operation ([What an operation selects](several.md#what-an-operation-selects)).
 - **Operations:** clicking traced shapes on the canvas and adding an operation selects the
   whole image, not the shapes.
 

@@ -1321,6 +1321,11 @@ pub struct Selector {
     /// Only shapes traced from this image (an id in `drawing.images`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<u64>,
+    /// Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour
+    /// with any of them isn't cut. A traced image's are found again when it is traced again.
+    // Spec: docs/specs/leave-out-shapes.md.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exclude: Option<Vec<u64>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -2532,6 +2537,41 @@ impl Job {
                 problems.push(format!(
                     "operations.{i}.select.image: no image {image} in drawing.images"
                 ));
+            }
+            // Shapes left out of a whole DXF or image (docs/specs/leave-out-shapes.md §2).
+            if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
+                let source = match (selector.dxf, selector.image) {
+                    (Some(dxf), _) => Some(("DXF", dxf, true)),
+                    (None, Some(image)) => Some(("image", image, false)),
+                    (None, None) => None,
+                };
+                match source {
+                    None => problems.push(format!(
+                        "operations.{i}.select.exclude: shapes can only be left out of a \
+                         whole DXF or image"
+                    )),
+                    Some((what, id, is_dxf)) => {
+                        let of_source = |shape: &Shape| {
+                            if is_dxf {
+                                shape.dxf() == Some(id)
+                            } else {
+                                shape.image() == Some(id)
+                            }
+                        };
+                        if let Some(missing) = exclude.iter().find(|e| {
+                            !self
+                                .drawing
+                                .shapes
+                                .iter()
+                                .any(|s| s.id == **e && of_source(s))
+                        }) {
+                            problems.push(format!(
+                                "operations.{i}.select.exclude: shape {missing} is not in \
+                                 {what} {id} any more: pick the shapes to leave out again"
+                            ));
+                        }
+                    }
+                }
             }
             if selector.dxf.is_some() && selector.image.is_some() {
                 problems.push(format!(

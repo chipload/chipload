@@ -9,6 +9,7 @@ use base64::engine::general_purpose::STANDARD;
 use chipload_core::Point;
 use chipload_core::fit::fit_path;
 use chipload_core::primitives::Primitive;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_image::{ImageError, MAX_LOOPS, Settings, Threshold};
 use chipload_job::{
     ArcSegment, Geometry, Image, ImageThreshold, ImageTrace, Job, LineSegment, PathSegment, Shape,
@@ -180,6 +181,13 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
     }
     let trace = traced(image)?;
     let mut out = job.clone();
+    let old: Vec<Shape> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.image() == Some(id))
+        .cloned()
+        .collect();
     out.drawing.shapes.retain(|s| s.image() != Some(id));
     let mut ids = Vec::with_capacity(trace.paths.len());
     for path in &trace.paths {
@@ -199,8 +207,148 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
             },
         });
     }
-    let report = report(image, &trace, ids);
+    let mut report = report(image, &trace, ids);
+    report.lines.extend(find_left_out_again(&mut out, id, &old));
     Ok((out, report))
+}
+
+/// How close a left-out shape's centre must come, as a share of the picture's box, and
+/// how near its size, to be found again (docs/specs/leave-out-shapes.md §4).
+const FOUND_AGAIN_CENTRE: f64 = 0.02;
+const FOUND_AGAIN_SIZE: f64 = 0.15;
+
+/// A shape's box, from its segments.
+fn shape_box(shape: &Shape) -> Option<(Point, Point)> {
+    let Geometry::Path { segments, .. } = &shape.geometry else {
+        return None;
+    };
+    let mut boxes = segments.iter().map(|segment| {
+        let piece = match segment {
+            PathSegment::Line(l) => Primitive::Line(chipload_core::primitives::Line {
+                start: (l.start[0], l.start[1]),
+                end: (l.end[0], l.end[1]),
+            }),
+            PathSegment::Arc(a) => Primitive::Arc(chipload_core::primitives::Arc {
+                center: (a.center[0], a.center[1]),
+                radius: a.radius,
+                start_angle: a.start_angle,
+                sweep: a.sweep,
+            }),
+        };
+        piece.bounds()
+    });
+    let first = boxes.next()?;
+    Some(boxes.fold(first, |(lo, hi), (a, b)| {
+        (
+            (lo.0.min(a.0), lo.1.min(a.1)),
+            (hi.0.max(b.0), hi.1.max(b.1)),
+        )
+    }))
+}
+
+/// Each shape's centre and size relative to the box round all of them, with whether it is
+/// closed: (id, (u, v), (w, h), closed).
+type Relative = (u64, Point, Point, bool);
+
+fn relative(shapes: &[&Shape]) -> Vec<Relative> {
+    let boxes: Vec<(u64, (Point, Point), bool)> = shapes
+        .iter()
+        .filter_map(|s| shape_box(s).map(|b| (s.id, b, s.closed())))
+        .collect();
+    let Some(&(_, first, _)) = boxes.first() else {
+        return Vec::new();
+    };
+    let ((x0, y0), (x1, y1)) = boxes.iter().fold(first, |(lo, hi), (_, (a, b), _)| {
+        (
+            (lo.0.min(a.0), lo.1.min(a.1)),
+            (hi.0.max(b.0), hi.1.max(b.1)),
+        )
+    });
+    let (w, h) = ((x1 - x0).max(CHAIN_TOL_MM), (y1 - y0).max(CHAIN_TOL_MM));
+    boxes
+        .into_iter()
+        .map(|(id, ((a0, b0), (a1, b1)), closed)| {
+            (
+                id,
+                (((a0 + a1) / 2.0 - x0) / w, ((b0 + b1) / 2.0 - y0) / h),
+                ((a1 - a0) / w, (b1 - b0) / h),
+                closed,
+            )
+        })
+        .collect()
+}
+
+/// After image `id` is traced again: each operation's left-out shapes of it, found again
+/// among the new shapes by where they sit in the picture (docs/specs/leave-out-shapes.md
+/// §4). One that isn't found keeps its old id, so the project shows a problem until the
+/// shapes are picked again: nothing left out is ever cut silently. Returns report lines.
+fn find_left_out_again(job: &mut Job, id: u64, old: &[Shape]) -> Vec<String> {
+    let old_refs: Vec<&Shape> = old.iter().collect();
+    let new_refs: Vec<Shape> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.image() == Some(id))
+        .cloned()
+        .collect();
+    let new_refs: Vec<&Shape> = new_refs.iter().collect();
+    let before = relative(&old_refs);
+    let after = relative(&new_refs);
+    let mut lines = Vec::new();
+    for (i, op) in job.operations.iter_mut().enumerate() {
+        let select = op.select_mut();
+        if select.image != Some(id) {
+            continue;
+        }
+        let Some(exclude) = select.exclude.as_mut().filter(|e| !e.is_empty()) else {
+            continue;
+        };
+        let mut taken: Vec<u64> = Vec::new();
+        let mut lost = 0;
+        for left_out in exclude.iter_mut() {
+            let Some(&(_, centre, size, closed)) = before.iter().find(|r| r.0 == *left_out) else {
+                lost += 1;
+                continue;
+            };
+            let near = |r: &&Relative| {
+                let d = ((r.1.0 - centre.0).powi(2) + (r.1.1 - centre.1).powi(2)).sqrt();
+                let similar = |a: f64, b: f64| (a - b).abs() <= FOUND_AGAIN_SIZE * a.max(b);
+                (d <= FOUND_AGAIN_CENTRE
+                    && r.3 == closed
+                    && similar(r.2.0, size.0)
+                    && similar(r.2.1, size.1)
+                    && !taken.contains(&r.0))
+                .then_some(d)
+            };
+            let best = after
+                .iter()
+                .filter_map(|r| near(&r).map(|d| (d, r.0)))
+                .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+            match best {
+                Some((_, found)) => {
+                    taken.push(found);
+                    *left_out = found;
+                }
+                None => lost += 1,
+            }
+        }
+        let count = exclude.len();
+        lines.push(if lost == 0 {
+            format!(
+                "Operation {}: its {count} left-out {} found again.",
+                i + 1,
+                if count == 1 { "shape" } else { "shapes" }
+            )
+        } else {
+            format!(
+                "Operation {}: {lost} left-out {} not found again: pick the shapes to leave \
+                 out again.",
+                i + 1,
+                if lost == 1 { "shape" } else { "shapes" }
+            )
+        });
+    }
+    lines
 }
 
 /// Trace again every image whose picture, position or settings differ in `after` from

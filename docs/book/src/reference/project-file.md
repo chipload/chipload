@@ -413,6 +413,7 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxf` | integer or null | no | Only shapes from this DXF (an id in `drawing.dxfs`). |
+| `exclude` | list of integer or null | no | Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour with any of them isn't cut. A traced image's are found again when it is traced again. |
 | `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |

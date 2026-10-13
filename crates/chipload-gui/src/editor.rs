@@ -37,6 +37,9 @@ pub enum CanvasSelection {
     /// Every contour of one DXF or image, whatever its layers: an operation made from it
     /// follows the DXF's updates and the image's retracing.
     Source(ShapeFrom),
+    /// A whole DXF or image but the contours with these shapes, left out with Ctrl+click
+    /// (docs/specs/leave-out-shapes.md §5). Never empty.
+    Except(ShapeFrom, BTreeSet<u64>),
 }
 
 /// The shape ids a contour is made of.
@@ -77,6 +80,12 @@ impl CanvasSelection {
                 .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(*from)))
                 .map(|c| c.id)
                 .collect(),
+            CanvasSelection::Except(from, left_out) => contours
+                .iter()
+                .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(*from)))
+                .filter(|c| shapes_of(c).is_disjoint(left_out))
+                .map(|c| c.id)
+                .collect(),
             CanvasSelection::Layer(layer, from) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
@@ -101,6 +110,10 @@ impl CanvasSelection {
                     ShapeFrom::Dxf(_) => None,
                 },
                 ..Selector::default()
+            },
+            CanvasSelection::Except(from, left_out) => Selector {
+                exclude: Some(left_out.iter().copied().collect()),
+                ..CanvasSelection::Source(*from).selector(contours, open)
             },
             CanvasSelection::Layer(layer, from) => Selector {
                 layer: Some(layer.clone()),

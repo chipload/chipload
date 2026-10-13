@@ -383,10 +383,10 @@ impl ChiploadApp {
         }
     }
 
-    /// The image every selected shape was traced from, if they all come from one: an
-    /// operation selects the image, never its shapes, whose ids change each time it is
-    /// traced again (docs/specs/image-trace.md §4).
-    pub(super) fn traced_image(&self) -> Option<chipload_core::chain::ShapeFrom> {
+    /// A selection of shapes all traced from one image, as that image minus the contours
+    /// not selected: an operation selects the image, never its shapes, whose ids change each
+    /// time it is traced again (docs/specs/image-trace.md §4, leave-out-shapes.md §5).
+    pub(super) fn traced_selection(&self) -> Option<super::CanvasSelection> {
         let edit = self.edit.as_ref()?;
         let super::CanvasSelection::Shapes(ids) = &self.selection else {
             return None;
@@ -396,13 +396,24 @@ impl ChiploadApp {
             let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
             images.insert(shape.image()?);
         }
-        match images.len() {
-            1 => images
-                .into_iter()
-                .next()
-                .map(chipload_core::chain::ShapeFrom::Image),
-            _ => None,
-        }
+        let image = match images.len() {
+            1 => images.into_iter().next()?,
+            _ => return None,
+        };
+        let from = chipload_core::chain::ShapeFrom::Image(image);
+        let selected = self.selection.ids(&self.contours);
+        let left_out: std::collections::BTreeSet<u64> = self
+            .contours
+            .iter()
+            .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(from)))
+            .filter(|c| !selected.contains(&c.id))
+            .flat_map(super::shapes_of)
+            .collect();
+        Some(if left_out.is_empty() {
+            super::CanvasSelection::Source(from)
+        } else {
+            super::CanvasSelection::Except(from, left_out)
+        })
     }
 
     /// Keep the canvas's pictures in step with the project's images (View > Show images).

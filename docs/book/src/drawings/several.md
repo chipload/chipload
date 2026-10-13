@@ -60,6 +60,7 @@ An operation selects a **DXF or image as a whole**, a **layer** within one, or *
 "select": {"dxf": 2}                       // all of part B, whatever its layers
 "select": {"dxf": 2, "layer": "HOLES"}     // part B's holes
 "select": {"image": 1}                     // a traced picture
+"select": {"image": 1, "exclude": [863]}   // the picture but one of its shapes
 "select": {"shapes": [12, 14]}             // these shapes
 ```
 
@@ -68,6 +69,14 @@ updated and the picture when it is traced again. In the app:
 - **A click** on a DXF or image in the Browser picks the whole DXF or image.
 - **A click** on a layer in the Browser, or right-click *Select layer* on the canvas, picks
   that layer of that DXF only.
+- **Leaving some out:** with a whole DXF or picture selected, **Ctrl+click** a contour on the
+  canvas to leave it out, and again to put it back. The selection then reads "image 1, 1
+  left out", and the operation's selector gets `exclude`.
+
+When a picture is traced again (a new size, place or setting), its shapes get new numbers.
+Left-out shapes are found again by where they sit in the picture, and the report says so.
+One that can't be found (the tracing changed too much) gives a problem, and nothing is
+generated until you pick the shapes to leave out again. Ctrl+Z undoes the retrace.
 
 **Adding a DXF never changes what an existing operation cuts.** An operation that
 selected a layer by its name alone, made while the project had one DXF, keeps cutting that

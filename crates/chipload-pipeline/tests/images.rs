@@ -313,3 +313,74 @@ fn a_closed_centre_line_can_be_profiled_like_any_outline() {
     assert!(job.validate().is_empty(), "{:?}", job.validate());
     chipload_pipeline::run_job(&job).unwrap();
 }
+
+// -- leaving shapes out of a whole picture (docs/specs/leave-out-shapes.md)
+
+#[test]
+fn left_out_shapes_are_found_again_when_the_picture_is_traced_again() {
+    let corpus =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/jobs/v18/rest.chipload");
+    let project = chipload_job::load_job(&corpus).unwrap();
+    // A T and an O, as centre lines: the O (closed) is left out of a follow path.
+    let strokes = strokes();
+    let mut new = NewImage::new("strokes.png", &strokes, 60.0);
+    new.trace = ImageTrace::CentreLine;
+    let (mut job, _) = add_image(&project, new).unwrap();
+    let ring = job
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.image() == Some(1) && s.closed())
+        .unwrap()
+        .id;
+    let op: chipload_job::Operation = serde_json::from_value(serde_json::json!({
+        "type": "path", "part": 1, "select": {"image": 1, "exclude": [ring]},
+        "tool": job.tools[0].id, "start_depth": 0, "end_depth": 1, "step_down": 1,
+        "feed": 1000, "plunge_feed": 300, "entry": {"type": "plunge"}}))
+    .unwrap();
+    job.operations = vec![op];
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    // Moved and made larger: the ring is found again under its new id.
+    job.drawing.images[0].x += 25.0;
+    job.drawing.images[0].width = 80.0;
+    let (moved, report) = chipload_pipeline::images::retrace(&job, 1).unwrap();
+    let new_ring = moved
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.image() == Some(1) && s.closed())
+        .unwrap()
+        .id;
+    assert_ne!(new_ring, ring);
+    assert_eq!(moved.operations[0].select().exclude, Some(vec![new_ring]));
+    assert!(
+        report
+            .lines
+            .iter()
+            .any(|l| l.contains("1 left-out shape found again")),
+        "{:?}",
+        report.lines
+    );
+    assert!(moved.validate().is_empty(), "{:?}", moved.validate());
+    // Cut: the T only, not the ring.
+    let result = chipload_pipeline::run_job(&moved).unwrap();
+    assert!(!result.program.moves.is_empty());
+    // Traced as outlines instead, there is no line like it: not found, and it blocks.
+    let mut outlines = moved.clone();
+    outlines.drawing.images[0].trace = ImageTrace::Outline;
+    let (outlines, report) = chipload_pipeline::images::retrace(&outlines, 1).unwrap();
+    assert!(
+        report.lines.iter().any(|l| l.contains("not found again")),
+        "{:?}",
+        report.lines
+    );
+    assert!(
+        outlines
+            .validate()
+            .iter()
+            .any(|p| p.contains("select.exclude")
+                && p.contains("pick the shapes to leave out again")),
+        "{:?}",
+        outlines.validate()
+    );
+}

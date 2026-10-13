@@ -899,7 +899,9 @@ impl ChiploadApp {
         let icon = match &self.selection {
             CanvasSelection::Layer(..) => Icon::Layer,
             CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(_)) => Icon::Dxf,
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(_)) => Icon::Image,
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(_))
+            | CanvasSelection::Except(chipload_core::chain::ShapeFrom::Image(_), _) => Icon::Image,
+            CanvasSelection::Except(chipload_core::chain::ShapeFrom::Dxf(_), _) => Icon::Dxf,
             _ => Icon::Polyline,
         };
         let id = ui.make_persistent_id("properties-selection");

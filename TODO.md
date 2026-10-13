@@ -97,6 +97,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Leaving shapes out of a whole DXF or picture** (2026-10-13,
+  docs/specs/leave-out-shapes.md): Ctrl+click on a contour of the selected source;
+  `select.exclude`; left-out traced shapes found again on retrace, or a blocking problem.
+- **Traced pictures fixes** (0.17.2): closed centre lines can be profiled; clicking a
+  traced contour selects its picture.
 - **Holding the part** (2026-10-13, docs/specs/holding.md): tabs and the onion skin as one
   choice (none, tabs, onion skin, both) in a Holding section; Finishing pass on its own.
 - **A tidier profile form** (2026-10-13, docs/specs/profile-form.md): *Spiral ramp* and

@@ -310,7 +310,13 @@ impl ChiploadApp {
             .icon(icon)
             .trailing(group.shapes.to_string())
             .dim(hidden)
-            .selected(self.selection == self.group_selection(&group.key));
+            .selected(match (&self.selection, self.group_selection(&group.key)) {
+                // Some of it left out: still its row (docs/specs/leave-out-shapes.md §5).
+                (CanvasSelection::Except(from, _), CanvasSelection::Source(source)) => {
+                    *from == source
+                }
+                (selection, whole) => *selection == whole,
+            });
         if has_layers {
             row = row.folder(open);
         }

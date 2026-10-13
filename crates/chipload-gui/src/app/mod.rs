@@ -728,11 +728,12 @@ impl ChiploadApp {
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.next_tool_id();
         let cutting = self.tool_cutting(tool);
-        // Shapes traced from one image are selected by its layer: their ids change each time
-        // it is traced again (docs/specs/image-trace.md §4).
+        // Shapes traced from one image are selected as the image, minus what isn't selected:
+        // their ids change each time it is traced again (docs/specs/image-trace.md §4,
+        // leave-out-shapes.md §5).
         let selection = self
-            .traced_image()
-            .map_or_else(|| self.selection.clone(), CanvasSelection::Source);
+            .traced_selection()
+            .unwrap_or_else(|| self.selection.clone());
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
@@ -1122,9 +1123,38 @@ impl ChiploadApp {
             self.selection = CanvasSelection::Source(from);
             return;
         }
+        // Ctrl+click on a contour of the selected DXF or image leaves it out, or puts it
+        // back (docs/specs/leave-out-shapes.md §5).
+        let whole = match &self.selection {
+            CanvasSelection::Source(from) => Some((*from, BTreeSet::new())),
+            CanvasSelection::Except(from, left_out) => Some((*from, left_out.clone())),
+            _ => None,
+        };
+        if let (Some((from, mut left_out)), true) = (whole, toggle)
+            && let Some(contour) = picked.and_then(|id| self.contours.iter().find(|c| c.id == id))
+            && contour.parts.iter().all(|p| p.segment.from == Some(from))
+        {
+            let hit = shapes_of(contour);
+            if hit.is_subset(&left_out) {
+                left_out.retain(|s| !hit.contains(s));
+            } else {
+                left_out.extend(hit);
+            }
+            self.selection = if left_out.is_empty() {
+                CanvasSelection::Source(from)
+            } else {
+                CanvasSelection::Except(from, left_out)
+            };
+            return;
+        }
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
-            (CanvasSelection::Layer(..) | CanvasSelection::Source(_), true) => {
+            (
+                CanvasSelection::Layer(..)
+                | CanvasSelection::Source(_)
+                | CanvasSelection::Except(..),
+                true,
+            ) => {
                 let ids = self.selection.ids(&self.contours);
                 match CanvasSelection::of_contours(&ids, &self.contours) {
                     CanvasSelection::Shapes(shapes) => shapes,
@@ -1173,6 +1203,14 @@ impl ChiploadApp {
             }
             CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(id)) => {
                 format!("image {id}")
+            }
+            CanvasSelection::Except(from, _) => {
+                let source = match from {
+                    chipload_core::chain::ShapeFrom::Dxf(id) => format!("DXF {id}"),
+                    chipload_core::chain::ShapeFrom::Image(id) => format!("image {id}"),
+                };
+                let all = CanvasSelection::Source(*from).ids(&self.contours).len();
+                format!("{source}, {} left out", all - ids.len())
             }
             _ => "contours".into(),
         };

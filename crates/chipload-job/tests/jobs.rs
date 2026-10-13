@@ -1757,3 +1757,16 @@ fn images_and_their_traced_shapes_are_checked() {
     let job = parse_job(level, "p").unwrap();
     assert_eq!(job.drawing.images[0].threshold, ImageThreshold::Level(140));
 }
+
+// -- shapes left out of a whole DXF or image (docs/specs/leave-out-shapes.md §2)
+
+#[test]
+fn shapes_can_be_left_out_of_a_whole_source_only() {
+    let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    data["operations"][0]["select"] = json!({"layer": "L", "exclude": [1]});
+    let err = parse_job(data, "p").unwrap_err().to_string();
+    assert!(
+        err.contains("only be left out of a whole DXF or image"),
+        "{err}"
+    );
+}

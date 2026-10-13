@@ -1436,6 +1436,18 @@
             "null"
           ]
         },
+        "exclude": {
+          "description": "Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour\nwith any of them isn't cut. A traced image's are found again when it is traced again.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "image": {
           "description": "Only shapes traced from this image (an id in `drawing.images`).",
           "format": "uint64",
