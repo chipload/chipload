@@ -13,6 +13,7 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-core` | primitives, chaining, nesting, tolerances. No I/O, no GUI, no other workspace crate. |
 | `chipload-job` | project file models (schema v18: embedded drawing and its placement (move, 90° turns, scale), drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations, holes operations, dogbone and T-bone corners, rest pockets), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
+| `chipload-image` | pictures (PNG, JPEG, BMP) into black and white and traced loops for V-carving (docs/specs/image-trace.md); core only, no file I/O |
 | `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs, finishing laps, onion skins, dogbones), tabs, pockets (with rest machining), V-carving (medial axis via boostvoronoi, ADR 0015), follow paths, holes (drill cycles, helical bores), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
@@ -80,7 +81,7 @@ cargo test -p chipload-pipeline --test sheet               # golden setup sheets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
-cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
+cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)

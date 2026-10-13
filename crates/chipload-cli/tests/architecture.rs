@@ -78,6 +78,7 @@ fn checker_is_independent_of_the_generator() {
         "chipload-toolpath",
         "chipload-post",
         "chipload-dxf",
+        "chipload-image",
         "chipload-pipeline",
     ] {
         assert!(
@@ -95,6 +96,17 @@ fn core_is_headless_and_at_the_bottom() {
         .filter(|d| d.starts_with("chipload-") || GUI_CRATES.contains(&d.as_str()))
         .collect();
     assert!(bad.is_empty(), "chipload-core depends on {bad:?}");
+}
+
+#[test]
+fn image_tracing_sits_beside_the_dxf_reader() {
+    // docs/specs/image-trace.md §7: pictures in, loops out, on chipload-core alone.
+    let deps = &runtime_closure()["chipload-image"];
+    let bad: Vec<&String> = deps
+        .iter()
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core")
+        .collect();
+    assert!(bad.is_empty(), "chipload-image depends on {bad:?}");
 }
 
 #[test]

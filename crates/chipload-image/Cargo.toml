@@ -1,0 +1,20 @@
+[package]
+name = "chipload-image"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chipload-core = { version = "0.14.1", path = "../chipload-core" }
+# Already in the tree through the dxf crate (bmp, png); jpeg adds zune-jpeg (MIT OR
+# Apache-2.0 OR Zlib), also already in the tree. docs/specs/image-trace.md §7.
+image = { version = "0.25.9", default-features = false, features = ["bmp", "jpeg", "png"] }
+thiserror = "2.0.21"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+proptest = "1"

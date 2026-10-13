@@ -24,6 +24,10 @@ pub const OFFSET_RETRY_NUDGE_MM: f64 = 1e-6;
 /// `offset_dist_eps`, default 1e-4), after a result that came too close to a wall
 /// (docs/specs/offset-retry.md §6). Not the default: it loses whole areas elsewhere.
 pub const OFFSET_TIGHT_SLICE_EPS_MM: f64 = 1e-6;
+/// Image tracing (docs/specs/image-trace.md): a traced edge crosses between two pixel
+/// centres at least this fraction of the pixel spacing away from either, so a pixel exactly
+/// at the threshold never puts two loops through one point.
+pub const TRACE_EDGE_MARGIN: f64 = 1e-6;
 /// Uncut pocket material thinner than this is not reported.
 pub const REST_TOL_MM: f64 = 0.05;
 /// Boundary points closer than ARC_APPROX_TOL_MM but farther apart than this along the

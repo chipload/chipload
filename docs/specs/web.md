@@ -29,7 +29,7 @@ browser: no server, and drawings never leave the user's computer.
 - **Run it locally:**
   ```
   cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job \
-    -p chipload-dxf -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline
+    -p chipload-dxf -p chipload-image -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline
   ```
 
 **Known gaps**, which compile but fail when they run in a browser, for step 2:
