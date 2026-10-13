@@ -7,7 +7,7 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, PathOp,
-    PocketOp, PocketStrategy, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
+    PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -430,9 +430,9 @@ fn plan_pocket_op(
     }
     let mut out = Planned {
         moves: Vec::new(),
-        notes: experimental_note(op.strategy)
-            .into_iter()
-            .chain(plan.notes.iter().cloned())
+        notes: plan
+            .notes
+            .iter()
             .map(|n| format!("{label}: {n}"))
             .chain(corner_notes)
             .collect(),
@@ -583,20 +583,6 @@ fn profile_legs(
         unreached.extend(added.unreached);
     }
     Ok((legs, unreached))
-}
-
-/// Trochoidal and adaptive clearing are experimental (TODO.md): no longer offered for new
-/// pockets, still planned for projects that use them, with this note.
-fn experimental_note(strategy: PocketStrategy) -> Option<String> {
-    let name = match strategy {
-        PocketStrategy::Rings {} => return None,
-        PocketStrategy::Trochoidal { .. } => "trochoidal",
-        PocketStrategy::Adaptive {} => "adaptive",
-    };
-    Some(format!(
-        "{name} clearing is experimental and will be revised; check the toolpath before \
-         cutting, or switch the pocket to rings"
-    ))
 }
 
 fn plan_path_op(
@@ -1364,6 +1350,22 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
     let tool_index = |id: i64| job.tools.iter().position(|t| t.id == id);
     let mut no_rpm: Vec<i64> = Vec::new();
     for (index, op) in enabled() {
+        // Removed 2026-10-13 (docs/decisions/0017-scope.md): such a project still loads,
+        // unchanged, and is refused here until the pocket is switched to rings.
+        if let Operation::Pocket(pocket) = op
+            && let Some(name) = pocket.strategy.removed_name()
+        {
+            let text = format!(
+                "Operation {}: {name} clearing was removed in Chipload 0.14; switch the \
+                 pocket to rings (strategy: rings)",
+                index + 1
+            );
+            problems.push(Problem::new(
+                format!("operations.{index}.strategy"),
+                format!("{name} clearing was removed"),
+                text,
+            ));
+        }
         match tool_index(op.tool()) {
             None => {
                 let text = format!("Tool {} is not defined in the job", op.tool());

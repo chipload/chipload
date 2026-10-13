@@ -56,49 +56,25 @@ fn depth_rows(
     ui.end_row();
 }
 
-/// Rings is the one strategy offered. Trochoidal (loop radius, step; docs/specs/trochoidal.md)
-/// and adaptive (docs/specs/adaptive-fronts.md) are experimental (TODO.md): a project that
-/// uses one keeps it, marked so, and can switch to rings.
-fn strategy_rows(ui: &mut egui::Ui, index: usize, strategy: &mut PocketStrategy) {
-    ui.label("Strategy");
-    let experimental = match strategy {
-        PocketStrategy::Rings {} => None,
-        PocketStrategy::Trochoidal { .. } => Some("trochoidal (experimental)"),
-        PocketStrategy::Adaptive { .. } => Some("adaptive (experimental)"),
+/// Rings is the one strategy. A project with a removed one (trochoidal, adaptive;
+/// docs/decisions/0017-scope.md) shows it, flagged, with a button to switch to rings.
+fn strategy_rows(ui: &mut egui::Ui, strategy: &mut PocketStrategy) {
+    let Some(name) = strategy.removed_name() else {
+        return;
     };
-    match experimental {
-        None => {
-            ui.label("rings");
+    ui.label("Strategy");
+    ui.horizontal(|ui| {
+        let text = RichText::new(format!("{name} (removed)")).color(ui.visuals().error_fg_color);
+        flag(ui.label(text), ui, "strategy");
+        if ui
+            .button("Use rings")
+            .on_hover_text("Rings parallel to the walls, the one clearing strategy")
+            .clicked()
+        {
+            *strategy = PocketStrategy::Rings {};
         }
-        Some(name) => {
-            ComboBox::from_id_salt(("strategy", index))
-                .selected_text(RichText::new(name).color(ui.visuals().warn_fg_color))
-                .show_ui(ui, |ui| {
-                    if ui.selectable_label(false, "rings").clicked() {
-                        *strategy = PocketStrategy::Rings {};
-                    }
-                    let _ = ui.selectable_label(true, name).on_hover_text(
-                        "Experimental, to be revised: no longer offered for new pockets. \
-                         Check the toolpath before cutting.",
-                    );
-                });
-        }
-    }
+    });
     ui.end_row();
-    match strategy {
-        PocketStrategy::Rings {} => {}
-        PocketStrategy::Trochoidal { loop_radius, step } => {
-            ui.label("  loop radius")
-                .on_hover_text("At most the tool radius");
-            ui.add(mm(loop_radius));
-            ui.end_row();
-            ui.label("  step per loop")
-                .on_hover_text("How far each loop moves on; at most the loop radius");
-            ui.add(mm(step));
-            ui.end_row();
-        }
-        PocketStrategy::Adaptive {} => {}
-    }
 }
 
 pub(super) fn feed(value: &mut f64) -> DragValue<'_> {
@@ -456,28 +432,17 @@ pub(super) fn op_form(
                 ui.end_row();
                 corner_rows(ui, index, &mut p.corners, true);
             });
-            let strategy = match p.strategy {
-                PocketStrategy::Rings {} => "rings",
-                PocketStrategy::Trochoidal { .. } => "trochoidal",
-                PocketStrategy::Adaptive { .. } => "adaptive",
-            };
+            let strategy = p.strategy.removed_name().unwrap_or("rings");
             let clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
             section(ui, "op-clearing", "Clearing", &clearing, |ui| {
-                strategy_rows(ui, index, &mut p.strategy);
-                // Adaptive cuts the stepover wide all along: at most half the tool.
-                let adaptive = matches!(p.strategy, PocketStrategy::Adaptive {});
-                let most = if adaptive { 0.5 } else { 1.0 };
-                p.stepover = p.stepover.min(most);
-                ui.label("Stepover").on_hover_text(if adaptive {
-                    "The width every adaptive pass cuts, as a fraction of the tool diameter \
-                     (at most 0.5)"
-                } else {
-                    "How far each ring moves on, as a fraction of the tool diameter"
-                });
+                strategy_rows(ui, &mut p.strategy);
+                ui.label("Stepover").on_hover_text(
+                    "How far each ring moves on, as a fraction of the tool diameter",
+                );
                 let stepover = ui.add(
                     DragValue::new(&mut p.stepover)
                         .speed(0.01)
-                        .range(0.01..=most)
+                        .range(0.01..=1.0)
                         .suffix(" × D"),
                 );
                 flag(stepover, ui, "stepover");

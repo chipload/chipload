@@ -25,9 +25,9 @@ it's built (see `CLAUDE.md`).
 - **The repository is private**: testers can't download releases or open issues without
   being added as collaborators. Decide: make it public, add testers, or another way to
   collect reports (the 0.13.0 notes ask for issues).
-- **Branches**: `adaptive-stage2-wip` (local only, rebased on main 2026-10-12, see the
-  experimental item below); `adaptive-stage2-wip-backup` (the branch before that rebase,
-  can be deleted); `release-0.12` (the 0.12.1 fix branch, kept for history).
+- **Branches**: `adaptive-stage2-wip` and `adaptive-stage2-wip-backup` (local only; the
+  strategies were removed, see below); `release-0.12` (the 0.12.1 fix branch, kept for
+  history). Tag `adaptive-final` (local): main before the removal.
 - **Waiting on the user**: real-controller tests of the LinuxCNC and Mach3/4 posts.
 - **Known test flakiness**: proptests use new random seeds on every run, so a release
   build can fail on a case never seen before (it happened for 0.11.0, 0.12.0 and while
@@ -57,19 +57,10 @@ it's built (see `CLAUDE.md`).
   The user will test features 1–4 and 6, and the playback slider, and give feedback
   (2026-10-13).
 
-- **Trochoidal and adaptive clearing: experimental, to be revised** (2026-10-12, user's
-  decision). No longer offered as pocket strategies (the GUI offers rings only); projects
-  that use them still load and plan as before, with a note that the strategy is
-  experimental (no format change). The code stays: trochoidal (docs/specs/trochoidal.md),
-  adaptive fronts (adaptive-fronts.md) and the spiral, stage 1 on main
-  (adaptive-spiral.md). Stage 2 is on the local branch `adaptive-stage2-wip` (rebased on
-  main 2026-10-12; three adaptive tests still fail there; the Chaikin rounding experiment
-  in its as-built draft: not adopted). To revise at a later date, with a new spec review:
-  the loops' air time (length 2–2.9 × the ideal), then offering the strategies again.
-  Rest machining with a smaller tool after that, its own spec. Also found 2026-10-12:
-  adaptive refuses an outline with hair-thin spikes (an offset comes back open) that
-  rings take; safe (no G-code), seed in `pocket.proptest-regressions`.
-
+- **Trochoidal and adaptive clearing: removed 2026-10-13** (docs/decisions/0017-scope.md).
+  The code is at the local tag `adaptive-final`; the local branches `adaptive-stage2-wip`
+  and `adaptive-stage2-wip-backup` can be deleted when the user agrees. Projects that use
+  them load and are refused when generating ("switch the pocket to rings").
 - **General improvement pass** (proposed and approved 2026-10-12, in this order):
   1–2. Done (background generation and live preview, see Done).
   3–4. Done (recovery copies and the `.bak` on save, see Done).

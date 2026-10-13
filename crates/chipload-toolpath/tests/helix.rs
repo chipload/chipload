@@ -127,12 +127,9 @@ fn a_pocket_goes_down_round_a_helix_in_its_middle_on_every_pass() {
 }
 
 #[test]
-fn every_strategy_can_start_with_a_helix() {
-    for strategy in [
-        rings(),
-        json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive"}),
-    ] {
+fn a_rings_pocket_can_start_with_a_helix() {
+    {
+        let strategy = rings();
         let ops = pocket(strategy.clone(), helix(1.5));
         let plan =
             plan_job(&job(ops), &rect(60.0, 40.0)).unwrap_or_else(|e| panic!("{strategy}: {e}"));

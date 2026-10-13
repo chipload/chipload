@@ -405,18 +405,15 @@ fn a_profile_with_a_tool_that_cant_plunge_is_refused_unless_it_ramps() {
 }
 
 #[test]
-fn pockets_ramp_in_every_strategy() {
+fn pockets_ramp_in_with_a_tool_that_cant_plunge() {
     let pocket_part = vec![common::polygon(&[
         (0.0, 0.0),
         (60.0, 0.0),
         (60.0, 40.0),
         (0.0, 40.0),
     ])];
-    for strategy in [
-        json!({"type": "rings"}),
-        json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive"}),
-    ] {
+    {
+        let strategy = json!({"type": "rings"});
         let ops = json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1,
             "start_depth": 1, "end_depth": 7, "clearance": 0, "step_down": 3,
             "stepover": 0.4, "direction": "climb", "feed": 1500, "plunge_feed": 500,
@@ -586,4 +583,44 @@ fn tabs_whose_feet_meet_get_a_note() {
         "{:?}",
         plan.notes
     );
+}
+
+#[test]
+fn removed_pocket_strategies_are_refused_until_switched_to_rings() {
+    // docs/decisions/0017-scope.md: the project still loads; generating is refused, with
+    // the strategy field named, until the pocket is switched to rings.
+    let part = vec![common::polygon(&[
+        (0.0, 0.0),
+        (60.0, 0.0),
+        (60.0, 40.0),
+        (0.0, 40.0),
+    ])];
+    for (strategy, name) in [
+        (
+            json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
+            "trochoidal",
+        ),
+        (json!({"type": "adaptive"}), "adaptive"),
+    ] {
+        let ops = json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"},
+            "tool": 1, "start_depth": 0, "end_depth": 3, "clearance": 0, "step_down": 3,
+            "stepover": 0.4, "direction": "climb", "feed": 1500, "plunge_feed": 500,
+            "strategy": strategy}]);
+        let mut job = job(ops);
+        let err = plan_job(&job, &part).unwrap_err().to_string();
+        assert!(
+            err.contains(&format!(
+                "Operation 1: {name} clearing was removed in Chipload 0.14; switch the pocket \
+                 to rings"
+            )),
+            "{err}"
+        );
+        let problems = chipload_toolpath::job_problems(&job);
+        assert!(problems.iter().any(|p| p.path == "operations.0.strategy"));
+        let chipload_job::Operation::Pocket(pocket) = &mut job.operations[0] else {
+            panic!("a pocket");
+        };
+        pocket.strategy = chipload_job::PocketStrategy::Rings {};
+        assert!(plan_job(&job, &part).is_ok());
+    }
 }

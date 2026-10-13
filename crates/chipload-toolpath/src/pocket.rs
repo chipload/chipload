@@ -6,7 +6,7 @@
 //! verified afterwards, and uncut material is found with exact distances, not by buffering
 //! the paths.
 
-use std::f64::consts::{SQRT_2, TAU};
+use std::f64::consts::SQRT_2;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use cavalier_contours::core::math::Vector2;
@@ -24,10 +24,8 @@ use chipload_core::tolerances::{
 use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
-use crate::adaptive::Grid;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::cancel::{self, Cancel};
-use crate::fronts;
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
@@ -36,7 +34,6 @@ use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged};
-use crate::spiral;
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -82,9 +79,6 @@ pub struct PocketPlan {
     pub left: Vec<LeftPiece>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
-    /// Adaptive clearing: every step's cut as a share of the target (docs/specs/adaptive.md);
-    /// empty for the other strategies.
-    pub engagement: Vec<f64>,
 }
 
 pub(crate) fn geometry(message: String) -> ToolpathError {
@@ -652,8 +646,8 @@ fn opened(area: &Area, rho: f64) -> Option<Area> {
     grown.pop()
 }
 
-/// One piece's paths from one attempt (docs/specs/offset-retry.md), with the arcs,
-/// engagement and notes that attempt recorded: only the used attempt's are kept.
+/// One piece's paths from one attempt (docs/specs/offset-retry.md), with the arcs and
+/// notes that attempt recorded: only the used attempt's are kept.
 #[derive(Default)]
 struct Attempt {
     rings: Vec<Vec<Point>>,
@@ -661,7 +655,6 @@ struct Attempt {
     open: Vec<bool>,
     walls: Vec<bool>,
     arcs: ArcTable,
-    engagement: Vec<f64>,
     notes: Vec<String>,
 }
 
@@ -684,14 +677,12 @@ struct Clearing<'a> {
 fn cleared_piece(region: &Area, ids: &[usize], c: &Clearing) -> Result<Attempt, ToolpathError> {
     cancel::check(c.cancel)?;
     let walls = PrimIndex::new(region.boundary(), c.tool_radius.max(1.0));
-    let rings_only = matches!(c.strategy, PocketStrategy::Rings {});
     nudged(|nudge| {
         let mut a = attempt_piece(region, ids, c, nudge)?;
         if let Some(k) = first_unclear(region, &walls, &a.rings, &a.open, c.offset, &a.arcs) {
             return Err(Failure::Numerical {
                 error: verification_failed(ids),
-                // Adaptive and trochoidal paths have no stepover between rings to nudge.
-                wall: a.walls.get(k).copied().unwrap_or(true) || !rings_only,
+                wall: a.walls.get(k).copied().unwrap_or(true),
             });
         }
         if a.open.is_empty() {
@@ -709,10 +700,6 @@ fn attempt_piece(
     nudge: Nudge,
 ) -> Result<Attempt, Failure> {
     let mut a = Attempt::default();
-    // Adaptive and trochoidal errors include the library's, so every one may be numerical;
-    // one a nudge can't change just fails again and the first error is returned.
-    let numerical = |error| Failure::Numerical { error, wall: true };
-    let offset = c.offset + nudge.wall;
     match c.strategy {
         PocketStrategy::Rings {} => {
             let (mut nodes, roots) =
@@ -732,48 +719,11 @@ fn attempt_piece(
             );
             a.level0 = roots.iter().map(|&r| nodes[r].area.clone()).collect();
         }
-        PocketStrategy::Adaptive {} => {
-            (a.rings, a.level0, a.open, a.walls) = adaptive_rings(
-                region,
-                offset,
-                c.tool_radius,
-                c.stepover,
-                ids,
-                c.position,
-                c.direction,
-                c.spindle,
-                &mut a.arcs,
-                &mut a.engagement,
-            )
-            .map_err(numerical)?;
-        }
-        PocketStrategy::Trochoidal { loop_radius, step } => {
-            let tool_radius = c.tool_radius;
-            // How far either side of its backbone a row of loops surely cuts: a point
-            // midway between two loop centres is half a step further from them, and
-            // chords lie up to the arc tolerance inside their arcs.
-            let reach = ((loop_radius + tool_radius).powi(2) - (step / 2.0).powi(2)).sqrt()
-                - ARC_APPROX_TOL_MM;
-            // Backbones no further apart than that, so every point between two levels
-            // (even where a lobe of the pocket ends) is within reach of a row of loops.
-            let trochoid = Trochoid {
-                offset,
-                tool_radius,
-                loop_radius,
-                step,
-                band: (2.0 * loop_radius + c.stepover).min(reach) - nudge.step,
-            };
-            (a.rings, a.level0, a.walls) = trochoidal_rings(
-                region,
-                &trochoid,
-                ids,
-                c.position,
-                c.direction,
-                c.spindle,
-                &mut a.arcs,
-                &mut a.notes,
-            )
-            .map_err(numerical)?;
+        // Removed (docs/decisions/0017-scope.md); validation refuses them first.
+        PocketStrategy::Adaptive {} | PocketStrategy::Trochoidal { .. } => {
+            return Err(Failure::Final(geometry(
+                "this clearing strategy was removed; switch the pocket to rings".into(),
+            )));
         }
     }
     Ok(a)
@@ -1418,7 +1368,6 @@ pub fn plan_pocket_starting(
     let mut notes = Vec::new();
     let mut left = Vec::new();
     let mut arcs = ArcTable::default();
-    let mut engagement = Vec::new();
     // Every region with where the tool centre can go in it, for the material left.
     let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
@@ -1443,15 +1392,6 @@ pub fn plan_pocket_starting(
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
-        if let PocketStrategy::Trochoidal { loop_radius, .. } = strategy
-            && loop_radius > tool_radius
-        {
-            return Err(geometry(format!(
-                "contours {}: loop radius {loop_radius} must be at most the tool radius \
-                 {tool_radius}, or each loop leaves an uncut core",
-                ids_text(&ids)
-            )));
-        }
         let clearing = Clearing {
             strategy,
             round_corners,
@@ -1469,11 +1409,9 @@ pub fn plan_pocket_starting(
             open,
             walls,
             arcs: used_arcs,
-            engagement: used_engagement,
             notes: used_notes,
         } = cleared_piece(&region, &ids, &clearing)?;
         arcs.extend(used_arcs);
-        engagement.extend(used_engagement);
         notes.extend(used_notes);
         if level0.len() > 1 {
             notes.push(format!(
@@ -1619,7 +1557,6 @@ pub fn plan_pocket_starting(
         notes,
         left,
         arcs,
-        engagement,
     })
 }
 
@@ -1791,311 +1728,6 @@ fn unreachable_in_pockets(
         }
     }
     Ok(pieces)
-}
-
-/// A piece's paths in cut order, its wall-pass areas (the level 0 of the uncut and
-/// material-left checks), which paths are open, and which are wall rings.
-type PiecePaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>, Vec<bool>);
-
-/// A piece's closed paths in cut order, its wall-pass areas, and which are wall rings.
-type ClosedPaths = (Vec<Vec<Point>>, Vec<Area>, Vec<bool>);
-
-/// Adaptive passes (open) and then the wall pass, with the wall-pass areas
-/// (docs/specs/adaptive-fronts.md). `width`: the cut width (stepover), mm.
-#[allow(clippy::too_many_arguments)]
-fn adaptive_rings(
-    region: &Area,
-    offset: f64,
-    tool_radius: f64,
-    width: f64,
-    ids: &[usize],
-    position: Point,
-    direction: Direction,
-    spindle: Spindle,
-    arcs: &mut ArcTable,
-    engagement: &mut Vec<f64>,
-) -> Result<PiecePaths, ToolpathError> {
-    let walls = region.shrunk(offset)?;
-    if walls.is_empty() {
-        return Err(geometry(format!(
-            "contours {}: tool (diameter {:.3} mm) does not fit in the pocket",
-            ids_text(ids),
-            2.0 * tool_radius
-        )));
-    }
-    let diameter = 2.0 * tool_radius;
-    let h = (diameter / 30.0).min(ADAPTIVE_CELL_MM);
-    let Some(extents) = region.outer.extents() else {
-        return Err(geometry("adaptive clearing: empty pocket".into()));
-    };
-    let (lo, hi) = (
-        (extents.min_x - tool_radius, extents.min_y - tool_radius),
-        (extents.max_x + tool_radius, extents.max_y + tool_radius),
-    );
-    let rings_of = |area: &Area| -> Vec<Vec<Point>> {
-        std::iter::once(&area.outer)
-            .chain(&area.holes)
-            .map(flatten_tagged_plain)
-            .collect()
-    };
-    // Where the passes go: all of the wall pass's area. The fronts reach the walls
-    // themselves, so no band is left that a tool on its edge would sweep sideways where a
-    // front meets a wall at a shallow angle; the wall pass then only takes the cusps
-    // between front ends (docs/specs/adaptive-fronts.md §10).
-    let parts = walls.clone();
-    // The material the passes cut, for returns and engagement: cells whose whole square the
-    // tool covers from somewhere in the parts (centres within r − 2h; the model cuts with
-    // r − h/√2).
-    let mut material = Grid::new(lo, hi, h);
-    for part in &parts {
-        for grown in part.grown(tool_radius - 2.0 * h)? {
-            let mut one = Grid::new(lo, hi, h);
-            one.fill(&rings_of(&grown));
-            material.or(&one);
-        }
-    }
-    // Material on the right is climb with an M3 spindle, as for ring walls.
-    let material_right = !cut_clockwise(Side::Inside, direction, spindle);
-    let reach = tool_radius - h * std::f64::consts::FRAC_1_SQRT_2;
-    // A spiral for every part that suits one (docs/specs/adaptive-spiral.md §3.2); fronts
-    // for the others, until the spiral covers them too.
-    let theta0 = spiral::target_angle(width, tool_radius);
-    let mut rings: Vec<Vec<Point>> = Vec::new();
-    let mut rest = Vec::new();
-    for part in &parts {
-        let plan = spiral::plan(
-            &spiral::Spiral {
-                area: part,
-                tool_radius,
-                width,
-                material_right,
-            },
-            arcs,
-        )?;
-        match plan {
-            Some(path) => {
-                // Measured on its own finer grid (see ADAPTIVE_CELL_MM).
-                let fine = h / 2.0;
-                let mut grid = Grid::new(lo, hi, fine);
-                for grown in part.grown(tool_radius - 2.0 * fine)? {
-                    grid.fill(&rings_of(&grown));
-                }
-                let reach = tool_radius - fine * std::f64::consts::FRAC_1_SQRT_2;
-                engagement.extend(spiral::measure(
-                    &mut grid,
-                    &path.points,
-                    path.opening,
-                    reach,
-                    theta0,
-                ));
-                rings.push(path.points);
-            }
-            None => rest.push(part.clone()),
-        }
-    }
-    let here = rings
-        .last()
-        .and_then(|p| p.last())
-        .copied()
-        .unwrap_or(position);
-    let setup = fronts::Setup {
-        parts: &rest,
-        width,
-        material_right,
-        material,
-        reach,
-    };
-    let passes = fronts::clear(setup, here, arcs)?;
-    engagement.extend(passes.engagement);
-    rings.extend(passes.paths);
-    let mut open = vec![true; rings.len()];
-    let here = rings
-        .last()
-        .and_then(|p| p.last())
-        .copied()
-        .unwrap_or(position);
-    let wall_nodes: Vec<Node> = walls
-        .iter()
-        .map(|area| Node {
-            area: area.clone(),
-            children: Vec::new(),
-        })
-        .collect();
-    let roots: Vec<usize> = (0..wall_nodes.len()).collect();
-    let (wall_rings, wall_flags) = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
-    let mut flags = vec![false; rings.len()];
-    flags.extend(wall_flags);
-    open.extend(vec![false; wall_rings.len()]);
-    rings.extend(wall_rings);
-    Ok((rings, walls, open, flags))
-}
-
-/// Flattened points of a ring, without recording arcs (the material model only needs the
-/// shape).
-fn flatten_tagged_plain(pline: &Polyline<f64>) -> Vec<Point> {
-    flatten_tagged(pline, &mut ArcTable::default())
-}
-
-/// Largest cell of the adaptive material grid, mm (smaller for tools under 6 mm: D / 30).
-/// The spiral's engagement angle is measured on a grid of half that: with 0.2 mm cells, at
-/// a 37° target the angle read varied by about 30 % from step to step where the cut was
-/// steady.
-const ADAPTIVE_CELL_MM: f64 = 0.2;
-
-/// Sizes for trochoidal clearing, mm (docs/specs/trochoidal.md section 3).
-struct Trochoid {
-    /// Tool centre to walls (tool radius minus clearance).
-    offset: f64,
-    tool_radius: f64,
-    loop_radius: f64,
-    /// How far each loop moves on along its backbone.
-    step: f64,
-    /// Spacing of the backbones: 2 loop radii plus the stepover, at most the loops' reach.
-    band: f64,
-}
-
-/// The backbones' loop paths from the inside out, then the wall pass, and the wall-pass
-/// areas (the "level 0" the uncut and material-left checks start from).
-#[allow(clippy::too_many_arguments)]
-fn trochoidal_rings(
-    region: &Area,
-    t: &Trochoid,
-    ids: &[usize],
-    position: Point,
-    direction: Direction,
-    spindle: Spindle,
-    arcs: &mut ArcTable,
-    notes: &mut Vec<String>,
-) -> Result<ClosedPaths, ToolpathError> {
-    let walls = region.shrunk(t.offset)?;
-    if walls.is_empty() {
-        return Err(geometry(format!(
-            "contours {}: tool (diameter {:.3} mm) does not fit in the pocket",
-            ids_text(ids),
-            2.0 * t.tool_radius
-        )));
-    }
-    let loop_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside a loop
-    let mut rings: Vec<Vec<Point>> = Vec::new();
-    let mut here = position;
-    if region.shrunk(t.offset + t.loop_radius)?.is_empty() {
-        notes.push(format!(
-            "contours {}: the loops (radius {:.3} mm) don't fit anywhere; only the wall pass \
-             cuts this pocket",
-            ids_text(ids),
-            t.loop_radius
-        ));
-    } else {
-        let (nodes, roots) = ring_tree(
-            region,
-            t.offset + t.loop_radius,
-            t.tool_radius,
-            t.band,
-            ids,
-            Nudge::NONE,
-        )
-        .map_err(Failure::into_error)?;
-        // The backbones themselves aren't cut: their chords don't go in `arcs`.
-        let (backbones, _) = cut_order(
-            &nodes,
-            &roots,
-            here,
-            direction,
-            spindle,
-            &mut ArcTable::default(),
-        );
-        for backbone in &backbones {
-            let path = loops_along(backbone, t.loop_radius, t.step, loop_cw, arcs);
-            // A path ends where it starts (the last loop links back to the first).
-            if let Some(&start) = path.first() {
-                here = start;
-            }
-            rings.push(path);
-        }
-    }
-    // The wall pass: a ring at the tool radius from every wall and island, as the last ring
-    // of a ring pocket.
-    let wall_nodes: Vec<Node> = walls
-        .iter()
-        .map(|area| Node {
-            area: area.clone(),
-            children: Vec::new(),
-        })
-        .collect();
-    let roots: Vec<usize> = (0..wall_nodes.len()).collect();
-    let (wall_rings, wall_flags) = cut_order(&wall_nodes, &roots, here, direction, spindle, arcs);
-    let mut flags = vec![false; rings.len()];
-    flags.extend(wall_flags);
-    rings.extend(wall_rings);
-    Ok((rings, walls, flags))
-}
-
-/// One closed path of loops along a closed `backbone` (cut direction already set): loop
-/// centres every `step` or a little less (evenly by length), at each a full circle of
-/// `radius` starting and ending at its point towards the next centre, consecutive loops
-/// linked by a straight move. The circles' chords are recorded in `arcs`.
-fn loops_along(
-    backbone: &[Point],
-    radius: f64,
-    step: f64,
-    clockwise: bool,
-    arcs: &mut ArcTable,
-) -> Vec<Point> {
-    let n = backbone.len();
-    if n == 0 {
-        return Vec::new();
-    }
-    let mut lengths = vec![0.0];
-    for k in 0..n {
-        let next = lengths[k] + distance(backbone[k], backbone[(k + 1) % n]);
-        lengths.push(next);
-    }
-    let total = lengths[n];
-    let count = ((total / step).ceil() as usize).max(1);
-    let at = |s: f64| -> Point {
-        let k = lengths
-            .partition_point(|&l| l <= s)
-            .saturating_sub(1)
-            .min(n - 1);
-        let (a, b) = (backbone[k], backbone[(k + 1) % n]);
-        let span = lengths[k + 1] - lengths[k];
-        let t = if span > 0.0 {
-            (s - lengths[k]) / span
-        } else {
-            0.0
-        };
-        (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
-    };
-    let centres: Vec<Point> = (0..count)
-        .map(|i| at(total * i as f64 / count as f64))
-        .collect();
-    let circle_sweep = if clockwise { -TAU } else { TAU };
-    let mut path = Vec::new();
-    let mut heading = 0.0;
-    for (i, &c) in centres.iter().enumerate() {
-        let next = centres[(i + 1) % count];
-        if distance(c, next) > CHAIN_TOL_MM {
-            heading = (next.1 - c.1).atan2(next.0 - c.0);
-        }
-        let circle = Primitive::Arc(chipload_core::primitives::Arc {
-            center: c,
-            radius,
-            start_angle: heading,
-            sweep: circle_sweep,
-        });
-        let mut points = circle.points();
-        points.pop(); // the end repeats the start; close on the exact start instead
-        let Some(&first) = points.first() else {
-            continue;
-        };
-        points.push(first);
-        let tag = Circle { center: c, radius };
-        for w in points.windows(2) {
-            arcs.insert(w[0], w[1], tag);
-        }
-        path.extend(points);
-    }
-    path
 }
 
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.

@@ -4,11 +4,9 @@
 //! Headless, no I/O. Offsets use cavalier_contours with true arcs and are always verified
 //! afterwards (ADR 0006).
 
-pub mod adaptive;
 pub mod arcs;
 pub mod cancel;
 pub mod corners;
-pub mod fronts;
 pub mod geom;
 pub mod helix;
 pub mod holes;
@@ -25,7 +23,6 @@ pub mod profile;
 pub mod ramp;
 mod retry;
 pub mod select;
-pub mod spiral;
 pub mod start;
 pub mod tabs;
 pub mod vcarve;

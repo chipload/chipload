@@ -665,7 +665,7 @@ fn depth_and_clearance_rules_are_checked() {
 // -- pocket strategy (docs/specs/trochoidal.md)
 
 #[test]
-fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
+fn pocket_strategy_defaults_to_rings_and_removed_ones_still_load() {
     // Operation 0 of the lower part is a pocket without a strategy: rings, written explicitly.
     let job = parse_job(lower_job(), "p").unwrap();
     let Operation::Pocket(pocket) = &job.operations[0] else {
@@ -688,16 +688,11 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
     let job = with(trochoidal.clone()).unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
     assert_eq!(saved["operations"][0]["strategy"], trochoidal);
+    // Removed strategies (docs/decisions/0017-scope.md) load and save unchanged, whatever
+    // their values; generating refuses them (chipload-toolpath).
+    assert!(with(json!({"type": "trochoidal", "loop_radius": 1.0, "step": 1.5})).is_ok());
     for (bad, why) in [
         (json!({"type": "trochoidal", "step": 0.6}), "loop_radius"),
-        (
-            json!({"type": "trochoidal", "loop_radius": 1.0, "step": 1.5}),
-            "0 < step <= loop_radius",
-        ),
-        (
-            json!({"type": "trochoidal", "loop_radius": 0.0, "step": 0.0}),
-            "0 < step <= loop_radius",
-        ),
         (json!({"type": "zigzag"}), "unknown variant"),
         // Since schema 13 adaptive cuts the pocket's stepover (docs/specs/adaptive-fronts.md).
         (json!({"type": "adaptive", "load": 0.1}), "unknown field"),
@@ -706,16 +701,9 @@ fn pocket_strategy_defaults_to_rings_and_trochoidal_values_are_checked() {
         let err = with(bad.clone()).unwrap_err().to_string();
         assert!(err.contains(why), "{bad}: {err}");
     }
-    // Adaptive cuts at most half the tool wide; rings may step over up to the whole tool.
+    // Rings may step over up to the whole tool.
     let mut data = lower_job();
-    data["operations"][0]["strategy"] = adaptive;
     data["operations"][0]["stepover"] = json!(0.6);
-    let err = parse_job(data.clone(), "p").unwrap_err().to_string();
-    assert!(
-        err.contains("adaptive needs a stepover of at most 0.5"),
-        "{err}"
-    );
-    data["operations"][0]["strategy"] = json!({"type": "rings"});
     parse_job(data, "p").unwrap();
 }
 

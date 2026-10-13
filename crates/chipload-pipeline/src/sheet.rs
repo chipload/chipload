@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use chipload_core::Point;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
-    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketStrategy, Side, Spindle,
-    Tool, ToolChange, ToolType, WorkZero, ZZero,
+    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, Side, Spindle, Tool,
+    ToolChange, ToolType, WorkZero, ZZero,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -389,11 +389,7 @@ fn kind_text(op: &Operation) -> String {
             format!("Profile, {side}, {}", direction_text(p.direction))
         }
         Operation::Pocket(p) => {
-            let strategy = match p.strategy {
-                PocketStrategy::Rings {} => "rings",
-                PocketStrategy::Trochoidal { .. } => "trochoidal",
-                PocketStrategy::Adaptive {} => "adaptive",
-            };
+            let strategy = p.strategy.removed_name().unwrap_or("rings");
             format!(
                 "Pocket, {strategy}, {}, stepover {} %",
                 direction_text(p.direction),

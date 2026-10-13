@@ -1,5 +1,9 @@
 # Spec: adaptive clearing as spirals and trochoidal channels on the medial axis
 
+**Removed 2026-10-13** (docs/decisions/0017-scope.md): the code is at the local tag
+`adaptive-final`; projects that use it load and are refused when generating. Kept as
+history.
+
 Status: **approved 2026-10-11**, all decisions as recommended (§9). **§3.1–3.4 revised
 2026-10-11 for stage 2** (option C of §11, as main area and branches): decisions 9–12,
 approved. Replaces docs/specs/adaptive-fronts.md (its

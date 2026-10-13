@@ -1,5 +1,9 @@
 # Spec: adaptive clearing by fronts, divided by the medial axis
 
+**Removed 2026-10-13** (docs/decisions/0017-scope.md): the code is at the local tag
+`adaptive-final`; projects that use it load and are refused when generating. Kept as
+history.
+
 Status: **approved 2026-10-11**, all decisions as recommended (§9). **Superseded** the same
 day by docs/specs/adaptive-spiral.md (user: step back to medial-axis spirals); its stage 1,
 the one stepover setting (schema 13), stays. Replaces the path

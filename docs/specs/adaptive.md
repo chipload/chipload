@@ -1,5 +1,9 @@
 # Spec: adaptive pocket clearing
 
+**Removed 2026-10-13** (docs/decisions/0017-scope.md): the code is at the local tag
+`adaptive-final`; projects that use it load and are refused when generating. Kept as
+history.
+
 Status: **approved 2026-10-10** (Q1–Q5 as recommended). Implemented; refinements found while
 building it are marked *Implemented:*. Superseded in part by docs/specs/adaptive-fronts.md:
 since schema 13 the strategy has no `load`; adaptive cuts the pocket's stepover (§2 below is

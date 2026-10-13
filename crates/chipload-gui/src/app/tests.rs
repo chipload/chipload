@@ -1727,6 +1727,27 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
     assert_eq!(app.playback.as_ref().unwrap().time, total / 3.0);
 }
 
+#[test]
+fn a_project_with_a_removed_strategy_opens_and_is_switched_to_rings() {
+    // docs/decisions/0017-scope.md: it loads unchanged, is refused, and one change fixes it.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v7/trochoidal.chipload")));
+    let edit = app.edit.as_ref().unwrap();
+    let job = edit.to_job().unwrap();
+    let problems = chipload_pipeline::job_problems(&job);
+    assert!(
+        problems.iter().any(|p| p.path == "operations.0.strategy"),
+        "{problems:?}"
+    );
+    assert!(!app.generate_and_wait());
+    let edit = app.edit.as_mut().unwrap();
+    let Operation::Pocket(p) = &mut edit.ops[0].op else {
+        panic!("a pocket");
+    };
+    p.strategy = chipload_job::PocketStrategy::Rings {};
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

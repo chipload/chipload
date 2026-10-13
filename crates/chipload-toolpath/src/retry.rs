@@ -35,15 +35,6 @@ pub(crate) enum Failure {
     Numerical { error: ToolpathError, wall: bool },
 }
 
-impl Failure {
-    /// The error, for callers that don't retry.
-    pub fn into_error(self) -> ToolpathError {
-        match self {
-            Failure::Final(error) | Failure::Numerical { error, .. } => error,
-        }
-    }
-}
-
 impl From<ToolpathError> for Failure {
     fn from(error: ToolpathError) -> Self {
         Failure::Final(error)

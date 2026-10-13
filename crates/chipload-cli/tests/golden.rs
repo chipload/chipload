@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 33] = [
+const GOLDEN: [(&str, &str); 29] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -30,11 +30,7 @@ const GOLDEN: [(&str, &str); 33] = [
         "v7_depths_and_clearance",
         "jobs/v7/depths_and_clearance.chipload",
     ),
-    // The same, its pocket cleared with trochoidal loops (docs/specs/trochoidal.md).
-    ("v7_trochoidal", "jobs/v7/trochoidal.chipload"),
     ("v7_ramp_entry", "jobs/v7/ramp_entry.chipload"),
-    // The same, its pocket cleared adaptively (docs/specs/adaptive.md).
-    ("v7_adaptive", "jobs/v7/adaptive.chipload"),
     // The ramp-entry part cut six times, operation by operation (docs/specs/copies-grid.md).
     ("v7_copies", "jobs/v7/copies.chipload"),
     // The ramp-entry part with leads and moved starts (docs/specs/helix-and-leads.md).
@@ -58,15 +54,6 @@ const GOLDEN: [(&str, &str); 33] = [
     (
         "v12_two_tools_program",
         "jobs/v12/two_tools_program.chipload",
-    ),
-    // v7_adaptive frozen at v12 (load 0.1): the load becomes the stepover in v13, the same
-    // G-code as v7_adaptive (docs/specs/adaptive-fronts.md §5).
-    ("v12_adaptive", "jobs/v12/adaptive.chipload"),
-    // The pocket of the adaptive-fronts request: a rectangle round two round islands,
-    // cleared by fronts at stepover 0.4 (docs/specs/adaptive-fronts.md).
-    (
-        "v13_adaptive_two_islands",
-        "jobs/v13/adaptive_two_islands.chipload",
     ),
     // v7_helix frozen at v13, a rings pocket: v14 keeps its corners sharp, the same G-code
     // as v7_helix (docs/specs/pocket-round-corners.md).
@@ -268,4 +255,33 @@ fn every_golden_arc_is_consistent_as_written() {
         }
     }
     assert!(count > 50, "the corpus should exercise arcs, found {count}");
+}
+
+/// Frozen projects whose pockets use a removed strategy (docs/decisions/0017-scope.md):
+/// they still load and migrate, and generating is refused. Their golden G-code was removed
+/// with the strategies; the projects stay frozen (CLAUDE.md).
+const REMOVED: [&str; 4] = [
+    "jobs/v7/trochoidal.chipload",
+    "jobs/v7/adaptive.chipload",
+    "jobs/v12/adaptive.chipload",
+    "jobs/v13/adaptive_two_islands.chipload",
+];
+
+#[test]
+fn projects_with_a_removed_strategy_are_refused() {
+    let settings =
+        std::env::temp_dir().join(format!("chipload-golden-settings-{}", std::process::id()));
+    for project in REMOVED {
+        let out = Command::new(env!("CARGO_BIN_EXE_chipload"))
+            .env("CHIPLOAD_CONFIG_DIR", &settings)
+            .args(["plan".as_ref(), corpus(project).as_os_str()])
+            .output()
+            .unwrap();
+        let said = String::from_utf8_lossy(&out.stderr);
+        assert!(!out.status.success(), "{project}");
+        assert!(
+            said.contains("clearing was removed in Chipload 0.14"),
+            "{project}: {said}"
+        );
+    }
 }

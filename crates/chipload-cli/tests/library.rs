@@ -290,7 +290,7 @@ fn a_broken_library_warns_on_import_and_is_never_overwritten() {
 fn library_tools_and_machines_go_into_projects_and_back() {
     let dir = temp_dir("use");
     let project = dir.join("part.chipload");
-    std::fs::copy(corpus("jobs/v7/adaptive.chipload"), &project).unwrap();
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
     let before = json(&project);
     let ids: Vec<i64> = before["tools"]
         .as_array()

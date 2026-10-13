@@ -1466,12 +1466,22 @@ pub enum PocketStrategy {
     /// Rings parallel to the walls, cut from the inside out. An empty struct variant (not a
     /// unit one) so serde refuses stray fields here too.
     Rings {},
-    /// Small full-circle loops of `loop_radius` moving `step` mm along backbones, then a
-    /// wall pass. Both mm.
+    /// Removed 2026-10-13 (docs/decisions/0017-scope.md): read so older files still load,
+    /// refused when generating (until switched to rings). Was: loops of `loop_radius` moving `step` mm along backbones.
     Trochoidal { loop_radius: f64, step: f64 },
-    /// Passes that cut the pocket's stepover × D sideways all along
-    /// (docs/specs/adaptive-fronts.md), then a wall pass. Needs stepover <= 0.5.
+    /// Removed 2026-10-13, as `Trochoidal`. Was: adaptive fronts (docs/specs/adaptive-fronts.md).
     Adaptive {},
+}
+
+impl PocketStrategy {
+    /// The name of a strategy that was removed, None for rings.
+    pub fn removed_name(&self) -> Option<&'static str> {
+        match self {
+            PocketStrategy::Rings {} => None,
+            PocketStrategy::Trochoidal { .. } => Some("trochoidal"),
+            PocketStrategy::Adaptive {} => Some("adaptive"),
+        }
+    }
 }
 
 impl Default for PocketStrategy {
@@ -1824,29 +1834,6 @@ impl Job {
             if selector.layer.is_none() && !has_shapes {
                 problems.push(format!(
                     "operations.{i}.select: selector needs a layer or shapes"
-                ));
-            }
-            if let Operation::Pocket(p) = op
-                && let PocketStrategy::Trochoidal { loop_radius, step } = p.strategy
-                && !(loop_radius.is_finite()
-                    && loop_radius > 0.0
-                    && step.is_finite()
-                    && step > 0.0
-                    && step <= loop_radius)
-            {
-                problems.push(format!(
-                    "operations.{i}.strategy: trochoidal needs 0 < step <= loop_radius, got \
-                     step {step} and loop_radius {loop_radius}"
-                ));
-            }
-            if let Operation::Pocket(p) = op
-                && let PocketStrategy::Adaptive {} = p.strategy
-                && p.stepover > 0.5
-            {
-                problems.push(format!(
-                    "operations.{i}.stepover: adaptive needs a stepover of at most 0.5 (a \
-                     fraction of the tool diameter), got {}",
-                    p.stepover
                 ));
             }
             if let Entry::Helix { radius, .. } = op.entry()

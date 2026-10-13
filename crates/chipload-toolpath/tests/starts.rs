@@ -172,13 +172,10 @@ fn a_start_on_an_arc_lands_on_the_arc() {
 }
 
 #[test]
-fn a_pocket_moves_only_its_wall_ring_in_every_strategy() {
+fn a_pocket_moves_only_its_wall_ring() {
     let parts = vec![common::rect(0, 0.0, 0.0, 60.0, 40.0)];
-    for strategy in [
-        json!({"type": "rings"}),
-        json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6}),
-        json!({"type": "adaptive"}),
-    ] {
+    {
+        let strategy = json!({"type": "rings"});
         let plain = plan_job(&job(pocket(strategy.clone(), json!([]))), &parts).unwrap();
         let plan = plan_job(&job(pocket(strategy.clone(), json!([[30, 45]]))), &parts)
             .unwrap_or_else(|e| panic!("{strategy}: {e}"));
