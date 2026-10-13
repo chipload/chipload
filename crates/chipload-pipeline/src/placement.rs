@@ -73,7 +73,7 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
         .drawing
         .shapes
         .iter()
-        .filter(|s| !s.is_drawn())
+        .filter(|s| s.from_dxf())
         .cloned()
         .collect();
     if imported.is_empty() {
@@ -202,7 +202,7 @@ pub fn factor_text(factor: f64) -> String {
 
 /// Width and height of the imported shapes' bounding box, mm.
 pub fn imported_size(shapes: &[Shape]) -> Option<(f64, f64)> {
-    let imported: Vec<Shape> = shapes.iter().filter(|s| !s.is_drawn()).cloned().collect();
+    let imported: Vec<Shape> = shapes.iter().filter(|s| s.from_dxf()).cloned().collect();
     let ((x0, y0), (x1, y1)) = contours_from_shapes(&imported, None).report.bbox?;
     Some((x1 - x0, y1 - y0))
 }
@@ -213,7 +213,7 @@ fn scale_notes(before: &[Shape], after: &[Shape], factor: f64) -> Vec<String> {
     let mut notes = Vec::new();
     let curves = after
         .iter()
-        .filter(|s| !s.is_drawn() && matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
+        .filter(|s| s.from_dxf() && matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
         .count();
     if curves > 0 && factor > 1.0 {
         notes.push(format!(
@@ -392,10 +392,15 @@ pub(crate) fn place_scaled_import(shapes: &mut [Shape], placement: Placement) {
     );
 }
 
-/// Turn, scale, then move every imported shape; drawn shapes stay.
+/// Turn, scale, then move every shape from the DXF; drawn and traced shapes stay.
 fn apply_to_imported(shapes: &mut [Shape], step: Step) {
     for shape in shapes {
-        if let Geometry::Path { segments, .. } = &mut shape.geometry {
+        if let Geometry::Path {
+            segments,
+            image: None,
+            ..
+        } = &mut shape.geometry
+        {
             for segment in segments.iter_mut() {
                 let turned = segment.quarter_turned(step.turns);
                 let scaled = if step.scale == 1.0 {
@@ -419,17 +424,20 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 dxf_type: ta,
                 closed: ca,
                 segments: sa,
+                image: ia,
             },
             Geometry::Path {
                 dxf_handle: hb,
                 dxf_type: tb,
                 closed: cb,
                 segments: sb,
+                image: ib,
             },
         ) => {
             a.layer == b.layer
                 && ha == hb
                 && ta == tb
+                && ia == ib
                 && ca == cb
                 && sa.len() == sb.len()
                 && sa.iter().zip(sb).all(|(x, y)| same_segment(x, y))
@@ -474,7 +482,7 @@ fn nearest_is_imported(shapes: &[Shape], select: &Selector, p: Point) -> bool {
         for segment in shape.segments() {
             let d = distance_to_segment(&segment, p);
             if best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, !shape.is_drawn()));
+                best = Some((d, shape.from_dxf()));
             }
         }
     }

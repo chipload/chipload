@@ -89,7 +89,9 @@ fn every_corpus_project_as_saved_today_is_valid() {
 #[test]
 fn broken_projects_are_refused() {
     let path = root("tests/corpus/jobs/v18/rest.chipload");
-    let good: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let frozen: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    // The current version of it: the schema describes only that.
+    let good = chipload_job::migrations::migrate(frozen).unwrap();
     validate(Format::Project, &good).unwrap();
     let broken = |change: &dyn Fn(&mut Value)| {
         let mut value = good.clone();

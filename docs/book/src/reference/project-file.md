@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 18. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 19. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -14,7 +14,7 @@ Schema version 18. Older files load through Chipload's migrations; this schema d
 | `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order. |
-| `schema_version` | `18` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `19` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -29,6 +29,12 @@ From `start_angle` through `sweep` radians (positive = counter-clockwise).
 | `radius` | number | yes | Radius, mm. |
 | `start_angle` | number | yes | Where the arc starts, radians from +X, counter-clockwise. |
 | `sweep` | number | yes | How far it turns, radians: positive counter-clockwise. |
+
+## AutoThreshold
+
+The word "auto".
+
+One of: `"auto"`.
 
 ## Copies
 
@@ -89,6 +95,7 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
 | `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
 | `source` | [DrawingSource](#drawingsource) or null | no | The DXF the imported shapes came from, at the last import or update. Null: no DXF yet. |
@@ -163,6 +170,34 @@ A helix at the wall, at most `step_down` mm per turn and never steeper than `ram
 | `direction` | [Direction](#direction) | yes | `climb` or `conventional`, as for a profile inside the hole. |
 | `ramp_angle` | number | yes | The steepest the helix goes, radians: more than 0, at most 30° (0.5236). |
 | `step_down` | number | yes | The most the helix goes down per turn, mm. |
+
+## Image
+
+A picture traced into shapes: the picture itself, where it goes, and how it becomes black and white. Its traced shapes are `path` shapes on its layer that name it in `image`.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `blur` | number | yes | Blur before the threshold, in pixels, 0 to 10; 0: none. |
+| `data` | string | yes | The picture file itself (PNG, JPEG or BMP), base64-encoded. |
+| `file` | string | yes | The picture's file name. |
+| `id` | integer | yes | The image's id, which its traced shapes name. |
+| `invert` | boolean | yes | Carve the light parts instead of the dark ones. |
+| `layer` | string | yes | The layer its traced shapes go on. |
+| `min_area` | number | yes | Black or white specks smaller than this are dropped, mm², 0 to 100. |
+| `sha256` | string | yes | The picture's SHA-256. |
+| `smoothing` | number | yes | How far a traced edge may be simplified away from the picture's edge, mm, 0.01 to 1. |
+| `threshold` | [ImageThreshold](#imagethreshold) | yes | Grey values below this (0–255) are black: 1 to 254, or "auto" to pick it from the picture (Otsu's method). |
+| `width` | number | yes | The picture's width on the stock, mm; its height follows from the picture. |
+| `x` | number | yes | X of the picture's lower-left corner on the stock, mm. |
+| `y` | number | yes | Y of the picture's lower-left corner on the stock, mm. |
+
+## ImageThreshold
+
+Where grey turns black: "auto" or a grey value.
+
+- [AutoThreshold](#autothreshold): Picked from the picture.
+
+- integer: Grey values below this are black, 1 to 254.
 
 ## IssueSeverity
 
@@ -363,6 +398,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `dxf_handle` | string or null | no | path: the handle of the DXF entity it came from, which keeps its id when the DXF is updated. |
 | `dxf_type` | string or null | no | path: the DXF entity's type, e.g. LWPOLYLINE. |
 | `id` | integer | yes | The shape's id, which operations select it by. |
+| `image` | integer or null | no | path: the image it was traced from; absent for shapes from a DXF. |
 | `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`. |
 | `layer` | string | yes | Its layer. |
 | `length` | number or null | no | rectangle: its size along its own X axis, mm. |

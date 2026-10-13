@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 18;
+pub const CURRENT_VERSION: i64 = 19;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -160,6 +160,131 @@ pub struct Drawing {
     /// yet.
     #[serde(default)]
     pub source: Option<DrawingSource>,
+    /// Pictures traced into shapes, for V-carving.
+    // Spec: docs/specs/image-trace.md §4.
+    #[serde(default)]
+    pub images: Vec<Image>,
+}
+
+/// A picture traced into shapes: the picture itself, where it goes, and how it becomes black
+/// and white. Its traced shapes are `path` shapes on its layer that name it in `image`.
+// Spec: docs/specs/image-trace.md §2, §4.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Image {
+    /// The image's id, which its traced shapes name.
+    pub id: u64,
+    /// The picture's file name.
+    pub file: String,
+    /// The picture's SHA-256.
+    pub sha256: String,
+    /// The picture file itself (PNG, JPEG or BMP), base64-encoded.
+    pub data: String,
+    /// The layer its traced shapes go on.
+    pub layer: String,
+    /// X of the picture's lower-left corner on the stock, mm.
+    pub x: f64,
+    /// Y of the picture's lower-left corner on the stock, mm.
+    pub y: f64,
+    /// The picture's width on the stock, mm; its height follows from the picture.
+    pub width: f64,
+    /// Grey values below this (0–255) are black: 1 to 254, or "auto" to pick it from the
+    /// picture (Otsu's method).
+    pub threshold: ImageThreshold,
+    /// Carve the light parts instead of the dark ones.
+    pub invert: bool,
+    /// Blur before the threshold, in pixels, 0 to 10; 0: none.
+    pub blur: f64,
+    /// Black or white specks smaller than this are dropped, mm², 0 to 100.
+    pub min_area: f64,
+    /// How far a traced edge may be simplified away from the picture's edge, mm, 0.01 to 1.
+    pub smoothing: f64,
+}
+
+/// Where grey turns black: "auto" or a grey value.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(untagged)]
+pub enum ImageThreshold {
+    /// Picked from the picture.
+    Auto(AutoThreshold),
+    /// Grey values below this are black, 1 to 254.
+    Level(u8),
+}
+
+/// The word "auto".
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum AutoThreshold {
+    Auto,
+}
+
+impl ImageThreshold {
+    pub const AUTO: ImageThreshold = ImageThreshold::Auto(AutoThreshold::Auto);
+}
+
+/// The ranges of an image's settings (docs/specs/image-trace.md §2).
+pub const IMAGE_MAX_BLUR_PX: f64 = 10.0;
+pub const IMAGE_MAX_MIN_AREA_MM2: f64 = 100.0;
+pub const IMAGE_MIN_SMOOTHING_MM: f64 = 0.01;
+pub const IMAGE_MAX_SMOOTHING_MM: f64 = 1.0;
+
+impl Image {
+    /// What is wrong with the image's values, as "drawing.images.N.field: message".
+    pub fn problems(&self, index: usize) -> Vec<String> {
+        let at = format!("drawing.images.{index}");
+        let mut problems = Vec::new();
+        let mut range = |field: &str, value: f64, low: f64, high: f64, unit: &str| {
+            if !(value.is_finite() && (low..=high).contains(&value)) {
+                problems.push(format!(
+                    "{at}.{field}: must be {low} to {high}{unit}, got {value}"
+                ));
+            }
+        };
+        range("blur", self.blur, 0.0, IMAGE_MAX_BLUR_PX, " px");
+        range(
+            "min_area",
+            self.min_area,
+            0.0,
+            IMAGE_MAX_MIN_AREA_MM2,
+            " mm²",
+        );
+        range(
+            "smoothing",
+            self.smoothing,
+            IMAGE_MIN_SMOOTHING_MM,
+            IMAGE_MAX_SMOOTHING_MM,
+            " mm",
+        );
+        if let ImageThreshold::Level(t) = self.threshold
+            && !(1..=254).contains(&t)
+        {
+            problems.push(format!(
+                "{at}.threshold: must be 1 to 254 or \"auto\", got {t}"
+            ));
+        }
+        if !(self.width.is_finite() && self.width > 0.0) {
+            problems.push(format!(
+                "{at}.width: must be greater than 0, got {}",
+                self.width
+            ));
+        }
+        if !(self.x.is_finite() && self.y.is_finite()) {
+            problems.push(format!(
+                "{at}: x and y must be numbers, got ({}, {})",
+                self.x, self.y
+            ));
+        }
+        if self.layer.trim().is_empty() {
+            problems.push(format!("{at}.layer: must not be empty"));
+        }
+        if self.data.is_empty() {
+            problems.push(format!("{at}.data: the picture is missing"));
+        }
+        problems
+    }
 }
 
 /// One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF
@@ -187,6 +312,8 @@ pub enum Geometry {
         /// The last segment ends where the first starts.
         closed: bool,
         segments: Vec<PathSegment>,
+        /// The image it was traced from (docs/specs/image-trace.md §4); None: from a DXF.
+        image: Option<u64>,
     },
     Circle {
         center: [f64; 2],
@@ -236,6 +363,20 @@ impl Shape {
     pub fn dxf_handle(&self) -> Option<&str> {
         match &self.geometry {
             Geometry::Path { dxf_handle, .. } => dxf_handle.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Imported from the DXF: a path not traced from an image. The DXF's placement moves
+    /// these.
+    pub fn from_dxf(&self) -> bool {
+        matches!(self.geometry, Geometry::Path { image: None, .. })
+    }
+
+    /// The image this shape was traced from.
+    pub fn image(&self) -> Option<u64> {
+        match &self.geometry {
+            Geometry::Path { image, .. } => *image,
             _ => None,
         }
     }
@@ -368,6 +509,9 @@ struct RawShape {
     /// path: the DXF entity's type, e.g. LWPOLYLINE.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     dxf_type: Option<Option<String>>,
+    /// path: the image it was traced from; absent for shapes from a DXF.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    image: Option<u64>,
     /// path, polyline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
@@ -406,6 +550,7 @@ impl RawShape {
             kind,
             dxf_handle: None,
             dxf_type: None,
+            image: None,
             closed: None,
             segments: None,
             center: None,
@@ -423,6 +568,7 @@ impl RawShape {
         [
             ("dxf_handle", self.dxf_handle.is_some()),
             ("dxf_type", self.dxf_type.is_some()),
+            ("image", self.image.is_some()),
             ("closed", self.closed.is_some()),
             ("segments", self.segments.is_some()),
             ("center", self.center.is_some()),
@@ -454,9 +600,11 @@ impl From<Shape> for RawShape {
                 dxf_type,
                 closed,
                 segments,
+                image,
             } => {
                 raw.dxf_handle = Some(dxf_handle);
                 raw.dxf_type = Some(dxf_type);
+                raw.image = image;
                 raw.closed = Some(closed);
                 raw.segments = Some(segments);
             }
@@ -495,7 +643,7 @@ impl TryFrom<RawShape> for Shape {
     fn try_from(raw: RawShape) -> Result<Self, String> {
         let kind = raw.kind;
         let allowed: &[&str] = match kind {
-            ShapeKind::Path => &["dxf_handle", "dxf_type", "closed", "segments"],
+            ShapeKind::Path => &["dxf_handle", "dxf_type", "image", "closed", "segments"],
             ShapeKind::Circle => &["center", "radius"],
             ShapeKind::Rectangle => &["center", "length", "width", "angle"],
             ShapeKind::Polyline => &["closed", "points", "bulges"],
@@ -514,6 +662,7 @@ impl TryFrom<RawShape> for Shape {
                 dxf_type: raw.dxf_type.flatten(),
                 closed: raw.closed.ok_or_else(|| missing("closed"))?,
                 segments: raw.segments.ok_or_else(|| missing("segments"))?,
+                image: raw.image,
             },
             ShapeKind::Circle => Geometry::Circle {
                 center: raw.center.ok_or_else(|| missing("center"))?,
@@ -1760,6 +1909,18 @@ impl Drawing {
                     .into_iter()
                     .map(|p| format!("{at} (S{}).{p}", shape.id)),
             );
+            if let Some(image) = shape.image()
+                && !self.images.iter().any(|i| i.id == image)
+            {
+                problems.push(format!("{at}.image: no image {image} in drawing.images"));
+            }
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for (i, image) in self.images.iter().enumerate() {
+            if !ids.insert(image.id) {
+                problems.push(format!("drawing.images.{i}.id: {} is used twice", image.id));
+            }
+            problems.extend(image.problems(i));
         }
         problems
     }

@@ -488,6 +488,7 @@ pub fn empty_project() -> Job {
             shapes: Vec::new(),
             next_shape_id: 1,
             source: None,
+            images: Vec::new(),
         },
         stock: Stock {
             x: DEFAULT_EMPTY_STOCK.0,
@@ -546,6 +547,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         shapes: imported.shapes,
         next_shape_id,
         source: Some(imported.source),
+        images: Vec::new(),
     };
     job.stock.x = x.max(1.0);
     job.stock.y = y.max(1.0);
@@ -679,6 +681,7 @@ pub fn update_drawing(
         shapes,
         next_shape_id: next,
         source: Some(imported.source),
+        images: old.images.clone(),
     };
     report.lines.push(format!(
         "Updated from {}: {} unchanged, {} changed, {} added, {} removed.",

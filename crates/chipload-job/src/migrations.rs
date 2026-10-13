@@ -11,9 +11,9 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 14] = [
+const MIGRATIONS: [Migration; 15] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
-    v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18,
+    v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -287,6 +287,18 @@ fn v16_to_v17(data: Value) -> Result<Value, String> {
 /// operation type. Nothing changes.
 fn v17_to_v18(data: Value) -> Result<Value, String> {
     Ok(set_version(data, 18))
+}
+
+/// 18 -> 19: pictures traced into shapes (docs/specs/image-trace.md §4). A v18 file has no
+/// images: the drawing gets an empty list. The bump makes Chipload 0.14 refuse v19 files as
+/// "newer" instead of dropping their images when it saves. Nothing else changes.
+fn v18_to_v19(mut data: Value) -> Result<Value, String> {
+    let drawing = data
+        .get_mut("drawing")
+        .and_then(Value::as_object_mut)
+        .ok_or("the project has no drawing")?;
+    drawing.insert("images".into(), Value::Array(Vec::new()));
+    Ok(set_version(data, 19))
 }
 
 fn set_version(mut data: Value, version: i64) -> Value {

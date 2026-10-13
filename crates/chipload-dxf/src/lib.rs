@@ -275,6 +275,7 @@ pub fn shapes_from_drawing_scaled(
                 dxf_type: Some(dxf_type),
                 closed: is_closed(&segments),
                 segments,
+                image: None,
             },
         })
         .collect();

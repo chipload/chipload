@@ -457,6 +457,7 @@ mod tests {
             dxf_type: None,
             closed: false,
             segments: Vec::new(),
+            image: None,
         };
         assert!(add_shape(&project(), "0", path).is_err());
     }
