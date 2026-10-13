@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-check"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chipload-core",
  "chipload-job",
@@ -758,7 +758,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-cli"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "boon",
  "chipload-check",
@@ -775,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-core"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "cavalier_contours",
  "thiserror 2.0.21",
@@ -783,7 +783,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-dxf"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "cavalier_contours",
  "chipload-core",
@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-gui"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chipload-core",
  "chipload-dxf",
@@ -812,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-job"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chipload-core",
  "schemars",
@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-pipeline"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chipload-check",
  "chipload-core",
@@ -840,7 +840,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-post"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chipload-check",
  "chipload-job",
@@ -854,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-toolpath"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "boostvoronoi",
  "cavalier_contours",

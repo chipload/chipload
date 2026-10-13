@@ -11,13 +11,13 @@ name = "chipload"
 path = "src/main.rs"
 
 [dependencies]
-chipload-check = { version = "0.14.0", path = "../chipload-check" }
-chipload-core = { version = "0.14.0", path = "../chipload-core" }
-chipload-dxf = { version = "0.14.0", path = "../chipload-dxf" }
-chipload-pipeline = { version = "0.14.0", path = "../chipload-pipeline" }
-chipload-post = { version = "0.14.0", path = "../chipload-post", features = ["schema"] }
-chipload-toolpath = { version = "0.14.0", path = "../chipload-toolpath" }
-chipload-job = { version = "0.14.0", path = "../chipload-job", features = ["schema"] }
+chipload-check = { version = "0.14.1", path = "../chipload-check" }
+chipload-core = { version = "0.14.1", path = "../chipload-core" }
+chipload-dxf = { version = "0.14.1", path = "../chipload-dxf" }
+chipload-pipeline = { version = "0.14.1", path = "../chipload-pipeline" }
+chipload-post = { version = "0.14.1", path = "../chipload-post", features = ["schema"] }
+chipload-toolpath = { version = "0.14.1", path = "../chipload-toolpath" }
+chipload-job = { version = "0.14.1", path = "../chipload-job", features = ["schema"] }
 clap = { version = "4.6.7", features = ["derive"] }
 serde_json = "1.0.151"
 schemars = "1.2.3"
