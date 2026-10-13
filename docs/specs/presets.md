@@ -1,6 +1,7 @@
 # Spec: operation presets and layer rules
 
-Status: **draft 2026-10-13**, for review (decisions in §10).
+Status: **paused 2026-10-13** (user: "pause this one and continue with the next"), draft,
+decisions in §10 not yet reviewed.
 
 Approved plan (2026-10-13, ADR 0017): "layer rules: operation presets keyed to DXF layers",
 the first leverage feature. It multiplies what exists (operations, the tool library) instead

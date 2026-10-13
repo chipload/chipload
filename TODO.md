@@ -5,8 +5,8 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Operation presets and layer rules**: spec drafted 2026-10-13 (docs/specs/presets.md),
-  waiting for review of its decisions.
+- **Rest machining**: spec drafted 2026-10-13 (docs/specs/rest-machining.md), waiting for
+  review of its decisions.
 
 ## State to remember (2026-10-12)
 
@@ -62,8 +62,9 @@ it's built (see `CLAUDE.md`).
   2026-10-13, with the user's agreement). Projects that use
   them load and are refused when generating ("switch the pocket to rings").
 - **Lean plan** (approved 2026-10-13, ADR 0017), in this order, each with a spec first:
-  1. Operation presets and layer rules (in progress).
-  2. Rest machining.
+  1. Operation presets and layer rules: paused 2026-10-13 by the user, spec drafted
+     (docs/specs/presets.md, decisions not reviewed).
+  2. Rest machining (in progress).
   3. Scripting: a JSON Schema for the project file, JSON output from every CLI command,
      batch runs.
   4. Feeds and speeds per material in the library, with a chip-load warning.
