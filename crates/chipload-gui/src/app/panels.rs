@@ -464,6 +464,12 @@ impl ChiploadApp {
             Some(JobRequest::Place(how)) => {
                 self.place(how);
             }
+            Some(JobRequest::EditImage(id)) => {
+                self.edit_image(id);
+            }
+            Some(JobRequest::RemoveImage(id)) => {
+                self.remove_image(id);
+            }
             None => {}
         }
     }

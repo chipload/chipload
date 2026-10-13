@@ -281,8 +281,9 @@ impl ChiploadApp {
     }
 
     /// Set up what the user guide's screenshots show (docs/specs/user-guide.md §3), from
-    /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d` and
-    /// `half` (the playback half way). Only in builds made for screenshots.
+    /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d`,
+    /// `half` (the playback half way) and `image` (the first image's window, traced). Only in
+    /// builds made for screenshots.
     #[cfg(feature = "screenshots")]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
@@ -303,6 +304,16 @@ impl ChiploadApp {
             && let Some(playback) = &mut self.playback
         {
             playback.set_time(playback.total() / 2.0);
+        }
+        let first_image = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.drawing.images.first().map(|i| i.id));
+        if steps.contains(&"image")
+            && let Some(id) = first_image
+            && self.edit_image(id)
+        {
+            self.wait_for_image_preview(ctx);
         }
     }
 

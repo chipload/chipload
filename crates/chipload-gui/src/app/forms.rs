@@ -1110,6 +1110,10 @@ pub(super) enum JobRequest {
     /// Make this the project's post-processor; one of the user's is copied in (again:
     /// updated) (docs/specs/user-posts.md).
     Post(String),
+    /// Open the image window for this image (docs/specs/image-trace.md §6).
+    EditImage(u64),
+    /// Remove this image and its shapes.
+    RemoveImage(u64),
 }
 
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
@@ -1122,6 +1126,7 @@ pub(super) fn job_form(
 ) -> Option<JobRequest> {
     let mut request = None;
     let mut copies_request = None;
+    let mut image_request = None;
     // The operations live in the editor until saved: which tool each uses.
     let op_tools: Vec<i64> = edit.ops.iter().map(|e| e.op.tool()).collect();
     let job = &mut edit.settings;
@@ -1149,6 +1154,28 @@ pub(super) fn job_form(
                 }
             }
             ui.end_row();
+            // Pictures traced into shapes (docs/specs/image-trace.md §6).
+            for image in &job.drawing.images {
+                ui.label(format!("Image {}", image.id));
+                ui.horizontal(|ui| {
+                    ui.label(format!("{} on layer {}", image.file, image.layer));
+                    if ui
+                        .small_button("Edit…")
+                        .on_hover_text("Change its size, place and black-and-white settings")
+                        .clicked()
+                    {
+                        image_request = Some(JobRequest::EditImage(image.id));
+                    }
+                    if ui
+                        .small_button("Remove")
+                        .on_hover_text("Remove the picture and its shapes")
+                        .clicked()
+                    {
+                        image_request = Some(JobRequest::RemoveImage(image.id));
+                    }
+                });
+                ui.end_row();
+            }
         });
 
     let stock = format!(
@@ -1248,7 +1275,9 @@ pub(super) fn job_form(
     });
 
     tools_section(ui, job, &op_tools, library, &mut request);
-    copies_request.or(request.map(JobRequest::Library))
+    image_request
+        .or(copies_request)
+        .or(request.map(JobRequest::Library))
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.

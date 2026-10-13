@@ -6,11 +6,35 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
-use chipload_image::{Decoded, Settings, Threshold, Trace};
+use chipload_image::{Settings, Threshold};
 use chipload_job::{Geometry, Image, ImageThreshold, Job, LineSegment, PathSegment, Shape};
 use sha2::{Digest, Sha256};
 
 use crate::PipelineError;
+
+pub use chipload_image::{BlackWhite, Decoded, Trace};
+
+/// What the image dialog shows for some settings (spec §6): the picture as black and white,
+/// and the traced loops in mm from its lower-left corner.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Preview {
+    pub black_white: BlackWhite,
+    pub trace: Trace,
+}
+
+/// Read a picture once, for previews with changing settings.
+pub fn decode_picture(bytes: &[u8]) -> Result<Decoded, PipelineError> {
+    Ok(chipload_image::decode(bytes)?)
+}
+
+/// `picture` with `image`'s settings and width (its other fields are unused).
+pub fn preview(picture: &Decoded, image: &Image) -> Result<Preview, PipelineError> {
+    let settings = settings(image);
+    Ok(Preview {
+        black_white: chipload_image::black_white(picture, &settings)?,
+        trace: chipload_image::trace(picture, &settings, image.width)?,
+    })
+}
 
 /// A picture to add: its file name and bytes, where it goes, and its settings.
 #[derive(Debug, Clone)]
@@ -249,6 +273,15 @@ fn segments(ring: &[chipload_core::Point], x: f64, y: f64) -> Vec<PathSegment> {
             })
         })
         .collect()
+}
+
+fn next_id(job: &Job) -> u64 {
+    job.drawing.images.iter().map(|i| i.id).max().unwrap_or(0) + 1
+}
+
+/// The layer a new image from `file` gets: the file's name without its extension.
+pub fn new_layer(job: &Job, file: &str) -> String {
+    default_layer(job, file, next_id(job))
 }
 
 /// The file's name without its extension, unless another image already uses that layer.

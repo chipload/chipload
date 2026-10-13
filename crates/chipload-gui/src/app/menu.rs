@@ -75,6 +75,13 @@ impl ChiploadApp {
                 {
                     self.ask_import();
                 }
+                if ui
+                    .button("Import image…")
+                    .on_hover_text("Trace a picture into shapes, for V-carving")
+                    .clicked()
+                {
+                    self.import_image_dialog();
+                }
                 if ui.button("Open path…").clicked() {
                     self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
                 }
@@ -301,6 +308,8 @@ impl ChiploadApp {
                 {
                     self.set_auto_generate(auto);
                 }
+                ui.checkbox(&mut self.show_images, "Show images")
+                    .on_hover_text("The pictures traced into shapes, faintly under the drawing");
                 let mut sim = self.show_simulation;
                 if ui
                     .checkbox(&mut sim, "Show simulation")

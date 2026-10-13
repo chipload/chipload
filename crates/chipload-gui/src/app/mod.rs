@@ -42,6 +42,7 @@ mod drawing;
 mod dropping;
 mod forms;
 mod generation;
+mod images;
 mod library_transfer;
 mod measure;
 mod menu;
@@ -230,6 +231,12 @@ pub struct ChiploadApp {
     library_windows: LibraryWindows,
     /// File > Open recent (docs/specs/open-recent.md), most recent first.
     pub recent: Vec<String>,
+    /// The image window, while open (docs/specs/image-trace.md §6).
+    pub image_dialog: Option<images::ImageDialog>,
+    /// View > Show images: the pictures faintly under the drawing.
+    pub show_images: bool,
+    /// The pictures' textures, for the images they were made from.
+    picture_textures: images::PictureTextures,
 }
 
 impl Default for ChiploadApp {
@@ -303,6 +310,9 @@ impl Default for ChiploadApp {
             library: chipload_pipeline::library::Library::default(),
             library_windows: LibraryWindows::default(),
             recent: Vec::new(),
+            image_dialog: None,
+            show_images: true,
+            picture_textures: images::PictureTextures::default(),
         }
     }
 }
@@ -615,8 +625,13 @@ impl ChiploadApp {
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.next_tool_id();
         let cutting = self.tool_cutting(tool);
+        // Shapes traced from one image are selected by its layer: their ids change each time
+        // it is traced again (docs/specs/image-trace.md §4).
+        let selection = self
+            .traced_layer()
+            .map_or_else(|| self.selection.clone(), CanvasSelection::Layer);
         let edit = self.edit.as_mut()?;
-        let index = edit.add_with(kind, &self.selection, &self.contours, cutting.as_ref());
+        let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
         self.commit();
         Some(index)
@@ -1160,6 +1175,8 @@ impl eframe::App for ChiploadApp {
         self.shortcuts_window(&ctx);
         self.file_drops(&ctx);
         self.library_windows_ui(&ctx);
+        self.image_window(&ctx);
+        self.sync_pictures(&ctx);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();

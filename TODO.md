@@ -5,9 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Images traced into shapes for V-carving** (docs/specs/image-trace.md, approved
-  2026-10-13): the tracing crate, schema 19, the pipeline and `chipload image` are done;
-  next the app's *File > Import image…* dialog and its sidebar settings.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -102,6 +100,14 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Images traced into shapes for V-carving** (2026-10-13, docs/specs/image-trace.md,
+  schema 19): PNG, JPEG or BMP into black and white (threshold auto or set, invert, blur,
+  smallest piece, smoothing), traced by marching squares into closed loops that never cross,
+  stored with the picture (`drawing.images`) as path shapes on its layer. `chipload image
+  add/set/list/preview/remove`; `set` traces again. App: File > Import image… (live preview),
+  Job settings > the image's row (Edit…, Remove), View > Show images. Golden
+  v19_image_vcarve. Later (§10): arc fitting, centreline tracing, several thresholds into
+  layers.
 - **Rest pocket refusals fixed** (2026-10-13, docs/specs/offset-retry.md §6): pocket
   shape offsets get a last retry with a tight slice tolerance, and a stray island's offset
   that touches no area is dropped. Three rest pockets the property test found refused now

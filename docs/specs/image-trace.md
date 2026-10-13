@@ -1,7 +1,25 @@
 # Spec: images traced into shapes, for V-carving
 
 Status: **approved 2026-10-13** ("Go ahead with recommendations"): all decisions in §11
-as recommended.
+as recommended. Built 2026-10-13. As built:
+- **Pixels:** at most 20 megapixels, not 40. Each working copy of the picture takes 8
+  bytes a pixel, so 40 megapixels would need well over a gigabyte while tracing.
+- **In the file:** the list is `drawing.images` (paths `drawing.images.0.threshold`): the
+  images belong to the drawing, beside its DXF `source`. The DXF itself is not embedded,
+  only its shapes; a picture is, because it is traced again when its settings change.
+- **Traced shapes:** `path` shapes with `"image": id`, written only when set, so projects
+  without images save exactly as before. The DXF's placement moves only the DXF's shapes.
+- **In the app:** the settings are changed in the image window (Job settings > the image's
+  row > *Edit…*), not as fields in the sidebar: the window shows the preview they need. Its
+  preview is traced in the background; *Import* and *Apply* trace once more in the
+  foreground (well under a second for pictures of a few megapixels).
+- **Operations:** clicking traced shapes and adding an operation selects their layer
+  (decision 6).
+- **Default width:** the window starts at half the stock's width, shown and editable; the
+  command line requires `--width`.
+- **Report:** the trace report gives the shapes, the threshold, the specks dropped, black at
+  the border, and shapes left unsimplified. The narrowest feature is left to the V-carve,
+  which already reports strokes narrower than the bit's tip.
 
 The user (2026-10-13): "I would like to import an image, convert it to black and white with
 adjustable parameters, trace the outline, for V-carve use."

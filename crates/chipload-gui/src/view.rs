@@ -603,6 +603,38 @@ impl SimLayer {
     }
 }
 
+/// A picture traced into shapes, drawn faintly under the drawing in top view
+/// (View > Show images; docs/specs/image-trace.md §6).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PictureLayer {
+    pub texture: eframe::egui::TextureId,
+    /// The picture's lower-left and upper-right corners, drawing coordinates.
+    pub min: Point,
+    pub max: Point,
+}
+
+/// How strongly a picture shows under the drawing.
+const PICTURE_FADE: f32 = 0.35;
+
+impl PictureLayer {
+    fn paint(&self, painter: &Painter, view: &View) {
+        if !view.is_top() {
+            return;
+        }
+        let rect = Rect::from_two_pos(
+            view.to_screen((self.min.0, self.max.1)),
+            view.to_screen((self.max.0, self.min.1)),
+        );
+        let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
+        painter.image(
+            self.texture,
+            rect,
+            uv,
+            Color32::WHITE.gamma_multiply(PICTURE_FADE),
+        );
+    }
+}
+
 /// Everything on the canvas, in world coordinates.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
@@ -632,6 +664,8 @@ pub struct Scene {
     pub copies: Vec<Point>,
     /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
     pub sim: Option<SimLayer>,
+    /// The project's pictures, when shown (docs/specs/image-trace.md §6).
+    pub pictures: Vec<PictureLayer>,
     /// Playback away from the end (docs/specs/playback.md); None at the end.
     pub progress: Option<Progress>,
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
@@ -783,6 +817,9 @@ impl Scene {
                 ],
                 Stroke::new(2.0, AXIS_Z),
             );
+        }
+        for picture in &self.pictures {
+            picture.paint(painter, view);
         }
         if let Some(sim) = &self.sim {
             let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);

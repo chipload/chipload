@@ -45,6 +45,28 @@ an operation that selects traced shapes by id.
 The drawing's [placement](placement.md) moves only the DXF's shapes, never a traced picture;
 a picture has its own X, Y and width.
 
+## In the app
+
+**File > Import image…** picks a picture and opens its window. A project is made first if
+none is open.
+- **Left:** the picture as black and white, with the traced outlines over it in orange,
+  updated as you change the settings.
+- **Right:** the settings, the width, the corner and the layer, and what was traced (with the
+  threshold *auto* picked).
+- **Import:** puts the shapes into the project and selects their layer, so **+ V-carve** carves
+  them. It is one undo step.
+
+![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
+
+**Afterwards:**
+- **Change it:** under **Job settings**, each image has a row with **Edit…**, which opens the
+  same window (its button says **Apply**), and **Remove**, which removes the picture and its
+  shapes.
+- **See it:** *View > Show images* shows the pictures faintly under the drawing, for
+  comparing the traced shapes with the picture.
+- **Operations:** clicking traced shapes on the canvas and adding an operation selects their
+  layer, not the shapes.
+
 ## On the command line
 
 ```
