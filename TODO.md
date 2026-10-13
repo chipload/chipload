@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **A tidier profile form** (2026-10-13, docs/specs/profile-form.md): *Spiral ramp* and
+  its angle right after the step down; the lead only with straight plunges (an existing
+  spiral-plus-lead stays, shown); the profile's Entry and lead section is gone.
 - **Tools, DXFs and pictures in Properties** (2026-10-13,
   docs/specs/properties-for-tools-and-dxfs.md): clicking *Tools* or a tool, a DXF (or its
   layer) or a picture in the Browser shows its properties; Job settings keeps stock,

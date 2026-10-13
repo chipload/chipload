@@ -11,18 +11,26 @@ and [Depths and clearance](../concepts/depths.md) for what every profile shares.
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).
 
-## Entry: plunge or ramp
+## Spiral ramp or straight plunge
 
-- **Plunge:** the tool goes straight down at the start of each pass. It needs a
-  centre-cutting endmill.
-- **Ramp:** the tool goes down while moving along the contour, never steeper than the ramp
-  angle (3° by default, at most 30°). A ramped profile is **one forward spiral**:
+In the operation's **Cut** settings, right after the step down:
+
+- **Spiral ramp** (ticked): the tool goes down while moving along the contour, never
+  steeper than the **ramp angle** (3° by default, at most 30°), and never more than one
+  step down per lap. On long contours the step down decides how fast it goes down; on
+  small ones the angle does. A spiral-ramped profile is **one forward spiral**:
   - each pass's laps descend evenly along the contour;
   - one level lap at the bottom flattens the floor;
   - the tool rises out along the cut path, never back and forth.
 
-  Use it for tools that aren't centre-cutting. New profiles ramp when the tool is marked
-  not centre-cutting.
+  It's the best way down: no plunge into the part. Tools that aren't centre-cutting need
+  it, and new profiles start with it ticked when the tool is marked so.
+- **Straight plunge** (unticked): the tool goes straight down at the start of each pass. It
+  needs a centre-cutting endmill. Only then does the **lead-in and lead-out** show: the
+  plunge goes down in the waste, so it leaves no mark on the part.
+
+In the file, `entry` is `{"type": "ramp", "ramp_angle": …}` for the spiral ramp and
+`{"type": "plunge"}` for a straight plunge.
 
 ## Tabs
 
@@ -50,11 +58,12 @@ it. The tabs move with the start. In the file, `starts` holds the points.
 ## Lead-in and lead-out
 
 **Lead** adds a quarter-circle arc from the waste onto the contour and off it again, so the
-plunge mark isn't on the part's wall.
+plunge mark isn't on the part's wall. It is offered with straight plunges.
 - **Radius:** at most 10 × the tool diameter. Chipload shrinks it where there's no room,
   with a note.
-- **Ramped profiles:** one lead-in at the start depth, and no lead-out (the tool rises out
-  along the cut).
+- **Spiral-ramped profiles:** a project that has both keeps them: one lead-in at the start
+  depth, and no lead-out (the tool rises out along the cut). The lead's row shows until it
+  is unticked.
 - **Plunged profiles:** a lead on every pass.
 - **On the line:** not available, since there is no waste side.
 

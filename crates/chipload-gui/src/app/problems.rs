@@ -59,9 +59,18 @@ pub(super) fn has_problem_under(ui: &egui::Ui, prefix: &str) -> bool {
 }
 
 /// The fields each form section holds, for the dot on its header.
-fn section_fields(key: &str) -> &'static [&'static str] {
+pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
     match key {
         "op-cut" => &["start_depth", "end_depth", "clearance", "step_down"],
+        // A profile's spiral ramp and lead sit with its depths (docs/specs/profile-form.md).
+        "op-profile-cut" => &[
+            "start_depth",
+            "end_depth",
+            "clearance",
+            "step_down",
+            "entry",
+            "lead",
+        ],
         "op-feeds" => &["feed", "plunge_feed"],
         "op-entry" => &["entry", "lead"],
         "op-tabs" => &["tabs"],

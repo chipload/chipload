@@ -340,13 +340,14 @@ pub(super) fn op_form(
     match &mut entry.op {
         Operation::Profile(p) => {
             let cut = format!(
-                "{}–{} mm, steps of {} mm, {}",
+                "{}–{} mm, steps of {} mm, {}, {}",
                 len(p.start_depth),
                 len(p.end_depth),
                 len(p.step_down),
-                direction_name(p.direction)
+                direction_name(p.direction),
+                profile_entry_text(&p.entry, p.lead.as_ref())
             );
-            section(ui, "op-cut", "Cut", &cut, |ui| {
+            section(ui, "op-profile-cut", "Cut", &cut, |ui| {
                 ui.label("Direction");
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
@@ -364,17 +365,20 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
+                // On the line there is no waste side to put a lead on.
+                let can_lead = p.side != Side::On || p.lead.is_some();
+                let plunges = op_tool.and_then(|t| t.center_cutting) != Some(false);
+                spiral_rows(
+                    ui,
+                    &mut p.entry,
+                    &mut p.lead,
+                    tool_diameter,
+                    can_lead,
+                    plunges,
+                );
                 corner_rows(ui, index, &mut p.corners, can_clear);
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let entry_text = entry_summary(&p.entry, p.lead.as_ref());
-            section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
-                entry_rows(ui, index, &mut p.entry, None);
-                // On the line there is no waste side to put a lead on.
-                let can_lead = p.side != Side::On || p.lead.is_some();
-                let spiral = p.entry.ramp_angle().is_some();
-                lead_rows(ui, &mut p.lead, tool_diameter, can_lead, spiral);
-            });
             let tabs_text = p.tabs.as_ref().map_or("none".to_string(), |t| {
                 let mut text = format!(
                     "{} × {} mm, {} mm high",
@@ -741,6 +745,74 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
             *ramp_angle = degrees.to_radians();
         }
         ui.end_row();
+    }
+}
+
+/// "spiral ramp 3°", "straight plunge with leads": a profile's way down, for its summary.
+fn profile_entry_text(entry: &Entry, lead: Option<&Lead>) -> String {
+    match (entry.ramp_angle(), lead) {
+        (Some(angle), None) => format!("spiral ramp {}°", degrees(angle)),
+        (Some(angle), Some(_)) => format!("spiral ramp {}° with a lead-in", degrees(angle)),
+        (None, Some(_)) => "straight plunge with leads".to_string(),
+        (None, None) => "straight plunge".to_string(),
+    }
+}
+
+/// A profile's way down, after its step down (docs/specs/profile-form.md §2): the spiral
+/// ramp and its angle, or a straight plunge with an optional lead-in and lead-out.
+/// `plunges`: the tool may plunge (it isn't marked not centre-cutting).
+fn spiral_rows(
+    ui: &mut egui::Ui,
+    entry: &mut Entry,
+    lead: &mut Option<Lead>,
+    tool_diameter: f64,
+    can_lead: bool,
+    plunges: bool,
+) {
+    ui.label("Spiral ramp").on_hover_text(
+        "The tool spirals down along the contour, never steeper than the ramp angle and never \
+         more than one step down per lap: no plunge into the part. On long contours the step \
+         down decides the descent, on small ones the angle.",
+    );
+    let mut spiral = entry.ramp_angle().is_some();
+    let response = ui.checkbox(&mut spiral, "down along the contour");
+    if flag(response, ui, "entry").changed() {
+        *entry = if spiral {
+            Entry::Ramp {
+                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+            }
+        } else {
+            Entry::Plunge {}
+        };
+    }
+    ui.end_row();
+    if let Entry::Ramp { ramp_angle } = entry {
+        ui.label("  ramp angle")
+            .on_hover_text("How steeply it goes down along the contour");
+        let mut value = ramp_angle.to_degrees();
+        let response = ui.add(
+            DragValue::new(&mut value)
+                .speed(0.1)
+                .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
+                .suffix("°"),
+        );
+        if flag(response, ui, "entry").changed() {
+            *ramp_angle = value.to_radians();
+        }
+        ui.end_row();
+    }
+    if !spiral && !plunges {
+        ui.label("");
+        ui.colored_label(
+            ui.visuals().warn_fg_color,
+            "This tool can't plunge: tick Spiral ramp",
+        );
+        ui.end_row();
+    }
+    // Leads go with straight plunges; a lead already set with a spiral stays, shown, until
+    // it is unticked.
+    if !spiral || lead.is_some() {
+        lead_rows(ui, lead, tool_diameter, can_lead, spiral);
     }
 }
 
