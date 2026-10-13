@@ -320,6 +320,8 @@ chipload image add <PROJECT> <PICTURE> [OPTIONS]
 | `--blur <BLUR>` | Blur before the threshold, px, 0 to 10 (default 1) |
 | `--min-area <MIN_AREA>` | Drop specks smaller than this, mm², 0 to 100 (default 0.5) |
 | `--smoothing <SMOOTHING>` | How far an edge may be simplified, mm, 0.01 to 1 (default 0.05) |
+| `--trace <TRACE>` | What to trace: outline (for a V-carve, default) or centre-line (strokes, for a follow path) |
+| `--arcs <ARCS>` | Fit arcs as well as lines (true or false; default true) One of: `true`, `false`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload image set`
@@ -342,6 +344,8 @@ chipload image set <PROJECT> <ID> [OPTIONS]
 | `--blur <BLUR>` | Blur before the threshold, px, 0 to 10 (default 1) |
 | `--min-area <MIN_AREA>` | Drop specks smaller than this, mm², 0 to 100 (default 0.5) |
 | `--smoothing <SMOOTHING>` | How far an edge may be simplified, mm, 0.01 to 1 (default 0.05) |
+| `--trace <TRACE>` | What to trace: outline (for a V-carve, default) or centre-line (strokes, for a follow path) |
+| `--arcs <ARCS>` | Fit arcs as well as lines (true or false; default true) One of: `true`, `false`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload image list`

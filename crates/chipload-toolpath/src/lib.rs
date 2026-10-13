@@ -6,6 +6,7 @@
 
 pub mod arcs;
 pub mod cancel;
+pub mod centre;
 pub mod corners;
 pub mod geom;
 pub mod helix;

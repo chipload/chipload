@@ -2635,7 +2635,7 @@ fn the_image_window_traces_its_preview_in_the_background() {
     let Some(Ok(preview)) = &dialog.preview else {
         panic!("a preview");
     };
-    assert_eq!(preview.trace.loops.len(), 4);
+    assert_eq!(preview.trace.paths.len(), 4);
     assert_eq!(
         (preview.black_white.width, preview.black_white.height),
         (80, 40)
@@ -2647,4 +2647,34 @@ fn the_image_window_traces_its_preview_in_the_background() {
         panic!("a preview");
     };
     assert!(preview.trace.black_at_border);
+}
+
+#[test]
+fn the_image_window_previews_centre_lines_and_imports_them() {
+    // docs/specs/image-arcs-centrelines.md §6.
+    let mut app = ChiploadApp::default();
+    assert!(app.import_image(&corpus("images/strokes.png")));
+    let ctx = egui::Context::default();
+    let dialog = app.image_dialog.as_mut().unwrap();
+    assert!(dialog.draft.arcs, "new images fit arcs");
+    dialog.draft.width = 60.0;
+    dialog.draft.trace = chipload_job::ImageTrace::CentreLine;
+    app.wait_for_image_preview(&ctx);
+    let Some(Ok(preview)) = &app.image_dialog.as_ref().unwrap().preview else {
+        panic!("a preview");
+    };
+    assert!(preview.trace.centre_lines);
+    assert_eq!(preview.trace.paths.len(), 4);
+    assert_eq!(preview.trace.dots, 1);
+    assert!(app.apply_image());
+    let job = &app.edit.as_ref().unwrap().settings;
+    assert_eq!(
+        job.drawing.images[0].trace,
+        chipload_job::ImageTrace::CentreLine
+    );
+    assert_eq!(
+        job.drawing.shapes.iter().filter(|s| !s.closed()).count(),
+        3,
+        "the T's strokes"
+    );
 }

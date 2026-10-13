@@ -89,13 +89,22 @@ it's built (see `CLAUDE.md`).
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
   download, browser storage, a bundled font), after user testing; its decisions are
   proposals to review then.
-- **Traced pictures with arcs, and centre lines for follow path**
-  (docs/specs/image-arcs-centrelines.md, draft 2026-10-13, schema 20): awaiting review.
+- **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+  against thousands before; find which pictures are slow (centre lines on noise?) and
+  whether a user could hit it.
 - A light canvas for the light theme (the canvas is dark in both themes; its colours are
   tuned for dark). Needs a second canvas palette.
 
 ## Done
 
+- **Traced pictures with arcs, and centre lines for follow path** (2026-10-13,
+  docs/specs/image-arcs-centrelines.md, schema 20): images get `trace` (outlines or centre
+  lines) and `arcs`; v19 images migrate as outlines without arcs. A greedy line-and-arc
+  fitter in the core (`fit::fit_path`); centre lines from the V-carve medial axis with
+  pass-wise tidying (`chipload_toolpath::centre`), dots counted, stroke widths reported;
+  only a follow path may cut a centre-line layer. CLI `--trace`, `--arcs`; app: Trace and
+  Arcs in the image window. Golden v20_image_centre_line. Later: a follow path that goes on
+  through a junction instead of retracting.
 - **The last pocket refusals fixed** (2026-10-13, docs/specs/offset-retry.md §7): offsets that
   fail at one distance and the next few nanometres get three 10 nm nudges after the 1 nm ones, and
   rest machining's own shrinks are retried farther. The two seeds found by soaking pass, as

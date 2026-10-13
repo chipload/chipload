@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 19;
+pub const CURRENT_VERSION: i64 = 20;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -200,6 +200,23 @@ pub struct Image {
     pub min_area: f64,
     /// How far a traced edge may be simplified away from the picture's edge, mm, 0.01 to 1.
     pub smoothing: f64,
+    /// What it is traced into: the black parts' outlines (for a V-carve) or their centre
+    /// lines (for a follow path).
+    // Spec: docs/specs/image-arcs-centrelines.md.
+    pub trace: ImageTrace,
+    /// Traced edges are fitted with arcs as well as lines.
+    pub arcs: bool,
+}
+
+/// What a picture is traced into.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum ImageTrace {
+    /// Closed outlines round the black parts, black inside.
+    Outline,
+    /// Open (or closed) paths along the black strokes' middles.
+    CentreLine,
 }
 
 /// Where grey turns black: "auto" or a grey value.
@@ -2258,6 +2275,23 @@ impl Job {
                     "operations.{i}.select: shape {} is traced from an image and changes \
                      each time the image is traced again: select its layer \"{}\" instead",
                     shape.id, shape.layer
+                ));
+            }
+            // Centre lines are paths to follow, not areas
+            // (docs/specs/image-arcs-centrelines.md §5).
+            let centre_lines = selector.layer.as_ref().and_then(|layer| {
+                self.drawing.images.iter().find(|image| {
+                    image.trace == ImageTrace::CentreLine
+                        && image.layer.to_lowercase() == layer.to_lowercase()
+                })
+            });
+            if let Some(image) = centre_lines
+                && !matches!(op, Operation::Path(_))
+            {
+                problems.push(format!(
+                    "operations.{i}.select: layer \"{}\" holds the centre lines of image {}: \
+                     cut them with a follow path, or trace the image as outlines",
+                    image.layer, image.id
                 ));
             }
             if let Entry::Helix { radius, .. } = op.entry()

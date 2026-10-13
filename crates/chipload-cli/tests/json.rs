@@ -393,3 +393,52 @@ fn an_image_traces_again_when_set_changes_it() {
     assert_ne!(run.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn an_image_traces_into_centre_lines_and_back() {
+    // docs/specs/image-arcs-centrelines.md §6.
+    let dir = temp_dir("centre");
+    std::fs::copy(corpus("images/strokes.png"), dir.join("strokes.png")).unwrap();
+    let ok = |args: &[&str]| {
+        let mut all = args.to_vec();
+        all.push("--json");
+        let value = json_of(&chipload(&dir, &all), &all);
+        assert_eq!(value["ok"], json!(true), "{all:?}: {value}");
+        value
+    };
+    ok(&["new", "-o", "p.chipload"]);
+    let added = ok(&[
+        "image",
+        "add",
+        "p.chipload",
+        "strokes.png",
+        "--width",
+        "60",
+        "--trace",
+        "centre-line",
+    ]);
+    assert_eq!(added["image"]["centre_lines"], json!(true), "{added}");
+    assert_eq!(added["image"]["dots"], json!(1));
+    assert_eq!(added["image"]["stroke_widths"].as_array().unwrap().len(), 2);
+    assert_eq!(added["image"]["shapes"].as_array().unwrap().len(), 4);
+    let listed = ok(&["image", "list", "p.chipload"]);
+    assert_eq!(listed["images"][0]["trace"], json!("centre_line"));
+    assert_eq!(listed["images"][0]["arcs"], json!(true));
+    let back = ok(&[
+        "image",
+        "set",
+        "p.chipload",
+        "1",
+        "--trace",
+        "outline",
+        "--arcs",
+        "false",
+    ]);
+    assert_eq!(back["image"]["centre_lines"], json!(false), "{back}");
+    let run = chipload(
+        &dir,
+        &["image", "set", "p.chipload", "1", "--trace", "skeleton"],
+    );
+    assert_ne!(run.code, Some(0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

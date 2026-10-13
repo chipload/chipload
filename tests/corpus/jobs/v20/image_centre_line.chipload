@@ -1,0 +1,330 @@
+{
+  "schema_version": 20,
+  "written_by": null,
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "strokes",
+        "kind": "path",
+        "dxf_handle": null,
+        "dxf_type": null,
+        "image": 1,
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                11.501335145520237,
+                29.5
+              ],
+              "end": [
+                16.25,
+                29.43937277466441
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                15.567275546783998,
+                24.20655798307451
+              ],
+              "radius": 5.277164325857318,
+              "start_angle": 1.4410593292730194,
+              "sweep": -0.34937444476186097
+            }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "layer": "strokes",
+        "kind": "path",
+        "dxf_handle": null,
+        "dxf_type": null,
+        "image": 1,
+        "closed": false,
+        "segments": [
+          {
+            "line": {
+              "start": [
+                18.0,
+                11.001335145520235
+              ],
+              "end": [
+                18.0,
+                28.88953941127023
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "layer": "strokes",
+        "kind": "path",
+        "dxf_handle": null,
+        "dxf_type": null,
+        "image": 1,
+        "closed": false,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                20.961732258849352,
+                22.5190791763501
+              ],
+              "radius": 7.025284448177706,
+              "start_angle": 2.0059853660276517,
+              "sweep": -0.5476302099782571
+            }
+          },
+          {
+            "line": {
+              "start": [
+                21.75,
+                29.5
+              ],
+              "end": [
+                24.498664854479767,
+                29.5
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "layer": "strokes",
+        "kind": "path",
+        "dxf_handle": null,
+        "dxf_type": null,
+        "image": 1,
+        "closed": true,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                40.400107104162224,
+                18.716373618808092
+              ],
+              "radius": 7.217881540530735,
+              "start_angle": -1.5912375595183015,
+              "sweep": -0.5381533579600748
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.42850672146342,
+                19.6252043407816
+              ],
+              "radius": 8.016692732081259,
+              "start_angle": -2.072279881490488,
+              "sweep": -0.4396480815286363
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                41.60843522392552,
+                19.97148704794749
+              ],
+              "radius": 9.183636735994323,
+              "start_angle": -2.5571274800920625,
+              "sweep": -0.4549876021740067
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.25293353240525,
+                19.434312300482176
+              ],
+              "radius": 7.778350657006243,
+              "start_angle": -3.0581129279829424,
+              "sweep": -0.6497487232728023
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.794094933973874,
+                19.39130800421602
+              ],
+              "radius": 8.26201896077228,
+              "start_angle": 2.6060757640402112,
+              "sweep": -0.3727723189309651
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                41.187077498401656,
+                17.940126225700908
+              ],
+              "radius": 9.665513341621775,
+              "start_angle": 2.172973388547248,
+              "sweep": -0.452340896227329
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.425539393335356,
+                19.728057300126355
+              ],
+              "radius": 7.799099707404303,
+              "start_angle": 1.658263069652771,
+              "sweep": -0.6533774115099755
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.39130800421595,
+                19.205905066026066
+              ],
+              "radius": 8.262018960772375,
+              "start_angle": 1.0352794372453114,
+              "sweep": -0.3727723189309625
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                38.94012622570102,
+                18.812922501598383
+              ],
+              "radius": 9.665513341621658,
+              "start_angle": 0.6021770617523537,
+              "sweep": -0.4523408962273331
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.728057300126345,
+                19.574460606664644
+              ],
+              "radius": 7.799099707404314,
+              "start_angle": 0.08746674285787474,
+              "sweep": -0.653377411509975
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                40.20590506602573,
+                19.608691995784334
+              ],
+              "radius": 8.262018960772812,
+              "start_angle": -0.5355168895495936,
+              "sweep": -0.3727723189309431
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                39.81292250159826,
+                21.05987377429932
+              ],
+              "radius": 9.665513341622017,
+              "start_angle": -0.9686192650425522,
+              "sweep": -0.4523408962273161
+            }
+          },
+          {
+            "line": {
+              "start": [
+                41.25575298258278,
+                11.502657215059113
+              ],
+              "end": [
+                40.25257498255833,
+                11.5
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "next_shape_id": 5,
+    "source": null,
+    "images": [
+      {
+        "id": 1,
+        "file": "strokes.png",
+        "sha256": "85b73cf21877e471ac2a340c2b0c5b0468336ebed739cdf74c75016968410d19",
+        "data": "iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAAAAACIxiF0AAAA/klEQVR42u2Z0Q7DIAhFvcb//+W7hybtOutEQM0WfKJqPL2IFS2Y9pScAhzgADuVcpnodGW4+ufnWF2gCYLiRT1MORv8Nh4HsIOyi5PatzpODy4MVfuBMdzg42pU04pe4LgoPilkbWEeGBXs9oSpwfW0eMQLOZsEs/kqmKqYht0z+64keZfsLTgt+HKt3487Owglvo7UJ8AB3gumJAPhH7p6Q7JHexeTq6EXrAW38wwIfWIMLij16sFnOnkjoX1wBJwUsx7xsvjkGnidFjEQ0fVwhjmmYbEtS/ZYNdjyasrqDig9ryL4MdMUu8d8B8Jdly9JeeWH+DUQ4AAHWFte3949fIOFQhUAAAAASUVORK5CYII=",
+        "layer": "strokes",
+        "x": 5.0,
+        "y": 5.0,
+        "width": 60.0,
+        "threshold": "auto",
+        "invert": false,
+        "blur": 1.0,
+        "min_area": 0.5,
+        "smoothing": 0.05,
+        "trace": "centre_line",
+        "arcs": true
+      }
+    ]
+  },
+  "stock": {
+    "x": 70.0,
+    "y": 40.0,
+    "thickness": 10.0,
+    "origin": "bottom_left",
+    "z_zero": "top",
+    "max_overcut": 0.5
+  },
+  "machine": {
+    "name": null,
+    "post": "grbl",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": null,
+    "travel": null,
+    "work_zero": {
+      "at": "drawing_origin"
+    },
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": "3 mm",
+      "type": "endmill",
+      "diameter": 3.0,
+      "flutes": 2,
+      "center_cutting": true,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "operations": [
+    {
+      "type": "path",
+      "name": "Strokes",
+      "enabled": true,
+      "select": {
+        "layer": "strokes",
+        "shapes": null
+      },
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 1.0,
+      "step_down": 1.0,
+      "feed": 1000.0,
+      "plunge_feed": 300.0,
+      "entry": {
+        "type": "plunge"
+      }
+    }
+  ],
+  "copies": null
+}

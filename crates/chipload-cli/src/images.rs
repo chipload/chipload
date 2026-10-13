@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{ImageThreshold, Job, save_job};
+use chipload_job::{ImageThreshold, ImageTrace, Job, save_job};
 use chipload_pipeline::images::{
     ImageReport, NewImage, add_image, black_white_png, remove_image, retrace,
 };
@@ -105,6 +105,21 @@ pub struct Settings {
     /// How far an edge may be simplified, mm, 0.01 to 1 (default 0.05).
     #[arg(long)]
     smoothing: Option<f64>,
+    /// What to trace: outline (for a V-carve, default) or centre-line (strokes, for a
+    /// follow path).
+    #[arg(long, value_parser = parse_trace)]
+    trace: Option<ImageTrace>,
+    /// Fit arcs as well as lines (true or false; default true).
+    #[arg(long)]
+    arcs: Option<bool>,
+}
+
+fn parse_trace(text: &str) -> Result<ImageTrace, String> {
+    match text {
+        "outline" => Ok(ImageTrace::Outline),
+        "centre-line" | "centre_line" | "center-line" | "center_line" => Ok(ImageTrace::CentreLine),
+        _ => Err(format!("expected outline or centre-line, got {text:?}")),
+    }
 }
 
 fn parse_at(text: &str) -> Result<(f64, f64), String> {
@@ -216,6 +231,12 @@ fn apply(settings: &Settings, image: &mut chipload_job::Image) {
     if let Some(smoothing) = settings.smoothing {
         image.smoothing = smoothing;
     }
+    if let Some(trace) = settings.trace {
+        image.trace = trace;
+    }
+    if let Some(arcs) = settings.arcs {
+        image.arcs = arcs;
+    }
 }
 
 /// What `image add` takes besides the settings.
@@ -254,6 +275,8 @@ fn add(
     new.blur = settings.blur.unwrap_or(new.blur);
     new.min_area = settings.min_area.unwrap_or(new.min_area);
     new.smoothing = settings.smoothing.unwrap_or(new.smoothing);
+    new.trace = settings.trace.unwrap_or(new.trace);
+    new.arcs = settings.arcs.unwrap_or(new.arcs);
     match add_image(&job, new) {
         Ok((job, report)) => {
             reported(out, &report);
@@ -304,7 +327,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .count();
         out.line(format!(
             "{}: {} on layer {}, {} mm wide at ({}, {}); threshold {}, invert {}, blur {} px, \
-             smallest piece {} mm², smoothing {} mm; {shapes} {}",
+             smallest piece {} mm², smoothing {} mm, {}, arcs {}; {shapes} {}",
             image.id,
             image.file,
             image.layer,
@@ -316,6 +339,8 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             image.blur,
             image.min_area,
             image.smoothing,
+            trace_text(image.trace),
+            if image.arcs { "on" } else { "off" },
             if shapes == 1 { "shape" } else { "shapes" }
         ));
         rows.push(json!({
@@ -331,6 +356,8 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "blur": image.blur,
             "min_area": image.min_area,
             "smoothing": image.smoothing,
+            "trace": image.trace,
+            "arcs": image.arcs,
             "shapes": shapes,
         }));
     }
@@ -352,6 +379,13 @@ fn preview(out: &mut Out, project: &Path, id: u64, output: &Path) -> ExitCode {
     }
     out.wrote(output, "");
     ExitCode::SUCCESS
+}
+
+fn trace_text(trace: ImageTrace) -> &'static str {
+    match trace {
+        ImageTrace::Outline => "outlines",
+        ImageTrace::CentreLine => "centre lines",
+    }
 }
 
 fn threshold_text(threshold: ImageThreshold) -> String {
@@ -378,6 +412,10 @@ pub fn report_json(report: &ImageReport) -> Value {
         "height": report.height,
         "dropped": report.dropped,
         "unsimplified": report.unsimplified,
+        "without_arcs": report.without_arcs,
+        "centre_lines": report.centre_lines,
+        "dots": report.dots,
+        "stroke_widths": report.widths.map(|(narrow, wide)| [narrow, wide]),
         "black_at_border": report.black_at_border,
     })
 }

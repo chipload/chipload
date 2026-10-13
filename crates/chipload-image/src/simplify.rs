@@ -2,11 +2,117 @@
 //! Simplifying the traced loops (spec §3.4): Douglas–Peucker within the smoothing, then a
 //! check that no simplified loop crosses itself or another. A loop that does, or that
 //! collapses, is kept as traced; traced loops never cross, so that always ends.
+//!
+//! With arcs (docs/specs/image-arcs-centrelines.md §2), each loop is first fitted with lines
+//! and arcs; a fitted loop that crosses, or comes nearer another loop than twice the
+//! chaining tolerance, falls back to its Douglas–Peucker version, and then to the traced one.
 
 use std::collections::BTreeMap;
 
 use chipload_core::Point;
-use chipload_core::primitives::signed_area;
+use chipload_core::fit::fit_path;
+use chipload_core::primitives::{Line, Primitive, max_segment_angle, signed_area};
+use chipload_core::tolerances::CHAIN_TOL_MM;
+
+/// The traced loops simplified, as points and as pieces.
+pub(crate) struct Fitted {
+    pub loops: Vec<Vec<Point>>,
+    pub pieces: Vec<Vec<Primitive>>,
+    pub without_arcs: usize,
+    pub unsimplified: usize,
+}
+
+/// The loops simplified within `tolerance` mm: by Douglas–Peucker, or with `arcs` by lines
+/// and arcs where that keeps them apart.
+pub(crate) fn fitted(raw: Vec<Vec<Point>>, tolerance: f64, pixel: f64, arcs: bool) -> Fitted {
+    let (lines, unsimplified) = simplified(raw.clone(), tolerance, pixel);
+    if !arcs {
+        let pieces = lines.iter().map(|ring| as_lines(ring)).collect();
+        return Fitted {
+            loops: lines,
+            pieces,
+            without_arcs: 0,
+            unsimplified,
+        };
+    }
+    // Each loop's stage: 0 its arcs, 1 its lines, 2 as traced.
+    let mut stage = vec![0_u8; raw.len()];
+    let mut pieces: Vec<Vec<Primitive>> = Vec::with_capacity(raw.len());
+    let mut loops: Vec<Vec<Point>> = Vec::with_capacity(raw.len());
+    for (k, ring) in raw.iter().enumerate() {
+        let fit = fit_path(ring, true, tolerance, true);
+        let flat = flattened(&fit);
+        let area = signed_area(ring);
+        let kept = signed_area(&flat);
+        if flat.len() >= 3 && kept != 0.0 && kept.signum() == area.signum() {
+            pieces.push(fit);
+            loops.push(flat);
+        } else {
+            stage[k] = 1;
+            pieces.push(as_lines(&lines[k]));
+            loops.push(lines[k].clone());
+        }
+    }
+    let cell = (4.0 * tolerance).max(2.0 * pixel);
+    loop {
+        let near: Vec<bool> = stage.iter().map(|&s| s == 0).collect();
+        let crossing = crossing_loops(&loops, cell, &near);
+        let mut changed = false;
+        for k in crossing {
+            let ring = match stage[k] {
+                0 => &lines[k],
+                1 => &raw[k],
+                _ => continue,
+            };
+            stage[k] += 1;
+            loops[k] = ring.clone();
+            pieces[k] = as_lines(ring);
+            changed = true;
+        }
+        if !changed {
+            break;
+        }
+    }
+    let lines_kept = stage.iter().filter(|&&s| s > 0).count();
+    let traced = stage.iter().filter(|&&s| s == 2).count();
+    Fitted {
+        loops,
+        pieces,
+        without_arcs: lines_kept,
+        unsimplified: traced,
+    }
+}
+
+/// A closed ring as lines, the last back to the first point.
+fn as_lines(ring: &[Point]) -> Vec<Primitive> {
+    (0..ring.len())
+        .map(|k| {
+            Primitive::Line(Line {
+                start: ring[k],
+                end: ring[(k + 1) % ring.len()],
+            })
+        })
+        .collect()
+}
+
+/// A closed loop of pieces as points, arcs split into chords within the chaining tolerance;
+/// the first point isn't repeated.
+fn flattened(pieces: &[Primitive]) -> Vec<Point> {
+    let mut points = Vec::new();
+    for piece in pieces {
+        match piece {
+            Primitive::Line(l) => points.push(l.start),
+            Primitive::Arc(a) => {
+                let step = max_segment_angle(a.radius, CHAIN_TOL_MM);
+                let n = (a.sweep.abs() / step).ceil().max(1.0) as usize;
+                for i in 0..n {
+                    points.push(a.point_at(a.start_angle + a.sweep * i as f64 / n as f64));
+                }
+            }
+        }
+    }
+    points
+}
 
 /// The loops simplified within `tolerance` mm, and how many had to stay as traced.
 pub(crate) fn simplified(
@@ -30,7 +136,7 @@ pub(crate) fn simplified(
     let mut as_traced = vec![false; loops.len()];
     let cell = (4.0 * tolerance).max(2.0 * pixel);
     loop {
-        let crossing = crossing_loops(&loops, cell);
+        let crossing = crossing_loops(&loops, cell, &vec![false; loops.len()]);
         let mut changed = false;
         for k in crossing {
             if !as_traced[k] {
@@ -94,16 +200,20 @@ fn segment_distance(p: Point, a: Point, b: Point) -> f64 {
 }
 
 /// The loops that have a segment crossing or touching another segment (of any loop, or of
-/// their own other than its neighbours), found through a grid of `cell` mm squares.
-fn crossing_loops(loops: &[Vec<Point>], cell: f64) -> Vec<usize> {
+/// their own other than its neighbours), found through a grid of `cell` mm squares. A loop
+/// marked `near` (flattened arcs) also counts when it comes within twice the chaining
+/// tolerance of another loop: its chords lie up to that tolerance off its arcs.
+fn crossing_loops(loops: &[Vec<Point>], cell: f64, near: &[bool]) -> Vec<usize> {
     // (loop, segment index) per grid square; BTreeMap so the result never depends on hashing.
     let mut grid: BTreeMap<(i64, i64), Vec<(usize, usize)>> = BTreeMap::new();
     let square = |v: f64| (v / cell).floor() as i64;
+    // Boxes grown by the nearness limit, so near segments always share a square.
+    let reach = 2.0 * CHAIN_TOL_MM;
     for (l, ring) in loops.iter().enumerate() {
         for s in 0..ring.len() {
             let (a, b) = (ring[s], ring[(s + 1) % ring.len()]);
-            for x in square(a.0.min(b.0))..=square(a.0.max(b.0)) {
-                for y in square(a.1.min(b.1))..=square(a.1.max(b.1)) {
+            for x in square(a.0.min(b.0) - reach)..=square(a.0.max(b.0) + reach) {
+                for y in square(a.1.min(b.1) - reach)..=square(a.1.max(b.1) + reach) {
                     grid.entry((x, y)).or_default().push((l, s));
                 }
             }
@@ -118,7 +228,10 @@ fn crossing_loops(loops: &[Vec<Point>], cell: f64) -> Vec<usize> {
                 }
                 let (a, b) = segment(loops, l1, s1);
                 let (c, d) = segment(loops, l2, s2);
-                if segments_meet(a, b, c, d) {
+                let too_near = l1 != l2
+                    && (near[l1] || near[l2])
+                    && segment_gap(a, b, c, d) < 2.0 * CHAIN_TOL_MM;
+                if too_near || segments_meet(a, b, c, d) {
                     bad[l1] = true;
                     bad[l2] = true;
                 }
@@ -155,6 +268,17 @@ fn segments_meet(a: Point, b: Point, c: Point, d: Point) -> bool {
         || (o2 == 0.0 && on_segment(a, b, d))
         || (o3 == 0.0 && on_segment(c, d, a))
         || (o4 == 0.0 && on_segment(c, d, b))
+}
+
+/// The shortest distance between segments ab and cd.
+fn segment_gap(a: Point, b: Point, c: Point, d: Point) -> f64 {
+    if segments_meet(a, b, c, d) {
+        return 0.0;
+    }
+    segment_distance(a, c, d)
+        .min(segment_distance(b, c, d))
+        .min(segment_distance(c, a, b))
+        .min(segment_distance(d, a, b))
 }
 
 fn orientation(a: Point, b: Point, c: Point) -> f64 {

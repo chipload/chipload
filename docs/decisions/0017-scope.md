@@ -22,8 +22,10 @@ the project file are first-class) as well as in the GUI.
 
 - **Images traced into shapes** for V-carving (added 2026-10-13, docs/specs/image-trace.md):
   another tool can trace, but the threshold and smoothing are judged against the carve,
-  which only Chipload shows, and it feeds the existing V-carving. Picture editing, colour
-  separation and centreline tracing stay out.
+  which only Chipload shows, and it feeds the existing V-carving. Picture editing and colour
+  separation stay out. Centre lines of strokes, for a follow path, were taken in on
+  2026-10-13 with the user's approval (docs/specs/image-arcs-centrelines.md): the same
+  argument, and they reuse V-carving's medial axis.
 
 ## Out of scope (another tool does it better)
 - **Nesting** parts on a sheet: dedicated nesters (Deepnest and the like) or CAD.

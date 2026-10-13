@@ -44,6 +44,10 @@ cargo +nightly fuzz run image_trace corpus/image_trace -- -max_total_time=900 -t
 
 First run (2026-10-13): 3.1 million inputs in 5 minutes, nothing found.
 
+With arcs and centre lines (2026-10-13, docs/specs/image-arcs-centrelines.md): 23 000 inputs
+in 10 minutes, nothing found and no timeouts. Much slower per input: each picture is now
+traced three times (lines, arcs, centre lines); which inputs are slow is still to be measured.
+
 ## Found so far
 
 DXF:

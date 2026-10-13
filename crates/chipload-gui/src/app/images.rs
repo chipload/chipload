@@ -6,7 +6,7 @@
 
 use std::sync::{Arc, mpsc};
 
-use chipload_job::{Image, ImageThreshold};
+use chipload_job::{Image, ImageThreshold, ImageTrace};
 use chipload_pipeline::images::{
     Decoded, NewImage, Preview, add_image, decode_picture, new_layer, picture_bytes, preview,
     retrace,
@@ -208,6 +208,8 @@ impl ChiploadApp {
             blur: defaults.blur,
             min_area: defaults.min_area,
             smoothing: defaults.smoothing,
+            trace: defaults.trace,
+            arcs: defaults.arcs,
         };
         let target = ImageTarget::New {
             file,
@@ -258,6 +260,8 @@ impl ChiploadApp {
                 new.blur = draft.blur;
                 new.min_area = draft.min_area;
                 new.smoothing = draft.smoothing;
+                new.trace = draft.trace;
+                new.arcs = draft.arcs;
                 add_image(&edit.settings, new)
             }
             ImageTarget::Existing(id) => {
@@ -478,9 +482,11 @@ fn picture_view(ui: &mut egui::Ui, dialog: &ImageDialog) {
         )
     };
     let stroke = Stroke::new(1.5, Color32::from_rgb(230, 110, 20));
-    for ring in &preview.trace.loops {
-        let mut points: Vec<Pos2> = ring.iter().map(|&p| to_screen(p)).collect();
-        if let Some(&first) = points.first() {
+    for path in &preview.trace.paths {
+        let mut points: Vec<Pos2> = path.points.iter().map(|&p| to_screen(p)).collect();
+        if path.closed
+            && let Some(&first) = points.first()
+        {
             points.push(first);
         }
         painter.add(egui::Shape::line(points, stroke));
@@ -571,7 +577,32 @@ fn settings_form(ui: &mut egui::Ui, draft: &mut Image, (w, h): (u32, u32), picke
                     .suffix(" mm"),
             );
             ui.end_row();
+            ui.label("Trace").on_hover_text(
+                "Outlines round the black parts, for a V-carve; or the centre lines of black \
+                 strokes (handwriting, line art), for a follow path.",
+            );
+            egui::ComboBox::from_id_salt("image-trace")
+                .selected_text(trace_name(draft.trace))
+                .show_ui(ui, |ui| {
+                    for trace in [ImageTrace::Outline, ImageTrace::CentreLine] {
+                        ui.selectable_value(&mut draft.trace, trace, trace_name(trace));
+                    }
+                });
+            ui.end_row();
+            ui.label("Arcs").on_hover_text(
+                "Fit arcs as well as lines: smaller programs and smoother motion for profiles, \
+                 pockets and follow paths.",
+            );
+            ui.checkbox(&mut draft.arcs, "fit arcs");
+            ui.end_row();
         });
+}
+
+fn trace_name(trace: ImageTrace) -> &'static str {
+    match trace {
+        ImageTrace::Outline => "Outlines (V-carve)",
+        ImageTrace::CentreLine => "Centre lines (follow path)",
+    }
 }
 
 /// What the preview traced, or why it couldn't.
@@ -590,15 +621,23 @@ fn summary(ui: &mut egui::Ui, dialog: &ImageDialog) {
             } else {
                 String::new()
             };
-            ui.label(format!(
-                "{} {}{picked}",
-                t.loops.len(),
-                if t.loops.len() == 1 {
-                    "shape"
-                } else {
-                    "shapes"
-                }
-            ));
+            let count = t.paths.len();
+            let what = match (t.centre_lines, count == 1) {
+                (false, true) => "shape",
+                (false, false) => "shapes",
+                (true, true) => "centre line",
+                (true, false) => "centre lines",
+            };
+            ui.label(format!("{count} {what}{picked}"));
+            if let Some((narrow, wide)) = t.widths {
+                ui.label(format!("Strokes {narrow:.2} to {wide:.2} mm wide"));
+            }
+            if t.dots > 0 {
+                ui.label(format!("{} dots left out", t.dots));
+            }
+            if t.without_arcs > 0 {
+                ui.label(format!("{} kept as lines", t.without_arcs));
+            }
             if t.dropped > 0 {
                 ui.label(format!("{} specks dropped", t.dropped));
             }

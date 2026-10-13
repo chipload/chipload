@@ -1,0 +1,46 @@
+{
+  "schema_version": 20,
+  "written_by": "chipload 0.15.0",
+  "drawing": {
+    "shapes": [],
+    "next_shape_id": 1,
+    "source": null,
+    "images": []
+  },
+  "stock": {
+    "x": 300.0,
+    "y": 200.0,
+    "thickness": 10.0,
+    "origin": "bottom_left",
+    "z_zero": "top",
+    "max_overcut": 0.5
+  },
+  "machine": {
+    "name": null,
+    "post": "grbl",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": null,
+    "travel": null,
+    "work_zero": {
+      "at": "drawing_origin"
+    },
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": null,
+      "center_cutting": null,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "operations": [],
+  "copies": null
+}

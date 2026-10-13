@@ -34,6 +34,7 @@ fn sharp() -> Settings {
         blur: 0.0,
         min_area: 0.0,
         smoothing: 0.01,
+        arcs: false,
     }
 }
 
@@ -115,6 +116,72 @@ fn a_black_square_traces_through_the_middle_between_pixels() {
     }
     assert_eq!(t.height, 10.0);
     assert!(!t.black_at_border);
+}
+
+/// Every loop's pieces join end to end and close, as many loops as points.
+fn pieces_close(t: &chipload_image::Trace) -> bool {
+    let near = |a: Point, b: Point| (a.0 - b.0).hypot(a.1 - b.1) < 1e-9;
+    t.pieces.len() == t.loops.len()
+        && t.pieces.iter().all(|pieces| {
+            !pieces.is_empty()
+                && pieces.windows(2).all(|w| near(w[0].end(), w[1].start()))
+                && near(pieces[pieces.len() - 1].end(), pieces[0].start())
+        })
+}
+
+/// docs/specs/image-arcs-centrelines.md §8: a disk with arcs is a handful of arcs, round
+/// within the smoothing; a square stays its lines.
+#[test]
+fn with_arcs_a_disk_is_a_few_arcs_and_a_square_its_lines() {
+    use chipload_core::primitives::Primitive;
+    let (n, r) = (200u32, 80.0f64);
+    let bytes = png(n, n, |x, y| {
+        let (dx, dy) = (f64::from(x) + 0.5 - 100.0, f64::from(y) + 0.5 - 100.0);
+        dx.hypot(dy) <= r
+    });
+    let settings = Settings {
+        blur: 1.0,
+        smoothing: 0.05,
+        arcs: true,
+        ..sharp()
+    };
+    // 0.1 mm pixels, as a 20 mm logo of 200 pixels.
+    let t = trace(&decode(&bytes).unwrap(), &settings, 20.0).unwrap();
+    assert_eq!(t.pieces.len(), 1);
+    let arcs = t.pieces[0]
+        .iter()
+        .filter(|p| matches!(p, Primitive::Arc(_)))
+        .count();
+    assert!(arcs >= 2, "{:?}", t.pieces[0]);
+    assert!(t.pieces[0].len() <= 24, "{} pieces", t.pieces[0].len());
+    let lines = trace(
+        &decode(&bytes).unwrap(),
+        &Settings {
+            arcs: false,
+            ..settings
+        },
+        20.0,
+    )
+    .unwrap();
+    assert!(
+        lines.pieces[0].len() > 2 * t.pieces[0].len(),
+        "{} lines against {} with arcs",
+        lines.pieces[0].len(),
+        t.pieces[0].len()
+    );
+    assert_eq!(t.without_arcs, 0);
+    let square = png(10, 10, |x, y| (3..7).contains(&x) && (3..7).contains(&y));
+    let t = trace(
+        &decode(&square).unwrap(),
+        &Settings {
+            arcs: true,
+            ..sharp()
+        },
+        10.0,
+    )
+    .unwrap();
+    assert!(t.pieces[0].iter().all(|p| matches!(p, Primitive::Line(_))));
+    assert!((signed_area(&t.loops[0]) - 15.5).abs() < 1e-9);
 }
 
 #[test]
@@ -269,12 +336,14 @@ proptest! {
         h in 1u32..12,
         bits in proptest::collection::vec(any::<bool>(), 144),
         smoothing in 0.01f64..0.3,
+        arcs in any::<bool>(),
     ) {
         let black = |x: u32, y: u32| bits[(y * 12 + x) as usize];
         let bytes = png(w, h, black);
-        let settings = Settings { smoothing, ..sharp() };
+        let settings = Settings { smoothing, arcs, ..sharp() };
         let t = trace(&decode(&bytes).unwrap(), &settings, f64::from(w)).unwrap();
         prop_assert!(no_crossings(&t.loops));
+        prop_assert!(pieces_close(&t));
         for y in 0..h {
             for x in 0..w {
                 let centre = (f64::from(x) + 0.5, f64::from(h - y) - 0.5);
@@ -303,6 +372,7 @@ proptest! {
         blur in 0.0f64..2.0,
         threshold in 1u8..=254,
         invert in any::<bool>(),
+        arcs in any::<bool>(),
     ) {
         let picture = ImageBuffer::from_fn(w, h, |x, y| {
             let g = greys[(y * 10 + x) as usize];
@@ -311,10 +381,11 @@ proptest! {
         let mut bytes = Vec::new();
         picture.write_to(&mut Cursor::new(&mut bytes), ImageFormat::Png).unwrap();
         let decoded = decode(&bytes).unwrap();
-        let settings = Settings { blur, threshold: Threshold::Level(threshold), invert, ..sharp() };
+        let settings = Settings { blur, threshold: Threshold::Level(threshold), invert, arcs, ..sharp() };
         let t = trace(&decoded, &settings, f64::from(w)).unwrap();
         let bw = chipload_image::black_white(&decoded, &settings).unwrap();
         prop_assert!(no_crossings(&t.loops));
+        prop_assert!(pieces_close(&t));
         for y in 0..h {
             for x in 0..w {
                 let centre = (f64::from(x) + 0.5, f64::from(h - y) - 0.5);

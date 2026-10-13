@@ -12,6 +12,7 @@ mod field;
 mod simplify;
 
 use chipload_core::Point;
+use chipload_core::primitives::Primitive;
 
 pub use decode::{Decoded, MAX_BYTES, MAX_PIXELS, decode};
 pub use field::otsu;
@@ -40,6 +41,8 @@ pub struct Settings {
     pub min_area: f64,
     /// How far a simplified edge may deviate from the traced one, mm.
     pub smoothing: f64,
+    /// Fit arcs as well as lines (docs/specs/image-arcs-centrelines.md §2).
+    pub arcs: bool,
 }
 
 impl Default for Settings {
@@ -51,6 +54,7 @@ impl Default for Settings {
             blur: 1.0,
             min_area: 0.5,
             smoothing: 0.05,
+            arcs: true,
         }
     }
 }
@@ -108,12 +112,17 @@ pub enum ImageError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Trace {
     /// Closed loops in mm, black inside: outlines counter-clockwise, holes clockwise. The
-    /// first point is not repeated at the end.
+    /// first point is not repeated at the end. Arcs are split into chords within the
+    /// chaining tolerance (for previews and checks; [`Trace::pieces`] are exact).
     pub loops: Vec<Vec<Point>>,
+    /// The same loops as lines and arcs, each loop ending where it starts.
+    pub pieces: Vec<Vec<Primitive>>,
     /// The threshold used (the one auto picked, or the one set).
     pub threshold: u8,
     /// Loops dropped as smaller than the smallest piece.
     pub dropped: usize,
+    /// Loops whose arcs came too near another loop or crossed, kept as lines.
+    pub without_arcs: usize,
     /// Loops left unsimplified because simplifying made them cross.
     pub unsimplified: usize,
     /// Black touches the picture's border: closed along it.
@@ -144,8 +153,27 @@ pub fn black_white(picture: &Decoded, settings: &Settings) -> Result<BlackWhite,
     })
 }
 
-/// The picture traced at `width` mm (spec §3).
-pub fn trace(picture: &Decoded, settings: &Settings, width: f64) -> Result<Trace, ImageError> {
+/// A picture's loops as traced, before simplifying: about a point per pixel.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RawTrace {
+    /// As [`Trace::loops`], unsimplified, small pieces dropped.
+    pub loops: Vec<Vec<Point>>,
+    pub threshold: u8,
+    pub dropped: usize,
+    pub black_at_border: bool,
+    pub width: f64,
+    pub height: f64,
+    /// The size of a pixel, mm.
+    pub pixel: f64,
+}
+
+/// The picture's loops at `width` mm as traced (spec §3), small pieces dropped: what
+/// [`trace`] simplifies, and what centre lines are found in.
+pub fn trace_raw(
+    picture: &Decoded,
+    settings: &Settings,
+    width: f64,
+) -> Result<RawTrace, ImageError> {
     settings.check()?;
     if !(width.is_finite() && width > 0.0) {
         return Err(ImageError::Width);
@@ -162,14 +190,31 @@ pub fn trace(picture: &Decoded, settings: &Settings, width: f64) -> Result<Trace
     if kept.len() > MAX_LOOPS {
         return Err(ImageError::TooManyLoops(kept.len()));
     }
-    let (loops, unsimplified) = simplify::simplified(kept, settings.smoothing, pixel);
-    Ok(Trace {
-        loops,
+    Ok(RawTrace {
+        loops: kept,
         threshold: level.threshold,
         dropped,
-        unsimplified,
         black_at_border: level.black_at_border(),
         width,
         height: pixel * f64::from(picture.height),
+        pixel,
+    })
+}
+
+/// The picture traced at `width` mm (spec §3), simplified within the smoothing: lines, or
+/// lines and arcs.
+pub fn trace(picture: &Decoded, settings: &Settings, width: f64) -> Result<Trace, ImageError> {
+    let raw = trace_raw(picture, settings, width)?;
+    let fitted = simplify::fitted(raw.loops, settings.smoothing, raw.pixel, settings.arcs);
+    Ok(Trace {
+        loops: fitted.loops,
+        pieces: fitted.pieces,
+        threshold: raw.threshold,
+        dropped: raw.dropped,
+        without_arcs: fitted.without_arcs,
+        unsimplified: fitted.unsimplified,
+        black_at_border: raw.black_at_border,
+        width,
+        height: raw.height,
     })
 }

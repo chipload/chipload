@@ -429,6 +429,10 @@
       "additionalProperties": false,
       "description": "A picture traced into shapes: the picture itself, where it goes, and how it becomes black\nand white. Its traced shapes are `path` shapes on its layer that name it in `image`.",
       "properties": {
+        "arcs": {
+          "description": "Traced edges are fitted with arcs as well as lines.",
+          "type": "boolean"
+        },
         "blur": {
           "description": "Blur before the threshold, in pixels, 0 to 10; 0: none.",
           "format": "double",
@@ -474,6 +478,10 @@
           "$ref": "#/$defs/ImageThreshold",
           "description": "Grey values below this (0–255) are black: 1 to 254, or \"auto\" to pick it from the\npicture (Otsu's method)."
         },
+        "trace": {
+          "$ref": "#/$defs/ImageTrace",
+          "description": "What it is traced into: the black parts' outlines (for a V-carve) or their centre\nlines (for a follow path)."
+        },
         "width": {
           "description": "The picture's width on the stock, mm; its height follows from the picture.",
           "format": "double",
@@ -503,7 +511,9 @@
         "invert",
         "blur",
         "min_area",
-        "smoothing"
+        "smoothing",
+        "trace",
+        "arcs"
       ],
       "type": "object"
     },
@@ -522,6 +532,21 @@
         }
       ],
       "description": "Where grey turns black: \"auto\" or a grey value."
+    },
+    "ImageTrace": {
+      "description": "What a picture is traced into.",
+      "oneOf": [
+        {
+          "const": "outline",
+          "description": "Closed outlines round the black parts, black inside.",
+          "type": "string"
+        },
+        {
+          "const": "centre_line",
+          "description": "Open (or closed) paths along the black strokes' middles.",
+          "type": "string"
+        }
+      ]
     },
     "IssueSeverity": {
       "enum": [
@@ -1858,7 +1883,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 19. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 20. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "copies": {
       "anyOf": [
@@ -1888,7 +1913,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 19,
+      "const": 20,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {

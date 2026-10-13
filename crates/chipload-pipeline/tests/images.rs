@@ -4,7 +4,8 @@
 
 use std::path::Path;
 
-use chipload_job::{ImageThreshold, Selector};
+use chipload_core::primitives::{Arc, Line, Primitive};
+use chipload_job::{ImageThreshold, ImageTrace, Selector};
 use chipload_pipeline::images::{
     NewImage, add_image, black_white_png, remove_image, retrace_changed,
 };
@@ -21,12 +22,21 @@ fn extent(job: &chipload_job::Job) -> ((f64, f64), (f64, f64)) {
     let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
     for shape in job.drawing.shapes.iter().filter(|s| s.image().is_some()) {
         for segment in shape.segments() {
-            if let chipload_job::PathSegment::Line(l) = segment {
-                for p in [l.start, l.end] {
-                    lo = (lo.0.min(p[0]), lo.1.min(p[1]));
-                    hi = (hi.0.max(p[0]), hi.1.max(p[1]));
-                }
-            }
+            let piece = match segment {
+                chipload_job::PathSegment::Line(l) => Primitive::Line(Line {
+                    start: (l.start[0], l.start[1]),
+                    end: (l.end[0], l.end[1]),
+                }),
+                chipload_job::PathSegment::Arc(a) => Primitive::Arc(Arc {
+                    center: (a.center[0], a.center[1]),
+                    radius: a.radius,
+                    start_angle: a.start_angle,
+                    sweep: a.sweep,
+                }),
+            };
+            let (low, high) = piece.bounds();
+            lo = (lo.0.min(low.0), lo.1.min(low.1));
+            hi = (hi.0.max(high.0), hi.1.max(high.1));
         }
     }
     (lo, hi)
@@ -156,4 +166,83 @@ fn bad_pictures_and_settings_are_refused() {
     assert!(error.contains("smoothing"), "{error}");
     let zero = NewImage::new("logo.png", &bytes, 0.0);
     assert!(add_image(&project, zero).is_err());
+}
+
+// -- Arcs and centre lines (docs/specs/image-arcs-centrelines.md §8)
+
+fn strokes() -> Vec<u8> {
+    std::fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/images/strokes.png"),
+    )
+    .unwrap()
+}
+
+#[test]
+fn new_images_get_arcs_and_far_fewer_segments() {
+    let bytes = logo();
+    let count = |arcs: bool| {
+        let mut new = NewImage::new("logo.png", &bytes, 80.0);
+        new.arcs = arcs;
+        let (job, report) = add_image(&empty_project(), new).unwrap();
+        assert_eq!(report.shapes.len(), 4);
+        let segments: Vec<chipload_job::PathSegment> = job
+            .drawing
+            .shapes
+            .iter()
+            .flat_map(|s| s.segments())
+            .collect();
+        let arcs = segments
+            .iter()
+            .filter(|s| matches!(s, chipload_job::PathSegment::Arc(_)))
+            .count();
+        (segments.len(), arcs)
+    };
+    let (lines, none) = count(false);
+    let (fitted, arcs) = count(true);
+    assert_eq!(none, 0);
+    assert!(
+        arcs > 0 && fitted * 3 < lines,
+        "{fitted} ({arcs} arcs) against {lines}"
+    );
+}
+
+#[test]
+fn a_picture_of_strokes_traces_into_centre_lines() {
+    let bytes = strokes();
+    let mut new = NewImage::new("strokes.png", &bytes, 60.0);
+    new.trace = ImageTrace::CentreLine;
+    let (job, report) = add_image(&empty_project(), new).unwrap();
+    // The T's three strokes and the O; the dot is left out.
+    assert_eq!(report.shapes.len(), 4, "{:?}", report.lines);
+    assert!(report.centre_lines);
+    assert_eq!(report.dots, 1);
+    let (narrow, wide) = report.widths.unwrap();
+    // 6 pixels of 0.5 mm.
+    assert!(narrow > 2.5 && wide < 3.5, "{narrow} {wide}");
+    let closed = job.drawing.shapes.iter().filter(|s| s.closed()).count();
+    assert_eq!(closed, 1, "the O");
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    assert!(report.lines.iter().any(|l| l.contains("follow path")));
+}
+
+#[test]
+fn only_a_follow_path_may_cut_centre_lines() {
+    let bytes = strokes();
+    let corpus =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/jobs/v18/rest.chipload");
+    let project = chipload_job::load_job(&corpus).unwrap();
+    let mut new = NewImage::new("strokes.png", &bytes, 60.0);
+    new.trace = ImageTrace::CentreLine;
+    let (mut job, _) = add_image(&project, new).unwrap();
+    *job.operations[0].select_mut() = Selector {
+        layer: Some("strokes".into()),
+        shapes: None,
+    };
+    let problems = job.validate();
+    assert!(
+        problems
+            .iter()
+            .any(|p| p.contains("centre lines of image 1") && p.contains("follow path")),
+        "{problems:?}"
+    );
 }

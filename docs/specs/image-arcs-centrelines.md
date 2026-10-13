@@ -1,6 +1,7 @@
 # Spec: traced pictures with arcs, and centre lines for follow path
 
-Status: **draft, for review** (2026-10-13). Follows docs/specs/image-trace.md §10.
+Status: **approved and built** (2026-10-13, all recommendations taken; as built: §10).
+Follows docs/specs/image-trace.md §10.
 
 Two additions to image tracing:
 
@@ -215,3 +216,35 @@ Two new fields on each image:
    isn't a follow path. A hole operation on the dots is a later question if anyone asks.
 8. **The stroke width reported as a range (5th to 95th percentile).** **Recommended:** the
    extremes are junctions and ends.
+
+## 10. As built (2026-10-13)
+
+What changed from the draft while building it:
+
+- **Arcs follow the path, not only its points.** Three points always lie on some circle, so
+  an arc through a cut pixel corner passed the point test while bulging away from the traced
+  edge. The middle of every chord between neighbouring points must also lie within the
+  smoothing of the arc. The property test checks those midpoints too.
+- **The nearness check** flattens arcs within the chaining tolerance (0.001 mm), not the arc
+  tolerance, and a fitted outline must stay twice that (0.002 mm) from any other outline.
+  Outlines that are lines only are checked for crossing as before, so a pair of traced loops
+  that nearly touch at a saddle doesn't push its neighbours back to lines.
+- **No "no more pieces than Douglas–Peucker" property:** greedy lines aren't guaranteed
+  fewer than Douglas–Peucker's. Instead, the logo's size check: 152 lines without arcs,
+  23 pieces (19 arcs) with them.
+- **Tidying judges a pass's branches together** (`centre::tidy`): with one at a time, the
+  second corner branch of a square stroke end became part of the stroke once the first was
+  gone. A junction keeps its farthest-reaching branch when all of them would go. V-carving's
+  pruning is unchanged.
+- **Dots:** a piece is a dot when its whole centre line lies within its widest circle grown
+  by the tidying allowance (a round dot, a small blob), rather than by the centre line's
+  length.
+- **The hint is a problem:** a profile, pocket, V-carve or holes operation whose layer holds
+  an image's centre lines is refused ("layer "x" holds the centre lines of image 1: cut them
+  with a follow path, or trace the image as outlines"). A closed centre line (an O) would
+  otherwise be pocketed as if it were an outline.
+- **The report** also counts outlines kept as lines (`without_arcs`).
+- **Import notes:** centre lines show in the drawing's report as open contours, and their
+  junctions as "more than two segments meet at one point". Both are true and harmless.
+- **Between centre lines that meet**, a follow path retracts and plunges again at the
+  junction, as it does between any two paths (follow path's own behaviour).

@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 19. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 20. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -14,7 +14,7 @@ Schema version 19. Older files load through Chipload's migrations; this schema d
 | `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order. |
-| `schema_version` | `19` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `20` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -177,6 +177,7 @@ A picture traced into shapes: the picture itself, where it goes, and how it beco
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `arcs` | boolean | yes | Traced edges are fitted with arcs as well as lines. |
 | `blur` | number | yes | Blur before the threshold, in pixels, 0 to 10; 0: none. |
 | `data` | string | yes | The picture file itself (PNG, JPEG or BMP), base64-encoded. |
 | `file` | string | yes | The picture's file name. |
@@ -187,6 +188,7 @@ A picture traced into shapes: the picture itself, where it goes, and how it beco
 | `sha256` | string | yes | The picture's SHA-256. |
 | `smoothing` | number | yes | How far a traced edge may be simplified away from the picture's edge, mm, 0.01 to 1. |
 | `threshold` | [ImageThreshold](#imagethreshold) | yes | Grey values below this (0–255) are black: 1 to 254, or "auto" to pick it from the picture (Otsu's method). |
+| `trace` | [ImageTrace](#imagetrace) | yes | What it is traced into: the black parts' outlines (for a V-carve) or their centre lines (for a follow path). |
 | `width` | number | yes | The picture's width on the stock, mm; its height follows from the picture. |
 | `x` | number | yes | X of the picture's lower-left corner on the stock, mm. |
 | `y` | number | yes | Y of the picture's lower-left corner on the stock, mm. |
@@ -198,6 +200,14 @@ Where grey turns black: "auto" or a grey value.
 - [AutoThreshold](#autothreshold): Picked from the picture.
 
 - integer: Grey values below this are black, 1 to 254.
+
+## ImageTrace
+
+What a picture is traced into.
+
+- `"outline"`: Closed outlines round the black parts, black inside.
+
+- `"centre_line"`: Open (or closed) paths along the black strokes' middles.
 
 ## IssueSeverity
 

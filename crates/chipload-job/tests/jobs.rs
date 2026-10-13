@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
 use chipload_job::{
-    CURRENT_VERSION, Direction, HoleMethod, ImageThreshold, JobError, Operation, ToolType,
-    load_job, parse_job,
+    CURRENT_VERSION, Direction, HoleMethod, ImageThreshold, ImageTrace, JobError, Operation,
+    ToolType, load_job, parse_job,
 };
 use serde_json::{Value, json};
 
@@ -870,7 +870,7 @@ fn quarter_turns_are_0_to_3() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -953,7 +953,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1013,7 +1013,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(19));
+        assert_eq!(current["schema_version"], json!(20));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
@@ -1060,7 +1060,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1138,7 +1138,7 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
@@ -1168,7 +1168,7 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
@@ -1237,7 +1237,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1332,7 +1332,7 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(19));
+    assert_eq!(current["schema_version"], json!(20));
     without_images(&mut current);
     current["schema_version"] = json!(16);
     assert_eq!(current, v16, "nothing else changes");
@@ -1366,7 +1366,7 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(19));
+        assert_eq!(current["schema_version"], json!(20));
         without_images(&mut current);
         current["schema_version"] = json!(17);
         assert_eq!(current, v17, "{sample}: nothing else changes");
@@ -1475,25 +1475,48 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(19));
+        assert_eq!(current["schema_version"], json!(20));
         without_images(&mut current);
         current["schema_version"] = json!(18);
         assert_eq!(current, v18, "{sample}: nothing else changes");
     }
 }
 
+/// docs/specs/image-arcs-centrelines.md §4: images stay outlines without arcs, as traced
+/// before; nothing else changes.
+#[test]
+fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
+    let v19 = raw("v19/image_vcarve.chipload");
+    let mut current = migrate(v19.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(20));
+    let images = current["drawing"]["images"].as_array_mut().unwrap();
+    assert!(!images.is_empty());
+    for image in images.iter_mut() {
+        let image = image.as_object_mut().unwrap();
+        assert_eq!(image.remove("trace"), Some(json!("outline")));
+        assert_eq!(image.remove("arcs"), Some(json!(false)));
+    }
+    current["schema_version"] = json!(19);
+    assert_eq!(current, v19, "nothing else changes");
+}
+
 #[test]
 fn images_and_their_traced_shapes_are_checked() {
     let mut data = raw("v18/holes.chipload");
-    data["schema_version"] = json!(19);
+    data["schema_version"] = json!(20);
     let image = json!({
         "id": 1, "file": "logo.png", "sha256": "00", "data": "iVBORw0KGgo=",
         "layer": "logo", "x": 0.0, "y": 0.0, "width": 100.0,
-        "threshold": "auto", "invert": false, "blur": 1.0, "min_area": 0.5, "smoothing": 0.05
+        "threshold": "auto", "invert": false, "blur": 1.0, "min_area": 0.5, "smoothing": 0.05,
+        "trace": "centre_line", "arcs": true
     });
     data["drawing"]["images"] = json!([image]);
     let job = parse_job(data.clone(), "p").unwrap();
     assert_eq!(job.drawing.images[0].threshold, ImageThreshold::AUTO);
+    assert_eq!(job.drawing.images[0].trace, ImageTrace::CentreLine);
+    let mut unknown = data.clone();
+    unknown["drawing"]["images"][0]["trace"] = json!("skeleton");
+    assert!(parse_job(unknown, "p").is_err());
     let mut bad = data.clone();
     bad["drawing"]["images"][0]["threshold"] = json!(255);
     bad["drawing"]["images"][0]["smoothing"] = json!(0.0);
