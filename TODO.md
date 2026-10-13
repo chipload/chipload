@@ -23,7 +23,8 @@ it's built (see `CLAUDE.md`).
   the Windows side, checkout `C:\code\chipload`; the steps are in docs/releasing.md
   (*Without GitHub Actions*). 0.13.0 was built and uploaded that way.
 - **The repository is private**: testers can't download releases or open issues without
-  being added as collaborators. Decide: make it public, add testers, or another way to
+  being added as collaborators. When it goes public, publish the user guide: the steps are
+  at the end of docs/releasing.md (the publish script's dry run passes, 2026-10-13). Decide: make it public, add testers, or another way to
   collect reports (the 0.13.0 notes ask for issues).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
   history). Tag `adaptive-final` (local): main before the removal.

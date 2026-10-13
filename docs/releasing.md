@@ -84,3 +84,17 @@ From WSL, in `/mnt/c/code/chipload`:
    chipload-0.13.0-windows-x86_64.exe SHA256SUMS.txt --clobber`, and list the Windows files
    in the release notes.
 5. `git switch main` in the Windows checkout, so it isn't left on the tag.
+
+## When the repository goes public: the user guide's website
+
+The guide is ready to publish (docs/specs/user-guide.md §5); `packaging/docs/publish-book.sh
+HEAD --dry-run` checks every step but the push. Then:
+
+1. Publish a release's guide: `packaging/docs/publish-book.sh vX.Y.Z --yes`. Only tags are
+   published, so the first release after the guide (0.14.0 or later) is the first one with it.
+2. On GitHub: *Settings > Pages > Build and deployment*: source *Deploy from a branch*,
+   branch `gh-pages`, folder `/ (root)`. The site is then at
+   `https://gntech.github.io/chipload/`.
+3. Point the app at it: set `USER_GUIDE_URL` in `crates/chipload-gui/src/app/dialogs.rs`,
+   and replace the "comes with each release" text in the guide's install page if wanted.
+4. From then on, run step 1 for every release, after step 6 above.
