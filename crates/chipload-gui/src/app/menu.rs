@@ -90,14 +90,36 @@ impl ChiploadApp {
                 }
                 ui.separator();
                 let (update, update_path) = self.update_labels();
-                if ui.add_enabled(has_job, egui::Button::new(update)).clicked() {
+                // With several DXFs, each is updated from its row in the Drawing panel.
+                let one = has_job && self.dxf_count() <= 1;
+                let several = "Several DXFs: update one from the Drawing panel";
+                if ui
+                    .add_enabled(one, egui::Button::new(update))
+                    .on_disabled_hover_text(several)
+                    .clicked()
+                {
                     self.ask_update();
                 }
                 if ui
-                    .add_enabled(has_job, egui::Button::new(update_path))
+                    .add_enabled(one, egui::Button::new(update_path))
+                    .on_disabled_hover_text(several)
                     .clicked()
                 {
                     self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
+                }
+                let adding = has_job && self.dxf_count() > 0;
+                if ui
+                    .add_enabled(adding, egui::Button::new("Add DXF to project…"))
+                    .on_hover_text("Another part: a DXF placed and updated on its own")
+                    .clicked()
+                {
+                    self.ask_add_dxf();
+                }
+                if ui
+                    .add_enabled(adding, egui::Button::new("Add DXF from path…"))
+                    .clicked()
+                {
+                    self.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
                 }
                 ui.separator();
                 if ui

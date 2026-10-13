@@ -4,6 +4,13 @@
 project from a DXF. *File > Open…* also opens a `.dxf` directly. `chipload inspect part.dxf`
 shows what Chipload sees in a DXF without making a project.
 
+**Dropping files** on the window:
+- **A `.chipload` project** opens (after asking about unsaved changes).
+- **DXFs and pictures** are added to the open project: each DXF as
+  [another drawing](several.md), each picture through its [image](images.md) window, one
+  after the other. With no project open, the first starts one.
+- **The hint** while you drag says which will happen.
+
 ## What is read
 
 - **Read:** lines, arcs, circles, polylines with arcs (bulges), splines and ellipses

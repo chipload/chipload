@@ -1,6 +1,6 @@
 # Spec: several drawings and pictures in one project, a Drawing panel, hiding
 
-Status: **approved** (2026-10-13, all recommendations taken). Built: §5, §2 (as built: §10).
+Status: **approved** (2026-10-13, all recommendations taken). Built: §5, §2, §3 (as built: §10).
 
 The user's request:
 - Import several DXFs and pictures into one project, each with its own position and scale.
@@ -242,3 +242,7 @@ Each step comes with its tests and guide pages, as usual.
   - **Found on the way:** a tool or operation name with a character outside ASCII ("60°
     V-bit") in a program split per tool stopped the G-code from being written. Fixed on its
     own: G-code comments are made ASCII ("60deg V-bit", "Lador").
+- **§3, dropping files** (2026-10-13): dropped DXFs and pictures go into a queue that is
+  brought in one at a time: a DXF without units asks, a picture opens its window, and the
+  rest wait. *File > Add DXF to project…* (and *from path…*) do the same for one DXF;
+  *Update drawing* is off with several DXFs until the Drawing panel picks which.

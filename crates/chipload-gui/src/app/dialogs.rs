@@ -69,6 +69,16 @@ impl ChiploadApp {
         }
     }
 
+    /// File > Add DXF to project… (docs/specs/drawing-sources.md §2).
+    pub(super) fn ask_add_dxf(&mut self) {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("DXF drawings", &["dxf"])
+            .pick_file()
+        {
+            self.add_dxf_from(&path, None);
+        }
+    }
+
     pub(super) fn ask_save(&mut self, save_as: bool) {
         if self.edit.is_none() {
             return;
@@ -147,7 +157,7 @@ impl ChiploadApp {
             return;
         };
         match prompt {
-            Prompt::Units(path, update) => {
+            Prompt::Units(path, purpose) => {
                 egui::Window::new("Drawing units")
                     .collapsible(false)
                     .resizable(false)
@@ -160,10 +170,16 @@ impl ChiploadApp {
                         ui.horizontal(|ui| {
                             for (label, units) in [("mm", Units::Mm), ("inch", Units::Inch)] {
                                 if ui.button(label).clicked() {
-                                    if update {
-                                        self.update_from(&path, Some(units));
-                                    } else {
-                                        self.import_dxf(&path, Some(units));
+                                    match purpose {
+                                        UnitsFor::NewProject => {
+                                            self.import_dxf(&path, Some(units));
+                                        }
+                                        UnitsFor::Update(id) => {
+                                            self.update_dxf_from(id, &path, Some(units));
+                                        }
+                                        UnitsFor::Add => {
+                                            self.add_dxf_from(&path, Some(units));
+                                        }
                                     }
                                 }
                             }
@@ -219,6 +235,7 @@ impl ChiploadApp {
             PathPurpose::Export => ("Export G-code", "Export the checked G-code to:"),
             PathPurpose::Update => ("Update drawing", "The DXF:"),
             PathPurpose::Image => ("Import image", "A picture (PNG, JPEG or BMP):"),
+            PathPurpose::AddDxf => ("Add DXF", "The DXF to add to the project:"),
         };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
@@ -256,6 +273,9 @@ impl ChiploadApp {
             }
             PathPurpose::Image => {
                 self.import_image(&path);
+            }
+            PathPurpose::AddDxf => {
+                self.add_dxf_from(&path, None);
             }
         }
     }

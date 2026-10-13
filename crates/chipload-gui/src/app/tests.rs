@@ -467,7 +467,10 @@ fn old_job_versions_are_saved_as_current_projects() {
 fn unitless_drawing_asks_for_units() {
     let mut app = ChiploadApp::default();
     assert!(!app.open(&corpus("dxf/messy.dxf")));
-    assert!(matches!(app.prompt, Some(Prompt::Units(_, false))));
+    assert!(matches!(
+        app.prompt,
+        Some(Prompt::Units(_, UnitsFor::NewProject))
+    ));
     assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(!app.contours.is_empty());
     let source = app.edit.as_ref().unwrap().settings.drawing.dxfs[0].clone();
@@ -1128,7 +1131,10 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     // The first DXF has no units: they are asked for, then the drawing comes in and the
     // drawn circle stays.
     assert!(!app.update_from(&corpus("dxf/messy.dxf"), None));
-    assert!(matches!(app.prompt, Some(Prompt::Units(_, true))));
+    assert!(matches!(
+        app.prompt,
+        Some(Prompt::Units(_, UnitsFor::Update(None)))
+    ));
     assert!(app.update_from(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(app.prompt.is_none());
     assert!(app.shape(1).is_some());
@@ -2302,7 +2308,7 @@ mod keyboard_shortcuts {
 
 #[test]
 fn dropped_files_open_or_import_after_asking() {
-    // docs/specs/small-items.md §2
+    // docs/specs/small-items.md §2, drawing-sources.md §3
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[corpus("dxf/messy_2.dxf")]));
     assert!(!app.contours.is_empty(), "a new project from the DXF");
@@ -2315,11 +2321,36 @@ fn dropped_files_open_or_import_after_asking() {
     ));
     // Nothing else is taken.
     let mut fresh = ChiploadApp::default();
-    assert!(!fresh.drop_files(&[corpus("dxf/messy_2.dxf"), corpus("dxf/messy_2.dxf")]));
     assert!(!fresh.drop_files(&[PathBuf::from("notes.txt")]));
+    assert!(!fresh.drop_files(&[
+        corpus("jobs/v11/two_tools.chipload"),
+        corpus("dxf/messy_2.dxf")
+    ]));
     assert!(fresh.edit.is_none());
     assert!(fresh.drop_files(&[corpus("jobs/v11/two_tools.chipload")]));
     assert_eq!(fresh.edit.as_ref().unwrap().ops.len(), 2);
+}
+
+#[test]
+fn dropped_dxfs_and_pictures_are_added_one_at_a_time() {
+    // docs/specs/drawing-sources.md §3: two DXFs make a project of two.
+    let mut app = ChiploadApp::default();
+    assert!(app.drop_files(&[corpus("dxf/simple_part.dxf"), corpus("dxf/simple_part.dxf")]));
+    let dxfs = |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.dxfs.len();
+    assert_eq!(dxfs(&app), 2);
+    // A DXF without units asks, and is added once answered.
+    assert!(app.drop_files(&[corpus("dxf/messy.dxf")]));
+    assert!(matches!(app.prompt, Some(Prompt::Units(_, UnitsFor::Add))));
+    assert!(app.add_dxf_from(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
+    assert_eq!(dxfs(&app), 3);
+    // Pictures open their window in turn: the second waits for the first.
+    assert!(app.drop_files(&[corpus("images/logo.png"), corpus("images/strokes.png")]));
+    assert_eq!(app.image_dialog.as_ref().unwrap().draft.file, "logo.png");
+    assert_eq!(app.drops.len(), 1);
+    assert!(app.apply_image());
+    app.next_drop();
+    assert_eq!(app.image_dialog.as_ref().unwrap().draft.file, "strokes.png");
+    assert!(app.drops.is_empty());
 }
 
 #[test]

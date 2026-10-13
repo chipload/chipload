@@ -12,6 +12,8 @@ chipload update part.chipload --from lid.dxf --dxf 2  # a new version of that on
 chipload dxf remove part.chipload 2                   # it and its shapes
 ```
 
+In the app: *File > Add DXF to project…*, or drop the DXF on the window.
+
 - **Where it goes:** a new DXF lands where its file has it, often on top of the first.
   [Place](placement.md) it afterwards.
 - **Which one:** with several DXFs, `place` and `update` need `--dxf ID`. With one, they

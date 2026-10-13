@@ -93,13 +93,26 @@ enum PathPurpose {
     Update,
     /// A picture to trace (File > Import image from path…).
     Image,
+    /// Another DXF for the project (File > Add DXF from path…).
+    AddDxf,
+}
+
+/// What a DXF without units was being brought in for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum UnitsFor {
+    /// A new project.
+    NewProject,
+    /// A new version of the project's DXF with this id (None: its only one).
+    Update(Option<u64>),
+    /// Another DXF in the project (docs/specs/drawing-sources.md §2).
+    Add,
 }
 
 /// A small modal asking for something before an action can continue.
 #[derive(Debug, Clone, PartialEq)]
 enum Prompt {
-    /// The DXF being imported (or, with `true`, updating the drawing) declares no units.
-    Units(PathBuf, bool),
+    /// The DXF declares no units: for what it was being brought in.
+    Units(PathBuf, UnitsFor),
     Path(PathPurpose, String),
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
@@ -235,6 +248,8 @@ pub struct ChiploadApp {
     pub recent: Vec<String>,
     /// The image window, while open (docs/specs/image-trace.md §6).
     pub image_dialog: Option<images::ImageDialog>,
+    /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
+    pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// View > Show images: the pictures faintly under the drawing.
     pub show_images: bool,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
@@ -315,6 +330,7 @@ impl Default for ChiploadApp {
             library_windows: LibraryWindows::default(),
             recent: Vec::new(),
             image_dialog: None,
+            drops: std::collections::VecDeque::new(),
             show_images: true,
             show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
@@ -535,7 +551,7 @@ impl ChiploadApp {
         let imported = match shapes_from_dxf(path, units) {
             Ok(imported) => imported,
             Err(ImportError::UnitsMissing) => {
-                self.prompt = Some(Prompt::Units(path.to_path_buf(), false));
+                self.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
                 self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(path)
@@ -576,6 +592,11 @@ impl ChiploadApp {
     /// or bring in the first DXF of a project started empty. A DXF without units, when the
     /// project has none recorded either, asks for them.
     pub fn update_from(&mut self, dxf: &Path, units: Option<Units>) -> bool {
+        self.update_dxf_from(None, dxf, units)
+    }
+
+    /// [`ChiploadApp::update_from`] for DXF `id` of several (None: the project's only one).
+    pub fn update_dxf_from(&mut self, id: Option<u64>, dxf: &Path, units: Option<Units>) -> bool {
         self.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
@@ -588,7 +609,11 @@ impl ChiploadApp {
                 return false;
             }
         };
-        match update_drawing(&job, dxf, units) {
+        let updated = match id {
+            Some(id) => chipload_pipeline::dxfs::update_dxf(&job, id, dxf, units),
+            None => update_drawing(&job, dxf, units),
+        };
+        match updated {
             Ok((updated, report)) => {
                 let mut next = EditJob::from_job(&updated);
                 // Keep "side not chosen" marks; the update doesn't touch operations.
@@ -609,7 +634,7 @@ impl ChiploadApp {
                 true
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
-                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), true));
+                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Update(id)));
                 self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(dxf)
@@ -619,6 +644,51 @@ impl ChiploadApp {
             Err(err) => {
                 self.error(vec![
                     "Could not update the drawing:".into(),
+                    err.to_string(),
+                ]);
+                false
+            }
+        }
+    }
+
+    /// Add `dxf` to the project as another DXF, where its file has it, as one undo step
+    /// (docs/specs/drawing-sources.md §2). A DXF without units asks for them.
+    pub fn add_dxf_from(&mut self, dxf: &Path, units: Option<Units>) -> bool {
+        self.prompt = None;
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error(problems);
+                return false;
+            }
+        };
+        match chipload_pipeline::dxfs::add_dxf(&job, dxf, units) {
+            Ok((added, report)) => {
+                let mut next = EditJob::from_job(&added);
+                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
+                    entry.side_chosen = old.side_chosen;
+                }
+                self.edit = Some(next);
+                self.commit();
+                self.refresh_drawing();
+                self.set_report(Report::info(report.lines));
+                true
+            }
+            Err(PipelineError::Import(ImportError::UnitsMissing)) => {
+                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Add));
+                self.set_report(Report::info([format!(
+                    "{} does not say which units it uses; choose mm or inch.",
+                    file_name(dxf)
+                )]));
+                false
+            }
+            Err(err) => {
+                self.error(vec![
+                    format!("Could not add {}:", file_name(dxf)),
                     err.to_string(),
                 ]);
                 false
@@ -1123,6 +1193,13 @@ impl ChiploadApp {
         }
     }
 
+    /// How many DXFs the open project has.
+    pub(super) fn dxf_count(&self) -> usize {
+        self.edit
+            .as_ref()
+            .map_or(0, |e| e.settings.drawing.dxfs.len())
+    }
+
     fn default_project_path(&self) -> PathBuf {
         if let Some(path) = &self.job_path {
             return path.with_extension(PROJECT_EXTENSION);
@@ -1190,6 +1267,7 @@ impl eframe::App for ChiploadApp {
         self.about(&ctx);
         self.shortcuts_window(&ctx);
         self.file_drops(&ctx);
+        self.next_drop();
         self.library_windows_ui(&ctx);
         self.image_window(&ctx);
         self.sync_pictures(&ctx);
