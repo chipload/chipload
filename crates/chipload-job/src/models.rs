@@ -1289,6 +1289,18 @@ pub struct PocketOp {
     /// Dogbones or T-bones in the wall's corners (docs/specs/dogbones.md). Missing: none.
     #[serde(default)]
     pub corners: Option<Corners>,
+    /// Clear only what a larger tool leaves (docs/specs/rest-machining.md). Missing: the
+    /// whole pocket.
+    #[serde(default)]
+    pub rest: Option<Rest>,
+}
+
+/// Rest machining (docs/specs/rest-machining.md): the pocket clears only the material a
+/// disk of the larger tool `after_tool` (a project tool id) can't reach in its shapes.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Rest {
+    pub after_tool: i64,
 }
 
 /// A V-bit follows the centre line of closed shapes, as deep as makes the cut exactly as wide

@@ -5,8 +5,7 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Rest machining**: spec drafted 2026-10-13 (docs/specs/rest-machining.md), waiting for
-  review of its decisions.
+(nothing)
 
 ## State to remember (2026-10-12)
 
@@ -64,7 +63,8 @@ it's built (see `CLAUDE.md`).
 - **Lean plan** (approved 2026-10-13, ADR 0017), in this order, each with a spec first:
   1. Operation presets and layer rules: paused 2026-10-13 by the user, spec drafted
      (docs/specs/presets.md, decisions not reviewed).
-  2. Rest machining (in progress).
+  2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md). Later: rest
+     profiles if missed; dogbones on a rest pocket.
   3. Scripting: a JSON Schema for the project file, JSON output from every CLI command,
      batch runs.
   4. Feeds and speeds per material in the library, with a chip-load warning.
@@ -86,6 +86,15 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Rest machining** (2026-10-13, docs/specs/rest-machining.md): a pocket can rest after a
+  larger project tool (`rest: {after_tool}`, an optional field, no schema bump). It then
+  clears only what that tool's size leaves (rounded corners, slots and gaps it doesn't fit
+  in), each leftover grown by the small tool's diameter and pocketed with rings. Pieces too
+  small for the small tool too are skipped with a note. Problems: a missing, non-endmill or
+  not-larger rest tool, rest with dogbones. Warning: no earlier pocket cuts the same shapes
+  with that tool as deep. `chipload op rest`; GUI "Rest after" in the pocket's Clearing
+  section; setup sheet. New goldens `v18_rest` (G-code, lines, sheet); existing goldens
+  unchanged.
 - **Playback slider** (2026-10-13, docs/specs/playback.md): a slider by time under the
   canvas over the last program: moves done drawn as today, the rest faint, the tool (its
   size; a cone for V-bits and drills in 3D) at the current point, marks at operations and

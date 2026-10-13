@@ -1092,3 +1092,78 @@ fn removed_pocket_strategies_load_but_are_refused() {
         );
     }
 }
+
+#[test]
+fn op_rest_sets_and_removes_rest_machining() {
+    // docs/specs/rest-machining.md §6.
+    let dir = temp_dir("op-rest");
+    let project = dir.join("rest.chipload");
+    std::fs::copy(corpus("jobs/v18/rest.chipload"), &project).unwrap();
+    let out_path = dir.join("rest.nc");
+    let plan = |project: &Path| text(&chipload(&["plan", path(project)]).stdout);
+    let rested = plan(&project);
+    assert!(rested.contains("Operation 2 (Rest): 49 s"), "{rested}");
+
+    let out = chipload(&["op", "rest", path(&project), "--op", "2", "--none"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Operation 2 now clears the whole pocket."));
+    let whole = plan(&project);
+    assert!(!whole.contains("Operation 2 (Rest): 49 s"), "{whole}");
+
+    let out = chipload(&[
+        "op",
+        "rest",
+        path(&project),
+        "--op",
+        "2",
+        "--after-tool",
+        "1",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Operation 2 now rest machines after tool 1."));
+    assert_eq!(plan(&project), rested);
+    let out = chipload(&["run", path(&project), "-o", path(&out_path)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+
+    // The larger tool is checked with the job's rules.
+    let out = chipload(&[
+        "op",
+        "rest",
+        path(&project),
+        "--op",
+        "1",
+        "--after-tool",
+        "2",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["plan", path(&project)]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains(
+            "rest after tool 2 (4 mm) needs a tool larger than this \
+             pocket's (12 mm)"
+        ),
+        "{}",
+        text(&out.stderr)
+    );
+    for (args, message) in [
+        (
+            vec!["--op", "2", "--after-tool", "7"],
+            "the project has no tool 7",
+        ),
+        (
+            vec!["--op", "3", "--after-tool", "1"],
+            "there is no operation 3; the project has 2",
+        ),
+    ] {
+        let mut all = vec!["op", "rest", path(&project)];
+        all.extend_from_slice(&args);
+        let out = chipload(&all);
+        assert_eq!(out.status.code(), Some(1), "{args:?}");
+        assert!(text(&out.stderr).contains(message), "{}", text(&out.stderr));
+    }
+    // One of --after-tool and --none.
+    let out = chipload(&["op", "rest", path(&project), "--op", "2"]);
+    assert_eq!(out.status.code(), Some(2));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

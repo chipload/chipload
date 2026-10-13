@@ -15,7 +15,7 @@ use chipload_core::tolerances::{
 
 use crate::ToolpathError;
 use crate::offset::flatten;
-use crate::pocket::{Area, ccw, cw, encloses, first_point, geometry, guarded};
+use crate::pocket::{Area, ccw, cw, encloses, first_point, geometry, guarded, offset_loops};
 
 /// The gap left between the opening and the walls, so booleans never work on coincident
 /// edges. Slivers thinner than this are not shown (spec section 3).
@@ -121,6 +121,50 @@ pub fn unreachable_inside(
         }
     }
     Ok(finish(pieces))
+}
+
+/// Rest machining (docs/specs/rest-machining.md §2): the material inside `region` a tool
+/// whose centre can go anywhere in `level0` (the region shrunk by its offset) leaves, as
+/// areas. The opening keeps the wall gap, as for the display.
+pub fn left_by(region: &Area, level0: &[Area], radius: f64) -> Result<Vec<Area>, ToolpathError> {
+    let reached = reach(level0, radius)?;
+    let mut pieces = vec![region.clone()];
+    for area in &reached {
+        pieces = minus_area(pieces, area)?;
+    }
+    keep_visible(pieces)
+}
+
+/// The areas a rest pocket clears (docs/specs/rest-machining.md §3): `region` within
+/// `grow` (a tool diameter) of the material `left` in it, plus the wall gap. Grown together, so pieces that come near each
+/// other become one; a hole the offset library drops only adds air to cut. Every area is
+/// checked to lie inside `region`.
+pub fn rest_areas(region: &Area, left: &[Area], grow: f64) -> Result<Vec<Area>, ToolpathError> {
+    if left.is_empty() {
+        return Ok(Vec::new());
+    }
+    let loops = left
+        .iter()
+        .flat_map(|a| std::iter::once(ccw(a.outer.clone())).chain(a.holes.iter().cloned().map(cw)));
+    let grown = offset_loops(loops, -(grow + WALL_GAP_MM))?;
+    let mut areas = Vec::new();
+    for piece in &grown {
+        areas.extend(subtract_holes(
+            intersection(piece, &ccw(region.outer.clone()))?,
+            &region.holes,
+        )?);
+    }
+    for area in &areas {
+        let outside = flatten(&area.outer)
+            .into_iter()
+            .any(|p| region.distance(p) > OUTSIDE_LIMIT_MM);
+        if outside {
+            return Err(geometry(
+                "the rest machining area lies outside the pocket".into(),
+            ));
+        }
+    }
+    Ok(areas)
 }
 
 /// Material outside the closed `contour` that no tool disk of `radius` beside it reaches:

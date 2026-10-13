@@ -29,7 +29,9 @@ use crate::cancel::{self, Cancel};
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
-use crate::left::{LeftKind, LeftPiece, cleared, reach, sort_pieces, unreachable_inside};
+use crate::left::{
+    LeftKind, LeftPiece, cleared, left_by, reach, rest_areas, sort_pieces, unreachable_inside,
+};
 use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
 use crate::profile::cut_clockwise;
@@ -179,47 +181,56 @@ impl Area {
     /// Negative `d` grows it.
     pub(crate) fn shrunk(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
         let plines = std::iter::once(self.outer.clone()).chain(self.holes.iter().cloned());
-        let shape = Shape::from_plines(plines);
-        let offset = guarded("Pocket offset", || {
-            shape.parallel_offset(d, &ShapeOffsetOptions::new())
-        })?;
-        let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
-        let mut areas: Vec<Area> = offset
-            .ccw_plines
-            .into_iter()
-            .map(|p| p.polyline)
-            .filter(keep)
-            .map(|outer| Area {
-                outer,
-                holes: Vec::new(),
-            })
-            .collect();
-        for hole in offset
-            .cw_plines
-            .into_iter()
-            .map(|p| p.polyline)
-            .filter(keep)
-        {
-            let inside = first_point(&hole);
-            let parent = areas
-                .iter_mut()
-                .filter(|a| encloses(&a.outer, inside))
-                .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
-            match parent {
-                Some(area) => area.holes.push(hole),
-                None => {
-                    return Err(geometry(
-                        "pocket offset produced an island outside every area".into(),
-                    ));
-                }
+        offset_loops(plines, d)
+    }
+}
+
+/// Outer loops (counter-clockwise) and holes (clockwise) offset as one shape by `d`
+/// (positive shrinks, negative grows), as areas sorted by (y, x).
+pub(crate) fn offset_loops(
+    plines: impl Iterator<Item = Polyline<f64>>,
+    d: f64,
+) -> Result<Vec<Area>, ToolpathError> {
+    let shape = Shape::from_plines(plines);
+    let offset = guarded("Pocket offset", || {
+        shape.parallel_offset(d, &ShapeOffsetOptions::new())
+    })?;
+    let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
+    let mut areas: Vec<Area> = offset
+        .ccw_plines
+        .into_iter()
+        .map(|p| p.polyline)
+        .filter(keep)
+        .map(|outer| Area {
+            outer,
+            holes: Vec::new(),
+        })
+        .collect();
+    for hole in offset
+        .cw_plines
+        .into_iter()
+        .map(|p| p.polyline)
+        .filter(keep)
+    {
+        let inside = first_point(&hole);
+        let parent = areas
+            .iter_mut()
+            .filter(|a| encloses(&a.outer, inside))
+            .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
+        match parent {
+            Some(area) => area.holes.push(hole),
+            None => {
+                return Err(geometry(
+                    "pocket offset produced an island outside every area".into(),
+                ));
             }
         }
-        areas.sort_by(|a, b| {
-            let (ka, kb) = (a.sort_key(), b.sort_key());
-            ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
-        });
-        Ok(areas)
     }
+    areas.sort_by(|a, b| {
+        let (ka, kb) = (a.sort_key(), b.sort_key());
+        ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
+    });
+    Ok(areas)
 }
 
 impl Area {
@@ -1307,6 +1318,9 @@ pub struct Choices<'a> {
     pub round_corners: bool,
     /// Stop with [`ToolpathError::Cancelled`] once set (docs/specs/background-generation.md).
     pub cancel: Option<&'a Cancel>,
+    /// Rest machining: the radius of the larger tool whose leftovers are all this pocket
+    /// clears (docs/specs/rest-machining.md).
+    pub rest: Option<f64>,
 }
 
 /// One piece's paths before its links are chosen and it is verified.
@@ -1342,6 +1356,7 @@ pub fn plan_pocket_starting(
         helix,
         round_corners,
         cancel,
+        rest,
     } = choices;
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
@@ -1368,6 +1383,14 @@ pub fn plan_pocket_starting(
     let mut notes = Vec::new();
     let mut left = Vec::new();
     let mut arcs = ArcTable::default();
+    // Rest machining: only the larger tool's leftovers are cleared; kept for the display.
+    let mut rest_left: Option<Vec<Area>> = None;
+    if let Some(large) = rest {
+        let found = rest_pieces(&remaining, large, tool_radius, clearance, offset)?;
+        remaining = found.pieces;
+        notes.extend(found.notes);
+        rest_left = Some(found.left);
+    }
     // Every region with where the tool centre can go in it, for the material left.
     let mut reachable: Vec<(Area, Vec<Area>)> = Vec::new();
     let mut position = start;
@@ -1537,8 +1560,9 @@ pub fn plan_pocket_starting(
         });
     }
     // Display only: any failure, even a panic in the geometry library, becomes a note.
-    let unreachable = guarded("Material left", || {
-        unreachable_in_pockets(&reachable, tool_radius, clearance)
+    let unreachable = guarded("Material left", || match &rest_left {
+        Some(material) => unreachable_after_rest(material, &reachable, tool_radius),
+        None => unreachable_in_pockets(&reachable, tool_radius, clearance),
     })
     .and_then(|result| result);
     match unreachable {
@@ -1726,6 +1750,97 @@ fn unreachable_in_pockets(
         for target in cleared(region, clearance)? {
             pieces.extend(unreachable_inside(&target, &reached)?);
         }
+    }
+    Ok(pieces)
+}
+
+/// What a rest pocket clears (docs/specs/rest-machining.md §3).
+struct RestPieces {
+    /// The areas to pocket, each with its region's contours.
+    pieces: Vec<PocketArea>,
+    /// The larger tool's leftovers in every region.
+    left: Vec<Area>,
+    notes: Vec<String>,
+}
+
+/// The areas a rest pocket clears in each region: within a diameter of what a tool of
+/// radius `large` leaves. An area this pocket's tool fits nowhere in is skipped, with a
+/// note.
+fn rest_pieces(
+    regions: &[PocketArea],
+    large: f64,
+    tool_radius: f64,
+    clearance: f64,
+    offset: f64,
+) -> Result<RestPieces, ToolpathError> {
+    let mut found = RestPieces {
+        pieces: Vec::new(),
+        left: Vec::new(),
+        notes: Vec::new(),
+    };
+    // (width, height) of the leftovers too small for this tool too.
+    let mut skipped: Vec<(f64, f64)> = Vec::new();
+    for region in regions {
+        let level0 = region.area.shrunk(large - clearance)?;
+        let mut material = Vec::new();
+        for target in cleared(&region.area, clearance)? {
+            material.extend(left_by(&target, &level0, large)?);
+        }
+        for area in rest_areas(&region.area, &material, 2.0 * tool_radius)? {
+            if area.shrunk(offset)?.is_empty() {
+                skipped.extend(
+                    material
+                        .iter()
+                        .filter(|m| area.distance(first_point(&m.outer)) <= ARC_APPROX_TOL_MM)
+                        .filter_map(|m| m.outer.extents())
+                        .map(|e| (e.max_x - e.min_x, e.max_y - e.min_y)),
+                );
+                continue;
+            }
+            found.pieces.push(PocketArea {
+                area,
+                contour_ids: region.contour_ids.clone(),
+            });
+        }
+        found.left.extend(material);
+    }
+    if found.left.is_empty() {
+        found.notes.push(
+            "the larger tool reaches the whole pocket; nothing is left to rest machine".into(),
+        );
+    }
+    if let Some(&(w, h)) = skipped
+        .iter()
+        .max_by(|a, b| (a.0 * a.1).total_cmp(&(b.0 * b.1)))
+    {
+        found.notes.push(format!(
+            "rest machining: material in {} {} is too small for this tool too (largest about \
+             {w:.2} × {h:.2} mm)",
+            skipped.len(),
+            if skipped.len() == 1 {
+                "place"
+            } else {
+                "places"
+            }
+        ));
+    }
+    Ok(found)
+}
+
+/// Material left after a rest pocket: the larger tool's leftovers that this one doesn't
+/// reach either.
+fn unreachable_after_rest(
+    material: &[Area],
+    regions: &[(Area, Vec<Area>)],
+    radius: f64,
+) -> Result<Vec<LeftPiece>, ToolpathError> {
+    let mut reached = Vec::new();
+    for (_, level0) in regions {
+        reached.extend(reach(level0, radius)?);
+    }
+    let mut pieces = Vec::new();
+    for area in material {
+        pieces.extend(unreachable_inside(area, &reached)?);
     }
     Ok(pieces)
 }

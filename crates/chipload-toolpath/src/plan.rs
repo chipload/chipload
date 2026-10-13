@@ -10,7 +10,7 @@ use chipload_job::{
     PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
@@ -385,6 +385,23 @@ fn plan_pocket_op(
     starts: &[Point],
 ) -> Result<Planned, ToolpathError> {
     let label = ctx.label;
+    // Checked before planning (check_job); never fall back to the whole pocket.
+    let rest = match op.rest {
+        Some(rest) => Some(
+            ctx.job
+                .tools
+                .iter()
+                .find(|t| t.id == rest.after_tool)
+                .map(|t| t.diameter / 2.0)
+                .ok_or_else(|| {
+                    job_error(format!(
+                        "{label}: rest after tool {}, which the project doesn't have",
+                        rest.after_tool
+                    ))
+                })?,
+        ),
+        None => None,
+    };
     let plan = plan_pocket_starting(
         &selection.contours,
         ctx.tool.diameter / 2.0,
@@ -404,6 +421,7 @@ fn plan_pocket_op(
             },
             round_corners: op.round_corners,
             cancel: Some(ctx.cancel),
+            rest,
         },
     )
     .map_err(|err| err.with_context(label))?;
@@ -1471,6 +1489,15 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                 ),
             ));
         }
+        if let Operation::Pocket(PocketOp {
+            rest: Some(rest), ..
+        }) = op
+        {
+            match rest_check(job, index, rest.after_tool, tool, &label) {
+                Ok(more) => notes.extend(more),
+                Err(text) => problems.push(labelled(at("rest"), &label, text)),
+            }
+        }
         if let Some(max_feed) = job.machine.max_feed {
             for (name, value) in [("feed", feed), ("plunge_feed", plunge_feed)] {
                 if value > max_feed {
@@ -1582,6 +1609,60 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         }
     }
     (problems, notes)
+}
+
+/// Rest machining's rules (docs/specs/rest-machining.md §5) for the pocket at `index`,
+/// which cuts with `tool`: a problem's text, or the warnings.
+fn rest_check(
+    job: &Job,
+    index: usize,
+    after_tool: i64,
+    tool: &Tool,
+    label: &str,
+) -> Result<Vec<String>, String> {
+    let Some(Operation::Pocket(pocket)) = job.operations.get(index) else {
+        return Ok(Vec::new());
+    };
+    let Some(large) = job.tools.iter().find(|t| t.id == after_tool) else {
+        return Err(format!(
+            "{label}: rest after tool {after_tool}, which the project doesn't have"
+        ));
+    };
+    if large.kind != ToolType::Endmill {
+        return Err(format!(
+            "{label}: rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
+            type_name(large.kind)
+        ));
+    }
+    if large.diameter <= tool.diameter + REST_TOL_MM {
+        return Err(format!(
+            "{label}: rest after tool {after_tool} ({} mm) needs a tool larger than this \
+             pocket's ({} mm)",
+            trim(large.diameter),
+            trim(tool.diameter)
+        ));
+    }
+    if pocket.corners.is_some() {
+        return Err(format!(
+            "{label}: dogbones and rest machining can't be combined yet; dogbone the large \
+             tool's pocket"
+        ));
+    }
+    let earlier = job.operations[..index].iter().any(|op| {
+        matches!(op, Operation::Pocket(p)
+            if p.enabled
+                && p.tool == after_tool
+                && p.select == pocket.select
+                && p.end_depth >= pocket.end_depth - DEPTH_TOL_MM)
+    });
+    if earlier {
+        Ok(Vec::new())
+    } else {
+        Ok(vec![format!(
+            "{label}: rests after tool {after_tool}, but no earlier pocket cuts these shapes \
+             with it as deep; the rest of the pocket will be left uncut"
+        )])
+    }
 }
 
 /// The enabled operations in tool groups: runs of operations next to each other (disabled

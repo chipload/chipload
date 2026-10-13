@@ -1,6 +1,15 @@
 # Spec: rest machining
 
-Status: **draft 2026-10-13**, for review (decisions in §9).
+Status: **approved 2026-10-13**, all decisions as recommended (§9).
+Built 2026-10-13. As built:
+- §3: the rest area is R ∩ (U grown by D plus the wall gap). The leftovers are grown
+  together in one shape offset, so leftovers that come near each other become one piece.
+  Each piece is pocketed and verified against its own boundary. That boundary lies inside
+  R, so the check is stricter than one against R.
+- §3: the size in the "too small" note is the size of the leftovers in the skipped piece.
+- §8: the golden sample (`jobs/v18/rest.chipload`, `v18_rest`) uses drawn shapes rather
+  than a DXF: a pocket with an 8 mm slot and a round island, 12 mm then a 4 mm rest pocket.
+  The result test runs the material-removal simulation (pipeline `tests/simulate.rs`).
 
 Approved plan (2026-10-13, ADR 0017), item 2. A large tool clears a pocket fast and leaves
 material where it doesn't fit: inside corners rounded to its radius, and slots and necks

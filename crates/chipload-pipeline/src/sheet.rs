@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use chipload_core::Point;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
-    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, Side, Spindle, Tool,
+    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
     ToolChange, ToolType, WorkZero, ZZero,
 };
 use chipload_toolpath::ToolGroup;
@@ -349,7 +349,7 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
              <td>{}</td><td>{}</td><td>{}</td></tr>",
             index + 1,
             escape(&name),
-            escape(&kind_text(op)),
+            escape(&kind_text(op, &job.tools)),
             escape(&depth_text(op)),
             feeds_text,
             escape(&entry_text(op)),
@@ -378,7 +378,7 @@ fn direction_text(direction: Direction) -> &'static str {
 }
 
 /// "Profile, outside, climb, leaves 0.2 mm" (a negative clearance).
-fn kind_text(op: &Operation) -> String {
+fn kind_text(op: &Operation, tools: &[Tool]) -> String {
     let mut text = match op {
         Operation::Profile(p) => {
             let side = match p.side {
@@ -412,6 +412,16 @@ fn kind_text(op: &Operation) -> String {
         let _ = write!(text, ", cuts {} mm past the line", num(clearance));
     } else if clearance < 0.0 {
         let _ = write!(text, ", leaves {} mm", num(-clearance));
+    }
+    // docs/specs/rest-machining.md §6.
+    if let Operation::Pocket(PocketOp {
+        rest: Some(rest), ..
+    }) = op
+    {
+        let _ = write!(text, ", rest after T{}", rest.after_tool);
+        if let Some(tool) = tools.iter().find(|t| t.id == rest.after_tool) {
+            let _ = write!(text, " ({} mm)", num(tool.diameter));
+        }
     }
     // docs/specs/dogbones.md §7.
     if let Some(corners) = op.corners() {

@@ -1135,6 +1135,7 @@ proptest! {
                 helix: None,
                 round_corners: false,
                 cancel: None,
+                rest: None,
             },
         );
         let result = match result {
@@ -1153,6 +1154,49 @@ proptest! {
                 }
             }
         }
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(40))]
+
+    /// Rest machining (docs/specs/rest-machining.md §8): the rest pieces keep the small
+    /// tool's radius from every wall and island, and clear what they reach.
+    #[test]
+    fn rest_pockets_never_gouge(
+        contours in pocket_with_islands(),
+        radius in 1.0f64..3.0,
+        times in 1.5f64..4.0,
+        fraction in 0.1f64..0.5,
+    ) {
+        let refs: Vec<&Contour> = contours.iter().collect();
+        let result = chipload_toolpath::pocket::plan_pocket_starting(
+            &refs,
+            radius,
+            0.0,
+            fraction * 2.0 * radius,
+            Direction::Climb,
+            Spindle::Cw,
+            false,
+            (0.0, 0.0),
+            chipload_job::PocketStrategy::Rings {},
+            chipload_toolpath::pocket::Choices {
+                rest: Some(times * radius),
+                ..Default::default()
+            },
+        );
+        let result = match result {
+            Ok(result) => result,
+            Err(err) => {
+                prop_assert!(err.to_string().contains("does not fit"), "{}", err);
+                return Ok(());
+            }
+        };
+        assert_clear(&contours, &result, radius);
+        prop_assert!(
+            !result.notes.iter().any(|n| n.contains("uncut material")),
+            "{:?}", result.notes
+        );
     }
 }
 

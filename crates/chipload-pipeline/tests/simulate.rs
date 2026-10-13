@@ -364,3 +364,93 @@ fn playback_frame_timing() {
         started.elapsed().as_secs_f64() * 1000.0 / frames as f64
     );
 }
+
+/// A 40 × 30 mm rectangle pocketed 2 mm deep with a 12 mm endmill, then, with `rest`,
+/// rest machined with a 3 mm one (docs/specs/rest-machining.md §8).
+fn rest_job(rest: bool) -> Job {
+    let pocket = |tool: i64, rest: Value| {
+        json!({"type": "pocket", "select": {"layer": "L"}, "tool": tool,
+            "start_depth": 0, "end_depth": 2, "clearance": 0, "step_down": 2,
+            "stepover": 0.4, "direction": "climb", "feed": 1000, "plunge_feed": 300,
+            "strategy": {"type": "rings"}, "entry": {"type": "plunge"},
+            "round_corners": false, "corners": null, "rest": rest})
+    };
+    let mut operations = vec![pocket(1, Value::Null)];
+    if rest {
+        operations.push(pocket(2, json!({"after_tool": 1})));
+    }
+    parse_job(
+        migrate(json!({
+            "schema_version": CURRENT_VERSION,
+            "drawing": {"shapes": [{"id": 1, "layer": "L", "kind": "rectangle",
+                "center": [30, 20], "length": 40, "width": 30, "angle": 0}],
+                "next_shape_id": 2, "source": null},
+            "stock": {"x": 60, "y": 40, "thickness": 10, "origin": "bottom_left",
+                      "max_overcut": 1.0},
+            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "program"},
+            "tools": [
+                {"id": 1, "diameter": 12.0, "rpm": 18000, "center_cutting": true},
+                {"id": 2, "diameter": 3.0, "rpm": 18000, "center_cutting": true},
+            ],
+            "operations": operations,
+        }))
+        .unwrap(),
+        "test.json",
+    )
+    .unwrap()
+}
+
+/// Whether the cell centre (x, y) lies where a tool of radius `r` can't reach in the
+/// pocket's corners (the fillet of radius r a square corner keeps), with `slack` mm round it.
+fn in_corner_fillet(x: f64, y: f64, r: f64, slack: f64) -> bool {
+    let (x0, x1, y0, y1) = (10.0, 50.0, 5.0, 35.0);
+    [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+        .into_iter()
+        .any(|(cx, cy)| {
+            let (dx, dy) = ((x - cx).abs(), (y - cy).abs());
+            if dx >= r + slack || dy >= r + slack {
+                return false;
+            }
+            // Outside the circle the tool's edge follows in the corner.
+            (dx - r).hypot(dy - r) > r - slack
+        })
+}
+
+#[test]
+fn rest_machining_cuts_the_floor_into_the_small_tool_s_corners() {
+    let simulated = |rest: bool| {
+        let job = rest_job(rest);
+        let result = chipload_pipeline::run_job(&job).unwrap();
+        simulate(
+            &job,
+            &result.program,
+            &result.groups,
+            Some(CELL),
+            &Cancel::new(),
+        )
+        .unwrap()
+    };
+    let with = simulated(true);
+    let without = simulated(false);
+    let mut standing_before = 0;
+    for j in 0..with.rows {
+        for i in 0..with.columns {
+            let x = with.origin.0 + (i as f64 + 0.5) * CELL;
+            let y = with.origin.1 + (j as f64 + 0.5) * CELL;
+            if !(10.0..50.0).contains(&x) || !(5.0..35.0).contains(&y) {
+                continue;
+            }
+            if in_corner_fillet(x, y, 1.5, 2.0 * CELL) {
+                continue;
+            }
+            assert_eq!(with.height(i, j), -2.0, "({x:.2}, {y:.2}) is not cut");
+            if without.height(i, j) > -2.0 {
+                standing_before += 1;
+                assert!(in_corner_fillet(x, y, 6.0, 2.0 * CELL), "({x:.2}, {y:.2})");
+            }
+        }
+    }
+    // The 12 mm tool alone leaves its corners: 4 · r²(1 − π/4) ≈ 30.9 mm², less the
+    // 3 mm tool's, in cells of 0.01 mm².
+    assert!(standing_before > 2500, "{standing_before} cells");
+}

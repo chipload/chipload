@@ -10,7 +10,7 @@ use chipload_job::library::Cutting;
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_job::{
-    Finish, HoleMethod, HolesOp, Job, ProfileOp, STRAIGHT_FLANK_RAD, Skin, ToolChange,
+    Finish, HoleMethod, HolesOp, Job, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
@@ -433,9 +433,13 @@ pub(super) fn op_form(
                 corner_rows(ui, index, &mut p.corners, true);
             });
             let strategy = p.strategy.removed_name().unwrap_or("rings");
-            let clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
+            let mut clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
+            if let Some(rest) = p.rest {
+                clearing += &format!(", rest after T{}", rest.after_tool);
+            }
             section(ui, "op-clearing", "Clearing", &clearing, |ui| {
                 strategy_rows(ui, &mut p.strategy);
+                rest_row(ui, index, &mut p.rest, choice.tools, op_tool);
                 ui.label("Stepover").on_hover_text(
                     "How far each ring moves on, as a fraction of the tool diameter",
                 );
@@ -725,6 +729,54 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
         }
         ui.end_row();
     }
+}
+
+/// Rest machining (docs/specs/rest-machining.md §6): none, or one of the project's endmills
+/// larger than the pocket's tool.
+fn rest_row(
+    ui: &mut egui::Ui,
+    index: usize,
+    rest: &mut Option<Rest>,
+    tools: &[Tool],
+    tool: Option<&Tool>,
+) {
+    ui.label("Rest after").on_hover_text(
+        "Clear only what a larger tool leaves in these shapes: the corners it leaves round \
+         and the slots it doesn't fit in. Cut the pocket with that tool first",
+    );
+    let diameter = tool.map_or(0.0, |t| t.diameter);
+    let name = |t: &Tool| format!("T{} · {} mm endmill", t.id, len(t.diameter));
+    let selected = match rest {
+        None => "none".to_string(),
+        Some(r) => tools
+            .iter()
+            .find(|t| t.id == r.after_tool)
+            .map_or(format!("T{} (not in the project)", r.after_tool), name),
+    };
+    let response = ComboBox::from_id_salt(("rest", index))
+        .selected_text(selected)
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(rest.is_none(), "none").clicked() {
+                *rest = None;
+            }
+            for t in rest_choices(tools, diameter) {
+                let chosen = rest.is_some_and(|r| r.after_tool == t.id);
+                if ui.selectable_label(chosen, name(t)).clicked() {
+                    *rest = Some(Rest { after_tool: t.id });
+                }
+            }
+        })
+        .response;
+    flag(response, ui, "rest");
+    ui.end_row();
+}
+
+/// The tools a pocket cutting with a tool of `diameter` can rest machine after: the
+/// project's endmills larger than it.
+fn rest_choices(tools: &[Tool], diameter: f64) -> impl Iterator<Item = &Tool> {
+    tools
+        .iter()
+        .filter(move |t| t.kind == ToolType::Endmill && t.diameter > diameter)
 }
 
 /// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7). `allowed`: false
@@ -1789,6 +1841,33 @@ fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rest_offers_only_larger_endmills() {
+        // docs/specs/rest-machining.md §6.
+        let tool = |id: i64, kind: ToolType, diameter: f64| Tool {
+            id,
+            name: None,
+            kind,
+            diameter,
+            flutes: None,
+            center_cutting: None,
+            rpm: None,
+            angle: None,
+            tip_diameter: None,
+        };
+        let tools = [
+            tool(1, ToolType::Endmill, 12.0),
+            tool(2, ToolType::Endmill, 3.0),
+            tool(3, ToolType::Drill, 8.0),
+            tool(4, ToolType::Vbit, 12.7),
+            tool(5, ToolType::Endmill, 6.0),
+        ];
+        let ids = |d: f64| rest_choices(&tools, d).map(|t| t.id).collect::<Vec<_>>();
+        assert_eq!(ids(3.0), [1, 5]);
+        assert_eq!(ids(6.0), [1]);
+        assert!(ids(12.0).is_empty());
+    }
 
     #[test]
     fn summaries_are_short() {

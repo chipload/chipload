@@ -646,9 +646,17 @@ fn op_card(
                     });
                     let tool = entry.op.tool();
                     let time = time.map_or(String::new(), |t| format!("  ·  {t}"));
-                    let mut detail =
-                        RichText::new(format!("T{tool}  ·  {summary}  ·  {start}–{end} mm{time}"))
-                            .small();
+                    // docs/specs/rest-machining.md §6.
+                    let rest = match &entry.op {
+                        Operation::Pocket(p) => p
+                            .rest
+                            .map_or(String::new(), |r| format!(" rest after T{}", r.after_tool)),
+                        _ => String::new(),
+                    };
+                    let mut detail = RichText::new(format!(
+                        "T{tool}{rest}  ·  {summary}  ·  {start}–{end} mm{time}"
+                    ))
+                    .small();
                     detail = if selected {
                         detail.color(text_color)
                     } else {

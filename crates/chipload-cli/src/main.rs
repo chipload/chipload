@@ -31,8 +31,8 @@ use chipload_pipeline::report::{
 use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, set_op_tool,
-    update_drawing, write_atomically, write_gcode_files,
+    PipelineError, RunResult, empty_project, load_drawing, new_project, run_job, set_op_rest,
+    set_op_tool, update_drawing, write_atomically, write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -322,6 +322,23 @@ enum OpAction {
         /// The tool's id in the project.
         #[arg(long)]
         tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md).
+    Rest {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The pocket, 1-based as listed.
+        #[arg(long)]
+        op: usize,
+        /// The larger tool's id in the project.
+        #[arg(long, conflicts_with = "none", required_unless_present = "none")]
+        after_tool: Option<i64>,
+        /// Clear the whole pocket again.
+        #[arg(long)]
+        none: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1278,6 +1295,31 @@ fn op(action: OpAction) -> ExitCode {
                 return fail(err);
             }
             println!("Operation {op} now cuts with tool {tool}.");
+            println!("Wrote {}", target.display());
+            ExitCode::SUCCESS
+        }
+        OpAction::Rest {
+            project,
+            op,
+            after_tool,
+            none: _,
+            output,
+        } => {
+            let mut job = match load(&project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            if let Err(err) = set_op_rest(&mut job, op, after_tool) {
+                return fail(err);
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return fail(err);
+            }
+            match after_tool {
+                Some(tool) => println!("Operation {op} now rest machines after tool {tool}."),
+                None => println!("Operation {op} now clears the whole pocket."),
+            }
             println!("Wrote {}", target.display());
             ExitCode::SUCCESS
         }

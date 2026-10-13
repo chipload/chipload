@@ -156,6 +156,35 @@ pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), Pipeli
     Ok(())
 }
 
+/// Make pocket `number` (1-based, as listed) rest machine after tool `after` (a project
+/// tool), or a whole pocket again with None (docs/specs/rest-machining.md §6). Whether the
+/// tool is larger is checked with the job's other rules, so the problem shows in the GUI too.
+pub fn set_op_rest(job: &mut Job, number: usize, after: Option<i64>) -> Result<(), PipelineError> {
+    if let Some(tool) = after
+        && !job.tools.iter().any(|t| t.id == tool)
+    {
+        return Err(PipelineError::Job(format!(
+            "the project has no tool {tool}; copy one in from your library with `tool use`"
+        )));
+    }
+    let count = job.operations.len();
+    let op = number
+        .checked_sub(1)
+        .and_then(|i| job.operations.get_mut(i))
+        .ok_or_else(|| {
+            PipelineError::Job(format!(
+                "there is no operation {number}; the project has {count}"
+            ))
+        })?;
+    let Operation::Pocket(pocket) = op else {
+        return Err(PipelineError::Job(format!(
+            "operation {number} is not a pocket; only pockets rest machine"
+        )));
+    };
+    pocket.rest = after.map(|after_tool| chipload_job::Rest { after_tool });
+    Ok(())
+}
+
 /// Write every file of a run, each atomically. Returns the paths written.
 pub fn write_gcode_files(output: &Path, files: &[GcodeFile]) -> std::io::Result<Vec<PathBuf>> {
     let mut written = Vec::new();

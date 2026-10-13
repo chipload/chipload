@@ -1748,6 +1748,28 @@ fn a_project_with_a_removed_strategy_opens_and_is_switched_to_rings() {
     assert!(app.generate_and_wait(), "{:?}", app.report);
 }
 
+#[test]
+fn a_rest_pocket_generates_and_a_smaller_rest_tool_is_flagged_on_its_field() {
+    // docs/specs/rest-machining.md §5, §6.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/rest.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let edit = app.edit.as_mut().unwrap();
+    let Operation::Pocket(p) = &mut edit.ops[0].op else {
+        panic!("a pocket");
+    };
+    p.rest = Some(chipload_job::Rest { after_tool: 2 });
+    let job = edit.to_job().unwrap();
+    let problems = chipload_pipeline::job_problems(&job);
+    assert!(
+        problems
+            .iter()
+            .any(|p| p.path == "operations.0.rest" && p.short.contains("needs a tool larger")),
+        "{problems:?}"
+    );
+    assert!(!app.generate_and_wait());
+}
+
 /// Run the keyboard shortcuts for one frame with `key` pressed.
 fn press(app: &mut ChiploadApp, key: egui::Key) {
     press_with(app, egui::Modifiers::NONE, key);

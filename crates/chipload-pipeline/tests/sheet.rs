@@ -27,7 +27,7 @@ fn info(project: &str) -> SheetInfo {
 }
 
 /// (golden name, frozen project, G-code output as given to `run -o`).
-const GOLDEN: [(&str, &str, &str); 7] = [
+const GOLDEN: [(&str, &str, &str); 8] = [
     // Two files, one per tool.
     ("v11_two_tools", "jobs/v11/two_tools.chipload", "part.nc"),
     // The same in one file with M6.
@@ -58,6 +58,8 @@ const GOLDEN: [(&str, &str, &str); 7] = [
     ("v18_holes", "jobs/v18/holes.chipload", "part.nc"),
     // Dogbones and T-bones in the kind column.
     ("v18_dogbones", "jobs/v18/dogbones.chipload", "part.nc"),
+    // A rest pocket after a larger tool (docs/specs/rest-machining.md §6).
+    ("v18_rest", "jobs/v18/rest.chipload", "part.nc"),
 ];
 
 #[test]
