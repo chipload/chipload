@@ -32,8 +32,11 @@ apt-get install -y -qq curl ca-certificates build-essential pkg-config file \\
 curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none >/dev/null
 . "\$HOME/.cargo/env"
 cd /src
-if ! cargo test --workspace --locked --no-fail-fast > /out/tests.log 2>&1; then
-    grep -E "FAILED|panicked" /out/tests.log; echo "TESTS FAILED"; exit 1
+if ! packaging/test-release.sh > /out/tests.log 2>&1; then
+    grep -E "FAILED|panicked|minimal failing input" /out/tests.log
+    # A failing property test saved its case: keep it, to commit with the fix.
+    find crates -name '*.proptest-regressions' -newer Cargo.toml -exec cp --parents {} /out/ \\;
+    echo "TESTS FAILED"; exit 1
 fi
 cargo build --release --locked -p chipload-gui -p chipload-cli
 REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist

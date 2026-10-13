@@ -262,7 +262,16 @@ impl Area {
         }
         for hole in &self.holes {
             let inside = ccw(hole.clone());
-            for loop_ in closed_loops(guarded("Pocket offset", || inside.parallel_offset(d))?)? {
+            let raw = guarded("Pocket offset", || inside.parallel_offset(d))?;
+            let loops = match closed_loops(raw) {
+                Ok(loops) => loops,
+                // A hole that touches itself can come back as open scraps (a 14-vertex
+                // piece with its ends 3.4 mm apart, found by the material-left property
+                // test, 2026-10-13). Shrinking it as an area of its own goes through the
+                // shape offset, which handles that; one loop shrunk makes no holes.
+                Err(_) => shrunk_loop(&inside, d)?,
+            };
+            for loop_ in loops {
                 if keep(&loop_) {
                     holes.push(cw(loop_));
                 }
@@ -296,6 +305,21 @@ impl Area {
         });
         Ok(areas)
     }
+}
+
+/// The counter-clockwise loop `outline` shrunk by `d`, through the shape offset: its outer
+/// loops. A single loop shrunk has no holes; one that does is an error.
+fn shrunk_loop(outline: &Polyline<f64>, d: f64) -> Result<Vec<Polyline<f64>>, ToolpathError> {
+    let mut loops = Vec::new();
+    for area in Area::of(outline.clone()).shrunk(d)? {
+        if !area.holes.is_empty() {
+            return Err(geometry(
+                "pocket offset made a hole while shrinking a single loop".into(),
+            ));
+        }
+        loops.push(area.outer);
+    }
+    Ok(loops)
 }
 
 /// The loops of a closed loop's offset, all closed. cavalier_contours can return a loop

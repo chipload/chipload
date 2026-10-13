@@ -494,7 +494,7 @@ fn holes_go_nearest_first_and_every_copy_gets_its_own() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(64))]
+    #![proptest_config(common::proptest_config(64))]
 
     /// Every bore move stays in its hole, on the helix circle while cutting, never below
     /// the end depth.

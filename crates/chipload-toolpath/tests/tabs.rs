@@ -239,7 +239,7 @@ fn convex_ring() -> impl Strategy<Value = Vec<Point>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(150))]
+    #![proptest_config(common::proptest_config(150))]
 
     #[test]
     fn tabs_never_overlap_cover_the_start_or_lose_material(

@@ -417,7 +417,7 @@ fn star(points: usize, outer: f64, inner: f64, turn: f64) -> Contour {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(24))]
+    #![proptest_config(common::proptest_config(24))]
 
     #[test]
     fn stars_are_carved_without_gouging_and_completely(

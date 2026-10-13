@@ -34,6 +34,11 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked --no-fail-fast
+      - name: Property-test cases that failed (commit them with the fix)
+        if: failure()
+        shell: bash
+        run: |
+          for f in $(git ls-files -m -o -- '*.proptest-regressions'); do echo "== $f"; cat "$f"; done
       - run: cargo deny check licenses bans sources
       - name: Third-party notices are up to date
         run: |
@@ -55,3 +60,8 @@ jobs:
           key: windows-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked --no-fail-fast
+      - name: Property-test cases that failed (commit them with the fix)
+        if: failure()
+        shell: bash
+        run: |
+          for f in $(git ls-files -m -o -- '*.proptest-regressions'); do echo "== $f"; cat "$f"; done

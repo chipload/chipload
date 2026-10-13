@@ -89,7 +89,7 @@ impl Part {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(200))]
+    #![proptest_config(common::proptest_config(200))]
 
     #[test]
     fn outside_path_never_gouges(vertices in star(), radius in 0.5f64..10.0) {

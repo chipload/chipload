@@ -2,6 +2,8 @@
 //! Spiral profiles and ramped tabs (docs/specs/profile-spiral.md §10).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+mod common;
+
 use std::f64::consts::{FRAC_PI_2, TAU};
 
 use chipload_core::Point;
@@ -370,7 +372,7 @@ fn convex_ring() -> impl Strategy<Value = Vec<Point>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(120))]
+    #![proptest_config(common::proptest_config(120))]
 
     #[test]
     fn the_tool_goes_forward_stays_above_the_tabs_and_cuts_one_step_at_a_time(

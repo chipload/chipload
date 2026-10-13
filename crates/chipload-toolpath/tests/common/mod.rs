@@ -82,3 +82,17 @@ pub fn bbox(ring: &[Point]) -> (f64, f64, f64, f64) {
         |(a, b, c, d), p| (a.min(p.0), b.min(p.1), c.max(p.0), d.max(p.1)),
     )
 }
+
+/// Property-test settings: `cases` cases, and failures saved next to the test file
+/// (`pocket.rs` → `pocket.proptest-regressions`) to commit with the fix. Proptest's default
+/// looks for the crate's lib.rs or main.rs, which integration tests don't have, and then
+/// saves nothing (found 2026-10-13). Release builds also fix the seed
+/// (packaging/test-release.sh).
+pub fn proptest_config(cases: u32) -> proptest::test_runner::Config {
+    proptest::test_runner::Config {
+        failure_persistence: Some(Box::new(
+            proptest::test_runner::FileFailurePersistence::WithSource("proptest-regressions"),
+        )),
+        ..proptest::test_runner::Config::with_cases(cases)
+    }
+}

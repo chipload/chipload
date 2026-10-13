@@ -29,10 +29,12 @@ it's built (see `CLAUDE.md`).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
   history). Tag `adaptive-final` (local): main before the removal.
 - **Waiting on the user**: real-controller tests of the LinuxCNC and Mach3/4 posts.
-- **Known test flakiness**: proptests use new random seeds on every run, so a release
-  build can fail on a case never seen before (it happened for 0.11.0, 0.12.0 and while
-  preparing 0.13.0). Found and not fixed: `material_left_is_out_of_reach_and_complete`
-  failed once on a ring pocket (display only, the seed was not kept).
+- **Property tests** (fixed 2026-10-13): release builds run them with a fixed seed
+  (`packaging/test-release.sh`), so a release can't fail on an unseen case; everyday runs
+  keep drawing new cases, and failures are now saved next to each test file (they weren't:
+  proptest's default needs a lib.rs or main.rs) to commit with the fix. The
+  `material_left_is_out_of_reach_and_complete` failure was found again (seed 59245510) and
+  fixed: an island loop that touches itself came back from the offset library as open scraps.
 
 ## Next
 

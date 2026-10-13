@@ -340,7 +340,7 @@ fn vertices() -> impl Strategy<Value = Vec<(f64, f64, f64)>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(100))]
+    #![proptest_config(common::proptest_config(100))]
 
     #[test]
     fn every_cut_lies_on_the_path_and_no_traversal_goes_down_more_than_a_step(

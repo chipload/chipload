@@ -940,7 +940,7 @@ mod steps {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig::with_cases(48))]
+        #![proptest_config(proptest_config(48))]
 
         /// Placing step by step gives what placing the DXF once with the final placement
         /// gives: an update reports every shape unchanged.
@@ -962,5 +962,19 @@ mod steps {
             let imported = job.drawing.shapes.iter().filter(|s| !s.is_drawn()).count();
             prop_assert_eq!(report.unchanged.len(), imported, "{:?}", report.lines);
         }
+    }
+}
+
+/// Property-test settings: `cases` cases, and failures saved next to the test file
+/// (`pocket.rs` → `pocket.proptest-regressions`) to commit with the fix. Proptest's default
+/// looks for the crate's lib.rs or main.rs, which integration tests don't have, and then
+/// saves nothing (found 2026-10-13). Release builds also fix the seed
+/// (packaging/test-release.sh).
+fn proptest_config(cases: u32) -> proptest::test_runner::Config {
+    proptest::test_runner::Config {
+        failure_persistence: Some(Box::new(
+            proptest::test_runner::FileFailurePersistence::WithSource("proptest-regressions"),
+        )),
+        ..proptest::test_runner::Config::with_cases(cases)
     }
 }

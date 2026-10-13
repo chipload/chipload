@@ -378,7 +378,7 @@ fn star(radii: &[f64]) -> Vec<Point> {
 }
 
 proptest::proptest! {
-    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(60))]
+    #![proptest_config(common::proptest_config(60))]
 
     /// With leads and start points anywhere, every cutting move of a profile keeps the
     /// tool radius from the part (docs/specs/helix-and-leads.md §6).

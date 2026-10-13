@@ -70,7 +70,7 @@ default `msvc` toolchain), the Visual Studio Build Tools ("Desktop development w
 and Git, with a checkout on a Windows drive (e.g. `C:\code\chipload`, not over `\\wsl$`).
 From WSL, in `/mnt/c/code/chipload`:
 
-    cmd.exe /c "set PATH=%USERPROFILE%\.cargo\bin;%PATH% && git fetch --tags && git checkout v0.13.0 && cargo test --workspace --locked --no-fail-fast && cargo build --release --locked -p chipload-gui -p chipload-cli"
+    cmd.exe /c "set PATH=%USERPROFILE%\.cargo\bin;%PATH% && git fetch --tags && git checkout v0.13.0 && set PROPTEST_RNG_SEED=20261013&& cargo test --workspace --locked --no-fail-fast && cargo build --release --locked -p chipload-gui -p chipload-cli"
 
 `rust-toolchain.toml` makes rustup install the pinned Rust on the first run. Then:
 

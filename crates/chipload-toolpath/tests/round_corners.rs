@@ -208,7 +208,7 @@ fn pocket() -> impl Strategy<Value = Vec<Contour>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
+    #![proptest_config(common::proptest_config(40))]
 
     /// Rounded rings never come closer than the tool radius to a wall and leave nothing
     /// uncut that the sharp rings cut.

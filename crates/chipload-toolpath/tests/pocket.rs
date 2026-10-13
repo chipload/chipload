@@ -812,7 +812,7 @@ fn pocket_with_islands() -> impl Strategy<Value = Vec<Contour>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(60))]
+    #![proptest_config(common::proptest_config(60))]
 
     #[test]
     fn pocket_never_gouges_and_clears_everything(
@@ -840,7 +840,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(30))]
+    #![proptest_config(common::proptest_config(30))]
 
     /// Unreachable material lies in the pocket, out of the tool's reach, and everything the
     /// tool leaves (beyond noise) is shown as unreachable or missed.
@@ -1017,7 +1017,7 @@ fn clearance_must_be_less_than_the_tool_radius() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(30))]
+    #![proptest_config(common::proptest_config(30))]
 
     /// With clearance c the tool centre keeps r - c from every wall and island: the cut goes
     /// exactly c into the kept material, never further.
@@ -1046,7 +1046,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(30))]
+    #![proptest_config(common::proptest_config(30))]
 
     /// docs/specs/arc-output.md: the rings of any pocket merge into arcs of at most a half
     /// circle whose ends lie on their circle, and merging never changes where lines go.
@@ -1106,7 +1106,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
+    #![proptest_config(common::proptest_config(40))]
 
     /// Leads and moved starts (docs/specs/helix-and-leads.md parts A and B) never gouge
     /// either: every chord, leads included, keeps the tool radius from walls and islands.
@@ -1158,7 +1158,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
+    #![proptest_config(common::proptest_config(40))]
 
     /// Rest machining (docs/specs/rest-machining.md §8): the rest pieces keep the small
     /// tool's radius from every wall and island, and clear what they reach.
@@ -1201,7 +1201,7 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(40))]
+    #![proptest_config(common::proptest_config(40))]
 
     /// A helix (docs/specs/helix-and-leads.md part C), and the feed from it to the first
     /// path, keep the tool radius from every wall and island.

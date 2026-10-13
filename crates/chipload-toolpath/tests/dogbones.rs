@@ -505,7 +505,7 @@ fn without_corners_nothing_changes() {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(48))]
+    #![proptest_config(common::proptest_config(48))]
 
     /// Random rotated rectangles cut inside: four tips, each the tool radius from its corner.
     #[test]
