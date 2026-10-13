@@ -464,6 +464,15 @@ fn report(image: &Image, trace: &Traced, shapes: Vec<u64>) -> ImageReport {
             "Strokes {narrow:.2} to {wide:.2} mm wide: cut them with a follow path."
         ));
     }
+    // A closed centre line (an outline drawn by hand) is an area as well.
+    let closed = trace.paths.iter().filter(|p| p.closed).count();
+    if trace.centre_lines && closed > 0 {
+        lines.push(format!(
+            "{closed} closed {}: a profile or pocket can cut round {}, as round any outline.",
+            if closed == 1 { "line" } else { "lines" },
+            if closed == 1 { "it" } else { "them" }
+        ));
+    }
     if trace.dots > 0 {
         lines.push(format!(
             "{} {} too small for a centre line left out.",

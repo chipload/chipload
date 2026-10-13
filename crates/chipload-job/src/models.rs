@@ -2555,8 +2555,10 @@ impl Job {
                     shape.image().unwrap_or_default()
                 ));
             }
-            // Centre lines are paths to follow, not areas
-            // (docs/specs/image-arcs-centrelines.md §5).
+            // Open centre lines are paths to follow, not areas
+            // (docs/specs/image-arcs-centrelines.md §5). A closed one, such as an outline
+            // drawn by hand, is an area like any other: refused only when the picture has
+            // no closed line at all (user report 2026-10-13).
             let centre_lines = self.drawing.images.iter().find(|image| {
                 image.trace == ImageTrace::CentreLine
                     && (selector.image == Some(image.id)
@@ -2564,13 +2566,18 @@ impl Job {
                             && selector.layer.as_ref().is_some_and(|layer| {
                                 image.layer.to_lowercase() == layer.to_lowercase()
                             }))
+                    && !self
+                        .drawing
+                        .shapes
+                        .iter()
+                        .any(|s| s.image() == Some(image.id) && s.closed())
             });
             if let Some(image) = centre_lines
                 && !matches!(op, Operation::Path(_))
             {
                 problems.push(format!(
-                    "operations.{i}.select: image {} is traced as centre lines: cut them with \
-                     a follow path, or trace the image as outlines",
+                    "operations.{i}.select: image {} is traced as open centre lines: cut them \
+                     with a follow path, or trace the image as outlines",
                     image.id
                 ));
             }

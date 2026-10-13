@@ -226,23 +226,35 @@ fn a_picture_of_strokes_traces_into_centre_lines() {
 }
 
 #[test]
-fn only_a_follow_path_may_cut_centre_lines() {
-    let bytes = strokes();
+fn only_a_follow_path_may_cut_open_centre_lines() {
     let corpus =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/jobs/v18/rest.chipload");
     let project = chipload_job::load_job(&corpus).unwrap();
-    let mut new = NewImage::new("strokes.png", &bytes, 60.0);
+    // A T and an L: open strokes only.
+    let bytes = std::fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/images/open_strokes.png"),
+    )
+    .unwrap();
+    let mut new = NewImage::new("open_strokes.png", &bytes, 60.0);
     new.trace = ImageTrace::CentreLine;
     let (mut job, _) = add_image(&project, new).unwrap();
+    assert!(
+        job.drawing
+            .shapes
+            .iter()
+            .filter(|s| s.image() == Some(1))
+            .all(|s| !s.closed())
+    );
     *job.operations[0].select_mut() = Selector {
-        layer: Some("strokes".into()),
+        layer: Some("open_strokes".into()),
         ..Selector::default()
     };
     let problems = job.validate();
     assert!(
         problems
             .iter()
-            .any(|p| p.contains("image 1 is traced as centre lines") && p.contains("follow path")),
+            .any(|p| p.contains("image 1 is traced as open centre lines")
+                && p.contains("follow path")),
         "{problems:?}"
     );
     // Selecting the image itself is refused the same way.
@@ -253,8 +265,51 @@ fn only_a_follow_path_may_cut_centre_lines() {
     assert!(
         job.validate()
             .iter()
-            .any(|p| p.contains("image 1 is traced as centre lines")),
+            .any(|p| p.contains("image 1 is traced as open centre lines")),
         "{:?}",
         job.validate()
     );
+    // A picture with a closed line too (a T and an O): allowed; the O is the area.
+    let strokes = strokes();
+    let mut new = NewImage::new("strokes.png", &strokes, 60.0);
+    new.trace = ImageTrace::CentreLine;
+    let (mut job, _) = add_image(&project, new).unwrap();
+    *job.operations[0].select_mut() = Selector {
+        image: Some(1),
+        ..Selector::default()
+    };
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+}
+
+#[test]
+fn a_closed_centre_line_can_be_profiled_like_any_outline() {
+    // User report 2026-10-13: an outline drawn by hand and scanned traces as one closed
+    // centre line, and a profile round it was refused.
+    let bytes = std::fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/images/hand_outline.png"),
+    )
+    .unwrap();
+    let corpus =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/jobs/v18/rest.chipload");
+    let project = chipload_job::load_job(&corpus).unwrap();
+    let mut new = NewImage::new("hand_outline.png", &bytes, 80.0);
+    new.trace = ImageTrace::CentreLine;
+    let (mut job, _) = add_image(&project, new).unwrap();
+    let traced: Vec<_> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.image() == Some(1))
+        .collect();
+    assert_eq!(traced.len(), 1);
+    assert!(traced[0].closed());
+    // A profile outside it, alone in the project.
+    let op: chipload_job::Operation = serde_json::from_value(serde_json::json!({
+        "type": "profile", "part": 1, "select": {"image": 1}, "side": "outside",
+        "direction": "climb", "tool": job.tools[0].id, "start_depth": 0, "end_depth": 3,
+        "clearance": 0, "step_down": 3, "feed": 1000, "plunge_feed": 300}))
+    .unwrap();
+    job.operations = vec![op];
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    chipload_pipeline::run_job(&job).unwrap();
 }

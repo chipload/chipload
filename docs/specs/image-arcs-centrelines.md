@@ -140,6 +140,11 @@ Two new fields on each image:
   - **In the app:** with a centre-line layer selected, *+ Follow path* is the button to use.
   - **Hint:** a V-carve or pocket of that layer gets a problem with a hint: "image 2 is traced
     as centre lines: use a follow path".
+- **Changed 2026-10-13 (user report):** an outline drawn by hand and scanned traces as one
+  **closed** centre line, which is an area like any other. The hint is now given only when
+  every centre line of the picture is open ("image 2 is traced as open centre lines");
+  otherwise a profile, pocket or V-carve takes the closed lines and skips the open ones with
+  a note. The import report counts the closed lines.
 
 ## 6. Command line and app
 

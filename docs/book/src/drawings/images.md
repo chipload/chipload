@@ -76,8 +76,12 @@ pass at the depth you choose, as wide as the bit, whatever the pen did. Select t
   out and counted in the report.
 - **For strokes only:** a filled area's centre line is a branching skeleton. That is correct,
   but rarely what you want; a wide range in the stroke widths shows it.
-- **Only a follow path:** a profile, pocket or V-carve of a centre-line image is refused,
-  with a hint to use a follow path or trace the image as outlines.
+- **Closed lines are outlines too:** an outline drawn by hand and scanned traces as one
+  closed centre line, and a **profile** or **pocket** can cut round it like any outline. The
+  report says how many lines are closed.
+- **Open lines only for a follow path:** a profile, pocket or V-carve of a picture whose
+  centre lines are all open is refused, with a hint to use a follow path or trace the image
+  as outlines. With both kinds, the open lines are skipped, with a note.
 
 ## In the app
 
