@@ -1332,7 +1332,10 @@ fn a_follow_path_round_trips() {
     let dir = temp_dir("follow-path");
     let file = dir.join("p.chipload");
     chipload_job::save_job(&job, &file).unwrap();
-    assert_eq!(load_job(&file).unwrap(), job);
+    assert_eq!(
+        unversioned(load_job(&file).unwrap()),
+        unversioned(job.clone())
+    );
     std::fs::remove_dir_all(&dir).unwrap();
     // A side or tabs mean nothing on the line: refused as unknown fields.
     let mut data = raw("v17/follow_path.chipload");
@@ -1363,7 +1366,10 @@ fn a_holes_operation_round_trips_and_its_values_are_checked() {
     let dir = temp_dir("holes");
     let file = dir.join("h.chipload");
     chipload_job::save_job(&job, &file).unwrap();
-    assert_eq!(load_job(&file).unwrap(), job);
+    assert_eq!(
+        unversioned(load_job(&file).unwrap()),
+        unversioned(job.clone())
+    );
     std::fs::remove_dir_all(&dir).unwrap();
     // A hole has no side or entry: refused as unknown fields.
     let mut data = raw("v18/holes.chipload");
@@ -1410,7 +1416,10 @@ fn corners_round_trip_and_their_values_are_checked() {
     let dir = temp_dir("dogbones");
     let file = dir.join("d.chipload");
     chipload_job::save_job(&job, &file).unwrap();
-    assert_eq!(load_job(&file).unwrap(), job);
+    assert_eq!(
+        unversioned(load_job(&file).unwrap()),
+        unversioned(job.clone())
+    );
     std::fs::remove_dir_all(&dir).unwrap();
     // A profile without the field loads as round corners.
     let mut data = raw("v18/dogbones.chipload");
@@ -1431,4 +1440,11 @@ fn corners_round_trip_and_their_values_are_checked() {
         err.contains("operations.1.corners: a profile on the line has no inside corners"),
         "{err}"
     );
+}
+
+/// A job without `written_by`, which saving sets to this version: a frozen sample saved
+/// again differs only there.
+fn unversioned(mut job: chipload_job::Job) -> chipload_job::Job {
+    job.written_by = None;
+    job
 }

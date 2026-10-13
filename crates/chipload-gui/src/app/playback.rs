@@ -288,9 +288,8 @@ impl ChiploadApp {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
         // The legend would cover part of the canvas.
         self.legend_open = false;
-        if steps.contains(&"simulation") {
-            self.show_simulation = true;
-        }
+        // Only the shots that ask for it show the simulation (it is on at start).
+        self.show_simulation = steps.contains(&"simulation");
         if steps.contains(&"generate") || steps.contains(&"simulation") {
             self.generate_and_wait();
         }
