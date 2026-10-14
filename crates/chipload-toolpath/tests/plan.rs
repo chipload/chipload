@@ -439,13 +439,19 @@ fn copies_are_cut_operation_by_operation_in_a_serpentine() {
             assert!((got - want).abs() < 1e-9, "copy {copy}: {got} vs {want}");
         }
     }
-    // The straight-plunge reminder once per operation, not per copy.
-    let reminders = plan
+    // The straight-plunge reminder once per tool, naming both operations, not per copy.
+    let reminders: Vec<&chipload_job::Note> = plan
         .notes
         .iter()
-        .filter(|n| n.contains("plunges straight down"))
-        .count();
-    assert_eq!(reminders, 2, "{:?}", plan.notes);
+        .filter(|n| n.contains("plunge straight down"))
+        .collect();
+    assert_eq!(reminders.len(), 1, "{:?}", plan.notes);
+    assert!(
+        reminders[0].contains("operations 1 (profile) and 2 (profile)"),
+        "{}",
+        reminders[0]
+    );
+    assert_eq!(reminders[0].operation, Some(0));
 }
 
 #[test]

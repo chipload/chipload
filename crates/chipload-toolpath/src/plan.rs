@@ -1538,6 +1538,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         ));
     }
     let mut notes = tool_group_notes(job);
+    // Operations that plunge straight down with a tool not marked centre-cutting, by
+    // tool: one note per tool, after the loop.
+    let mut plunging: std::collections::BTreeMap<i64, Vec<(usize, &str)>> = Default::default();
     for (index, op) in enabled() {
         let Some(k) = tool_index(op.tool()) else {
             continue; // reported above
@@ -1696,47 +1699,104 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 ));
             }
         }
-        let tool_notes = match op {
-            Operation::Pocket(p) => pocket_tool_notes(number, tool, p.entry).map_err(|e| {
-                (
-                    at(if tool.kind == ToolType::Endmill {
+        // The tool's rules: a problem at its field, or whether the operation plunges
+        // straight down with a tool of unknown centre-cutting, and any other notes.
+        let (plunges, more): (ToolRule, Vec<String>) = match op {
+            Operation::Pocket(p) => (
+                pocket_tool_notes(tool, p.entry).map_err(|e| {
+                    let field = if tool.kind == ToolType::Endmill {
                         "entry"
                     } else {
                         "tool"
-                    }),
-                    numbered.clone(),
-                    e,
-                )
-            }),
-            Operation::Profile(p) => plunge_notes(number, "profile", tool, p.entry)
-                .map_err(|e| (at("entry"), numbered.clone(), e))
-                .and_then(|mut found| {
-                    found.extend(
-                        flank_notes(number, tool, p)
-                            .map_err(|e| (at("tabs.flank_angle"), numbered.clone(), e))?,
-                    );
-                    Ok(found)
+                    };
+                    (at(field), numbered.clone(), e)
                 }),
-            Operation::Path(p) => path_tool_notes(number, tool, p.entry)
-                .map_err(|e| (at("tool"), numbered.clone(), e)),
-            Operation::Holes(h) => {
-                holes_tool_notes(tool, h.method).map_err(|e| (at("tool"), numbered.clone(), e))
+                Vec::new(),
+            ),
+            Operation::Profile(p) => {
+                let plunges =
+                    plunge_unknown(tool, p.entry).map_err(|e| (at("entry"), numbered.clone(), e));
+                match flank_notes(number, tool, p) {
+                    Ok(found) => (plunges, found),
+                    Err(e) if plunges.is_ok() => (
+                        Err((at("tabs.flank_angle"), numbered.clone(), e)),
+                        Vec::new(),
+                    ),
+                    Err(_) => (plunges, Vec::new()),
+                }
             }
-            Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
-                let path = if tool.kind == ToolType::Vbit {
-                    format!("tools.{k}.angle")
-                } else {
-                    at("tool")
-                };
-                (path, label.clone(), e)
-            }),
+            Operation::Path(p) => (
+                path_tool_notes(tool, p.entry).map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
+            Operation::Holes(h) => (
+                holes_tool_notes(tool, h.method)
+                    .map(|()| false)
+                    .map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
+            Operation::Vcarve(_) => match vcarve_tool_notes(&label, tool) {
+                Ok(found) => (Ok(false), found),
+                Err(e) => {
+                    let path = if tool.kind == ToolType::Vbit {
+                        format!("tools.{k}.angle")
+                    } else {
+                        at("tool")
+                    };
+                    (Err((path, label.clone(), e)), Vec::new())
+                }
+            },
         };
-        match tool_notes {
-            Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
+        match plunges {
+            Ok(true) => plunging
+                .entry(tool.id)
+                .or_default()
+                .push((index, op_kind_name(op))),
+            Ok(false) => {}
             Err((path, prefix, short)) => problems.push(labelled(path, &prefix, short)),
         }
+        notes.extend(more.into_iter().map(|n| Note::at(index, n)));
+    }
+    for (tool, ops) in plunging {
+        let Some(&(first, _)) = ops.first() else {
+            continue;
+        };
+        let listed: Vec<String> = ops
+            .iter()
+            .map(|(index, what)| format!("{} ({what})", index + 1))
+            .collect();
+        let which = match listed.len() {
+            1 => format!("operation {} plunges", listed[0]),
+            n => format!(
+                "operations {} and {} plunge",
+                listed[..n - 1].join(", "),
+                listed[n - 1]
+            ),
+        };
+        notes.push(Note::at(
+            first,
+            format!(
+                "Tool {tool} isn't marked center_cutting and {which} straight down: make sure \
+                 it is a centre-cutting tool, or ramp in (entry: ramp)"
+            ),
+        ));
     }
     (problems, notes)
+}
+
+/// A tool rule's outcome: whether the operation plunges with a tool of unknown
+/// centre-cutting, or the problem's (path, label, short text).
+type ToolRule = Result<bool, (String, String, String)>;
+
+/// The kind of an operation in a note: "pocket", "profile", "follow path".
+fn op_kind_name(op: &Operation) -> &'static str {
+    match op {
+        Operation::Profile(_) => "profile",
+        Operation::Pocket(_) => "pocket",
+        Operation::Vcarve(_) => "V-carve",
+        Operation::Path(_) => "follow path",
+        Operation::Holes(_) => "holes",
+    }
 }
 
 /// Rest machining's rules (docs/specs/rest-machining.md §5) for the pocket at `index`,
@@ -1889,8 +1949,9 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, String> {
     Ok(Vec::new())
 }
 
-/// Pockets need an endmill; a straight plunge also needs it to be centre-cutting.
-fn pocket_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, String> {
+/// Pockets need an endmill; a straight plunge also needs it to be centre-cutting. Ok(true):
+/// it plunges with a tool of unknown centre-cutting.
+fn pocket_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, String> {
     if tool.kind != ToolType::Endmill {
         return Err(format!(
             "pockets need an endmill, tool {} is a {}",
@@ -1898,25 +1959,25 @@ fn pocket_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<Str
             tool.kind.name()
         ));
     }
-    plunge_notes(number, "pocket", tool, entry)
+    plunge_unknown(tool, entry)
 }
 
 /// A follow path takes an endmill (which must be centre-cutting to plunge) or a V-bit
 /// (centre-cutting by its shape); a drill can't follow a path (docs/specs/follow-path.md §5).
-fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, String> {
+fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, String> {
     match tool.kind {
         ToolType::Drill => Err(format!(
             "tool {} is a drill, which can't follow a path; use an endmill or a V-bit",
             tool.id
         )),
-        ToolType::Vbit => Ok(Vec::new()),
-        ToolType::Endmill => plunge_notes(number, "follow path", tool, entry),
+        ToolType::Vbit => Ok(false),
+        ToolType::Endmill => plunge_unknown(tool, entry),
     }
 }
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match
 /// the tool; a V-bit can't cut holes.
-fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<Vec<String>, String> {
+fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), String> {
     if tool.kind == ToolType::Vbit {
         return Err(format!(
             "tool {} is a V-bit, which can't cut holes; use a drill or an endmill",
@@ -1935,7 +1996,7 @@ fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<Vec<String>, Stri
             tool.id
         ));
     }
-    Ok(Vec::new())
+    Ok(())
 }
 
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,
@@ -1967,27 +2028,19 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>
 }
 
 /// A straight plunge needs a centre-cutting tool (docs/specs/ramp-entry.md §6): refused
-/// for a tool marked not centre-cutting, a note when it's unknown. A ramp needs neither.
-fn plunge_notes(
-    number: usize,
-    what: &str,
-    tool: &Tool,
-    entry: Entry,
-) -> Result<Vec<String>, String> {
+/// for a tool marked not centre-cutting; Ok(true) when it's unknown (one note per tool).
+/// A ramp needs neither.
+fn plunge_unknown(tool: &Tool, entry: Entry) -> Result<bool, String> {
     if entry.ramp_angle().is_some() {
-        return Ok(Vec::new());
+        return Ok(false);
     }
     match tool.center_cutting {
         Some(false) => Err(format!(
-            "tool {} is not centre-cutting and this {what} plunges straight down; ramp in \
+            "tool {} is not centre-cutting and this operation plunges straight down; ramp in \
              instead (entry: ramp) or use a centre-cutting tool",
             tool.id
         )),
-        None => Ok(vec![format!(
-            "Operation {number}: {what} plunges straight down; tool {} isn't marked \
-             center_cutting, make sure it is a centre-cutting tool",
-            tool.id
-        )]),
-        Some(true) => Ok(Vec::new()),
+        None => Ok(true),
+        Some(true) => Ok(false),
     }
 }
