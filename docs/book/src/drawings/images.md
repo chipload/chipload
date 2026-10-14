@@ -94,14 +94,14 @@ pass at the depth you choose, as wide as the bit, whatever the pen did. Select t
 **File > Import image…** picks a picture and opens its window. A project is made first if
 none is open. Without a file dialog (see [Install](../install.md)), *File > Import image from
 path…* takes the picture's path instead.
-- **Left:** the picture as black and white, with the traced outlines over it in orange,
-  updated as you change the settings.
+- **Left:** the picture as black and white, updated as you change the settings: the dark
+  parts are what is traced. With *centre lines*, the lines are drawn over it in orange.
 - **Right:** the conversion settings, and what was traced (with the threshold *auto*
   picked). The size, place and layer are not here: they are the picture's properties.
 - **Import:** puts the shapes into the project and selects the image, so **V-carve** carves
   them (or, for centre lines, **Follow** cuts them). It is one undo step.
 
-![The image window: the picture as black and white with its traced outlines, and the settings](../images/image.png)
+![The image window: the picture as black and white, and the settings](../images/image.png)
 
 **Afterwards:**
 - **Move or resize it:** click it in the [Browser](../window.md#the-browser) and change its

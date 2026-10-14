@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! File > Import image… and changing an image (docs/specs/image-trace.md §6): a window with
-//! the picture as black and white, its traced outlines over it, and the settings. The
+//! the picture as black and white (its centre lines over it), and the settings. The
 //! preview is traced in the background as the settings change; *Import* (or *Apply*) puts
 //! the shapes into the project through the pipeline.
 
@@ -114,6 +114,9 @@ impl ImageDialog {
     }
 }
 
+/// How the black parts are shown: near black, so the picture reads as it will be traced.
+const FIELD_GREY: u8 = 40;
+
 /// The black-and-white picture as a texture, scaled down to `MAX_TEXTURE_PX`.
 fn texture_of(p: &Preview) -> ColorImage {
     let bw = &p.black_white;
@@ -124,7 +127,7 @@ fn texture_of(p: &Preview) -> ColorImage {
     for row in 0..th {
         for column in 0..tw {
             let black = bw.black[(row * step).min(h - 1) * w + (column * step).min(w - 1)];
-            gray.push(if black { 0 } else { 255 });
+            gray.push(if black { FIELD_GREY } else { 255 });
         }
     }
     ColorImage::from_gray([tw, th], &gray)
@@ -525,7 +528,8 @@ fn picture_size(dialog: &ImageDialog) -> (u32, u32) {
     (dialog.picture.width, dialog.picture.height)
 }
 
-/// The black-and-white picture with the traced outlines over it.
+/// The black-and-white picture. Outlines are not drawn: they follow the black parts and
+/// would hide the detail the threshold is set by. Centre lines are, as they are the result.
 fn picture_view(ui: &mut egui::Ui, dialog: &ImageDialog) {
     let (w, h) = picture_size(dialog);
     let aspect = f64::from(h) / f64::from(w);
@@ -541,6 +545,9 @@ fn picture_view(ui: &mut egui::Ui, dialog: &ImageDialog) {
     let Some(Ok(preview)) = &dialog.preview else {
         return;
     };
+    if dialog.shown.as_ref().map(|image| image.trace) != Some(ImageTrace::CentreLine) {
+        return;
+    }
     // Loops are in mm from the picture's lower-left corner.
     let width = preview.trace.width;
     let height = width * aspect;
@@ -550,7 +557,7 @@ fn picture_view(ui: &mut egui::Ui, dialog: &ImageDialog) {
             rect.bottom() - (y / height) as f32 * rect.height(),
         )
     };
-    let stroke = Stroke::new(1.5, Color32::from_rgb(230, 110, 20));
+    let stroke = Stroke::new(1.0, Color32::from_rgb(230, 110, 20));
     for path in &preview.trace.paths {
         let mut points: Vec<Pos2> = path.points.iter().map(|&p| to_screen(p)).collect();
         if path.closed
