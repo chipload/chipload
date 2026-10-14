@@ -51,6 +51,10 @@ impl ChiploadApp {
 
     /// Right: the selected operation's fields, or the project settings.
     pub(super) fn properties_panel(&mut self, ui: &mut egui::Ui) {
+        if self.focus.is_library() {
+            self.library_properties(ui);
+            return;
+        }
         if self.edit.is_none() {
             ui.weak("No project open.");
             return;
@@ -86,6 +90,11 @@ impl ChiploadApp {
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
+            // Drawn by `library_properties` above.
+            Focus::LibraryTools
+            | Focus::LibraryTool(_)
+            | Focus::LibraryMachines
+            | Focus::LibraryMachine(_) => {}
             Focus::Op(i) => {
                 let choice = ToolChoice {
                     tools: &edit.settings.tools,
@@ -151,12 +160,7 @@ fn self_tool_cutting(
     id: i64,
 ) -> Option<chipload_job::library::Cutting> {
     let tool = tools.iter().find(|t| t.id == id)?;
-    let entry = library?.tools.find(tool.name.as_deref()?)?;
-    if entry.same_values(tool) {
-        entry.cutting
-    } else {
-        None
-    }
+    chipload_job::library::linked_cutting(&library?.tools, tool)
 }
 
 impl ChiploadApp {

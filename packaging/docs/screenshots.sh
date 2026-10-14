@@ -26,4 +26,18 @@ shot image tests/corpus/jobs/v19/image_vcarve.chipload image
 shot drawing tests/corpus/jobs/v21/two_dxfs.chipload drawing
 shot properties tests/corpus/jobs/v18/dogbones.chipload generate,select
 shot parts tests/corpus/jobs/v22/two_parts.chipload generate,part
+# The library: a settings folder of its own with two tools and a machine.
+cargo build -q --release -p chipload-cli
+library=$(mktemp -d)
+trap 'rm -rf "$settings" "$library"' EXIT
+CHIPLOAD_CONFIG_DIR="$library" target/release/chipload tool add "6 mm 2F upcut" \
+    --diameter 6 --flutes 2 --rpm 18000 > /dev/null
+CHIPLOAD_CONFIG_DIR="$library" target/release/chipload tool add "V 60" --type vbit \
+    --diameter 12.7 --angle 60 --tip 0.2 --rpm 18000 > /dev/null
+CHIPLOAD_CONFIG_DIR="$library" target/release/chipload machine add "Shapeoko" \
+    --post grbl --safe-z 10 --travel 838,838,95 > /dev/null
+echo "library.png"
+CHIPLOAD_CONFIG_DIR="$library" CHIPLOAD_SCREENSHOT_SETUP=library \
+    EFRAME_SCREENSHOT_TO="$out/library.png" target/release/chipload-gui \
+    tests/corpus/jobs/v22/two_parts.chipload > /dev/null 2>&1
 echo "Wrote $out/"

@@ -341,6 +341,17 @@ impl ChiploadApp {
         {
             self.focus = Focus::Part(id);
         }
+        // The first library tool, with the project's tool linked to it
+        // (docs/specs/library-in-browser.md).
+        if steps.contains(&"library")
+            && let Some(uid) = self.library.tools.tools.first().map(|t| t.uid.clone())
+        {
+            self.add_library_tool_uid(&uid);
+            self.show_library(user_library::LibraryKind::Tools, Some(&uid));
+            ctx.data_mut(|d| {
+                d.insert_persisted(egui::Id::new("browser-tools").with("folder-open"), true);
+            });
+        }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
         {

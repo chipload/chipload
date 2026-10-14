@@ -502,6 +502,7 @@ pub fn empty_project() -> Job {
         },
         machine: Machine {
             name: None,
+            library_uid: None,
             post: "grbl".into(),
             safe_z: DEFAULT_SAFE_Z,
             spindle: Spindle::Cw,
@@ -514,6 +515,7 @@ pub fn empty_project() -> Job {
         tools: vec![Tool {
             id: 1,
             name: None,
+            library_uid: None,
             kind: ToolType::Endmill,
             diameter: DEFAULT_TOOL_DIAMETER,
             flutes: None,

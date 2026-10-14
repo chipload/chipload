@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 18] = [
+const MIGRATIONS: [Migration; 19] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22,
+    v20_to_v21, v21_to_v22, v22_to_v23,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -373,6 +373,30 @@ fn v21_to_v22(mut data: Value) -> Result<Value, String> {
     );
     map.insert("active_part".into(), Value::Null);
     Ok(set_version(data, 22))
+}
+
+/// v23 links project tools and the machine to library entries by uid
+/// (docs/specs/library-in-browser.md §2). A named tool or machine gets the uid of its name,
+/// the same uid its library entry gets when the library is upgraded, so the link stays.
+/// Nothing that cuts reads it.
+fn v22_to_v23(mut data: Value) -> Result<Value, String> {
+    let map = data.as_object_mut().ok_or("the project is not an object")?;
+    let link = |entry: &mut Map<String, Value>| {
+        let uid = entry
+            .get("name")
+            .and_then(Value::as_str)
+            .map(crate::library::uid_for_name);
+        entry.insert("library_uid".into(), uid.map_or(Value::Null, Value::from));
+    };
+    if let Some(tools) = map.get_mut("tools").and_then(Value::as_array_mut) {
+        for tool in tools.iter_mut().filter_map(Value::as_object_mut) {
+            link(tool);
+        }
+    }
+    if let Some(machine) = map.get_mut("machine").and_then(Value::as_object_mut) {
+        link(machine);
+    }
+    Ok(set_version(data, 23))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

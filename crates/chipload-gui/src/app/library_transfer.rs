@@ -119,7 +119,7 @@ impl ChiploadApp {
 
     /// Write every entry of the library to `file`; the result shows in the window.
     pub fn export_library(&mut self, kind: LibraryKind, file: &Path) -> bool {
-        self.library_windows.error = None;
+        self.library_state.error = None;
         self.reload_library();
         let written = match kind {
             LibraryKind::Tools => export(&self.library.tools, &[])
@@ -134,11 +134,11 @@ impl ChiploadApp {
                     list_name(kind),
                     file.display()
                 );
-                self.library_windows.message = Some((kind, text));
+                self.library_state.message = Some((kind, text));
                 true
             }
             Err(err) => {
-                self.library_windows.error = Some(err.to_string());
+                self.library_state.error = Some(err.to_string());
                 false
             }
         }
@@ -146,9 +146,9 @@ impl ChiploadApp {
 
     /// Read `file` and keep it waiting with what importing it would do.
     pub fn preview_library_import(&mut self, kind: LibraryKind, file: &Path) -> bool {
-        self.library_windows.error = None;
-        self.library_windows.message = None;
-        self.library_windows.import = None;
+        self.library_state.error = None;
+        self.library_state.message = None;
+        self.library_state.import = None;
         self.reload_library();
         let read = match kind {
             LibraryKind::Tools => read_import::<ToolLibrary>(file).map(|from| {
@@ -163,7 +163,7 @@ impl ChiploadApp {
         };
         match read {
             Ok((entries, plan, lines)) => {
-                self.library_windows.import = Some(PendingImport {
+                self.library_state.import = Some(PendingImport {
                     kind,
                     file: file.to_path_buf(),
                     entries,
@@ -173,7 +173,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.library_windows.error = Some(err.to_string());
+                self.library_state.error = Some(err.to_string());
                 false
             }
         }
@@ -181,7 +181,7 @@ impl ChiploadApp {
 
     /// Import the waiting file (`Keep` or `Replace`), or drop it (`Cancel`).
     pub(super) fn finish_library_import(&mut self, choice: ImportChoice) -> bool {
-        let Some(pending) = self.library_windows.import.take() else {
+        let Some(pending) = self.library_state.import.take() else {
             return false;
         };
         let replace = match choice {
@@ -190,7 +190,7 @@ impl ChiploadApp {
             ImportChoice::Replace => true,
         };
         let Some(dir) = self.settings_dir.clone() else {
-            self.library_windows.error = Some("No settings folder".into());
+            self.library_state.error = Some("No settings folder".into());
             return false;
         };
         let done = match &pending.entries {
@@ -207,11 +207,11 @@ impl ChiploadApp {
         match done {
             Ok(plan) => {
                 let lines = plan.report(list_name(pending.kind), replace);
-                self.library_windows.message = Some((pending.kind, lines.join("\n")));
+                self.library_state.message = Some((pending.kind, lines.join("\n")));
                 true
             }
             Err(err) => {
-                self.library_windows.error = Some(err.to_string());
+                self.library_state.error = Some(err.to_string());
                 false
             }
         }

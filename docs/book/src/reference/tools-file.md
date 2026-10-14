@@ -4,14 +4,14 @@
 
 Your tool library (`tools.json` in the settings folder) and the files `tool export` writes. Lengths in mm, angles in radians, feeds in mm/min.
 
-Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `default_tool` | string or null | no | The name of the tool new projects start with. Null: the built-in 6 mm endmill. |
-| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `tools` | list of [LibraryTool](#librarytool) | yes | The tools. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
@@ -42,6 +42,7 @@ One tool of the library: a project tool with a name and optional cutting values.
 | `rpm` | number or null | no | Spindle speed, rpm. Null: unknown. |
 | `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. |
 | `type` | [ToolType](#tooltype) | no | `endmill`, `drill` or `vbit`. |
+| `uid` | string | yes | What projects link the tool by: 16 lowercase hex digits, unique in the library, never changed (docs/specs/library-in-browser.md §2). |
 
 ## ToolType
 

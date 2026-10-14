@@ -1,19 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The user's tool library and machine profiles (docs/specs/tool-library-and-machines.md
-//! §8): the library rows of the job form, the Settings windows, and copying values into and
-//! out of the project. The rules are in `chipload_job::library`; this only shows and edits
-//! values.
+//! §8, library-in-browser.md): the library rows of a project tool and the machine, and
+//! copying values into and out of the project. The Browser rows and the entries' properties
+//! are in library_view.rs. The rules are in `chipload_job::library`; this only shows and
+//! edits values.
+
+use std::collections::BTreeMap;
 
 use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
-    Cutting, LibraryError, LibraryTool, MachineProfile, same_name, update_machines, update_tools,
+    Cutting, LibraryError, LibraryTool, Link, MachineProfile, linked_cutting, machine_link,
+    same_name, tool_link, update_machines, update_tools,
 };
 use chipload_job::{Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_RPM, DEFAULT_SAFE_Z, DEFAULT_TOOL_DIAMETER};
 
 use super::forms::{feed, machine_rows, mm, tool_rows, work_zero_rows};
-use super::library_transfer::{PendingImport, import_preview};
+use super::library_transfer::PendingImport;
+use super::library_view::uid_key;
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,74 +54,71 @@ pub enum LibraryRequest {
     AddTool(String),
     /// Ask for a name, then save the project's machine or tool into the library.
     Save(SaveTarget),
+    /// Save the project's machine or tool into the entry it is linked to
+    /// (docs/specs/library-in-browser.md §3).
+    SaveLinked(SaveTarget),
+    /// Show a library entry, by uid, in the Browser and Properties.
+    Show(LibraryKind, String),
 }
 
-/// The library rows of the job form: the entries to choose from, and where the project's
-/// values came from.
+/// The library rows of a project tool or the machine: the entries to choose from, and how
+/// the project's values stand to the entry they came from.
 pub(super) struct LibraryRows {
     target: SaveTarget,
     /// None: no settings folder, so no library.
     names: Option<Vec<String>>,
-    /// "from profile …" or "differs from …", and the entry to update from.
-    note: Option<(String, Option<String>)>,
-}
-
-/// "from profile \"X\"", "differs from profile \"X\": …" (with X to update from), or
-/// "\"X\" is not in your library".
-fn origin_note(
-    what: &str,
-    name: Option<&str>,
-    changes: Option<Vec<String>>,
-) -> Option<(String, Option<String>)> {
-    let name = name?;
-    Some(match changes {
-        None => (format!("from {what} \"{name}\", not in your library"), None),
-        Some(changes) if changes.is_empty() => (format!("from {what} \"{name}\""), None),
-        Some(changes) => (
-            format!("differs from {what} \"{name}\": {}", changes.join(", ")),
-            Some(name.to_string()),
-        ),
-    })
+    /// The link, and the linked entry's uid while it is in the library.
+    link: Option<(Link, Option<String>)>,
 }
 
 impl LibraryRows {
     pub(super) fn machine(job: &Job, library: Option<&Library>) -> Self {
         let names = library.map(|l| l.machines.machines.iter().map(|m| m.name.clone()).collect());
-        let note = library.and_then(|l| {
-            let name = job.machine.name.as_deref();
-            let changes = name
-                .and_then(|n| l.machines.find(n))
-                .map(|profile| profile.changes(job));
-            origin_note("profile", name, changes)
+        let link = library.map(|l| {
+            let link = machine_link(&l.machines, job);
+            let uid = job
+                .machine
+                .library_uid
+                .clone()
+                .filter(|_| link.entry_name().is_some());
+            (link, uid)
         });
         LibraryRows {
             target: SaveTarget::Machine,
             names,
-            note,
+            link,
         }
     }
 
     pub(super) fn tool(tool: &Tool, library: Option<&Library>) -> Self {
         let names = library.map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect());
-        let note = library.and_then(|l| {
-            let name = tool.name.as_deref();
-            let changes = name
-                .and_then(|n| l.tools.find(n))
-                .map(|entry| entry.changes(tool));
-            origin_note("library tool", name, changes)
+        let link = library.map(|l| {
+            let link = tool_link(&l.tools, tool);
+            let uid = tool
+                .library_uid
+                .clone()
+                .filter(|_| link.entry_name().is_some());
+            (link, uid)
         });
         LibraryRows {
             target: SaveTarget::Tool(tool.id),
             names,
-            note,
+            link,
+        }
+    }
+
+    fn what(&self) -> &'static str {
+        match self.target {
+            SaveTarget::Machine => "profile",
+            SaveTarget::Tool(_) => "library tool",
         }
     }
 }
 
 #[cfg(test)]
 impl LibraryRows {
-    pub(super) fn note_text(&self) -> Option<&str> {
-        self.note.as_ref().map(|(text, _)| text.as_str())
+    pub(super) fn note_text(&self) -> Option<String> {
+        self.link.as_ref().map(|(link, _)| link.text(self.what()))
     }
 }
 
@@ -133,18 +135,20 @@ pub(super) fn library_rows(
     rows: LibraryRows,
 ) {
     let target = rows.target;
-    let (choose, save) = match target {
-        SaveTarget::Machine => ("Use profile…", "Save as profile…"),
-        SaveTarget::Tool(_) => ("Use library tool…", "Save to library…"),
+    let what = rows.what();
+    let choose = match target {
+        SaveTarget::Machine => "Use profile…",
+        SaveTarget::Tool(_) => "Use library tool…",
     };
     let use_entry = |name: String| match target {
         SaveTarget::Machine => LibraryRequest::UseMachine(name),
         SaveTarget::Tool(id) => LibraryRequest::UseTool(id, name),
     };
+    let linked = rows.link.as_ref().and_then(|(_, uid)| uid.clone());
     ui.label("Library");
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         let available = rows.names.is_some();
-        let names = rows.names.unwrap_or_default();
+        let names = rows.names.clone().unwrap_or_default();
         ui.add_enabled_ui(available && !names.is_empty(), |ui| {
             ComboBox::from_id_salt(("library", choose, target_salt(target)))
                 .selected_text(choose)
@@ -156,73 +160,82 @@ pub(super) fn library_rows(
                     }
                 })
         });
-        let button = ui.add_enabled(available, egui::Button::new(save));
-        let button = if available {
-            button.on_hover_text("Copies these values into your library, for other projects")
-        } else {
-            button.on_disabled_hover_text(format!(
-                "No settings folder found; set {}",
-                chipload_pipeline::library::CONFIG_DIR_VAR
-            ))
-        };
-        if button.clicked() {
+        if !available {
+            ui.add_enabled(false, egui::Button::new("Save to library…"))
+                .on_disabled_hover_text(format!(
+                    "No settings folder found; set {}",
+                    chipload_pipeline::library::CONFIG_DIR_VAR
+                ));
+        } else if linked.is_some() {
+            if ui
+                .button("Save to library")
+                .on_hover_text(format!(
+                    "Write these values into the {what} it is linked to, for other projects"
+                ))
+                .clicked()
+            {
+                *request = Some(LibraryRequest::SaveLinked(target));
+            }
+            if ui
+                .button("Save as new…")
+                .on_hover_text("Keep these values in your library under another name")
+                .clicked()
+            {
+                *request = Some(LibraryRequest::Save(target));
+            }
+        } else if ui
+            .button("Save to library…")
+            .on_hover_text("Copies these values into your library, for other projects")
+            .clicked()
+        {
             *request = Some(LibraryRequest::Save(target));
         }
     });
     ui.end_row();
-    if let Some((text, update)) = rows.note {
-        ui.label("");
-        ui.horizontal_wrapped(|ui| {
-            ui.weak(text);
-            if let Some(name) = update
-                && ui
-                    .button("Update from library")
-                    .on_hover_text("Copy the library's values into the project (undo with Ctrl+Z)")
-                    .clicked()
-            {
-                *request = Some(use_entry(name));
-            }
-        });
-        ui.end_row();
-    }
+    let Some((link, uid)) = rows.link else {
+        return;
+    };
+    ui.label("");
+    ui.horizontal_wrapped(|ui| {
+        ui.weak(link.text(what));
+        if let Link::Differs(name, _) = &link
+            && ui
+                .button("Update from library")
+                .on_hover_text("Copy the library's values into the project (undo with Ctrl+Z)")
+                .clicked()
+        {
+            *request = Some(use_entry(name.clone()));
+        }
+        if let Some(uid) = uid
+            && ui
+                .button("Show in library")
+                .on_hover_text("Open it under Library in the Browser")
+                .clicked()
+        {
+            *request = Some(LibraryRequest::Show(target.kind(), uid));
+        }
+    });
+    ui.end_row();
 }
 
-/// An entry being edited in a Settings window, and the name it has in the library (None
-/// for a new one).
-#[derive(Debug, Clone)]
-struct Draft<T> {
-    original: Option<String>,
-    value: T,
-}
-
-/// The Settings windows.
+/// The library's state in the app: entries being edited, and what import and export said.
 #[derive(Debug, Clone, Default)]
-pub(super) struct LibraryWindows {
-    pub(super) tools_open: bool,
-    pub(super) machines_open: bool,
-    tool: Option<Draft<LibraryTool>>,
-    machine: Option<Draft<MachineProfile>>,
+pub(super) struct LibraryState {
+    /// Tools being edited and not saved yet, by uid.
+    pub(super) tool_drafts: BTreeMap<String, LibraryTool>,
+    /// Machine profiles being edited and not saved yet, by uid.
+    pub(super) machine_drafts: BTreeMap<String, MachineProfile>,
     pub(super) error: Option<String>,
-    /// What the last import or export did, shown in that window.
+    /// What the last import or export did, shown in that folder's properties.
     pub(super) message: Option<(LibraryKind, String)>,
     /// A file read for import, waiting for Import or Cancel.
     pub(super) import: Option<PendingImport>,
-}
-
-/// What was clicked in a Settings window; applied after drawing it.
-enum WindowAction {
-    Edit(String),
-    New,
-    Save,
-    Delete,
-    MakeDefault,
-    Cancel,
-    Import,
-    Export,
+    /// A Library folder to open in the Browser on its next frame.
+    pub(super) reveal: Option<LibraryKind>,
 }
 
 /// "New tool", or "New tool 2" … if that is taken.
-fn unique_name(base: &str, taken: impl Fn(&str) -> bool) -> String {
+pub(super) fn unique_name(base: &str, taken: impl Fn(&str) -> bool) -> String {
     let mut name = base.to_string();
     let mut n = 2;
     while taken(&name) {
@@ -232,12 +245,18 @@ fn unique_name(base: &str, taken: impl Fn(&str) -> bool) -> String {
     name
 }
 
+/// Which library entry a save goes to.
+enum Pick {
+    Name(String),
+    Uid(String),
+}
+
 fn refused(text: String) -> LibraryError {
     LibraryError::Refused(text)
 }
 
 /// Where the library is kept, and why it couldn't be read.
-fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[String]) {
+pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[String]) {
     match path {
         Some(path) => {
             ui.weak(format!("Kept in {}", path.display()));
@@ -257,7 +276,7 @@ fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[String]) {
     }
 }
 
-fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
+pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
     Grid::new("library-tool").num_columns(2).show(ui, |ui| {
         ui.label("Name");
         ui.text_edit_singleline(&mut entry.name);
@@ -321,7 +340,11 @@ fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
     });
 }
 
-fn machine_entry_form(ui: &mut egui::Ui, profile: &mut MachineProfile, library: &Library) {
+pub(super) fn machine_entry_form(
+    ui: &mut egui::Ui,
+    profile: &mut MachineProfile,
+    library: &Library,
+) {
     Grid::new("library-machine").num_columns(2).show(ui, |ui| {
         ui.label("Name");
         ui.text_edit_singleline(&mut profile.name);
@@ -345,102 +368,19 @@ fn machine_entry_form(ui: &mut egui::Ui, profile: &mut MachineProfile, library: 
     });
 }
 
-/// Draw one Settings window's list and draft; returns what was clicked.
-fn window_body<T>(
-    ui: &mut egui::Ui,
-    names: &[(String, String)],
-    default: Option<&str>,
-    draft: &mut Option<Draft<T>>,
-    error: Option<&str>,
-    new_label: &str,
-    form: impl FnOnce(&mut egui::Ui, &mut T),
-) -> Option<WindowAction> {
-    let mut action = None;
-    if names.is_empty() {
-        ui.weak("Nothing here yet.");
-    }
-    Grid::new("library-list")
-        .num_columns(2)
-        .striped(true)
-        .show(ui, |ui| {
-            for (name, summary) in names {
-                let editing = draft
-                    .as_ref()
-                    .and_then(|d| d.original.as_deref())
-                    .is_some_and(|o| same_name(o, name));
-                let is_default = default.is_some_and(|d| same_name(d, name));
-                let label = if is_default {
-                    format!("{name} (default)")
-                } else {
-                    name.clone()
-                };
-                if ui.selectable_label(editing, label).clicked() {
-                    action = Some(WindowAction::Edit(name.clone()));
-                }
-                ui.weak(summary);
-                ui.end_row();
-            }
-        });
-    ui.horizontal(|ui| {
-        if ui.button(new_label).clicked() {
-            action = Some(WindowAction::New);
-        }
-        if ui
-            .button("Import…")
-            .on_hover_text("Add entries from an exported file or another computer's library")
-            .clicked()
-        {
-            action = Some(WindowAction::Import);
-        }
-        if ui
-            .add_enabled(!names.is_empty(), egui::Button::new("Export…"))
-            .on_hover_text("Write all entries to a file: a backup, or for another computer")
-            .clicked()
-        {
-            action = Some(WindowAction::Export);
-        }
-    });
-    if let Some(d) = draft {
-        ui.separator();
-        form(ui, &mut d.value);
-        ui.horizontal(|ui| {
-            if ui.button("Save").clicked() {
-                action = Some(WindowAction::Save);
-            }
-            let stored = d.original.is_some();
-            if ui
-                .add_enabled(stored, egui::Button::new("Delete"))
-                .clicked()
-            {
-                action = Some(WindowAction::Delete);
-            }
-            if ui
-                .add_enabled(stored, egui::Button::new("Make default"))
-                .on_hover_text("New projects start with it")
-                .clicked()
-            {
-                action = Some(WindowAction::MakeDefault);
-            }
-            if ui.button("Close").clicked() {
-                action = Some(WindowAction::Cancel);
-            }
-        });
-    }
-    if let Some(error) = error {
-        ui.colored_label(ui.visuals().error_fg_color, error);
-    }
-    action
-}
-
 /// What the last import or export of this window did.
-fn library_message(ui: &mut egui::Ui, message: Option<&(LibraryKind, String)>, kind: LibraryKind) {
+pub(super) fn library_message(
+    ui: &mut egui::Ui,
+    message: Option<&(LibraryKind, String)>,
+    kind: LibraryKind,
+) {
     if let Some((_, text)) = message.filter(|(k, _)| *k == kind) {
         ui.separator();
         ui.label(text);
     }
 }
 
-fn tool_summary(t: &LibraryTool) -> String {
+pub(super) fn tool_summary(t: &LibraryTool) -> String {
     let kind = match t.kind {
         ToolType::Endmill => "endmill",
         ToolType::Drill => "drill",
@@ -449,7 +389,7 @@ fn tool_summary(t: &LibraryTool) -> String {
     format!("{kind} {} mm", t.diameter)
 }
 
-fn machine_summary(m: &MachineProfile) -> String {
+pub(super) fn machine_summary(m: &MachineProfile) -> String {
     match &m.travel {
         Some(t) => format!("{}, {} × {} × {} mm", m.post, t.x, t.y, t.z),
         None => m.post.clone(),
@@ -556,12 +496,7 @@ impl ChiploadApp {
             .tools
             .iter()
             .find(|t| t.id == id)?;
-        let entry = self.library()?.tools.find(tool.name.as_deref()?)?;
-        if entry.same_values(tool) {
-            entry.cutting
-        } else {
-            None
-        }
+        linked_cutting(&self.library()?.tools, tool)
     }
 
     pub(super) fn library_request(&mut self, request: LibraryRequest) {
@@ -587,7 +522,24 @@ impl ChiploadApp {
                 });
                 self.prompt = Some(Prompt::LibraryName(target, current.unwrap_or_default()));
             }
+            LibraryRequest::SaveLinked(target) => {
+                self.save_to_linked(target);
+            }
+            LibraryRequest::Show(kind, uid) => self.show_library(kind, Some(&uid)),
         }
+    }
+
+    /// Open the Library in the Browser at `kind`, and show the entry `uid` (or the folder)
+    /// in Properties (docs/specs/library-in-browser.md §6).
+    pub fn show_library(&mut self, kind: LibraryKind, uid: Option<&str>) {
+        self.reload_library();
+        self.library_state.reveal = Some(kind);
+        self.focus = match (kind, uid) {
+            (LibraryKind::Tools, None) => Focus::LibraryTools,
+            (LibraryKind::Machines, None) => Focus::LibraryMachines,
+            (LibraryKind::Tools, Some(uid)) => Focus::LibraryTool(uid_key(uid)),
+            (LibraryKind::Machines, Some(uid)) => Focus::LibraryMachine(uid_key(uid)),
+        };
     }
 
     /// Make `name` the project's post-processor; one of the user's is read again and copied
@@ -708,53 +660,110 @@ impl ChiploadApp {
         self.set_status(status, STATUS_SECONDS);
     }
 
-    /// Save the project's machine or tool into the library under `name`, replacing an
-    /// entry of that name. The project records the name.
+    /// Save the project's machine or tool into the library under `name`: an entry of that
+    /// name is replaced and keeps its uid, so projects linked to it stay linked; otherwise a
+    /// new entry is added. The project is linked to it (docs/specs/library-in-browser.md §3).
     pub fn save_to_library(&mut self, target: SaveTarget, name: &str) -> bool {
-        let name = name.trim().to_string();
+        self.save_values(target, Pick::Name(name.trim().to_string()))
+    }
+
+    /// Save the project's machine or tool into the entry it is linked to, keeping the
+    /// entry's name and uid.
+    pub fn save_to_linked(&mut self, target: SaveTarget) -> bool {
+        let uid = self.edit.as_ref().and_then(|e| match target {
+            SaveTarget::Machine => e.settings.machine.library_uid.clone(),
+            SaveTarget::Tool(id) => e
+                .settings
+                .tools
+                .iter()
+                .find(|t| t.id == id)
+                .and_then(|t| t.library_uid.clone()),
+        });
+        match uid {
+            Some(uid) => self.save_values(target, Pick::Uid(uid)),
+            None => false,
+        }
+    }
+
+    fn save_values(&mut self, target: SaveTarget, pick: Pick) -> bool {
         let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
             return false;
         };
-        let result = match target {
-            SaveTarget::Machine => {
-                let profile = MachineProfile::from_job(&name, &edit.settings);
-                update_machines(&machines_path(&dir), |library| {
-                    match library.position(&name) {
-                        Some(i) => library.machines[i] = profile,
-                        None => library.machines.push(profile),
+        let settings = edit.settings.clone();
+        // The entry's name and uid after saving.
+        let result: Result<(String, String), LibraryError> = match target {
+            SaveTarget::Machine => update_machines(&machines_path(&dir), |library| {
+                let at = match &pick {
+                    Pick::Name(name) => library.position(name),
+                    Pick::Uid(uid) => library.machines.iter().position(|m| &m.uid == uid),
+                };
+                match (at, &pick) {
+                    (Some(i), _) => {
+                        let old = &library.machines[i];
+                        let profile = MachineProfile::from_job(&old.name, &old.uid, &settings);
+                        library.machines[i] = profile.clone();
+                        Ok((profile.name, profile.uid))
                     }
-                    Ok(())
-                })
-            }
-            SaveTarget::Tool(id) => match edit.settings.tools.iter().find(|t| t.id == id) {
-                Some(tool) => {
-                    let entry = LibraryTool::from_tool(&name, tool, None);
-                    update_tools(&tools_path(&dir), |library| {
-                        match library.position(&name) {
-                            // A project tool has no cutting values: keep the library's.
-                            Some(i) => {
-                                let cutting = library.tools[i].cutting;
-                                library.tools[i] = LibraryTool { cutting, ..entry };
-                            }
-                            None => library.tools.push(entry),
-                        }
-                        Ok(())
-                    })
+                    (None, Pick::Name(name)) => {
+                        let uid = library.new_uid(name);
+                        library
+                            .machines
+                            .push(MachineProfile::from_job(name, &uid, &settings));
+                        Ok((name.clone(), uid))
+                    }
+                    (None, Pick::Uid(_)) => Err(refused(
+                        "The profile it came from is not in your library.".into(),
+                    )),
                 }
+            }),
+            SaveTarget::Tool(id) => match settings.tools.iter().find(|t| t.id == id) {
+                Some(tool) => update_tools(&tools_path(&dir), |library| {
+                    let at = match &pick {
+                        Pick::Name(name) => library.position(name),
+                        Pick::Uid(uid) => library.tools.iter().position(|t| &t.uid == uid),
+                    };
+                    match (at, &pick) {
+                        // A project tool has no cutting values: keep the library's.
+                        (Some(i), _) => {
+                            let old = &library.tools[i];
+                            let entry =
+                                LibraryTool::from_tool(&old.name, &old.uid, tool, old.cutting);
+                            library.tools[i] = entry.clone();
+                            Ok((entry.name, entry.uid))
+                        }
+                        (None, Pick::Name(name)) => {
+                            let uid = library.new_uid(name);
+                            library
+                                .tools
+                                .push(LibraryTool::from_tool(name, &uid, tool, None));
+                            Ok((name.clone(), uid))
+                        }
+                        (None, Pick::Uid(_)) => Err(refused(
+                            "The library tool it came from is not in your library.".into(),
+                        )),
+                    }
+                }),
                 None => Err(refused("The project has no tool to save.".into())),
             },
         };
         self.reload_library();
-        if let Err(err) = result {
-            self.error(vec!["Not saved to the library:".into(), err.to_string()]);
-            return false;
-        }
+        let (name, uid) = match result {
+            Ok(saved) => saved,
+            Err(err) => {
+                self.error(vec!["Not saved to the library:".into(), err.to_string()]);
+                return false;
+            }
+        };
         if let Some(edit) = self.edit.as_mut() {
             match target {
-                SaveTarget::Machine => edit.settings.machine.name = Some(name.clone()),
+                SaveTarget::Machine => {
+                    edit.settings.machine.name = Some(name.clone());
+                    edit.settings.machine.library_uid = Some(uid);
+                }
                 SaveTarget::Tool(id) => {
                     if let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) {
                         tool.name = Some(name.clone());
+                        tool.library_uid = Some(uid);
                     }
                 }
             }
@@ -817,23 +826,23 @@ impl ChiploadApp {
         }
     }
 
-    /// Store a tool edited in the Settings window: replace `original`, or add a new one.
-    pub fn store_library_tool(
-        &mut self,
-        original: Option<&str>,
-        entry: LibraryTool,
-    ) -> Result<(), String> {
+    /// Store a library tool edited in Properties: it replaces the tool with its uid, or is
+    /// added. A name another tool has is refused.
+    pub fn store_library_tool(&mut self, entry: LibraryTool) -> Result<(), String> {
         let dir = self.settings_dir.clone().ok_or("No settings folder")?;
         let result = update_tools(&tools_path(&dir), |library| {
-            let clash = library.position(&entry.name);
-            match original.and_then(|o| library.position(o)) {
+            if library
+                .tools
+                .iter()
+                .any(|t| t.uid != entry.uid && same_name(&t.name, &entry.name))
+            {
+                return Err(refused(format!(
+                    "There is already a tool \"{}\".",
+                    entry.name
+                )));
+            }
+            match library.tools.iter().position(|t| t.uid == entry.uid) {
                 Some(i) => {
-                    if clash.is_some_and(|c| c != i) {
-                        return Err(refused(format!(
-                            "There is already a tool \"{}\".",
-                            entry.name
-                        )));
-                    }
                     if library
                         .default_tool
                         .as_deref()
@@ -843,15 +852,7 @@ impl ChiploadApp {
                     }
                     library.tools[i] = entry;
                 }
-                None => {
-                    if clash.is_some() {
-                        return Err(refused(format!(
-                            "There is already a tool \"{}\".",
-                            entry.name
-                        )));
-                    }
-                    library.tools.push(entry);
-                }
+                None => library.tools.push(entry),
             }
             Ok(())
         });
@@ -859,23 +860,22 @@ impl ChiploadApp {
         result.map_err(|e| e.to_string())
     }
 
-    /// Store a profile edited in the Settings window: replace `original`, or add a new one.
-    pub fn store_machine_profile(
-        &mut self,
-        original: Option<&str>,
-        profile: MachineProfile,
-    ) -> Result<(), String> {
+    /// Store a machine profile edited in Properties, as `store_library_tool`.
+    pub fn store_machine_profile(&mut self, profile: MachineProfile) -> Result<(), String> {
         let dir = self.settings_dir.clone().ok_or("No settings folder")?;
         let result = update_machines(&machines_path(&dir), |library| {
-            let clash = library.position(&profile.name);
-            match original.and_then(|o| library.position(o)) {
+            if library
+                .machines
+                .iter()
+                .any(|m| m.uid != profile.uid && same_name(&m.name, &profile.name))
+            {
+                return Err(refused(format!(
+                    "There is already a machine \"{}\".",
+                    profile.name
+                )));
+            }
+            match library.machines.iter().position(|m| m.uid == profile.uid) {
                 Some(i) => {
-                    if clash.is_some_and(|c| c != i) {
-                        return Err(refused(format!(
-                            "There is already a machine \"{}\".",
-                            profile.name
-                        )));
-                    }
                     if library
                         .default_machine
                         .as_deref()
@@ -885,15 +885,7 @@ impl ChiploadApp {
                     }
                     library.machines[i] = profile;
                 }
-                None => {
-                    if clash.is_some() {
-                        return Err(refused(format!(
-                            "There is already a machine \"{}\".",
-                            profile.name
-                        )));
-                    }
-                    library.machines.push(profile);
-                }
+                None => library.machines.push(profile),
             }
             Ok(())
         });
@@ -901,7 +893,70 @@ impl ChiploadApp {
         result.map_err(|e| e.to_string())
     }
 
-    fn remove_from_library(&mut self, kind: LibraryKind, name: &str) -> Result<(), String> {
+    /// A new library tool or machine, saved at once under a free name ("New tool 2") and
+    /// shown in Properties. It starts from the open project's first tool or machine.
+    pub fn new_library_entry(&mut self, kind: LibraryKind) -> Option<String> {
+        self.reload_library();
+        let result = match kind {
+            LibraryKind::Tools => {
+                let name = unique_name("New tool", |n| self.library.tools.find(n).is_some());
+                let uid = self.library.tools.new_uid(&name);
+                let entry = match self.edit.as_ref().and_then(|e| e.settings.tools.first()) {
+                    Some(tool) => LibraryTool::from_tool(&name, &uid, tool, None),
+                    None => LibraryTool {
+                        name,
+                        uid: uid.clone(),
+                        id: 1,
+                        kind: ToolType::Endmill,
+                        diameter: DEFAULT_TOOL_DIAMETER,
+                        flutes: None,
+                        center_cutting: None,
+                        rpm: Some(DEFAULT_RPM),
+                        cutting: None,
+                        angle: None,
+                        tip_diameter: None,
+                    },
+                };
+                self.store_library_tool(entry).map(|()| uid)
+            }
+            LibraryKind::Machines => {
+                let name = unique_name("New machine", |n| self.library.machines.find(n).is_some());
+                let uid = self.library.machines.new_uid(&name);
+                let profile = match self.edit.as_ref() {
+                    Some(edit) => MachineProfile::from_job(&name, &uid, &edit.settings),
+                    None => MachineProfile {
+                        name,
+                        uid: uid.clone(),
+                        post: "grbl".into(),
+                        safe_z: DEFAULT_SAFE_Z,
+                        spindle: Spindle::Cw,
+                        max_feed: None,
+                        travel: None,
+                        work_zero: WorkZero::DrawingOrigin {},
+                        max_overcut: DEFAULT_MAX_OVERCUT,
+                        tool_change: ToolChange::Files,
+                    },
+                };
+                self.store_machine_profile(profile).map(|()| uid)
+            }
+        };
+        match result {
+            Ok(uid) => {
+                self.show_library(kind, Some(&uid));
+                Some(uid)
+            }
+            Err(err) => {
+                self.library_state.error = Some(err);
+                None
+            }
+        }
+    }
+
+    pub(super) fn remove_from_library(
+        &mut self,
+        kind: LibraryKind,
+        name: &str,
+    ) -> Result<(), String> {
         let dir = self.settings_dir.clone().ok_or("No settings folder")?;
         let result = match kind {
             LibraryKind::Tools => update_tools(&tools_path(&dir), |library| {
@@ -930,247 +985,5 @@ impl ChiploadApp {
         };
         self.reload_library();
         result.map_err(|e| e.to_string())
-    }
-
-    /// Open a Settings window (reading the library again first).
-    pub fn open_library_window(&mut self, kind: LibraryKind) {
-        self.reload_library();
-        match kind {
-            LibraryKind::Tools => self.library_windows.tools_open = true,
-            LibraryKind::Machines => self.library_windows.machines_open = true,
-        }
-    }
-
-    pub(super) fn library_windows_ui(&mut self, ctx: &egui::Context) {
-        if self.library_windows.tools_open {
-            self.tools_window(ctx);
-        }
-        if self.library_windows.machines_open {
-            self.machines_window(ctx);
-        }
-    }
-
-    fn tools_window(&mut self, ctx: &egui::Context) {
-        let mut open = true;
-        let path = self.settings_dir.as_deref().map(tools_path);
-        let names: Vec<(String, String)> = self
-            .library
-            .tools
-            .tools
-            .iter()
-            .map(|t| (t.name.clone(), tool_summary(t)))
-            .collect();
-        let default = self.library.tools.default_tool.clone();
-        let problems = self.library.problems.clone();
-        let windows = &mut self.library_windows;
-        let mut action = None;
-        let mut choice = None;
-        egui::Window::new("Tool library")
-            .open(&mut open)
-            .default_width(440.0)
-            .show(ctx, |ui| {
-                library_header(ui, path.as_deref(), &problems);
-                ui.add_enabled_ui(path.is_some(), |ui| {
-                    action = window_body(
-                        ui,
-                        &names,
-                        default.as_deref(),
-                        &mut windows.tool,
-                        windows.error.as_deref(),
-                        "New tool",
-                        tool_entry_form,
-                    );
-                    choice = import_preview(ui, windows.import.as_ref(), LibraryKind::Tools);
-                    library_message(ui, windows.message.as_ref(), LibraryKind::Tools);
-                });
-            });
-        self.library_windows.tools_open = open;
-        if let Some(choice) = choice {
-            self.finish_library_import(choice);
-        }
-        if let Some(action) = action {
-            self.tool_window_action(action);
-        }
-    }
-
-    fn tool_window_action(&mut self, action: WindowAction) {
-        let windows = &mut self.library_windows;
-        windows.error = None;
-        match action {
-            WindowAction::Edit(name) => {
-                windows.tool = self.library.tools.find(&name).map(|t| Draft {
-                    original: Some(t.name.clone()),
-                    value: t.clone(),
-                });
-            }
-            WindowAction::New => {
-                let name = unique_name("New tool", |n| self.library.tools.find(n).is_some());
-                // Start from the project's tool, if one is open.
-                let value = match self.edit.as_ref().and_then(|e| e.settings.tools.first()) {
-                    Some(tool) => LibraryTool::from_tool(&name, tool, None),
-                    None => LibraryTool {
-                        name,
-                        id: 1,
-                        kind: ToolType::Endmill,
-                        diameter: DEFAULT_TOOL_DIAMETER,
-                        flutes: None,
-                        center_cutting: None,
-                        rpm: Some(DEFAULT_RPM),
-                        cutting: None,
-                        angle: None,
-                        tip_diameter: None,
-                    },
-                };
-                windows.tool = Some(Draft {
-                    original: None,
-                    value,
-                });
-            }
-            WindowAction::Save => {
-                if let Some(draft) = windows.tool.clone() {
-                    let mut value = draft.value;
-                    value.name = value.name.trim().to_string();
-                    match self.store_library_tool(draft.original.as_deref(), value.clone()) {
-                        Ok(()) => {
-                            self.library_windows.tool = Some(Draft {
-                                original: Some(value.name.clone()),
-                                value,
-                            });
-                        }
-                        Err(err) => self.library_windows.error = Some(err),
-                    }
-                }
-            }
-            WindowAction::Delete => {
-                if let Some(name) = windows.tool.as_ref().and_then(|d| d.original.clone()) {
-                    match self.remove_from_library(LibraryKind::Tools, &name) {
-                        Ok(()) => self.library_windows.tool = None,
-                        Err(err) => self.library_windows.error = Some(err),
-                    }
-                }
-            }
-            WindowAction::MakeDefault => {
-                if let Some(name) = windows.tool.as_ref().and_then(|d| d.original.clone())
-                    && let Err(err) = self.set_library_default(LibraryKind::Tools, &name)
-                {
-                    self.library_windows.error = Some(err);
-                }
-            }
-            WindowAction::Cancel => windows.tool = None,
-            WindowAction::Import => self.import_library_dialog(LibraryKind::Tools),
-            WindowAction::Export => self.export_library_dialog(LibraryKind::Tools),
-        }
-    }
-
-    fn machines_window(&mut self, ctx: &egui::Context) {
-        let mut open = true;
-        let path = self.settings_dir.as_deref().map(machines_path);
-        let names: Vec<(String, String)> = self
-            .library
-            .machines
-            .machines
-            .iter()
-            .map(|m| (m.name.clone(), machine_summary(m)))
-            .collect();
-        let default = self.library.machines.default_machine.clone();
-        let problems = self.library.problems.clone();
-        let windows = &mut self.library_windows;
-        let library = &self.library;
-        let mut action = None;
-        let mut choice = None;
-        egui::Window::new("Machines")
-            .open(&mut open)
-            .default_width(440.0)
-            .show(ctx, |ui| {
-                library_header(ui, path.as_deref(), &problems);
-                ui.add_enabled_ui(path.is_some(), |ui| {
-                    action = window_body(
-                        ui,
-                        &names,
-                        default.as_deref(),
-                        &mut windows.machine,
-                        windows.error.as_deref(),
-                        "New machine",
-                        |ui, profile| machine_entry_form(ui, profile, library),
-                    );
-                    choice = import_preview(ui, windows.import.as_ref(), LibraryKind::Machines);
-                    library_message(ui, windows.message.as_ref(), LibraryKind::Machines);
-                });
-            });
-        self.library_windows.machines_open = open;
-        if let Some(choice) = choice {
-            self.finish_library_import(choice);
-        }
-        if let Some(action) = action {
-            self.machine_window_action(action);
-        }
-    }
-
-    fn machine_window_action(&mut self, action: WindowAction) {
-        let windows = &mut self.library_windows;
-        windows.error = None;
-        match action {
-            WindowAction::Edit(name) => {
-                windows.machine = self.library.machines.find(&name).map(|m| Draft {
-                    original: Some(m.name.clone()),
-                    value: m.clone(),
-                });
-            }
-            WindowAction::New => {
-                let name = unique_name("New machine", |n| self.library.machines.find(n).is_some());
-                // Start from the open project's machine, if any.
-                let value = match self.edit.as_ref() {
-                    Some(edit) => MachineProfile::from_job(&name, &edit.settings),
-                    None => MachineProfile {
-                        name,
-                        post: "grbl".into(),
-                        safe_z: DEFAULT_SAFE_Z,
-                        spindle: Spindle::Cw,
-                        max_feed: None,
-                        travel: None,
-                        work_zero: WorkZero::DrawingOrigin {},
-                        max_overcut: DEFAULT_MAX_OVERCUT,
-                        tool_change: ToolChange::Files,
-                    },
-                };
-                windows.machine = Some(Draft {
-                    original: None,
-                    value,
-                });
-            }
-            WindowAction::Save => {
-                if let Some(draft) = windows.machine.clone() {
-                    let mut value = draft.value;
-                    value.name = value.name.trim().to_string();
-                    match self.store_machine_profile(draft.original.as_deref(), value.clone()) {
-                        Ok(()) => {
-                            self.library_windows.machine = Some(Draft {
-                                original: Some(value.name.clone()),
-                                value,
-                            });
-                        }
-                        Err(err) => self.library_windows.error = Some(err),
-                    }
-                }
-            }
-            WindowAction::Delete => {
-                if let Some(name) = windows.machine.as_ref().and_then(|d| d.original.clone()) {
-                    match self.remove_from_library(LibraryKind::Machines, &name) {
-                        Ok(()) => self.library_windows.machine = None,
-                        Err(err) => self.library_windows.error = Some(err),
-                    }
-                }
-            }
-            WindowAction::MakeDefault => {
-                if let Some(name) = windows.machine.as_ref().and_then(|d| d.original.clone())
-                    && let Err(err) = self.set_library_default(LibraryKind::Machines, &name)
-                {
-                    self.library_windows.error = Some(err);
-                }
-            }
-            WindowAction::Cancel => windows.machine = None,
-            WindowAction::Import => self.import_library_dialog(LibraryKind::Machines),
-            WindowAction::Export => self.export_library_dialog(LibraryKind::Machines),
-        }
     }
 }

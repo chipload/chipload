@@ -51,6 +51,10 @@
           "default": null,
           "description": "The machine's travel, mm. When set, a program that moves farther is refused. Null:\nnot checked."
         },
+        "uid": {
+          "description": "What projects link the profile by: 16 lowercase hex digits, unique in the file,\nnever changed (docs/specs/library-in-browser.md §2).",
+          "type": "string"
+        },
         "work_zero": {
           "$ref": "#/$defs/WorkZero",
           "description": "The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's\norigin."
@@ -58,6 +62,7 @@
       },
       "required": [
         "name",
+        "uid",
         "post",
         "safe_z",
         "spindle",
@@ -199,7 +204,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "default_machine": {
       "default": null,
@@ -217,7 +222,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 2,
+      "const": 3,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "written_by": {

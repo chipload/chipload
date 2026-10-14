@@ -6,15 +6,35 @@ the same on another computer, or after you change the library.
 
 ## In the app
 
-**Tools** in the ribbon's LIBRARY group lists your tools.
-- **Add, change and remove** tools there.
-- **Mark one as the default:** new projects start with it.
+Your tools are under **Library > Tools** in the [Browser](../window.md#the-browser), below the
+project. **Tools** in the ribbon's LIBRARY group opens it.
+- **Click a tool** to edit it in Properties. Changes are a draft, marked *unsaved* in the
+  Browser, until you press **Save**; **Revert** drops them.
+- **Drag a tool** onto the project's *Tools* (or right-click it > *Add to project*) to copy it
+  into the project.
+- **Right-click** a tool for *Make default* (new projects start with it) and *Delete*, or
+  *Library > Tools* for *New tool*, *Import…* and *Export…*.
 
-In the project's tools (click *Tools* or a tool in the Browser):
-- **Use library tool…** copies a library tool into the project.
-- **Save to library…** saves a project tool to the library.
-- **Update from library** appears when a project tool came from the library and the library
-  now has other values.
+![Library > Tools in the Browser, a library tool in Properties, and the project's tool T3
+linked to it](../images/library.png)
+
+### Project tools and the library
+
+Each project tool remembers the library tool it was copied from, by an id that stays when
+the library tool is renamed. Its row in the Browser shows that tool's name ("← 6 mm 2F"),
+and its properties say how they stand:
+
+| It says | Meaning | You can |
+|---|---|---|
+| from library tool "6 mm 2F" | same values | *Save to library*, *Show in library* |
+| differs from "6 mm 2F": rpm 18000 -> 16000 | one of them was changed | *Update from library* (copies the library's values into the project), or *Save to library* (the other way) |
+| "6 mm 2F" is not in your library | deleted there, or the project comes from another computer | *Save to library…* under a name |
+| not from your library | made in the project | *Save to library…* under a name |
+
+- **Use library tool…** gives the project tool another library tool's values.
+- **Save as new…** keeps the project tool's values under another name.
+- A new operation gets a library tool's cutting values while the project tool still has the
+  library tool's values.
 
 ## What a tool has
 
@@ -36,7 +56,8 @@ chipload tool add "5 mm drill" --type drill --diameter 5 --rpm 3000
 chipload tool set "6 mm 2F" --rpm 20000                # or --rename
 chipload tool default "6 mm 2F"
 chipload tool use "V 60" part.chipload                 # copy into a project; prints its id there
-chipload tool save part.chipload --tool 2 --name "3 mm downcut"
+chipload tool save part.chipload --tool 2 --name "3 mm downcut"   # links tool 2 to it
+chipload tool compare part.chipload                # each project tool: same, differs, not in the library, or not from it
 chipload tool remove "5 mm drill"
 ```
 
@@ -48,9 +69,10 @@ Cutting values come as a set: give all four, or none.
 `chipload tool import FILE` adds a file's tools:
 - tools you don't have are added;
 - tools with the same name and the same values are left alone;
+- each tool keeps its id, so projects made on the other computer stay linked;
 - tools with the same name but other values are listed, and kept as yours unless you add
   `--replace`.
 
-The app has the same in the tool library window (**Tools**, LIBRARY): *Import…* and *Export…*. The [file
+The app has the same: right-click *Library > Tools* for *Import…* and *Export…*. The [file
 format](../reference/tools-file.md) is documented, so a script can make one, e.g. from a
 supplier's catalogue.

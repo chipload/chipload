@@ -334,6 +334,17 @@ pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, 
     ui.add_space(2.0);
 }
 
+/// A project tool's link to the library, short, for its row's right end.
+fn link_note(link: &chipload_job::library::Link) -> String {
+    use chipload_job::library::Link;
+    match link {
+        Link::None => String::new(),
+        Link::Same(name) => format!("← {name}"),
+        Link::Differs(name, _) => format!("← {name} (changed)"),
+        Link::Missing(_) => "(not in library)".into(),
+    }
+}
+
 /// The icon of an operation's kind.
 pub(super) fn op_icon(op: &Operation) -> Icon {
     match op {
@@ -410,16 +421,19 @@ impl ChiploadApp {
     /// Left: the Browser.
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
         caption(ui, "Browser");
-        if self.edit.is_none() {
-            ui.weak("No project open.");
-            return;
-        }
         ScrollArea::vertical()
             .id_salt("browser-scroll")
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
-                self.browser_tree(ui);
+                if self.edit.is_some() {
+                    self.browser_tree(ui);
+                } else {
+                    ui.weak("No project open.");
+                }
+                // The user's library, under the project (docs/specs/library-in-browser.md §4).
+                ui.add_space(ROW_HEIGHT / 2.0);
+                self.library_tree(ui);
             });
     }
 
@@ -483,6 +497,7 @@ impl ChiploadApp {
         if out.toggled {
             toggle_folder(ui, open_id, false);
         }
+        let mut dropped = self.library_drop(ui, &out.response);
         // A click shows every tool, to add one or compare them
         // (docs/specs/properties-for-tools-and-dxfs.md §2).
         if out
@@ -492,23 +507,52 @@ impl ChiploadApp {
         {
             self.focus = Focus::Tools;
         }
-        if !open {
-            return;
-        }
-        for (k, tool) in tools.iter().enumerate() {
-            let row = Row::new(
-                Id::new(("browser-tool", tool.id)),
-                2,
-                forms::tool_label(tool),
-            )
-            .icon(tool_icon(tool.kind))
-            .selected(self.focus == Focus::Tool(tool.id))
-            .alert(flagged(k))
-            .show(ui);
-            if row.response.clicked() {
-                self.focus = Focus::Tool(tool.id);
+        if open {
+            for (k, tool) in tools.iter().enumerate() {
+                let link = self
+                    .library()
+                    .map(|l| chipload_job::library::tool_link(&l.tools, tool));
+                let row = Row::new(
+                    Id::new(("browser-tool", tool.id)),
+                    2,
+                    forms::tool_label(tool),
+                )
+                .icon(tool_icon(tool.kind))
+                .trailing(link.as_ref().map(link_note).unwrap_or_default())
+                .selected(self.focus == Focus::Tool(tool.id))
+                .alert(flagged(k))
+                .show(ui);
+                dropped = dropped.or(self.library_drop(ui, &row.response));
+                let response = match &link {
+                    Some(link) => row.response.on_hover_text(link.text("library tool")),
+                    None => row.response,
+                };
+                if response.clicked() {
+                    self.focus = Focus::Tool(tool.id);
+                }
             }
         }
+        if let Some(uid) = dropped {
+            self.add_library_tool_uid(&uid);
+        }
+    }
+
+    /// A library tool dropped on `response` (the project's Tools or one of its tools): its
+    /// uid. While one is dragged over it, the row is outlined.
+    fn library_drop(&self, ui: &egui::Ui, response: &Response) -> Option<String> {
+        use super::library_view::DraggedTool;
+        if let Some(tool) = response.dnd_release_payload::<DraggedTool>() {
+            return Some(tool.0.clone());
+        }
+        if response.dnd_hover_payload::<DraggedTool>().is_some() {
+            ui.painter().rect_stroke(
+                response.rect,
+                0.0,
+                Stroke::new(1.5, ui.visuals().selection.stroke.color),
+                egui::StrokeKind::Inside,
+            );
+        }
+        None
     }
 
     /// Parts (docs/specs/parts.md §8): each part with its operations, in cutting order,

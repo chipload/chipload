@@ -97,6 +97,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **The library in the Browser** (2026-10-14, docs/specs/library-in-browser.md, ADR 0018):
+  Library > Tools and Machines under the project, edited in Properties (drafts until Save);
+  the library windows are gone. Project tools and the machine link to their entry by `uid`
+  (schema 23, tools/machines files 3) and show same, differs, missing or none; drag a library
+  tool onto the project's Tools; `tool compare`, `machine compare`.
 - **One place for what's shown; no Settings menu** (2026-10-14,
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in

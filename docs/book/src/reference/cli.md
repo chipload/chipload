@@ -575,9 +575,21 @@ chipload tool use <NAME> <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload tool compare`
+
+How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none
+
+```text
+chipload tool compare <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
 ### `chipload tool save`
 
-Save a project's tool into the library
+Save a project's tool into the library; the project's tool is linked to it
 
 ```text
 chipload tool save <PROJECT> [OPTIONS]
@@ -707,9 +719,21 @@ chipload machine use <NAME> <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload machine compare`
+
+How the project's machine stands to the profile it came from: same, differs (with the differences), missing, or none
+
+```text
+chipload machine compare <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
 ### `chipload machine save`
 
-Save a project's machine values as a profile
+Save a project's machine values as a profile; the project is linked to it
 
 ```text
 chipload machine save <PROJECT> [OPTIONS]

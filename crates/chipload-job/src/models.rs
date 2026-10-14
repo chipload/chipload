@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 22;
+pub const CURRENT_VERSION: i64 = 23;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1096,6 +1096,11 @@ pub struct Machine {
     // Spec: docs/specs/tool-library-and-machines.md §4.
     #[serde(default)]
     pub name: Option<String>,
+    /// The `uid` of the machine profile these values came from, for reference; nothing
+    /// that cuts reads it. Null: not from a profile.
+    // Spec: docs/specs/library-in-browser.md §2.
+    #[serde(default)]
+    pub library_uid: Option<String>,
     /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
     /// The height for rapid moves sideways, mm above Z0. Above the stock top.
@@ -1280,6 +1285,11 @@ pub struct Tool {
     // Spec: docs/specs/tool-library-and-machines.md §4.
     #[serde(default)]
     pub name: Option<String>,
+    /// The `uid` of the library tool it came from, for reference; nothing that cuts reads
+    /// it. Null: not from the library.
+    // Spec: docs/specs/library-in-browser.md §2.
+    #[serde(default)]
+    pub library_uid: Option<String>,
     /// `endmill`, `drill` or `vbit`.
     #[serde(default, rename = "type")]
     pub kind: ToolType,

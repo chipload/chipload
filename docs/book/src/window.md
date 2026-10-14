@@ -17,7 +17,7 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
-| LIBRARY | Tools, Machines: your tool library and machine profiles | the same |
+| LIBRARY | Tools, Machines: open them under *Library* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, colour theme |
 
 **Generate** (F5) and **Export** sit at the right end.
@@ -36,12 +36,17 @@ The **Browser** on the left holds the whole project as a tree:
 - **The project**, named after its file.
   - **Job settings:** stock, machine, post-processor and tools, shown on the right when
     clicked. A red dot means one of them has a problem.
-  - **Tools:** the project's tools. They are edited in the job settings.
+  - **Tools:** the project's tools, each with the library tool it came from at the right
+    ("← 6 mm 2F", "(changed)" when the values differ). See [Tool
+    library](library/tools.md#project-tools-and-the-library).
   - **Drawing:** what the shapes come from. Each DXF has its layers under it; then come
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
   - **Parts**, each with its operations under it, in cutting order. A line marks each
     tool change. See [Parts](operations/parts.md).
+- **Library** ("this computer"): your [tool library](library/tools.md) and [machine
+  profiles](library/machines.md), kept for every project. It is there also with no project
+  open.
 
 ![The Browser: two DXFs with their layers, the second hidden, a picture, and four
 operations; the first DXF's placement window is open](images/drawing.png)
@@ -62,6 +67,9 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down* and *Delete part* (with its operations).
   - **The Parts folder:** *New part*.
+  - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
+    *Use in this project*, *Make default*, *Delete*. **Library > Tools or Machines:** *New*,
+    *Import…*, *Export…*.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like
   *Tools*.
 
@@ -81,6 +89,8 @@ it, whatever is open. Its name is also in the status bar.
   its first problem.
 - **Drag** the row onto another to move it there, or onto a part to move it to the end of
   that part.
+
+**Drag a library tool** onto the project's *Tools* to copy it into the project.
 
 ## The canvas
 
@@ -112,7 +122,8 @@ The **Properties** panel on the right shows what is open, under a title:
 - **Job settings:** the stock, the machine and the post, and whether a
   [setup sheet](checking/sheet.md) is written with the G-code (for all projects).
 - **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
-  *Save to library…* and *Remove tool*.
+  how it stands to the library tool it came from, *Save to library* and *Remove tool*.
+- **A library tool or machine:** its values, with *Save* and *Revert* while it has changes.
 - **A DXF:** its file, units and size, its [position and scale](drawings/placement.md),
   *Update from a DXF…* and *Remove*.
 - **A picture:** its width, lower-left corner and layer. A change applies when you finish

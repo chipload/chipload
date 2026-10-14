@@ -88,6 +88,7 @@ fn a_post_without_tool_changes_refuses_one_file_with_m6() {
     let tool = |id: i64, diameter: f64| Tool {
         id,
         name: None,
+        library_uid: None,
         kind: ToolType::Endmill,
         diameter,
         flutes: None,

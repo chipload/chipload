@@ -107,6 +107,7 @@ mod tests {
         Tool {
             id: 1,
             name: None,
+            library_uid: None,
             kind: ToolType::Endmill,
             diameter: 6.0,
             flutes,

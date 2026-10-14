@@ -209,6 +209,10 @@ impl ChiploadApp {
             Focus::Op(i) => Box::new(self.op_problems(i)),
             Focus::Job => Box::new(self.settings_problems()),
             Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
+            Focus::LibraryTools
+            | Focus::LibraryTool(_)
+            | Focus::LibraryMachines
+            | Focus::LibraryMachine(_) => Box::new(std::iter::empty()),
             Focus::Part(id) => {
                 let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
                 Box::new(self.problems_under(index_of(k, "parts")))

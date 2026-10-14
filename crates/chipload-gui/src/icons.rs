@@ -54,6 +54,8 @@ pub enum Icon {
     ThemeLight,
     ThemeDark,
     ThemeSystem,
+    /// Books on a shelf: the user's library.
+    Library,
 }
 
 /// Line width of the icons, points.
@@ -70,6 +72,12 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
     };
     match icon {
         Icon::Project => pen.cube(),
+        Icon::Library => {
+            pen.closed(&[(0.14, 0.2), (0.3, 0.2), (0.3, 0.82), (0.14, 0.82)]);
+            pen.closed(&[(0.36, 0.3), (0.52, 0.3), (0.52, 0.82), (0.36, 0.82)]);
+            pen.closed(&[(0.58, 0.28), (0.72, 0.24), (0.88, 0.78), (0.74, 0.82)]);
+            pen.line([(0.08, 0.88), (0.92, 0.88)]);
+        }
         Icon::Settings => pen.gear(),
         Icon::Tools => {
             pen.endmill(0.3);

@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::library::{
-    Collection, Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary,
-    export, import_into, load_library, load_machines, load_tools, read_import, update_library,
-    update_machines, update_tools, use_tool, write_export,
+    Collection, Cutting, LibraryError, LibraryTool, Link, MachineLibrary, MachineProfile,
+    ToolLibrary, export, import_into, load_library, load_machines, load_tools, machine_link,
+    read_import, tool_link, update_library, update_machines, update_tools, use_tool, write_export,
 };
 use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
 use chipload_pipeline::library::{
@@ -69,7 +69,13 @@ pub enum ToolAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Save a project's tool into the library.
+    /// How each project tool stands to the library tool it came from: same, differs (with
+    /// the differences), missing, or none.
+    Compare {
+        /// The project (.chipload).
+        project: PathBuf,
+    },
+    /// Save a project's tool into the library; the project's tool is linked to it.
     Save {
         /// The project (.chipload).
         project: PathBuf,
@@ -178,7 +184,13 @@ pub enum MachineAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Save a project's machine values as a profile.
+    /// How the project's machine stands to the profile it came from: same, differs (with
+    /// the differences), missing, or none.
+    Compare {
+        /// The project (.chipload).
+        project: PathBuf,
+    },
+    /// Save a project's machine values as a profile; the project is linked to it.
     Save {
         /// The project (.chipload).
         project: PathBuf,
@@ -279,6 +291,7 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 .ok_or_else(|| refused("a new tool needs --diameter".into()))?;
             let mut entry = LibraryTool {
                 name: name.clone(),
+                uid: library.new_uid(&name),
                 id: 1,
                 kind: ToolType::Endmill,
                 diameter,
@@ -331,37 +344,92 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
             name,
             replace,
         } => {
-            let job = match load(out, &project) {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let Some(found) = job.tools.iter().find(|t| t.id == tool) else {
+            let Some(found) = job.tools.iter().find(|t| t.id == tool).cloned() else {
                 return out.fail(format!("the project has no tool {tool}"));
             };
-            let entry = LibraryTool::from_tool(&name, found, None);
-            update_tools(&path, |library| {
-                // Cutting values aren't in a project tool: keep the library's.
-                let at = library.position(&name);
-                match at {
+            let saved = update_tools(&path, |library| {
+                // Cutting values aren't in a project tool: keep the library's. A replaced
+                // tool keeps its uid, so other projects stay linked to it.
+                match library.position(&name) {
                     Some(i) if replace => {
-                        let cutting = library.tools[i].cutting;
-                        library.tools[i] = LibraryTool { cutting, ..entry };
-                        Ok(format!(
-                            "Replaced library tool \"{name}\" with tool {tool}."
+                        let old = &library.tools[i];
+                        let entry =
+                            LibraryTool::from_tool(&old.name, &old.uid, &found, old.cutting);
+                        library.tools[i] = entry.clone();
+                        Ok((
+                            entry,
+                            format!("Replaced library tool \"{name}\" with tool {tool}."),
                         ))
                     }
                     Some(_) => Err(refused(format!(
                         "the library already has a tool named \"{name}\" (add --replace)"
                     ))),
                     None => {
-                        library.tools.push(entry);
-                        Ok(format!("Saved tool {tool} as \"{name}\"."))
+                        let entry =
+                            LibraryTool::from_tool(&name, &library.new_uid(&name), &found, None);
+                        library.tools.push(entry.clone());
+                        Ok((entry, format!("Saved tool {tool} as \"{name}\".")))
                     }
                 }
-            })
+            });
+            let (entry, line) = match saved {
+                Ok(saved) => saved,
+                Err(err) => return out.fail(err),
+            };
+            // The project's tool is now linked to the entry.
+            if let Some(t) = job.tools.iter_mut().find(|t| t.id == tool) {
+                t.name = Some(entry.name.clone());
+                t.library_uid = Some(entry.uid.clone());
+            }
+            if let Err(err) = save_job(&job, &project) {
+                return out.fail(err);
+            }
+            out.wrote(&project, "");
+            Ok(line)
         }
+        ToolAction::Compare { project } => return compare_tools(out, &path, &project),
     };
     finish(out, result, &path)
+}
+
+/// `tool compare` (docs/specs/library-in-browser.md §7).
+fn compare_tools(out: &mut Out, path: &Path, project: &Path) -> ExitCode {
+    let library = match load_tools(path) {
+        Ok(library) => library,
+        Err(err) => return out.fail(err),
+    };
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let mut rows = Vec::new();
+    for tool in &job.tools {
+        let link = tool_link(&library, tool);
+        out.line(format!("  T{}: {}", tool.id, link.text("library tool")));
+        rows.push(link_json(&link, serde_json::json!({ "id": tool.id })));
+    }
+    out.set("tools", serde_json::Value::Array(rows));
+    ExitCode::SUCCESS
+}
+
+/// A link as JSON: `state`, the entry's `name` and the `changes`, added to `row`.
+fn link_json(link: &Link, mut row: serde_json::Value) -> serde_json::Value {
+    let (name, changes) = match link {
+        Link::None => (None, Vec::new()),
+        Link::Missing(name) => (name.clone(), Vec::new()),
+        Link::Same(name) => (Some(name.clone()), Vec::new()),
+        Link::Differs(name, changes) => (Some(name.clone()), changes.clone()),
+    };
+    if let Some(map) = row.as_object_mut() {
+        map.insert("state".into(), serde_json::json!(link.state()));
+        map.insert("name".into(), serde_json::json!(name));
+        map.insert("changes".into(), serde_json::json!(changes));
+    }
+    row
 }
 
 fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), LibraryError> {
@@ -555,6 +623,7 @@ fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
                 c.feed, c.plunge_feed, c.step_down, c.stepover
             ));
         }
+        line.push_str(&format!(" (uid {})", t.uid));
         out.line(line.to_string());
     }
     ExitCode::SUCCESS
@@ -615,6 +684,7 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
             }
             let mut profile = MachineProfile {
                 name: name.clone(),
+                uid: library.new_uid(&name),
                 post: "grbl".into(),
                 safe_z: DEFAULT_SAFE_Z,
                 spindle: Spindle::Cw,
@@ -665,26 +735,58 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
             name,
             replace,
         } => {
-            let job = match load(out, &project) {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let profile = MachineProfile::from_job(&name, &job);
-            update_machines(&path, |library| match library.position(&name) {
+            // A replaced profile keeps its name and uid, so other projects stay linked.
+            let saved = update_machines(&path, |library| match library.position(&name) {
                 Some(i) if replace => {
-                    library.machines[i] = profile;
-                    Ok(format!(
-                        "Replaced machine \"{name}\" with the project's values."
+                    let old = &library.machines[i];
+                    let profile = MachineProfile::from_job(&old.name, &old.uid, &job);
+                    library.machines[i] = profile.clone();
+                    Ok((
+                        profile,
+                        format!("Replaced machine \"{name}\" with the project's values."),
                     ))
                 }
                 Some(_) => Err(refused(format!(
                     "there is already a machine named \"{name}\" (add --replace)"
                 ))),
                 None => {
-                    library.machines.push(profile);
-                    Ok(format!("Saved the project's machine as \"{name}\"."))
+                    let profile = MachineProfile::from_job(&name, &library.new_uid(&name), &job);
+                    library.machines.push(profile.clone());
+                    Ok((
+                        profile,
+                        format!("Saved the project's machine as \"{name}\"."),
+                    ))
                 }
-            })
+            });
+            let (profile, line) = match saved {
+                Ok(saved) => saved,
+                Err(err) => return out.fail(err),
+            };
+            job.machine.name = Some(profile.name.clone());
+            job.machine.library_uid = Some(profile.uid.clone());
+            if let Err(err) = save_job(&job, &project) {
+                return out.fail(err);
+            }
+            out.wrote(&project, "");
+            Ok(line)
+        }
+        MachineAction::Compare { project } => {
+            let library = match load_machines(&path) {
+                Ok(library) => library,
+                Err(err) => return out.fail(err),
+            };
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let link = machine_link(&library, &job);
+            out.line(format!("Machine: {}", link.text("profile")));
+            out.set("machine", link_json(&link, serde_json::json!({})));
+            return ExitCode::SUCCESS;
         }
     };
     finish(out, result, &path)
@@ -803,6 +905,7 @@ fn list_machines(out: &mut Out, path: &Path) -> ExitCode {
                 WorkZero::Point { x, y } => format!("point X{x} Y{y}"),
             }
         ));
+        line.push_str(&format!(" (uid {})", m.uid));
         out.line(line.to_string());
     }
     ExitCode::SUCCESS

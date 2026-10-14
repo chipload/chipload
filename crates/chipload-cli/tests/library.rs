@@ -144,7 +144,7 @@ fn tools_are_added_listed_changed_and_removed() {
     assert_eq!(file["default_tool"], "6 mm");
     assert_eq!(file["tools"][0]["cutting"]["feed"], 1500.0);
     assert_eq!(file["tools"][0]["cutting"]["stepover"], 0.4);
-    assert_eq!(file["schema_version"], 2);
+    assert_eq!(file["schema_version"], 3);
 
     let err = refused(&dir, &["tool", "add", "6 MM", "--diameter", "3"]);
     assert!(err.contains("already has a tool named"), "{err}");
@@ -257,7 +257,7 @@ fn a_new_project_starts_from_the_default_machine_and_tool() {
 #[test]
 fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     let dir = temp_dir("broken");
-    let newer = r#"{"schema_version": 3, "tools": []}"#;
+    let newer = r#"{"schema_version": 4, "tools": []}"#;
     std::fs::write(dir.join("tools.json"), newer).unwrap();
     let project = dir.join("part.chipload");
     let out = chipload(
@@ -272,14 +272,14 @@ fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     assert!(out.status.success());
     let err = String::from_utf8(out.stderr).unwrap();
     assert!(
-        err.contains("warning:") && err.contains("schema_version 3 is not supported"),
+        err.contains("warning:") && err.contains("schema_version 4 is not supported"),
         "{err}"
     );
     assert!(err.contains("using built-in defaults"), "{err}");
     assert!(json(&project)["tools"][0]["name"].is_null());
 
     let err = refused(&dir, &["tool", "add", "3 mm", "--diameter", "3"]);
-    assert!(err.contains("schema_version 3 is not supported"), "{err}");
+    assert!(err.contains("schema_version 4 is not supported"), "{err}");
     assert_eq!(
         std::fs::read_to_string(dir.join("tools.json")).unwrap(),
         newer
@@ -363,6 +363,106 @@ fn library_tools_and_machines_go_into_projects_and_back() {
     // The project still runs: the copies are complete project values.
     let gcode = dir.join("out.nc");
     ok(&dir, &["run", path(&project), "-o", path(&gcode)]);
+}
+
+/// docs/specs/library-in-browser.md §7: links by uid, kept through a rename.
+#[test]
+fn project_tools_stay_linked_through_a_rename_and_compare_says_how() {
+    let dir = temp_dir("compare");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    add_upcut(&dir);
+    add_shapeoko(&dir);
+    ok(&dir, &["tool", "use", "6 mm upcut", path(&project)]);
+    ok(&dir, &["machine", "use", "Shapeoko", path(&project)]);
+    let uid = json(&dir.join("tools.json"))["tools"][0]["uid"].clone();
+    let linked = json(&project)["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["library_uid"] == uid)
+        .cloned()
+        .unwrap();
+    let id = linked["id"].as_i64().unwrap();
+
+    let out = ok(&dir, &["tool", "compare", path(&project)]);
+    assert!(
+        out.contains(&format!("T{id}: from library tool \"6 mm upcut\"")),
+        "{out}"
+    );
+    assert!(out.contains("T1: not from your library"), "{out}");
+    let out = ok(&dir, &["machine", "compare", path(&project)]);
+    assert!(out.contains("Machine: from profile \"Shapeoko\""), "{out}");
+
+    // Renamed and changed in the library: still linked, and it says what differs.
+    ok(
+        &dir,
+        &[
+            "tool",
+            "set",
+            "6 mm upcut",
+            "--rename",
+            "Upcut",
+            "--rpm",
+            "16000",
+        ],
+    );
+    assert_eq!(json(&dir.join("tools.json"))["tools"][0]["uid"], uid);
+    let out = ok(&dir, &["--json", "tool", "compare", path(&project)]);
+    let report: Value = serde_json::from_str(&out).unwrap();
+    let row = report["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == id)
+        .unwrap();
+    assert_eq!(row["state"], "differs");
+    assert_eq!(row["name"], "Upcut");
+    assert_eq!(row["changes"][0], "rpm 18000 -> 16000");
+
+    // Saved from the project: the library tool is the project's again, and T1 is linked to
+    // a new entry.
+    ok(
+        &dir,
+        &[
+            "tool",
+            "save",
+            path(&project),
+            "--tool",
+            &id.to_string(),
+            "--name",
+            "Upcut",
+            "--replace",
+        ],
+    );
+    ok(
+        &dir,
+        &[
+            "tool",
+            "save",
+            path(&project),
+            "--tool",
+            "1",
+            "--name",
+            "One",
+        ],
+    );
+    let out = ok(&dir, &["tool", "compare", path(&project)]);
+    assert!(
+        out.contains(&format!("T{id}: from library tool \"Upcut\"")),
+        "{out}"
+    );
+    assert!(out.contains("T1: from library tool \"One\""), "{out}");
+
+    // Removed from the library: missing.
+    ok(&dir, &["tool", "remove", "Upcut"]);
+    let out = ok(&dir, &["tool", "compare", path(&project)]);
+    assert!(
+        out.contains(&format!(
+            "T{id}: library tool \"Upcut\" is not in your library"
+        )),
+        "{out}"
+    );
 }
 
 #[test]

@@ -12,11 +12,17 @@ As with tools, a project copies the values; the profile is only where new projec
 
 ## In the app
 
-**Machines** in the ribbon's LIBRARY group lists the profiles and marks the default.
+Your profiles are under **Library > Machines** in the [Browser](../window.md#the-browser).
+**Machines** in the ribbon's LIBRARY group opens it.
+- **Click a profile** to edit it in Properties; **Save** writes it.
+- **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 
 In Job settings > Machine:
 - **Use profile…** applies a profile to the project;
-- **Save as profile…** saves the project's machine values as a profile.
+- a line says how the project's machine stands to the profile it came from, as for
+  [tools](tools.md#project-tools-and-the-library), with *Update from library*, *Save to
+  library* and *Show in library*;
+- **Save as new…** (or **Save to library…**) saves the project's machine values as a profile.
 
 A profile whose post is one of your own [post-processors](../posts.md#your-own-post) copies
 that post into the project.
@@ -30,7 +36,8 @@ chipload machine set "Shapeoko" --safe-z 15        # or --rename
 chipload machine default "Shapeoko"
 chipload import part.dxf -o part.chipload --machine "Shapeoko"   # start from a profile
 chipload machine use "Shapeoko" part.chipload                   # apply to an existing project
-chipload machine save part.chipload --name "Shapeoko 4"
+chipload machine save part.chipload --name "Shapeoko 4"         # links the project to it
+chipload machine compare part.chipload                          # same, differs, not in the library, or not from a profile
 chipload machine export machines.json ; chipload machine import machines.json
 chipload machine remove "Shapeoko 4"
 ```

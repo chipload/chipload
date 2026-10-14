@@ -354,26 +354,24 @@ impl ChiploadApp {
                 "Library",
                 |app, ui| {
                     if ribbon_button(ui, Icon::Tools, "Tools", true, false)
-                        .on_hover_text("Your tool library: tools kept for every project")
+                        .on_hover_text("Your tool library, under Library in the Browser")
                         .clicked()
                     {
-                        app.open_library_window(LibraryKind::Tools);
+                        app.show_library(LibraryKind::Tools, None);
                     }
                     if ribbon_button(ui, Icon::Machine, "Machines", true, false)
-                        .on_hover_text(
-                            "Your machine profiles: machine values new projects start with",
-                        )
+                        .on_hover_text("Your machine profiles, under Library in the Browser")
                         .clicked()
                     {
-                        app.open_library_window(LibraryKind::Machines);
+                        app.show_library(LibraryKind::Machines, None);
                     }
                 },
                 |app, ui| {
-                    if ui.button("Tool library…").clicked() {
-                        app.open_library_window(LibraryKind::Tools);
+                    if ui.button("Tool library").clicked() {
+                        app.show_library(LibraryKind::Tools, None);
                     }
-                    if ui.button("Machines…").clicked() {
-                        app.open_library_window(LibraryKind::Machines);
+                    if ui.button("Machines").clicked() {
+                        app.show_library(LibraryKind::Machines, None);
                     }
                 },
             );

@@ -4,7 +4,7 @@
 
 Your machine profiles (`machines.json` in the settings folder) and the files `machine export` writes. Lengths in mm, feeds in mm/min.
 
-Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -12,7 +12,7 @@ Schema version 2. Older files load through Chipload's migrations; this schema de
 |---|---|---|---|
 | `default_machine` | string or null | no | The name of the profile new projects start with. Null: the built-in values. |
 | `machines` | list of [MachineProfile](#machineprofile) | yes | The profiles. |
-| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## MachineProfile
@@ -29,6 +29,7 @@ One machine profile: a project's machine values plus the spoilboard allowance.
 | `spindle` | [Spindle](#spindle) | yes | The spindle's direction: `cw` (M3) or `ccw` (M4). |
 | `tool_change` | [ToolChange](#toolchange) | yes | With several tools: `files` (one file per tool) or `program` (one file with tool changes). |
 | `travel` | [Travel](#travel) or null | no | The machine's travel, mm. When set, a program that moves farther is refused. Null: not checked. |
+| `uid` | string | yes | What projects link the profile by: 16 lowercase hex digits, unique in the file, never changed (docs/specs/library-in-browser.md §2). |
 | `work_zero` | [WorkZero](#workzero) | yes | The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's origin. |
 
 ## Spindle

@@ -1612,6 +1612,7 @@ pub(super) fn tools_form(
             job.tools.push(Tool {
                 id,
                 name: None,
+                library_uid: None,
                 kind: ToolType::Endmill,
                 diameter: chipload_pipeline::DEFAULT_TOOL_DIAMETER,
                 flutes: None,
@@ -2278,6 +2279,7 @@ mod tests {
         let tool = |id: i64, kind: ToolType, diameter: f64| Tool {
             id,
             name: None,
+            library_uid: None,
             kind,
             diameter,
             flutes: None,

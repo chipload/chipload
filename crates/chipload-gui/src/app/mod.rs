@@ -46,6 +46,7 @@ mod generation;
 mod header;
 mod images;
 mod library_transfer;
+mod library_view;
 mod measure;
 mod menu;
 mod navigation;
@@ -63,7 +64,7 @@ mod user_library;
 
 use forms::{job_form, op_form};
 use report::{DrawingFacts, Report, Tone};
-use user_library::LibraryWindows;
+use user_library::LibraryState;
 pub use user_library::{LibraryKind, SaveTarget};
 
 const STATUS_SECONDS: u64 = 5;
@@ -84,6 +85,25 @@ pub enum Focus {
     Tool(i64),
     Dxf(u64),
     Image(u64),
+    /// The user's library in the Browser (docs/specs/library-in-browser.md §4): its tools
+    /// folder, one tool by uid (as a number), its machines folder, one machine profile.
+    LibraryTools,
+    LibraryTool(u64),
+    LibraryMachines,
+    LibraryMachine(u64),
+}
+
+impl Focus {
+    /// Whether it shows something of the user's library, which needs no project.
+    pub fn is_library(self) -> bool {
+        matches!(
+            self,
+            Focus::LibraryTools
+                | Focus::LibraryTool(_)
+                | Focus::LibraryMachines
+                | Focus::LibraryMachine(_)
+        )
+    }
 }
 
 /// Something that would throw away unsaved changes, waiting for confirmation.
@@ -259,7 +279,7 @@ pub struct ChiploadApp {
     settings_dir: Option<PathBuf>,
     /// The tool library and machine profiles as last read.
     library: chipload_pipeline::library::Library,
-    library_windows: LibraryWindows,
+    library_state: LibraryState,
     /// File > Open recent (docs/specs/open-recent.md), most recent first.
     pub recent: Vec<String>,
     /// The image window, while open (docs/specs/image-trace.md §6).
@@ -346,7 +366,7 @@ impl Default for ChiploadApp {
             shortcuts_open: false,
             settings_dir: None,
             library: chipload_pipeline::library::Library::default(),
-            library_windows: LibraryWindows::default(),
+            library_state: LibraryState::default(),
             recent: Vec::new(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
@@ -1471,7 +1491,6 @@ impl eframe::App for ChiploadApp {
         self.shortcuts_window(&ctx);
         self.file_drops(&ctx);
         self.next_drop();
-        self.library_windows_ui(&ctx);
         self.image_window(&ctx);
         self.sync_pictures(&ctx);
         self.recovery_window(&ctx);

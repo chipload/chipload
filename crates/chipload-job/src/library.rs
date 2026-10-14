@@ -20,10 +20,11 @@ use crate::models::{
 pub const TOOLS_FILE: &str = "tools.json";
 pub const MACHINES_FILE: &str = "machines.json";
 /// Current `schema_version` of `tools.json`.
-/// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9).
-pub const TOOLS_VERSION: i64 = 2;
-/// Current `schema_version` of `machines.json`.
-pub const MACHINES_VERSION: i64 = 2;
+/// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9), version
+/// 3 each tool's `uid` (docs/specs/library-in-browser.md §2).
+pub const TOOLS_VERSION: i64 = 3;
+/// Current `schema_version` of `machines.json`. Version 3 added each profile's `uid`.
+pub const MACHINES_VERSION: i64 = 3;
 /// App settings: the recent projects (docs/specs/open-recent.md).
 pub const SETTINGS_FILE: &str = "settings.json";
 /// Current `schema_version` of `settings.json`. Version 2 added `theme`, version 3
@@ -78,6 +79,9 @@ pub struct Cutting {
 pub struct LibraryTool {
     /// The tool's name, unique in the library (upper or lower case don't matter).
     pub name: String,
+    /// What projects link the tool by: 16 lowercase hex digits, unique in the library, never
+    /// changed (docs/specs/library-in-browser.md §2).
+    pub uid: String,
     /// The tool number it gets in a project, when that number is free there.
     pub id: i64,
     /// `endmill`, `drill` or `vbit`.
@@ -107,10 +111,11 @@ pub struct LibraryTool {
 }
 
 impl LibraryTool {
-    /// A library entry made from a project tool.
-    pub fn from_tool(name: &str, tool: &Tool, cutting: Option<Cutting>) -> LibraryTool {
+    /// A library entry made from a project tool, with the given uid.
+    pub fn from_tool(name: &str, uid: &str, tool: &Tool, cutting: Option<Cutting>) -> LibraryTool {
         LibraryTool {
             name: name.to_string(),
+            uid: uid.to_string(),
             id: tool.id,
             kind: tool.kind,
             diameter: tool.diameter,
@@ -123,11 +128,12 @@ impl LibraryTool {
         }
     }
 
-    /// The project tool this entry becomes, with the given id and the entry's name.
+    /// The project tool this entry becomes, with the given id, linked to the entry.
     pub fn tool(&self, id: i64) -> Tool {
         Tool {
             id,
             name: Some(self.name.clone()),
+            library_uid: Some(self.uid.clone()),
             kind: self.kind,
             diameter: self.diameter,
             flutes: self.flutes,
@@ -181,11 +187,12 @@ impl LibraryTool {
         changes
     }
 
-    /// Whether a project tool has this entry's values (id and name aside).
+    /// Whether a project tool has this entry's values (id, name and link aside).
     pub fn same_values(&self, tool: &Tool) -> bool {
         self.tool(tool.id)
             == Tool {
                 name: Some(self.name.clone()),
+                library_uid: Some(self.uid.clone()),
                 ..tool.clone()
             }
     }
@@ -228,6 +235,16 @@ impl ToolLibrary {
         self.position(name).map(|i| &self.tools[i])
     }
 
+    /// The tool with this uid.
+    pub fn find_uid(&self, uid: &str) -> Option<&LibraryTool> {
+        self.tools.iter().find(|t| t.uid == uid)
+    }
+
+    /// A uid for a new tool named `name` (§2 of docs/specs/library-in-browser.md).
+    pub fn new_uid(&self, name: &str) -> String {
+        fresh_uid(name, self.tools.iter().map(|t| t.uid.as_str()))
+    }
+
     /// The tool a new project starts with, if one is set.
     pub fn default_entry(&self) -> Option<&LibraryTool> {
         self.default_tool.as_deref().and_then(|n| self.find(n))
@@ -256,6 +273,10 @@ impl ToolLibrary {
             self.default_tool.as_deref(),
             "default_tool",
         );
+        problems.extend(uid_problems(
+            "tools",
+            self.tools.iter().map(|t| t.uid.as_str()),
+        ));
         for (i, entry) in self.tools.iter().enumerate() {
             let at = format!("tools.{i}");
             problems.extend(entry.tool(entry.id).problems(&at));
@@ -291,6 +312,9 @@ impl ToolLibrary {
 pub struct MachineProfile {
     /// The profile's name, unique in the file.
     pub name: String,
+    /// What projects link the profile by: 16 lowercase hex digits, unique in the file,
+    /// never changed (docs/specs/library-in-browser.md §2).
+    pub uid: String,
     /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
     /// The height for rapid moves sideways, mm above Z0. Above the stock top.
@@ -317,11 +341,12 @@ pub struct MachineProfile {
 }
 
 impl MachineProfile {
-    /// A profile made from a project's machine values.
-    pub fn from_job(name: &str, job: &Job) -> MachineProfile {
+    /// A profile made from a project's machine values, with the given uid.
+    pub fn from_job(name: &str, uid: &str, job: &Job) -> MachineProfile {
         let m = &job.machine;
         MachineProfile {
             name: name.to_string(),
+            uid: uid.to_string(),
             post: m.post.clone(),
             safe_z: m.safe_z,
             spindle: m.spindle,
@@ -333,10 +358,11 @@ impl MachineProfile {
         }
     }
 
-    /// The project machine this profile becomes, with the profile's name.
+    /// The project machine this profile becomes, linked to the profile.
     pub fn machine(&self) -> Machine {
         Machine {
             name: Some(self.name.clone()),
+            library_uid: Some(self.uid.clone()),
             post: self.post.clone(),
             safe_z: self.safe_z,
             spindle: self.spindle,
@@ -487,6 +513,16 @@ impl MachineLibrary {
         self.position(name).map(|i| &self.machines[i])
     }
 
+    /// The profile with this uid.
+    pub fn find_uid(&self, uid: &str) -> Option<&MachineProfile> {
+        self.machines.iter().find(|m| m.uid == uid)
+    }
+
+    /// A uid for a new profile named `name`.
+    pub fn new_uid(&self, name: &str) -> String {
+        fresh_uid(name, self.machines.iter().map(|m| m.uid.as_str()))
+    }
+
     /// The profile a new project starts with, if one is set.
     pub fn default_entry(&self) -> Option<&MachineProfile> {
         self.default_machine.as_deref().and_then(|n| self.find(n))
@@ -515,6 +551,10 @@ impl MachineLibrary {
             self.default_machine.as_deref(),
             "default_machine",
         );
+        problems.extend(uid_problems(
+            "machines",
+            self.machines.iter().map(|m| m.uid.as_str()),
+        ));
         for (i, profile) in self.machines.iter().enumerate() {
             let at = format!("machines.{i}");
             problems.extend(profile.machine().problems(&at));
@@ -629,6 +669,70 @@ impl AppSettings {
     }
 }
 
+/// The uid a library entry named `name` gets: FNV-1a 64 of the lower-cased name, as 16
+/// lowercase hex digits (docs/specs/library-in-browser.md §2). Frozen: migrations of
+/// projects and libraries both use it, and must agree forever.
+pub fn uid_for_name(name: &str) -> String {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0100_0000_01b3;
+    let mut hash = OFFSET;
+    for byte in name.to_lowercase().bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(PRIME);
+    }
+    format!("{hash:016x}")
+}
+
+/// A uid not in `taken`: the uid of `name`, else of "name#2", "name#3" …
+pub fn fresh_uid<'a>(name: &str, taken: impl Iterator<Item = &'a str> + Clone) -> String {
+    let mut uid = uid_for_name(name);
+    let mut n = 2;
+    while taken.clone().any(|t| t == uid) {
+        uid = uid_for_name(&format!("{name}#{n}"));
+        n += 1;
+    }
+    uid
+}
+
+/// 16 lowercase hex digits.
+fn is_uid(uid: &str) -> bool {
+    uid.len() == 16
+        && uid
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+/// Every uid is well formed and unique in its list.
+fn uid_problems<'a>(list: &str, uids: impl Iterator<Item = &'a str>) -> Vec<String> {
+    let mut problems = Vec::new();
+    let uids: Vec<&str> = uids.collect();
+    for (i, uid) in uids.iter().enumerate() {
+        if !is_uid(uid) {
+            problems.push(format!(
+                "{list}.{i}.uid: must be 16 lowercase hex digits, got \"{uid}\""
+            ));
+        } else if uids[..i].contains(uid) {
+            problems.push(format!("{list}.{i}.uid: \"{uid}\" is used twice"));
+        }
+    }
+    problems
+}
+
+/// Library v2 -> v3: each entry of `list` gets the uid of its name (one with a taken uid,
+/// which only a hash collision gives, the next free one).
+fn add_uids(data: &mut serde_json::Map<String, Value>, list: &str) {
+    if let Some(Value::Array(entries)) = data.get_mut(list) {
+        let mut taken: Vec<String> = Vec::new();
+        for entry in entries.iter_mut().filter_map(Value::as_object_mut) {
+            let name = entry.get("name").and_then(Value::as_str).unwrap_or("");
+            let uid = fresh_uid(name, taken.iter().map(String::as_str));
+            taken.push(uid.clone());
+            entry.insert("uid".into(), Value::from(uid));
+        }
+    }
+    data.insert("schema_version".into(), Value::from(3));
+}
+
 /// Names compare ignoring case, so "6 mm Upcut" and "6 mm upcut" can't both exist.
 pub fn same_name(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
@@ -693,13 +797,14 @@ impl UsedTool {
     }
 }
 
-/// Put a library tool into a project: a project tool with the same name and values is
+/// Put a library tool into a project: a project tool linked to it with the same values is
 /// reused; otherwise a copy is added, with the library id if that is free, else the next
 /// free id.
 pub fn use_tool(job: &mut Job, entry: &LibraryTool) -> UsedTool {
-    let existing = job.tools.iter().find(|t| {
-        t.name.as_deref().is_some_and(|n| same_name(n, &entry.name)) && entry.same_values(t)
-    });
+    let existing = job
+        .tools
+        .iter()
+        .find(|t| t.library_uid.as_deref() == Some(entry.uid.as_str()) && entry.same_values(t));
     if let Some(tool) = existing {
         return UsedTool {
             id: tool.id,
@@ -714,6 +819,101 @@ pub fn use_tool(job: &mut Job, entry: &LibraryTool) -> UsedTool {
     };
     job.tools.push(entry.tool(id));
     UsedTool { id, added: true }
+}
+
+/// How a project tool or machine stands to the library entry it came from
+/// (docs/specs/library-in-browser.md §3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Link {
+    /// Not copied from the library.
+    None,
+    /// No entry has its `library_uid` (deleted, or another computer's library); the name it
+    /// was copied under.
+    Missing(Option<String>),
+    /// The entry, by its current name, has the same values.
+    Same(String),
+    /// The entry, by its current name, has other values: what updating would change.
+    Differs(String, Vec<String>),
+}
+
+impl Link {
+    /// One line for the user; `what` names the entry ("library tool", "profile").
+    pub fn text(&self, what: &str) -> String {
+        match self {
+            Link::None => "not from your library".into(),
+            Link::Missing(Some(name)) => format!("{what} \"{name}\" is not in your library"),
+            Link::Missing(None) => format!("its {what} is not in your library"),
+            Link::Same(name) => format!("from {what} \"{name}\""),
+            Link::Differs(name, changes) => {
+                format!("differs from {what} \"{name}\": {}", changes.join(", "))
+            }
+        }
+    }
+
+    /// One word for a list: `none`, `missing`, `same` or `differs`.
+    pub fn state(&self) -> &'static str {
+        match self {
+            Link::None => "none",
+            Link::Missing(_) => "missing",
+            Link::Same(_) => "same",
+            Link::Differs(..) => "differs",
+        }
+    }
+
+    /// The entry's current name, when it is in the library.
+    pub fn entry_name(&self) -> Option<&str> {
+        match self {
+            Link::Same(name) | Link::Differs(name, _) => Some(name),
+            Link::None | Link::Missing(_) => None,
+        }
+    }
+}
+
+/// How a project tool stands to the library.
+pub fn tool_link(library: &ToolLibrary, tool: &Tool) -> Link {
+    let Some(uid) = tool.library_uid.as_deref() else {
+        return Link::None;
+    };
+    match library.find_uid(uid) {
+        None => Link::Missing(tool.name.clone()),
+        Some(entry) => {
+            let changes = entry.changes(tool);
+            if changes.is_empty() {
+                Link::Same(entry.name.clone())
+            } else {
+                Link::Differs(entry.name.clone(), changes)
+            }
+        }
+    }
+}
+
+/// How a project's machine stands to the library.
+pub fn machine_link(library: &MachineLibrary, job: &Job) -> Link {
+    let Some(uid) = job.machine.library_uid.as_deref() else {
+        return Link::None;
+    };
+    match library.find_uid(uid) {
+        None => Link::Missing(job.machine.name.clone()),
+        Some(profile) => {
+            let changes = profile.changes(job);
+            if changes.is_empty() {
+                Link::Same(profile.name.clone())
+            } else {
+                Link::Differs(profile.name.clone(), changes)
+            }
+        }
+    }
+}
+
+/// A project tool's cutting values for a new operation: the linked entry's, while the tool
+/// still has its values.
+pub fn linked_cutting(library: &ToolLibrary, tool: &Tool) -> Option<Cutting> {
+    let entry = library.find_uid(tool.library_uid.as_deref()?)?;
+    if entry.same_values(tool) {
+        entry.cutting
+    } else {
+        None
+    }
 }
 
 /// A library file format: its version, name in messages, and rules.
@@ -740,8 +940,10 @@ impl LibraryFile for ToolLibrary {
         self.written_by = Some(written_by());
     }
     fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
-        if from == 1 {
-            tools_v1_to_v2(data);
+        match from {
+            1 => tools_v1_to_v2(data),
+            2 => tools_v2_to_v3(data),
+            _ => {}
         }
     }
 }
@@ -749,6 +951,17 @@ impl LibraryFile for ToolLibrary {
 /// Tools 1 -> 2: V-bits may have an angle and a tip; existing ones get neither (unknown).
 pub fn tools_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
     data.insert("schema_version".into(), Value::from(2));
+}
+
+/// Tools 2 -> 3: each tool gets the uid of its name, as projects 22 -> 23 do for the tools
+/// they copied, so they stay linked.
+pub fn tools_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
+    add_uids(data, "tools");
+}
+
+/// Machines 2 -> 3: each profile gets the uid of its name.
+pub fn machines_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
+    add_uids(data, "machines");
 }
 
 impl LibraryFile for MachineLibrary {
@@ -762,8 +975,10 @@ impl LibraryFile for MachineLibrary {
         self.written_by = Some(written_by());
     }
     fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
-        if from == 1 {
-            machines_v1_to_v2(data);
+        match from {
+            1 => machines_v1_to_v2(data),
+            2 => machines_v2_to_v3(data),
+            _ => {}
         }
     }
 }
@@ -1046,6 +1261,9 @@ pub trait Entry: Clone + PartialEq {
     fn differences(&self, other: &Self) -> Vec<String>;
     /// The same entry with another name.
     fn renamed(&self, name: &str) -> Self;
+    fn uid(&self) -> &str;
+    /// The same entry with another uid.
+    fn with_uid(&self, uid: &str) -> Self;
 }
 
 impl Collection for ToolLibrary {
@@ -1102,6 +1320,15 @@ impl Entry for LibraryTool {
             ..self.clone()
         }
     }
+    fn uid(&self) -> &str {
+        &self.uid
+    }
+    fn with_uid(&self, uid: &str) -> Self {
+        LibraryTool {
+            uid: uid.to_string(),
+            ..self.clone()
+        }
+    }
     fn differences(&self, other: &Self) -> Vec<String> {
         let mut changes = other.changes(&self.tool(self.id));
         if self.id != other.id {
@@ -1125,6 +1352,15 @@ impl Entry for MachineProfile {
     fn renamed(&self, name: &str) -> Self {
         MachineProfile {
             name: name.to_string(),
+            ..self.clone()
+        }
+    }
+    fn uid(&self) -> &str {
+        &self.uid
+    }
+    fn with_uid(&self, uid: &str) -> Self {
+        MachineProfile {
+            uid: uid.to_string(),
             ..self.clone()
         }
     }
@@ -1187,9 +1423,9 @@ pub fn import_plan<L: Collection>(library: &L, file: &L) -> ImportPlan {
     plan
 }
 
-/// Equal values, the name's spelling aside.
+/// Equal values, the name's spelling and the uid aside.
 fn same_values<E: Entry>(a: &E, b: &E) -> bool {
-    *a == b.renamed(a.name())
+    *a == b.renamed(a.name()).with_uid(a.uid())
 }
 
 /// Import `file` into `library` (§4): new entries are added, differing ones replaced only
@@ -1202,10 +1438,22 @@ pub fn import_into<L: Collection>(library: &mut L, file: &L, replace: bool) -> I
             .iter()
             .position(|e| same_name(e.name(), entry.name()));
         match found {
-            None => library.entries_mut().push(entry.clone()),
+            None => {
+                // The file's uid, unless another entry has it.
+                let clash = library.entries().iter().any(|e| e.uid() == entry.uid());
+                let added = if clash {
+                    let uid = fresh_uid(entry.name(), library.entries().iter().map(Entry::uid));
+                    entry.with_uid(&uid)
+                } else {
+                    entry.clone()
+                };
+                library.entries_mut().push(added);
+            }
             Some(i) if replace => {
-                // The library's spelling of the name stays with its position.
-                let taken = entry.renamed(library.entries()[i].name());
+                // The library's spelling of the name and its uid stay with its position,
+                // so projects linked to it stay linked.
+                let mine = &library.entries()[i];
+                let taken = entry.renamed(mine.name()).with_uid(mine.uid());
                 library.entries_mut()[i] = taken;
             }
             Some(_) => {}

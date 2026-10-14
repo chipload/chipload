@@ -13,6 +13,7 @@ use chipload_job::library::{
     export, import_into, import_plan, load_machines, load_tools, read_import, save_machines,
     save_tools, update_tools, use_tool, write_export,
 };
+use chipload_job::library::{Link, fresh_uid, machine_link, tool_link, uid_for_name};
 use chipload_job::{Job, Spindle, StockCorner, ToolType, Travel, WorkZero, load_job};
 
 fn temp_dir(name: &str) -> PathBuf {
@@ -30,6 +31,7 @@ fn project() -> Job {
 fn upcut() -> LibraryTool {
     LibraryTool {
         name: "6 mm upcut".into(),
+        uid: uid_for_name("6 mm upcut"),
         id: 1,
         kind: ToolType::Endmill,
         diameter: 6.0,
@@ -58,6 +60,7 @@ fn tools() -> ToolLibrary {
 fn shapeoko() -> MachineProfile {
     MachineProfile {
         name: "Shapeoko".into(),
+        uid: uid_for_name("Shapeoko"),
         post: "grbl".into(),
         safe_z: 10.0,
         spindle: Spindle::Cw,
@@ -120,7 +123,8 @@ fn both_files_round_trip_with_every_field_written() {
 
     let text = std::fs::read_to_string(&tools_path).unwrap();
     for field in [
-        "\"schema_version\": 2",
+        "\"schema_version\": 3",
+        "\"uid\": \"",
         "\"center_cutting\": true",
         "\"angle\": null",
         "\"stepover\": 0.4",
@@ -170,7 +174,7 @@ fn unknown_versions_and_broken_files_are_refused() {
     let dir = temp_dir("versions");
     let path = dir.join("tools.json");
     for (text, found) in [
-        (r#"{"schema_version": 3, "tools": []}"#, "3"),
+        (r#"{"schema_version": 4, "tools": []}"#, "4"),
         (r#"{"schema_version": 0, "tools": []}"#, "0"),
         (r#"{"tools": []}"#, "(missing)"),
         (r#"{"schema_version": "1", "tools": []}"#, "\"1\""),
@@ -181,7 +185,7 @@ fn unknown_versions_and_broken_files_are_refused() {
                 found: f, current, ..
             } => {
                 assert_eq!(f, found);
-                assert_eq!(current, 2);
+                assert_eq!(current, 3);
             }
             other => panic!("{text}: {other}"),
         }
@@ -208,7 +212,7 @@ fn a_version_1_library_loads_with_v_bits_of_unknown_angle() {
                    "center_cutting": null, "rpm": 18000.0, "cutting": null}]}"#;
     std::fs::write(&path, v1).unwrap();
     let library = load_tools(&path).unwrap();
-    assert_eq!(library.schema_version, 2);
+    assert_eq!(library.schema_version, 3);
     let tool = &library.tools[0];
     assert_eq!(tool.kind, ToolType::Vbit);
     assert_eq!((tool.angle, tool.tip_diameter), (None, None));
@@ -227,7 +231,7 @@ fn a_version_1_machine_library_writes_one_file_per_tool() {
                       "max_overcut": 0.3}]}"#;
     std::fs::write(&path, v1).unwrap();
     let library = load_machines(&path).unwrap();
-    assert_eq!(library.schema_version, 2);
+    assert_eq!(library.schema_version, 3);
     assert_eq!(library.machines, [shapeoko()]);
     assert_eq!(library.machines[0].tool_change, ToolChange::Files);
     // Version 2 needs it.
@@ -240,7 +244,7 @@ fn a_version_1_machine_library_writes_one_file_per_tool() {
 fn a_broken_library_is_never_overwritten() {
     let dir = temp_dir("broken");
     let path = dir.join("tools.json");
-    let newer = r#"{"schema_version": 3, "tools": [], "from_the_future": true}"#;
+    let newer = r#"{"schema_version": 4, "tools": [], "from_the_future": true}"#;
     std::fs::write(&path, newer).unwrap();
     let err = update_tools(&path, |library| {
         library.tools.push(upcut());
@@ -263,6 +267,7 @@ fn update_changes_the_file_as_it_is_now() {
     let mut other = load_tools(&path).unwrap();
     other.tools.push(LibraryTool {
         name: "3 mm".into(),
+        uid: uid_for_name("3 mm"),
         diameter: 3.0,
         cutting: None,
         ..upcut()
@@ -418,7 +423,10 @@ fn a_machine_profile_lists_what_it_changes() {
     assert_eq!(job.stock.max_overcut, 0.3);
     assert!(profile.changes(&job).is_empty());
     // A profile saved from the project gives the project back.
-    assert_eq!(MachineProfile::from_job("Shapeoko", &job), profile);
+    assert_eq!(
+        MachineProfile::from_job("Shapeoko", &uid_for_name("Shapeoko"), &job),
+        profile
+    );
 }
 
 #[test]
@@ -587,6 +595,7 @@ fn settings_newer_than_known_or_without_a_theme_are_refused() {
 fn downcut() -> LibraryTool {
     LibraryTool {
         name: "3 mm downcut".into(),
+        uid: uid_for_name("3 mm downcut"),
         id: 2,
         diameter: 3.0,
         cutting: None,
@@ -649,6 +658,7 @@ fn import_adds_new_keeps_or_replaces_differing_and_skips_same() {
     same.name = "6 MM Upcut".into();
     let mut new = downcut();
     new.name = "1 mm".into();
+    new.uid = uid_for_name("1 mm");
     theirs.tools = vec![new.clone(), changed, same];
     theirs.default_tool = Some("1 mm".into());
 
@@ -789,4 +799,142 @@ fn a_recovery_note_round_trips_and_odd_ones_are_refused() {
     );
     std::fs::write(&path, "{\"schema_version\": 1, \"project_path\"").unwrap();
     assert!(load_recovery_note(&path).is_err());
+}
+
+// docs/specs/library-in-browser.md §2, §3.
+
+#[test]
+fn a_uid_comes_from_the_name_and_skips_taken_ones() {
+    // FNV-1a 64 of the lower-cased name: frozen, migrations depend on it.
+    assert_eq!(uid_for_name(""), "cbf29ce484222325");
+    assert_eq!(uid_for_name("a"), "af63dc4c8601ec8c");
+    assert_eq!(uid_for_name("6 MM Upcut"), uid_for_name("6 mm upcut"));
+    let first = uid_for_name("x");
+    let taken = [first.clone()];
+    let next = fresh_uid("x", taken.iter().map(String::as_str));
+    assert_eq!(next, uid_for_name("x#2"));
+    assert_eq!(
+        fresh_uid("y", taken.iter().map(String::as_str)),
+        uid_for_name("y")
+    );
+}
+
+#[test]
+fn old_libraries_get_the_uid_of_each_name() {
+    let dir = temp_dir("uids");
+    let tools = dir.join("tools.json");
+    std::fs::write(
+        &tools,
+        r#"{"schema_version": 2, "tools": [
+            {"name": "6 mm upcut", "id": 1, "type": "endmill", "diameter": 6.0},
+            {"name": "V 60", "id": 2, "type": "vbit", "diameter": 12.0}]}"#,
+    )
+    .unwrap();
+    let library = load_tools(&tools).unwrap();
+    assert_eq!(library.tools[0].uid, uid_for_name("6 mm upcut"));
+    assert_eq!(library.tools[1].uid, uid_for_name("V 60"));
+    let machines = dir.join("machines.json");
+    std::fs::write(
+        &machines,
+        r#"{"schema_version": 2, "machines": [{"name": "Shapeoko", "post": "grbl",
+            "safe_z": 10.0, "spindle": "cw", "work_zero": {"at": "drawing_origin"},
+            "max_overcut": 0.3, "tool_change": "files"}]}"#,
+    )
+    .unwrap();
+    let library = load_machines(&machines).unwrap();
+    assert_eq!(library.machines[0].uid, uid_for_name("Shapeoko"));
+}
+
+#[test]
+fn bad_or_twice_used_uids_are_refused() {
+    let mut library = tools();
+    let mut other = upcut();
+    other.name = "Other".into();
+    library.tools.push(other);
+    assert!(
+        library
+            .validate()
+            .iter()
+            .any(|p| p.starts_with("tools.1.uid:") && p.contains("used twice")),
+        "{:?}",
+        library.validate()
+    );
+    library.tools[1].uid = "XYZ".into();
+    assert!(
+        library
+            .validate()
+            .iter()
+            .any(|p| p.contains("16 lowercase hex digits"))
+    );
+}
+
+#[test]
+fn a_project_tool_links_by_uid_and_survives_a_rename() {
+    let mut job = project();
+    job.tools.clear();
+    let mut library = tools();
+    let tool = upcut().tool(1);
+    job.tools.push(tool.clone());
+    assert_eq!(tool_link(&library, &tool), Link::Same("6 mm upcut".into()));
+    // Renamed in the library: still linked, by its new name.
+    library.tools[0].name = "Upcut 6".into();
+    assert_eq!(tool_link(&library, &tool), Link::Same("Upcut 6".into()));
+    // Other values in the library.
+    library.tools[0].diameter = 8.0;
+    assert_eq!(
+        tool_link(&library, &tool),
+        Link::Differs("Upcut 6".into(), vec!["diameter 6 mm -> 8 mm".into()])
+    );
+    assert!(
+        tool_link(&library, &tool)
+            .text("library tool")
+            .starts_with("differs from")
+    );
+    // Gone from the library.
+    library.tools.clear();
+    assert_eq!(
+        tool_link(&library, &tool),
+        Link::Missing(Some("6 mm upcut".into()))
+    );
+    // Never from the library.
+    let mut own = tool;
+    own.library_uid = None;
+    assert_eq!(tool_link(&library, &own), Link::None);
+}
+
+#[test]
+fn the_machine_links_by_uid() {
+    let mut job = project();
+    let mut library = machines();
+    assert_eq!(machine_link(&library, &job), Link::None);
+    shapeoko().apply(&mut job);
+    assert_eq!(machine_link(&library, &job), Link::Same("Shapeoko".into()));
+    library.machines[0].safe_z = 20.0;
+    assert_eq!(machine_link(&library, &job).state(), "differs");
+    library.machines.clear();
+    assert_eq!(machine_link(&library, &job).state(), "missing");
+}
+
+#[test]
+fn import_keeps_uids_and_gives_a_clashing_one_a_new_uid() {
+    let mut library = tools();
+    // A file tool of another name with the same uid: added with a fresh uid.
+    let mut clash = upcut();
+    clash.name = "Clash".into();
+    // A file tool of the same name with another uid and other values: replaced, keeping
+    // the library's uid.
+    let mut same = upcut();
+    same.uid = uid_for_name("somewhere else");
+    same.rpm = Some(12000.0);
+    let file = ToolLibrary {
+        tools: vec![clash, same],
+        ..ToolLibrary::default()
+    };
+    import_into(&mut library, &file, true);
+    assert_eq!(library.tools.len(), 2);
+    assert_eq!(library.tools[0].uid, uid_for_name("6 mm upcut"));
+    assert_eq!(library.tools[0].rpm, Some(12000.0));
+    assert_eq!(library.tools[1].name, "Clash");
+    assert_ne!(library.tools[1].uid, library.tools[0].uid);
+    assert!(library.validate().is_empty(), "{:?}", library.validate());
 }

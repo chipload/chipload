@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 22. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 23. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 22. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `22` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `23` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -237,6 +237,7 @@ Quarter-circle lead-in and lead-out.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `custom_post` | [CustomPost](#custompost) or null | no | Your own post-processor, copied into the project when chosen, so it gives the same G-code anywhere. Null: `post` is a built-in one. |
+| `library_uid` | string or null | no | The `uid` of the machine profile these values came from, for reference; nothing that cuts reads it. Null: not from a profile. |
 | `max_feed` | number or null | no | The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time uses it for rapids. Null: unknown. |
 | `name` | string or null | no | The machine profile these values came from, for reference; nothing reads it. |
 | `post` | string | yes | The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own. |
@@ -510,6 +511,7 @@ One of: `"bottom_left"`, `"center"`.
 | `diameter` | number | yes | Diameter, mm. For a V-bit, its widest cutting diameter. |
 | `flutes` | integer or null | no | Number of flutes, for the chip load. Null: unknown. |
 | `id` | integer | yes | The tool's number: what operations name it by, and its T number in the G-code. |
+| `library_uid` | string or null | no | The `uid` of the library tool it came from, for reference; nothing that cuts reads it. Null: not from the library. |
 | `name` | string or null | no | The library tool it came from, for reference. |
 | `rpm` | number or null | no | Spindle speed, rpm. Needed to generate. |
 | `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. |

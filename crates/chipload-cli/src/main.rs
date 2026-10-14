@@ -1812,10 +1812,11 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             let library = settings_dir()
                 .map(|dir| Library::load(&dir))
                 .unwrap_or_default();
-            let cutting = job.tools.iter().find(|t| t.id == tool).and_then(|t| {
-                let entry = library.tools.find(t.name.as_deref()?)?;
-                entry.same_values(t).then_some(entry.cutting).flatten()
-            });
+            let cutting = job
+                .tools
+                .iter()
+                .find(|t| t.id == tool)
+                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
             let index = match add_rest_pocket(&mut job, op, tool, cutting.as_ref()) {
                 Ok(index) => index,
                 Err(err) => return out.fail(err),
