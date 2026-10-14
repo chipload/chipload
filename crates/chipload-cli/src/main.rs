@@ -929,7 +929,7 @@ fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>
     }
     let problems = job.validate();
     if !problems.is_empty() {
-        return out.fail(problems.join("; "));
+        return out.fail(chipload_pipeline::joined(&problems));
     }
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {

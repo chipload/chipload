@@ -58,7 +58,7 @@ fn group_operations(job: &mut Job) {
 /// Refuse a result the project's rules don't allow.
 fn checked(job: Job) -> Result<Job, PipelineError> {
     match job.validate().into_iter().next() {
-        Some(problem) => Err(refused(problem)),
+        Some(problem) => Err(refused(problem.to_string())),
         None => Ok(job),
     }
 }

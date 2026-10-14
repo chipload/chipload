@@ -141,7 +141,11 @@ pub fn parse_job(data: Value, path: &str) -> Result<Job, JobError> {
     } else {
         Err(JobError::Invalid {
             path: path.to_string(),
-            reason: problems.join("; "),
+            reason: problems
+                .iter()
+                .map(Problem::to_string)
+                .collect::<Vec<_>>()
+                .join("; "),
         })
     }
 }

@@ -687,7 +687,7 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems);
+                self.error(problems.iter().map(ToString::to_string).collect());
                 return false;
             }
         };
@@ -744,7 +744,7 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems);
+                self.error(problems.iter().map(ToString::to_string).collect());
                 return false;
             }
         };
@@ -817,7 +817,7 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems);
+                self.error(problems.iter().map(ToString::to_string).collect());
                 return false;
             }
         };
@@ -858,7 +858,7 @@ impl ChiploadApp {
         let job = match part.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems);
+                self.error(problems.iter().map(ToString::to_string).collect());
                 return;
             }
         };
@@ -1147,7 +1147,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 let mut lines = vec!["The project can't be saved yet:".to_string()];
-                lines.extend(problems.into_iter().map(|p| format!("  {p}")));
+                lines.extend(problems.iter().map(|p| format!("  {p}")));
                 self.error(lines);
                 return false;
             }

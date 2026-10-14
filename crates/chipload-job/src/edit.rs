@@ -171,7 +171,11 @@ pub fn try_drag(
     if problems.is_empty() {
         Ok(geometry)
     } else {
-        Err(problems.join("; "))
+        Err(problems
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("; "))
     }
 }
 

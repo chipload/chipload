@@ -139,7 +139,7 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems);
+                self.error(problems.iter().map(ToString::to_string).collect());
                 return false;
             }
         };

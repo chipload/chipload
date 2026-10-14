@@ -155,7 +155,9 @@ fn removing_a_dxf_removes_its_shapes_and_names_the_operations_that_used_it() {
     );
     let problems = removed.validate();
     assert!(
-        problems.iter().any(|p| p.contains("select.dxf: no DXF 2")),
+        problems
+            .iter()
+            .any(|p| p.text.contains("select.dxf: no DXF 2")),
         "{problems:?}"
     );
     assert!(remove_dxf(&removed, 2).is_err());
@@ -179,6 +181,6 @@ fn a_selector_may_name_a_whole_dxf() {
     assert!(
         two.validate()
             .iter()
-            .any(|p| p.contains("needs a DXF, an image, a layer or shapes"))
+            .any(|p| p.text.contains("needs a DXF, an image, a layer or shapes"))
     );
 }

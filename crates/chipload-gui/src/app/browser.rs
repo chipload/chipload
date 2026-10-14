@@ -778,7 +778,7 @@ impl ChiploadApp {
             .iter()
             .find(|p| p.operation() == Some(i))
             .map(problems::plain);
-        let missing = edit.missing().iter().any(|(m, _)| *m == i);
+        let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
         // Smaller endmills a rest pocket for this pocket can use

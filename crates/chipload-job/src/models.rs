@@ -12,6 +12,8 @@ use std::collections::BTreeMap;
 
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
+
+use crate::Problem;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
@@ -146,27 +148,32 @@ impl Copies {
 
     /// What is wrong with the grid, as "{at}.field: message" (`at` is its path, e.g.
     /// "parts.0.copies").
-    pub fn problems(&self, at: &str) -> Vec<String> {
+    pub fn problems(&self, at: &str) -> Vec<Problem> {
         let mut problems = Vec::new();
         for (name, n) in [("columns", self.columns), ("rows", self.rows)] {
             if !(1..=MAX_COPIES_PER_SIDE).contains(&n) {
-                problems.push(format!(
-                    "{at}.{name}: must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"
+                problems.push(Problem::at(
+                    format!("{at}.{name}"),
+                    format!("must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"),
                 ));
             }
         }
         if self.count() > MAX_COPIES {
-            problems.push(format!(
-                "{at}: at most {MAX_COPIES} copies in all, got {}",
-                self.count()
+            problems.push(Problem::at(
+                at,
+                format!("at most {MAX_COPIES} copies in all, got {}", self.count()),
             ));
         }
         for (name, pitch, n) in [("dx", self.dx, self.columns), ("dy", self.dy, self.rows)] {
             if !pitch.is_finite() {
-                problems.push(format!("{at}.{name}: must be a number, got {pitch}"));
+                problems.push(Problem::at(
+                    format!("{at}.{name}"),
+                    format!("must be a number, got {pitch}"),
+                ));
             } else if n > 1 && pitch == 0.0 {
-                problems.push(format!(
-                    "{at}.{name}: must not be 0 with more than one copy that way"
+                problems.push(Problem::at(
+                    format!("{at}.{name}"),
+                    "must not be 0 with more than one copy that way",
                 ));
             }
         }
@@ -297,13 +304,14 @@ pub const IMAGE_MAX_SMOOTHING_MM: f64 = 1.0;
 
 impl Image {
     /// What is wrong with the image's values, as "drawing.images.N.field: message".
-    pub fn problems(&self, index: usize) -> Vec<String> {
+    pub fn problems(&self, index: usize) -> Vec<Problem> {
         let at = format!("drawing.images.{index}");
         let mut problems = Vec::new();
         let mut range = |field: &str, value: f64, low: f64, high: f64, unit: &str| {
             if !(value.is_finite() && (low..=high).contains(&value)) {
-                problems.push(format!(
-                    "{at}.{field}: must be {low} to {high}{unit}, got {value}"
+                problems.push(Problem::at(
+                    format!("{at}.{field}"),
+                    format!("must be {low} to {high}{unit}, got {value}"),
                 ));
             }
         };
@@ -325,33 +333,37 @@ impl Image {
         if let ImageThreshold::Level(t) = self.threshold
             && !(1..=254).contains(&t)
         {
-            problems.push(format!(
-                "{at}.threshold: must be 1 to 254 or \"auto\", got {t}"
+            problems.push(Problem::at(
+                format!("{at}.threshold"),
+                format!("must be 1 to 254 or \"auto\", got {t}"),
             ));
         }
         if !(self.width.is_finite() && self.width > 0.0) {
-            problems.push(format!(
-                "{at}.width: must be greater than 0, got {}",
-                self.width
+            problems.push(Problem::at(
+                format!("{at}.width"),
+                format!("must be greater than 0, got {}", self.width),
             ));
         }
         if !rotation_in_range(self.rotation) {
-            problems.push(format!(
-                "{at}.rotation: must be at least 0 and less than 360 degrees, got {}",
-                self.rotation
+            problems.push(Problem::at(
+                format!("{at}.rotation"),
+                format!(
+                    "must be at least 0 and less than 360 degrees, got {}",
+                    self.rotation
+                ),
             ));
         }
         if !(self.x.is_finite() && self.y.is_finite()) {
-            problems.push(format!(
-                "{at}: x and y must be numbers, got ({}, {})",
-                self.x, self.y
+            problems.push(Problem::at(
+                &at,
+                format!("x and y must be numbers, got ({}, {})", self.x, self.y),
             ));
         }
         if self.layer.trim().is_empty() {
-            problems.push(format!("{at}.layer: must not be empty"));
+            problems.push(Problem::at(format!("{at}.layer"), "must not be empty"));
         }
         if self.data.is_empty() {
-            problems.push(format!("{at}.data: the picture is missing"));
+            problems.push(Problem::at(format!("{at}.data"), "the picture is missing"));
         }
         problems
     }
@@ -2325,57 +2337,82 @@ impl Drawing {
         self.hidden.iter().any(|h| *h == group || *h == layer)
     }
 
-    /// Structural rules of the drawing, as "path: message".
-    pub fn validate(&self) -> Vec<String> {
+    /// Structural rules of the drawing, each with the field it is about.
+    pub fn validate(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
         let mut seen = std::collections::BTreeSet::new();
         for (i, shape) in self.shapes.iter().enumerate() {
             let at = format!("drawing.shapes.{i}");
             if shape.id == 0 || shape.id >= self.next_shape_id {
-                problems.push(format!(
-                    "{at}.id: must be between 1 and next_shape_id - 1 ({}), got {}",
-                    self.next_shape_id.saturating_sub(1),
-                    shape.id
+                problems.push(Problem::at(
+                    format!("{at}.id"),
+                    format!(
+                        "must be between 1 and next_shape_id - 1 ({}), got {}",
+                        self.next_shape_id.saturating_sub(1),
+                        shape.id
+                    ),
                 ));
             }
             if !seen.insert(shape.id) {
-                problems.push(format!("{at}.id: {} is used twice", shape.id));
+                problems.push(Problem::at(
+                    format!("{at}.id"),
+                    format!("{} is used twice", shape.id),
+                ));
             }
-            problems.extend(
-                shape_problems(&shape.geometry)
-                    .into_iter()
-                    .map(|p| format!("{at} (S{}).{p}", shape.id)),
-            );
+            // The text names the shape as well, which has no field of its own.
+            problems.extend(shape_problems(&shape.geometry).into_iter().map(|p| {
+                Problem::new(
+                    format!("{at}.{}", p.path),
+                    p.short,
+                    format!("{at} (S{}).{}", shape.id, p.text),
+                )
+            }));
             if let Some(image) = shape.image()
                 && !self.images.iter().any(|i| i.id == image)
             {
-                problems.push(format!("{at}.image: no image {image} in drawing.images"));
+                problems.push(Problem::at(
+                    format!("{at}.image"),
+                    format!("no image {image} in drawing.images"),
+                ));
             }
             if let Some(dxf) = shape.dxf()
                 && !self.dxfs.iter().any(|d| d.id == dxf)
             {
-                problems.push(format!("{at}.dxf: no DXF {dxf} in drawing.dxfs"));
+                problems.push(Problem::at(
+                    format!("{at}.dxf"),
+                    format!("no DXF {dxf} in drawing.dxfs"),
+                ));
             }
             if shape.image().is_some() && shape.dxf().is_some() {
-                problems.push(format!(
-                    "{at}: a shape comes from an image or a DXF, not both"
+                problems.push(Problem::at(
+                    at,
+                    "a shape comes from an image or a DXF, not both",
                 ));
             }
         }
         let mut ids = std::collections::BTreeSet::new();
         for (i, image) in self.images.iter().enumerate() {
             if !ids.insert(image.id) {
-                problems.push(format!("drawing.images.{i}.id: {} is used twice", image.id));
+                problems.push(Problem::at(
+                    format!("drawing.images.{i}.id"),
+                    format!("{} is used twice", image.id),
+                ));
             }
             problems.extend(image.problems(i));
         }
         let mut ids = std::collections::BTreeSet::new();
         for (i, dxf) in self.dxfs.iter().enumerate() {
             if !ids.insert(dxf.id) {
-                problems.push(format!("drawing.dxfs.{i}.id: {} is used twice", dxf.id));
+                problems.push(Problem::at(
+                    format!("drawing.dxfs.{i}.id"),
+                    format!("{} is used twice", dxf.id),
+                ));
             }
             if dxf.name.trim().is_empty() {
-                problems.push(format!("drawing.dxfs.{i}.name: must not be empty"));
+                problems.push(Problem::at(
+                    format!("drawing.dxfs.{i}.name"),
+                    "must not be empty",
+                ));
             }
         }
         problems
@@ -2384,18 +2421,24 @@ impl Drawing {
 
 /// Value rules of one shape, as "field: message" (spec drawing-tools.md section 1).
 /// What is wrong with a shape's values, as "field: message"; empty when it is valid.
-pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
+pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
     let mut problems = Vec::new();
     let finite = |p: &[f64; 2]| p.iter().all(|v| v.is_finite());
     let mut positive = |field: &str, value: f64| {
         if !(value.is_finite() && value > 0.0) {
-            problems.push(format!("{field}: must be a positive number, got {value}"));
+            problems.push(Problem::at(
+                field,
+                format!("must be a positive number, got {value}"),
+            ));
         }
     };
     match geometry {
         Geometry::Path { segments, .. } => {
             if segments.is_empty() {
-                problems.push("segments: a shape needs at least one segment".into());
+                problems.push(Problem::at(
+                    "segments",
+                    "a shape needs at least one segment",
+                ));
             }
             for (j, segment) in segments.iter().enumerate() {
                 let ok = match segment {
@@ -2409,8 +2452,9 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
                     }
                 };
                 if !ok {
-                    problems.push(format!(
-                        "segments.{j}: coordinates must be finite and radii positive"
+                    problems.push(Problem::at(
+                        format!("segments.{j}"),
+                        "coordinates must be finite and radii positive",
                     ));
                 }
             }
@@ -2418,7 +2462,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
         Geometry::Circle { center, radius } => {
             positive("radius", *radius);
             if !finite(center) {
-                problems.push("center: must be finite".into());
+                problems.push(Problem::at("center", "must be finite"));
             }
         }
         Geometry::Rectangle {
@@ -2432,25 +2476,28 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
             positive("width", *width);
             let most = length.min(*width) / 2.0;
             if !corner_radius.is_finite() || *corner_radius < 0.0 {
-                problems.push(format!(
-                    "corner_radius: must be 0 or more, got {corner_radius}"
+                problems.push(Problem::at(
+                    "corner_radius",
+                    format!("must be 0 or more, got {corner_radius}"),
                 ));
             } else if *corner_radius > 0.0 && *corner_radius < CHAIN_TOL_MM {
-                problems.push(format!(
-                    "corner_radius: 0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got \
-                     {corner_radius}"
+                problems.push(Problem::at(
+                    "corner_radius",
+                    format!(
+                        "0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got {corner_radius}"
+                    ),
                 ));
             } else if *corner_radius > most {
-                problems.push(format!(
-                    "corner_radius: at most {most} mm, half the shorter side, got \
-                     {corner_radius}"
+                problems.push(Problem::at(
+                    "corner_radius",
+                    format!("at most {most} mm, half the shorter side, got {corner_radius}"),
                 ));
             }
             if !finite(center) {
-                problems.push("center: must be finite".into());
+                problems.push(Problem::at("center", "must be finite"));
             }
             if !angle.is_finite() {
-                problems.push(format!("angle: must be finite, got {angle}"));
+                problems.push(Problem::at("angle", format!("must be finite, got {angle}")));
             }
         }
         Geometry::Polyline {
@@ -2460,37 +2507,43 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
         } => {
             let least = if *closed { 3 } else { 2 };
             if points.len() < least {
-                problems.push(format!(
-                    "points: a{} polyline needs at least {least} points, got {}",
-                    if *closed { " closed" } else { "n open" },
-                    points.len()
+                problems.push(Problem::at(
+                    "points",
+                    format!(
+                        "a{} polyline needs at least {least} points, got {}",
+                        if *closed { " closed" } else { "n open" },
+                        points.len()
+                    ),
                 ));
             }
             if !points.iter().all(finite) {
-                problems.push("points: must be finite".into());
+                problems.push(Problem::at("points", "must be finite"));
             }
             let n = points.len();
             let pairs = if *closed { n } else { n.saturating_sub(1) };
             for i in 0..pairs {
                 let (a, b) = (points[i], points[(i + 1) % n]);
                 if (a[0] - b[0]).hypot(a[1] - b[1]) <= CHAIN_TOL_MM {
-                    problems.push(format!(
-                        "points.{}: is on top of the previous point (closer than {} mm)",
-                        (i + 1) % n,
-                        CHAIN_TOL_MM
+                    problems.push(Problem::at(
+                        format!("points.{}", (i + 1) % n),
+                        format!("is on top of the previous point (closer than {CHAIN_TOL_MM} mm)"),
                     ));
                 }
             }
             if bulges.len() != pairs {
-                problems.push(format!(
-                    "bulges: one per segment, {pairs} for this polyline, got {}",
-                    bulges.len()
+                problems.push(Problem::at(
+                    "bulges",
+                    format!(
+                        "one per segment, {pairs} for this polyline, got {}",
+                        bulges.len()
+                    ),
                 ));
             }
             for (i, b) in bulges.iter().enumerate() {
                 if !(b.is_finite() && b.abs() <= 1.0) {
-                    problems.push(format!(
-                        "bulges.{i}: must be between -1 and 1 (at most a half circle), got {b}"
+                    problems.push(Problem::at(
+                        format!("bulges.{i}"),
+                        format!("must be between -1 and 1 (at most a half circle), got {b}"),
                     ));
                 }
             }
@@ -2500,32 +2553,38 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
 }
 
 /// "<at>.<field>: must be greater than 0, got <value>" unless value > 0.
-fn positive_problem(at: &str, field: &str, value: f64) -> Option<String> {
-    (value <= 0.0 || value.is_nan())
-        .then(|| format!("{at}.{field}: must be greater than 0, got {value}"))
+fn positive_problem(at: &str, field: &str, value: f64) -> Option<Problem> {
+    (value <= 0.0 || value.is_nan()).then(|| {
+        Problem::at(
+            format!("{at}.{field}"),
+            format!("must be greater than 0, got {value}"),
+        )
+    })
 }
 
 /// The rule for `max_overcut`, kept under `stock` in projects and in machine profiles.
-pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<String> {
+pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<Problem> {
     if overcut.is_finite() && overcut >= 0.0 {
         Vec::new()
     } else {
-        vec![format!(
-            "{at}.max_overcut: must be 0 or more, got {overcut}"
+        vec![Problem::at(
+            format!("{at}.max_overcut"),
+            format!("must be 0 or more, got {overcut}"),
         )]
     }
 }
 
 impl Machine {
-    /// Value rules of a machine, as "<at>.field: message"; shared by projects and machine
+    /// Value rules of a machine, each at "<at>.field"; shared by projects and machine
     /// profiles.
-    pub fn problems(&self, at: &str) -> Vec<String> {
+    pub fn problems(&self, at: &str) -> Vec<Problem> {
         let mut problems = Vec::new();
         if let WorkZero::Point { x, y } = self.work_zero
             && !(x.is_finite() && y.is_finite())
         {
-            problems.push(format!(
-                "{at}.work_zero: x and y must be finite, got {x}, {y}"
+            problems.push(Problem::at(
+                format!("{at}.work_zero"),
+                format!("x and y must be finite, got {x}, {y}"),
             ));
         }
         if let Some(t) = &self.travel {
@@ -2538,26 +2597,32 @@ impl Machine {
 }
 
 impl Tool {
-    /// Value rules of a tool, as "<at>.field: message"; shared by projects and the tool
+    /// Value rules of a tool, each at "<at>.field"; shared by projects and the tool
     /// library.
-    pub fn problems(&self, at: &str) -> Vec<String> {
-        let mut problems: Vec<String> = positive_problem(at, "diameter", self.diameter)
+    pub fn problems(&self, at: &str) -> Vec<Problem> {
+        let mut problems: Vec<Problem> = positive_problem(at, "diameter", self.diameter)
             .into_iter()
             .collect();
         if let Some(angle) = self.angle
             && !(angle.is_finite() && angle > 0.0 && angle < std::f64::consts::PI)
         {
-            problems.push(format!(
-                "{at}.angle: must be more than 0 and less than 180 degrees, got {:.3} degrees",
-                angle.to_degrees()
+            problems.push(Problem::at(
+                format!("{at}.angle"),
+                format!(
+                    "must be more than 0 and less than 180 degrees, got {:.3} degrees",
+                    angle.to_degrees()
+                ),
             ));
         }
         if let Some(tip) = self.tip_diameter
             && !(tip.is_finite() && tip >= 0.0 && tip < self.diameter)
         {
-            problems.push(format!(
-                "{at}.tip_diameter: must be 0 or more and less than the diameter ({}), got {tip}",
-                self.diameter
+            problems.push(Problem::at(
+                format!("{at}.tip_diameter"),
+                format!(
+                    "must be 0 or more and less than the diameter ({}), got {tip}",
+                    self.diameter
+                ),
             ));
         }
         problems
@@ -2565,38 +2630,35 @@ impl Tool {
 }
 
 impl Job {
-    /// Every value rule the project breaks, with the field it is about
-    /// (docs/specs/live-problems.md).
-    pub fn problems(&self) -> Vec<crate::Problem> {
-        self.validate()
-            .iter()
-            .map(|text| crate::Problem::from_path_text(text))
-            .collect()
-    }
-
     /// The parts' rules (docs/specs/parts.md §4): at least one, unique ids and names,
     /// valid copies, every operation in a part, and the operations grouped by part in the
     /// parts' order.
-    fn part_problems(&self) -> Vec<String> {
+    fn part_problems(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
         if self.parts.is_empty() {
-            problems.push("parts: a project needs at least one part".to_string());
+            problems.push(Problem::at("parts", "a project needs at least one part"));
         }
         for (i, part) in self.parts.iter().enumerate() {
             if part.id == 0 {
-                problems.push(format!("parts.{i}.id: must be 1 or more"));
+                problems.push(Problem::at(format!("parts.{i}.id"), "must be 1 or more"));
             }
             if self.parts[..i].iter().any(|p| p.id == part.id) {
-                problems.push(format!("parts.{i}.id: part {} is listed twice", part.id));
+                problems.push(Problem::at(
+                    format!("parts.{i}.id"),
+                    format!("part {} is listed twice", part.id),
+                ));
             }
             let name = part.name.trim();
             if name.is_empty() {
-                problems.push(format!("parts.{i}.name: must not be empty"));
+                problems.push(Problem::at(format!("parts.{i}.name"), "must not be empty"));
             } else if self.parts[..i]
                 .iter()
                 .any(|p| p.name.trim().eq_ignore_ascii_case(name))
             {
-                problems.push(format!("parts.{i}.name: another part is named \"{name}\""));
+                problems.push(Problem::at(
+                    format!("parts.{i}.name"),
+                    format!("another part is named \"{name}\""),
+                ));
             }
             if let Some(copies) = &part.copies {
                 problems.extend(copies.problems(&format!("parts.{i}.copies")));
@@ -2606,20 +2668,22 @@ impl Job {
         let mut last: Option<(usize, u64)> = None;
         for (i, op) in self.operations.iter().enumerate() {
             let Some(here) = rank(op.part()) else {
-                problems.push(format!(
-                    "operations.{i}.part: no part {} in parts",
-                    op.part()
+                problems.push(Problem::at(
+                    format!("operations.{i}.part"),
+                    format!("no part {} in parts", op.part()),
                 ));
                 continue;
             };
             if let Some((before, before_id)) = last
                 && here < before
             {
-                problems.push(format!(
-                    "operations.{i}.part: part {}'s operations must all come before part \
-                     {}'s",
-                    op.part(),
-                    before_id
+                problems.push(Problem::at(
+                    format!("operations.{i}.part"),
+                    format!(
+                        "part {}'s operations must all come before part {}'s",
+                        op.part(),
+                        before_id
+                    ),
                 ));
             }
             if last.is_none_or(|(before, _)| here > before) {
@@ -2629,9 +2693,9 @@ impl Job {
         problems
     }
 
-    /// Value constraints the serde types can't express.
-    /// Returns every violation as "path: message".
-    pub fn validate(&self) -> Vec<String> {
+    /// Every value rule the project breaks, with the field it is about
+    /// (docs/specs/live-problems.md): the constraints the serde types can't express.
+    pub fn validate(&self) -> Vec<Problem> {
         let mut problems = self.drawing.validate();
         problems.extend(self.machine.problems("machine"));
         for (i, source) in self.drawing.dxfs.iter().enumerate() {
@@ -2643,24 +2707,34 @@ impl Job {
                 dy,
             } = source.placement;
             if !Placement::scale_in_range(scale) {
-                problems.push(format!(
-                    "{at}.scale: must be {} to {}, got {scale}",
-                    Placement::MIN_SCALE,
-                    Placement::MAX_SCALE
+                problems.push(Problem::at(
+                    format!("{at}.scale"),
+                    format!(
+                        "must be {} to {}, got {scale}",
+                        Placement::MIN_SCALE,
+                        Placement::MAX_SCALE
+                    ),
                 ));
             }
             if !(dx.is_finite() && dy.is_finite()) {
-                problems.push(format!("{at}: must be numbers, got ({dx}, {dy})"));
+                problems.push(Problem::at(
+                    &at,
+                    format!("must be numbers, got ({dx}, {dy})"),
+                ));
             }
             if !rotation_in_range(rotation) {
-                problems.push(format!(
-                    "{at}.rotation: must be at least 0 and less than 360 degrees, got {rotation}"
+                problems.push(Problem::at(
+                    format!("{at}.rotation"),
+                    format!("must be at least 0 and less than 360 degrees, got {rotation}"),
                 ));
             }
         }
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
-                problems.push(format!("{path}: must be greater than 0, got {value}"));
+                problems.push(Problem::at(
+                    path,
+                    format!("must be greater than 0, got {value}"),
+                ));
             }
         };
         positive("stock.x".into(), self.stock.x);
@@ -2671,7 +2745,10 @@ impl Job {
         }
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
-                problems.push(format!("{path}: must be greater than 0, got {value}"));
+                problems.push(Problem::at(
+                    path,
+                    format!("must be greater than 0, got {value}"),
+                ));
             }
         };
         for (i, op) in self.operations.iter().enumerate() {
@@ -2736,51 +2813,57 @@ impl Job {
         for (i, op) in self.operations.iter().enumerate() {
             let (start, end) = op.depths();
             if !(start.is_finite() && start >= 0.0) {
-                problems.push(format!(
-                    "operations.{i}.start_depth: must be 0 or more, got {start}"
+                problems.push(Problem::at(
+                    format!("operations.{i}.start_depth"),
+                    format!("must be 0 or more, got {start}"),
                 ));
             } else if start >= end {
-                problems.push(format!(
-                    "operations.{i}.start_depth: must be less than end_depth ({end}), got \
-                     {start}"
+                problems.push(Problem::at(
+                    format!("operations.{i}.start_depth"),
+                    format!("must be less than end_depth ({end}), got {start}"),
                 ));
             }
             if !op.clearance().is_finite() {
-                problems.push(format!(
-                    "operations.{i}.clearance: must be a number, got {}",
-                    op.clearance()
+                problems.push(Problem::at(
+                    format!("operations.{i}.clearance"),
+                    format!("must be a number, got {}", op.clearance()),
                 ));
             }
             if let Operation::Profile(p) = op
                 && p.side == Side::On
                 && p.clearance != 0.0
             {
-                problems.push(format!(
-                    "operations.{i}.clearance: a profile on the line has no side to clear \
-                     towards; it must be 0, got {}",
-                    p.clearance
+                problems.push(Problem::at(
+                    format!("operations.{i}.clearance"),
+                    format!(
+                        "a profile on the line has no side to clear towards; it must be 0, got {}",
+                        p.clearance
+                    ),
                 ));
             }
         }
         for (i, op) in self.operations.iter().enumerate() {
             let selector = op.select();
             if selector.is_empty() {
-                problems.push(format!(
-                    "operations.{i}.select: selector needs a DXF, an image, a layer or shapes"
+                problems.push(Problem::at(
+                    format!("operations.{i}.select"),
+                    "selector needs a DXF, an image, a layer or shapes",
                 ));
             }
             if let Some(dxf) = selector.dxf
                 && !self.drawing.dxfs.iter().any(|d| d.id == dxf)
             {
-                problems.push(format!(
-                    "operations.{i}.select.dxf: no DXF {dxf} in drawing.dxfs"
+                problems.push(Problem::at(
+                    format!("operations.{i}.select.dxf"),
+                    format!("no DXF {dxf} in drawing.dxfs"),
                 ));
             }
             if let Some(image) = selector.image
                 && !self.drawing.images.iter().any(|d| d.id == image)
             {
-                problems.push(format!(
-                    "operations.{i}.select.image: no image {image} in drawing.images"
+                problems.push(Problem::at(
+                    format!("operations.{i}.select.image"),
+                    format!("no image {image} in drawing.images"),
                 ));
             }
             // Shapes left out of a whole DXF or image (docs/specs/leave-out-shapes.md §2).
@@ -2791,9 +2874,9 @@ impl Job {
                     (None, None) => None,
                 };
                 match source {
-                    None => problems.push(format!(
-                        "operations.{i}.select.exclude: shapes can only be left out of a \
-                         whole DXF or image"
+                    None => problems.push(Problem::at(
+                        format!("operations.{i}.select.exclude"),
+                        "shapes can only be left out of a whole DXF or image",
                     )),
                     Some((what, id, is_dxf)) => {
                         let of_source = |shape: &Shape| {
@@ -2810,17 +2893,15 @@ impl Job {
                                 .iter()
                                 .any(|s| s.id == **e && of_source(s))
                         }) {
-                            problems.push(format!(
-                                "operations.{i}.select.exclude: shape {missing} is not in \
-                                 {what} {id} any more: pick the shapes to leave out again"
-                            ));
+                            problems.push(Problem::at(format!("operations.{i}.select.exclude"), format!("shape {missing} is not in {what} {id} any more: pick the shapes to leave out again")));
                         }
                     }
                 }
             }
             if selector.dxf.is_some() && selector.image.is_some() {
-                problems.push(format!(
-                    "operations.{i}.select: a selector names a DXF or an image, not both"
+                problems.push(Problem::at(
+                    format!("operations.{i}.select"),
+                    "a selector names a DXF or an image, not both",
                 ));
             }
             // Traced shapes get new ids each time their image is traced again
@@ -2832,13 +2913,9 @@ impl Job {
                     .find(|s| s.id == *id && s.image().is_some())
             });
             if let Some(shape) = traced {
-                problems.push(format!(
-                    "operations.{i}.select: shape {} is traced from an image and changes \
-                     each time the image is traced again: select the image instead \
-                     ({{\"image\": {}}})",
+                problems.push(Problem::at(format!("operations.{i}.select"), format!("shape {} is traced from an image and changes each time the image is traced again: select the image instead ({{\"image\": {}}})", 
                     shape.id,
-                    shape.image().unwrap_or_default()
-                ));
+                    shape.image().unwrap_or_default())));
             }
             // Open centre lines are paths to follow, not areas
             // (docs/specs/image-arcs-centrelines.md §5). A closed one, such as an outline
@@ -2860,43 +2937,45 @@ impl Job {
             if let Some(image) = centre_lines
                 && !matches!(op, Operation::Path(_))
             {
-                problems.push(format!(
-                    "operations.{i}.select: image {} is traced as open centre lines: cut them \
-                     with a follow path, or trace the image as outlines",
-                    image.id
-                ));
+                problems.push(Problem::at(format!("operations.{i}.select"), format!("image {} is traced as open centre lines: cut them with a follow path, or trace the image as outlines", 
+                    image.id)));
             }
             if let Entry::Helix { radius, .. } = op.entry()
                 && !(radius.is_finite() && radius > 0.0)
             {
-                problems.push(format!(
-                    "operations.{i}.entry.radius: must be more than 0, got {radius}"
+                problems.push(Problem::at(
+                    format!("operations.{i}.entry.radius"),
+                    format!("must be more than 0, got {radius}"),
                 ));
             }
             if let Some(ramp_angle) = op.entry().ramp_angle()
                 && !(ramp_angle.is_finite() && ramp_angle > 0.0 && ramp_angle <= MAX_RAMP_ANGLE_RAD)
             {
-                problems.push(format!(
-                    "operations.{i}.entry.ramp_angle: must be more than 0 and at most 30 \
-                     degrees, got {:.3} degrees",
-                    ramp_angle.to_degrees()
+                problems.push(Problem::at(
+                    format!("operations.{i}.entry.ramp_angle"),
+                    format!(
+                        "must be more than 0 and at most 30 degrees, got {:.3} degrees",
+                        ramp_angle.to_degrees()
+                    ),
                 ));
             }
             if let Some(corners) = op.corners() {
                 let angle = corners.max_angle();
                 if !(angle.is_finite() && angle > 0.0 && angle < std::f64::consts::PI) {
-                    problems.push(format!(
-                        "operations.{i}.corners.max_angle: must be more than 0 and less than \
-                         180 degrees, got {:.3} degrees",
-                        angle.to_degrees()
+                    problems.push(Problem::at(
+                        format!("operations.{i}.corners.max_angle"),
+                        format!(
+                            "must be more than 0 and less than 180 degrees, got {:.3} degrees",
+                            angle.to_degrees()
+                        ),
                     ));
                 }
                 if let Operation::Profile(p) = op
                     && p.side == Side::On
                 {
-                    problems.push(format!(
-                        "operations.{i}.corners: a profile on the line has no inside corners \
-                         to clear"
+                    problems.push(Problem::at(
+                        format!("operations.{i}.corners"),
+                        "a profile on the line has no inside corners to clear",
                     ));
                 }
             }
@@ -2908,18 +2987,20 @@ impl Job {
                     && *ramp_angle > 0.0
                     && *ramp_angle <= MAX_RAMP_ANGLE_RAD)
             {
-                problems.push(format!(
-                    "operations.{i}.method.ramp_angle: must be more than 0 and at most 30 \
-                     degrees, got {:.3} degrees",
-                    ramp_angle.to_degrees()
+                problems.push(Problem::at(
+                    format!("operations.{i}.method.ramp_angle"),
+                    format!(
+                        "must be more than 0 and at most 30 degrees, got {:.3} degrees",
+                        ramp_angle.to_degrees()
+                    ),
                 ));
             }
             if let Some(lead) = op.lead()
                 && !(lead.radius.is_finite() && lead.radius > 0.0)
             {
-                problems.push(format!(
-                    "operations.{i}.lead.radius: must be more than 0, got {}",
-                    lead.radius
+                problems.push(Problem::at(
+                    format!("operations.{i}.lead.radius"),
+                    format!("must be more than 0, got {}", lead.radius),
                 ));
             }
             if op
@@ -2927,17 +3008,20 @@ impl Job {
                 .iter()
                 .any(|p| !(p[0].is_finite() && p[1].is_finite()))
             {
-                problems.push(format!(
-                    "operations.{i}.starts: every start point needs finite x and y"
+                problems.push(Problem::at(
+                    format!("operations.{i}.starts"),
+                    "every start point needs finite x and y",
                 ));
             }
             if let Operation::Pocket(p) = op
                 && p.stepover > 1.0
             {
-                problems.push(format!(
-                    "operations.{i}.stepover: must be at most 1 (a fraction of the tool \
-                     diameter), got {}",
-                    p.stepover
+                problems.push(Problem::at(
+                    format!("operations.{i}.stepover"),
+                    format!(
+                        "must be at most 1 (a fraction of the tool diameter), got {}",
+                        p.stepover
+                    ),
                 ));
             }
             if let Operation::Profile(ProfileOp {
@@ -2945,7 +3029,10 @@ impl Job {
             }) = op
                 && tabs.count < 1
             {
-                problems.push(format!("operations.{i}.tabs.count: must be at least 1"));
+                problems.push(Problem::at(
+                    format!("operations.{i}.tabs.count"),
+                    "must be at least 1",
+                ));
             }
             if let Operation::Profile(ProfileOp {
                 tabs: Some(tabs), ..
@@ -2954,10 +3041,12 @@ impl Job {
                     && tabs.flank_angle > 0.0
                     && tabs.flank_angle <= STRAIGHT_FLANK_RAD + ANGLE_TOL_RAD)
             {
-                problems.push(format!(
-                    "operations.{i}.tabs.flank_angle: must be more than 0 and at most 90 \
-                     degrees, got {:.3} degrees",
-                    tabs.flank_angle.to_degrees()
+                problems.push(Problem::at(
+                    format!("operations.{i}.tabs.flank_angle"),
+                    format!(
+                        "must be more than 0 and at most 90 degrees, got {:.3} degrees",
+                        tabs.flank_angle.to_degrees()
+                    ),
                 ));
             }
             if let Operation::Profile(p) = op {
@@ -2970,11 +3059,12 @@ impl Job {
 
 /// The rules for a profile's finishing pass and skin that need no tool
 /// (docs/specs/finish-and-skin.md §1, §6); the tool radius is checked when planning.
-fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<String> {
+fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
     let mut problems = Vec::new();
     if p.finish.is_some() && p.side == Side::On {
-        problems.push(format!(
-            "{at}.finish: a profile on the line has no wall to finish; use inside or outside"
+        problems.push(Problem::at(
+            format!("{at}.finish"),
+            "a profile on the line has no wall to finish; use inside or outside",
         ));
     }
     let Some(skin) = p.skin else {
@@ -2985,24 +3075,27 @@ fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<String> {
         return problems; // reported as not positive
     }
     if t > p.step_down + DEPTH_TOL_MM {
-        problems.push(format!(
-            "{at}.skin.thickness: must be at most the step down ({}), got {t}",
-            p.step_down
+        problems.push(Problem::at(
+            format!("{at}.skin.thickness"),
+            format!("must be at most the step down ({}), got {t}", p.step_down),
         ));
     }
     let cut = p.end_depth - p.start_depth;
     if t >= cut {
-        problems.push(format!(
-            "{at}.skin.thickness: must be less than the cut ({cut}, end depth minus start \
-             depth), got {t}"
+        problems.push(Problem::at(
+            format!("{at}.skin.thickness"),
+            format!("must be less than the cut ({cut}, end depth minus start depth), got {t}"),
         ));
     }
     if let Some(tabs) = &p.tabs
         && t >= tabs.height
     {
-        problems.push(format!(
-            "{at}.skin.thickness: must be less than the tab height ({}), got {t}",
-            tabs.height
+        problems.push(Problem::at(
+            format!("{at}.skin.thickness"),
+            format!(
+                "must be less than the tab height ({}), got {t}",
+                tabs.height
+            ),
         ));
     }
     problems
@@ -3198,7 +3291,7 @@ mod tests {
             assert!(!ok(bad), "{bad}");
         }
         let problems = shape_problems(&rounded(8.0, 4.0, 0.0, 3.0));
-        assert!(problems[0].contains("at most 2 mm"), "{problems:?}");
+        assert!(problems[0].text.contains("at most 2 mm"), "{problems:?}");
     }
 
     #[test]

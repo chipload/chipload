@@ -283,11 +283,20 @@ pub fn write_gcode_files(output: &Path, files: &[GcodeFile]) -> std::io::Result<
     Ok(written)
 }
 
+/// Problems as one line: "path: message; path: message".
+pub fn joined(problems: &[chipload_job::Problem]) -> String {
+    problems
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
 /// Every problem that keeps a project from being planned and needs no geometry to find:
 /// the file's value rules, then the job rules checked before planning, each with its field
 /// (docs/specs/live-problems.md).
 pub fn job_problems(job: &Job) -> Vec<chipload_job::Problem> {
-    let mut problems = job.problems();
+    let mut problems = job.validate();
     problems.extend(chipload_toolpath::job_problems(job));
     problems
 }

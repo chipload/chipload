@@ -279,7 +279,13 @@ impl ToolLibrary {
         ));
         for (i, entry) in self.tools.iter().enumerate() {
             let at = format!("tools.{i}");
-            problems.extend(entry.tool(entry.id).problems(&at));
+            problems.extend(
+                entry
+                    .tool(entry.id)
+                    .problems(&at)
+                    .iter()
+                    .map(ToString::to_string),
+            );
             if let Some(c) = &entry.cutting {
                 let at = format!("{at}.cutting");
                 for (field, value) in [
@@ -577,8 +583,18 @@ impl MachineLibrary {
         ));
         for (i, profile) in self.machines.iter().enumerate() {
             let at = format!("machines.{i}");
-            problems.extend(profile.machine().problems(&at));
-            problems.extend(max_overcut_problems(&at, profile.max_overcut));
+            problems.extend(
+                profile
+                    .machine()
+                    .problems(&at)
+                    .iter()
+                    .map(ToString::to_string),
+            );
+            problems.extend(
+                max_overcut_problems(&at, profile.max_overcut)
+                    .iter()
+                    .map(ToString::to_string),
+            );
             if !profile.safe_z.is_finite() {
                 problems.push(format!(
                     "{at}.safe_z: must be a number, got {}",

@@ -436,6 +436,7 @@ fn image_problems(job: &Job, id: u64) -> Vec<String> {
         .enumerate()
         .filter(|(_, i)| i.id == id)
         .flat_map(|(k, i)| i.problems(k))
+        .map(|p| p.to_string())
         .collect()
 }
 

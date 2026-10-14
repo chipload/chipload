@@ -209,7 +209,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     lines.extend(stock_fit_note(&out));
     let problems = out.validate();
     if !problems.is_empty() {
-        return Err(PipelineError::Job(problems.join("; ")));
+        return Err(PipelineError::Job(crate::joined(&problems)));
     }
     Ok((out, PlaceReport { lines }))
 }

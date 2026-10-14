@@ -167,7 +167,7 @@ fn traced_shapes_are_selected_by_their_image_not_by_id() {
     assert!(
         problems
             .iter()
-            .any(|p| p.contains("select the image instead ({\"image\": 1})")),
+            .any(|p| p.text.contains("select the image instead ({\"image\": 1})")),
         "{problems:?}"
     );
 }
@@ -295,10 +295,10 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
     };
     let problems = job.validate();
     assert!(
-        problems
-            .iter()
-            .any(|p| p.contains("image 1 is traced as open centre lines")
-                && p.contains("follow path")),
+        problems.iter().any(
+            |p| p.text.contains("image 1 is traced as open centre lines")
+                && p.text.contains("follow path")
+        ),
         "{problems:?}"
     );
     // Selecting the image itself is refused the same way.
@@ -309,7 +309,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
     assert!(
         job.validate()
             .iter()
-            .any(|p| p.contains("image 1 is traced as open centre lines")),
+            .any(|p| p.text.contains("image 1 is traced as open centre lines")),
         "{:?}",
         job.validate()
     );
@@ -422,8 +422,8 @@ fn left_out_shapes_are_found_again_when_the_picture_is_traced_again() {
         outlines
             .validate()
             .iter()
-            .any(|p| p.contains("select.exclude")
-                && p.contains("pick the shapes to leave out again")),
+            .any(|p| p.text.contains("select.exclude")
+                && p.text.contains("pick the shapes to leave out again")),
         "{:?}",
         outlines.validate()
     );

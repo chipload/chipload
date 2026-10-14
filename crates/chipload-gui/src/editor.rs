@@ -9,7 +9,7 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, PocketStrategy, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
+    PocketOp, PocketStrategy, Problem, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
 };
 
 use crate::view::Kind;
@@ -610,58 +610,45 @@ impl EditJob {
         }
     }
 
-    /// Missing fields that keep the job from running or being saved, per operation index.
-    pub fn missing(&self) -> Vec<(usize, String)> {
+    /// What an operation still lacks before it can be cut or saved, each at its field.
+    pub fn missing(&self) -> Vec<Problem> {
         let mut out = Vec::new();
         for (i, edit) in self.ops.iter().enumerate() {
-            if !edit.side_chosen {
-                out.push((
-                    i,
-                    "choose the profile side (inside, outside or on)".to_string(),
+            let mut lack = |field: &str, what: &str| {
+                out.push(Problem::new(
+                    format!("operations.{i}.{field}"),
+                    what,
+                    format!("Operation {}: {what}", i + 1),
                 ));
+            };
+            if !edit.side_chosen {
+                lack("side", "choose the profile side (inside, outside or on)");
             }
             // A whole DXF or picture is geometry too (user report 2026-10-14: a V-carve of
             // a traced picture was refused as "no geometry").
             if edit.op.select().is_empty() {
-                out.push((
-                    i,
-                    "no geometry: select contours, then Use selection".to_string(),
-                ));
+                lack("select", "no geometry: select contours, then Use selection");
             }
         }
         out
     }
 
+    /// The project as it stands, complete or not.
+    fn job(&self) -> Job {
+        let mut job = self.settings.clone();
+        job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+        job
+    }
+
     /// Every problem that needs no geometry to find, each with its field
     /// (docs/specs/live-problems.md): what an operation still lacks, then the project's
     /// rules.
-    pub fn problems(&self) -> Vec<chipload_job::Problem> {
-        let mut problems: Vec<chipload_job::Problem> = Vec::new();
-        for (i, edit) in self.ops.iter().enumerate() {
-            let select = edit.op.select();
-            if !edit.side_chosen {
-                let what = "choose the profile side (inside, outside or on)";
-                problems.push(chipload_job::Problem::new(
-                    format!("operations.{i}.side"),
-                    what,
-                    format!("Operation {}: {what}", i + 1),
-                ));
-            }
-            if select.is_empty() {
-                let what = "no geometry: select contours, then Use selection";
-                problems.push(chipload_job::Problem::new(
-                    format!("operations.{i}.select"),
-                    what,
-                    format!("Operation {}: {what}", i + 1),
-                ));
-            }
-        }
-        let mut job = self.settings.clone();
-        job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+    pub fn problems(&self) -> Vec<Problem> {
+        let mut problems = self.missing();
         // The project's own rule for an empty selection says the same less helpfully.
         let lacking: Vec<String> = problems.iter().map(|p| p.path.clone()).collect();
         problems.extend(
-            chipload_pipeline::job_problems(&job)
+            chipload_pipeline::job_problems(&self.job())
                 .into_iter()
                 .filter(|p| !lacking.contains(&p.path)),
         );
@@ -669,14 +656,9 @@ impl EditJob {
     }
 
     /// The job to run or save, or every reason it isn't complete and valid.
-    pub fn to_job(&self) -> Result<Job, Vec<String>> {
-        let mut problems: Vec<String> = self
-            .missing()
-            .into_iter()
-            .map(|(i, what)| format!("Operation {}: {what}", i + 1))
-            .collect();
-        let mut job = self.settings.clone();
-        job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+    pub fn to_job(&self) -> Result<Job, Vec<Problem>> {
+        let mut problems = self.missing();
+        let job = self.job();
         if problems.is_empty() {
             problems.extend(job.validate());
         }
@@ -768,7 +750,7 @@ mod tests {
         let i = job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
         assert!(!job.ops[i].side_chosen);
         let err = job.to_job().unwrap_err();
-        assert!(err[0].contains("choose the profile side"), "{err:?}");
+        assert!(err[0].text.contains("choose the profile side"), "{err:?}");
     }
 
     #[test]
@@ -878,7 +860,7 @@ mod tests {
         let contours = messy_2();
         let mut job = new_job();
         let i = job.add(OpKind::Pocket, &CanvasSelection::Nothing, &contours);
-        assert!(job.to_job().unwrap_err()[0].contains("no geometry"));
+        assert!(job.to_job().unwrap_err()[0].text.contains("no geometry"));
         job.set_geometry(i, &ids(&[4]), &contours);
         assert!(job.to_job().is_ok());
     }

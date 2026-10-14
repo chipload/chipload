@@ -274,7 +274,7 @@ fn checked(job: Job) -> Result<Job, PipelineError> {
     if problems.is_empty() {
         Ok(job)
     } else {
-        Err(PipelineError::Job(problems.join("; ")))
+        Err(PipelineError::Job(crate::joined(&problems)))
     }
 }
 

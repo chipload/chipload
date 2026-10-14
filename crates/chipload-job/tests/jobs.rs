@@ -965,7 +965,7 @@ fn a_v8_drawing_source_needs_a_finite_placement() {
     assert!(
         job.validate()
             .iter()
-            .any(|p| p.starts_with("drawing.dxfs.0.placement"))
+            .any(|p| p.path.starts_with("drawing.dxfs.0.placement"))
     );
 }
 
@@ -1511,7 +1511,7 @@ fn every_value_rule_names_its_field() {
         p.stepover = 0.0;
         p.start_depth = 9.0;
     }
-    let problems = job.problems();
+    let problems = job.validate();
     assert!(problems.len() >= 7, "{problems:?}");
     for problem in &problems {
         assert!(!problem.path.is_empty(), "{problem:?}");
@@ -1598,7 +1598,7 @@ fn a_flank_angle_must_be_more_than_0_and_at_most_90_degrees() {
     ] {
         let mut data = data.clone();
         data["operations"][1]["tabs"]["flank_angle"] = json!(angle);
-        let problems = parse_job(data, "p").map(|job| job.problems());
+        let problems = parse_job(data, "p").map(|job| job.validate());
         let refused = match problems {
             Ok(problems) => problems
                 .iter()

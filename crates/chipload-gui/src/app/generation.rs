@@ -7,6 +7,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
 
+use chipload_job::Problem;
 use chipload_pipeline::{Cancel, run_job_cancellable};
 use chipload_toolpath::ToolpathError;
 
@@ -101,9 +102,9 @@ impl ChiploadApp {
                 job
             }
             Err(problems) => {
-                self.error_ops = problems.iter().filter_map(|p| operation_index(p)).collect();
+                self.error_ops = problems.iter().filter_map(Problem::operation).collect();
                 let mut lines = vec!["The project is not complete:".to_string()];
-                lines.extend(problems.into_iter().map(|p| format!("  {p}")));
+                lines.extend(problems.iter().map(|p| format!("  {p}")));
                 self.fail(lines, loud);
                 return false;
             }

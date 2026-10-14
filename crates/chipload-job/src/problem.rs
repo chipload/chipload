@@ -31,14 +31,11 @@ impl Problem {
         Problem::new(path, text.clone(), text)
     }
 
-    /// A problem worded "path: message", as [`crate::Job::validate`] words them.
-    pub fn from_path_text(text: &str) -> Self {
-        match text.split_once(": ") {
-            Some((path, short)) if !path.is_empty() && !path.contains(char::is_whitespace) => {
-                Problem::new(path, short, text)
-            }
-            _ => Problem::whole("", text),
-        }
+    /// A problem at `path` worded `short`, whose full text is "path: short".
+    pub fn at(path: impl Into<String>, short: impl Into<String>) -> Self {
+        let (path, short) = (path.into(), short.into());
+        let text = format!("{path}: {short}");
+        Problem { path, short, text }
     }
 
     /// The operation (index in `operations`) the problem is about, if any.
@@ -73,16 +70,20 @@ mod tests {
 
     #[test]
     fn paths_split_into_operation_and_field() {
-        let p = Problem::from_path_text("operations.12.tabs.width: must be greater than 0, got 0");
+        let p = Problem::at("operations.12.tabs.width", "must be greater than 0, got 0");
         assert_eq!(p.path, "operations.12.tabs.width");
         assert_eq!(p.short, "must be greater than 0, got 0");
+        assert_eq!(
+            p.text,
+            "operations.12.tabs.width: must be greater than 0, got 0"
+        );
         assert_eq!(p.operation(), Some(12));
         assert_eq!(p.field(), "tabs.width");
         let whole = Problem::new("operations.3", "no geometry", "Operation 4: no geometry");
         assert_eq!((whole.operation(), whole.field()), (Some(3), ""));
-        let job = Problem::from_path_text("machine.safe_z: must be above 0");
+        let job = Problem::at("machine.safe_z", "must be above 0");
         assert_eq!((job.operation(), job.field()), (None, "machine.safe_z"));
-        let loose = Problem::from_path_text("Job has no operations");
+        let loose = Problem::whole("", "Job has no operations");
         assert_eq!(
             (loose.path.as_str(), loose.short.as_str()),
             ("", "Job has no operations")
