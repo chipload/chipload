@@ -8,7 +8,7 @@ User question (2026-10-14): "Should we add a general settings node to the Browse
 can put stuff that doesn't belong in the job settings?"
 
 What is left over is all about this computer, not the project: the setup sheet setting
-(for every project, yet shown in Job settings), *update the toolpath by itself*, the colour
+(for every project, yet shown in Job settings), *update the toolpath automatically*, the colour
 theme, and where the settings folder and the posts are.
 
 ## 2. The Browser
@@ -25,7 +25,7 @@ The root above the project, *Library*, is renamed **This computer**:
 In Properties:
 - **Settings folder:** where it is, or that there is none and which variable sets it.
 - **Setup sheet:** write one next to exported G-code (every project). It leaves Job settings.
-- **Update the toolpath by itself** while editing (also in the View menu).
+- **Update the toolpath automatically** while editing (also in the View menu).
 - **Colour theme:** System, Light, Dark (also the top-bar button).
 
 The grid and other view switches stay on the canvas bar.

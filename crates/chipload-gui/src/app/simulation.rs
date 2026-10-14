@@ -38,7 +38,7 @@ pub(super) struct SimRun {
 }
 
 impl ChiploadApp {
-    /// View → Show simulation, and the ribbon's toggle.
+    /// View → Show stock (simulation), and the canvas bar's Stock.
     pub fn set_show_simulation(&mut self, on: bool) {
         self.show_simulation = on;
         if on {

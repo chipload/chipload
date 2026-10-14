@@ -320,7 +320,7 @@ impl ChiploadApp {
             .on_hover_text("The pictures traced into shapes, faintly under the drawing");
         let mut sim = self.show_simulation;
         if ui
-            .checkbox(&mut sim, "Show simulation")
+            .checkbox(&mut sim, "Show stock (simulation)")
             .on_hover_text(SIMULATION_HINT)
             .changed()
         {

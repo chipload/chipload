@@ -128,7 +128,7 @@ navigation bar](images/simulation-3d.png)
 The **Properties** panel on the right shows what is open, under a title:
 - **Job settings:** the stock, the machine and the post.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is
-  written with the G-code, updating the toolpath by itself, and the colour theme.
+  written with the G-code, updating the toolpath automatically, and the colour theme.
 - **A post-processor:** its name, files, extension, decimals, arcs and tool changes.
 - **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
   how it stands to the library tool it came from, *Save to library* and *Remove tool*.

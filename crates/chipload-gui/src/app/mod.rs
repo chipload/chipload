@@ -245,7 +245,7 @@ pub struct ChiploadApp {
     fit_pending: bool,
     pub selection: CanvasSelection,
     context_pick: Option<usize>,
-    /// View > Show simulation (docs/specs/simulation.md §4).
+    /// View > Show stock (docs/specs/simulation.md §4): the simulation.
     pub show_simulation: bool,
     /// The material-removal simulation of the last result (docs/specs/simulation.md).
     pub sim: Sim,

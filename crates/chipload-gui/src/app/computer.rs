@@ -83,7 +83,7 @@ impl ChiploadApp {
         focus
     }
 
-    /// Preferences: the settings folder, the setup sheet, updating by itself, the theme.
+    /// Preferences: the settings folder, the setup sheet, updating automatically, the theme.
     pub(super) fn preferences_form(&mut self, ui: &mut egui::Ui) {
         title_line(ui, Icon::Settings, None, "Preferences");
         ui.weak("For every project on this computer.");
@@ -114,7 +114,7 @@ impl ChiploadApp {
                 ui.checkbox(&mut sheet, "write one with the G-code");
                 ui.end_row();
                 ui.label("Toolpath");
-                ui.checkbox(&mut auto, "update it by itself while editing")
+                ui.checkbox(&mut auto, "update automatically (View menu too)")
                     .on_hover_text("Generate by itself half a second after each change");
                 ui.end_row();
                 ui.label("Colour theme");

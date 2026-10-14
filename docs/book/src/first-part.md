@@ -40,7 +40,7 @@ outside profile. The same steps follow in the app and on the command line.
    - Warnings appear in the report.
 
    ![A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below](images/toolpath.png)
-6. **Look at it:** **3D** shows the toolpath at its real depths. *View > Show simulation*
+6. **Look at it:** **3D** shows the toolpath at its real depths. *View > Show stock*
    shows the stock as cut, and the slider under the canvas plays the program back.
 7. **Export:** *File > Export G-code…* (Ctrl+E).
    - You can only export once the [checker](#the-checker) has passed the program.

@@ -15,7 +15,7 @@ its real depths.
 ## Simulation
 
 The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; *View > Show simulation* (or **Stock** on the canvas's navigation bar) turns it
+on when the app starts; *View > Show stock* (or **Stock** on the canvas's navigation bar) turns it
 off and on.
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.

@@ -99,7 +99,7 @@ impl ChiploadApp {
             .show(ui);
         if preferences
             .response
-            .on_hover_text("The setup sheet, updating the toolpath by itself, the colour theme")
+            .on_hover_text("The setup sheet, updating the toolpath automatically, the colour theme")
             .clicked()
         {
             act = Some(Act::Focus(Focus::Preferences));

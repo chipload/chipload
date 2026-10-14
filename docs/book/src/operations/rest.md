@@ -33,7 +33,7 @@ the pocket's own tool.
 - **Nothing left:** if the large tool reaches the whole pocket (a circle wider than it),
   the rest pocket cuts nothing and says so.
 
-*View > Show simulation* shows the result: the corners cut by the small tool.
+*View > Show stock* shows the result: the corners cut by the small tool.
 
 ## Rules
 
