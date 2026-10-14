@@ -25,13 +25,19 @@ impl Problem {
         }
     }
 
+    /// A problem whose full text is also its message for the field (nothing to shorten).
+    pub fn whole(path: impl Into<String>, text: impl Into<String>) -> Self {
+        let text = text.into();
+        Problem::new(path, text.clone(), text)
+    }
+
     /// A problem worded "path: message", as [`crate::Job::validate`] words them.
     pub fn from_path_text(text: &str) -> Self {
         match text.split_once(": ") {
             Some((path, short)) if !path.is_empty() && !path.contains(char::is_whitespace) => {
                 Problem::new(path, short, text)
             }
-            _ => Problem::new("", text, text),
+            _ => Problem::whole("", text),
         }
     }
 

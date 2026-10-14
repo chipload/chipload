@@ -10,7 +10,6 @@ use chipload_core::chain::Contour;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::CHAIN_TOL_MM;
-use chipload_dxf::primitive;
 use chipload_job::{Geometry, Shape};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -301,7 +300,7 @@ pub fn outline(geometry: &Geometry) -> Vec<Vec<Point>> {
     };
     let mut points: Vec<Point> = Vec::new();
     for segment in shape.segments() {
-        let prim = primitive(&segment);
+        let prim = segment.to_primitive();
         let pts = prim.points();
         let skip = usize::from(!points.is_empty());
         points.extend(pts.into_iter().skip(skip));

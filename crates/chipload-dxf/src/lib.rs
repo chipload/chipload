@@ -24,12 +24,8 @@ use chipload_core::Point;
 use chipload_core::chain::{Contour, Segment, ShapeFrom, chain_segments};
 use chipload_core::fold::fold_point;
 use chipload_core::nesting;
-use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
-use chipload_job::{
-    ArcSegment, DrawingSource, Geometry, LineSegment, PathSegment, Placement, Shape, SourceIssue,
-    Units,
-};
+use chipload_job::{DrawingSource, Geometry, PathSegment, Placement, Shape, SourceIssue, Units};
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
 use sha2::{Digest, Sha256};
@@ -262,7 +258,7 @@ pub fn shapes_from_drawing_scaled(
             ));
         }
         if let Some(last) = entities.last_mut() {
-            last.3.push(path_segment(&segment.prim));
+            last.3.push(PathSegment::from_primitive(&segment.prim));
         }
     }
     let shapes: Vec<Shape> = entities
@@ -274,7 +270,7 @@ pub fn shapes_from_drawing_scaled(
             geometry: Geometry::Path {
                 dxf_handle: Some(handle),
                 dxf_type: Some(dxf_type),
-                closed: is_closed(&segments),
+                closed: PathSegment::closes(&segments),
                 segments,
                 image: None,
                 dxf: Some(1),
@@ -304,48 +300,6 @@ pub fn shapes_from_drawing_scaled(
     Ok(ImportedShapes { shapes, source })
 }
 
-/// The primitive a stored path segment describes.
-pub fn primitive(segment: &PathSegment) -> Primitive {
-    match segment {
-        PathSegment::Line(l) => Primitive::Line(Line {
-            start: (l.start[0], l.start[1]),
-            end: (l.end[0], l.end[1]),
-        }),
-        PathSegment::Arc(a) => Primitive::Arc(Arc {
-            center: (a.center[0], a.center[1]),
-            radius: a.radius,
-            start_angle: a.start_angle,
-            sweep: a.sweep,
-        }),
-    }
-}
-
-/// A primitive as a stored path segment (exact: same f64 values).
-pub fn path_segment(prim: &Primitive) -> PathSegment {
-    match prim {
-        Primitive::Line(l) => PathSegment::Line(LineSegment {
-            start: [l.start.0, l.start.1],
-            end: [l.end.0, l.end.1],
-        }),
-        Primitive::Arc(a) => PathSegment::Arc(ArcSegment {
-            center: [a.center.0, a.center.1],
-            radius: a.radius,
-            start_angle: a.start_angle,
-            sweep: a.sweep,
-        }),
-    }
-}
-
-/// The last segment ends where the first starts.
-pub fn is_closed(segments: &[PathSegment]) -> bool {
-    match (segments.first(), segments.last()) {
-        (Some(first), Some(last)) => {
-            distance(primitive(first).start(), primitive(last).end()) <= CHAIN_TOL_MM
-        }
-        _ => false,
-    }
-}
-
 /// Contours and the import report for a project's shapes: the DXFs' own issues first (named
 /// by their DXF when there are several), then the chaining and classification issues
 /// recomputed from the shapes. Units are the first DXF's; counts add up over all of them.
@@ -365,7 +319,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
                 (None, None) => None,
             };
             shape.segments().into_iter().map(move |seg| Segment {
-                prim: primitive(&seg),
+                prim: seg.to_primitive(),
                 layer: shape.layer.clone(),
                 handle: handle.clone(),
                 source_type: source_type.clone(),

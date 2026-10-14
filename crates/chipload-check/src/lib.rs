@@ -55,13 +55,15 @@ pub struct CheckLimits {
 }
 
 /// Derived here from the job's raw numbers, deliberately not via any generator code. The
-/// stock margin is the largest radius of the tools the enabled operations use.
+/// stock margin is the largest radius of the tools the operations that are cut use (an
+/// operation of a part that is switched off doesn't count).
 pub fn limits_from_job(job: &Job) -> CheckLimits {
     let used: Vec<i64> = job
         .operations
         .iter()
-        .filter(|op| op.enabled())
-        .map(|op| op.tool())
+        .enumerate()
+        .filter(|(i, _)| job.cuts(*i))
+        .map(|(_, op)| op.tool())
         .collect();
     let radius = job
         .tools

@@ -10,7 +10,7 @@
 
 use std::collections::BTreeMap;
 
-use chipload_core::primitives::Arc;
+use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
@@ -864,6 +864,49 @@ pub enum PathSegment {
 }
 
 impl PathSegment {
+    /// The primitive the stored segment describes (exact: the same f64 values).
+    pub fn to_primitive(&self) -> Primitive {
+        match self {
+            PathSegment::Line(l) => Primitive::Line(Line {
+                start: (l.start[0], l.start[1]),
+                end: (l.end[0], l.end[1]),
+            }),
+            PathSegment::Arc(a) => Primitive::Arc(Arc {
+                center: (a.center[0], a.center[1]),
+                radius: a.radius,
+                start_angle: a.start_angle,
+                sweep: a.sweep,
+            }),
+        }
+    }
+
+    /// A primitive as a stored segment (exact: the same f64 values).
+    pub fn from_primitive(prim: &Primitive) -> PathSegment {
+        match prim {
+            Primitive::Line(l) => PathSegment::Line(LineSegment {
+                start: [l.start.0, l.start.1],
+                end: [l.end.0, l.end.1],
+            }),
+            Primitive::Arc(a) => PathSegment::Arc(ArcSegment {
+                center: [a.center.0, a.center.1],
+                radius: a.radius,
+                start_angle: a.start_angle,
+                sweep: a.sweep,
+            }),
+        }
+    }
+
+    /// Whether the last of `segments` ends where the first starts (within the chaining
+    /// tolerance).
+    pub fn closes(segments: &[PathSegment]) -> bool {
+        match (segments.first(), segments.last()) {
+            (Some(first), Some(last)) => {
+                distance(first.to_primitive().start(), last.to_primitive().end()) <= CHAIN_TOL_MM
+            }
+            _ => false,
+        }
+    }
+
     /// The segment moved by (dx, dy) mm.
     pub fn translated(&self, dx: f64, dy: f64) -> PathSegment {
         let moved = |p: [f64; 2]| [p[0] + dx, p[1] + dy];

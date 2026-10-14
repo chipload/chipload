@@ -998,7 +998,7 @@ fn plan_profile_op(
             leads.tag(&mut out.arcs);
         }
         let layout = if rough.is_some() {
-            carried_tabs(&plan.rings, &layouts, ring, rough_rings).map_err(context)?
+            carried_tabs(&plan.rings, &layouts, k, rough_rings).map_err(context)?
         } else {
             // The roughing rings are the wall rings.
             layouts.get(k).cloned().flatten()
@@ -1076,18 +1076,20 @@ fn as_surface(tabs: &Option<(TabLayout, f64, f64)>) -> Option<TabSurface<'_>> {
         })
 }
 
-/// The tabs of the wall rings of a contour, carried over to one of its roughing rings
+/// The tabs of the wall rings of a contour, carried over to roughing ring `k` of `rough`
 /// (docs/specs/finish-and-skin.md §2): every lap leaves the same tabs.
 fn carried_tabs(
     walls: &[PathRing],
     layouts: &[Option<TabLayout>],
-    ring: &PathRing,
+    k: usize,
     rough: &[PathRing],
 ) -> Result<Option<TabLayout>, ToolpathError> {
+    let ring = &rough[k];
     let others: Vec<&[Point]> = rough
         .iter()
-        .filter(|r| r.contour_id == ring.contour_id && !std::ptr::eq(*r, ring))
-        .map(|r| r.points.as_slice())
+        .enumerate()
+        .filter(|&(j, r)| r.contour_id == ring.contour_id && j != k)
+        .map(|(_, r)| r.points.as_slice())
         .collect();
     let mut carried: Option<TabLayout> = None;
     for (wall, layout) in walls.iter().zip(layouts) {
@@ -1377,13 +1379,14 @@ fn labelled(path: String, prefix: &str, text: String) -> Problem {
 fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
     let mut problems = Vec::new();
     if job.operations.is_empty() {
-        let text = "Job has no operations";
-        problems.push(Problem::new("operations", text, text));
+        problems.push(Problem::whole("operations", "Job has no operations"));
         return (problems, Vec::new());
     }
     if !(0..job.operations.len()).any(|i| job.cuts(i)) {
-        let text = "Every operation is disabled: nothing to cut";
-        problems.push(Problem::new("operations", text, text));
+        problems.push(Problem::whole(
+            "operations",
+            "Every operation is disabled: nothing to cut",
+        ));
         return (problems, Vec::new());
     }
     let enabled = || {
@@ -1413,11 +1416,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         }
         match tool_index(op.tool()) {
             None => {
-                let text = format!("Tool {} is not defined in the job", op.tool());
-                problems.push(Problem::new(
+                problems.push(Problem::whole(
                     format!("operations.{index}.tool"),
-                    text.clone(),
-                    text,
+                    format!("Tool {} is not defined in the job", op.tool()),
                 ));
             }
             Some(k) => {
@@ -1694,9 +1695,14 @@ fn rest_check(
 /// ones skipped) that use the same tool (docs/specs/tool-per-operation.md §2). Indexes in
 /// `job.operations`.
 pub fn tool_groups(job: &Job) -> Vec<(i64, Vec<usize>)> {
+    tool_groups_among(job, |_| true)
+}
+
+/// [`tool_groups`] of the enabled operations `keep` accepts.
+fn tool_groups_among(job: &Job, keep: impl Fn(&Operation) -> bool) -> Vec<(i64, Vec<usize>)> {
     let mut groups: Vec<(i64, Vec<usize>)> = Vec::new();
     for (index, op) in job.operations.iter().enumerate() {
-        if !job.cuts(index) {
+        if !job.cuts(index) || !keep(op) {
             continue;
         }
         match groups.last_mut() {
@@ -1714,16 +1720,7 @@ fn tool_group_notes(job: &Job) -> Vec<String> {
     // next part is expected (docs/specs/parts.md §3).
     let mut notes = Vec::new();
     for part in &job.parts {
-        let mut groups: Vec<(i64, Vec<usize>)> = Vec::new();
-        for (index, op) in job.operations.iter().enumerate() {
-            if !job.cuts(index) || op.part() != part.id {
-                continue;
-            }
-            match groups.last_mut() {
-                Some((tool, ops)) if *tool == op.tool() => ops.push(index),
-                _ => groups.push((op.tool(), vec![index])),
-            }
-        }
+        let groups = tool_groups_among(job, |op| op.part() == part.id);
         notes.extend(returning_tool_notes(&groups));
     }
     notes
