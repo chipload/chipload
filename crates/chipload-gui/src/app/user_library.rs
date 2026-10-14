@@ -748,7 +748,7 @@ impl ChiploadApp {
                     )),
                 }
             }),
-            SaveTarget::Tool(id) => match settings.tools.iter().find(|t| t.id == id) {
+            SaveTarget::Tool(id) => match settings.tool(id) {
                 Some(tool) => update_tools(&tools_path(&dir), |library| {
                     let at = match &pick {
                         Pick::Name(name) => library.position(name),

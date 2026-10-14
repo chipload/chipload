@@ -9,7 +9,7 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, PocketStrategy, ProfileOp, Selector, Side, ToolType, VcarveOp,
+    PocketOp, PocketStrategy, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
 };
 
 use crate::view::Kind;
@@ -182,7 +182,7 @@ pub fn fit_hole_method(op: &mut Operation, tools: &[chipload_job::Tool]) {
     let Operation::Holes(h) = op else {
         return;
     };
-    let Some(tool) = tools.iter().find(|t| t.id == h.tool) else {
+    let Some(tool) = find_tool(tools, h.tool) else {
         return;
     };
     if h.method.tool_type() != tool.kind
@@ -351,7 +351,7 @@ impl EditJob {
             + 1;
         let select = selection.selector(contours, kind == OpKind::Path);
         let tool = self.tool_for(kind);
-        let chosen = self.settings.tools.iter().find(|t| t.id == tool);
+        let chosen = self.settings.tool(tool);
         // A tool marked not centre-cutting can't plunge: new profiles ramp in
         // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
         // (docs/specs/helix-and-leads.md, decision 6).

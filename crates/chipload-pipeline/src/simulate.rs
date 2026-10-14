@@ -4,7 +4,7 @@
 //! checks a program.
 
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
-use chipload_job::{Job, Tool, ToolType, ZZero};
+use chipload_job::{Job, Tool, ToolType};
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::{Cancel, ToolGroup};
 
@@ -187,10 +187,7 @@ fn run(
     };
     let (columns, rows) = grid_size(stock.x, stock.y, cell);
     let (origin, _) = stock.xy_bounds();
-    let top = match stock.z_zero {
-        ZZero::Top => 0.0,
-        ZZero::Bottom => stock.thickness,
-    };
+    let top = stock.top_z();
     let mut numbers = Numbers {
         removed_cm3: 0.0,
         deepest: None,
@@ -493,7 +490,7 @@ impl Recorder {
 /// The tool of the group that move `k` belongs to.
 fn tool_at<'a>(job: &'a Job, groups: &[ToolGroup], k: usize) -> Option<&'a Tool> {
     let group = groups.iter().find(|g| g.moves.contains(&k))?;
-    job.tools.iter().find(|t| t.id == group.tool.id)
+    job.tool(group.tool.id)
 }
 
 struct Grid {

@@ -5,6 +5,7 @@
 use super::forms::{JobRequest, OpFormRequest, ToolChoice};
 
 use super::*;
+use chipload_job::find_tool;
 
 impl ChiploadApp {
     /// The selection section's shape part: the editor for a drawn shape, facts for an
@@ -160,7 +161,7 @@ fn self_tool_cutting(
     tools: &[chipload_job::Tool],
     id: i64,
 ) -> Option<chipload_job::library::Cutting> {
-    let tool = tools.iter().find(|t| t.id == id)?;
+    let tool = find_tool(tools, id)?;
     chipload_job::library::linked_cutting(&library?.tools, tool)
 }
 

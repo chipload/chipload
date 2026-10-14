@@ -13,7 +13,7 @@ use chipload_core::chain::Contour;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
     Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
-    ToolChange, ToolType, WorkZero, ZZero,
+    ToolChange, ToolType, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -471,7 +471,7 @@ fn kind_text(op: &Operation, tools: &[Tool]) -> String {
     }) = op
     {
         let _ = write!(text, ", rest after T{}", rest.after_tool);
-        if let Some(tool) = tools.iter().find(|t| t.id == rest.after_tool) {
+        if let Some(tool) = find_tool(tools, rest.after_tool) {
             let _ = write!(text, " ({} mm)", num(tool.diameter));
         }
     }
@@ -590,10 +590,7 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup) -> Option<S
         .fold(None, |low: Option<f64>, z| {
             Some(low.map_or(z, |l| l.min(z)))
         })?;
-    let top = match job.stock.z_zero {
-        ZZero::Top => 0.0,
-        ZZero::Bottom => job.stock.thickness,
-    };
+    let top = job.stock.top_z();
     let depth = top - lowest;
     let mut text = format!(
         "Cuts down to Z{}: {} mm below the stock top",

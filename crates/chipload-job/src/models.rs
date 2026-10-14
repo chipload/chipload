@@ -1148,6 +1148,15 @@ pub struct Stock {
 }
 
 impl Stock {
+    /// The Z of the stock top: 0 with Z zero at the top, the thickness with it at the
+    /// bottom.
+    pub fn top_z(&self) -> f64 {
+        match self.z_zero {
+            ZZero::Top => 0.0,
+            ZZero::Bottom => self.thickness,
+        }
+    }
+
     /// (min, max) corners in work coordinates; work zero is the DXF origin.
     pub fn xy_bounds(&self) -> ((f64, f64), (f64, f64)) {
         match self.origin {
@@ -1305,10 +1314,20 @@ impl StockCorner {
     }
 }
 
+/// The tool with this id among `tools`.
+pub fn find_tool(tools: &[Tool], id: i64) -> Option<&Tool> {
+    tools.iter().find(|t| t.id == id)
+}
+
 impl Job {
     /// The part with this id.
     pub fn part(&self, id: u64) -> Option<&Part> {
         self.parts.iter().find(|p| p.id == id)
+    }
+
+    /// The project tool with this id.
+    pub fn tool(&self, id: i64) -> Option<&Tool> {
+        find_tool(&self.tools, id)
     }
 
     /// The part operation `op` belongs to.

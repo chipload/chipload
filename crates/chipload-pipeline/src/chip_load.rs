@@ -54,7 +54,7 @@ pub fn cutting_feed(op: &Operation) -> f64 {
 /// The chip load of an operation at its cutting feed (the plunge feed has none: going down
 /// the tool cuts with its tip).
 pub fn chip_load(job: &Job, op: &Operation) -> ChipLoad {
-    match job.tools.iter().find(|t| t.id == op.tool()) {
+    match job.tool(op.tool()) {
         Some(tool) => chip_load_of(cutting_feed(op), tool),
         None => ChipLoad::NoTool,
     }

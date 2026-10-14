@@ -29,7 +29,7 @@ use chipload_dxf::{
 use chipload_job::library::Cutting;
 use chipload_job::{
     CURRENT_VERSION, Drawing, Entry, Job, Machine, Operation, PocketOp, Spindle, Stock,
-    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero,
+    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
@@ -139,7 +139,7 @@ impl GcodeFile {
 /// Set the tool operation `number` (1-based, as listed) cuts with. The tool must be in the
 /// project; feeds stay as they are (docs/specs/tool-per-operation.md §7, decision 6).
 pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), PipelineError> {
-    if !job.tools.iter().any(|t| t.id == tool) {
+    if job.tool(tool).is_none() {
         return Err(PipelineError::Job(format!(
             "the project has no tool {tool}; copy one in from your library with `tool use`"
         )));
@@ -162,7 +162,7 @@ pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), Pipeli
 /// tool is larger is checked with the job's other rules, so the problem shows in the GUI too.
 pub fn set_op_rest(job: &mut Job, number: usize, after: Option<i64>) -> Result<(), PipelineError> {
     if let Some(tool) = after
-        && !job.tools.iter().any(|t| t.id == tool)
+        && job.tool(tool).is_none()
     {
         return Err(PipelineError::Job(format!(
             "the project has no tool {tool}; copy one in from your library with `tool use`"
@@ -199,13 +199,8 @@ pub fn rest_pocket_of(
     if pocket.rest.is_some() {
         return Err("it is a rest pocket itself; add the rest pocket to the first one".into());
     }
-    let small = tools
-        .iter()
-        .find(|t| t.id == tool)
-        .ok_or_else(|| format!("the project has no tool {tool}"))?;
-    let large = tools
-        .iter()
-        .find(|t| t.id == pocket.tool)
+    let small = find_tool(tools, tool).ok_or_else(|| format!("the project has no tool {tool}"))?;
+    let large = find_tool(tools, pocket.tool)
         .ok_or_else(|| format!("the project has no tool {}", pocket.tool))?;
     if small.kind != ToolType::Endmill {
         return Err(format!("tool {tool} is not an endmill"));

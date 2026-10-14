@@ -108,10 +108,7 @@ pub fn plan_job_cancellable(
     cancel: &Cancel,
 ) -> Result<Plan, ToolpathError> {
     let mut notes = validate_job(job)?;
-    let top_z = match job.stock.z_zero {
-        ZZero::Top => 0.0,
-        ZZero::Bottom => job.stock.thickness,
-    };
+    let top_z = job.stock.top_z();
     let mut moves: Vec<Move> = Vec::new();
     let mut tabs: Vec<Vec<Point>> = Vec::new();
     let mut pockets: Vec<PocketPiece> = Vec::new();
@@ -147,9 +144,7 @@ pub fn plan_job_cancellable(
     let mut groups: Vec<ToolGroup> = Vec::new();
     for (tool_id, indexes) in tool_groups(job) {
         let tool = job
-            .tools
-            .iter()
-            .find(|t| t.id == tool_id)
+            .tool(tool_id)
             .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
         let members: Vec<usize> = (0..chosen.len())
             .filter(|i| indexes.contains(&chosen[*i].0))
@@ -390,9 +385,7 @@ fn plan_pocket_op(
     let rest = match op.rest {
         Some(rest) => Some(
             ctx.job
-                .tools
-                .iter()
-                .find(|t| t.id == rest.after_tool)
+                .tool(rest.after_tool)
                 .map(|t| t.diameter / 2.0)
                 .ok_or_else(|| {
                     job_error(format!(
@@ -1356,9 +1349,7 @@ fn job_error(message: String) -> ToolpathError {
 
 /// The tool an operation names (docs/specs/tool-per-operation.md §4).
 pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathError> {
-    job.tools
-        .iter()
-        .find(|t| t.id == op.tool())
+    job.tool(op.tool())
         .ok_or_else(|| job_error(format!("Tool {} is not defined in the job", op.tool())))
 }
 
@@ -1451,9 +1442,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
             }
         }
     }
-    let (top, z_zero) = match job.stock.z_zero {
-        ZZero::Top => (0.0, "top"),
-        ZZero::Bottom => (job.stock.thickness, "bottom"),
+    let top = job.stock.top_z();
+    let z_zero = match job.stock.z_zero {
+        ZZero::Top => "top",
+        ZZero::Bottom => "bottom",
     };
     if job.machine.safe_z <= top {
         problems.push(Problem::new(
@@ -1667,7 +1659,7 @@ fn rest_check(
     let Some(Operation::Pocket(pocket)) = job.operations.get(index) else {
         return Ok(Vec::new());
     };
-    let Some(large) = job.tools.iter().find(|t| t.id == after_tool) else {
+    let Some(large) = job.tool(after_tool) else {
         return Err(format!(
             "{label}: rest after tool {after_tool}, which the project doesn't have"
         ));

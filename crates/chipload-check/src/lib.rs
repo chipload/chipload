@@ -12,7 +12,7 @@ mod parse;
 use std::collections::BTreeMap;
 
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
-use chipload_job::{Job, ZZero};
+use chipload_job::Job;
 
 /// Positional slack for comparisons against heights and bounds.
 pub const POSITION_TOL_MM: f64 = CHAIN_TOL_MM;
@@ -75,16 +75,13 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
 /// The same, for a program cut with one tool of the job (docs/specs/tool-per-operation.md
 /// §6). None if the job has no tool with that id.
 pub fn limits_for_tool(job: &Job, tool: i64) -> Option<CheckLimits> {
-    let found = job.tools.iter().find(|t| t.id == tool)?;
+    let found = job.tool(tool)?;
     Some(limits_with_radius(job, found.diameter / 2.0))
 }
 
 fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
     let stock = &job.stock;
-    let top = match stock.z_zero {
-        ZZero::Top => 0.0,
-        ZZero::Bottom => stock.thickness,
-    };
+    let top = stock.top_z();
     // The program is in work coordinates: the stock as placed in the drawing, shifted so
     // the project's work zero is at X0 Y0 (docs/specs/work-zero.md).
     let ((x0, y0), (x1, y1)) = stock.xy_bounds();

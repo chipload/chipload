@@ -348,7 +348,7 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let Some(found) = job.tools.iter().find(|t| t.id == tool).cloned() else {
+            let Some(found) = job.tool(tool).cloned() else {
                 return out.fail(format!("the project has no tool {tool}"));
             };
             let saved = update_tools(&path, |library| {
