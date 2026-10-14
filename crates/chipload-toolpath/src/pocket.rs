@@ -40,35 +40,68 @@ use crate::start::{assign, point_text, restart};
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
 
+/// One path of a piece: a ring closed back to its start, or an open path, with what the
+/// planner decided about it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PocketRing {
+    /// Oriented and starting at points[0]; a closed ring also ends there.
+    pub points: Vec<Point>,
+    /// An open path ending at its last point, not closed back to its start.
+    pub open: bool,
+    /// A wall ring (the last ring along a wall or island at each depth), whose start the
+    /// user can move.
+    pub wall: bool,
+    /// The index in the operation's `starts` of the point that set its start
+    /// (docs/specs/helix-and-leads.md part A).
+    pub chosen: Option<usize>,
+    /// A wall ring with a lead-in before it and a lead-out after it, as one open path: the
+    /// ring itself is `points[range]` (part B).
+    pub lead: Option<std::ops::Range<usize>>,
+}
+
+impl PocketRing {
+    /// A closed ring whose start the planner chose; `wall` says whether it runs along a
+    /// wall or island.
+    pub fn closed(points: Vec<Point>, wall: bool) -> Self {
+        PocketRing {
+            points,
+            open: false,
+            wall,
+            chosen: None,
+            lead: None,
+        }
+    }
+
+    /// Where the tool is after cutting it: back at its start if closed, at its end if open.
+    pub fn end(&self) -> Option<Point> {
+        if self.open {
+            self.points.last()
+        } else {
+            self.points.first()
+        }
+        .copied()
+    }
+
+    /// The ring itself, without its leads.
+    pub fn plain(&self) -> &[Point] {
+        match &self.lead {
+            Some(range) => self.points.get(range.clone()).unwrap_or(&[]),
+            None => &self.points,
+        }
+    }
+}
+
 /// One connected area to clear, with its paths in cut order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PocketPiece {
-    /// Each oriented and starting at ring[0]; a closed ring also ends there.
-    pub rings: Vec<Vec<Point>>,
-    /// open[i]: rings[i] is an open path (adaptive passes) ending at its last point, not
-    /// closed back to its start.
-    pub open: Vec<bool>,
+    pub rings: Vec<PocketRing>,
     /// feed_links[i]: stay at depth from the end of rings[i] into rings[i + 1].
     pub feed_links: Vec<bool>,
     /// Selected contours that make up this piece, for messages.
     pub contour_ids: Vec<usize>,
-    /// walls[i]: rings[i] is a wall ring (the last ring along a wall or island at each
-    /// depth), whose start the user can move.
-    pub walls: Vec<bool>,
-    /// chosen[i]: the index in the operation's `starts` of the point that set rings[i]'s
-    /// start (docs/specs/helix-and-leads.md part A).
-    pub chosen: Vec<Option<usize>>,
-    /// leads[i]: rings[i] is a wall ring with a lead-in before it and a lead-out after it,
-    /// as one open path; the ring itself is rings[i][range] (part B).
-    pub leads: Vec<Option<std::ops::Range<usize>>>,
-    /// The helix each depth pass goes down round, then feeds at depth to rings[0][0]
-    /// (part C); None: the first path's own entry.
+    /// The helix each depth pass goes down round, then feeds at depth to the first ring's
+    /// start (part C); None: the first path's own entry.
     pub helix: Option<Helix>,
-}
-
-/// Where the tool is after cutting a path: back at its start if closed, at its end if open.
-pub fn path_end(ring: &[Point], open: bool) -> Option<Point> {
-    if open { ring.last() } else { ring.first() }.copied()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -709,10 +742,8 @@ fn opened(area: &Area, rho: f64) -> Option<Area> {
 /// notes that attempt recorded: only the used attempt's are kept.
 #[derive(Default)]
 struct Attempt {
-    rings: Vec<Vec<Point>>,
+    rings: Vec<PocketRing>,
     level0: Vec<Area>,
-    open: Vec<bool>,
-    walls: Vec<bool>,
     arcs: ArcTable,
     notes: Vec<String>,
 }
@@ -737,15 +768,12 @@ fn cleared_piece(region: &Area, ids: &[usize], c: &Clearing) -> Result<Attempt, 
     cancel::check(c.cancel)?;
     let walls = PrimIndex::new(region.boundary(), c.tool_radius.max(1.0));
     nudged_or_tight(|nudge| {
-        let mut a = attempt_piece(region, ids, c, nudge)?;
-        if let Some(k) = first_unclear(region, &walls, &a.rings, &a.open, c.offset, &a.arcs) {
+        let a = attempt_piece(region, ids, c, nudge)?;
+        if let Some(k) = first_unclear(region, &walls, &a.rings, c.offset, &a.arcs) {
             return Err(Failure::Numerical {
                 error: verification_failed(ids),
-                wall: a.walls.get(k).copied().unwrap_or(true),
+                wall: a.rings.get(k).is_none_or(|r| r.wall),
             });
-        }
-        if a.open.is_empty() {
-            a.open = vec![false; a.rings.len()];
         }
         Ok(a)
     })
@@ -768,7 +796,7 @@ fn attempt_piece(
                 rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes)
                     .map_err(Failure::Final)?;
             }
-            (a.rings, a.walls) = cut_order(
+            a.rings = cut_order(
                 &nodes,
                 &roots,
                 c.position,
@@ -804,7 +832,7 @@ fn rounded_rings(
 ) -> Result<(), ToolpathError> {
     let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
     let missed = |nodes: &[Node]| {
-        let (rings, _) = cut_order(
+        let rings = cut_order(
             nodes,
             roots,
             c.position,
@@ -812,9 +840,7 @@ fn rounded_rings(
             c.spindle,
             &mut ArcTable::default(),
         );
-        let open = vec![false; rings.len()];
-        let (note, missed) =
-            uncut_material(region, &level0, &rings, &open, &[], c.tool_radius, ids);
+        let (note, missed) = uncut_material(region, &level0, &rings, &[], c.tool_radius, ids);
         note.map(|_| missed)
     };
     let sharp: Vec<Area> = nodes.iter().map(|n| n.area.clone()).collect();
@@ -864,21 +890,18 @@ fn rounded_rings(
 }
 
 /// The first path that comes closer than r (minus tolerance) to a wall or island or starts
-/// outside the region: [`verify`] for the paths alone, before links and leads. `open` may
-/// be empty: all closed.
+/// outside the region: [`verify`] for the paths alone, before links and leads.
 fn first_unclear(
     region: &Area,
     walls: &PrimIndex,
-    rings: &[Vec<Point>],
-    open: &[bool],
+    rings: &[PocketRing],
     radius: f64,
     arcs: &ArcTable,
 ) -> Option<usize> {
     let clearance = min_clearance(radius);
-    rings.iter().enumerate().position(|(k, ring)| {
-        let is_open = open.get(k).copied().unwrap_or(false);
-        let inside = ring.first().is_some_and(|&p| region.contains(p));
-        let clear = cutting_segments(std::slice::from_ref(ring), &[is_open], &[])
+    rings.iter().position(|ring| {
+        let inside = ring.points.first().is_some_and(|&p| region.contains(p));
+        let clear = cutting_segments(std::slice::from_ref(ring), &[])
             .iter()
             .all(|&(a, b)| segment_is_clear(walls, a, b, clearance, arcs));
         !(inside && clear)
@@ -932,11 +955,10 @@ fn cut_order(
     direction: Direction,
     spindle: Spindle,
     arcs: &mut ArcTable,
-) -> (Vec<Vec<Point>>, Vec<bool>) {
+) -> Vec<PocketRing> {
     let wall_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside the ring
     let island_cw = cut_clockwise(Side::Outside, direction, spindle); // material inside it
-    let mut rings: Vec<Vec<Point>> = Vec::new();
-    let mut walls: Vec<bool> = Vec::new();
+    let mut rings: Vec<PocketRing> = Vec::new();
     let mut stack: Vec<(Vec<usize>, Option<usize>)> = vec![(roots.to_vec(), None)];
     while let Some((siblings, waiting)) = stack.last_mut() {
         if !siblings.is_empty() {
@@ -979,15 +1001,13 @@ fn cut_order(
             let island = islands.remove(nearest);
             let ring = orient_from(&island, island_cw, position);
             position = ring[0];
-            rings.push(ring);
-            walls.push(wall);
+            rings.push(PocketRing::closed(ring, wall));
         }
         let outer = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
         position = outer[0];
-        rings.push(outer);
-        walls.push(wall);
+        rings.push(PocketRing::closed(outer, wall));
     }
-    (rings, walls)
+    rings
 }
 
 fn min_clearance(radius: f64) -> f64 {
@@ -1022,22 +1042,21 @@ fn link_is_safe(
 }
 
 /// Every cutting move as a segment: ring chords (closed) and links fed at depth.
-fn cutting_segments(rings: &[Vec<Point>], open: &[bool], links: &[bool]) -> Vec<(Point, Point)> {
+fn cutting_segments(rings: &[PocketRing], links: &[bool]) -> Vec<(Point, Point)> {
     let mut segments = Vec::new();
-    for (k, ring) in rings.iter().enumerate() {
-        let n = ring.len();
-        let is_open = open.get(k).copied().unwrap_or(false);
+    for ring in rings {
+        let points = &ring.points;
+        let n = points.len();
         match n {
             0 => {}
-            1 => segments.push((ring[0], ring[0])),
-            2 => segments.push((ring[0], ring[1])),
-            _ if is_open => segments.extend(ring.windows(2).map(|w| (w[0], w[1]))),
-            _ => segments.extend((0..n).map(|i| (ring[i], ring[(i + 1) % n]))),
+            1 => segments.push((points[0], points[0])),
+            2 => segments.push((points[0], points[1])),
+            _ if ring.open => segments.extend(points.windows(2).map(|w| (w[0], w[1]))),
+            _ => segments.extend((0..n).map(|i| (points[i], points[(i + 1) % n]))),
         }
     }
     for (i, &stays_down) in links.iter().enumerate() {
-        let is_open = open.get(i).copied().unwrap_or(false);
-        let (Some(a), b) = (path_end(&rings[i], is_open), rings[i + 1][0]) else {
+        let (Some(a), b) = (rings[i].end(), rings[i + 1].points[0]) else {
             continue;
         };
         if stays_down && distance(a, b) >= CHAIN_TOL_MM {
@@ -1049,12 +1068,10 @@ fn cutting_segments(rings: &[Vec<Point>], open: &[bool], links: &[bool]) -> Vec<
 
 /// Post-condition: no cutting move comes closer than r (minus tolerance) to a wall or
 /// island, and everything is inside the region. Never trust the offsets blindly.
-#[allow(clippy::too_many_arguments)]
 fn verify(
     region: &Area,
     walls: &PrimIndex,
-    rings: &[Vec<Point>],
-    open: &[bool],
+    rings: &[PocketRing],
     links: &[bool],
     radius: f64,
     ids: &[usize],
@@ -1063,9 +1080,9 @@ fn verify(
     let clearance = min_clearance(radius);
     let inside = rings
         .iter()
-        .all(|r| r.first().is_some_and(|&p| region.contains(p)));
+        .all(|r| r.points.first().is_some_and(|&p| region.contains(p)));
     // Chords on arcs are cut as arcs when arcs are written: check where they bulge most too.
-    let clear = cutting_segments(rings, open, links)
+    let clear = cutting_segments(rings, links)
         .iter()
         .all(|&(a, b)| segment_is_clear(walls, a, b, clearance, arcs));
     if inside && clear {
@@ -1100,8 +1117,7 @@ struct Cell {
 fn uncut_material(
     region: &Area,
     reachable: &[Area],
-    rings: &[Vec<Point>],
-    open: &[bool],
+    rings: &[PocketRing],
     links: &[bool],
     radius: f64,
     ids: &[usize],
@@ -1110,7 +1126,7 @@ fn uncut_material(
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
     let paths = PrimIndex::new(
-        cutting_segments(rings, open, links)
+        cutting_segments(rings, links)
             .into_iter()
             .map(|(start, end)| Primitive::Line(Line { start, end }))
             .collect(),
@@ -1286,58 +1302,46 @@ fn connected(cells: &[Cell], gap: f64) -> Vec<Vec<usize>> {
     groups.into_values().collect()
 }
 
-/// Rings, cut order and links for every piece. `stepover` is in mm.
-/// `clearance` moves the cut into the kept material (docs/specs/depths-and-clearance.md):
-/// the tool centre runs `tool_radius - clearance` from the walls and islands.
-#[allow(clippy::too_many_arguments)]
-pub fn plan_pocket(
-    contours: &[&Contour],
-    tool_radius: f64,
-    clearance: f64,
-    stepover: f64,
-    direction: Direction,
-    spindle: Spindle,
-    keep_tool_down: bool,
-    start: Point,
-) -> Result<PocketPlan, ToolpathError> {
-    plan_pocket_with(
-        contours,
-        tool_radius,
-        clearance,
-        stepover,
-        direction,
-        spindle,
-        keep_tool_down,
-        start,
-        PocketStrategy::Rings {},
-    )
+/// What a pocket is cleared with (docs/specs/pocket.md): the shapes, the tool and how.
+#[derive(Debug, Clone, Copy)]
+pub struct PocketRequest<'a> {
+    /// The selected closed contours: boundaries and the islands inside them.
+    pub contours: &'a [&'a Contour],
+    pub tool_radius: f64,
+    /// Moves the cut into the kept material (docs/specs/depths-and-clearance.md): the tool
+    /// centre runs `tool_radius - clearance` from the walls and islands.
+    pub clearance: f64,
+    /// Between rings, mm.
+    pub stepover: f64,
+    pub direction: Direction,
+    pub spindle: Spindle,
+    /// Feed between rings at depth where that is safe.
+    pub keep_tool_down: bool,
+    /// Where the tool comes from.
+    pub start: Point,
+    pub strategy: PocketStrategy,
+    /// Start points, leads, helix, rounded corners and rest machining
+    /// (docs/specs/helix-and-leads.md); none by default.
+    pub choices: Choices<'a>,
 }
 
-/// [`plan_pocket`] with a clearing strategy (docs/specs/trochoidal.md).
-#[allow(clippy::too_many_arguments)]
-pub fn plan_pocket_with(
-    contours: &[&Contour],
-    tool_radius: f64,
-    clearance: f64,
-    stepover: f64,
-    direction: Direction,
-    spindle: Spindle,
-    keep_tool_down: bool,
-    start: Point,
-    strategy: PocketStrategy,
-) -> Result<PocketPlan, ToolpathError> {
-    plan_pocket_starting(
-        contours,
-        tool_radius,
-        clearance,
-        stepover,
-        direction,
-        spindle,
-        keep_tool_down,
-        start,
-        strategy,
-        Choices::default(),
-    )
+impl<'a> PocketRequest<'a> {
+    /// A rings pocket cut climb with a clockwise spindle from the origin, the tool centre
+    /// `tool_radius` from the walls, retracting between rings, with no choices made.
+    pub fn new(contours: &'a [&'a Contour], tool_radius: f64, stepover: f64) -> Self {
+        PocketRequest {
+            contours,
+            tool_radius,
+            clearance: 0.0,
+            stepover,
+            direction: Direction::Climb,
+            spindle: Spindle::Cw,
+            keep_tool_down: false,
+            start: (0.0, 0.0),
+            strategy: PocketStrategy::Rings {},
+            choices: Choices::default(),
+        }
+    }
 }
 
 /// Where the wall rings start, their leads, and the helix the tool goes down round
@@ -1363,37 +1367,32 @@ pub struct Choices<'a> {
 struct Draft {
     region: Area,
     ids: Vec<usize>,
-    rings: Vec<Vec<Point>>,
+    rings: Vec<PocketRing>,
     level0: Vec<Area>,
-    open: Vec<bool>,
-    walls: Vec<bool>,
-    chosen: Vec<Option<usize>>,
-    leads: Vec<Option<std::ops::Range<usize>>>,
 }
 
-/// [`plan_pocket_with`] with start points and leads for the wall rings, and a helix to go
-/// down round (docs/specs/helix-and-leads.md).
-#[allow(clippy::too_many_arguments)]
-pub fn plan_pocket_starting(
-    contours: &[&Contour],
-    tool_radius: f64,
-    clearance: f64,
-    stepover: f64,
-    direction: Direction,
-    spindle: Spindle,
-    keep_tool_down: bool,
-    start: Point,
-    strategy: PocketStrategy,
-    choices: Choices,
-) -> Result<PocketPlan, ToolpathError> {
-    let Choices {
-        starts,
-        lead,
-        helix,
-        round_corners,
-        cancel,
-        rest,
-    } = choices;
+/// Rings, cut order and links for every piece of the pocket `request` asks for.
+pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError> {
+    let PocketRequest {
+        contours,
+        tool_radius,
+        clearance,
+        stepover,
+        direction,
+        spindle,
+        keep_tool_down,
+        start,
+        strategy,
+        choices:
+            Choices {
+                starts,
+                lead,
+                helix,
+                round_corners,
+                cancel,
+                rest,
+            },
+    } = *request;
     if stepover <= 0.0 || stepover.is_nan() {
         return Err(geometry(format!(
             "stepover must be positive, got {stepover}"
@@ -1457,8 +1456,6 @@ pub fn plan_pocket_starting(
         let Attempt {
             rings,
             level0,
-            open,
-            walls,
             arcs: used_arcs,
             notes: used_notes,
         } = cleared_piece(&region, &ids, &clearing)?;
@@ -1472,18 +1469,12 @@ pub fn plan_pocket_starting(
                 level0.len()
             ));
         }
-        position = rings[0][0]; // every depth starts again at the first ring
-        let chosen = vec![None; rings.len()];
-        let leads = vec![None; rings.len()];
+        position = rings[0].points[0]; // every depth starts again at the first ring
         drafts.push(Draft {
             region,
             ids,
             rings,
             level0,
-            open,
-            walls,
-            chosen,
-            leads,
         });
     }
     // The order and the clearing were chosen from the planner's starts; only the wall
@@ -1501,10 +1492,6 @@ pub fn plan_pocket_starting(
             ids,
             mut rings,
             level0,
-            mut open,
-            walls: wall_rings,
-            chosen,
-            mut leads,
         } = draft;
         let walls = PrimIndex::new(region.boundary(), tool_radius.max(1.0));
         if let Some(radius) = lead {
@@ -1513,13 +1500,13 @@ pub fn plan_pocket_starting(
             let fits =
                 |l: &Leads| l.all_points(|p| region.contains(p)) && l.clear_of(&walls, offset);
             let min_radius = 2.0 * tool_radius * MIN_LEAD_DIAMETERS;
-            for k in (0..rings.len()).filter(|&k| wall_rings[k]) {
-                if chosen[k].is_none()
-                    && let Some(at) = roomiest_start(&rings[k])
+            for ring in rings.iter_mut().filter(|r| r.wall) {
+                if ring.chosen.is_none()
+                    && let Some(at) = roomiest_start(&ring.points)
                 {
-                    rings[k] = restart(&rings[k], at, &mut arcs);
+                    ring.points = restart(&ring.points, at, &mut arcs);
                 }
-                match fitted_leads(&rings[k], radius, min_radius, waste_left, fits) {
+                match fitted_leads(&ring.points, radius, min_radius, waste_left, fits) {
                     Some((l, used)) => {
                         if used < radius {
                             notes.push(format!(
@@ -1529,14 +1516,14 @@ pub fn plan_pocket_starting(
                             ));
                         }
                         l.tag(&mut arcs);
-                        let ring = std::mem::take(&mut rings[k]);
+                        let plain = std::mem::take(&mut ring.points);
                         let before = l.lead_in.len() - 1;
                         let mut path = l.lead_in[..before].to_vec();
-                        path.extend(ring.iter().copied());
+                        path.extend(plain.iter().copied());
                         path.extend(l.lead_out.iter().copied());
-                        leads[k] = Some(before..before + ring.len());
-                        rings[k] = path;
-                        open[k] = true;
+                        ring.lead = Some(before..before + plain.len());
+                        ring.points = path;
+                        ring.open = true;
                     }
                     None => notes.push(format!(
                         "contours {}: no room for a lead (not even {min_radius:.3} mm); the \
@@ -1546,16 +1533,23 @@ pub fn plan_pocket_starting(
                 }
             }
         }
-        let links: Vec<bool> = (1..rings.len())
-            .map(|k| {
-                let from = path_end(&rings[k - 1], open[k - 1]);
+        let links: Vec<bool> = rings
+            .windows(2)
+            .map(|pair| {
                 keep_tool_down
-                    && from.is_some_and(|from| {
-                        link_is_safe(&region, &walls, from, rings[k][0], tool_radius, offset)
+                    && pair[0].end().is_some_and(|from| {
+                        link_is_safe(
+                            &region,
+                            &walls,
+                            from,
+                            pair[1].points[0],
+                            tool_radius,
+                            offset,
+                        )
                     })
             })
             .collect();
-        verify(&region, &walls, &rings, &open, &links, offset, &ids, &arcs)?;
+        verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
         let helix = match helix {
             Some(radius) => {
                 let wall_cw = cut_clockwise(Side::Inside, direction, spindle);
@@ -1571,16 +1565,12 @@ pub fn plan_pocket_starting(
             None => None,
         };
         cancel::check(cancel)?;
-        let (uncut, _) = uncut_material(&region, &level0, &rings, &open, &links, tool_radius, &ids);
+        let (uncut, _) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
         notes.extend(uncut);
         pieces.push(PocketPiece {
             rings,
-            open,
             feed_links: links,
             contour_ids: ids,
-            walls: wall_rings,
-            chosen,
-            leads,
             helix,
         });
     }
@@ -1608,11 +1598,11 @@ struct HelixFit<'a> {
 fn fit_helix(
     fit: &HelixFit,
     radius: f64,
-    rings: &[Vec<Point>],
+    rings: &[PocketRing],
     ids: &[usize],
     notes: &mut Vec<String>,
 ) -> Result<Option<Helix>, ToolpathError> {
-    let Some(&first) = rings.first().and_then(|r| r.first()) else {
+    let Some(&first) = rings.first().and_then(|r| r.points.first()) else {
         return Ok(None);
     };
     let min_radius = 0.2 * fit.tool_radius; // a tenth of the diameter
@@ -1704,25 +1694,25 @@ fn choose_starts(
     for (d, draft) in drafts.iter().enumerate() {
         at.extend(
             (0..draft.rings.len())
-                .filter(|&k| draft.walls[k])
+                .filter(|&k| draft.rings[k].wall)
                 .map(|k| (d, k)),
         );
     }
     let rings: Vec<&[Point]> = at
         .iter()
-        .map(|&(d, k)| drafts[d].rings[k].as_slice())
+        .map(|&(d, k)| drafts[d].rings[k].points.as_slice())
         .collect();
     let (chosen, duplicates) = assign(starts, &rings);
     for (&(d, k), choice) in at.iter().zip(&chosen) {
         let Some(choice) = choice else { continue };
-        let draft = &mut drafts[d];
-        draft.rings[k] = restart(&draft.rings[k], choice.stored, arcs);
-        draft.chosen[k] = Some(choice.index);
+        let ring = &mut drafts[d].rings[k];
+        ring.points = restart(&ring.points, choice.stored, arcs);
+        ring.chosen = Some(choice.index);
         if choice.distance > far {
             notes.push(format!(
                 "contours {}: start point {} is {:.3} mm from the wall; the nearest point is \
                  used",
-                ids_text(&draft.ids),
+                ids_text(&drafts[d].ids),
                 point_text(choice.stored),
                 choice.distance
             ));
@@ -1826,34 +1816,44 @@ fn rest_pieces(
     Ok(found)
 }
 
+/// The depths and feeds a piece is cut at (docs/specs/ramp-entry.md).
+#[derive(Debug, Clone, Copy)]
+pub struct PocketCut<'a> {
+    /// The Z of each depth pass, going down.
+    pub pass_z: &'a [f64],
+    /// The Z of the start depth, cut already: where every descent begins.
+    pub top_z: f64,
+    pub safe_z: f64,
+    pub feed: f64,
+    pub plunge_feed: f64,
+    /// How the tool goes down into each pass, along the path that follows.
+    pub entry: Entry,
+}
+
 /// All depth passes of one piece. Each pass starts at the centre and ends retracted.
-/// `top_z` is the Z of the start depth, cut already; every descent into a pass goes
-/// down as `entry` says, along the path that follows (docs/specs/ramp-entry.md).
-#[allow(clippy::too_many_arguments)]
-pub fn pocket_moves(
-    piece: &PocketPiece,
-    pass_z: &[f64],
-    top_z: f64,
-    safe_z: f64,
-    feed: f64,
-    plunge_feed: f64,
-    entry: Entry,
-) -> Result<Vec<Move>, ToolpathError> {
+pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, ToolpathError> {
+    let PocketCut {
+        pass_z,
+        top_z,
+        safe_z,
+        feed,
+        plunge_feed,
+        entry,
+    } = *cut;
     let mut moves = Vec::new();
-    let Some(first) = piece.rings.first().and_then(|r| r.first().copied()) else {
+    let Some(first) = piece.rings.first().and_then(|r| r.points.first().copied()) else {
         return Ok(moves);
     };
     // The path the tool follows from a ring's start, to ramp along.
-    let path_of = |index: usize| {
-        let ring = &piece.rings[index];
-        if piece.open.get(index).copied().unwrap_or(false) {
-            ring.clone()
+    let path_of = |ring: &PocketRing| {
+        if ring.open {
+            ring.points.clone()
         } else {
-            crate::profile::closed_path(ring)
+            crate::profile::closed_path(&ring.points)
         }
     };
-    let descend = |index: usize, cleared: f64, z: f64| {
-        let path = path_of(index);
+    let descend = |ring: &PocketRing, cleared: f64, z: f64| {
+        let path = path_of(ring);
         let length = crate::ramp::polyline_length(&path);
         crate::ramp::enter(&path, length, safe_z, cleared, z, entry, feed, plunge_feed)
     };
@@ -1876,22 +1876,21 @@ pub fn pocket_moves(
             }
             _ => {
                 moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
-                moves.extend(descend(0, cleared, z)?);
+                moves.extend(descend(&piece.rings[0], cleared, z)?);
             }
         }
         for (index, ring) in piece.rings.iter().enumerate() {
-            let start = ring[0];
-            let open = piece.open.get(index).copied().unwrap_or(false);
+            let start = ring.points[0];
             if index > 0 {
                 if piece.feed_links[index - 1] {
                     moves.push(Move::feed_xy(start, feed));
                 } else {
                     moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(start)]);
-                    moves.extend(descend(index, cleared, z)?);
+                    moves.extend(descend(ring, cleared, z)?);
                 }
             }
-            moves.extend(ring[1..].iter().map(|&p| Move::feed_xy(p, feed)));
-            if !open {
+            moves.extend(ring.points[1..].iter().map(|&p| Move::feed_xy(p, feed)));
+            if !ring.open {
                 moves.push(Move::feed_xy(start, feed));
             }
         }

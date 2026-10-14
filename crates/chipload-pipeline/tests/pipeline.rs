@@ -983,7 +983,7 @@ fn a_pocket_of_a_bulged_polyline_passes_the_checker_with_arcs() {
     let lowest = result
         .pockets
         .iter()
-        .flat_map(|piece| piece.rings.iter().flatten())
+        .flat_map(|piece| piece.rings.iter().flat_map(|r| &r.points))
         .map(|p| p.1)
         .fold(f64::INFINITY, f64::min);
     assert!(lowest < 65.0, "{lowest}");

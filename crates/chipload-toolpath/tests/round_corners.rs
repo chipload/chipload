@@ -10,11 +10,10 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM};
-use chipload_job::{Direction, PocketStrategy, Spindle};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::geom::segment_distance;
 use chipload_toolpath::offset::{contour_pline, pline_segments};
-use chipload_toolpath::pocket::{Choices, PocketPlan, plan_pocket_starting};
+use chipload_toolpath::pocket::{Choices, PocketPlan, PocketRequest, plan_pocket};
 use common::{polygon_id, rect};
 use proptest::prelude::*;
 
@@ -22,21 +21,13 @@ const RADIUS: f64 = 3.0;
 
 fn plan(contours: &[Contour], stepover: f64, round: bool) -> Result<PocketPlan, ToolpathError> {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_pocket_starting(
-        &refs,
-        RADIUS,
-        0.0,
-        stepover,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-        PocketStrategy::Rings {},
-        Choices {
+    plan_pocket(&PocketRequest {
+        choices: Choices {
             round_corners: round,
             ..Choices::default()
         },
-    )
+        ..PocketRequest::new(&refs, RADIUS, stepover)
+    })
 }
 
 /// The sharpest turn between consecutive chords of a closed ring, radians.
@@ -66,7 +57,8 @@ fn inner_rings_of_a_rectangle_turn_round_and_the_wall_ring_stays_sharp() {
     assert!(plan.notes.is_empty(), "{:?}", plan.notes);
     let piece = &plan.pieces[0];
     let mut inner = 0;
-    for (ring, &wall) in piece.rings.iter().zip(&piece.walls) {
+    for ring in &piece.rings {
+        let (ring, wall) = (&ring.points, ring.wall);
         let turn = sharpest_turn(ring);
         // The ring's distance from the walls, and its corner nearest (0, 0).
         let d = ring.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
@@ -103,7 +95,7 @@ fn rounding_off_keeps_every_ring_sharp() {
     let contours = [rect(1, 0.0, 0.0, 100.0, 60.0)];
     let plan = plan(&contours, 2.4, false).unwrap();
     for ring in &plan.pieces[0].rings {
-        assert!(sharpest_turn(ring) > 1.5);
+        assert!(sharpest_turn(&ring.points) > 1.5);
     }
 }
 
@@ -148,9 +140,8 @@ fn acute_corners_round_less_rather_than_leave_material() {
         let inner: Vec<f64> = piece
             .rings
             .iter()
-            .zip(&piece.walls)
-            .filter(|(_, wall)| !**wall)
-            .map(|(ring, _)| sharpest_turn(ring))
+            .filter(|ring| !ring.wall)
+            .map(|ring| sharpest_turn(&ring.points))
             .collect();
         // Sharp, the 34° corners turn by 2.55 rad.
         let rounded = inner.iter().filter(|&&t| t < 1.0).count();
@@ -229,6 +220,7 @@ proptest! {
         let clearance = RADIUS - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
         for piece in &round.pieces {
             for ring in &piece.rings {
+                let ring = &ring.points;
                 let n = ring.len();
                 for i in 0..n {
                     let (a, b) = (ring[i], ring[(i + 1) % n]);

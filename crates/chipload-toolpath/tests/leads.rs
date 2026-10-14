@@ -310,21 +310,21 @@ fn a_pocket_wall_gets_leads() {
             .unwrap_or_else(|e| panic!("{strategy}: {e}"));
         let piece = &plan.pockets[0];
         let k = piece.rings.len() - 1;
-        let range = piece.leads[k].clone().expect("the wall has leads");
-        assert!(piece.open[k]);
+        let range = piece.rings[k].lead.clone().expect("the wall has leads");
+        assert!(piece.rings[k].open);
         // The wall ring, starting in the middle of its longest chord (the bottom or the top
         // edge, as long as each other: the one nearer where the clearing ended), with the
         // leads around it; every corner of it is still there.
-        let ring = &piece.rings[k][range.clone()];
+        let ring = &piece.rings[k].points[range.clone()];
         assert!(
             ring[0] == (30.0, 3.0) || ring[0] == (30.0, 37.0),
             "{strategy}: {:?}",
             ring[0]
         );
-        for corner in &plain.pockets[0].rings[k] {
+        for corner in &plain.pockets[0].rings[k].points {
             assert!(ring.contains(corner), "{strategy}: {corner:?}");
         }
-        let path = &piece.rings[k];
+        let path = &piece.rings[k].points;
         assert!(range.start > 0 && range.end < path.len());
         // The leads stay at least the tool radius from the walls: inside (3, 3)-(57, 37).
         for &p in path {
@@ -350,12 +350,11 @@ fn island_walls_get_leads_on_their_cleared_side() {
     ];
     let plan = plan_job(&job(pocket(json!({"type": "rings"}), json!({}))), &parts).unwrap();
     let piece = &plan.pockets[0];
-    let led: Vec<usize> = (0..piece.rings.len())
-        .filter(|&k| piece.leads[k].is_some())
-        .collect();
+    let led: Vec<&chipload_toolpath::pocket::PocketRing> =
+        piece.rings.iter().filter(|r| r.lead.is_some()).collect();
     assert_eq!(led.len(), 2, "the outline's and the island's walls");
-    for &k in &led {
-        for &p in &piece.rings[k] {
+    for ring in &led {
+        for &p in &ring.points {
             // Never closer than the tool radius to the island.
             let d = to_outline(p, (30.0, 20.0, 50.0, 40.0));
             let in_island = p.0 > 30.0 && p.0 < 50.0 && p.1 > 20.0 && p.1 < 40.0;

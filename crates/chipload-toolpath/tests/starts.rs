@@ -181,14 +181,18 @@ fn a_pocket_moves_only_its_wall_ring() {
             .unwrap_or_else(|e| panic!("{strategy}: {e}"));
         let (a, b) = (&plain.pockets[0], &plan.pockets[0]);
         assert_eq!(a.rings.len(), b.rings.len(), "{strategy}");
-        let walls: Vec<usize> = (0..b.rings.len()).filter(|&k| b.walls[k]).collect();
+        let walls: Vec<usize> = (0..b.rings.len()).filter(|&k| b.rings[k].wall).collect();
         assert_eq!(walls, vec![b.rings.len() - 1], "{strategy}");
         for k in 0..b.rings.len() - 1 {
             assert_eq!(a.rings[k], b.rings[k], "{strategy}: ring {k} changed");
         }
         let wall = b.rings.last().unwrap();
-        assert!(close(wall[0], (30.0, 37.0)), "{strategy}: {:?}", wall[0]);
-        assert_eq!(b.chosen.last().copied().flatten(), Some(0));
+        assert!(
+            close(wall.points[0], (30.0, 37.0)),
+            "{strategy}: {:?}",
+            wall.points[0]
+        );
+        assert_eq!(wall.chosen, Some(0));
         assert_eq!(plan.ring_starts.len(), 1, "{strategy}");
     }
 }
@@ -205,10 +209,12 @@ fn island_walls_can_be_moved_too() {
     )
     .unwrap();
     let piece = &plan.pockets[0];
-    let island = (0..piece.rings.len())
-        .find(|&k| piece.chosen[k] == Some(0))
+    let island = piece
+        .rings
+        .iter()
+        .find(|r| r.chosen == Some(0))
         .expect("a wall ring took the point");
-    assert!(piece.walls[island]);
+    assert!(island.wall);
     // The island's ring runs 3 mm outside it: its bottom edge is at y = 17.
-    assert!(close(piece.rings[island][0], (40.0, 17.0)));
+    assert!(close(island.points[0], (40.0, 17.0)));
 }

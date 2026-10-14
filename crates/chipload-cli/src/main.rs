@@ -2060,8 +2060,8 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
             "tabs": plan.tabs,
             "pockets": plan.pockets.iter().map(|p| json!({
                 "contour_ids": p.contour_ids,
-                "rings": p.rings,
-                "open": p.open,
+                "rings": p.rings.iter().map(|r| &r.points).collect::<Vec<_>>(),
+                "open": p.rings.iter().map(|r| r.open).collect::<Vec<_>>(),
                 "feed_links": p.feed_links,
             })).collect::<Vec<_>>(),
             "ring_starts": plan.ring_starts.iter().map(|s| json!({

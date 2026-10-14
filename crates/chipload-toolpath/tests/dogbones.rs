@@ -410,8 +410,9 @@ fn a_pocket_gets_them_in_its_wall_rings_and_round_its_islands() {
     // The tips in the wall rings: points reached from a vertex and left back to it.
     let mut found: Vec<Point> = Vec::new();
     for piece in &plan.pockets {
-        for (k, ring) in piece.rings.iter().enumerate() {
-            if piece.walls[k] {
+        for ring in &piece.rings {
+            if ring.wall {
+                let ring = &ring.points;
                 let n = ring.len();
                 for i in 0..n {
                     let (a, t, b) = (ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n]);
@@ -439,9 +440,14 @@ fn a_pocket_gets_them_in_its_wall_rings_and_round_its_islands() {
     // Only wall rings have them, and every move along a wall ring stays off the walls
     // except the legs.
     for piece in &plan.pockets {
-        for (k, ring) in piece.rings.iter().enumerate() {
-            if !piece.walls[k] {
-                assert!(!ring.iter().any(|&p| found.iter().any(|&t| near(p, t))));
+        for ring in &piece.rings {
+            if !ring.wall {
+                assert!(
+                    !ring
+                        .points
+                        .iter()
+                        .any(|&p| found.iter().any(|&t| near(p, t)))
+                );
             }
         }
     }
@@ -461,8 +467,9 @@ fn crossing_pockets_skip_the_corners_inside_each_other() {
     let plan = plan(pocket(corners("dogbone", 100.0)), &[first, second]);
     let mut wall: Vec<Point> = Vec::new();
     for piece in &plan.pockets {
-        for (k, ring) in piece.rings.iter().enumerate() {
-            if piece.walls[k] {
+        for ring in &piece.rings {
+            if ring.wall {
+                let ring = &ring.points;
                 let n = ring.len();
                 for i in 0..n {
                     let (a, t, b) = (ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n]);

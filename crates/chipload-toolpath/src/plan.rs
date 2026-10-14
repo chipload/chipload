@@ -25,7 +25,9 @@ use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_m
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
 use crate::model::{Move, MoveKind, Program};
 use crate::path::{PathCut, order_paths, path_moves};
-use crate::pocket::{Choices, PocketPiece, plan_pocket_starting, pocket_moves};
+use crate::pocket::{
+    Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
+};
 use crate::profile::{PathRing, cut_clockwise, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
@@ -397,17 +399,17 @@ fn plan_pocket_op(
         ),
         None => None,
     };
-    let plan = plan_pocket_starting(
-        &selection.contours,
-        ctx.tool.diameter / 2.0,
-        op.clearance,
-        op.stepover * ctx.tool.diameter,
-        op.direction,
-        ctx.job.machine.spindle,
-        op.keep_tool_down,
+    let request = PocketRequest {
+        contours: &selection.contours,
+        tool_radius: ctx.tool.diameter / 2.0,
+        clearance: op.clearance,
+        stepover: op.stepover * ctx.tool.diameter,
+        direction: op.direction,
+        spindle: ctx.job.machine.spindle,
+        keep_tool_down: op.keep_tool_down,
         start,
-        op.strategy,
-        Choices {
+        strategy: op.strategy,
+        choices: Choices {
             starts,
             lead: op.lead.map(|l| l.radius),
             helix: match op.entry {
@@ -418,8 +420,8 @@ fn plan_pocket_op(
             cancel: Some(ctx.cancel),
             rest,
         },
-    )
-    .map_err(|err| err.with_context(label))?;
+    };
+    let plan = plan_pocket(&request).map_err(|err| err.with_context(label))?;
     let mut plan = plan;
     let mut corner_notes = Vec::new();
     if let Some(style) = op.corners {
@@ -452,35 +454,23 @@ fn plan_pocket_op(
         end: start,
         starts: Vec::new(),
     };
+    let cut = PocketCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        entry: op.entry,
+    };
     for piece in &plan.pieces {
-        for (k, ring) in piece.rings.iter().enumerate() {
-            if piece.walls.get(k).copied().unwrap_or(false) {
-                // Without the leads, if it has them.
-                let plain = match piece.leads.get(k).cloned().flatten() {
-                    Some(range) => ring.get(range).map(<[Point]>::to_vec).unwrap_or_default(),
-                    None => ring.clone(),
-                };
-                out.starts
-                    .push((plain, piece.chosen.get(k).copied().flatten()));
-            }
+        for ring in piece.rings.iter().filter(|r| r.wall) {
+            // Without the leads, if it has them.
+            out.starts.push((ring.plain().to_vec(), ring.chosen));
         }
-        out.moves.extend(
-            pocket_moves(
-                piece,
-                ctx.pass_z,
-                ctx.top_z,
-                ctx.job.machine.safe_z,
-                op.feed,
-                op.plunge_feed,
-                op.entry,
-            )
-            .map_err(|err| err.with_context(label))?,
-        );
+        out.moves
+            .extend(pocket_moves(piece, &cut).map_err(|err| err.with_context(label))?);
         // Retracted above the start of the wall ring.
-        let last = piece.rings.len().checked_sub(1);
-        if let Some(end) = last.and_then(|k| {
-            crate::pocket::path_end(&piece.rings[k], piece.open.get(k).copied().unwrap_or(false))
-        }) {
+        if let Some(end) = piece.rings.last().and_then(PocketRing::end) {
             out.end = end;
         }
     }
@@ -518,23 +508,19 @@ fn pocket_legs(
                 .filter(|c| !inside_another(c.at)),
         );
     }
-    let walls: Vec<usize> = (0..piece.rings.len())
-        .filter(|&k| piece.walls.get(k).copied().unwrap_or(false))
+    let mut slots: Vec<RingSlot> = piece
+        .rings
+        .iter_mut()
+        .filter(|r| r.wall)
+        .map(|ring| RingSlot {
+            range: ring.lead.clone().unwrap_or(0..ring.points.len()),
+            points: &mut ring.points,
+        })
         .collect();
-    let mut slots: Vec<RingSlot> = Vec::new();
-    for (k, ring) in piece.rings.iter_mut().enumerate() {
-        if !walls.contains(&k) {
-            continue;
-        }
-        let range = piece.leads[k].clone().unwrap_or(0..ring.len());
-        slots.push(RingSlot {
-            points: ring,
-            range,
-        });
-    }
     let added = add_legs(&corners, &mut slots, cut)?;
-    for (count, k) in added.points.iter().zip(&walls) {
-        if let Some(range) = &mut piece.leads[*k] {
+    let walls = piece.rings.iter_mut().filter(|r| r.wall);
+    for (count, ring) in added.points.iter().zip(walls) {
+        if let Some(range) = &mut ring.lead {
             range.end += count;
         }
     }

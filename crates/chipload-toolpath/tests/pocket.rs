@@ -17,7 +17,9 @@ use chipload_toolpath::ToolpathError;
 use chipload_toolpath::geom::segment_distance;
 use chipload_toolpath::model::MoveKind;
 use chipload_toolpath::offset::{contour_pline, pline_segments, point_distance};
-use chipload_toolpath::pocket::{PocketPlan, build_region, plan_pocket, pocket_moves};
+use chipload_toolpath::pocket::{
+    Choices, PocketCut, PocketPlan, PocketRequest, build_region, plan_pocket, pocket_moves,
+};
 use common::{bbox, circle_id, polygon_id, rect};
 use proptest::prelude::*;
 
@@ -33,16 +35,31 @@ fn plan_with(
     keep: bool,
 ) -> Result<PocketPlan, ToolpathError> {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_pocket(
-        &refs,
-        3.0,
-        0.0,
-        stepover,
+    plan_pocket(&PocketRequest {
         direction,
         spindle,
-        keep,
-        (0.0, 0.0),
+        keep_tool_down: keep,
+        ..PocketRequest::new(&refs, 3.0, stepover)
+    })
+}
+
+/// The moves of a piece cut in two 3 mm passes at the test feeds.
+fn moves_of(
+    piece: &chipload_toolpath::pocket::PocketPiece,
+    pass_z: &[f64],
+) -> Vec<chipload_toolpath::model::Move> {
+    pocket_moves(
+        piece,
+        &PocketCut {
+            pass_z,
+            top_z: 0.0,
+            safe_z: 5.0,
+            feed: 1500.0,
+            plunge_feed: 400.0,
+            entry: Entry::Plunge {},
+        },
     )
+    .unwrap()
 }
 
 fn plan(contours: &[Contour], keep: bool) -> PocketPlan {
@@ -164,13 +181,17 @@ fn ring_count_and_inside_out_order() {
     let piece = &result.pieces[0];
     // Level 0 is 94 x 54; each level shrinks 2.4 per side until the 54 side is gone: 12 levels.
     assert_eq!(piece.rings.len(), 12);
-    let (x0, y0, x1, y1) = bbox(piece.rings.last().unwrap());
+    let (x0, y0, x1, y1) = bbox(&piece.rings.last().unwrap().points);
     assert!(
         [(x0, 3.0), (y0, 3.0), (x1, 97.0), (y1, 57.0)]
             .iter()
             .all(|(a, b)| (a - b).abs() < 1e-9)
     );
-    let areas: Vec<f64> = piece.rings.iter().map(|r| signed_area(r).abs()).collect();
+    let areas: Vec<f64> = piece
+        .rings
+        .iter()
+        .map(|r| signed_area(&r.points).abs())
+        .collect();
     assert!(areas.windows(2).all(|w| w[0] <= w[1]));
 }
 
@@ -232,6 +253,7 @@ fn material_side_of_every_ring() {
     for (direction, spindle, material_on_right) in cases {
         let result = plan_with(&contours, 2.4, direction, spindle, false).unwrap();
         for ring in &result.pieces[0].rings {
+            let ring = &ring.points;
             let n = ring.len();
             let (a, b) = (0..n)
                 .map(|i| (ring[i], ring[(i + 1) % n]))
@@ -256,16 +278,12 @@ fn assert_clear(contours: &[Contour], result: &PocketPlan, radius: f64) {
         .collect();
     let clearance = radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
     for piece in &result.pieces {
-        for (k, ring) in piece.rings.iter().enumerate() {
-            let n = ring.len();
+        for ring in &piece.rings {
+            let n = ring.points.len();
             // Open paths (rings with leads) don't go back to their start.
-            let chords = if piece.open[k] {
-                n.saturating_sub(1)
-            } else {
-                n
-            };
+            let chords = if ring.open { n.saturating_sub(1) } else { n };
             for i in 0..chords {
-                let (a, b) = (ring[i], ring[(i + 1) % n]);
+                let (a, b) = (ring.points[i], ring.points[(i + 1) % n]);
                 for wall in &walls {
                     let d = segment_distance(a, b, wall);
                     assert!(d >= clearance, "chord {a:?}-{b:?} is {d} from a wall");
@@ -336,17 +354,7 @@ fn pocket_centre_is_cleared_where_geos_buffer_collapsed_too_early() {
         ],
     );
     let refs = [&ring];
-    let result = plan_pocket(
-        &refs,
-        1.0,
-        0.0,
-        1.0,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-    )
-    .unwrap();
+    let result = plan_pocket(&PocketRequest::new(&refs, 1.0, 1.0)).unwrap();
     assert!(result.notes.is_empty(), "{:?}", result.notes);
 }
 
@@ -424,16 +432,11 @@ fn a_pocket_whose_island_offsets_just_touch_can_be_cleared() {
     ];
     let refs: Vec<&Contour> = contours.iter().collect();
     let radius = 4.865292712794798;
-    let result = plan_pocket(
+    let result = plan_pocket(&PocketRequest::new(
         &refs,
         radius,
-        0.0,
         0.18893806468913993 * 2.0 * radius,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-    )
+    ))
     .unwrap();
     assert_clear(&contours, &result, radius);
 }
@@ -517,17 +520,10 @@ fn rings_get_past_a_wall_offset_that_just_touches() {
     let radius = 3.073129921791429;
     {
         let (strategy, stepover) = (chipload_job::PocketStrategy::Rings {}, 0.4 * radius);
-        let result = chipload_toolpath::pocket::plan_pocket_with(
-            &refs,
-            radius,
-            0.0,
-            stepover,
-            Direction::Climb,
-            Spindle::Cw,
-            false,
-            (0.0, 0.0),
+        let result = plan_pocket(&PocketRequest {
             strategy,
-        );
+            ..PocketRequest::new(&refs, radius, stepover)
+        });
         assert!(result.is_ok(), "{strategy:?}: {:?}", result.err());
     }
 }
@@ -562,7 +558,7 @@ fn keep_tool_down_still_retracts_around_an_island() {
     assert!(!piece.feed_links.iter().all(|&l| l));
     for (i, &down) in piece.feed_links.iter().enumerate() {
         if down {
-            assert!(distance(piece.rings[i][0], piece.rings[i + 1][0]) <= 6.0);
+            assert!(distance(piece.rings[i].points[0], piece.rings[i + 1].points[0]) <= 6.0);
         }
     }
 }
@@ -573,16 +569,7 @@ fn keep_tool_down_still_retracts_around_an_island() {
 fn moves_plunge_at_the_centre_for_every_depth() {
     let result = plan(&[outline()], false);
     let piece = &result.pieces[0];
-    let moves = pocket_moves(
-        piece,
-        &[-3.0, -6.0],
-        0.0,
-        5.0,
-        1500.0,
-        400.0,
-        Entry::Plunge {},
-    )
-    .unwrap();
+    let moves = moves_of(piece, &[-3.0, -6.0]);
     let plunges: Vec<_> = moves
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
@@ -597,16 +584,7 @@ fn moves_plunge_at_the_centre_for_every_depth() {
 #[test]
 fn keep_tool_down_plunges_once_per_depth() {
     let result = plan(&[outline()], true);
-    let moves = pocket_moves(
-        &result.pieces[0],
-        &[-3.0, -6.0],
-        0.0,
-        5.0,
-        1500.0,
-        400.0,
-        Entry::Plunge {},
-    )
-    .unwrap();
+    let moves = moves_of(&result.pieces[0], &[-3.0, -6.0]);
     let plunges = moves
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
@@ -618,18 +596,12 @@ fn keep_tool_down_plunges_once_per_depth() {
 fn first_ring_starts_nearest_the_start_position() {
     let contours = [outline()];
     let refs: Vec<&Contour> = contours.iter().collect();
-    let result = plan_pocket(
-        &refs,
-        3.0,
-        0.0,
-        2.4,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (100.0, 60.0),
-    )
+    let result = plan_pocket(&PocketRequest {
+        start: (100.0, 60.0),
+        ..PocketRequest::new(&refs, 3.0, 2.4)
+    })
     .unwrap();
-    let start = result.pieces[0].rings[0][0];
+    let start = result.pieces[0].rings[0].points[0];
     assert!(start.0 > 50.0 && start.1 > 29.0, "{start:?}");
 }
 
@@ -744,8 +716,10 @@ proptest! {
         keep in any::<bool>(),
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = plan_pocket(&refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, keep, (0.0, 0.0),
-        );
+        let result = plan_pocket(&PocketRequest {
+            keep_tool_down: keep,
+            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+        });
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -765,16 +739,10 @@ proptest! {
 
 fn with_clearance(contours: &[Contour], clearance: f64) -> PocketPlan {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_pocket(
-        &refs,
-        3.0,
+    plan_pocket(&PocketRequest {
         clearance,
-        2.4,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-    )
+        ..PocketRequest::new(&refs, 3.0, 2.4)
+    })
     .unwrap()
 }
 
@@ -783,7 +751,7 @@ fn extent(result: &PocketPlan) -> (f64, f64, f64, f64) {
     result
         .pieces
         .iter()
-        .flat_map(|p| p.rings.iter().flatten())
+        .flat_map(|p| p.rings.iter().flat_map(|r| &r.points))
         .fold(
             (
                 f64::INFINITY,
@@ -804,7 +772,7 @@ fn clearance_makes_the_pocket_larger_and_islands_smaller() {
         result
             .pieces
             .iter()
-            .flat_map(|p| p.rings.iter().flatten())
+            .flat_map(|p| p.rings.iter().flat_map(|r| &r.points))
             .map(|&p| distance(p, island_centre))
             .fold(f64::INFINITY, f64::min)
     };
@@ -845,16 +813,10 @@ fn clearance_makes_the_pocket_larger_and_islands_smaller() {
 #[test]
 fn clearance_must_be_less_than_the_tool_radius() {
     let refs = [&outline()];
-    let err = plan_pocket(
-        &refs,
-        3.0,
-        3.0,
-        2.4,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-    )
+    let err = plan_pocket(&PocketRequest {
+        clearance: 3.0,
+        ..PocketRequest::new(&refs, 3.0, 2.4)
+    })
     .unwrap_err();
     assert!(
         err.to_string()
@@ -877,10 +839,10 @@ proptest! {
     ) {
         let clearance = share * radius;
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = plan_pocket(
-            &refs, radius, clearance, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw,
-            false, (0.0, 0.0),
-        );
+        let result = plan_pocket(&PocketRequest {
+            clearance,
+            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+        });
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -906,15 +868,16 @@ proptest! {
         use chipload_toolpath::arcs::{merge_arcs, tag_moves};
         use chipload_toolpath::model::{MoveKind, Program};
         let refs: Vec<&Contour> = contours.iter().collect();
-        let Ok(plan) = plan_pocket(
-            &refs, radius, 0.0, fraction * 2.0 * radius, Direction::Climb, Spindle::Cw, false,
-            (0.0, 0.0),
-        ) else {
+        let Ok(plan) = plan_pocket(&PocketRequest::new(&refs, radius, fraction * 2.0 * radius)) else {
             return Ok(());
+        };
+        let cut = PocketCut {
+            pass_z: &[-1.0], top_z: 0.0, safe_z: 5.0, feed: 1000.0, plunge_feed: 300.0,
+            entry: Entry::Plunge {},
         };
         let mut moves = Vec::new();
         for piece in &plan.pieces {
-            moves.extend(pocket_moves(piece, &[-1.0], 0.0, 5.0, 1000.0, 300.0, Entry::Plunge {}).unwrap());
+            moves.extend(pocket_moves(piece, &cut).unwrap());
         }
         tag_moves(&mut moves, &plan.arcs);
         let program = Program {
@@ -967,25 +930,14 @@ proptest! {
         starts in prop::collection::vec((-60.0f64..60.0, -60.0f64..60.0), 0..3),
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = chipload_toolpath::pocket::plan_pocket_starting(
-            &refs,
-            radius,
-            0.0,
-            fraction * 2.0 * radius,
-            Direction::Climb,
-            Spindle::Cw,
-            false,
-            (0.0, 0.0),
-            chipload_job::PocketStrategy::Rings {},
-            chipload_toolpath::pocket::Choices {
+        let result = plan_pocket(&PocketRequest {
+            choices: Choices {
                 starts: &starts,
                 lead: Some(lead),
-                helix: None,
-                round_corners: false,
-                cancel: None,
-                rest: None,
+                ..Choices::default()
             },
-        );
+            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+        });
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -995,10 +947,10 @@ proptest! {
         };
         assert_clear(&contours, &result, radius);
         for piece in &result.pieces {
-            for (k, range) in piece.leads.iter().enumerate() {
-                if let Some(range) = range {
-                    prop_assert!(piece.walls[k] && piece.open[k]);
-                    prop_assert!(range.start > 0 && range.end < piece.rings[k].len());
+            for ring in &piece.rings {
+                if let Some(range) = &ring.lead {
+                    prop_assert!(ring.wall && ring.open);
+                    prop_assert!(range.start > 0 && range.end < ring.points.len());
                 }
             }
         }
@@ -1066,21 +1018,13 @@ fn a_rest_pocket_offset_failing_for_a_few_nanometres_is_retried_farther() {
     ];
     let (radius, times, fraction) = (2.447143409889017, 1.8999644467026537, 0.3796415167916837);
     let refs: Vec<&Contour> = contours.iter().collect();
-    let result = chipload_toolpath::pocket::plan_pocket_starting(
-        &refs,
-        radius,
-        0.0,
-        fraction * 2.0 * radius,
-        Direction::Climb,
-        Spindle::Cw,
-        false,
-        (0.0, 0.0),
-        chipload_job::PocketStrategy::Rings {},
-        chipload_toolpath::pocket::Choices {
+    let result = plan_pocket(&PocketRequest {
+        choices: Choices {
             rest: Some(times * radius),
-            ..Default::default()
+            ..Choices::default()
         },
-    )
+        ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+    })
     .unwrap();
     assert_clear(&contours, &result, radius);
 }
@@ -1148,16 +1092,10 @@ fn a_pocket_failing_for_a_few_nanometres_is_retried_farther() {
     ];
     let (radius, fraction) = (3.8034814349297092, 0.4429968779362151);
     let refs: Vec<&Contour> = contours.iter().collect();
-    let result = plan_pocket(
-        &refs,
-        radius,
-        0.0,
-        fraction * 2.0 * radius,
-        Direction::Climb,
-        Spindle::Cw,
-        true,
-        (0.0, 0.0),
-    )
+    let result = plan_pocket(&PocketRequest {
+        keep_tool_down: true,
+        ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+    })
     .unwrap();
     assert_clear(&contours, &result, radius);
 }
@@ -1175,21 +1113,13 @@ proptest! {
         fraction in 0.1f64..0.5,
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = chipload_toolpath::pocket::plan_pocket_starting(
-            &refs,
-            radius,
-            0.0,
-            fraction * 2.0 * radius,
-            Direction::Climb,
-            Spindle::Cw,
-            false,
-            (0.0, 0.0),
-            chipload_job::PocketStrategy::Rings {},
-            chipload_toolpath::pocket::Choices {
+        let result = plan_pocket(&PocketRequest {
+            choices: Choices {
                 rest: Some(times * radius),
-                ..Default::default()
+                ..Choices::default()
             },
-        );
+            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+        });
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -1218,21 +1148,13 @@ proptest! {
         helix in 0.1f64..0.95,
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = chipload_toolpath::pocket::plan_pocket_starting(
-            &refs,
-            radius,
-            0.0,
-            fraction * 2.0 * radius,
-            Direction::Climb,
-            Spindle::Cw,
-            false,
-            (0.0, 0.0),
-            chipload_job::PocketStrategy::Rings {},
-            chipload_toolpath::pocket::Choices {
+        let result = plan_pocket(&PocketRequest {
+            choices: Choices {
                 helix: Some(helix * radius),
-                ..Default::default()
+                ..Choices::default()
             },
-        );
+            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
+        });
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -1250,7 +1172,7 @@ proptest! {
             let Some(h) = piece.helix else { continue };
             prop_assert!(h.circle.radius <= helix * radius + 1e-12);
             let mut path = h.points();
-            path.push(piece.rings[0][0]);
+            path.push(piece.rings[0].points[0]);
             for w in path.windows(2) {
                 for wall in &walls {
                     let d = segment_distance(w[0], w[1], wall);
