@@ -57,9 +57,10 @@ fn depth_rows(
         }
     });
     ui.end_row();
-    ui.label("Clearance").on_hover_text(
-        "How far the cut moves into the material that is kept: positive makes a pocket \
-         larger or a part smaller, negative leaves material. Less than the tool radius.",
+    ui.label("Oversize").on_hover_text(
+        "How much more than drawn is cut, mm (clearance in the file): positive makes a \
+         pocket larger or a part smaller, negative leaves stock on for a later cut. Less \
+         than the tool radius. Other CAM programs call the opposite \"stock to leave\".",
     );
     let response = ui
         .add_enabled(
@@ -69,7 +70,7 @@ fn depth_rows(
                 .range(-100_000.0..=100_000.0)
                 .suffix(" mm"),
         )
-        .on_disabled_hover_text("A profile on the line has no side to clear towards");
+        .on_disabled_hover_text("A profile on the line has no side to cut more on");
     flag(response, ui, "clearance");
     ui.end_row();
 }

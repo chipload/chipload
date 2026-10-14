@@ -75,7 +75,7 @@ in mm, feeds in mm/min, angles in radians.
 | `start_depth` | Start depth |
 | `end_depth` | End depth |
 | `direction` | Direction |
-| `clearance` | Clearance |
+| `clearance` | Oversize |
 | `step_down` | Step down |
 | `stepover` | Stepover, a fraction of the tool diameter |
 | `feed` | Feed |

@@ -123,3 +123,9 @@ Consequences:
    it says what you want for fits; the GUI hover text explains the sign.
 6. **Below the stock** (added in review): `max_overcut` with a warning inside it and an
    error beyond, checked independently; new projects 0.5 mm, migrated ones 0. **Yes.**
+
+## As built, revised 2026-10-15
+
+The field is shown as **Oversize** in the app and the guide ("how much more than drawn is
+cut"), since "clearance" reads as the clearance plane and the opposite of other CAM
+programs' "stock to leave". The file keeps `clearance`, with the sign above.

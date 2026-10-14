@@ -20,7 +20,7 @@ cut that layer's centre lines.
 | **Entry** | *plunge*, or *ramp* along the path. A pointed V-bit counts as centre-cutting. |
 | **Feed**, **Plunge feed** | mm/min |
 
-There is no side, clearance, tabs, lead or start point: the tool is on the line.
+There is no side, oversize, tabs, lead or start point: the tool is on the line.
 
 ## In the file
 

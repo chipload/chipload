@@ -2,7 +2,7 @@
 
 The app checks the project while you edit, before anything is generated:
 - **On the field:** a field with a problem turns red, e.g. an end depth above the start
-  depth, a clearance as large as the tool radius, or a tool without a spindle speed.
+  depth, an oversize as large as the tool radius, or a tool without a spindle speed.
   Hovering it says why.
 - **On the operation:** its row in the Browser gets a red dot, and hovering it shows the
   first problem.

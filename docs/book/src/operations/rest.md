@@ -12,7 +12,7 @@ whole pocket again.
 - **From the pocket:** right-click the large tool's pocket in the Browser, then *Add
   rest pocket*, and pick the smaller endmill. Command line: `chipload op add-rest
   part.chipload --op 1 --tool 2`.
-- **What you get:** a new pocket right after it, with the same shapes, depths, clearance
+- **What you get:** a new pocket right after it, with the same shapes, depths, oversize
   and direction, cut with the smaller tool, set to *Rest after* the large tool.
 - **Feeds and step down** come from your tool library's values for the small tool when it
   has them. Otherwise they're copied from the large pocket: check them.

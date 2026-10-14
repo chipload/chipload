@@ -39,8 +39,8 @@ message names the line and the rule:
 
 - **Units:** a drawing in inches read as mm (or the other way) is 25.4 times off. Check the
   units in the import report.
-- **Clearance:** a clearance makes parts smaller and holes larger. See [Depths and
-  clearance](concepts/depths.md#clearance).
+- **Oversize:** a positive oversize (`clearance` in the file) makes parts smaller and holes
+  larger. See [Depths and oversize](concepts/depths.md#oversize).
 - **Side:** an outside profile on a hole, or the other way, is off by a tool diameter.
   Check each profile's side.
 - **Tool diameter:** Chipload offsets by the diameter you set. Measure the real tool.

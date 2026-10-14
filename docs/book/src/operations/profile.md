@@ -6,7 +6,7 @@ A profile cuts along a closed contour:
 - **on** the line.
 
 Select the contours, then **Profile** (ribbon, OPERATION). See [Side and direction](../concepts/side-direction.md)
-and [Depths and clearance](../concepts/depths.md) for what every profile shares.
+and [Depths and oversize](../concepts/depths.md) for what every profile shares.
 
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).
@@ -126,7 +126,7 @@ in mm, feeds in mm/min, angles in radians.
 | `end_depth` | End depth |
 | `side` | Side |
 | `direction` | Direction |
-| `clearance` | Clearance |
+| `clearance` | Oversize |
 | `step_down` | Step down |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
