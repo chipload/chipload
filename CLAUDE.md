@@ -112,7 +112,7 @@ cargo run -p chipload-cli -- tool list                   # the user's tool libra
 cargo run -p chipload-cli -- tool compare part.chipload  # project tools vs their library entries, by uid (also: machine compare)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving
 cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine export); import with `tool import FILE [--replace]`
-cargo run -p chipload-cli -- post list                   # built-in post-processors (grbl, linuxcnc, mach3) and yours (settings folder posts/)
+cargo run -p chipload-cli -- post list                   # built-in post-processors (grbl, linuxcnc, mach3) and yours (settings folder posts/); post show NAME
 cargo run -p chipload-cli -- post use part.chipload --post linuxcnc   # a user post is copied into the project
 cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)

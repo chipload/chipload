@@ -19,7 +19,7 @@ it, `part-sheet.html`. Open it in a browser, or print it. It holds:
 - **Watch out:** every warning and check warning.
 
 The sheet is written:
-- in the app, by *File > Export G-code…* when Job settings > Machine > *Setup sheet* is on
-  (the default; it applies to every project);
+- in the app, by *File > Export G-code…* when *This computer > Preferences > Setup sheet*
+  in the Browser is on (the default; it applies to every project);
 - on the command line, by `chipload run` unless you add `--no-sheet`;
 - alone, by `chipload sheet part.chipload -o sheet.html`.

@@ -1030,6 +1030,23 @@ mod library {
             .unwrap();
     }
 
+    /// docs/specs/this-computer.md: the posts are listed, built in first, and Preferences
+    /// keeps its settings.
+    #[test]
+    fn this_computer_lists_posts_and_keeps_preferences() {
+        let (mut app, dir) = app_with_library("computer");
+        let posts = app.post_list();
+        assert_eq!(posts[0], ("grbl".to_string(), true, None));
+        assert!(posts.iter().all(|(_, builtin, _)| *builtin));
+        assert_eq!(app.post_problems(), 0);
+        app.set_setup_sheet(false);
+        let mut again = ChiploadApp::default();
+        again.set_settings_dir(Some(dir));
+        assert!(!again.setup_sheet);
+        again.focus = Focus::Post(0);
+        assert!(again.focus.is_library());
+    }
+
     /// docs/specs/library-in-browser.md §5, §9.
     #[test]
     fn a_library_tool_is_edited_as_a_draft_and_saved() {

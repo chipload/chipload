@@ -15,7 +15,7 @@ use chipload_pipeline::library::{
     CONFIG_DIR_VAR, copy_profile_post, machines_path, settings_dir, tools_path, unknown_posts,
 };
 use chipload_pipeline::posts::{
-    CopyState, choose_post, copy_state, post_choices, post_exists, posts_dir,
+    CopyState, choose_post, copy_state, post_choices, post_exists, post_facts, posts_dir,
 };
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_SAFE_Z};
 use clap::{Subcommand, ValueEnum};
@@ -953,6 +953,12 @@ fn use_machine(
 pub enum PostAction {
     /// List the built-in post-processors and yours, and where yours go.
     List,
+    /// What a post-processor writes: its name, files, extension, decimals, arcs, tool change
+    /// modes and spindle dwell.
+    Show {
+        /// The post's name (`chipload post list`).
+        name: String,
+    },
     /// Make a post-processor the project's; one of yours is copied into the project (run
     /// again after changing it, to update the copy).
     Use {
@@ -974,6 +980,18 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
     };
     let posts = posts_dir(&dir);
     match action {
+        PostAction::Show { name } => match post_facts(&name, Some(&posts)) {
+            Ok(lines) => {
+                out.line(format!("Post-processor \"{name}\":"));
+                for line in &lines {
+                    out.line(format!("  {line}"));
+                }
+                out.set("name", serde_json::json!(name));
+                out.set("facts", serde_json::json!(lines));
+                ExitCode::SUCCESS
+            }
+            Err(err) => out.fail(err),
+        },
         PostAction::List => {
             out.line(format!("Your post-processors: {}", posts.display()));
             let choices = post_choices(Some(&posts));

@@ -730,3 +730,15 @@ fn a_machine_profile_can_name_a_user_post_which_is_copied_when_used() {
     assert_eq!(json(&project)["machine"]["post"], "shop");
     assert!(json(&project)["machine"]["custom_post"].is_object());
 }
+
+/// docs/specs/this-computer.md §4.
+#[test]
+fn post_show_says_what_a_post_writes() {
+    let dir = temp_dir("post-show");
+    let out = ok(&dir, &["post", "show", "linuxcnc"]);
+    assert!(out.contains("Built in"), "{out}");
+    assert!(out.contains("File extension: .ngc"), "{out}");
+    assert!(out.contains("Several tools:"), "{out}");
+    let err = refused(&dir, &["post", "show", "nope"]);
+    assert!(!err.is_empty());
+}

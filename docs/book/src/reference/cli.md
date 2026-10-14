@@ -757,6 +757,18 @@ List the built-in post-processors and yours, and where yours go
 chipload post list
 ```
 
+### `chipload post show`
+
+What a post-processor writes: its name, files, extension, decimals, arcs, tool change modes and spindle dwell
+
+```text
+chipload post show <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` | The post's name (`chipload post list`) |
+
 ### `chipload post use`
 
 Make a post-processor the project's; one of yours is copied into the project (run again after changing it, to update the copy)

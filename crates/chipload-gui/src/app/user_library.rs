@@ -214,7 +214,7 @@ pub(super) fn library_rows(
         if let Some(uid) = uid
             && ui
                 .button("Show in library")
-                .on_hover_text("Open it under Library in the Browser")
+                .on_hover_text("Open it under This computer in the Browser")
                 .clicked()
         {
             *request = Some(LibraryRequest::Show(target.kind(), uid));
@@ -237,6 +237,8 @@ pub(super) struct LibraryState {
     pub(super) import: Option<PendingImport>,
     /// A Library folder to open in the Browser on its next frame.
     pub(super) reveal: Option<LibraryKind>,
+    /// The facts of the post shown in Properties, by name (docs/specs/this-computer.md §4).
+    pub(super) post_facts: Option<(String, Result<Vec<String>, String>)>,
 }
 
 /// "New tool", or "New tool 2" … if that is taken.
@@ -480,6 +482,7 @@ impl ChiploadApp {
 
     /// Read the library again (it may have been changed by the CLI or another window).
     pub(super) fn reload_library(&mut self) {
+        self.library_state.post_facts = None;
         self.library = self
             .settings_dir
             .as_deref()

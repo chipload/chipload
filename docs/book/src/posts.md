@@ -49,7 +49,9 @@ The easiest start is a copy of a built-in post, from the `crates/chipload-post/p
   compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves, makes the
   check fail, and nothing is exported.
 
-`chipload post list` shows every post and why one can't be used. `chipload render` writes a
+`chipload post list` shows every post and why one can't be used, and `chipload post show
+NAME` what one writes (extension, decimals, arcs, tool changes). In the app they are under
+*This computer > Post-processors* in the Browser. `chipload render` writes a
 bare toolpath through a post, for trying a template (the result isn't checked: use `run` to
 cut).
 

@@ -64,6 +64,52 @@ pub fn post_choices(posts: Option<&Path>) -> Vec<PostChoice> {
     choices
 }
 
+/// What a post-processor is, as lines for the user (docs/specs/this-computer.md §4): its
+/// name in the file, built in or yours (with its files), the file extension, decimals,
+/// arcs, the tool change modes and the spindle dwell. An error says why it can't be used.
+pub fn post_facts(name: &str, posts: Option<&Path>) -> Result<Vec<String>, PipelineError> {
+    let mut lines = Vec::new();
+    let config = if builtin_posts().contains(&name) {
+        lines.push("Built in".to_string());
+        load_builtin_post(name)?
+    } else {
+        let dir = posts.ok_or_else(|| {
+            PipelineError::Job(format!("no settings folder, so no post \"{name}\""))
+        })?;
+        let read = read_user_post(dir, name)?;
+        let config = parse_user_post(&read)?;
+        lines.push("Yours".to_string());
+        lines.push(format!(
+            "Settings: {}",
+            dir.join(format!("{name}.toml")).display()
+        ));
+        lines.push(format!(
+            "Template: {}",
+            dir.join(&config.template).display()
+        ));
+        config
+    };
+    lines.insert(0, format!("Name: {}", config.name));
+    lines.push(format!("File extension: {}", config.file_extension));
+    lines.push(format!("Decimals: {}", config.decimals));
+    lines.push(format!(
+        "Arcs: {}",
+        if config.arcs {
+            "G2/G3"
+        } else {
+            "as short lines (G1)"
+        }
+    ));
+    let modes: Vec<&str> = config.tool_changes.iter().map(|c| c.name()).collect();
+    lines.push(format!("Several tools: {}", modes.join(", ")));
+    lines.push(if config.spindle_dwell_s > 0.0 {
+        format!("Spindle dwell: {} s", config.spindle_dwell_s)
+    } else {
+        "Spindle dwell: none".to_string()
+    });
+    Ok(lines)
+}
+
 /// Make `name` the job's post: a built-in by name, or a user post from `posts`, copied in
 /// (again, if it was already: that updates the copy).
 pub fn choose_post(job: &mut Job, name: &str, posts: Option<&Path>) -> Result<(), PipelineError> {

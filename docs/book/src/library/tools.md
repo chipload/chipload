@@ -6,15 +6,15 @@ the same on another computer, or after you change the library.
 
 ## In the app
 
-Your tools are under **Library > Tools** at the top of the [Browser](../window.md#the-browser). **Tools** in the ribbon's LIBRARY group opens it.
+Your tools are under **This computer > Tools** at the top of the [Browser](../window.md#the-browser). **Tools** in the ribbon's LIBRARY group opens it.
 - **Click a tool** to edit it in Properties. Changes are a draft, marked *unsaved* in the
   Browser, until you press **Save**; **Revert** drops them.
 - **Drag a tool** onto the project's *Tools* (or right-click it > *Add to project*) to copy it
   into the project.
 - **Right-click** a tool for *Make default* (new projects start with it) and *Delete*, or
-  *Library > Tools* for *New tool*, *Import…* and *Export…*.
+  *This computer > Tools* for *New tool*, *Import…* and *Export…*.
 
-![Library > Tools in the Browser, a library tool in Properties, and the project's tool T3
+![This computer > Tools in the Browser, a library tool in Properties, and the project's tool T3
 linked to it](../images/library.png)
 
 ### Project tools and the library
@@ -72,6 +72,6 @@ Cutting values come as a set: give all four, or none.
 - tools with the same name but other values are listed, and kept as yours unless you add
   `--replace`.
 
-The app has the same: right-click *Library > Tools* for *Import…* and *Export…*. The [file
+The app has the same: right-click *This computer > Tools* for *Import…* and *Export…*. The [file
 format](../reference/tools-file.md) is documented, so a script can make one, e.g. from a
 supplier's catalogue.

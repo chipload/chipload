@@ -354,13 +354,13 @@ impl ChiploadApp {
                 "Library",
                 |app, ui| {
                     if ribbon_button(ui, Icon::Tools, "Tools", true, false)
-                        .on_hover_text("Your tool library, under Library in the Browser")
+                        .on_hover_text("Your tool library, under This computer in the Browser")
                         .clicked()
                     {
                         app.show_library(LibraryKind::Tools, None);
                     }
                     if ribbon_button(ui, Icon::Machine, "Machines", true, false)
-                        .on_hover_text("Your machine profiles, under Library in the Browser")
+                        .on_hover_text("Your machine profiles, under This computer in the Browser")
                         .clicked()
                     {
                         app.show_library(LibraryKind::Machines, None);

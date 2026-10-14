@@ -17,7 +17,7 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
-| LIBRARY | Tools, Machines: open them under *Library* in the Browser | the same |
+| LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, colour theme |
 
 **Generate** (F5) and **Export** sit at the right end.
@@ -33,9 +33,14 @@ post-processor and the units.
 
 The **Browser** on the left holds your library and the whole project as a tree:
 
-- **Library** ("this computer"), at the top and folded at the start: your [tool
-  library](library/tools.md) and [machine profiles](library/machines.md), kept for every
-  project. It is there also with no project open.
+- **This computer**, at the top and folded at the start: what is kept on this computer for
+  every project. It is there also with no project open.
+  - **Preferences:** the [setup sheet](checking/sheet.md), updating the toolpath by
+    itself, and the colour theme.
+  - **Tools** and **Machines:** your [tool library](library/tools.md) and [machine
+    profiles](library/machines.md).
+  - **Post-processors:** the built-in ones and [yours](posts.md#your-own-post); click one
+    for what it writes, and *Use in this project*.
 - **The project**, named after its file.
   - **Job settings:** stock, machine, post-processor and tools, shown on the right when
     clicked. A red dot means one of them has a problem.
@@ -68,7 +73,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
     down* and *Delete part* (with its operations).
   - **The Parts folder:** *New part*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
-    *Use in this project*, *Make default*, *Delete*. **Library > Tools or Machines:** *New*,
+    *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
     *Import…*, *Export…*.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like
   *Tools*.
@@ -119,8 +124,10 @@ navigation bar](images/simulation-3d.png)
 ## Properties
 
 The **Properties** panel on the right shows what is open, under a title:
-- **Job settings:** the stock, the machine and the post, and whether a
-  [setup sheet](checking/sheet.md) is written with the G-code (for all projects).
+- **Job settings:** the stock, the machine and the post.
+- **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is
+  written with the G-code, updating the toolpath by itself, and the colour theme.
+- **A post-processor:** its name, files, extension, decimals, arcs and tool changes.
 - **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
   how it stands to the library tool it came from, *Save to library* and *Remove tool*.
 - **A library tool or machine:** its values, with *Save* and *Revert* while it has changes.

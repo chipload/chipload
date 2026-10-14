@@ -71,7 +71,6 @@ impl ChiploadApp {
             return;
         };
         let focus = self.focus;
-        let setup_sheet = self.setup_sheet;
         let contours = &self.contours;
         let library = self.settings_dir.as_ref().map(|_| &self.library);
         let mut op_request = OpFormRequest::default();
@@ -84,7 +83,7 @@ impl ChiploadApp {
             _ => None,
         };
         ui.scope(|ui| match focus {
-            Focus::Job => request = job_form(ui, edit, library, setup_sheet),
+            Focus::Job => request = job_form(ui, edit, library),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
             Focus::Tools => request = forms::tools_form(ui, edit, library),
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
@@ -94,7 +93,10 @@ impl ChiploadApp {
             Focus::LibraryTools
             | Focus::LibraryTool(_)
             | Focus::LibraryMachines
-            | Focus::LibraryMachine(_) => {}
+            | Focus::LibraryMachine(_)
+            | Focus::Preferences
+            | Focus::Posts
+            | Focus::Post(_) => {}
             Focus::Op(i) => {
                 let choice = ToolChoice {
                     tools: &edit.settings.tools,
@@ -126,7 +128,6 @@ impl ChiploadApp {
                 self.place_dxf(Some(dxf), how);
             }
             Some(JobRequest::ToolRemoved) => self.focus = Focus::Tools,
-            Some(JobRequest::SetupSheet(on)) => self.set_setup_sheet(on),
             Some(JobRequest::UpdateDxf(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
                     .add_filter("DXF drawings", &["dxf"])

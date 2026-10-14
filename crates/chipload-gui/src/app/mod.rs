@@ -37,6 +37,7 @@ use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, Vi
 
 mod browser;
 mod canvas;
+mod computer;
 mod copy_paste;
 mod dialogs;
 mod drawing;
@@ -91,6 +92,11 @@ pub enum Focus {
     LibraryTool(u64),
     LibraryMachines,
     LibraryMachine(u64),
+    /// The app's preferences, the post-processors, and one post by its place in the list
+    /// (docs/specs/this-computer.md).
+    Preferences,
+    Posts,
+    Post(u32),
 }
 
 impl Focus {
@@ -102,6 +108,9 @@ impl Focus {
                 | Focus::LibraryTool(_)
                 | Focus::LibraryMachines
                 | Focus::LibraryMachine(_)
+                | Focus::Preferences
+                | Focus::Posts
+                | Focus::Post(_)
         )
     }
 }

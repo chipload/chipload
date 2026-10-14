@@ -57,7 +57,8 @@ For a project tool (and the same for the machine):
 ## 4. The Browser
 
 Above the project, a second root, **Library** ("this computer"), folded at the start (moved
-to the top at the user's request, 2026-10-14):
+to the top at the user's request, 2026-10-14; renamed *This computer* with Preferences and
+the posts, docs/specs/this-computer.md):
 
 - **Tools:** each library tool as a leaf ("6 mm 2F · endmill 6 mm"), *default* marked.
 - **Machines:** each profile as a leaf ("Shapeoko · grbl, 800 × 800 × 80 mm").

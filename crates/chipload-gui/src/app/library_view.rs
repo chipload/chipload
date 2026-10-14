@@ -68,7 +68,7 @@ fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
 }
 
 impl ChiploadApp {
-    /// The Library root of the Browser.
+    /// The "This computer" root of the Browser (docs/specs/this-computer.md §2).
     pub(super) fn library_tree(&mut self, ui: &mut egui::Ui) {
         if let Some(kind) = self.library_state.reveal.take() {
             let sub = match kind {
@@ -80,17 +80,29 @@ impl ChiploadApp {
                 d.insert_persisted(Id::new(sub).with("folder-open"), true);
             });
         }
-        let root = Row::new(Id::new(ROOT), 0, "Library")
+        let root = Row::new(Id::new(ROOT), 0, "This computer")
             .icon(Icon::Library)
-            .trailing("this computer")
-            .alert(!self.library.problems.is_empty());
+            .alert(!self.library.problems.is_empty() || self.post_problems() > 0);
         let (open, out) = folder(ui, root, false);
         out.response.on_hover_text(
-            "Your tools and machines, kept on this computer for every project. A project keeps \
-             copies of what it uses, so it cuts the same in a year and on another computer.",
+            "Your preferences, tools, machines and post-processors, kept on this computer for \
+             every project. A project keeps copies of what it uses, so it cuts the same in a \
+             year and on another computer.",
         );
         if !open {
             return;
+        }
+        let mut act = None;
+        let preferences = Row::new(Id::new(ROOT).with("preferences"), 1, "Preferences")
+            .icon(Icon::Settings)
+            .selected(self.focus == Focus::Preferences)
+            .show(ui);
+        if preferences
+            .response
+            .on_hover_text("The setup sheet, updating the toolpath by itself, the colour theme")
+            .clicked()
+        {
+            act = Some(Act::Focus(Focus::Preferences));
         }
         if self.settings_dir.is_none() {
             Row::new(Id::new(ROOT).with("none"), 1, "No settings folder")
@@ -101,11 +113,13 @@ impl ChiploadApp {
                     "Set {} to keep a library",
                     chipload_pipeline::library::CONFIG_DIR_VAR
                 ));
-            return;
+        } else {
+            self.library_tool_rows(ui, &mut act);
+            self.library_machine_rows(ui, &mut act);
         }
-        let mut act = None;
-        self.library_tool_rows(ui, &mut act);
-        self.library_machine_rows(ui, &mut act);
+        if let Some(focus) = self.post_rows(ui) {
+            act = Some(Act::Focus(focus));
+        }
         if let Some(act) = act {
             self.library_act(act);
         }
@@ -255,6 +269,9 @@ impl ChiploadApp {
             Focus::LibraryMachine(key) => {
                 self.library_machine_form(ui, &key_uid(key), &mut act);
             }
+            Focus::Preferences => self.preferences_form(ui),
+            Focus::Posts => self.posts_form(ui),
+            Focus::Post(k) => self.post_form(ui, k as usize),
             _ => {}
         }
         if let Some(error) = &self.library_state.error {
@@ -273,7 +290,7 @@ impl ChiploadApp {
                 Icon::Tools,
                 dir.as_deref().map(chipload_pipeline::library::tools_path),
                 self.library.tools.tools.len(),
-                "A project keeps a copy of each tool it uses. Click a tool under Library to edit \
+                "A project keeps a copy of each tool it uses. Click a tool under This computer to edit \
                  it; drag it onto the project's Tools, or right-click it, to use it.",
             ),
             LibraryKind::Machines => (

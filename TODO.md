@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **This computer** (2026-10-14, docs/specs/this-computer.md): the Browser's top root holds
+  Preferences (setup sheet, update by itself, theme), Tools, Machines and the
+  post-processors with what each writes; `chipload post show`.
 - **A linked machine** (2026-10-14, docs/specs/linked-machine.md): its machine values are
   read-only until *Edit here*, a row that differs has a revert button, and safe Z, work zero
   and max depth are job values that never count as differing.
