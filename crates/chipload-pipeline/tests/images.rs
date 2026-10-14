@@ -79,6 +79,50 @@ fn a_picture_is_added_traced_and_placed() {
     );
 }
 
+/// docs/specs/direct-placement.md §3: a turned picture is traced as it is, then its
+/// shapes are turned about its centre.
+#[test]
+fn a_turned_picture_has_the_same_trace_turned_about_its_centre() {
+    let bytes = logo();
+    let mut new = NewImage::new("logo.png", &bytes, 160.0);
+    new.x = 10.0;
+    new.y = 5.0;
+    let (job, report) = add_image(&empty_project(), new).unwrap();
+    let mut turned = job.clone();
+    turned.drawing.images[0].rotation = 45.0;
+    let (turned, again) = chipload_pipeline::images::retrace(&turned, 1).unwrap();
+    assert_eq!(again.shapes.len(), report.shapes.len());
+    // The picture's centre: (10 + 80, 5 + 40).
+    let c = [90.0, 45.0];
+    let before: Vec<_> = job
+        .drawing
+        .shapes
+        .iter()
+        .flat_map(|s| s.segments())
+        .collect();
+    let after: Vec<_> = turned
+        .drawing
+        .shapes
+        .iter()
+        .flat_map(|s| s.segments())
+        .collect();
+    assert_eq!(before.len(), after.len());
+    for (a, b) in before.iter().zip(&after) {
+        let (chipload_job::PathSegment::Line(a), chipload_job::PathSegment::Line(b)) = (a, b)
+        else {
+            continue;
+        };
+        let p = chipload_job::rotated([a.start[0] - c[0], a.start[1] - c[1]], 45.0);
+        assert!((p[0] + c[0] - b.start[0]).abs() < 1e-9, "{a:?} {b:?}");
+        assert!((p[1] + c[1] - b.start[1]).abs() < 1e-9, "{a:?} {b:?}");
+    }
+    // Its box: an 160 × 80 rectangle at 45° is (160 + 80) / √2 wide and high.
+    let ((x0, y0), (x1, y1)) = chipload_pipeline::images::turned_box(10.0, 5.0, 160.0, 80.0, 45.0);
+    let side = 240.0 / 2.0_f64.sqrt();
+    assert!((x1 - x0 - side).abs() < 1e-9 && (y1 - y0 - side).abs() < 1e-9);
+    assert!(((x0 + x1) / 2.0 - 90.0).abs() < 1e-9 && ((y0 + y1) / 2.0 - 45.0).abs() < 1e-9);
+}
+
 #[test]
 fn a_changed_setting_traces_again_and_operations_follow_the_layer() {
     let bytes = logo();

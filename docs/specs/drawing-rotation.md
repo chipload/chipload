@@ -1,5 +1,7 @@
 # Spec: turning the imported drawing in 90° steps
 
+Superseded in part by docs/specs/direct-placement.md (2026-10-14): any angle, in degrees.
+
 Status: **approved 2026-10-11**, with all decisions as recommended (§7).
 
 Guide: docs/book/src/drawings/placement.md.

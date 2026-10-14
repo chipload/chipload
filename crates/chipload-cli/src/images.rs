@@ -47,6 +47,10 @@ pub enum ImageAction {
         /// The picture's width on the stock, mm.
         #[arg(long)]
         width: Option<f64>,
+        /// Turn it about its centre to this angle, degrees counter-clockwise (any angle; 0:
+        /// as the picture is). `--at` stays the corner before the turn.
+        #[arg(long, allow_hyphen_values = true)]
+        rotate: Option<f64>,
         /// The layer for its shapes.
         #[arg(long)]
         layer: Option<String>,
@@ -163,6 +167,7 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
             project,
             id,
             width,
+            rotate,
             layer,
             invert,
             settings,
@@ -177,6 +182,13 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
                     .ok_or_else(|| format!("there is no image {id}"))?;
                 if let Some(width) = width {
                     image.width = width;
+                }
+                if let Some(degrees) = rotate {
+                    if !degrees.is_finite() {
+                        return Err(format!("--rotate takes degrees, got {degrees}"));
+                    }
+                    let turned = degrees.rem_euclid(360.0);
+                    image.rotation = if turned >= 360.0 { 0.0 } else { turned };
                 }
                 if let Some(layer) = &layer {
                     image.layer = layer.clone();
@@ -326,7 +338,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .filter(|s| s.image() == Some(image.id))
             .count();
         out.line(format!(
-            "{}: {} on layer {}, {} mm wide at ({}, {}); threshold {}, invert {}, blur {} px, \
+            "{}: {} on layer {}, {} mm wide at ({}, {}){}; threshold {}, invert {}, blur {} px, \
              smallest piece {} mm², smoothing {} mm, {}, arcs {}; {shapes} {}",
             image.id,
             image.file,
@@ -334,6 +346,14 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             image.width,
             image.x,
             image.y,
+            if image.rotation == 0.0 {
+                String::new()
+            } else {
+                format!(
+                    ", turned {}°",
+                    chipload_pipeline::placement::degrees_text(image.rotation)
+                )
+            },
             threshold_text(image.threshold),
             if image.invert { "on" } else { "off" },
             image.blur,
@@ -351,6 +371,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "x": image.x,
             "y": image.y,
             "width": image.width,
+            "rotation": image.rotation,
             "threshold": image.threshold,
             "invert": image.invert,
             "blur": image.blur,

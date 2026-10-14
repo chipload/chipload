@@ -706,9 +706,9 @@ impl SimLayer {
 #[derive(Debug, Clone, PartialEq)]
 pub struct PictureLayer {
     pub texture: eframe::egui::TextureId,
-    /// The picture's lower-left and upper-right corners, drawing coordinates.
-    pub min: Point,
-    pub max: Point,
+    /// The picture's corners in drawing coordinates, turned as the picture is: its
+    /// lower-left, lower-right, upper-right and upper-left (docs/specs/direct-placement.md).
+    pub corners: [Point; 4],
 }
 
 /// How strongly a picture shows under the drawing.
@@ -719,17 +719,21 @@ impl PictureLayer {
         if !view.is_top() {
             return;
         }
-        let rect = Rect::from_two_pos(
-            view.to_screen((self.min.0, self.max.1)),
-            view.to_screen((self.max.0, self.min.1)),
-        );
-        let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
-        painter.image(
-            self.texture,
-            rect,
-            uv,
-            Color32::WHITE.gamma_multiply(PICTURE_FADE),
-        );
+        // Two triangles, so a turned picture is drawn turned. The picture's top row is
+        // v = 0.
+        let color = Color32::WHITE.gamma_multiply(PICTURE_FADE);
+        let uv = [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)];
+        let mut mesh = eframe::egui::Mesh::with_texture(self.texture);
+        for (corner, (u, v)) in self.corners.iter().zip(uv) {
+            mesh.vertices.push(eframe::egui::epaint::Vertex {
+                pos: view.to_screen(*corner),
+                uv: Pos2::new(u, v),
+                color,
+            });
+        }
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+        painter.add(Shape::mesh(mesh));
     }
 }
 

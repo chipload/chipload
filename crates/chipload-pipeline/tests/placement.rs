@@ -121,7 +121,7 @@ fn bottom_left_with_a_margin_puts_the_drawing_on_the_stock() {
         placement(&placed),
         Placement {
             scale: 1.0,
-            quarter_turns: 0,
+            rotation: 0.0,
             dx: -490.0,
             dy: -390.0
         }
@@ -160,7 +160,7 @@ fn by_adds_and_to_sets() {
         placement(&twice),
         Placement {
             scale: 1.0,
-            quarter_turns: 0,
+            rotation: 0.0,
             dx: -394.5,
             dy: -302.25
         }
@@ -376,10 +376,10 @@ fn assert_same_shapes(a: &Job, b: &Job) {
 fn a_turn_keeps_the_drawing_centred_where_it_was() {
     let job = simple_part();
     // 50 .. 250 × 50 .. 170: centre (150, 110).
-    let (turned, report) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let (turned, report) = place_drawing(&job, Move::Rotate(90.0)).unwrap();
     let ((x0, y0), (x1, y1)) = drawing_box(&turned);
     assert!(near(x0, 90.0) && near(x1, 210.0) && near(y0, 10.0) && near(y1, 210.0));
-    assert_eq!(placement(&turned).quarter_turns, 1);
+    assert_eq!(placement(&turned).rotation, 90.0);
     assert!(
         report.lines[0].starts_with("Turned the imported drawing 90° counter-clockwise; it is now turned 90°, moved X260.000 Y-40.000 from the DXF"),
         "{:?}",
@@ -397,18 +397,18 @@ fn a_turn_keeps_the_drawing_centred_where_it_was() {
         }
     }
     // Clockwise is three counter-clockwise turns; half a turn twice is none.
-    let (cw, report) = place_drawing(&job, Move::Turn(-1)).unwrap();
+    let (cw, report) = place_drawing(&job, Move::Rotate(-90.0)).unwrap();
     assert!(
         report.lines[0].contains("90° clockwise"),
         "{:?}",
         report.lines
     );
-    assert_eq!(placement(&cw).quarter_turns, 3);
-    let (half, _) = place_drawing(&job, Move::Turn(2)).unwrap();
-    let (back, _) = place_drawing(&half, Move::Turn(2)).unwrap();
-    assert_eq!(placement(&back).quarter_turns, 0);
+    assert_eq!(placement(&cw).rotation, 270.0);
+    let (half, _) = place_drawing(&job, Move::Rotate(180.0)).unwrap();
+    let (back, _) = place_drawing(&half, Move::Rotate(180.0)).unwrap();
+    assert_eq!(placement(&back).rotation, 0.0);
     assert_same_shapes(&back, &job);
-    let (same, report) = place_drawing(&job, Move::Turn(4)).unwrap();
+    let (same, report) = place_drawing(&job, Move::Rotate(360.0)).unwrap();
     assert_eq!(same, job);
     assert!(report.lines[0].contains("nothing moved"));
 }
@@ -418,10 +418,10 @@ fn four_turns_bring_it_back() {
     let job = simple_part();
     let mut turned = job.clone();
     for _ in 0..4 {
-        turned = place_drawing(&turned, Move::Turn(1)).unwrap().0;
+        turned = place_drawing(&turned, Move::Rotate(90.0)).unwrap().0;
     }
     let p = placement(&turned);
-    assert_eq!(p.quarter_turns, 0);
+    assert_eq!(p.rotation, 0.0);
     assert!(near(p.dx, 0.0) && near(p.dy, 0.0), "{p:?}");
     assert_same_shapes(&turned, &job);
 }
@@ -429,7 +429,7 @@ fn four_turns_bring_it_back() {
 #[test]
 fn a_turned_part_keeps_its_holes_and_cuts_the_same_amount() {
     let job = simple_part();
-    let (turned, _) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let (turned, _) = place_drawing(&job, Move::Rotate(90.0)).unwrap();
     let depths = |job: &Job| {
         let mut d: Vec<Option<usize>> = chipload_pipeline::load_drawing(job)
             .unwrap()
@@ -500,7 +500,7 @@ fn start_points_turn_with_it_and_updates_keep_the_turn() {
             ),
         ]),
     );
-    let (turned, _) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let (turned, _) = place_drawing(&job, Move::Rotate(90.0)).unwrap();
     // Bottom edge turns to the right edge: (525, 397) -> (553, 425).
     assert_eq!(turned.operations[0].starts(), [[553.0, 425.0]]);
     assert_eq!(turned.operations[1].starts(), [[100.0, 77.0]]);
@@ -521,9 +521,9 @@ fn start_points_turn_with_it_and_updates_keep_the_turn() {
 #[test]
 fn reset_undoes_turns_and_moves() {
     let job = simple_part();
-    let (moved, _) = place_drawing(&job, Move::Turn(-1)).unwrap();
+    let (moved, _) = place_drawing(&job, Move::Rotate(-90.0)).unwrap();
     let (moved, _) = place_drawing(&moved, Move::BottomLeft { margin: 7.5 }).unwrap();
-    let (moved, _) = place_drawing(&moved, Move::Turn(2)).unwrap();
+    let (moved, _) = place_drawing(&moved, Move::Rotate(180.0)).unwrap();
     let (back, report) = place_drawing(&moved, Move::Reset).unwrap();
     assert!(
         report.lines[0].starts_with("Put the imported drawing back"),
@@ -531,7 +531,7 @@ fn reset_undoes_turns_and_moves() {
         report.lines
     );
     let p = placement(&back);
-    assert_eq!(p.quarter_turns, 0);
+    assert_eq!(p.rotation, 0.0);
     assert!(near(p.dx, 0.0) && near(p.dy, 0.0), "{p:?}");
     assert_same_shapes(&back, &job);
 }
@@ -576,7 +576,7 @@ fn scaling_grows_the_drawing_about_its_centre() {
         placement(&scaled),
         Placement {
             scale: 2.0,
-            quarter_turns: 0,
+            rotation: 0.0,
             dx: -150.0,
             dy: -110.0
         }
@@ -682,7 +682,7 @@ fn bad_scales_are_refused() {
 fn reset_puts_the_scale_back_to_exactly_one() {
     let job = simple_part();
     let (moved, _) = place_drawing(&job, Move::Scale(3.0)).unwrap();
-    let (moved, _) = place_drawing(&moved, Move::Turn(1)).unwrap();
+    let (moved, _) = place_drawing(&moved, Move::Rotate(90.0)).unwrap();
     let (moved, _) = place_drawing(&moved, Move::BottomLeft { margin: 7.5 }).unwrap();
     let (back, report) = place_drawing(&moved, Move::Reset).unwrap();
     assert_eq!(placement(&back), Placement::default());
@@ -702,12 +702,12 @@ fn reset_puts_the_scale_back_to_exactly_one() {
 #[test]
 fn turning_and_scaling_about_the_centre_commute() {
     let job = simple_part();
-    let (a, _) = place_drawing(&job, Move::Turn(1)).unwrap();
+    let (a, _) = place_drawing(&job, Move::Rotate(90.0)).unwrap();
     let (a, _) = place_drawing(&a, Move::Scale(1.5)).unwrap();
     let (b, _) = place_drawing(&job, Move::Scale(1.5)).unwrap();
-    let (b, _) = place_drawing(&b, Move::Turn(1)).unwrap();
+    let (b, _) = place_drawing(&b, Move::Rotate(90.0)).unwrap();
     let (pa, pb) = (placement(&a), placement(&b));
-    assert_eq!((pa.scale, pa.quarter_turns), (pb.scale, pb.quarter_turns));
+    assert_eq!((pa.scale, pa.rotation), (pb.scale, pb.rotation));
     assert!(near(pa.dx, pb.dx) && near(pa.dy, pb.dy), "{pa:?} vs {pb:?}");
     assert_same_shapes(&a, &b);
 }
@@ -779,7 +779,7 @@ fn start_points_scale_with_it_and_updates_keep_the_scale() {
             .iter()
             .any(|l| l.contains("drawn in Chipload stay"))
     );
-    let (moved, _) = place_drawing(&scaled, Move::Turn(1)).unwrap();
+    let (moved, _) = place_drawing(&scaled, Move::Rotate(90.0)).unwrap();
     let (moved, _) = place_drawing(&moved, Move::BottomLeft { margin: 10.0 }).unwrap();
     let (same, report) = update_drawing(&moved, &dxf, None).unwrap();
     assert_eq!(report.unchanged, [2], "{:?}", report.lines);
@@ -883,7 +883,7 @@ fn off_the_spline(p: [f64; 2]) -> f64 {
 /// from the scaled curve.
 fn spline_error(job: &Job) -> f64 {
     let p = placement(job);
-    assert_eq!(p.quarter_turns, 0);
+    assert_eq!(p.rotation, 0.0);
     let to_dxf = |q: [f64; 2]| [(q[0] - p.dx) / p.scale, (q[1] - p.dy) / p.scale];
     let mut worst: f64 = 0.0;
     for segment in job.drawing.shapes[0].segments() {
@@ -936,7 +936,9 @@ mod steps {
     fn a_move() -> impl Strategy<Value = Move> {
         prop_oneof![
             (0.2_f64..5.0).prop_map(Move::Scale),
-            (-3_i32..=3).prop_map(Move::Turn),
+            (-3_i32..=3).prop_map(|k| Move::Rotate(90.0 * f64::from(k))),
+            (-360.0_f64..360.0).prop_map(Move::Rotate),
+            ((-200.0_f64..200.0), (-200.0_f64..200.0)).prop_map(|(x, y)| Move::Corner(x, y)),
             ((-200.0_f64..200.0), (-200.0_f64..200.0)).prop_map(|(x, y)| Move::By(x, y)),
             (20.0_f64..400.0).prop_map(Move::Width),
             Just(Move::Center),
@@ -981,4 +983,39 @@ fn proptest_config(cases: u32) -> proptest::test_runner::Config {
         )),
         ..proptest::test_runner::Config::with_cases(cases)
     }
+}
+
+/// docs/specs/direct-placement.md §6: any angle and back gives the shapes back; the box's
+/// corner goes where it is put.
+#[test]
+fn any_angle_and_back_gives_the_drawing_back() {
+    let job = simple_part();
+    let (turned, report) = place_drawing(&job, Move::Rotate(30.0)).unwrap();
+    assert!(
+        report.lines[0].contains("30° counter-clockwise"),
+        "{:?}",
+        report.lines
+    );
+    assert_eq!(placement(&turned).rotation, 30.0);
+    let (back, _) = place_drawing(&turned, Move::Rotate(-30.0)).unwrap();
+    assert_eq!(placement(&back).rotation, 0.0);
+    for (a, b) in job.drawing.shapes.iter().zip(&back.drawing.shapes) {
+        for (x, y) in a.segments().iter().zip(b.segments()) {
+            let (chipload_job::PathSegment::Line(x), chipload_job::PathSegment::Line(y)) = (x, &y)
+            else {
+                continue;
+            };
+            for k in 0..2 {
+                assert!((x.start[k] - y.start[k]).abs() < 1e-9, "{x:?} {y:?}");
+            }
+        }
+    }
+    let (cornered, _) = place_drawing(&turned, Move::Corner(10.0, 20.0)).unwrap();
+    let id = cornered.drawing.dxfs[0].id;
+    let ((x0, y0), _) =
+        chipload_pipeline::placement::dxf_box(&cornered.drawing.shapes, id).unwrap();
+    assert!(
+        (x0 - 10.0).abs() < 1e-9 && (y0 - 20.0).abs() < 1e-9,
+        "{x0} {y0}"
+    );
 }

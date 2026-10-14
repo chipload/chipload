@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 23;
+pub const CURRENT_VERSION: i64 = 24;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -231,6 +231,11 @@ pub struct Image {
     pub y: f64,
     /// The picture's width on the stock, mm; its height follows from the picture.
     pub width: f64,
+    /// Turned counter-clockwise about the picture's centre, degrees, at least 0 and less
+    /// than 360. `x`, `y` and `width` are before the turn; the traced shapes are turned
+    /// after the trace.
+    // Spec: docs/specs/direct-placement.md §3.
+    pub rotation: f64,
     /// Grey values below this (0–255) are black: 1 to 254, or "auto" to pick it from the
     /// picture (Otsu's method).
     pub threshold: ImageThreshold,
@@ -328,6 +333,12 @@ impl Image {
             problems.push(format!(
                 "{at}.width: must be greater than 0, got {}",
                 self.width
+            ));
+        }
+        if !rotation_in_range(self.rotation) {
+            problems.push(format!(
+                "{at}.rotation: must be at least 0 and less than 360 degrees, got {}",
+                self.rotation
             ));
         }
         if !(self.x.is_finite() && self.y.is_finite()) {
@@ -830,6 +841,27 @@ impl PathSegment {
         }
     }
 
+    /// The segment turned about the origin by `degrees` counter-clockwise; multiples of 90
+    /// as [`PathSegment::quarter_turned`], exactly. An arc's start angle is wrapped into
+    /// [0, 2π).
+    pub fn rotated(&self, degrees: f64) -> PathSegment {
+        if let Some(k) = as_quarter_turns(degrees) {
+            return self.quarter_turned(k);
+        }
+        match self {
+            PathSegment::Line(l) => PathSegment::Line(LineSegment {
+                start: rotated(l.start, degrees),
+                end: rotated(l.end, degrees),
+            }),
+            PathSegment::Arc(a) => PathSegment::Arc(ArcSegment {
+                center: rotated(a.center, degrees),
+                start_angle: (a.start_angle + degrees.to_radians())
+                    .rem_euclid(std::f64::consts::TAU),
+                ..*a
+            }),
+        }
+    }
+
     /// The segment turned about the origin by `k` × 90° counter-clockwise. Points are
     /// exact; an arc's start angle is wrapped into [0, 2π).
     pub fn quarter_turned(&self, k: u8) -> PathSegment {
@@ -943,18 +975,19 @@ pub struct DrawingSource {
     pub placement: Placement,
 }
 
-/// Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy),
+/// Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (dx, dy),
 /// turned and scaled about the DXF's origin.
-// Spec: docs/specs/drawing-rotation.md; docs/specs/drawing-scale.md.
+// Spec: docs/specs/drawing-rotation.md; docs/specs/drawing-scale.md;
+// docs/specs/direct-placement.md (any angle).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Placement {
     /// Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn.
     pub scale: f64,
-    /// Turned counter-clockwise about the DXF's origin, in quarter turns (0–3), after the
-    /// scale.
-    pub quarter_turns: u8,
+    /// Turned counter-clockwise about the DXF's origin, degrees, at least 0 and less than
+    /// 360, after the scale. Multiples of 90 are exact.
+    pub rotation: f64,
     /// Then moved along X, mm.
     pub dx: f64,
     /// Then moved along Y, mm.
@@ -966,7 +999,7 @@ impl Default for Placement {
     fn default() -> Self {
         Placement {
             scale: 1.0,
-            quarter_turns: 0,
+            rotation: 0.0,
             dx: 0.0,
             dy: 0.0,
         }
@@ -986,6 +1019,31 @@ impl Placement {
 }
 
 /// The point turned about the origin by `k` × 90° counter-clockwise. Exact: no trigonometry.
+/// A rotation in degrees as the file keeps it: at least 0, less than 360.
+pub fn rotation_in_range(degrees: f64) -> bool {
+    (0.0..360.0).contains(&degrees)
+}
+
+/// `degrees` as whole quarter turns (0–3), when it is an exact multiple of 90.
+pub fn as_quarter_turns(degrees: f64) -> Option<u8> {
+    if degrees % 90.0 == 0.0 && degrees.is_finite() {
+        // A whole number of quarter turns, reduced to 0–3: the cast can't lose anything.
+        Some((degrees / 90.0).rem_euclid(4.0) as u8)
+    } else {
+        None
+    }
+}
+
+/// `p` turned about the origin by `degrees` counter-clockwise. Multiples of 90 are exact
+/// ([`quarter_turned`]), so quarter-turned drawings stay bit for bit what they were.
+pub fn rotated(p: [f64; 2], degrees: f64) -> [f64; 2] {
+    if let Some(k) = as_quarter_turns(degrees) {
+        return quarter_turned(p, k);
+    }
+    let (sin, cos) = degrees.to_radians().sin_cos();
+    [p[0] * cos - p[1] * sin, p[0] * sin + p[1] * cos]
+}
+
 pub fn quarter_turned(p: [f64; 2], k: u8) -> [f64; 2] {
     match k % 4 {
         0 => p,
@@ -2401,7 +2459,7 @@ impl Job {
             let at = format!("drawing.dxfs.{i}.placement");
             let Placement {
                 scale,
-                quarter_turns,
+                rotation,
                 dx,
                 dy,
             } = source.placement;
@@ -2415,9 +2473,9 @@ impl Job {
             if !(dx.is_finite() && dy.is_finite()) {
                 problems.push(format!("{at}: must be numbers, got ({dx}, {dy})"));
             }
-            if quarter_turns > 3 {
+            if !rotation_in_range(rotation) {
                 problems.push(format!(
-                    "{at}.quarter_turns: must be 0 to 3, got {quarter_turns}"
+                    "{at}.rotation: must be at least 0 and less than 360 degrees, got {rotation}"
                 ));
             }
         }

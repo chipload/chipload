@@ -287,18 +287,22 @@ enum Command {
         #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["to", "align"])]
         by: Option<String>,
         /// Put it "DX,DY" mm from where the DXF has it; 0,0 is as drawn.
-        #[arg(long, allow_hyphen_values = true, conflicts_with = "align")]
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["align", "at"])]
         to: Option<String>,
+        /// Put the lower-left corner of its bounding box at "X,Y" mm (the app's Position).
+        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "align"])]
+        at: Option<String>,
         /// Align the drawing's extent with the stock.
         #[arg(long)]
         align: Option<AlignArg>,
         /// With --align bottom-left: how far in from the stock's corner, mm.
         #[arg(long)]
         margin: Option<f64>,
-        /// Turn it about its centre, degrees counter-clockwise: 90, 180, 270 or -90. Before
-        /// --align when both are given.
+        /// Turn it about its centre by this many degrees counter-clockwise (negative:
+        /// clockwise), any angle, on top of any turn it has. Before --align when both are
+        /// given.
         #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
-        rotate: Option<i32>,
+        rotate: Option<f64>,
         /// Scale it about its centre by this factor (> 0), on top of any scale it has. After
         /// --rotate, before --align.
         #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "width", "height"])]
@@ -312,7 +316,7 @@ enum Command {
         /// Back to where the DXF has it: no turn, no scale, no move.
         #[arg(
             long,
-            conflicts_with_all = ["by", "to", "align", "margin", "rotate", "scale", "width", "height"]
+            conflicts_with_all = ["by", "to", "at", "align", "margin", "rotate", "scale", "width", "height"]
         )]
         reset: bool,
         /// Which DXF of the project (as `dxf list` shows); needed when it has several.
@@ -710,6 +714,7 @@ fn main() -> ExitCode {
             project,
             by,
             to,
+            at,
             align,
             margin,
             rotate,
@@ -725,6 +730,7 @@ fn main() -> ExitCode {
             PlaceArgs {
                 by,
                 to,
+                at,
                 align,
                 margin,
                 rotate,
@@ -987,9 +993,10 @@ fn changed_copies(job: &Job, part: u64, args: CopiesArgs) -> Result<Option<Copie
 struct PlaceArgs {
     by: Option<String>,
     to: Option<String>,
+    at: Option<String>,
     align: Option<AlignArg>,
     margin: Option<f64>,
-    rotate: Option<i32>,
+    rotate: Option<f64>,
     scale: Option<f64>,
     width: Option<f64>,
     height: Option<f64>,
@@ -1068,12 +1075,10 @@ fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
     }
     let mut steps = Vec::new();
     if let Some(degrees) = args.rotate {
-        if degrees % 90 != 0 {
-            return Err(format!(
-                "--rotate turns in steps of 90 degrees (90, 180, 270, -90), got {degrees}"
-            ));
+        if !degrees.is_finite() {
+            return Err(format!("--rotate takes degrees, got {degrees}"));
         }
-        steps.push(PlaceMove::Turn(degrees / 90));
+        steps.push(PlaceMove::Rotate(degrees));
     }
     if let Some(factor) = args.scale {
         steps.push(PlaceMove::Scale(factor));
@@ -1085,6 +1090,10 @@ fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
         steps.push(PlaceMove::Height(height));
     }
     steps.extend(place_move(args.by, args.to, args.align, args.margin)?);
+    if let Some(at) = args.at {
+        let [x, y] = point_arg(&at).map_err(|e| format!("--at: {e}"))?;
+        steps.push(PlaceMove::Corner(x, y));
+    }
     Ok(steps)
 }
 

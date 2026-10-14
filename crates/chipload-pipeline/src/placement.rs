@@ -11,9 +11,7 @@ use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, PLACEMENT_ROUNDING_MM};
 use chipload_dxf::contours_from_shapes;
-use chipload_job::{
-    Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero, quarter_turned,
-};
+use chipload_job::{Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero, rotated};
 
 use crate::{PipelineError, stock_fit_note};
 
@@ -28,9 +26,11 @@ pub enum Move {
     BottomLeft { margin: f64 },
     /// The bounding box's centre on the stock's centre.
     Center,
-    /// Turn by this many × 90° counter-clockwise (negative: clockwise) about the centre of
-    /// the bounding box.
-    Turn(i32),
+    /// Turn by this many degrees counter-clockwise (negative: clockwise) about the centre of
+    /// the bounding box (docs/specs/direct-placement.md).
+    Rotate(f64),
+    /// Put the bounding box's lower-left corner at (x, y) mm.
+    Corner(f64, f64),
     /// Scale by this factor (> 0) about the centre of the bounding box.
     Scale(f64),
     /// Scale about the centre of the bounding box until it is this wide, mm.
@@ -41,21 +41,34 @@ pub enum Move {
     Reset,
 }
 
-/// One change of placement: turn about the origin by `turns` × 90° counter-clockwise, scale
-/// about the origin, then move by (dx, dy).
+/// One change of placement: turn about the origin by `degrees` counter-clockwise (exact
+/// for multiples of 90), scale about the origin, then move by (dx, dy).
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Step {
     scale: f64,
-    turns: u8,
+    degrees: f64,
     dx: f64,
     dy: f64,
 }
 
 impl Step {
     fn apply(&self, p: [f64; 2]) -> [f64; 2] {
-        let q = quarter_turned(p, self.turns);
+        let q = rotated(p, self.degrees);
         [self.scale * q[0] + self.dx, self.scale * q[1] + self.dy]
     }
+}
+
+/// An angle in degrees as the file keeps it, in [0, 360).
+fn normal_degrees(degrees: f64) -> f64 {
+    let d = degrees.rem_euclid(360.0);
+    // rem_euclid of a tiny negative angle can round up to 360 itself.
+    if d >= 360.0 { 0.0 } else { d }
+}
+
+/// "45", "90", "12.5": degrees for people, up to 3 decimals.
+pub fn degrees_text(degrees: f64) -> String {
+    let text = format!("{degrees:.3}");
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 /// What placing did: lines to show.
@@ -109,7 +122,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     let step = step_for(job, &imported, source.placement, how)?;
     let Step {
         scale,
-        turns,
+        degrees,
         dx,
         dy,
     } = step;
@@ -118,7 +131,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
             "can't move the drawing by ({dx}, {dy})"
         )));
     }
-    if (scale, turns, dx, dy) == (1.0, 0, 0.0, 0.0) {
+    if (scale, normal_degrees(degrees), dx, dy) == (1.0, 0.0, 0.0, 0.0) {
         let report = PlaceReport {
             lines: vec!["The drawing is already there; nothing moved.".into()],
         };
@@ -146,7 +159,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     } else {
         Placement {
             scale: old.scale * scale,
-            quarter_turns: (old.quarter_turns + turns) % 4,
+            rotation: normal_degrees(old.rotation + degrees),
             dx: pdx,
             dy: pdy,
         }
@@ -156,10 +169,10 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     }
 
     let done = match how {
-        Move::Turn(k) => format!(
+        Move::Rotate(d) => format!(
             "Turned {what} {}° {}",
-            90 * k.unsigned_abs(),
-            if k > 0 {
+            degrees_text(d.abs()),
+            if d > 0.0 {
                 "counter-clockwise"
             } else {
                 "clockwise"
@@ -207,11 +220,8 @@ pub fn placement_text(placement: Placement) -> String {
     if placement.scale != 1.0 {
         parts.push(format!("scaled ×{}", factor_text(placement.scale)));
     }
-    if placement.quarter_turns != 0 {
-        parts.push(format!(
-            "turned {}°",
-            90 * u32::from(placement.quarter_turns)
-        ));
+    if placement.rotation != 0.0 {
+        parts.push(format!("turned {}°", degrees_text(placement.rotation)));
     }
     if (placement.dx, placement.dy) != (0.0, 0.0) {
         parts.push(format!("moved X{:.3} Y{:.3}", placement.dx, placement.dy));
@@ -248,6 +258,16 @@ pub fn dxf_size(shapes: &[Shape], id: u64) -> Option<(f64, f64)> {
         .cloned()
         .collect();
     size_of(&imported)
+}
+
+/// The box round DXF `id`'s shapes: lower-left and upper-right corners, mm.
+pub fn dxf_box(shapes: &[Shape], id: u64) -> Option<(Point, Point)> {
+    let imported: Vec<Shape> = shapes
+        .iter()
+        .filter(|s| s.dxf() == Some(id))
+        .cloned()
+        .collect();
+    contours_from_shapes(&imported, &[]).report.bbox
 }
 
 fn size_of(shapes: &[Shape]) -> Option<(f64, f64)> {
@@ -318,7 +338,7 @@ fn step_for(
 ) -> Result<Step, PipelineError> {
     let moved = |dx: f64, dy: f64| Step {
         scale: 1.0,
-        turns: 0,
+        degrees: 0.0,
         dx,
         dy,
     };
@@ -332,6 +352,10 @@ fn step_for(
     Ok(match how {
         Move::By(dx, dy) => moved(dx, dy),
         Move::To(x, y) => moved(x - current.dx, y - current.dy),
+        Move::Corner(x, y) => {
+            let ((x0, y0), _) = bbox()?;
+            moved(x - x0, y - y0)
+        }
         Move::BottomLeft { margin } => {
             if !(margin.is_finite() && margin >= 0.0) {
                 return Err(PipelineError::Job(format!(
@@ -351,11 +375,11 @@ fn step_for(
         Move::Reset => {
             // Undo s·turn(p) + d: turn back and divide, so the move turns back and shrinks
             // too.
-            let back = (4 - current.quarter_turns % 4) % 4;
-            let d = quarter_turned([current.dx, current.dy], back);
+            let back = normal_degrees(-current.rotation);
+            let d = rotated([current.dx, current.dy], back);
             Step {
                 scale: 1.0 / current.scale,
-                turns: back,
+                degrees: back,
                 dx: -d[0] / current.scale,
                 dy: -d[1] / current.scale,
             }
@@ -371,15 +395,20 @@ fn step_for(
             let factor = size_factor("height", height, y1 - y0)?;
             scaled_about_centre(((x0, y0), (x1, y1)), current, factor)?
         }
-        Move::Turn(k) => {
+        Move::Rotate(d) => {
+            if !d.is_finite() {
+                return Err(PipelineError::Job(format!(
+                    "the rotation must be a number of degrees, got {d}"
+                )));
+            }
             // About the bounding box's centre c: p -> turn(p - c) + c = turn(p) + c - turn(c).
             let ((x0, y0), (x1, y1)) = bbox()?;
-            let turns = u8::try_from(k.rem_euclid(4)).unwrap_or(0);
+            let degrees = normal_degrees(d);
             let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
-            let tc = quarter_turned(c, turns);
+            let tc = rotated(c, degrees);
             Step {
                 scale: 1.0,
-                turns,
+                degrees,
                 dx: c[0] - tc[0],
                 dy: c[1] - tc[1],
             }
@@ -411,7 +440,7 @@ fn scaled_about_centre(
     let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
     Ok(Step {
         scale: factor,
-        turns: 0,
+        degrees: 0.0,
         dx: c[0] - factor * c[0],
         dy: c[1] - factor * c[1],
     })
@@ -439,7 +468,7 @@ pub(crate) fn place_scaled_import(shapes: &mut [Shape], placement: Placement) {
         shapes,
         Step {
             scale: 1.0,
-            turns: placement.quarter_turns,
+            degrees: placement.rotation,
             dx: placement.dx,
             dy: placement.dy,
         },
@@ -456,7 +485,7 @@ fn apply_to_imported(shapes: &mut [Shape], step: Step, id: Option<u64>) {
         }
         if let Geometry::Path { segments, .. } = &mut shape.geometry {
             for segment in segments.iter_mut() {
-                let turned = segment.quarter_turned(step.turns);
+                let turned = segment.rotated(step.degrees);
                 let scaled = if step.scale == 1.0 {
                     turned
                 } else {

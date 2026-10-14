@@ -17,7 +17,7 @@ use super::{ChiploadApp, STATUS_SECONDS};
 use crate::app::report::Report;
 
 /// What a picture's texture was made from: the image's id, picture, place and width.
-type PictureKey = (u64, String, f64, f64, f64);
+type PictureKey = (u64, String, f64, f64, f64, f64);
 
 /// The textures of the project's pictures, kept until its images change.
 #[derive(Default)]
@@ -203,6 +203,7 @@ impl ChiploadApp {
             x: 0.0,
             y: 0.0,
             width,
+            rotation: 0.0,
             threshold: defaults.threshold,
             invert: defaults.invert,
             blur: defaults.blur,
@@ -327,6 +328,7 @@ impl ChiploadApp {
         };
         image.width = place.width;
         (image.x, image.y) = (place.x, place.y);
+        image.rotation = place.rotation;
         image.layer.clone_from(&place.layer);
         match retrace(&job, id) {
             Ok((job, report)) => {
@@ -425,7 +427,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         let keys: Vec<PictureKey> = images
             .iter()
-            .map(|i| (i.id, i.sha256.clone(), i.x, i.y, i.width))
+            .map(|i| (i.id, i.sha256.clone(), i.x, i.y, i.width, i.rotation))
             .collect();
         if keys != self.picture_textures.keys {
             let mut layers = Vec::new();
@@ -439,10 +441,16 @@ impl ChiploadApp {
                     grey_texture(&picture),
                     TextureOptions::LINEAR,
                 );
+                // Turned about its centre, as its traced shapes are.
+                let (cx, cy) = (image.x + image.width / 2.0, image.y + height / 2.0);
+                let (hw, hh) = (image.width / 2.0, height / 2.0);
+                let corners = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(|p| {
+                    let q = chipload_job::rotated(p, image.rotation);
+                    (cx + q[0], cy + q[1])
+                });
                 let layer = crate::view::PictureLayer {
                     texture: texture.id(),
-                    min: (image.x, image.y),
-                    max: (image.x + image.width, image.y + height),
+                    corners,
                 };
                 layers.push((layer, texture));
             }

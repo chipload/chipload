@@ -1507,7 +1507,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
         placement(&app),
         chipload_job::Placement {
             scale: 1.0,
-            quarter_turns: 0,
+            rotation: 0.0,
             dx: -40.0,
             dy: -40.0
         }
@@ -1523,16 +1523,16 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
 
     // Turned in place (docs/specs/drawing-rotation.md §5): the 200 × 120 outline centred on
     // (150, 110) becomes 120 × 200; one undo step; Reset takes it back.
-    assert!(app.place(chipload_pipeline::placement::Move::Turn(-1)));
-    assert_eq!(placement(&app).quarter_turns, 3);
+    assert!(app.place(chipload_pipeline::placement::Move::Rotate(-90.0)));
+    assert_eq!(placement(&app).rotation, 270.0);
     assert!(near(contour_min(&app, outline(&app)), (90.0, 10.0)));
     assert_eq!(circle(&app), before, "the drawn circle stays");
     app.undo();
-    assert_eq!(placement(&app).quarter_turns, 0);
+    assert_eq!(placement(&app).rotation, 0.0);
     app.redo();
     assert!(app.place(chipload_pipeline::placement::Move::Reset));
     assert!(near(contour_min(&app, outline(&app)), (50.0, 50.0)));
-    assert_eq!(placement(&app).quarter_turns, 0);
+    assert_eq!(placement(&app).rotation, 0.0);
 
     // Scaled about its centre (docs/specs/drawing-scale.md §5): to a width, one undo step;
     // a bad factor is refused and reported; Reset takes it back.
@@ -3102,6 +3102,7 @@ fn a_pictures_new_size_and_place_trace_it_as_the_pipeline_does() {
         width: 40.0,
         x: 20.0,
         y: 150.0,
+        rotation: 0.0,
         layer: "badge".into(),
     };
     assert!(app.set_image_place(1, &place));

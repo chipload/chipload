@@ -353,6 +353,7 @@ chipload image set <PROJECT> <ID> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The image's id (as `image list` shows it) |
 | `--width <WIDTH>` | The picture's width on the stock, mm. |
+| `--rotate <ROTATE>` | Turn it about its centre to this angle, degrees counter-clockwise (any angle; 0: as the picture is). `--at` stays the corner before the turn. |
 | `--layer <LAYER>` | The layer for its shapes. |
 | `--invert <INVERT>` | Carve the light parts instead (true or false) One of: `true`, `false`. |
 | `--at <AT>` | Where the picture's lower-left corner goes: X,Y in mm (default 0,0) |
@@ -891,9 +892,10 @@ chipload place <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--by <BY>` | Move by "DX,DY" mm. |
 | `--to <TO>` | Put it "DX,DY" mm from where the DXF has it; 0,0 is as drawn. |
+| `--at <AT>` | Put the lower-left corner of its bounding box at "X,Y" mm (the app's Position) |
 | `--align <ALIGN>` | Align the drawing's extent with the stock. One of: `bottom-left` (Bottom-left corner on the stock's, --margin mm in), `center` (Centre on the stock's centre). |
 | `--margin <MARGIN>` | With --align bottom-left: how far in from the stock's corner, mm. |
-| `--rotate <ROTATE>` | Turn it about its centre, degrees counter-clockwise: 90, 180, 270 or -90. Before --align when both are given. |
+| `--rotate <ROTATE>` | Turn it about its centre by this many degrees counter-clockwise (negative: clockwise), any angle, on top of any turn it has. Before --align when both are given. |
 | `--scale <SCALE>` | Scale it about its centre by this factor (> 0), on top of any scale it has. After --rotate, before --align. |
 | `--width <WIDTH>` | Scale it about its centre until it is this wide, mm (the height follows) |
 | `--height <HEIGHT>` | Scale it about its centre until it is this high, mm (the width follows) |

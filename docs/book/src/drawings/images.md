@@ -16,11 +16,17 @@ project, so its settings can be changed later.
 
 ## Size and place
 
-A new picture comes in half the stock's width, with its lower-left corner at X0 Y0. Its
-**width in mm** and **corner** are set in its properties: click it in the Browser (it is
-selected right after importing). Its height follows from the picture. Chipload doesn't use
-the picture's DPI, which is often missing or wrong. On the command line, give `--width` and
-`--at`.
+A new picture comes in half the stock's width, with its lower-left corner at X0 Y0. Click
+it in the Browser (it is selected right after importing) for its properties:
+- **Position:** the lower-left corner of its box, mm;
+- **Rotation:** degrees counter-clockwise, any angle, about its centre, with ⟲ 90 and
+  ⟳ 90. The picture is traced as it is and its shapes are then turned, so the trace doesn't
+  change; on the canvas the picture is drawn turned too;
+- **Width** in mm; its height follows from the picture. Chipload doesn't use the picture's
+  DPI, which is often missing or wrong.
+
+On the command line, give `--width`, `--at` (the picture's corner before it is turned) and
+`--rotate`.
 
 ## Black and white
 
@@ -99,7 +105,7 @@ path…* takes the picture's path instead.
 
 **Afterwards:**
 - **Move or resize it:** click it in the [Browser](../window.md#the-browser) and change its
-  width, corner or layer in Properties.
+  position, rotation, width or layer in Properties.
 - **Trace it differently:** double-click it, or right-click it > **Trace settings…**: the
   same window opens (its button says **Apply**).
 - **Remove it:** right-click > **Remove** removes the picture and its shapes.
@@ -116,6 +122,7 @@ path…* takes the picture's path instead.
 chipload image add part.chipload logo.png --width 120 --at 10,10 --threshold auto
 chipload image add part.chipload signature.png --width 80 --trace centre-line
 chipload image set part.chipload 1 --threshold 140 --blur 2 --invert true --arcs false
+chipload image set part.chipload 1 --rotate 30         # turned 30° about its centre
 chipload image list part.chipload
 chipload image preview part.chipload 1 -o bw.png
 chipload image remove part.chipload 1

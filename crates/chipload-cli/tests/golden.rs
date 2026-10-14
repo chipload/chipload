@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 36] = [
+const GOLDEN: [(&str, &str); 37] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -100,6 +100,10 @@ const GOLDEN: [(&str, &str); 36] = [
     // then DXF 2's outline in a 1 × 2 grid. Part by part: T1, T2, then T1 again, and a
     // comment where each part starts.
     ("v22_two_parts", "jobs/v22/two_parts.chipload"),
+    // v22_two_parts with part B's DXF turned 90° too (both DXFs quarter-turned) and its
+    // copies side by side, frozen at v23 with G-code from that code: v24 makes the quarter
+    // turns an angle in degrees; the G-code stays the same (docs/specs/direct-placement.md).
+    ("v23_turned_parts", "jobs/v23/turned_parts.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

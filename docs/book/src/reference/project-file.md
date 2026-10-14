@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 23. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 24. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 23. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `23` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `24` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -189,6 +189,7 @@ A picture traced into shapes: the picture itself, where it goes, and how it beco
 | `invert` | boolean | yes | Carve the light parts instead of the dark ones. |
 | `layer` | string | yes | The layer its traced shapes go on. |
 | `min_area` | number | yes | Black or white specks smaller than this are dropped, mm², 0 to 100. |
+| `rotation` | number | yes | Turned counter-clockwise about the picture's centre, degrees, at least 0 and less than 360. `x`, `y` and `width` are before the turn; the traced shapes are turned after the trace. |
 | `sha256` | string | yes | The picture's SHA-256. |
 | `smoothing` | number | yes | How far a traced edge may be simplified away from the picture's edge, mm, 0.01 to 1. |
 | `threshold` | [ImageThreshold](#imagethreshold) | yes | Grey values below this (0–255) are black: 1 to 254, or "auto" to pick it from the picture (Otsu's method). |
@@ -371,13 +372,13 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 
 ## Placement
 
-Where the imported drawing is put: a DXF point p goes to scale · turn(p) + (dx, dy), turned and scaled about the DXF's origin.
+Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (dx, dy), turned and scaled about the DXF's origin.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dx` | number | yes | Then moved along X, mm. |
 | `dy` | number | yes | Then moved along Y, mm. |
-| `quarter_turns` | integer | yes | Turned counter-clockwise about the DXF's origin, in quarter turns (0–3), after the scale. |
+| `rotation` | number | yes | Turned counter-clockwise about the DXF's origin, degrees, at least 0 and less than 360, after the scale. Multiples of 90 are exact. |
 | `scale` | number | yes | Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn. |
 
 ## PocketStrategy

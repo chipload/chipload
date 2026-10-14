@@ -700,7 +700,7 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     );
     assert_eq!(
         placement(),
-        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": -20.0, "dy": 30.0})
+        serde_json::json!({"scale": 1.0, "rotation": 0.0, "dx": -20.0, "dy": 30.0})
     );
     assert!(extents().contains("X 30.000 .. 230.000, Y 80.000 .. 200.000"));
     assert!(ok_inspect(p).contains("Drawing: moved X-20.000 Y30.000 from the DXF"));
@@ -712,12 +712,12 @@ fn the_imported_drawing_is_placed_from_the_command_line() {
     assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
     assert_eq!(
         placement(),
-        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": 0.0, "dy": 0.0})
+        serde_json::json!({"scale": 1.0, "rotation": 0.0, "dx": 0.0, "dy": 0.0})
     );
     run(&["place", p, "--to", "5,-5"]);
     assert_eq!(
         placement(),
-        serde_json::json!({"scale": 1.0, "quarter_turns": 0, "dx": 5.0, "dy": -5.0})
+        serde_json::json!({"scale": 1.0, "rotation": 0.0, "dx": 5.0, "dy": -5.0})
     );
 
     // An update keeps it where it was put.
@@ -759,9 +759,6 @@ fn the_imported_drawing_is_turned_from_the_command_line() {
             .to_string()
     };
 
-    let (code, _, err) = run(&["place", p, "--rotate", "45"]);
-    assert_eq!(code, Some(1));
-    assert!(err.contains("steps of 90 degrees"), "{err}");
     // A usage error (clap): the offset would be unclear after a turn.
     let (code, _, err) = run(&["place", p, "--rotate", "90", "--by", "1,1"]);
     assert_eq!(code, Some(2), "{err}");
@@ -806,6 +803,46 @@ fn the_imported_drawing_is_turned_from_the_command_line() {
     assert!(extents().contains("X 50.000 .. 250.000, Y 50.000 .. 170.000"));
     let (_, out, _) = run(&["place", p]);
     assert!(out.contains("Drawing: as in the DXF"), "{out}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// docs/specs/direct-placement.md §4: any angle, and the box's corner at a point.
+#[test]
+fn the_imported_drawing_turns_by_any_angle_and_goes_to_a_corner() {
+    let dir = temp_dir("rotate-any");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/simple_part_full.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let extents = || {
+        ok_inspect(p)
+            .lines()
+            .find(|l| l.starts_with("Extents"))
+            .unwrap()
+            .to_string()
+    };
+    let (code, out, err) = run(&["place", p, "--rotate", "30"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        out.contains("Turned the imported drawing 30° counter-clockwise"),
+        "{out}"
+    );
+    let (_, out, _) = run(&["place", p]);
+    assert!(out.contains("turned 30°"), "{out}");
+    let (code, _, err) = run(&["place", p, "--at", "10,20"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(extents().contains("X 10.000 .."), "{}", extents());
+    assert!(extents().contains("Y 20.000 .."), "{}", extents());
+    // Back by -30: 0° again, and the job still runs.
+    let (code, _, err) = run(&["place", p, "--rotate", "-30"]);
+    assert_eq!(code, Some(0), "{err}");
+    let (_, out, _) = run(&["place", p]);
+    assert!(!out.contains("turned"), "{out}");
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc"))]);
+    assert_eq!(code, Some(0), "{err}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

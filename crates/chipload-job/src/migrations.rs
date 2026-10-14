@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 19] = [
+const MIGRATIONS: [Migration; 20] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22, v22_to_v23,
+    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -397,6 +397,38 @@ fn v22_to_v23(mut data: Value) -> Result<Value, String> {
         link(machine);
     }
     Ok(set_version(data, 23))
+}
+
+/// v24 turns by any angle (docs/specs/direct-placement.md §3): a DXF's `quarter_turns`
+/// becomes `rotation` in degrees (90 each), exact for these multiples of 90, so the
+/// drawing stays where it was; each image gets `rotation` 0.
+fn v23_to_v24(mut data: Value) -> Result<Value, String> {
+    let map = data.as_object_mut().ok_or("the project is not an object")?;
+    if let Some(drawing) = map.get_mut("drawing").and_then(Value::as_object_mut) {
+        if let Some(dxfs) = drawing.get_mut("dxfs").and_then(Value::as_array_mut) {
+            for dxf in dxfs.iter_mut().filter_map(Value::as_object_mut) {
+                let Some(placement) = dxf.get_mut("placement").and_then(Value::as_object_mut)
+                else {
+                    continue;
+                };
+                let turns = match placement.remove("quarter_turns") {
+                    None => 0,
+                    Some(turns) => turns
+                        .as_u64()
+                        .filter(|t| *t <= 3)
+                        .ok_or_else(|| format!("quarter_turns must be 0 to 3, got {turns}"))?,
+                };
+                // 0, 90, 180 or 270: exact as a float.
+                placement.insert("rotation".into(), Value::from(90.0 * turns as f64));
+            }
+        }
+        if let Some(images) = drawing.get_mut("images").and_then(Value::as_array_mut) {
+            for image in images.iter_mut().filter_map(Value::as_object_mut) {
+                image.insert("rotation".into(), Value::from(0.0));
+            }
+        }
+    }
+    Ok(set_version(data, 24))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

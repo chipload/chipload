@@ -14,7 +14,7 @@ use chipload_job::{
 use chipload_job::{ImageTrace, Placement, Units};
 use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
-use chipload_pipeline::placement::{Move as PlaceMove, factor_text};
+use chipload_pipeline::placement::Move as PlaceMove;
 
 pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
@@ -1276,8 +1276,10 @@ pub(super) enum JobRequest {
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct ImagePlace {
     pub width: f64,
+    /// The picture's lower-left corner before it is turned (the file's `x`, `y`).
     pub x: f64,
     pub y: f64,
+    pub rotation: f64,
     pub layer: String,
 }
 
@@ -1286,7 +1288,8 @@ pub(super) struct ImagePlace {
 pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
     let drawing = &edit.settings.drawing;
     let source = drawing.dxfs.iter().find(|d| d.id == id)?;
-    let size = chipload_pipeline::placement::dxf_size(&drawing.shapes, id);
+    let bbox = chipload_pipeline::placement::dxf_box(&drawing.shapes, id);
+    let size = bbox.map(|((x0, y0), (x1, y1))| (x1 - x0, y1 - y0));
     let shapes = drawing
         .shapes
         .iter()
@@ -1310,15 +1313,19 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
             ui.label("Shapes");
             ui.label(shapes.to_string());
             ui.end_row();
-            if let Some((w, h)) = size {
-                ui.label("Size");
-                ui.label(format!("{} × {} mm", len(w), len(h)));
-                ui.end_row();
-            }
         });
-    section(ui, "dxf-place", "Position and scale", "", |ui| {
-        placement_rows(ui, id, source.placement, size, &mut request);
+    let summary = size.map_or(String::new(), |(w, h)| {
+        format!("{} × {} mm", len(w), len(h))
     });
+    section(
+        ui,
+        "dxf-place",
+        "Position, rotation and scale",
+        &summary,
+        |ui| {
+            placement_rows(ui, id, source.placement, bbox, &mut request);
+        },
+    );
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         if ui
@@ -1351,6 +1358,7 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
         width: image.width,
         x: image.x,
         y: image.y,
+        rotation: image.rotation,
         layer: image.layer.clone(),
     };
     let mut draft: ImagePlace = ui
@@ -1386,29 +1394,92 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 ImageTrace::CentreLine => "centre lines",
             });
             ui.end_row();
-            ui.label("Width");
-            let response = ui.add(
-                DragValue::new(&mut draft.width)
-                    .range(0.1..=10_000.0)
-                    .speed(0.5)
-                    .suffix(" mm"),
-            );
-            finished |= response.drag_stopped() || response.lost_focus();
-            ui.end_row();
-            if let Some((w, h)) = pixels.filter(|(w, _)| *w > 0) {
-                ui.label("Height");
-                ui.label(format!(
-                    "{} mm",
-                    len(draft.width * f64::from(h) / f64::from(w))
-                ));
-                ui.end_row();
-            }
-            ui.label("Lower-left corner");
+            // The picture's height follows from its width; its box is turned with it
+            // (docs/specs/direct-placement.md §2).
+            let aspect = pixels
+                .filter(|(w, _)| *w > 0)
+                .map_or(1.0, |(w, h)| f64::from(h) / f64::from(w));
+            let turned = |d: &ImagePlace| {
+                chipload_pipeline::images::turned_box(
+                    d.x,
+                    d.y,
+                    d.width,
+                    d.width * aspect,
+                    d.rotation,
+                )
+            };
+            let ((x0, y0), _) = turned(&draft);
+            ui.label("Position")
+                .on_hover_text("The lower-left corner of the picture's box, mm");
             ui.horizontal(|ui| {
-                for (value, axis) in [(&mut draft.x, "X "), (&mut draft.y, "Y ")] {
-                    let response =
-                        ui.add(DragValue::new(value).speed(0.5).prefix(axis).suffix(" mm"));
+                let (mut cx, mut cy) = (x0, y0);
+                for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
+                    let response = ui.add(mm_field(value).prefix(axis));
                     finished |= response.drag_stopped() || response.lost_focus();
+                }
+                // Moving the box's corner moves the picture's own corner as much.
+                draft.x += cx - x0;
+                draft.y += cy - y0;
+                if reset_button(ui, (x0, y0) != (0.0, 0.0), "The box's corner at X0 Y0") {
+                    draft.x -= x0;
+                    draft.y -= y0;
+                    finished = true;
+                }
+            });
+            ui.end_row();
+            ui.label("Rotation").on_hover_text(
+                "Degrees counter-clockwise, any angle, about the picture's centre. The picture \
+                 is traced as it is, then its shapes are turned.",
+            );
+            ui.horizontal(|ui| {
+                // Turning keeps the picture's centre where it is: x, y stay.
+                let response = ui.add(
+                    DragValue::new(&mut draft.rotation)
+                        .speed(1.0)
+                        .suffix("°")
+                        .max_decimals(3),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                let mut turn = |by: f64| {
+                    draft.rotation += by;
+                    finished = true;
+                };
+                if ui
+                    .small_button("⟲ 90")
+                    .on_hover_text("90° counter-clockwise")
+                    .clicked()
+                {
+                    turn(90.0);
+                }
+                if ui
+                    .small_button("⟳ 90")
+                    .on_hover_text("90° clockwise")
+                    .clicked()
+                {
+                    turn(-90.0);
+                }
+                if reset_button(ui, draft.rotation != 0.0, "As the picture is (0°)") {
+                    draft.rotation = 0.0;
+                    finished = true;
+                }
+                draft.rotation = draft.rotation.rem_euclid(360.0);
+                if draft.rotation >= 360.0 {
+                    draft.rotation = 0.0;
+                }
+            });
+            ui.end_row();
+            ui.label("Width")
+                .on_hover_text("The picture's width before it is turned; the height follows");
+            ui.horizontal(|ui| {
+                let response = ui.add(
+                    DragValue::new(&mut draft.width)
+                        .range(0.1..=10_000.0)
+                        .speed(0.5)
+                        .suffix(" mm"),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                if pixels.is_some() {
+                    ui.weak(format!("height {} mm", len(draft.width * aspect)));
                 }
             });
             ui.end_row();
@@ -1741,158 +1812,152 @@ fn tool_body(
     remove
 }
 
-/// Margin the *Bottom left* button starts with, mm; only an input, never saved.
-const DEFAULT_PLACE_MARGIN: f64 = 10.0;
+/// Margin the *Bottom left* button leaves, mm.
+const PLACE_MARGIN: f64 = 10.0;
 
-/// Moving, turning and scaling the imported drawing (docs/specs/drawing-placement.md §5,
-/// drawing-scale.md §5). The values typed here are inputs only: nothing moves until a button
-/// is pressed, so each change is one undo step.
+/// A number field whose value is sent once the edit is finished (Enter, Tab, a click
+/// elsewhere or a drag released): the new value, if it differs from `current`. While it is
+/// edited, the typed value is kept between frames.
+fn finished_number(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    current: f64,
+    field: impl FnOnce(&mut f64) -> DragValue<'_>,
+) -> Option<f64> {
+    let mut value = ui.data(|d| d.get_temp::<f64>(id)).unwrap_or(current);
+    let response = ui.add(field(&mut value));
+    if response.has_focus() || response.dragged() {
+        ui.data_mut(|d| d.insert_temp(id, value));
+        return None;
+    }
+    ui.data_mut(|d| d.remove::<f64>(id));
+    let done = response.lost_focus() || response.drag_stopped() || response.changed();
+    (done && value != current).then_some(value)
+}
+
+/// A position field: mm, half a millimetre per pixel dragged.
+fn mm_field(value: &mut f64) -> DragValue<'_> {
+    DragValue::new(value).speed(0.5).suffix(" mm")
+}
+
+/// A small reset button after a row; true when clicked.
+fn reset_button(ui: &mut egui::Ui, enabled: bool, hover: &str) -> bool {
+    super::header::icon_button(ui, crate::icons::Icon::Undo, "Reset", enabled, false, 18.0)
+        .on_hover_text(hover)
+        .clicked()
+}
+
+/// A DXF's position, rotation and scale (docs/specs/direct-placement.md §2). Position is
+/// the lower-left corner of its shapes' box; rotation and scale are from the DXF as drawn
+/// and change about the box's centre. Each change is one undo step.
 pub(super) fn placement_rows(
     ui: &mut egui::Ui,
     dxf: u64,
     placement: Placement,
-    size: Option<(f64, f64)>,
+    bbox: Option<((f64, f64), (f64, f64))>,
     request: &mut Option<JobRequest>,
 ) {
-    ui.label("From the DXF").on_hover_text(
-        "Where the DXF's shapes are, compared with the DXF itself. Updates from the DXF \
-         keep this. Shapes drawn in Chipload don't move.",
-    );
-    ui.horizontal(|ui| {
-        let scaled = if placement.scale == 1.0 {
-            String::new()
-        } else {
-            format!("scaled ×{}, ", factor_text(placement.scale))
-        };
-        let turned = match placement.quarter_turns {
-            0 => String::new(),
-            k => format!("turned {}°, ", 90 * u32::from(k)),
-        };
-        ui.label(format!(
-            "{scaled}{turned}moved X {}  Y {} mm",
-            len(placement.dx),
-            len(placement.dy)
-        ));
-        if placement != Placement::default()
-            && ui
-                .button("Reset")
-                .on_hover_text("Back to where the DXF has it: no turn, no scale, no move.")
+    let mut place = |how: PlaceMove| *request = Some(JobRequest::Place(dxf, how));
+    let salt = |what: &str| egui::Id::new(("dxf-place", dxf, what.to_string()));
+    if let Some(((x0, y0), _)) = bbox {
+        ui.label("Position").on_hover_text(
+            "The lower-left corner of the drawing's box, mm. Shapes drawn in Chipload and \
+             other DXFs don't move.",
+        );
+        ui.horizontal(|ui| {
+            if let Some(x) = finished_number(ui, salt("x"), x0, |v| mm_field(v).prefix("X ")) {
+                place(PlaceMove::Corner(x, y0));
+            }
+            if let Some(y) = finished_number(ui, salt("y"), y0, |v| mm_field(v).prefix("Y ")) {
+                place(PlaceMove::Corner(x0, y));
+            }
+            let moved = (placement.dx, placement.dy) != (0.0, 0.0);
+            if reset_button(
+                ui,
+                moved,
+                "Back to where the DXF has it (turn and scale stay)",
+            ) {
+                place(PlaceMove::To(0.0, 0.0));
+            }
+        });
+        ui.end_row();
+        ui.label("");
+        ui.horizontal(|ui| {
+            if ui
+                .small_button("Bottom left")
+                .on_hover_text(format!(
+                    "The drawing's corner {PLACE_MARGIN} mm in from the stock's lower-left corner"
+                ))
                 .clicked()
-        {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Reset));
-        }
-    });
-    ui.end_row();
-    ui.label("  turn");
-    ui.horizontal(|ui| {
-        if ui
-            .button("⟲ 90°")
-            .on_hover_text("Counter-clockwise, about the drawing's centre.")
-            .clicked()
-        {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Turn(1)));
-        }
-        if ui
-            .button("⟳ 90°")
-            .on_hover_text("Clockwise, about the drawing's centre.")
-            .clicked()
-        {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Turn(-1)));
-        }
-    });
-    ui.end_row();
-    if let Some((width, height)) = size {
-        size_rows(ui, dxf, width, height, request);
+            {
+                place(PlaceMove::BottomLeft {
+                    margin: PLACE_MARGIN,
+                });
+            }
+            if ui
+                .small_button("Centre")
+                .on_hover_text("The drawing's centre on the stock's centre")
+                .clicked()
+            {
+                place(PlaceMove::Center);
+            }
+        });
+        ui.end_row();
     }
-    ui.label("  on the stock");
-    ui.horizontal(|ui| {
-        let id = egui::Id::new("place-margin");
-        let mut margin = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_PLACE_MARGIN));
-        if ui
-            .button("Bottom left")
-            .on_hover_text("The drawing's lower-left corner this far in from the stock's.")
-            .clicked()
-        {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::BottomLeft { margin }));
-        }
-        ui.add(mm(&mut margin).prefix("margin "));
-        ui.data_mut(|d| d.insert_temp(id, margin));
-        if ui.button("Centre").clicked() {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Center));
-        }
-    });
-    ui.end_row();
-    ui.label("  move by X Y");
-    ui.horizontal(|ui| {
-        let id = egui::Id::new("place-by");
-        let (mut dx, mut dy) = ui.data_mut(|d| *d.get_temp_mut_or(id, (0.0, 0.0)));
-        for value in [&mut dx, &mut dy] {
-            ui.add(
-                DragValue::new(value)
-                    .speed(0.1)
-                    .range(-100_000.0..=100_000.0)
-                    .suffix(" mm"),
-            );
-        }
-        ui.data_mut(|d| d.insert_temp(id, (dx, dy)));
-        if ui.button("Move").clicked() {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::By(dx, dy)));
-        }
-    });
-    ui.end_row();
-}
-
-/// Scaling the imported drawing about its centre, to a width, a height or by a factor
-/// (docs/specs/drawing-scale.md §5). The inputs start at the drawing's current size.
-fn size_rows(
-    ui: &mut egui::Ui,
-    dxf: u64,
-    width: f64,
-    height: f64,
-    request: &mut Option<JobRequest>,
-) {
-    // Keyed by the current size, so the inputs follow the drawing after each change.
-    let key = (width.to_bits(), height.to_bits());
-    let range = 0.001..=100_000.0;
-    ui.label("  size W H").on_hover_text(
-        "Scale about the drawing's centre to this width or height; the other follows. \
-         Tool sizes, depths and tabs don't scale.",
+    ui.label("Rotation").on_hover_text(
+        "Degrees counter-clockwise from the DXF as drawn, any angle, about the drawing's centre",
     );
     ui.horizontal(|ui| {
-        let id = egui::Id::new(("place-size", key));
-        let (mut w, mut h) = ui.data_mut(|d| *d.get_temp_mut_or(id, (width, height)));
-        ui.add(
-            DragValue::new(&mut w)
-                .speed(0.1)
-                .range(range.clone())
-                .suffix(" mm"),
-        );
-        if ui.button("Set width").clicked() {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Width(w)));
+        let current = placement.rotation;
+        if let Some(degrees) = finished_number(ui, salt("rotation"), current, |v| {
+            DragValue::new(v).speed(1.0).suffix("°").max_decimals(3)
+        }) {
+            place(PlaceMove::Rotate(degrees - current));
         }
-        ui.add(DragValue::new(&mut h).speed(0.1).range(range).suffix(" mm"));
-        if ui.button("Set height").clicked() {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Height(h)));
+        if ui
+            .small_button("⟲ 90")
+            .on_hover_text("90° counter-clockwise")
+            .clicked()
+        {
+            place(PlaceMove::Rotate(90.0));
         }
-        ui.data_mut(|d| d.insert_temp(id, (w, h)));
+        if ui
+            .small_button("⟳ 90")
+            .on_hover_text("90° clockwise")
+            .clicked()
+        {
+            place(PlaceMove::Rotate(-90.0));
+        }
+        if reset_button(ui, current != 0.0, "Back to the DXF's own angle (0°)") {
+            place(PlaceMove::Rotate(-current));
+        }
     });
     ui.end_row();
-    ui.label("  scale by");
+    ui.label("Scale").on_hover_text(
+        "From the DXF as drawn, about the drawing's centre. Tool sizes, depths and tabs \
+         don't scale.",
+    );
     ui.horizontal(|ui| {
-        let id = egui::Id::new(("place-factor", key));
-        let mut factor = ui.data_mut(|d| *d.get_temp_mut_or(id, 1.0));
-        ui.add(
-            DragValue::new(&mut factor)
+        let current = placement.scale;
+        if let Some(scale) = finished_number(ui, salt("scale"), current, |v| {
+            DragValue::new(v)
                 .speed(0.01)
-                .range(0.001..=1000.0)
-                .prefix("× "),
-        );
-        ui.data_mut(|d| d.insert_temp(id, factor));
-        if ui.button("Scale").clicked() {
-            *request = Some(JobRequest::Place(dxf, PlaceMove::Scale(factor)));
+                .range(Placement::MIN_SCALE..=Placement::MAX_SCALE)
+                .max_decimals(6)
+                .prefix("× ")
+        }) {
+            place(PlaceMove::Scale(scale / current));
+        }
+        if reset_button(ui, current != 1.0, "Back to the DXF's own size (× 1)") {
+            place(PlaceMove::Scale(1.0 / current));
         }
     });
     ui.end_row();
+    if let Some(((x0, y0), (x1, y1))) = bbox {
+        ui.label("Size");
+        ui.label(format!("{} × {} mm", len(x1 - x0), len(y1 - y0)));
+        ui.end_row();
+    }
 }
 
 /// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the

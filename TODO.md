@@ -97,6 +97,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Direct placement** (2026-10-14, docs/specs/direct-placement.md, schema 24): a DXF's
+  properties are Position (its box's corner), Rotation (any angle) and Scale, each with a
+  reset; pictures get Position, Rotation and Width, drawn turned on the canvas;
+  `place --rotate` any angle, `place --at`, `image set --rotate`.
 - **Use selection with a picture** (fix, 2026-10-14): traced contours picked on the canvas
   became shapes by id (refused) in *Use selection* and *Copy as selector*; now the picture,
   minus what isn't picked, as for a new operation.

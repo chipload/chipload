@@ -159,6 +159,7 @@ pub fn add_image(job: &Job, new: NewImage) -> Result<(Job, ImageReport), Pipelin
         x: new.x,
         y: new.y,
         width: new.width,
+        rotation: 0.0,
         threshold: new.threshold,
         invert: new.invert,
         blur: new.blur,
@@ -201,7 +202,7 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
                 dxf_handle: None,
                 dxf_type: None,
                 closed: path.closed,
-                segments: segments(&path.pieces, image.x, image.y),
+                segments: placed(&path.pieces, image, trace.height),
                 image: Some(id),
                 dxf: None,
             },
@@ -535,6 +536,42 @@ fn drawn(pieces: &[Primitive]) -> Vec<Point> {
         points.extend_from_slice(&along[skip.min(along.len())..]);
     }
     points
+}
+
+/// Traced pieces where the picture is: turned about its centre by its rotation, then
+/// moved to its corner (docs/specs/direct-placement.md §3). Unturned, only moved, as
+/// before rotations.
+fn placed(pieces: &[Primitive], image: &Image, height: f64) -> Vec<PathSegment> {
+    if image.rotation == 0.0 {
+        return segments(pieces, image.x, image.y);
+    }
+    let (cx, cy) = (image.width / 2.0, height / 2.0);
+    segments(pieces, -cx, -cy)
+        .iter()
+        .map(|s| {
+            s.rotated(image.rotation)
+                .translated(image.x + cx, image.y + cy)
+        })
+        .collect()
+}
+
+/// The box round a picture of `width` × `height` mm with its lower-left corner at (x, y),
+/// turned by `rotation` degrees about its centre: what the canvas shows and *Position*
+/// edits (docs/specs/direct-placement.md §2).
+pub fn turned_box(x: f64, y: f64, width: f64, height: f64, rotation: f64) -> (Point, Point) {
+    let (cx, cy) = (x + width / 2.0, y + height / 2.0);
+    let corners = [
+        [-width / 2.0, -height / 2.0],
+        [width / 2.0, -height / 2.0],
+        [width / 2.0, height / 2.0],
+        [-width / 2.0, height / 2.0],
+    ]
+    .map(|p| chipload_job::rotated(p, rotation));
+    let xs = corners.map(|p| p[0]);
+    let ys = corners.map(|p| p[1]);
+    let min = |v: [f64; 4]| v.into_iter().fold(f64::INFINITY, f64::min);
+    let max = |v: [f64; 4]| v.into_iter().fold(f64::NEG_INFINITY, f64::max);
+    ((cx + min(xs), cy + min(ys)), (cx + max(xs), cy + max(ys)))
 }
 
 /// Lines and arcs moved by (x, y), as path segments.
