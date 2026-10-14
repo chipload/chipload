@@ -379,44 +379,6 @@ impl ChiploadApp {
 
     pub(super) fn status_bar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            let snapped = self.snapped.map(|(p, hit)| {
-                let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
-                (p, name)
-            });
-            if self.generating() {
-                ui.spinner();
-                ui.label("Generating…");
-            } else if let Some(text) =
-                self.measure_status(snapped.as_ref().map_or("", |(_, name)| name.as_str()))
-            {
-                ui.label(text);
-            } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
-                let step = grid_step(self.view.scale);
-                ui.label(format!("{}{name}", sketch.status(*at, step)));
-            } else if let (Some(_), Some((at, name))) = (&self.handle_drag, &snapped) {
-                ui.label(format!(
-                    "Dragging to ({:.3}, {:.3}){name} (Alt: no snapping; Shift on a middle \
-                     bends the segment)",
-                    at.0, at.1
-                ));
-            } else if let Some((text, until)) = &self.status {
-                if Instant::now() < *until {
-                    ui.label(text);
-                    ui.ctx().request_repaint_after(*until - Instant::now());
-                } else {
-                    self.status = None;
-                }
-            } else if self.polyline_selected() {
-                ui.label(RichText::new(crate::shape_form::POLYLINE_HELP).weak());
-            } else if self.edit.is_some() {
-                ui.label(
-                    RichText::new(
-                        "Click a contour to select it · Ctrl+click adds or removes · \
-                         right-click selects its layer · Esc clears",
-                    )
-                    .weak(),
-                );
-            }
             // Pieces in all, from every part that is cut (docs/specs/parts.md §8).
             let copies = self
                 .edit
@@ -453,13 +415,23 @@ impl ChiploadApp {
                 }
             });
             let grid = (self.show_grid && self.edit.is_some()).then(|| grid_step(self.view.scale));
-            // With two parts or more, the one new operations go into (docs/specs/parts.md §8).
+            // With two parts or more, the one new operations go into (docs/specs/parts.md §8),
+            // unless the cycle time already names it.
             let active = self.edit.as_ref().and_then(|e| {
                 let parts = &e.settings.parts;
                 let id = e.settings.active_part_id()?;
-                (parts.len() > 1)
+                (parts.len() > 1 && !(self.result.is_some() && self.result_part == Some(id)))
                     .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
             });
+            let several = self
+                .edit
+                .as_ref()
+                .is_some_and(|e| e.settings.parts.len() > 1);
+            let zero = self
+                .edit
+                .as_ref()
+                .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+            let cursor = self.cursor;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if let Some(name) = active {
                     ui.weak(format!("active part: {name}")).on_hover_text(
@@ -487,10 +459,6 @@ impl ChiploadApp {
                 }
                 if let Some(n) = copies {
                     // With parts, what comes off the sheet (docs/specs/parts.md §8).
-                    let several = self
-                        .edit
-                        .as_ref()
-                        .is_some_and(|e| e.settings.parts.len() > 1);
                     ui.label(if several {
                         format!("{n} pieces")
                     } else {
@@ -498,12 +466,9 @@ impl ChiploadApp {
                     });
                     ui.separator();
                 }
-                if let Some((x, y)) = self.cursor {
+                if let Some((x, y)) = cursor {
                     // Drawing coordinates, and program coordinates when they differ.
-                    let (zx, zy) = self
-                        .edit
-                        .as_ref()
-                        .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+                    let (zx, zy) = zero;
                     if (zx, zy) == (0.0, 0.0) {
                         ui.monospace(format!("X {x:.3}  Y {y:.3} mm"));
                     } else {
@@ -513,9 +478,58 @@ impl ChiploadApp {
                             y - zy
                         ));
                     }
+                    ui.separator();
                 }
+                // What is left of the bar: the hint or message, cut short with "…" rather
+                // than run under the facts on the right.
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                    self.status_message(ui);
+                });
             });
         });
+    }
+
+    /// The status bar's left side: what is going on, a message, or a hint.
+    fn status_message(&mut self, ui: &mut egui::Ui) {
+        let snapped = self.snapped.map(|(p, hit)| {
+            let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
+            (p, name)
+        });
+        if self.generating() {
+            ui.spinner();
+            ui.label("Generating…");
+        } else if let Some(text) =
+            self.measure_status(snapped.as_ref().map_or("", |(_, name)| name.as_str()))
+        {
+            ui.label(text);
+        } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
+            let step = grid_step(self.view.scale);
+            ui.label(format!("{}{name}", sketch.status(*at, step)));
+        } else if let (Some(_), Some((at, name))) = (&self.handle_drag, &snapped) {
+            ui.label(format!(
+                "Dragging to ({:.3}, {:.3}){name} (Alt: no snapping; Shift on a middle \
+                 bends the segment)",
+                at.0, at.1
+            ));
+        } else if let Some((text, until)) = &self.status {
+            if Instant::now() < *until {
+                ui.label(text);
+                ui.ctx().request_repaint_after(*until - Instant::now());
+            } else {
+                self.status = None;
+            }
+        } else if self.polyline_selected() {
+            ui.label(RichText::new(crate::shape_form::POLYLINE_HELP).weak());
+        } else if self.edit.is_some() {
+            ui.label(
+                RichText::new(
+                    "Click a contour to select it · Ctrl+click adds or removes · \
+                     right-click selects its layer · Esc clears",
+                )
+                .weak(),
+            );
+        }
     }
 }
 
