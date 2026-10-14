@@ -3264,6 +3264,56 @@ fn clicking_a_traced_contour_selects_the_whole_picture() {
     );
 }
 
+#[test]
+fn use_selection_with_a_picture_selects_the_picture() {
+    // User report 2026-10-14: "I still can't create a V-carve: select an image, click Use
+    // selection…". Use selection set the traced shapes by id, which is refused.
+    let mut app = two_parts();
+    let traced: std::collections::BTreeSet<u64> = app
+        .edit
+        .as_ref()
+        .unwrap()
+        .settings
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.image() == Some(1))
+        .map(|s| s.id)
+        .collect();
+    assert!(!traced.is_empty());
+    // A V-carve of something else first, then its geometry from the picture: chosen in the
+    // Browser, and as the traced contours picked on the canvas.
+    app.select_group("dxf:1");
+    let index = app.add_operation(OpKind::Vcarve).unwrap();
+    for pick in ["browser", "canvas"] {
+        match pick {
+            "browser" => app.select_group("image:1"),
+            _ => app.selection = CanvasSelection::Shapes(traced.clone()),
+        }
+        app.focus = Focus::Op(index);
+        app.use_selection();
+        let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
+        assert_eq!(select.image, Some(1), "{pick}: {select:?}");
+        assert!(
+            select.shapes.as_ref().is_none_or(|s| s.is_empty()),
+            "{pick}"
+        );
+        assert!(
+            !app.problems
+                .iter()
+                .any(|p| problems::plain(p).contains("traced from an image")),
+            "{pick}: {:?}",
+            app.problems
+        );
+        // Copy as selector gives the same.
+        assert_eq!(
+            app.selector_json().as_deref(),
+            Some("{\"image\": 1}"),
+            "{pick}"
+        );
+    }
+}
+
 // -- leaving shapes out of a whole DXF or picture (docs/specs/leave-out-shapes.md)
 
 #[test]

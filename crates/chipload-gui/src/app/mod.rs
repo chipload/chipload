@@ -417,14 +417,29 @@ fn operation_index(message: &str) -> Option<usize> {
 }
 
 fn selector_text(selector: &Selector) -> String {
+    let list = |ids: &[u64]| {
+        let ids: Vec<String> = ids.iter().map(u64::to_string).collect();
+        format!("[{}]", ids.join(", "))
+    };
+    let mut fields = Vec::new();
     if let Some(layer) = &selector.layer {
-        return format!("{{\"layer\": \"{layer}\"}}");
+        // A JSON string, quotes and backslashes escaped.
+        let text = serde_json::to_string(layer).unwrap_or_default();
+        fields.push(format!("\"layer\": {text}"));
     }
     if let Some(shapes) = selector.shapes.as_ref().filter(|s| !s.is_empty()) {
-        let ids: Vec<String> = shapes.iter().map(u64::to_string).collect();
-        return format!("{{\"shapes\": [{}]}}", ids.join(", "));
+        fields.push(format!("\"shapes\": {}", list(shapes)));
     }
-    "{}".into()
+    if let Some(dxf) = selector.dxf {
+        fields.push(format!("\"dxf\": {dxf}"));
+    }
+    if let Some(image) = selector.image {
+        fields.push(format!("\"image\": {image}"));
+    }
+    if let Some(exclude) = selector.exclude.as_ref().filter(|s| !s.is_empty()) {
+        fields.push(format!("\"exclude\": {}", list(exclude)));
+    }
+    format!("{{{}}}", fields.join(", "))
 }
 
 fn is_dxf(path: &Path) -> bool {
@@ -753,16 +768,20 @@ impl ChiploadApp {
         }
     }
 
+    /// The canvas selection as an operation takes it: shapes traced from one image become
+    /// the image, minus what isn't selected, since their ids change each time it is traced
+    /// again (docs/specs/image-trace.md §4, leave-out-shapes.md §5). Used by a new
+    /// operation, *Use selection* and *Copy as selector* alike.
+    pub(super) fn op_selection(&self) -> CanvasSelection {
+        self.traced_selection()
+            .unwrap_or_else(|| self.selection.clone())
+    }
+
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.next_tool_id();
         let cutting = self.tool_cutting(tool);
-        // Shapes traced from one image are selected as the image, minus what isn't selected:
-        // their ids change each time it is traced again (docs/specs/image-trace.md §4,
-        // leave-out-shapes.md §5).
-        let selection = self
-            .traced_selection()
-            .unwrap_or_else(|| self.selection.clone());
+        let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
         self.focus = Focus::Op(index);
@@ -866,8 +885,9 @@ impl ChiploadApp {
 
     /// Give the selected operation the current canvas selection as its geometry.
     pub fn use_selection(&mut self) {
+        let selection = self.op_selection();
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {
-            edit.set_geometry(i, &self.selection, &self.contours);
+            edit.set_geometry(i, &selection, &self.contours);
             self.error_ops.remove(&i);
             self.commit();
         }
@@ -1215,8 +1235,11 @@ impl ChiploadApp {
 
     /// A job selector for the canvas selection, e.g. {"shapes": [3, 4]}.
     pub fn selector_json(&self) -> Option<String> {
-        let selector = self.selection.selector(&self.contours, false);
-        let empty = selector.layer.is_none() && selector.shapes.as_ref().is_none_or(Vec::is_empty);
+        let selector = self.op_selection().selector(&self.contours, false);
+        let empty = selector.layer.is_none()
+            && selector.dxf.is_none()
+            && selector.image.is_none()
+            && selector.shapes.as_ref().is_none_or(Vec::is_empty);
         (!empty).then(|| selector_text(&selector))
     }
 

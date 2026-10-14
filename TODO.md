@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Use selection with a picture** (fix, 2026-10-14): traced contours picked on the canvas
+  became shapes by id (refused) in *Use selection* and *Copy as selector*; now the picture,
+  minus what isn't picked, as for a new operation.
 - **This computer** (2026-10-14, docs/specs/this-computer.md): the Browser's top root holds
   Preferences (setup sheet, update by itself, theme), Tools, Machines and the
   post-processors with what each writes; `chipload post show`.
