@@ -97,6 +97,15 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Review fixes** (2026-10-15, from the user-perspective review of 2026-10-14): one name
+  for the stock simulation and automatic updates; one centre-cutting reminder per tool;
+  a Through button for the end depth and the V-carve's depth called End depth; Export
+  says it writes every part; `shape remove`, `place --image`, the --op numbering said
+  plainly; default feeds from the tool diameter; the profile's entry as a combo; the
+  clearance field shown as Oversize; copies and parts overlap by their tools' paths;
+  a rapid to 1 mm above the stock before every plunge (docs/specs/approach.md, every
+  G-code golden changed by those `G0 Z1.000` lines). Not pushed.
+
 - **Refactoring pass** (2026-10-14, 13 commits, no change to any G-code or golden): typed
   problems (`Problem::at`, no re-parsing of "path: message"), notes and toolpath errors
   that carry their operation (`Note`, `ToolpathError::Operation`, `Overlap`), one owner
