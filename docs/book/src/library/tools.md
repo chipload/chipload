@@ -42,7 +42,10 @@ The project tool's values ([Tools and tool changes](../concepts/tools.md)), plus
 - **Tool number:** the id it gets in a project, when that number is free there.
 - **Flutes:** used for the [chip load](../checking/time.md#chip-load).
 - **Cutting values** (optional): feed, plunge feed, step down and stepover. A new operation
-  made with this tool starts with them. They never change an existing operation.
+  made with this tool starts with them. They never change an existing operation. Without
+  them, a new operation copies the operation above it, or starts from the tool's
+  diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
+  step down. Check the [chip load](../checking/time.md#chip-load) before cutting.
 
 ## On the command line
 

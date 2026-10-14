@@ -16,8 +16,28 @@ use crate::view::Kind;
 
 /// Defaults for a new operation when there's none above it to copy from (decision
 /// 2026-10-09): a shallow, slow test cut.
+/// The feeds without a tool to go by (no tool chosen yet).
 pub const DEFAULT_FEED: f64 = 500.0;
 pub const DEFAULT_PLUNGE_FEED: f64 = 150.0;
+
+/// The feed a new operation starts with when the tool has no cutting values in the library
+/// and there is no operation above to copy from: 250 mm/min per mm of diameter (6 mm:
+/// 1500), within 300 to 3000, to the nearest 10. A starting point for wood and plastics
+/// at a hobby spindle's speed, to be checked against the chip load.
+pub fn default_feed(diameter: f64) -> f64 {
+    if diameter <= 0.0 || diameter.is_nan() {
+        return DEFAULT_FEED;
+    }
+    ((diameter * 250.0).clamp(300.0, 3000.0) / 10.0).round() * 10.0
+}
+
+/// A third of [`default_feed`], to the nearest 10.
+pub fn default_plunge_feed(diameter: f64) -> f64 {
+    if diameter <= 0.0 || diameter.is_nan() {
+        return DEFAULT_PLUNGE_FEED;
+    }
+    (default_feed(diameter) / 30.0).round() * 10.0
+}
 pub const DEFAULT_DEPTH: f64 = 1.0;
 pub const DEFAULT_STEP_DOWN: f64 = 1.0;
 pub const DEFAULT_STEPOVER: f64 = 0.4;
@@ -272,7 +292,12 @@ impl EditJob {
 
     /// Feeds, step-down and stepover from the nearest operation above `index`, else the
     /// tool's cutting values from the library, else defaults.
-    fn inherited(&self, index: usize, cutting: Option<&Cutting>) -> (f64, f64, f64, f64) {
+    fn inherited(
+        &self,
+        index: usize,
+        cutting: Option<&Cutting>,
+        diameter: f64,
+    ) -> (f64, f64, f64, f64) {
         let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
             Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
@@ -302,8 +327,8 @@ impl EditJob {
                 Some(c) => (c.step_down, c.feed, c.plunge_feed, c.stepover),
                 None => (
                     DEFAULT_STEP_DOWN,
-                    DEFAULT_FEED,
-                    DEFAULT_PLUNGE_FEED,
+                    default_feed(diameter),
+                    default_plunge_feed(diameter),
                     DEFAULT_STEPOVER,
                 ),
             },
@@ -333,7 +358,10 @@ impl EditJob {
         // Into the active part, after its operations (docs/specs/parts.md §8).
         let part = self.settings.active_part_id().unwrap_or(1);
         let index = self.insert_index(part);
-        let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting);
+        let tool = self.tool_for(kind);
+        let chosen = self.settings.tool(tool);
+        let diameter = chosen.map_or(0.0, |t| t.diameter);
+        let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting, diameter);
         let number = self
             .ops
             .iter()
@@ -350,13 +378,10 @@ impl EditJob {
             .count()
             + 1;
         let select = selection.selector(contours, kind == OpKind::Path);
-        let tool = self.tool_for(kind);
-        let chosen = self.settings.tool(tool);
         // A tool marked not centre-cutting can't plunge: new profiles ramp in
         // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
         // (docs/specs/helix-and-leads.md, decision 6).
         let plunges = chosen.and_then(|t| t.center_cutting) != Some(false);
-        let diameter = chosen.map_or(0.0, |t| t.diameter);
         let entry = match (plunges, kind) {
             (true, _) => Entry::Plunge {},
             (false, OpKind::Profile) => Entry::Ramp {
@@ -783,10 +808,17 @@ mod tests {
         let Operation::Profile(p) = &mut job.ops[first].op else {
             panic!()
         };
+        // The 6 mm tool: 250 mm/min per mm, a third of it to plunge.
         assert_eq!(
             (p.end_depth, p.step_down, p.feed, p.plunge_feed),
-            (1.0, 1.0, 500.0, 150.0)
+            (1.0, 1.0, 1500.0, 500.0)
         );
+        assert_eq!(
+            (default_feed(3.0), default_plunge_feed(3.0)),
+            (750.0, 250.0)
+        );
+        assert_eq!((default_feed(20.0), default_feed(0.5)), (3000.0, 300.0));
+        assert_eq!(default_feed(0.0), DEFAULT_FEED);
         assert_eq!(p.name, "Profile 1");
         p.feed = 1200.0;
         p.step_down = 3.0;

@@ -318,8 +318,8 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         let mut set = entry.cutting.is_some();
         if ui.checkbox(&mut set, "").changed() {
             entry.cutting = set.then_some(Cutting {
-                feed: crate::editor::DEFAULT_FEED,
-                plunge_feed: crate::editor::DEFAULT_PLUNGE_FEED,
+                feed: crate::editor::default_feed(entry.diameter),
+                plunge_feed: crate::editor::default_plunge_feed(entry.diameter),
                 step_down: crate::editor::DEFAULT_STEP_DOWN,
                 stepover: crate::editor::DEFAULT_STEPOVER,
             });
