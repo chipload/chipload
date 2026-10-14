@@ -7,7 +7,7 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
 use chipload_core::text::mm;
 use chipload_job::{
-    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, Part,
+    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, Operation, Part,
     PathOp, PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
 };
 
@@ -34,8 +34,8 @@ use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
     pub program: Program,
-    /// Warnings for the user.
-    pub notes: Vec<String>,
+    /// Warnings for the user, each with the operation it is about.
+    pub notes: Vec<Note>,
     /// Tool-path stretch of every tab, for display.
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece in cut order (rings and links), for display and conformance tests.
@@ -196,7 +196,7 @@ pub fn plan_job_cancellable(
         let tool = op_tool(job, &job.operations[*index])?;
         if !started.contains(index) {
             started.push(*index);
-            notes.extend(selection.notes.iter().cloned());
+            notes.extend(selection.notes.iter().map(|n| Note::at(*index, n.clone())));
         }
         let op = &job.operations[*index];
         let part = job.part_of(op);
@@ -304,7 +304,7 @@ pub fn plan_job_cancellable(
         for note in planned.notes {
             let key = (*index, note);
             if !seen.contains(&key) {
-                notes.push(key.1.clone());
+                notes.push(Note::at(*index, key.1.clone()));
                 seen.push(key);
             }
         }
@@ -924,14 +924,16 @@ fn plan_profile_op(
     };
     if let Some(rough) = &rough {
         out.arcs.extend(rough.arcs.clone());
-        // The notes on start points are the wall's (above); the roughing may add a narrow
-        // part the wall doesn't have.
+        // The roughing may add a narrow part the wall doesn't have; its notes on start
+        // points say the same as the wall's.
         for note in &rough.notes {
-            if !note.contains("start point") && !out.notes.contains(note) {
+            if !out.notes.contains(note) {
                 out.notes.push(note.clone());
             }
         }
     }
+    // The notes on start points come after the geometry's, as before.
+    out.notes.extend(plan.start_notes);
     let end_z = ctx.pass_z.last().copied().unwrap_or(ctx.top_z);
     // With a skin the roughing stops `thickness` above the end depth.
     let rough_z: Vec<f64> = match op.skin {
@@ -1349,7 +1351,7 @@ pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathErr
 
 /// Generation-time rules from the specs, each operation against its own tool. Returns
 /// warnings.
-pub fn validate_job(job: &Job) -> Result<Vec<String>, ToolpathError> {
+pub fn validate_job(job: &Job) -> Result<Vec<Note>, ToolpathError> {
     let (problems, notes) = check_job(job);
     match problems.into_iter().next() {
         Some(first) => Err(job_error(first.text)),
@@ -1376,7 +1378,7 @@ fn labelled(path: String, prefix: &str, text: String) -> Problem {
 
 /// The problems, in the order the checks were always made (so the first is the error
 /// `validate_job` always gave), and the notes of a job without problems.
-fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
+fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     let mut problems = Vec::new();
     if job.operations.is_empty() {
         problems.push(Problem::whole("operations", "Job has no operations"));
@@ -1484,8 +1486,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
                 ),
             ));
         } else if below > DEPTH_TOL_MM {
-            notes.push(format!(
-                "{label}: cuts {below:.3} mm below the stock (into the spoilboard)"
+            notes.push(Note::at(
+                index,
+                format!("{label}: cuts {below:.3} mm below the stock (into the spoilboard)"),
             ));
         }
         if op.clearance() >= tool.diameter / 2.0 {
@@ -1520,7 +1523,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         }) = op
         {
             match rest_check(job, index, rest.after_tool, tool, &label) {
-                Ok(more) => notes.extend(more),
+                Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
                 Err(text) => problems.push(labelled(at("rest"), &label, text)),
             }
         }
@@ -1630,7 +1633,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
             }),
         };
         match tool_notes {
-            Ok(more) => notes.extend(more),
+            Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
             Err((path, prefix, err)) => problems.push(labelled(path, &prefix, err.to_string())),
         }
     }
@@ -1715,7 +1718,7 @@ fn tool_groups_among(job: &Job, keep: impl Fn(&Operation) -> bool) -> Vec<(i64, 
 
 /// A note for each tool that comes back after another one: putting its operations next to
 /// each other saves a tool change.
-fn tool_group_notes(job: &Job) -> Vec<String> {
+fn tool_group_notes(job: &Job) -> Vec<Note> {
     // Within a part only: parts are cut one after the other, so a tool coming back in the
     // next part is expected (docs/specs/parts.md §3).
     let mut notes = Vec::new();
@@ -1727,7 +1730,7 @@ fn tool_group_notes(job: &Job) -> Vec<String> {
 }
 
 /// The notes for tools used in more than one of `groups`.
-fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<String> {
+fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<Note> {
     let mut tools: Vec<i64> = groups.iter().map(|(tool, _)| *tool).collect();
     tools.sort_unstable();
     tools.dedup();
@@ -1745,12 +1748,12 @@ fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<String> {
             .iter()
             .flat_map(|ops| ops.iter().map(|i| (i + 1).to_string()))
             .collect();
-        notes.push(format!(
+        notes.push(Note::job(format!(
             "Tool {tool} is used in {} groups (operations {}); moving them next to each other \
              saves a tool change",
             used.len(),
             numbers.join(", ")
-        ));
+        )));
     }
     notes
 }

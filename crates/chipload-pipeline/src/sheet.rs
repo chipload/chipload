@@ -613,7 +613,7 @@ fn watch_out(html: &mut String, result: &RunResult) {
     if let Some(note) = &result.post.note {
         items.push(format!("Post {}: {note}", result.post.name));
     }
-    items.extend(result.notes.iter().cloned());
+    items.extend(result.notes.iter().map(|n| n.text.clone()));
     items.extend(
         result
             .check_warnings

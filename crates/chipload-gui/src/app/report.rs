@@ -79,6 +79,11 @@ impl Report {
         self.lines.push(ReportLine { tone, text, op });
     }
 
+    /// A line about operation `op` (an index), or about the project with None.
+    pub fn push_at(&mut self, tone: Tone, text: String, op: Option<usize>) {
+        self.lines.push(ReportLine { tone, text, op });
+    }
+
     /// The lines' text, in order.
     #[cfg(test)]
     pub fn iter(&self) -> impl Iterator<Item = &String> {

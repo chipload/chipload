@@ -284,7 +284,12 @@ fn a_notch_narrower_than_the_tool_is_skipped_with_a_note() {
         &[notched(5.0)],
     );
     assert!(tips(&plan.program.moves).is_empty());
-    let notes = plan.notes.join("\n");
+    let notes = plan
+        .notes
+        .iter()
+        .map(|n| n.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(
         notes.contains("corner at (67.500, 70.000): the tool can't reach into it; no dogbone"),
         "{notes}"

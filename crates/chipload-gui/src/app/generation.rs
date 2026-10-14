@@ -268,10 +268,10 @@ impl ChiploadApp {
         );
         let several = result.files.len() > 1;
         for line in chipload_pipeline::estimate::estimate_lines(job, &result.estimate, several) {
-            report.push(Tone::Info, line);
+            report.push_at(Tone::Info, line.text, line.operation);
         }
         for note in &result.notes {
-            report.push(Tone::Warning, note.clone());
+            report.push_at(Tone::Warning, note.text.clone(), note.operation);
         }
         for warning in &result.check_warnings {
             report.push(Tone::Warning, format!("Check: {}", warning.message));

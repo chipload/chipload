@@ -3,7 +3,7 @@
 //! moves at their feed, rapids at the rapid rate, spindle waits at every spindle start.
 //! No acceleration: a real machine takes longer.
 
-use chipload_job::Job;
+use chipload_job::{Job, Note};
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::{OpSpan, ToolGroup};
 
@@ -138,19 +138,19 @@ pub fn duration_text(seconds: f64) -> String {
 
 /// The report's lines: the total and its parts, each operation, each file of a job
 /// written one file per tool, and what the estimate leaves out.
-pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<String> {
+pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<Note> {
     let changes = match estimate.tool_changes {
         0 => String::new(),
         1 => ", plus 1 tool change".into(),
         n => format!(", plus {n} tool changes"),
     };
-    let mut lines = vec![format!(
+    let mut lines = vec![Note::job(format!(
         "Estimated time: {} (cutting {}, rapids {}, spindle {}){changes}",
         duration_text(estimate.total),
         duration_text(estimate.cutting),
         duration_text(estimate.rapid),
         duration_text(estimate.spindle)
-    )];
+    ))];
     // With two parts or more, each part's time over its operations' (docs/specs/parts.md
     // §6); one part reads as before parts.
     let several_parts = job.parts.len() > 1;
@@ -173,21 +173,28 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                     .filter(|(i, _)| job.operations.get(*i).is_some_and(|o| o.part() == part.id))
                     .map(|(_, s)| s)
                     .sum();
-                lines.push(format!(
+                lines.push(Note::job(format!(
                     "  Part {} ({}): {}",
                     number + 1,
                     part.name,
                     duration_text(total)
-                ));
+                )));
             }
         }
         let label = op.label(index);
         let indent = if several_parts { "    " } else { "  " };
-        lines.push(format!("{indent}{label}: {}", duration_text(seconds)));
+        lines.push(Note::at(
+            index,
+            format!("{indent}{label}: {}", duration_text(seconds)),
+        ));
     }
     if several_files {
         for (i, seconds) in estimate.groups.iter().enumerate() {
-            lines.push(format!("  File {}: {}", i + 1, duration_text(*seconds)));
+            lines.push(Note::job(format!(
+                "  File {}: {}",
+                i + 1,
+                duration_text(*seconds)
+            )));
         }
     }
     let rapids = if estimate.rapid_assumed {
@@ -201,10 +208,10 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
             estimate.rapid_rate
         )
     };
-    lines.push(format!(
+    lines.push(Note::job(format!(
         "  At the programmed feeds ({rapids}); acceleration and corners make the real time \
          longer."
-    ));
+    )));
     lines
 }
 

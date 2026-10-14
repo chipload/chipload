@@ -8,7 +8,7 @@ use std::path::Path;
 
 use chipload_dxf::shapes_from_dxf;
 use chipload_dxf::shapes_from_dxf_scaled;
-use chipload_job::{Geometry, Job, Placement, Shape, Units};
+use chipload_job::{Geometry, Job, Note, Placement, Shape, Units};
 
 use crate::{PipelineError, UpdateReport, ids_text, op_label, placement, stock_fit_note};
 
@@ -61,7 +61,9 @@ pub fn add_named_dxf(
     out.drawing.dxfs.push(imported.source);
     report.lines.extend(pin_layers(&mut out, id));
     report.lines.extend(stock_fit_note(&out));
-    report.lines.extend(layer_clash_notes(&out));
+    report
+        .lines
+        .extend(layer_clash_notes(&out).into_iter().map(|n| n.text));
     Ok((out, report))
 }
 
@@ -177,7 +179,7 @@ pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineErro
 /// A notice for each operation that selects a layer (with no DXF or image named) that shapes
 /// from more than one source have: adding a part can then change what it cuts
 /// (docs/specs/drawing-sources.md §2).
-pub fn layer_clash_notes(job: &Job) -> Vec<String> {
+pub fn layer_clash_notes(job: &Job) -> Vec<Note> {
     let mut notes = Vec::new();
     for (i, op) in job.operations.iter().enumerate() {
         let select = op.select();
@@ -195,11 +197,14 @@ pub fn layer_clash_notes(job: &Job) -> Vec<String> {
             sources.insert(source_name(job, shape));
         }
         if sources.len() > 1 {
-            notes.push(format!(
-                "{}: layer \"{layer}\" is in {}; it cuts all of them. Limit it to one \
-                 (select the layer under that DXF in the Browser)",
-                op_label(i, op),
-                sources.into_iter().collect::<Vec<_>>().join(" and ")
+            notes.push(Note::at(
+                i,
+                format!(
+                    "{}: layer \"{layer}\" is in {}; it cuts all of them. Limit it to one \
+                     (select the layer under that DXF in the Browser)",
+                    op_label(i, op),
+                    sources.into_iter().collect::<Vec<_>>().join(" and ")
+                ),
             ));
         }
     }
@@ -355,7 +360,9 @@ pub fn update_dxf(
         ));
     }
     report.lines.extend(stock_fit_note(&out));
-    report.lines.extend(layer_clash_notes(&out));
+    report
+        .lines
+        .extend(layer_clash_notes(&out).into_iter().map(|n| n.text));
     for (i, op) in out.operations.iter().enumerate() {
         let label = op_label(i, op);
         let select = op.select();

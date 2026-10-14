@@ -87,7 +87,7 @@ report appears by itself, but it still points at a path, not at the field.
 ## 7. As built (2026-10-12)
 
 - `chipload_job::Problem` (`path`, `short`, `text`; `operation()`, `field()`);
-  `Job::problems` (the value rules, from their "path: message" wording);
+  `Job::validate` (the value rules, each built at its field with `Problem::at`);
   `chipload_toolpath::job_problems` collects every pre-planning rule, and `validate_job`
   returns the first (the same error as before: no CLI, pipeline or golden change);
   `chipload_pipeline::job_problems` gives both.

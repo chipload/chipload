@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use chipload_job::{Job, load_job};
+use chipload_job::{Job, Note, load_job};
 use chipload_pipeline::dxfs::{add_dxf, remove_dxf, update_dxf};
 use chipload_pipeline::placement::{Move, place_drawing, place_dxf};
 use chipload_pipeline::{run_job, update_drawing};
@@ -82,7 +82,7 @@ fn a_layer_alone_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
         op.select_mut().dxf = None;
     }
     let result = run_job(&two).unwrap();
-    let clashes: Vec<&String> = result
+    let clashes: Vec<&Note> = result
         .notes
         .iter()
         .filter(|n| n.contains("is in simple_part and simple_part 2"))

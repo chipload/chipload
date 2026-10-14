@@ -125,6 +125,8 @@ pub struct ProfilePlan {
     pub rings: Vec<PathRing>,
     /// Warnings for the user, e.g. material left in a narrow neck.
     pub notes: Vec<String>,
+    /// Warnings about the operation's start points: one far from its ring, two on one.
+    pub start_notes: Vec<String>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
     /// For each ring, the index in `starts` of the point that set its start.
@@ -174,13 +176,14 @@ pub fn plan_profile(
     }
     // The order is chosen from the planner's starts, so moving a start doesn't reorder.
     let mut rings = order_rings(rings, start);
+    let mut start_notes = Vec::new();
     let chosen = apply_starts(
         &mut rings,
         starts,
         label,
         2.0 * tool_radius,
         &mut arcs,
-        &mut notes,
+        &mut start_notes,
     );
     if op.lead.is_some() {
         for (ring, choice) in rings.iter_mut().zip(&chosen) {
@@ -194,6 +197,7 @@ pub fn plan_profile(
     Ok(ProfilePlan {
         rings,
         notes,
+        start_notes,
         arcs,
         chosen,
     })

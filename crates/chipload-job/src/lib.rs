@@ -9,6 +9,7 @@ pub mod edit;
 pub mod library;
 pub mod migrations;
 pub mod models;
+pub mod note;
 pub mod paths;
 pub mod problem;
 #[cfg(feature = "schema")]
@@ -20,6 +21,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 pub use models::*;
+pub use note::Note;
 pub use problem::Problem;
 
 #[derive(Debug, Error)]

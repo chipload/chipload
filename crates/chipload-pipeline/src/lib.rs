@@ -28,7 +28,7 @@ use chipload_dxf::{
 };
 use chipload_job::library::Cutting;
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Entry, Job, Machine, Operation, PocketOp, Spindle, Stock,
+    CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, Spindle, Stock,
     StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_post::{
@@ -87,8 +87,8 @@ pub struct RunResult {
     pub groups: Vec<ToolGroup>,
     /// Rings whose start the user can move, for the start markers.
     pub ring_starts: Vec<RingStart>,
-    /// Toolpath warnings.
-    pub notes: Vec<String>,
+    /// Toolpath warnings, each with the operation it is about.
+    pub notes: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
 }
 
@@ -325,9 +325,17 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         post.spindle_dwell_s,
     );
     let mut notes = plan.notes;
-    notes.extend(extent_notes(job, &imported.report));
+    notes.extend(
+        extent_notes(job, &imported.report)
+            .into_iter()
+            .map(Note::job),
+    );
     notes.extend(dxfs::layer_clash_notes(job));
-    notes.extend(copies_notes(job, &plan.program, &plan.op_spans));
+    notes.extend(
+        copies_notes(job, &plan.program, &plan.op_spans)
+            .into_iter()
+            .map(Note::job),
+    );
     Ok(RunResult {
         estimate,
         files,

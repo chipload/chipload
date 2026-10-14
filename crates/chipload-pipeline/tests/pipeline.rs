@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
-use chipload_job::{Job, Spindle, load_job, parse_job};
+use chipload_job::{Job, Note, Spindle, load_job, parse_job};
 use chipload_pipeline::{
     Cancel, PipelineError, RunResult, new_project, run_job, run_job_cancellable, update_drawing,
 };
@@ -470,7 +470,7 @@ fn open_centreline_on_a_cutting_layer_is_skipped_and_reported() {
         &messy_2(),
     );
     let result = run(&data);
-    let skipped: Vec<&String> = result
+    let skipped: Vec<&Note> = result
         .notes
         .iter()
         .filter(|n| n.contains("skipped open contour"))

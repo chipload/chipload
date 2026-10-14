@@ -2049,7 +2049,7 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
     let estimate = estimate(&job, &plan.program, &plan.op_spans, &plan.groups, dwell);
     if out.json() {
         for note in &plan.notes {
-            out.line(note.clone());
+            out.line(note.text.clone());
         }
         out.set_all(json!({
             "program": program_with_groups(&plan.program, plan.groups.len()),

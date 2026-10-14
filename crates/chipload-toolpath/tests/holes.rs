@@ -214,7 +214,12 @@ fn a_drill_cuts_circles_within_a_tenth_of_its_size() {
         .map(|(_, _, to)| (to.0, to.1))
         .collect();
     assert_eq!(centres, vec![(20.0, 20.0), (40.0, 20.0)]);
-    let notes = plan.notes.join("\n");
+    let notes = plan
+        .notes
+        .iter()
+        .map(|n| n.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(
         notes.contains("hole 7.8 mm: not the 8 mm drill's size (within 0.1 mm); not drilled"),
         "{notes}"
