@@ -5,15 +5,16 @@
 
 use eframe::egui::{Align2, FontId, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
-use super::header::icon_button;
+use super::header::ribbon_button;
 use super::menu::SIMULATION_HINT;
 use super::shortcuts::{Action, hover_keys};
 use super::*;
 use crate::icons::Icon;
 use crate::view::MAX_TILT_RAD;
 
-/// The navigation bar's buttons, points.
-const NAV_BUTTON: f32 = 28.0;
+/// The navigation bar's height, and its width before it has been drawn once, points.
+const NAV_HEIGHT: f32 = 54.0;
+const NAV_ESTIMATE: f32 = 400.0;
 /// Half the cube's edge on screen, points.
 const CUBE_HALF: f32 = 20.0;
 /// Room around the cube in the corner, points.
@@ -56,12 +57,17 @@ const FACES: [Face; 5] = [
 ];
 
 impl ChiploadApp {
-    /// The floating bar at the canvas's bottom centre.
+    /// The floating bar at the canvas's bottom centre: how you look (Fit, Top, 3D), then
+    /// what is shown (Stock, Toolpath, Images, Grid), each an icon over a word
+    /// (docs/specs/view-and-settings.md §2).
     pub(super) fn navigation_bar(&mut self, ui: &mut egui::Ui, rect: Rect) {
         let visuals = ui.visuals().clone();
-        let buttons = 5.0;
-        let width = buttons * NAV_BUTTON + (buttons - 1.0) * 2.0 + 12.0;
-        let height = NAV_BUTTON + 8.0;
+        // Sized to its buttons, so it sits in the middle: the width they took last frame.
+        let size_id = egui::Id::new("navigation-bar-width");
+        let width = ui
+            .data(|d| d.get_temp::<f32>(size_id))
+            .unwrap_or(NAV_ESTIMATE);
+        let height = NAV_HEIGHT;
         let at = Rect::from_center_size(
             pos2(rect.center().x, rect.bottom() - 10.0 - height / 2.0),
             vec2(width, height),
@@ -69,64 +75,109 @@ impl ChiploadApp {
         let place = egui::UiBuilder::new()
             .max_rect(at)
             .layout(egui::Layout::left_to_right(egui::Align::Center));
-        ui.scope_builder(place, |ui| {
-            egui::Frame::new()
-                .fill(visuals.panel_fill.gamma_multiply(0.94))
-                .stroke(visuals.widgets.noninteractive.bg_stroke)
-                .corner_radius(6.0)
-                .inner_margin(egui::Margin::same(4))
-                .show(ui, |ui| {
-                    ui.spacing_mut().item_spacing.x = 2.0;
-                    let fit = hover_keys("Fit the view", Action::Fit);
-                    if icon_button(ui, Icon::Fit, &fit, true, false, NAV_BUTTON).clicked() {
-                        self.fit_pending = true;
-                    }
-                    let top = hover_keys("Look straight down", Action::TopView);
-                    if icon_button(ui, Icon::Top, &top, true, !self.three_d, NAV_BUTTON).clicked() {
-                        self.view_top();
-                    }
-                    let three_d = if self.view.z_scale == 1.0 {
-                        "3D: left-drag turns and tilts; right-drag or Shift+drag pans".to_string()
-                    } else {
-                        format!(
-                            "3D, Z stretched × {}: left-drag turns and tilts; right-drag or \
-                             Shift+drag pans",
-                            self.view.z_scale
-                        )
-                    };
-                    if icon_button(ui, Icon::ThreeD, &three_d, true, self.three_d, NAV_BUTTON)
-                        .clicked()
-                    {
-                        self.view_3d();
-                    }
-                    let can = self.result.is_some();
-                    let sim = if self.simulating() {
-                        "Simulating…"
-                    } else if can {
-                        SIMULATION_HINT
-                    } else {
-                        "Simulation: generate the toolpath first"
-                    };
-                    if icon_button(
-                        ui,
-                        Icon::Simulation,
-                        sim,
-                        can,
-                        can && self.show_simulation,
-                        NAV_BUTTON,
-                    )
-                    .clicked()
-                    {
-                        self.set_show_simulation(!self.show_simulation);
-                    }
-                    let grid = hover_keys("Show the grid", Action::Grid);
-                    if icon_button(ui, Icon::Grid, &grid, true, self.show_grid, NAV_BUTTON)
-                        .clicked()
-                    {
-                        self.set_show_grid(!self.show_grid);
-                    }
-                });
-        });
+        let shown = ui
+            .scope_builder(place, |ui| {
+                egui::Frame::new()
+                    .fill(visuals.panel_fill.gamma_multiply(0.94))
+                    .stroke(visuals.widgets.noninteractive.bg_stroke)
+                    .corner_radius(6.0)
+                    .inner_margin(egui::Margin::same(4))
+                    .show(ui, |ui| {
+                        ui.spacing_mut().item_spacing.x = 2.0;
+                        self.view_buttons(ui);
+                        ui.add_space(4.0);
+                        ui.separator();
+                        ui.add_space(4.0);
+                        self.show_buttons(ui);
+                    })
+                    .response
+                    .rect
+            })
+            .inner;
+        if (shown.width() - width).abs() > 0.5 {
+            ui.data_mut(|d| d.insert_temp(size_id, shown.width()));
+            ui.ctx().request_repaint();
+        }
+    }
+
+    /// Fit, Top and 3D.
+    fn view_buttons(&mut self, ui: &mut egui::Ui) {
+        if ribbon_button(ui, Icon::Fit, "Fit", true, false)
+            .on_hover_text(hover_keys("Fit the view", Action::Fit))
+            .clicked()
+        {
+            self.fit_pending = true;
+        }
+        if ribbon_button(ui, Icon::Top, "Top", true, !self.three_d)
+            .on_hover_text(hover_keys("Look straight down", Action::TopView))
+            .clicked()
+        {
+            self.view_top();
+        }
+        let three_d = if self.view.z_scale == 1.0 {
+            "3D: left-drag turns and tilts; right-drag or Shift+drag pans".to_string()
+        } else {
+            format!(
+                "3D, Z stretched × {}: left-drag turns and tilts; right-drag or Shift+drag \
+                 pans",
+                self.view.z_scale
+            )
+        };
+        if ribbon_button(ui, Icon::ThreeD, "3D", true, self.three_d)
+            .on_hover_text(three_d)
+            .clicked()
+        {
+            self.view_3d();
+        }
+    }
+
+    /// What is shown: the simulated stock, the toolpath, the pictures and the grid.
+    fn show_buttons(&mut self, ui: &mut egui::Ui) {
+        let can = self.result.is_some();
+        let label = if self.simulating() {
+            "Stock…"
+        } else {
+            "Stock"
+        };
+        let hover = if self.simulating() {
+            "Simulating…"
+        } else if can {
+            SIMULATION_HINT
+        } else {
+            "The stock as cut: generate the toolpath first"
+        };
+        if ribbon_button(
+            ui,
+            Icon::Simulation,
+            label,
+            can,
+            can && self.show_simulation,
+        )
+        .on_hover_text(hover)
+        .clicked()
+        {
+            self.set_show_simulation(!self.show_simulation);
+        }
+        let toolpath = self.show_toolpath;
+        if ribbon_button(ui, Icon::Toolpath, "Toolpath", true, toolpath)
+            .on_hover_text("Show the toolpath; off, the drawing or the simulated stock alone")
+            .clicked()
+        {
+            self.show_toolpath = !toolpath;
+        }
+        let images = self.show_images;
+        if ribbon_button(ui, Icon::Image, "Images", true, images)
+            .on_hover_text("The pictures traced into shapes, faintly under the drawing")
+            .clicked()
+        {
+            self.show_images = !images;
+        }
+        if ribbon_button(ui, Icon::Grid, "Grid", true, self.show_grid)
+            .on_hover_text(hover_keys("Show the grid", Action::Grid))
+            .clicked()
+        {
+            self.set_show_grid(!self.show_grid);
+        }
     }
 
     /// The top right corner: the orientation cube in 3D, an X–Y sign in top view.

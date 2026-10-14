@@ -50,6 +50,10 @@ pub enum Icon {
     Toolpath,
     Part,
     Parts,
+    Machine,
+    ThemeLight,
+    ThemeDark,
+    ThemeSystem,
 }
 
 /// Line width of the icons, points.
@@ -259,6 +263,40 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::Machine => {
+            // A gantry over a bed: two uprights, the beam, the spindle down to the bed.
+            pen.line([(0.08, 0.86), (0.92, 0.86)]);
+            pen.poly(&[(0.18, 0.86), (0.18, 0.2), (0.82, 0.2), (0.82, 0.86)]);
+            pen.closed(&[(0.42, 0.2), (0.58, 0.2), (0.58, 0.5), (0.42, 0.5)]);
+            pen.line([(0.5, 0.5), (0.5, 0.66)]);
+        }
+        Icon::ThemeLight => {
+            pen.circle((0.5, 0.5), 0.18);
+            for k in 0..8 {
+                let a = k as f32 * PI / 4.0;
+                let (s, c) = a.sin_cos();
+                pen.line([
+                    (0.5 + 0.28 * c, 0.5 + 0.28 * s),
+                    (0.5 + 0.42 * c, 0.5 + 0.42 * s),
+                ]);
+            }
+        }
+        Icon::ThemeDark => {
+            // A crescent: the outer circle's arc, and an inner arc cutting it.
+            let outer = pen.arc((0.5, 0.5), 0.38, 0.9, 0.9 + 1.55 * PI);
+            pen.poly(&outer);
+            let inner = pen.arc((0.66, 0.36), 0.3, 0.9 + 1.55 * PI - 0.95, 0.9 + 0.35);
+            pen.poly(&inner);
+        }
+        Icon::ThemeSystem => {
+            pen.circle((0.5, 0.5), 0.36);
+            let half: Vec<Pos2> = pen
+                .arc((0.5, 0.5), 0.36, -FRAC_PI_2, FRAC_PI_2)
+                .into_iter()
+                .map(|p| pen.at(p))
+                .collect();
+            painter.add(Shape::convex_polygon(half, color, Stroke::NONE));
         }
         Icon::Part => {
             pen.closed(&[

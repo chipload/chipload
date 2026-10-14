@@ -7,8 +7,8 @@ At the top, a slim **top bar**:
 - **Middle:** the project's name on a tab. A dot on it means unsaved changes.
   Closing, opening or starting a project with unsaved changes asks first, in the middle of
   the window: **Save** (then go on), **Don't save** or **Cancel**.
-- **Right:** **⚙ Settings** (tool library, machines, setup sheet, colour theme), **?
-  Help** (user guide, keyboard shortcuts, about) and the version.
+- **Right:** the **colour theme** (a click goes System → Light → Dark), **? Help** (user
+  guide, keyboard shortcuts, about) and the version.
 
 Under it, the **ribbon** groups the buttons:
 
@@ -17,13 +17,13 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
-| VIEW | Measure, Toolpath and Images (shown or not) | fit, top and 3D view, Z scale, grid, legend, simulation, update automatically |
+| LIBRARY | Tools, Machines: your tool library and machine profiles | the same |
+| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, colour theme |
 
 **Generate** (F5) and **Export** sit at the right end.
 
 Each group's caption (**FILE ▾** …) opens its whole menu. This guide writes those menus as
-*File > …*, *Draw > …* and *View > …*. *Settings > …* and *Help > …* are the gear and the
-question mark in the top bar.
+*File > …*, *Draw > …* and *View > …*. *Help > …* is the question mark in the top bar.
 
 The **status bar** at the bottom gives hints on the left. On the right it shows the
 cursor's position, the number of copies, the cycle time once generated, the
@@ -93,8 +93,10 @@ colour theme: dark, or light grey.
   - **G** or *View > Show grid* hides it, and Chipload remembers that.
 - **The axes:** a red line along X and a green one along Y run through the program's zero.
   Short thick strokes point the positive way, and in 3D a blue one points up Z.
-- **The navigation bar** floats at the bottom: **Fit** (F), **Top** (T), **3D**,
-  **Simulation** and **Grid**.
+- **The navigation bar** floats at the bottom, each button an icon over its name:
+  - how you look: **Fit** (F), **Top** (T) and **3D**;
+  - what is shown: **Stock** (the [simulation](checking/simulation.md)), **Toolpath**,
+    **Images** and **Grid** (G).
 - **The corner:**
   - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
     FRONT, RIGHT, BACK, LEFT) to look straight at it.
@@ -107,7 +109,8 @@ navigation bar](images/simulation-3d.png)
 ## Properties
 
 The **Properties** panel on the right shows what is open, under a title:
-- **Job settings:** the stock, the machine and the post.
+- **Job settings:** the stock, the machine and the post, and whether a
+  [setup sheet](checking/sheet.md) is written with the G-code (for all projects).
 - **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
   *Save to library…* and *Remove tool*.
 - **A DXF:** its file, units and size, its [position and scale](drawings/placement.md),

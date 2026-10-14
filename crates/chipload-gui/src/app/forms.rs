@@ -1256,6 +1256,8 @@ pub(super) enum JobRequest {
     Activate(u64),
     /// The open tool was removed: show the tools instead.
     ToolRemoved,
+    /// Write a setup sheet with exported G-code, or not (an app setting).
+    SetupSheet(bool),
     /// DXF `id`: update it from a file, or remove it (docs/specs/properties-for-tools-and-
     /// dxfs.md §3).
     UpdateDxf(u64),
@@ -1444,10 +1446,13 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
 const DEFAULT_COPIES_GAP: f64 = 10.0;
 
+/// The job settings: stock, machine and post, and the setup sheet (an app setting,
+/// `setup_sheet`, shown here; docs/specs/view-and-settings.md §3).
 pub(super) fn job_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     library: Option<&Library>,
+    setup_sheet: bool,
 ) -> Option<JobRequest> {
     let mut request = None;
     let mut copies_request = None;
@@ -1530,6 +1535,18 @@ pub(super) fn job_form(
             copies_request = Some(JobRequest::Post(post));
         }
         post_copy_row(ui, &job.machine, library, &mut copies_request);
+        ui.label("Setup sheet").on_hover_text(
+            "An HTML page for the operator next to the exported files: stock, zero, tools in \
+             order, operations, times and warnings. This applies to every project.",
+        );
+        let mut sheet = setup_sheet;
+        if ui
+            .checkbox(&mut sheet, "write one with the G-code (all projects)")
+            .changed()
+        {
+            copies_request = Some(JobRequest::SetupSheet(sheet));
+        }
+        ui.end_row();
         library_rows(ui, &mut request, LibraryRows::machine(job, library));
     });
 

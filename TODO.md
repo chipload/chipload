@@ -97,6 +97,11 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **One place for what's shown; no Settings menu** (2026-10-14,
+  docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
+  Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
+  the top bar; the setup sheet in Job settings > Machine.
+- **Unsaved changes** (0.17.4): Save, Don't save or Cancel, in a centred modal.
 - **Leaving shapes out of a whole DXF or picture** (2026-10-13,
   docs/specs/leave-out-shapes.md): Ctrl+click on a contour of the selected source;
   `select.exclude`; left-out traced shapes found again on retrace, or a blocking problem.

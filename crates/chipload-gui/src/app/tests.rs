@@ -3201,3 +3201,20 @@ fn the_unsaved_changes_question_offers_save_and_draws_in_the_middle() {
     // stay (the file dialog isn't there in tests, so nothing is chosen).
     assert!(app.dirty());
 }
+
+// -- one place for what's shown, no Settings menu (docs/specs/view-and-settings.md)
+
+#[test]
+fn the_canvas_bar_header_and_job_settings_draw_with_the_moved_settings() {
+    let mut app = lower_part();
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+        app.top_bar(ui);
+        app.ribbon(ui);
+        let rect = ui.max_rect();
+        app.navigation_bar(ui, rect);
+    });
+    output.textures_delta.clear();
+    app.focus = Focus::Job;
+    draw_properties(&mut app);
+}

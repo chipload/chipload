@@ -12,7 +12,7 @@ As with tools, a project copies the values; the profile is only where new projec
 
 ## In the app
 
-*Settings > Machines…* lists the profiles and marks the default.
+**Machines** in the ribbon's LIBRARY group lists the profiles and marks the default.
 
 In Job settings > Machine:
 - **Use profile…** applies a profile to the project;

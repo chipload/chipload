@@ -84,13 +84,17 @@ impl ChiploadApp {
                 ui.add_space(6.0);
                 let help = quick_button(ui, Icon::Help, "Help", true);
                 egui::Popup::menu(&help).show(|ui| self.help_menu(ui));
-                let settings = quick_button(
-                    ui,
-                    Icon::Settings,
-                    "Settings: tool library, machines, setup sheet, colour theme",
-                    true,
-                );
-                egui::Popup::menu(&settings).show(|ui| self.settings_menu(ui));
+                // The colour theme: a click goes on to the next (docs/specs/
+                // view-and-settings.md §3).
+                let (icon, now, next) = match self.theme {
+                    Theme::System => (Icon::ThemeSystem, "as the system is set", Theme::Light),
+                    Theme::Light => (Icon::ThemeLight, "light", Theme::Dark),
+                    Theme::Dark => (Icon::ThemeDark, "dark", Theme::System),
+                };
+                let hover = format!("Colour theme: {now}. Click for the next.");
+                if quick_button(ui, icon, &hover, true).clicked() {
+                    self.set_theme(next);
+                }
                 let right_start = ui.min_rect().left();
                 self.project_tab(ui, full, left_end, right_start);
             });
@@ -347,32 +351,46 @@ impl ChiploadApp {
             ui.separator();
             self.group(
                 ui,
+                "Library",
+                |app, ui| {
+                    if ribbon_button(ui, Icon::Tools, "Tools", true, false)
+                        .on_hover_text("Your tool library: tools kept for every project")
+                        .clicked()
+                    {
+                        app.open_library_window(LibraryKind::Tools);
+                    }
+                    if ribbon_button(ui, Icon::Machine, "Machines", true, false)
+                        .on_hover_text(
+                            "Your machine profiles: machine values new projects start with",
+                        )
+                        .clicked()
+                    {
+                        app.open_library_window(LibraryKind::Machines);
+                    }
+                },
+                |app, ui| {
+                    if ui.button("Tool library…").clicked() {
+                        app.open_library_window(LibraryKind::Tools);
+                    }
+                    if ui.button("Machines…").clicked() {
+                        app.open_library_window(LibraryKind::Machines);
+                    }
+                },
+            );
+            ui.separator();
+            self.group(
+                ui,
                 "View",
                 |app, ui| {
                     if ribbon_button(ui, Icon::Measure, "Measure", has_job, app.measure.is_some())
                         .on_hover_text(hover_keys(
-                            "Two clicks give the distance, ΔX, ΔY and the angle",
+                            "Two clicks give the distance, ΔX, ΔY and the angle. What is \
+                             shown is on the canvas's bar.",
                             Action::Measure,
                         ))
                         .clicked()
                     {
                         app.toggle_measure();
-                    }
-                    let shown = app.show_toolpath;
-                    if ribbon_button(ui, Icon::Toolpath, "Toolpath", has_job, shown)
-                        .on_hover_text(
-                            "Show the toolpath; off, the drawing or the simulated stock alone",
-                        )
-                        .clicked()
-                    {
-                        app.show_toolpath = !shown;
-                    }
-                    let images = app.show_images;
-                    if ribbon_button(ui, Icon::Image, "Images", has_job, images)
-                        .on_hover_text("The pictures traced into shapes, faintly under the drawing")
-                        .clicked()
-                    {
-                        app.show_images = !images;
                     }
                 },
                 |app, ui| app.view_menu(ui),
@@ -420,7 +438,7 @@ impl ChiploadApp {
 }
 
 /// A ribbon button: an icon over a short word. Disabled ones are dimmed and don't click.
-fn ribbon_button(
+pub(super) fn ribbon_button(
     ui: &mut egui::Ui,
     icon: Icon,
     label: &str,

@@ -271,51 +271,6 @@ impl ChiploadApp {
         }
     }
 
-    /// The Settings menu's items (a ribbon caption's or the top bar's drop-down).
-    pub(super) fn settings_menu(&mut self, ui: &mut egui::Ui) {
-        if ui.button("Tool library…").clicked() {
-            self.open_library_window(LibraryKind::Tools);
-        }
-        if ui.button("Machines…").clicked() {
-            self.open_library_window(LibraryKind::Machines);
-        }
-        ui.separator();
-        let mut sheet = self.setup_sheet;
-        if ui
-            .checkbox(&mut sheet, "Write a setup sheet with the G-code")
-            .on_hover_text(
-                "An HTML page for the operator next to the exported files: stock, \
-                 zero, tools in order, operations, times and warnings",
-            )
-            .changed()
-        {
-            self.set_setup_sheet(sheet);
-        }
-        ui.separator();
-        ui.label("Colour theme");
-        for (choice, label, hover) in [
-            (
-                Theme::System,
-                "System",
-                "Light or dark, as the operating system is set",
-            ),
-            (
-                Theme::Light,
-                "Light",
-                "Light panels (the canvas stays dark)",
-            ),
-            (Theme::Dark, "Dark", "Dark panels"),
-        ] {
-            if ui
-                .radio(self.theme == choice, label)
-                .on_hover_text(hover)
-                .clicked()
-            {
-                self.set_theme(choice);
-            }
-        }
-    }
-
     /// The View menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn view_menu(&mut self, ui: &mut egui::Ui) {
         if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
@@ -370,6 +325,25 @@ impl ChiploadApp {
             .changed()
         {
             self.set_show_simulation(sim);
+        }
+        ui.separator();
+        ui.label("Colour theme");
+        for (choice, label, hover) in [
+            (
+                Theme::System,
+                "System",
+                "Light or dark, as the operating system is set",
+            ),
+            (Theme::Light, "Light", "Light panels and canvas"),
+            (Theme::Dark, "Dark", "Dark panels and canvas"),
+        ] {
+            if ui
+                .radio(self.theme == choice, label)
+                .on_hover_text(hover)
+                .clicked()
+            {
+                self.set_theme(choice);
+            }
         }
     }
 

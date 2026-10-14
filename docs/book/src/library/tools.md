@@ -6,7 +6,7 @@ the same on another computer, or after you change the library.
 
 ## In the app
 
-*Settings > Tool library…* lists your tools.
+**Tools** in the ribbon's LIBRARY group lists your tools.
 - **Add, change and remove** tools there.
 - **Mark one as the default:** new projects start with it.
 
@@ -51,6 +51,6 @@ Cutting values come as a set: give all four, or none.
 - tools with the same name but other values are listed, and kept as yours unless you add
   `--replace`.
 
-The app has the same under *Settings > Tool library > Import… / Export…*. The [file
+The app has the same in the tool library window (**Tools**, LIBRARY): *Import…* and *Export…*. The [file
 format](../reference/tools-file.md) is documented, so a script can make one, e.g. from a
 supplier's catalogue.
