@@ -71,6 +71,14 @@ enum Shape {
     Cone { radius: f64, tip: f64, slope: f64 },
 }
 
+impl Shape {
+    fn radius(self) -> f64 {
+        match self {
+            Shape::Flat { radius } | Shape::Cone { radius, .. } => radius,
+        }
+    }
+}
+
 fn shape_of(tool: &Tool, numbers: &mut Numbers) -> Shape {
     let radius = tool.diameter / 2.0;
     let cone = |angle: f64, tip: f64| Shape::Cone {
@@ -221,11 +229,12 @@ fn run(
         let Some(tool) = tool_at(job, groups, k) else {
             continue;
         };
+        let shape = shape_of(tool, &mut numbers);
         if let Some(recorder) = &mut grid.recorder {
             // Indexes of a program's moves fit in u32 (far fewer than 4 billion moves).
             recorder.current = k as u32;
+            recorder.path = ((x0, y0), (x1, y1), shape.radius());
         }
-        let shape = shape_of(tool, &mut numbers);
         grid.cut((x0, y0, z0), (x1, y1, z1), shape);
     }
     let bottom = top - stock.thickness;
@@ -294,21 +303,49 @@ pub struct History {
     pub size: (f64, f64),
     /// Cell `c`'s entries are `entries[starts[c]..starts[c + 1]]`.
     starts: Vec<usize>,
-    entries: Vec<(u32, f32)>,
+    entries: Vec<Entry>,
 }
+
+/// One lowering of a history cell: the move, how far along it the tool first reached the
+/// cell (0 to [`ALONG_MAX`] for the move's start to its end), and the cell's height after it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Entry {
+    pub step: u32,
+    pub along: u16,
+    pub z: f32,
+}
+
+/// `Entry::along` at the end of a move.
+pub const ALONG_MAX: u16 = u16::MAX;
 
 impl History {
     /// The heights once the first `done` moves are cut (0: the stock as it comes).
     pub fn heights_after(&self, done: usize) -> Vec<f32> {
+        self.heights_with(done, None)
+    }
+
+    /// The heights once the first `done` moves are cut and move `done` is cut for the
+    /// fraction `along` (0 to 1) of its length: a cell that move reaches only further on
+    /// is shown as before it. Long straight moves then cut the stock as the tool goes,
+    /// not all at once at their end.
+    pub fn heights_at(&self, done: usize, along: f64) -> Vec<f32> {
+        self.heights_with(done, Some(along_units(along)))
+    }
+
+    /// The heights after `done` moves and, with `reached`, the part of move `done` up to it.
+    fn heights_with(&self, done: usize, reached: Option<u16>) -> Vec<f32> {
         let cells = self.columns * self.rows;
         (0..cells)
             .map(|c| {
                 let run = &self.entries[self.starts[c]..self.starts[c + 1]];
-                let n = run.partition_point(|&(k, _)| (k as usize) < done);
+                let n = run.partition_point(|e| {
+                    (e.step as usize) < done
+                        || (e.step as usize == done && reached.is_some_and(|r| e.along <= r))
+                });
                 if n == 0 {
                     self.top as f32
                 } else {
-                    run[n - 1].1
+                    run[n - 1].z
                 }
             })
             .collect()
@@ -317,12 +354,17 @@ impl History {
     /// The stock after the first `done` moves as a (display-grid) simulation, shaded on
     /// `numbers`' scale (the final one, so colours don't shift while scrubbing).
     pub fn after(&self, done: usize, numbers: &Numbers) -> Simulation {
+        self.at(done, 0.0, numbers)
+    }
+
+    /// As [`History::after`], with move `done` cut for the fraction `along` of its length.
+    pub fn at(&self, done: usize, along: f64, numbers: &Numbers) -> Simulation {
         Simulation {
             origin: self.origin,
             cell: self.cell,
             columns: self.columns,
             rows: self.rows,
-            heights: self.heights_after(done),
+            heights: self.heights_at(done, along),
             top: self.top,
             bottom: self.bottom,
             size: self.size,
@@ -330,8 +372,8 @@ impl History {
         }
     }
 
-    /// Cell `c`'s entries: (move, height after it), in move order.
-    pub fn cell_entries(&self, c: usize) -> &[(u32, f32)] {
+    /// Cell `c`'s entries, in move order.
+    pub fn cell_entries(&self, c: usize) -> &[Entry] {
         &self.entries[self.starts[c]..self.starts[c + 1]]
     }
 
@@ -352,11 +394,40 @@ struct Recorder {
     factor: usize,
     /// The display grid's current heights.
     heights: Vec<f32>,
-    cells: Vec<Vec<(u32, f32)>>,
+    cells: Vec<Vec<Entry>>,
     count: usize,
     overflow: bool,
     /// The move being cut.
     current: u32,
+    /// Its tool axis's start and end in XY, and the tool's radius.
+    path: ((f64, f64), (f64, f64), f64),
+}
+
+/// A fraction of a move (0 to 1) in `Entry::along` units, rounded down.
+fn along_units(along: f64) -> u16 {
+    // Clamped to 0..=ALONG_MAX first, so the cast can't wrap.
+    (along.clamp(0.0, 1.0) * f64::from(ALONG_MAX)).floor() as u16
+}
+
+/// How far along the XY path `a` to `b` (0 to 1) a tool of `radius` first reaches `p`:
+/// where the distance first drops to the radius, else where it is closest. A move straight
+/// up or down cuts at its end.
+fn first_reach(p: (f64, f64), a: (f64, f64), b: (f64, f64), radius: f64) -> f64 {
+    let d = (b.0 - a.0, b.1 - a.1);
+    let w = (a.0 - p.0, a.1 - p.1);
+    let qa = d.0 * d.0 + d.1 * d.1;
+    if qa.sqrt() <= CHAIN_TOL_MM {
+        return 1.0;
+    }
+    let qb = 2.0 * (d.0 * w.0 + d.1 * w.1);
+    let qc = w.0 * w.0 + w.1 * w.1;
+    let disc = qb * qb - 4.0 * qa * (qc - radius * radius);
+    let t = if disc >= 0.0 {
+        (-qb - disc.sqrt()) / (2.0 * qa)
+    } else {
+        -qb / (2.0 * qa)
+    };
+    t.clamp(0.0, 1.0)
 }
 
 impl Recorder {
@@ -370,11 +441,12 @@ impl Recorder {
             count: 0,
             overflow: false,
             current: 0,
+            path: ((0.0, 0.0), (0.0, 0.0), 0.0),
         }
     }
 
-    /// Full cell (i, j) went down to `z`.
-    fn lowered(&mut self, i: usize, j: usize, z: f32) {
+    /// Full cell (i, j), centred on `centre`, went down to `z`.
+    fn lowered(&mut self, i: usize, j: usize, centre: (f64, f64), z: f32) {
         if self.overflow {
             return;
         }
@@ -385,9 +457,15 @@ impl Recorder {
         self.heights[c] = z;
         let cell = &mut self.cells[c];
         match cell.last_mut() {
-            Some(last) if last.0 == self.current => last.1 = z,
+            // Lowered again by the same move: the first reach stays.
+            Some(last) if last.step == self.current => last.z = z,
             _ => {
-                cell.push((self.current, z));
+                let (a, b, radius) = self.path;
+                cell.push(Entry {
+                    step: self.current,
+                    along: along_units(first_reach(centre, a, b, radius)),
+                    z,
+                });
                 self.count += 1;
                 if self.count > MAX_HISTORY_ENTRIES {
                     self.overflow = true;
@@ -473,7 +551,7 @@ impl Grid {
                     if z < *h {
                         *h = z;
                         if let Some(recorder) = &mut self.recorder {
-                            recorder.lowered(i, j, z);
+                            recorder.lowered(i, j, (cx, cy), z);
                         }
                     }
                 }

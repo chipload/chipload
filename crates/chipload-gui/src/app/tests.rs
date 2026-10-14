@@ -1770,14 +1770,18 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
     app.set_show_simulation(true);
     assert!(app.wait_for_simulation(&ctx));
     app.sync_playback(&ctx);
-    let done = app.playback.as_ref().unwrap().done();
+    let (done, along) = {
+        let pb = app.playback.as_ref().unwrap();
+        (pb.done(), pb.along())
+    };
     let half = app.scene.sim.as_ref().unwrap().surface.heights.clone();
     let numbers = app.simulation.as_ref().unwrap().numbers.clone();
+    // The stock part of the way along the move under way.
     let expected = app
         .sim_history
         .as_ref()
         .unwrap()
-        .after(done, &numbers)
+        .at(done, along, &numbers)
         .heights;
     assert_eq!(half, expected);
     let full = app.sim_full_layer.as_ref().unwrap().surface.heights.clone();

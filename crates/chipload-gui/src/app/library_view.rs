@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The user's library in the Browser and in Properties (docs/specs/library-in-browser.md
-//! §4, §5): a second root under the project with the library's tools and machine profiles,
+//! §4, §5): a second root above the project with the library's tools and machine profiles,
 //! and their forms. Edits stay a draft until *Save*, which writes the library file.
 
 use chipload_job::library::same_name;

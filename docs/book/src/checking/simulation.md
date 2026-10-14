@@ -46,7 +46,8 @@ Under the canvas, a **slider** runs through the program by time, like a 3D print
 preview:
 - **Dragging:** the moves done so far are drawn, the rest faint, and the tool is shown where
   it is.
-- **With the simulation on:** the stock is shown as cut up to that point.
+- **With the simulation on:** the stock is shown as cut up to that point, also part of the
+  way along a long straight move.
 - **Marks** on the slider show where each operation starts and where the tool changes.
 - **The readout** shows the time so far and in all, the operation and copy, the tool's X,
   Y and Z, and the feed.

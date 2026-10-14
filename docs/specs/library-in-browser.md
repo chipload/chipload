@@ -56,7 +56,8 @@ For a project tool (and the same for the machine):
 
 ## 4. The Browser
 
-Under the project, a second root, **Library** ("on this computer"), folded at the start:
+Above the project, a second root, **Library** ("this computer"), folded at the start (moved
+to the top at the user's request, 2026-10-14):
 
 - **Tools:** each library tool as a leaf ("6 mm 2F · endmill 6 mm"), *default* marked.
 - **Machines:** each profile as a leaf ("Shapeoko · grbl, 800 × 800 × 80 mm").
@@ -102,7 +103,7 @@ A project tool's row shows its link at the right: "← 6 mm 2F", "← 6 mm 2F (c
 
 ## 8. Decisions
 
-1. **The library is a second root in the Browser,** folded at the start. *Approved.*
+1. **The library is a second root in the Browser,** above the project, folded at the start. *Approved.*
 2. **Library entries are edited in Properties;** the windows go. *Approved.*
 3. **Project tools show their link,** with *Update from library* and *Save to library*.
    *Approved.*

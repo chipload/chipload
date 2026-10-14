@@ -31,8 +31,11 @@ post-processor and the units.
 
 ## The Browser
 
-The **Browser** on the left holds the whole project as a tree:
+The **Browser** on the left holds your library and the whole project as a tree:
 
+- **Library** ("this computer"), at the top and folded at the start: your [tool
+  library](library/tools.md) and [machine profiles](library/machines.md), kept for every
+  project. It is there also with no project open.
 - **The project**, named after its file.
   - **Job settings:** stock, machine, post-processor and tools, shown on the right when
     clicked. A red dot means one of them has a problem.
@@ -44,9 +47,6 @@ The **Browser** on the left holds the whole project as a tree:
     polylines). See [Several drawings](drawings/several.md).
   - **Parts**, each with its operations under it, in cutting order. A line marks each
     tool change. See [Parts](operations/parts.md).
-- **Library** ("this computer"): your [tool library](library/tools.md) and [machine
-  profiles](library/machines.md), kept for every project. It is there also with no project
-  open.
 
 ![The Browser: two DXFs with their layers, the second hidden, a picture, and four
 operations; the first DXF's placement window is open](images/drawing.png)

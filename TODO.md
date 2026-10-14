@@ -97,8 +97,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Playback along long moves** (2026-10-14, docs/specs/playback.md §3): the stock is cut
+  as the tool goes along a move, not at its end; the Library is at the top of the Browser.
 - **The library in the Browser** (2026-10-14, docs/specs/library-in-browser.md, ADR 0018):
-  Library > Tools and Machines under the project, edited in Properties (drafts until Save);
+  Library > Tools and Machines above the project, edited in Properties (drafts until Save);
   the library windows are gone. Project tools and the machine link to their entry by `uid`
   (schema 23, tools/machines files 3) and show same, differs, missing or none; drag a library
   tool onto the project's Tools; `tool compare`, `machine compare`.

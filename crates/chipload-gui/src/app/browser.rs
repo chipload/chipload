@@ -426,14 +426,14 @@ impl ChiploadApp {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
+                // The user's library, above the project (docs/specs/library-in-browser.md §4).
+                self.library_tree(ui);
+                ui.add_space(ROW_HEIGHT / 2.0);
                 if self.edit.is_some() {
                     self.browser_tree(ui);
                 } else {
                     ui.weak("No project open.");
                 }
-                // The user's library, under the project (docs/specs/library-in-browser.md §4).
-                ui.add_space(ROW_HEIGHT / 2.0);
-                self.library_tree(ui);
             });
     }
 

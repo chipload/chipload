@@ -65,6 +65,12 @@ heights only go down.
 
 - The height of a cell after move `k`: its last entry at or before `k`, or the stock top if
   none. A binary search per cell; both directions cost the same.
+- **Along a move** (added 2026-10-14, user request: "the simulation should split up long
+  straight moves, it updates the view only at the end of a long straight move"): each entry
+  also keeps how far along its move (0 to 1, as a `u16`) the tool first reaches the cell's
+  centre. Part of the way along move `k`, a cell's entries of move `k` count up to that
+  fraction. A move straight up or down counts at its end. The view is redrawn at every
+  1/256 of a move. Nothing changes in the cutting: the final stock is the same.
 - The display grid's cell takes the lowest of the full grid's cells it covers, as now. The
   history is recorded on the display grid directly (a full cell lowering a display cell to
   a new low is an entry), so it isn't a second simulation.

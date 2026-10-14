@@ -33,8 +33,9 @@ pub struct Playback {
     /// The tool group of each move range: (moves, tool).
     tools: Vec<(std::ops::Range<usize>, chipload_job::Tool)>,
     kinds: Vec<(MoveKind, Option<f64>)>,
-    /// The moves done the canvas shows the stock for; None: the end (the full image).
-    pub(super) shown: Option<usize>,
+    /// The moves done, and how far along the next one, that the canvas shows the stock for;
+    /// None: the end (the full image).
+    pub(super) shown: Option<(usize, u16)>,
 }
 
 impl Playback {
@@ -120,21 +121,30 @@ impl Playback {
         self.ends.partition_point(|&e| e <= self.time)
     }
 
+    /// How far along the move under way the time shown is: 0 at its start, 1 at its end.
+    pub fn along(&self) -> f64 {
+        let k = self.done();
+        let Some(&end) = self.ends.get(k) else {
+            return 0.0;
+        };
+        let start = if k == 0 { 0.0 } else { self.ends[k - 1] };
+        let span = end - start;
+        if span > 0.0 {
+            ((self.time - start) / span).clamp(0.0, 1.0)
+        } else {
+            0.0
+        }
+    }
+
     /// The tool's point on the move under way, between where it started and where it ends.
     pub fn tool_at(&self) -> Option<Point3> {
         let k = self.done();
         let to = (*self.positions.get(k)?)?;
-        let start = if k == 0 { 0.0 } else { self.ends[k - 1] };
-        let span = self.ends[k] - start;
         let from = if k == 0 { None } else { self.positions[k - 1] };
         let Some(from) = from else {
             return Some(to);
         };
-        let f = if span > 0.0 {
-            ((self.time - start) / span).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
+        let f = self.along();
         Some((
             from.0 + (to.0 - from.0) * f,
             from.1 + (to.1 - from.1) * f,
@@ -394,21 +404,26 @@ impl ChiploadApp {
             tool_at: playback.tool_at(),
             tool: playback.tool_look(),
         });
-        if playback.shown == Some(done) {
+        // The stock follows the tool along a move, not only from move to move
+        // (docs/specs/playback.md §3), in steps of 1/256 of the move.
+        let along = playback.along();
+        let key = (done, (along * 256.0).floor() as u16);
+        if playback.shown == Some(key) {
             return;
         }
-        playback.shown = Some(done);
-        self.show_stock_after(ctx, done);
+        playback.shown = Some(key);
+        self.show_stock_after(ctx, done, along);
     }
 
-    /// The canvas's stock after `done` moves, from the simulation's history.
-    fn show_stock_after(&mut self, ctx: &egui::Context, done: usize) {
+    /// The canvas's stock after `done` moves and the fraction `along` of the next, from the
+    /// simulation's history.
+    fn show_stock_after(&mut self, ctx: &egui::Context, done: usize, along: f64) {
         let (Some(history), Some(sim), Some(full)) =
             (&self.sim_history, &self.simulation, &self.sim_full_layer)
         else {
             return;
         };
-        let stock = history.after(done, &sim.numbers);
+        let stock = history.at(done, along, &sim.numbers);
         let image = simulation::image_of(&stock);
         let texture = match &mut self.sim_playback_texture {
             Some(texture) => {

@@ -305,10 +305,53 @@ fn the_history_gives_the_stock_after_any_move() {
         for c in 0..history.columns * history.rows {
             let run = history.cell_entries(c);
             for w in run.windows(2) {
-                assert!(w[0].0 < w[1].0 && w[0].1 > w[1].1, "{w:?}");
+                assert!(w[0].step < w[1].step && w[0].z > w[1].z, "{w:?}");
             }
         }
+        // Part of the way along a move lies between before it and after it.
+        for done in [1, 17, 40] {
+            let done = done.min(moves.len() - 1);
+            assert_eq!(
+                history.heights_at(done, 1.0),
+                history.heights_after(done + 1)
+            );
+            let (before, part) = (history.heights_after(done), history.heights_at(done, 0.5));
+            assert!(before.iter().zip(&part).all(|(b, p)| p <= b));
+        }
         assert!(!history.is_empty());
+    }
+}
+
+/// A long straight slot cuts the stock as the tool goes along it, not all at once at its
+/// end (docs/specs/playback.md §3).
+#[test]
+fn a_long_move_is_cut_as_the_tool_goes() {
+    let job = job(endmill(4.0));
+    let moves = vec![
+        Move::rapid_z(5.0),
+        Move::rapid_xy((5.0, 20.0)),
+        Move::feed_z(-2.0, 300.0),
+        Move::feed_xy((55.0, 20.0), 1000.0),
+        Move::rapid_z(5.0),
+    ];
+    let (_, history) = with_history(&job, &moves, CELL);
+    let height_at = |heights: &[f32], x: f64| {
+        let i = ((x - history.origin.0) / history.cell) as usize;
+        let j = ((20.0 - history.origin.1) / history.cell) as usize;
+        f64::from(heights[j * history.columns + i])
+    };
+    // Halfway along the slot (x 30): cut behind the tool, not yet ahead of it.
+    let half = history.heights_at(3, 0.5);
+    assert!(height_at(&half, 20.0) < -1.9, "behind the tool");
+    assert!(
+        height_at(&half, 31.0) < -1.9,
+        "under the tool's leading half"
+    );
+    assert!(height_at(&half, 40.0) > -0.01, "ahead of the tool");
+    // Each cell reached is cut no later than the move's end.
+    let quarter = history.heights_at(3, 0.25);
+    for c in 0..history.columns * history.rows {
+        assert!(half[c] <= quarter[c]);
     }
 }
 
