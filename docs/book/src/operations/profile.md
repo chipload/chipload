@@ -11,11 +11,12 @@ and [Depths and clearance](../concepts/depths.md) for what every profile shares.
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).
 
-## Spiral ramp or straight plunge
+## Entry: spiral ramp or straight plunge
 
-In the operation's **Cut** settings, right after the step down:
+In the operation's **Cut** settings, right after the step down, **Entry** is the same
+choice every operation has:
 
-- **Spiral ramp** (ticked): the tool goes down while moving along the contour, never
+- **Spiral ramp**: the tool goes down while moving along the contour, never
   steeper than the **ramp angle** (3° by default, at most 30°), and never more than one
   step down per lap. On long contours the step down decides how fast it goes down; on
   small ones the angle does. A spiral-ramped profile is **one forward spiral**:
@@ -24,8 +25,8 @@ In the operation's **Cut** settings, right after the step down:
   - the tool rises out along the cut path, never back and forth.
 
   It's the best way down: no plunge into the part. Tools that aren't centre-cutting need
-  it, and new profiles start with it ticked when the tool is marked so.
-- **Straight plunge** (unticked): the tool goes straight down at the start of each pass. It
+  it, and new profiles start with it when the tool is marked so.
+- **Straight plunge**: the tool goes straight down at the start of each pass. It
   needs a centre-cutting endmill. Only then does the **lead-in and lead-out** show: the
   plunge goes down in the waste, so it leaves no mark on the part.
 

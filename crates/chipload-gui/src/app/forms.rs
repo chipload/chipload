@@ -385,6 +385,7 @@ pub(super) fn op_form(
                 let plunges = op_tool.and_then(|t| t.center_cutting) != Some(false);
                 spiral_rows(
                     ui,
+                    index,
                     &mut p.entry,
                     &mut p.lead,
                     tool_diameter,
@@ -731,34 +732,45 @@ fn profile_entry_text(entry: &Entry, lead: Option<&Lead>) -> String {
     }
 }
 
-/// A profile's way down, after its step down (docs/specs/profile-form.md §2): the spiral
-/// ramp and its angle, or a straight plunge with an optional lead-in and lead-out.
-/// `plunges`: the tool may plunge (it isn't marked not centre-cutting).
+/// A profile's way down, after its step down (docs/specs/profile-form.md §2): the same
+/// Entry choice as a pocket's, between a spiral ramp with its angle and a straight plunge
+/// with an optional lead-in and lead-out. `plunges`: the tool may plunge (it isn't marked
+/// not centre-cutting).
 fn spiral_rows(
     ui: &mut egui::Ui,
+    index: usize,
     entry: &mut Entry,
     lead: &mut Option<Lead>,
     tool_diameter: f64,
     can_lead: bool,
     plunges: bool,
 ) {
-    ui.label("Spiral ramp").on_hover_text(
-        "The tool spirals down along the contour, never steeper than the ramp angle and never \
-         more than one step down per lap: no plunge into the part. On long contours the step \
-         down decides the descent, on small ones the angle.",
+    ui.label("Entry").on_hover_text(
+        "How the tool goes down. A spiral ramp goes down along the contour, never steeper \
+         than the ramp angle and never more than one step down per lap: no plunge into the \
+         part. On long contours the step down decides the descent, on small ones the angle. \
+         A straight plunge needs a centre-cutting tool and can have a lead.",
     );
-    let mut spiral = entry.ramp_angle().is_some();
-    let response = ui.checkbox(&mut spiral, "down along the contour");
-    if flag(response, ui, "entry").changed() {
-        *entry = if spiral {
-            Entry::Ramp {
-                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-            }
+    let spiral = entry.ramp_angle().is_some();
+    let combo = ComboBox::from_id_salt(("entry", index))
+        .selected_text(if spiral {
+            "spiral ramp"
         } else {
-            Entry::Plunge {}
-        };
-    }
+            "straight plunge"
+        })
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(spiral, "spiral ramp").clicked() && !spiral {
+                *entry = Entry::Ramp {
+                    ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+                };
+            }
+            if ui.selectable_label(!spiral, "straight plunge").clicked() && spiral {
+                *entry = Entry::Plunge {};
+            }
+        });
+    flag(combo.response, ui, "entry");
     ui.end_row();
+    let spiral = entry.ramp_angle().is_some();
     if let Entry::Ramp { ramp_angle } = entry {
         ui.label("  ramp angle")
             .on_hover_text("How steeply it goes down along the contour");
@@ -778,7 +790,7 @@ fn spiral_rows(
         ui.label("");
         ui.colored_label(
             ui.visuals().warn_fg_color,
-            "This tool can't plunge: tick Spiral ramp",
+            "This tool can't plunge: choose the spiral ramp",
         );
         ui.end_row();
     }

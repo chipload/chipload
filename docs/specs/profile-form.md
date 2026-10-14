@@ -47,3 +47,9 @@ In the profile's **Cut** section, after **Step down**:
 - The form draws for a profile with the spiral on, off, and on with a lead.
 - Ticking the spiral sets the ramp entry with the default angle, and unticking sets a
   plunge. Problems on `entry` and `lead` mark the Cut section.
+
+## As built, revised 2026-10-15
+
+The spiral ramp is chosen in an **Entry** combo (*spiral ramp* or *straight plunge*), the
+same control pockets and follow paths have for the same field, instead of a checkbox. Its
+place (right after the step down), the ramp angle row and the lead rule are as above.
