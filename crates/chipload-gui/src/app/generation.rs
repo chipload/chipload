@@ -297,7 +297,7 @@ impl ChiploadApp {
         self.result_job = Some(job.clone());
         self.result = Some(result);
         // A new program: the old simulation goes, a new one starts if switched on.
-        self.result_serial += 1;
+        self.sim.serial += 1;
         self.drop_simulation();
         self.reset_playback();
         self.start_simulation();
@@ -308,7 +308,7 @@ impl ChiploadApp {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
         self.scene.start_markers.clear();
-        self.result_serial += 1;
+        self.sim.serial += 1;
         self.drop_simulation();
         self.playback = None;
         self.scene.progress = None;

@@ -279,13 +279,13 @@ impl ChiploadApp {
             Action::TopView => self.view_top(),
             Action::Grid => self.set_show_grid(!self.show_grid),
             Action::Measure => self.toggle_measure(),
-            Action::Shortcuts => self.shortcuts_open = true,
+            Action::Shortcuts => self.dialogs.shortcuts_open = true,
         }
     }
 
     /// Help → Keyboard shortcuts.
     pub(super) fn shortcuts_window(&mut self, ctx: &egui::Context) {
-        let mut open = self.shortcuts_open;
+        let mut open = self.dialogs.shortcuts_open;
         egui::Window::new("Keyboard shortcuts")
             .open(&mut open)
             .default_size([520.0, 560.0])
@@ -308,7 +308,7 @@ impl ChiploadApp {
                     }
                 });
             });
-        self.shortcuts_open = open;
+        self.dialogs.shortcuts_open = open;
     }
 }
 

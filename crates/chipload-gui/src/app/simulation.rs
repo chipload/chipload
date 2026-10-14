@@ -50,7 +50,7 @@ impl ChiploadApp {
 
     /// A simulation is being computed.
     pub fn simulating(&self) -> bool {
-        self.sim_run.is_some()
+        self.sim.run.is_some()
     }
 
     /// Simulate the last generation's program on a worker thread, if switched on.
@@ -80,15 +80,15 @@ impl ChiploadApp {
                 .push(Tone::Warning, format!("Simulation could not start: {err}"));
             return;
         }
-        self.sim_run = Some(SimRun {
+        self.sim.run = Some(SimRun {
             cancel,
             receiver,
-            serial: self.result_serial,
+            serial: self.sim.serial,
         });
     }
 
     pub(super) fn stop_simulation(&mut self) {
-        if let Some(run) = self.sim_run.take() {
+        if let Some(run) = self.sim.run.take() {
             run.cancel.cancel();
         }
     }
@@ -97,11 +97,11 @@ impl ChiploadApp {
     pub(super) fn drop_simulation(&mut self) {
         self.stop_simulation();
         self.scene.sim = None;
-        self.sim_texture = None;
-        self.sim_playback_texture = None;
-        self.sim_full_layer = None;
-        self.sim_history = None;
-        self.simulation = None;
+        self.sim.texture = None;
+        self.sim.playback_texture = None;
+        self.sim.full_layer = None;
+        self.sim.history = None;
+        self.sim.simulation = None;
         if let Some(playback) = &mut self.playback {
             playback.shown = None;
         }
@@ -109,7 +109,7 @@ impl ChiploadApp {
 
     /// Show the worker's result if it has arrived. Returns whether one is still running.
     pub(super) fn poll_simulation(&mut self, ctx: &egui::Context) -> bool {
-        let Some(run) = &self.sim_run else {
+        let Some(run) = &self.sim.run else {
             return false;
         };
         let outcome = match run.receiver.try_recv() {
@@ -118,7 +118,7 @@ impl ChiploadApp {
             Err(TryRecvError::Disconnected) => Err("the simulation stopped unexpectedly".into()),
         };
         let serial = run.serial;
-        self.sim_run = None;
+        self.sim.run = None;
         self.finish_simulation(ctx, serial, outcome);
         false
     }
@@ -126,7 +126,7 @@ impl ChiploadApp {
     /// Wait for the simulation in progress and show it (tests, screenshots).
     #[cfg(any(test, feature = "screenshots"))]
     pub fn wait_for_simulation(&mut self, ctx: &egui::Context) -> bool {
-        let Some(run) = self.sim_run.take() else {
+        let Some(run) = self.sim.run.take() else {
             return false;
         };
         let outcome = run
@@ -134,11 +134,11 @@ impl ChiploadApp {
             .recv()
             .unwrap_or_else(|_| Err("the simulation stopped unexpectedly".into()));
         self.finish_simulation(ctx, run.serial, outcome);
-        self.simulation.is_some()
+        self.sim.simulation.is_some()
     }
 
     fn finish_simulation(&mut self, ctx: &egui::Context, serial: u64, outcome: Outcome) {
-        if serial != self.result_serial || !self.show_simulation {
+        if serial != self.sim.serial || !self.show_simulation {
             return; // made for an older toolpath, or switched off meanwhile
         }
         let (sim, history) = match outcome {
@@ -173,7 +173,7 @@ impl ChiploadApp {
             surface,
         };
         self.scene.sim = Some(layer.clone());
-        self.sim_full_layer = Some(layer);
+        self.sim.full_layer = Some(layer);
         for line in sim.lines() {
             self.report.push(Tone::Info, line);
         }
@@ -185,12 +185,12 @@ impl ChiploadApp {
                     .into(),
             );
         }
-        self.sim_history = history;
+        self.sim.history = history;
         if let Some(playback) = &mut self.playback {
             playback.shown = None; // redrawn from the history on the next frame
         }
-        self.sim_texture = Some(texture);
-        self.simulation = Some(sim);
+        self.sim.texture = Some(texture);
+        self.sim.simulation = Some(sim);
     }
 }
 

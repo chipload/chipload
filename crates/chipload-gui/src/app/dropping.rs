@@ -88,7 +88,7 @@ impl ChiploadApp {
     /// Bring in the queued dropped files until one needs an answer (a DXF's units) or a
     /// window (a picture's): the rest wait until it is closed.
     pub(super) fn next_drop(&mut self) {
-        while self.prompt.is_none() && self.image_dialog.is_none() {
+        while self.dialogs.prompt.is_none() && self.image_dialog.is_none() {
             let Some(path) = self.drops.pop_front() else {
                 return;
             };

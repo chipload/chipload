@@ -172,6 +172,47 @@ struct HandleDrag {
     start: Geometry,
 }
 
+/// The material-removal simulation of the last result, and what playback made of it.
+#[derive(Default)]
+pub struct Sim {
+    run: Option<simulation::SimRun>,
+    /// The last simulation, and its image's texture (kept alive while shown).
+    pub simulation: Option<chipload_pipeline::simulate::Simulation>,
+    texture: Option<egui::TextureHandle>,
+    /// The texture of the stock part way through playback (docs/specs/playback.md).
+    playback_texture: Option<egui::TextureHandle>,
+    /// The simulation's layer at the end of the program, shown when playback is there.
+    full_layer: Option<crate::view::SimLayer>,
+    /// Every display cell's history, for playback; None: too long, or no simulation.
+    history: Option<chipload_pipeline::simulate::History>,
+    /// Counts the results shown: a simulation is for one of them.
+    serial: u64,
+}
+
+/// What the pointer is dragging on the canvas, and where it snaps.
+#[derive(Default)]
+struct Drag {
+    /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
+    snap_points: Vec<SnapPoint>,
+    /// Where the cursor snapped this frame, while drawing or dragging a handle.
+    snapped: Option<(Point, Option<SnapPoint>)>,
+    /// The handle being dragged, if any.
+    handle: Option<HandleDrag>,
+    /// The start marker being dragged (index in `scene.start_markers`).
+    start: Option<usize>,
+    /// The start marker right-clicked, for its context menu.
+    context_start: Option<usize>,
+}
+
+/// The small windows over the app.
+#[derive(Default)]
+struct Dialogs {
+    prompt: Option<Prompt>,
+    about_open: bool,
+    /// Help → Keyboard shortcuts is open.
+    shortcuts_open: bool,
+}
+
 pub struct ChiploadApp {
     /// The project being edited.
     pub edit: Option<EditJob>,
@@ -206,20 +247,10 @@ pub struct ChiploadApp {
     context_pick: Option<usize>,
     /// View > Show simulation (docs/specs/simulation.md §4).
     pub show_simulation: bool,
-    sim_run: Option<simulation::SimRun>,
-    /// The last simulation, and its image's texture (kept alive while shown).
-    pub simulation: Option<chipload_pipeline::simulate::Simulation>,
-    sim_texture: Option<egui::TextureHandle>,
-    /// The texture of the stock part way through playback (docs/specs/playback.md).
-    sim_playback_texture: Option<egui::TextureHandle>,
-    /// The simulation's layer at the end of the program, shown when playback is there.
-    sim_full_layer: Option<crate::view::SimLayer>,
-    /// Every display cell's history, for playback; None: too long, or no simulation.
-    sim_history: Option<chipload_pipeline::simulate::History>,
+    /// The material-removal simulation of the last result (docs/specs/simulation.md).
+    pub sim: Sim,
     /// The playback slider's state, once a toolpath has been generated.
     pub playback: Option<playback::Playback>,
-    /// Counts the results shown: a simulation is for one of them.
-    result_serial: u64,
     /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
     pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
@@ -230,16 +261,8 @@ pub struct ChiploadApp {
     shape_clipboard: Vec<(String, Geometry)>,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
-    /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
-    snap_points: Vec<SnapPoint>,
-    /// Where the cursor snapped this frame, while drawing or dragging a handle.
-    snapped: Option<(Point, Option<SnapPoint>)>,
-    /// The handle being dragged, if any.
-    handle_drag: Option<HandleDrag>,
-    /// The start marker being dragged (index in `scene.start_markers`).
-    start_drag: Option<usize>,
-    /// The start marker right-clicked, for its context menu.
-    context_start: Option<usize>,
+    /// What the pointer is dragging on the canvas, and where it snaps.
+    drag: Drag,
 
     pub report: Report,
     /// The report panel is open (it opens by itself on warnings and errors).
@@ -283,12 +306,9 @@ pub struct ChiploadApp {
     applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
-    prompt: Option<Prompt>,
+    dialogs: Dialogs,
     title: String,
     allow_close: bool,
-    about_open: bool,
-    /// Help → Keyboard shortcuts is open.
-    shortcuts_open: bool,
 
     /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
     /// and when there is no home folder.
@@ -336,24 +356,14 @@ impl Default for ChiploadApp {
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
             show_simulation: true,
-            sim_run: None,
-            simulation: None,
-            sim_texture: None,
-            sim_playback_texture: None,
-            sim_full_layer: None,
-            sim_history: None,
+            sim: Sim::default(),
             playback: None,
-            result_serial: 0,
             three_d: false,
             sketch: None,
             measure: None,
             shape_clipboard: Vec::new(),
             shape_draft: None,
-            snap_points: Vec::new(),
-            snapped: None,
-            handle_drag: None,
-            start_drag: None,
-            context_start: None,
+            drag: Drag::default(),
             report: Report::info([
                 "Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into(),
             ]),
@@ -378,11 +388,9 @@ impl Default for ChiploadApp {
             applied_theme: None,
             status: None,
             cursor: None,
-            prompt: None,
+            dialogs: Dialogs::default(),
             title: String::new(),
             allow_close: false,
-            about_open: false,
-            shortcuts_open: false,
             settings_dir: None,
             library: chipload_pipeline::library::Library::default(),
             library_state: LibraryState::default(),
@@ -547,14 +555,14 @@ impl ChiploadApp {
                     .filter(|c| !self.hidden_contours.contains(&c.id))
                     .map(ContourShape::new)
                     .collect();
-                self.snap_points = snap_points(&self.contours);
+                self.drag.snap_points = snap_points(&self.contours);
                 self.drawing_facts = Some(DrawingFacts::new(&imported.report, &self.contours));
             }
             Err(err) => {
                 self.contours.clear();
                 self.hidden_contours.clear();
                 self.scene.contours.clear();
-                self.snap_points.clear();
+                self.drag.snap_points.clear();
                 self.drawing_facts = Some(DrawingFacts::failed(err.to_string()));
             }
         }
@@ -603,7 +611,7 @@ impl ChiploadApp {
 
     /// Start a new, unsaved project with no drawing (docs/specs/new-project.md).
     pub fn new_project(&mut self) {
-        self.prompt = None;
+        self.dialogs.prompt = None;
         self.reload_library();
         let mut job = empty_project();
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
@@ -622,11 +630,11 @@ impl ChiploadApp {
 
     /// Import a DXF as a new, unsaved project. A DXF without units asks for them.
     pub fn import_dxf(&mut self, path: &Path, units: Option<Units>) -> bool {
-        self.prompt = None;
+        self.dialogs.prompt = None;
         let imported = match shapes_from_dxf(path, units) {
             Ok(imported) => imported,
             Err(ImportError::UnitsMissing) => {
-                self.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
+                self.dialogs.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
                 self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(path)
@@ -672,7 +680,7 @@ impl ChiploadApp {
 
     /// [`ChiploadApp::update_from`] for DXF `id` of several (None: the project's only one).
     pub fn update_dxf_from(&mut self, id: Option<u64>, dxf: &Path, units: Option<Units>) -> bool {
-        self.prompt = None;
+        self.dialogs.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
             return false;
@@ -712,7 +720,7 @@ impl ChiploadApp {
                 true
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
-                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Update(id)));
+                self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Update(id)));
                 self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(dxf)
@@ -732,7 +740,7 @@ impl ChiploadApp {
     /// Add `dxf` to the project as another DXF, where its file has it, as one undo step
     /// (docs/specs/drawing-sources.md §2). A DXF without units asks for them.
     pub fn add_dxf_from(&mut self, dxf: &Path, units: Option<Units>) -> bool {
-        self.prompt = None;
+        self.dialogs.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
             return false;
@@ -760,7 +768,7 @@ impl ChiploadApp {
                 true
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
-                self.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Add));
+                self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Add));
                 self.set_report(Report::info([format!(
                     "{} does not say which units it uses; choose mm or inch.",
                     file_name(dxf)
@@ -1377,8 +1385,8 @@ impl ChiploadApp {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
         self.scene.start_markers.clear();
-        self.start_drag = None;
-        self.context_start = None;
+        self.drag.start = None;
+        self.drag.context_start = None;
     }
 
     /// The project changed: the toolpath shown is kept, faded, until a new one replaces it
@@ -1395,8 +1403,8 @@ impl ChiploadApp {
             }
             self.scene.tabs.clear();
             self.scene.start_markers.clear();
-            self.start_drag = None;
-            self.context_start = None;
+            self.drag.start = None;
+            self.drag.context_start = None;
             self.toolpath_stale = true;
         }
         self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
@@ -1426,7 +1434,7 @@ impl ChiploadApp {
     /// Proceed now, or ask first if unsaved changes would be lost.
     fn guard(&mut self, action: Pending) -> bool {
         if self.dirty() {
-            self.prompt = Some(Prompt::Discard(action));
+            self.dialogs.prompt = Some(Prompt::Discard(action));
             false
         } else {
             true
@@ -1498,7 +1506,7 @@ impl eframe::App for ChiploadApp {
         if ctx.input(|i| i.viewport().close_requested()) {
             if self.dirty() && !self.allow_close {
                 ctx.send_viewport_cmd(ViewportCommand::CancelClose);
-                self.prompt = Some(Prompt::Discard(Pending::Close));
+                self.dialogs.prompt = Some(Prompt::Discard(Pending::Close));
             } else if !self.dirty() {
                 self.clear_recovery(); // nothing unsaved: no copy to leave behind
             }
@@ -1565,7 +1573,7 @@ impl eframe::App for ChiploadApp {
             ctx.request_repaint_after(generation::POLL);
         }
         if !busy
-            && self.handle_drag.is_none()
+            && self.drag.handle.is_none()
             && let Some(wait) = self.live_preview(Instant::now())
         {
             ctx.request_repaint_after(wait);

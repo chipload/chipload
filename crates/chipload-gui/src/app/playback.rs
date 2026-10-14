@@ -403,7 +403,7 @@ impl ChiploadApp {
         if playback.at_end() {
             self.scene.progress = None;
             if playback.shown.take().is_some() {
-                self.scene.sim.clone_from(&self.sim_full_layer);
+                self.scene.sim.clone_from(&self.sim.full_layer);
             }
             return;
         }
@@ -427,14 +427,16 @@ impl ChiploadApp {
     /// The canvas's stock after `done` moves and the fraction `along` of the next, from the
     /// simulation's history.
     fn show_stock_after(&mut self, ctx: &egui::Context, done: usize, along: f64) {
-        let (Some(history), Some(sim), Some(full)) =
-            (&self.sim_history, &self.simulation, &self.sim_full_layer)
-        else {
+        let (Some(history), Some(sim), Some(full)) = (
+            &self.sim.history,
+            &self.sim.simulation,
+            &self.sim.full_layer,
+        ) else {
             return;
         };
         let stock = history.at(done, along, &sim.numbers);
         let image = simulation::image_of(&stock);
-        let texture = match &mut self.sim_playback_texture {
+        let texture = match &mut self.sim.playback_texture {
             Some(texture) => {
                 texture.set(image, egui::TextureOptions::LINEAR);
                 texture.id()
@@ -443,7 +445,7 @@ impl ChiploadApp {
                 let texture =
                     ctx.load_texture("simulation-playback", image, egui::TextureOptions::LINEAR);
                 let id = texture.id();
-                self.sim_playback_texture = Some(texture);
+                self.sim.playback_texture = Some(texture);
                 id
             }
         };

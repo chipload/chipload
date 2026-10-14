@@ -104,22 +104,22 @@ impl ChiploadApp {
             if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
             } else {
-                self.start_drag = self.start_marker_at(origin);
+                self.drag.start = self.start_marker_at(origin);
             }
         }
         if response.drag_stopped() {
             self.end_handle_drag();
             self.drop_start();
         }
-        self.snapped = None;
+        self.drag.snapped = None;
         self.scene.snap_mark = None;
-        if let Some(marker) = self.start_drag {
+        if let Some(marker) = self.drag.start {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
                 self.drag_start_to(marker, self.view.to_world(pos));
             }
-        } else if self.handle_drag.is_some() {
+        } else if self.drag.handle.is_some() {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
@@ -199,10 +199,10 @@ impl ChiploadApp {
         }
         if response.secondary_clicked() {
             let at = response.interact_pointer_pos();
-            self.context_start = at.and_then(|pos| self.start_marker_at(pos));
+            self.drag.context_start = at.and_then(|pos| self.start_marker_at(pos));
             self.context_pick = at.and_then(|pos| self.scene.pick(&self.view, pos));
         }
-        let context_start = self.context_start;
+        let context_start = self.drag.context_start;
         let picked = self
             .context_pick
             .and_then(|id| self.contours.iter().find(|c| c.id == id));
@@ -415,8 +415,15 @@ impl ChiploadApp {
             None => BTreeSet::new(),
         };
         let step = grid_step(self.view.scale);
-        let (p, hit) = snap_cursor(at, &self.snap_points, &skip, self.view.scale, step, free);
-        self.snapped = Some((p, hit));
+        let (p, hit) = snap_cursor(
+            at,
+            &self.drag.snap_points,
+            &skip,
+            self.view.scale,
+            step,
+            free,
+        );
+        self.drag.snapped = Some((p, hit));
         self.scene.snap_mark = hit.map(|h| h.at);
         p
     }
@@ -425,7 +432,7 @@ impl ChiploadApp {
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
             return;
         };
-        self.handle_drag = Some(HandleDrag {
+        self.drag.handle = Some(HandleDrag {
             handle,
             layer: shape.layer.clone(),
             start: shape.geometry.clone(),
@@ -435,7 +442,7 @@ impl ChiploadApp {
     /// Move the dragged handle to `to`. A position that would make the shape invalid
     /// leaves it as it was last valid; the form says why.
     pub fn drag_handle_to(&mut self, to: Point, bend: bool) {
-        let Some(drag) = self.handle_drag.clone() else {
+        let Some(drag) = self.drag.handle.clone() else {
             return;
         };
         let refused = match try_drag(&drag.start, drag.handle, [to.0, to.1], bend) {
@@ -451,7 +458,7 @@ impl ChiploadApp {
     }
 
     pub fn end_handle_drag(&mut self) {
-        if self.handle_drag.take().is_some()
+        if self.drag.handle.take().is_some()
             && let Some(draft) = self.shape_draft.as_mut()
         {
             draft.error = None;
@@ -482,7 +489,7 @@ impl ChiploadApp {
 
     /// Move a start marker along its ring, towards `to` (drawing coordinates).
     pub fn drag_start_to(&mut self, marker: usize, to: Point) {
-        self.start_drag = Some(marker);
+        self.drag.start = Some(marker);
         if let Some(m) = self.scene.start_markers.get_mut(marker) {
             m.move_to(to);
         }
@@ -491,7 +498,7 @@ impl ChiploadApp {
     /// Store where the dragged marker was left as the ring's start point, and generate
     /// again so the toolpath starts there.
     pub fn drop_start(&mut self) {
-        let Some(marker) = self.start_drag.take() else {
+        let Some(marker) = self.drag.start.take() else {
             return;
         };
         let Some(m) = self.scene.start_markers.get(marker).cloned() else {

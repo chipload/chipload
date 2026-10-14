@@ -118,7 +118,7 @@ impl ChiploadApp {
     }
 
     pub(super) fn about(&mut self, ctx: &egui::Context) {
-        let mut open = self.about_open;
+        let mut open = self.dialogs.about_open;
         egui::Window::new("About Chipload")
             .open(&mut open)
             .default_size([640.0, 520.0])
@@ -151,11 +151,11 @@ impl ChiploadApp {
                             });
                     });
             });
-        self.about_open = open;
+        self.dialogs.about_open = open;
     }
 
     pub(super) fn prompts(&mut self, ctx: &egui::Context) {
-        let Some(prompt) = self.prompt.clone() else {
+        let Some(prompt) = self.dialogs.prompt.clone() else {
             return;
         };
         match prompt {
@@ -186,7 +186,7 @@ impl ChiploadApp {
                                 }
                             }
                             if ui.button("Cancel").clicked() {
-                                self.prompt = None;
+                                self.dialogs.prompt = None;
                                 self.error(vec![
                                     "Drawing not imported: its units are unknown.".into(),
                                 ]);
@@ -233,18 +233,18 @@ impl ChiploadApp {
                 }
                 match answer {
                     Some(Unsaved::Save) => {
-                        self.prompt = None;
+                        self.dialogs.prompt = None;
                         // Cancelled or failed: stay, with the changes (an error says why).
                         if self.ask_save(false) {
                             self.run_pending(action, ctx);
                         }
                     }
                     Some(Unsaved::Discard) => {
-                        self.prompt = None;
+                        self.dialogs.prompt = None;
                         self.saved.clone_from(&self.edit); // nothing left to protect
                         self.run_pending(action, ctx);
                     }
-                    Some(Unsaved::Cancel) => self.prompt = None,
+                    Some(Unsaved::Cancel) => self.dialogs.prompt = None,
                     None => {}
                 }
             }
@@ -283,7 +283,7 @@ impl ChiploadApp {
                 }
             });
         });
-        self.prompt = (!done).then_some(Prompt::Path(purpose, text));
+        self.dialogs.prompt = (!done).then_some(Prompt::Path(purpose, text));
         let Some(path) = chosen else {
             return;
         };

@@ -275,7 +275,8 @@ impl ChiploadApp {
                 }
             }
             Some(PanelAction::UpdatePath(dxf)) => {
-                self.prompt = Some(Prompt::Path(PathPurpose::UpdateDxf(dxf), String::new()));
+                self.dialogs.prompt =
+                    Some(Prompt::Path(PathPurpose::UpdateDxf(dxf), String::new()));
             }
             Some(PanelAction::RemoveDxf(dxf)) => {
                 self.remove_dxf(dxf);

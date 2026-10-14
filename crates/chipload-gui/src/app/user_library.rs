@@ -527,7 +527,8 @@ impl ChiploadApp {
                         .find(|t| t.id == id)
                         .and_then(|t| t.name.clone()),
                 });
-                self.prompt = Some(Prompt::LibraryName(target, current.unwrap_or_default()));
+                self.dialogs.prompt =
+                    Some(Prompt::LibraryName(target, current.unwrap_or_default()));
             }
             LibraryRequest::SaveLinked(target) => {
                 self.save_to_linked(target);
@@ -852,7 +853,7 @@ impl ChiploadApp {
                     }
                 });
             });
-        self.prompt = (!done).then(|| Prompt::LibraryName(target, text.clone()));
+        self.dialogs.prompt = (!done).then(|| Prompt::LibraryName(target, text.clone()));
         if save {
             self.save_to_library(target, &text);
         }

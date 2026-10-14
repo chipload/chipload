@@ -84,10 +84,10 @@ impl ChiploadApp {
             self.import_image_dialog();
         }
         if ui.button("Open path…").clicked() {
-            self.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
+            self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
         }
         if ui.button("Import image from path…").clicked() {
-            self.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
+            self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
         }
         ui.separator();
         let (update, update_path) = self.update_labels();
@@ -106,7 +106,7 @@ impl ChiploadApp {
             .on_disabled_hover_text(several)
             .clicked()
         {
-            self.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
+            self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
         }
         let adding = has_job && self.dxf_count() > 0;
         if ui
@@ -120,7 +120,7 @@ impl ChiploadApp {
             .add_enabled(adding, egui::Button::new("Add DXF from path…"))
             .clicked()
         {
-            self.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
+            self.dialogs.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
         }
         ui.separator();
         if ui
@@ -142,7 +142,7 @@ impl ChiploadApp {
             .add_enabled(has_job, egui::Button::new("Save to path…"))
             .clicked()
         {
-            self.prompt = Some(Prompt::Path(
+            self.dialogs.prompt = Some(Prompt::Path(
                 PathPurpose::Save,
                 self.default_project_path().display().to_string(),
             ));
@@ -161,7 +161,7 @@ impl ChiploadApp {
             .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
             .clicked()
         {
-            self.prompt = Some(Prompt::Path(
+            self.dialogs.prompt = Some(Prompt::Path(
                 PathPurpose::Export,
                 self.default_export_path().display().to_string(),
             ));
@@ -370,10 +370,10 @@ impl ChiploadApp {
             .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
             .clicked()
         {
-            self.shortcuts_open = true;
+            self.dialogs.shortcuts_open = true;
         }
         if ui.button("About and licences").clicked() {
-            self.about_open = true;
+            self.dialogs.about_open = true;
         }
     }
 
@@ -492,7 +492,7 @@ impl ChiploadApp {
 
     /// The status bar's left side: what is going on, a message, or a hint.
     fn status_message(&mut self, ui: &mut egui::Ui) {
-        let snapped = self.snapped.map(|(p, hit)| {
+        let snapped = self.drag.snapped.map(|(p, hit)| {
             let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
             (p, name)
         });
@@ -506,7 +506,7 @@ impl ChiploadApp {
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
             let step = grid_step(self.view.scale);
             ui.label(format!("{}{name}", sketch.status(*at, step)));
-        } else if let (Some(_), Some((at, name))) = (&self.handle_drag, &snapped) {
+        } else if let (Some(_), Some((at, name))) = (&self.drag.handle, &snapped) {
             ui.label(format!(
                 "Dragging to ({:.3}, {:.3}){name} (Alt: no snapping; Shift on a middle \
                  bends the segment)",
