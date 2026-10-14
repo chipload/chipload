@@ -43,7 +43,7 @@ chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
-chipload shape delete part.chipload 8
+chipload shape remove part.chipload 8
 ```
 
 Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1

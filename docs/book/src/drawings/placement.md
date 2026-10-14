@@ -15,7 +15,8 @@ Each row has a reset button: the position back to where the DXF has it, rotation
 A change applies when you finish the edit (Enter, Tab or releasing a drag), as one undo
 step.
 
-On the command line, `chipload place`:
+On the command line, `chipload place` (for a picture, `--image ID` with `--at`, `--rotate`
+and `--width`):
 
 | | Command line |
 |---|---|

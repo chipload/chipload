@@ -346,7 +346,7 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
         &["shape", "set", p, "4", "--bulges", "0"],
         "--bulges doesn't apply to a circle",
     );
-    ok(&["shape", "delete", p, "7"]);
+    ok(&["shape", "remove", p, "7"]);
 
     // Deleting a shape an operation uses: written, the operation is flagged, exit code 1.
     let out = chipload(&["shape", "delete", p, "2"]);

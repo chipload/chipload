@@ -125,6 +125,7 @@ chipload image add part.chipload logo.png --width 120 --at 10,10 --threshold aut
 chipload image add part.chipload signature.png --width 80 --trace centre-line
 chipload image set part.chipload 1 --threshold 140 --blur 2 --invert true --arcs false
 chipload image set part.chipload 1 --rotate 30         # turned 30° about its centre
+chipload place part.chipload --image 1 --at 10,10      # as for a DXF: --at, --rotate, --width
 chipload image list part.chipload
 chipload image preview part.chipload 1 -o bw.png
 chipload image remove part.chipload 1

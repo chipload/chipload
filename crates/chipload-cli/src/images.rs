@@ -298,6 +298,41 @@ fn add(
     }
 }
 
+/// `place --image`: the picture's lower-left corner, its turn (degrees counter-clockwise,
+/// any angle) and its width; traced again, as `image set` does.
+pub fn place_image(
+    out: &mut Out,
+    project: &Path,
+    id: u64,
+    at: Option<(f64, f64)>,
+    rotate: Option<f64>,
+    width: Option<f64>,
+    output: Option<&Path>,
+) -> ExitCode {
+    let change = |job: &mut Job| -> Result<(), String> {
+        let image = job
+            .drawing
+            .images
+            .iter_mut()
+            .find(|i| i.id == id)
+            .ok_or_else(|| format!("there is no image {id}"))?;
+        if let Some((x, y)) = at {
+            (image.x, image.y) = (x, y);
+        }
+        if let Some(degrees) = rotate {
+            if !degrees.is_finite() {
+                return Err(format!("--rotate takes degrees, got {degrees}"));
+            }
+            image.rotation = degrees.rem_euclid(360.0);
+        }
+        if let Some(width) = width {
+            image.width = width;
+        }
+        Ok(())
+    };
+    set(out, project, id, change, output)
+}
+
 fn set(
     out: &mut Out,
     project: &Path,

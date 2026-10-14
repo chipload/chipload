@@ -81,7 +81,7 @@ chipload shape add part.chipload circle --center 50,30 --radius 12.5 [--layer L]
 chipload shape add part.chipload rectangle --center 0,0 --length 80 --width 40 [--angle-deg 30]
 chipload shape add part.chipload polyline --points "0,0 40,0 20,30" [--open]
 chipload shape set part.chipload 7 --radius 15          # any defining value, or --layer
-chipload shape delete part.chipload 7
+chipload shape remove part.chipload 7
 chipload inspect part.chipload                          # lists shapes with kind and values
 ```
 

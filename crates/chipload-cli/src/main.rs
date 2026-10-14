@@ -320,8 +320,12 @@ enum Command {
         )]
         reset: bool,
         /// Which DXF of the project (as `dxf list` shows); needed when it has several.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "image")]
         dxf: Option<u64>,
+        /// A picture of the project instead (as `image list` shows it): --at, --rotate and
+        /// --width apply, as `image set`.
+        #[arg(long)]
+        image: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -418,7 +422,8 @@ enum OpAction {
     Tool {
         /// The project (.chipload).
         project: PathBuf,
-        /// The operation, 1-based as listed.
+        /// The operation's number as the app lists it (1 = first; `get` and `set` paths
+        /// count from 0).
         #[arg(long)]
         op: usize,
         /// The tool's id in the project.
@@ -433,7 +438,8 @@ enum OpAction {
     AddRest {
         /// The project (.chipload).
         project: PathBuf,
-        /// The pocket, 1-based as listed.
+        /// The pocket's number as the app lists it (1 = first; `get` and `set` paths count
+        /// from 0).
         #[arg(long)]
         op: usize,
         /// The smaller tool's id in the project.
@@ -448,7 +454,8 @@ enum OpAction {
     Part {
         /// The project (.chipload).
         project: PathBuf,
-        /// The operation, 1-based as listed.
+        /// The operation's number as the app lists it (1 = first; `get` and `set` paths
+        /// count from 0).
         #[arg(long)]
         op: usize,
         /// The part's id (as `part list` shows it).
@@ -462,7 +469,8 @@ enum OpAction {
     Rest {
         /// The project (.chipload).
         project: PathBuf,
-        /// The pocket, 1-based as listed.
+        /// The pocket's number as the app lists it (1 = first; `get` and `set` paths count
+        /// from 0).
         #[arg(long)]
         op: usize,
         /// The larger tool's id in the project.
@@ -502,8 +510,9 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Delete a drawn shape. Operations that used it are flagged.
-    Delete {
+    /// Remove a drawn shape. Operations that used it are flagged.
+    #[command(alias = "delete")]
+    Remove {
         /// The project (.chipload).
         project: PathBuf,
         id: u64,
@@ -727,6 +736,7 @@ fn main() -> ExitCode {
             height,
             reset,
             dxf,
+            image,
             output,
         } => place(
             &mut out,
@@ -743,6 +753,7 @@ fn main() -> ExitCode {
                 height,
                 reset,
                 dxf,
+                image,
             },
             output.as_deref(),
         ),
@@ -1005,9 +1016,13 @@ struct PlaceArgs {
     height: Option<f64>,
     reset: bool,
     dxf: Option<u64>,
+    image: Option<u64>,
 }
 
 fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
+    if let Some(id) = args.image {
+        return place_image(out, project, id, args, output);
+    }
     let job = match load_job(project) {
         Ok(job) => job,
         Err(err) => return out.fail(err),
@@ -1068,6 +1083,36 @@ fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) 
     }
     out.wrote(target, "");
     ExitCode::SUCCESS
+}
+
+/// `place --image`: a picture's corner, turn and width, as `image set` sets them
+/// (docs/specs/direct-placement.md).
+fn place_image(
+    out: &mut Out,
+    project: &Path,
+    id: u64,
+    args: PlaceArgs,
+    output: Option<&Path>,
+) -> ExitCode {
+    let others = args.by.is_some()
+        || args.to.is_some()
+        || args.align.is_some()
+        || args.margin.is_some()
+        || args.scale.is_some()
+        || args.height.is_some()
+        || args.reset;
+    if others {
+        return out.fail("with --image, place takes --at, --rotate and --width (as `image set`)");
+    }
+    let at = match args.at.as_deref().map(point_arg) {
+        Some(Ok(p)) => Some((p[0], p[1])),
+        Some(Err(err)) => return out.fail(err),
+        None => None,
+    };
+    if at.is_none() && args.rotate.is_none() && args.width.is_none() {
+        return out.fail("with --image, say what to change: --at, --rotate or --width");
+    }
+    images::place_image(out, project, id, at, args.rotate, args.width, output)
 }
 
 /// The moves `place` was asked for, in order: a turn, a scale, then a move or an alignment.
@@ -1178,7 +1223,7 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Set {
             project, output, ..
         }
-        | ShapeAction::Delete {
+        | ShapeAction::Remove {
             project, output, ..
         }
         | ShapeAction::Copy {
@@ -1219,7 +1264,7 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 set_shape(&job, id, &layer, geometry)
             })
             .map(|job| (job, vec![format!("Changed shape S{id}.")])),
-        ShapeAction::Delete { id, .. } => delete_shape(&job, id).map(|(job, flagged)| {
+        ShapeAction::Remove { id, .. } => delete_shape(&job, id).map(|(job, flagged)| {
             flagged_ops = flagged.len();
             let mut lines = vec![format!("Deleted shape S{id}.")];
             lines.extend(flagged.into_iter().map(|l| format!("warning: {l}")));

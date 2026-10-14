@@ -165,7 +165,7 @@ chipload op tool <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--op <OP>` | The operation, 1-based as listed. Required. |
+| `--op <OP>` | The operation's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--tool <TOOL>` | The tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
@@ -180,7 +180,7 @@ chipload op add-rest <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--op <OP>` | The pocket, 1-based as listed. Required. |
+| `--op <OP>` | The pocket's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--tool <TOOL>` | The smaller tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
@@ -195,7 +195,7 @@ chipload op part <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--op <OP>` | The operation, 1-based as listed. Required. |
+| `--op <OP>` | The operation's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--part <PART>` | The part's id (as `part list` shows it) Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
@@ -210,7 +210,7 @@ chipload op rest <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--op <OP>` | The pocket, 1-based as listed. Required. |
+| `--op <OP>` | The pocket's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--after-tool <AFTER_TOOL>` | The larger tool's id in the project. |
 | `--none` | Clear the whole pocket again. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
@@ -269,12 +269,12 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--layer <LAYER>` |  |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
-### `chipload shape delete`
+### `chipload shape remove`
 
-Delete a drawn shape. Operations that used it are flagged
+Remove a drawn shape. Operations that used it are flagged
 
 ```text
-chipload shape delete <PROJECT> <ID> [OPTIONS]
+chipload shape remove <PROJECT> <ID> [OPTIONS]
 ```
 
 | Argument | Meaning |
@@ -903,6 +903,7 @@ chipload place <PROJECT> [OPTIONS]
 | `--height <HEIGHT>` | Scale it about its centre until it is this high, mm (the width follows) |
 | `--reset` | Back to where the DXF has it: no turn, no scale, no move. |
 | `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
+| `--image <IMAGE>` | A picture of the project instead (as `image list` shows it): --at, --rotate and --width apply, as `image set`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload licenses`
