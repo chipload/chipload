@@ -28,8 +28,9 @@ use chipload_dxf::{
 };
 use chipload_job::library::Cutting;
 use chipload_job::{
-    CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, Spindle, Stock,
-    StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, RestRefusal, Spindle,
+    Stock, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    rest_refusal,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
@@ -202,14 +203,18 @@ pub fn rest_pocket_of(
     let small = find_tool(tools, tool).ok_or_else(|| format!("the project has no tool {tool}"))?;
     let large = find_tool(tools, pocket.tool)
         .ok_or_else(|| format!("the project has no tool {}", pocket.tool))?;
-    if small.kind != ToolType::Endmill {
-        return Err(format!("tool {tool} is not an endmill"));
-    }
-    if small.diameter >= large.diameter {
-        return Err(format!(
-            "tool {tool} ({} mm) is not smaller than the pocket's tool {} ({} mm)",
-            small.diameter, large.id, large.diameter
-        ));
+    match rest_refusal(small, large) {
+        Some(RestRefusal::SmallNotEndmill) => return Err(format!("tool {tool} is not an endmill")),
+        Some(RestRefusal::LargeNotEndmill) => {
+            return Err(format!("the pocket's tool {} is not an endmill", large.id));
+        }
+        Some(RestRefusal::NotLarger) => {
+            return Err(format!(
+                "tool {tool} ({} mm) is not smaller than the pocket's tool {} ({} mm)",
+                small.diameter, large.id, large.diameter
+            ));
+        }
+        None => {}
     }
     let entry = match pocket.entry {
         Entry::Helix { .. } => Entry::default_helix(small.diameter),

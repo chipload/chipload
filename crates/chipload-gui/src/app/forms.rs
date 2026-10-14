@@ -8,7 +8,9 @@ use crate::editor::DEFAULT_STEP_DOWN;
 use chipload_core::text::mm as len;
 use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
-use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
+use chipload_job::{
+    DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool, rest_refusal,
+};
 use chipload_job::{
     Finish, HoleMethod, HolesOp, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
@@ -781,7 +783,6 @@ fn rest_row(
         "Clear only what a larger tool leaves in these shapes: the corners it leaves round \
          and the slots it doesn't fit in. Cut the pocket with that tool first",
     );
-    let diameter = tool.map_or(0.0, |t| t.diameter);
     let name = |t: &Tool| format!("T{} · {} mm endmill", t.id, len(t.diameter));
     let selected = match rest {
         None => "none".to_string(),
@@ -796,7 +797,7 @@ fn rest_row(
             if ui.selectable_label(rest.is_none(), "none").clicked() {
                 *rest = None;
             }
-            for t in rest_choices(tools, diameter) {
+            for t in rest_choices(tools, tool) {
                 let chosen = rest.is_some_and(|r| r.after_tool == t.id);
                 if ui.selectable_label(chosen, name(t)).clicked() {
                     *rest = Some(Rest { after_tool: t.id });
@@ -808,12 +809,12 @@ fn rest_row(
     ui.end_row();
 }
 
-/// The tools a pocket cutting with a tool of `diameter` can rest machine after: the
-/// project's endmills larger than it.
-fn rest_choices(tools: &[Tool], diameter: f64) -> impl Iterator<Item = &Tool> {
+/// The tools a pocket cutting with `small` can rest machine after: the project's endmills
+/// larger than it (the project's rule, docs/specs/rest-machining.md §5).
+fn rest_choices<'a>(tools: &'a [Tool], small: Option<&'a Tool>) -> impl Iterator<Item = &'a Tool> {
     tools
         .iter()
-        .filter(move |t| t.kind == ToolType::Endmill && t.diameter > diameter)
+        .filter(move |t| small.is_some_and(|small| rest_refusal(small, t).is_none()))
 }
 
 /// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7). `allowed`: false
@@ -2461,10 +2462,15 @@ mod tests {
             tool(4, ToolType::Vbit, 12.7),
             tool(5, ToolType::Endmill, 6.0),
         ];
-        let ids = |d: f64| rest_choices(&tools, d).map(|t| t.id).collect::<Vec<_>>();
+        let ids = |d: f64| {
+            rest_choices(&tools, Some(&tool(9, ToolType::Endmill, d)))
+                .map(|t| t.id)
+                .collect::<Vec<_>>()
+        };
         assert_eq!(ids(3.0), [1, 5]);
         assert_eq!(ids(6.0), [1]);
         assert!(ids(12.0).is_empty());
+        assert!(rest_choices(&tools, None).next().is_none());
     }
 
     #[test]

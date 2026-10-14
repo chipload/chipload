@@ -8,10 +8,11 @@ use chipload_core::primitives::Primitive;
 use chipload_core::text::mm;
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, Operation, Part,
-    PathOp, PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
+    PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
+    rest_refusal,
 };
 
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
@@ -111,221 +112,39 @@ pub fn plan_job_cancellable(
     cancel: &Cancel,
 ) -> Result<Plan, ToolpathError> {
     let mut notes = validate_job(job)?;
-    let top_z = job.stock.top_z();
-    let mut moves: Vec<Move> = Vec::new();
-    let mut tabs: Vec<Vec<Point>> = Vec::new();
-    let mut pockets: Vec<PocketPiece> = Vec::new();
-    let mut op_spans: Vec<OpSpan> = Vec::new();
-    let mut ring_starts: Vec<RingStart> = Vec::new();
-    let mut arcs = ArcTable::default();
+    let chosen = select_all(job, contours)?;
+    let (steps, mut groups) = cut_order(job, &chosen)?;
+    let mut gathered = Gathered::default();
     let mut position: Point = (0.0, 0.0);
-    // Every enabled operation's selection, chosen once on the drawing as drawn.
-    let mut chosen: Vec<(usize, String, Selection)> = Vec::new();
-    for (index, op) in job.operations.iter().enumerate() {
-        if !job.cuts(index) {
-            continue; // kept in the file, skipped here; numbering stays as listed
-        }
-        let label = op.label(index);
-        let selection = match op {
-            // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
-            _ => select_contours(contours, op.select(), &label),
-        }
-        .map_err(|err| err.at(index))?;
-        chosen.push((index, label, selection));
-    }
-    // (operation, copy number, shift) in cut order: part by part (docs/specs/parts.md §3),
-    // each part with its copies (docs/specs/copies-grid.md §3), tool group by tool group
-    // (docs/specs/tool-per-operation.md §2). A part's copies' order applies within a group,
-    // so a grid needs one tool change, not one per copy.
-    let mut order: Vec<(usize, u32, Point)> = Vec::new();
-    let mut group_of: Vec<usize> = Vec::new();
-    let mut groups: Vec<ToolGroup> = Vec::new();
-    for (tool_id, indexes) in tool_groups(job) {
-        let tool = job
-            .tool(tool_id)
-            .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
-        let members: Vec<usize> = (0..chosen.len())
-            .filter(|i| indexes.contains(&chosen[*i].0))
-            .collect();
-        let before = order.len();
-        // A group can run on from one part into the next: each part's run with its copies.
-        let mut runs: Vec<Vec<usize>> = Vec::new();
-        for i in members {
-            let part = job.operations[chosen[i].0].part();
-            match runs.last_mut() {
-                Some(run) if job.operations[chosen[run[0]].0].part() == part => run.push(i),
-                _ => runs.push(vec![i]),
-            }
-        }
-        for run in runs {
-            let part = job.part_of(&job.operations[chosen[run[0]].0]);
-            let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
-            match part.and_then(|p| p.copies).map(|c| c.order) {
-                Some(CopyOrder::ByCopy) => {
-                    for &(number, shift) in &copies {
-                        order.extend(run.iter().map(|i| (*i, number, shift)));
-                    }
-                }
-                _ => {
-                    for i in &run {
-                        order.extend(copies.iter().map(|&(number, shift)| (*i, number, shift)));
-                    }
-                }
-            }
-        }
-        group_of.extend(std::iter::repeat_n(groups.len(), order.len() - before));
-        groups.push(ToolGroup {
-            tool: tool.clone(),
-            operations: indexes,
-            moves: 0..0,
-        });
-    }
-    // Every copy repeats the original's notes: each is listed once per operation.
-    let mut seen: Vec<(usize, String)> = Vec::new();
-    // With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
-    let mut comments: Vec<String> = Vec::new();
-    let mut part_started: Option<u64> = None;
-    let mut started: Vec<usize> = Vec::new();
-    for (step, (i, number, offset)) in order.into_iter().enumerate() {
+    for step in &steps {
         cancel.check()?;
-        let (index, label, selection) = &chosen[i];
-        let group = &mut groups[group_of[step]];
+        let Chosen {
+            index, selection, ..
+        } = &chosen[step.chosen];
+        let group = &mut groups[step.group];
         if group.moves.is_empty() {
-            group.moves = moves.len()..moves.len();
+            group.moves = gathered.moves.len()..gathered.moves.len();
         }
         let tool = op_tool(job, &job.operations[*index]).map_err(|err| err.at(*index))?;
-        if !started.contains(index) {
-            started.push(*index);
+        if !gathered.started.contains(index) {
+            gathered.started.push(*index);
             notes.extend(selection.notes.iter().map(|n| Note::at(*index, n.clone())));
         }
-        let op = &job.operations[*index];
-        let part = job.part_of(op);
-        let several = part.is_some_and(|p| p.count() > 1);
-        let (start_depth, end_depth) = op.depths();
-        // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
-        let pass_z: Vec<f64> = match op {
-            Operation::Profile(ProfileOp { step_down, .. })
-            | Operation::Pocket(PocketOp { step_down, .. })
-            | Operation::Path(PathOp { step_down, .. }) => {
-                pass_depths(start_depth, end_depth, *step_down)?
-                    .into_iter()
-                    .map(|d| top_z - d)
-                    .collect()
-            }
-            Operation::Vcarve(_) => Vec::new(),
-            // A drill's pecks (docs/specs/holes.md §3); a bore goes to the end in one helix.
-            Operation::Holes(HolesOp {
-                method: HoleMethod::Drill { peck },
-                ..
-            }) => pass_depths(
-                start_depth,
-                end_depth,
-                peck.unwrap_or(end_depth - start_depth),
-            )?
-            .into_iter()
-            .map(|d| top_z - d)
-            .collect(),
-            Operation::Holes(_) => vec![top_z - end_depth],
-        };
-        // Leads keep clear of every contour of the drawing (moved with the copy).
-        // Dogbone legs keep clear of them too (docs/specs/dogbones.md §6).
-        let everything: Vec<Contour> = if op.lead().is_some() || op.corners().is_some() {
-            contours.iter().map(|c| c.translated(offset)).collect()
-        } else {
-            Vec::new()
-        };
-        let context = Context {
-            label,
-            tool,
-            job,
-            pass_z: &pass_z,
-            top_z: top_z - start_depth,
-            everything: &everything,
-            cancel,
-        };
-        // A copy is planned from its own, moved contours: built and verified like the
-        // original.
-        let moved: Vec<Contour> = selection
-            .contours
-            .iter()
-            .map(|c| c.translated(offset))
-            .collect();
-        let shifted = Selection {
-            contours: moved.iter().collect(),
-            notes: Vec::new(),
-        };
-        let starts: Vec<Point> = op
-            .starts()
-            .iter()
-            .map(|p| (p[0] + offset.0, p[1] + offset.1))
-            .collect();
-        let planned = match op {
-            Operation::Pocket(pocket) => {
-                plan_pocket_op(pocket, &context, &shifted, position, &starts)
-            }
-            Operation::Profile(profile) => {
-                plan_profile_op(profile, &context, &shifted, position, &starts)
-            }
-            Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
-            Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
-            Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
-        };
-        let planned = match planned {
-            Ok(planned) => planned,
-            Err(err) if several && job.parts.len() > 1 => {
-                let name = part.map_or("", |p| p.name.as_str());
-                return Err(err
-                    .with_context(&format!("part {name}, copy {number}"))
-                    .at(*index));
-            }
-            Err(err) if several => {
-                return Err(err.with_context(&format!("copy {number}")).at(*index));
-            }
-            Err(err) => return Err(err.at(*index)),
-        };
-        let first = moves.len();
-        moves.extend(planned.moves);
-        if job.parts.len() > 1
-            && part_started != Some(op.part())
-            && let (Some(part), Some(start)) = (part, moves.get_mut(first))
-        {
-            part_started = Some(op.part());
-            let copies = match part.count() {
-                1 => String::new(),
-                n => format!(", {n} copies"),
-            };
-            let number = job.parts.iter().position(|p| p.id == part.id).unwrap_or(0) + 1;
-            start.comment = u32::try_from(comments.len()).ok();
-            comments.push(format!("Part {number}: {}{copies}", part.name));
-        }
-        op_spans.push(OpSpan {
-            operation: *index,
-            copy: number,
-            moves: first..moves.len(),
-            tool_radius: tool.diameter / 2.0,
-        });
-        groups[group_of[step]].moves.end = moves.len();
-        for note in planned.notes {
-            let key = (*index, note);
-            if !seen.contains(&key) {
-                notes.push(Note::at(*index, key.1.clone()));
-                seen.push(key);
-            }
-        }
-        tabs.extend(planned.tabs);
-        pockets.extend(planned.pockets);
-        // Start markers are drawn on the part: the copies' are the same.
-        if number == 1 {
-            ring_starts.extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
-                operation: *index,
-                ring,
-                stored,
-            }));
-        }
-        arcs.extend(planned.arcs);
+        let planned = plan_step(job, contours, cancel, &chosen[step.chosen], step, position)?;
         position = planned.end;
+        gathered.add(job, step, *index, tool.diameter / 2.0, planned, &mut notes);
+        groups[step.group].moves.end = gathered.moves.len();
     }
+    let Gathered {
+        mut moves,
+        tabs,
+        pockets,
+        op_spans,
+        ring_starts,
+        arcs,
+        comments,
+        ..
+    } = gathered;
     check_parts_apart(job, &moves, &op_spans)?;
     let first = groups
         .first()
@@ -349,6 +168,281 @@ pub fn plan_job_cancellable(
         ring_starts,
         groups,
     })
+}
+
+/// An enabled operation with its selection, chosen once on the drawing as drawn.
+struct Chosen<'a> {
+    /// Index in `job.operations`.
+    index: usize,
+    label: String,
+    selection: Selection<'a>,
+}
+
+/// Every enabled operation's selection (docs/specs/v0-profile-pipeline.md §3).
+fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>, ToolpathError> {
+    let mut chosen = Vec::new();
+    for (index, op) in job.operations.iter().enumerate() {
+        if !job.cuts(index) {
+            continue; // kept in the file, skipped here; numbering stays as listed
+        }
+        let label = op.label(index);
+        let selection = match op {
+            // Holes take every matching shape and skip what isn't a circle with a note.
+            Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
+            _ => select_contours(contours, op.select(), &label),
+        }
+        .map_err(|err| err.at(index))?;
+        chosen.push(Chosen {
+            index,
+            label,
+            selection,
+        });
+    }
+    Ok(chosen)
+}
+
+/// One step of the cut order: an operation planned for one copy of its part.
+struct Step {
+    /// Index in the chosen operations.
+    chosen: usize,
+    /// Which copy of the part (docs/specs/copies-grid.md): 1 is the drawing as drawn.
+    copy: u32,
+    /// How far the copy is moved from the drawing.
+    shift: Point,
+    /// Index in the tool groups.
+    group: usize,
+}
+
+/// The cut order: part by part (docs/specs/parts.md §3), each part with its copies
+/// (docs/specs/copies-grid.md §3), tool group by tool group
+/// (docs/specs/tool-per-operation.md §2). A part's copies' order applies within a group,
+/// so a grid needs one tool change, not one per copy. The groups' move ranges are empty
+/// until planned.
+fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>), ToolpathError> {
+    let mut steps: Vec<Step> = Vec::new();
+    let mut groups: Vec<ToolGroup> = Vec::new();
+    for (tool_id, indexes) in tool_groups(job) {
+        let tool = job
+            .tool(tool_id)
+            .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
+        let members: Vec<usize> = (0..chosen.len())
+            .filter(|i| indexes.contains(&chosen[*i].index))
+            .collect();
+        // A group can run on from one part into the next: each part's run with its copies.
+        let mut runs: Vec<Vec<usize>> = Vec::new();
+        for i in members {
+            let part = job.operations[chosen[i].index].part();
+            match runs.last_mut() {
+                Some(run) if job.operations[chosen[run[0]].index].part() == part => run.push(i),
+                _ => runs.push(vec![i]),
+            }
+        }
+        let group = groups.len();
+        for run in runs {
+            let part = job.part_of(&job.operations[chosen[run[0]].index]);
+            let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
+            let step = |i: usize, (copy, shift): (u32, Point)| Step {
+                chosen: i,
+                copy,
+                shift,
+                group,
+            };
+            match part.and_then(|p| p.copies).map(|c| c.order) {
+                Some(CopyOrder::ByCopy) => {
+                    for &copy in &copies {
+                        steps.extend(run.iter().map(|&i| step(i, copy)));
+                    }
+                }
+                _ => {
+                    for &i in &run {
+                        steps.extend(copies.iter().map(|&copy| step(i, copy)));
+                    }
+                }
+            }
+        }
+        groups.push(ToolGroup {
+            tool: tool.clone(),
+            operations: indexes,
+            moves: 0..0,
+        });
+    }
+    Ok((steps, groups))
+}
+
+/// The Z of every depth pass of `op`, going down from the stock top at `top_z`.
+fn pass_heights(op: &Operation, top_z: f64) -> Result<Vec<f64>, ToolpathError> {
+    let (start_depth, end_depth) = op.depths();
+    let heights = |depths: Vec<f64>| depths.into_iter().map(|d| top_z - d).collect();
+    Ok(match op {
+        Operation::Profile(ProfileOp { step_down, .. })
+        | Operation::Pocket(PocketOp { step_down, .. })
+        | Operation::Path(PathOp { step_down, .. }) => {
+            heights(pass_depths(start_depth, end_depth, *step_down)?)
+        }
+        // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
+        Operation::Vcarve(_) => Vec::new(),
+        // A drill's pecks (docs/specs/holes.md §3); a bore goes to the end in one helix.
+        Operation::Holes(HolesOp {
+            method: HoleMethod::Drill { peck },
+            ..
+        }) => heights(pass_depths(
+            start_depth,
+            end_depth,
+            peck.unwrap_or(end_depth - start_depth),
+        )?),
+        Operation::Holes(_) => vec![top_z - end_depth],
+    })
+}
+
+/// One step planned: the operation on its copy's moved contours, built and verified like
+/// the original. An error names the copy and is marked as the operation's.
+fn plan_step(
+    job: &Job,
+    contours: &[Contour],
+    cancel: &Cancel,
+    chosen: &Chosen,
+    step: &Step,
+    position: Point,
+) -> Result<Planned, ToolpathError> {
+    let index = chosen.index;
+    let op = &job.operations[index];
+    let tool = op_tool(job, op).map_err(|err| err.at(index))?;
+    let top_z = job.stock.top_z();
+    let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
+    let (start_depth, _) = op.depths();
+    let shift = step.shift;
+    // Leads keep clear of every contour of the drawing (moved with the copy).
+    // Dogbone legs keep clear of them too (docs/specs/dogbones.md §6).
+    let everything: Vec<Contour> = if op.lead().is_some() || op.corners().is_some() {
+        contours.iter().map(|c| c.translated(shift)).collect()
+    } else {
+        Vec::new()
+    };
+    let context = Context {
+        label: &chosen.label,
+        tool,
+        job,
+        pass_z: &pass_z,
+        top_z: top_z - start_depth,
+        everything: &everything,
+        cancel,
+    };
+    let moved: Vec<Contour> = chosen
+        .selection
+        .contours
+        .iter()
+        .map(|c| c.translated(shift))
+        .collect();
+    let shifted = Selection {
+        contours: moved.iter().collect(),
+        notes: Vec::new(),
+    };
+    let starts: Vec<Point> = op
+        .starts()
+        .iter()
+        .map(|p| (p[0] + shift.0, p[1] + shift.1))
+        .collect();
+    let planned = match op {
+        Operation::Pocket(pocket) => plan_pocket_op(pocket, &context, &shifted, position, &starts),
+        Operation::Profile(profile) => {
+            plan_profile_op(profile, &context, &shifted, position, &starts)
+        }
+        Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
+        Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
+        Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
+    };
+    planned.map_err(|err| {
+        let part = job.part_of(op);
+        let several = part.is_some_and(|p| p.count() > 1);
+        let err = if several && job.parts.len() > 1 {
+            let name = part.map_or("", |p| p.name.as_str());
+            err.with_context(&format!("part {name}, copy {}", step.copy))
+        } else if several {
+            err.with_context(&format!("copy {}", step.copy))
+        } else {
+            err
+        };
+        err.at(index)
+    })
+}
+
+/// Everything the steps planned so far, in cut order.
+#[derive(Default)]
+struct Gathered {
+    moves: Vec<Move>,
+    tabs: Vec<Vec<Point>>,
+    pockets: Vec<PocketPiece>,
+    op_spans: Vec<OpSpan>,
+    ring_starts: Vec<RingStart>,
+    arcs: ArcTable,
+    /// With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
+    comments: Vec<String>,
+    part_started: Option<u64>,
+    /// Operations planned at least once: their selection's notes are listed once.
+    started: Vec<usize>,
+    /// Every copy repeats the original's notes: each is listed once per operation.
+    seen: Vec<(usize, String)>,
+}
+
+impl Gathered {
+    fn add(
+        &mut self,
+        job: &Job,
+        step: &Step,
+        index: usize,
+        tool_radius: f64,
+        planned: Planned,
+        notes: &mut Vec<Note>,
+    ) {
+        let first = self.moves.len();
+        self.moves.extend(planned.moves);
+        self.comment_part_start(job, index, first);
+        self.op_spans.push(OpSpan {
+            operation: index,
+            copy: step.copy,
+            moves: first..self.moves.len(),
+            tool_radius,
+        });
+        for note in planned.notes {
+            let key = (index, note);
+            if !self.seen.contains(&key) {
+                notes.push(Note::at(index, key.1.clone()));
+                self.seen.push(key);
+            }
+        }
+        self.tabs.extend(planned.tabs);
+        self.pockets.extend(planned.pockets);
+        // Start markers are drawn on the part: the copies' are the same.
+        if step.copy == 1 {
+            self.ring_starts
+                .extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
+                    operation: index,
+                    ring,
+                    stored,
+                }));
+        }
+        self.arcs.extend(planned.arcs);
+    }
+
+    /// With two parts or more, a comment on the first move of each part
+    /// (docs/specs/parts.md §6).
+    fn comment_part_start(&mut self, job: &Job, index: usize, first: usize) {
+        let op = &job.operations[index];
+        if job.parts.len() > 1
+            && self.part_started != Some(op.part())
+            && let (Some(part), Some(start)) = (job.part_of(op), self.moves.get_mut(first))
+        {
+            self.part_started = Some(op.part());
+            let copies = match part.count() {
+                1 => String::new(),
+                n => format!(", {n} copies"),
+            };
+            let number = job.parts.iter().position(|p| p.id == part.id).unwrap_or(0) + 1;
+            start.comment = u32::try_from(self.comments.len()).ok();
+            self.comments
+                .push(format!("Part {number}: {}{copies}", part.name));
+        }
+    }
 }
 
 /// What every operation needs from the job.
@@ -933,43 +1027,8 @@ fn plan_profile_op(
         None => ctx.pass_z.to_vec(),
     };
     let rough_bottom = rough_z.last().copied().unwrap_or(end_z);
-    if let Some(tabs) = &op.tabs {
-        let cut = op.end_depth - op.start_depth;
-        if tabs.height >= cut {
-            return Err(job_error(format!(
-                "{label}: tab height {} must be less than the cut depth {cut} (end depth \
-                 minus start depth)",
-                tabs.height
-            )));
-        }
-        if op.side == Side::Inside {
-            out.notes.push(format!(
-                "{label}: tabs on an inside profile will hold the cut-out slug"
-            ));
-        }
-    }
     // The tabs are placed on the wall rings; the roughing rings carry them over.
-    let mut layouts: Vec<Option<TabLayout>> = Vec::with_capacity(plan.rings.len());
-    let mut curved: Vec<usize> = Vec::new();
-    for ring in &plan.rings {
-        let Some(tabs) = &op.tabs else {
-            layouts.push(None);
-            continue;
-        };
-        // Validated: count >= 1.
-        let count = usize::try_from(tabs.count).unwrap_or(0);
-        let placed = place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
-            .map_err(|err| err.with_context(&format!("{label}, contour #{}", ring.contour_id)))?;
-        if placed.on_curves > 0 {
-            curved.push(ring.contour_id);
-        }
-        out.tabs.extend(tab_polylines(&ring.points, &placed));
-        if let Some(note) = joined_feet(&placed, tabs) {
-            out.notes
-                .push(format!("{label}, contour #{}: {note}", ring.contour_id));
-        }
-        layouts.push(Some(placed));
-    }
+    let (layouts, curved) = profile_tabs(op, ctx, &plan.rings, &mut out)?;
     let surface = |layout: &Option<TabLayout>| -> Option<(TabLayout, f64, f64)> {
         let tabs = op.tabs.as_ref()?;
         Some((layout.clone()?, end_z + tabs.height, tabs.flank_angle))
@@ -1055,6 +1114,44 @@ fn plan_profile_op(
         ));
     }
     Ok(out)
+}
+
+/// The tabs on every wall ring (docs/specs/profile-spiral.md §4): each ring's layout (None
+/// without tabs), with the tabs' polylines and notes added to `out`, and the contours
+/// whose tabs sit on a curve.
+fn profile_tabs(
+    op: &ProfileOp,
+    ctx: &Context,
+    rings: &[PathRing],
+    out: &mut Planned,
+) -> Result<(Vec<Option<TabLayout>>, Vec<usize>), ToolpathError> {
+    let label = ctx.label;
+    let Some(tabs) = &op.tabs else {
+        return Ok((vec![None; rings.len()], Vec::new()));
+    };
+    if op.side == Side::Inside {
+        out.notes.push(format!(
+            "{label}: tabs on an inside profile will hold the cut-out slug"
+        ));
+    }
+    let mut layouts: Vec<Option<TabLayout>> = Vec::with_capacity(rings.len());
+    let mut curved: Vec<usize> = Vec::new();
+    for ring in rings {
+        // Validated: count >= 1.
+        let count = usize::try_from(tabs.count).unwrap_or(0);
+        let placed = place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
+            .map_err(|err| err.with_context(&format!("{label}, contour #{}", ring.contour_id)))?;
+        if placed.on_curves > 0 {
+            curved.push(ring.contour_id);
+        }
+        out.tabs.extend(tab_polylines(&ring.points, &placed));
+        if let Some(note) = joined_feet(&placed, tabs) {
+            out.notes
+                .push(format!("{label}, contour #{}: {note}", ring.contour_id));
+        }
+        layouts.push(Some(placed));
+    }
+    Ok((layouts, curved))
 }
 
 /// A tab layout with its top and flank angle, as the laps follow it.
@@ -1506,6 +1603,25 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 ),
             ));
         }
+        if let Operation::Profile(ProfileOp {
+            tabs: Some(tabs),
+            start_depth,
+            end_depth,
+            ..
+        }) = op
+            && tabs.height >= end_depth - start_depth
+        {
+            let cut = end_depth - start_depth;
+            problems.push(labelled(
+                at("tabs.height"),
+                &label,
+                format!(
+                    "tab height {} must be less than the cut depth {cut} (end depth minus \
+                     start depth)",
+                    tabs.height
+                ),
+            ));
+        }
         if let Operation::Pocket(PocketOp {
             rest: Some(rest), ..
         }) = op
@@ -1641,19 +1757,23 @@ fn rest_check(
             "rest after tool {after_tool}, which the project doesn't have"
         ));
     };
-    if large.kind != ToolType::Endmill {
-        return Err(format!(
-            "rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
-            large.kind.name()
-        ));
-    }
-    if large.diameter <= tool.diameter + REST_TOL_MM {
-        return Err(format!(
-            "rest after tool {after_tool} ({} mm) needs a tool larger than this \
-             pocket's ({} mm)",
-            mm(large.diameter),
-            mm(tool.diameter)
-        ));
+    match rest_refusal(tool, large) {
+        Some(RestRefusal::LargeNotEndmill) => {
+            return Err(format!(
+                "rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
+                large.kind.name()
+            ));
+        }
+        Some(RestRefusal::NotLarger) => {
+            return Err(format!(
+                "rest after tool {after_tool} ({} mm) needs a tool larger than this \
+                 pocket's ({} mm)",
+                mm(large.diameter),
+                mm(tool.diameter)
+            ));
+        }
+        // The pocket's own tool is checked with the pocket's tool rules.
+        Some(RestRefusal::SmallNotEndmill) | None => {}
     }
     if pocket.corners.is_some() {
         return Err(

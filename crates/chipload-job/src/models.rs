@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
 
 use crate::Problem;
 use serde::{Deserialize, Serialize};
@@ -1367,6 +1367,33 @@ impl StockCorner {
             StockCorner::TopRight => "top right corner",
         }
     }
+}
+
+/// Why a pocket cut with `small` can't rest machine after `large`
+/// (docs/specs/rest-machining.md §5): both must be endmills, and `large` larger by more
+/// than the rest tolerance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RestRefusal {
+    /// The larger tool is not an endmill, which a pocket's tool is.
+    LargeNotEndmill,
+    /// The rest pocket's own tool is not an endmill.
+    SmallNotEndmill,
+    /// The larger tool is not larger.
+    NotLarger,
+}
+
+/// The reason `small` can't rest machine after `large`, if any.
+pub fn rest_refusal(small: &Tool, large: &Tool) -> Option<RestRefusal> {
+    if large.kind != ToolType::Endmill {
+        return Some(RestRefusal::LargeNotEndmill);
+    }
+    if small.kind != ToolType::Endmill {
+        return Some(RestRefusal::SmallNotEndmill);
+    }
+    if large.diameter <= small.diameter + REST_TOL_MM {
+        return Some(RestRefusal::NotLarger);
+    }
+    None
 }
 
 /// The tool with this id among `tools`.
