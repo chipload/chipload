@@ -12,9 +12,9 @@ use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, VORONOI_GRID_MM};
 
 use crate::ToolpathError;
+use crate::cavalier::{Area, geometry, guarded};
 use crate::geom::PrimIndex;
 use crate::offset::{pline_segments, point_distance};
-use crate::pocket::{Area, geometry, guarded};
 
 /// Deepest recursion when splitting a curve; 2^20 pieces is far beyond need.
 const MAX_SPLITS: u32 = 20;

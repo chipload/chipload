@@ -4,7 +4,6 @@
 
 use std::collections::BTreeMap;
 use std::f64::consts::{FRAC_PI_2, TAU};
-use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use cavalier_contours::core::math::Vector2;
 use cavalier_contours::polyline::{PlineOrientation, PlineSource, PlineSourceMut, Polyline};
@@ -19,6 +18,7 @@ use chipload_job::Side;
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
+use crate::cavalier::{guarded, too_small};
 use crate::retry::{Failure, nudged};
 
 /// The contour as a closed polyline with true arcs (bulges). Arcs over half a turn are split,
@@ -272,11 +272,10 @@ fn offset_attempt(
     };
     let numerical = |error| Failure::Numerical { error, wall: true };
     // A panic in the offset library becomes an error, never a crash or a toolpath.
-    let raw = catch_unwind(AssertUnwindSafe(|| pline.parallel_offset(signed)))
-        .map_err(|_| numerical(geometry("Offset failed inside the geometry library")))?;
+    let raw = guarded("Offset", || pline.parallel_offset(signed)).map_err(numerical)?;
     let mut results: Vec<Polyline<f64>> = raw
         .into_iter()
-        .filter(|p| p.is_closed() && p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM)
+        .filter(|p| p.is_closed() && !too_small(p))
         .collect();
     if results.is_empty() {
         return Err(Failure::Final(geometry(&format!(

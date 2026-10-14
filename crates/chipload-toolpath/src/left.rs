@@ -15,8 +15,10 @@ use chipload_core::tolerances::{
 };
 
 use crate::ToolpathError;
+use crate::cavalier::{
+    Area, boolean, ccw, cw, encloses, first_point, geometry, guarded, offset_loops, too_small,
+};
 use crate::offset::flatten;
-use crate::pocket::{Area, ccw, cw, encloses, first_point, geometry, guarded, offset_loops};
 
 /// The gap left between the opening and the walls, so booleans never work on coincident
 /// edges. Slivers thinner than this are not shown (spec section 3).
@@ -115,10 +117,6 @@ fn minus_area(pieces: Vec<Area>, area: &Area) -> Result<Vec<Area>, ToolpathError
     Ok(out)
 }
 
-fn too_small(pline: &Polyline<f64>) -> bool {
-    pline.area().abs() <= CHAIN_TOL_MM * CHAIN_TOL_MM
-}
-
 /// Boolean result as areas: positive loops are outlines, negative ones their holes.
 fn areas_of(result: BooleanResult<Polyline<f64>>) -> Result<Vec<Area>, ToolpathError> {
     let mut areas: Vec<Area> = result
@@ -160,9 +158,8 @@ fn difference(piece: &Area, cutter: &Polyline<f64>) -> Result<Vec<Area>, Toolpat
                     PlineContainsResult::Pline2InsidePline1 => {}
                     PlineContainsResult::Pline1InsidePline2 => hole = existing,
                     PlineContainsResult::Intersected => {
-                        let mut union = guarded("Material left union", || {
-                            hole.boolean(&existing, BooleanOp::Or)
-                        })?;
+                        let mut union =
+                            boolean("Material left union", &hole, &existing, BooleanOp::Or)?;
                         if union.pos_plines.len() != 1 || !union.neg_plines.is_empty() {
                             return Err(geometry("material left: holes enclose an area".into()));
                         }
@@ -242,7 +239,7 @@ fn boolean_areas(
     other: &Polyline<f64>,
     op: BooleanOp,
 ) -> Result<Vec<Area>, ToolpathError> {
-    let result = guarded("Material left boolean", || outer.boolean(other, op))?;
+    let result = boolean("Material left boolean", outer, other, op)?;
     areas_of(result)
 }
 
@@ -414,8 +411,7 @@ mod tests {
         assert!(
             pieces
                 .iter()
-                .any(|piece| crate::pocket::Area::of(ring_pline(&piece.rings[0]))
-                    .contains((-8.5, -8.0))),
+                .any(|piece| Area::of(ring_pline(&piece.rings[0])).contains((-8.5, -8.0))),
             "{} pieces",
             pieces.len()
         );

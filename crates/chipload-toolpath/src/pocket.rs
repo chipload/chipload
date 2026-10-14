@@ -7,34 +7,34 @@
 //! the paths.
 
 use std::f64::consts::SQRT_2;
-use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use cavalier_contours::core::math::Vector2;
 use cavalier_contours::polyline::{
-    BooleanOp, PlineContainsResult, PlineOrientation, PlineSource, PlineSourceMut, Polyline,
+    BooleanOp, PlineContainsResult, PlineSource, PlineSourceMut, Polyline,
 };
-use cavalier_contours::shape_algorithms::{Shape, ShapeOffsetOptions};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::nesting::{Ring, contains};
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
-    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_TIGHT_SLICE_EPS_MM, REST_TOL_MM,
+    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
 use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::cancel::{self, Cancel};
+use crate::cavalier::{
+    Area, boolean, ccw, cw, encloses, first_point, geometry, shrunk_farther, too_small,
+};
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
 use crate::left::{cleared, left_by, rest_areas};
 use crate::model::Move;
-use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments, point_distance};
+use crate::offset::{contour_pline, dedupe_ring, flatten_tagged};
 use crate::profile::cut_clockwise;
-use crate::retry::{Failure, NUDGES, Nudge, nudged_or_tight};
+use crate::retry::{Failure, Nudge, nudged_or_tight};
 use crate::start::{assign, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
@@ -113,296 +113,11 @@ pub struct PocketPlan {
     pub arcs: ArcTable,
 }
 
-pub(crate) fn geometry(message: String) -> ToolpathError {
-    ToolpathError::Geometry(message)
-}
-
 fn ids_text(ids: &[usize]) -> String {
     ids.iter()
         .map(|i| format!("#{i}"))
         .collect::<Vec<_>>()
         .join(", ")
-}
-
-/// Run a cavalier operation; a panic inside the library becomes a GeometryError.
-pub(crate) fn guarded<T>(what: &str, f: impl FnOnce() -> T) -> Result<T, ToolpathError> {
-    catch_unwind(AssertUnwindSafe(f))
-        .map_err(|_| geometry(format!("{what} failed inside the geometry library")))
-}
-
-pub(crate) fn ccw(mut pline: Polyline<f64>) -> Polyline<f64> {
-    if pline.orientation() == PlineOrientation::Clockwise {
-        pline.invert_direction_mut();
-    }
-    pline
-}
-
-pub(crate) fn cw(mut pline: Polyline<f64>) -> Polyline<f64> {
-    if pline.orientation() == PlineOrientation::CounterClockwise {
-        pline.invert_direction_mut();
-    }
-    pline
-}
-
-pub(crate) fn first_point(pline: &Polyline<f64>) -> Point {
-    let v = pline.at(0);
-    (v.x, v.y)
-}
-
-pub(crate) fn encloses(pline: &Polyline<f64>, p: Point) -> bool {
-    pline.winding_number(Vector2::new(p.0, p.1)) != 0
-}
-
-fn min_corner(pline: &Polyline<f64>) -> Point {
-    pline.extents().map_or((0.0, 0.0), |e| (e.min_x, e.min_y))
-}
-
-/// An outer loop (counter-clockwise) minus holes (clockwise), all with true arcs.
-#[derive(Debug, Clone)]
-pub struct Area {
-    pub outer: Polyline<f64>,
-    pub holes: Vec<Polyline<f64>>,
-}
-
-impl Area {
-    /// An area without holes.
-    pub fn of(outer: Polyline<f64>) -> Self {
-        Area {
-            outer,
-            holes: Vec::new(),
-        }
-    }
-
-    pub(crate) fn contains(&self, p: Point) -> bool {
-        encloses(&self.outer, p) && !self.holes.iter().any(|h| encloses(h, p))
-    }
-
-    pub(crate) fn boundary(&self) -> Vec<Primitive> {
-        let mut prims = pline_segments(&self.outer);
-        for hole in &self.holes {
-            prims.extend(pline_segments(hole));
-        }
-        prims
-    }
-
-    /// Distance from `p` to the area: 0 inside.
-    pub(crate) fn distance(&self, p: Point) -> f64 {
-        if self.contains(p) {
-            return 0.0;
-        }
-        self.edge_distance(p)
-    }
-
-    /// Distance from `p` to the nearest edge, inside or out.
-    pub(crate) fn edge_distance(&self, p: Point) -> f64 {
-        self.boundary()
-            .iter()
-            .map(|s| point_distance(s, p))
-            .fold(f64::INFINITY, f64::min)
-    }
-
-    /// (min y, min x) of the outer loop, for deterministic ordering.
-    fn sort_key(&self) -> (Ordered, Ordered) {
-        let (x, y) = min_corner(&self.outer);
-        (Ordered(y), Ordered(x))
-    }
-
-    /// The area shrunk by `d`: every part farther than `d` from the boundary.
-    /// Negative `d` grows it.
-    pub(crate) fn shrunk(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
-        self.shrunk_with(d, false)
-    }
-
-    /// [`Area::shrunk`], with the tight slice tolerance when `tight` (a pocket's last retry).
-    fn shrunk_with(&self, d: f64, tight: bool) -> Result<Vec<Area>, ToolpathError> {
-        let plines = std::iter::once(self.outer.clone()).chain(self.holes.iter().cloned());
-        offset_loops_with(plines, d, tight)
-    }
-}
-
-/// Outer loops (counter-clockwise) and holes (clockwise) offset as one shape by `d`
-/// (positive shrinks, negative grows), as areas sorted by (y, x).
-pub(crate) fn offset_loops(
-    plines: impl Iterator<Item = Polyline<f64>>,
-    d: f64,
-) -> Result<Vec<Area>, ToolpathError> {
-    offset_loops_with(plines, d, false)
-}
-
-fn offset_loops_with(
-    plines: impl Iterator<Item = Polyline<f64>>,
-    d: f64,
-    tight: bool,
-) -> Result<Vec<Area>, ToolpathError> {
-    let plines: Vec<Polyline<f64>> = plines.collect();
-    match offset_once(&plines, d, tight) {
-        // An island across an area is the loose slice tolerance's doing (found by the rest
-        // machining property test, 2026-10-13): the tight one gets it right.
-        Err(error) if !tight => offset_once(&plines, d, true).map_err(|_| error),
-        result => result,
-    }
-}
-
-fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area>, ToolpathError> {
-    let shape = Shape::from_plines(plines.iter().cloned());
-    let offset = guarded("Pocket offset", || {
-        let mut options = ShapeOffsetOptions::new();
-        if tight {
-            options.offset_dist_eps = OFFSET_TIGHT_SLICE_EPS_MM;
-        }
-        shape.parallel_offset(d, &options)
-    })?;
-    let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
-    let mut areas: Vec<Area> = offset
-        .ccw_plines
-        .into_iter()
-        .map(|p| p.polyline)
-        .filter(keep)
-        .map(|outer| Area {
-            outer,
-            holes: Vec::new(),
-        })
-        .collect();
-    for hole in offset
-        .cw_plines
-        .into_iter()
-        .map(|p| p.polyline)
-        .filter(keep)
-    {
-        let inside = first_point(&hole);
-        let parent = areas
-            .iter_mut()
-            .filter(|a| encloses(&a.outer, inside))
-            .min_by_key(|a| Ordered(a.outer.area().abs()));
-        if let Some(area) = parent {
-            area.holes.push(hole);
-            continue;
-        }
-        // The shape offset can return an island's offset after the area around it has
-        // shrunk away (a rest area shrunk to four scraps beside a grown island, found by
-        // the rest machining property test, 2026-10-13). An island that neither crosses nor
-        // holds any area takes nothing away from them.
-        let apart = |a: &Area| matches!(a.outer.contains(&hole), PlineContainsResult::Disjoint);
-        if !areas.iter().all(apart) {
-            return Err(geometry(
-                "pocket offset produced an island outside every area".into(),
-            ));
-        }
-    }
-    areas.sort_by_key(Area::sort_key);
-    Ok(areas)
-}
-
-impl Area {
-    /// The area grown by `d` (≥ 0): the outline offset outwards and each hole shrunk, one
-    /// loop at a time. Growing can't make two loops meet (the outline moves away from the
-    /// holes, and shrinking holes move apart), so nothing is lost by not offsetting them as
-    /// one shape, and cavalier's shape offset drops a hole at some distances: two islands
-    /// whose offsets merge lost their hole when grown by r + 0.005 to r + 0.05 mm but not by
-    /// r or r + 0.1 (found by the material-left property test).
-    pub(crate) fn grown(&self, d: f64) -> Result<Vec<Area>, ToolpathError> {
-        if d <= 0.0 {
-            return self.shrunk(-d);
-        }
-        let keep = |p: &Polyline<f64>| p.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM;
-        let mut outers: Vec<Polyline<f64>> = Vec::new();
-        let mut holes: Vec<Polyline<f64>> = Vec::new();
-        // Positive offsets go inwards for counter-clockwise loops.
-        let outline = ccw(self.outer.clone());
-        for loop_ in closed_loops(guarded("Pocket offset", || outline.parallel_offset(-d))?)? {
-            if !keep(&loop_) {
-                continue;
-            }
-            // A bay that closes up while growing leaves a clockwise void.
-            if loop_.area() > 0.0 {
-                outers.push(loop_);
-            } else {
-                holes.push(loop_);
-            }
-        }
-        for hole in &self.holes {
-            let inside = ccw(hole.clone());
-            let raw = guarded("Pocket offset", || inside.parallel_offset(d))?;
-            let loops = match closed_loops(raw) {
-                Ok(loops) => loops,
-                // A hole that touches itself can come back as open scraps (a 14-vertex
-                // piece with its ends 3.4 mm apart, found by the material-left property
-                // test, 2026-10-13). Shrinking it as an area of its own goes through the
-                // shape offset, which handles that; one loop shrunk makes no holes.
-                Err(_) => shrunk_loop(&inside, d)?,
-            };
-            for loop_ in loops {
-                if keep(&loop_) {
-                    holes.push(cw(loop_));
-                }
-            }
-        }
-        let mut areas: Vec<Area> = outers
-            .into_iter()
-            .map(|outer| Area {
-                outer,
-                holes: Vec::new(),
-            })
-            .collect();
-        for hole in holes {
-            let inside = first_point(&hole);
-            let parent = areas
-                .iter_mut()
-                .filter(|a| encloses(&a.outer, inside))
-                .min_by_key(|a| Ordered(a.outer.area().abs()));
-            match parent {
-                Some(area) => area.holes.push(hole),
-                None => {
-                    return Err(geometry(
-                        "pocket offset produced an island outside every area".into(),
-                    ));
-                }
-            }
-        }
-        areas.sort_by_key(Area::sort_key);
-        Ok(areas)
-    }
-}
-
-/// The counter-clockwise loop `outline` shrunk by `d`, through the shape offset: its outer
-/// loops. A single loop shrunk has no holes; one that does is an error.
-fn shrunk_loop(outline: &Polyline<f64>, d: f64) -> Result<Vec<Polyline<f64>>, ToolpathError> {
-    let mut loops = Vec::new();
-    for area in Area::of(outline.clone()).shrunk(d)? {
-        if !area.holes.is_empty() {
-            return Err(geometry(
-                "pocket offset made a hole while shrinking a single loop".into(),
-            ));
-        }
-        loops.push(area.outer);
-    }
-    Ok(loops)
-}
-
-/// The loops of a closed loop's offset, all closed. cavalier_contours can return a loop
-/// that closes up while offsetting (a bay pinched off as the outline grows) as an open
-/// polyline whose ends lie a hair apart; dropping it lost a hole of the tool's reach, and
-/// material left went unshown (material-left property test, 2026-10-12). Such a loop is
-/// closed; one whose ends lie farther apart than `CHAIN_TOL_MM` is an error, never dropped.
-fn closed_loops(loops: Vec<Polyline<f64>>) -> Result<Vec<Polyline<f64>>, ToolpathError> {
-    let mut closed = Vec::with_capacity(loops.len());
-    for mut loop_ in loops {
-        if !loop_.is_closed() {
-            let n = loop_.vertex_count();
-            let ends = match (loop_.get(0), loop_.get(n.saturating_sub(1))) {
-                (Some(a), Some(b)) if n > 2 => ((a.x, a.y), (b.x, b.y)),
-                _ => continue,
-            };
-            if distance(ends.0, ends.1) > CHAIN_TOL_MM {
-                return Err(geometry(
-                    "pocket offset returned an open loop where a closed one was expected".into(),
-                ));
-            }
-            loop_.set_is_closed(true);
-        }
-        closed.push(loop_);
-    }
-    Ok(closed)
 }
 
 /// One selected boundary minus the selected islands inside it.
@@ -488,7 +203,7 @@ fn refuse_duplicates(shapes: &[(usize, Polyline<f64>, Ring)]) -> Result<(), Tool
             {
                 continue;
             }
-            let common = guarded("Comparing shapes", || a.boolean(b, BooleanOp::And))?;
+            let common = boolean("Comparing shapes", a, b, BooleanOp::And)?;
             let symmetric = a.area().abs() + b.area().abs() - 2.0 * boolean_area(&common);
             let slack = CHAIN_TOL_MM * a.path_length().max(b.path_length());
             if symmetric <= slack {
@@ -514,7 +229,7 @@ fn merge_islands(
             .position(|other| !matches!(current.contains(other), PlineContainsResult::Disjoint))
         {
             let other = merged.remove(j);
-            let mut union = guarded("Merging islands", || current.boolean(&other, BooleanOp::Or))?;
+            let mut union = boolean("Merging islands", &current, &other, BooleanOp::Or)?;
             if union.pos_plines.len() != 1 || !union.neg_plines.is_empty() {
                 return Err(geometry(format!(
                     "contours {}: overlapping islands enclose an area between them, which \
@@ -548,9 +263,12 @@ fn subtract_islands(
                     next.push(area);
                 }
                 PlineContainsResult::Intersected | PlineContainsResult::Pline1InsidePline2 => {
-                    let cut = guarded("Subtracting an island", || {
-                        area.outer.boolean(&island, BooleanOp::Not)
-                    })?;
+                    let cut = boolean(
+                        "Subtracting an island",
+                        &area.outer,
+                        &island,
+                        BooleanOp::Not,
+                    )?;
                     let mut pieces: Vec<Area> = cut
                         .pos_plines
                         .into_iter()
@@ -579,10 +297,7 @@ fn subtract_islands(
         }
         areas = next;
     }
-    Ok(areas
-        .into_iter()
-        .filter(|a| a.outer.area().abs() > CHAIN_TOL_MM * CHAIN_TOL_MM)
-        .collect())
+    Ok(areas.into_iter().filter(|a| !too_small(&a.outer)).collect())
 }
 
 /// Offset levels as a tree: every level k+1 area lies inside one level k area.
@@ -1740,24 +1455,6 @@ struct RestPieces {
 /// The areas a rest pocket clears in each region: within a diameter of what a tool of
 /// radius `large` leaves. An area this pocket's tool fits nowhere in is skipped, with a
 /// note.
-/// `area` shrunk by `d`; when the offset fails, shrunk farther by each of the retry nudges
-/// in turn (docs/specs/offset-retry.md §7). For rest machining, where farther is the safe
-/// side: the larger tool is taken to reach a little less, so the rest pocket cuts a little
-/// more. An offset can fail at one exact distance and 3 nm beyond it, but not 10 nm beyond
-/// (an island's offset across an area, found by the rest machining property test).
-fn shrunk_farther(area: &Area, d: f64) -> Result<Vec<Area>, ToolpathError> {
-    let error = match area.shrunk(d) {
-        Ok(areas) => return Ok(areas),
-        Err(error) => error,
-    };
-    for by in NUDGES {
-        if let Ok(areas) = area.shrunk(d + by) {
-            return Ok(areas);
-        }
-    }
-    Err(error)
-}
-
 fn rest_pieces(
     regions: &[PocketArea],
     large: f64,

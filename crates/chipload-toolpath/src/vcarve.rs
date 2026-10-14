@@ -13,9 +13,10 @@ use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, VCARVE_TOL_MM};
 
 use crate::ToolpathError;
+use crate::cavalier::{Area, geometry};
 use crate::medial::{Graph, Outline, medial_axis};
 use crate::model::Move;
-use crate::pocket::{Area, build_region, geometry};
+use crate::pocket::build_region;
 
 /// A V-bit's cutting geometry.
 #[derive(Debug, Clone, Copy, PartialEq)]
