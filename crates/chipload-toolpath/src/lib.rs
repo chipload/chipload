@@ -46,6 +46,17 @@ pub enum ToolpathError {
     /// The geometry can't be machined as asked (tool too big, failed verification, ...).
     #[error("{0}")]
     Geometry(String),
+    /// Copies or parts would cut into each other (docs/specs/copies-grid.md §4,
+    /// docs/specs/parts.md §5).
+    #[error("{0}")]
+    Overlap(String),
+    /// An error of the operation at `index` in `job.operations`: its message already names
+    /// the operation, so this only says which one, for anything that leads the user to it.
+    #[error("{source}")]
+    Operation {
+        index: usize,
+        source: Box<ToolpathError>,
+    },
     /// The run was stopped by its [`cancel::Cancel`] flag.
     #[error("Generation cancelled")]
     Cancelled,
@@ -58,7 +69,40 @@ impl ToolpathError {
             ToolpathError::Job(m) => ToolpathError::Job(format!("{context}: {m}")),
             ToolpathError::Selector(m) => ToolpathError::Selector(format!("{context}: {m}")),
             ToolpathError::Geometry(m) => ToolpathError::Geometry(format!("{context}: {m}")),
+            ToolpathError::Overlap(m) => ToolpathError::Overlap(format!("{context}: {m}")),
+            ToolpathError::Operation { index, source } => ToolpathError::Operation {
+                index,
+                source: Box::new(source.with_context(context)),
+            },
             ToolpathError::Cancelled => ToolpathError::Cancelled,
+        }
+    }
+
+    /// The same error, marked as the operation at `index`'s (an error already marked keeps
+    /// its operation; a cancellation is nobody's).
+    pub fn at(self, index: usize) -> Self {
+        match self {
+            ToolpathError::Operation { .. } | ToolpathError::Cancelled => self,
+            other => ToolpathError::Operation {
+                index,
+                source: Box::new(other),
+            },
+        }
+    }
+
+    /// The operation (index in `job.operations`) the error is about, if it is one's.
+    pub fn operation(&self) -> Option<usize> {
+        match self {
+            ToolpathError::Operation { index, .. } => Some(*index),
+            _ => None,
+        }
+    }
+
+    /// The error itself, without the operation it was marked with.
+    pub fn cause(&self) -> &ToolpathError {
+        match self {
+            ToolpathError::Operation { source, .. } => source.cause(),
+            other => other,
         }
     }
 }

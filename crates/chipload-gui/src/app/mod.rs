@@ -419,13 +419,6 @@ fn raw_schema_version(path: &Path) -> Option<i64> {
     value.get("schema_version")?.as_i64()
 }
 
-/// "Operation 3 (...)": the zero-based index of the operation a message is about.
-fn operation_index(message: &str) -> Option<usize> {
-    let rest = &message[message.find("Operation ")? + "Operation ".len()..];
-    let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
-    digits.parse::<usize>().ok()?.checked_sub(1)
-}
-
 fn selector_text(selector: &Selector) -> String {
     let list = |ids: &[u64]| {
         let ids: Vec<String> = ids.iter().map(u64::to_string).collect();
@@ -687,7 +680,10 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems.iter().map(ToString::to_string).collect());
+                self.error_report(Report::of_problems(
+                    "The project is not complete:",
+                    &problems,
+                ));
                 return false;
             }
         };
@@ -744,7 +740,10 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems.iter().map(ToString::to_string).collect());
+                self.error_report(Report::of_problems(
+                    "The project is not complete:",
+                    &problems,
+                ));
                 return false;
             }
         };
@@ -817,7 +816,10 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems.iter().map(ToString::to_string).collect());
+                self.error_report(Report::of_problems(
+                    "The project is not complete:",
+                    &problems,
+                ));
                 return false;
             }
         };
@@ -858,7 +860,10 @@ impl ChiploadApp {
         let job = match part.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems.iter().map(ToString::to_string).collect());
+                self.error_report(Report::of_problems(
+                    "The project is not complete:",
+                    &problems,
+                ));
                 return;
             }
         };
@@ -1146,9 +1151,10 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                let mut lines = vec!["The project can't be saved yet:".to_string()];
-                lines.extend(problems.iter().map(|p| format!("  {p}")));
-                self.error(lines);
+                self.error_report(Report::of_problems(
+                    "The project can't be saved yet:",
+                    &problems,
+                ));
                 return false;
             }
         };
@@ -1398,10 +1404,15 @@ impl ChiploadApp {
     }
 
     fn error(&mut self, lines: Vec<String>) {
-        if let Some(first) = lines.first() {
-            self.set_status(first.clone(), ERROR_STATUS_SECONDS);
+        self.error_report(Report::error(lines));
+    }
+
+    /// A failure: shown in the report, its first line in the status bar too.
+    fn error_report(&mut self, report: Report) {
+        if let Some(first) = report.lines.first() {
+            self.set_status(first.text.clone(), ERROR_STATUS_SECONDS);
         }
-        self.set_report(Report::error(lines));
+        self.set_report(report);
     }
 
     fn set_status(&mut self, text: String, seconds: u64) {

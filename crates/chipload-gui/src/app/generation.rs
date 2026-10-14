@@ -103,9 +103,10 @@ impl ChiploadApp {
             }
             Err(problems) => {
                 self.error_ops = problems.iter().filter_map(Problem::operation).collect();
-                let mut lines = vec!["The project is not complete:".to_string()];
-                lines.extend(problems.iter().map(|p| format!("  {p}")));
-                self.fail(lines, loud);
+                self.fail_with(
+                    Report::of_problems("The project is not complete:", &problems),
+                    loud,
+                );
                 return false;
             }
         };
@@ -210,9 +211,14 @@ impl ChiploadApp {
             }
             Ok(Err(err)) => {
                 self.clear_toolpath();
-                let message = err.to_string();
-                self.error_ops = operation_index(&message).into_iter().collect();
-                self.fail(vec!["Generation failed:".into(), message], loud);
+                let op = match &err {
+                    PipelineError::Toolpath(err) => err.operation(),
+                    _ => None,
+                };
+                self.error_ops = op.into_iter().collect();
+                let mut report = Report::error(["Generation failed:".to_string()]);
+                report.push_at(Tone::Error, err.to_string(), op);
+                self.fail_with(report, loud);
                 false
             }
             Err(panic) => {
@@ -310,10 +316,15 @@ impl ChiploadApp {
 
     /// An error in the report; also in the status bar when the user asked for the run.
     fn fail(&mut self, lines: Vec<String>, loud: bool) {
+        self.fail_with(Report::error(lines), loud);
+    }
+
+    /// As `fail`, with the lines leading to their operations.
+    fn fail_with(&mut self, report: Report, loud: bool) {
         if loud {
-            self.error(lines);
+            self.error_report(report);
         } else {
-            self.set_report(Report::error(lines));
+            self.set_report(report);
         }
     }
 

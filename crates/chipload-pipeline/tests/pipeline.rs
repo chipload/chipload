@@ -106,7 +106,8 @@ fn error(job: &Job) -> PipelineError {
 fn job_error(job: &Job, text: &str) {
     let err = error(job);
     assert!(
-        matches!(&err, PipelineError::Toolpath(ToolpathError::Job(m)) if m.contains(text)),
+        matches!(&err, PipelineError::Toolpath(e)
+            if matches!(e.cause(), ToolpathError::Job(m) if m.contains(text))),
         "{err}"
     );
 }
@@ -433,7 +434,8 @@ fn feed_above_machine_max_is_refused_not_clamped() {
 fn selector_error(job: &Job, text: &str) {
     let err = error(job);
     assert!(
-        matches!(&err, PipelineError::Toolpath(ToolpathError::Selector(m)) if m.contains(text)),
+        matches!(&err, PipelineError::Toolpath(e)
+            if matches!(e.cause(), ToolpathError::Selector(m) if m.contains(text))),
         "{err}"
     );
 }
@@ -489,7 +491,8 @@ fn tool_larger_than_hole_names_the_contour() {
     let holes = op(json!({"select": {"layer": "HOLES"}, "side": "inside"}));
     let err = error(&job(json!({"tools": tools, "operations": [holes]})));
     assert!(
-        matches!(&err, PipelineError::Toolpath(ToolpathError::Geometry(m)) if m.contains("contour #2")),
+        matches!(&err, PipelineError::Toolpath(e)
+            if matches!(e.cause(), ToolpathError::Geometry(m) if m.contains("contour #2"))),
         "{err}"
     );
 }
@@ -1066,10 +1069,14 @@ fn every_problem_is_found_at_once_with_its_field() {
     }
     // The first job rule is still the error a run gives.
     let first = chipload_toolpath::job_problems(&bad).remove(0);
-    let PipelineError::Toolpath(ToolpathError::Job(message)) = error(&bad) else {
+    let PipelineError::Toolpath(err) = error(&bad) else {
+        panic!("a toolpath error");
+    };
+    let ToolpathError::Job(message) = err.cause() else {
         panic!("a job error");
     };
-    assert_eq!(first.text, message);
+    assert_eq!(&first.text, message);
+    assert_eq!(err.operation(), None, "a machine rule is nobody's");
     assert!(first.text.starts_with("safe_z -1"), "{}", first.text);
     assert_eq!(first.short, "must be above the stock top (Z 0)");
 }

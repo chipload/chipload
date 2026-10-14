@@ -139,7 +139,10 @@ impl ChiploadApp {
         let job = match edit.to_job() {
             Ok(job) => job,
             Err(problems) => {
-                self.error(problems.iter().map(ToString::to_string).collect());
+                self.error_report(Report::of_problems(
+                    "The project is not complete:",
+                    &problems,
+                ));
                 return false;
             }
         };

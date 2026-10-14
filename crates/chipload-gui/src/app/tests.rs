@@ -491,13 +491,6 @@ fn clicks_select_and_toggle() {
     assert_eq!(app.selection, CanvasSelection::Nothing);
 }
 
-#[test]
-fn operation_numbers_are_read_from_messages() {
-    assert_eq!(operation_index("Operation 3 (Outline): bad"), Some(2));
-    assert_eq!(operation_index("Operation 1: x"), Some(0));
-    assert_eq!(operation_index("no operation"), None);
-}
-
 // -- 3D view (docs/specs/3d-view.md)
 
 #[test]

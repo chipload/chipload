@@ -7,7 +7,8 @@ use chipload_dxf::{ImportReport, Severity};
 use chipload_pipeline::report::{format_contours, format_import_report};
 use eframe::egui::{self, Color32, RichText, ScrollArea, Sense};
 
-use super::{ChiploadApp, Focus, Panel, operation_index};
+use super::{ChiploadApp, Focus, Panel};
+use chipload_job::Problem;
 
 /// Height the open report starts with.
 const REPORT_HEIGHT: f32 = 190.0;
@@ -74,9 +75,18 @@ impl Report {
         report
     }
 
+    /// A failure: `head`, then every problem, each leading to its operation.
+    pub fn of_problems(head: &str, problems: &[Problem]) -> Self {
+        let mut report = Report::error([head.to_string()]);
+        for problem in problems {
+            report.push_at(Tone::Error, format!("  {problem}"), problem.operation());
+        }
+        report
+    }
+
+    /// A line about nothing in particular.
     pub fn push(&mut self, tone: Tone, text: String) {
-        let op = operation_index(&text);
-        self.lines.push(ReportLine { tone, text, op });
+        self.push_at(tone, text, None);
     }
 
     /// A line about operation `op` (an index), or about the project with None.
@@ -295,7 +305,11 @@ mod tests {
             Tone::Good,
             "Generated 10 lines for GRBL. Check passed.".into(),
         );
-        report.push(Tone::Warning, "Operation 2 (Outline): cuts below".into());
+        report.push_at(
+            Tone::Warning,
+            "Operation 2 (Outline): cuts below".into(),
+            Some(1),
+        );
         assert_eq!(report.lines[0].op, None);
         assert_eq!(report.lines[1].op, Some(1));
         assert_eq!(report.problems(), 1);

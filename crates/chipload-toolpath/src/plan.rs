@@ -126,11 +126,10 @@ pub fn plan_job_cancellable(
         let label = op.label(index);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(contours, op.select(), &label)?
-            }
-            _ => select_contours(contours, op.select(), &label)?,
-        };
+            Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
+            _ => select_contours(contours, op.select(), &label),
+        }
+        .map_err(|err| err.at(index))?;
         chosen.push((index, label, selection));
     }
     // (operation, copy number, shift) in cut order: part by part (docs/specs/parts.md §3),
@@ -193,7 +192,7 @@ pub fn plan_job_cancellable(
         if group.moves.is_empty() {
             group.moves = moves.len()..moves.len();
         }
-        let tool = op_tool(job, &job.operations[*index])?;
+        let tool = op_tool(job, &job.operations[*index]).map_err(|err| err.at(*index))?;
         if !started.contains(index) {
             started.push(*index);
             notes.extend(selection.notes.iter().map(|n| Note::at(*index, n.clone())));
@@ -274,10 +273,14 @@ pub fn plan_job_cancellable(
             Ok(planned) => planned,
             Err(err) if several && job.parts.len() > 1 => {
                 let name = part.map_or("", |p| p.name.as_str());
-                return Err(err.with_context(&format!("part {name}, copy {number}")));
+                return Err(err
+                    .with_context(&format!("part {name}, copy {number}"))
+                    .at(*index));
             }
-            Err(err) if several => return Err(err.with_context(&format!("copy {number}"))),
-            Err(err) => return Err(err),
+            Err(err) if several => {
+                return Err(err.with_context(&format!("copy {number}")).at(*index));
+            }
+            Err(err) => return Err(err.at(*index)),
         };
         let first = moves.len();
         moves.extend(planned.moves);
@@ -1293,7 +1296,7 @@ fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), 
                 continue;
             }
             let ((x0, y0), (x1, y1)) = a;
-            return Err(job_error(format!(
+            return Err(ToolpathError::Overlap(format!(
                 "Part \"{}\" copy {number} overlaps part \"{}\" copy {other} (X{x0:.3} to \
                  {x1:.3}, Y{y0:.3} to {y1:.3}): move the copies apart or change the grid",
                 job.parts[p].name, job.parts[q].name
@@ -1329,7 +1332,7 @@ fn check_copies_apart(
     ];
     for (what, name, count, pitch, size, dimension) in axes {
         if count > 1 && pitch.abs() + CHAIN_TOL_MM < size {
-            return Err(job_error(format!(
+            return Err(ToolpathError::Overlap(format!(
                 "Copies overlap: with {what} the pitch {name} must be at least {size:.3} mm \
                  (the cut is {size:.3} mm {dimension}), got {:.3}",
                 pitch.abs()
@@ -1354,7 +1357,10 @@ pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathErr
 pub fn validate_job(job: &Job) -> Result<Vec<Note>, ToolpathError> {
     let (problems, notes) = check_job(job);
     match problems.into_iter().next() {
-        Some(first) => Err(job_error(first.text)),
+        Some(first) => Err(match first.operation() {
+            Some(index) => job_error(first.text).at(index),
+            None => job_error(first.text),
+        }),
         None => Ok(notes),
     }
 }
@@ -1365,14 +1371,10 @@ pub fn job_problems(job: &Job) -> Vec<Problem> {
     check_job(job).0
 }
 
-/// A problem whose full text starts with `prefix` and ": " (an operation's label): the
-/// field shows the rest.
-fn labelled(path: String, prefix: &str, text: String) -> Problem {
-    let short = text
-        .strip_prefix(prefix)
-        .and_then(|rest| rest.strip_prefix(": "))
-        .unwrap_or(&text)
-        .to_string();
+/// A problem of an operation: the field shows `short`, the full text starts with the
+/// operation's `label` and ": ".
+fn labelled(path: String, label: &str, short: String) -> Problem {
+    let text = format!("{label}: {short}");
     Problem::new(path, short, text)
 }
 
@@ -1479,7 +1481,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("end_depth"),
                 &label,
                 format!(
-                    "{label}: end depth {end_depth} is {below:.3} mm below the stock \
+                    "end depth {end_depth} is {below:.3} mm below the stock \
                      ({thickness} mm thick), more than the allowed {} mm (max depth below \
                      stock)",
                     job.stock.max_overcut
@@ -1496,7 +1498,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("clearance"),
                 &label,
                 format!(
-                    "{label}: clearance {} must be less than the tool radius {}",
+                    "clearance {} must be less than the tool radius {}",
                     op.clearance(),
                     tool.diameter / 2.0
                 ),
@@ -1512,7 +1514,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("finish.stock"),
                 &label,
                 format!(
-                    "{label}: finishing stock {} must be less than the tool radius {}",
+                    "finishing stock {} must be less than the tool radius {}",
                     finish.stock,
                     tool.diameter / 2.0
                 ),
@@ -1534,7 +1536,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                         at(name),
                         &numbered,
                         format!(
-                            "Operation {number}: {name} {value} exceeds machine max_feed \
+                            "{name} {value} exceeds machine max_feed \
                              {max_feed}"
                         ),
                     ));
@@ -1546,26 +1548,21 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 problems.push(labelled(
                     at("entry"),
                     &label,
-                    format!(
-                        "{label}: helix entry is for pockets; a follow path can ramp in \
-                         (entry: ramp)"
-                    ),
+                    "helix entry is for pockets; a follow path can ramp in (entry: ramp)"
+                        .to_string(),
                 ));
             } else if let Operation::Profile(_) = op {
                 problems.push(labelled(
                     at("entry"),
                     &label,
-                    format!(
-                        "{label}: helix entry is for pockets; a profile can ramp in (entry: \
-                         ramp)"
-                    ),
+                    "helix entry is for pockets; a profile can ramp in (entry: ramp)".to_string(),
                 ));
             } else if radius >= tool.diameter / 2.0 {
                 problems.push(labelled(
                     at("entry"),
                     &label,
                     format!(
-                        "{label}: helix radius {radius} must be less than the tool radius {}, \
+                        "helix radius {radius} must be less than the tool radius {}, \
                          or it leaves a core standing in the middle",
                         tool.diameter / 2.0
                     ),
@@ -1579,7 +1576,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     at("lead"),
                     &label,
                     format!(
-                        "{label}: lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
+                        "lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
                          diameter ({longest:.3} mm)",
                         lead.radius
                     ),
@@ -1591,10 +1588,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 problems.push(labelled(
                     at("lead"),
                     &label,
-                    format!(
-                        "{label}: a profile cut on the line has no waste side for a lead; cut \
-                         inside or outside, or remove the lead"
-                    ),
+                    "a profile cut on the line has no waste side for a lead; cut inside or \
+                     outside, or remove the lead"
+                        .to_string(),
                 ));
             }
         }
@@ -1621,8 +1617,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 }),
             Operation::Path(p) => path_tool_notes(number, tool, p.entry)
                 .map_err(|e| (at("tool"), numbered.clone(), e)),
-            Operation::Holes(h) => holes_tool_notes(number, tool, h.method)
-                .map_err(|e| (at("tool"), numbered.clone(), e)),
+            Operation::Holes(h) => {
+                holes_tool_notes(tool, h.method).map_err(|e| (at("tool"), numbered.clone(), e))
+            }
             Operation::Vcarve(_) => vcarve_tool_notes(&label, tool).map_err(|e| {
                 let path = if tool.kind == ToolType::Vbit {
                     format!("tools.{k}.angle")
@@ -1634,7 +1631,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         };
         match tool_notes {
             Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
-            Err((path, prefix, err)) => problems.push(labelled(path, &prefix, err.to_string())),
+            Err((path, prefix, short)) => problems.push(labelled(path, &prefix, short)),
         }
     }
     (problems, notes)
@@ -1649,33 +1646,35 @@ fn rest_check(
     tool: &Tool,
     label: &str,
 ) -> Result<Vec<String>, String> {
+    // The warnings carry the label; a problem's text gets it from `labelled`.
     let Some(Operation::Pocket(pocket)) = job.operations.get(index) else {
         return Ok(Vec::new());
     };
     let Some(large) = job.tool(after_tool) else {
         return Err(format!(
-            "{label}: rest after tool {after_tool}, which the project doesn't have"
+            "rest after tool {after_tool}, which the project doesn't have"
         ));
     };
     if large.kind != ToolType::Endmill {
         return Err(format!(
-            "{label}: rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
+            "rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
             large.kind.name()
         ));
     }
     if large.diameter <= tool.diameter + REST_TOL_MM {
         return Err(format!(
-            "{label}: rest after tool {after_tool} ({} mm) needs a tool larger than this \
+            "rest after tool {after_tool} ({} mm) needs a tool larger than this \
              pocket's ({} mm)",
             mm(large.diameter),
             mm(tool.diameter)
         ));
     }
     if pocket.corners.is_some() {
-        return Err(format!(
-            "{label}: dogbones and rest machining can't be combined yet; dogbone the large \
-             tool's pocket"
-        ));
+        return Err(
+            "dogbones and rest machining can't be combined yet; dogbone the large tool's \
+             pocket"
+                .to_string(),
+        );
     }
     let earlier = job.operations[..index].iter().any(|op| {
         matches!(op, Operation::Pocket(p)
@@ -1759,20 +1758,21 @@ fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<Note> {
 }
 
 /// V-carving needs a V-bit with a known angle; a tip that isn't set is taken as pointed and
-/// said so (docs/specs/v-carve.md §2, decision 11).
-fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, ToolpathError> {
+/// said so (docs/specs/v-carve.md §2, decision 11). The notes carry the label; a problem's
+/// text gets it from `labelled`, as for the other tool rules below.
+fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, String> {
     if tool.kind != ToolType::Vbit {
-        return Err(job_error(format!(
-            "{label}: V-carving needs a V-bit, tool {} is a {}",
+        return Err(format!(
+            "V-carving needs a V-bit, tool {} is a {}",
             tool.id,
             tool.kind.name()
-        )));
+        ));
     }
     if tool.angle.is_none() {
-        return Err(job_error(format!(
-            "{label}: tool {} is a V-bit with no angle; set its angle",
+        return Err(format!(
+            "tool {} is a V-bit with no angle; set its angle",
             tool.id
-        )));
+        ));
     }
     if tool.tip_diameter.is_none() {
         return Ok(vec![format!(
@@ -1784,30 +1784,25 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, ToolpathEr
 }
 
 /// Pockets need an endmill; a straight plunge also needs it to be centre-cutting.
-fn pocket_tool_notes(
-    number: usize,
-    tool: &Tool,
-    entry: Entry,
-) -> Result<Vec<String>, ToolpathError> {
+fn pocket_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, String> {
     if tool.kind != ToolType::Endmill {
-        return Err(job_error(format!(
-            "Operation {number}: pockets need an endmill, tool {} is a {}",
+        return Err(format!(
+            "pockets need an endmill, tool {} is a {}",
             tool.id,
             tool.kind.name()
-        )));
+        ));
     }
     plunge_notes(number, "pocket", tool, entry)
 }
 
 /// A follow path takes an endmill (which must be centre-cutting to plunge) or a V-bit
 /// (centre-cutting by its shape); a drill can't follow a path (docs/specs/follow-path.md §5).
-fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, ToolpathError> {
+fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<String>, String> {
     match tool.kind {
-        ToolType::Drill => Err(job_error(format!(
-            "Operation {number}: tool {} is a drill, which can't follow a path; use an \
-             endmill or a V-bit",
+        ToolType::Drill => Err(format!(
+            "tool {} is a drill, which can't follow a path; use an endmill or a V-bit",
             tool.id
-        ))),
+        )),
         ToolType::Vbit => Ok(Vec::new()),
         ToolType::Endmill => plunge_notes(number, "follow path", tool, entry),
     }
@@ -1815,17 +1810,12 @@ fn path_tool_notes(number: usize, tool: &Tool, entry: Entry) -> Result<Vec<Strin
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match
 /// the tool; a V-bit can't cut holes.
-fn holes_tool_notes(
-    number: usize,
-    tool: &Tool,
-    method: HoleMethod,
-) -> Result<Vec<String>, ToolpathError> {
+fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<Vec<String>, String> {
     if tool.kind == ToolType::Vbit {
-        return Err(job_error(format!(
-            "Operation {number}: tool {} is a V-bit, which can't cut holes; use a drill or an \
-             endmill",
+        return Err(format!(
+            "tool {} is a V-bit, which can't cut holes; use a drill or an endmill",
             tool.id
-        )));
+        ));
     }
     let wanted = method.tool_type();
     if tool.kind != wanted {
@@ -1834,11 +1824,10 @@ fn holes_tool_notes(
             HoleMethod::Bore { .. } => ("bore", "an endmill"),
         };
         let is = tool.kind.with_article();
-        return Err(job_error(format!(
-            "Operation {number}: the method is {method_name}, which needs {fits}; tool {} is \
-             {is}",
+        return Err(format!(
+            "the method is {method_name}, which needs {fits}; tool {} is {is}",
             tool.id
-        )));
+        ));
     }
     Ok(Vec::new())
 }
@@ -1846,7 +1835,7 @@ fn holes_tool_notes(
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,
 /// flanks steeper than the ramp angle are refused for a tool marked not centre-cutting, and
 /// a note when it's unknown.
-fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, ToolpathError> {
+fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, String> {
     let (Some(ramp_angle), Some(tabs)) = (op.entry.ramp_angle(), &op.tabs) else {
         return Ok(Vec::new());
     };
@@ -1855,12 +1844,12 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>
     }
     let (flank, ramp) = (tabs.flank_angle.to_degrees(), ramp_angle.to_degrees());
     match tool.center_cutting {
-        Some(false) => Err(job_error(format!(
-            "Operation {number}: tool {} is not centre-cutting and the tabs' flanks \
-             ({flank:.1}°) are steeper than the ramp angle ({ramp:.1}°); going down a flank \
-             is a ramp, so make them no steeper than {ramp:.1}°",
+        Some(false) => Err(format!(
+            "tool {} is not centre-cutting and the tabs' flanks ({flank:.1}°) are steeper \
+             than the ramp angle ({ramp:.1}°); going down a flank is a ramp, so make them \
+             no steeper than {ramp:.1}°",
             tool.id
-        ))),
+        )),
         None => Ok(vec![format!(
             "Operation {number}: the tabs' flanks ({flank:.1}°) are steeper than the ramp \
              angle ({ramp:.1}°); tool {} isn't marked center_cutting, make sure it is a \
@@ -1878,16 +1867,16 @@ fn plunge_notes(
     what: &str,
     tool: &Tool,
     entry: Entry,
-) -> Result<Vec<String>, ToolpathError> {
+) -> Result<Vec<String>, String> {
     if entry.ramp_angle().is_some() {
         return Ok(Vec::new());
     }
     match tool.center_cutting {
-        Some(false) => Err(job_error(format!(
-            "Operation {number}: tool {} is not centre-cutting and this {what} plunges \
-             straight down; ramp in instead (entry: ramp) or use a centre-cutting tool",
+        Some(false) => Err(format!(
+            "tool {} is not centre-cutting and this {what} plunges straight down; ramp in \
+             instead (entry: ramp) or use a centre-cutting tool",
             tool.id
-        ))),
+        )),
         None => Ok(vec![format!(
             "Operation {number}: {what} plunges straight down; tool {} isn't marked \
              center_cutting, make sure it is a centre-cutting tool",

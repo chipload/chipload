@@ -40,7 +40,7 @@ use chipload_pipeline::{
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
 use chipload_toolpath::model::{Move, MoveKind, Program};
-use chipload_toolpath::plan_job;
+use chipload_toolpath::{ToolpathError, plan_job};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
@@ -943,8 +943,7 @@ fn copies(out: &mut Out, project: &Path, args: CopiesArgs, output: Option<&Path>
     if job.parts[at].count() > 1
         && let Ok(drawing) = load_drawing(&job)
         && let Err(err) = plan_job(&job, &drawing.contours)
-        && (err.to_string().starts_with("Copies overlap")
-            || err.to_string().contains(" overlaps part "))
+        && matches!(err.cause(), ToolpathError::Overlap(_))
     {
         out.err(format!("warning: {err}"));
     }
