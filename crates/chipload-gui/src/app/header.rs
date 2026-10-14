@@ -19,6 +19,29 @@ const RIBBON_ICON: f32 = 20.0;
 const QUICK_BUTTON: f32 = 24.0;
 
 impl ChiploadApp {
+    /// What Export writes: every part that is cut, which the preview may not show
+    /// (docs/specs/active-part-preview.md §2).
+    fn export_hover(&self) -> String {
+        let Some(edit) = &self.edit else {
+            return "Save the checked G-code".to_string();
+        };
+        let cut = edit.settings.parts.iter().filter(|p| p.enabled).count();
+        let shown = self
+            .result_part
+            .and_then(|id| edit.settings.part(id))
+            .map(|p| p.name.as_str());
+        match (cut, shown) {
+            (n, Some(name)) if n > 1 => format!(
+                "Save the checked G-code of every part that is cut ({n} parts); the preview \
+                 shows only \"{name}\""
+            ),
+            (n, _) if n > 1 => {
+                format!("Save the checked G-code of every part that is cut ({n} parts)")
+            }
+            _ => "Save the checked G-code".to_string(),
+        }
+    }
+
     /// The top bar: the name, Open, Save, Undo, Redo; the project's tab in the middle;
     /// Settings, Help and the version at the right.
     pub(super) fn top_bar(&mut self, ui: &mut egui::Ui) {
@@ -398,17 +421,15 @@ impl ChiploadApp {
                 ui.add_space(4.0);
                 let has_result = self.result.is_some();
                 let can_export = has_result || self.generating();
+                let hover = if has_result {
+                    self.export_hover()
+                } else if self.generating() {
+                    "Save the G-code once it is generated".to_string()
+                } else {
+                    "Generate first".to_string()
+                };
                 if ribbon_button(ui, Icon::Export, "Export", can_export, false)
-                    .on_hover_text(hover_keys(
-                        if has_result {
-                            "Save the checked G-code"
-                        } else if self.generating() {
-                            "Save the G-code once it is generated"
-                        } else {
-                            "Generate first"
-                        },
-                        Action::Export,
-                    ))
+                    .on_hover_text(hover_keys(&hover, Action::Export))
                     .clicked()
                 {
                     self.export_when_ready();
