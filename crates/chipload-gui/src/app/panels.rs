@@ -105,8 +105,9 @@ impl ChiploadApp {
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
                 };
+                let through = edit.settings.stock.thickness + edit.settings.stock.max_overcut;
                 if let Some(entry) = edit.ops.get_mut(i) {
-                    op_request = op_form(ui, i, entry, contours, choice);
+                    op_request = op_form(ui, i, entry, contours, choice, through);
                 }
             }
         });

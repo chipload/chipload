@@ -26,13 +26,15 @@ pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
         .suffix(" mm")
 }
 
-/// Start depth, end depth and clearance (docs/specs/depths-and-clearance.md).
+/// Start depth, end depth and clearance (docs/specs/depths-and-clearance.md). `through`:
+/// the end depth that cuts through the stock (its thickness plus the allowed overcut).
 fn depth_rows(
     ui: &mut egui::Ui,
     start: &mut f64,
     end: &mut f64,
     clearance: &mut f64,
     can_clear: bool,
+    through: f64,
 ) {
     ui.label("Start depth")
         .on_hover_text("Where the cut starts, down from the stock top");
@@ -40,7 +42,20 @@ fn depth_rows(
     ui.end_row();
     ui.label("End depth")
         .on_hover_text("Where the cut ends, down from the stock top");
-    flag(ui.add(mm(end)), ui, "end_depth");
+    ui.horizontal(|ui| {
+        flag(ui.add(mm(end)), ui, "end_depth");
+        if ui
+            .small_button("Through")
+            .on_hover_text(format!(
+                "Cut through the stock: {} mm, its thickness plus the allowed depth below it \
+                 (Job settings > Stock)",
+                len(through)
+            ))
+            .clicked()
+        {
+            *end = through;
+        }
+    });
     ui.end_row();
     ui.label("Clearance").on_hover_text(
         "How far the cut moves into the material that is kept: positive makes a pocket \
@@ -242,12 +257,14 @@ pub(super) struct ToolChoice<'a> {
 }
 
 /// The selected operation's fields, in sections.
+/// `through`: the end depth that cuts through the stock, for the Through button.
 pub(super) fn op_form(
     ui: &mut egui::Ui,
     index: usize,
     entry: &mut crate::editor::EditOp,
     contours: &[Contour],
     choice: ToolChoice<'_>,
+    through: f64,
 ) -> OpFormRequest {
     let mut request = OpFormRequest::default();
     let mut use_selection = false;
@@ -358,6 +375,7 @@ pub(super) fn op_form(
                     &mut p.end_depth,
                     &mut p.clearance,
                     can_clear,
+                    through,
                 );
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
@@ -397,6 +415,7 @@ pub(super) fn op_form(
                     &mut p.end_depth,
                     &mut p.clearance,
                     true,
+                    through,
                 );
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
@@ -458,9 +477,9 @@ pub(super) fn op_form(
                 );
                 flag(ui.add(mm(&mut v.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label("Max depth").on_hover_text(
-                    "The deepest the tip goes, from the stock top. Wider strokes are carved to \
-                     it and reported",
+                ui.label("End depth").on_hover_text(
+                    "The deepest the tip goes, from the stock top (end_depth in the file). \
+                     Wider strokes are carved to it and reported",
                 );
                 flag(ui.add(mm(&mut v.end_depth)), ui, "end_depth");
                 ui.end_row();
