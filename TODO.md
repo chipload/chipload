@@ -99,7 +99,8 @@ it's built (see `CLAUDE.md`).
 
 - **A clearer image window** (2026-10-14): the traced parts show near black on white, and
   outlines are no longer drawn over them, so the detail stays visible while setting the
-  threshold; centre lines are still drawn, as they are the result.
+  threshold; centre lines are still drawn, as they are the result. The preview zooms
+  (scroll, up to 32×), pans (drag) and fits again (double-click).
 - **The preview is of the active part** (2026-10-14, docs/specs/active-part-preview.md):
   with several parts, generating, simulating and playback cover the active part; All parts
   on the canvas bar shows every part; export always plans and writes every part.
