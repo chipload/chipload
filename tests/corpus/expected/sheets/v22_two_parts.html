@@ -61,25 +61,25 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 <figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> File 1 (T1)</span><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#c0392b" stroke-width="2" stroke-dasharray="6 3"/></svg> File 2 (T2)</span><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1e8449" stroke-width="2" stroke-dasharray="2 2"/></svg> File 3 (T1)</span><span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>
 </figure>
 <section class="file">
-<h2>1. part-1-T1.nc <span class="time">1 min 54 s</span></h2>
+<h2>1. part-1-T1.nc <span class="time">1 min 52 s</span></h2>
 <p class="do">Load tool T1 (6 mm end mill, 2 flutes). Set X0 Y0 at the stock&#39;s bottom left corner and Z0 on the top of the stock.</p>
 <p>Tool T1: 6 mm end mill, 2 flutes, 18000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
 <tr class="part"><th colspan="7">Part 1: simple part</th></tr>
-<tr><td>1</td><td><strong>Holes</strong><br>Profile, inside, climb</td><td>0 to 12, 4 per pass</td><td>1500 / 500<br>0.042 mm/tooth</td><td>plunge</td><td>none</td><td>50 s</td></tr>
+<tr><td>1</td><td><strong>Holes</strong><br>Profile, inside, climb</td><td>0 to 12, 4 per pass</td><td>1500 / 500<br>0.042 mm/tooth</td><td>plunge</td><td>none</td><td>49 s</td></tr>
 <tr><td>2</td><td><strong>Outline</strong><br>Profile, outside, climb</td><td>0 to 12, 4 per pass</td><td>1800 / 600<br>0.050 mm/tooth</td><td>plunge</td><td>none</td><td>1 min 1 s</td></tr>
 </table></div>
 <p>Cuts down to Z-12: 12 mm below the stock top, through the stock. Check that the tool sticks out far enough.</p>
 </section>
 <section class="file">
-<h2>2. part-2-T2.nc <span class="time">21 s</span></h2>
+<h2>2. part-2-T2.nc <span class="time">18 s</span></h2>
 <p class="do">Change to tool T2 (60&#xb0; V-bit, 12.7 mm, tip 0.2 mm, 2 flutes). Set Z0 again with this tool on the top of the stock; keep X0 Y0.</p>
 <p>Tool T2: &ldquo;60&#xb0; V-bit&rdquo;, 60&#xb0; V-bit, 12.7 mm, tip 0.2 mm, 2 flutes, 18000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
 <tr class="part"><th colspan="7">Part 1: simple part</th></tr>
-<tr><td>3</td><td><strong>Logo</strong><br>V-carve</td><td>0 to 3, one pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>-</td><td>18 s</td></tr>
+<tr><td>3</td><td><strong>Logo</strong><br>V-carve</td><td>0 to 3, one pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>-</td><td>15 s</td></tr>
 </table></div>
 <p>Cuts down to Z-3: 3 mm below the stock top. Check that the tool sticks out far enough.</p>
 </section>
@@ -104,15 +104,15 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 </section>
 <section class="total">
 <h2>Time</h2>
-<p>Estimated time: 3 min 33 s (cutting 3 min 12 s, rapids 12 s, spindle 9 s), plus 2 tool changes</p>
-<p>Part 1 (simple part): 2 min 9 s</p>
-<p>Operation 1 (Holes): 50 s</p>
+<p>Estimated time: 3 min 26 s (cutting 3 min 5 s, rapids 13 s, spindle 9 s), plus 2 tool changes</p>
+<p>Part 1 (simple part): 2 min 4 s</p>
+<p>Operation 1 (Holes): 49 s</p>
 <p>Operation 2 (Outline): 1 min 1 s</p>
-<p>Operation 3 (Logo): 18 s</p>
+<p>Operation 3 (Logo): 15 s</p>
 <p>Part 2 (part B): 1 min 14 s</p>
 <p>Operation 4 (Outline B): 1 min 14 s</p>
-<p>File 1: 1 min 54 s</p>
-<p>File 2: 21 s</p>
+<p>File 1: 1 min 52 s</p>
+<p>File 2: 18 s</p>
 <p>File 3: 1 min 17 s</p>
 <p>At the programmed feeds (rapids at the machine&#39;s max feed, 5000 mm/min); acceleration and corners make the real time longer.</p>
 </section>

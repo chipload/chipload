@@ -100,6 +100,10 @@ pub struct OpSpan {
     pub tool_radius: f64,
 }
 
+/// How far above the stock top a rapid goes down before a plunge (docs/specs/approach.md):
+/// the air above it is crossed at rapid, the rest at the plunge feed.
+pub const APPROACH_CLEARANCE_MM: f64 = 1.0;
+
 pub fn plan_job(job: &Job, contours: &[Contour]) -> Result<Plan, ToolpathError> {
     plan_job_cancellable(job, contours, &Cancel::new())
 }
@@ -366,6 +370,34 @@ fn plan_step(
     })
 }
 
+/// Every plunge from safe Z gets a rapid down to the approach height first
+/// (docs/specs/approach.md): a feed straight down that starts at safe Z and ends below
+/// `top_z + APPROACH_CLEARANCE_MM`. Nothing goes below the stock top as a rapid, and a
+/// safe Z at or below the approach height leaves the moves as they are.
+fn lower_approaches(moves: Vec<Move>, top_z: f64, safe_z: f64) -> Vec<Move> {
+    let approach = top_z + APPROACH_CLEARANCE_MM;
+    if safe_z <= approach + DEPTH_TOL_MM {
+        return moves;
+    }
+    let mut out = Vec::with_capacity(moves.len() + 8);
+    let mut z: Option<f64> = None;
+    for m in moves {
+        let plunge = m.kind == MoveKind::Feed && m.x.is_none() && m.y.is_none();
+        if plunge
+            && let (Some(from), Some(to)) = (z, m.z)
+            && (from - safe_z).abs() <= DEPTH_TOL_MM
+            && to < approach - DEPTH_TOL_MM
+        {
+            out.push(Move::rapid_z(approach));
+        }
+        if let Some(mz) = m.z {
+            z = Some(mz);
+        }
+        out.push(m);
+    }
+    out
+}
+
 /// Everything the steps planned so far, in cut order.
 #[derive(Default)]
 struct Gathered {
@@ -395,7 +427,11 @@ impl Gathered {
         notes: &mut Vec<Note>,
     ) {
         let first = self.moves.len();
-        self.moves.extend(planned.moves);
+        self.moves.extend(lower_approaches(
+            planned.moves,
+            job.stock.top_z(),
+            job.machine.safe_z,
+        ));
         self.comment_part_start(job, index, first);
         self.op_spans.push(OpSpan {
             operation: index,

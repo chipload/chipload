@@ -54,12 +54,12 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 <figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> T1</span><span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>
 </figure>
 <section class="file">
-<h2>1. part.nc <span class="time">13 s</span></h2>
+<h2>1. part.nc <span class="time">10 s</span></h2>
 <p class="do">Load tool T1 (3 mm end mill, 2 flutes). Set X0 Y0 at the stock&#39;s bottom left corner and Z0 on the top of the stock.</p>
 <p>Tool T1: &ldquo;3 mm&rdquo;, 3 mm end mill, 2 flutes, 18000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
-<tr><td>1</td><td><strong>Strokes</strong><br>Follow path, on the line</td><td>0 to 1, one pass</td><td>1000 / 300<br>0.028 mm/tooth</td><td>plunge</td><td>-</td><td>10 s</td></tr>
+<tr><td>1</td><td><strong>Strokes</strong><br>Follow path, on the line</td><td>0 to 1, one pass</td><td>1000 / 300<br>0.028 mm/tooth</td><td>plunge</td><td>-</td><td>7 s</td></tr>
 </table></div>
 <p>Cuts down to Z-1: 1 mm below the stock top. Check that the tool sticks out far enough.</p>
 </section>
@@ -71,8 +71,8 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 </section>
 <section class="total">
 <h2>Time</h2>
-<p>Estimated time: 13 s (cutting 10 s, rapids 1 s, spindle 3 s)</p>
-<p>Operation 1 (Strokes): 10 s</p>
+<p>Estimated time: 10 s (cutting 6 s, rapids 1 s, spindle 3 s)</p>
+<p>Operation 1 (Strokes): 7 s</p>
 <p>At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine&#39;s max feed for a better estimate); acceleration and corners make the real time longer.</p>
 </section>
 </body>

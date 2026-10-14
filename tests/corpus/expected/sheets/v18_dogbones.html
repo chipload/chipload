@@ -55,13 +55,13 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 <figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> T1</span><span><svg width="36" height="10"><line x1="4" y1="5" x2="32" y2="5" stroke="#e67e22" stroke-width="5" stroke-linecap="round"/></svg> tabs</span><span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>
 </figure>
 <section class="file">
-<h2>1. part.nc <span class="time">1 min 36 s</span></h2>
+<h2>1. part.nc <span class="time">1 min 34 s</span></h2>
 <p class="do">Load tool T1 (6 mm end mill, 2 flutes). Set X0 Y0 at the stock&#39;s bottom left corner and Z0 on the top of the stock.</p>
 <p>Tool T1: 6 mm end mill, 2 flutes, 18000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
-<tr><td>1</td><td><strong>Mortise</strong><br>Pocket, rings, climb, stepover 40 %, dogbones at corners up to 100&#xb0;</td><td>0 to 6, 3 per pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>-</td><td>10 s</td></tr>
-<tr><td>2</td><td><strong>Slot</strong><br>Profile, inside, climb, cuts 0.1 mm past the line, T-bones at corners up to 100&#xb0;</td><td>0 to 12, 4 per pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>none</td><td>18 s</td></tr>
+<tr><td>1</td><td><strong>Mortise</strong><br>Pocket, rings, climb, stepover 40 %, dogbones at corners up to 100&#xb0;</td><td>0 to 6, 3 per pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>-</td><td>9 s</td></tr>
+<tr><td>2</td><td><strong>Slot</strong><br>Profile, inside, climb, cuts 0.1 mm past the line, T-bones at corners up to 100&#xb0;</td><td>0 to 12, 4 per pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>plunge</td><td>none</td><td>17 s</td></tr>
 <tr><td>3</td><td><strong>Outline</strong><br>Profile, outside, climb, dogbones at corners up to 100&#xb0;</td><td>0 to 12.3, 4 per pass</td><td>1800 / 600<br>0.050 mm/tooth</td><td>plunge</td><td>4 &#xd7; 6 wide, 2 high</td><td>1 min 6 s</td></tr>
 </table></div>
 <p>Cuts down to Z-12.3: 12.3 mm below the stock top, 0.3 mm into the spoilboard. Check that the tool sticks out far enough.</p>
@@ -75,9 +75,9 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 </section>
 <section class="total">
 <h2>Time</h2>
-<p>Estimated time: 1 min 36 s (cutting 1 min 31 s, rapids 2 s, spindle 3 s)</p>
-<p>Operation 1 (Mortise): 10 s</p>
-<p>Operation 2 (Slot): 18 s</p>
+<p>Estimated time: 1 min 34 s (cutting 1 min 29 s, rapids 2 s, spindle 3 s)</p>
+<p>Operation 1 (Mortise): 9 s</p>
+<p>Operation 2 (Slot): 17 s</p>
 <p>Operation 3 (Outline): 1 min 6 s</p>
 <p>At the programmed feeds (rapids at the machine&#39;s max feed, 5000 mm/min); acceleration and corners make the real time longer.</p>
 </section>

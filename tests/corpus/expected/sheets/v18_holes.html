@@ -55,21 +55,21 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 <figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> T2</span><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#c0392b" stroke-width="2" stroke-dasharray="6 3"/></svg> T1</span><span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>
 </figure>
 <section class="file">
-<h2>1. part.nc <span class="time">46 s</span></h2>
-<h3>T2 <span class="time">12 s</span></h3>
+<h2>1. part.nc <span class="time">43 s</span></h2>
+<h3>T2 <span class="time">10 s</span></h3>
 <p class="do">Load tool T2 (8 mm drill, 2 flutes). Set X0 Y0 at the stock&#39;s bottom left corner and Z0 on the top of the stock.</p>
 <p>Tool T2: 8 mm drill, 2 flutes, 6000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
-<tr><td>1</td><td><strong>Drilled</strong><br>Holes, drilled</td><td>0 to 12 (the drill&#39;s point), pecks 4 mm</td><td>300 down<br>0.025 mm/tooth</td><td>straight down</td><td>-</td><td>9 s</td></tr>
+<tr><td>1</td><td><strong>Drilled</strong><br>Holes, drilled</td><td>0 to 12 (the drill&#39;s point), pecks 4 mm</td><td>300 down<br>0.025 mm/tooth</td><td>straight down</td><td>-</td><td>7 s</td></tr>
 </table></div>
 <p>Cuts down to Z-12: 12 mm below the stock top, through the stock. Check that the tool sticks out far enough.</p>
-<h3>T1 <span class="time">34 s</span></h3>
+<h3>T1 <span class="time">33 s</span></h3>
 <p class="do">Tool change (M6) to T1 (6 mm end mill, 2 flutes), as your controller handles it.</p>
 <p>Tool T1: 6 mm end mill, 2 flutes, 18000 rpm clockwise (M3).</p>
 <div class="scroll"><table class="ops">
 <tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
-<tr><td>2</td><td><strong>Bored</strong><br>Holes, helical bore, climb</td><td>0 to 12, 2 per turn</td><td>1200 / 400<br>0.033 mm/tooth</td><td>helix 3&#xb0;</td><td>-</td><td>31 s</td></tr>
+<tr><td>2</td><td><strong>Bored</strong><br>Holes, helical bore, climb</td><td>0 to 12, 2 per turn</td><td>1200 / 400<br>0.033 mm/tooth</td><td>helix 3&#xb0;</td><td>-</td><td>30 s</td></tr>
 </table></div>
 <p>Cuts down to Z-12: 12 mm below the stock top, through the stock. Check that the tool sticks out far enough.</p>
 </section>
@@ -83,9 +83,9 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 </section>
 <section class="total">
 <h2>Time</h2>
-<p>Estimated time: 46 s (cutting 37 s, rapids 3 s, spindle 6 s), plus 1 tool change</p>
-<p>Operation 1 (Drilled): 9 s</p>
-<p>Operation 2 (Bored): 31 s</p>
+<p>Estimated time: 43 s (cutting 34 s, rapids 3 s, spindle 6 s), plus 1 tool change</p>
+<p>Operation 1 (Drilled): 7 s</p>
+<p>Operation 2 (Bored): 30 s</p>
 <p>At the programmed feeds (rapids at the machine&#39;s max feed, 5000 mm/min); acceleration and corners make the real time longer.</p>
 </section>
 </body>

@@ -123,14 +123,15 @@ fn a_plunged_open_path_goes_back_and_forth_one_depth_at_a_time() {
             (110.0, 10.0, -3.0),
         ]
     );
-    // One retract at the end, none in between.
-    let rapids_up = plan
+    // One retract at the end, none in between: safe Z, the approach height, safe Z.
+    let rapids_z: Vec<f64> = plan
         .program
         .moves
         .iter()
-        .filter(|m| m.kind == MoveKind::Rapid && m.z.is_some())
-        .count();
-    assert_eq!(rapids_up, 2, "the first and the last");
+        .filter(|m| m.kind == MoveKind::Rapid)
+        .filter_map(|m| m.z)
+        .collect();
+    assert_eq!(rapids_z, [5.0, 1.0, 5.0]);
 }
 
 #[test]

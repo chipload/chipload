@@ -35,7 +35,8 @@ machine's zero exactly there.
 
 Under Machine:
 - **Safe Z:** the height for every rapid move sideways, above the stock top. Make it clear
-  of your clamps.
+  of your clamps. Before a plunge the tool rapids down to 1 mm above the stock top, then
+  feeds; it never rapids below the stock top.
 - **Travel X Y Z:** the machine's travel. When set, the checker refuses a program that
   moves farther than the machine can.
 - **Max feed:** the fastest feed the machine takes. Feeds above it are refused, and the
