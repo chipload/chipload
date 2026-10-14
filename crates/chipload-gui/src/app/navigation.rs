@@ -178,6 +178,22 @@ impl ChiploadApp {
         {
             self.set_show_grid(!self.show_grid);
         }
+        // With several parts, the toolpath and simulation are of the active part unless
+        // this is on (docs/specs/active-part-preview.md §3).
+        let parts = self
+            .edit
+            .as_ref()
+            .map_or(0, |e| e.settings.parts.iter().filter(|p| p.enabled).count());
+        if parts > 1
+            && ribbon_button(ui, Icon::Parts, "All parts", true, self.all_parts)
+                .on_hover_text(
+                    "Generate and simulate every part, not only the active one. Export always \
+                     writes every part.",
+                )
+                .clicked()
+        {
+            self.set_all_parts(!self.all_parts);
+        }
     }
 
     /// The top right corner: the orientation cube in 3D, an X–Y sign in top view.

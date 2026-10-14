@@ -36,6 +36,9 @@ pub(super) struct Generation {
     project: EditJob,
     /// Started by the user (F5, the button): errors also go to the status bar.
     loud: bool,
+    /// The one part planned for the preview; None: the whole project
+    /// (docs/specs/active-part-preview.md).
+    scope: Option<u64>,
 }
 
 fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
@@ -62,6 +65,22 @@ impl ChiploadApp {
     /// Plan the project on a worker thread. Returns whether a run started; an incomplete
     /// project is reported instead.
     pub(super) fn start_generation(&mut self, loud: bool) -> bool {
+        self.start_generation_of(loud, false)
+    }
+
+    /// The part a preview plans: the active one, when the project has several parts that
+    /// are cut and "All parts" is off (docs/specs/active-part-preview.md §1). None: all.
+    pub(super) fn preview_part(&self) -> Option<u64> {
+        let settings = &self.edit.as_ref()?.settings;
+        let cut = settings.parts.iter().filter(|p| p.enabled).count();
+        let active = settings.active_part_id()?;
+        let on = settings.part(active).is_some_and(|p| p.enabled);
+        (!self.all_parts && cut > 1 && on).then_some(active)
+    }
+
+    /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
+    /// export).
+    pub(super) fn start_generation_of(&mut self, loud: bool, whole: bool) -> bool {
         self.commit();
         self.stop_generation();
         self.changed_at = None;
@@ -70,8 +89,17 @@ impl ChiploadApp {
             return false;
         };
         let project = edit.clone();
+        let scope = if whole { None } else { self.preview_part() };
         let job = match edit.to_job() {
-            Ok(job) => job,
+            // Only the active part: the others are planned as if switched off.
+            Ok(mut job) => {
+                if let Some(id) = scope {
+                    for part in &mut job.parts {
+                        part.enabled = part.id == id;
+                    }
+                }
+                job
+            }
             Err(problems) => {
                 self.error_ops = problems.iter().filter_map(|p| operation_index(p)).collect();
                 let mut lines = vec!["The project is not complete:".to_string()];
@@ -104,6 +132,7 @@ impl ChiploadApp {
             job,
             project,
             loud,
+            scope,
         });
         true
     }
@@ -120,6 +149,7 @@ impl ChiploadApp {
         if self.generation.is_some() {
             self.stop_generation();
             self.export_when_done = false;
+            self.export_path_when_done = None;
             self.set_status("Generation cancelled".into(), STATUS_SECONDS);
         }
     }
@@ -159,9 +189,12 @@ impl ChiploadApp {
         if self.edit.as_ref() != Some(&generation.project) {
             return false; // made for a project that has changed since: dropped
         }
-        let Generation { job, loud, .. } = generation;
+        let Generation {
+            job, loud, scope, ..
+        } = generation;
         let done = match outcome {
             Ok(Ok(result)) => {
+                self.result_part = scope;
                 self.show_result(&job, result);
                 true
             }
@@ -197,6 +230,11 @@ impl ChiploadApp {
         self.toolpath_stale = false;
         if std::mem::take(&mut self.export_when_done) && done {
             self.ask_export();
+        }
+        if let Some(path) = self.export_path_when_done.take()
+            && done
+        {
+            self.export_gcode(&path);
         }
         done
     }
@@ -238,6 +276,16 @@ impl ChiploadApp {
             report.push(Tone::Warning, format!("Check: {}", warning.message));
         }
         report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
+        if let Some(part) = self.result_part.and_then(|id| job.part(id)) {
+            report.push(
+                Tone::Info,
+                format!(
+                    "Shown: part \"{}\" only (All parts on the canvas bar shows every part). \
+                     Export writes every part that is cut.",
+                    part.name
+                ),
+            );
+        }
         self.set_report(report);
         self.result_job = Some(job.clone());
         self.result = Some(result);
@@ -287,12 +335,25 @@ impl ChiploadApp {
         None
     }
 
+    /// "All parts" on the canvas bar: the preview shows every part, or only the active one;
+    /// planned again at once.
+    pub fn set_all_parts(&mut self, on: bool) {
+        self.all_parts = on;
+        if self.edit.is_some() && (self.result.is_some() || self.auto_generate) {
+            self.start_generation(false);
+        }
+    }
+
     /// Export G-code: now if the toolpath is current, else once the run in progress (or one
     /// started for it) has finished.
     pub(super) fn export_when_ready(&mut self) {
-        if self.result.is_some() {
+        // An export is always of every part that is cut: a preview of one part is planned
+        // again whole first (docs/specs/active-part-preview.md §2).
+        let whole = self.result.is_some() && self.result_part.is_none();
+        let running_whole = self.generation.as_ref().is_some_and(|g| g.scope.is_none());
+        if whole {
             self.ask_export();
-        } else if self.generating() || self.start_generation(true) {
+        } else if running_whole || self.start_generation_of(true, true) {
             self.export_when_done = true;
             self.set_status(
                 "Exporting once the toolpath is generated".into(),

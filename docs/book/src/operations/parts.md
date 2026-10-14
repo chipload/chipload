@@ -15,6 +15,12 @@ boxes.
   changes.
 - **Off:** a part that is off is left out with all its operations.
 - **The active part:** new operations go into it. Adding a part makes the new one active.
+- **Seeing one part:** with two parts or more, Generate, the automatic update, the
+  simulation and playback show only the active part, so a change to part 2 doesn't plan
+  part 1 again. The status bar says "part 2 of 2 · cycle …". **All parts** on the canvas
+  bar shows every part.
+- **Export always writes every part** that is on. When only the active part is shown,
+  Export plans the whole project first, then writes it.
 - **Stock:** all parts share the project's stock and work zero. Parts cut from a different
   material belong in another project.
 - **Safety:**

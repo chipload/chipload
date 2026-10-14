@@ -263,6 +263,12 @@ pub struct ChiploadApp {
     changed_at: Option<Instant>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
     export_when_done: bool,
+    /// Where to export once the run in progress, of every part, is done.
+    pub(super) export_path_when_done: Option<PathBuf>,
+    /// Preview every part, not only the active one (canvas bar; this session only).
+    pub all_parts: bool,
+    /// The part the last result is a preview of; None: the whole project.
+    pub(super) result_part: Option<u64>,
     /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
     /// settings folder.
     recovery: Option<chipload_pipeline::recovery::Session>,
@@ -361,6 +367,9 @@ impl Default for ChiploadApp {
             show_grid: true,
             changed_at: None,
             export_when_done: false,
+            all_parts: false,
+            export_path_when_done: None,
+            result_part: None,
             recovery: None,
             recovery_due: None,
             leftovers: Vec::new(),
@@ -1042,6 +1051,15 @@ impl ChiploadApp {
             self.error(vec!["Generate (F5) before exporting G-code.".into()]);
             return false;
         };
+        // Never a preview of one part: every part is planned first, then written there
+        // (docs/specs/active-part-preview.md §2).
+        if self.result_part.is_some() {
+            if self.start_generation_of(true, true) {
+                self.export_path_when_done = Some(path.to_path_buf());
+                self.set_status("Planning every part, then exporting".into(), STATUS_SECONDS);
+            }
+            return false;
+        }
         let written = match write_gcode_files(path, &result.files) {
             Ok(written) => written,
             Err(err) => {

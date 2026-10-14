@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **The preview is of the active part** (2026-10-14, docs/specs/active-part-preview.md):
+  with several parts, generating, simulating and playback cover the active part; All parts
+  on the canvas bar shows every part; export always plans and writes every part.
 - **V-carving a whole picture** (fix, 2026-10-14): the app took a selector of only a DXF
   or picture (`{"image": 1}`) for "no geometry"; one `Selector::is_empty` now decides
   everywhere (app, project rules, start points on placing). A new V-carve takes the

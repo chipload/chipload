@@ -111,7 +111,9 @@ colour theme: dark, or light grey.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - how you look: **Fit** (F), **Top** (T) and **3D**;
   - what is shown: **Stock** (the [simulation](checking/simulation.md)), **Toolpath**,
-    **Images** and **Grid** (G).
+    **Images** and **Grid** (G);
+  - with two parts or more, **All parts**: the toolpath and simulation of every part, not
+    only the [active one](operations/parts.md).
 - **The corner:**
   - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
     FRONT, RIGHT, BACK, LEFT) to look straight at it.

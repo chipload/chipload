@@ -433,10 +433,25 @@ impl ChiploadApp {
             // The units, the post and the cycle time once generated, at the far right
             // (docs/specs/browser-and-layout.md §6).
             let post = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
-            let time = self
-                .result
-                .as_ref()
-                .map(|r| chipload_pipeline::estimate::duration_text(r.estimate.total));
+            // What the toolpath is of: one part of several, or all of them
+            // (docs/specs/active-part-preview.md §4).
+            let scope = self.edit.as_ref().and_then(|e| {
+                let parts = &e.settings.parts;
+                (parts.len() > 1).then(|| match self.result_part {
+                    Some(id) => {
+                        let k = parts.iter().position(|p| p.id == id).map_or(0, |k| k + 1);
+                        format!("part {k} of {}", parts.len())
+                    }
+                    None => "all parts".to_string(),
+                })
+            });
+            let time = self.result.as_ref().map(|r| {
+                let time = chipload_pipeline::estimate::duration_text(r.estimate.total);
+                match &scope {
+                    Some(scope) => format!("{scope} · cycle {time}"),
+                    None => format!("cycle {time}"),
+                }
+            });
             let grid = (self.show_grid && self.edit.is_some()).then(|| grid_step(self.view.scale));
             // With two parts or more, the one new operations go into (docs/specs/parts.md §8).
             let active = self.edit.as_ref().and_then(|e| {
@@ -466,7 +481,7 @@ impl ChiploadApp {
                     ui.separator();
                 }
                 if let Some(time) = time {
-                    ui.weak(format!("cycle {time}"))
+                    ui.weak(time)
                         .on_hover_text("Estimated cycle time (the report has the details)");
                     ui.separator();
                 }
