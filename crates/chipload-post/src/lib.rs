@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use chipload_job::{Spindle, Tool, ToolChange, ToolType};
+use chipload_job::{Spindle, Tool, ToolChange};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
@@ -517,19 +517,15 @@ fn ascii_for(c: char) -> &'static str {
 
 /// `tool 2, 3.000 mm endmill "3 mm downcut"`: the tool as a G-code comment shows it.
 pub fn tool_text(tool: &Tool, decimals: u32) -> String {
-    let kind = match tool.kind {
-        ToolType::Endmill => "endmill",
-        ToolType::Drill => "drill",
-        ToolType::Vbit => "V-bit",
-    };
     let name = tool
         .name
         .as_deref()
         .map_or(String::new(), |n| format!(" \"{}\"", comment_safe(n)));
     format!(
-        "tool {}, {} mm {kind}{name}",
+        "tool {}, {} mm {}{name}",
         tool.id,
-        format_number(tool.diameter, decimals)
+        format_number(tool.diameter, decimals),
+        tool.kind.name()
     )
 }
 

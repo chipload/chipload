@@ -1648,16 +1648,16 @@ pub(super) fn job_form(
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
 pub(super) fn tool_label(tool: &Tool) -> String {
-    let kind = match tool.kind {
-        ToolType::Endmill => "endmill",
-        ToolType::Drill => "drill",
-        ToolType::Vbit => "v-bit",
-    };
     let name = tool
         .name
         .as_deref()
         .map_or(String::new(), |n| format!(" \"{n}\""));
-    format!("T{} {kind} Ø{} mm{name}", tool.id, len(tool.diameter))
+    format!(
+        "T{} {} Ø{} mm{name}",
+        tool.id,
+        tool.kind.name(),
+        len(tool.diameter)
+    )
 }
 
 /// The operations (1-based numbers) that cut with tool `id`.
@@ -2348,15 +2348,11 @@ fn tool_change_name(change: ToolChange) -> &'static str {
 pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool) {
     ui.label("Type");
     ComboBox::from_id_salt((salt, "tool-type"))
-        .selected_text(match tool.kind {
-            ToolType::Endmill => "endmill",
-            ToolType::Drill => "drill",
-            ToolType::Vbit => "v-bit",
-        })
+        .selected_text(tool.kind.name())
         .show_ui(ui, |ui| {
-            ui.selectable_value(&mut tool.kind, ToolType::Endmill, "endmill");
-            ui.selectable_value(&mut tool.kind, ToolType::Drill, "drill");
-            ui.selectable_value(&mut tool.kind, ToolType::Vbit, "v-bit");
+            for kind in [ToolType::Endmill, ToolType::Drill, ToolType::Vbit] {
+                ui.selectable_value(&mut tool.kind, kind, kind.name());
+            }
         });
     ui.end_row();
     ui.label("Diameter");

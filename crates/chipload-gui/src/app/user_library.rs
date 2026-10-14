@@ -389,12 +389,7 @@ pub(super) fn library_message(
 }
 
 pub(super) fn tool_summary(t: &LibraryTool) -> String {
-    let kind = match t.kind {
-        ToolType::Endmill => "endmill",
-        ToolType::Drill => "drill",
-        ToolType::Vbit => "v-bit",
-    };
-    format!("{kind} {} mm", t.diameter)
+    format!("{} {} mm", t.kind.name(), t.diameter)
 }
 
 pub(super) fn machine_summary(m: &MachineProfile) -> String {

@@ -521,7 +521,7 @@ fn a_vbit_gets_its_angle_and_tip_and_carves_letters() {
     );
     let listed = ok(&dir, &["tool", "list"]);
     assert!(
-        listed.contains("V 60: id 1, v-bit 12.7 mm, rpm 18000, angle 60.0°, tip 0.2 mm"),
+        listed.contains("V 60: id 1, V-bit 12.7 mm, rpm 18000, angle 60.0°, tip 0.2 mm"),
         "{listed}"
     );
     let file = json(&dir.join("tools.json"));

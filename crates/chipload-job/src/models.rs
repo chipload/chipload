@@ -1388,6 +1388,26 @@ pub enum ToolType {
     Vbit,
 }
 
+impl ToolType {
+    /// The kind as messages and lists name it: `endmill`, `drill`, `V-bit`.
+    pub fn name(self) -> &'static str {
+        match self {
+            ToolType::Endmill => "endmill",
+            ToolType::Drill => "drill",
+            ToolType::Vbit => "V-bit",
+        }
+    }
+
+    /// The name with its article: `an endmill`, `a drill`, `a V-bit`.
+    pub fn with_article(self) -> &'static str {
+        match self {
+            ToolType::Endmill => "an endmill",
+            ToolType::Drill => "a drill",
+            ToolType::Vbit => "a V-bit",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]

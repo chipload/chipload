@@ -734,7 +734,7 @@ fn plan_holes_op(
             "{label}: no selected circle can be cut with tool {} ({} mm {})",
             tool.id,
             trim(tool.diameter),
-            type_name(tool.kind)
+            tool.kind.name()
         )));
     }
     let end_z = ctx
@@ -1675,7 +1675,7 @@ fn rest_check(
     if large.kind != ToolType::Endmill {
         return Err(format!(
             "{label}: rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
-            type_name(large.kind)
+            large.kind.name()
         ));
     }
     if large.diameter <= tool.diameter + REST_TOL_MM {
@@ -1784,7 +1784,7 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, ToolpathEr
         return Err(job_error(format!(
             "{label}: V-carving needs a V-bit, tool {} is a {}",
             tool.id,
-            type_name(tool.kind)
+            tool.kind.name()
         )));
     }
     if tool.angle.is_none() {
@@ -1802,14 +1802,6 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, ToolpathEr
     Ok(Vec::new())
 }
 
-fn type_name(kind: ToolType) -> &'static str {
-    match kind {
-        ToolType::Endmill => "endmill",
-        ToolType::Drill => "drill",
-        ToolType::Vbit => "vbit",
-    }
-}
-
 /// Pockets need an endmill; a straight plunge also needs it to be centre-cutting.
 fn pocket_tool_notes(
     number: usize,
@@ -1820,7 +1812,7 @@ fn pocket_tool_notes(
         return Err(job_error(format!(
             "Operation {number}: pockets need an endmill, tool {} is a {}",
             tool.id,
-            type_name(tool.kind)
+            tool.kind.name()
         )));
     }
     plunge_notes(number, "pocket", tool, entry)
@@ -1860,11 +1852,7 @@ fn holes_tool_notes(
             HoleMethod::Drill { .. } => ("drill", "a drill"),
             HoleMethod::Bore { .. } => ("bore", "an endmill"),
         };
-        let is = match tool.kind {
-            ToolType::Drill => "a drill",
-            ToolType::Endmill => "an endmill",
-            ToolType::Vbit => "a V-bit",
-        };
+        let is = tool.kind.with_article();
         return Err(job_error(format!(
             "Operation {number}: the method is {method_name}, which needs {fits}; tool {} is \
              {is}",

@@ -592,11 +592,7 @@ fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
             .default_tool
             .as_deref()
             .is_some_and(|d| chipload_job::library::same_name(d, &t.name));
-        let kind = match t.kind {
-            ToolType::Endmill => "endmill",
-            ToolType::Drill => "drill",
-            ToolType::Vbit => "v-bit",
-        };
+        let kind = t.kind.name();
         let mut line = format!(
             "  {}{}: id {}, {kind} {} mm",
             t.name,

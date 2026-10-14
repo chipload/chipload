@@ -155,8 +155,8 @@ impl LibraryTool {
         };
         differs(
             "type",
-            tool_type_name(tool.kind).into(),
-            tool_type_name(self.kind).into(),
+            ToolType::name(tool.kind).into(),
+            ToolType::name(self.kind).into(),
         );
         differs("diameter", mm(tool.diameter), mm(self.diameter));
         differs(
@@ -471,14 +471,6 @@ fn optional(text: Option<String>) -> String {
 
 fn travel_text(t: &Travel) -> String {
     format!("X{} Y{} Z{} mm", t.x, t.y, t.z)
-}
-
-fn tool_type_name(kind: ToolType) -> &'static str {
-    match kind {
-        ToolType::Endmill => "endmill",
-        ToolType::Drill => "drill",
-        ToolType::Vbit => "v-bit",
-    }
 }
 
 fn yes_no(value: Option<bool>) -> &'static str {
