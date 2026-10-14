@@ -181,10 +181,7 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                 ));
             }
         }
-        let label = match op.name() {
-            "" => format!("Operation {}", index + 1),
-            name => format!("Operation {} ({name})", index + 1),
-        };
+        let label = op.label(index);
         let indent = if several_parts { "    " } else { "  " };
         lines.push(format!("{indent}{label}: {}", duration_text(seconds)));
     }

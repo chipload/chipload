@@ -244,12 +244,8 @@ impl Playback {
         if let Some((_, op, copy)) = self.spans.iter().find(|(moves, _, _)| moves.contains(&k)) {
             let name = job
                 .and_then(|j| j.operations.get(*op))
-                .map(|o| o.name())
-                .filter(|n| !n.is_empty());
-            let mut text = match name {
-                Some(name) => format!("Operation {} ({name})", op + 1),
-                None => format!("Operation {}", op + 1),
-            };
+                .map_or("", |o| o.name());
+            let mut text = operation_label(*op, name);
             if *copy > 1 {
                 text += &format!(", copy {copy}");
             }

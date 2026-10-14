@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
     Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
@@ -569,7 +570,7 @@ fn tabs_text(op: &Operation) -> String {
                     num(t.height)
                 );
                 if !t.is_straight() {
-                    let degrees = trimmed(format!("{:.1}", t.flank_angle.to_degrees()));
+                    let degrees = trimmed(t.flank_angle.to_degrees(), 1);
                     let _ = write!(text, ", flanks {degrees}\u{b0}");
                 }
                 text
@@ -902,21 +903,12 @@ impl Bounds {
 
 /// A length for reading: at most 3 decimals, no trailing zeros, never `-0`.
 fn num(value: f64) -> String {
-    trimmed(format!("{value:.3}"))
+    trimmed(value, 3)
 }
 
 /// A coordinate in the picture: 2 decimals are plenty on paper.
 fn svg_num(value: f64) -> String {
-    trimmed(format!("{value:.2}"))
-}
-
-fn trimmed(text: String) -> String {
-    let text = if text.contains('.') {
-        text.trim_end_matches('0').trim_end_matches('.').to_string()
-    } else {
-        text
-    };
-    if text == "-0" { "0".into() } else { text }
+    trimmed(value, 2)
 }
 
 /// Text for HTML: the five special characters and everything outside ASCII as character

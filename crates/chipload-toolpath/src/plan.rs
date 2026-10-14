@@ -5,6 +5,7 @@
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::Primitive;
+use chipload_core::text::mm;
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Operation, Part,
     PathOp, PocketOp, Problem, ProfileOp, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
@@ -122,10 +123,7 @@ pub fn plan_job_cancellable(
         if !job.cuts(index) {
             continue; // kept in the file, skipped here; numbering stays as listed
         }
-        let label = match op.name() {
-            "" => format!("Operation {}", index + 1),
-            name => format!("Operation {} ({name})", index + 1),
-        };
+        let label = op.label(index);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
             Operation::Path(_) | Operation::Holes(_) => {
@@ -665,7 +663,7 @@ fn plan_holes_op(
     let mut cores = 0;
     let mut holes = Vec::new();
     for hole in found {
-        let diameter = trim(2.0 * hole.radius);
+        let diameter = mm(2.0 * hole.radius);
         let fits = match op.method {
             HoleMethod::Drill { .. } => {
                 (2.0 * hole.radius - tool.diameter).abs() <= DRILL_FIT_MM + CHAIN_TOL_MM
@@ -686,7 +684,7 @@ fn plan_holes_op(
                 return Err(job_error(format!(
                     "{label}: hole {diameter} mm is blind and more than twice the {} mm tool; \
                      use a pocket",
-                    trim(tool.diameter)
+                    mm(tool.diameter)
                 )));
             }
             cores += 1;
@@ -702,12 +700,12 @@ fn plan_holes_op(
         notes.push(match op.method {
             HoleMethod::Drill { .. } => format!(
                 "{label}: {holes_text}: not the {} mm drill's size (within {} mm); not drilled",
-                trim(tool.diameter),
-                trim(DRILL_FIT_MM)
+                mm(tool.diameter),
+                mm(DRILL_FIT_MM)
             ),
             HoleMethod::Bore { .. } => format!(
                 "{label}: {holes_text}: too small for the {} mm tool to bore; not cut",
-                trim(tool.diameter)
+                mm(tool.diameter)
             ),
         });
     }
@@ -726,7 +724,7 @@ fn plan_holes_op(
         return Err(job_error(format!(
             "{label}: no selected circle can be cut with tool {} ({} mm {})",
             tool.id,
-            trim(tool.diameter),
+            mm(tool.diameter),
             tool.kind.name()
         )));
     }
@@ -795,17 +793,11 @@ fn groove_note(tool: &Tool, depth: f64) -> Option<String> {
         format!(
             "the V-groove is deeper than the V-bit's cone: {} mm wide at the top, with \
              straight walls above the cone",
-            trim(tool.diameter)
+            mm(tool.diameter)
         )
     } else {
-        format!("the V-groove is {} mm wide at the top", trim(width))
+        format!("the V-groove is {} mm wide at the top", mm(width))
     })
-}
-
-/// A length for a note: 3 decimals, no trailing zeros.
-fn trim(value: f64) -> String {
-    let text = format!("{value:.3}");
-    text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 fn plan_vcarve_op(
@@ -1142,15 +1134,15 @@ fn slot_note(
             "{label}, contour #{id}: the roughing can't reach part of the wall (the finishing \
              lap runs {} mm from the roughing path, a tool radius or more): use less \
              finishing stock or a smaller tool",
-            trim(farthest)
+            mm(farthest)
         )));
     }
     if farthest > 2.0 * stock + CHAIN_TOL_MM {
         notes.push(format!(
             "{label}, contour #{id}: the finishing lap cuts up to {} mm in corners or narrow \
              parts (finishing stock {} mm)",
-            trim(farthest),
-            trim(stock)
+            mm(farthest),
+            mm(stock)
         ));
     }
     Ok(())
@@ -1464,10 +1456,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<String>) {
         };
         let tool = &job.tools[k];
         let number = index + 1;
-        let label = match op.name() {
-            "" => format!("Operation {number}"),
-            name => format!("Operation {number} ({name})"),
-        };
+        let label = op.label(index);
         let numbered = format!("Operation {number}");
         let at = |field: &str| format!("operations.{index}.{field}");
         let (feed, plunge_feed) = match op {
@@ -1674,8 +1663,8 @@ fn rest_check(
         return Err(format!(
             "{label}: rest after tool {after_tool} ({} mm) needs a tool larger than this \
              pocket's ({} mm)",
-            trim(large.diameter),
-            trim(tool.diameter)
+            mm(large.diameter),
+            mm(tool.diameter)
         ));
     }
     if pocket.corners.is_some() {

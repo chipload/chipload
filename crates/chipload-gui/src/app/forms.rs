@@ -5,6 +5,7 @@ use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
+use chipload_core::text::mm as len;
 use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
@@ -195,12 +196,6 @@ fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
 /// Degrees for a summary: one decimal, no trailing zero.
 fn degrees(radians: f64) -> String {
     let text = format!("{:.1}", radians.to_degrees());
-    text.trim_end_matches('0').trim_end_matches('.').to_string()
-}
-
-/// A length for a summary: no trailing zeros.
-fn len(value: f64) -> String {
-    let text = format!("{value:.3}");
     text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 

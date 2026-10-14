@@ -8,6 +8,7 @@ pub mod fit;
 pub mod fold;
 pub mod nesting;
 pub mod primitives;
+pub mod text;
 pub mod tolerances;
 
 /// A 2D point in millimetres.

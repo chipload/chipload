@@ -573,9 +573,6 @@ impl ChiploadApp {
             .and_then(|e| e.ops.get(index))
             .map(|e| e.op.name().to_string())
             .unwrap_or_default();
-        match name.as_str() {
-            "" => format!("Operation {}", index + 1),
-            name => format!("Operation {} ({name})", index + 1),
-        }
+        operation_label(index, &name)
     }
 }

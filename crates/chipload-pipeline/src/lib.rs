@@ -583,10 +583,7 @@ pub fn stock_fit_note(job: &Job) -> Option<String> {
 }
 
 pub(crate) fn op_label(index: usize, op: &Operation) -> String {
-    match op.name() {
-        "" => format!("Operation {}", index + 1),
-        name => format!("Operation {} ({name})", index + 1),
-    }
+    op.label(index)
 }
 
 pub(crate) fn ids_text(ids: &[u64]) -> String {

@@ -3,6 +3,7 @@
 //! the planned moves with each tool's shape. Display and report only: it never changes or
 //! checks a program.
 
+use chipload_core::text::mm;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_job::{Job, Tool, ToolType};
 use chipload_toolpath::model::{MoveKind, Program};
@@ -766,7 +767,7 @@ impl Simulation {
         let mut lines = vec![format!(
             "Simulation: {:.1} cm³ removed, cells {} mm ({} × {})",
             self.numbers.removed_cm3,
-            trim(self.cell),
+            mm(self.cell),
             self.columns,
             self.rows
         )];
@@ -810,11 +811,6 @@ impl Simulation {
 fn mix(a: [u8; 3], b: [u8; 3], f: f64) -> [u8; 3] {
     let m = |x: u8, y: u8| (f64::from(x) + (f64::from(y) - f64::from(x)) * f).round() as u8;
     [m(a[0], b[0]), m(a[1], b[1]), m(a[2], b[2])]
-}
-
-fn trim(value: f64) -> String {
-    let text = format!("{value:.3}");
-    text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
 #[cfg(test)]

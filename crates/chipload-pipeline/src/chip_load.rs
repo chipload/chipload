@@ -89,10 +89,7 @@ pub fn chip_load_lines(job: &Job) -> Vec<String> {
         .enumerate()
         .filter(|(_, op)| op.enabled())
     {
-        let label = match op.name() {
-            "" => format!("Operation {}", i + 1),
-            name => format!("Operation {} ({name})", i + 1),
-        };
+        let label = op.label(i);
         lines.push(format!("  {label}: {}", chip_load(job, op).text()));
     }
     lines

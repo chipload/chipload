@@ -1582,7 +1582,20 @@ fn enabled_default() -> bool {
     true
 }
 
+/// "Operation 3" or "Operation 3 (lid)": how messages name the operation at `index`.
+pub fn operation_label(index: usize, name: &str) -> String {
+    match name {
+        "" => format!("Operation {}", index + 1),
+        name => format!("Operation {} ({name})", index + 1),
+    }
+}
+
 impl Operation {
+    /// "Operation 3" or "Operation 3 (lid)", for the operation at `index`.
+    pub fn label(&self, index: usize) -> String {
+        operation_label(index, self.name())
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Operation::Profile(op) => &op.name,
