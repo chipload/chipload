@@ -246,6 +246,30 @@ impl EditJob {
             .unwrap_or(1)
     }
 
+    /// The tool a new operation of `kind` starts with: the last operation's tool when it
+    /// suits the kind, else the project's first that does. A V-carve takes a V-bit; other
+    /// kinds don't (user report 2026-10-14: a V-carve made in a project with a V-bit got
+    /// the endmill and was refused).
+    pub fn tool_for(&self, kind: OpKind) -> i64 {
+        let suits = |id: i64| {
+            self.settings
+                .tools
+                .iter()
+                .find(|t| t.id == id)
+                .is_some_and(|t| (t.kind == ToolType::Vbit) == (kind == OpKind::Vcarve))
+        };
+        let next = self.next_tool_id();
+        if suits(next) {
+            return next;
+        }
+        self.settings
+            .tools
+            .iter()
+            .map(|t| t.id)
+            .find(|id| suits(*id))
+            .unwrap_or(next)
+    }
+
     /// Feeds, step-down and stepover from the nearest operation above `index`, else the
     /// tool's cutting values from the library, else defaults.
     fn inherited(&self, index: usize, cutting: Option<&Cutting>) -> (f64, f64, f64, f64) {
@@ -326,7 +350,7 @@ impl EditJob {
             .count()
             + 1;
         let select = selection.selector(contours, kind == OpKind::Path);
-        let tool = self.next_tool_id();
+        let tool = self.tool_for(kind);
         let chosen = self.settings.tools.iter().find(|t| t.id == tool);
         // A tool marked not centre-cutting can't plunge: new profiles ramp in
         // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
@@ -596,10 +620,9 @@ impl EditJob {
                     "choose the profile side (inside, outside or on)".to_string(),
                 ));
             }
-            let select = edit.op.select();
-            let has_geometry =
-                select.layer.is_some() || select.shapes.as_ref().is_some_and(|s| !s.is_empty());
-            if !has_geometry {
+            // A whole DXF or picture is geometry too (user report 2026-10-14: a V-carve of
+            // a traced picture was refused as "no geometry").
+            if edit.op.select().is_empty() {
                 out.push((
                     i,
                     "no geometry: select contours, then Use selection".to_string(),
@@ -624,7 +647,7 @@ impl EditJob {
                     format!("Operation {}: {what}", i + 1),
                 ));
             }
-            if !(select.layer.is_some() || select.shapes.as_ref().is_some_and(|s| !s.is_empty())) {
+            if select.is_empty() {
                 let what = "no geometry: select contours, then Use selection";
                 problems.push(chipload_job::Problem::new(
                     format!("operations.{i}.select"),
@@ -668,8 +691,25 @@ impl EditJob {
 /// A short description of what an operation selects, e.g. "#4, #6" or "layer upper".
 pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
     let select = op.select();
+    let source = match (select.dxf, select.image) {
+        (Some(dxf), _) => Some(format!("DXF {dxf}")),
+        (_, Some(image)) => Some(format!("image {image}")),
+        _ => None,
+    };
     if let Some(layer) = &select.layer {
-        return format!("layer {layer}");
+        return match source {
+            Some(source) => format!("layer {layer} of {source}"),
+            None => format!("layer {layer}"),
+        };
+    }
+    if let Some(source) = source
+        && select.shapes.as_ref().is_none_or(Vec::is_empty)
+    {
+        let left_out = select.exclude.as_ref().map_or(0, Vec::len);
+        return match left_out {
+            0 => format!("all of {source}"),
+            n => format!("{source} but {n} left out"),
+        };
     }
     if let Some(shapes) = select.shapes.as_ref().filter(|s| !s.is_empty()) {
         let ids: Vec<String> = contours

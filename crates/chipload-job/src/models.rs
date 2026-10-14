@@ -1396,6 +1396,18 @@ pub struct Selector {
     pub exclude: Option<Vec<u64>>,
 }
 
+impl Selector {
+    /// Whether it picks nothing at all: no DXF, image, layer or shapes. A selector that
+    /// names only a DXF or an image picks all of it (docs/specs/drawing-sources.md §2,
+    /// leave-out-shapes.md §2).
+    pub fn is_empty(&self) -> bool {
+        self.layer.is_none()
+            && self.dxf.is_none()
+            && self.image.is_none()
+            && self.shapes.as_ref().is_none_or(Vec::is_empty)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -2585,9 +2597,7 @@ impl Job {
         }
         for (i, op) in self.operations.iter().enumerate() {
             let selector = op.select();
-            let has_shapes = selector.shapes.as_ref().is_some_and(|s| !s.is_empty());
-            let has_source = selector.dxf.is_some() || selector.image.is_some();
-            if selector.layer.is_none() && !has_shapes && !has_source {
+            if selector.is_empty() {
                 problems.push(format!(
                     "operations.{i}.select: selector needs a DXF, an image, a layer or shapes"
                 ));

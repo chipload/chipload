@@ -588,9 +588,17 @@ fn selects(select: &Selector, shape: &Shape) -> bool {
     {
         return false;
     }
+    if select
+        .exclude
+        .as_ref()
+        .is_some_and(|left_out| left_out.contains(&shape.id))
+    {
+        return false;
+    }
     match &select.shapes {
         Some(ids) if !ids.is_empty() => ids.contains(&shape.id),
-        _ => select.layer.is_some(),
+        // A layer, or a whole DXF or picture.
+        _ => !select.is_empty(),
     }
 }
 

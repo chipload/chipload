@@ -779,7 +779,7 @@ impl ChiploadApp {
 
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
-        let tool = self.edit.as_ref()?.next_tool_id();
+        let tool = self.edit.as_ref()?.tool_for(kind);
         let cutting = self.tool_cutting(tool);
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
@@ -1236,11 +1236,7 @@ impl ChiploadApp {
     /// A job selector for the canvas selection, e.g. {"shapes": [3, 4]}.
     pub fn selector_json(&self) -> Option<String> {
         let selector = self.op_selection().selector(&self.contours, false);
-        let empty = selector.layer.is_none()
-            && selector.dxf.is_none()
-            && selector.image.is_none()
-            && selector.shapes.as_ref().is_none_or(Vec::is_empty);
-        (!empty).then(|| selector_text(&selector))
+        (!selector.is_empty()).then(|| selector_text(&selector))
     }
 
     pub fn selection_lines(&self) -> Vec<String> {

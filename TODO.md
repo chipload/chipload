@@ -97,6 +97,10 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **V-carving a whole picture** (fix, 2026-10-14): the app took a selector of only a DXF
+  or picture (`{"image": 1}`) for "no geometry"; one `Selector::is_empty` now decides
+  everywhere (app, project rules, start points on placing). A new V-carve takes the
+  project's V-bit, other kinds a non-V-bit.
 - **Direct placement** (2026-10-14, docs/specs/direct-placement.md, schema 24): a DXF's
   properties are Position (its box's corner), Rotation (any angle) and Scale, each with a
   reset; pictures get Position, Rotation and Width, drawn turned on the canvas;

@@ -3383,3 +3383,61 @@ fn the_canvas_bar_header_and_job_settings_draw_with_the_moved_settings() {
     app.focus = Focus::Job;
     draw_properties(&mut app);
 }
+
+/// User report 2026-10-14: "I still can't create a V-carve from a traced image". A
+/// selector naming only the picture, {"image": 1}, was taken for "no geometry", and the new
+/// V-carve took the endmill though the project had a V-bit.
+#[test]
+fn a_traced_picture_is_v_carved_end_to_end() {
+    for (file, trace) in [
+        ("images/logo.png", chipload_job::ImageTrace::Outline),
+        ("images/hand_outline.png", chipload_job::ImageTrace::Outline),
+        (
+            "images/hand_outline.png",
+            chipload_job::ImageTrace::CentreLine,
+        ),
+    ] {
+        let mut app = ChiploadApp::default();
+        assert!(app.import_image(&corpus(file)));
+        app.image_dialog.as_mut().unwrap().draft.trace = trace;
+        assert!(app.apply_image());
+        // A V-bit in the project, after the default endmill.
+        app.edit
+            .as_mut()
+            .unwrap()
+            .settings
+            .tools
+            .push(chipload_job::Tool {
+                id: 2,
+                name: None,
+                library_uid: None,
+                kind: ToolType::Vbit,
+                diameter: 12.7,
+                flutes: Some(2),
+                center_cutting: Some(true),
+                rpm: Some(18000.0),
+                angle: Some(60.0_f64.to_radians()),
+                tip_diameter: Some(0.2),
+            });
+        app.commit();
+        // The picture is selected after importing: V-carve from the ribbon.
+        let index = app.add_operation(OpKind::Vcarve).unwrap();
+        let op = &app.edit.as_ref().unwrap().ops[index].op;
+        assert_eq!(op.select().image, Some(1), "{file}");
+        assert_eq!(op.tool(), 2, "{file}: the V-bit");
+        assert!(
+            app.problems.is_empty(),
+            "{file} {trace:?}: {:?}",
+            app.problems.iter().map(problems::plain).collect::<Vec<_>>()
+        );
+        assert!(
+            app.generate_and_wait(),
+            "{file} {trace:?}: {:?}",
+            app.report
+        );
+        assert!(app.result.is_some());
+        // A profile after it goes back to the endmill.
+        let profile = app.add_operation(OpKind::Profile).unwrap();
+        assert_eq!(app.edit.as_ref().unwrap().ops[profile].op.tool(), 1);
+    }
+}

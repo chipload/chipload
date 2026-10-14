@@ -278,6 +278,7 @@ impl ChiploadApp {
                         x: image.x,
                         y: image.y,
                         width: image.width,
+                        rotation: image.rotation,
                         ..draft.clone()
                     };
                 }
