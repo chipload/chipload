@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 
 use chipload_core::Point;
 use chipload_core::fit::fit_path;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{Line, Primitive, max_segment_angle, signed_area};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -161,7 +162,7 @@ fn simplify_ring(ring: &[Point], tolerance: f64) -> Vec<Point> {
         return ring.to_vec();
     }
     let far = (1..n)
-        .max_by(|&a, &b| distance(ring[0], ring[a]).total_cmp(&distance(ring[0], ring[b])))
+        .max_by_key(|&a| Ordered(distance(ring[0], ring[a])))
         .unwrap_or(n / 2);
     let mut path: Vec<Point> = ring.to_vec();
     path.push(ring[0]);
@@ -173,7 +174,7 @@ fn simplify_ring(ring: &[Point], tolerance: f64) -> Vec<Point> {
     while let Some((a, b)) = stack.pop() {
         let worst = (a + 1..b)
             .map(|k| (k, segment_distance(path[k], path[a], path[b])))
-            .max_by(|x, y| x.1.total_cmp(&y.1));
+            .max_by_key(|&(_, d)| Ordered(d));
         if let Some((k, d)) = worst
             && d > tolerance
         {

@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::order::Ordered;
 use chipload_toolpath::OpSpan;
 use chipload_toolpath::model::{MoveKind, Program};
 use eframe::egui::{Align2, Color32, FontId, Mesh, Painter, Pos2, Rect, Shape, Stroke, Vec2};
@@ -875,7 +876,7 @@ impl Scene {
                     .fold(f32::INFINITY, f32::min);
                 (d <= PICK_TOLERANCE_PX).then_some((d, c.id))
             })
-            .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))
+            .min_by_key(|&(d, id)| (Ordered(f64::from(d)), id))
             .map(|(_, id)| id)
     }
 

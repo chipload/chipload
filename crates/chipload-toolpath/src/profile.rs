@@ -3,6 +3,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{distance, signed_area};
 use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_job::{Direction, ProfileOp, Side, Spindle};
@@ -97,19 +98,18 @@ pub fn order_rings(rings: Vec<PathRing>, start: Point) -> Vec<PathRing> {
             let here = position;
             let key = |r: &PathRing| {
                 let s = r.points[0];
-                (distance(here, s), s.1, s.0, r.contour_id)
+                (
+                    Ordered(distance(here, s)),
+                    Ordered(s.1),
+                    Ordered(s.0),
+                    r.contour_id,
+                )
             };
             let nearest = remaining
                 .iter()
                 .enumerate()
                 .filter(|(_, r)| r.nesting_depth == depth && !r.points.is_empty())
-                .min_by(|(_, a), (_, b)| {
-                    let (ka, kb) = (key(a), key(b));
-                    ka.0.total_cmp(&kb.0)
-                        .then(ka.1.total_cmp(&kb.1))
-                        .then(ka.2.total_cmp(&kb.2))
-                        .then(ka.3.cmp(&kb.3))
-                })
+                .min_by_key(|(_, r)| key(r))
                 .map(|(i, _)| i);
             let Some(index) = nearest else { break };
             let ring = remaining.remove(index);

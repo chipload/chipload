@@ -17,6 +17,7 @@ use cavalier_contours::shape_algorithms::{Shape, ShapeOffsetOptions};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::nesting::{Ring, contains};
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_TIGHT_SLICE_EPS_MM, REST_TOL_MM,
@@ -168,9 +169,9 @@ impl Area {
     }
 
     /// (min y, min x) of the outer loop, for deterministic ordering.
-    fn sort_key(&self) -> (f64, f64) {
+    fn sort_key(&self) -> (Ordered, Ordered) {
         let (x, y) = min_corner(&self.outer);
-        (y, x)
+        (Ordered(y), Ordered(x))
     }
 
     /// The area shrunk by `d`: every part farther than `d` from the boundary.
@@ -239,7 +240,7 @@ fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area
         let parent = areas
             .iter_mut()
             .filter(|a| encloses(&a.outer, inside))
-            .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
+            .min_by_key(|a| Ordered(a.outer.area().abs()));
         if let Some(area) = parent {
             area.holes.push(hole);
             continue;
@@ -255,10 +256,7 @@ fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area
             ));
         }
     }
-    areas.sort_by(|a, b| {
-        let (ka, kb) = (a.sort_key(), b.sort_key());
-        ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
-    });
+    areas.sort_by_key(Area::sort_key);
     Ok(areas)
 }
 
@@ -318,7 +316,7 @@ impl Area {
             let parent = areas
                 .iter_mut()
                 .filter(|a| encloses(&a.outer, inside))
-                .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
+                .min_by_key(|a| Ordered(a.outer.area().abs()));
             match parent {
                 Some(area) => area.holes.push(hole),
                 None => {
@@ -328,10 +326,7 @@ impl Area {
                 }
             }
         }
-        areas.sort_by(|a, b| {
-            let (ka, kb) = (a.sort_key(), b.sort_key());
-            ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
-        });
+        areas.sort_by_key(Area::sort_key);
         Ok(areas)
     }
 }
@@ -435,10 +430,7 @@ pub fn build_region(contours: &[&Contour]) -> Result<Vec<PocketArea>, ToolpathEr
         }
     }
     result.sort_by(|a, b| {
-        let (ka, kb) = (a.area.sort_key(), b.area.sort_key());
-        ka.0.total_cmp(&kb.0)
-            .then(ka.1.total_cmp(&kb.1))
-            .then(a.contour_ids.cmp(&b.contour_ids))
+        (a.area.sort_key(), &a.contour_ids).cmp(&(b.area.sort_key(), &b.contour_ids))
     });
     Ok(result)
 }
@@ -923,14 +915,9 @@ fn orient_from(ring: &[Point], clockwise: bool, near: Point) -> Vec<Point> {
     if (signed_area(ring) < 0.0) != clockwise {
         ordered.reverse();
     }
-    let key = |p: Point| (distance(near, p), p.1, p.0);
+    let key = |p: Point| (Ordered(distance(near, p)), Ordered(p.1), Ordered(p.0));
     let start = (0..ordered.len())
-        .min_by(|&i, &j| {
-            let (a, b) = (key(ordered[i]), key(ordered[j]));
-            a.0.total_cmp(&b.0)
-                .then(a.1.total_cmp(&b.1))
-                .then(a.2.total_cmp(&b.2))
-        })
+        .min_by_key(|&i| key(ordered[i]))
         .unwrap_or(0);
     ordered.rotate_left(start);
     ordered
@@ -955,16 +942,13 @@ fn cut_order(
         if !siblings.is_empty() {
             let here = position;
             let key = |n: usize| {
-                let (y, x) = nodes[n].area.sort_key();
-                (nodes[n].area.distance(here), y, x)
+                (
+                    Ordered(nodes[n].area.distance(here)),
+                    nodes[n].area.sort_key(),
+                )
             };
             let index = (0..siblings.len())
-                .min_by(|&i, &j| {
-                    let (a, b) = (key(siblings[i]), key(siblings[j]));
-                    a.0.total_cmp(&b.0)
-                        .then(a.1.total_cmp(&b.1))
-                        .then(a.2.total_cmp(&b.2))
-                })
+                .min_by_key(|&i| key(siblings[i]))
                 .unwrap_or(0);
             let node = siblings.remove(index);
             stack.push((nodes[node].children.clone(), Some(node)));
@@ -983,13 +967,13 @@ fn cut_order(
         while !islands.is_empty() {
             let here = position;
             let nearest = (0..islands.len())
-                .min_by(|&i, &j| {
-                    let d = |r: &[Point]| {
-                        r.iter()
+                .min_by_key(|&i| {
+                    Ordered(
+                        islands[i]
+                            .iter()
                             .map(|&p| distance(here, p))
-                            .fold(f64::INFINITY, f64::min)
-                    };
-                    d(&islands[i]).total_cmp(&d(&islands[j]))
+                            .fold(f64::INFINITY, f64::min),
+                    )
                 })
                 .unwrap_or(0);
             let island = islands.remove(nearest);
@@ -1220,12 +1204,9 @@ fn uncut_material(
         )
     };
     // Largest spot by area; ties go to the lowest, then leftmost (as before).
-    let largest = spots.iter().max_by(|a, b| {
-        let (ba, bb) = (bounds(a), bounds(b));
-        area(a)
-            .total_cmp(&area(b))
-            .then(bb.1.total_cmp(&ba.1))
-            .then(bb.0.total_cmp(&ba.0))
+    let largest = spots.iter().max_by_key(|spot| {
+        let b = bounds(spot);
+        (Ordered(area(spot)), Ordered(-b.1), Ordered(-b.0))
     });
     let Some(largest) = largest else {
         return (None, missed);
@@ -1235,7 +1216,7 @@ fn uncut_material(
     let inside = largest
         .iter()
         .map(|&i| cells[i])
-        .max_by(|a, b| a.half.total_cmp(&b.half));
+        .max_by_key(|c| Ordered(c.half));
     let Some(inside) = inside else {
         return (None, missed);
     };
@@ -1449,17 +1430,14 @@ pub fn plan_pocket_starting(
         cancel::check(cancel)?;
         let here = position;
         let key = |a: &PocketArea| {
-            let (y, x) = a.area.sort_key();
-            (a.area.distance(here), y, x)
+            (
+                Ordered(a.area.distance(here)),
+                a.area.sort_key(),
+                a.contour_ids.clone(),
+            )
         };
         let index = (0..remaining.len())
-            .min_by(|&i, &j| {
-                let (a, b) = (key(&remaining[i]), key(&remaining[j]));
-                a.0.total_cmp(&b.0)
-                    .then(a.1.total_cmp(&b.1))
-                    .then(a.2.total_cmp(&b.2))
-                    .then(remaining[i].contour_ids.cmp(&remaining[j].contour_ids))
-            })
+            .min_by_key(|&i| key(&remaining[i]))
             .unwrap_or(0);
         let PocketArea {
             area: region,
@@ -1669,10 +1647,7 @@ fn fit_helix(
         ));
     }
     let areas = room(used)?;
-    let Some(nearest) = areas
-        .iter()
-        .min_by(|a, b| a.distance(first).total_cmp(&b.distance(first)))
-    else {
+    let Some(nearest) = areas.iter().min_by_key(|a| Ordered(a.distance(first))) else {
         notes.push(without("the pocket is too narrow"));
         return Ok(None);
     };
@@ -1836,10 +1811,7 @@ fn rest_pieces(
             "the larger tool reaches the whole pocket; nothing is left to rest machine".into(),
         );
     }
-    if let Some(&(w, h)) = skipped
-        .iter()
-        .max_by(|a, b| (a.0 * a.1).total_cmp(&(b.0 * b.1)))
-    {
+    if let Some(&(w, h)) = skipped.iter().max_by_key(|&&(w, h)| Ordered(w * h)) {
         found.notes.push(format!(
             "rest machining: material in {} {} is too small for this tool too (largest about \
              {w:.2} × {h:.2} mm)",

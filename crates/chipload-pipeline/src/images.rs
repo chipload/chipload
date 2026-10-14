@@ -8,6 +8,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chipload_core::Point;
 use chipload_core::fit::fit_path;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::Primitive;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_image::{ImageError, MAX_LOOPS, Settings, Threshold};
@@ -324,7 +325,7 @@ fn find_left_out_again(job: &mut Job, id: u64, old: &[Shape]) -> Vec<String> {
             let best = after
                 .iter()
                 .filter_map(|r| near(&r).map(|d| (d, r.0)))
-                .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+                .min_by_key(|&(d, id)| (Ordered(d), id));
             match best {
                 Some((_, found)) => {
                     taken.push(found);

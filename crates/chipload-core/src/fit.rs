@@ -10,6 +10,7 @@
 use std::f64::consts::{FRAC_PI_4, PI, TAU};
 
 use crate::Point;
+use crate::order::Ordered;
 use crate::primitives::{Arc, Line, Primitive, distance};
 
 /// Arcs flatter than this are lines: a nearly straight arc gains nothing and makes poor G2/G3.
@@ -205,10 +206,7 @@ fn start_of(points: &[Point]) -> usize {
         return k;
     }
     (0..n)
-        .min_by(|&x, &y| {
-            let (p, q) = (points[x], points[y]);
-            p.1.total_cmp(&q.1).then(p.0.total_cmp(&q.0))
-        })
+        .min_by_key(|&x| (Ordered(points[x].1), Ordered(points[x].0)))
         .unwrap_or(0)
 }
 

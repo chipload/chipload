@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_dxf::primitive;
@@ -284,11 +285,7 @@ pub fn snap_cursor(
         .filter(|p| !skip.contains(&p.contour))
         .map(|p| (distance(p.at, at), p))
         .filter(|(d, _)| *d <= reach)
-        .min_by(|(da, a), (db, b)| {
-            da.total_cmp(db)
-                .then(a.kind.cmp(&b.kind))
-                .then(a.contour.cmp(&b.contour))
-        });
+        .min_by_key(|(d, p)| (Ordered(*d), p.kind, p.contour));
     match best {
         Some((_, p)) => (p.at, Some(*p)),
         None => (snap(at, step), None),

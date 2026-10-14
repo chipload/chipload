@@ -10,6 +10,7 @@ use cavalier_contours::core::math::Vector2;
 use cavalier_contours::polyline::{PlineOrientation, PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_FAR_SLACK_MM,
@@ -212,9 +213,9 @@ pub fn start_index(ring: &[Point]) -> usize {
     best
 }
 
-fn start_key(ring: &[Point]) -> (f64, f64) {
+fn start_key(ring: &[Point]) -> (Ordered, Ordered) {
     let p = ring.get(start_index(ring)).copied().unwrap_or((0.0, 0.0));
-    (p.1, p.0)
+    (Ordered(p.1), Ordered(p.0))
 }
 
 /// Tool-centre rings for one closed contour.
@@ -297,10 +298,7 @@ fn offset_attempt(
     for ring in &rings {
         verify_offset(pline, &segments, ring, side, tool_radius, arcs).map_err(numerical)?;
     }
-    rings.sort_by(|a, b| {
-        let (ka, kb) = (start_key(a), start_key(b));
-        ka.0.total_cmp(&kb.0).then(ka.1.total_cmp(&kb.1))
-    });
+    rings.sort_by_key(|ring| start_key(ring));
     Ok(rings)
 }
 

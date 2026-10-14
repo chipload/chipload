@@ -6,6 +6,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::{Contour, OrientedSegment, Segment};
+use chipload_core::order::Ordered;
 use chipload_core::primitives::{Line, Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 
@@ -93,7 +94,7 @@ fn is_dot(graph: &Graph, outline: &Outline, allowance: impl Fn(f64) -> f64) -> b
         .filter(|e| e.alive)
         .flat_map(|e| e.points.iter().map(|&p| (p, outline.distance(p))))
         .collect();
-    let Some(&(centre, widest)) = points.iter().max_by(|a, b| a.1.total_cmp(&b.1)) else {
+    let Some(&(centre, widest)) = points.iter().max_by_key(|p| Ordered(p.1)) else {
         return true;
     };
     let limit = widest + allowance(widest);

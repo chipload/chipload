@@ -2,6 +2,7 @@
 //! The drawing canvas: input, painting and hover texts.
 
 use super::*;
+use chipload_core::order::Ordered;
 
 /// How far beyond a rectangle's end its rotation handle sits, in screen pixels.
 const ROTATE_HANDLE_PX: f64 = 24.0;
@@ -94,7 +95,7 @@ impl ChiploadApp {
                 .iter()
                 .map(|&(h, p)| (h, view.to_screen(p).distance(pos)))
                 .filter(|&(_, d)| d <= crate::view::PICK_TOLERANCE_PX)
-                .min_by(|a, b| a.1.total_cmp(&b.1))
+                .min_by_key(|&(_, d)| Ordered(f64::from(d)))
                 .map(|(h, _)| h)
         };
         if response.drag_started_by(egui::PointerButton::Primary)
@@ -475,7 +476,7 @@ impl ChiploadApp {
             .filter(|(_, m)| m.operation == operation)
             .map(|(i, m)| (i, self.view.to_screen(m.at).distance(pos)))
             .filter(|&(_, d)| d <= crate::view::PICK_TOLERANCE_PX + 2.0)
-            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .min_by_key(|&(_, d)| Ordered(f64::from(d)))
             .map(|(i, _)| i)
     }
 

@@ -9,6 +9,7 @@
 use cavalier_contours::polyline::{
     BooleanOp, BooleanResult, PlineContainsResult, PlineSource, Polyline,
 };
+use chipload_core::order::Ordered;
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
@@ -135,7 +136,7 @@ fn areas_of(result: BooleanResult<Polyline<f64>>) -> Result<Vec<Area>, ToolpathE
         let parent = areas
             .iter_mut()
             .filter(|a| encloses(&a.outer, inside))
-            .min_by(|a, b| a.outer.area().abs().total_cmp(&b.outer.area().abs()));
+            .min_by_key(|a| Ordered(a.outer.area().abs()));
         match parent {
             Some(area) => area.holes.push(cw(hole)),
             None => return Err(geometry("material left: a hole outside every piece".into())),
@@ -223,7 +224,7 @@ fn checked_boolean(
     })?
     .into_iter()
     .filter(|p| p.is_closed())
-    .max_by(|a, b| a.area().abs().total_cmp(&b.area().abs()))
+    .max_by_key(|p| Ordered(p.area().abs()))
     .map(ccw)
     .ok_or_else(invalid)?;
     let second = boolean_areas(outer, &moved, op)?;
