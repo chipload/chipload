@@ -702,3 +702,52 @@ fn every_copy_writes_the_same_arcs() {
     assert_eq!(chords(&one), 0, "every XY feed of a circle is an arc");
     assert_eq!(chords(&two), 0);
 }
+
+#[test]
+fn a_copy_in_another_parts_notch_is_allowed_when_the_cuts_keep_apart() {
+    // docs/specs/parts.md §5: the tools' paths are compared, not the boxes. Part A is a U;
+    // part B's copy 2 lands in its notch, where A's outside profile runs along the notch's
+    // walls 3 mm in. B's cut fits between them (dx -160) or runs into A's arm (dx -175).
+    let (job, _) = two_parts(
+        200.0,
+        Value::Null,
+        json!({"columns": 2, "rows": 1, "dx": -160, "dy": 0}),
+    );
+    let contours = |job: &Job| {
+        vec![
+            on_layer(
+                common::polygon_id(
+                    1,
+                    &[
+                        (0.0, 0.0),
+                        (100.0, 0.0),
+                        (100.0, 60.0),
+                        (70.0, 60.0),
+                        (70.0, 20.0),
+                        (30.0, 20.0),
+                        (30.0, 60.0),
+                        (0.0, 60.0),
+                    ],
+                ),
+                "A",
+            ),
+            on_layer(common::rect(2, 203.0, 33.0, 217.0, 47.0), "B"),
+        ]
+        .into_iter()
+        .inspect(|_| assert!(job.parts.len() == 2))
+        .collect::<Vec<Contour>>()
+    };
+    // Copy 2 of B at X 43..57: its path at 40..60 keeps 7 mm (more than two radii) from the
+    // notch's paths at X 33 and 67 and Y 23.
+    plan_job(&job, &contours(&job)).unwrap_or_else(|e| panic!("{e}"));
+    let mut tight = job.clone();
+    tight.parts[1].copies =
+        serde_json::from_value(json!({"columns": 2, "rows": 1, "dx": -175, "dy": 0})).unwrap();
+    // At X 28..42 its path at 25..45 crosses A's path along the arm, at X 33.
+    let err = plan_job(&tight, &contours(&tight)).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("Part \"B\" copy 2 overlaps part \"Part 1\" copy 1"),
+        "{err}"
+    );
+}

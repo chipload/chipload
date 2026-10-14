@@ -59,11 +59,11 @@ A setting (decision 1):
   offsets, tabs, pockets, ramps and wall checks are built and verified per copy, and the
   whole program goes through the independent checker (machine travel included).
 - **Overlapping copies are refused** (decision 3). Two copies overlap when the areas their
-  tool cuts (the toolpath's extent plus the tool radius) overlap. The area is the bounding
-  box of the cut, so the rule is conservative: copies of an L-shaped part that would
-  interleave without touching are refused too (as parts.md §5 says for parts). For a grid
-  this reduces to two rules: with more than one column `|dx|` must be at least the width
-  of that area, and with more than one row `|dy|` at least its height. Error: "Copies overlap: with columns
+  tool cuts overlap: a feed move of one comes closer to a feed move of the other than the
+  two tool radii (since 2026-10-15; before, the boxes round the cuts were compared, which
+  refused copies that interleave without touching). The message says the pitch that keeps
+  two copies in a row or a column apart for sure: with more than one column `|dx|` at least
+  the width of the cut's box, with more than one row `|dy|` at least its height. Error: "Copies overlap: with columns
   the pitch dx must be at least 63.000 mm (the cut is 63.000 mm wide), got 50.000."
 - Copies that reach beyond the stock give a note, as a drawing beyond the stock does. The
   machine travel check stays as it is (an error from the checker).

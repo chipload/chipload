@@ -106,8 +106,9 @@ operations in order. Each part, with all its copies, is finished before the next
   overlaps the area of any copy of another part is **refused**: "Part lid copy 3 overlaps
   part box (X … Y …)". Copy 1 of each part is the drawing as drawn: those may overlap,
   since the user drew them so, and an engraving part over a cut-out part is legitimate.
-- **Areas are compared as boxes,** as the grid check is today, so a part nested into
-  another's concave corner is refused. That is real nesting, still out of scope.
+- **Areas are the tools' paths** (since 2026-10-15; before, the boxes round the cuts): a
+  copy nested into another part's notch is allowed as long as the cuts keep two tool radii
+  apart. Boxes still decide first, and only overlapping boxes have their paths compared.
 - **Copies past the stock** give a note, as now, naming the part.
 - **Checker:** unchanged. Every program still goes through it.
 

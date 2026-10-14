@@ -4,7 +4,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_core::primitives::Primitive;
+use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, Operation, Part,
@@ -1345,14 +1345,68 @@ pub fn cut_extent(moves: &[Move], spans: &[OpSpan], copy: Option<u32>) -> Option
     extent
 }
 
-/// What each part cuts, copy by copy: (part index, copy number, area). The area is the
-/// box of the cutting moves widened by the tool radius.
-type PartAreas = Vec<(usize, u32, (Point, Point))>;
+/// What one copy of a part cuts: every feed move as a segment, grouped by the radius of
+/// the tool that made it, and the box round them widened by those radii.
+struct CutArea {
+    extent: (Point, Point),
+    by_radius: Vec<(f64, PrimIndex)>,
+}
+
+/// The cut of `copy` among `spans`; None if it cuts nothing.
+fn cut_area(moves: &[Move], spans: &[OpSpan], copy: u32) -> Option<CutArea> {
+    let extent = cut_extent(moves, spans, Some(copy))?;
+    let mut by_radius: std::collections::BTreeMap<u64, (f64, Vec<Primitive>)> = Default::default();
+    let mut at: (Option<f64>, Option<f64>) = (None, None);
+    for span in spans {
+        for m in &moves[span.moves.clone()] {
+            let from = at;
+            at = (m.x.or(at.0), m.y.or(at.1));
+            if span.copy != copy || m.kind != MoveKind::Feed {
+                continue;
+            }
+            if let ((Some(x0), Some(y0)), (Some(x1), Some(y1))) = (from, at) {
+                by_radius
+                    .entry(span.tool_radius.to_bits())
+                    .or_insert_with(|| (span.tool_radius, Vec::new()))
+                    .1
+                    .push(Primitive::Line(Line {
+                        start: (x0, y0),
+                        end: (x1, y1),
+                    }));
+            }
+        }
+    }
+    let by_radius = by_radius
+        .into_values()
+        .map(|(radius, prims)| (radius, PrimIndex::new(prims, radius.max(1.0))))
+        .collect();
+    Some(CutArea { extent, by_radius })
+}
+
+/// Whether the tools cut into each other: a feed move of one copy comes closer to a feed
+/// move of the other than the two radii (less the chaining tolerance, so touching is
+/// allowed). The boxes decide first; the segments only where they overlap.
+fn areas_overlap(a: &CutArea, b: &CutArea) -> bool {
+    if !boxes_overlap(a.extent, b.extent) {
+        return false;
+    }
+    a.by_radius.iter().any(|(ra, index_a)| {
+        b.by_radius.iter().any(|(rb, index_b)| {
+            let limit = ra + rb - CHAIN_TOL_MM;
+            index_a.prims.iter().any(|prim| match prim {
+                Primitive::Line(l) => index_b
+                    .segment_distance_within(l.start, l.end, limit)
+                    .is_some(),
+                Primitive::Arc(_) => false,
+            })
+        })
+    })
+}
 
 /// Copies must not cut into each other or into other parts (docs/specs/copies-grid.md
 /// §4, docs/specs/parts.md §5). Copies 1, the parts as drawn, may overlap each other.
 fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), ToolpathError> {
-    let mut areas: PartAreas = Vec::new();
+    let mut areas: Vec<(usize, u32, CutArea)> = Vec::new();
     for (p, part) in job.parts.iter().enumerate() {
         let mine: Vec<OpSpan> = spans
             .iter()
@@ -1367,22 +1421,22 @@ fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), 
             check_copies_apart(grid, moves, &mine)?;
         }
         for (number, _) in part.in_cut_order() {
-            if let Some(area) = cut_extent(moves, &mine, Some(number)) {
+            if let Some(area) = cut_area(moves, &mine, number) {
                 areas.push((p, number, area));
             }
         }
     }
-    for (k, &(p, number, a)) in areas.iter().enumerate() {
-        for &(q, other, b) in &areas[..k] {
-            let generated = number > 1 || other > 1;
-            if p == q || !generated || !boxes_overlap(a, b) {
+    for (k, (p, number, a)) in areas.iter().enumerate() {
+        for (q, other, b) in &areas[..k] {
+            let generated = *number > 1 || *other > 1;
+            if p == q || !generated || !areas_overlap(a, b) {
                 continue;
             }
-            let ((x0, y0), (x1, y1)) = a;
+            let ((x0, y0), (x1, y1)) = a.extent;
             return Err(ToolpathError::Overlap(format!(
                 "Part \"{}\" copy {number} overlaps part \"{}\" copy {other} (X{x0:.3} to \
                  {x1:.3}, Y{y0:.3} to {y1:.3}): move the copies apart or change the grid",
-                job.parts[p].name, job.parts[q].name
+                job.parts[*p].name, job.parts[*q].name
             )));
         }
     }
@@ -1399,27 +1453,53 @@ fn boxes_overlap(a: (Point, Point), b: (Point, Point)) -> bool {
         && by0 + CHAIN_TOL_MM < ay1
 }
 
-/// Neighbouring copies must not cut into each other (docs/specs/copies-grid.md §4): with
-/// more than one column the pitch dx is at least the cut's width, likewise dy and height.
+/// Copies of a part must not cut into each other (docs/specs/copies-grid.md §4): the
+/// tools' paths are compared, so copies whose boxes overlap but whose cuts don't (shapes
+/// that interleave) are allowed. The message says what pitch would keep two copies in a
+/// row or a column apart for sure: the cut's width or height.
 fn check_copies_apart(
     grid: &Copies,
     moves: &[Move],
     spans: &[OpSpan],
 ) -> Result<(), ToolpathError> {
-    let Some(((x0, y0), (x1, y1))) = cut_extent(moves, spans, Some(1)) else {
+    let copies: Vec<(u32, Point, CutArea)> = grid
+        .in_cut_order()
+        .into_iter()
+        .filter_map(|(number, shift)| cut_area(moves, spans, number).map(|a| (number, shift, a)))
+        .collect();
+    let Some((_, _, first)) = copies.first() else {
         return Ok(());
     };
-    let axes = [
-        ("columns", "dx", grid.columns, grid.dx, x1 - x0, "wide"),
-        ("rows", "dy", grid.rows, grid.dy, y1 - y0, "high"),
-    ];
-    for (what, name, count, pitch, size, dimension) in axes {
-        if count > 1 && pitch.abs() + CHAIN_TOL_MM < size {
-            return Err(ToolpathError::Overlap(format!(
-                "Copies overlap: with {what} the pitch {name} must be at least {size:.3} mm \
-                 (the cut is {size:.3} mm {dimension}), got {:.3}",
-                pitch.abs()
-            )));
+    let ((x0, y0), (x1, y1)) = first.extent;
+    let (width, height) = (x1 - x0, y1 - y0);
+    for (k, (number, shift, a)) in copies.iter().enumerate() {
+        for (other, shift_other, b) in &copies[..k] {
+            if !areas_overlap(a, b) {
+                continue;
+            }
+            let same_row = (shift.1 - shift_other.1).abs() <= CHAIN_TOL_MM;
+            let same_column = (shift.0 - shift_other.0).abs() <= CHAIN_TOL_MM;
+            let text = if same_row {
+                format!(
+                    "Copies overlap: with columns the pitch dx must be at least {width:.3} mm \
+                     (the cut is {width:.3} mm wide), got {:.3}",
+                    grid.dx.abs()
+                )
+            } else if same_column {
+                format!(
+                    "Copies overlap: with rows the pitch dy must be at least {height:.3} mm \
+                     (the cut is {height:.3} mm high), got {:.3}",
+                    grid.dy.abs()
+                )
+            } else {
+                format!(
+                    "Copies overlap: copies {other} and {number} cut into each other; move \
+                     them apart (pitch dx {:.3}, dy {:.3})",
+                    grid.dx.abs(),
+                    grid.dy.abs()
+                )
+            };
+            return Err(ToolpathError::Overlap(text));
         }
     }
     Ok(())
