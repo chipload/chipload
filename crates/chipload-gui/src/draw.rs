@@ -140,6 +140,7 @@ impl Sketch {
                     length,
                     width,
                     angle: 0.0,
+                    corner_radius: 0.0,
                 })
             }
             Tool::Polyline => None,
@@ -345,7 +346,8 @@ mod tests {
                 center: [25.0, 20.0],
                 length: 30.0,
                 width: 20.0,
-                angle: 0.0
+                angle: 0.0,
+                corner_radius: 0.0,
             })
         );
         // A flat rectangle is refused, and drawing goes on.

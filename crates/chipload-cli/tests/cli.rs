@@ -253,12 +253,14 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
     ]);
     ok(&["shape", "set", p, "4", "--radius", "2.5"]);
     ok(&["shape", "set", p, "6", "--closed"]);
+    // A corner radius (docs/specs/rectangle-corner-radius.md §4), at most half of 10.
+    ok(&["shape", "set", p, "5", "--corner-radius", "4"]);
     let listed = ok(&["inspect", p]);
     for expected in [
         "Shapes: 6 drawn, 0 imported",
         "S4    circle    layer 0            centre (-5.000, -6.500) radius 2.500",
         "S5    rectangle layer extra        centre (200.000, 50.000) length 30.000 width 10.000 \
-         angle 45.000°",
+         angle 45.000° corner radius 4.000",
         "S6    polyline  layer 0            closed (0.000, 0.000) (10.000, 0.000) (10.000, 5.000)",
     ] {
         assert!(listed.contains(expected), "{expected}\n{listed}");
@@ -277,6 +279,29 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
     refused(
         &["shape", "set", p, "4", "--length", "3"],
         "--length doesn't apply to a circle",
+    );
+    refused(
+        &["shape", "set", p, "4", "--corner-radius", "1"],
+        "--corner-radius doesn't apply to a circle",
+    );
+    refused(
+        &["shape", "set", p, "5", "--corner-radius", "6"],
+        "(S5).corner_radius: at most 5 mm, half the shorter side",
+    );
+    refused(
+        &[
+            "shape",
+            "add",
+            p,
+            "circle",
+            "--center",
+            "0,0",
+            "--radius",
+            "1",
+            "--corner-radius",
+            "1",
+        ],
+        "--corner-radius is for a rectangle",
     );
     refused(
         &["shape", "set", p, "99", "--radius", "3"],
@@ -336,6 +361,22 @@ fn shapes_are_added_changed_and_deleted_from_the_command_line() {
         "shape", "add", p, "circle", "--center", "75,80", "--radius", "12",
     ]);
     assert!(added.contains("Added shape S8."), "{added}");
+    // A rounded rectangle from the start.
+    let added = ok(&[
+        "shape",
+        "add",
+        p,
+        "rectangle",
+        "--center",
+        "0,0",
+        "--length",
+        "20",
+        "--width",
+        "8",
+        "--corner-radius",
+        "4",
+    ]);
+    assert!(added.contains("Added shape S9."), "{added}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

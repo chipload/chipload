@@ -416,7 +416,7 @@ fn drawn_shapes() -> Value {
     json!([
         {"id": 1, "layer": "0", "kind": "circle", "center": [50.0, 30.0], "radius": 12.5},
         {"id": 2, "layer": "0", "kind": "rectangle", "center": [0.0, 0.0], "length": 80.0,
-         "width": 40.0, "angle": 0.5235987755982988},
+         "width": 40.0, "angle": 0.5235987755982988, "corner_radius": 5.0},
         {"id": 3, "layer": "0", "kind": "polyline", "closed": true,
          "points": [[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]]},
     ])
@@ -517,10 +517,17 @@ fn drawn_shape_values_are_checked() {
                "closed": true}),
         "field `closed` is not allowed for a circle",
     );
+    let rectangle = |width: f64, corner_radius: f64| json!({"id": 1, "layer": "0", "kind": "rectangle", "center": [0.0, 0.0], "length": 10.0, "width": width, "angle": 0.0, "corner_radius": corner_radius});
+    refused(rectangle(0.0, 0.0), "width: must be a positive number");
+    refused(
+        rectangle(4.0, 2.5),
+        "corner_radius: at most 2 mm, half the shorter side, got 2.5",
+    );
+    refused(rectangle(4.0, -1.0), "corner_radius: must be 0 or more");
     refused(
         json!({"id": 1, "layer": "0", "kind": "rectangle", "center": [0.0, 0.0],
-               "length": 10.0, "width": 0.0, "angle": 0.0}),
-        "width: must be a positive number",
+               "length": 10.0, "width": 4.0, "angle": 0.0}),
+        "a rectangle needs `corner_radius`",
     );
     let polyline = |closed: bool, points: Value| json!({"id": 1, "layer": "0", "kind": "polyline", "closed": closed, "points": points});
     refused(
@@ -812,7 +819,7 @@ fn v22_to_v23_links_named_tools_and_the_machine_by_the_uid_of_their_name() {
         .as_object_mut()
         .unwrap()
         .remove("library_uid");
-    v22["schema_version"] = json!(24);
+    v22["schema_version"] = json!(25);
     assert_eq!(current, v22);
 }
 
@@ -1003,7 +1010,7 @@ fn rotations_are_at_least_0_and_under_360() {
 fn v23_to_v24_makes_quarter_turns_degrees() {
     let v23 = raw("v23/turned_parts.chipload");
     let mut current = migrate(v23.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     let dxfs = current["drawing"]["dxfs"].as_array_mut().unwrap();
     for (dxf, before) in dxfs
         .iter_mut()
@@ -1023,8 +1030,27 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
             Some(json!(0.0))
         );
     }
+    without_corner_radius(&mut current);
     current["schema_version"] = json!(23);
     assert_eq!(current, v23);
+}
+
+/// docs/specs/rectangle-corner-radius.md §3: every rectangle gets corner radius 0, and
+/// nothing else changes.
+#[test]
+fn v24_to_v25_gives_rectangles_sharp_corners() {
+    let v24 = raw("v24/rectangle_part.chipload");
+    let mut current = migrate(v24.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["drawing"]["shapes"][0]["corner_radius"], json!(0.0));
+    let job = parse_job(current.clone(), "p").unwrap();
+    assert!(matches!(
+        job.drawing.shapes[0].geometry,
+        chipload_job::Geometry::Rectangle { corner_radius, .. } if corner_radius == 0.0
+    ));
+    without_corner_radius(&mut current);
+    current["schema_version"] = json!(24);
+    assert_eq!(current, v24);
 }
 
 // -- V-carving (docs/specs/v-carve.md)
@@ -1033,7 +1059,7 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1116,7 +1142,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1176,7 +1202,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(24));
+        assert_eq!(current["schema_version"], json!(25));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
@@ -1223,7 +1249,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1299,6 +1325,7 @@ fn without_dxf_ids(data: &Value) -> Value {
 /// Undo v22 -> v23: the library links, each the uid of the name or null.
 /// Undo v23 -> v24: rotation in degrees back to quarter turns, images without rotation.
 fn without_rotation(data: &mut Value) {
+    without_corner_radius(data);
     let drawing = data["drawing"].as_object_mut().unwrap();
     if let Some(dxfs) = drawing.get_mut("dxfs").and_then(Value::as_array_mut) {
         for dxf in dxfs {
@@ -1311,6 +1338,24 @@ fn without_rotation(data: &mut Value) {
         for image in images {
             assert_eq!(
                 image.as_object_mut().unwrap().remove("rotation"),
+                Some(json!(0.0))
+            );
+        }
+    }
+}
+
+/// Undo v24 -> v25: rectangles without their corner radius, 0 for all of them.
+fn without_corner_radius(data: &mut Value) {
+    let Some(shapes) = data["drawing"]
+        .get_mut("shapes")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    for shape in shapes {
+        if shape["kind"] == json!("rectangle") {
+            assert_eq!(
+                shape.as_object_mut().unwrap().remove("corner_radius"),
                 Some(json!(0.0))
             );
         }
@@ -1393,7 +1438,7 @@ fn without_round_corners(data: &mut Value) {
 fn v13_to_v14_keeps_every_pocket_sharp() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     assert_eq!(current["operations"][0]["round_corners"], json!(false));
     // Profiles get nothing.
@@ -1423,7 +1468,7 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
@@ -1492,7 +1537,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1587,7 +1632,7 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_images(&mut current);
     current["schema_version"] = json!(16);
     assert_eq!(current, v16, "nothing else changes");
@@ -1621,7 +1666,7 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(24));
+        assert_eq!(current["schema_version"], json!(25));
         without_images(&mut current);
         current["schema_version"] = json!(17);
         assert_eq!(current, v17, "{sample}: nothing else changes");
@@ -1730,7 +1775,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(24));
+        assert_eq!(current["schema_version"], json!(25));
         without_images(&mut current);
         current["schema_version"] = json!(18);
         assert_eq!(current, v18, "{sample}: nothing else changes");
@@ -1743,7 +1788,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
     let mut current = migrate(v19.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     without_dxfs(&mut current);
     let images = current["drawing"]["images"].as_array_mut().unwrap();
     assert!(!images.is_empty());
@@ -1762,7 +1807,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
 fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     let v20 = raw("v20/scaled_part.chipload");
     let mut current = migrate(v20.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(24));
+    assert_eq!(current["schema_version"], json!(25));
     let dxf = &current["drawing"]["dxfs"][0];
     assert_eq!(
         (&dxf["id"], &dxf["name"]),

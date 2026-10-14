@@ -4,7 +4,8 @@ Chipload draws three kinds of shape, for the odd hole, slot or outline that isn'
 DXF, or a project without one:
 
 - **Circle:** centre and radius.
-- **Rectangle:** centre, length and width, and a rotation.
+- **Rectangle:** centre, length and width, a rotation, and a corner radius (0: sharp
+  corners).
 - **Polyline:** points joined by straight or arc segments, open or closed.
 
 **Circle**, **Rectangle** or **Polyline** in the ribbon's DRAW group, then click on the
@@ -18,6 +19,11 @@ is CAD's job: draw it there and import the DXF.
   centres and middles; hold Alt to turn snapping off.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
   selected shape has its exact numbers and its layer.
+- **Rounded corners:** a rectangle's *Corner radius* rounds all four corners with true arcs
+  (G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
+  short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
+  handle won't drag the rectangle smaller than its corners allow; lower the radius first.
+  The reset button makes the corners sharp again.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
@@ -32,6 +38,7 @@ Imported shapes can't be edited: they change only with the DXF.
 ```sh
 chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
+chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
 chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids

@@ -236,6 +236,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--length <LENGTH>` | Along the rectangle's own X axis. |
 | `--width <WIDTH>` | Along the rectangle's own Y axis. |
 | `--angle-deg <ANGLE_DEG>` | Rotation about the centre, degrees, counter-clockwise. |
+| `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
 | `--open` | The polyline doesn't return to its first point. |
@@ -260,6 +261,7 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--length <LENGTH>` | Along the rectangle's own X axis. |
 | `--width <WIDTH>` | Along the rectangle's own Y axis. |
 | `--angle-deg <ANGLE_DEG>` | Rotation about the centre, degrees, counter-clockwise. |
+| `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
 | `--open` | The polyline doesn't return to its first point. |

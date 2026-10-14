@@ -40,6 +40,7 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
             length,
             width,
             angle,
+            ..
         } => {
             let mut list = vec![(Handle::Center, *center)];
             for (k, corner) in rectangle_corners(*center, *length, *width, *angle)
@@ -124,6 +125,7 @@ pub fn try_drag(
                 length,
                 width,
                 angle,
+                ..
             },
             Handle::Corner(k),
         ) if k < 4 => {
@@ -280,11 +282,13 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             length,
             width,
             angle,
+            corner_radius,
         } => Some(Geometry::Rectangle {
             center: shift(center),
             length: *length,
             width: *width,
             angle: *angle,
+            corner_radius: *corner_radius,
         }),
         Geometry::Polyline {
             closed,
@@ -329,11 +333,13 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
             length,
             width,
             angle,
+            corner_radius,
         } => Some(Geometry::Rectangle {
             center: flip(center),
             length: *length,
             width: *width,
             angle: negated(*angle),
+            corner_radius: *corner_radius,
         }),
         Geometry::Polyline {
             closed,
@@ -362,6 +368,7 @@ mod tests {
             length: 8.0,
             width: 4.0,
             angle,
+            corner_radius: 0.0,
         }
     }
 
@@ -371,6 +378,7 @@ mod tests {
             length,
             width,
             angle,
+            ..
         } = *g
         else {
             panic!("rectangle");
@@ -466,6 +474,7 @@ mod tests {
                 length: 8.0,
                 width: 4.0,
                 angle: std::f64::consts::FRAC_PI_2,
+                corner_radius: 0.0,
             }
         );
         let moved = drag(&start, Handle::Center, [0.0, 0.0], false).unwrap();

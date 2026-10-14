@@ -44,7 +44,7 @@ mod drawing;
 mod dropping;
 mod forms;
 mod generation;
-mod header;
+pub(crate) mod header;
 mod images;
 mod library_transfer;
 mod library_view;

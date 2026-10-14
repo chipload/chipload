@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 24. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 25. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 24. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `24` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `25` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -430,6 +430,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `bulges` | list of number or null | no | polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise. |
 | `center` | 2 × number or null | no | circle, rectangle: the centre, mm. |
 | `closed` | boolean or null | no | path, polyline: whether it ends where it starts. |
+| `corner_radius` | number or null | no | rectangle: the radius of its corners, mm; 0 for sharp ones. |
 | `dxf` | integer or null | no | path: the DXF it was imported from (its id in `drawing.dxfs`). |
 | `dxf_handle` | string or null | no | path: the handle of the DXF entity it came from, which keeps its id when the DXF is updated. |
 | `dxf_type` | string or null | no | path: the DXF entity's type, e.g. LWPOLYLINE. |

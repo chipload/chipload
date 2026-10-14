@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Rounded rectangle corners** (2026-10-14, docs/specs/rectangle-corner-radius.md, schema
+  25): a drawn rectangle's corner radius, true arcs, at most half the shorter side; the
+  form's Corner radius row and `shape add/set --corner-radius`.
 - **A clearer image window** (2026-10-14): the traced parts show near black on white, and
   outlines are no longer drawn over them, so the detail stays visible while setting the
   threshold; centre lines are still drawn, as they are the result. The preview zooms

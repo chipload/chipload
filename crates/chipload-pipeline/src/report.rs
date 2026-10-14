@@ -120,12 +120,20 @@ pub fn shape_values(geometry: &Geometry) -> String {
             length,
             width,
             angle,
-        } => format!(
-            "centre ({:.3}, {:.3}) length {length:.3} width {width:.3} angle {:.3}°",
-            center[0],
-            center[1],
-            angle.to_degrees()
-        ),
+            corner_radius,
+        } => {
+            let corners = if *corner_radius == 0.0 {
+                String::new()
+            } else {
+                format!(" corner radius {corner_radius:.3}")
+            };
+            format!(
+                "centre ({:.3}, {:.3}) length {length:.3} width {width:.3} angle {:.3}°{corners}",
+                center[0],
+                center[1],
+                angle.to_degrees()
+            )
+        }
         Geometry::Polyline {
             closed,
             points,

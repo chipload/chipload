@@ -792,6 +792,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
             length: 20.0,
             width: 20.0,
             angle: 0.0,
+            corner_radius: 0.0,
         },
     };
     job.drawing.next_shape_id += 1;

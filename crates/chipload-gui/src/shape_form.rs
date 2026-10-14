@@ -74,6 +74,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     length,
                     width,
                     angle,
+                    corner_radius,
                 } => {
                     centre_row(ui, center);
                     ui.label("Length (X)");
@@ -96,6 +97,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                         *angle = degrees.to_radians();
                     }
                     ui.end_row();
+                    corner_radius_row(ui, corner_radius, length.min(*width) / 2.0);
                 }
                 Geometry::Polyline { closed, .. } => {
                     let mut close = *closed;
@@ -129,6 +131,36 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
 pub const POLYLINE_HELP: &str = "On the canvas: drag a square to move a point · drag a round \
      middle handle to insert a new point there · Shift+drag a middle handle to bend the \
      segment into an arc (bulge) · Alt: no snapping";
+
+/// The rectangle's corner radius, from 0 (sharp) to half its shorter side `most`, with a
+/// reset back to sharp (docs/specs/rectangle-corner-radius.md §5).
+fn corner_radius_row(ui: &mut egui::Ui, corner_radius: &mut f64, most: f64) {
+    ui.label("Corner radius");
+    ui.horizontal(|ui| {
+        // A radius that no longer fits is left as it is, to be flagged, not shrunk.
+        ui.add(
+            mm(corner_radius)
+                .range(0.0..=most.max(0.0))
+                .clamp_existing_to_range(false),
+        )
+        .on_hover_text("Rounds all four corners; at most half the shorter side");
+        let sharp = *corner_radius == 0.0;
+        if crate::app::header::icon_button(
+            ui,
+            crate::icons::Icon::Undo,
+            "Reset",
+            !sharp,
+            false,
+            18.0,
+        )
+        .on_hover_text("Sharp corners")
+        .clicked()
+        {
+            *corner_radius = 0.0;
+        }
+    });
+    ui.end_row();
+}
 
 fn centre_row(ui: &mut egui::Ui, center: &mut [f64; 2]) {
     ui.label("Centre");

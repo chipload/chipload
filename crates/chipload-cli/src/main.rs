@@ -575,6 +575,10 @@ struct ShapeValues {
     /// Rotation about the centre, degrees, counter-clockwise.
     #[arg(long, allow_hyphen_values = true)]
     angle_deg: Option<f64>,
+    /// The radius of the rectangle's corners, at most half its shorter side (default 0:
+    /// sharp).
+    #[arg(long)]
+    corner_radius: Option<f64>,
     /// Polyline points "X,Y X,Y ...".
     #[arg(long, allow_hyphen_values = true)]
     points: Option<String>,
@@ -1289,6 +1293,9 @@ fn need<T>(value: Option<T>, what: &str, kind: &str) -> Result<T, String> {
 
 fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
     let center = v.center.as_deref().map(point_arg).transpose()?;
+    if v.corner_radius.is_some() && !matches!(kind, KindArg::Rectangle) {
+        return Err("--corner-radius is for a rectangle".into());
+    }
     Ok(match kind {
         KindArg::Circle => Geometry::Circle {
             center: need(center, "center", "circle")?,
@@ -1299,6 +1306,7 @@ fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
             length: need(v.length, "length", "rectangle")?,
             width: need(v.width, "width", "rectangle")?,
             angle: v.angle_deg.unwrap_or(0.0).to_radians(),
+            corner_radius: v.corner_radius.unwrap_or(0.0),
         },
         KindArg::Polyline => {
             let closed = !v.open;
@@ -1336,6 +1344,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("length", v.length.is_some()),
                     ("width", v.width.is_some()),
                     ("angle-deg", v.angle_deg.is_some()),
+                    ("corner-radius", v.corner_radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
                     ("open", v.open),
@@ -1350,6 +1359,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
             length,
             width,
             angle,
+            corner_radius,
         } => {
             not_for(
                 "rectangle",
@@ -1364,6 +1374,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
             *c = center.unwrap_or(*c);
             *length = v.length.unwrap_or(*length);
             *width = v.width.unwrap_or(*width);
+            *corner_radius = v.corner_radius.unwrap_or(*corner_radius);
             if let Some(degrees) = v.angle_deg {
                 *angle = degrees.to_radians();
             }
@@ -1381,6 +1392,7 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("length", v.length.is_some()),
                     ("width", v.width.is_some()),
                     ("angle-deg", v.angle_deg.is_some()),
+                    ("corner-radius", v.corner_radius.is_some()),
                 ],
             )?;
             if let Some(text) = &v.points {

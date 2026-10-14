@@ -15,7 +15,7 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 24;
+pub const CURRENT_VERSION: i64 = 25;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -392,12 +392,14 @@ pub enum Geometry {
         radius: f64,
     },
     /// `length` along the local X axis, `width` along local Y, rotated by `angle` (radians,
-    /// CCW) about `center`.
+    /// CCW) about `center`; its corners rounded by `corner_radius` (0: sharp), at most half
+    /// the shorter side (docs/specs/rectangle-corner-radius.md).
     Rectangle {
         center: [f64; 2],
         length: f64,
         width: f64,
         angle: f64,
+        corner_radius: f64,
     },
     /// Segments through `points`, and back to the first if `closed`. Each segment bends by
     /// its bulge, as in DXF: tan(sweep / 4), 0 straight, ±1 a half circle (positive
@@ -484,15 +486,22 @@ impl Shape {
                 length,
                 width,
                 angle,
+                corner_radius,
             } => {
                 let (sin, cos) = angle.sin_cos();
                 let (hl, hw) = (length / 2.0, width / 2.0);
-                // Counter-clockwise from the (-length/2, -width/2) corner.
-                let corners: Vec<[f64; 2]> = [(-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw)]
-                    .iter()
-                    .map(|&(x, y)| [center[0] + x * cos - y * sin, center[1] + x * sin + y * cos])
-                    .collect();
-                lines_through(&corners, true)
+                let place =
+                    |x: f64, y: f64| [center[0] + x * cos - y * sin, center[1] + x * sin + y * cos];
+                if *corner_radius == 0.0 {
+                    // Counter-clockwise from the (-length/2, -width/2) corner.
+                    let corners: Vec<[f64; 2]> = [(-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw)]
+                        .iter()
+                        .map(|&(x, y)| place(x, y))
+                        .collect();
+                    lines_through(&corners, true)
+                } else {
+                    rounded_rectangle(hl, hw, *corner_radius, *angle, place)
+                }
             }
             Geometry::Polyline {
                 closed,
@@ -543,6 +552,44 @@ fn polyline_segments(points: &[[f64; 2]], bulges: &[f64], closed: bool) -> Vec<P
             }
         })
         .collect()
+}
+
+/// A rectangle of half sizes `hl`, `hw` with corners of radius `r`, counter-clockwise from
+/// `r` right of its lower-left corner: each side's line (left out when the arcs meet), then
+/// the quarter circle round the next corner. `place` turns and moves local points.
+fn rounded_rectangle(
+    hl: f64,
+    hw: f64,
+    r: f64,
+    angle: f64,
+    place: impl Fn(f64, f64) -> [f64; 2],
+) -> Vec<PathSegment> {
+    use std::f64::consts::FRAC_PI_2;
+    // Per side: its line's start and end, then the centre of the arc that follows and the
+    // arc's start angle (local).
+    let (x, y) = (hl - r, hw - r);
+    let sides = [
+        ((-x, -hw), (x, -hw), (x, -y), -FRAC_PI_2),
+        ((hl, -y), (hl, y), (x, y), 0.0),
+        ((x, hw), (-x, hw), (-x, y), FRAC_PI_2),
+        ((-hl, y), (-hl, -y), (-x, -y), 2.0 * FRAC_PI_2),
+    ];
+    let mut segments = Vec::with_capacity(8);
+    for (start, end, centre, start_angle) in sides {
+        if (end.0 - start.0).hypot(end.1 - start.1) > CHAIN_TOL_MM {
+            segments.push(PathSegment::Line(LineSegment {
+                start: place(start.0, start.1),
+                end: place(end.0, end.1),
+            }));
+        }
+        segments.push(PathSegment::Arc(ArcSegment {
+            center: place(centre.0, centre.1),
+            radius: r,
+            start_angle: start_angle + angle,
+            sweep: FRAC_PI_2,
+        }));
+    }
+    segments
 }
 
 fn lines_through(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
@@ -615,6 +662,9 @@ struct RawShape {
     /// rectangle: its rotation about the centre, radians, counter-clockwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     angle: Option<f64>,
+    /// rectangle: the radius of its corners, mm; 0 for sharp ones.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    corner_radius: Option<f64>,
     /// polyline: its points, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     points: Option<Vec<[f64; 2]>>,
@@ -641,6 +691,7 @@ impl RawShape {
             length: None,
             width: None,
             angle: None,
+            corner_radius: None,
             points: None,
             bulges: None,
         }
@@ -660,6 +711,7 @@ impl RawShape {
             ("length", self.length.is_some()),
             ("width", self.width.is_some()),
             ("angle", self.angle.is_some()),
+            ("corner_radius", self.corner_radius.is_some()),
             ("points", self.points.is_some()),
             ("bulges", self.bulges.is_some()),
         ]
@@ -703,11 +755,13 @@ impl From<Shape> for RawShape {
                 length,
                 width,
                 angle,
+                corner_radius,
             } => {
                 raw.center = Some(center);
                 raw.length = Some(length);
                 raw.width = Some(width);
                 raw.angle = Some(angle);
+                raw.corner_radius = Some(corner_radius);
             }
             Geometry::Polyline {
                 closed,
@@ -738,7 +792,7 @@ impl TryFrom<RawShape> for Shape {
                 "segments",
             ],
             ShapeKind::Circle => &["center", "radius"],
-            ShapeKind::Rectangle => &["center", "length", "width", "angle"],
+            ShapeKind::Rectangle => &["center", "length", "width", "angle", "corner_radius"],
             ShapeKind::Polyline => &["closed", "points", "bulges"],
         };
         let name = RawShape::from_kind_name(kind);
@@ -767,6 +821,7 @@ impl TryFrom<RawShape> for Shape {
                 length: raw.length.ok_or_else(|| missing("length"))?,
                 width: raw.width.ok_or_else(|| missing("width"))?,
                 angle: raw.angle.ok_or_else(|| missing("angle"))?,
+                corner_radius: raw.corner_radius.ok_or_else(|| missing("corner_radius"))?,
             },
             ShapeKind::Polyline => {
                 let closed = raw.closed.ok_or_else(|| missing("closed"))?;
@@ -2276,9 +2331,26 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<String> {
             length,
             width,
             angle,
+            corner_radius,
         } => {
             positive("length", *length);
             positive("width", *width);
+            let most = length.min(*width) / 2.0;
+            if !corner_radius.is_finite() || *corner_radius < 0.0 {
+                problems.push(format!(
+                    "corner_radius: must be 0 or more, got {corner_radius}"
+                ));
+            } else if *corner_radius > 0.0 && *corner_radius < CHAIN_TOL_MM {
+                problems.push(format!(
+                    "corner_radius: 0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got \
+                     {corner_radius}"
+                ));
+            } else if *corner_radius > most {
+                problems.push(format!(
+                    "corner_radius: at most {most} mm, half the shorter side, got \
+                     {corner_radius}"
+                ));
+            }
             if !finite(center) {
                 problems.push("center: must be finite".into());
             }
@@ -2894,6 +2966,7 @@ mod tests {
                 length: 8.0,
                 width: 4.0,
                 angle,
+                corner_radius: 0.0,
             })
         };
         let flat = line_starts(&rect(0.0));
@@ -2919,6 +2992,118 @@ mod tests {
             panic!("lines");
         };
         assert_eq!(last.end, first.start);
+    }
+
+    fn rounded(length: f64, width: f64, angle: f64, corner_radius: f64) -> Geometry {
+        Geometry::Rectangle {
+            center: [10.0, 20.0],
+            length,
+            width,
+            angle,
+            corner_radius,
+        }
+    }
+
+    /// Start and end of a segment.
+    fn ends(segment: &PathSegment) -> ([f64; 2], [f64; 2]) {
+        match segment {
+            PathSegment::Line(l) => (l.start, l.end),
+            PathSegment::Arc(a) => {
+                let at = |t: f64| {
+                    [
+                        a.center[0] + a.radius * t.cos(),
+                        a.center[1] + a.radius * t.sin(),
+                    ]
+                };
+                (at(a.start_angle), at(a.start_angle + a.sweep))
+            }
+        }
+    }
+
+    fn joined(segments: &[PathSegment]) -> bool {
+        (0..segments.len()).all(|i| {
+            let end = ends(&segments[i]).1;
+            let next = ends(&segments[(i + 1) % segments.len()]).0;
+            (end[0] - next[0]).hypot(end[1] - next[1]) <= CHAIN_TOL_MM
+        })
+    }
+
+    /// docs/specs/rectangle-corner-radius.md §2.
+    #[test]
+    fn rounded_corners_are_quarter_arcs_joined_to_the_sides() {
+        let segments = shape(rounded(8.0, 4.0, 0.0, 1.0)).segments();
+        assert_eq!(segments.len(), 8);
+        assert!(joined(&segments));
+        // Starts r right of the lower-left corner, along the bottom.
+        assert_eq!(ends(&segments[0]), ([7.0, 18.0], [13.0, 18.0]));
+        for arc in segments.iter().skip(1).step_by(2) {
+            let PathSegment::Arc(arc) = arc else {
+                panic!("arc");
+            };
+            assert_eq!(arc.radius, 1.0);
+            assert_eq!(arc.sweep, std::f64::consts::FRAC_PI_2);
+        }
+        // The same box as the sharp rectangle.
+        let xs: Vec<f64> = segments
+            .iter()
+            .flat_map(|s| [ends(s).0[0], ends(s).1[0]])
+            .collect();
+        let lowest = xs.iter().copied().fold(f64::INFINITY, f64::min);
+        let highest = xs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        assert!(close([lowest, highest], [6.0, 14.0]));
+        // Turned: the unturned segments turned about the centre.
+        let angle = 0.4_f64;
+        let (sin, cos) = angle.sin_cos();
+        let turn = |p: [f64; 2]| {
+            let (x, y) = (p[0] - 10.0, p[1] - 20.0);
+            [10.0 + x * cos - y * sin, 20.0 + x * sin + y * cos]
+        };
+        let turned = shape(rounded(8.0, 4.0, angle, 1.0)).segments();
+        assert!(joined(&turned));
+        for (a, b) in segments.iter().zip(&turned) {
+            assert!(close(turn(ends(a).0), ends(b).0) && close(turn(ends(a).1), ends(b).1));
+        }
+        // Radius 0: the four lines as before.
+        assert_eq!(
+            shape(rounded(8.0, 4.0, 0.3, 0.0)).segments(),
+            shape(Geometry::Rectangle {
+                center: [10.0, 20.0],
+                length: 8.0,
+                width: 4.0,
+                angle: 0.3,
+                corner_radius: 0.0,
+            })
+            .segments()
+        );
+        assert_eq!(shape(rounded(8.0, 4.0, 0.3, 0.0)).segments().len(), 4);
+    }
+
+    #[test]
+    fn a_radius_of_half_a_side_leaves_that_side_out() {
+        // A slot: the short sides are all arc.
+        let slot = shape(rounded(8.0, 4.0, 0.0, 2.0)).segments();
+        assert_eq!(slot.len(), 6);
+        assert!(joined(&slot));
+        // A square at half its side: a circle of four arcs.
+        let round = shape(rounded(4.0, 4.0, 0.7, 2.0)).segments();
+        assert_eq!(round.len(), 4);
+        assert!(
+            round
+                .iter()
+                .all(|s| matches!(s, PathSegment::Arc(a) if a.center == [10.0, 20.0]))
+        );
+        assert!(joined(&round));
+    }
+
+    #[test]
+    fn a_corner_radius_is_at_most_half_the_shorter_side() {
+        let ok = |r: f64| shape_problems(&rounded(8.0, 4.0, 0.0, r)).is_empty();
+        assert!(ok(0.0) && ok(1.0) && ok(2.0) && ok(CHAIN_TOL_MM));
+        for bad in [2.0001, -1.0, f64::NAN, f64::INFINITY, CHAIN_TOL_MM / 2.0] {
+            assert!(!ok(bad), "{bad}");
+        }
+        let problems = shape_problems(&rounded(8.0, 4.0, 0.0, 3.0));
+        assert!(problems[0].contains("at most 2 mm"), "{problems:?}");
     }
 
     #[test]

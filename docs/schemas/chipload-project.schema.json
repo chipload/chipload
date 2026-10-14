@@ -1536,6 +1536,14 @@
             "null"
           ]
         },
+        "corner_radius": {
+          "description": "rectangle: the radius of its corners, mm; 0 for sharp ones.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "dxf": {
           "description": "path: the DXF it was imported from (its id in `drawing.dxfs`).",
           "format": "uint64",
@@ -2030,7 +2038,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 24. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 25. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2065,7 +2073,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 24,
+      "const": 25,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {

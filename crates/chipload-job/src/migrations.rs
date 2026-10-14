@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 20] = [
+const MIGRATIONS: [Migration; 21] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24,
+    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -429,6 +429,24 @@ fn v23_to_v24(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 24))
+}
+
+/// v25 rounds rectangle corners (docs/specs/rectangle-corner-radius.md §3): every drawn
+/// rectangle gets `corner_radius` 0, sharp as it was.
+fn v24_to_v25(mut data: Value) -> Result<Value, String> {
+    let map = data.as_object_mut().ok_or("the project is not an object")?;
+    if let Some(shapes) = map
+        .get_mut("drawing")
+        .and_then(|d| d.get_mut("shapes"))
+        .and_then(Value::as_array_mut)
+    {
+        for shape in shapes.iter_mut().filter_map(Value::as_object_mut) {
+            if shape.get("kind").and_then(Value::as_str) == Some("rectangle") {
+                shape.insert("corner_radius".into(), Value::from(0.0));
+            }
+        }
+    }
+    Ok(set_version(data, 25))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

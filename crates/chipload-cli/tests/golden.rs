@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 37] = [
+const GOLDEN: [(&str, &str); 39] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -104,6 +104,16 @@ const GOLDEN: [(&str, &str); 37] = [
     // copies side by side, frozen at v23 with G-code from that code: v24 makes the quarter
     // turns an angle in degrees; the G-code stays the same (docs/specs/direct-placement.md).
     ("v23_turned_parts", "jobs/v23/turned_parts.chipload"),
+    // v14_round_corners (a turned rectangle, pocketed and cut round) frozen at v24: v25
+    // gives rectangles a corner radius, 0 for these; the G-code stays the same
+    // (docs/specs/rectangle-corner-radius.md).
+    ("v24_rectangle_part", "jobs/v24/rectangle_part.chipload"),
+    // The same with the rectangle's corners rounded at 15 mm: rings and the outline follow
+    // the corner arcs (docs/specs/rectangle-corner-radius.md).
+    (
+        "v25_rounded_rectangle",
+        "jobs/v25/rounded_rectangle.chipload",
+    ),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

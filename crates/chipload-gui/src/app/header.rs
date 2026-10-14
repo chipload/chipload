@@ -537,7 +537,7 @@ fn quick_button(ui: &mut egui::Ui, icon: Icon, hover: &str, enabled: bool) -> Re
 
 /// A square icon button of `side` points: for the top bar and the canvas's navigation bar.
 /// A selected one is filled with the accent.
-pub(super) fn icon_button(
+pub(crate) fn icon_button(
     ui: &mut egui::Ui,
     icon: Icon,
     hover: &str,
