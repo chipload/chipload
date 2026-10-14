@@ -662,3 +662,37 @@ fn a_copy_may_not_cut_into_another_part_but_the_parts_as_drawn_may_overlap() {
     let (job, contours) = two_parts(20.0, Value::Null, Value::Null);
     assert!(plan_job(&job, &contours).is_ok());
 }
+
+#[test]
+fn every_copy_writes_the_same_arcs() {
+    // docs/specs/arc-output.md: a chord is known to lie on an arc by the exact end points
+    // it was flattened with, so the copies' moved contours, the start of each ring and the
+    // merge must all keep them. A circle's profile cut twice comes out as twice the arcs.
+    use chipload_toolpath::arcs::merge_arcs;
+    use chipload_toolpath::model::MoveKind;
+    let circle = vec![common::circle_id(1, (60.0, 40.0), 30.0)];
+    let arcs = |plan: &chipload_toolpath::Plan| {
+        merge_arcs(&plan.program)
+            .unwrap()
+            .moves
+            .iter()
+            .filter(|m| matches!(m.kind, MoveKind::ArcCw | MoveKind::ArcCcw))
+            .count()
+    };
+    let one = plan_job(&job(profile("outside", Value::Null)), &circle).unwrap();
+    let grid = json!({"columns": 2, "rows": 1, "dx": 150, "dy": 0});
+    let two = plan_job(&with_copies(profile("outside", Value::Null), grid), &circle).unwrap();
+    assert!(arcs(&one) > 0, "a circle is cut as arcs");
+    assert_eq!(arcs(&two), 2 * arcs(&one), "the copy keeps every arc");
+    // And no feed move of either is left as a chord.
+    let chords = |plan: &chipload_toolpath::Plan| {
+        merge_arcs(&plan.program)
+            .unwrap()
+            .moves
+            .iter()
+            .filter(|m| m.kind == MoveKind::Feed && m.x.is_some() && m.z.is_none())
+            .count()
+    };
+    assert_eq!(chords(&one), 0, "every XY feed of a circle is an arc");
+    assert_eq!(chords(&two), 0);
+}

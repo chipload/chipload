@@ -97,6 +97,15 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Refactoring pass** (2026-10-14, 13 commits, no change to any G-code or golden): typed
+  problems (`Problem::at`, no re-parsing of "path: message"), notes and toolpath errors
+  that carry their operation (`Note`, `ToolpathError::Operation`, `Overlap`), one owner
+  for the rest and tab-height rules (`rest_refusal`), `ToolType::name`, `Stock::top_z`,
+  `Job::tool`, `Operation::label`, `chipload_core::text`, `Ordered` sort keys; the pocket
+  planner on `PocketRing`/`PocketRequest`/`PocketCut`; every cavalier_contours call in
+  `cavalier.rs`; `plan_job` in steps; the GUI's state in `Sim`, `Drag` and `Dialogs` and
+  its tests split by area. Not pushed.
+
 - **Rounded rectangle corners** (2026-10-14, docs/specs/rectangle-corner-radius.md, schema
   25): a drawn rectangle's corner radius, true arcs, at most half the shorter side; the
   form's Corner radius row and `shape add/set --corner-radius`.

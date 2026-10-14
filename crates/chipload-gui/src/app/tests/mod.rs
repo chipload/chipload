@@ -14,7 +14,6 @@ mod header;
 mod holding;
 mod images;
 mod leave_out_shapes;
-mod tool_library;
 mod live_problems;
 mod parts;
 mod posts;
@@ -22,6 +21,7 @@ mod profile_form;
 mod properties_sources;
 mod recovery_copies;
 mod three_d_view;
+mod tool_library;
 mod view_bar;
 mod workflows;
 
