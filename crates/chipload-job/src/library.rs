@@ -381,8 +381,21 @@ impl MachineProfile {
         self.changes_from(&job.machine, job.stock.max_overcut)
     }
 
+    /// What differs in the machine values only (post, tool changes, spindle, max feed,
+    /// travel): what the link compares (docs/specs/linked-machine.md §2). Safe Z, the work
+    /// zero and the max overcut are the job's, and a profile only starts them.
+    pub fn machine_changes(&self, old: &Machine) -> Vec<String> {
+        self.compare(old, None)
+    }
+
     /// As `changes`, from a machine and a max overcut.
     fn changes_from(&self, old: &Machine, max_overcut: f64) -> Vec<String> {
+        self.compare(old, Some(max_overcut))
+    }
+
+    /// What differs from `old`; with the job values too when `max_overcut` is given.
+    fn compare(&self, old: &Machine, max_overcut: Option<f64>) -> Vec<String> {
+        let job_values = max_overcut.is_some();
         let mut changes = Vec::new();
         let mut differs = |what: &str, from: String, to: String| {
             if from != to {
@@ -395,7 +408,9 @@ impl MachineProfile {
             old.tool_change.name().into(),
             self.tool_change.name().into(),
         );
-        differs("safe Z", mm(old.safe_z), mm(self.safe_z));
+        if job_values {
+            differs("safe Z", mm(old.safe_z), mm(self.safe_z));
+        }
         differs(
             "spindle",
             spindle_name(old.spindle).into(),
@@ -411,12 +426,25 @@ impl MachineProfile {
             optional(old.travel.as_ref().map(travel_text)),
             optional(self.travel.as_ref().map(travel_text)),
         );
-        differs(
-            "work zero",
-            work_zero_name(&old.work_zero),
-            work_zero_name(&self.work_zero),
-        );
-        differs("max overcut", mm(max_overcut), mm(self.max_overcut));
+        if let Some(max_overcut) = max_overcut {
+            differs(
+                "work zero",
+                work_zero_name(&old.work_zero),
+                work_zero_name(&self.work_zero),
+            );
+            differs("max overcut", mm(max_overcut), mm(self.max_overcut));
+        }
+        changes
+    }
+
+    /// Copy only this profile's machine values (and its name and uid) into a project,
+    /// keeping its safe Z, work zero and max overcut; returns what changed
+    /// (docs/specs/linked-machine.md §3).
+    pub fn update_machine_values(&self, job: &mut Job) -> Vec<String> {
+        let changes = self.machine_changes(&job.machine);
+        let keep = (job.machine.safe_z, job.machine.work_zero);
+        job.machine = self.machine();
+        (job.machine.safe_z, job.machine.work_zero) = keep;
         changes
     }
 
@@ -895,7 +923,7 @@ pub fn machine_link(library: &MachineLibrary, job: &Job) -> Link {
     match library.find_uid(uid) {
         None => Link::Missing(job.machine.name.clone()),
         Some(profile) => {
-            let changes = profile.changes(job);
+            let changes = profile.machine_changes(&job.machine);
             if changes.is_empty() {
                 Link::Same(profile.name.clone())
             } else {

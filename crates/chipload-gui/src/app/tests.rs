@@ -970,11 +970,24 @@ mod library {
         let rows =
             |app: &ChiploadApp| user_library::LibraryRows::machine(settings_of(app), app.library());
         assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        // A job value doesn't count; a machine value does.
         app.edit.as_mut().unwrap().settings.machine.safe_z = 9.0;
-        assert_eq!(
-            rows(&app).note_text().unwrap(),
-            "differs from profile \"Router\": safe Z 9 mm -> 5 mm"
+        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        app.edit.as_mut().unwrap().settings.machine.max_feed = Some(1234.0);
+        assert!(
+            rows(&app)
+                .note_text()
+                .unwrap()
+                .starts_with("differs from profile \"Router\": max feed 1234 mm/min ->"),
+            "{:?}",
+            rows(&app).note_text()
         );
+        // Update from library takes the machine values back and keeps the job's.
+        assert!(app.update_machine_from_library());
+        let machine = &settings_of(&app).machine;
+        assert_eq!(machine.safe_z, 9.0);
+        assert_ne!(machine.max_feed, Some(1234.0));
+        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
     }
 
     #[test]

@@ -909,8 +909,17 @@ fn the_machine_links_by_uid() {
     assert_eq!(machine_link(&library, &job), Link::None);
     shapeoko().apply(&mut job);
     assert_eq!(machine_link(&library, &job), Link::Same("Shapeoko".into()));
-    library.machines[0].safe_z = 20.0;
-    assert_eq!(machine_link(&library, &job).state(), "differs");
+    // The job values (safe Z, work zero, max overcut) never count
+    // (docs/specs/linked-machine.md §2).
+    job.machine.safe_z = 20.0;
+    job.machine.work_zero = WorkZero::DrawingOrigin {};
+    job.stock.max_overcut = 0.1;
+    assert_eq!(machine_link(&library, &job), Link::Same("Shapeoko".into()));
+    library.machines[0].spindle = Spindle::Ccw;
+    assert_eq!(
+        machine_link(&library, &job),
+        Link::Differs("Shapeoko".into(), vec!["spindle cw -> ccw".into()])
+    );
     library.machines.clear();
     assert_eq!(machine_link(&library, &job).state(), "missing");
 }

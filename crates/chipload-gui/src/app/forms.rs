@@ -5,7 +5,7 @@ use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
-use chipload_job::library::Cutting;
+use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool};
 use chipload_job::{
@@ -1530,10 +1530,46 @@ pub(super) fn job_form(
             Spindle::Ccw => "M4",
         }
     );
+    // A machine linked to a profile in the library, and whether it is the same
+    // (docs/specs/linked-machine.md §3).
+    let profile = library.and_then(|l| {
+        let uid = job.machine.library_uid.as_deref()?;
+        l.machines.find_uid(uid).cloned()
+    });
+    let same = profile
+        .as_ref()
+        .is_some_and(|p| p.machine_changes(&job.machine).is_empty());
+    let edit_here = egui::Id::new("job-machine-edit-here");
+    let editing = ui.data(|d| d.get_temp::<bool>(edit_here).unwrap_or(false));
     section(ui, "job-machine", "Machine", &machine, |ui| {
-        if let Some(post) = machine_rows(ui, "job", &mut job.machine, library) {
-            copies_request = Some(JobRequest::Post(post));
+        match &profile {
+            Some(p) if same && !editing => {
+                ui.label("From machine");
+                ui.horizontal(|ui| {
+                    ui.strong(&p.name);
+                    if ui
+                        .button("Edit here")
+                        .on_hover_text(
+                            "Change the machine's values for this project only; it stays \
+                             linked, and shows what differs",
+                        )
+                        .clicked()
+                    {
+                        ui.data_mut(|d| d.insert_temp(edit_here, true));
+                    }
+                });
+                ui.end_row();
+                machine_text_rows(ui, &job.machine);
+            }
+            _ => {
+                if let Some(post) =
+                    machine_rows(ui, "job", &mut job.machine, library, profile.as_ref())
+                {
+                    copies_request = Some(JobRequest::Post(post));
+                }
+            }
         }
+        safe_z_row(ui, "Safe Z (this job)", &mut job.machine);
         post_copy_row(ui, &job.machine, library, &mut copies_request);
         ui.label("Setup sheet").on_hover_text(
             "An HTML page for the operator next to the exported files: stock, zero, tools in \
@@ -2019,65 +2055,76 @@ fn copies_rows(
     ui.end_row();
 }
 
-/// Post, safe Z, spindle, max feed and travel (the work zero is with the stock). Returns the
-/// post picked, if another one was: the caller sets it (a user post is copied into a
-/// project, a profile only names it).
+/// The machine values: post, spindle, max feed, tool changes and travel (safe Z and the
+/// work zero are the job's: `safe_z_row`, `work_zero_rows`). Returns the post picked, if
+/// another one was: the caller sets it (a user post is copied into a project, a profile
+/// only names it). With `profile`, a row that differs from it gets a button that takes the
+/// profile's value (docs/specs/linked-machine.md §3).
 pub(super) fn machine_rows(
     ui: &mut egui::Ui,
     salt: &str,
     machine: &mut Machine,
     library: Option<&Library>,
+    profile: Option<&MachineProfile>,
 ) -> Option<String> {
     let mut picked = None;
+    let from = profile.map(MachineProfile::machine);
+    let from = from.as_ref();
     ui.label("Post");
-    ComboBox::from_id_salt((salt, "post"))
-        .selected_text(machine.post.clone())
-        .show_ui(ui, |ui| {
-            for name in chipload_pipeline::posts::builtin_posts() {
-                if ui.selectable_label(machine.post == name, name).clicked() {
-                    picked = Some(name.to_string());
+    ui.horizontal(|ui| {
+        ComboBox::from_id_salt((salt, "post"))
+            .selected_text(machine.post.clone())
+            .show_ui(ui, |ui| {
+                for name in chipload_pipeline::posts::builtin_posts() {
+                    if ui.selectable_label(machine.post == name, name).clicked() {
+                        picked = Some(name.to_string());
+                    }
                 }
-            }
-            let yours = library.map_or(&[][..], |l| l.user_posts.as_slice());
-            if !yours.is_empty() {
-                ui.separator();
-            }
-            for (name, read) in yours {
-                let label = format!("{name} (yours)");
-                let response = ui.add_enabled(
-                    read.is_ok(),
-                    egui::Button::selectable(machine.post == *name, label),
-                );
-                if let Err(problem) = read {
-                    response.on_disabled_hover_text(problem.as_str());
-                } else if response.clicked() {
-                    picked = Some(name.clone());
+                let yours = library.map_or(&[][..], |l| l.user_posts.as_slice());
+                if !yours.is_empty() {
+                    ui.separator();
                 }
-            }
-        })
-        .response
-        .on_hover_text(match library.and_then(|l| l.posts.as_deref()) {
-            Some(dir) => format!("Your own post-processors go in {}", dir.display()),
-            None => "The built-in post-processors".into(),
-        });
-    ui.end_row();
-    ui.label("Safe Z");
-    flag(
-        ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm")),
-        ui,
-        "machine.safe_z",
-    );
+                for (name, read) in yours {
+                    let label = format!("{name} (yours)");
+                    let response = ui.add_enabled(
+                        read.is_ok(),
+                        egui::Button::selectable(machine.post == *name, label),
+                    );
+                    if let Err(problem) = read {
+                        response.on_disabled_hover_text(problem.as_str());
+                    } else if response.clicked() {
+                        picked = Some(name.clone());
+                    }
+                }
+            })
+            .response
+            .on_hover_text(match library.and_then(|l| l.posts.as_deref()) {
+                Some(dir) => format!("Your own post-processors go in {}", dir.display()),
+                None => "The built-in post-processors".into(),
+            });
+        if let Some(from) = from
+            && from.post != machine.post
+            && revert_mark(ui, profile, &from.post)
+        {
+            picked = Some(from.post.clone());
+        }
+    });
     ui.end_row();
     ui.label("Spindle");
-    ComboBox::from_id_salt((salt, "spindle"))
-        .selected_text(match machine.spindle {
-            Spindle::Cw => "cw (M3)",
-            Spindle::Ccw => "ccw (M4)",
-        })
-        .show_ui(ui, |ui| {
-            ui.selectable_value(&mut machine.spindle, Spindle::Cw, "cw (M3)");
-            ui.selectable_value(&mut machine.spindle, Spindle::Ccw, "ccw (M4)");
-        });
+    ui.horizontal(|ui| {
+        ComboBox::from_id_salt((salt, "spindle"))
+            .selected_text(spindle_text(machine.spindle))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut machine.spindle, Spindle::Cw, "cw (M3)");
+                ui.selectable_value(&mut machine.spindle, Spindle::Ccw, "ccw (M4)");
+            });
+        if let Some(from) = from
+            && from.spindle != machine.spindle
+            && revert_mark(ui, profile, spindle_text(from.spindle))
+        {
+            machine.spindle = from.spindle;
+        }
+    });
     ui.end_row();
     ui.label("Max feed");
     ui.horizontal(|ui| {
@@ -2088,6 +2135,12 @@ pub(super) fn machine_rows(
         if let Some(max) = &mut machine.max_feed {
             ui.add(feed(max));
         }
+        if let Some(from) = from
+            && from.max_feed != machine.max_feed
+            && revert_mark(ui, profile, &max_feed_text(from.max_feed))
+        {
+            machine.max_feed = from.max_feed;
+        }
     });
     ui.end_row();
     ui.label("Tool changes").on_hover_text(
@@ -2095,13 +2148,21 @@ pub(super) fn machine_rows(
          between files), or one file with M6 tool changes that your sender handles \
          (GRBL itself refuses M6)",
     );
-    ComboBox::from_id_salt((salt, "tool-change"))
-        .selected_text(tool_change_name(machine.tool_change))
-        .show_ui(ui, |ui| {
-            for change in [ToolChange::Files, ToolChange::Program] {
-                ui.selectable_value(&mut machine.tool_change, change, tool_change_name(change));
-            }
-        });
+    ui.horizontal(|ui| {
+        ComboBox::from_id_salt((salt, "tool-change"))
+            .selected_text(tool_change_name(machine.tool_change))
+            .show_ui(ui, |ui| {
+                for change in [ToolChange::Files, ToolChange::Program] {
+                    ui.selectable_value(&mut machine.tool_change, change, tool_change_name(change));
+                }
+            });
+        if let Some(from) = from
+            && from.tool_change != machine.tool_change
+            && revert_mark(ui, profile, tool_change_name(from.tool_change))
+        {
+            machine.tool_change = from.tool_change;
+        }
+    });
     ui.end_row();
     ui.label("Travel X Y Z");
     ui.horizontal(|ui| {
@@ -2118,9 +2179,72 @@ pub(super) fn machine_rows(
             flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
             flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
         }
+        if let Some(from) = from
+            && from.travel != machine.travel
+            && revert_mark(ui, profile, &travel_text(from.travel.as_ref()))
+        {
+            machine.travel = from.travel.clone();
+        }
     });
     ui.end_row();
     picked
+}
+
+/// The machine values as plain text, for a machine that is the same as its profile
+/// (docs/specs/linked-machine.md §3).
+fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
+    for (label, value) in [
+        ("Post", machine.post.clone()),
+        ("Spindle", spindle_text(machine.spindle).to_string()),
+        ("Max feed", max_feed_text(machine.max_feed)),
+        (
+            "Tool changes",
+            tool_change_name(machine.tool_change).to_string(),
+        ),
+        ("Travel X Y Z", travel_text(machine.travel.as_ref())),
+    ] {
+        ui.label(label);
+        ui.weak(value);
+        ui.end_row();
+    }
+}
+
+/// Safe Z: a job value, editable also while the machine is linked.
+pub(super) fn safe_z_row(ui: &mut egui::Ui, label: &str, machine: &mut Machine) {
+    ui.label(label)
+        .on_hover_text("The height for rapid moves sideways, above the stock and its clamps");
+    flag(
+        ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm")),
+        ui,
+        "machine.safe_z",
+    );
+    ui.end_row();
+}
+
+/// A small button after a value that differs from the profile's: hover shows the
+/// profile's value, a click asks to take it.
+fn revert_mark(ui: &mut egui::Ui, profile: Option<&MachineProfile>, value: &str) -> bool {
+    let name = profile.map_or("", |p| p.name.as_str());
+    super::header::icon_button(ui, crate::icons::Icon::Undo, "", true, false, 18.0)
+        .on_hover_text(format!("\"{name}\" has {value}: click to take it"))
+        .clicked()
+}
+
+fn spindle_text(spindle: Spindle) -> &'static str {
+    match spindle {
+        Spindle::Cw => "cw (M3)",
+        Spindle::Ccw => "ccw (M4)",
+    }
+}
+
+fn max_feed_text(max: Option<f64>) -> String {
+    max.map_or("not set".into(), |f| format!("{} mm/min", len(f)))
+}
+
+fn travel_text(travel: Option<&Travel>) -> String {
+    travel.map_or("not checked".into(), |t| {
+        format!("{} × {} × {} mm", len(t.x), len(t.y), len(t.z))
+    })
 }
 
 /// For a user post copied into the project: whether the file it came from has changed,

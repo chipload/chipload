@@ -362,6 +362,19 @@ impl ChiploadApp {
                 d.insert_persisted(egui::Id::new("browser-tools").with("folder-open"), true);
             });
         }
+        // The project's machine from the first library profile, in Job settings
+        // (docs/specs/linked-machine.md).
+        if steps.contains(&"machine")
+            && let Some(name) = self
+                .library
+                .machines
+                .machines
+                .first()
+                .map(|m| m.name.clone())
+        {
+            self.use_machine_profile(&name);
+            self.focus = Focus::Job;
+        }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
         {

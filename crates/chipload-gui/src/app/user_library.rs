@@ -16,7 +16,7 @@ use chipload_job::{Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_RPM, DEFAULT_SAFE_Z, DEFAULT_TOOL_DIAMETER};
 
-use super::forms::{feed, machine_rows, mm, tool_rows, work_zero_rows};
+use super::forms::{feed, machine_rows, mm, safe_z_row, tool_rows, work_zero_rows};
 use super::library_transfer::PendingImport;
 use super::library_view::uid_key;
 use super::*;
@@ -47,6 +47,8 @@ impl SaveTarget {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LibraryRequest {
     UseMachine(String),
+    /// Take the linked profile's machine values again, keeping the job values.
+    UpdateMachine,
     /// Give project tool `id` the values of the named library tool.
     UseTool(i64, String),
     /// Copy a library tool into the project as a tool of its own
@@ -204,7 +206,10 @@ pub(super) fn library_rows(
                 .on_hover_text("Copy the library's values into the project (undo with Ctrl+Z)")
                 .clicked()
         {
-            *request = Some(use_entry(name.clone()));
+            *request = Some(match target {
+                SaveTarget::Machine => LibraryRequest::UpdateMachine,
+                SaveTarget::Tool(_) => use_entry(name.clone()),
+            });
         }
         if let Some(uid) = uid
             && ui
@@ -351,9 +356,10 @@ pub(super) fn machine_entry_form(
         ui.end_row();
         let mut machine = profile.machine();
         // A profile only names its post; it is copied into a project when used.
-        if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library)) {
+        if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library), None) {
             machine.post = post;
         }
+        safe_z_row(ui, "Safe Z", &mut machine);
         work_zero_rows(ui, "library", &mut machine.work_zero, (0.0, 0.0));
         profile.post = machine.post;
         profile.safe_z = machine.safe_z;
@@ -504,6 +510,9 @@ impl ChiploadApp {
             LibraryRequest::UseMachine(name) => {
                 self.use_machine_profile(&name);
             }
+            LibraryRequest::UpdateMachine => {
+                self.update_machine_from_library();
+            }
             LibraryRequest::UseTool(id, name) => {
                 self.use_library_tool(id, &name);
             }
@@ -572,6 +581,31 @@ impl ChiploadApp {
             return false;
         };
         let mut changes = profile.apply(&mut edit.settings);
+        changes.extend(chipload_pipeline::library::copy_profile_post(
+            &mut edit.settings,
+            self.library.posts.as_deref(),
+        ));
+        self.commit();
+        self.report_changes(&format!("Machine profile \"{}\"", profile.name), changes);
+        true
+    }
+
+    /// Take the linked profile's machine values again (post, spindle, max feed, tool
+    /// changes, travel), keeping the project's safe Z, work zero and max depth. One undo
+    /// step.
+    pub fn update_machine_from_library(&mut self) -> bool {
+        self.reload_library();
+        let profile = self.edit.as_ref().and_then(|e| {
+            let uid = e.settings.machine.library_uid.as_deref()?;
+            self.library.machines.find_uid(uid).cloned()
+        });
+        let Some(profile) = profile else {
+            return false;
+        };
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let mut changes = profile.update_machine_values(&mut edit.settings);
         changes.extend(chipload_pipeline::library::copy_profile_post(
             &mut edit.settings,
             self.library.posts.as_deref(),

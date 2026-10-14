@@ -18,11 +18,18 @@ Your profiles are under **Library > Machines** in the [Browser](../window.md#the
 - **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 
 In Job settings > Machine:
-- **Use profile…** applies a profile to the project;
-- a line says how the project's machine stands to the profile it came from, as for
-  [tools](tools.md#project-tools-and-the-library), with *Update from library*, *Save to
-  library* and *Show in library*;
-- **Save as new…** (or **Save to library…**) saves the project's machine values as a profile.
+- **Use profile…** applies a profile to the project: all its values.
+- **While the project's machine is the same as its profile**, the machine's values (post,
+  spindle, max feed, tool changes, travel) are shown greyed under "From machine
+  *Shapeoko*". **Edit here** makes them editable for this project; it stays linked.
+- **When they differ,** each value that differs has a ↶ button: hover it for the profile's
+  value, click it to take it. *Update from library* takes them all.
+- **Safe Z, the work zero and the max depth below the stock** belong to the job: they're
+  always editable and never count as differing. A profile only gives a project its first
+  values for them.
+- A line says how the machine stands to its profile, as for
+  [tools](tools.md#project-tools-and-the-library), with *Save to library*, *Save as new…*
+  and *Show in library*.
 
 A profile whose post is one of your own [post-processors](../posts.md#your-own-post) copies
 that post into the project.

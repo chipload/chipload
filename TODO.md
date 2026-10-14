@@ -97,6 +97,9 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **A linked machine** (2026-10-14, docs/specs/linked-machine.md): its machine values are
+  read-only until *Edit here*, a row that differs has a revert button, and safe Z, work zero
+  and max depth are job values that never count as differing.
 - **Playback along long moves** (2026-10-14, docs/specs/playback.md §3): the stock is cut
   as the tool goes along a move, not at its end; the Library is at the top of the Browser.
 - **The library in the Browser** (2026-10-14, docs/specs/library-in-browser.md, ADR 0018):
