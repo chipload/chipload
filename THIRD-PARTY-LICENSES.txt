@@ -7329,16 +7329,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 GNU General Public License v3.0 or later (GPL-3.0-or-later)
 
 Used by:
-  chipload-check 0.17.4
-  chipload-cli 0.17.4
-  chipload-core 0.17.4
-  chipload-dxf 0.17.4
-  chipload-gui 0.17.4
-  chipload-image 0.17.4
-  chipload-job 0.17.4
-  chipload-pipeline 0.17.4
-  chipload-post 0.17.4
-  chipload-toolpath 0.17.4
+  chipload-check 0.18.0
+  chipload-cli 0.18.0
+  chipload-core 0.18.0
+  chipload-dxf 0.18.0
+  chipload-gui 0.18.0
+  chipload-image 0.18.0
+  chipload-job 0.18.0
+  chipload-pipeline 0.18.0
+  chipload-post 0.18.0
+  chipload-toolpath 0.18.0
 
 GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007
