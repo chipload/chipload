@@ -833,3 +833,17 @@ fn the_sidebar_shows_operations_and_shapes_apart() {
     draw_properties(&mut app);
     assert!(app.shape_draft.is_some());
 }
+
+#[test]
+fn a_new_project_drops_the_old_simulation() {
+    let ctx = egui::Context::default();
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/holes.chipload")));
+    app.set_show_simulation(true);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    assert!(app.wait_for_simulation(&ctx));
+    assert!(app.playback.is_some());
+    app.new_project();
+    assert!(app.scene.sim.is_none() && app.sim.simulation.is_none());
+    assert!(app.playback.is_none() && app.scene.toolpath.is_none());
+}

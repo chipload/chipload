@@ -1382,9 +1382,7 @@ impl ChiploadApp {
         self.export_when_done = false;
         self.toolpath_stale = false;
         self.result = None;
-        self.scene.toolpath = None;
-        self.scene.tabs.clear();
-        self.scene.start_markers.clear();
+        self.clear_toolpath();
         self.drag.start = None;
         self.drag.context_start = None;
     }

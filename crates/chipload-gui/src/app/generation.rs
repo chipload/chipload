@@ -304,7 +304,7 @@ impl ChiploadApp {
     }
 
     /// The toolpath and everything shown with it, gone.
-    fn clear_toolpath(&mut self) {
+    pub(super) fn clear_toolpath(&mut self) {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
         self.scene.start_markers.clear();
