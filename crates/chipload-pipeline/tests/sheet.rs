@@ -121,7 +121,7 @@ fn the_sheet_says_what_the_operator_needs() {
     assert!(sheet.contains("Set X0 Y0 at the stock&#39;s bottom left corner"));
     assert!(sheet.contains("Cuts down to Z-12: 12 mm below the stock top, through the stock"));
     // The times are the run's.
-    assert!(sheet.contains("7 min 21 s"));
+    assert!(sheet.contains("6 min 15 s"));
     assert!(sheet.contains("Estimated time: "));
 }
 

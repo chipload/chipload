@@ -73,9 +73,9 @@ fn inner_rings_of_a_rectangle_turn_round_and_the_wall_ring_stays_sharp() {
         inner += 1;
         // Chords of an arc: small radii are drawn with few chords (22.5° at 0.4 mm).
         assert!(turn < 0.5, "ring {d} mm in turns by {turn} rad");
-        // Corner radius min(k · stepover, D), k = rings in from the wall ring, where the
-        // ring is wide enough for it (the innermost ones, 1.2 and 6 mm wide, are not).
-        let rho = (d - RADIUS).min(2.0 * RADIUS);
+        // Corner radius min(k · stepover, 2 · stepover), k = rings in from the wall ring,
+        // where the ring is wide enough for it (the innermost ones are not).
+        let rho = (d - RADIUS).min(2.0 * stepover);
         let expected = (d + rho) * std::f64::consts::SQRT_2 - rho;
         let sharp = d * std::f64::consts::SQRT_2;
         if d < 30.0 - 2.0 * stepover - 2.0 * RADIUS {

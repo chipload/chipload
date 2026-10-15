@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 25. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 26. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 25. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `25` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `26` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -286,19 +286,16 @@ Quarter-circle lead-in and lead-out.
 | `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
 | `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
 | `feed` | number | yes | The cutting feed, mm/min. |
-| `keep_tool_down` | boolean | no | Between rings, feed across at depth instead of lifting, where the move stays clear of the walls and is at most a tool diameter. Missing: false. |
 | `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
-| `round_corners` | boolean | yes | Round the corners of every ring but the one along the wall, for smoother motion. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter: more than 0, at most 1. |
-| `strategy` | [PocketStrategy](#pocketstrategy) | no | How the pocket is cleared: `{"type": "rings"}`. (`trochoidal` and `adaptive` were removed in 0.14: such projects load but don't generate.) Missing: rings. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "vcarve"`
@@ -380,27 +377,6 @@ Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (d
 | `dy` | number | yes | Then moved along Y, mm. |
 | `rotation` | number | yes | Turned counter-clockwise about the DXF's origin, degrees, at least 0 and less than 360, after the scale. Multiples of 90 are exact. |
 | `scale` | number | yes | Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn. |
-
-## PocketStrategy
-
-Clearing strategy of a pocket.
-
-### `"type": "rings"`
-
-Rings parallel to the walls, cut from the inside out. An empty struct variant (not a unit one) so serde refuses stray fields here too.
-
-### `"type": "trochoidal"`
-
-Removed in 0.14: still read, so older projects load, but refused when generating until switched to rings.
-
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `loop_radius` | number | yes | Removed in 0.14; kept so old projects load. |
-| `step` | number | yes | Removed in 0.14; kept so old projects load. |
-
-### `"type": "adaptive"`
-
-Removed in 0.14, as `trochoidal`.
 
 ## Rest
 

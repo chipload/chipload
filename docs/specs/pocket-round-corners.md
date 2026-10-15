@@ -110,3 +110,12 @@ outside it).
   corners, a property test against gouges and uncut material, timing); migration test and
   frozen v13 sample `v13/helix_rings` (same G-code as `v7_helix`); golden
   `v14_round_corners` (a rectangle round two islands, rounding on).
+
+## 8. Revised 2026-10-15 (schema 26)
+
+- **Always on.** The setting is gone (user rule: no option that is objectively worse);
+  `v25_to_v26` drops `round_corners`, so projects that had it off now round.
+- **Radius capped at two stepovers,** not a diameter: ρ_k = min(k · s, 2s). The stop in
+  every corner is taken out by the first rings in from the wall already; a larger radius
+  only widened the material the ring outside meets in a corner (1.83 s at a diameter,
+  about 1.5 s now at the cap). `MAX_ROUNDING_STEPOVERS` in pocket.rs.

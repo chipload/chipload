@@ -442,9 +442,8 @@ fn kind_text(op: &Operation, tools: &[Tool]) -> String {
             format!("Profile, {side}, {}", direction_text(p.direction))
         }
         Operation::Pocket(p) => {
-            let strategy = p.strategy.removed_name().unwrap_or("rings");
             format!(
-                "Pocket, {strategy}, {}, stepover {} %",
+                "Pocket, rings, {}, stepover {} %",
                 direction_text(p.direction),
                 num(p.stepover * 100.0)
             )

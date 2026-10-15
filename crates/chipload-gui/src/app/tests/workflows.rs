@@ -690,23 +690,10 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
 }
 
 #[test]
-fn a_project_with_a_removed_strategy_opens_and_is_switched_to_rings() {
-    // docs/decisions/0017-scope.md: it loads unchanged, is refused, and one change fixes it.
+fn a_project_with_a_removed_strategy_opens_as_a_rings_pocket() {
+    // Since schema 26 the strategy is gone: the pocket is cut as rings, nothing to switch.
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/trochoidal.chipload")));
-    let edit = app.edit.as_ref().unwrap();
-    let job = edit.to_job().unwrap();
-    let problems = chipload_pipeline::job_problems(&job);
-    assert!(
-        problems.iter().any(|p| p.path == "operations.0.strategy"),
-        "{problems:?}"
-    );
-    assert!(!app.generate_and_wait());
-    let edit = app.edit.as_mut().unwrap();
-    let Operation::Pocket(p) = &mut edit.ops[0].op else {
-        panic!("a pocket");
-    };
-    p.strategy = chipload_job::PocketStrategy::Rings {};
     assert!(app.generate_and_wait(), "{:?}", app.report);
 }
 

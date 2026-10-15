@@ -923,11 +923,6 @@
               "format": "double",
               "type": "number"
             },
-            "keep_tool_down": {
-              "default": false,
-              "description": "Between rings, feed across at depth instead of lifting, where the move stays clear\nof the walls and is at most a tool diameter. Missing: false.",
-              "type": "boolean"
-            },
             "lead": {
               "anyOf": [
                 {
@@ -968,10 +963,6 @@
               "default": null,
               "description": "Rest machining: clear only what a larger tool leaves in these shapes. Null: the\nwhole pocket."
             },
-            "round_corners": {
-              "description": "Round the corners of every ring but the one along the wall, for smoother motion.",
-              "type": "boolean"
-            },
             "select": {
               "$ref": "#/$defs/Selector",
               "description": "What the operation cuts: the shapes on a layer, or shapes by id."
@@ -1005,13 +996,6 @@
               "format": "double",
               "type": "number"
             },
-            "strategy": {
-              "$ref": "#/$defs/PocketStrategy",
-              "default": {
-                "type": "rings"
-              },
-              "description": "How the pocket is cleared: `{\"type\": \"rings\"}`. (`trochoidal` and `adaptive` were\nremoved in 0.14: such projects load but don't generate.) Missing: rings."
-            },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
               "format": "int64",
@@ -1034,8 +1018,7 @@
             "stepover",
             "direction",
             "feed",
-            "plunge_feed",
-            "round_corners"
+            "plunge_feed"
           ],
           "type": "object"
         },
@@ -1361,65 +1344,6 @@
         "dy"
       ],
       "type": "object"
-    },
-    "PocketStrategy": {
-      "description": "Clearing strategy of a pocket.",
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "description": "Rings parallel to the walls, cut from the inside out. An empty struct variant (not a\nunit one) so serde refuses stray fields here too.",
-          "properties": {
-            "type": {
-              "const": "rings",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "description": "Removed in 0.14: still read, so older projects load, but refused when generating\nuntil switched to rings.",
-          "properties": {
-            "loop_radius": {
-              "description": "Removed in 0.14; kept so old projects load.",
-              "format": "double",
-              "type": "number"
-            },
-            "step": {
-              "description": "Removed in 0.14; kept so old projects load.",
-              "format": "double",
-              "type": "number"
-            },
-            "type": {
-              "const": "trochoidal",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type",
-            "loop_radius",
-            "step"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "description": "Removed in 0.14, as `trochoidal`.",
-          "properties": {
-            "type": {
-              "const": "adaptive",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "type": "object"
-        }
-      ]
     },
     "Rest": {
       "additionalProperties": false,
@@ -2038,7 +1962,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 25. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 26. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2073,7 +1997,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 25,
+      "const": 26,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {

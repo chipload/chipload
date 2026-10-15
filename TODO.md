@@ -97,6 +97,12 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **No worse options: the pocket's clearing settings are gone** (2026-10-15, schema 26,
+  docs/specs/pocket.md §9): the tool stays down wherever the verified link is safe, the
+  inner rings are always rounded (radius capped at two stepovers), rings is the one way
+  (a trochoidal or adaptive project is a rings pocket). Goldens of every pocket with a
+  setting off changed; the four frozen removed-strategy projects are goldens again.
+
 - **Review fixes** (2026-10-15, from the user-perspective review of 2026-10-14): one name
   for the stock simulation and automatic updates; one centre-cutting reminder per tool;
   a Through button for the end depth and the V-carve's depth called End depth; Export

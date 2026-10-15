@@ -173,3 +173,20 @@ No ramping, so plunging needs a centre-cutting endmill. No finishing pass: the w
 every depth by the last ring, which leaves step marks on the wall. Contour-parallel clearing
 only. Sharp inside corners keep a radius of r (normal for an endmill). Large files, because
 arcs are G1 chords.
+
+## 9. As built, revised 2026-10-15 (schema 26)
+
+User rule: no option that is objectively worse. Three settings went, with a migration that
+drops them (`v25_to_v26`); projects that had them off now cut the same rings with links and
+rounded corners.
+
+- **Links:** between rings the tool stays down wherever the link is safe (the rule in §3:
+  inside the region, clear of walls and islands, at most a diameter), verified with the
+  rings. `keep_tool_down` is gone.
+- **Rounded inner rings:** always, with the corner radius capped at two stepovers instead
+  of a diameter (pocket-round-corners.md as built). `round_corners` is gone from the file;
+  the planner keeps a `Choices::round_corners` only for tests that compare with sharp rings.
+- **Strategy:** rings is the one way; `strategy` is gone, and a project still marked
+  trochoidal or adaptive (ADR 0017) is a rings pocket.
+- The four frozen projects with removed strategies are golden G-code again
+  (`v7_trochoidal`, `v7_adaptive`, `v12_adaptive`, `v13_adaptive_two_islands`).

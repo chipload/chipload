@@ -197,11 +197,10 @@ fn plunges_are_counted_per_operation() {
     app.add_operation(OpKind::Pocket).unwrap();
     select(&mut app, &[2]);
     app.add_operation(OpKind::Profile).unwrap();
-    // Three depth passes, retracting between rings, like the reported project.
+    // Three depth passes, like the reported project.
     if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.ops[0].op) {
         p.end_depth = 3.0;
         p.step_down = 1.0;
-        p.keep_tool_down = false;
     }
     app.commit();
     assert!(app.generate_and_wait(), "{:?}", app.report);
@@ -225,7 +224,8 @@ fn plunges_are_counted_per_operation() {
         text.starts_with("Operation 1 (Pocket 1): plunges 1, "),
         "{text}"
     );
-    assert!(pocket_total >= 6, "{pocket_total}");
+    // One plunge per depth pass: the rings are linked at depth.
+    assert_eq!(pocket_total, 3, "{pocket_total}");
     assert!(text.ends_with(&format!(" of {pocket_total}")), "{text}");
 }
 

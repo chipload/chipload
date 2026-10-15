@@ -21,11 +21,12 @@ The pocket is cleared in **rings**:
   ring last at each depth.
 - **Stepover:** the distance between rings, as a fraction of the tool diameter (0.4 by
   default).
-- **Round the inner rings** (on by default): every ring but the wall ring gets rounded
-  corners, for smoother, faster motion. Where rounding would leave material, the corners
-  are rounded less.
-- **Keep the tool down where safe:** between rings, the tool feeds across at depth instead
-  of retracting, when the move stays clear of the walls and is at most one tool diameter.
+- **Rounded inner rings:** every ring but the wall ring has rounded corners (up to two
+  stepovers in radius), for smoother, faster motion. Where rounding would leave material,
+  the corners are rounded less.
+- **Links:** between rings the tool feeds across at depth when the move stays clear of the
+  walls and is at most one tool diameter, which it checks; otherwise it retracts. There is
+  nothing to set: a checked link is always better than a retract.
 
 What a round tool leaves is normal: inside corners keep the tool's radius, and slots
 narrower than the tool stay uncut. The [simulation](../checking/simulation.md) shows it.
@@ -80,15 +81,13 @@ in mm, feeds in mm/min, angles in radians.
 | `stepover` | Stepover, a fraction of the tool diameter |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
-| `keep_tool_down` | keep the tool down where safe |
-| `round_corners` | round the inner rings |
-| `strategy` | `{"type": "rings"}` |
 | `entry` | Entry: plunge, ramp, or `{"type": "helix", "radius": …, "ramp_angle": …}` |
 | `starts` | start points |
 | `lead` | Lead |
 | `corners` | Corners (dogbones, T-bones) |
 | `rest` | Rest after: `{"after_tool": id}` or null |
 
-Projects from before Chipload 0.14 may use the *trochoidal* or *adaptive* strategy, which
-were removed. They load, but generating asks you to switch the pocket to rings (**Use
-rings** in the app).
+Projects from before Chipload 0.14 that used the removed *trochoidal* or *adaptive*
+clearing are cut as ring pockets. Projects from before 0.18 that had the tool retracting
+between rings or sharp inner rings now get links and rounded rings: the same rings, cut
+faster.

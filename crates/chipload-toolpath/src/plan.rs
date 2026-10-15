@@ -536,9 +536,7 @@ fn plan_pocket_op(
         stepover: op.stepover * ctx.tool.diameter,
         direction: op.direction,
         spindle: ctx.job.machine.spindle,
-        keep_tool_down: op.keep_tool_down,
         start,
-        strategy: op.strategy,
         choices: Choices {
             starts,
             lead: op.lead.map(|l| l.radius),
@@ -546,7 +544,7 @@ fn plan_pocket_op(
                 Entry::Helix { radius, .. } => Some(radius),
                 _ => None,
             },
-            round_corners: op.round_corners,
+            round_corners: true,
             cancel: Some(ctx.cancel),
             rest,
         },
@@ -1601,22 +1599,6 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     let tool_index = |id: i64| job.tools.iter().position(|t| t.id == id);
     let mut no_rpm: Vec<i64> = Vec::new();
     for (index, op) in enabled() {
-        // Removed 2026-10-13 (docs/decisions/0017-scope.md): such a project still loads,
-        // unchanged, and is refused here until the pocket is switched to rings.
-        if let Operation::Pocket(pocket) = op
-            && let Some(name) = pocket.strategy.removed_name()
-        {
-            let text = format!(
-                "Operation {}: {name} clearing was removed in Chipload 0.14; switch the \
-                 pocket to rings (strategy: rings)",
-                index + 1
-            );
-            problems.push(Problem::new(
-                format!("operations.{index}.strategy"),
-                format!("{name} clearing was removed"),
-                text,
-            ));
-        }
         match tool_index(op.tool()) {
             None => {
                 problems.push(Problem::whole(

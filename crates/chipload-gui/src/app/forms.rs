@@ -75,27 +75,6 @@ fn depth_rows(
     ui.end_row();
 }
 
-/// Rings is the one strategy. A project with a removed one (trochoidal, adaptive;
-/// docs/decisions/0017-scope.md) shows it, flagged, with a button to switch to rings.
-fn strategy_rows(ui: &mut egui::Ui, strategy: &mut PocketStrategy) {
-    let Some(name) = strategy.removed_name() else {
-        return;
-    };
-    ui.label("Strategy");
-    ui.horizontal(|ui| {
-        let text = RichText::new(format!("{name} (removed)")).color(ui.visuals().error_fg_color);
-        flag(ui.label(text), ui, "strategy");
-        if ui
-            .button("Use rings")
-            .on_hover_text("Rings parallel to the walls, the one clearing strategy")
-            .clicked()
-        {
-            *strategy = PocketStrategy::Rings {};
-        }
-    });
-    ui.end_row();
-}
-
 pub(super) fn feed(value: &mut f64) -> DragValue<'_> {
     DragValue::new(value)
         .speed(10.0)
@@ -424,13 +403,11 @@ pub(super) fn op_form(
                 ui.end_row();
                 corner_rows(ui, index, &mut p.corners, true);
             });
-            let strategy = p.strategy.removed_name().unwrap_or("rings");
-            let mut clearing = format!("{strategy}, stepover {:.2} × D", p.stepover);
+            let mut clearing = format!("rings, stepover {:.2} × D", p.stepover);
             if let Some(rest) = p.rest {
                 clearing += &format!(", rest after T{}", rest.after_tool);
             }
             section(ui, "op-clearing", "Clearing", &clearing, |ui| {
-                strategy_rows(ui, &mut p.strategy);
                 rest_row(ui, index, &mut p.rest, choice.tools, op_tool);
                 ui.label("Stepover").on_hover_text(
                     "How far each ring moves on, as a fraction of the tool diameter",
@@ -443,18 +420,6 @@ pub(super) fn op_form(
                 );
                 flag(stepover, ui, "stepover");
                 ui.end_row();
-                ui.label("Links");
-                ui.checkbox(&mut p.keep_tool_down, "keep the tool down where safe");
-                ui.end_row();
-                if matches!(p.strategy, PocketStrategy::Rings {}) {
-                    ui.label("Corners");
-                    ui.checkbox(&mut p.round_corners, "round the inner rings")
-                        .on_hover_text(
-                            "Arcs instead of sharp turns in every ring but the one along the \
-                             wall, for smoother motion; less where that would leave material",
-                        );
-                    ui.end_row();
-                }
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());

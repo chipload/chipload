@@ -665,7 +665,7 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
         {"type": "pocket", "part": 1, "select": {"shapes": [2]}, "tool": 1, "start_depth": 0.0,
          "end_depth": 4.0, "clearance": 0.0, "step_down": 2.0, "stepover": 0.4,
          "direction": "climb", "feed": 1500.0, "plunge_feed": 400.0,
-         "starts": [[150.0, 75.0]], "round_corners": false},
+         "starts": [[150.0, 75.0]]},
         {"type": "profile", "part": 1, "select": {"shapes": [1]}, "side": "outside",
          "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
          "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,
@@ -1220,25 +1220,12 @@ fn plan_shows_the_chip_load() {
 }
 
 #[test]
-fn removed_pocket_strategies_load_but_are_refused() {
-    // Trochoidal and adaptive were removed (docs/decisions/0017-scope.md): projects using
-    // them still load (inspect works, nothing is changed), and generating is refused with
-    // what to do.
-    for (job, name) in [
-        ("jobs/v12/adaptive.chipload", "adaptive"),
-        ("jobs/v7/trochoidal.chipload", "trochoidal"),
-    ] {
-        let out = chipload(&["inspect", path(&corpus(job))]);
-        assert!(out.status.success(), "{job}: {}", text(&out.stderr));
+fn projects_with_a_removed_strategy_plan_as_rings_pockets() {
+    // Trochoidal and adaptive were removed (docs/decisions/0017-scope.md); since schema 26
+    // such a project is a rings pocket (docs/specs/pocket.md as built 2026-10-15).
+    for job in ["jobs/v12/adaptive.chipload", "jobs/v7/trochoidal.chipload"] {
         let out = chipload(&["plan", path(&corpus(job))]);
-        let said = text(&out.stdout) + &text(&out.stderr);
-        assert!(!out.status.success(), "{job}: {said}");
-        assert!(
-            said.contains(&format!(
-                "{name} clearing was removed in Chipload 0.14; switch the pocket to rings"
-            )),
-            "{job}: {said}"
-        );
+        assert!(out.status.success(), "{job}: {}", text(&out.stderr));
     }
 }
 
@@ -1251,13 +1238,13 @@ fn op_rest_sets_and_removes_rest_machining() {
     let out_path = dir.join("rest.nc");
     let plan = |project: &Path| text(&chipload(&["plan", path(project)]).stdout);
     let rested = plan(&project);
-    assert!(rested.contains("Operation 2 (Rest): 39 s"), "{rested}");
+    assert!(rested.contains("Operation 2 (Rest): 36 s"), "{rested}");
 
     let out = chipload(&["op", "rest", path(&project), "--op", "2", "--none"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert!(text(&out.stdout).contains("Operation 2 now clears the whole pocket."));
     let whole = plan(&project);
-    assert!(!whole.contains("Operation 2 (Rest): 39 s"), "{whole}");
+    assert!(!whole.contains("Operation 2 (Rest): 36 s"), "{whole}");
 
     let out = chipload(&[
         "op",

@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 39] = [
+const GOLDEN: [(&str, &str); 43] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -113,6 +113,15 @@ const GOLDEN: [(&str, &str); 39] = [
     (
         "v25_rounded_rectangle",
         "jobs/v25/rounded_rectangle.chipload",
+    ),
+    // Pockets that used the removed trochoidal and adaptive clearing (ADR 0017): since v26
+    // they are rings pockets like any other (docs/specs/pocket.md as built 2026-10-15).
+    ("v7_trochoidal", "jobs/v7/trochoidal.chipload"),
+    ("v7_adaptive", "jobs/v7/adaptive.chipload"),
+    ("v12_adaptive", "jobs/v12/adaptive.chipload"),
+    (
+        "v13_adaptive_two_islands",
+        "jobs/v13/adaptive_two_islands.chipload",
     ),
 ];
 
@@ -294,33 +303,4 @@ fn every_golden_arc_is_consistent_as_written() {
         }
     }
     assert!(count > 50, "the corpus should exercise arcs, found {count}");
-}
-
-/// Frozen projects whose pockets use a removed strategy (docs/decisions/0017-scope.md):
-/// they still load and migrate, and generating is refused. Their golden G-code was removed
-/// with the strategies; the projects stay frozen (CLAUDE.md).
-const REMOVED: [&str; 4] = [
-    "jobs/v7/trochoidal.chipload",
-    "jobs/v7/adaptive.chipload",
-    "jobs/v12/adaptive.chipload",
-    "jobs/v13/adaptive_two_islands.chipload",
-];
-
-#[test]
-fn projects_with_a_removed_strategy_are_refused() {
-    let settings =
-        std::env::temp_dir().join(format!("chipload-golden-settings-{}", std::process::id()));
-    for project in REMOVED {
-        let out = Command::new(env!("CARGO_BIN_EXE_chipload"))
-            .env("CHIPLOAD_CONFIG_DIR", &settings)
-            .args(["plan".as_ref(), corpus(project).as_os_str()])
-            .output()
-            .unwrap();
-        let said = String::from_utf8_lossy(&out.stderr);
-        assert!(!out.status.success(), "{project}");
-        assert!(
-            said.contains("clearing was removed in Chipload 0.14"),
-            "{project}: {said}"
-        );
-    }
 }

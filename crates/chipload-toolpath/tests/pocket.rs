@@ -32,13 +32,11 @@ fn plan_with(
     stepover: f64,
     direction: Direction,
     spindle: Spindle,
-    keep: bool,
 ) -> Result<PocketPlan, ToolpathError> {
     let refs: Vec<&Contour> = contours.iter().collect();
     plan_pocket(&PocketRequest {
         direction,
         spindle,
-        keep_tool_down: keep,
         ..PocketRequest::new(&refs, 3.0, stepover)
     })
 }
@@ -62,8 +60,8 @@ fn moves_of(
     .unwrap()
 }
 
-fn plan(contours: &[Contour], keep: bool) -> PocketPlan {
-    plan_with(contours, 2.4, Direction::Climb, Spindle::Cw, keep).unwrap()
+fn plan(contours: &[Contour]) -> PocketPlan {
+    plan_with(contours, 2.4, Direction::Climb, Spindle::Cw).unwrap()
 }
 
 fn areas_of(contours: &[Contour]) -> Vec<(Vec<usize>, f64, usize)> {
@@ -96,7 +94,7 @@ fn crossing_shapes_are_separate_pockets() {
     assert_eq!(areas.len(), 2);
     assert_eq!((areas[0].0.clone(), areas[1].0.clone()), (vec![1], vec![2]));
     assert!(areas.iter().all(|a| (a.1 - 500.0).abs() < 1e-6));
-    let result = plan(&contours, false);
+    let result = plan(&contours);
     assert_eq!(result.pieces.len(), 2);
     assert!(result.notes.is_empty(), "{:?}", result.notes);
 }
@@ -177,7 +175,7 @@ fn circle_and_polygon_of_the_same_circle_are_the_same_shape() {
 
 #[test]
 fn ring_count_and_inside_out_order() {
-    let result = plan(&[outline()], false);
+    let result = plan(&[outline()]);
     let piece = &result.pieces[0];
     // Level 0 is 94 x 54; each level shrinks 2.4 per side until the 54 side is gone: 12 levels.
     assert_eq!(piece.rings.len(), 12);
@@ -202,7 +200,6 @@ fn tool_too_big_is_an_error() {
         2.4,
         Direction::Climb,
         Spindle::Cw,
-        false,
     )
     .unwrap_err();
     assert!(err.to_string().contains("does not fit"), "{err}");
@@ -227,7 +224,7 @@ fn narrow_neck_warns() {
             (0.0, 40.0),
         ],
     );
-    let result = plan(&[dumbbell], false);
+    let result = plan(&[dumbbell]);
     assert!(result.notes.iter().any(|n| n.contains("narrow part")));
 }
 
@@ -251,7 +248,7 @@ fn material_side_of_every_ring() {
         (Direction::Conventional, Spindle::Ccw, true),
     ];
     for (direction, spindle, material_on_right) in cases {
-        let result = plan_with(&contours, 2.4, direction, spindle, false).unwrap();
+        let result = plan_with(&contours, 2.4, direction, spindle).unwrap();
         for ring in &result.pieces[0].rings {
             let ring = &ring.points;
             let n = ring.len();
@@ -296,7 +293,7 @@ fn assert_clear(contours: &[Contour], result: &PocketPlan, radius: f64) {
 #[test]
 fn rings_keep_tool_radius_from_walls_and_islands() {
     let contours = [outline(), circle_id(2, (50.0, 30.0), 8.0)];
-    assert_clear(&contours, &plan(&contours, false), 3.0);
+    assert_clear(&contours, &plan(&contours), 3.0);
 }
 
 // -- uncut material
@@ -304,13 +301,13 @@ fn rings_keep_tool_radius_from_walls_and_islands() {
 #[test]
 fn large_stepover_reports_uncut_material() {
     // stepover = D: corners are missed.
-    let result = plan_with(&[outline()], 6.0, Direction::Climb, Spindle::Cw, false).unwrap();
+    let result = plan_with(&[outline()], 6.0, Direction::Climb, Spindle::Cw).unwrap();
     assert!(result.notes.iter().any(|n| n.contains("uncut material")));
 }
 
 #[test]
 fn normal_stepover_leaves_nothing() {
-    assert!(plan(&[outline()], false).notes.is_empty());
+    assert!(plan(&[outline()]).notes.is_empty());
 }
 
 #[test]
@@ -333,7 +330,7 @@ fn a_slot_narrower_than_the_tool_is_warned() {
             (0.0, 40.0),
         ],
     );
-    let result = plan(&[room], false);
+    let result = plan(&[room]);
     assert!(result.notes.iter().any(|n| n.contains("narrow part")));
 }
 
@@ -518,41 +515,20 @@ fn rings_get_past_a_wall_offset_that_just_touches() {
     ];
     let refs: Vec<&Contour> = contours.iter().collect();
     let radius = 3.073129921791429;
-    {
-        let (strategy, stepover) = (chipload_job::PocketStrategy::Rings {}, 0.4 * radius);
-        let result = plan_pocket(&PocketRequest {
-            strategy,
-            ..PocketRequest::new(&refs, radius, stepover)
-        });
-        assert!(result.is_ok(), "{strategy:?}: {:?}", result.err());
-    }
+    let result = plan_pocket(&PocketRequest::new(&refs, radius, 0.4 * radius));
+    assert!(result.is_ok(), "{:?}", result.err());
 }
 
 // -- links
 
 #[test]
-fn default_always_retracts_between_rings() {
-    assert!(
-        !plan(&[outline()], false).pieces[0]
-            .feed_links
-            .iter()
-            .any(|&l| l)
-    );
+fn rings_feed_short_safe_links() {
+    assert!(plan(&[outline()]).pieces[0].feed_links.iter().all(|&l| l));
 }
 
 #[test]
-fn keep_tool_down_feeds_short_safe_links() {
-    assert!(
-        plan(&[outline()], true).pieces[0]
-            .feed_links
-            .iter()
-            .all(|&l| l)
-    );
-}
-
-#[test]
-fn keep_tool_down_still_retracts_around_an_island() {
-    let result = plan(&[outline(), rect(2, 30.0, 20.0, 70.0, 40.0)], true);
+fn links_still_retract_around_an_island() {
+    let result = plan(&[outline(), rect(2, 30.0, 20.0, 70.0, 40.0)]);
     let piece = &result.pieces[0];
     assert!(piece.feed_links.iter().any(|&l| l));
     assert!(!piece.feed_links.iter().all(|&l| l));
@@ -567,29 +543,18 @@ fn keep_tool_down_still_retracts_around_an_island() {
 
 #[test]
 fn moves_plunge_at_the_centre_for_every_depth() {
-    let result = plan(&[outline()], false);
+    let result = plan(&[outline()]);
     let piece = &result.pieces[0];
     let moves = moves_of(piece, &[-3.0, -6.0]);
     let plunges: Vec<_> = moves
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
         .collect();
-    // Retract mode: one plunge per ring per depth.
-    assert_eq!(plunges.len(), 2 * piece.rings.len());
+    // Every ring of a plain rectangle is linked: one plunge per depth.
+    assert_eq!(plunges.len(), 2);
     assert!(plunges.iter().all(|m| m.feed == Some(400.0)));
     let last = moves.last().unwrap();
     assert!(last.kind == MoveKind::Rapid && last.z == Some(5.0));
-}
-
-#[test]
-fn keep_tool_down_plunges_once_per_depth() {
-    let result = plan(&[outline()], true);
-    let moves = moves_of(&result.pieces[0], &[-3.0, -6.0]);
-    let plunges = moves
-        .iter()
-        .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
-        .count();
-    assert_eq!(plunges, 2);
 }
 
 #[test]
@@ -607,13 +572,10 @@ fn first_ring_starts_nearest_the_start_position() {
 
 #[test]
 fn pieces_are_cut_nearest_first() {
-    let result = plan(
-        &[
-            rect(1, 200.0, 0.0, 250.0, 50.0),
-            rect(2, 0.0, 0.0, 50.0, 50.0),
-        ],
-        false,
-    );
+    let result = plan(&[
+        rect(1, 200.0, 0.0, 250.0, 50.0),
+        rect(2, 0.0, 0.0, 50.0, 50.0),
+    ]);
     let ids: Vec<Vec<usize>> = result
         .pieces
         .iter()
@@ -625,7 +587,7 @@ fn pieces_are_cut_nearest_first() {
 #[test]
 fn plan_is_deterministic() {
     let contours = [outline(), circle_id(2, (50.0, 30.0), 8.0)];
-    assert_eq!(plan(&contours, true), plan(&contours, true));
+    assert_eq!(plan(&contours), plan(&contours));
 }
 
 // -- properties
@@ -713,13 +675,9 @@ proptest! {
         contours in pocket_with_islands(),
         radius in 1.0f64..5.0,
         fraction in 0.1f64..0.5,
-        keep in any::<bool>(),
     ) {
         let refs: Vec<&Contour> = contours.iter().collect();
-        let result = plan_pocket(&PocketRequest {
-            keep_tool_down: keep,
-            ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
-        });
+        let result = plan_pocket(&PocketRequest::new(&refs, radius, fraction * 2.0 * radius));
         let result = match result {
             Ok(result) => result,
             Err(err) => {
@@ -1092,11 +1050,7 @@ fn a_pocket_failing_for_a_few_nanometres_is_retried_farther() {
     ];
     let (radius, fraction) = (3.8034814349297092, 0.4429968779362151);
     let refs: Vec<&Contour> = contours.iter().collect();
-    let result = plan_pocket(&PocketRequest {
-        keep_tool_down: true,
-        ..PocketRequest::new(&refs, radius, fraction * 2.0 * radius)
-    })
-    .unwrap();
+    let result = plan_pocket(&PocketRequest::new(&refs, radius, fraction * 2.0 * radius)).unwrap();
     assert_clear(&contours, &result, radius);
 }
 

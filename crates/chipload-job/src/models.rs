@@ -17,7 +17,7 @@ use crate::Problem;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 25;
+pub const CURRENT_VERSION: i64 = 26;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -2015,15 +2015,6 @@ pub struct PocketOp {
     pub feed: f64,
     /// The feed going down into the material, mm/min.
     pub plunge_feed: f64,
-    /// Between rings, feed across at depth instead of lifting, where the move stays clear
-    /// of the walls and is at most a tool diameter. Missing: false.
-    #[serde(default)]
-    pub keep_tool_down: bool,
-    /// How the pocket is cleared: `{"type": "rings"}`. (`trochoidal` and `adaptive` were
-    /// removed in 0.14: such projects load but don't generate.) Missing: rings.
-    // Spec: docs/specs/trochoidal.md.
-    #[serde(default)]
-    pub strategy: PocketStrategy,
     /// How the tool goes down at the start of each pass: `plunge` (straight down; needs a
     /// centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing:
     /// plunge.
@@ -2040,9 +2031,6 @@ pub struct PocketOp {
     // Spec: docs/specs/helix-and-leads.md, part B.
     #[serde(default)]
     pub lead: Option<Lead>,
-    /// Round the corners of every ring but the one along the wall, for smoother motion.
-    // Spec: docs/specs/pocket-round-corners.md.
-    pub round_corners: bool,
     /// Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners
     /// stay round.
     // Spec: docs/specs/dogbones.md.
@@ -2290,45 +2278,6 @@ impl Default for Entry {
 pub const MAX_RAMP_ANGLE_RAD: f64 = std::f64::consts::PI / 6.0;
 /// The ramp angle a new ramp gets: 3°.
 pub const DEFAULT_RAMP_ANGLE_RAD: f64 = 3.0 * std::f64::consts::PI / 180.0;
-
-/// Clearing strategy of a pocket.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
-pub enum PocketStrategy {
-    /// Rings parallel to the walls, cut from the inside out. An empty struct variant (not a
-    /// unit one) so serde refuses stray fields here too.
-    Rings {},
-    /// Removed in 0.14: still read, so older projects load, but refused when generating
-    /// until switched to rings.
-    // Spec: docs/decisions/0017-scope.md.
-    Trochoidal {
-        /// Removed in 0.14; kept so old projects load.
-        loop_radius: f64,
-        /// Removed in 0.14; kept so old projects load.
-        step: f64,
-    },
-    /// Removed in 0.14, as `trochoidal`.
-    // Spec: docs/specs/adaptive-fronts.md.
-    Adaptive {},
-}
-
-impl PocketStrategy {
-    /// The name of a strategy that was removed, None for rings.
-    pub fn removed_name(&self) -> Option<&'static str> {
-        match self {
-            PocketStrategy::Rings {} => None,
-            PocketStrategy::Trochoidal { .. } => Some("trochoidal"),
-            PocketStrategy::Adaptive {} => Some("adaptive"),
-        }
-    }
-}
-
-impl Default for PocketStrategy {
-    fn default() -> Self {
-        PocketStrategy::Rings {}
-    }
-}
 
 impl Drawing {
     /// The `hidden` key of the group a shape is in (docs/specs/drawing-sources.md §4):

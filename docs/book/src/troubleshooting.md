@@ -21,7 +21,6 @@
 | *end depth … is … below the stock …, more than the allowed* | The cut is deeper than *Max depth below stock* allows. Check the stock thickness, or raise the allowance (Job settings > Stock). |
 | *Tool N has no spindle speed* | Set the tool's spindle speed (rpm). |
 | *a v-bit with no angle* | Set the V-bit's angle: click the tool in the Browser. |
-| *clearing was removed in Chipload 0.14* | The pocket used trochoidal or adaptive clearing. Switch it to rings (**Use rings**). |
 | *shapes … no longer exist; choose its geometry again* | After updating the DXF, an operation's shapes are gone. Select new ones, then *Use selection*. |
 
 ## The check failed

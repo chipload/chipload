@@ -45,6 +45,11 @@ the project file are first-class) as well as in the GUI.
   (the format keeps the two strategies), and generating is refused with a message until
   the pocket is switched to rings (one click in the GUI). They are not converted to rings
   on load, which would change how a saved project cuts without asking.
+  - 2026-10-15: the user asked for the conversion. Schema 26 drops the `strategy` field,
+    and such projects load as rings pockets (they couldn't generate before, so nothing
+    that cut changes). The rule became general: an option that is objectively worse is
+    removed, not offered (the pocket's `keep_tool_down` and `round_corners` went the same
+    way, docs/specs/pocket.md as built).
 
 ## How to decide on a new feature
 1. Would a power user reach for something else to do it? Then it is out; say so here.

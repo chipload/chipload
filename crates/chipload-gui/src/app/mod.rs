@@ -15,9 +15,9 @@ use chipload_dxf::{ImportError, shapes_from_dxf};
 use chipload_job::edit::{Handle, handles, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
-    Direction, Drawing, Geometry, Job, Operation, PocketStrategy, Selector, Side, Spindle,
-    StockCorner, StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job,
-    operation_label, save_job,
+    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
+    StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, operation_label,
+    save_job,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, sheet_path, write_setup_sheet};

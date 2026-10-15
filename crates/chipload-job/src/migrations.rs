@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 21] = [
+const MIGRATIONS: [Migration; 22] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25,
+    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -447,6 +447,23 @@ fn v24_to_v25(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 25))
+}
+
+/// v26 takes the clearing settings off pockets (decision 2026-10-15, docs/specs/pocket.md
+/// as built): `keep_tool_down` (the tool now always stays down where the verified link is
+/// safe), `round_corners` (inner rings are always rounded) and `strategy` (rings is the
+/// one way; a pocket still marked trochoidal or adaptive, which couldn't generate since
+/// 0.14, becomes a rings pocket). This changes what a project with those settings off
+/// cuts: the same rings, with links and rounded corners.
+fn v25_to_v26(mut data: Value) -> Result<Value, String> {
+    for op in operations_mut(&mut data) {
+        if op.get("type").and_then(Value::as_str) == Some("pocket") {
+            op.remove("keep_tool_down");
+            op.remove("round_corners");
+            op.remove("strategy");
+        }
+    }
+    Ok(set_version(data, 26))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

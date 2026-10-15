@@ -167,7 +167,6 @@ fn pocket_fields_parse() {
         panic!("expected a pocket")
     };
     assert_eq!(pocket.direction, Direction::Climb);
-    assert!(pocket.keep_tool_down);
     assert_eq!(job.tools[0].center_cutting, Some(true));
 }
 
@@ -670,49 +669,33 @@ fn depth_and_clearance_rules_are_checked() {
     parse_job(data, "p").unwrap();
 }
 
-// -- pocket strategy (docs/specs/trochoidal.md)
+// -- the clearing settings, gone since v26 (docs/specs/pocket.md as built 2026-10-15)
 
 #[test]
-fn pocket_strategy_defaults_to_rings_and_removed_ones_still_load() {
-    // Operation 0 of the lower part is a pocket without a strategy: rings, written explicitly.
-    let job = parse_job(lower_job(), "p").unwrap();
-    let Operation::Pocket(pocket) = &job.operations[0] else {
-        panic!("expected a pocket");
-    };
-    assert_eq!(pocket.strategy, chipload_job::PocketStrategy::Rings {});
-    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["operations"][0]["strategy"], json!({"type": "rings"}));
-
-    let with = |strategy: Value| {
-        let mut data = lower_job();
-        data["operations"][0]["strategy"] = strategy;
-        parse_job(data, "p")
-    };
-    let adaptive = json!({"type": "adaptive"});
-    let job = with(adaptive.clone()).unwrap();
-    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["operations"][0]["strategy"], adaptive);
-    let trochoidal = json!({"type": "trochoidal", "loop_radius": 1.5, "step": 0.6});
-    let job = with(trochoidal.clone()).unwrap();
-    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["operations"][0]["strategy"], trochoidal);
-    // Removed strategies (docs/decisions/0017-scope.md) load and save unchanged, whatever
-    // their values; generating refuses them (chipload-toolpath).
-    assert!(with(json!({"type": "trochoidal", "loop_radius": 1.0, "step": 1.5})).is_ok());
-    for (bad, why) in [
-        (json!({"type": "trochoidal", "step": 0.6}), "loop_radius"),
-        (json!({"type": "zigzag"}), "unknown variant"),
-        // Since schema 13 adaptive cuts the pocket's stepover (docs/specs/adaptive-fronts.md).
-        (json!({"type": "adaptive", "load": 0.1}), "unknown field"),
-        (json!({"type": "rings", "step": 1}), "unknown field"),
-    ] {
-        let err = with(bad.clone()).unwrap_err().to_string();
-        assert!(err.contains(why), "{bad}: {err}");
+fn v26_drops_the_clearing_settings_and_removed_strategies_become_rings_pockets() {
+    // A v7 trochoidal pocket and a v12 adaptive one load as plain pockets.
+    for sample in ["v7/trochoidal.chipload", "v12/adaptive.chipload"] {
+        let current = migrate(raw(sample)).unwrap();
+        let op = &current["operations"][0];
+        assert_eq!(op["type"], json!("pocket"), "{sample}");
+        for gone in ["strategy", "keep_tool_down", "round_corners"] {
+            assert!(op.get(gone).is_none(), "{sample}: {gone} should be gone");
+        }
+        let job = parse_job(current, "p").unwrap_or_else(|e| panic!("{sample}: {e}"));
+        assert!(
+            matches!(job.operations[0], Operation::Pocket(_)),
+            "{sample}"
+        );
     }
-    // Rings may step over up to the whole tool.
-    let mut data = lower_job();
-    data["operations"][0]["stepover"] = json!(0.6);
-    parse_job(data, "p").unwrap();
+    // Written back without them; a current file that still has one is refused.
+    let job = parse_job(lower_job(), "p").unwrap();
+    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    for gone in ["strategy", "keep_tool_down", "round_corners"] {
+        assert!(saved["operations"][0].get(gone).is_none(), "{gone}");
+        let mut data = lower_job();
+        data["operations"][0][gone] = json!({"type": "rings"});
+        assert!(parse_job(data, "p").is_err(), "{gone} is refused");
+    }
 }
 
 // -- copies in a grid (docs/specs/copies-grid.md)
@@ -819,8 +802,8 @@ fn v22_to_v23_links_named_tools_and_the_machine_by_the_uid_of_their_name() {
         .as_object_mut()
         .unwrap()
         .remove("library_uid");
-    v22["schema_version"] = json!(25);
-    assert_eq!(current, v22);
+    v22["schema_version"] = json!(26);
+    assert_eq!(current, stripped(&v22));
 }
 
 #[test]
@@ -1010,7 +993,7 @@ fn rotations_are_at_least_0_and_under_360() {
 fn v23_to_v24_makes_quarter_turns_degrees() {
     let v23 = raw("v23/turned_parts.chipload");
     let mut current = migrate(v23.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     let dxfs = current["drawing"]["dxfs"].as_array_mut().unwrap();
     for (dxf, before) in dxfs
         .iter_mut()
@@ -1032,7 +1015,7 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
     }
     without_corner_radius(&mut current);
     current["schema_version"] = json!(23);
-    assert_eq!(current, v23);
+    assert_eq!(current, stripped(&v23));
 }
 
 /// docs/specs/rectangle-corner-radius.md §3: every rectangle gets corner radius 0, and
@@ -1041,7 +1024,7 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
 fn v24_to_v25_gives_rectangles_sharp_corners() {
     let v24 = raw("v24/rectangle_part.chipload");
     let mut current = migrate(v24.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     assert_eq!(current["drawing"]["shapes"][0]["corner_radius"], json!(0.0));
     let job = parse_job(current.clone(), "p").unwrap();
     assert!(matches!(
@@ -1050,7 +1033,7 @@ fn v24_to_v25_gives_rectangles_sharp_corners() {
     ));
     without_corner_radius(&mut current);
     current["schema_version"] = json!(24);
-    assert_eq!(current, v24);
+    assert_eq!(current, stripped(&v24));
 }
 
 // -- V-carving (docs/specs/v-carve.md)
@@ -1059,11 +1042,11 @@ fn v24_to_v25_gives_rectangles_sharp_corners() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    without_round_corners(&mut current);
+    without_clearing_settings(&mut current);
     // Only v10 -> v11 and v11 -> v12 add something: the scale and the tool change setting
     // (v12 -> v13 only touches adaptive pockets, and this has none).
     current["schema_version"] = json!(9);
@@ -1075,7 +1058,7 @@ fn v9_to_v10_changes_nothing_but_the_version() {
         .as_object_mut()
         .unwrap()
         .remove("tool_change");
-    assert_eq!(current, v9);
+    assert_eq!(current, stripped(&v9));
     let job = parse_job(migrate(v9).unwrap(), "p").unwrap();
     assert!(
         job.tools
@@ -1142,11 +1125,11 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    without_round_corners(&mut current);
+    without_clearing_settings(&mut current);
     assert_eq!(
         current["drawing"]["source"]["placement"]["scale"],
         json!(1.0)
@@ -1160,7 +1143,7 @@ fn v10_to_v11_gives_a_placement_scale_1() {
         .as_object_mut()
         .unwrap()
         .remove("tool_change");
-    assert_eq!(current, v10, "nothing else changes");
+    assert_eq!(current, stripped(&v10), "nothing else changes");
     let job = parse_job(migrate(v10).unwrap(), "p").unwrap();
     assert_eq!(
         job.drawing.dxfs[0].placement,
@@ -1202,18 +1185,18 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(25));
+        assert_eq!(current["schema_version"], json!(26));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
-        without_round_corners(&mut current);
+        without_clearing_settings(&mut current);
         assert_eq!(current["machine"]["tool_change"], json!("files"));
         current["schema_version"] = json!(11);
         current["machine"]
             .as_object_mut()
             .unwrap()
             .remove("tool_change");
-        assert_eq!(current, v11, "{sample}: nothing else changes");
+        assert_eq!(current, stripped(&v11), "{sample}: nothing else changes");
         let job = parse_job(migrate(v11).unwrap(), "p").unwrap();
         assert_eq!(job.machine.tool_change, chipload_job::ToolChange::Files);
     }
@@ -1249,26 +1232,21 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    without_round_corners(&mut current);
-    assert_eq!(
-        current["operations"][0]["strategy"],
-        json!({"type": "adaptive"})
-    );
-    // The cut stays as wide as it was: 0.1 × D, not the 0.4 adaptive never used.
+    without_clearing_settings(&mut current);
+    // The cut stays as wide as it was: 0.1 × D, not the 0.4 adaptive never used. The
+    // strategy itself is gone since v26.
     assert_eq!(current["operations"][0]["stepover"], json!(0.1));
     current["schema_version"] = json!(12);
-    current["operations"][0]["strategy"]["load"] = json!(0.1);
     current["operations"][0]["stepover"] = json!(0.4);
-    assert_eq!(current, v12, "nothing else changes");
+    assert_eq!(current, stripped(&v12), "nothing else changes");
     let job = parse_job(migrate(v12).unwrap(), "p").unwrap();
     let Operation::Pocket(pocket) = &job.operations[0] else {
         panic!("a pocket");
     };
-    assert_eq!(pocket.strategy, chipload_job::PocketStrategy::Adaptive {});
     assert_eq!(pocket.stepover, 0.1);
 
     // Other pockets keep their stepover; an adaptive without a load can't be carried on.
@@ -1276,11 +1254,11 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     let mut migrated = migrate(rings.clone()).unwrap();
     without_custom_post(&mut migrated);
     without_flank_angle(&mut migrated);
-    without_round_corners(&mut migrated);
+    without_clearing_settings(&mut migrated);
     for op in migrated["operations"].as_array_mut().unwrap() {
         op.as_object_mut().unwrap().remove("part");
     }
-    assert_eq!(migrated["operations"], rings["operations"]);
+    assert_eq!(migrated["operations"], stripped(&rings)["operations"]);
     let mut broken = raw("v12/adaptive.chipload");
     broken["operations"][0]["strategy"]
         .as_object_mut()
@@ -1423,43 +1401,43 @@ fn without_custom_post(data: &mut Value) {
     }
 }
 
-/// Undo v13 -> v14 (`round_corners` on pockets), to compare with an older sample.
-fn without_round_corners(data: &mut Value) {
+/// Take the clearing settings (`keep_tool_down` since v3, `strategy` since v7,
+/// `round_corners` v14 to v25) off a sample's pockets, to compare with the current
+/// version, which has none (v26).
+fn without_clearing_settings(data: &mut Value) {
     if let Some(ops) = data["operations"].as_array_mut() {
         for op in ops.iter_mut().filter_map(Value::as_object_mut) {
-            op.remove("round_corners");
+            if op.get("type").and_then(Value::as_str) == Some("pocket") {
+                op.remove("keep_tool_down");
+                op.remove("strategy");
+                op.remove("round_corners");
+            }
         }
     }
+}
+
+/// A sample without its clearing settings, to compare with the current version.
+fn stripped(data: &Value) -> Value {
+    let mut out = data.clone();
+    without_clearing_settings(&mut out);
+    out
 }
 
 // -- rounded ring corners (docs/specs/pocket-round-corners.md)
 
 #[test]
-fn v13_to_v14_keeps_every_pocket_sharp() {
+fn v13_to_v14_added_round_corners_which_v26_took_off_again() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
-    assert_eq!(current["operations"][0]["round_corners"], json!(false));
-    // Profiles get nothing.
-    assert!(current["operations"][1].get("round_corners").is_none());
+    assert!(current["operations"][0].get("round_corners").is_none());
     current["schema_version"] = json!(13);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    without_round_corners(&mut current);
-    assert_eq!(current, v13, "nothing else changes");
+    assert_eq!(current, stripped(&v13), "nothing else changes");
     let job = parse_job(migrate(v13).unwrap(), "p").unwrap();
-    let Operation::Pocket(pocket) = &job.operations[0] else {
-        panic!("a pocket");
-    };
-    assert!(!pocket.round_corners);
-    // Required from v14 on.
-    let mut missing = migrate(raw("v13/helix_rings.chipload")).unwrap();
-    missing["operations"][0]
-        .as_object_mut()
-        .unwrap()
-        .remove("round_corners");
-    assert!(parse_job(missing, "p").is_err());
+    assert!(matches!(job.operations[0], Operation::Pocket(_)));
 }
 
 // -- user post-processors (docs/specs/user-posts.md)
@@ -1468,13 +1446,13 @@ fn v13_to_v14_keeps_every_pocket_sharp() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    assert_eq!(current, v14, "nothing else changes");
+    assert_eq!(current, stripped(&v14), "nothing else changes");
     let job = parse_job(migrate(v14).unwrap(), "p").unwrap();
     assert_eq!(job.machine.post, "grbl");
     assert!(job.machine.custom_post.is_none());
@@ -1537,7 +1515,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1545,7 +1523,7 @@ fn v15_to_v16_keeps_plunged_tabs_straight() {
     );
     current["schema_version"] = json!(15);
     without_flank_angle(&mut current);
-    assert_eq!(current, v15, "nothing else changes");
+    assert_eq!(current, stripped(&v15), "nothing else changes");
     let job = parse_job(migrate(v15).unwrap(), "p").unwrap();
     let Operation::Profile(profile) = &job.operations[1] else {
         panic!("a profile");
@@ -1632,10 +1610,10 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_images(&mut current);
     current["schema_version"] = json!(16);
-    assert_eq!(current, v16, "nothing else changes");
+    assert_eq!(current, stripped(&v16), "nothing else changes");
 }
 
 #[test]
@@ -1666,10 +1644,10 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(25));
+        assert_eq!(current["schema_version"], json!(26));
         without_images(&mut current);
         current["schema_version"] = json!(17);
-        assert_eq!(current, v17, "{sample}: nothing else changes");
+        assert_eq!(current, stripped(&v17), "{sample}: nothing else changes");
     }
 }
 
@@ -1775,10 +1753,10 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(25));
+        assert_eq!(current["schema_version"], json!(26));
         without_images(&mut current);
         current["schema_version"] = json!(18);
-        assert_eq!(current, v18, "{sample}: nothing else changes");
+        assert_eq!(current, stripped(&v18), "{sample}: nothing else changes");
     }
 }
 
@@ -1788,7 +1766,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
     let mut current = migrate(v19.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     without_dxfs(&mut current);
     let images = current["drawing"]["images"].as_array_mut().unwrap();
     assert!(!images.is_empty());
@@ -1798,7 +1776,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
         assert_eq!(image.remove("arcs"), Some(json!(false)));
     }
     current["schema_version"] = json!(19);
-    assert_eq!(current, v19, "nothing else changes");
+    assert_eq!(current, stripped(&v19), "nothing else changes");
 }
 
 /// docs/specs/drawing-sources.md §2: the DXF becomes DXF 1 of a list, named after its file,
@@ -1807,7 +1785,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
 fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     let v20 = raw("v20/scaled_part.chipload");
     let mut current = migrate(v20.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(25));
+    assert_eq!(current["schema_version"], json!(26));
     let dxf = &current["drawing"]["dxfs"][0];
     assert_eq!(
         (&dxf["id"], &dxf["name"]),
@@ -1829,7 +1807,7 @@ fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     );
     without_dxfs(&mut current);
     current["schema_version"] = json!(20);
-    assert_eq!(current, v20, "nothing else changes");
+    assert_eq!(current, stripped(&v20), "nothing else changes");
     // Without a DXF: an empty list, and traced shapes name no DXF.
     let images = migrate(raw("v20/image_centre_line.chipload")).unwrap();
     assert_eq!(images["drawing"]["dxfs"], json!([]));

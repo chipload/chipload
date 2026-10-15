@@ -619,14 +619,16 @@ fn pocket_refuses_a_vbit() {
 }
 
 #[test]
-fn pocket_retracts_between_rings_by_default() {
-    let down = run(&lower_job(json!({}), json!({"keep_tool_down": true}))).files[0]
-        .gcode
-        .clone();
-    let retract = run(&lower_job(json!({}), json!({"keep_tool_down": false}))).files[0]
-        .gcode
-        .clone();
-    assert!(retract.matches("G0 Z5.000").count() > down.matches("G0 Z5.000").count());
+fn pocket_rings_are_linked_at_depth_where_safe() {
+    // docs/specs/pocket.md as built 2026-10-15: no setting; every verified link is fed.
+    let result = run(&lower_job(json!({}), json!({})));
+    assert!(
+        result
+            .pockets
+            .iter()
+            .all(|piece| piece.feed_links.iter().any(|&l| l)),
+        "every piece has links"
+    );
 }
 
 #[test]
@@ -970,7 +972,6 @@ fn a_pocket_of_a_bulged_polyline_passes_the_checker_with_arcs() {
         panic!("pocket");
     };
     pocket.select.shapes = Some(vec![3]);
-    pocket.strategy = chipload_job::PocketStrategy::Rings {};
     // run_job refuses G-code the checker rejects.
     let result = run(&job);
     let arcs = result.files[0]

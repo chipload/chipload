@@ -9,7 +9,7 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, PocketStrategy, Problem, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
+    PocketOp, Problem, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
 };
 
 use crate::view::Kind;
@@ -444,13 +444,9 @@ impl EditJob {
                     direction: Direction::Climb,
                     feed,
                     plunge_feed,
-                    keep_tool_down: false,
-                    strategy: PocketStrategy::Rings {},
                     entry,
                     starts: Vec::new(),
                     lead: None,
-                    // New pockets round their inner rings (docs/specs/pocket-round-corners.md).
-                    round_corners: true,
                     corners: None,
                     rest: None,
                 }),

@@ -19,7 +19,7 @@ use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
-use chipload_job::{Direction, Entry, PocketStrategy, Side, Spindle};
+use chipload_job::{Direction, Entry, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
@@ -383,6 +383,11 @@ fn ring_tree(
 /// Rounds of the uncut check, each halving the radii of the rings near material left.
 const ROUNDING_ROUNDS: usize = 12;
 
+/// The largest corner radius of a rounded ring, in stepovers (docs/specs/pocket-round-corners.md
+/// as built 2026-10-15): enough to take the stop out of every corner, small enough that the
+/// ring outside it meets at most about 1.5 stepovers of material in the corner.
+const MAX_ROUNDING_STEPOVERS: f64 = 2.0;
+
 /// The smallest scale of a ring's radius before it is left sharp: an eighth.
 const MIN_ROUNDING_SCALE: f64 = 0.125;
 
@@ -465,8 +470,7 @@ struct Attempt {
 
 /// What a piece is cleared with, and where the tool comes from.
 struct Clearing<'a> {
-    strategy: PocketStrategy,
-    /// Rings strategy: round the corners of the inner rings.
+    /// Round the corners of the inner rings (off only to compare, in tests).
     round_corners: bool,
     offset: f64,
     tool_radius: f64,
@@ -502,32 +506,21 @@ fn attempt_piece(
     nudge: Nudge,
 ) -> Result<Attempt, Failure> {
     let mut a = Attempt::default();
-    match c.strategy {
-        PocketStrategy::Rings {} => {
-            let (mut nodes, roots) =
-                ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
-            if c.round_corners {
-                let stepover = c.stepover - nudge.step;
-                rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes)
-                    .map_err(Failure::Final)?;
-            }
-            a.rings = cut_order(
-                &nodes,
-                &roots,
-                c.position,
-                c.direction,
-                c.spindle,
-                &mut a.arcs,
-            );
-            a.level0 = roots.iter().map(|&r| nodes[r].area.clone()).collect();
-        }
-        // Removed (docs/decisions/0017-scope.md); validation refuses them first.
-        PocketStrategy::Adaptive {} | PocketStrategy::Trochoidal { .. } => {
-            return Err(Failure::Final(geometry(
-                "this clearing strategy was removed; switch the pocket to rings".into(),
-            )));
-        }
+    let (mut nodes, roots) = ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
+    if c.round_corners {
+        let stepover = c.stepover - nudge.step;
+        rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes)
+            .map_err(Failure::Final)?;
     }
+    a.rings = cut_order(
+        &nodes,
+        &roots,
+        c.position,
+        c.direction,
+        c.spindle,
+        &mut a.arcs,
+    );
+    a.level0 = roots.iter().map(|&r| nodes[r].area.clone()).collect();
     Ok(a)
 }
 
@@ -564,7 +557,13 @@ fn rounded_rings(
     let mut scales = vec![1.0; nodes.len()];
     for _ in 0..ROUNDING_ROUNDS {
         cancel::check(c.cancel)?;
-        round_ring_corners(nodes, roots, stepover, 2.0 * c.tool_radius, &scales);
+        round_ring_corners(
+            nodes,
+            roots,
+            stepover,
+            MAX_ROUNDING_STEPOVERS * stepover,
+            &scales,
+        );
         let Some(left) = missed(nodes) else {
             return Ok(());
         };
@@ -1030,19 +1029,16 @@ pub struct PocketRequest<'a> {
     pub stepover: f64,
     pub direction: Direction,
     pub spindle: Spindle,
-    /// Feed between rings at depth where that is safe.
-    pub keep_tool_down: bool,
     /// Where the tool comes from.
     pub start: Point,
-    pub strategy: PocketStrategy,
     /// Start points, leads, helix, rounded corners and rest machining
     /// (docs/specs/helix-and-leads.md); none by default.
     pub choices: Choices<'a>,
 }
 
 impl<'a> PocketRequest<'a> {
-    /// A rings pocket cut climb with a clockwise spindle from the origin, the tool centre
-    /// `tool_radius` from the walls, retracting between rings, with no choices made.
+    /// A pocket cut climb with a clockwise spindle from the origin, the tool centre
+    /// `tool_radius` from the walls, with no choices made.
     pub fn new(contours: &'a [&'a Contour], tool_radius: f64, stepover: f64) -> Self {
         PocketRequest {
             contours,
@@ -1051,16 +1047,14 @@ impl<'a> PocketRequest<'a> {
             stepover,
             direction: Direction::Climb,
             spindle: Spindle::Cw,
-            keep_tool_down: false,
             start: (0.0, 0.0),
-            strategy: PocketStrategy::Rings {},
             choices: Choices::default(),
         }
     }
 }
 
 /// Where the wall rings start, their leads, and the helix the tool goes down round
-/// (docs/specs/helix-and-leads.md); the default is none of them.
+/// (docs/specs/helix-and-leads.md); the default is none of them, and sharp rings.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Choices<'a> {
     /// Start points, moved with the copy (part A).
@@ -1069,7 +1063,8 @@ pub struct Choices<'a> {
     pub lead: Option<f64>,
     /// Helix radius (part C).
     pub helix: Option<f64>,
-    /// Rings strategy: round the inner rings' corners (docs/specs/pocket-round-corners.md).
+    /// Round the inner rings' corners (docs/specs/pocket-round-corners.md). Every project
+    /// pocket has it; off is for comparing with sharp rings in tests.
     pub round_corners: bool,
     /// Stop with [`ToolpathError::Cancelled`] once set (docs/specs/background-generation.md).
     pub cancel: Option<&'a Cancel>,
@@ -1095,9 +1090,7 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
         stepover,
         direction,
         spindle,
-        keep_tool_down,
         start,
-        strategy,
         choices:
             Choices {
                 starts,
@@ -1158,7 +1151,6 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
             contour_ids: ids,
         } = remaining.remove(index);
         let clearing = Clearing {
-            strategy,
             round_corners,
             offset,
             tool_radius,
@@ -1248,20 +1240,21 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 }
             }
         }
+        // Between rings the tool stays down wherever the link is safe (docs/specs/pocket.md
+        // as built 2026-10-15): verified below with the rings.
         let links: Vec<bool> = rings
             .windows(2)
             .map(|pair| {
-                keep_tool_down
-                    && pair[0].end().is_some_and(|from| {
-                        link_is_safe(
-                            &region,
-                            &walls,
-                            from,
-                            pair[1].points[0],
-                            tool_radius,
-                            offset,
-                        )
-                    })
+                pair[0].end().is_some_and(|from| {
+                    link_is_safe(
+                        &region,
+                        &walls,
+                        from,
+                        pair[1].points[0],
+                        tool_radius,
+                        offset,
+                    )
+                })
             })
             .collect();
         verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
