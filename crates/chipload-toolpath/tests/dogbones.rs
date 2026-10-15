@@ -359,17 +359,27 @@ fn a_spiral_cuts_the_legs_going_down() {
     assert_eq!(found.len(), 4);
     // Each tip is reached at more than one depth.
     for &t in &found {
-        let mut here = (f64::NAN, f64::NAN);
-        let depths = plan
+        let mut here = (f64::NAN, f64::NAN, f64::NAN);
+        let mut depths: Vec<i64> = plan
             .program
             .moves
             .iter()
             .filter_map(|m| {
-                here = (m.x.unwrap_or(here.0), m.y.unwrap_or(here.1));
-                (near(here, t) && m.z.is_some()).then_some(m.z)
+                here = (
+                    m.x.unwrap_or(here.0),
+                    m.y.unwrap_or(here.1),
+                    m.z.unwrap_or(here.2),
+                );
+                // Depths within a micrometre count as one.
+                near((here.0, here.1), t).then_some((here.2 * 1e3).round() as i64)
             })
-            .count();
-        assert!(depths >= 2, "{t:?} cut {depths} times while going down");
+            .collect();
+        depths.sort_unstable();
+        depths.dedup();
+        assert!(
+            depths.len() >= 2,
+            "{t:?} cut at {depths:?} while going down"
+        );
     }
 }
 

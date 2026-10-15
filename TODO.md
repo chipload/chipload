@@ -97,6 +97,12 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **The profile's spiral ramps at the angle and levels only the ramp** (2026-10-15,
+  docs/specs/profile-ramp-level.md): each pass ramps over the length its step needs and
+  runs level for the rest of the lap, and the whole level lap at the end is one stretch
+  the length of the ramp; the skin lap the same. One lap less per ring (a quarter to half
+  of the cut). Every spiral profile and skin golden changed.
+
 - **The pocket's rings as one spiral** (2026-10-15, docs/specs/pocket-spiral.md): a ring
   steps out onto the ring outside it over its last two diameters instead of closing, where
   that is checked clear of the walls and leaves nothing uncut; the link move goes with it.

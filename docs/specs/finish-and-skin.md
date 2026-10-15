@@ -76,7 +76,9 @@ that slot**, not on the finished wall:
 - With a lead, the lap arcs on and off it as the lead does today, from the slot.
 - The skin lap goes down `skin` mm in its first stretch: straight with a plunge entry, or
   ramping forward along the ring with a ramp (it is never more than a step, decision 4),
-  then one level lap at the end depth to cut the ramp's slope away.
+  then one level lap at the end depth to cut the ramp's slope away. *(Changed 2026-10-15,
+  docs/specs/profile-ramp-level.md: the ramp is at the angle over the skin's length, then
+  level round, then only the ramped stretch is cut level.)*
 
 ## 4. Order (decision 5)
 

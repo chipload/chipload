@@ -20,8 +20,8 @@ choice every operation has:
   steeper than the **ramp angle** (3° by default, at most 30°), and never more than one
   step down per lap. On long contours the step down decides how fast it goes down; on
   small ones the angle does. A spiral-ramped profile is **one forward spiral**:
-  - each pass's laps descend evenly along the contour;
-  - one level lap at the bottom flattens the floor;
+  - each pass goes down at the ramp angle, then runs level for the rest of its lap;
+  - at the end only the ramped stretch is cut level, so the floor is flat;
   - the tool rises out along the cut path, never back and forth.
 
   It's the best way down: no plunge into the part. Tools that aren't centre-cutting need

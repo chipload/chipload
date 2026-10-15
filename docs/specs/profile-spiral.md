@@ -38,6 +38,11 @@ height over the set width, with sloping flanks on both sides.
 
 ## 3. The spiral (ramp entry)
 
+> **Changed 2026-10-15** (docs/specs/profile-ramp-level.md): each pass ramps at the angle
+> over the length that needs and runs level for the rest of its lap; at the end only the
+> ramped stretch is cut level. The whole-lap descent and the whole level lap below are
+> history.
+
 - **Down to the start:** rapid to the ring's start (or the lead-in's, §5), straight down to
   the start depth (only air or material already cut there, by definition of the start
   depth).

@@ -152,59 +152,89 @@ fn surface_grown(layout: &TabLayout, z_tab: f64, flank: f64, s: f64, grow: f64) 
 // -- the spiral
 
 #[test]
-fn a_spiral_goes_round_and_down_and_reaches_each_depth_at_the_start() {
+fn a_spiral_ramps_at_the_angle_runs_level_and_levels_only_the_ramp() {
     let ring = rect(); // 600 mm round
     let pass_z = [-4.0, -8.0, -12.0];
     let result = run(&cut(&ring, None, &pass_z, ramp(3.0))).unwrap();
     let path = along(&ring, &result.moves);
-    // Only forward, and down until the level lap.
+    // Only forward.
     for w in path.windows(2) {
         assert!(w[1].0 >= w[0].0 - TOL);
     }
-    // At 3° one lap (600 mm) can go down 31 mm: one lap per pass. Each pass ends at the
-    // start (a whole lap), exactly at its depth.
+    // A 4 mm step at 3° ramps over 76.3 mm. Each pass goes down over that stretch of its
+    // lap, reaching its depth exactly there, and runs level to the lap's end.
+    let l = 4.0 / (3.0 * DEG).tan();
     for (k, &z) in pass_z.iter().enumerate() {
-        let lap_end = 600.0 * (k + 1) as f64;
+        let lap = 600.0 * k as f64;
         let at = path
             .iter()
-            .find(|p| (p.0 - lap_end).abs() < TOL)
-            .unwrap_or_else(|| panic!("no point at {lap_end}"));
-        assert_eq!(at.1, z, "pass {k}");
+            .find(|p| (p.0 - (lap + l)).abs() < 1e-6)
+            .unwrap_or_else(|| panic!("no point at {}", lap + l));
+        assert!((at.1 - z).abs() < 1e-9, "pass {k}: {at:?}");
+        for p in path
+            .iter()
+            .filter(|p| p.0 > lap + TOL && p.0 < lap + l - TOL)
+        {
+            assert!(p.1 > z && p.1 < z + 4.0, "pass {k}: {p:?} on the ramp");
+        }
+        for p in path
+            .iter()
+            .filter(|p| p.0 > lap + l + TOL && p.0 <= lap + 600.0 + TOL)
+        {
+            assert_eq!(p.1, z, "pass {k}: {p:?} on the level part");
+        }
     }
-    // The level lap: 600 mm at -12, then the rise-out over one tool diameter to Z0.
+    // Then only the ramped stretch is cut level at -12, and the tool rises out over one
+    // tool diameter to Z0.
     let level: Vec<_> = path
         .iter()
-        .filter(|p| p.0 >= 1800.0 - TOL && p.0 <= 2400.0 + TOL)
+        .filter(|p| p.0 >= 1800.0 - TOL && p.0 <= 1800.0 + l + TOL)
         .collect();
-    assert!(level.iter().all(|p| p.1 == -12.0), "{level:?}");
+    assert!(
+        level.len() >= 2 && level.iter().all(|p| p.1 == -12.0),
+        "{level:?}"
+    );
     let last = path.last().unwrap();
-    assert!((last.0 - (2400.0 + D)).abs() < TOL, "{last:?}");
+    assert!((last.0 - (1800.0 + l + D)).abs() < TOL, "{last:?}");
     assert_eq!(last.1, 0.0);
     assert_eq!(*result.moves.last().unwrap(), Move::rapid_z(5.0));
-    assert!((result.end.0 - D).abs() < TOL && result.end.1.abs() < TOL);
-    // Never steeper than 3°, and no lap goes down more than one step.
+    assert!((result.end.0 - (l + D)).abs() < TOL && result.end.1.abs() < TOL);
+    // Every descending chord is at the ramp angle.
     for w in path.windows(2) {
         let run = w[1].0 - w[0].0;
         if run > TOL && w[1].1 < w[0].1 {
-            assert!((w[0].1 - w[1].1) / run <= (3.0 * DEG).tan() + 1e-9);
+            assert!(((w[0].1 - w[1].1) / run - (3.0 * DEG).tan()).abs() < 1e-9);
         }
     }
 }
 
 #[test]
 fn a_short_ring_takes_more_laps_not_a_steeper_slope() {
-    // A 40 mm square: one lap at 3° goes down 2.1 mm, so a 6 mm pass takes 3 laps.
+    // A 40 mm square: 6 mm at 3° takes 114.5 mm, two laps and 34.5 mm into the third.
     let ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)];
     let result = run(&cut(&ring, None, &[-6.0], ramp(3.0))).unwrap();
     let path = along(&ring, &result.moves);
+    let l = 6.0 / (3.0 * DEG).tan();
     let deepest_at = path.iter().find(|p| p.1 == -6.0).unwrap().0;
-    assert!((deepest_at - 120.0).abs() < TOL, "{deepest_at}");
+    assert!((deepest_at - l).abs() < 1e-6, "{deepest_at} vs {l}");
     for w in path.windows(2) {
         let run = w[1].0 - w[0].0;
         if run > TOL && w[1].1 < w[0].1 {
-            assert!((w[0].1 - w[1].1) / run <= (3.0 * DEG).tan() + 1e-9);
+            assert!(((w[0].1 - w[1].1) / run - (3.0 * DEG).tan()).abs() < 1e-9);
         }
     }
+    // Level to the end of that lap (120 mm), then the 34.5 mm it ramped on the last lap,
+    // then the rise-out.
+    for p in path
+        .iter()
+        .filter(|p| p.0 > l + TOL && p.0 <= l + 40.0 + TOL)
+    {
+        assert_eq!(p.1, -6.0, "{p:?}");
+    }
+    assert!(path.iter().any(|p| (p.0 - 120.0).abs() < TOL));
+    let last = path.last().unwrap();
+    assert!((last.0 - (l + 40.0 + D)).abs() < 1e-6, "{last:?}");
+    assert_eq!(last.1, 0.0);
 }
 
 #[test]
@@ -234,15 +264,22 @@ fn spiral_chords_on_arcs_keep_their_circle() {
     }
     let cut = cut(&ring, None, &[-3.0], ramp(3.0));
     let result = ring_moves(&cut, &arcs).unwrap();
-    let descending = result
+    let chords = result
         .moves
         .iter()
-        .filter(|m| m.kind == MoveKind::Feed && m.x.is_some() && m.z.is_some())
+        .filter(|m| m.kind == MoveKind::Feed && m.x.is_some())
         .collect::<Vec<_>>();
-    assert!(descending.len() >= n);
-    // All but the rise-out's partial chord.
-    let tagged = descending.iter().filter(|m| m.circle.is_some()).count();
-    assert!(tagged >= n, "{tagged}");
+    // The ramp (57 mm of the 314 mm circle), the level rest of the lap, the levelled
+    // stretch and the rise-out: all whole chords keep their circle, only the chords split
+    // where a stretch ends don't.
+    assert!(chords.len() > n);
+    let helical = chords
+        .iter()
+        .filter(|m| m.z.is_some() && m.circle.is_some())
+        .count();
+    assert!(helical >= 10, "{helical} helical chords");
+    let untagged = chords.iter().filter(|m| m.circle.is_none()).count();
+    assert!(untagged <= 6, "{untagged} chords lost their circle");
 }
 
 // -- ramped tabs
@@ -252,7 +289,7 @@ fn rect_tabs(ring: &[Point], count: usize) -> TabLayout {
 }
 
 #[test]
-fn the_level_lap_follows_trapezoid_tabs() {
+fn the_level_stretches_follow_trapezoid_tabs() {
     let ring = rect();
     let layout = rect_tabs(&ring, 4);
     let flank = 30.0 * DEG;
@@ -266,11 +303,13 @@ fn the_level_lap_follows_trapezoid_tabs() {
     for &(s, z) in &path {
         assert!(z >= surface(&layout, -9.0, flank, s) - 1e-3, "{s}: {z}");
     }
-    // The level lap (the third lap) is at -12 wherever the tab surface is lower, and at the
-    // surface elsewhere: flat on each top, never deeper.
+    // The level part of the last lap (after the 10.4 mm ramp) and the levelled stretch
+    // after it are at -12 wherever the tab surface is lower, and at the surface elsewhere:
+    // flat on each top, never deeper.
+    let l = 6.0 / (30.0 * DEG).tan();
     let level: Vec<_> = path
         .iter()
-        .filter(|p| p.0 >= 1200.0 && p.0 <= 1800.0)
+        .filter(|p| p.0 >= 600.0 + l && p.0 <= 1200.0 + l)
         .collect();
     for p in &level {
         let expected = surface(&layout, -9.0, flank, p.0).max(-12.0);

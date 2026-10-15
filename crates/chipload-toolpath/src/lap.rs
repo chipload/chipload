@@ -83,8 +83,9 @@ pub fn ring_moves(cut: &RingCut, arcs: &ArcTable) -> Result<RingMoves, ToolpathE
     }
 }
 
-/// Spiral down from the start depth in whole laps per pass, one level lap at the last
-/// depth, then rise out along the ring (docs/specs/profile-spiral.md §3).
+/// Spiral down from the start depth: each pass ramps at the angle from the ring's start,
+/// then runs level for the rest of its lap; at the end the ramped stretch is cut level and
+/// the tool rises out along the ring (docs/specs/profile-ramp-level.md §2).
 fn spiral(
     cut: &RingCut,
     along: &Along,
@@ -95,36 +96,50 @@ fn spiral(
     let mut legs = Vec::new();
     let mut lap: i64 = 0;
     let mut z = cut.top_z;
+    // How far into its lap the last pass's ramp reached: the stretch left to level.
+    let mut ramped = 0.0;
     for &pass in cut.pass_z {
         let drop = z - pass;
         if drop <= DEPTH_TOL_MM {
             continue;
         }
-        let needed = ((drop / ramp_angle.tan() - CHAIN_TOL_MM) / length)
-            .ceil()
-            .max(1.0);
-        if needed > MAX_RAMP_LEGS as f64 {
-            return Err(ToolpathError::Geometry(format!(
-                "The ring is too short to ramp down {drop:.3} mm at {:.1}° ({length:.3} mm \
-                 around); use a steeper ramp angle or a straight plunge with a \
-                 centre-cutting tool",
-                ramp_angle.to_degrees()
-            )));
+        let ramp = ramp_length(drop, ramp_angle, length)?;
+        let to = ahead((lap, 0.0), ramp, length);
+        legs.push(Leg {
+            from: (lap, 0.0),
+            to,
+            z0: z,
+            z1: pass,
+        });
+        if to.1 < length {
+            legs.push(Leg {
+                from: to,
+                to: (to.0, length),
+                z0: pass,
+                z1: pass,
+            });
         }
-        // Small positive whole number (checked above).
-        let laps = needed as i64;
-        legs.push(Leg::laps(lap, laps, length, z, pass));
-        lap += laps;
+        ramped = to.1;
+        lap = to.0 + 1;
         z = pass;
     }
-    // The level lap cuts away the spiral's slope.
-    legs.push(Leg::laps(lap, 1, length, z, z));
-    lap += 1;
-    // Rise out over one tool diameter of path, which is cut at every depth already.
+    // The ramped stretch is cut level, then the tool rises out over one tool diameter of
+    // path, which is cut to the end depth already.
+    let mut at = (lap, 0.0);
+    if ramped > 0.0 {
+        let to = ahead(at, ramped, length);
+        legs.push(Leg {
+            from: at,
+            to,
+            z0: z,
+            z1: z,
+        });
+        at = lap_start(to, length);
+    }
     let rise = cut.tool_diameter.min(length);
     legs.push(Leg {
-        from: (lap, 0.0),
-        to: (lap, rise),
+        from: at,
+        to: ahead(at, rise, length),
         z0: z,
         z1: cut.top_z,
     });
@@ -223,10 +238,11 @@ pub struct WallLap<'a> {
 }
 
 /// The moves for one wall lap: down in the roughing slot, across onto the ring, one lap
-/// (a skin lap first goes down its thickness: straight with a plunge entry, spiralling
-/// forward with a ramp, then a level lap and a rise-out), back across into the slot,
-/// retract (docs/specs/finish-and-skin.md §3). With tabs the lap starts in the middle of
-/// the longest gap between them.
+/// (a skin lap first goes down its thickness: straight with a plunge entry, or ramping
+/// forward at the angle with a ramp, then level round, level the ramped stretch and rise
+/// out), back across into the slot, retract (docs/specs/finish-and-skin.md §3,
+/// docs/specs/profile-ramp-level.md §2). With tabs the lap starts in the middle of the
+/// longest gap between them.
 pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathError> {
     let along = Along::new(lap.ring);
     let length = along.length;
@@ -241,49 +257,50 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     let drop = lap.slot_z - lap.z;
     let mut legs = Vec::new();
     let mut at: At = (0, s0);
-    let ramp = lap.entry.ramp_angle().filter(|_| drop > DEPTH_TOL_MM);
-    if let Some(ramp_angle) = ramp {
-        let needed = ((drop / ramp_angle.tan() - CHAIN_TOL_MM) / length)
-            .ceil()
-            .max(1.0);
-        if needed > MAX_RAMP_LEGS as f64 {
-            return Err(ToolpathError::Geometry(format!(
-                "The ring is too short to ramp down {drop:.3} mm at {:.1}° ({length:.3} mm \
-                 around); use a steeper ramp angle or a straight plunge with a \
-                 centre-cutting tool",
-                ramp_angle.to_degrees()
-            )));
-        }
-        // Small positive whole number (checked above).
-        let laps = needed as i64;
-        let to = whole_laps(at, laps, length);
+    let ramp = match lap.entry.ramp_angle() {
+        Some(ramp_angle) if drop > DEPTH_TOL_MM => Some(ramp_length(drop, ramp_angle, length)?),
+        _ => None,
+    };
+    if let Some(ramp) = ramp {
+        let to = ahead(at, ramp, length);
         legs.push(Leg {
             from: at,
             to,
             z0: lap.slot_z,
             z1: lap.z,
         });
-        at = (at.0 + laps, s0);
+        at = lap_start(to, length);
     }
-    let to = whole_laps(at, 1, length);
-    legs.push(Leg {
-        from: at,
-        to,
-        z0: lap.z,
-        z1: lap.z,
-    });
-    if ramp.is_some() {
-        // Rise out over one tool diameter of path, cut at every depth already.
-        let from = (at.0 + 1, s0);
-        let rise = lap.tool_diameter.min(length);
-        let to = if s0 + rise <= length {
-            (from.0, s0 + rise)
-        } else {
-            (from.0 + 1, s0 + rise - length)
-        };
+    // Level round to the start: the rest of the ramp's lap, or the whole lap.
+    let round = match ramp {
+        Some(_) => (s0 - at.1).rem_euclid(length),
+        None => length,
+    };
+    if round > CHAIN_TOL_MM {
+        let to = ahead(at, round, length);
         legs.push(Leg {
-            from,
+            from: at,
             to,
+            z0: lap.z,
+            z1: lap.z,
+        });
+        at = lap_start(to, length);
+    }
+    if let Some(ramp) = ramp {
+        // The ramped stretch is cut level, then the tool rises out over one tool diameter
+        // of path, cut to the lap's depth already.
+        let to = ahead(at, ahead((0, 0.0), ramp, length).1, length);
+        legs.push(Leg {
+            from: at,
+            to,
+            z0: lap.z,
+            z1: lap.z,
+        });
+        at = lap_start(to, length);
+        let rise = lap.tool_diameter.min(length);
+        legs.push(Leg {
+            from: at,
+            to: ahead(at, rise, length),
             z0: lap.z,
             z1: lap.slot_z,
         });
@@ -325,14 +342,42 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     Ok(RingMoves { moves, end: out })
 }
 
-/// `count` whole laps on from `at`, ending exactly at a lap's end when `at` is a lap's
-/// start (so no lap of zero length follows).
-fn whole_laps(at: At, count: i64, length: f64) -> At {
-    if at.1 == 0.0 {
-        (at.0 + count - 1, length)
-    } else {
-        (at.0 + count, at.1)
+/// The path a ramp of `drop` at `ramp_angle` takes; refused when it would take more than
+/// `MAX_RAMP_LEGS` laps of a ring `length` long.
+fn ramp_length(drop: f64, ramp_angle: f64, length: f64) -> Result<f64, ToolpathError> {
+    let ramp = drop / ramp_angle.tan();
+    if ramp / length > MAX_RAMP_LEGS as f64 {
+        return Err(ToolpathError::Geometry(format!(
+            "The ring is too short to ramp down {drop:.3} mm at {:.1}° ({length:.3} mm \
+             around); use a steeper ramp angle or a straight plunge with a \
+             centre-cutting tool",
+            ramp_angle.to_degrees()
+        )));
     }
+    Ok(ramp)
+}
+
+/// `dist` mm on from `at` (a position within its lap): the lap it ends in and how far
+/// into it. Landing at a lap's start is given as the end of the lap before, `(lap,
+/// length)`, so a leg ends on the lap it ran on; within the chaining tolerance of a lap's
+/// end counts as the end.
+fn ahead(at: At, dist: f64, length: f64) -> At {
+    let s = at.1 + dist;
+    // Small whole number: a ramp is at most MAX_RAMP_LEGS laps.
+    let mut laps = (s / length).floor() as i64;
+    let mut local = s - laps as f64 * length;
+    if local <= CHAIN_TOL_MM && laps >= 1 {
+        laps -= 1;
+        local = length;
+    } else if local >= length - CHAIN_TOL_MM {
+        local = length;
+    }
+    (at.0 + laps, local)
+}
+
+/// The position as a leg's start: a lap's end is the next lap's start.
+fn lap_start(at: At, length: f64) -> At {
+    if at.1 >= length { (at.0 + 1, 0.0) } else { at }
 }
 
 /// The middle of the longest stretch between two tabs, measured along the ring; on a ring
