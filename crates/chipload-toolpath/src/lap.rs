@@ -6,20 +6,21 @@
 //! never below the surface of a tab: `z(s) = max(lap(s), tab(s))`. Tabs are flat on top,
 //! with flanks that slope down at the flank angle, or that are vertical (straight tabs).
 //!
-//! - A ramp entry spirals down in whole laps, then cuts one level lap at the last depth and
-//!   rises out along the ring.
-//! - A plunge cuts each pass as a level lap from a plunge at the ring's start, as before.
+//! - A profile spirals down: each pass ramps at the angle then runs level, the ramped
+//!   stretch is cut level at the end and the tool rises out along the ring.
+//! - A closed follow path with a plunge entry cuts each pass as a level lap from a plunge
+//!   at the ring's start.
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
-use chipload_job::{Entry, flank_is_straight};
+use chipload_job::flank_is_straight;
 
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
-use crate::lead::Leads;
 use crate::model::Move;
 use crate::ramp::MAX_RAMP_LEGS;
+use crate::start::onto;
 use crate::tabs::TabLayout;
 
 /// Tabs on a ring: where they are, the Z of their top and the slope of their flanks.
@@ -44,7 +45,6 @@ pub struct RingCut<'a> {
     /// The tool-centre ring, starting at ring[0], in cutting order.
     pub ring: &'a [Point],
     pub tabs: Option<TabSurface<'a>>,
-    pub leads: Option<&'a Leads>,
     /// The Z of each depth pass, going down.
     pub pass_z: &'a [f64],
     /// The Z of the start depth, cut already (docs/specs/ramp-entry.md).
@@ -52,7 +52,8 @@ pub struct RingCut<'a> {
     pub safe_z: f64,
     pub feed: f64,
     pub plunge_feed: f64,
-    pub entry: Entry,
+    /// The spiral's angle; None plunges each pass (a closed follow path).
+    pub ramp_angle: Option<f64>,
     pub tool_diameter: f64,
 }
 
@@ -77,7 +78,7 @@ pub fn ring_moves(cut: &RingCut, arcs: &ArcTable) -> Result<RingMoves, ToolpathE
             "a profile ring has no length".to_string(),
         ));
     }
-    match cut.entry.ramp_angle() {
+    match cut.ramp_angle {
         Some(ramp_angle) => spiral(cut, &along, ramp_angle, arcs),
         None => passes(cut, &along, start, arcs),
     }
@@ -144,19 +145,11 @@ fn spiral(
         z1: cut.top_z,
     });
     let samples = course(cut.tabs, along, &legs)?;
-    let first = cut.leads.and_then(|l| l.lead_in.first().copied());
     let mut moves = vec![
         Move::rapid_z(cut.safe_z),
-        Move::rapid_xy(first.unwrap_or(cut.ring[0])),
+        Move::rapid_xy(cut.ring[0]),
         Move::feed_z(cut.top_z, cut.plunge_feed),
     ];
-    if let Some(leads) = cut.leads {
-        moves.extend(
-            leads.lead_in[1..]
-                .iter()
-                .map(|&p| Move::feed_xy(p, cut.feed)),
-        );
-    }
     emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
     moves.push(Move::rapid_z(cut.safe_z));
     let end = samples
@@ -165,57 +158,24 @@ fn spiral(
     Ok(RingMoves { moves, end })
 }
 
-/// A plunge entry: each pass a level lap from a plunge at the ring's start, with leads on
-/// every pass when there are any (docs/specs/helix-and-leads.md part B).
+/// A plunge entry (a closed follow path): each pass a level lap from a plunge at the
+/// ring's start.
 fn passes(
     cut: &RingCut,
     along: &Along,
     start: Point,
     arcs: &ArcTable,
 ) -> Result<RingMoves, ToolpathError> {
-    let mut moves = Vec::new();
-    if cut.leads.is_none() {
-        moves.extend([Move::rapid_z(cut.safe_z), Move::rapid_xy(start)]);
-    }
+    let mut moves = vec![Move::rapid_z(cut.safe_z), Move::rapid_xy(start)];
     for &z in cut.pass_z {
         let samples = course(cut.tabs, along, &[Leg::laps(0, 1, along.length, z, z)])?;
         // The lap's start may be on a tab's flank.
         let z_start = samples.first().map_or(z, |s| s.z);
-        match cut.leads {
-            Some(leads) => {
-                let from = leads.lead_in.first().copied().unwrap_or(start);
-                moves.extend([
-                    Move::rapid_z(cut.safe_z),
-                    Move::rapid_xy(from),
-                    Move::feed_z(z_start, cut.plunge_feed),
-                ]);
-                moves.extend(
-                    leads.lead_in[1..]
-                        .iter()
-                        .map(|&p| Move::feed_xy(p, cut.feed)),
-                );
-                emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
-                moves.extend(
-                    leads.lead_out[1..]
-                        .iter()
-                        .map(|&p| Move::feed_xy(p, cut.feed)),
-                );
-                moves.push(Move::rapid_z(cut.safe_z));
-            }
-            None => {
-                moves.push(Move::feed_z(z_start, cut.plunge_feed));
-                emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
-            }
-        }
+        moves.push(Move::feed_z(z_start, cut.plunge_feed));
+        emit(&mut moves, Feeds::of(cut), along, &samples, arcs);
     }
-    if cut.leads.is_none() {
-        moves.push(Move::rapid_z(cut.safe_z));
-    }
-    let end = match cut.leads {
-        Some(leads) => leads.lead_out.last().copied().unwrap_or(start),
-        None => start,
-    };
-    Ok(RingMoves { moves, end })
+    moves.push(Move::rapid_z(cut.safe_z));
+    Ok(RingMoves { moves, end: start })
 }
 
 /// A finishing or skin lap at the wall, after the roughing (docs/specs/finish-and-skin.md).
@@ -233,14 +193,14 @@ pub struct WallLap<'a> {
     pub safe_z: f64,
     pub feed: f64,
     pub plunge_feed: f64,
-    pub entry: Entry,
+    /// The profile's ramp angle: a skin lap goes down its thickness at it.
+    pub ramp_angle: f64,
     pub tool_diameter: f64,
 }
 
 /// The moves for one wall lap: down in the roughing slot, across onto the ring, one lap
-/// (a skin lap first goes down its thickness: straight with a plunge entry, or ramping
-/// forward at the angle with a ramp, then level round, level the ramped stretch and rise
-/// out), back across into the slot, retract (docs/specs/finish-and-skin.md §3,
+/// (a skin lap first goes down its thickness, ramping forward at the angle, then level
+/// round, levels the ramped stretch and rises out), back across into the slot, retract (docs/specs/finish-and-skin.md §3,
 /// docs/specs/profile-ramp-level.md §2). With tabs the lap starts in the middle of the
 /// longest gap between them.
 pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathError> {
@@ -257,9 +217,10 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     let drop = lap.slot_z - lap.z;
     let mut legs = Vec::new();
     let mut at: At = (0, s0);
-    let ramp = match lap.entry.ramp_angle() {
-        Some(ramp_angle) if drop > DEPTH_TOL_MM => Some(ramp_length(drop, ramp_angle, length)?),
-        _ => None,
+    let ramp = if drop > DEPTH_TOL_MM {
+        Some(ramp_length(drop, lap.ramp_angle, length)?)
+    } else {
+        None
     };
     if let Some(ramp) = ramp {
         let to = ahead(at, ramp, length);
@@ -324,10 +285,6 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     ];
     if distance(into, start) > CHAIN_TOL_MM {
         moves.push(Move::feed_xy(start, lap.feed));
-    }
-    if first.z < down {
-        // A skin lap with a plunge entry: straight down through the skin.
-        moves.push(Move::feed_z(first.z, lap.plunge_feed));
     }
     let feeds = Feeds {
         ring: lap.ring,
@@ -559,9 +516,15 @@ impl Along {
     /// The point of a sample: a vertex exactly, else interpolated on its segment as
     /// `split_ring` does.
     fn point(&self, ring: &[Point], sample: &Sample) -> Point {
+        self.locate(ring, sample).0
+    }
+
+    /// The point of a sample and the chord it lies on (a vertex: the chord leaving it;
+    /// the end of a lap: chord 0, as it is ring[0]).
+    fn locate(&self, ring: &[Point], sample: &Sample) -> (Point, usize) {
         let n = ring.len();
         if let Some(i) = sample.vertex {
-            return ring[i % n];
+            return (ring[i % n], i % n);
         }
         let s = sample.local;
         // The segment holding s: the last vertex at or before it.
@@ -573,10 +536,10 @@ impl Along {
         let (a, b) = (ring[i], ring[(i + 1) % n]);
         let seg = distance(a, b);
         if seg <= 0.0 {
-            return a;
+            return (a, i);
         }
         let t = (s - self.cum[i]) / seg;
-        (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+        ((a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t), i)
     }
 }
 
@@ -971,16 +934,39 @@ impl<'a> Feeds<'a> {
 }
 
 /// Moves along the samples, from the first one (where the tool already is). Straight up or
-/// down at the plunge feed; along the ring at the cutting feed, level or not. Whole chords
-/// of an arc keep their circle, so they can be written as arcs (helical when they descend).
+/// down at the plunge feed; along the ring at the cutting feed, level or not. A move along
+/// a chord of an arc keeps its circle, so it can be written as an arc (helical when it
+/// descends): a point where a stretch or a tab splits such a chord is moved onto the arc,
+/// so both parts are chords of it.
 fn emit(moves: &mut Vec<Move>, cut: Feeds, along: &Along, samples: &[Sample], arcs: &ArcTable) {
     let Some(first) = samples.first() else {
         return;
     };
-    let mut here = along.point(cut.ring, first);
+    let n = cut.ring.len();
+    // The circle of chord `i`, if it lies on an arc.
+    let circle_of = |i: usize| arcs.get(cut.ring[i % n], cut.ring[(i + 1) % n]);
+    let (mut here, mut chord) = along.locate(cut.ring, first);
+    if first.vertex.is_none()
+        && let Some(circle) = circle_of(chord)
+    {
+        here = onto(circle, here);
+    }
     let mut z = first.z;
     for sample in &samples[1..] {
-        let point = along.point(cut.ring, sample);
+        let (mut point, next_chord) = along.locate(cut.ring, sample);
+        // The chord this move runs along: a vertex is the end of the chord before it.
+        let moved_on = if sample.vertex.is_some() {
+            (next_chord + n - 1) % n
+        } else {
+            next_chord
+        };
+        let circle = circle_of(moved_on).filter(|_| moved_on == chord);
+        if let Some(circle) = circle
+            && sample.vertex.is_none()
+        {
+            point = onto(circle, point);
+        }
+        chord = next_chord;
         if point == here {
             if sample.z != z {
                 moves.push(Move::feed_z(sample.z, cut.plunge_feed));
@@ -993,7 +979,7 @@ fn emit(moves: &mut Vec<Move>, cut: Feeds, along: &Along, samples: &[Sample], ar
         } else {
             Move::feed_xyz(point, sample.z, cut.feed)
         };
-        m.circle = arcs.get(here, point);
+        m.circle = circle;
         moves.push(m);
         here = point;
         z = sample.z;

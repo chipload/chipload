@@ -669,6 +669,57 @@ fn depth_and_clearance_rules_are_checked() {
     parse_job(data, "p").unwrap();
 }
 
+// -- profiles always spiral (docs/specs/profile-always-spiral.md)
+
+#[test]
+fn v27_turns_a_profiles_entry_into_a_ramp_angle_and_drops_its_lead() {
+    let v26 = raw("v26/straight_tabs.chipload");
+    let plunged = &v26["operations"][1];
+    assert_eq!(plunged["entry"], json!({"type": "plunge"}));
+    assert!(plunged.get("lead").is_some());
+    let current = migrate(v26.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(27));
+    let op = &current["operations"][1];
+    assert_eq!(op["type"], json!("profile"));
+    assert!(op.get("entry").is_none() && op.get("lead").is_none());
+    // A plunge gets the default angle, 3°; its straight tabs stay straight.
+    assert_eq!(
+        op["ramp_angle"],
+        json!(chipload_job::DEFAULT_RAMP_ANGLE_RAD)
+    );
+    assert_eq!(
+        op["tabs"]["flank_angle"],
+        json!(std::f64::consts::FRAC_PI_2)
+    );
+    // The pocket keeps its helix and its lead.
+    let pocket = &current["operations"][0];
+    assert_eq!(pocket["entry"]["type"], json!("helix"));
+    assert!(pocket["lead"].is_object());
+    let job = parse_job(current, "p").unwrap();
+    let Operation::Profile(p) = &job.operations[1] else {
+        panic!()
+    };
+    assert_eq!(p.ramp_angle, chipload_job::DEFAULT_RAMP_ANGLE_RAD);
+    // A ramp keeps its angle.
+    let v16 = raw("v16/profile_spiral.chipload");
+    let angle = v16["operations"][1]["entry"]["ramp_angle"].clone();
+    let current = migrate(v16).unwrap();
+    assert_eq!(current["operations"][1]["ramp_angle"], angle);
+    // A current file with the old fields on a profile is refused; the angle has its rule.
+    for (field, value) in [
+        ("entry", json!({"type": "plunge"})),
+        ("lead", json!({"radius": 3.0})),
+    ] {
+        let mut data = lower_job();
+        data["operations"][1][field] = value;
+        assert!(parse_job(data, "p").is_err(), "{field} is refused");
+    }
+    let mut data = lower_job();
+    data["operations"][1]["ramp_angle"] = json!(1.0);
+    let err = parse_job(data, "p").unwrap_err().to_string();
+    assert!(err.contains("operations.1.ramp_angle"), "{err}");
+}
+
 // -- the clearing settings, gone since v26 (docs/specs/pocket.md as built 2026-10-15)
 
 #[test]
@@ -802,8 +853,8 @@ fn v22_to_v23_links_named_tools_and_the_machine_by_the_uid_of_their_name() {
         .as_object_mut()
         .unwrap()
         .remove("library_uid");
-    v22["schema_version"] = json!(26);
-    assert_eq!(current, stripped(&v22));
+    v22["schema_version"] = json!(27);
+    assert_eq!(stripped(&current), stripped(&v22));
 }
 
 #[test]
@@ -993,7 +1044,7 @@ fn rotations_are_at_least_0_and_under_360() {
 fn v23_to_v24_makes_quarter_turns_degrees() {
     let v23 = raw("v23/turned_parts.chipload");
     let mut current = migrate(v23.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     let dxfs = current["drawing"]["dxfs"].as_array_mut().unwrap();
     for (dxf, before) in dxfs
         .iter_mut()
@@ -1015,7 +1066,7 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
     }
     without_corner_radius(&mut current);
     current["schema_version"] = json!(23);
-    assert_eq!(current, stripped(&v23));
+    assert_eq!(stripped(&current), stripped(&v23));
 }
 
 /// docs/specs/rectangle-corner-radius.md §3: every rectangle gets corner radius 0, and
@@ -1024,7 +1075,7 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
 fn v24_to_v25_gives_rectangles_sharp_corners() {
     let v24 = raw("v24/rectangle_part.chipload");
     let mut current = migrate(v24.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     assert_eq!(current["drawing"]["shapes"][0]["corner_radius"], json!(0.0));
     let job = parse_job(current.clone(), "p").unwrap();
     assert!(matches!(
@@ -1033,7 +1084,7 @@ fn v24_to_v25_gives_rectangles_sharp_corners() {
     ));
     without_corner_radius(&mut current);
     current["schema_version"] = json!(24);
-    assert_eq!(current, stripped(&v24));
+    assert_eq!(stripped(&current), stripped(&v24));
 }
 
 // -- V-carving (docs/specs/v-carve.md)
@@ -1042,7 +1093,7 @@ fn v24_to_v25_gives_rectangles_sharp_corners() {
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
     let mut current = migrate(v9.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1058,7 +1109,7 @@ fn v9_to_v10_changes_nothing_but_the_version() {
         .as_object_mut()
         .unwrap()
         .remove("tool_change");
-    assert_eq!(current, stripped(&v9));
+    assert_eq!(stripped(&current), stripped(&v9));
     let job = parse_job(migrate(v9).unwrap(), "p").unwrap();
     assert!(
         job.tools
@@ -1125,7 +1176,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
     let mut current = migrate(v10.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1143,7 +1194,7 @@ fn v10_to_v11_gives_a_placement_scale_1() {
         .as_object_mut()
         .unwrap()
         .remove("tool_change");
-    assert_eq!(current, stripped(&v10), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v10), "nothing else changes");
     let job = parse_job(migrate(v10).unwrap(), "p").unwrap();
     assert_eq!(
         job.drawing.dxfs[0].placement,
@@ -1185,7 +1236,7 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
         let mut current = migrate(v11.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(26));
+        assert_eq!(current["schema_version"], json!(27));
         without_images(&mut current);
         without_custom_post(&mut current);
         without_flank_angle(&mut current);
@@ -1196,7 +1247,11 @@ fn v11_to_v12_gives_the_machine_one_file_per_tool() {
             .as_object_mut()
             .unwrap()
             .remove("tool_change");
-        assert_eq!(current, stripped(&v11), "{sample}: nothing else changes");
+        assert_eq!(
+            stripped(&current),
+            stripped(&v11),
+            "{sample}: nothing else changes"
+        );
         let job = parse_job(migrate(v11).unwrap(), "p").unwrap();
         assert_eq!(job.machine.tool_change, chipload_job::ToolChange::Files);
     }
@@ -1232,7 +1287,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
     let mut current = migrate(v12.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
@@ -1242,7 +1297,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     assert_eq!(current["operations"][0]["stepover"], json!(0.1));
     current["schema_version"] = json!(12);
     current["operations"][0]["stepover"] = json!(0.4);
-    assert_eq!(current, stripped(&v12), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v12), "nothing else changes");
     let job = parse_job(migrate(v12).unwrap(), "p").unwrap();
     let Operation::Pocket(pocket) = &job.operations[0] else {
         panic!("a pocket");
@@ -1258,7 +1313,10 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     for op in migrated["operations"].as_array_mut().unwrap() {
         op.as_object_mut().unwrap().remove("part");
     }
-    assert_eq!(migrated["operations"], stripped(&rings)["operations"]);
+    assert_eq!(
+        stripped(&migrated)["operations"],
+        stripped(&rings)["operations"]
+    );
     let mut broken = raw("v12/adaptive.chipload");
     broken["operations"][0]["strategy"]
         .as_object_mut()
@@ -1416,10 +1474,37 @@ fn without_clearing_settings(data: &mut Value) {
     }
 }
 
-/// A sample without its clearing settings, to compare with the current version.
+/// Take a profile's `entry` and `lead` (v26 and before) off a sample, to compare with the
+/// current version, which has `ramp_angle` instead (v27).
+fn without_profile_entry(data: &mut Value) {
+    if let Some(ops) = data["operations"].as_array_mut() {
+        for op in ops.iter_mut().filter_map(Value::as_object_mut) {
+            if op.get("type").and_then(Value::as_str) == Some("profile") {
+                op.remove("entry");
+                op.remove("lead");
+            }
+        }
+    }
+}
+
+/// Undo v26 -> v27 (`ramp_angle` on profiles), to compare with an older sample.
+fn without_ramp_angle(data: &mut Value) {
+    if let Some(ops) = data["operations"].as_array_mut() {
+        for op in ops.iter_mut().filter_map(Value::as_object_mut) {
+            if op.get("type").and_then(Value::as_str) == Some("profile") {
+                op.remove("ramp_angle");
+            }
+        }
+    }
+}
+
+/// A sample without its clearing settings and its profiles' entry, lead and ramp angle,
+/// to compare an old version with the current one.
 fn stripped(data: &Value) -> Value {
     let mut out = data.clone();
     without_clearing_settings(&mut out);
+    without_profile_entry(&mut out);
+    without_ramp_angle(&mut out);
     out
 }
 
@@ -1429,13 +1514,13 @@ fn stripped(data: &Value) -> Value {
 fn v13_to_v14_added_round_corners_which_v26_took_off_again() {
     let v13 = raw("v13/helix_rings.chipload");
     let mut current = migrate(v13.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     assert!(current["operations"][0].get("round_corners").is_none());
     current["schema_version"] = json!(13);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    assert_eq!(current, stripped(&v13), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v13), "nothing else changes");
     let job = parse_job(migrate(v13).unwrap(), "p").unwrap();
     assert!(matches!(job.operations[0], Operation::Pocket(_)));
 }
@@ -1446,13 +1531,13 @@ fn v13_to_v14_added_round_corners_which_v26_took_off_again() {
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
     let mut current = migrate(v14.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     assert_eq!(current["machine"]["custom_post"], Value::Null);
     current["schema_version"] = json!(14);
     without_custom_post(&mut current);
     without_flank_angle(&mut current);
-    assert_eq!(current, stripped(&v14), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v14), "nothing else changes");
     let job = parse_job(migrate(v14).unwrap(), "p").unwrap();
     assert_eq!(job.machine.post, "grbl");
     assert!(job.machine.custom_post.is_none());
@@ -1515,7 +1600,7 @@ fn every_value_rule_names_its_field() {
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
     let mut current = migrate(v15.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     assert_eq!(
         current["operations"][1]["tabs"]["flank_angle"],
@@ -1523,7 +1608,7 @@ fn v15_to_v16_keeps_plunged_tabs_straight() {
     );
     current["schema_version"] = json!(15);
     without_flank_angle(&mut current);
-    assert_eq!(current, stripped(&v15), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v15), "nothing else changes");
     let job = parse_job(migrate(v15).unwrap(), "p").unwrap();
     let Operation::Profile(profile) = &job.operations[1] else {
         panic!("a profile");
@@ -1588,20 +1673,15 @@ fn a_flank_angle_must_be_more_than_0_and_at_most_90_degrees() {
 }
 
 #[test]
-fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
-    use chipload_job::{DEFAULT_RAMPED_FLANK_RAD, Entry, STRAIGHT_FLANK_RAD, Tabs};
-    let plunge = Entry::Plunge {};
-    let ramp = Entry::Ramp { ramp_angle: 0.05 };
-    for marked in [Some(true), Some(false), None] {
-        assert_eq!(Tabs::default_flank(plunge, marked), STRAIGHT_FLANK_RAD);
-    }
+fn new_tabs_get_a_flank_that_suits_the_tool() {
+    use chipload_job::{DEFAULT_RAMPED_FLANK_RAD, Tabs};
     assert_eq!(
-        Tabs::default_flank(ramp, Some(true)),
+        Tabs::default_flank(0.05, Some(true)),
         DEFAULT_RAMPED_FLANK_RAD
     );
-    assert_eq!(Tabs::default_flank(ramp, None), DEFAULT_RAMPED_FLANK_RAD);
+    assert_eq!(Tabs::default_flank(0.05, None), DEFAULT_RAMPED_FLANK_RAD);
     // Going down a flank is a ramp: no steeper than the ramp for a tool that can't plunge.
-    assert_eq!(Tabs::default_flank(ramp, Some(false)), 0.05);
+    assert_eq!(Tabs::default_flank(0.05, Some(false)), 0.05);
 }
 
 // -- follow path (docs/specs/follow-path.md)
@@ -1610,10 +1690,10 @@ fn new_tabs_get_a_flank_that_suits_the_entry_and_the_tool() {
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
     let mut current = migrate(v16.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_images(&mut current);
     current["schema_version"] = json!(16);
-    assert_eq!(current, stripped(&v16), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v16), "nothing else changes");
 }
 
 #[test]
@@ -1644,10 +1724,14 @@ fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
         let mut current = migrate(v17.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(26));
+        assert_eq!(current["schema_version"], json!(27));
         without_images(&mut current);
         current["schema_version"] = json!(17);
-        assert_eq!(current, stripped(&v17), "{sample}: nothing else changes");
+        assert_eq!(
+            stripped(&current),
+            stripped(&v17),
+            "{sample}: nothing else changes"
+        );
     }
 }
 
@@ -1753,10 +1837,14 @@ fn v18_to_v19_adds_an_empty_image_list() {
     ] {
         let v18 = raw(sample);
         let mut current = migrate(v18.clone()).unwrap();
-        assert_eq!(current["schema_version"], json!(26));
+        assert_eq!(current["schema_version"], json!(27));
         without_images(&mut current);
         current["schema_version"] = json!(18);
-        assert_eq!(current, stripped(&v18), "{sample}: nothing else changes");
+        assert_eq!(
+            stripped(&current),
+            stripped(&v18),
+            "{sample}: nothing else changes"
+        );
     }
 }
 
@@ -1766,7 +1854,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
     let mut current = migrate(v19.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     without_dxfs(&mut current);
     let images = current["drawing"]["images"].as_array_mut().unwrap();
     assert!(!images.is_empty());
@@ -1776,7 +1864,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
         assert_eq!(image.remove("arcs"), Some(json!(false)));
     }
     current["schema_version"] = json!(19);
-    assert_eq!(current, stripped(&v19), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v19), "nothing else changes");
 }
 
 /// docs/specs/drawing-sources.md §2: the DXF becomes DXF 1 of a list, named after its file,
@@ -1785,7 +1873,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
 fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     let v20 = raw("v20/scaled_part.chipload");
     let mut current = migrate(v20.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(26));
+    assert_eq!(current["schema_version"], json!(27));
     let dxf = &current["drawing"]["dxfs"][0];
     assert_eq!(
         (&dxf["id"], &dxf["name"]),
@@ -1807,7 +1895,7 @@ fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     );
     without_dxfs(&mut current);
     current["schema_version"] = json!(20);
-    assert_eq!(current, stripped(&v20), "nothing else changes");
+    assert_eq!(stripped(&current), stripped(&v20), "nothing else changes");
     // Without a DXF: an empty list, and traced shapes name no DXF.
     let images = migrate(raw("v20/image_centre_line.chipload")).unwrap();
     assert_eq!(images["drawing"]["dxfs"], json!([]));

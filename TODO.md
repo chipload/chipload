@@ -97,6 +97,13 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **Profiles always spiral** (2026-10-15, schema 27, docs/specs/profile-always-spiral.md):
+  the straight plunge and the lead are gone from profiles (no worse options); a profile
+  has a `ramp_angle` instead of an entry. A plunged project spirals at 3° after migration.
+  Where a stretch of the spiral or a tab splits a chord of an arc, the point is put onto
+  the arc, so circles still come out as (helical) arcs. Every plunged profile's golden
+  changed; `v26_straight_tabs` frozen.
+
 - **The profile's spiral ramps at the angle and levels only the ramp** (2026-10-15,
   docs/specs/profile-ramp-level.md): each pass ramps over the length its step needs and
   runs level for the rest of the lap, and the whole level lap at the end is one stretch

@@ -11,27 +11,21 @@ and [Depths and oversize](../concepts/depths.md) for what every profile shares.
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).
 
-## Entry: spiral ramp or straight plunge
+## The spiral ramp
 
-In the operation's **Cut** settings, right after the step down, **Entry** is the same
-choice every operation has:
+A profile always goes down as **one forward spiral** along the contour: no plunge into
+the part, so there is no plunge mark, and any endmill can cut it, centre-cutting or not.
+In the operation's **Cut** settings, right after the step down, the **ramp angle** (3° by
+default, at most 30°) says how steeply:
 
-- **Spiral ramp**: the tool goes down while moving along the contour, never
-  steeper than the **ramp angle** (3° by default, at most 30°), and never more than one
-  step down per lap. On long contours the step down decides how fast it goes down; on
-  small ones the angle does. A spiral-ramped profile is **one forward spiral**:
-  - each pass goes down at the ramp angle, then runs level for the rest of its lap;
-  - at the end only the ramped stretch is cut level, so the floor is flat;
-  - the tool rises out along the cut path, never back and forth.
+- each pass goes down at the ramp angle, then runs level for the rest of its lap, and never
+  more than one step down per lap (on small contours the angle alone decides, so a pass
+  may take more than one lap);
+- at the end only the ramped stretch is cut level, so the floor is flat;
+- the tool rises out along the cut path, never back and forth.
 
-  It's the best way down: no plunge into the part. Tools that aren't centre-cutting need
-  it, and new profiles start with it when the tool is marked so.
-- **Straight plunge**: the tool goes straight down at the start of each pass. It
-  needs a centre-cutting endmill. Only then does the **lead-in and lead-out** show: the
-  plunge goes down in the waste, so it leaves no mark on the part.
-
-In the file, `entry` is `{"type": "ramp", "ramp_angle": …}` for the spiral ramp and
-`{"type": "plunge"}` for a straight plunge.
+A steeper angle makes the ramp shorter: 4 mm at 3° takes 76 mm of contour, at 10° 23 mm.
+In the file the angle is `ramp_angle`, in radians.
 
 ## Holding the part
 
@@ -66,18 +60,6 @@ loose on the last pass.
 Each contour's cut starts at a point Chipload picks. To move it, select the operation, then
 **drag the start marker** along the contour on the canvas; right-click the marker to reset
 it. The tabs move with the start. In the file, `starts` holds the points.
-
-## Lead-in and lead-out
-
-**Lead** adds a quarter-circle arc from the waste onto the contour and off it again, so the
-plunge mark isn't on the part's wall. It is offered with straight plunges.
-- **Radius:** at most 10 × the tool diameter. Chipload shrinks it where there's no room,
-  with a note.
-- **Spiral-ramped profiles:** a project that has both keeps them: one lead-in at the start
-  depth, and no lead-out (the tool rises out along the cut). The lead's row shows until it
-  is unticked.
-- **Plunged profiles:** a lead on every pass.
-- **On the line:** not available, since there is no waste side.
 
 ## Finishing pass
 
@@ -130,10 +112,9 @@ in mm, feeds in mm/min, angles in radians.
 | `step_down` | Step down |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
-| `entry` | Entry: `{"type": "plunge"}` or `{"type": "ramp", "ramp_angle": …}` |
+| `ramp_angle` | Ramp angle, radians |
 | `tabs` | Tabs: `count`, `width`, `height`, `flank_angle`, or null |
 | `starts` | start points, `[[x, y], …]` in drawing coordinates |
-| `lead` | Lead: `{"radius": …}` or null |
 | `finish` | Finishing pass: `{"stock": …}` or null |
 | `skin` | Onion skin: `{"thickness": …}` or null |
 | `corners` | Corners: `{"type": "dogbone"` or `"tbone", "max_angle": …}`, or null |

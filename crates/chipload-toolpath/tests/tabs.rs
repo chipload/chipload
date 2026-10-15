@@ -7,7 +7,7 @@ mod common;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
-use chipload_job::{Entry, Side};
+use chipload_job::Side;
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::arcs::ArcTable;
 use chipload_toolpath::lap::{RingCut, TabSurface, ring_moves};
@@ -36,13 +36,12 @@ fn straight_tabbed(
             z_tab,
             flank_angle: std::f64::consts::FRAC_PI_2,
         }),
-        leads: None,
         pass_z,
         top_z: 0.0,
         safe_z: 5.0,
         feed: 1800.0,
         plunge_feed: 600.0,
-        entry: Entry::Plunge {},
+        ramp_angle: None,
         tool_diameter: D,
     };
     ring_moves(&cut, &ArcTable::default()).map(|r| r.moves)

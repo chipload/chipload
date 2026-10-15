@@ -169,14 +169,18 @@ fn in_a_narrow_slot_the_helix_shrinks_then_gives_way_to_a_ramp() {
 }
 
 #[test]
-fn a_helix_on_a_profile_or_as_wide_as_the_tool_is_refused() {
+fn a_helix_on_an_old_profile_becomes_its_ramp_and_one_as_wide_as_the_tool_is_refused() {
+    // An old file with a helix on a profile (refused then): the profile spirals at the
+    // helix's angle (docs/specs/profile-always-spiral.md §2).
     let profile = json!([{"type": "profile", "select": {"layer": "L"}, "side": "outside",
         "direction": "climb", "tool": 1, "start_depth": 0, "end_depth": 6, "clearance": 0,
         "step_down": 3, "feed": 1500, "plunge_feed": 500, "entry": helix(1.5)}]);
-    let err = plan_job(&job(profile), &rect(60.0, 40.0))
-        .unwrap_err()
-        .to_string();
-    assert!(err.contains("helix entry is for pockets"), "{err}");
+    let old = job(profile);
+    let chipload_job::Operation::Profile(p) = &old.operations[0] else {
+        panic!()
+    };
+    assert_eq!(p.ramp_angle, THREE_DEG);
+    plan_job(&old, &rect(60.0, 40.0)).unwrap();
     let err = plan_job(&job(pocket(rings(), helix(3.0))), &rect(60.0, 40.0))
         .unwrap_err()
         .to_string();

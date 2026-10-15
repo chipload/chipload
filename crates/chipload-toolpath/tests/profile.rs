@@ -4,7 +4,7 @@
 mod common;
 
 use chipload_core::primitives::signed_area;
-use chipload_job::{Direction, Entry, Side, Spindle};
+use chipload_job::{Direction, Side, Spindle};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::arcs::ArcTable;
 use chipload_toolpath::lap::{RingCut, ring_moves};
@@ -190,13 +190,12 @@ fn contour_moves_sequence() {
     let cut = RingCut {
         ring: &ring,
         tabs: None,
-        leads: None,
         pass_z: &[-1.0, -2.0],
         top_z: 0.0,
         safe_z: 5.0,
         feed: 1000.0,
         plunge_feed: 300.0,
-        entry: Entry::Plunge {},
+        ramp_angle: None,
         tool_diameter: 6.0,
     };
     let moves = ring_moves(&cut, &ArcTable::default()).unwrap().moves;

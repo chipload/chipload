@@ -90,7 +90,7 @@ fn profile(select: serde_json::Value, starts: serde_json::Value) -> serde_json::
         "side": "outside", "direction": "climb", "tool": 1,
         "start_depth": 0.0, "end_depth": 3.0, "clearance": 0.0, "step_down": 3.0,
         "feed": 1000.0, "plunge_feed": 300.0, "tabs": null,
-        "entry": {"type": "plunge"}, "starts": starts, "lead": null
+        "ramp_angle": 0.0524, "starts": starts
     })
 }
 
@@ -320,7 +320,12 @@ fn a_moved_drawing_cuts_the_same_program_moved() {
     let after = run_job(&placed).unwrap().program.moves;
     assert_eq!(before.len(), after.len());
     for (a, b) in before.iter().zip(&after) {
-        assert_eq!((a.kind, a.z, a.feed), (b.kind, b.z, b.feed));
+        assert_eq!((a.kind, a.feed), (b.kind, b.feed));
+        // A spiral's depths come from distances along the ring, which carry float noise.
+        match (a.z, b.z) {
+            (Some(az), Some(bz)) => assert!((az - bz).abs() < 1e-9, "{az} vs {bz}"),
+            (az, bz) => assert_eq!(az, bz),
+        }
         let shifted = |v: Option<f64>, d: f64| v.map(|v| v + d);
         for (x, y) in [(shifted(a.x, dx), b.x), (shifted(a.y, dy), b.y)] {
             match (x, y) {
@@ -479,7 +484,9 @@ fn a_turned_part_keeps_its_holes_and_cuts_the_same_amount() {
     };
     for op in 0..job.operations.len() {
         let (a, b) = (length(&before, op), length(&after, op));
-        assert!((a - b).abs() < 1e-6, "operation {op}: {a} vs {b}");
+        // Where a spiral's ramp ends on an arc the point is put onto the arc, and a turned
+        // arc is flattened at other points: a sagitta of difference at most.
+        assert!((a - b).abs() < 0.05, "operation {op}: {a} vs {b}");
     }
 }
 

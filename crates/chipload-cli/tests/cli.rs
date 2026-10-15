@@ -415,8 +415,9 @@ fn plan_json_renders_with_arcs_through_the_post() {
     let out = chipload(&["render", path(&program)]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     let gcode = text(&out.stdout);
+    // The circle's spiral comes out as helical arcs about its centre.
     assert!(
-        gcode.contains("G3 X75.000 Y89.000 I0.000 J9.000"),
+        gcode.contains("G3 X75.000 Y89.000 Z") && gcode.contains(" I0.000 J9.000"),
         "{gcode}"
     );
     std::fs::remove_dir_all(&dir).unwrap();
@@ -456,7 +457,7 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
         "select": {"layer": null, "shapes": [1]},
         "side": "outside", "direction": "climb", "tool": 1,
         "start_depth": 0.0, "end_depth": 10.0, "clearance": -0.3, "step_down": 3.0,
-        "feed": 1500.0, "plunge_feed": 400.0, "tabs": null
+        "feed": 1500.0, "plunge_feed": 400.0, "tabs": null, "ramp_angle": 0.0524
     }]);
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
     ok(&["run", p, "-o", path(&dir.join("disc.nc"))]);
@@ -669,6 +670,7 @@ fn start_points_are_shown_by_plan_and_pass_the_checker() {
         {"type": "profile", "part": 1, "select": {"shapes": [1]}, "side": "outside",
          "direction": "climb", "tool": 1, "start_depth": 0.0, "end_depth": 10.0,
          "clearance": 0.0, "step_down": 5.0, "feed": 1500.0, "plunge_feed": 400.0,
+         "ramp_angle": 0.0524,
          "tabs": {"count": 3, "width": 6.0, "height": 2.0, "flank_angle": std::f64::consts::FRAC_PI_2}, "starts": [[90.0, 90.0]]}
     ]);
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();

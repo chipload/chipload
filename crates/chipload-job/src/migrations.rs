@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 22] = [
+const MIGRATIONS: [Migration; 23] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26,
+    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -464,6 +464,39 @@ fn v25_to_v26(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 26))
+}
+
+/// 26 -> 27: a profile always spirals down (docs/specs/profile-always-spiral.md §2). Its
+/// `entry` becomes `ramp_angle`: a ramp keeps its angle, a plunge (or no entry) gets the
+/// default 3°, as does a helix, which a profile could never cut. Its `lead` is dropped: with
+/// a spiral it was one lead-in at the start depth. Pockets and follow paths keep theirs.
+fn v26_to_v27(mut data: Value) -> Result<Value, String> {
+    for (i, op) in operations_mut(&mut data).into_iter().enumerate() {
+        if op.get("type").and_then(Value::as_str) != Some("profile") {
+            continue;
+        }
+        let entry = op.remove("entry");
+        let ramp_angle = match entry
+            .as_ref()
+            .and_then(|e| e.get("type"))
+            .and_then(Value::as_str)
+        {
+            None | Some("plunge") => crate::models::DEFAULT_RAMP_ANGLE_RAD,
+            Some("ramp" | "helix") => entry
+                .as_ref()
+                .and_then(|e| e.get("ramp_angle"))
+                .and_then(Value::as_f64)
+                .ok_or_else(|| format!("operations.{i}.entry: a ramp without an angle"))?,
+            Some(other) => {
+                return Err(format!(
+                    "operations.{i}.entry: a profile can't have a {other} entry"
+                ));
+            }
+        };
+        op.insert("ramp_angle".into(), Value::from(ramp_angle));
+        op.remove("lead");
+    }
+    Ok(set_version(data, 27))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

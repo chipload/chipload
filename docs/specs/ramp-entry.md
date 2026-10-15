@@ -71,6 +71,9 @@ time; proving it isn't needed could come later.
 
 ## 5. Tool rules
 
+> **Changed 2026-10-15** (docs/specs/profile-always-spiral.md): a profile always spirals,
+> so the profile rows below are history; its only tool rule is the tabs' flank rule.
+
 | Entry | Centre-cutting tool | Not centre-cutting | Unknown |
 |---|---|---|---|
 | plunge, pocket | fine | error | note |

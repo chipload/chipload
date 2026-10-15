@@ -103,9 +103,11 @@ height over the set width, with sloping flanks on both sides.
   (otherwise an error that names both angles); with an unknown tool, a note.
 - Defaults for new operations: 90° with a plunge entry; 30° with a ramp entry and a
   centre-cutting or unknown tool; the operation's ramp angle with a tool that isn't
-  centre-cutting. The form shows the foot length next to the angle.
+  centre-cutting. The form shows the foot length next to the angle. *(Since schema 27
+  there is no plunge entry: 30°, or the ramp angle with a tool marked not centre-cutting.)*
 - **Plunge entry** profiles keep separate passes and today's retracts, but their laps also
-  follow sloped tabs when the flank angle is under 90°.
+  follow sloped tabs when the flank angle is under 90°. *(Gone with schema 27,
+  docs/specs/profile-always-spiral.md.)*
 
 ### Checks
 
@@ -114,6 +116,9 @@ height over the set width, with sloping flanks on both sides.
 - The 3D preview shows the trapezoid; the top view still shows the top's span.
 
 ## 5. Leads (decisions 3, 4 and 7)
+
+> **Gone 2026-10-15** (docs/specs/profile-always-spiral.md, schema 27): a profile has no
+> lead; the rise-out (decision 7) stays.
 
 - **Ramp entry with a lead:** rapid to the lead-in's start, straight down to the start
   depth, the lead-in arc at that depth, then the spiral. No leads and no retracts on the

@@ -62,14 +62,13 @@ pub(super) fn has_problem_under(ui: &egui::Ui, prefix: &str) -> bool {
 pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
     match key {
         "op-cut" => &["start_depth", "end_depth", "clearance", "step_down"],
-        // A profile's spiral ramp and lead sit with its depths (docs/specs/profile-form.md).
+        // A profile's ramp angle sits with its depths (docs/specs/profile-form.md).
         "op-profile-cut" => &[
             "start_depth",
             "end_depth",
             "clearance",
             "step_down",
-            "entry",
-            "lead",
+            "ramp_angle",
         ],
         "op-feeds" => &["feed", "plunge_feed"],
         "op-entry" => &["entry", "lead"],
@@ -120,6 +119,7 @@ fn field_label(field: &str) -> &'static str {
         "stepover" => "Stepover",
         "clearance" => "Clearance",
         "entry" => "Entry",
+        "ramp_angle" => "Ramp angle",
         "lead" => "Lead",
         "tool" => "Tool",
         "part" => "Part",

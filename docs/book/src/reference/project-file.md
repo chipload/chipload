@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 26. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 27. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 26. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `26` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `27` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -122,7 +122,7 @@ Provenance of the imported shapes.
 
 ## Entry
 
-How the tool goes down into the material at the start of each pass.
+How the tool goes down into the material at the start of each pass, for pockets and follow paths (a profile always spirals: its `ramp_angle`).
 
 ### `"type": "plunge"`
 
@@ -259,13 +259,12 @@ Quarter-circle lead-in and lead-out.
 | `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
-| `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `finish` | [Finish](#finish) or null | no | A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap at full depth takes it off. Null: none. |
-| `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the waste side onto the path. Null: none. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `ramp_angle` | number | yes | The steepest the spiral ramp goes down along the contour, radians: more than 0, at most 30° (0.5236). A profile always spirals down (docs/specs/profile-always-spiral.md). |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `side` | [Side](#side) | yes | Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a hole) or `on` the line. |
 | `skin` | [Skin](#skin) or null | no | An onion skin: the passes stop `thickness` mm above the end depth, and one last lap cuts through it. Null: none. |

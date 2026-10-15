@@ -7,7 +7,6 @@ mod common;
 use std::f64::consts::{FRAC_PI_2, TAU};
 
 use chipload_core::Point;
-use chipload_job::Entry;
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::arcs::ArcTable;
 use chipload_toolpath::lap::{RingCut, RingMoves, TabSurface, ring_moves};
@@ -28,27 +27,28 @@ fn cut<'a>(
     ring: &'a [Point],
     tabs: Option<TabSurface<'a>>,
     pass_z: &'a [f64],
-    entry: Entry,
+    ramp_angle: Option<f64>,
 ) -> RingCut<'a> {
     RingCut {
         ring,
         tabs,
-        leads: None,
         pass_z,
         top_z: 0.0,
         safe_z: 5.0,
         feed: 1500.0,
         plunge_feed: 500.0,
-        entry,
+        ramp_angle,
         tool_diameter: D,
     }
 }
 
-fn ramp(degrees: f64) -> Entry {
-    Entry::Ramp {
-        ramp_angle: degrees * DEG,
-    }
+/// A spiral at `degrees`.
+fn ramp(degrees: f64) -> Option<f64> {
+    Some(degrees * DEG)
 }
+
+/// A plunge each pass: a closed follow path's way.
+const PLUNGE: Option<f64> = None;
 
 fn run(cut: &RingCut) -> Result<RingMoves, ToolpathError> {
     ring_moves(cut, &ArcTable::default())
@@ -328,7 +328,7 @@ fn straight_tabs_lift_and_drop_at_the_plunge_feed() {
         z_tab: -9.0,
         flank_angle: FRAC_PI_2,
     };
-    let result = run(&cut(&ring, Some(tabs), &[-12.0], Entry::Plunge {})).unwrap();
+    let result = run(&cut(&ring, Some(tabs), &[-12.0], PLUNGE)).unwrap();
     let vertical: Vec<&Move> = result
         .moves
         .iter()
@@ -352,7 +352,7 @@ fn a_lap_that_starts_on_a_flank_starts_at_the_flank() {
     };
     let start_height = surface(&layout, -9.0, flank, 0.0);
     assert!(start_height > -14.0, "the test needs a foot over the start");
-    let result = run(&cut(&ring, Some(tabs), &[-14.0], Entry::Plunge {})).unwrap();
+    let result = run(&cut(&ring, Some(tabs), &[-14.0], PLUNGE)).unwrap();
     let plunge = result
         .moves
         .iter()
@@ -375,7 +375,7 @@ fn tabs_as_high_as_the_lap_are_crossed_level() {
         z_tab: -6.0,
         flank_angle: 45.0 * DEG,
     };
-    let result = run(&cut(&ring, Some(tabs), &[-6.0], Entry::Plunge {})).unwrap();
+    let result = run(&cut(&ring, Some(tabs), &[-6.0], PLUNGE)).unwrap();
     let levels: Vec<f64> = trace(&result.moves)
         .iter()
         .filter(|p| p.3 == MoveKind::Feed)
@@ -434,7 +434,7 @@ proptest! {
         let z_tab = bottom + height;
         let flank = flank_deg * DEG;
         let tabs = TabSurface { layout: &layout, z_tab, flank_angle: flank };
-        let entry = if ramped { ramp(ramp_deg) } else { Entry::Plunge {} };
+        let entry = if ramped { ramp(ramp_deg) } else { PLUNGE };
         let result = match run(&cut(&ring, Some(tabs), &pass_z, entry)) {
             Ok(result) => result,
             Err(err) => {

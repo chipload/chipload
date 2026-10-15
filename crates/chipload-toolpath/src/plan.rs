@@ -23,13 +23,13 @@ use crate::holes::{
     Bore, DRILL_FIT_MM, HoleCut, bore_moves, bore_radius, drill_moves, find_holes, order_holes,
 };
 use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
-use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads};
+use crate::lead::MIN_LEAD_DIAMETERS;
 use crate::model::{Move, MoveKind, Program};
 use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{
     Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
 };
-use crate::profile::{PathRing, cut_clockwise, pass_depths, plan_profile};
+use crate::profile::{PathRing, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
@@ -1069,19 +1069,11 @@ fn plan_profile_op(
         Some((layout.clone()?, end_z + tabs.height, tabs.flank_angle))
     };
     let rough_rings = rough.as_ref().map_or(&plan.rings, |r| &r.rings);
-    let lead_op = rough_op.as_ref().unwrap_or(op);
-    // Roughing: every ring as a profile (spiral or passes), down to the skin.
+    // Roughing: every ring as a spiral, down to the skin.
     for (k, ring) in rough_rings.iter().enumerate() {
         let context = |err: ToolpathError| {
             err.with_context(&format!("{label}, contour #{}", ring.contour_id))
         };
-        let leads = match op.lead {
-            Some(lead) => profile_leads(lead_op, ctx, ring, lead.radius, &mut out.notes),
-            None => None,
-        };
-        if let Some(leads) = &leads {
-            leads.tag(&mut out.arcs);
-        }
         let layout = if rough.is_some() {
             carried_tabs(&plan.rings, &layouts, k, rough_rings).map_err(context)?
         } else {
@@ -1092,13 +1084,12 @@ fn plan_profile_op(
         let cut = RingCut {
             ring: &ring.points,
             tabs: as_surface(&tabs),
-            leads: leads.as_ref(),
             pass_z: &rough_z,
             top_z: ctx.top_z,
             safe_z: machine.safe_z,
             feed: op.feed,
             plunge_feed: op.plunge_feed,
-            entry: op.entry,
+            ramp_angle: Some(op.ramp_angle),
             tool_diameter: ctx.tool.diameter,
         };
         let cut = ring_moves(&cut, &out.arcs).map_err(context)?;
@@ -1132,7 +1123,7 @@ fn plan_profile_op(
                 safe_z: machine.safe_z,
                 feed: op.feed,
                 plunge_feed: op.plunge_feed,
-                entry: op.entry,
+                ramp_angle: op.ramp_angle,
                 tool_diameter: ctx.tool.diameter,
             };
             let cut = wall_lap(&lap, &out.arcs).map_err(context)?;
@@ -1301,57 +1292,6 @@ fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<String> {
             tabs.flank_angle.to_degrees()
         )
     })
-}
-
-/// Leads for one profile ring that keep the tool centre at least the ring's offset from its
-/// own contour and the tool radius from every other contour; the radius halves until they
-/// fit, down to a tenth of the tool diameter (docs/specs/helix-and-leads.md part B). None
-/// with a note if even that doesn't fit.
-fn profile_leads(
-    op: &ProfileOp,
-    ctx: &Context,
-    ring: &crate::profile::PathRing,
-    radius: f64,
-    notes: &mut Vec<String>,
-) -> Option<Leads> {
-    let tool_radius = ctx.tool.diameter / 2.0;
-    let offset = tool_radius - op.clearance;
-    let clockwise = cut_clockwise(op.side, op.direction, ctx.job.machine.spindle);
-    // Climb with M3 keeps the part on the right: the waste is on the left.
-    let waste_left = (op.side == Side::Outside) == clockwise;
-    let prims = |own: bool| -> Vec<Primitive> {
-        ctx.everything
-            .iter()
-            .filter(|c| (c.id == ring.contour_id) == own)
-            .flat_map(|c| c.parts.iter().map(|p| p.segment.prim))
-            .collect()
-    };
-    let cell = tool_radius.max(1.0);
-    let own = PrimIndex::new(prims(true), cell);
-    let others = PrimIndex::new(prims(false), cell);
-    let min_radius = MIN_LEAD_DIAMETERS * ctx.tool.diameter;
-    let label = ctx.label;
-    let id = ring.contour_id;
-    match fitted_leads(&ring.points, radius, min_radius, waste_left, |l| {
-        l.clear_of(&own, offset) && l.clear_of(&others, tool_radius)
-    }) {
-        Some((leads, used)) => {
-            if used < radius {
-                notes.push(format!(
-                    "{label}, contour #{id}: lead radius reduced to {used:.3} mm (no room for \
-                     {radius:.3} mm)"
-                ));
-            }
-            Some(leads)
-        }
-        None => {
-            notes.push(format!(
-                "{label}, contour #{id}: no room for a lead (not even {min_radius:.3} mm); cut \
-                 without one"
-            ));
-            None
-        }
-    }
 }
 
 /// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
@@ -1755,12 +1695,6 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     "helix entry is for pockets; a follow path can ramp in (entry: ramp)"
                         .to_string(),
                 ));
-            } else if let Operation::Profile(_) = op {
-                problems.push(labelled(
-                    at("entry"),
-                    &label,
-                    "helix entry is for pockets; a profile can ramp in (entry: ramp)".to_string(),
-                ));
             } else if radius >= tool.diameter / 2.0 {
                 problems.push(labelled(
                     at("entry"),
@@ -1786,17 +1720,6 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     ),
                 ));
             }
-            if let Operation::Profile(p) = op
-                && p.side == Side::On
-            {
-                problems.push(labelled(
-                    at("lead"),
-                    &label,
-                    "a profile cut on the line has no waste side for a lead; cut inside or \
-                     outside, or remove the lead"
-                        .to_string(),
-                ));
-            }
         }
         // The tool's rules: a problem at its field, or whether the operation plunges
         // straight down with a tool of unknown centre-cutting, and any other notes.
@@ -1812,18 +1735,14 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 }),
                 Vec::new(),
             ),
-            Operation::Profile(p) => {
-                let plunges =
-                    plunge_unknown(tool, p.entry).map_err(|e| (at("entry"), numbered.clone(), e));
-                match flank_notes(number, tool, p) {
-                    Ok(found) => (plunges, found),
-                    Err(e) if plunges.is_ok() => (
-                        Err((at("tabs.flank_angle"), numbered.clone(), e)),
-                        Vec::new(),
-                    ),
-                    Err(_) => (plunges, Vec::new()),
-                }
-            }
+            // A profile spirals down; only its tabs' flanks can be a plunge.
+            Operation::Profile(p) => match flank_notes(number, tool, p) {
+                Ok(found) => (Ok(false), found),
+                Err(e) => (
+                    Err((at("tabs.flank_angle"), numbered.clone(), e)),
+                    Vec::new(),
+                ),
+            },
             Operation::Path(p) => (
                 path_tool_notes(tool, p.entry).map_err(|e| (at("tool"), numbered.clone(), e)),
                 Vec::new(),
@@ -2098,13 +2017,14 @@ fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), String> {
     Ok(())
 }
 
-/// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): with a ramp entry,
-/// flanks steeper than the ramp angle are refused for a tool marked not centre-cutting, and
-/// a note when it's unknown.
+/// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): flanks steeper
+/// than the ramp angle are refused for a tool marked not centre-cutting, and a note when
+/// it's unknown.
 fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, String> {
-    let (Some(ramp_angle), Some(tabs)) = (op.entry.ramp_angle(), &op.tabs) else {
+    let Some(tabs) = &op.tabs else {
         return Ok(Vec::new());
     };
+    let ramp_angle = op.ramp_angle;
     if tabs.flank_angle <= ramp_angle + ANGLE_TOL_RAD {
         return Ok(Vec::new());
     }

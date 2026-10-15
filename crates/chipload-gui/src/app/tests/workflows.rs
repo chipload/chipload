@@ -240,7 +240,7 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
     let mut app = lower_part();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let before = app.result.as_ref().unwrap().program.moves.len();
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
         p.lead = Some(Lead { radius: 3.0 });
     }
     assert!(app.generate_and_wait(), "{:?}", app.report);
@@ -249,19 +249,19 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
         after > before,
         "the lead arcs add moves: {before} -> {after}"
     );
-    // The marker shows the ring without its leads.
+    // The marker shows the wall ring without its leads.
     let marker = app
         .scene
         .start_markers
         .iter()
-        .find(|m| m.operation == 1)
+        .find(|m| m.operation == 0)
         .unwrap();
     assert!(marker.ring.len() > 3);
     let dir = temp_dir("lead");
     let project = dir.join("lead.chipload");
     assert!(app.save_project(&project));
     let job = load_job(&project).unwrap();
-    assert_eq!(job.operations[1].lead(), Some(Lead { radius: 3.0 }));
+    assert_eq!(job.operations[0].lead(), Some(Lead { radius: 3.0 }));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -550,9 +550,41 @@ fn dogbones_are_set_on_a_profile_and_generated() {
         max_angle: chipload_job::DEFAULT_CORNER_ANGLE_RAD,
     });
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    // Two more moves per corner, at every depth pass.
-    let moves = app.result.as_ref().unwrap().program.moves.len();
-    assert_eq!(moves, round + 4 * 2 * 3);
+    // The legs add moves on every lap, and the tool turns straight back at each of the
+    // four tips (the toolpath tests count the moves per lap).
+    let moves = &app.result.as_ref().unwrap().program.moves;
+    assert!(
+        moves.len() > round + 4 * 2 * 2,
+        "{round} -> {}",
+        moves.len()
+    );
+    let mut at: Vec<(f64, f64)> = Vec::new();
+    let mut here = (f64::NAN, f64::NAN);
+    for m in moves {
+        here = (m.x.unwrap_or(here.0), m.y.unwrap_or(here.1));
+        if m.kind == MoveKind::Rapid {
+            at.push((f64::NAN, f64::NAN));
+        } else if m.x.is_some() || m.y.is_some() {
+            at.push(here);
+        }
+    }
+    let mut tips: Vec<(f64, f64)> = Vec::new();
+    for w in at.windows(3) {
+        let (u, v) = (
+            (w[1].0 - w[0].0, w[1].1 - w[0].1),
+            (w[2].0 - w[1].0, w[2].1 - w[1].1),
+        );
+        let (lu, lv) = (u.0.hypot(u.1), v.0.hypot(v.1));
+        let back = lu > 1e-6 && lv > 1e-6 && (u.0 * v.0 + u.1 * v.1) / (lu * lv) < -1.0 + 1e-9;
+        if back
+            && !tips
+                .iter()
+                .any(|t| (t.0 - w[1].0).hypot(t.1 - w[1].1) < 1e-6)
+        {
+            tips.push(w[1]);
+        }
+    }
+    assert_eq!(tips.len(), 4, "{tips:?}");
 }
 
 #[test]

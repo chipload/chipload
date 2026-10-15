@@ -49,16 +49,18 @@ fn tabs_lift_on_the_last_pass_and_are_reported_for_display() {
         json!({"count": 4, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let plan = plan_job(&job(profile("outside", tabs)), &part()).unwrap();
     assert_eq!(plan.tabs.len(), 4);
+    // The second lap goes below the tab top: it lifts to the top at every tab.
     let lifts = plan
         .program
         .moves
         .iter()
         .filter(|m| m.z == Some(-9.0))
         .count();
-    assert_eq!(lifts, 4);
-    // Only the reminder that a straight plunge needs a centre-cutting tool.
+    assert!(lifts >= 4, "{lifts}");
+    // Only the reminder that going down a straight flank is a plunge, for a tool that
+    // isn't marked centre-cutting.
     assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
-    assert!(plan.notes[0].contains("plunges straight down"));
+    assert!(plan.notes[0].contains("steeper than the ramp angle"));
 }
 
 #[test]
@@ -185,15 +187,17 @@ fn passes_run_between_start_and_end_depth() {
         json!({"start_depth": 4, "end_depth": 12, "step_down": 4}),
     );
     let plan = plan_job(&job(ops), &part()).unwrap();
-    let mut cut_z: Vec<f64> = plan
+    let cut_z: Vec<f64> = plan
         .program
         .moves
         .iter()
+        .filter(|m| m.kind != chipload_toolpath::model::MoveKind::Rapid)
         .filter_map(|m| m.z)
-        .filter(|&z| z < 0.0)
         .collect();
-    cut_z.dedup();
-    assert_eq!(cut_z, [-8.0, -12.0]);
+    // Nothing is cut above the start depth; the passes reach -8 and -12 exactly.
+    assert!(cut_z.iter().all(|&z| z <= -4.0), "{cut_z:?}");
+    assert!(cut_z.contains(&-8.0) && cut_z.contains(&-12.0), "{cut_z:?}");
+    assert_eq!(cut_z.iter().copied().fold(0.0, f64::min), -12.0);
 }
 
 #[test]
@@ -288,15 +292,13 @@ fn assert_ramps_only(moves: &[chipload_toolpath::model::Move], top: f64, angle: 
 }
 
 #[test]
-fn a_profile_with_a_tool_that_cant_plunge_is_refused_unless_it_ramps() {
-    let plunge = not_centre_cutting(profile("outside", Value::Null));
-    let err = plan_job(&plunge, &part()).unwrap_err().to_string();
-    assert!(
-        err.contains("not centre-cutting") && err.contains("ramp"),
-        "{err}"
-    );
+fn a_profile_spirals_with_any_tool_and_its_flanks_follow_the_ramp() {
+    // A tool that can't plunge cuts a profile like any other: it spirals down.
+    let plain = not_centre_cutting(profile("outside", Value::Null));
+    let plan = plan_job(&plain, &part()).unwrap();
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
 
-    // Ramped in, with tabs whose flanks are no steeper than the ramp.
+    // With tabs whose flanks are no steeper than the ramp.
     let mut ops = profile(
         "outside",
         json!({"count": 4, "width": 8, "height": 3, "flank_angle": THREE_DEG}),
@@ -375,7 +377,7 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
     .unwrap_err()
     .to_string();
     assert!(
-        err.contains("entry.ramp_angle: must be more than 0 and at most 30"),
+        err.contains("operations.0.ramp_angle: must be more than 0 and at most 30"),
         "{err}"
     );
 }
@@ -439,19 +441,6 @@ fn copies_are_cut_operation_by_operation_in_a_serpentine() {
             assert!((got - want).abs() < 1e-9, "copy {copy}: {got} vs {want}");
         }
     }
-    // The straight-plunge reminder once per tool, naming both operations, not per copy.
-    let reminders: Vec<&chipload_job::Note> = plan
-        .notes
-        .iter()
-        .filter(|n| n.contains("plunge straight down"))
-        .collect();
-    assert_eq!(reminders.len(), 1, "{:?}", plan.notes);
-    assert!(
-        reminders[0].contains("operations 1 (profile) and 2 (profile)"),
-        "{}",
-        reminders[0]
-    );
-    assert_eq!(reminders[0].operation, Some(0));
 }
 
 #[test]
@@ -650,7 +639,9 @@ fn every_copy_writes_the_same_arcs() {
     let two = plan_job(&with_copies(profile("outside", Value::Null), grid), &circle).unwrap();
     assert!(arcs(&one) > 0, "a circle is cut as arcs");
     assert_eq!(arcs(&two), 2 * arcs(&one), "the copy keeps every arc");
-    // And no feed move of either is left as a chord.
+    // And at most one feed move of each is left as a chord: the piece of a chord where the
+    // levelled stretch ends and the rise-out begins is too short to bulge, so it stays a
+    // line (docs/specs/arc-output.md).
     let chords = |plan: &chipload_toolpath::Plan| {
         merge_arcs(&plan.program)
             .unwrap()
@@ -659,8 +650,12 @@ fn every_copy_writes_the_same_arcs() {
             .filter(|m| m.kind == MoveKind::Feed && m.x.is_some() && m.z.is_none())
             .count()
     };
-    assert_eq!(chords(&one), 0, "every XY feed of a circle is an arc");
-    assert_eq!(chords(&two), 0);
+    assert!(
+        chords(&one) <= 1,
+        "{} XY feeds of a circle are lines",
+        chords(&one)
+    );
+    assert_eq!(chords(&two), 2 * chords(&one));
 }
 
 #[test]

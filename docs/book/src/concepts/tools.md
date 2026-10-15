@@ -11,7 +11,7 @@ which is the tool number in the G-code, and:
 | **Type** | endmill, drill or V-bit |
 | **Diameter** | mm |
 | **Spindle speed** | rpm. Required: a program can't start the spindle without it. |
-| **Centre cutting** | whether the endmill can plunge straight down. When it can't, profiles ramp in and pockets go down round a helix. |
+| **Centre cutting** | whether the endmill can plunge straight down. Profiles spiral down with any endmill; when it can't plunge, pockets go down round a helix and sloped tabs may be no steeper than the ramp angle. |
 | **Angle**, **Tip** | V-bits: the included angle and the flat tip's diameter |
 
 Each operation names its tool: pick it in the operation's form, or on the command line

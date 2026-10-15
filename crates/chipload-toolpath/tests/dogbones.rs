@@ -92,13 +92,20 @@ fn tips(moves: &[Move]) -> Vec<Point> {
         here = (m.x.unwrap_or(here.0), m.y.unwrap_or(here.1));
         at.push(here);
     }
+    // A tip is where the tool turns straight back (a stretch of the spiral may end on a
+    // leg, which splits it, so the point after the tip needn't be the one before it).
     let mut found: Vec<Point> = Vec::new();
     for w in at.windows(3) {
-        if distance(w[0], w[2]) < TOL
-            && distance(w[0], w[1]) > TOL
-            && !found.iter().any(|&f| distance(f, w[1]) < TOL)
-        {
-            found.push(w[1]);
+        let (u, v) = (
+            (w[1].0 - w[0].0, w[1].1 - w[0].1),
+            (w[2].0 - w[1].0, w[2].1 - w[1].1),
+        );
+        let (lu, lv) = (u.0.hypot(u.1), v.0.hypot(v.1));
+        if lu > TOL && lv > TOL {
+            let cos = (u.0 * v.0 + u.1 * v.1) / (lu * lv);
+            if cos < -1.0 + 1e-9 && !found.iter().any(|&f| distance(f, w[1]) < TOL) {
+                found.push(w[1]);
+            }
         }
     }
     found

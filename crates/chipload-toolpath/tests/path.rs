@@ -204,24 +204,42 @@ fn a_closed_shape_is_cut_as_a_profile_on_the_line() {
         (60.0, 40.0),
         (10.0, 40.0),
     ])];
-    for entry in [
-        json!({"type": "plunge"}),
-        json!({"type": "ramp", "ramp_angle": 3.0 * DEG}),
-    ] {
-        let path = plan_job(&job(path_op(entry.clone()), endmill(true)), &square).unwrap();
-        let profile = plan_job(
-            &job(
-                json!([{"type": "profile", "select": {"layer": "L"}, "side": "on",
-                        "direction": "climb", "tool": 1, "start_depth": 0, "end_depth": 3,
-                        "clearance": 0, "step_down": 1, "feed": 1000, "plunge_feed": 300,
-                        "entry": entry}]),
-                endmill(true),
-            ),
-            &square,
-        )
-        .unwrap();
-        assert_eq!(path.program.moves, profile.program.moves, "{entry}");
-    }
+    // With a ramp it is the profile's spiral (a profile always spirals).
+    let entry = json!({"type": "ramp", "ramp_angle": 3.0 * DEG});
+    let path = plan_job(&job(path_op(entry.clone()), endmill(true)), &square).unwrap();
+    let profile = plan_job(
+        &job(
+            json!([{"type": "profile", "select": {"layer": "L"}, "side": "on",
+                    "direction": "climb", "tool": 1, "start_depth": 0, "end_depth": 3,
+                    "clearance": 0, "step_down": 1, "feed": 1000, "plunge_feed": 300,
+                    "entry": entry}]),
+            endmill(true),
+        ),
+        &square,
+    )
+    .unwrap();
+    assert_eq!(path.program.moves, profile.program.moves);
+    // With a plunge each pass is a level lap from a plunge at the start.
+    let path = plan_job(
+        &job(path_op(json!({"type": "plunge"})), endmill(true)),
+        &square,
+    )
+    .unwrap();
+    let plunges: Vec<f64> = path
+        .program
+        .moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Feed && m.x.is_none() && m.y.is_none())
+        .filter_map(|m| m.z)
+        .collect();
+    assert_eq!(plunges, [-1.0, -2.0, -3.0]);
+    assert!(
+        path.program
+            .moves
+            .iter()
+            .all(|m| m.kind == MoveKind::Rapid || m.x.is_none() || m.z.is_none()),
+        "no sideways descent"
+    );
 }
 
 #[test]

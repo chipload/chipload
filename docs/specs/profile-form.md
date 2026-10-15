@@ -48,6 +48,11 @@ In the profile's **Cut** section, after **Step down**:
 - Ticking the spiral sets the ramp entry with the default angle, and unticking sets a
   plunge. Problems on `entry` and `lead` mark the Cut section.
 
+## Gone, 2026-10-15
+
+Profiles always spiral since schema 27 (docs/specs/profile-always-spiral.md): the Entry
+combo and the lead row are gone from the profile's form; only the ramp angle stays.
+
 ## As built, revised 2026-10-15
 
 The spiral ramp is chosen in an **Entry** combo (*spiral ramp* or *straight plunge*), the

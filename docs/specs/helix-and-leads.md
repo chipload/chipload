@@ -18,6 +18,10 @@ moves the plunge mark of a plain plunge too).
 > **Changed 2026-10-12** (docs/specs/profile-spiral.md): a profile with a ramp entry has
 > one lead-in at the start depth and no lead-out (it rises out along the ring); the leads
 > on every pass in part B now apply to plunged profiles only.
+>
+> **Changed 2026-10-15** (docs/specs/profile-always-spiral.md, schema 27): profiles have
+> no lead and no plunge any more; part B applies to pocket walls only. Start points (A)
+> and the helix (C) are unchanged.
 
 ## A. Start points
 

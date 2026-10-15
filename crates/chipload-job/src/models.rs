@@ -17,7 +17,7 @@ use crate::Problem;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 26;
+pub const CURRENT_VERSION: i64 = 27;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1616,14 +1616,14 @@ impl Tabs {
         flank_is_straight(self.flank_angle)
     }
 
-    /// The flank angle new tabs get (docs/specs/profile-spiral.md §4): straight with a
-    /// plunge entry; with a ramp, 30°, or the ramp angle when the tool is marked not
-    /// centre-cutting (a flank's way down is a ramp).
-    pub fn default_flank(entry: Entry, center_cutting: Option<bool>) -> f64 {
-        match entry.ramp_angle() {
-            None => STRAIGHT_FLANK_RAD,
-            Some(ramp_angle) if center_cutting == Some(false) => ramp_angle,
-            Some(_) => DEFAULT_RAMPED_FLANK_RAD,
+    /// The flank angle new tabs get (docs/specs/profile-spiral.md §4): 30°, or the
+    /// profile's ramp angle when the tool is marked not centre-cutting (a flank's way down
+    /// is a ramp).
+    pub fn default_flank(ramp_angle: f64, center_cutting: Option<bool>) -> f64 {
+        if center_cutting == Some(false) {
+            ramp_angle
+        } else {
+            DEFAULT_RAMPED_FLANK_RAD
         }
     }
 }
@@ -1772,7 +1772,10 @@ impl Operation {
 
     pub fn entry(&self) -> Entry {
         match self {
-            Operation::Profile(p) => p.entry,
+            // A profile always spirals (docs/specs/profile-always-spiral.md).
+            Operation::Profile(p) => Entry::Ramp {
+                ramp_angle: p.ramp_angle,
+            },
             Operation::Pocket(p) => p.entry,
             // Paths start at the ends of the axis, mostly at depth 0; others plunge.
             Operation::Vcarve(_) => Entry::Plunge {},
@@ -1811,9 +1814,12 @@ impl Operation {
 
     pub fn lead(&self) -> Option<Lead> {
         match self {
-            Operation::Profile(p) => p.lead,
             Operation::Pocket(p) => p.lead,
-            Operation::Vcarve(_) | Operation::Path(_) | Operation::Holes(_) => None,
+            // A profile spirals down: no plunge to hide in the waste.
+            Operation::Profile(_)
+            | Operation::Vcarve(_)
+            | Operation::Path(_)
+            | Operation::Holes(_) => None,
         }
     }
 
@@ -1894,21 +1900,15 @@ pub struct ProfileOp {
     /// Null: none.
     #[serde(default)]
     pub tabs: Option<Tabs>,
-    /// How the tool goes down at the start of each pass: `plunge` (straight down; needs a
-    /// centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing:
-    /// plunge.
-    // Spec: docs/specs/ramp-entry.md.
-    #[serde(default)]
-    pub entry: Entry,
+    /// The steepest the spiral ramp goes down along the contour, radians: more than 0, at
+    /// most 30° (0.5236). A profile always spirals down (docs/specs/profile-always-spiral.md).
+    // Spec: docs/specs/profile-spiral.md, docs/specs/profile-ramp-level.md.
+    pub ramp_angle: f64,
     /// Where the cut starts, as points in drawing coordinates (mm): each moves the start of
     /// the ring (contour) nearest to it. Empty: chosen by Chipload.
     // Spec: docs/specs/helix-and-leads.md, part A.
     #[serde(default)]
     pub starts: Vec<[f64; 2]>,
-    /// A quarter-circle lead-in and lead-out from the waste side onto the path. Null: none.
-    // Spec: docs/specs/helix-and-leads.md, part B.
-    #[serde(default)]
-    pub lead: Option<Lead>,
     /// A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap
     /// at full depth takes it off. Null: none.
     // Spec: docs/specs/finish-and-skin.md.
@@ -2222,7 +2222,8 @@ pub struct Lead {
 /// The longest lead allowed, in tool diameters.
 pub const MAX_LEAD_DIAMETERS: f64 = 10.0;
 
-/// How the tool goes down into the material at the start of each pass.
+/// How the tool goes down into the material at the start of each pass, for pockets and
+/// follow paths (a profile always spirals: its `ramp_angle`).
 // Spec: docs/specs/ramp-entry.md.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -2927,8 +2928,13 @@ impl Job {
             if let Some(ramp_angle) = op.entry().ramp_angle()
                 && !(ramp_angle.is_finite() && ramp_angle > 0.0 && ramp_angle <= MAX_RAMP_ANGLE_RAD)
             {
+                // A profile's angle is its own field; the others' sit in their entry.
+                let field = match op {
+                    Operation::Profile(_) => "ramp_angle",
+                    _ => "entry.ramp_angle",
+                };
                 problems.push(Problem::at(
-                    format!("operations.{i}.entry.ramp_angle"),
+                    format!("operations.{i}.{field}"),
                     format!(
                         "must be more than 0 and at most 30 degrees, got {:.3} degrees",
                         ramp_angle.to_degrees()

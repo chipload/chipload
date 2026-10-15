@@ -351,7 +351,8 @@ fn a_closed_centre_line_can_be_profiled_like_any_outline() {
     let op: chipload_job::Operation = serde_json::from_value(serde_json::json!({
         "type": "profile", "part": 1, "select": {"image": 1}, "side": "outside",
         "direction": "climb", "tool": job.tools[0].id, "start_depth": 0, "end_depth": 3,
-        "clearance": 0, "step_down": 3, "feed": 1000, "plunge_feed": 300}))
+        "clearance": 0, "step_down": 3, "feed": 1000, "plunge_feed": 300,
+        "ramp_angle": 0.0524}))
     .unwrap();
     job.operations = vec![op];
     assert!(job.validate().is_empty(), "{:?}", job.validate());

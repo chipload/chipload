@@ -163,13 +163,12 @@ pub fn path_moves(
         let ring = RingCut {
             ring: &path.points,
             tabs: None,
-            leads: None,
             pass_z: cut.pass_z,
             top_z: cut.top_z,
             safe_z: cut.safe_z,
             feed: cut.feed,
             plunge_feed: cut.plunge_feed,
-            entry: cut.entry,
+            ramp_angle: cut.entry.ramp_angle(),
             tool_diameter: cut.tool_diameter,
         };
         let done = ring_moves(&ring, arcs)?;

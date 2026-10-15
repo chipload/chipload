@@ -378,15 +378,12 @@ impl EditJob {
             .count()
             + 1;
         let select = selection.selector(contours, kind == OpKind::Path);
-        // A tool marked not centre-cutting can't plunge: new profiles ramp in
-        // (docs/specs/ramp-entry.md, decision 6), new pockets go down round a helix
-        // (docs/specs/helix-and-leads.md, decision 6).
+        // A tool marked not centre-cutting can't plunge: new pockets go down round a helix
+        // (docs/specs/helix-and-leads.md, decision 6), new follow paths ramp in
+        // (docs/specs/ramp-entry.md, decision 6). Profiles always spiral.
         let plunges = chosen.and_then(|t| t.center_cutting) != Some(false);
         let entry = match (plunges, kind) {
-            (true, _) => Entry::Plunge {},
-            (false, OpKind::Profile) => Entry::Ramp {
-                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-            },
+            (true, _) | (false, OpKind::Profile) => Entry::Plunge {},
             (false, OpKind::Pocket) => Entry::default_helix(diameter),
             // A V-bit's point goes in along the path; the entry isn't used.
             (false, OpKind::Vcarve) => Entry::Plunge {},
@@ -419,9 +416,8 @@ impl EditJob {
                         feed,
                         plunge_feed,
                         tabs: None,
-                        entry,
+                        ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
                         starts: Vec::new(),
-                        lead: None,
                         finish: None,
                         skin: None,
                         corners: None,
@@ -868,19 +864,16 @@ mod tests {
     }
 
     #[test]
-    fn new_operations_ramp_when_the_tool_cant_plunge() {
+    fn new_profiles_spiral_and_pockets_plunge_when_the_tool_can() {
         let contours = messy_2();
         let mut job = new_job();
         let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
         assert_eq!(job.ops[i].op.entry(), Entry::Plunge {});
-        job.settings.tools[0].center_cutting = Some(false);
         let j = job.add(OpKind::Profile, &ids(&[2]), &contours);
-        assert_eq!(
-            job.ops[j].op.entry(),
-            Entry::Ramp {
-                ramp_angle: DEFAULT_RAMP_ANGLE_RAD
-            }
-        );
+        let Operation::Profile(p) = &job.ops[j].op else {
+            panic!()
+        };
+        assert_eq!(p.ramp_angle, DEFAULT_RAMP_ANGLE_RAD);
     }
 
     #[test]

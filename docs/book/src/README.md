@@ -6,7 +6,7 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
 - **Out:** G-code for your controller, through a post-processor: GRBL, LinuxCNC and Mach3/4
   are built in, and you can write your own.
 - **Operations:**
-  - profiles, with tabs, leads, spiral laps, finishing passes, onion skins and dogbones;
+  - profiles, spiralling down, with tabs, finishing passes, onion skins and dogbones;
   - ring pockets, with helix entry and rest machining;
   - V-carving;
   - follow path;

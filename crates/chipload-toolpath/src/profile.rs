@@ -10,7 +10,6 @@ use chipload_job::{Direction, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
-use crate::lead::roomiest_start;
 use crate::offset::{offset_rings_tagged, start_index};
 use crate::start::{assign, point_text, restart};
 
@@ -185,15 +184,6 @@ pub fn plan_profile(
         &mut arcs,
         &mut start_notes,
     );
-    if op.lead.is_some() {
-        for (ring, choice) in rings.iter_mut().zip(&chosen) {
-            if choice.is_none()
-                && let Some(at) = roomiest_start(&ring.points)
-            {
-                ring.points = restart(&ring.points, at, &mut arcs);
-            }
-        }
-    }
     Ok(ProfilePlan {
         rings,
         notes,

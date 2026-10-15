@@ -334,12 +334,12 @@ pub(super) fn op_form(
     match &mut entry.op {
         Operation::Profile(p) => {
             let cut = format!(
-                "{}–{} mm, steps of {} mm, {}, {}",
+                "{}–{} mm, steps of {} mm, {}, spiral ramp {}°",
                 len(p.start_depth),
                 len(p.end_depth),
                 len(p.step_down),
                 direction_name(p.direction),
-                profile_entry_text(&p.entry, p.lead.as_ref())
+                degrees(p.ramp_angle)
             );
             section(ui, "op-profile-cut", "Cut", &cut, |ui| {
                 ui.label("Direction");
@@ -360,18 +360,7 @@ pub(super) fn op_form(
                 ui.label("Step down");
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
-                // On the line there is no waste side to put a lead on.
-                let can_lead = p.side != Side::On || p.lead.is_some();
-                let plunges = op_tool.and_then(|t| t.center_cutting) != Some(false);
-                spiral_rows(
-                    ui,
-                    index,
-                    &mut p.entry,
-                    &mut p.lead,
-                    tool_diameter,
-                    can_lead,
-                    plunges,
-                );
+                ramp_angle_row(ui, &mut p.ramp_angle);
                 corner_rows(ui, index, &mut p.corners, can_clear);
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
@@ -425,7 +414,7 @@ pub(super) fn op_form(
             let entry_text = entry_summary(&p.entry, p.lead.as_ref());
             section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
-                lead_rows(ui, &mut p.lead, tool_diameter, true, false);
+                lead_rows(ui, &mut p.lead, tool_diameter);
             });
         }
         Operation::Vcarve(v) => {
@@ -688,83 +677,25 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
     }
 }
 
-/// "spiral ramp 3°", "straight plunge with leads": a profile's way down, for its summary.
-fn profile_entry_text(entry: &Entry, lead: Option<&Lead>) -> String {
-    match (entry.ramp_angle(), lead) {
-        (Some(angle), None) => format!("spiral ramp {}°", degrees(angle)),
-        (Some(angle), Some(_)) => format!("spiral ramp {}° with a lead-in", degrees(angle)),
-        (None, Some(_)) => "straight plunge with leads".to_string(),
-        (None, None) => "straight plunge".to_string(),
-    }
-}
-
-/// A profile's way down, after its step down (docs/specs/profile-form.md §2): the same
-/// Entry choice as a pocket's, between a spiral ramp with its angle and a straight plunge
-/// with an optional lead-in and lead-out. `plunges`: the tool may plunge (it isn't marked
-/// not centre-cutting).
-fn spiral_rows(
-    ui: &mut egui::Ui,
-    index: usize,
-    entry: &mut Entry,
-    lead: &mut Option<Lead>,
-    tool_diameter: f64,
-    can_lead: bool,
-    plunges: bool,
-) {
-    ui.label("Entry").on_hover_text(
-        "How the tool goes down. A spiral ramp goes down along the contour, never steeper \
-         than the ramp angle and never more than one step down per lap: no plunge into the \
-         part. On long contours the step down decides the descent, on small ones the angle. \
-         A straight plunge needs a centre-cutting tool and can have a lead.",
+/// A profile's way down (docs/specs/profile-always-spiral.md): it always spirals down along
+/// the contour; only the angle is set, after the step down.
+fn ramp_angle_row(ui: &mut egui::Ui, ramp_angle: &mut f64) {
+    ui.label("Ramp angle").on_hover_text(
+        "The tool spirals down along the contour, never steeper than this and never more \
+         than one step down per lap: no plunge into the part. Each pass goes down at this \
+         angle, then runs level; a steeper angle makes the ramp shorter.",
     );
-    let spiral = entry.ramp_angle().is_some();
-    let combo = ComboBox::from_id_salt(("entry", index))
-        .selected_text(if spiral {
-            "spiral ramp"
-        } else {
-            "straight plunge"
-        })
-        .show_ui(ui, |ui| {
-            if ui.selectable_label(spiral, "spiral ramp").clicked() && !spiral {
-                *entry = Entry::Ramp {
-                    ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-                };
-            }
-            if ui.selectable_label(!spiral, "straight plunge").clicked() && spiral {
-                *entry = Entry::Plunge {};
-            }
-        });
-    flag(combo.response, ui, "entry");
+    let mut value = ramp_angle.to_degrees();
+    let response = ui.add(
+        DragValue::new(&mut value)
+            .speed(0.1)
+            .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
+            .suffix("°"),
+    );
+    if flag(response, ui, "ramp_angle").changed() {
+        *ramp_angle = value.to_radians();
+    }
     ui.end_row();
-    let spiral = entry.ramp_angle().is_some();
-    if let Entry::Ramp { ramp_angle } = entry {
-        ui.label("  ramp angle")
-            .on_hover_text("How steeply it goes down along the contour");
-        let mut value = ramp_angle.to_degrees();
-        let response = ui.add(
-            DragValue::new(&mut value)
-                .speed(0.1)
-                .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
-                .suffix("°"),
-        );
-        if flag(response, ui, "entry").changed() {
-            *ramp_angle = value.to_radians();
-        }
-        ui.end_row();
-    }
-    if !spiral && !plunges {
-        ui.label("");
-        ui.colored_label(
-            ui.visuals().warn_fg_color,
-            "This tool can't plunge: choose the spiral ramp",
-        );
-        ui.end_row();
-    }
-    // Leads go with straight plunges; a lead already set with a spiral stays, shown, until
-    // it is unticked.
-    if !spiral || lead.is_some() {
-        lead_rows(ui, lead, tool_diameter, can_lead, spiral);
-    }
 }
 
 /// Rest machining (docs/specs/rest-machining.md §6): none, or one of the project's endmills
@@ -1015,7 +946,7 @@ impl Holding {
                 count: 4,
                 width: 8.0,
                 height: 3.0,
-                flank_angle: Tabs::default_flank(p.entry, center_cutting),
+                flank_angle: Tabs::default_flank(p.ramp_angle, center_cutting),
             });
         }
         if !self.has_skin() {
@@ -1122,36 +1053,16 @@ fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
     });
 }
 
-/// Lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and the radius,
-/// the tool radius by default.
-/// `spiral`: a ramped profile, which leads in once and rises out instead of leading out
-/// (docs/specs/profile-spiral.md §5).
-fn lead_rows(
-    ui: &mut egui::Ui,
-    lead: &mut Option<Lead>,
-    tool_diameter: f64,
-    enabled: bool,
-    spiral: bool,
-) {
-    ui.label("Lead").on_hover_text(if spiral {
-        "Arc onto the path from the waste at the start depth, so the tool goes down in the \
-         waste and leaves no mark on the part. A ramped profile then spirals down without \
-         stopping and, at the end, rises out along the cut instead of arcing off it. A lead \
-         without room shrinks, or is left out (the report says so)."
-    } else {
-        "Arc onto the path from the waste and off it again, so the tool goes down in the \
-         waste and leaves no mark on the part. A lead without room shrinks, or is left out \
-         (the report says so)."
-    });
+/// A pocket's lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and
+/// the radius, the tool radius by default.
+fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64) {
+    ui.label("Lead").on_hover_text(
+        "Arc onto the wall from the cleared pocket and off it again, so the tool never \
+         stops against the wall. A lead without room shrinks, or is left out (the report \
+         says so).",
+    );
     let mut on = lead.is_some();
-    let text = if spiral {
-        "lead-in"
-    } else {
-        "lead-in and lead-out"
-    };
-    let response = ui
-        .add_enabled(enabled, egui::Checkbox::new(&mut on, text))
-        .on_disabled_hover_text("A profile cut on the line has no waste side for a lead");
+    let response = ui.checkbox(&mut on, "lead-in and lead-out");
     let response = flag(response, ui, "lead");
     if response.changed() {
         *lead = on.then_some(Lead {
