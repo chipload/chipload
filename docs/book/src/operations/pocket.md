@@ -24,9 +24,13 @@ The pocket is cleared in **rings**:
 - **Rounded inner rings:** every ring but the wall ring has rounded corners (up to two
   stepovers in radius), for smoother, faster motion. Where rounding would leave material,
   the corners are rounded less.
-- **Links:** between rings the tool feeds across at depth when the move stays clear of the
-  walls and is at most one tool diameter, which it checks; otherwise it retracts. There is
-  nothing to set: a checked link is always better than a retract.
+- **Spiral:** each ring steps out onto the next over its last stretch instead of closing,
+  so the rings of a lobe are one continuous spiral with no stop and no sideways move into
+  material. The stepped-out stretch is checked against the walls like a ring; where it
+  wouldn't fit (round an island, or against a sharp corner) the ring closes and is linked.
+- **Links:** where a ring closes, the tool feeds across to the next at depth when the move
+  stays clear of the walls and is at most one tool diameter, which it checks; otherwise it
+  retracts. There is nothing to set: a checked link is always better than a retract.
 
 What a round tool leaves is normal: inside corners keep the tool's radius, and slots
 narrower than the tool stay uncut. The [simulation](../checking/simulation.md) shows it.

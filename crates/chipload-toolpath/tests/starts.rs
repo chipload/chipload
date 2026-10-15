@@ -183,9 +183,19 @@ fn a_pocket_moves_only_its_wall_ring() {
         assert_eq!(a.rings.len(), b.rings.len(), "{strategy}");
         let walls: Vec<usize> = (0..b.rings.len()).filter(|&k| b.rings[k].wall).collect();
         assert_eq!(walls, vec![b.rings.len() - 1], "{strategy}");
-        for k in 0..b.rings.len() - 1 {
+        let n = b.rings.len();
+        for k in 0..n - 2 {
             assert_eq!(a.rings[k], b.rings[k], "{strategy}: ring {k} changed");
         }
+        // The ring inside the wall steps out onto the wall's start when that is one
+        // stepover away (docs/specs/pocket-spiral.md); the chosen start is far from it,
+        // so here the ring closes instead, from the same start.
+        let (inner, plain) = (&b.rings[n - 2], &a.rings[n - 2]);
+        assert!(
+            plain.steps_out && !inner.steps_out && !inner.open,
+            "{strategy}"
+        );
+        assert_eq!(inner.points[0], plain.points[0], "{strategy}");
         let wall = b.rings.last().unwrap();
         assert!(
             close(wall.points[0], (30.0, 37.0)),

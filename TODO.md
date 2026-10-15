@@ -97,6 +97,12 @@ it's built (see `CLAUDE.md`).
 
 ## Done
 
+- **The pocket's rings as one spiral** (2026-10-15, docs/specs/pocket-spiral.md): a ring
+  steps out onto the ring outside it over its last two diameters instead of closing, where
+  that is checked clear of the walls and leaves nothing uncut; the link move goes with it.
+  The drifted stretch is re-fitted with arcs. Island rings and the wall ring still close.
+  Every pocket golden changed; thirty retracts fewer in the corpus.
+
 - **No worse options: the pocket's clearing settings are gone** (2026-10-15, schema 26,
   docs/specs/pocket.md §9): the tool stays down wherever the verified link is safe, the
   inner rings are always rounded (radius capped at two stepovers), rings is the one way

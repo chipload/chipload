@@ -13,7 +13,7 @@ use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM};
 use chipload_toolpath::ToolpathError;
 use chipload_toolpath::geom::segment_distance;
 use chipload_toolpath::offset::{contour_pline, pline_segments};
-use chipload_toolpath::pocket::{Choices, PocketPlan, PocketRequest, plan_pocket};
+use chipload_toolpath::pocket::{Choices, PocketPlan, PocketRequest, PocketRing, plan_pocket};
 use common::{polygon_id, rect};
 use proptest::prelude::*;
 
@@ -30,10 +30,16 @@ fn plan(contours: &[Contour], stepover: f64, round: bool) -> Result<PocketPlan, 
     })
 }
 
-/// The sharpest turn between consecutive chords of a closed ring, radians.
-fn sharpest_turn(ring: &[Point]) -> f64 {
-    let n = ring.len();
-    (0..n)
+/// The sharpest turn between consecutive chords of a ring, radians. An open ring (one
+/// that steps out onto the next) doesn't turn back to its start.
+fn sharpest_turn(ring: &PocketRing) -> f64 {
+    let turns = if ring.open {
+        ring.points.len().saturating_sub(2)
+    } else {
+        ring.points.len()
+    };
+    let (ring, n) = (&ring.points, ring.points.len());
+    (0..turns)
         .map(|i| {
             let (a, b, c) = (ring[i], ring[(i + 1) % n], ring[(i + 2) % n]);
             let u = (b.0 - a.0, b.1 - a.1);
@@ -58,8 +64,8 @@ fn inner_rings_of_a_rectangle_turn_round_and_the_wall_ring_stays_sharp() {
     let piece = &plan.pieces[0];
     let mut inner = 0;
     for ring in &piece.rings {
-        let (ring, wall) = (&ring.points, ring.wall);
         let turn = sharpest_turn(ring);
+        let (ring, wall) = (&ring.points, ring.wall);
         // The ring's distance from the walls, and its corner nearest (0, 0).
         let d = ring.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
         let corner = ring
@@ -95,7 +101,7 @@ fn rounding_off_keeps_every_ring_sharp() {
     let contours = [rect(1, 0.0, 0.0, 100.0, 60.0)];
     let plan = plan(&contours, 2.4, false).unwrap();
     for ring in &plan.pieces[0].rings {
-        assert!(sharpest_turn(&ring.points) > 1.5);
+        assert!(sharpest_turn(ring) > 1.5);
     }
 }
 
@@ -141,7 +147,7 @@ fn acute_corners_round_less_rather_than_leave_material() {
             .rings
             .iter()
             .filter(|ring| !ring.wall)
-            .map(|ring| sharpest_turn(&ring.points))
+            .map(sharpest_turn)
             .collect();
         // Sharp, the 34° corners turn by 2.55 rad.
         let rounded = inner.iter().filter(|&&t| t < 1.0).count();

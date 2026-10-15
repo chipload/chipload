@@ -37,6 +37,10 @@ fn plan_with(
     plan_pocket(&PocketRequest {
         direction,
         spindle,
+        choices: Choices {
+            spiral: true,
+            ..Choices::default()
+        },
         ..PocketRequest::new(&refs, 3.0, stepover)
     })
 }
@@ -537,6 +541,97 @@ fn links_still_retract_around_an_island() {
             assert!(distance(piece.rings[i].points[0], piece.rings[i + 1].points[0]) <= 6.0);
         }
     }
+}
+
+// -- spiral (docs/specs/pocket-spiral.md)
+
+#[test]
+fn inner_rings_step_out_onto_the_next_as_one_spiral() {
+    let contours = [outline()];
+    let refs: Vec<&Contour> = contours.iter().collect();
+    // Rounded rings, as every project pocket has.
+    let result = plan_pocket(&PocketRequest {
+        choices: Choices {
+            spiral: true,
+            round_corners: true,
+            ..Choices::default()
+        },
+        ..PocketRequest::new(&refs, 3.0, 2.4)
+    })
+    .unwrap();
+    let piece = &result.pieces[0];
+    let n = piece.rings.len();
+    for (i, ring) in piece.rings.iter().enumerate() {
+        if i + 1 < n {
+            assert!(
+                ring.steps_out && ring.open,
+                "ring {i} steps out onto ring {}",
+                i + 1
+            );
+            // It ends exactly where the next ring starts, so there is no link move.
+            assert_eq!(ring.end(), Some(piece.rings[i + 1].points[0]));
+            assert!(piece.feed_links[i]);
+        } else {
+            assert!(!ring.steps_out && !ring.open, "the wall ring closes");
+        }
+    }
+    assert!(result.notes.is_empty(), "{:?}", result.notes);
+    assert_clear(&contours, &result, 3.0);
+    // The step-out is gentle: no chord of a spiral turns more than an arc's chords do.
+    for ring in &piece.rings[..n - 1] {
+        for w in ring.points.windows(3) {
+            let u = (w[1].0 - w[0].0, w[1].1 - w[0].1);
+            let v = (w[2].0 - w[1].0, w[2].1 - w[1].1);
+            let turn = (u.0 * v.1 - u.1 * v.0).atan2(u.0 * v.0 + u.1 * v.1).abs();
+            assert!(turn < 0.5, "turn of {turn} rad at {:?}", w[1]);
+        }
+    }
+    // One plunge, one continuous path, one retract per depth.
+    let moves = moves_of(piece, &[-3.0]);
+    let plunges = moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
+        .count();
+    let retracts = moves.iter().filter(|m| m.kind == MoveKind::Rapid).count();
+    assert_eq!(
+        (plunges, retracts),
+        (1, 3),
+        "rapid to safe, to the start, up at the end"
+    );
+    // No zero-length move where a ring lands on the next.
+    for w in moves.windows(2) {
+        if let (Some(ax), Some(ay), Some(bx), Some(by)) = (w[0].x, w[0].y, w[1].x, w[1].y) {
+            assert!(
+                distance((ax, ay), (bx, by)) > 0.0 || w[1].z.is_some(),
+                "{:?}",
+                w[1]
+            );
+        }
+    }
+}
+
+#[test]
+fn the_ring_before_an_island_ring_does_not_step_out() {
+    let contours = [outline(), rect(2, 30.0, 20.0, 70.0, 40.0)];
+    let result = plan(&contours);
+    let piece = &result.pieces[0];
+    let rings = &piece.rings;
+    // The rings round the island (clockwise for climb) and the wall ring never step out,
+    // and neither does the ring cut just before an island ring.
+    for (i, ring) in rings.iter().enumerate() {
+        let island = signed_area(&ring.points) < 0.0;
+        let next_is_island = rings
+            .get(i + 1)
+            .is_some_and(|r| signed_area(&r.points) < 0.0);
+        if island || next_is_island || i + 1 == rings.len() {
+            assert!(!ring.steps_out, "ring {i}");
+        }
+    }
+    assert!(
+        rings.iter().any(|r| r.steps_out),
+        "the inner lobes still spiral"
+    );
+    assert_clear(&contours, &result, 3.0);
 }
 
 // -- moves

@@ -13,6 +13,7 @@ use cavalier_contours::polyline::{
 };
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::fit::fit_path;
 use chipload_core::nesting::{Ring, contains};
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Line, Primitive, distance, signed_area};
@@ -35,7 +36,7 @@ use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged_or_tight};
-use crate::start::{assign, point_text, restart};
+use crate::start::{assign, onto, point_text, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
@@ -57,6 +58,10 @@ pub struct PocketRing {
     /// A wall ring with a lead-in before it and a lead-out after it, as one open path: the
     /// ring itself is `points[range]` (part B).
     pub lead: Option<std::ops::Range<usize>>,
+    /// The ring steps out onto the next one (the ring outside it) over its last stretch
+    /// instead of closing, so the two are one spiral (docs/specs/pocket-spiral.md). Set by
+    /// the cut order where the next ring is the one outside; true only where it was done.
+    pub steps_out: bool,
 }
 
 impl PocketRing {
@@ -69,6 +74,7 @@ impl PocketRing {
             wall,
             chosen: None,
             lead: None,
+            steps_out: false,
         }
     }
 
@@ -673,6 +679,8 @@ fn cut_order(
     let wall_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside the ring
     let island_cw = cut_clockwise(Side::Outside, direction, spindle); // material inside it
     let mut rings: Vec<PocketRing> = Vec::new();
+    // The node whose outer ring was pushed last, while no island ring came after it.
+    let mut last_outer: Option<usize> = None;
     let mut stack: Vec<(Vec<usize>, Option<usize>)> = vec![(roots.to_vec(), None)];
     while let Some((siblings, waiting)) = stack.last_mut() {
         if !siblings.is_empty() {
@@ -716,12 +724,184 @@ fn cut_order(
             let ring = orient_from(&island, island_cw, position);
             position = ring[0];
             rings.push(PocketRing::closed(ring, wall));
+            last_outer = None;
+        }
+        // The last child's outer ring lies one stepover inside this one, with nothing cut
+        // in between: it can step out onto it (docs/specs/pocket-spiral.md §2).
+        if let Some(child) = last_outer
+            && nodes[node].children.contains(&child)
+            && let Some(last) = rings.last_mut()
+        {
+            last.steps_out = true;
         }
         let outer = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
         position = outer[0];
         rings.push(PocketRing::closed(outer, wall));
+        last_outer = Some(node);
     }
     rings
+}
+
+/// How far before its end a ring starts stepping out onto the next, in tool diameters
+/// (docs/specs/pocket-spiral.md §2): a stepover sideways over two diameters along.
+const STEP_OUT_DIAMETERS: f64 = 2.0;
+
+/// The most a step-out may move the tool sideways, in stepovers. The next ring lies one
+/// stepover out along a side, and √2 stepovers out on the diagonal of a rounded corner
+/// (consecutive rings' corners have the same capped radius, so they are not concentric);
+/// a start farther away than this is linked instead.
+const STEP_OUT_MAX_STEPOVERS: f64 = 1.5;
+
+/// Where a ring may step out onto the next (docs/specs/pocket-spiral.md §2): the next ring
+/// is restarted at its point nearest the ring's start (unless the user chose its start or
+/// it has leads), and the ring's last stretch drifts sideways onto that point, so the two
+/// are cut as one spiral. Every step-out is checked against the walls like a ring; one
+/// that doesn't fit, or whose landing point is too far, stays a closed ring with a link.
+/// Returns whether any ring stepped out.
+fn step_out(
+    rings: &mut [PocketRing],
+    arcs: &mut ArcTable,
+    stepover: f64,
+    tool_diameter: f64,
+    region: &Area,
+    walls: &PrimIndex,
+    offset: f64,
+) -> bool {
+    let mut any = false;
+    let clearance = min_clearance(offset);
+    for i in 0..rings.len().saturating_sub(1) {
+        if !rings[i].steps_out {
+            continue;
+        }
+        rings[i].steps_out = false;
+        if rings[i].open || rings[i].points.len() < 3 {
+            continue;
+        }
+        let start = rings[i].points[0];
+        let next = &mut rings[i + 1];
+        if next.chosen.is_none() && next.lead.is_none() && !next.open {
+            next.points = restart(&next.points, start, arcs);
+        }
+        let target = next.points[0];
+        let shift = (target.0 - start.0, target.1 - start.1);
+        if distance(start, target) > STEP_OUT_MAX_STEPOVERS * stepover + CHAIN_TOL_MM {
+            continue;
+        }
+        let path = stepped_out(
+            &rings[i].points,
+            shift,
+            STEP_OUT_DIAMETERS * tool_diameter,
+            arcs,
+        );
+        let fits = path.iter().all(|&p| region.contains(p))
+            && path
+                .windows(2)
+                .all(|w| clear_of(walls, w[0], w[1], clearance));
+        if !fits {
+            continue;
+        }
+        rings[i].points = path;
+        rings[i].open = true;
+        rings[i].steps_out = true;
+        any = true;
+    }
+    any
+}
+
+/// The closed ring as a path that ends `shift` away from its start: its last `length` mm
+/// drift sideways evenly, from nothing to the whole shift at the end. The stretch begins
+/// at a vertex (one is inserted on the chord there, onto the arc if the chord is on one).
+/// The drifted stretch is no longer on the ring's arcs, so it is fitted with lines and
+/// arcs of its own (`chipload_core::fit`) and those are tagged in `arcs`.
+fn stepped_out(ring: &[Point], shift: Point, length: f64, arcs: &mut ArcTable) -> Vec<Point> {
+    let path = crate::profile::closed_path(ring);
+    let mut along = vec![0.0];
+    for w in path.windows(2) {
+        along.push(along[along.len() - 1] + distance(w[0], w[1]));
+    }
+    let total = along[along.len() - 1];
+    let stretch = length.min(total / 2.0);
+    if stretch <= CHAIN_TOL_MM {
+        return path;
+    }
+    let from = total - stretch;
+    let mut out: Vec<Point> = Vec::with_capacity(path.len() + 1);
+    // The drifting stretch, from the vertex where it starts (drift 0) to the end.
+    let mut drift: Vec<Point> = Vec::new();
+    for (k, &p) in path.iter().enumerate() {
+        let d = along[k];
+        if d <= from + CHAIN_TOL_MM {
+            out.push(p);
+            if (from - d).abs() <= CHAIN_TOL_MM {
+                drift.push(p);
+                continue;
+            }
+            // The stretch starts on the next chord: a vertex there, where the drift is 0.
+            if k + 1 < path.len() && along[k + 1] > from + CHAIN_TOL_MM {
+                let (a, b) = (p, path[k + 1]);
+                let t = (from - d) / (along[k + 1] - d);
+                let q = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
+                let v = match arcs.get(a, b) {
+                    Some(circle) => {
+                        let v = onto(circle, q);
+                        arcs.insert(a, v, circle);
+                        v
+                    }
+                    None => q,
+                };
+                out.push(v);
+                drift.push(v);
+            }
+            continue;
+        }
+        let t = ((d - from) / stretch).clamp(0.0, 1.0);
+        drift.push((p.0 + shift.0 * t, p.1 + shift.1 * t));
+    }
+    // Exactly on the next ring's start, whatever the float sums did.
+    if let Some(last) = drift.last_mut() {
+        *last = (ring[0].0 + shift.0, ring[0].1 + shift.1);
+    }
+    out.extend(fitted(&drift, arcs).into_iter().skip(1));
+    out
+}
+
+/// `points` as the chords of the lines and arcs that fit them within the arc tolerance,
+/// the arcs' chords tagged in `arcs`. Starts and ends on the given first and last points.
+fn fitted(points: &[Point], arcs: &mut ArcTable) -> Vec<Point> {
+    let pieces = fit_path(points, false, ARC_APPROX_TOL_MM, true);
+    if pieces.is_empty() {
+        return points.to_vec();
+    }
+    let mut out: Vec<Point> = vec![points[0]];
+    for piece in &pieces {
+        match piece {
+            Primitive::Line(line) => out.push(line.end),
+            Primitive::Arc(arc) => {
+                let circle = Circle {
+                    center: arc.center,
+                    radius: arc.radius,
+                };
+                for p in piece.points().into_iter().skip(1) {
+                    let last = out[out.len() - 1];
+                    arcs.insert(last, p, circle);
+                    out.push(p);
+                }
+            }
+        }
+    }
+    // The fit's own end is a float away from the given one: the last chord ends exactly
+    // there (and its tag, if any, is moved with it).
+    if let (Some(&last), Some(&want)) = (points.last(), out.last())
+        && last != want
+    {
+        let before = out[out.len() - 2];
+        if let Some(circle) = arcs.get(before, want) {
+            arcs.insert(before, last, circle);
+        }
+        let n = out.len();
+        out[n - 1] = last;
+    }
+    out
 }
 
 fn min_clearance(radius: f64) -> f64 {
@@ -1066,6 +1246,9 @@ pub struct Choices<'a> {
     /// Round the inner rings' corners (docs/specs/pocket-round-corners.md). Every project
     /// pocket has it; off is for comparing with sharp rings in tests.
     pub round_corners: bool,
+    /// Rings step out onto the next as one spiral (docs/specs/pocket-spiral.md). Every
+    /// project pocket has it; off is for tests that measure the rings themselves.
+    pub spiral: bool,
     /// Stop with [`ToolpathError::Cancelled`] once set (docs/specs/background-generation.md).
     pub cancel: Option<&'a Cancel>,
     /// Rest machining: the radius of the larger tool whose leftovers are all this pocket
@@ -1097,6 +1280,7 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 lead,
                 helix,
                 round_corners,
+                spiral,
                 cancel,
                 rest,
             },
@@ -1240,24 +1424,51 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 }
             }
         }
-        // Between rings the tool stays down wherever the link is safe (docs/specs/pocket.md
-        // as built 2026-10-15): verified below with the rings.
-        let links: Vec<bool> = rings
-            .windows(2)
-            .map(|pair| {
-                pair[0].end().is_some_and(|from| {
-                    link_is_safe(
-                        &region,
-                        &walls,
-                        from,
-                        pair[1].points[0],
-                        tool_radius,
-                        offset,
-                    )
+        // Rings step out onto the next where they can (docs/specs/pocket-spiral.md); if
+        // that leaves material the uncut check finds, the piece is cut with closed rings
+        // and links instead, as before.
+        let plain = rings.clone();
+        let spiralled = spiral
+            && step_out(
+                &mut rings,
+                &mut arcs,
+                stepover,
+                2.0 * tool_radius,
+                &region,
+                &walls,
+                offset,
+            );
+        let linked = |rings: &[PocketRing]| -> Result<(Vec<bool>, Option<String>), ToolpathError> {
+            // Between rings the tool stays down wherever the link is safe (docs/specs/pocket.md
+            // as built 2026-10-15): verified with the rings.
+            let links: Vec<bool> = rings
+                .windows(2)
+                .map(|pair| {
+                    pair[0].end().is_some_and(|from| {
+                        link_is_safe(
+                            &region,
+                            &walls,
+                            from,
+                            pair[1].points[0],
+                            tool_radius,
+                            offset,
+                        )
+                    })
                 })
-            })
-            .collect();
-        verify(&region, &walls, &rings, &links, offset, &ids, &arcs)?;
+                .collect();
+            verify(&region, &walls, rings, &links, offset, &ids, &arcs)?;
+            let (uncut, _) = uncut_material(&region, &level0, rings, &links, tool_radius, &ids);
+            Ok((links, uncut))
+        };
+        let (mut links, mut uncut) = linked(&rings)?;
+        if spiralled && uncut.is_some() {
+            let (plain_links, plain_uncut) = linked(&plain)?;
+            if plain_uncut.is_none() {
+                rings = plain;
+                links = plain_links;
+                uncut = plain_uncut;
+            }
+        }
         let helix = match helix {
             Some(radius) => {
                 let wall_cw = cut_clockwise(Side::Inside, direction, spindle);
@@ -1273,7 +1484,6 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
             None => None,
         };
         cancel::check(cancel)?;
-        let (uncut, _) = uncut_material(&region, &level0, &rings, &links, tool_radius, &ids);
         notes.extend(uncut);
         pieces.push(PocketPiece {
             rings,
@@ -1573,7 +1783,10 @@ pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, T
             let start = ring.points[0];
             if index > 0 {
                 if piece.feed_links[index - 1] {
-                    moves.push(Move::feed_xy(start, feed));
+                    // A ring that stepped out already ends on this start: no link move.
+                    if piece.rings[index - 1].end() != Some(start) {
+                        moves.push(Move::feed_xy(start, feed));
+                    }
                 } else {
                     moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(start)]);
                     moves.extend(descend(ring, cleared, z)?);

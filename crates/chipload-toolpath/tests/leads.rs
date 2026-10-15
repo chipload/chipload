@@ -296,16 +296,6 @@ fn a_pocket_wall_gets_leads() {
     let parts = vec![common::rect(0, 0.0, 0.0, 60.0, 40.0)];
     {
         let strategy = json!({"type": "rings"});
-        let plain = plan_job(
-            &job(
-                json!([{"type": "pocket", "round_corners": false, "select": {"layer": "L"}, "tool": 1,
-                "start_depth": 0, "end_depth": 6, "clearance": 0, "step_down": 3,
-                "stepover": 0.4, "direction": "climb", "feed": 1500, "plunge_feed": 500,
-                "strategy": strategy}]),
-            ),
-            &parts,
-        )
-        .unwrap();
         let plan = plan_job(&job(pocket(strategy.clone(), json!({}))), &parts)
             .unwrap_or_else(|e| panic!("{strategy}: {e}"));
         let piece = &plan.pockets[0];
@@ -321,8 +311,8 @@ fn a_pocket_wall_gets_leads() {
             "{strategy}: {:?}",
             ring[0]
         );
-        for corner in &plain.pockets[0].rings[k].points {
-            assert!(ring.contains(corner), "{strategy}: {corner:?}");
+        for corner in [(3.0, 3.0), (57.0, 3.0), (57.0, 37.0), (3.0, 37.0)] {
+            assert!(ring.contains(&corner), "{strategy}: {corner:?}");
         }
         let path = &piece.rings[k].points;
         assert!(range.start > 0 && range.end < path.len());

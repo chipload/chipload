@@ -190,3 +190,6 @@ rounded corners.
   trochoidal or adaptive (ADR 0017) is a rings pocket.
 - The four frozen projects with removed strategies are golden G-code again
   (`v7_trochoidal`, `v7_adaptive`, `v12_adaptive`, `v13_adaptive_two_islands`).
+- **Spiral** (same day, docs/specs/pocket-spiral.md): a ring steps out onto the ring
+  outside it over its last two diameters instead of closing, where that is checked safe;
+  the link move goes with it.

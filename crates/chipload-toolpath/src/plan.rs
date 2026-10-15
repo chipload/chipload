@@ -545,6 +545,7 @@ fn plan_pocket_op(
                 _ => None,
             },
             round_corners: true,
+            spiral: true,
             cancel: Some(ctx.cancel),
             rest,
         },

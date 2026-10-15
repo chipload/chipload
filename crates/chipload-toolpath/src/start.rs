@@ -106,7 +106,7 @@ pub fn restart(ring: &[Point], at: Point, arcs: &mut ArcTable) -> Vec<Point> {
 }
 
 /// `p` moved radially onto the circle.
-fn onto(circle: Circle, p: Point) -> Point {
+pub(crate) fn onto(circle: Circle, p: Point) -> Point {
     let (dx, dy) = (p.0 - circle.center.0, p.1 - circle.center.1);
     let len = dx.hypot(dy);
     if len == 0.0 {

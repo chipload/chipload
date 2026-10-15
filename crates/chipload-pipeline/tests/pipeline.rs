@@ -622,13 +622,13 @@ fn pocket_refuses_a_vbit() {
 fn pocket_rings_are_linked_at_depth_where_safe() {
     // docs/specs/pocket.md as built 2026-10-15: no setting; every verified link is fed.
     let result = run(&lower_job(json!({}), json!({})));
-    assert!(
-        result
-            .pockets
-            .iter()
-            .all(|piece| piece.feed_links.iter().any(|&l| l)),
-        "every piece has links"
-    );
+    // The two narrow bars are one ring each; the lower pocket's rings are all linked.
+    let links: Vec<bool> = result
+        .pockets
+        .iter()
+        .flat_map(|piece| piece.feed_links.iter().copied())
+        .collect();
+    assert!(!links.is_empty() && links.iter().all(|&l| l), "{links:?}");
 }
 
 #[test]
