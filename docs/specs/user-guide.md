@@ -65,7 +65,7 @@ Written for an operator who knows CNC but not Chipload:
    - drawing circles, rectangles and polylines;
    - a grid of copies.
 4. **Operations**, one page each:
-   - profile: tabs, leads, spiral laps, finishing pass, onion skin, dogbones;
+   - profile: the spiral ramp, tabs, finishing pass, onion skin, dogbones;
    - pocket: rings, helix, start points, rest machining;
    - V-carve;
    - follow path;

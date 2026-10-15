@@ -83,11 +83,20 @@ stretched in the View menu); **Top view** (T) goes back.
 *File > Update drawing from DXF* takes in a re-exported drawing and keeps the operations.
 `chipload run` on a saved project gives the same G-code.
 
-Supported: **profile** operations (inside, outside, on) with optional holding tabs
-(`"tabs": {"count": 4, "width": 8, "height": 3}`, width = bridge left on the part), and
-**pocket** operations with islands, cleared in rings (optionally only what a larger tool left: rest machining); climb or conventional, a start and end depth with
-multiple passes, a clearance (positive: larger pocket or smaller part, negative: stock left),
-cuts into the spoilboard up to a set limit, straight plunges, ramp entry (down along the path, for tools that aren't centre-cutting) or, for pockets, helical entry (down round a small circle, written as helical G2/G3), start points chosen per ring (`"starts": [[x, y]]`, each moving the start of the ring nearest to it), lead-in and lead-out arcs from the waste (`"lead": {"radius": 3}`; profiles inside or outside, and pocket walls), a tool per operation, and the GRBL, LinuxCNC and Mach3/4 posts (arcs written as G2/G3).
+Supported: **profile** operations (inside, outside, on), always one forward spiral down
+the contour at a ramp angle (`"ramp_angle"`, 3° by default: no plunge into the part, any
+endmill), with optional holding tabs (`"tabs": {"count": 4, "width": 8, "height": 3,
+"flank_angle": …}`, width = bridge left on the part, straight or sloped), a finishing pass,
+an onion skin and dogbone or T-bone corners; **pocket** operations with islands, cleared
+in rings from the inside out as one spiral with rounded inner corners (optionally only what
+a larger tool left: rest machining), with a plunge, ramp or helical entry (down round a
+small circle, written as helical G2/G3) and lead-in and lead-out arcs on the walls
+(`"lead": {"radius": 3}`); **V-carve**, **follow path** and **holes** (drilling, helical
+boring) operations; climb or conventional, a start and end depth with multiple passes, an
+oversize (positive: larger pocket or smaller part, negative: stock left), cuts into the
+spoilboard up to a set limit, start points chosen per ring (`"starts": [[x, y]]`, each
+moving the start of the ring nearest to it), a tool per operation, and the GRBL, LinuxCNC
+and Mach3/4 posts (arcs written as G2/G3).
 G-code is written only if it passes the independent checker. See
 `tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
 limitations.

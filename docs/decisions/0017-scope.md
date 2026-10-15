@@ -12,9 +12,10 @@ checked G-code out, for any machine through data-driven posts. Usable headless (
 the project file are first-class) as well as in the GUI.
 
 ## In scope
-- The operations a router shop uses every day, done well: profiles (with tabs, leads,
-  spiral laps, finishing passes, onion skins, dogbones), ring pockets, V-carving, follow
-  path, holes (drilling, helical boring).
+- The operations a router shop uses every day, done well: profiles (spiralling down, with
+  tabs, finishing passes, onion skins, dogbones; their leads went with schema 27,
+  docs/specs/profile-always-spiral.md), ring pockets, V-carving, follow path, holes
+  (drilling, helical boring).
 - Safety: the independent checker, verified offsets, explicit units and sides.
 - Seeing what will happen: the 3D view, the material-removal simulation, playback.
 - Leverage for people who use it a lot: the CLI, a stable and documented project format,

@@ -20,9 +20,9 @@ report appears by itself, but it still points at a path, not at the field.
   what an operation still lacks (no shapes selected, profile side not chosen), and the job
   rules checked before planning (`validate_job`: a tool with no rpm, safe Z inside the stock,
   depth beyond the allowed cut below the stock, clearance or helix radius not smaller than
-  the tool radius, lead radius, feed above the machine's max feed, a helix on a profile, a
-  lead on an "on the line" profile). Today `validate_job` stops at the first; it will
-  collect every one.
+  the tool radius, lead radius, feed above the machine's max feed; a helix on a profile and
+  a lead on an "on the line" profile were rules too, until profiles lost their entry and
+  lead with schema 27). Today `validate_job` stops at the first; it will collect every one.
 - **Not geometry:** whether a pocket's tool fits, offsets, tabs that don't fit and the like
   are found by planning. They keep showing on the operation card after a generation (as
   now), which with the live preview is half a second after the edit.

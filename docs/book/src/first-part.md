@@ -55,18 +55,21 @@ outside profile. The same steps follow in the app and on the command line.
 chipload import plate.dxf -o plate.chipload        # add --units mm if the DXF doesn't say
 chipload inspect plate.chipload                    # contours with their numbers and layers
 chipload set plate.chipload stock.thickness=12 \
-  'operations.0={"type": "profile", "name": "Outline", "select": {"layer": "CUT_OUTSIDE"},
-    "side": "outside", "direction": "climb", "tool": 1, "start_depth": 0,
+  'operations.0={"type": "profile", "name": "Outline", "part": 1,
+    "select": {"layer": "CUT_OUTSIDE"}, "side": "outside", "direction": "climb", "tool": 1, "start_depth": 0,
     "end_depth": 12.3, "clearance": 0, "step_down": 3, "feed": 1500, "plunge_feed": 400,
+    "ramp_angle": 0.0524,
     "tabs": {"count": 4, "width": 6, "height": 2, "flank_angle": 1.5707963267948966}}'
 chipload plan plate.chipload                       # warnings, cycle time, chip load
 chipload run plate.chipload -o plate.nc            # checked G-code and plate-sheet.html
 ```
 
-- `set` adds the operation (see [Scripting](scripting.md)).
+- `set` adds the operation (see [Scripting](scripting.md)); `part` is the project's one
+  part, which a new project has as part 1.
 - `select` picks the outline by its layer, as `inspect` lists it. To pick single shapes
   instead, use `{"shapes": [ids]}`: `inspect --json` gives each contour's shape ids.
-- Angles in project files are in radians: 1.5707963267948966 is 90°, a straight tab.
+- Angles in project files are in radians: 0.0524 is the 3° spiral ramp every profile goes
+  down at, and 1.5707963267948966 is 90°, a straight tab.
 - The app makes the same project. Open `plate.chipload` in it to see and change the
   operation.
 
