@@ -33,7 +33,7 @@ use crate::helix::{Helix, helix_moves};
 use crate::lead::{Leads, MIN_LEAD_DIAMETERS, fitted_leads, roomiest_start};
 use crate::left::{cleared, left_by, rest_areas};
 use crate::model::Move;
-use crate::offset::{contour_pline, dedupe_ring, flatten_tagged};
+use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged_or_tight};
 use crate::start::{assign, onto, point_text, restart};
@@ -521,6 +521,7 @@ fn attempt_piece(
     a.rings = cut_order(
         &nodes,
         &roots,
+        Reach::new(c.tool_radius, c.stepover - nudge.step),
         c.position,
         c.direction,
         c.spindle,
@@ -549,6 +550,7 @@ fn rounded_rings(
         let rings = cut_order(
             nodes,
             roots,
+            Reach::new(c.tool_radius, stepover),
             c.position,
             c.direction,
             c.spindle,
@@ -666,11 +668,31 @@ fn orient_from(ring: &[Point], clockwise: bool, near: Point) -> Vec<Point> {
     ordered
 }
 
-/// Children before parents (inside out); siblings nearest first. An area's island rings are
-/// cut before its outer ring, so the wall is the last ring at each depth.
+/// One ring of the level tree: a node's outer ring, or the ring round one of its islands.
+struct Loop {
+    node: usize,
+    /// Round an island (the node's hole); false: the node's outer ring.
+    island: bool,
+    /// Offset levels from the walls: 0 is the wall or island edge ring.
+    level: usize,
+    points: Vec<Point>,
+    /// The rings one level in that must be cut first (docs/specs/pocket-island-order.md §2).
+    deps: Vec<usize>,
+}
+
+/// The rings in cut order (docs/specs/pocket-island-order.md): deeper rings before the
+/// rings next to them one level out, and otherwise one island at a time.
+///
+/// A ring is ready once the rings next to it one level in are cut (those within a tool
+/// diameter, and at least 1.5 stepovers: a stepover apart along a side, and where the tool
+/// at one reaches the other's material in a neck), and an outer ring also once its own
+/// level's island rings are, so the wall is still the last ring at each depth. From the ring
+/// just cut, the planner goes on outward to a ready ring of the same kind next to it, which
+/// it steps out onto (pocket-spiral.md); otherwise it starts at the nearest ready ring.
 fn cut_order(
     nodes: &[Node],
     roots: &[usize],
+    reach: Reach,
     mut position: Point,
     direction: Direction,
     spindle: Spindle,
@@ -678,68 +700,119 @@ fn cut_order(
 ) -> Vec<PocketRing> {
     let wall_cw = cut_clockwise(Side::Inside, direction, spindle); // material outside the ring
     let island_cw = cut_clockwise(Side::Outside, direction, spindle); // material inside it
+    let loops = ring_loops(nodes, roots, reach, arcs);
+    // The island rings of each node, which its outer ring waits for.
+    let mut islands_of: Vec<Vec<usize>> = vec![Vec::new(); nodes.len()];
+    for (i, l) in loops.iter().enumerate() {
+        if l.island {
+            islands_of[l.node].push(i);
+        }
+    }
+    let mut done = vec![false; loops.len()];
+    let ready = |i: usize, done: &[bool]| {
+        let l = &loops[i];
+        !done[i]
+            && l.deps.iter().all(|&d| done[d])
+            && (l.island || islands_of[l.node].iter().all(|&h| done[h]))
+    };
     let mut rings: Vec<PocketRing> = Vec::new();
-    // The node whose outer ring was pushed last, while no island ring came after it.
-    let mut last_outer: Option<usize> = None;
-    let mut stack: Vec<(Vec<usize>, Option<usize>)> = vec![(roots.to_vec(), None)];
-    while let Some((siblings, waiting)) = stack.last_mut() {
-        if !siblings.is_empty() {
-            let here = position;
-            let key = |n: usize| {
-                (
-                    Ordered(nodes[n].area.distance(here)),
-                    nodes[n].area.sort_key(),
-                )
-            };
-            let index = (0..siblings.len())
-                .min_by_key(|&i| key(siblings[i]))
-                .unwrap_or(0);
-            let node = siblings.remove(index);
-            stack.push((nodes[node].children.clone(), Some(node)));
-            continue;
-        }
-        let waiting = *waiting;
-        stack.pop();
-        let Some(node) = waiting else { continue };
-        let area = &nodes[node].area;
-        let wall = roots.contains(&node);
-        let mut islands: Vec<Vec<Point>> = area
-            .holes
-            .iter()
-            .map(|hole| flatten_tagged(hole, arcs))
-            .collect();
-        while !islands.is_empty() {
-            let here = position;
-            let nearest = (0..islands.len())
-                .min_by_key(|&i| {
-                    Ordered(
-                        islands[i]
-                            .iter()
-                            .map(|&p| distance(here, p))
-                            .fold(f64::INFINITY, f64::min),
-                    )
+    let mut last: Option<usize> = None;
+    for _ in 0..loops.len() {
+        let here = position;
+        let key = |i: usize| {
+            let l = &loops[i];
+            let d = l
+                .points
+                .iter()
+                .map(|&p| distance(here, p))
+                .fold(f64::INFINITY, f64::min);
+            (Ordered(d), l.level, l.node, l.island)
+        };
+        let onward = last.and_then(|from| {
+            (0..loops.len())
+                .filter(|&i| {
+                    ready(i, &done)
+                        && loops[i].island == loops[from].island
+                        && loops[i].deps.contains(&from)
                 })
-                .unwrap_or(0);
-            let island = islands.remove(nearest);
-            let ring = orient_from(&island, island_cw, position);
-            position = ring[0];
-            rings.push(PocketRing::closed(ring, wall));
-            last_outer = None;
-        }
-        // The last child's outer ring lies one stepover inside this one, with nothing cut
-        // in between: it can step out onto it (docs/specs/pocket-spiral.md §2).
-        if let Some(child) = last_outer
-            && nodes[node].children.contains(&child)
-            && let Some(last) = rings.last_mut()
+                .min_by_key(|&i| key(i))
+        });
+        let Some(next) = onward.or_else(|| {
+            (0..loops.len())
+                .filter(|&i| ready(i, &done))
+                .min_by_key(|&i| key(i))
+        }) else {
+            break; // every ring waits on another: cannot happen, levels only go outward
+        };
+        if onward.is_some()
+            && let Some(previous) = rings.last_mut()
         {
-            last.steps_out = true;
+            previous.steps_out = true;
         }
-        let outer = orient_from(&flatten_tagged(&area.outer, arcs), wall_cw, position);
-        position = outer[0];
-        rings.push(PocketRing::closed(outer, wall));
-        last_outer = Some(node);
+        let l = &loops[next];
+        let clockwise = if l.island { island_cw } else { wall_cw };
+        let ring = orient_from(&l.points, clockwise, position);
+        position = ring[0];
+        rings.push(PocketRing::closed(ring, l.level == 0));
+        done[next] = true;
+        last = Some(next);
     }
     rings
+}
+
+/// How far apart two rings one level apart may be and still have to be cut in order: a tool
+/// diameter, and at least 1.5 stepovers (docs/specs/pocket-island-order.md §2).
+#[derive(Clone, Copy)]
+struct Reach(f64);
+
+impl Reach {
+    fn new(tool_radius: f64, stepover: f64) -> Self {
+        Reach((2.0 * tool_radius).max(1.5 * stepover) + CHAIN_TOL_MM)
+    }
+}
+
+/// Every node's rings, flattened, with their levels and the rings they wait for.
+fn ring_loops(nodes: &[Node], roots: &[usize], reach: Reach, arcs: &mut ArcTable) -> Vec<Loop> {
+    let mut level = vec![0usize; nodes.len()];
+    let mut stack: Vec<usize> = roots.to_vec();
+    while let Some(i) = stack.pop() {
+        for &child in &nodes[i].children {
+            level[child] = level[i] + 1;
+            stack.push(child);
+        }
+    }
+    let mut loops: Vec<Loop> = Vec::new();
+    let mut of_node: Vec<Vec<usize>> = vec![Vec::new(); nodes.len()];
+    let mut shapes: Vec<&Polyline<f64>> = Vec::new();
+    for (n, node) in nodes.iter().enumerate() {
+        let rings = std::iter::once((false, &node.area.outer))
+            .chain(node.area.holes.iter().map(|h| (true, h)));
+        for (island, pline) in rings {
+            of_node[n].push(loops.len());
+            shapes.push(pline);
+            loops.push(Loop {
+                node: n,
+                island,
+                level: level[n],
+                points: flatten_tagged(pline, arcs),
+                deps: Vec::new(),
+            });
+        }
+    }
+    let Reach(limit) = reach;
+    for (n, node) in nodes.iter().enumerate() {
+        for &i in &of_node[n] {
+            let index = PrimIndex::new(pline_segments(shapes[i]), limit);
+            for &child in &node.children {
+                for &j in &of_node[child] {
+                    if loops[j].points.iter().any(|&p| index.any_within(p, limit)) {
+                        loops[i].deps.push(j);
+                    }
+                }
+            }
+        }
+    }
+    loops
 }
 
 /// How far before its end a ring starts stepping out onto the next, in tool diameters

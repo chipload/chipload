@@ -178,6 +178,10 @@ it's built (see `CLAUDE.md`).
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
   the top bar; the setup sheet in Job settings > Machine.
+- **Pocket rings one island at a time** (2026-10-16, docs/specs/pocket-island-order.md):
+  a ring waits only for the rings next to it one level in; each island's rings are cut in
+  one run, spiralling out to the island; the wall is still last. round_corners: 31 → 23
+  retracts, 25 s shorter.
 - **MCP server** (2026-10-16, docs/specs/mcp.md, ADR 0019): `chipload mcp` serves every
   command as a tool to AI assistants over stdio, generated from the CLI. Step 2 done the same
   day: the app reloads a project changed on disk (docs/specs/reload-changed-file.md), quietly

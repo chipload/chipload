@@ -101,6 +101,13 @@ is **children first** (innermost polygons first), then the polygon's island ring
 exterior ring. So clearing starts at the centre and the wall pass is the last ring at each depth.
 Siblings are ordered nearest-neighbour from the current position, with ties broken by (y, x).
 
+**Amended 2026-10-16** (docs/specs/pocket-island-order.md): a ring waits only for the
+rings next to it one level in (within a tool diameter), and an outer ring also for its own
+level's island rings, so the wall is still last at each depth. From the ring just cut the
+order goes on outward to a ready ring of the same kind next to it, otherwise to the nearest
+ready ring. Each island's rings are cut one after another instead of one level at a time
+across the whole pocket.
+
 ### Direction
 With the material on the right for climb (M3, as for profiles):
 - Exterior rings (pocket wall side, material outside the ring): same as an **inside** profile,

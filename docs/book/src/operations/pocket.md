@@ -18,7 +18,10 @@ standing. Select the contours, then **Pocket** (ribbon, OPERATION).
 
 The pocket is cleared in **rings**:
 - **Order:** rings are offsets of the walls, cut from the centre outwards, with the wall
-  ring last at each depth.
+  ring last at each depth. Round islands, each island's rings are cut one after another,
+  out to the island, before the next island's, so the tool doesn't cross the pocket
+  between rings. Where an island is close to the wall (less than a tool diameter), its
+  rings and the wall's take turns there, so no ring meets more than a stepover of material.
 - **Stepover:** the distance between rings, as a fraction of the tool diameter (0.4 by
   default).
 - **Rounded inner rings:** every ring but the wall ring has rounded corners (up to two
@@ -26,8 +29,10 @@ The pocket is cleared in **rings**:
   the corners are rounded less.
 - **Spiral:** each ring steps out onto the next over its last stretch instead of closing,
   so the rings of a lobe are one continuous spiral with no stop and no sideways move into
-  material. The stepped-out stretch is checked against the walls like a ring; where it
-  wouldn't fit (round an island, or against a sharp corner) the ring closes and is linked.
+  material. Round an island, its rings spiral out towards it the same way. The
+  stepped-out stretch is checked against the walls and islands like a ring; where it
+  wouldn't fit (against a sharp corner, or onto a ring with a lead or a chosen start) the
+  ring closes and is linked.
 - **Links:** where a ring closes, the tool feeds across to the next at depth when the move
   stays clear of the walls and is at most one tool diameter, which it checks; otherwise it
   retracts. There is nothing to set: a checked link is always better than a retract.

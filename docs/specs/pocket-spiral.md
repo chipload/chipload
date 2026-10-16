@@ -1,6 +1,9 @@
 # Spec: the pocket's rings as one spiral
 
-Status: **built 2026-10-15**, as the user asked ("morphing spiral as you mentioned would
+Status: **built 2026-10-15**; **amended 2026-10-16** by docs/specs/pocket-island-order.md
+§4: a ring steps out wherever the cut order goes on outward to a ring of the same kind next
+to it, island rings included (the "island rings never step out" rule of §2 and §3 no longer
+holds). As first built, as the user asked ("morphing spiral as you mentioned would
 be nice") after the pocket clearing review of the same day (docs/specs/pocket.md §9).
 
 Guide: docs/book/src/operations/pocket.md (Rings). Builds on docs/specs/pocket.md and

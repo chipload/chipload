@@ -254,9 +254,12 @@ fn material_side_of_every_ring() {
     for (direction, spindle, material_on_right) in cases {
         let result = plan_with(&contours, 2.4, direction, spindle).unwrap();
         for ring in &result.pieces[0].rings {
+            let open = ring.open;
             let ring = &ring.points;
             let n = ring.len();
-            let (a, b) = (0..n)
+            // An open path (a ring that steps out) doesn't close back to its start.
+            let chords = if open { n - 1 } else { n };
+            let (a, b) = (0..chords)
                 .map(|i| (ring[i], ring[(i + 1) % n]))
                 .max_by(|x, y| distance(x.0, x.1).total_cmp(&distance(y.0, y.1)))
                 .unwrap();
@@ -610,28 +613,180 @@ fn inner_rings_step_out_onto_the_next_as_one_spiral() {
     }
 }
 
+// -- one island at a time (docs/specs/pocket-island-order.md)
+
+/// A rectangle with a circle and a square island, each farther than a tool diameter from
+/// the wall and from each other at every level.
+fn two_islands() -> [Contour; 3] {
+    [
+        outline(),
+        circle_id(2, (25.0, 30.0), 7.0),
+        rect(3, 60.0, 23.0, 74.0, 37.0),
+    ]
+}
+
+/// Which island an island ring goes round (its points' mean nearest), None for an outer
+/// ring. Island rings run clockwise for climb with M3.
+fn island_of(ring: &[Point]) -> Option<usize> {
+    if signed_area(ring) >= 0.0 {
+        return None;
+    }
+    let n = ring.len() as f64;
+    let c = (
+        ring.iter().map(|p| p.0).sum::<f64>() / n,
+        ring.iter().map(|p| p.1).sum::<f64>() / n,
+    );
+    Some(if distance(c, (25.0, 30.0)) < distance(c, (67.0, 30.0)) {
+        2
+    } else {
+        3
+    })
+}
+
 #[test]
-fn the_ring_before_an_island_ring_does_not_step_out() {
-    let contours = [outline(), rect(2, 30.0, 20.0, 70.0, 40.0)];
+fn each_islands_rings_are_cut_one_after_another() {
+    let contours = two_islands();
     let result = plan(&contours);
     let piece = &result.pieces[0];
-    let rings = &piece.rings;
-    // The rings round the island (clockwise for climb) and the wall ring never step out,
-    // and neither does the ring cut just before an island ring.
-    for (i, ring) in rings.iter().enumerate() {
-        let island = signed_area(&ring.points) < 0.0;
-        let next_is_island = rings
-            .get(i + 1)
-            .is_some_and(|r| signed_area(&r.points) < 0.0);
-        if island || next_is_island || i + 1 == rings.len() {
-            assert!(!ring.steps_out, "ring {i}");
+    let islands: Vec<Option<usize>> = piece.rings.iter().map(|r| island_of(&r.points)).collect();
+    for island in [2, 3] {
+        let at: Vec<usize> = (0..islands.len())
+            .filter(|&i| islands[i] == Some(island))
+            .collect();
+        assert!(at.len() > 2, "island {island}: {islands:?}");
+        assert!(
+            at.windows(2).all(|w| w[1] == w[0] + 1),
+            "island {island}'s rings one after another: {islands:?}"
+        );
+    }
+    let last = piece.rings.last().unwrap();
+    assert!(
+        last.wall && islands.last() == Some(&None),
+        "the wall ring is last"
+    );
+    // Lifts only between the separate deep lobes (the corners and between the islands)
+    // and the chains, not between every ring: 7, where cutting level by level lifted 14.
+    let lifts = piece.feed_links.iter().filter(|f| !**f).count();
+    assert!(lifts <= 7, "{lifts} lifts: {:?}", piece.feed_links);
+    assert_clear(&contours, &result, 3.0);
+}
+
+#[test]
+fn island_rings_spiral_out_to_the_island() {
+    let contours = two_islands();
+    let result = plan(&contours);
+    let rings = &result.pieces[0].rings;
+    for island in [2, 3] {
+        let at: Vec<usize> = (0..rings.len())
+            .filter(|&i| island_of(&rings[i].points) == Some(island))
+            .collect();
+        let (&edge, inner) = at.split_last().unwrap();
+        assert!(
+            rings[edge].wall && !rings[edge].steps_out,
+            "the island's edge ring closes"
+        );
+        for &i in inner {
+            assert!(rings[i].steps_out, "island {island}: ring {i} steps out");
+            assert_eq!(rings[i].end(), Some(rings[i + 1].points[0]));
         }
     }
-    assert!(
-        rings.iter().any(|r| r.steps_out),
-        "the inner lobes still spiral"
-    );
+    // The wall ring never steps out.
+    assert!(!rings.last().unwrap().steps_out);
     assert_clear(&contours, &result, 3.0);
+}
+
+/// The order's one rule (docs/specs/pocket-island-order.md §2), checked from the rings
+/// alone: where a ring is farther than `gap` from every ring cut before it, no deeper ring
+/// (more stepovers from the walls) cut after it comes within `gap` of it. So a ring never
+/// meets the material of a deeper ring that isn't cut yet.
+fn assert_deeper_rings_first(contours: &[Contour], result: &PocketPlan, offset: f64, s: f64) {
+    let walls: Vec<Primitive> = contours
+        .iter()
+        .flat_map(|c| pline_segments(&contour_pline(c)))
+        .collect();
+    let to_walls = |p: Point| {
+        walls
+            .iter()
+            .map(|w| point_distance(w, p))
+            .fold(f64::INFINITY, f64::min)
+    };
+    let chords = |points: &[Point]| -> Vec<Primitive> {
+        points
+            .windows(2)
+            .map(|w| {
+                Primitive::Line(chipload_core::primitives::Line {
+                    start: w[0],
+                    end: w[1],
+                })
+            })
+            .collect()
+    };
+    let near = |path: &[Primitive], p: Point| {
+        path.iter()
+            .map(|c| point_distance(c, p))
+            .fold(f64::INFINITY, f64::min)
+    };
+    let gap = 1.2 * s;
+    for piece in &result.pieces {
+        // Each ring's level: its points' median distance from the walls, in stepovers.
+        let levels: Vec<i64> = piece
+            .rings
+            .iter()
+            .map(|r| {
+                let mut d: Vec<f64> = r.points.iter().map(|&p| to_walls(p)).collect();
+                d.sort_by(f64::total_cmp);
+                ((d[d.len() / 2] - offset) / s).round() as i64
+            })
+            .collect();
+        let paths: Vec<Vec<Primitive>> = piece.rings.iter().map(|r| chords(&r.points)).collect();
+        for (i, ring) in piece.rings.iter().enumerate() {
+            let earlier: Vec<Primitive> = paths[..i].iter().flatten().cloned().collect();
+            for p in sampled(&ring.points, 1.0) {
+                if near(&earlier, p) <= gap {
+                    continue;
+                }
+                for j in i + 1..piece.rings.len() {
+                    if levels[j] > levels[i] {
+                        let d = near(&paths[j], p);
+                        assert!(
+                            d > gap,
+                            "ring {i} (level {}) at {p:?} meets ring {j} (level {}, {d:.2} \
+                             away), cut after it",
+                            levels[i],
+                            levels[j]
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Points along a path, at most `step` apart.
+fn sampled(points: &[Point], step: f64) -> Vec<Point> {
+    let mut out = Vec::new();
+    for w in points.windows(2) {
+        let n = (distance(w[0], w[1]) / step).ceil().max(1.0) as usize;
+        for k in 0..n {
+            let t = k as f64 / n as f64;
+            out.push((
+                w[0].0 + (w[1].0 - w[0].0) * t,
+                w[0].1 + (w[1].1 - w[0].1) * t,
+            ));
+        }
+    }
+    out
+}
+
+#[test]
+fn deeper_rings_are_cut_first_round_islands_and_in_a_neck() {
+    let islands = two_islands();
+    assert_deeper_rings_first(&islands, &plan(&islands), 3.0, 2.4);
+    // An island close to the wall: its rings and the wall's must alternate in the neck.
+    let neck = [outline(), rect(2, 8.0, 20.0, 30.0, 40.0)];
+    let result = plan(&neck);
+    assert_deeper_rings_first(&neck, &result, 3.0, 2.4);
+    assert_clear(&neck, &result, 3.0);
 }
 
 // -- moves
