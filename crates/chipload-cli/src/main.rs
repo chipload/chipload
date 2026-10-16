@@ -334,8 +334,9 @@ enum Command {
         /// --width apply, as `image set`.
         #[arg(long, conflicts_with = "text")]
         image: Option<u64>,
-        /// A text of the project instead (as `text list` shows it): --at, --rotate and
-        /// --height (its capital height) apply, as `text set`.
+        /// A text of the project instead (as `text list` shows it): --at (its anchor: the
+        /// corner or the centre, as set), --rotate and --height (its capital height) apply,
+        /// as `text set`.
         #[arg(long)]
         text: Option<u64>,
         /// Where to write the result; default: the project itself.

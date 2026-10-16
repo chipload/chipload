@@ -178,9 +178,8 @@ fn a_selector_may_name_a_whole_dxf() {
     assert!(!result.files[0].gcode.is_empty());
     // Nothing at all is still refused.
     *two.operations[1].select_mut() = chipload_job::Selector::default();
-    assert!(
-        two.validate()
-            .iter()
-            .any(|p| p.text.contains("needs a DXF, an image, a text, a layer or shapes"))
-    );
+    assert!(two.validate().iter().any(|p| {
+        p.text
+            .contains("needs a DXF, an image, a text, a layer or shapes")
+    }));
 }

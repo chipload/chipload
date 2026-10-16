@@ -489,22 +489,31 @@ A text written into shapes: what it says, its font and size, and where it goes. 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `align` | [TextAlign](#textalign) | yes | How the lines line up against each other. |
+| `anchor` | [TextAnchor](#textanchor) | no | What `x` and `y` are: the box's lower-left corner (before the turn), or its centre. A centred text stays centred there when its words, font or size change. Missing: the corner. |
 | `font` | string | yes | A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or FreeMono Bold (`chipload text fonts`). |
 | `height` | number | yes | The height of a capital letter, mm. |
 | `id` | integer | yes | The text's id, which its letters name. |
 | `layer` | string | yes | The layer its letters go on. |
 | `line_spacing` | number | yes | From one line's base to the next, in capital heights. |
-| `rotation` | number | yes | Turned counter-clockwise about the box's centre, degrees, at least 0 and less than 360. `x` and `y` are before the turn, as for an image. |
+| `rotation` | number | yes | Turned counter-clockwise about the box's centre, degrees, at least 0 and less than 360. |
 | `spacing` | number | yes | Extra space between letters, mm; 0: the font's own spacing, kerning included. |
 | `text` | string | yes | What it says; a line break ("\n") starts a new line. |
-| `x` | number | yes | X of the lower-left corner of the text's box on the stock, mm. |
-| `y` | number | yes | Y of the lower-left corner of the text's box on the stock, mm. |
+| `x` | number | yes | X of the text's anchor on the stock, mm: the lower-left corner of its box (before the turn) or its centre. |
+| `y` | number | yes | Y of the text's anchor on the stock, mm. |
 
 ## TextAlign
 
 How a text's lines line up.
 
 One of: `"left"`, `"center"`, `"right"`.
+
+## TextAnchor
+
+What a text's position is (docs/specs/text.md §3).
+
+- `"corner"`: The lower-left corner of the text's box, before the turn.
+
+- `"center"`: The centre of the text's box (the turn keeps it in place).
 
 ## Tool
 

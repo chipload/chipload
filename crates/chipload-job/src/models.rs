@@ -392,12 +392,18 @@ pub struct Text {
     pub font: String,
     /// The height of a capital letter, mm.
     pub height: f64,
-    /// X of the lower-left corner of the text's box on the stock, mm.
+    /// X of the text's anchor on the stock, mm: the lower-left corner of its box (before
+    /// the turn) or its centre.
     pub x: f64,
-    /// Y of the lower-left corner of the text's box on the stock, mm.
+    /// Y of the text's anchor on the stock, mm.
     pub y: f64,
+    /// What `x` and `y` are: the box's lower-left corner (before the turn), or its centre.
+    /// A centred text stays centred there when its words, font or size change. Missing:
+    /// the corner.
+    #[serde(default)]
+    pub anchor: TextAnchor,
     /// Turned counter-clockwise about the box's centre, degrees, at least 0 and less than
-    /// 360. `x` and `y` are before the turn, as for an image.
+    /// 360.
     pub rotation: f64,
     /// How the lines line up against each other.
     pub align: TextAlign,
@@ -407,6 +413,18 @@ pub struct Text {
     pub line_spacing: f64,
     /// The layer its letters go on.
     pub layer: String,
+}
+
+/// What a text's position is (docs/specs/text.md §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum TextAnchor {
+    /// The lower-left corner of the text's box, before the turn.
+    #[default]
+    Corner,
+    /// The centre of the text's box (the turn keeps it in place).
+    Center,
 }
 
 /// How a text's lines line up.

@@ -85,6 +85,25 @@ fn texts_are_added_changed_placed_listed_and_removed() {
     assert_eq!(text["rotation"].as_f64(), Some(270.0));
     assert_eq!(text["height"].as_f64(), Some(20.0));
 
+    // A new anchor keeps the text where it is: the corner becomes the centre.
+    let before = ok(&dir, &["text", "list", "p.chipload"])["texts"][0].clone();
+    ok(
+        &dir,
+        &[
+            "text",
+            "set",
+            "p.chipload",
+            "1",
+            "--anchor",
+            "center",
+            "--rotate",
+            "0",
+        ],
+    );
+    let centred = &ok(&dir, &["text", "list", "p.chipload"])["texts"][0];
+    assert_eq!(centred["anchor"], "center");
+    assert!(centred["x"].as_f64() > before["x"].as_f64(), "{centred}");
+
     // `set` by path writes the letters again.
     let set = ok(&dir, &["set", "p.chipload", "drawing.texts.0.text=\"ABC\""]);
     assert!(

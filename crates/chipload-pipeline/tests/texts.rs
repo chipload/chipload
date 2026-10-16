@@ -3,9 +3,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_core::primitives::{Arc, Line, Primitive};
-use chipload_job::{Job, Operation, PathSegment, Selector, Tool, ToolType, VcarveOp};
+use chipload_job::{Job, Operation, PathSegment, Selector, TextAnchor, Tool, ToolType, VcarveOp};
 use chipload_pipeline::images::turned_box;
-use chipload_pipeline::texts::{NewText, add_text, remake_changed, remove_text, text_size};
+use chipload_pipeline::texts::{
+    NewText, add_text, remake_changed, remove_text, text_size, with_anchor,
+};
 use chipload_pipeline::{empty_project, run_job};
 
 /// The box round every letter of text `id`.
@@ -172,4 +174,76 @@ fn vcarve(select: Selector) -> Operation {
         feed: 1200.0,
         plunge_feed: 400.0,
     })
+}
+
+/// The middle of the box round text `id`'s letters.
+fn middle(job: &Job, id: u64) -> (f64, f64) {
+    let ((x0, y0), (x1, y1)) = extent(job, id);
+    ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+}
+
+#[test]
+fn a_centred_text_stays_centred_when_it_turns_and_changes() {
+    let mut new = NewText::new("HELLO", 20.0);
+    (new.x, new.y) = (80.0, 50.0);
+    new.anchor = TextAnchor::Center;
+    let (job, _) = add_text(&empty_project(), new).unwrap();
+    let close = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6;
+    assert!(
+        close(middle(&job, 1), (80.0, 50.0)),
+        "{:?}",
+        middle(&job, 1)
+    );
+    // Turned: every point of the letters is turned about the centre, which stays.
+    let mut turned = job.clone();
+    turned.drawing.texts[0].rotation = 33.0;
+    let (turned, _) = remake_changed(&job, &turned).unwrap();
+    let starts = |job: &Job| -> Vec<(f64, f64)> {
+        job.drawing
+            .shapes
+            .iter()
+            .filter(|s| s.text() == Some(1))
+            .flat_map(|s| s.segments())
+            .map(|segment| match segment {
+                PathSegment::Line(l) => (l.start[0], l.start[1]),
+                PathSegment::Arc(a) => {
+                    let t = a.start_angle;
+                    (
+                        a.center[0] + a.radius * t.cos(),
+                        a.center[1] + a.radius * t.sin(),
+                    )
+                }
+            })
+            .collect()
+    };
+    let (sin, cos) = 33.0_f64.to_radians().sin_cos();
+    for (p, q) in starts(&job).iter().zip(starts(&turned)) {
+        let (dx, dy) = (p.0 - 80.0, p.1 - 50.0);
+        let want = (80.0 + dx * cos - dy * sin, 50.0 + dx * sin + dy * cos);
+        assert!(close(q, want), "{q:?} vs {want:?}");
+    }
+    // Other words: still centred there.
+    let mut longer = job.clone();
+    longer.drawing.texts[0].text = "HELLO WORLD".into();
+    let (longer, _) = remake_changed(&job, &longer).unwrap();
+    assert!(
+        close(middle(&longer, 1), (80.0, 50.0)),
+        "{:?}",
+        middle(&longer, 1)
+    );
+}
+
+#[test]
+fn changing_the_anchor_leaves_the_letters_where_they_are() {
+    let (job, _) = hello(&empty_project());
+    let text = &job.drawing.texts[0];
+    let size = text_size(text).unwrap();
+    let centred = with_anchor(text, TextAnchor::Center, size);
+    assert_eq!(centred.anchor, TextAnchor::Center);
+    let mut after = job.clone();
+    after.drawing.texts[0] = centred;
+    let (after, _) = remake_changed(&job, &after).unwrap();
+    assert_eq!(extent(&after, 1), extent(&job, 1));
+    let back = with_anchor(&after.drawing.texts[0], TextAnchor::Corner, size);
+    assert!((back.x - 30.0).abs() < 1e-9 && (back.y - 40.0).abs() < 1e-9);
 }

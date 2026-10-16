@@ -1753,6 +1753,11 @@
           "$ref": "#/$defs/TextAlign",
           "description": "How the lines line up against each other."
         },
+        "anchor": {
+          "$ref": "#/$defs/TextAnchor",
+          "default": "corner",
+          "description": "What `x` and `y` are: the box's lower-left corner (before the turn), or its centre.\nA centred text stays centred there when its words, font or size change. Missing:\nthe corner."
+        },
         "font": {
           "description": "A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or\nFreeMono Bold (`chipload text fonts`).",
           "type": "string"
@@ -1778,7 +1783,7 @@
           "type": "number"
         },
         "rotation": {
-          "description": "Turned counter-clockwise about the box's centre, degrees, at least 0 and less than\n360. `x` and `y` are before the turn, as for an image.",
+          "description": "Turned counter-clockwise about the box's centre, degrees, at least 0 and less than\n360.",
           "format": "double",
           "type": "number"
         },
@@ -1792,12 +1797,12 @@
           "type": "string"
         },
         "x": {
-          "description": "X of the lower-left corner of the text's box on the stock, mm.",
+          "description": "X of the text's anchor on the stock, mm: the lower-left corner of its box (before\nthe turn) or its centre.",
           "format": "double",
           "type": "number"
         },
         "y": {
-          "description": "Y of the lower-left corner of the text's box on the stock, mm.",
+          "description": "Y of the text's anchor on the stock, mm.",
           "format": "double",
           "type": "number"
         }
@@ -1825,6 +1830,21 @@
         "right"
       ],
       "type": "string"
+    },
+    "TextAnchor": {
+      "description": "What a text's position is (docs/specs/text.md §3).",
+      "oneOf": [
+        {
+          "const": "corner",
+          "description": "The lower-left corner of the text's box, before the turn.",
+          "type": "string"
+        },
+        {
+          "const": "center",
+          "description": "The centre of the text's box (the turn keeps it in place).",
+          "type": "string"
+        }
+      ]
     },
     "Tool": {
       "additionalProperties": false,

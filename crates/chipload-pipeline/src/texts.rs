@@ -4,7 +4,7 @@
 //! placed and turned as a picture's shapes are; the CLI and the GUI both go through these.
 
 use chipload_core::chain::ShapeFrom;
-use chipload_job::{Geometry, Job, Shape, TEXT_DEFAULT_LINE_SPACING, Text, TextAlign};
+use chipload_job::{Geometry, Job, Shape, TEXT_DEFAULT_LINE_SPACING, Text, TextAlign, TextAnchor};
 use chipload_text::{Align, Layout, Lettering, letters};
 
 use crate::PipelineError;
@@ -23,6 +23,7 @@ pub struct NewText<'a> {
     pub height: f64,
     pub x: f64,
     pub y: f64,
+    pub anchor: TextAnchor,
     pub rotation: f64,
     pub align: TextAlign,
     pub spacing: f64,
@@ -39,6 +40,7 @@ impl<'a> NewText<'a> {
             height,
             x: 0.0,
             y: 0.0,
+            anchor: TextAnchor::Corner,
             rotation: 0.0,
             align: TextAlign::Left,
             spacing: 0.0,
@@ -73,6 +75,7 @@ pub fn add_text(job: &Job, new: NewText) -> Result<(Job, TextReport), PipelineEr
         height: new.height,
         x: new.x,
         y: new.y,
+        anchor: new.anchor,
         rotation: new.rotation,
         align: new.align,
         spacing: new.spacing,
@@ -131,7 +134,7 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
                 closed: true,
                 segments: placed_box(
                     outline,
-                    (text.x, text.y),
+                    box_corner(text, (lettering.width, lettering.height)),
                     (lettering.width, lettering.height),
                     text.rotation,
                 ),
@@ -146,6 +149,31 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
         .lines
         .extend(find_left_out_again(&mut out, ShapeFrom::Text(id), &old));
     Ok((out, report))
+}
+
+/// The lower-left corner of a text's box of `size`, before its turn: its position, or
+/// half the box from it when it is the centre.
+pub fn box_corner(text: &Text, size: (f64, f64)) -> (f64, f64) {
+    match text.anchor {
+        TextAnchor::Corner => (text.x, text.y),
+        TextAnchor::Center => (text.x - size.0 / 2.0, text.y - size.1 / 2.0),
+    }
+}
+
+/// `text` with its anchor changed to `anchor` and its position moved to match, so its
+/// letters stay where they are (a box of `size`).
+pub fn with_anchor(text: &Text, anchor: TextAnchor, size: (f64, f64)) -> Text {
+    let (x0, y0) = box_corner(text, size);
+    let (x, y) = match anchor {
+        TextAnchor::Corner => (x0, y0),
+        TextAnchor::Center => (x0 + size.0 / 2.0, y0 + size.1 / 2.0),
+    };
+    Text {
+        x,
+        y,
+        anchor,
+        ..text.clone()
+    }
 }
 
 /// Make the letters again of every text that differs in `after` from `before` (or is new),

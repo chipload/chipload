@@ -80,7 +80,7 @@
         "radius": 4.0
       },
       {
-        "id": 12,
+        "id": 24,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -360,7 +360,7 @@
         ]
       },
       {
-        "id": 13,
+        "id": 25,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -883,7 +883,7 @@
         ]
       },
       {
-        "id": 14,
+        "id": 26,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -1126,7 +1126,7 @@
         ]
       },
       {
-        "id": 15,
+        "id": 27,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -1375,7 +1375,7 @@
         ]
       },
       {
-        "id": 16,
+        "id": 28,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -1475,7 +1475,7 @@
         ]
       },
       {
-        "id": 17,
+        "id": 29,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -1760,7 +1760,7 @@
         ]
       },
       {
-        "id": 18,
+        "id": 30,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -1870,7 +1870,7 @@
         ]
       },
       {
-        "id": 19,
+        "id": 31,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -2002,7 +2002,7 @@
         ]
       },
       {
-        "id": 20,
+        "id": 32,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -2278,7 +2278,7 @@
         ]
       },
       {
-        "id": 21,
+        "id": 33,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -2325,7 +2325,7 @@
         ]
       },
       {
-        "id": 22,
+        "id": 34,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -2507,7 +2507,7 @@
         ]
       },
       {
-        "id": 23,
+        "id": 35,
         "layer": "text",
         "kind": "path",
         "dxf_handle": null,
@@ -2652,7 +2652,7 @@
         ]
       }
     ],
-    "next_shape_id": 24,
+    "next_shape_id": 36,
     "dxfs": [],
     "images": [],
     "texts": [
@@ -2661,8 +2661,9 @@
         "text": "CHIPLOAD",
         "font": "FreeSerif Bold",
         "height": 8.0,
-        "x": 83.22,
-        "y": 51.0,
+        "x": 114.97942404124525,
+        "y": 55.22490995797767,
+        "anchor": "center",
         "rotation": 0.0,
         "align": "left",
         "spacing": 0.0,

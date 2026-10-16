@@ -5,9 +5,10 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, TextAlign, save_job};
+use chipload_job::{Job, TextAlign, TextAnchor, save_job};
 use chipload_pipeline::texts::{
-    NewText, TextReport, add_text, font_names, remake, remove_text, text_label,
+    NewText, TextReport, add_text, font_names, remake, remove_text, text_label, text_size,
+    with_anchor,
 };
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::{Value, json};
@@ -73,9 +74,14 @@ pub enum TextAction {
 /// How and where the text is written; unset: the default (add) or unchanged (set).
 #[derive(Args)]
 pub struct Settings {
-    /// Where the lower-left corner of the text's box goes: X,Y in mm (default 0,0).
+    /// Where the text's anchor goes: X,Y in mm (default 0,0).
     #[arg(long, value_parser = parse_at, allow_hyphen_values = true)]
     at: Option<(f64, f64)>,
+    /// What --at is: the lower-left corner of the text's box (default) or its centre. A
+    /// centred text stays centred when it changes. Changed without --at, the text stays
+    /// where it is.
+    #[arg(long, value_enum)]
+    anchor: Option<AnchorArg>,
     /// Turn it about its centre to this angle, degrees counter-clockwise (any angle).
     /// `--at` stays the corner before the turn.
     #[arg(long, allow_hyphen_values = true)]
@@ -102,6 +108,21 @@ pub enum AlignArg {
     Left,
     Center,
     Right,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum AnchorArg {
+    Corner,
+    Center,
+}
+
+impl From<AnchorArg> for TextAnchor {
+    fn from(a: AnchorArg) -> Self {
+        match a {
+            AnchorArg::Corner => TextAnchor::Corner,
+            AnchorArg::Center => TextAnchor::Center,
+        }
+    }
 }
 
 impl From<AlignArg> for TextAlign {
@@ -174,6 +195,11 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
                 if let Some(height) = height {
                     t.height = height;
                 }
+                // A new anchor keeps the text where it is, unless --at says where.
+                if let Some(anchor) = settings.anchor {
+                    let size = text_size(t).map_err(|e| e.to_string())?;
+                    *t = with_anchor(t, anchor.into(), size);
+                }
                 if let Some((x, y)) = settings.at {
                     (t.x, t.y) = (x, y);
                 }
@@ -244,6 +270,9 @@ fn add(
     if let Some((x, y)) = settings.at {
         (new.x, new.y) = (x, y);
     }
+    if let Some(anchor) = settings.anchor {
+        new.anchor = anchor.into();
+    }
     if let Some(degrees) = settings.rotate {
         match turned(degrees) {
             Ok(r) => new.rotation = r,
@@ -270,8 +299,8 @@ fn add(
     }
 }
 
-/// `place --text`: the text's corner and turn, and its height; written again, as `text
-/// set` does.
+/// `place --text`: the text's position (its anchor: corner or centre) and turn, and its
+/// height; written again, as `text set` does.
 pub fn place_text(
     out: &mut Out,
     project: &Path,
@@ -342,12 +371,16 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .filter(|s| s.text() == Some(text.id))
             .count();
         out.line(format!(
-            "{}: {} in {}, {} mm high, on layer {}, at ({}, {}){}; {shapes} {}",
+            "{}: {} in {}, {} mm high, on layer {}, {} at ({}, {}){}; {shapes} {}",
             text.id,
             text_label(text),
             text.font,
             text.height,
             text.layer,
+            match text.anchor {
+                TextAnchor::Corner => "corner",
+                TextAnchor::Center => "centre",
+            },
             text.x,
             text.y,
             if text.rotation == 0.0 {
@@ -367,6 +400,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "height": text.height,
             "x": text.x,
             "y": text.y,
+            "anchor": text.anchor,
             "rotation": text.rotation,
             "align": text.align,
             "spacing": text.spacing,

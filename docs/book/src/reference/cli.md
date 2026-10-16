@@ -424,7 +424,8 @@ chipload text add <PROJECT> <TEXT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `<TEXT>` | What it says. |
 | `--height <HEIGHT>` | The height of a capital letter, mm. Required. |
-| `--at <AT>` | Where the lower-left corner of the text's box goes: X,Y in mm (default 0,0) |
+| `--at <AT>` | Where the text's anchor goes: X,Y in mm (default 0,0) |
+| `--anchor <ANCHOR>` | What --at is: the lower-left corner of the text's box (default) or its centre. A centred text stays centred when it changes. Changed without --at, the text stays where it is. One of: `corner`, `center`. |
 | `--rotate <ROTATE>` | Turn it about its centre to this angle, degrees counter-clockwise (any angle). `--at` stays the corner before the turn. |
 | `--font <FONT>` | A built-in font (`text fonts`; default FreeSans) |
 | `--align <ALIGN>` | How the lines line up (default left) One of: `left`, `center`, `right`. |
@@ -447,7 +448,8 @@ chipload text set <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The text's id (as `text list` shows it) |
 | `--text <TEXT>` | What it says. |
 | `--height <HEIGHT>` | The height of a capital letter, mm. |
-| `--at <AT>` | Where the lower-left corner of the text's box goes: X,Y in mm (default 0,0) |
+| `--at <AT>` | Where the text's anchor goes: X,Y in mm (default 0,0) |
+| `--anchor <ANCHOR>` | What --at is: the lower-left corner of the text's box (default) or its centre. A centred text stays centred when it changes. Changed without --at, the text stays where it is. One of: `corner`, `center`. |
 | `--rotate <ROTATE>` | Turn it about its centre to this angle, degrees counter-clockwise (any angle). `--at` stays the corner before the turn. |
 | `--font <FONT>` | A built-in font (`text fonts`; default FreeSans) |
 | `--align <ALIGN>` | How the lines line up (default left) One of: `left`, `center`, `right`. |
@@ -987,7 +989,7 @@ chipload place <PROJECT> [OPTIONS]
 | `--reset` | Back to where the DXF has it: no turn, no scale, no move. |
 | `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `--image <IMAGE>` | A picture of the project instead (as `image list` shows it): --at, --rotate and --width apply, as `image set`. |
-| `--text <TEXT>` | A text of the project instead (as `text list` shows it): --at, --rotate and --height (its capital height) apply, as `text set`. |
+| `--text <TEXT>` | A text of the project instead (as `text list` shows it): --at (its anchor: the corner or the centre, as set), --rotate and --height (its capital height) apply, as `text set`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload licenses`

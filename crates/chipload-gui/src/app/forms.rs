@@ -1430,7 +1430,7 @@ pub(super) fn text_form(
     id: u64,
     grab: bool,
 ) -> Option<JobRequest> {
-    use chipload_job::{Text, TextAlign};
+    use chipload_job::{Text, TextAlign, TextAnchor};
     let text = edit.settings.drawing.texts.iter().find(|t| t.id == id)?;
     let mut request = None;
     super::browser::title_line(
@@ -1499,21 +1499,50 @@ pub(super) fn text_form(
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
             let (w, h) = size.unwrap_or((0.0, 0.0));
-            let turned =
-                |d: &Text| chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation);
-            let ((x0, y0), _) = turned(&draft);
-            ui.label("Position")
-                .on_hover_text("The lower-left corner of the text's box, mm");
+            ui.label("Anchor").on_hover_text(
+                "What Position is: the lower-left corner of the text's box, or its centre. A \
+                 centred text stays centred when its words, font or size change",
+            );
+            let before = draft.anchor;
+            let mut anchor = draft.anchor;
+            egui::ComboBox::from_id_salt(("text-anchor", id))
+                .selected_text(match anchor {
+                    TextAnchor::Corner => "lower-left corner",
+                    TextAnchor::Center => "centre",
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut anchor, TextAnchor::Corner, "lower-left corner");
+                    ui.selectable_value(&mut anchor, TextAnchor::Center, "centre");
+                });
+            if anchor != before {
+                // The text stays where it is: only what Position means changes.
+                draft = chipload_pipeline::texts::with_anchor(&draft, anchor, (w, h));
+                finished = true;
+            }
+            ui.end_row();
+            // Shown as the box's lower-left corner on the stock (after the turn), or its
+            // centre, which the turn keeps in place.
+            let shown = |d: &Text| match d.anchor {
+                TextAnchor::Center => (d.x, d.y),
+                TextAnchor::Corner => {
+                    chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation).0
+                }
+            };
+            let (x0, y0) = shown(&draft);
+            ui.label("Position").on_hover_text(match draft.anchor {
+                TextAnchor::Corner => "The lower-left corner of the text's box, mm",
+                TextAnchor::Center => "The centre of the text's box, mm",
+            });
             ui.horizontal(|ui| {
                 let (mut cx, mut cy) = (x0, y0);
                 for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
                     let response = ui.add(mm_field(value).prefix(axis));
                     finished |= response.drag_stopped() || response.lost_focus();
                 }
-                // Moving the box's corner moves the text's own corner as much.
+                // Moving what is shown moves the text's own position as much.
                 draft.x += cx - x0;
                 draft.y += cy - y0;
-                if reset_button(ui, (x0, y0) != (0.0, 0.0), "The box's corner at X0 Y0") {
+                if reset_button(ui, (x0, y0) != (0.0, 0.0), "At X0 Y0") {
                     draft.x -= x0;
                     draft.y -= y0;
                     finished = true;

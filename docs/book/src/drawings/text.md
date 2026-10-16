@@ -10,7 +10,8 @@ on the right](../images/showcase.png)
 ## Writing a text
 
 1. **Draw > Text** in the ribbon (or *DRAW > Text*), then click on the canvas where the text
-   should start. That point is the lower-left corner of the text's box.
+   should start. That point is the lower-left corner of the text's box; set **Anchor** to
+   centre afterwards to keep it centred on a point instead.
 2. A text saying "Text" appears there, selected, with its properties open and the text field
    ready: type what it should say. **Enter** starts a new line. The letters are made again
    when you click elsewhere.
@@ -26,7 +27,10 @@ canvas:
 - **Text:** what it says, on one or more lines;
 - **Font:** one of the built-in fonts (below);
 - **Height:** the height of a capital letter, mm; what a ruler measures on an H;
-- **Position:** the lower-left corner of the text's box, mm;
+- **Anchor:** what Position is: the **lower-left corner** of the text's box, or its
+  **centre**. A centred text stays centred when you change its words, font or size, which is
+  handy for a name in the middle of a sign. Changing the anchor doesn't move the text;
+- **Position:** the anchor's place on the stock, mm;
 - **Rotation:** degrees counter-clockwise, any angle, about the box's centre, with ⟲ 90 and
   ⟳ 90;
 - **Align:** how lines line up: left, centre or right;
@@ -67,6 +71,7 @@ left-out letter is found again when the text changes size, place or font.
 ```sh
 chipload text add sign.chipload "MAKER\nSPACE" --height 20 --at 40,30 --font "FreeSerif Bold" --align center
 chipload text set sign.chipload 1 --rotate 15 --spacing 1     # change it; its letters are made again
+chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y55, and stays centred
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1

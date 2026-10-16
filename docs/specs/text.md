@@ -11,6 +11,9 @@ Built the same day (ADR 0020). As built:
 - §7: `drawing.texts` is left out of the file when empty, so projects without text still
   open in 0.19.
 - The setup sheet lists each text with the DXFs and pictures when there are several.
+- §3 `anchor` (user, 2026-10-16: "choose Center placement for the text instead of only left
+  corner"): optional, `corner` when missing. Changing it in Properties, or with `text set
+  --anchor` without `--at`, moves the position so the letters stay where they are.
 
 Guide: docs/book/src/drawings/text.md.
 
@@ -65,7 +68,8 @@ shapes are.
 | `text` | what it says; `\n` starts a new line |
 | `font` | a built-in font's name |
 | `height` | the height of a capital letter, mm (what a ruler measures on the H) |
-| `x`, `y` | the lower-left corner of the text's box on the stock, mm, before the turn |
+| `x`, `y` | the text's anchor on the stock, mm |
+| `anchor` | `corner` (default): `x`, `y` are the lower-left corner of the text's box, before the turn; `center`: its centre, so a centred text stays centred when its words, font or size change (added 2026-10-16 at the user's request) |
 | `rotation` | degrees counter-clockwise about the box's centre, 0 to <360, any angle |
 | `align` | `left`, `center` or `right`: lines against each other |
 | `spacing` | extra space between letters, mm (0: the font's own, kerning included) |
