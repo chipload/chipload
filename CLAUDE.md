@@ -109,6 +109,7 @@ cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # che
 cargo run -p chipload-cli -- check-project part.chipload           # the project's problems with their paths
 cargo run -p chipload-cli -- schema project                        # JSON Schema (also tools, machines); copies in docs/schemas/
 cargo run -p chipload-cli -- plan part.chipload --json             # --json on any command: one object (docs/book/src/scripting.md)
+cargo run -p chipload-cli -- mcp                                   # MCP server on stdio: every command as a tool for AI assistants (docs/specs/mcp.md)
 cargo run -p chipload-cli -- tool list                   # the user's tool library (also: machine list)
 cargo run -p chipload-cli -- tool compare part.chipload  # project tools vs their library entries, by uid (also: machine compare)
 cargo run -p chipload-cli -- tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2   # a V-bit for V-carving

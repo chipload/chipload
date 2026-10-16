@@ -124,6 +124,21 @@ impl Out {
         if !self.json {
             return code;
         }
+        println!("{}", self.envelope(code));
+        code
+    }
+
+    /// The JSON a `--json` command prints, instead of printing it (the MCP server): the
+    /// document, or the envelope with the command's keys.
+    pub fn into_json(self, code: ExitCode) -> Value {
+        match self.document {
+            Some(document) => document,
+            None => self.envelope(code),
+        }
+    }
+
+    /// The envelope (docs/specs/scripting.md §3) with the command's keys.
+    fn envelope(self, code: ExitCode) -> Value {
         let ok = code == ExitCode::SUCCESS;
         let mut object = self.fields;
         object.insert("chipload_json".into(), json!(JSON_VERSION));
@@ -146,7 +161,6 @@ impl Out {
                 json!({"message": message, "problems": problems}),
             );
         }
-        println!("{}", Value::Object(object));
-        code
+        Value::Object(object)
     }
 }

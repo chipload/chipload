@@ -178,6 +178,10 @@ it's built (see `CLAUDE.md`).
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
   the top bar; the setup sheet in Job settings > Machine.
+- **MCP server** (2026-10-16, docs/specs/mcp.md, ADR 0019): `chipload mcp` serves every
+  command as a tool to AI assistants over stdio, generated from the CLI. Next (spec §8,
+  needs its own spec): the GUI reloads a project changed on disk, to watch an assistant's
+  edits. Not tried with a real client yet.
 - **Drawing on the canvas bar; Images fixed** (2026-10-16, docs/specs/view-and-settings.md
   §2): Drawing hides the contours to see the stock alone; pictures are painted over the
   simulated stock and in 3D (they were hidden under the stock); the bar shows icons only

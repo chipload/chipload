@@ -103,7 +103,8 @@ limitations.
 
 For scripts: every command takes `--json`, `chipload get`/`set` read and change any project
 value by path, and `chipload schema project` prints the project file's JSON Schema. See
-`docs/book/src/scripting.md` (user guide).
+`docs/book/src/scripting.md` (user guide). AI assistants (Claude Code, Claude Desktop and other
+MCP clients) can drive every command through `chipload mcp` (`docs/book/src/assistants.md`).
 
 The GUI uses installed system fonts (e.g. DejaVu Sans). On Linux, native file dialogs need
 an XDG desktop portal or `zenity`; without them use *File → Open path…* or pass the files

@@ -2,7 +2,8 @@
 
 Everything Chipload does can be driven from scripts: the command line takes every action,
 `--json` gives results a program can read, `get`/`set` change any value of a project, and
-JSON Schemas describe the files. (Design: `docs/specs/scripting.md`.)
+JSON Schemas describe the files. (Design: `docs/specs/scripting.md`.) An AI assistant can
+drive the same commands through [MCP](assistants.md).
 
 ## JSON output
 

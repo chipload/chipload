@@ -44,6 +44,7 @@ use chipload_toolpath::{ToolpathError, plan_job};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
+mod mcp;
 mod out;
 mod reference;
 
@@ -367,6 +368,9 @@ enum Command {
         #[arg(value_enum)]
         format: SchemaArg,
     },
+    /// Serve the commands as tools to an AI assistant over the Model Context Protocol, on
+    /// stdin and stdout (e.g. `claude mcp add chipload -- chipload mcp`).
+    Mcp,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -612,18 +616,27 @@ enum UnitsArg {
 }
 
 fn main() -> ExitCode {
+    let cli = Cli::parse();
+    if matches!(cli.command, Command::Mcp) {
+        return mcp::serve_stdio();
+    }
+    let mut out = Out::new(cli.json);
+    let code = execute(&mut out, cli.command);
+    out.finish(code)
+}
+
+/// Run one command, its output into `out` (also for the MCP server's tools).
+fn execute(out: &mut Out, command: Command) -> ExitCode {
     let units = |u: Option<UnitsArg>| {
         u.map(|u| match u {
             UnitsArg::Mm => Units::Mm,
             UnitsArg::Inch => Units::Inch,
         })
     };
-    let cli = Cli::parse();
-    let mut out = Out::new(cli.json);
-    let code = match cli.command {
-        Command::Inspect { file, units: u } => inspect(&mut out, &file, units(u)),
+    match command {
+        Command::Inspect { file, units: u } => inspect(out, &file, units(u)),
         Command::New { output, machine } => create(
-            &mut out,
+            out,
             empty_project(),
             "New empty project.",
             &output,
@@ -634,43 +647,36 @@ fn main() -> ExitCode {
             units: u,
             output,
             machine,
-        } => import(&mut out, &dxf, units(u), &output, machine.as_deref()),
+        } => import(out, &dxf, units(u), &output, machine.as_deref()),
         Command::Update {
             project,
             from,
             units: u,
             dxf,
             output,
-        } => update(&mut out, &project, &from, units(u), dxf, output.as_deref()),
-        Command::Plan { project, sets } => plan(&mut out, &project, &sets),
-        Command::Get { project, path } => get(&mut out, &project, &path),
+        } => update(out, &project, &from, units(u), dxf, output.as_deref()),
+        Command::Plan { project, sets } => plan(out, &project, &sets),
+        Command::Get { project, path } => get(out, &project, &path),
         Command::Set {
             project,
             values,
             output,
-        } => set(&mut out, &project, &values, output.as_deref()),
-        Command::CheckProject { project } => check_project(&mut out, &project),
+        } => set(out, &project, &values, output.as_deref()),
+        Command::CheckProject { project } => check_project(out, &project),
         Command::Run {
             project,
             output,
             tool_change,
             no_sheet,
             sets,
-        } => run(&mut out, &project, &output, tool_change, !no_sheet, &sets),
+        } => run(out, &project, &output, tool_change, !no_sheet, &sets),
         Command::Sheet {
             project,
             output,
             gcode,
             tool_change,
             sets,
-        } => sheet(
-            &mut out,
-            &project,
-            &output,
-            gcode.as_deref(),
-            tool_change,
-            &sets,
-        ),
+        } => sheet(out, &project, &output, gcode.as_deref(), tool_change, &sets),
         Command::Simulate {
             project,
             output,
@@ -680,7 +686,7 @@ fn main() -> ExitCode {
             hash,
             sets,
         } => simulate(
-            &mut out,
+            out,
             &project,
             output.as_deref(),
             SimulateArgs {
@@ -691,16 +697,16 @@ fn main() -> ExitCode {
             },
             &sets,
         ),
-        Command::Render { program, post } => render(&mut out, &program, &post),
-        Command::Check { gcode, job, tool } => check(&mut out, &gcode, &job, tool),
-        Command::Op { action } => op(&mut out, action),
-        Command::Shape { action } => shape(&mut out, action),
-        Command::Image { action } => images::image(&mut out, action),
-        Command::Dxf { action } => dxfs::dxf(&mut out, action),
-        Command::Tool { action } => library::tool(&mut out, action),
-        Command::Machine { action } => library::machine(&mut out, action),
-        Command::Post { action } => library::post(&mut out, action),
-        Command::Part { action } => parts::part(&mut out, action),
+        Command::Render { program, post } => render(out, &program, &post),
+        Command::Check { gcode, job, tool } => check(out, &gcode, &job, tool),
+        Command::Op { action } => op(out, action),
+        Command::Shape { action } => shape(out, action),
+        Command::Image { action } => images::image(out, action),
+        Command::Dxf { action } => dxfs::dxf(out, action),
+        Command::Tool { action } => library::tool(out, action),
+        Command::Machine { action } => library::machine(out, action),
+        Command::Post { action } => library::post(out, action),
+        Command::Part { action } => parts::part(out, action),
         Command::Copies {
             project,
             part,
@@ -711,7 +717,7 @@ fn main() -> ExitCode {
             off,
             output,
         } => copies(
-            &mut out,
+            out,
             &project,
             CopiesArgs {
                 part,
@@ -739,7 +745,7 @@ fn main() -> ExitCode {
             image,
             output,
         } => place(
-            &mut out,
+            out,
             &project,
             PlaceArgs {
                 by,
@@ -780,8 +786,8 @@ fn main() -> ExitCode {
             out.text("text", &text);
             ExitCode::SUCCESS
         }
-    };
-    out.finish(code)
+        Command::Mcp => out.fail("the MCP server is started on its own: chipload mcp"),
+    }
 }
 
 /// A generated page of the user guide (docs/specs/user-guide.md §4).

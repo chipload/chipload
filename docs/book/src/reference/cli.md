@@ -965,3 +965,11 @@ chipload schema <FORMAT>
 |---|---|
 | `<FORMAT>` | One of: `project` (A project file (.chipload)), `tools` (The tool library (tools.json, and `tool export` files)), `machines` (The machine profiles (machines.json, and `machine export` files)). |
 
+## `chipload mcp`
+
+Serve the commands as tools to an AI assistant over the Model Context Protocol, on stdin and stdout (e.g. `claude mcp add chipload -- chipload mcp`)
+
+```text
+chipload mcp
+```
+

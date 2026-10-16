@@ -53,6 +53,7 @@
 # Scripting
 
 - [Scripting](scripting.md)
+- [AI assistants (MCP)](assistants.md)
 
 # Reference
 
