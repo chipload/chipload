@@ -11,11 +11,11 @@ name = "chipload-gui"
 path = "src/main.rs"
 
 [dependencies]
-chipload-core = { version = "0.19.0", path = "../chipload-core" }
-chipload-dxf = { version = "0.19.0", path = "../chipload-dxf" }
-chipload-job = { version = "0.19.0", path = "../chipload-job" }
-chipload-pipeline = { version = "0.19.0", path = "../chipload-pipeline" }
-chipload-toolpath = { version = "0.19.0", path = "../chipload-toolpath" }
+chipload-core = { version = "0.20.0", path = "../chipload-core" }
+chipload-dxf = { version = "0.20.0", path = "../chipload-dxf" }
+chipload-job = { version = "0.20.0", path = "../chipload-job" }
+chipload-pipeline = { version = "0.20.0", path = "../chipload-pipeline" }
+chipload-toolpath = { version = "0.20.0", path = "../chipload-toolpath" }
 # No "default_fonts": egui's bundled fonts are OFL/Ubuntu-font licensed; the GUI loads
 # installed system fonts instead (decision 2026-10-09).
 eframe = { version = "0.36.2", default-features = false, features = ["accesskit", "glow", "wayland", "x11"] }
