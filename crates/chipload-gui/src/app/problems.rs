@@ -232,6 +232,10 @@ impl ChiploadApp {
                 let k = settings.and_then(|s| s.drawing.images.iter().position(|i| i.id == id));
                 Box::new(self.problems_under(index_of(k, "drawing.images")))
             }
+            Focus::Text(id) => {
+                let k = settings.and_then(|s| s.drawing.texts.iter().position(|t| t.id == id));
+                Box::new(self.problems_under(index_of(k, "drawing.texts")))
+            }
         };
         let mut map = BTreeMap::new();
         for problem in pick {

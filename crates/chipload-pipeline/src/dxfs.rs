@@ -78,7 +78,7 @@ fn pin_layers(job: &mut Job, added: u64) -> Vec<String> {
         let Some(layer) = select.layer.clone() else {
             continue;
         };
-        if select.dxf.is_some() || select.image.is_some() {
+        if select.dxf.is_some() || select.image.is_some() || select.text.is_some() {
             continue;
         }
         let on = |s: &&Shape| s.layer.to_lowercase() == layer.to_lowercase();
@@ -186,7 +186,8 @@ pub fn layer_clash_notes(job: &Job) -> Vec<Note> {
         let Some(layer) = &select.layer else {
             continue;
         };
-        if select.dxf.is_some() || select.image.is_some() || !op.enabled() {
+        if select.dxf.is_some() || select.image.is_some() || select.text.is_some() || !op.enabled()
+        {
             continue;
         }
         let mut sources: BTreeSet<String> = BTreeSet::new();
@@ -392,6 +393,7 @@ pub fn update_dxf(
         } else if let Some(layer) = &select.layer
             && select.dxf.is_none_or(|d| d == id)
             && select.image.is_none()
+            && select.text.is_none()
         {
             report.lines.push(format!(
                 "{label}: layer {layer} now uses the updated drawing; check its toolpath"

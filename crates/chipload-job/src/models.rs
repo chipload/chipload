@@ -208,8 +208,14 @@ pub struct Drawing {
     // Spec: docs/specs/image-trace.md §4.
     #[serde(default)]
     pub images: Vec<Image>,
+    /// Texts written into shapes, for V-carving, pocketing or profiling. Left out of the
+    /// file when there are none, so projects without text open in older versions.
+    // Spec: docs/specs/text.md §3.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub texts: Vec<Text>,
     /// Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,
-    /// `dxf:1/layer:Cut`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`.
+    /// `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,
+    /// `drawn:polyline`.
     // Spec: docs/specs/drawing-sources.md §4.
     #[serde(default)]
     pub hidden: Vec<String>,
@@ -369,6 +375,125 @@ impl Image {
     }
 }
 
+/// A text written into shapes: what it says, its font and size, and where it goes. Its
+/// letters are `path` shapes on its layer that name it in `text`, made again when it
+/// changes; the font is needed only for that, not to cut them.
+// Spec: docs/specs/text.md §3.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Text {
+    /// The text's id, which its letters name.
+    pub id: u64,
+    /// What it says; a line break ("\n") starts a new line.
+    pub text: String,
+    /// A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or
+    /// FreeMono Bold (`chipload text fonts`).
+    pub font: String,
+    /// The height of a capital letter, mm.
+    pub height: f64,
+    /// X of the lower-left corner of the text's box on the stock, mm.
+    pub x: f64,
+    /// Y of the lower-left corner of the text's box on the stock, mm.
+    pub y: f64,
+    /// Turned counter-clockwise about the box's centre, degrees, at least 0 and less than
+    /// 360. `x` and `y` are before the turn, as for an image.
+    pub rotation: f64,
+    /// How the lines line up against each other.
+    pub align: TextAlign,
+    /// Extra space between letters, mm; 0: the font's own spacing, kerning included.
+    pub spacing: f64,
+    /// From one line's base to the next, in capital heights.
+    pub line_spacing: f64,
+    /// The layer its letters go on.
+    pub layer: String,
+}
+
+/// How a text's lines line up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum TextAlign {
+    Left,
+    Center,
+    Right,
+}
+
+/// The ranges of a text's settings (docs/specs/text.md §3).
+pub const TEXT_MAX_HEIGHT_MM: f64 = 1000.0;
+pub const TEXT_MAX_LINE_SPACING: f64 = 10.0;
+/// Letter spacing, as a share of the height either way.
+pub const TEXT_MAX_SPACING_HEIGHTS: f64 = 2.0;
+/// A new text's line spacing, in capital heights.
+pub const TEXT_DEFAULT_LINE_SPACING: f64 = 1.6;
+
+impl Text {
+    /// What is wrong with the text's values, as "drawing.texts.N.field: message".
+    pub fn problems(&self, index: usize) -> Vec<Problem> {
+        let at = format!("drawing.texts.{index}");
+        let mut problems = Vec::new();
+        if self.text.trim().is_empty() {
+            problems.push(Problem::at(
+                format!("{at}.text"),
+                "is empty: write something to cut",
+            ));
+        }
+        if !(self.height.is_finite() && self.height > 0.0 && self.height <= TEXT_MAX_HEIGHT_MM) {
+            problems.push(Problem::at(
+                format!("{at}.height"),
+                format!(
+                    "must be more than 0 and at most {TEXT_MAX_HEIGHT_MM} mm, got {}",
+                    self.height
+                ),
+            ));
+        }
+        if !(self.line_spacing.is_finite()
+            && self.line_spacing > 0.0
+            && self.line_spacing <= TEXT_MAX_LINE_SPACING)
+        {
+            problems.push(Problem::at(
+                format!("{at}.line_spacing"),
+                format!(
+                    "must be more than 0 and at most {TEXT_MAX_LINE_SPACING}, got {}",
+                    self.line_spacing
+                ),
+            ));
+        }
+        let most = TEXT_MAX_SPACING_HEIGHTS * self.height.abs();
+        if !(self.spacing.is_finite() && self.spacing.abs() <= most) {
+            problems.push(Problem::at(
+                format!("{at}.spacing"),
+                format!(
+                    "must be at most {TEXT_MAX_SPACING_HEIGHTS} heights either way ({most} mm), got {}",
+                    self.spacing
+                ),
+            ));
+        }
+        if !rotation_in_range(self.rotation) {
+            problems.push(Problem::at(
+                format!("{at}.rotation"),
+                format!(
+                    "must be at least 0 and less than 360 degrees, got {}",
+                    self.rotation
+                ),
+            ));
+        }
+        if !(self.x.is_finite() && self.y.is_finite()) {
+            problems.push(Problem::at(
+                &at,
+                format!("x and y must be numbers, got ({}, {})", self.x, self.y),
+            ));
+        }
+        if self.layer.trim().is_empty() {
+            problems.push(Problem::at(format!("{at}.layer"), "must not be empty"));
+        }
+        if self.font.trim().is_empty() {
+            problems.push(Problem::at(format!("{at}.font"), "must not be empty"));
+        }
+        problems
+    }
+}
+
 /// One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF
 /// entity), or drawn in Chipload (`circle`, `rectangle`, `polyline`). One flat object:
 /// `id`, `layer`, `kind`, then the fields of that kind.
@@ -398,6 +523,8 @@ pub enum Geometry {
         image: Option<u64>,
         /// The DXF it was imported from (an id in `drawing.dxfs`).
         dxf: Option<u64>,
+        /// The text whose letter it is (docs/specs/text.md §3).
+        text: Option<u64>,
     },
     Circle {
         center: [f64; 2],
@@ -453,9 +580,25 @@ impl Shape {
         }
     }
 
-    /// Imported from a DXF: a path not traced from an image. Its DXF's placement moves it.
+    /// Imported from a DXF: a path not traced from an image nor a text's letter. Its DXF's
+    /// placement moves it.
     pub fn from_dxf(&self) -> bool {
-        matches!(self.geometry, Geometry::Path { image: None, .. })
+        matches!(
+            self.geometry,
+            Geometry::Path {
+                image: None,
+                text: None,
+                ..
+            }
+        )
+    }
+
+    /// The text this shape is a letter of.
+    pub fn text(&self) -> Option<u64> {
+        match &self.geometry {
+            Geometry::Path { text, .. } => *text,
+            _ => None,
+        }
     }
 
     /// The DXF this shape was imported from.
@@ -653,6 +796,9 @@ struct RawShape {
     /// path: the DXF it was imported from (its id in `drawing.dxfs`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     dxf: Option<u64>,
+    /// path: the text it is a letter of (its id in `drawing.texts`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    text: Option<u64>,
     /// path, polyline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
@@ -696,6 +842,7 @@ impl RawShape {
             dxf_type: None,
             image: None,
             dxf: None,
+            text: None,
             closed: None,
             segments: None,
             center: None,
@@ -716,6 +863,7 @@ impl RawShape {
             ("dxf_type", self.dxf_type.is_some()),
             ("image", self.image.is_some()),
             ("dxf", self.dxf.is_some()),
+            ("text", self.text.is_some()),
             ("closed", self.closed.is_some()),
             ("segments", self.segments.is_some()),
             ("center", self.center.is_some()),
@@ -750,11 +898,13 @@ impl From<Shape> for RawShape {
                 segments,
                 image,
                 dxf,
+                text,
             } => {
                 raw.dxf_handle = Some(dxf_handle);
                 raw.dxf_type = Some(dxf_type);
                 raw.image = image;
                 raw.dxf = dxf;
+                raw.text = text;
                 raw.closed = Some(closed);
                 raw.segments = Some(segments);
             }
@@ -800,6 +950,7 @@ impl TryFrom<RawShape> for Shape {
                 "dxf_type",
                 "image",
                 "dxf",
+                "text",
                 "closed",
                 "segments",
             ],
@@ -823,6 +974,7 @@ impl TryFrom<RawShape> for Shape {
                 segments: raw.segments.ok_or_else(|| missing("segments"))?,
                 image: raw.image,
                 dxf: raw.dxf,
+                text: raw.text,
             },
             ShapeKind::Circle => Geometry::Circle {
                 center: raw.center.ok_or_else(|| missing("center"))?,
@@ -1565,8 +1717,13 @@ pub struct Selector {
     /// Only shapes traced from this image (an id in `drawing.images`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<u64>,
-    /// Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour
-    /// with any of them isn't cut. A traced image's are found again when it is traced again.
+    /// Only the letters of this text (an id in `drawing.texts`).
+    // Spec: docs/specs/text.md §3.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<u64>,
+    /// Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text`
+    /// only. A contour with any of them isn't cut. A traced image's, or a text's, are found
+    /// again when it is made again.
     // Spec: docs/specs/leave-out-shapes.md.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclude: Option<Vec<u64>>,
@@ -1580,6 +1737,7 @@ impl Selector {
         self.layer.is_none()
             && self.dxf.is_none()
             && self.image.is_none()
+            && self.text.is_none()
             && self.shapes.as_ref().is_none_or(Vec::is_empty)
     }
 }
@@ -2291,6 +2449,9 @@ impl Drawing {
         if let Some(image) = shape.image() {
             return format!("image:{image}");
         }
+        if let Some(text) = shape.text() {
+            return format!("text:{text}");
+        }
         match shape.geometry {
             Geometry::Circle { .. } => "drawn:circle".into(),
             Geometry::Rectangle { .. } => "drawn:rectangle".into(),
@@ -2360,10 +2521,19 @@ impl Drawing {
                     format!("no DXF {dxf} in drawing.dxfs"),
                 ));
             }
-            if shape.image().is_some() && shape.dxf().is_some() {
+            if let Some(text) = shape.text()
+                && !self.texts.iter().any(|t| t.id == text)
+            {
+                problems.push(Problem::at(
+                    format!("{at}.text"),
+                    format!("no text {text} in drawing.texts"),
+                ));
+            }
+            let sources = [shape.image(), shape.dxf(), shape.text()];
+            if sources.iter().flatten().count() > 1 {
                 problems.push(Problem::at(
                     at,
-                    "a shape comes from an image or a DXF, not both",
+                    "a shape comes from one image, DXF or text, not more",
                 ));
             }
         }
@@ -2376,6 +2546,16 @@ impl Drawing {
                 ));
             }
             problems.extend(image.problems(i));
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for (i, text) in self.texts.iter().enumerate() {
+            if !ids.insert(text.id) {
+                problems.push(Problem::at(
+                    format!("drawing.texts.{i}.id"),
+                    format!("{} is used twice", text.id),
+                ));
+            }
+            problems.extend(text.problems(i));
         }
         let mut ids = std::collections::BTreeSet::new();
         for (i, dxf) in self.dxfs.iter().enumerate() {
@@ -2824,7 +3004,7 @@ impl Job {
             if selector.is_empty() {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),
-                    "selector needs a DXF, an image, a layer or shapes",
+                    "selector needs a DXF, an image, a text, a layer or shapes",
                 ));
             }
             if let Some(dxf) = selector.dxf
@@ -2843,25 +3023,33 @@ impl Job {
                     format!("no image {image} in drawing.images"),
                 ));
             }
-            // Shapes left out of a whole DXF or image (docs/specs/leave-out-shapes.md §2).
+            if let Some(text) = selector.text
+                && !self.drawing.texts.iter().any(|t| t.id == text)
+            {
+                problems.push(Problem::at(
+                    format!("operations.{i}.select.text"),
+                    format!("no text {text} in drawing.texts"),
+                ));
+            }
+            // Shapes left out of a whole DXF, image or text (docs/specs/leave-out-shapes.md
+            // §2, text.md §3).
             if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
-                let source = match (selector.dxf, selector.image) {
-                    (Some(dxf), _) => Some(("DXF", dxf, true)),
-                    (None, Some(image)) => Some(("image", image, false)),
-                    (None, None) => None,
+                let source = match (selector.dxf, selector.image, selector.text) {
+                    (Some(dxf), _, _) => Some(("DXF", dxf, 0)),
+                    (None, Some(image), _) => Some(("image", image, 1)),
+                    (None, None, Some(text)) => Some(("text", text, 2)),
+                    (None, None, None) => None,
                 };
                 match source {
                     None => problems.push(Problem::at(
                         format!("operations.{i}.select.exclude"),
-                        "shapes can only be left out of a whole DXF or image",
+                        "shapes can only be left out of a whole DXF, image or text",
                     )),
-                    Some((what, id, is_dxf)) => {
-                        let of_source = |shape: &Shape| {
-                            if is_dxf {
-                                shape.dxf() == Some(id)
-                            } else {
-                                shape.image() == Some(id)
-                            }
+                    Some((what, id, kind)) => {
+                        let of_source = |shape: &Shape| match kind {
+                            0 => shape.dxf() == Some(id),
+                            1 => shape.image() == Some(id),
+                            _ => shape.text() == Some(id),
                         };
                         if let Some(missing) = exclude.iter().find(|e| {
                             !self
@@ -2875,11 +3063,28 @@ impl Job {
                     }
                 }
             }
-            if selector.dxf.is_some() && selector.image.is_some() {
+            if [selector.dxf, selector.image, selector.text]
+                .iter()
+                .flatten()
+                .count()
+                > 1
+            {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),
-                    "a selector names a DXF or an image, not both",
+                    "a selector names one DXF, image or text, not more",
                 ));
+            }
+            // A text's letters get new ids each time it is made again (text.md §3).
+            let letter = selector.shapes.iter().flatten().find_map(|id| {
+                self.drawing
+                    .shapes
+                    .iter()
+                    .find(|s| s.id == *id && s.text().is_some())
+            });
+            if let Some(shape) = letter {
+                problems.push(Problem::at(format!("operations.{i}.select"), format!("shape {} is a letter of a text and changes each time the text is made again: select the text instead ({{\"text\": {}}})",
+                    shape.id,
+                    shape.text().unwrap_or_default())));
             }
             // Traced shapes get new ids each time their image is traced again
             // (docs/specs/image-trace.md §4, decision 6).

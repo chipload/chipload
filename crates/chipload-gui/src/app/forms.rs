@@ -1169,6 +1169,9 @@ pub(super) enum JobRequest {
     TraceSettings(u64),
     ImagePlace(u64, ImagePlace),
     RemoveImage(u64),
+    /// Text `id` as its properties left it, or removed (docs/specs/text.md §5).
+    TextChange(u64, Box<chipload_job::Text>),
+    RemoveText(u64),
     /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:
@@ -1414,6 +1417,207 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
             request = Some(JobRequest::RemoveImage(id));
         }
     });
+    request
+}
+
+/// A text's properties (docs/specs/text.md §5): what it says, its font and size, its place
+/// and turn, how its lines line up, its layer. Each change applies when the edit is
+/// finished, as one undo step, and writes the letters again. `grab`: the text field takes
+/// the keyboard (a text just placed).
+pub(super) fn text_form(
+    ui: &mut egui::Ui,
+    edit: &EditJob,
+    id: u64,
+    grab: bool,
+) -> Option<JobRequest> {
+    use chipload_job::{Text, TextAlign};
+    let text = edit.settings.drawing.texts.iter().find(|t| t.id == id)?;
+    let mut request = None;
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Text,
+        None,
+        &chipload_pipeline::texts::text_label(text),
+    );
+    // The fields edit a copy kept between frames; it is sent once the edit is finished.
+    let key = egui::Id::new(("text-draft", id));
+    let stored = text.clone();
+    let mut draft: Text = ui
+        .data(|d| d.get_temp::<(Text, Text)>(key))
+        .filter(|(from, _)| *from == stored)
+        .map_or_else(|| stored.clone(), |(_, draft)| draft);
+    // The box's size before its turn, worked out once per version of the text.
+    let size_key = egui::Id::new(("text-size", id));
+    let size = match ui
+        .data(|d| d.get_temp::<(Text, Option<(f64, f64)>)>(size_key))
+        .filter(|(t, _)| *t == stored)
+    {
+        Some((_, size)) => size,
+        None => {
+            let size = chipload_pipeline::texts::text_size(&stored).ok();
+            ui.data_mut(|d| d.insert_temp(size_key, (stored.clone(), size)));
+            size
+        }
+    };
+    let mut finished = false;
+    Grid::new(("text-form", id))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label("Text")
+                .on_hover_text("What it says; Enter starts a new line");
+            let response = ui.add(
+                TextEdit::multiline(&mut draft.text)
+                    .desired_rows(2)
+                    .desired_width(220.0),
+            );
+            if grab {
+                response.request_focus();
+            }
+            finished |= response.lost_focus();
+            ui.end_row();
+            ui.label("Font")
+                .on_hover_text("A built-in font (GNU FreeFont)");
+            let before = draft.font.clone();
+            egui::ComboBox::from_id_salt(("text-font", id))
+                .selected_text(draft.font.as_str())
+                .show_ui(ui, |ui| {
+                    for name in chipload_pipeline::texts::font_names() {
+                        ui.selectable_value(&mut draft.font, name.to_string(), name);
+                    }
+                });
+            finished |= draft.font != before;
+            ui.end_row();
+            ui.label("Height")
+                .on_hover_text("The height of a capital letter");
+            let response = ui.add(
+                DragValue::new(&mut draft.height)
+                    .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
+                    .speed(0.1)
+                    .suffix(" mm"),
+            );
+            finished |= response.drag_stopped() || response.lost_focus();
+            ui.end_row();
+            let (w, h) = size.unwrap_or((0.0, 0.0));
+            let turned =
+                |d: &Text| chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation);
+            let ((x0, y0), _) = turned(&draft);
+            ui.label("Position")
+                .on_hover_text("The lower-left corner of the text's box, mm");
+            ui.horizontal(|ui| {
+                let (mut cx, mut cy) = (x0, y0);
+                for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
+                    let response = ui.add(mm_field(value).prefix(axis));
+                    finished |= response.drag_stopped() || response.lost_focus();
+                }
+                // Moving the box's corner moves the text's own corner as much.
+                draft.x += cx - x0;
+                draft.y += cy - y0;
+                if reset_button(ui, (x0, y0) != (0.0, 0.0), "The box's corner at X0 Y0") {
+                    draft.x -= x0;
+                    draft.y -= y0;
+                    finished = true;
+                }
+            });
+            ui.end_row();
+            ui.label("Rotation")
+                .on_hover_text("Degrees counter-clockwise, any angle, about the text's centre");
+            ui.horizontal(|ui| {
+                let response = ui.add(
+                    DragValue::new(&mut draft.rotation)
+                        .speed(1.0)
+                        .suffix("°")
+                        .max_decimals(3),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                let mut turn = |by: f64| {
+                    draft.rotation += by;
+                    finished = true;
+                };
+                if ui
+                    .small_button("⟲ 90")
+                    .on_hover_text("90° counter-clockwise")
+                    .clicked()
+                {
+                    turn(90.0);
+                }
+                if ui
+                    .small_button("⟳ 90")
+                    .on_hover_text("90° clockwise")
+                    .clicked()
+                {
+                    turn(-90.0);
+                }
+                if reset_button(ui, draft.rotation != 0.0, "Level (0°)") {
+                    draft.rotation = 0.0;
+                    finished = true;
+                }
+                draft.rotation = draft.rotation.rem_euclid(360.0);
+                if draft.rotation >= 360.0 {
+                    draft.rotation = 0.0;
+                }
+            });
+            ui.end_row();
+            ui.label("Align")
+                .on_hover_text("How the lines line up against each other");
+            let before = draft.align;
+            egui::ComboBox::from_id_salt(("text-align", id))
+                .selected_text(match draft.align {
+                    TextAlign::Left => "left",
+                    TextAlign::Center => "centre",
+                    TextAlign::Right => "right",
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut draft.align, TextAlign::Left, "left");
+                    ui.selectable_value(&mut draft.align, TextAlign::Center, "centre");
+                    ui.selectable_value(&mut draft.align, TextAlign::Right, "right");
+                });
+            finished |= draft.align != before;
+            ui.end_row();
+            ui.label("Letter spacing")
+                .on_hover_text("Extra space between letters; 0: the font's own");
+            let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
+            let response = ui.add(
+                DragValue::new(&mut draft.spacing)
+                    .range(-most..=most)
+                    .speed(0.05)
+                    .suffix(" mm"),
+            );
+            finished |= response.drag_stopped() || response.lost_focus();
+            ui.end_row();
+            ui.label("Line spacing")
+                .on_hover_text("From one line's base to the next, in capital heights");
+            let response = ui.add(
+                DragValue::new(&mut draft.line_spacing)
+                    .range(0.1..=chipload_job::TEXT_MAX_LINE_SPACING)
+                    .speed(0.01)
+                    .suffix(" × height"),
+            );
+            finished |= response.drag_stopped() || response.lost_focus();
+            ui.end_row();
+            ui.label("Layer")
+                .on_hover_text("The layer its letters are on, for operations that select it");
+            let response = ui.add(TextEdit::singleline(&mut draft.layer).desired_width(160.0));
+            finished |= response.lost_focus();
+            ui.end_row();
+            if let Some((w, h)) = size {
+                ui.label("Size");
+                ui.weak(format!("{} × {} mm", len(w), len(h)));
+                ui.end_row();
+            }
+        });
+    if finished && draft != stored {
+        request = Some(JobRequest::TextChange(id, Box::new(draft.clone())));
+    }
+    ui.data_mut(|d| d.insert_temp(key, (stored, draft)));
+    ui.add_space(4.0);
+    if ui
+        .button("Remove")
+        .on_hover_text("Remove the text and its letters")
+        .clicked()
+    {
+        request = Some(JobRequest::RemoveText(id));
+    }
     request
 }
 

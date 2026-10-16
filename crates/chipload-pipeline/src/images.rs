@@ -7,6 +7,7 @@
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chipload_core::Point;
+use chipload_core::chain::ShapeFrom;
 use chipload_core::fit::fit_path;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::Primitive;
@@ -206,11 +207,14 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
                 segments: placed(&path.pieces, image, trace.height),
                 image: Some(id),
                 dxf: None,
+                text: None,
             },
         });
     }
     let mut report = report(image, &trace, ids);
-    report.lines.extend(find_left_out_again(&mut out, id, &old));
+    report
+        .lines
+        .extend(find_left_out_again(&mut out, ShapeFrom::Image(id), &old));
     Ok((out, report))
 }
 
@@ -280,17 +284,27 @@ fn relative(shapes: &[&Shape]) -> Vec<Relative> {
         .collect()
 }
 
-/// After image `id` is traced again: each operation's left-out shapes of it, found again
-/// among the new shapes by where they sit in the picture (docs/specs/leave-out-shapes.md
-/// §4). One that isn't found keeps its old id, so the project shows a problem until the
-/// shapes are picked again: nothing left out is ever cut silently. Returns report lines.
-fn find_left_out_again(job: &mut Job, id: u64, old: &[Shape]) -> Vec<String> {
+/// Whether `shape` comes from `from`.
+pub(crate) fn comes_from(shape: &Shape, from: ShapeFrom) -> bool {
+    match from {
+        ShapeFrom::Dxf(id) => shape.dxf() == Some(id),
+        ShapeFrom::Image(id) => shape.image() == Some(id),
+        ShapeFrom::Text(id) => shape.text() == Some(id),
+    }
+}
+
+/// After an image is traced again, or a text made again: each operation's left-out shapes
+/// of it, found again among the new shapes by where they sit in its box
+/// (docs/specs/leave-out-shapes.md §4, text.md §3). One that isn't found keeps its old id,
+/// so the project shows a problem until the shapes are picked again: nothing left out is
+/// ever cut silently. Returns report lines.
+pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape]) -> Vec<String> {
     let old_refs: Vec<&Shape> = old.iter().collect();
     let new_refs: Vec<Shape> = job
         .drawing
         .shapes
         .iter()
-        .filter(|s| s.image() == Some(id))
+        .filter(|s| comes_from(s, from))
         .cloned()
         .collect();
     let new_refs: Vec<&Shape> = new_refs.iter().collect();
@@ -299,7 +313,12 @@ fn find_left_out_again(job: &mut Job, id: u64, old: &[Shape]) -> Vec<String> {
     let mut lines = Vec::new();
     for (i, op) in job.operations.iter_mut().enumerate() {
         let select = op.select_mut();
-        if select.image != Some(id) {
+        let selects = match from {
+            ShapeFrom::Dxf(id) => select.dxf == Some(id),
+            ShapeFrom::Image(id) => select.image == Some(id),
+            ShapeFrom::Text(id) => select.text == Some(id),
+        };
+        if !selects {
             continue;
         }
         let Some(exclude) = select.exclude.as_mut().filter(|e| !e.is_empty()) else {
@@ -544,16 +563,30 @@ fn drawn(pieces: &[Primitive]) -> Vec<Point> {
 /// moved to its corner (docs/specs/direct-placement.md §3). Unturned, only moved, as
 /// before rotations.
 fn placed(pieces: &[Primitive], image: &Image, height: f64) -> Vec<PathSegment> {
-    if image.rotation == 0.0 {
-        return segments(pieces, image.x, image.y);
+    placed_box(
+        pieces,
+        (image.x, image.y),
+        (image.width, height),
+        image.rotation,
+    )
+}
+
+/// Pieces of a box of `size` with its lower-left corner at (0, 0), placed with that corner
+/// at `corner` and turned by `rotation` degrees about the box's centre: the rule for images
+/// and texts alike.
+pub(crate) fn placed_box(
+    pieces: &[Primitive],
+    corner: Point,
+    size: Point,
+    rotation: f64,
+) -> Vec<PathSegment> {
+    if rotation == 0.0 {
+        return segments(pieces, corner.0, corner.1);
     }
-    let (cx, cy) = (image.width / 2.0, height / 2.0);
+    let (cx, cy) = (size.0 / 2.0, size.1 / 2.0);
     segments(pieces, -cx, -cy)
         .iter()
-        .map(|s| {
-            s.rotated(image.rotation)
-                .translated(image.x + cx, image.y + cy)
-        })
+        .map(|s| s.rotated(rotation).translated(corner.0 + cx, corner.1 + cy))
         .collect()
 }
 

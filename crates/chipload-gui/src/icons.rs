@@ -20,6 +20,7 @@ pub enum Icon {
     Dxf,
     Layer,
     Image,
+    Text,
     Circle,
     Rectangle,
     Polyline,
@@ -129,6 +130,11 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.85, 0.7),
             ]);
             pen.circle((0.68, 0.36), 0.06);
+        }
+        // A capital A (docs/specs/text.md §5).
+        Icon::Text => {
+            pen.poly(&[(0.18, 0.86), (0.5, 0.14), (0.82, 0.86)]);
+            pen.poly(&[(0.31, 0.6), (0.69, 0.6)]);
         }
         Icon::Circle => pen.circle((0.5, 0.5), 0.36),
         Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),

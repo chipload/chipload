@@ -11,9 +11,10 @@ The original Python implementation was the reference during the port and has bee
 | Crate | Role |
 |---|---|
 | `chipload-core` | primitives, chaining, nesting, line-and-arc fitting, tolerances. No I/O, no GUI, no other workspace crate. |
-| `chipload-job` | project file models (schema v26: embedded drawings, several DXFs each with its placement (move, turn, scale), hidden groups, drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations, holes operations, dogbone and T-bone corners, rest pockets, images traced into shapes or centre lines, with arcs, parts each with its operations, copies and on/off, cut part by part, tools and machine linked to library entries by uid, DXFs and pictures turned by any angle, rounded rectangle corners; since v26 no clearing settings: links where safe and rounded rings always; since v27 profiles always spiral: a ramp angle instead of an entry, and no lead), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
+| `chipload-job` | project file models (schema v26: embedded drawings, several DXFs each with its placement (move, turn, scale), hidden groups, drawn shapes, depth ranges, clearance, optional grid of copies, V-carve operations and V-bit angle/tip, a tool per operation and the machine's tool change setting, rounded ring corners, a copied user post-processor, tab flank angles, follow-path operations, holes operations, dogbone and T-bone corners, rest pockets, images traced into shapes or centre lines, with arcs, parts each with its operations, copies and on/off, cut part by part, tools and machine linked to library entries by uid, DXFs and pictures turned by any angle, rounded rectangle corners, texts (optional `drawing.texts`, no bump); since v26 no clearing settings: links where safe and rounded rings always; since v27 profiles always spiral: a ramp angle instead of an entry, and no lead), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-image` | pictures (PNG, JPEG, BMP) into black and white and traced loops for V-carving, with arcs (docs/specs/image-trace.md, image-arcs-centrelines.md); core only, no file I/O |
+| `chipload-text` | text into closed outlines with arcs, in the built-in GNU FreeFont faces (docs/specs/text.md, ADR 0020); core only, no file I/O |
 | `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs, finishing laps, onion skins, dogbones), tabs, pockets (with rest machining), V-carving (medial axis via boostvoronoi, ADR 0015), centre lines of traced strokes, follow paths, holes (drill cycles, helical bores), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |
 | `chipload-check` | the **independent** G-code checker |
@@ -81,7 +82,7 @@ cargo test -p chipload-pipeline --test sheet               # golden setup sheets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
-cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
+cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-text -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)
@@ -103,6 +104,7 @@ cargo run -p chipload-cli -- shape set part.chipload 1 --corner-radius 5   # rou
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing (--dxf ID with several)
 cargo run -p chipload-cli -- dxf add part.chipload lid.dxf --name lid   # another DXF in the project (also dxf list/remove; place --dxf ID)
 cargo run -p chipload-cli -- image add part.chipload logo.png --width 120   # trace a picture into shapes on layer "logo" (also image set/list/preview/remove; --trace centre-line, --arcs false)
+cargo run -p chipload-cli -- text add part.chipload "MAKER\nSPACE" --height 20 --at 40,30   # text in a built-in font (also text set/list/remove/fonts, place --text)
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- get part.chipload operations.0.end_depth   # any value by path (0-based, as problem paths)
 cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # checked, then written; `run/plan --set PATH=VALUE` for one run

@@ -178,6 +178,10 @@ it's built (see `CLAUDE.md`).
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
   the top bar; the setup sheet in Job settings > Machine.
+- **Text** (2026-10-16, docs/specs/text.md, ADR 0020): a text object like a picture, in
+  six built-in GNU FreeFont faces; letters as shapes stored in the project; Draw > Text,
+  Properties, Browser rows, `chipload text …`, `place --text`. Later (spec §7): installed
+  fonts, single-line engraving, text on a curve.
 - **Pocket rings one island at a time** (2026-10-16, docs/specs/pocket-island-order.md):
   a ring waits only for the rings next to it one level in; each island's rings are cut in
   one run, spiralling out to the island; the wall is still last. round_corners: 31 → 23

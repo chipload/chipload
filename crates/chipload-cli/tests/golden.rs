@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 44] = [
+const GOLDEN: [(&str, &str); 45] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -118,6 +118,9 @@ const GOLDEN: [(&str, &str); 44] = [
     // lead; since v27 every profile spirals down, at 3° here, and a profile has no lead
     // (docs/specs/profile-always-spiral.md).
     ("v26_straight_tabs", "jobs/v26/straight_tabs.chipload"),
+    // Text (docs/specs/text.md): two centred lines in FreeSans Bold, turned 8°, V-carved,
+    // and a FreeSerif A pocketed round its counter.
+    ("v27_text", "jobs/v27/text.chipload"),
     // Pockets that used the removed trochoidal and adaptive clearing (ADR 0017): since v26
     // they are rings pockets like any other (docs/specs/pocket.md as built 2026-10-15).
     ("v7_trochoidal", "jobs/v7/trochoidal.chipload"),

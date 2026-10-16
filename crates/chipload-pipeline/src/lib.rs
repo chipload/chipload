@@ -16,6 +16,7 @@ pub mod report;
 pub mod shapes;
 pub mod sheet;
 pub mod simulate;
+pub mod texts;
 
 use std::path::{Path, PathBuf};
 
@@ -54,6 +55,8 @@ pub enum PipelineError {
     Toolpath(#[from] ToolpathError),
     #[error(transparent)]
     Image(#[from] chipload_image::ImageError),
+    #[error(transparent)]
+    Text(#[from] chipload_text::TextError),
     #[error(transparent)]
     Post(#[from] PostError),
     /// The independent checker rejected the program. No G-code is returned; `program` is
@@ -507,6 +510,7 @@ pub fn empty_project() -> Job {
             next_shape_id: 1,
             dxfs: Vec::new(),
             images: Vec::new(),
+            texts: Vec::new(),
             hidden: Vec::new(),
         },
         stock: Stock {
@@ -575,6 +579,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         next_shape_id,
         dxfs: vec![imported.source],
         images: Vec::new(),
+        texts: Vec::new(),
         hidden: Vec::new(),
     };
     job.stock.x = x.max(1.0);

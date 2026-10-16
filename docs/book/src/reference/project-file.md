@@ -97,10 +97,11 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxfs` | list of [DrawingSource](#drawingsource) | no | The DXFs the imported shapes came from, each as at its last import or update, with its own placement. |
-| `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
+| `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
 | `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
+| `texts` | list of [Text](#text) | no | Texts written into shapes, for V-carving, pocketing or profiling. Left out of the file when there are none, so projects without text open in older versions. |
 
 ## DrawingSource
 
@@ -390,10 +391,11 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxf` | integer or null | no | Only shapes from this DXF (an id in `drawing.dxfs`). |
-| `exclude` | list of integer or null | no | Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour with any of them isn't cut. A traced image's are found again when it is traced again. |
+| `exclude` | list of integer or null | no | Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text` only. A contour with any of them isn't cut. A traced image's, or a text's, are found again when it is made again. |
 | `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
+| `text` | integer or null | no | Only the letters of this text (an id in `drawing.texts`). |
 
 ## Shape
 
@@ -417,6 +419,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `points` | list of 2 × number or null | no | polyline: its points, mm. |
 | `radius` | number or null | no | circle: the radius, mm. |
 | `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |
+| `text` | integer or null | no | path: the text it is a letter of (its id in `drawing.texts`). |
 | `width` | number or null | no | rectangle: its size along its own Y axis, mm. |
 
 ## ShapeKind
@@ -478,6 +481,30 @@ One of: `"bottom_left"`, `"center"`.
 | `flank_angle` | number | yes | The slope of the tab's sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows. |
 | `height` | number | yes | The bridge's thickness, up from the bottom of the cut, mm. |
 | `width` | number | yes | The bridge left on the part, along its edge, mm (the flat top of a sloped tab). |
+
+## Text
+
+A text written into shapes: what it says, its font and size, and where it goes. Its letters are `path` shapes on its layer that name it in `text`, made again when it changes; the font is needed only for that, not to cut them.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `align` | [TextAlign](#textalign) | yes | How the lines line up against each other. |
+| `font` | string | yes | A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or FreeMono Bold (`chipload text fonts`). |
+| `height` | number | yes | The height of a capital letter, mm. |
+| `id` | integer | yes | The text's id, which its letters name. |
+| `layer` | string | yes | The layer its letters go on. |
+| `line_spacing` | number | yes | From one line's base to the next, in capital heights. |
+| `rotation` | number | yes | Turned counter-clockwise about the box's centre, degrees, at least 0 and less than 360. `x` and `y` are before the turn, as for an image. |
+| `spacing` | number | yes | Extra space between letters, mm; 0: the font's own spacing, kerning included. |
+| `text` | string | yes | What it says; a line break ("\n") starts a new line. |
+| `x` | number | yes | X of the lower-left corner of the text's box on the stock, mm. |
+| `y` | number | yes | Y of the lower-left corner of the text's box on the stock, mm. |
+
+## TextAlign
+
+How a text's lines line up.
+
+One of: `"left"`, `"center"`, `"right"`.
 
 ## Tool
 

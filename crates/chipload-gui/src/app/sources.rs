@@ -28,6 +28,7 @@ pub(super) struct Group {
 pub(super) enum GroupKind {
     Dxf(u64),
     Image(u64),
+    Text(u64),
     Drawn,
 }
 
@@ -42,8 +43,10 @@ enum PanelAction {
     RemoveDxf(u64),
     EditImage(u64),
     RemoveImage(u64),
+    RemoveText(u64),
     AddDxf,
     AddImage,
+    AddText,
 }
 
 impl ChiploadApp {
@@ -89,6 +92,17 @@ impl ChiploadApp {
                 format!("image:{}", image.id),
                 format!("{} (image {})", image.file, image.id),
                 GroupKind::Image(image.id),
+            );
+        }
+        for text in &drawing.texts {
+            push(
+                format!("text:{}", text.id),
+                format!(
+                    "{} (text {})",
+                    chipload_pipeline::texts::text_label(text),
+                    text.id
+                ),
+                GroupKind::Text(text.id),
             );
         }
         for (key, title) in [
@@ -176,6 +190,11 @@ impl ChiploadApp {
                 key.strip_prefix("image:")
                     .and_then(|id| id.parse().ok())
                     .map(ShapeFrom::Image)
+            })
+            .or_else(|| {
+                key.strip_prefix("text:")
+                    .and_then(|id| id.parse().ok())
+                    .map(ShapeFrom::Text)
             });
         if let Some(source) = source {
             return CanvasSelection::Source(source);
@@ -217,7 +236,7 @@ impl ChiploadApp {
         let mut action: Option<PanelAction> = None;
         folder_row
             .response
-            .on_hover_text("DXFs, pictures and drawn shapes; right-click to add one")
+            .on_hover_text("DXFs, pictures, texts and drawn shapes; right-click to add one")
             .context_menu(|ui| {
                 let adding = self.dxf_count() > 0;
                 if ui
@@ -234,6 +253,13 @@ impl ChiploadApp {
                     .clicked()
                 {
                     action = Some(PanelAction::AddImage);
+                }
+                if ui
+                    .button("Add text")
+                    .on_hover_text("Write a text, then click where it starts")
+                    .clicked()
+                {
+                    action = Some(PanelAction::AddText);
                 }
             });
         if open {
@@ -288,8 +314,12 @@ impl ChiploadApp {
             Some(PanelAction::RemoveImage(image)) => {
                 self.remove_image(image);
             }
+            Some(PanelAction::RemoveText(text)) => {
+                self.remove_text(text);
+            }
             Some(PanelAction::AddDxf) => self.ask_add_dxf(),
             Some(PanelAction::AddImage) => self.import_image_dialog(),
+            Some(PanelAction::AddText) => self.start_text(),
             None => {}
         }
     }
@@ -300,6 +330,7 @@ impl ChiploadApp {
         let icon = match (group.kind, group.key.as_str()) {
             (GroupKind::Dxf(_), _) => Icon::Dxf,
             (GroupKind::Image(_), _) => Icon::Image,
+            (GroupKind::Text(_), _) => Icon::Text,
             (GroupKind::Drawn, "drawn:circle") => Icon::Circle,
             (GroupKind::Drawn, "drawn:rectangle") => Icon::Rectangle,
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
@@ -334,7 +365,7 @@ impl ChiploadApp {
             match group.kind {
                 GroupKind::Dxf(dxf) => *action = Some(PanelAction::Place(dxf)),
                 GroupKind::Image(image) => *action = Some(PanelAction::EditImage(image)),
-                GroupKind::Drawn => {}
+                GroupKind::Text(_) | GroupKind::Drawn => {}
             }
         } else if out.response.clicked() {
             *action = Some(PanelAction::SelectGroup(group.key.clone()));
@@ -347,6 +378,10 @@ impl ChiploadApp {
             GroupKind::Image(_) => {
                 "Click selects the whole picture: an operation made from it follows its \
                  retracing. Its size and place show in Properties; double-click for its trace settings"
+            }
+            GroupKind::Text(_) => {
+                "Click selects the whole text: an operation made from it follows its changes. \
+                 What it says, its font, size and place are in Properties"
             }
             GroupKind::Drawn => "Click selects these shapes; Ctrl+click adds them",
         };
@@ -400,6 +435,16 @@ impl ChiploadApp {
                         *action = Some(PanelAction::RemoveImage(image));
                     }
                 }
+                GroupKind::Text(text) => {
+                    ui.separator();
+                    if ui
+                        .button("Remove")
+                        .on_hover_text("Remove the text and its letters")
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::RemoveText(text));
+                    }
+                }
                 GroupKind::Drawn => {}
             }
         });
@@ -409,6 +454,7 @@ impl ChiploadApp {
         let from = match group.kind {
             GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
             GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
+            GroupKind::Text(text) => Some(ShapeFrom::Text(text)),
             GroupKind::Drawn => None,
         };
         for (layer, count) in &group.layers {
@@ -447,14 +493,17 @@ impl ChiploadApp {
     }
 }
 
-/// The properties a group's row shows: a DXF's or a picture's.
+/// The properties a group's row shows: a DXF's, a picture's or a text's.
 fn source_focus(key: &str) -> Option<Focus> {
     if let Some(id) = key.strip_prefix("dxf:").and_then(|id| id.parse().ok()) {
         return Some(Focus::Dxf(id));
     }
-    key.strip_prefix("image:")
+    if let Some(id) = key.strip_prefix("image:").and_then(|id| id.parse().ok()) {
+        return Some(Focus::Image(id));
+    }
+    key.strip_prefix("text:")
         .and_then(|id| id.parse().ok())
-        .map(Focus::Image)
+        .map(Focus::Text)
 }
 
 /// The ids of the contours hidden in `drawing`: those whose every shape is hidden.

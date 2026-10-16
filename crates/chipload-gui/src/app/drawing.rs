@@ -17,6 +17,7 @@ impl ChiploadApp {
                 self.view_top(); // drawing works in top view only
             }
             self.measure = None;
+            self.placing_text = false;
             self.sketch = Some(Sketch::new(tool));
         }
     }

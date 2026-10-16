@@ -79,6 +79,7 @@ fn checker_is_independent_of_the_generator() {
         "chipload-post",
         "chipload-dxf",
         "chipload-image",
+        "chipload-text",
         "chipload-pipeline",
     ] {
         assert!(
@@ -107,6 +108,17 @@ fn image_tracing_sits_beside_the_dxf_reader() {
         .filter(|d| d.starts_with("chipload-") && *d != "chipload-core")
         .collect();
     assert!(bad.is_empty(), "chipload-image depends on {bad:?}");
+}
+
+#[test]
+fn text_lettering_sits_beside_image_tracing() {
+    // docs/specs/text.md §4: text in, outlines out, on chipload-core alone.
+    let deps = &runtime_closure()["chipload-text"];
+    let bad: Vec<&String> = deps
+        .iter()
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core")
+        .collect();
+    assert!(bad.is_empty(), "chipload-text depends on {bad:?}");
 }
 
 #[test]

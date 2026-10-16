@@ -407,6 +407,89 @@ chipload image remove <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The image's id. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload text`
+
+Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)
+
+### `chipload text add`
+
+Write a text into shapes on its own layer; prints its id. "\n" in the text starts a new line
+
+```text
+chipload text add <PROJECT> <TEXT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<TEXT>` | What it says. |
+| `--height <HEIGHT>` | The height of a capital letter, mm. Required. |
+| `--at <AT>` | Where the lower-left corner of the text's box goes: X,Y in mm (default 0,0) |
+| `--rotate <ROTATE>` | Turn it about its centre to this angle, degrees counter-clockwise (any angle). `--at` stays the corner before the turn. |
+| `--font <FONT>` | A built-in font (`text fonts`; default FreeSans) |
+| `--align <ALIGN>` | How the lines line up (default left) One of: `left`, `center`, `right`. |
+| `--spacing <SPACING>` | Extra space between letters, mm (default 0: the font's own) |
+| `--line-spacing <LINE_SPACING>` | From one line's base to the next, in capital heights (default 1.6) |
+| `--layer <LAYER>` | The layer for its letters (default "text") |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload text set`
+
+Change a text (what it says, its font, size, place or turn) and write it again
+
+```text
+chipload text set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The text's id (as `text list` shows it) |
+| `--text <TEXT>` | What it says. |
+| `--height <HEIGHT>` | The height of a capital letter, mm. |
+| `--at <AT>` | Where the lower-left corner of the text's box goes: X,Y in mm (default 0,0) |
+| `--rotate <ROTATE>` | Turn it about its centre to this angle, degrees counter-clockwise (any angle). `--at` stays the corner before the turn. |
+| `--font <FONT>` | A built-in font (`text fonts`; default FreeSans) |
+| `--align <ALIGN>` | How the lines line up (default left) One of: `left`, `center`, `right`. |
+| `--spacing <SPACING>` | Extra space between letters, mm (default 0: the font's own) |
+| `--line-spacing <LINE_SPACING>` | From one line's base to the next, in capital heights (default 1.6) |
+| `--layer <LAYER>` | The layer for its letters (default "text") |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload text list`
+
+The project's texts: what they say, font, size, place and shapes
+
+```text
+chipload text list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload text remove`
+
+Remove a text and its letters
+
+```text
+chipload text remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The text's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload text fonts`
+
+The built-in fonts
+
+```text
+chipload text fonts
+```
+
 ## `chipload dxf`
 
 A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)
@@ -904,6 +987,7 @@ chipload place <PROJECT> [OPTIONS]
 | `--reset` | Back to where the DXF has it: no turn, no scale, no move. |
 | `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `--image <IMAGE>` | A picture of the project instead (as `image list` shows it): --at, --rotate and --width apply, as `image set`. |
+| `--text <TEXT>` | A text of the project instead (as `text list` shows it): --at, --rotate and --height (its capital height) apply, as `text set`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload licenses`

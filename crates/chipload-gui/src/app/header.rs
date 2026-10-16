@@ -286,6 +286,14 @@ impl ChiploadApp {
                             app.start_drawing(tool);
                         }
                     }
+                    if ribbon_button(ui, Icon::Text, "Text", can_draw, app.placing_text())
+                        .on_hover_text(
+                            "Write a text: click where it starts, then type it in Properties",
+                        )
+                        .clicked()
+                    {
+                        app.start_text();
+                    }
                     if ribbon_button(ui, Icon::Image, "Image", true, false)
                         .on_hover_text(
                             "Trace a picture into shapes, for V-carving or a follow path",

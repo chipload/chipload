@@ -274,6 +274,7 @@ pub fn shapes_from_drawing_scaled(
                 segments,
                 image: None,
                 dxf: Some(1),
+                text: None,
             },
         })
         .collect();
@@ -313,10 +314,11 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
             let source_type = shape
                 .dxf_type()
                 .map_or_else(|| shape.kind_name().to_uppercase(), str::to_string);
-            let from = match (shape.dxf(), shape.image()) {
-                (Some(dxf), _) => Some(ShapeFrom::Dxf(dxf)),
-                (None, Some(image)) => Some(ShapeFrom::Image(image)),
-                (None, None) => None,
+            let from = match (shape.dxf(), shape.image(), shape.text()) {
+                (Some(dxf), _, _) => Some(ShapeFrom::Dxf(dxf)),
+                (None, Some(image), _) => Some(ShapeFrom::Image(image)),
+                (None, None, Some(text)) => Some(ShapeFrom::Text(text)),
+                (None, None, None) => None,
             };
             shape.segments().into_iter().map(move |seg| Segment {
                 prim: seg.to_primitive(),

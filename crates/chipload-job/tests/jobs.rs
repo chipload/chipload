@@ -1983,7 +1983,7 @@ fn shapes_can_be_left_out_of_a_whole_source_only() {
     data["operations"][0]["select"] = json!({"layer": "L", "exclude": [1]});
     let err = parse_job(data, "p").unwrap_err().to_string();
     assert!(
-        err.contains("only be left out of a whole DXF or image"),
+        err.contains("only be left out of a whole DXF, image or text"),
         "{err}"
     );
 }

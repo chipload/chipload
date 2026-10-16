@@ -72,6 +72,8 @@ impl ChiploadApp {
             return;
         };
         let focus = self.focus;
+        // A text just placed: its text field takes the keyboard, once.
+        let grab = std::mem::take(&mut self.focus_text_field);
         let contours = &self.contours;
         let library = self.settings_dir.as_ref().map(|_| &self.library);
         let mut op_request = OpFormRequest::default();
@@ -90,6 +92,7 @@ impl ChiploadApp {
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
+            Focus::Text(id) => request = forms::text_form(ui, edit, id, grab),
             // Drawn by `library_properties` above.
             Focus::LibraryTools
             | Focus::LibraryTool(_)
@@ -149,6 +152,12 @@ impl ChiploadApp {
             }
             Some(JobRequest::RemoveImage(image)) if self.remove_image(image) => {
                 self.focus = Focus::Job;
+            }
+            Some(JobRequest::TextChange(id, text)) => {
+                self.set_text(id, &text);
+            }
+            Some(JobRequest::RemoveText(id)) => {
+                self.remove_text(id);
             }
             Some(JobRequest::RemoveDxf(_) | JobRequest::RemoveImage(_)) | None => {}
         }

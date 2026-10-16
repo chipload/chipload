@@ -65,7 +65,7 @@ fn select<'a>(
     }
     let mut selected = Vec::new();
     let mut skipped: Vec<&Contour> = Vec::new();
-    // Shapes left out of a whole DXF or image: their contours, whole, aren't selected
+    // Shapes left out of a whole DXF, image or text: their contours, whole, aren't selected
     // (docs/specs/leave-out-shapes.md §3).
     let left_out = |contour: &Contour| {
         selector.exclude.as_ref().is_some_and(|ids| {
@@ -156,6 +156,11 @@ fn matches(segment: &Segment, selector: &Selector) -> bool {
     {
         return false;
     }
+    if let Some(text) = selector.text
+        && segment.from != Some(ShapeFrom::Text(text))
+    {
+        return false;
+    }
     // DXF layer names are case-insensitive.
     if let Some(layer) = &selector.layer
         && segment.layer.to_lowercase() != layer.to_lowercase()
@@ -183,10 +188,11 @@ fn describe(selector: &Selector) -> String {
         parts.push(format!("shapes {}", ids.join(", ")));
     }
     let text = parts.join(" and ");
-    let mut source = match (selector.dxf, selector.image) {
-        (Some(dxf), _) => format!("DXF {dxf}"),
-        (None, Some(image)) => format!("image {image}"),
-        (None, None) => return text,
+    let mut source = match (selector.dxf, selector.image, selector.text) {
+        (Some(dxf), _, _) => format!("DXF {dxf}"),
+        (None, Some(image), _) => format!("image {image}"),
+        (None, None, Some(id)) => format!("text {id}"),
+        (None, None, None) => return text,
     };
     if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
         let ids: Vec<String> = exclude.iter().map(|id| format!("S{id}")).collect();

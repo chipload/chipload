@@ -178,6 +178,16 @@ impl ChiploadApp {
                 .as_ref()
                 .map(|s| s.points.clone())
                 .unwrap_or_default();
+        } else if self.placing_text() {
+            self.scene.preview.clear();
+            self.scene.sketch_points.clear();
+            self.scene.measure = None;
+            if response.clicked()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let at = self.snap_world(self.view.to_world(pos), alt, false);
+                self.place_text_at(at);
+            }
         } else if self.measure.is_some() {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();

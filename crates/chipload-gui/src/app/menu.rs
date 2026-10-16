@@ -36,6 +36,8 @@ impl ChiploadApp {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.measure.is_some() {
                 self.measure = None;
+            } else if self.placing_text {
+                self.placing_text = false;
             } else if self.sketch.is_some() {
                 self.cancel_drawing();
             } else {
@@ -366,6 +368,13 @@ impl ChiploadApp {
             if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
                 self.start_drawing(tool);
             }
+        }
+        if ui
+            .add_enabled(can_draw, egui::Button::new("Text"))
+            .on_hover_text("Write a text, then click where it starts")
+            .clicked()
+        {
+            self.start_text();
         }
     }
 

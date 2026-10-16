@@ -185,7 +185,7 @@
         },
         "hidden": {
           "default": [],
-          "description": "Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,\n`dxf:1/layer:Cut`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`.",
+          "description": "Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,\n`dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,\n`drawn:polyline`.",
           "items": {
             "type": "string"
           },
@@ -209,6 +209,13 @@
           "description": "The shapes, imported and drawn.",
           "items": {
             "$ref": "#/$defs/Shape"
+          },
+          "type": "array"
+        },
+        "texts": {
+          "description": "Texts written into shapes, for V-carving, pocketing or profiling. Left out of the\nfile when there are none, so projects without text open in older versions.",
+          "items": {
+            "$ref": "#/$defs/Text"
           },
           "type": "array"
         }
@@ -1360,7 +1367,7 @@
           ]
         },
         "exclude": {
-          "description": "Shapes of that DXF or image left out (ids); with `dxf` or `image` only. A contour\nwith any of them isn't cut. A traced image's are found again when it is traced again.",
+          "description": "Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text`\nonly. A contour with any of them isn't cut. A traced image's, or a text's, are found\nagain when it is made again.",
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -1398,6 +1405,15 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Only the letters of this text (an id in `drawing.texts`).",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         }
@@ -1540,6 +1556,15 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "path: the text it is a letter of (its id in `drawing.texts`).",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -1719,6 +1744,87 @@
         "flank_angle"
       ],
       "type": "object"
+    },
+    "Text": {
+      "additionalProperties": false,
+      "description": "A text written into shapes: what it says, its font and size, and where it goes. Its\nletters are `path` shapes on its layer that name it in `text`, made again when it\nchanges; the font is needed only for that, not to cut them.",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/TextAlign",
+          "description": "How the lines line up against each other."
+        },
+        "font": {
+          "description": "A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or\nFreeMono Bold (`chipload text fonts`).",
+          "type": "string"
+        },
+        "height": {
+          "description": "The height of a capital letter, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "id": {
+          "description": "The text's id, which its letters name.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "layer": {
+          "description": "The layer its letters go on.",
+          "type": "string"
+        },
+        "line_spacing": {
+          "description": "From one line's base to the next, in capital heights.",
+          "format": "double",
+          "type": "number"
+        },
+        "rotation": {
+          "description": "Turned counter-clockwise about the box's centre, degrees, at least 0 and less than\n360. `x` and `y` are before the turn, as for an image.",
+          "format": "double",
+          "type": "number"
+        },
+        "spacing": {
+          "description": "Extra space between letters, mm; 0: the font's own spacing, kerning included.",
+          "format": "double",
+          "type": "number"
+        },
+        "text": {
+          "description": "What it says; a line break (\"\\n\") starts a new line.",
+          "type": "string"
+        },
+        "x": {
+          "description": "X of the lower-left corner of the text's box on the stock, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "description": "Y of the lower-left corner of the text's box on the stock, mm.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "font",
+        "height",
+        "x",
+        "y",
+        "rotation",
+        "align",
+        "spacing",
+        "line_spacing",
+        "layer"
+      ],
+      "type": "object"
+    },
+    "TextAlign": {
+      "description": "How a text's lines line up.",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ],
+      "type": "string"
     },
     "Tool": {
       "additionalProperties": false,

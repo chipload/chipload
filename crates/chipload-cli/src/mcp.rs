@@ -23,7 +23,7 @@ const PROTOCOLS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const LEFT_OUT: [&str; 3] = ["mcp", "reference", "render"];
 
 /// Tools that only read: the client may run them without asking.
-const READ_ONLY: [&str; 16] = [
+const READ_ONLY: [&str; 18] = [
     "inspect",
     "plan",
     "get",
@@ -32,6 +32,8 @@ const READ_ONLY: [&str; 16] = [
     "schema",
     "licenses",
     "image_list",
+    "text_list",
+    "text_fonts",
     "dxf_list",
     "tool_list",
     "tool_compare",

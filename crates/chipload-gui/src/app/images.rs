@@ -448,16 +448,21 @@ impl ChiploadApp {
         let super::CanvasSelection::Shapes(ids) = &self.selection else {
             return None;
         };
-        let mut images = std::collections::BTreeSet::new();
+        // Every shape from one picture, or every shape from one text.
+        let mut sources = std::collections::BTreeSet::new();
         for id in ids {
             let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
-            images.insert(shape.image()?);
+            let source = match (shape.image(), shape.text()) {
+                (Some(image), _) => chipload_core::chain::ShapeFrom::Image(image),
+                (None, Some(text)) => chipload_core::chain::ShapeFrom::Text(text),
+                (None, None) => return None,
+            };
+            sources.insert(source);
         }
-        let image = match images.len() {
-            1 => images.into_iter().next()?,
+        let from = match sources.len() {
+            1 => sources.into_iter().next()?,
             _ => return None,
         };
-        let from = chipload_core::chain::ShapeFrom::Image(image);
         let selected = self.selection.ids(&self.contours);
         let left_out: std::collections::BTreeSet<u64> = self
             .contours

@@ -123,11 +123,15 @@ impl CanvasSelection {
             CanvasSelection::Source(from) => Selector {
                 dxf: match from {
                     ShapeFrom::Dxf(id) => Some(*id),
-                    ShapeFrom::Image(_) => None,
+                    _ => None,
                 },
                 image: match from {
                     ShapeFrom::Image(id) => Some(*id),
-                    ShapeFrom::Dxf(_) => None,
+                    _ => None,
+                },
+                text: match from {
+                    ShapeFrom::Text(id) => Some(*id),
+                    _ => None,
                 },
                 ..Selector::default()
             },
@@ -143,6 +147,10 @@ impl CanvasSelection {
                 },
                 image: match from {
                     Some(ShapeFrom::Image(id)) => Some(*id),
+                    _ => None,
+                },
+                text: match from {
+                    Some(ShapeFrom::Text(id)) => Some(*id),
                     _ => None,
                 },
                 ..Selector::default()

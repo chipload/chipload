@@ -63,6 +63,7 @@ mod simulation;
 mod sources;
 #[cfg(test)]
 mod tests;
+mod texts;
 mod user_library;
 
 use forms::{job_form, op_form};
@@ -88,6 +89,8 @@ pub enum Focus {
     Tool(i64),
     Dxf(u64),
     Image(u64),
+    /// A text, by id (docs/specs/text.md §5).
+    Text(u64),
     /// The user's library in the Browser (docs/specs/library-in-browser.md §4): its tools
     /// folder, one tool by uid (as a number), its machines folder, one machine profile.
     LibraryTools,
@@ -261,6 +264,10 @@ pub struct ChiploadApp {
     pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
     pub sketch: Option<Sketch>,
+    /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
+    placing_text: bool,
+    /// A text was just placed: its text field takes the keyboard once.
+    pub(super) focus_text_field: bool,
     /// View → Measure, while on (docs/specs/small-items.md §3).
     pub measure: Option<measure::Measure>,
     /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
@@ -370,6 +377,8 @@ impl Default for ChiploadApp {
             playback: None,
             three_d: false,
             sketch: None,
+            placing_text: false,
+            focus_text_field: false,
             measure: None,
             shape_clipboard: Vec::new(),
             shape_draft: None,
@@ -1201,17 +1210,17 @@ impl ChiploadApp {
     /// A click on the canvas: `picked` is the contour hit (if any); `toggle` (Ctrl) adds or
     /// removes it instead of replacing the selection. Selections are kept as shape ids.
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
-        // A traced contour selects its whole picture: traced shapes get new ids each time
-        // the picture is traced again, so operations select the picture, not its shapes
-        // (docs/specs/image-trace.md §4, decision 6; user report 2026-10-13).
+        // A traced contour selects its whole picture, a letter its whole text: their shapes
+        // get new ids each time the picture is traced again or the text written again, so
+        // operations select the picture or text, not its shapes (docs/specs/image-trace.md
+        // §4, decision 6; user report 2026-10-13; text.md §5).
         let traced = picked
             .and_then(|id| self.contours.iter().find(|c| c.id == id))
             .and_then(|c| match c.parts.first().and_then(|p| p.segment.from) {
-                Some(from @ chipload_core::chain::ShapeFrom::Image(_))
-                    if c.parts.iter().all(|p| p.segment.from == Some(from)) =>
-                {
-                    Some(from)
-                }
+                Some(
+                    from @ (chipload_core::chain::ShapeFrom::Image(_)
+                    | chipload_core::chain::ShapeFrom::Text(_)),
+                ) if c.parts.iter().all(|p| p.segment.from == Some(from)) => Some(from),
                 _ => None,
             });
         if let (Some(from), false) = (traced, toggle) {
@@ -1298,10 +1307,14 @@ impl ChiploadApp {
             CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(id)) => {
                 format!("image {id}")
             }
+            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id)) => {
+                format!("text {id}")
+            }
             CanvasSelection::Except(from, _) => {
                 let source = match from {
                     chipload_core::chain::ShapeFrom::Dxf(id) => format!("DXF {id}"),
                     chipload_core::chain::ShapeFrom::Image(id) => format!("image {id}"),
+                    chipload_core::chain::ShapeFrom::Text(id) => format!("text {id}"),
                 };
                 let all = CanvasSelection::Source(*from).ids(&self.contours).len();
                 format!("{source}, {} left out", all - ids.len())

@@ -25,6 +25,7 @@
 - [Several drawings](drawings/several.md)
 - [Drawing shapes](drawings/shapes.md)
 - [Images](drawings/images.md)
+- [Text](drawings/text.md)
 - [Copies](drawings/copies.md)
 
 # Operations

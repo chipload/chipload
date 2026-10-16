@@ -181,6 +181,6 @@ fn a_selector_may_name_a_whole_dxf() {
     assert!(
         two.validate()
             .iter()
-            .any(|p| p.text.contains("needs a DXF, an image, a layer or shapes"))
+            .any(|p| p.text.contains("needs a DXF, an image, a text, a layer or shapes"))
     );
 }

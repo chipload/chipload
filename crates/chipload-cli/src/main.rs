@@ -47,6 +47,7 @@ use serde_json::{Value, json};
 mod mcp;
 mod out;
 mod reference;
+mod texts;
 
 use out::{EXIT_FAILED, Out};
 
@@ -227,6 +228,12 @@ enum Command {
         #[command(subcommand)]
         action: images::ImageAction,
     },
+    /// Text written into shapes for V-carving, pocketing or profiling: add, change, list,
+    /// remove, and the built-in fonts (docs/specs/text.md).
+    Text {
+        #[command(subcommand)]
+        action: texts::TextAction,
+    },
     /// A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md).
     Dxf {
         #[command(subcommand)]
@@ -325,8 +332,12 @@ enum Command {
         dxf: Option<u64>,
         /// A picture of the project instead (as `image list` shows it): --at, --rotate and
         /// --width apply, as `image set`.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "text")]
         image: Option<u64>,
+        /// A text of the project instead (as `text list` shows it): --at, --rotate and
+        /// --height (its capital height) apply, as `text set`.
+        #[arg(long)]
+        text: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -702,6 +713,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Op { action } => op(out, action),
         Command::Shape { action } => shape(out, action),
         Command::Image { action } => images::image(out, action),
+        Command::Text { action } => texts::text(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),
         Command::Machine { action } => library::machine(out, action),
@@ -743,6 +755,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             reset,
             dxf,
             image,
+            text,
             output,
         } => place(
             out,
@@ -760,6 +773,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 reset,
                 dxf,
                 image,
+                text,
             },
             output.as_deref(),
         ),
@@ -1023,11 +1037,15 @@ struct PlaceArgs {
     reset: bool,
     dxf: Option<u64>,
     image: Option<u64>,
+    text: Option<u64>,
 }
 
 fn place(out: &mut Out, project: &Path, args: PlaceArgs, output: Option<&Path>) -> ExitCode {
     if let Some(id) = args.image {
         return place_image(out, project, id, args, output);
+    }
+    if let Some(id) = args.text {
+        return place_text(out, project, id, args, output);
     }
     let job = match load_job(project) {
         Ok(job) => job,
@@ -1119,6 +1137,35 @@ fn place_image(
         return out.fail("with --image, say what to change: --at, --rotate or --width");
     }
     images::place_image(out, project, id, at, args.rotate, args.width, output)
+}
+
+/// `place --text`: a text's corner, turn and capital height, as `text set` sets them.
+fn place_text(
+    out: &mut Out,
+    project: &Path,
+    id: u64,
+    args: PlaceArgs,
+    output: Option<&Path>,
+) -> ExitCode {
+    let others = args.by.is_some()
+        || args.to.is_some()
+        || args.align.is_some()
+        || args.margin.is_some()
+        || args.scale.is_some()
+        || args.width.is_some()
+        || args.reset;
+    if others {
+        return out.fail("with --text, place takes --at, --rotate and --height (as `text set`)");
+    }
+    let at = match args.at.as_deref().map(point_arg) {
+        Some(Ok(p)) => Some((p[0], p[1])),
+        Some(Err(err)) => return out.fail(err),
+        None => None,
+    };
+    if at.is_none() && args.rotate.is_none() && args.height.is_none() {
+        return out.fail("with --text, say what to change: --at, --rotate or --height");
+    }
+    texts::place_text(out, project, id, at, args.rotate, args.height, output)
 }
 
 /// The moves `place` was asked for, in order: a turn, a scale, then a move or an alignment.
@@ -1488,15 +1535,20 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
         .collect::<Result<Vec<_>, String>>()
         .map_err(|e| out.fail(e))?;
     let changed = chipload_job::paths::set_all(&job, &assignments).map_err(|e| out.fail(e))?;
-    // An image whose settings changed is traced again (docs/specs/image-trace.md §5).
+    // An image whose settings changed is traced again (docs/specs/image-trace.md §5), a
+    // changed text written again (text.md §6).
     let (traced, reports) =
         chipload_pipeline::images::retrace_changed(&job, &changed).map_err(|e| out.fail(e))?;
-    for report in &reports {
-        for line in &report.lines {
-            out.line(line.clone());
-        }
+    let (written, text_reports) =
+        chipload_pipeline::texts::remake_changed(&job, &traced).map_err(|e| out.fail(e))?;
+    for line in reports
+        .iter()
+        .flat_map(|r| &r.lines)
+        .chain(text_reports.iter().flat_map(|r| &r.lines))
+    {
+        out.line(line.clone());
     }
-    Ok(traced)
+    Ok(written)
 }
 
 /// Load a project and run it, as `run` and `sheet` do; errors are printed.
@@ -1786,9 +1838,14 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
         Ok(changed) => changed,
         Err(err) => return out.fail(err),
     };
-    // An image whose settings changed is traced again (docs/specs/image-trace.md §5).
+    // An image whose settings changed is traced again (docs/specs/image-trace.md §5), a
+    // changed text written again (text.md §6).
     let (changed, reports) = match chipload_pipeline::images::retrace_changed(&job, &changed) {
         Ok(traced) => traced,
+        Err(err) => return out.fail(err),
+    };
+    let (changed, text_reports) = match chipload_pipeline::texts::remake_changed(&job, &changed) {
+        Ok(written) => written,
         Err(err) => return out.fail(err),
     };
     let target = output.unwrap_or(project);
@@ -1800,6 +1857,9 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
     }
     for report in &reports {
         images::reported(out, report);
+    }
+    for report in &text_reports {
+        texts::reported(out, report);
     }
     let problems = chipload_pipeline::job_problems(&changed);
     problem_lines(out, &problems);

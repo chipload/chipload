@@ -20,7 +20,7 @@ Under it, the **ribbon** groups the buttons:
 | Group | Buttons | Its caption's menu also has |
 |---|---|---|
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
-| DRAW | Circle, Rectangle, Polyline, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
+| DRAW | Circle, Rectangle, Polyline, Text, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, colour theme |

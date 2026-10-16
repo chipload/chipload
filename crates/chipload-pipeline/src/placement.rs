@@ -509,6 +509,7 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 segments: sa,
                 image: ia,
                 dxf: da,
+                text: xa,
             },
             Geometry::Path {
                 dxf_handle: hb,
@@ -517,6 +518,7 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 segments: sb,
                 image: ib,
                 dxf: db,
+                text: xb,
             },
         ) => {
             a.layer == b.layer
@@ -524,6 +526,7 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
                 && ta == tb
                 && ia == ib
                 && da == db
+                && xa == xb
                 && ca == cb
                 && sa.len() == sb.len()
                 && sa.iter().zip(sb).all(|(x, y)| same_segment(x, y))
@@ -580,6 +583,7 @@ fn nearest_is_from(shapes: &[Shape], select: &Selector, p: Point, id: u64) -> bo
 fn selects(select: &Selector, shape: &Shape) -> bool {
     if select.dxf.is_some_and(|d| shape.dxf() != Some(d))
         || select.image.is_some_and(|i| shape.image() != Some(i))
+        || select.text.is_some_and(|t| shape.text() != Some(t))
     {
         return false;
     }

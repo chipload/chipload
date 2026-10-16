@@ -843,6 +843,7 @@ dependencies = [
  "chipload-image",
  "chipload-job",
  "chipload-post",
+ "chipload-text",
  "chipload-toolpath",
  "png",
  "proptest",
@@ -863,6 +864,15 @@ dependencies = [
  "serde",
  "thiserror 2.0.21",
  "toml",
+]
+
+[[package]]
+name = "chipload-text"
+version = "0.19.0"
+dependencies = [
+ "chipload-core",
+ "thiserror 2.0.21",
+ "ttf-parser",
 ]
 
 [[package]]

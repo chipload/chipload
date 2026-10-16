@@ -23,7 +23,7 @@ pub struct Segment {
     pub source_type: String,
     /// Id of the project shape it belongs to (None while importing a DXF).
     pub shape: Option<u64>,
-    /// Which of the project's DXFs or images that shape came from; None for drawn shapes
+    /// Which of the project's DXFs, images or texts that shape came from; None for drawn shapes
     /// and while importing.
     pub from: Option<ShapeFrom>,
 }
@@ -35,6 +35,8 @@ pub enum ShapeFrom {
     Dxf(u64),
     /// The image with this id.
     Image(u64),
+    /// The text with this id (docs/specs/text.md).
+    Text(u64),
 }
 
 #[derive(Debug, Clone, PartialEq)]

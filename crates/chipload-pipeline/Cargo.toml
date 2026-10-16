@@ -11,6 +11,7 @@ chipload-check = { version = "0.19.0", path = "../chipload-check" }
 chipload-core = { version = "0.19.0", path = "../chipload-core" }
 chipload-dxf = { version = "0.19.0", path = "../chipload-dxf" }
 chipload-image = { version = "0.19.0", path = "../chipload-image" }
+chipload-text = { version = "0.19.0", path = "../chipload-text" }
 chipload-job = { version = "0.19.0", path = "../chipload-job" }
 chipload-post = { version = "0.19.0", path = "../chipload-post" }
 chipload-toolpath = { version = "0.19.0", path = "../chipload-toolpath" }
