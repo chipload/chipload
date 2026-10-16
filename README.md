@@ -3,8 +3,8 @@
 2.5D CAM for CNC routers and mills: drawings in (DXF), checked G-code out. Free software,
 for Linux and Windows, written in Rust.
 
-![Chipload: a plaque with a pocket round an island, bored holes, V-carved letters and an
-outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
+![Chipload: a plaque with a pocket round an island, bored holes, CHIPLOAD V-carved in a
+built-in font and an outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
 
 ## Highlights
 
@@ -30,6 +30,7 @@ outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.p
   - a setup sheet for the operator.
 - **Projects that keep the drawing:**
   - several DXFs, each placed, turned and scaled;
+  - text written in built-in fonts, placed and turned, to V-carve, pocket or cut out;
   - pictures (PNG, JPEG, BMP) traced into shapes to V-carve or follow;
   - shapes drawn in the app;
   - a new version of a DXF taken in, keeping the operations.

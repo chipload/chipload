@@ -372,7 +372,7 @@ impl ChiploadApp {
             self.focus = Focus::Job;
         }
         // The README's picture: the canvas without the report under it, and an operation's
-        // form in Properties (`op2`: the second operation).
+        // form in Properties (`op2`: the second operation) or a text's (`text1`).
         if steps.contains(&"noreport") {
             self.report_open = false;
         }
@@ -383,6 +383,14 @@ impl ChiploadApp {
             .filter(|&n| n >= 1)
         {
             self.focus = Focus::Op(n - 1);
+        }
+        // `text1`: text 1's properties (not selected, so its carving shows).
+        if let Some(id) = steps
+            .iter()
+            .find_map(|s| s.strip_prefix("text"))
+            .and_then(|n| n.parse::<u64>().ok())
+        {
+            self.focus = Focus::Text(id);
         }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
