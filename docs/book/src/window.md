@@ -7,6 +7,11 @@ At the top, a slim **top bar**:
 - **Middle:** the project's name on a tab. A dot on it means unsaved changes.
   Closing, opening or starting a project with unsaved changes asks first, in the middle of
   the window: **Save** (then go on), **Don't save** or **Cancel**.
+- **Changed by another program:** when the project's file is saved by another program (an
+  [AI assistant](assistants.md), a script), the app loads the new version within a couple of
+  seconds and says so in the report. **Ctrl+Z** goes back to what you had. If you have
+  unsaved changes, it asks first: **Load it** (your changes stay one Ctrl+Z away) or **Keep
+  mine** (your next Save overwrites the file).
 - **Right:** the **colour theme** (a click goes System → Light → Dark), **? Help** (user
   guide, keyboard shortcuts, about) and the version.
 

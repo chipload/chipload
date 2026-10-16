@@ -41,6 +41,7 @@ mod canvas;
 mod computer;
 mod copy_paste;
 mod dialogs;
+mod disk;
 mod drawing;
 mod dropping;
 mod forms;
@@ -161,6 +162,9 @@ enum Prompt {
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
     LibraryName(SaveTarget, String),
+    /// The project's file changed on disk while there are unsaved changes
+    /// (docs/specs/reload-changed-file.md §4); the file's version is in `disk`.
+    ChangedOnDisk,
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame
@@ -220,6 +224,8 @@ pub struct ChiploadApp {
     pub job_path: Option<PathBuf>,
     /// The project as last opened or saved; differs from `edit` when there are unsaved changes.
     saved: Option<EditJob>,
+    /// The project's file, watched for changes by other programs.
+    disk: disk::DiskWatch,
     /// The project as last recorded for undo.
     committed: Option<EditJob>,
     undo: Vec<Option<EditJob>>,
@@ -341,6 +347,7 @@ impl Default for ChiploadApp {
             edit: None,
             job_path: None,
             saved: None,
+            disk: disk::DiskWatch::default(),
             committed: None,
             undo: Vec::new(),
             redo: Vec::new(),
@@ -524,6 +531,7 @@ impl ChiploadApp {
         self.committed = Some(job.clone());
         self.edit = Some(job);
         self.job_path = path;
+        self.remember_disk();
         self.undo.clear();
         self.redo.clear();
         self.focus = Focus::Job;
@@ -1182,6 +1190,7 @@ impl ChiploadApp {
         self.committed = Some(saved.clone());
         self.saved = Some(saved);
         self.job_path = Some(path.to_path_buf());
+        self.remember_disk();
         self.clear_recovery();
         self.set_status(format!("Saved {}", path.display()), STATUS_SECONDS);
         self.record_recent(path);
@@ -1581,6 +1590,9 @@ impl eframe::App for ChiploadApp {
             ctx.request_repaint_after(wait);
         }
         if !busy && let Some(wait) = self.recovery_tick(Instant::now()) {
+            ctx.request_repaint_after(wait);
+        }
+        if !busy && let Some(wait) = self.watch_disk(Instant::now()) {
             ctx.request_repaint_after(wait);
         }
         self.update_title(&ctx);

@@ -65,8 +65,16 @@ The assistant can do what the `chipload` command can do, and no more.
 
 An assistant can misread a drawing, or choose a side, a depth or a tool you didn't mean.
 
+## Watching it work
+
+Open the project in the app while the assistant works on it. Each time the assistant saves
+the file, the app loads the new version within a couple of seconds, so you see each change
+on the canvas, with its toolpath and simulation. **Ctrl+Z** goes back a step. If you've
+changed something in the app yourself and not saved it, the app asks before loading
+([The window](window.md#the-header)).
+
 ## Limits
 
-- The assistant works on project files, not in the open app. Open (or reopen) the file to
-  see its changes.
+- The assistant works on the project's file, not in the app. What you change in the app
+  reaches the assistant only once you save.
 - It does one thing at a time; planning a big project takes a few seconds.

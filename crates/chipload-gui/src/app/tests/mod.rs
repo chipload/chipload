@@ -7,6 +7,7 @@ mod browser;
 mod browser_drawing_folder;
 mod chip_load;
 mod cycle_time;
+mod disk_changes;
 mod drawing;
 mod generating;
 mod handles;

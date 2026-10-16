@@ -248,8 +248,52 @@ impl ChiploadApp {
                     None => {}
                 }
             }
+            Prompt::ChangedOnDisk => self.changed_on_disk_prompt(ctx),
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
             Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
+        }
+    }
+
+    /// The project's file changed while there are unsaved changes
+    /// (docs/specs/reload-changed-file.md §4): in the middle, as for unsaved changes.
+    fn changed_on_disk_prompt(&mut self, ctx: &egui::Context) {
+        let name = self.job_path.as_deref().map(file_name).unwrap_or_default();
+        let mut load: Option<bool> = None;
+        let modal = egui::Modal::new(egui::Id::new("changed-on-disk")).show(ctx, |ui| {
+            ui.set_width(380.0);
+            ui.heading(format!("{name} changed on disk"));
+            ui.add_space(4.0);
+            ui.label(
+                "Another program saved the project. Load its version? Your unsaved changes \
+                 stay one Ctrl+Z away.",
+            );
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                let accent = ui.visuals().selection.bg_fill;
+                let on_accent = ui.visuals().selection.stroke.color;
+                if ui
+                    .add(egui::Button::new(RichText::new("Load it").color(on_accent)).fill(accent))
+                    .on_hover_text("Show the file's version; Ctrl+Z brings yours back")
+                    .clicked()
+                {
+                    load = Some(true);
+                }
+                if ui
+                    .button("Keep mine")
+                    .on_hover_text("Keep your changes; the next Save overwrites the file")
+                    .clicked()
+                {
+                    load = Some(false);
+                }
+            });
+        });
+        if modal.should_close() && load.is_none() {
+            load = Some(false);
+        }
+        match load {
+            Some(true) => self.load_from_disk(),
+            Some(false) => self.keep_mine(),
+            None => {}
         }
     }
 

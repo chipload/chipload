@@ -149,7 +149,8 @@ assistant's edits.
 - If it does, the app asks.
 - Polled once a second (the file's time and size), with no new dependency.
 
-This gets its own short spec once step 1 is in.
+This gets its own short spec once step 1 is in. Built 2026-10-16:
+docs/specs/reload-changed-file.md.
 
 ## 9. Decisions
 
