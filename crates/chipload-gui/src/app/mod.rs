@@ -36,6 +36,7 @@ use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_o
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
 
+mod box_drag;
 mod browser;
 mod canvas;
 mod computer;
@@ -205,6 +206,8 @@ struct Drag {
     snapped: Option<(Point, Option<SnapPoint>)>,
     /// The handle being dragged, if any.
     handle: Option<HandleDrag>,
+    /// The picture's or text's box handle being dragged, if any.
+    boxed: Option<box_drag::BoxDrag>,
     /// The start marker being dragged (index in `scene.start_markers`).
     start: Option<usize>,
     /// The start marker right-clicked, for its context menu.
@@ -276,6 +279,8 @@ pub struct ChiploadApp {
     shape_draft: Option<ShapeDraft>,
     /// What the pointer is dragging on the canvas, and where it snaps.
     drag: Drag,
+    /// The selected picture's or text's box size, worked out once (box handles).
+    box_size: box_drag::BoxSize,
 
     pub report: Report,
     /// The report panel is open (it opens by itself on warnings and errors).
@@ -383,6 +388,7 @@ impl Default for ChiploadApp {
             shape_clipboard: Vec::new(),
             shape_draft: None,
             drag: Drag::default(),
+            box_size: box_drag::BoxSize::default(),
             report: Report::info([
                 "Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into(),
             ]),

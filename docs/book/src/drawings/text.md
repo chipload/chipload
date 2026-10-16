@@ -43,6 +43,15 @@ canvas:
 Each change applies when you finish the edit, as one undo step: **Ctrl+Z** brings the
 earlier text back. An operation that selects the text follows the change.
 
+**On the canvas:** with the text selected, its box shows handles (in top view):
+- the square in the **middle** moves it;
+- the square beyond its right side **turns** it about its centre, in steps of 15°;
+- a **corner** square makes it larger or smaller, keeping its proportions; the opposite
+  corner stays where it is. Its height is rounded to 0.1 mm.
+
+The box follows the cursor while you drag, and the text is written again when you let
+go, as one undo step. Hold **Alt** for no steps (any angle, any size) and no snapping.
+
 ## Fonts
 
 Chipload has six fonts built in, so a project writes the same letters on every computer:

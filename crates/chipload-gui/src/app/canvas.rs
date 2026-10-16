@@ -95,26 +95,40 @@ impl ChiploadApp {
             .partition(|(h, _)| matches!(h, Handle::Middle(_)));
         self.scene.handles = others.into_iter().map(|&(_, p)| p).collect();
         self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
+        // A selected picture's or text's box handles (docs/specs/box-handles.md).
+        let box_handles = self.box_handle_points();
+        self.scene
+            .handles
+            .extend(box_handles.iter().map(|&(_, p)| p));
         let view = self.view;
-        let on_handle = |pos: egui::Pos2| -> Option<Handle> {
-            shape_handles
-                .iter()
-                .map(|&(h, p)| (h, view.to_screen(p).distance(pos)))
+        let nearest = |points: &mut dyn Iterator<Item = Point>, pos: egui::Pos2| {
+            points
+                .enumerate()
+                .map(|(i, p)| (i, view.to_screen(p).distance(pos)))
                 .filter(|&(_, d)| d <= crate::view::PICK_TOLERANCE_PX)
                 .min_by_key(|&(_, d)| Ordered(f64::from(d)))
-                .map(|(h, _)| h)
+                .map(|(i, _)| i)
+        };
+        let on_handle = |pos: egui::Pos2| -> Option<Handle> {
+            nearest(&mut shape_handles.iter().map(|&(_, p)| p), pos).map(|i| shape_handles[i].0)
+        };
+        let on_box_handle = |pos: egui::Pos2| {
+            nearest(&mut box_handles.iter().map(|&(_, p)| p), pos).map(|i| box_handles[i].0)
         };
         if response.drag_started_by(egui::PointerButton::Primary)
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
             if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
+            } else if let Some(handle) = on_box_handle(origin) {
+                self.start_box_drag(handle);
             } else {
                 self.drag.start = self.start_marker_at(origin);
             }
         }
         if response.drag_stopped() {
             self.end_handle_drag();
+            self.end_box_drag();
             self.drop_start();
         }
         self.drag.snapped = None;
@@ -131,6 +145,13 @@ impl ChiploadApp {
             {
                 let to = self.snap_world(self.view.to_world(pos), alt, true);
                 self.drag_handle_to(to, shift);
+            }
+        } else if self.dragging_box() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let to = self.snap_world(self.view.to_world(pos), alt, true);
+                self.drag_box_to(to, alt);
             }
         } else if response.dragged() {
             // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view any drag pans.
@@ -206,6 +227,7 @@ impl ChiploadApp {
             if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()
+                && on_box_handle(pos).is_none()
                 && self.start_marker_at(pos).is_none()
                 && self.show_drawing()
             {
@@ -214,6 +236,8 @@ impl ChiploadApp {
                 self.click(picked, toggle);
             }
         }
+        let outline = self.box_outline();
+        self.scene.preview.extend(outline);
         if response.secondary_clicked() {
             let at = response.interact_pointer_pos();
             self.drag.context_start = at.and_then(|pos| self.start_marker_at(pos));
@@ -430,6 +454,8 @@ impl ChiploadApp {
     /// Where the cursor at `at` lands (snap point, else grid; exact with Alt), remembered
     /// for the marker and the status bar. `dragging`: skip the selected shape's own points.
     pub(super) fn snap_world(&mut self, at: Point, free: bool, dragging: bool) -> Point {
+        // A dragged box doesn't snap to its own letters or traced shapes.
+        let own_box = (dragging && self.dragging_box()).then(|| self.selection.ids(&self.contours));
         let skip: BTreeSet<usize> = match self.selected_shape().filter(|_| dragging) {
             Some(id) => self
                 .contours
@@ -437,7 +463,9 @@ impl ChiploadApp {
                 .filter(|c| shapes_of(c).contains(&id))
                 .map(|c| c.id)
                 .collect(),
-            None => BTreeSet::new(),
+            None => own_box
+                .map(|ids| ids.into_iter().collect())
+                .unwrap_or_default(),
         };
         let step = grid_step(self.view.scale);
         let (p, hit) = snap_cursor(

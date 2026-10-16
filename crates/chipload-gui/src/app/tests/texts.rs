@@ -111,3 +111,48 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     assert!(texts(&app).is_empty());
     assert!(!app.problems.is_empty());
 }
+
+#[test]
+fn dragging_a_texts_move_handle_moves_its_letters_as_one_undo_step() {
+    use chipload_pipeline::box_handles::BoxHandle;
+    let (mut app, id) = with_text();
+    let handles = app.box_handle_points();
+    assert_eq!(handles.len(), 6, "move, turn and four corners");
+    let (_, center) = handles[0];
+    let before = texts(&app)[0].clone();
+    app.start_box_drag(BoxHandle::Move);
+    app.drag_box_to((center.0 + 15.0, center.1 - 5.0), false);
+    assert_eq!(
+        texts(&app)[0],
+        before,
+        "nothing changes until the drag ends"
+    );
+    app.end_box_drag();
+    let after = &texts(&app)[0];
+    assert!((after.x - (before.x + 15.0)).abs() < 1e-9);
+    assert!((after.y - (before.y - 5.0)).abs() < 1e-9);
+    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    app.undo();
+    assert_eq!(texts(&app)[0], before);
+}
+
+#[test]
+fn a_corner_drag_makes_a_text_taller() {
+    use chipload_pipeline::box_handles::BoxHandle;
+    let (mut app, _) = with_text();
+    let handles = app.box_handle_points();
+    // Upper-right corner (Size(2)) out by the box's own diagonal: twice the size.
+    let (_, lower_left) = handles[2];
+    let (_, upper_right) = handles[4];
+    let to = (
+        2.0 * upper_right.0 - lower_left.0,
+        2.0 * upper_right.1 - lower_left.1,
+    );
+    app.start_box_drag(BoxHandle::Size(2));
+    app.drag_box_to(to, false);
+    app.end_box_drag();
+    let text = &texts(&app)[0];
+    assert!((text.height - 20.0).abs() < 1e-9, "{}", text.height);
+    // The lower-left corner stays (the text's anchor is its corner).
+    assert!((text.x - 20.0).abs() < 0.01 && (text.y - 30.0).abs() < 0.01);
+}

@@ -25,6 +25,15 @@ it in the Browser (it is selected right after importing) for its properties:
 - **Width** in mm; its height follows from the picture. Chipload doesn't use the picture's
   DPI, which is often missing or wrong.
 
+**On the canvas:** with the picture selected, its box shows handles (in top view):
+- the square in the **middle** moves it;
+- the square beyond its right side **turns** it about its centre, in steps of 15°;
+- a **corner** square makes it larger or smaller, keeping its proportions; the opposite
+  corner stays where it is. Its width is rounded to 0.1 mm.
+
+The box follows the cursor while you drag, and the picture is traced again when you let
+go, as one undo step. Hold **Alt** for no steps (any angle, any size) and no snapping.
+
 On the command line, give `--width`, `--at` (the picture's corner before it is turned) and
 `--rotate`.
 

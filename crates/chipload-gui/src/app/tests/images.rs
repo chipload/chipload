@@ -162,3 +162,26 @@ fn a_hidden_toolpath_leaves_the_legend_and_the_plunges() {
     // The toolpath itself stays: showing it again needs no new generation.
     assert!(app.scene.toolpath.is_some() && app.result.is_some());
 }
+
+#[test]
+fn a_pictures_turn_handle_turns_it_in_steps() {
+    use chipload_pipeline::box_handles::BoxHandle;
+    let mut app = two_parts();
+    app.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1));
+    let handles = app.box_handle_points();
+    assert_eq!(handles.len(), 6);
+    let (_, center) = handles[0];
+    app.start_box_drag(BoxHandle::Turn);
+    // Up and a little right of the centre: 80°, stepped to 75°.
+    let a = 80f64.to_radians();
+    app.drag_box_to(
+        (center.0 + 30.0 * a.cos(), center.1 + 30.0 * a.sin()),
+        false,
+    );
+    app.end_box_drag();
+    let image = &app.edit.as_ref().unwrap().settings.drawing.images[0];
+    assert_eq!(image.rotation, 75.0);
+    // Turned about its centre: the centre stays.
+    let after = app.box_handle_points()[0].1;
+    assert!((after.0 - center.0).abs() < 0.06 && (after.1 - center.1).abs() < 0.06);
+}

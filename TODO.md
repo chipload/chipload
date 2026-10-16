@@ -178,6 +178,10 @@ it's built (see `CLAUDE.md`).
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
   the top bar; the setup sheet in Job settings > Machine.
+- **Picture and text handles** (2026-10-17, docs/specs/box-handles.md): a selected
+  picture or text shows move, turn (15° steps) and corner size handles; the box follows the
+  drag and the change is applied on release, as one undo step. Selection and Properties
+  (same day): no Selection section while an operation is open; *Use selection (N)* counts.
 - **Text** (2026-10-16, docs/specs/text.md, ADR 0020): a text object like a picture, in
   six built-in GNU FreeFont faces; letters as shapes stored in the project; Draw > Text,
   Properties, Browser rows, `chipload text …`, `place --text`. Later (spec §7): installed

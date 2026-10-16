@@ -391,6 +391,10 @@ impl ChiploadApp {
             .and_then(|n| n.parse::<u64>().ok())
         {
             self.focus = Focus::Text(id);
+            // With "select" too: the text is selected, its handles showing.
+            if steps.contains(&"select") {
+                self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+            }
         }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
