@@ -26,6 +26,9 @@ shot image tests/corpus/jobs/v19/image_vcarve.chipload image
 shot drawing tests/corpus/jobs/v21/two_dxfs.chipload drawing
 shot properties tests/corpus/jobs/v18/dogbones.chipload generate,select
 shot parts tests/corpus/jobs/v22/two_parts.chipload generate,part
+# The README's picture: a larger window, the cut stock alone, the pocket's form open.
+CHIPLOAD_SCREENSHOT_SIZE=1600x950 shot showcase packaging/docs/showcase.chipload \
+    simulation,3d,notoolpath,noreport,op2
 # The library: a settings folder of its own with two tools and a machine.
 cargo build -q --release -p chipload-cli
 library=$(mktemp -d)

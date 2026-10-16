@@ -371,6 +371,19 @@ impl ChiploadApp {
             self.use_machine_profile(&name);
             self.focus = Focus::Job;
         }
+        // The README's picture: the canvas without the report under it, and an operation's
+        // form in Properties (`op2`: the second operation).
+        if steps.contains(&"noreport") {
+            self.report_open = false;
+        }
+        if let Some(n) = steps
+            .iter()
+            .find_map(|s| s.strip_prefix("op"))
+            .and_then(|n| n.parse::<usize>().ok())
+            .filter(|&n| n >= 1)
+        {
+            self.focus = Focus::Op(n - 1);
+        }
         if steps.contains(&"half")
             && let Some(playback) = &mut self.playback
         {

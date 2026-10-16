@@ -1,8 +1,54 @@
 # Chipload
 
-Cross-platform 2.5D CAM application (DXF in, G-code out), written in Rust with an egui GUI.
+2.5D CAM for CNC routers and mills: drawings in (DXF), checked G-code out. Free software,
+for Linux and Windows, written in Rust.
 
-See `CLAUDE.md` for architecture rules, conventions, and workflow.
+![Chipload: a plaque with a pocket round an island, bored holes, V-carved letters and an
+outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
+
+## Highlights
+
+- **Checked G-code, always.** Every program goes through an independent checker before it
+  can be written. The checker looks at:
+  - the machine's limits;
+  - rapids through the stock;
+  - retracts before travel;
+  - arcs that don't close;
+  - feeds of zero.
+- **The operations you cut with:**
+  - **profile:** a spiral down the contour, holding tabs, a finishing pass, an onion skin,
+    dogbone and T-bone corners;
+  - **pocket:** islands, rings that spiral with rounded corners, one island at a time,
+    rest machining after a larger tool, helical entry;
+  - **V-carve;**
+  - **follow path;**
+  - **holes:** drilling, pecking and helical boring.
+- **See it before you cut:**
+  - a material-removal simulation of the stock, in top view and in 3D;
+  - playback move by move;
+  - the cycle time and the chip load;
+  - a setup sheet for the operator.
+- **Projects that keep the drawing:**
+  - several DXFs, each placed, turned and scaled;
+  - pictures (PNG, JPEG, BMP) traced into shapes to V-carve or follow;
+  - shapes drawn in the app;
+  - a new version of a DXF taken in, keeping the operations.
+- **A sheet full of parts:** several parts with their own operations and grids of copies,
+  checked against each other's toolpaths.
+- **Your tools and machines:** a tool library and machine profiles, copied into each
+  project and linked back. A project cuts the same on any computer.
+- **Any controller:** GRBL, LinuxCNC and Mach3/4 posts, with arcs as G2/G3. Posts are a
+  template and a small config, so you can copy one and make it yours.
+- **Scriptable:**
+  - every feature is on the command line;
+  - `--json` on every command, and `get`/`set` for any value;
+  - JSON Schemas for the files;
+  - **AI assistants** (Claude and other MCP clients) can drive it through `chipload mcp`,
+    while you watch the project update in the app.
+- **No account, no network, no install:** an AppImage on Linux, a single `.exe` on
+  Windows. Your files stay yours, under GPL-3.0-or-later.
+
+Contributors: see `CLAUDE.md` for the architecture rules, conventions and workflow.
 
 ## Safety warning
 
@@ -26,7 +72,7 @@ Chipload comes with no warranty (GPL-3.0, sections 15 and 16).
 ## Download
 
 Releases provide a Linux AppImage and a single Windows `.exe` for the GUI, plus the command
-line for both (see `docs/releasing.md`).
+line for both, and the user guide to read offline (see `docs/releasing.md`).
 
 ## Quick start
 
@@ -57,9 +103,9 @@ handles can be dragged, and the cursor snaps to end points, centres and middles 
 A project can also start empty (`chipload new`, *File > New project*) and take in a DXF later
 (`update --from`, *File > Import DXF into project…*); drawn shapes are kept.
 
-A part can be cut several times in a grid (`chipload copies`, or *Copies* under Job
-settings): columns × rows at a fixed pitch, no rotation, operation by operation across all
-copies or part by part. Every copy is planned and checked like the original, and copies
+A part can be cut several times in a grid (`chipload copies`, or *Copies* in the part's
+properties): columns × rows at a fixed pitch, no rotation, operation by operation across all
+copies or copy by copy. Every copy is planned and checked like the original, and copies
 whose cuts would overlap are refused. In the GUI the copies are drawn faded.
 
 Your tools and machines can be kept between projects (`chipload tool add …`, `chipload
@@ -67,13 +113,14 @@ machine add …`, then `tool default` / `machine default`): a new project starts
 default machine and tool, and `tool use` / `machine use` copy them into a project. They live
 in your settings folder (`~/.config/chipload/`, `%APPDATA%\chipload\`, or
 `CHIPLOAD_CONFIG_DIR`). A project keeps its own copy, so it cuts the same on any computer.
-In the GUI: *Settings > Tool library…* and *Machines…*, and *Use profile…* / *Save as
-profile…* (and the same for the tool) under Job settings.
+In the GUI: *This computer* at the top of the Browser holds the tool library and machine
+profiles; drag a library tool onto the project's Tools to use it.
 
 The GUI (`chipload-gui [part.chipload | part.dxf]`) is a project editor: import a DXF
-(Ctrl+I) or open a project (Ctrl+O, or *File > Open recent*), click contours (Ctrl+click for more, right-click for a whole layer), then **New
-profile** or **New pocket**. Operations run in list order; drag them (≡) or use ↑/↓ to
-reorder, untick to skip one. **F5** generates and shows the toolpath (each operation numbered
+(Ctrl+I) or open a project (Ctrl+O, or *File > Open recent*), click contours (Ctrl+click
+for more, right-click for a whole layer), then an operation in the ribbon (**Profile**,
+**Pocket**, **V-carve**, **Follow**, **Holes**). Operations run in the Browser's order;
+drag them to reorder, untick to skip one. **F5** generates and shows the toolpath (each operation numbered
 at its first plunge, arrows in the cutting direction, rapids dashed, tabs highlighted, and the simulated
 stock showing what the tools leave; with an operation selected, a marker shows where each ring
 starts: drag it along the ring to start the cut elsewhere, right-click it to reset); **Ctrl+S** saves
@@ -83,23 +130,9 @@ stretched in the View menu); **Top view** (T) goes back.
 *File > Update drawing from DXF* takes in a re-exported drawing and keeps the operations.
 `chipload run` on a saved project gives the same G-code.
 
-Supported: **profile** operations (inside, outside, on), always one forward spiral down
-the contour at a ramp angle (`"ramp_angle"`, 3° by default: no plunge into the part, any
-endmill), with optional holding tabs (`"tabs": {"count": 4, "width": 8, "height": 3,
-"flank_angle": …}`, width = bridge left on the part, straight or sloped), a finishing pass,
-an onion skin and dogbone or T-bone corners; **pocket** operations with islands, cleared
-in rings from the inside out as one spiral with rounded inner corners (optionally only what
-a larger tool left: rest machining), with a plunge, ramp or helical entry (down round a
-small circle, written as helical G2/G3) and lead-in and lead-out arcs on the walls
-(`"lead": {"radius": 3}`); **V-carve**, **follow path** and **holes** (drilling, helical
-boring) operations; climb or conventional, a start and end depth with multiple passes, an
-oversize (positive: larger pocket or smaller part, negative: stock left), cuts into the
-spoilboard up to a set limit, start points chosen per ring (`"starts": [[x, y]]`, each
-moving the start of the ring nearest to it), a tool per operation, and the GRBL, LinuxCNC
-and Mach3/4 posts (arcs written as G2/G3).
-G-code is written only if it passes the independent checker. See
-`tests/corpus/jobs/` for example projects and `docs/specs/` for exact behaviour and
-limitations.
+The operations and their settings are described in the user guide (`docs/book/`), and
+`docs/specs/` gives their exact behaviour and limits. `tests/corpus/jobs/` has example
+projects. G-code is written only if it passes the independent checker.
 
 For scripts: every command takes `--json`, `chipload get`/`set` read and change any project
 value by path, and `chipload schema project` prints the project file's JSON Schema. See

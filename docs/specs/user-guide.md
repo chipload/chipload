@@ -82,7 +82,9 @@ Written for an operator who knows CNC but not Chipload:
 
 Pictures: a few GUI screenshots where words don't do it (the canvas, the playback slider).
 `packaging/docs/screenshots.sh` makes them, using the GUI's existing screenshot feature
-(decision 3).
+(decision 3). It also makes the README's picture (`images/showcase.png`, added
+2026-10-16): `packaging/docs/showcase.chipload` in 3D with its simulated stock, in a larger
+window (`CHIPLOAD_SCREENSHOT_SIZE`), the report folded and the pocket's form open.
 
 ## 4. Kept up to date
 
