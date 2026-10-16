@@ -231,6 +231,9 @@ pub(super) struct OpFormRequest {
 /// What the operation form needs to know about tools: the project's, the library's names
 /// (None: no library), and the operation's tool's cutting values from the library.
 pub(super) struct ToolChoice<'a> {
+    /// How many contours are selected on the canvas, and which (for *Use selection*).
+    pub selected: usize,
+    pub selection_text: &'a str,
     pub tools: &'a [Tool],
     pub library: Option<Vec<String>>,
     pub cutting: Option<Cutting>,
@@ -288,9 +291,17 @@ pub(super) fn op_form(
             ui.label("Geometry");
             let geometry = ui.horizontal(|ui| {
                 ui.label(&summary);
+                let label = match choice.selected {
+                    0 => "Use selection".to_string(),
+                    n => format!("Use selection ({n})"),
+                };
                 if ui
-                    .button("Use selection")
-                    .on_hover_text("Replace with the contours selected on the canvas")
+                    .add_enabled(choice.selected > 0, egui::Button::new(label))
+                    .on_hover_text(format!(
+                        "Replace with the contours selected on the canvas.\n{}",
+                        choice.selection_text
+                    ))
+                    .on_disabled_hover_text("Select contours on the canvas first")
                     .clicked()
                 {
                     use_selection = true;

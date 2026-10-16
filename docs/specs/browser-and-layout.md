@@ -233,7 +233,10 @@ follows the zoom (`draw::grid_step`) exists, but it isn't drawn. Following Solid
 - **Operations** are duplicated and deleted from their right-click menu only. There's no
   Ctrl+D, and the Delete key stays with the canvas, where it deletes drawn shapes.
 - **Selection** (§4) shows above the open form whenever shapes are selected, not instead
-  of it, so *Use selection* and the selection stay in view together. It folds away.
+  of it. It folds away. Changed 2026-10-17: while an operation is open it is not shown,
+  because it pushed the form down whenever shapes were clicked; the operation's
+  *Use selection (N)* counts the selection and lists it in its tooltip. It is not shown
+  either when the open DXF, picture or text is itself the selection.
 - **Drawn shapes** are listed directly in the Drawing folder, by kind (Rectangles,
   Circles, Polylines), without a "Drawn shapes" folder in between.
 - **Header (§5):** the Edit menu is split by what it acts on. Undo and redo go under

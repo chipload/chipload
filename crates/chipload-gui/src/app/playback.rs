@@ -336,7 +336,7 @@ impl ChiploadApp {
             && let Some(id) = first_drawn
         {
             self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
-            self.focus = Focus::Op(0);
+            self.focus = Focus::Job;
         }
         let last_part = self
             .edit

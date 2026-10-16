@@ -67,3 +67,25 @@ fn a_tools_problem_belongs_to_the_tool_not_the_job_settings() {
     assert_eq!(app.settings_problems().count(), 0);
     assert!(!app.form_problem_map(Focus::Tools).is_empty());
 }
+
+#[test]
+fn the_selection_never_pushes_an_open_operation_down() {
+    use chipload_core::chain::ShapeFrom;
+    let mut app = two_parts();
+    app.focus = Focus::Job;
+    app.selection = CanvasSelection::Source(ShapeFrom::Dxf(2));
+    assert!(
+        app.selection_shown(),
+        "with the project open it comes first"
+    );
+    app.focus = Focus::Op(0);
+    assert!(!app.selection_shown(), "Use selection counts it instead");
+    draw_properties(&mut app);
+    app.focus = Focus::Dxf(2);
+    assert!(!app.selection_shown(), "the open DXF is what is selected");
+    app.focus = Focus::Dxf(1);
+    assert!(app.selection_shown(), "another DXF's shapes are selected");
+    app.selection = CanvasSelection::Nothing;
+    app.focus = Focus::Job;
+    assert!(!app.selection_shown());
+}

@@ -934,8 +934,26 @@ impl ChiploadApp {
         lines.join("\n")
     }
 
+    /// Whether Properties shows the Selection section: while something is selected, except
+    /// while an operation is open (its *Use selection* counts the selection, so the form
+    /// never moves) or the open DXF, picture or text is itself what is selected.
+    pub(super) fn selection_shown(&self) -> bool {
+        use chipload_core::chain::ShapeFrom;
+        if self.selection.ids(&self.contours).is_empty() {
+            return false;
+        }
+        let open = match self.focus {
+            Focus::Op(_) => return false,
+            Focus::Dxf(id) => ShapeFrom::Dxf(id),
+            Focus::Image(id) => ShapeFrom::Image(id),
+            Focus::Text(id) => ShapeFrom::Text(id),
+            _ => return true,
+        };
+        self.selection != CanvasSelection::Source(open)
+    }
+
     /// Properties: the selection, the selected shape's editor or facts, and Copy as
-    /// selector (docs/specs/browser-and-layout.md §4). Only while something is selected.
+    /// selector (docs/specs/browser-and-layout.md §4), above the open form when shown.
     pub(super) fn selection_section(&mut self, ui: &mut egui::Ui) {
         if self.selection.ids(&self.contours).is_empty() {
             return;

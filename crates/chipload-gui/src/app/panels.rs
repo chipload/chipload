@@ -61,13 +61,15 @@ impl ChiploadApp {
             return;
         }
         self.problems_strip(ui);
-        if !self.selection.ids(&self.contours).is_empty() {
+        if self.selection_shown() {
             self.selection_section(ui);
             ui.add_space(4.0);
             ui.separator();
             ui.add_space(4.0);
         }
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
+        let selected = self.selection.ids(&self.contours).len();
+        let selection_text = self.selection_lines().join("\n");
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
@@ -103,6 +105,8 @@ impl ChiploadApp {
             | Focus::Post(_) => {}
             Focus::Op(i) => {
                 let choice = ToolChoice {
+                    selected,
+                    selection_text: &selection_text,
                     tools: &edit.settings.tools,
                     library: library
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
