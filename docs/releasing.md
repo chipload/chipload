@@ -17,9 +17,9 @@ publish it.
        git tag -a v0.2.0 -m "Chipload 0.2.0"
        git push origin v0.2.0
 
-4. The workflow checks that the tag matches the workspace version, runs the tests on Linux
-   and Windows, builds the files, and creates a draft release with them and `SHA256SUMS.txt`.
-5. Download and try the AppImage and the Windows `.exe`, edit the notes, then **Publish**.
+4. The workflow checks that the tag matches the workspace version, runs the tests on Linux,
+   Windows and macOS, builds the files, and creates a draft release with them and `SHA256SUMS.txt`.
+5. Download and try the AppImage, the Windows `.exe` and the macOS app, edit the notes, then **Publish**.
 6. Build the user guide and attach it to the release (docs/specs/user-guide.md §5). First
    renew its screenshots (needs a display) and commit them if they changed:
 
@@ -39,6 +39,8 @@ publish it.
 | `chipload-gui-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
 | `chipload-X.Y.Z-linux-x86_64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
 | `chipload-X.Y.Z-windows-x86_64.exe` | Windows command line |
+| `Chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
+| `chipload-X.Y.Z-macos-universal.tar.gz` | macOS command line, with LICENSE and the third-party notices |
 | `SHA256SUMS.txt` | checksums of the above |
 | `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`), attached by hand (step 6) |
 
@@ -84,6 +86,21 @@ From WSL, in `/mnt/c/code/chipload`:
    chipload-0.13.0-windows-x86_64.exe SHA256SUMS.txt --clobber`, and list the Windows files
    in the release notes.
 5. `git switch main` in the Windows checkout, so it isn't left on the tag.
+
+### macOS
+
+There is no Mac here, so without Actions a release has no macOS files; say so in its notes.
+On a Mac with Rust, Xcode's command line tools and Homebrew's `librsvg`, the workflow's
+steps are:
+
+    rustup target add aarch64-apple-darwin x86_64-apple-darwin
+    export MACOSX_DEPLOYMENT_TARGET=11.0
+    packaging/test-release.sh
+    cargo build --release --locked --target aarch64-apple-darwin -p chipload-gui -p chipload-cli
+    cargo build --release --locked --target x86_64-apple-darwin -p chipload-gui -p chipload-cli
+    packaging/macos/build-macos.sh 0.18.0 dist
+
+Then add both files' checksums to `SHA256SUMS.txt` and upload them as for Windows.
 
 ## When the repository goes public: the user guide's website
 

@@ -3,6 +3,7 @@
 #
 #   Linux:   Chipload-X.Y.Z-x86_64.AppImage (GUI), chipload-X.Y.Z-linux-x86_64.tar.gz (CLI)
 #   Windows: chipload-gui-X.Y.Z-windows-x86_64.exe (GUI), chipload-X.Y.Z-windows-x86_64.exe (CLI)
+#   macOS:   Chipload-X.Y.Z-macos-universal.dmg (GUI), chipload-X.Y.Z-macos-universal.tar.gz (CLI)
 #   SHA256SUMS.txt
 name: Release
 
@@ -94,8 +95,33 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  macos:
+    needs: version
+    # Apple silicon; the Intel half of the universal binaries is cross-compiled.
+    runs-on: macos-15
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      # The oldest macOS the binaries run on (build-macos.sh writes the same into Info.plist).
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Both architectures
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - run: packaging/test-release.sh
+      - run: cargo build --release --locked --target aarch64-apple-darwin -p chipload-gui -p chipload-cli
+      - run: cargo build --release --locked --target x86_64-apple-darwin -p chipload-gui -p chipload-cli
+      - name: rsvg-convert for the icon
+        run: brew install librsvg
+      - name: App, disk image and CLI archive
+        run: packaging/macos/build-macos.sh "$VERSION" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*
+          if-no-files-found: error
+
   draft-release:
-    needs: [version, linux, windows]
+    needs: [version, linux, windows, macos]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -119,7 +145,11 @@ jobs:
             (\`chmod +x\`). Without FUSE: \`--appimage-extract-and-run\`.
           - **Windows:** \`chipload-gui-$VERSION-windows-x86_64.exe\`: a single file, no installer.
             It is not code-signed yet, so Windows SmartScreen may ask before the first start.
-          - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-windows-x86_64.exe\`.
+          - **macOS:** \`Chipload-$VERSION-macos-universal.dmg\` (Apple silicon and Intel, macOS 11+): drag
+            Chipload to Applications. It is not notarised yet: the first start is refused; open it
+            from System Settings > Privacy & Security > *Open Anyway*.
+          - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-windows-x86_64.exe\`,
+            \`chipload-$VERSION-macos-universal.tar.gz\`.
 
           Free software under GPL-3.0-or-later; the source is attached to this release.
           Third-party licences: Help > About and licences, or \`chipload licenses\`.

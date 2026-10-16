@@ -8,6 +8,17 @@ Status: accepted (2026-10-09)
 - A pushed `vX.Y.Z` tag builds everything and creates a **draft** GitHub Release; publishing
   is a manual step. Steps: `docs/releasing.md`.
 
+## Decisions (2026-10-16): macOS
+- **macOS:** the GUI ships as `Chipload.app` in a disk image, the command line as a
+  `.tar.gz`, both **universal** (Apple silicon and Intel), for macOS 11 or newer. Built by
+  the release workflow on `macos-15` (Apple silicon; the Intel half cross-compiled) and
+  joined with `lipo` (`packaging/macos/build-macos.sh`). Signed **ad hoc** only: no Apple
+  Developer ID and no notarisation yet, so Gatekeeper refuses the first start until the
+  user chooses *Open Anyway*. The build fails if a binary links anything outside the
+  system's own libraries. Bundle identifier `se.gntech.chipload`.
+- The notices cover the macOS targets too (`about.toml`).
+- Not built locally: there is no Mac here. The first run of the job will be its first test.
+
 ## How
 - `.github/workflows/release.yml` builds natively on `ubuntu-22.04` and `windows-latest`;
   `ci.yml` runs lint, tests, cargo-deny and the notices check on every push, and the tests
@@ -31,6 +42,8 @@ Status: accepted (2026-10-09)
 
 ## Not yet
 - Code signing (Windows SmartScreen warns about unsigned executables; Azure Trusted Signing
-  would be the cheapest option), an MSI installer, macOS builds, Linux arm64.
+  would be the cheapest option), an MSI installer, Linux arm64. On macOS: Developer ID
+  signing and notarisation (a paid Apple Developer account; the certificate and password would come from repository
+  secrets), opening a `.chipload` from Finder (the app takes files only as arguments).
 - Publishing requires the repository and tags to be pushed; whether the repository is
   public is a separate decision.

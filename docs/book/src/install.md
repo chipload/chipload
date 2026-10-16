@@ -30,6 +30,20 @@ install, and `chipload-X.Y.Z-windows-x86_64.exe`, the command line.
 The files aren't code-signed, so Windows SmartScreen may warn the first time. Choose *More
 info > Run anyway*.
 
+## macOS
+
+Download `Chipload-X.Y.Z-macos-universal.dmg`, open it and drag *Chipload* onto
+*Applications*. It runs on Apple silicon and Intel Macs with macOS 11 or newer.
+
+The app isn't notarised by Apple, so macOS refuses it the first time. Open *System Settings
+> Privacy & Security*, scroll down to the message about Chipload and choose *Open Anyway*.
+
+- **Command line:** it's in `chipload-X.Y.Z-macos-universal.tar.gz`. Unpack it and put
+  `chipload` on your `PATH`. If macOS stops it, run `xattr -d com.apple.quarantine chipload`
+  once.
+- **Opening files:** use *File > Open* in the app; double-clicking a `.chipload` file in
+  Finder doesn't open it yet.
+
 ## From source
 
 Install Rust with [rustup](https://rustup.rs), then in the source folder:
@@ -48,7 +62,7 @@ one folder:
 |---|---|
 | Linux | `$XDG_CONFIG_HOME/chipload/`, usually `~/.config/chipload/` |
 | Windows | `%APPDATA%\chipload\` |
-| macOS (built from source) | `~/Library/Application Support/chipload/` |
+| macOS | `~/Library/Application Support/chipload/` |
 | Any | the folder in the environment variable `CHIPLOAD_CONFIG_DIR`, if set |
 
 A project keeps its own copy of the tools, machine and post it uses, so it cuts the same on

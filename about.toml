@@ -21,7 +21,12 @@ accepted = [
     "BSL-1.0",
     "Unlicense",
 ]
-# Both release targets: their dependency sets differ (e.g. the Windows clipboard crates).
-targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+# Every release target: their dependency sets differ (e.g. the Windows and macOS windowing crates).
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+]
 ignore-build-dependencies = true
 ignore-dev-dependencies = true

@@ -178,6 +178,10 @@ it's built (see `CLAUDE.md`).
   docs/specs/view-and-settings.md): the canvas bar has labelled Fit, Top, 3D, Stock,
   Toolpath, Images and Grid; a LIBRARY ribbon group (Tools, Machines); the theme button in
   the top bar; the setup sheet in Job settings > Machine.
+- **macOS release build** (2026-10-16, ADR 0010): the release workflow builds a universal
+  `Chipload.app` in a `.dmg` and a CLI archive (`packaging/macos/build-macos.sh`), signed ad
+  hoc. Never run yet (no Actions minutes, no Mac here): the first tagged run is its test, and
+  nobody has started the app on a Mac. Later: notarisation, opening files from Finder.
 - **A new project drops the old simulation** (0.18.0): New, Open and Import DXF clear the
   stock simulation and playback with the toolpath.
 - **Unsaved changes** (0.17.4): Save, Don't save or Cancel, in a centred modal.

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Chipload.app's Info.plist; build-macos.sh fills in @VERSION@ and @MIN_MACOS@. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>Chipload</string>
+    <key>CFBundleDisplayName</key>
+    <string>Chipload</string>
+    <key>CFBundleIdentifier</key>
+    <string>se.gntech.chipload</string>
+    <key>CFBundleExecutable</key>
+    <string>chipload-gui</string>
+    <key>CFBundleIconFile</key>
+    <string>chipload</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>@VERSION@</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@VERSION@</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>@MIN_MACOS@</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.graphics-design</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright Gustav Näslund. Free software under GPL-3.0-or-later.</string>
+</dict>
+</plist>
