@@ -56,7 +56,9 @@ impl ChiploadApp {
     }
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
+        self.keep_drawing_in_view();
         self.scene.hide_toolpath = !self.show_toolpath;
+        self.scene.hide_drawing = !self.show_drawing();
         self.scene.grid = self.show_grid;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self
@@ -83,7 +85,11 @@ impl ChiploadApp {
             }
         }
         let (alt, shift) = ui.input(|i| (i.modifiers.alt, i.modifiers.shift));
-        let shape_handles = self.shape_handles();
+        let shape_handles = if self.show_drawing() {
+            self.shape_handles()
+        } else {
+            Vec::new()
+        };
         let (middles, others): (Vec<_>, Vec<_>) = shape_handles
             .iter()
             .partition(|(h, _)| matches!(h, Handle::Middle(_)));
@@ -191,6 +197,7 @@ impl ChiploadApp {
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()
                 && self.start_marker_at(pos).is_none()
+                && self.show_drawing()
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
@@ -285,6 +292,7 @@ impl ChiploadApp {
     }
 
     /// On top of the canvas, inside it: the out-of-date notice and the legend.
+    /// (The legend's right edge is kept under `LEGEND_RIGHT` for the navigation bar.)
     fn canvas_overlays(&mut self, ui: &mut egui::Ui, rect: egui::Rect) {
         let visuals = ui.visuals().clone();
         let frame = egui::Frame::new()
@@ -342,6 +350,13 @@ impl ChiploadApp {
             ui.data_mut(|d| d.insert_temp(size_id, shown.height()));
             ui.ctx().request_repaint();
         }
+        // The navigation bar keeps to the right of it.
+        ui.data_mut(|d| {
+            d.insert_temp(
+                egui::Id::new(super::navigation::LEGEND_RIGHT),
+                shown.right(),
+            )
+        });
     }
 
     /// The legend's title (it folds) and its entries.

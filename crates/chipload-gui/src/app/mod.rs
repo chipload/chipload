@@ -324,8 +324,11 @@ pub struct ChiploadApp {
     pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
     pub(super) hidden_contours: BTreeSet<usize>,
-    /// View > Show images: the pictures faintly under the drawing.
+    /// View > Show images: the pictures, faintly over the stock and under the drawing.
     pub show_images: bool,
+    /// View > Show drawing off: the selection when it was switched off. Selecting something
+    /// else or drawing a shape shows the drawing again (docs/specs/view-and-settings.md §2).
+    pub(super) drawing_hidden: Option<CanvasSelection>,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
     pub show_toolpath: bool,
     /// The pictures' textures, for the images they were made from.
@@ -399,6 +402,7 @@ impl Default for ChiploadApp {
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
             show_images: true,
+            drawing_hidden: None,
             show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
         }

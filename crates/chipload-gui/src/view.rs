@@ -716,10 +716,8 @@ pub struct PictureLayer {
 const PICTURE_FADE: f32 = 0.35;
 
 impl PictureLayer {
+    /// On the stock top, in top view and 3D.
     fn paint(&self, painter: &Painter, view: &View) {
-        if !view.is_top() {
-            return;
-        }
         // Two triangles, so a turned picture is drawn turned. The picture's top row is
         // v = 0.
         let color = Color32::WHITE.gamma_multiply(PICTURE_FADE);
@@ -777,6 +775,9 @@ pub struct Scene {
     /// View → Show toolpath off: the toolpath, its plunges, tabs and ring starts aren't drawn;
     /// a playback's tool still is (docs/specs/drawing-sources.md §5).
     pub hide_toolpath: bool,
+    /// View → Show drawing off: the contours, their copies and highlights aren't drawn and
+    /// can't be picked (docs/specs/view-and-settings.md §2).
+    pub hide_drawing: bool,
     /// The canvas's colours, for the app's theme.
     pub palette: Palette,
     /// View → Show grid: lines on the snap grid, on the stock top (docs/specs/
@@ -866,6 +867,9 @@ impl Scene {
 
     /// The contour nearest to a screen position, within the pick tolerance.
     pub fn pick(&self, view: &View, at: Pos2) -> Option<usize> {
+        if self.hide_drawing {
+            return None;
+        }
         self.contours
             .iter()
             .filter_map(|c| {
@@ -1011,7 +1015,6 @@ impl Scene {
     }
 
     pub fn paint(&self, painter: &Painter, view: &View, highlight: &Highlight) {
-        let (selected, operation) = (&highlight.selected, &highlight.operation_contours);
         let pal = &self.palette;
         paint_background(painter, pal);
         if self.grid {
@@ -1058,14 +1061,29 @@ impl Scene {
                 Stroke::new(2.0, pal.axis_z),
             );
         }
-        for picture in &self.pictures {
-            picture.paint(painter, view);
-        }
         if let Some(sim) = &self.sim {
             let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);
             sim.paint(painter, view, fade);
         }
+        // Over the stock, so the trace can be compared with the cut.
+        for picture in &self.pictures {
+            picture.paint(painter, view);
+        }
+        if !self.hide_drawing {
+            self.paint_drawing(painter, view, highlight);
+        }
+        self.paint_toolpath_and_marks(painter, view, highlight);
+    }
 
+    /// The drawing's contours, their copies and the selection and operation highlights.
+    fn paint_drawing(&self, painter: &Painter, view: &View, highlight: &Highlight) {
+        let (selected, operation) = (&highlight.selected, &highlight.operation_contours);
+        let pal = &self.palette;
+        let screen =
+            |pts: &[Point]| -> Vec<Pos2> { pts.iter().map(|&p| view.to_screen(p)).collect() };
+        let dashed = |pts: Vec<Pos2>, stroke: Stroke| {
+            painter.extend(Shape::dashed_line(&pts, stroke, DASH_PX, GAP_PX));
+        };
         for &(id, (dx, dy)) in &self.copies {
             if let Some(c) = self.contours.iter().find(|c| c.id == id) {
                 let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
@@ -1091,7 +1109,17 @@ impl Scene {
                 painter.add(Shape::line(pts, Stroke::new(width, color)));
             }
         }
+    }
 
+    /// The toolpath with its plunges and tabs, the playback, sketches, handles and markers.
+    fn paint_toolpath_and_marks(&self, painter: &Painter, view: &View, highlight: &Highlight) {
+        let pal = &self.palette;
+        let flat = view.is_top();
+        let screen =
+            |pts: &[Point]| -> Vec<Pos2> { pts.iter().map(|&p| view.to_screen(p)).collect() };
+        let dashed = |pts: Vec<Pos2>, stroke: Stroke| {
+            painter.extend(Shape::dashed_line(&pts, stroke, DASH_PX, GAP_PX));
+        };
         let shown_path = self.toolpath.as_ref().filter(|_| !self.hide_toolpath);
         if let Some(path) = shown_path {
             // While playing back, the whole toolpath faint; the moves done go on top.

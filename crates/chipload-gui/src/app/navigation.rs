@@ -5,7 +5,7 @@
 
 use eframe::egui::{Align2, FontId, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
-use super::header::ribbon_button;
+use super::header::{plain_icon_button, ribbon_button};
 use super::menu::SIMULATION_HINT;
 use super::shortcuts::{Action, hover_keys};
 use super::*;
@@ -15,10 +15,36 @@ use crate::view::MAX_TILT_RAD;
 /// The navigation bar's height, and its width before it has been drawn once, points.
 const NAV_HEIGHT: f32 = 54.0;
 const NAV_ESTIMATE: f32 = 400.0;
+/// A button's side when the bar is too wide for the canvas and shows icons only, points.
+const COMPACT_SIDE: f32 = 30.0;
+/// The room kept between the bar and the canvas's sides or the legend, points.
+const NAV_MARGIN: f32 = 8.0;
+/// Where the canvas's legend ends on the right, this frame (egui temp data).
+pub(super) const LEGEND_RIGHT: &str = "legend-right";
 /// Half the cube's edge on screen, points.
 const CUBE_HALF: f32 = 20.0;
 /// Room around the cube in the corner, points.
 const CUBE_CORNER: f32 = 96.0;
+
+/// A button of the bar: an icon over its name, or the icon alone when `compact` (its name
+/// is then in the hover text).
+fn nav_button(
+    ui: &mut egui::Ui,
+    compact: bool,
+    icon: Icon,
+    label: &str,
+    enabled: bool,
+    selected: bool,
+) -> egui::Response {
+    if compact {
+        let response = plain_icon_button(ui, icon, label, enabled, selected, COMPACT_SIDE);
+        response.on_hover_ui(|ui| {
+            ui.strong(label);
+        })
+    } else {
+        ribbon_button(ui, icon, label, enabled, selected)
+    }
+}
 
 /// A face of the orientation cube: its label, outward normal, and the view that looks at it.
 struct Face {
@@ -62,14 +88,41 @@ impl ChiploadApp {
     /// (docs/specs/view-and-settings.md §2).
     pub(super) fn navigation_bar(&mut self, ui: &mut egui::Ui, rect: Rect) {
         let visuals = ui.visuals().clone();
-        // Sized to its buttons, so it sits in the middle: the width they took last frame.
-        let size_id = egui::Id::new("navigation-bar-width");
-        let width = ui
-            .data(|d| d.get_temp::<f32>(size_id))
+        // Sized to its buttons, so it sits in the middle: the width they took last frame,
+        // remembered for each look. Too wide for the canvas with their names, the buttons
+        // show icons only.
+        let full_id = egui::Id::new("navigation-bar-full-width");
+        let compact_id = egui::Id::new("navigation-bar-compact-width");
+        let full = ui
+            .data(|d| d.get_temp::<f32>(full_id))
             .unwrap_or(NAV_ESTIMATE);
-        let height = NAV_HEIGHT;
+        // Centred on the canvas, clear of the legend in the bottom left corner.
+        let left = ui
+            .data(|d| d.get_temp::<f32>(egui::Id::new(LEGEND_RIGHT)))
+            .map_or(rect.left(), |right| right.max(rect.left()))
+            + NAV_MARGIN;
+        let right = rect.right() - NAV_MARGIN;
+        let compact = full > 2.0 * (rect.center().x - left);
+        let (size_id, height) = if compact {
+            (compact_id, COMPACT_SIDE + 8.0)
+        } else {
+            (full_id, NAV_HEIGHT)
+        };
+        // Before the compact bar has been drawn: its buttons and spacing.
+        let estimate = if compact {
+            9.0 * (COMPACT_SIDE + 2.0) + 24.0
+        } else {
+            NAV_ESTIMATE
+        };
+        let width = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
+        // Moved right when even the compact bar can't be centred clear of the legend.
+        let x = rect
+            .center()
+            .x
+            .max(left + width / 2.0)
+            .min(right - width / 2.0);
         let at = Rect::from_center_size(
-            pos2(rect.center().x, rect.bottom() - 10.0 - height / 2.0),
+            pos2(x, rect.bottom() - 10.0 - height / 2.0),
             vec2(width, height),
         );
         let place = egui::UiBuilder::new()
@@ -84,11 +137,11 @@ impl ChiploadApp {
                     .inner_margin(egui::Margin::same(4))
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing.x = 2.0;
-                        self.view_buttons(ui);
+                        self.view_buttons(ui, compact);
                         ui.add_space(4.0);
                         ui.separator();
                         ui.add_space(4.0);
-                        self.show_buttons(ui);
+                        self.show_buttons(ui, compact);
                     })
                     .response
                     .rect
@@ -101,14 +154,14 @@ impl ChiploadApp {
     }
 
     /// Fit, Top and 3D.
-    fn view_buttons(&mut self, ui: &mut egui::Ui) {
-        if ribbon_button(ui, Icon::Fit, "Fit", true, false)
+    fn view_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
+        if nav_button(ui, compact, Icon::Fit, "Fit", true, false)
             .on_hover_text(hover_keys("Fit the view", Action::Fit))
             .clicked()
         {
             self.fit_pending = true;
         }
-        if ribbon_button(ui, Icon::Top, "Top", true, !self.three_d)
+        if nav_button(ui, compact, Icon::Top, "Top", true, !self.three_d)
             .on_hover_text(hover_keys("Look straight down", Action::TopView))
             .clicked()
         {
@@ -123,7 +176,7 @@ impl ChiploadApp {
                 self.view.z_scale
             )
         };
-        if ribbon_button(ui, Icon::ThreeD, "3D", true, self.three_d)
+        if nav_button(ui, compact, Icon::ThreeD, "3D", true, self.three_d)
             .on_hover_text(three_d)
             .clicked()
         {
@@ -131,8 +184,9 @@ impl ChiploadApp {
         }
     }
 
-    /// What is shown: the simulated stock, the toolpath, the pictures and the grid.
-    fn show_buttons(&mut self, ui: &mut egui::Ui) {
+    /// What is shown: the simulated stock, the toolpath, the drawing, the pictures and the
+    /// grid.
+    fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
         let can = self.result.is_some();
         let label = if self.simulating() {
             "Stock…"
@@ -146,8 +200,9 @@ impl ChiploadApp {
         } else {
             "The stock as cut: generate the toolpath first"
         };
-        if ribbon_button(
+        if nav_button(
             ui,
+            compact,
             Icon::Simulation,
             label,
             can,
@@ -159,20 +214,27 @@ impl ChiploadApp {
             self.set_show_simulation(!self.show_simulation);
         }
         let toolpath = self.show_toolpath;
-        if ribbon_button(ui, Icon::Toolpath, "Toolpath", true, toolpath)
+        if nav_button(ui, compact, Icon::Toolpath, "Toolpath", true, toolpath)
             .on_hover_text("Show the toolpath; off, the drawing or the simulated stock alone")
             .clicked()
         {
             self.show_toolpath = !toolpath;
         }
+        let drawing = self.show_drawing();
+        if nav_button(ui, compact, Icon::Drawing, "Drawing", true, drawing)
+            .on_hover_text("Show the drawing's contours; off, the stock or the toolpath alone")
+            .clicked()
+        {
+            self.set_show_drawing(!drawing);
+        }
         let images = self.show_images;
-        if ribbon_button(ui, Icon::Image, "Images", true, images)
-            .on_hover_text("The pictures traced into shapes, faintly under the drawing")
+        if nav_button(ui, compact, Icon::Image, "Images", true, images)
+            .on_hover_text("The pictures traced into shapes, faintly over the stock")
             .clicked()
         {
             self.show_images = !images;
         }
-        if ribbon_button(ui, Icon::Grid, "Grid", true, self.show_grid)
+        if nav_button(ui, compact, Icon::Grid, "Grid", true, self.show_grid)
             .on_hover_text(hover_keys("Show the grid", Action::Grid))
             .clicked()
         {
@@ -185,7 +247,7 @@ impl ChiploadApp {
             .as_ref()
             .map_or(0, |e| e.settings.parts.iter().filter(|p| p.enabled).count());
         if parts > 1
-            && ribbon_button(ui, Icon::Parts, "All parts", true, self.all_parts)
+            && nav_button(ui, compact, Icon::Parts, "All parts", true, self.all_parts)
                 .on_hover_text(
                     "Generate and simulate every part, not only the active one. Export always \
                      writes every part.",

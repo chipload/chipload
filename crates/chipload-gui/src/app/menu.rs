@@ -316,8 +316,16 @@ impl ChiploadApp {
         }
         ui.checkbox(&mut self.show_toolpath, "Show toolpath")
             .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
+        let mut drawing = self.show_drawing();
+        if ui
+            .checkbox(&mut drawing, "Show drawing")
+            .on_hover_text("Hide the drawing to see the stock or the toolpath alone")
+            .changed()
+        {
+            self.set_show_drawing(drawing);
+        }
         ui.checkbox(&mut self.show_images, "Show images")
-            .on_hover_text("The pictures traced into shapes, faintly under the drawing");
+            .on_hover_text("The pictures traced into shapes, faintly over the stock");
         let mut sim = self.show_simulation;
         if ui
             .checkbox(&mut sim, "Show stock (simulation)")

@@ -376,6 +376,27 @@ impl ChiploadApp {
 
     /// Settings > Write a setup sheet with the G-code, kept in the app settings.
     /// View → Show grid: kept in the settings for next time.
+    /// View > Show drawing: the drawing's contours on the canvas.
+    pub fn show_drawing(&self) -> bool {
+        self.drawing_hidden.is_none()
+    }
+
+    /// Show or hide the drawing; hidden, its contours can't be clicked.
+    pub fn set_show_drawing(&mut self, on: bool) {
+        self.drawing_hidden = (!on).then(|| self.selection.clone());
+    }
+
+    /// A new selection (from the Browser) or a shape being drawn shows the drawing again, so
+    /// nothing is edited unseen.
+    pub(super) fn keep_drawing_in_view(&mut self) {
+        if let Some(at) = &self.drawing_hidden
+            && (self.sketch.is_some()
+                || (self.selection != *at && self.selection != CanvasSelection::Nothing))
+        {
+            self.drawing_hidden = None;
+        }
+    }
+
     pub fn set_show_grid(&mut self, on: bool) {
         self.show_grid = on;
         self.change_settings(|settings| settings.show_grid = on);

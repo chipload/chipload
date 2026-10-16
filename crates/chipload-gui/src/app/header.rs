@@ -566,13 +566,25 @@ pub(crate) fn icon_button(
     selected: bool,
     side: f32,
 ) -> Response {
+    plain_icon_button(ui, icon, hover, enabled, selected, side).on_hover_text(hover)
+}
+
+/// As `icon_button`, without a hover text: the caller adds its own.
+pub(crate) fn plain_icon_button(
+    ui: &mut egui::Ui,
+    icon: Icon,
+    name: &str,
+    enabled: bool,
+    selected: bool,
+    side: f32,
+) -> Response {
     let sense = if enabled {
         Sense::click()
     } else {
         Sense::hover()
     };
     let (rect, response) = ui.allocate_exact_size(vec2(side, side), sense);
-    response.widget_info(|| WidgetInfo::selected(WidgetType::Button, enabled, selected, hover));
+    response.widget_info(|| WidgetInfo::selected(WidgetType::Button, enabled, selected, name));
     let visuals = ui.visuals();
     let corner = visuals.widgets.inactive.corner_radius;
     let color = if selected {
@@ -589,7 +601,7 @@ pub(crate) fn icon_button(
         visuals.weak_text_color().gamma_multiply(0.7)
     };
     icons::paint(ui.painter(), rect.shrink(side * 0.21), icon, color);
-    response.on_hover_text(hover)
+    response
 }
 
 /// The logo's colour: a blue that reads on the top bar in either theme.

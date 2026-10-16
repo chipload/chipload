@@ -111,9 +111,14 @@ colour theme: dark, or light grey.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - how you look: **Fit** (F), **Top** (T) and **3D**;
   - what is shown: **Stock** (the [simulation](checking/simulation.md)), **Toolpath**,
-    **Images** and **Grid** (G);
+    **Drawing**, **Images** and **Grid** (G);
   - with two parts or more, **All parts**: the toolpath and simulation of every part, not
     only the [active one](operations/parts.md).
+  - When the canvas is too narrow for the names, the buttons show only their icons; hover
+    over one to see its name.
+- **Drawing off** hides the drawing's contours, to see the simulated stock or the toolpath
+  alone. While it's off, clicks on the canvas don't select anything. Selecting something
+  in the Browser, or starting to draw a shape, shows the drawing again.
 - **The corner:**
   - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
     FRONT, RIGHT, BACK, LEFT) to look straight at it.

@@ -111,8 +111,9 @@ path…* takes the picture's path instead.
 - **Trace it differently:** double-click it, or right-click it > **Trace settings…**: the
   same window opens (its button says **Apply**).
 - **Remove it:** right-click > **Remove** removes the picture and its shapes.
-- **See it:** *View > Show images* shows the pictures faintly under the drawing, for
-  comparing the traced shapes with the picture.
+- **See it:** **Images** on the canvas's navigation bar (or *View > Show images*) shows the
+  pictures faintly on the stock top, over the simulated stock and under the drawing, in
+  top view and 3D, for comparing the traced shapes, and the cut, with the picture.
 - **Leaving shapes out:** with the picture selected, Ctrl+click a shape to leave it out of
   the operation ([What an operation selects](several.md#what-an-operation-selects)).
 - **Operations:** clicking traced shapes on the canvas and adding an operation selects the

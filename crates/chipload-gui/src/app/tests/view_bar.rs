@@ -132,3 +132,78 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     let expected: Vec<String> = whole.files.iter().map(|f| f.gcode.clone()).collect();
     assert_eq!(written, expected);
 }
+
+/// docs/specs/view-and-settings.md §2: Drawing off hides the contours and their picking;
+/// a new selection or a shape being drawn brings them back.
+#[test]
+fn the_drawing_can_be_hidden_and_comes_back_to_edit() {
+    let mut app = lower_part();
+    draw_canvas(&mut app);
+    let contour = app.contours[0].clone();
+    let shape = app
+        .scene
+        .contours
+        .iter()
+        .find(|c| c.id == contour.id)
+        .unwrap();
+    let at = app.view.to_screen(shape.points[0]);
+    assert_eq!(app.scene.pick(&app.view, at), Some(contour.id));
+    app.click(Some(contour.id), false);
+    let selected = app.selection.clone();
+
+    app.set_show_drawing(false);
+    draw_canvas(&mut app);
+    assert!(!app.show_drawing() && app.scene.hide_drawing);
+    assert_eq!(app.scene.pick(&app.view, at), None);
+    assert!(app.scene.handles.is_empty());
+    // The selection it was hidden with, or none (Esc), keeps it hidden.
+    assert_eq!(app.selection, selected);
+    app.selection = CanvasSelection::Nothing;
+    draw_canvas(&mut app);
+    assert!(!app.show_drawing());
+    // Selecting a layer in the Browser shows it again.
+    let layer = contour.layers()[0].clone();
+    app.select_layer(&layer);
+    draw_canvas(&mut app);
+    assert!(app.show_drawing() && !app.scene.hide_drawing);
+
+    // So does starting to draw a shape.
+    app.set_show_drawing(false);
+    draw_canvas(&mut app);
+    assert!(!app.show_drawing());
+    app.start_drawing(Tool::Circle);
+    draw_canvas(&mut app);
+    assert!(app.show_drawing());
+}
+
+/// User report 2026-10-16: the Images button did nothing. The pictures were drawn under the
+/// simulated stock (on by default) and only in top view; now over the stock, in 3D too.
+#[test]
+fn pictures_show_over_the_stock_and_in_3d() {
+    let ctx = egui::Context::default();
+    let mut app = ChiploadApp::default();
+    assert!(app.import_image(&corpus("images/logo.png")));
+    assert!(app.apply_image());
+    app.sync_pictures(&ctx);
+    assert_eq!(app.scene.pictures.len(), 1);
+    app.show_images = false;
+    app.sync_pictures(&ctx);
+    assert!(app.scene.pictures.is_empty());
+    app.show_images = true;
+    app.sync_pictures(&ctx);
+    // Painted in 3D: the picture's mesh is on the canvas.
+    app.view_3d();
+    let meshes = |app: &mut ChiploadApp| {
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.canvas(ui));
+        output.textures_delta.clear();
+        let textured = |s: &&egui::epaint::ClippedShape| match &s.shape {
+            egui::Shape::Mesh(m) => m.texture_id != egui::TextureId::default(),
+            _ => false,
+        };
+        output.shapes.iter().filter(textured).count()
+    };
+    assert_eq!(meshes(&mut app), 1);
+    app.show_images = false;
+    app.sync_pictures(&ctx);
+    assert_eq!(meshes(&mut app), 0);
+}

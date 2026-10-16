@@ -24,8 +24,10 @@ off and on.
 - **When:** it runs in the background after each generation.
 - **Without the toolpath:** *View > Show toolpath* (also **Toolpath** on the navigation bar
   and a checkbox on the canvas legend)
-  hides the toolpath's lines, plunges and tabs, to see the simulated stock alone. During
-  playback, the tool still shows where it is.
+  hides the toolpath's lines, plunges and tabs. During playback, the tool still shows where
+  it is.
+- **The stock alone:** turn off **Drawing** on the navigation bar (or *View > Show
+  drawing*) as well, and only the simulated stock is left.
 
 Use it to see what the toolpath really leaves:
 - material in corners;
