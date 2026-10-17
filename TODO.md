@@ -5,14 +5,13 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased: 0.22.2 is tagged.
+- Nothing unreleased: 0.22.2 is published.
 
 ## State to remember (2026-10-17)
 
-- **Releases**: the latest published is 0.22.1 (2026-10-17, built by Actions: Linux and
-  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). 0.22.2 is
-  tagged (`v0.22.2`) with fixes from testing 0.22.1, its draft to publish; then put the
-  guide online with `publish-book.sh v0.22.2`. 0.22.0 was tagged but withdrawn unpublished.
+- **Releases**: the latest is 0.22.2 (published 2026-10-18, built by Actions: Linux and
+  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`; the guide is
+  online from `v0.22.2`). 0.22.0 was tagged but withdrawn unpublished. No drafts are left.
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
   `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
