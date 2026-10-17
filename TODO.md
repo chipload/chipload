@@ -5,7 +5,9 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-(nothing)
+- **Inches** (docs/specs/inch-units.md, draft for review 2026-10-17): G-code in G20 per
+  machine, display units as a preference, inch input on the command line. Waiting for the
+  user's decisions (spec §7).
 
 ## State to remember (2026-10-12)
 
