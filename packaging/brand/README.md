@@ -20,6 +20,16 @@ packages and guide use.
 | `chipload-wordmark-white.svg` | the same in white, for dark backgrounds |
 | `chipload-avatar.svg`, `png/chipload-avatar-512.png` | the GitHub organisation's picture (square, full bleed) |
 | `chipload.ico` | the Windows icon (16 to 256 px), compiled into `chipload-gui.exe` |
+| `github-social-preview.svg`, `png/github-social-preview.png` | GitHub's link picture (1280 x 640): repository *Settings > Social preview* |
+| `github-profile/README.md` | the organisation's profile page: `profile/README.md` in the `chipload/.github` repository |
+
+## On GitHub
+
+- **Organisation picture:** `png/chipload-avatar-512.png` (organisation *Settings > Profile*).
+- **Organisation profile:** name *Chipload*; description *2.5D CAM for CNC routers and mills:
+  drawings in, checked G-code out*; website https://chipload.github.io/chipload/.
+- **Repository:** the social preview above; description and website already set; topics
+  cnc, cam, gcode, cnc-router, grbl, linuxcnc, mach3, dxf, v-carving, toolpath, rust, egui.
 
 Copies: `packaging/linux/chipload.svg` (Linux and macOS icon), `crates/chipload-gui/assets/`
 (window icon, Windows icon), `docs/book/theme/favicon.*` and

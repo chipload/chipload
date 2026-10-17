@@ -16,6 +16,7 @@ GREEN = "#9ab964"   # the brand colour
 ORANGE = "#f29e38"  # the tool: the one accent
 INK = "#f3f5f0"     # rings on the green tile
 DARK = "#1d2025"    # text and backgrounds in dark places
+GREEN_DEEP = "#6f8f3c"  # the green on light backgrounds, where the brand green is pale
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -136,6 +137,31 @@ def wordmark(color):
     return f'<g transform="translate(4,{pad})">{body}</g>', x + width + 8, 100 + 2 * pad
 
 
+def social_preview():
+    """GitHub's link picture, 1280 x 640: the wordmark and a line on the left, the app at work
+    on the right (the guide's showcase screenshot). Text in FreeSans, which render.sh hands
+    to resvg."""
+    body, w, h = wordmark(GREEN)
+    scale = 520 / w
+    shot = "../../docs/book/src/images/showcase.png"
+    return (
+        f'<rect width="1280" height="640" fill="{INK}"/>'
+        f'<g transform="translate(64,190) scale({scale:.4f})">{body}</g>'
+        f'<text x="68" y="{190 + h * scale + 70:.0f}" font-family="FreeSans" font-size="34" '
+        f'fill="{DARK}">2.5D CAM for CNC routers and mills.</text>'
+        f'<text x="68" y="{190 + h * scale + 116:.0f}" font-family="FreeSans" font-size="34" '
+        f'fill="{DARK}">Drawings in, checked G-code out.</text>'
+        f'<text x="68" y="590" font-family="FreeSans" font-size="24" fill="{GREEN_DEEP}">'
+        f'Free software for Linux, Windows and macOS</text>'
+        f'<clipPath id="shot"><rect x="660" y="80" width="580" height="480" rx="18"/></clipPath>'
+        # The 3D view only: the 1600 x 950 screenshot at 0.707, its canvas in the frame.
+        f'<image href="{shot}" x="420" y="-33" width="1131" height="672" '
+        f'clip-path="url(#shot)"/>'
+        f'<rect x="660" y="80" width="580" height="480" rx="18" fill="none" '
+        f'stroke="{GREEN}" stroke-width="4"/>'
+    )
+
+
 def write(name, text):
     with open(os.path.join(HERE, name), "w", encoding="utf-8") as f:
         f.write(text)
@@ -143,6 +169,7 @@ def write(name, text):
 
 def main():
     write("chipload-mark.svg", svg(mark_tile(), 256, 256, "Chipload"))
+    write("github-social-preview.svg", svg(social_preview(), 1280, 640, "Chipload"))
     write("chipload-avatar.svg", svg(avatar(), 256, 256, "Chipload"))
     write("chipload-mark-green.svg", svg(mark_plain(GREEN), 256, 256, "Chipload"))
     write("chipload-mark-white.svg", svg(mark_plain(INK), 256, 256, "Chipload"))

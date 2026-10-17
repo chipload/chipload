@@ -14,6 +14,9 @@ for size in 16 24 32 48 64 128 256 512 1024; do
 done
 "$RESVG" -w 512 -h 512 chipload-avatar.svg png/chipload-avatar-512.png
 "$RESVG" -w 1200 chipload-wordmark.svg png/chipload-wordmark.png
+# GitHub's link picture: its text is FreeSans, one of the fonts Chipload carries.
+"$RESVG" --resources-dir . --use-font-file ../../crates/chipload-text/fonts/FreeSans.ttf \
+    github-social-preview.svg png/github-social-preview.png
 
 # The Windows icon: PNG images in an ICO container, one per size Windows asks for.
 python3 - <<'PY'
