@@ -5,15 +5,14 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased: 0.22.1 is tagged.
+- Nothing unreleased: 0.22.1 is published.
 
 ## State to remember (2026-10-17)
 
-- **Releases**: the latest published is 0.21.1 (2026-10-17, built by Actions: Linux and
-  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). 0.22.0 was
-  tagged (`v0.22.0`) but its draft is deleted unpublished: testing found *Add rest pass*
-  hard to find. 0.22.1 (tag `v0.22.1`) has the fix, with a draft release to publish; then
-  put the guide online with `publish-book.sh v0.22.1`. Old tags remain (`v0.3.0` on, and
+- **Releases**: the latest is 0.22.1 (published 2026-10-17, built by Actions: Linux and
+  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`; the guide is
+  online from `v0.22.1`). 0.22.0 was tagged (`v0.22.0`) but withdrawn unpublished: testing
+  found *Add rest pass* hard to find. No drafts are left. Old tags remain (`v0.3.0` on, and
   the guide-only tags `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
   github.com/chipload/chipload, the guide at chipload.github.io/chipload (published from
