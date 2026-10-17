@@ -56,7 +56,9 @@ from a traced picture and an outline held by tabs, its toolpaths over the simula
   - **AI assistants** (Claude and other MCP clients) can drive it through `chipload mcp`,
     while you watch the project update in the app.
 - **No account, no network, no install:** an AppImage on Linux, a single `.exe` on
-  Windows. Your files stay yours, under GPL-3.0-or-later.
+  Windows. Your files are yours, and stay on your computer.
+- **Free software:** Chipload is under GPL-3.0-or-later. What you make with it is yours
+  (see [License](#license)).
 
 Contributors: see `CLAUDE.md` for the architecture rules, conventions and workflow.
 
@@ -193,6 +195,12 @@ Copyright (C) 2026 Gustav Näslund
 Chipload is free software: you can redistribute it and/or modify it under the terms of the
 GNU General Public License as published by the Free Software Foundation, either version 3 of
 the License, or (at your option) any later version. See [LICENSE](LICENSE).
+
+**What you make with Chipload is yours.** The licence covers Chipload itself: its code, and
+anyone who copies, changes or passes it on. It doesn't cover what you make with it: your
+drawings, projects, G-code, setup sheets and the parts you cut are yours, to use and sell as
+you like. Text cut in Chipload's built-in fonts (GNU FreeFont) is free of it too, by the
+fonts' own exception for documents that use them.
 
 Chipload generates programs that drive machines. It comes with no warranty: see the
 [safety warning](#safety-warning) above.
