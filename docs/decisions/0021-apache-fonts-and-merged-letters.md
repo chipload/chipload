@@ -33,8 +33,9 @@ outlines as they are, crossing each other, which a pocket or V-carve can't use.
   `texts::lettering`, so `chipload-text` stays core only.
 
 ## Consequences
-- No new licence, no new dependency, no schema change: a project names its font, and
-  older versions keep cutting a project with a new font (its letters are stored shapes).
+- No new licence, no new dependency, and no schema change of its own: a project names its
+  font. (A project saved by 0.22 is schema 29 for the surface operation, so older versions
+  don't open it anyway.)
 - Existing texts don't change until they are changed; FreeFont texts without overlaps make
   the same shapes as before (tested).
 - Found while testing and fixed the same day: an offset library failure on Smokum's sharp

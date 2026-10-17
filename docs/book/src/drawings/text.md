@@ -87,9 +87,7 @@ their G-code are yours.
 
 A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
-installed. Chipload 0.19 and older can't open a project that has a text. A project with one
-of the fonts added in 0.22 opens in 0.20 and 0.21 and cuts the same, but its text can be
-changed only in 0.22 or newer.
+installed. Chipload 0.19 and older can't open a project that has a text.
 
 ## Leaving letters out
 
