@@ -3,7 +3,8 @@
 //!
 //! What the text says, its font and its size go in; closed outlines of lines and arcs in mm
 //! come out, with the box round all of them at (0, 0). The fonts are built in (GNU
-//! FreeFont, cut down to Latin: fonts/LICENSE.txt), so every build makes the same letters.
+//! FreeFont and ten Apache-2.0 fonts, cut down to Latin: fonts/LICENSE*.txt), so every build
+//! makes the same letters.
 //! No file I/O.
 
 use chipload_core::Point;
@@ -13,37 +14,129 @@ use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use ttf_parser::gpos::{PairAdjustment, PositioningSubtable};
 use ttf_parser::{Face, GlyphId, OutlineBuilder, Tag};
 
-/// A built-in font: its name, as a project names it, and the font file.
+/// A built-in font: its name, as a project names it, its style and the font file.
 pub struct BuiltinFont {
     pub name: &'static str,
+    pub style: Style,
     data: &'static [u8],
 }
 
-/// The built-in fonts (spec §2), the default first.
+impl BuiltinFont {
+    /// The font file (TrueType), for showing its name in its own face.
+    pub fn data(&self) -> &'static [u8] {
+        self.data
+    }
+}
+
+/// What a font is for, as the app groups them (docs/specs/more-fonts.md §5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Style {
+    /// Plain letters for any sign or label.
+    Plain,
+    /// Connected handwriting.
+    Script,
+    /// Bold and decorative, for headings.
+    Display,
+}
+
+impl Style {
+    pub fn name(self) -> &'static str {
+        match self {
+            Style::Plain => "plain",
+            Style::Script => "script",
+            Style::Display => "display",
+        }
+    }
+}
+
+/// The built-in fonts (text.md §2, more-fonts.md §2), the default first: GNU FreeFont
+/// (fonts/LICENSE.txt) and ten Apache-2.0 fonts from Google Fonts
+/// (fonts/LICENSE-Apache-2.0.txt), all cut down to Latin.
 pub const FONTS: &[BuiltinFont] = &[
     BuiltinFont {
         name: "FreeSans",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeSans.ttf"),
     },
     BuiltinFont {
         name: "FreeSans Bold",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeSansBold.ttf"),
     },
     BuiltinFont {
         name: "FreeSerif",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeSerif.ttf"),
     },
     BuiltinFont {
         name: "FreeSerif Bold",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeSerifBold.ttf"),
     },
     BuiltinFont {
         name: "FreeMono",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeMono.ttf"),
     },
     BuiltinFont {
         name: "FreeMono Bold",
+        style: Style::Plain,
         data: include_bytes!("../fonts/FreeMonoBold.ttf"),
+    },
+    BuiltinFont {
+        name: "Roboto Slab",
+        style: Style::Plain,
+        data: include_bytes!("../fonts/RobotoSlab.ttf"),
+    },
+    BuiltinFont {
+        name: "Roboto Slab Bold",
+        style: Style::Plain,
+        data: include_bytes!("../fonts/RobotoSlabBold.ttf"),
+    },
+    BuiltinFont {
+        name: "Satisfy",
+        style: Style::Script,
+        data: include_bytes!("../fonts/Satisfy.ttf"),
+    },
+    BuiltinFont {
+        name: "Yellowtail",
+        style: Style::Script,
+        data: include_bytes!("../fonts/Yellowtail.ttf"),
+    },
+    BuiltinFont {
+        name: "Rochester",
+        style: Style::Script,
+        data: include_bytes!("../fonts/Rochester.ttf"),
+    },
+    BuiltinFont {
+        name: "Luckiest Guy",
+        style: Style::Display,
+        data: include_bytes!("../fonts/LuckiestGuy.ttf"),
+    },
+    BuiltinFont {
+        name: "Ultra",
+        style: Style::Display,
+        data: include_bytes!("../fonts/Ultra.ttf"),
+    },
+    BuiltinFont {
+        name: "Chewy",
+        style: Style::Display,
+        data: include_bytes!("../fonts/Chewy.ttf"),
+    },
+    BuiltinFont {
+        name: "Smokum",
+        style: Style::Display,
+        data: include_bytes!("../fonts/Smokum.ttf"),
+    },
+    BuiltinFont {
+        name: "Cherry Cream Soda",
+        style: Style::Display,
+        data: include_bytes!("../fonts/CherryCreamSoda.ttf"),
+    },
+    BuiltinFont {
+        name: "Permanent Marker",
+        style: Style::Display,
+        data: include_bytes!("../fonts/PermanentMarker.ttf"),
     },
 ];
 
@@ -88,6 +181,10 @@ pub struct Lettering {
     /// Closed outlines, lines and arcs end to end, each ending where it starts. The box
     /// round all of them has its lower-left corner at (0, 0).
     pub outlines: Vec<Vec<Primitive>>,
+    /// For each outline, the letter it belongs to (its index in the text's letters), so a
+    /// hole can be told from the letter round it when letters overlap
+    /// (docs/specs/more-fonts.md §4).
+    pub letter: Vec<usize>,
     /// The box's size, mm.
     pub width: f64,
     pub height: f64,
@@ -144,19 +241,21 @@ pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
     // Curves are flattened to a quarter of the arc tolerance and fitted within the rest, so
     // the result is within the arc tolerance of the font's curves.
     let flat = ARC_APPROX_TOL_MM / 4.0;
-    let mut contours: Vec<Vec<Point>> = Vec::new();
+    let mut contours: Vec<(usize, Vec<Point>)> = Vec::new();
+    let mut letter = 0;
     for line in &lines {
         for &(glyph, x) in &line.glyphs {
             let mut pen = Pen::new((x, line.baseline), scale, flat);
             face.outline_glyph(glyph, &mut pen);
-            contours.extend(pen.finish());
+            contours.extend(pen.finish().into_iter().map(|c| (letter, c)));
+            letter += 1;
         }
     }
     let mut dropped = 0;
-    let mut kept: Vec<Vec<Point>> = Vec::new();
-    for contour in contours {
+    let mut kept: Vec<(usize, Vec<Point>)> = Vec::new();
+    for (letter, contour) in contours {
         match cleaned(contour) {
-            Some(points) => kept.push(points),
+            Some(points) => kept.push((letter, points)),
             None => dropped += 1,
         }
     }
@@ -164,12 +263,14 @@ pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
         return Err(TextError::NoLetters);
     }
     let mut fitted: Vec<Vec<Primitive>> = Vec::with_capacity(kept.len());
-    for points in kept {
+    let mut letters_of: Vec<usize> = Vec::with_capacity(kept.len());
+    for (letter, points) in kept {
         let pieces = fit_path(&points, true, ARC_APPROX_TOL_MM - flat, true);
         if pieces.is_empty() {
             dropped += 1;
         } else {
             fitted.push(pieces);
+            letters_of.push(letter);
         }
     }
     if fitted.is_empty() {
@@ -187,6 +288,7 @@ pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
         .collect();
     Ok(Lettering {
         outlines,
+        letter: letters_of,
         width: hi.0 - lo.0,
         height: hi.1 - lo.1,
         missing,
@@ -216,13 +318,24 @@ fn check(layout: &Layout) -> Result<(), TextError> {
 
 /// The height of a capital letter in font units: the font's own figure, else the H's top.
 fn capital_height(face: &Face) -> Option<f64> {
-    if let Some(cap) = face.capital_height().filter(|&c| c > 0) {
-        return Some(f64::from(cap));
+    let measured = face
+        .glyph_index('H')
+        .and_then(|h| face.glyph_bounding_box(h))
+        .map(|rect| f64::from(rect.y_max))
+        .filter(|&y| y > 0.0);
+    let stated = face.capital_height().filter(|&c| c > 0).map(f64::from);
+    match (stated, measured) {
+        // A font's stated height is used unless its own H says it is wrong (Rochester
+        // states 326 units for an H of 1741, docs/specs/more-fonts.md §2).
+        (Some(cap), Some(h)) if (cap - h).abs() > CAP_HEIGHT_TRUST * h => Some(h),
+        (Some(cap), _) => Some(cap),
+        (None, h) => h,
     }
-    let h = face.glyph_index('H')?;
-    let rect = face.glyph_bounding_box(h)?;
-    (rect.y_max > 0).then_some(f64::from(rect.y_max))
 }
+
+/// How far a font's stated capital height may differ from its H's height, as a fraction,
+/// before the H's is used.
+const CAP_HEIGHT_TRUST: f64 = 0.1;
 
 /// One line: its glyphs with their pen positions in mm, and its base, mm.
 struct Line {

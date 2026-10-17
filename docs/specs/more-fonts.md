@@ -1,7 +1,31 @@
 # Spec: more built-in fonts, and merged letter outlines
 
-Status: **draft 2026-10-17**, decisions in §8 for review. Builds on docs/specs/text.md and
-ADR 0020.
+Status: **approved 2026-10-17**, all decisions as recommended (§8); built the same day
+(ADR 0021). Builds on docs/specs/text.md and ADR 0020.
+
+As built:
+- §2: eleven faces, 489 KB, pinned to Google Fonts commit 47d54ca1. Yellowtail's file has
+  no licence entry in its name table; Google Fonts' metadata gives Apache-2.0 for all ten,
+  and the licence text is shipped. Every font has the test's Latin set (only ⌀ is missing,
+  as in four FreeFont faces).
+- Rochester states a capital height of 326 units for an H of 1741: a stated height that
+  differs from the H's by more than 10 % is replaced by the H's (FreeFont unchanged).
+- §4: `chipload-text` gives each outline's letter (`Lettering::letter`), so a hole is told
+  from another letter's outline round it; without that, lines set close enough to overlap
+  were merged wrongly (the check caught it). Loops that only touch (no area in common) stay
+  apart. Hairlines thinner than the arc tolerance on average are dropped, and a two-piece
+  lens gets its arc split so it has three points. The check samples a 65 × 65 grid over
+  each merged group, away from every edge.
+- §6: every font V-carves a two-line sentence; every font but Smokum pockets one with
+  lines that overlap (0.7 capital heights apart). Found: Smokum's spiked serifs (the
+  outline turns back by more than 150°) make the pocket's first offset fail with tools
+  under 2 mm even unmerged; V-carving lines that overlap can fail its own verification in
+  FreeSerif Bold and Permanent Marker where strokes cross at shallow angles. Both stop with
+  an error (TODO.md). Golden `v29_script_text`: two lines of Satisfy V-carved, an Ultra B
+  pocketed. The inch comparison of the golden test now lets a move shorter than a rounding
+  step vanish from either program (the grids don't nest), at most 1 % of a file's moves.
+- §5: the guide's picture of the fonts is made by `packaging/docs/font-samples.py` (Pillow,
+  a build tool) from the committed font files.
 
 User request (2026-10-17): "Could we add more fonts? A nice selection should be included,
 preferably some more artistic." Then, after a sample sheet of 22 candidates: "use your

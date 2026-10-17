@@ -49,7 +49,7 @@ fn area2(points: &[Point]) -> f64 {
 #[test]
 fn every_built_in_font_writes_the_alphabet() {
     let text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 ÅÄÖ åäö Ø ⌀ €";
-    assert_eq!(FONTS.len(), 6);
+    assert_eq!(FONTS.len(), 17);
     for font in font_names() {
         let l = letters(&Layout {
             font,
@@ -198,4 +198,25 @@ fn what_cant_be_written_is_said() {
     let l = letters(&layout("A☃B")).unwrap();
     assert_eq!(l.missing, ['☃']);
     assert_eq!(letters(&layout("☃")), Err(TextError::NoLetters));
+}
+
+#[test]
+fn each_font_carries_its_licence_in_its_name_table() {
+    for font in chipload_text::FONTS {
+        let face = ttf_parser::Face::parse(font.data(), 0).unwrap();
+        let has = |id: u16| {
+            face.names()
+                .into_iter()
+                .any(|n| n.name_id == id && n.to_string().is_some_and(|t| !t.is_empty()))
+        };
+        // 0: copyright; 13: the licence (or 14, its address). Yellowtail's file has no
+        // licence entry: it is Apache-2.0 by Google Fonts' metadata, and
+        // fonts/LICENSE-Apache-2.0.txt is shipped with it (docs/specs/more-fonts.md §2).
+        assert!(has(0), "{}: no copyright", font.name);
+        assert!(
+            has(13) || has(14) || font.name == "Yellowtail",
+            "{}: no licence",
+            font.name
+        );
+    }
 }

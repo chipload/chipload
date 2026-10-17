@@ -106,7 +106,7 @@ fn keep_visible(pieces: Vec<Area>) -> Result<Vec<Area>, ToolpathError> {
 }
 
 /// Every piece minus `area` (its outer loop minus its holes).
-fn minus_area(pieces: Vec<Area>, area: &Area) -> Result<Vec<Area>, ToolpathError> {
+pub(crate) fn minus_area(pieces: Vec<Area>, area: &Area) -> Result<Vec<Area>, ToolpathError> {
     let mut out = Vec::new();
     for piece in &pieces {
         out.extend(difference(piece, &area.outer)?);

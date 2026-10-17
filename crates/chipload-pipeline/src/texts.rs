@@ -87,9 +87,11 @@ pub fn add_text(job: &Job, new: NewText) -> Result<(Job, TextReport), PipelineEr
     remake(&out, id)
 }
 
-/// The letters of `text`, in mm with their box's lower-left corner at (0, 0).
+/// The letters of `text`, in mm with their box's lower-left corner at (0, 0); outlines
+/// that overlap (a connected script's joins, a letter of overlapping strokes) merged into
+/// ones that don't cross (docs/specs/more-fonts.md §4).
 pub fn lettering(text: &Text) -> Result<Lettering, PipelineError> {
-    Ok(letters(&Layout {
+    let mut lettering = letters(&Layout {
         text: &text.text,
         font: &text.font,
         height: text.height,
@@ -100,7 +102,16 @@ pub fn lettering(text: &Text) -> Result<Lettering, PipelineError> {
             TextAlign::Center => Align::Center,
             TextAlign::Right => Align::Right,
         },
-    })?)
+    })?;
+    let merged = chipload_toolpath::merge::merge_overlaps(&lettering.outlines, &lettering.letter)
+        .map_err(|err| {
+        PipelineError::Job(format!(
+            "{}: couldn't join the letters' overlapping outlines: {err}",
+            text_label(text)
+        ))
+    })?;
+    (lettering.outlines, lettering.letter) = merged.into_iter().unzip();
+    Ok(lettering)
 }
 
 /// Make text `id`'s letters again with its current values, replacing its shapes.

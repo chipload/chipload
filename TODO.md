@@ -6,7 +6,7 @@ it's built (see `CLAUDE.md`).
 ## In progress
 
 - **Not released yet** (on main since v0.21.1): rest passes under their pocket; surfacing;
-  messages in inches; release files named in lowercase
+  messages in inches; more fonts; release files named in lowercase
   (`chipload-gui-X-linux-x86_64.AppImage`, …), first used by the next release. Proposed
   next release: 0.22.0.
 
@@ -38,23 +38,32 @@ it's built (see `CLAUDE.md`).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-1. **More fonts** (docs/specs/more-fonts.md): ten Apache-2.0 fonts (scripts, display,
-   Roboto Slab) and merged overlapping letter outlines; spec drafted 2026-10-17, decisions
-   not reviewed.
-2. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
+1. **Fix the CI failure** of 2026-10-17 (run 39045771213, after the surfacing push): the
+   user asked to look at it later.
+2. **Pocketing spiked outlines** (found 2026-10-17, ADR 0021): Smokum's "n" (an outline
+   that turns back by more than 150°) pockets with a 2 mm tool but not with 1 mm or less:
+   "tool does not fit" or "offsets are not nested". Add it to the corpus with a failing
+   test, then fix the offset. Also V-carving lines of FreeSerif Bold or Permanent Marker
+   set so close that strokes cross at shallow angles fails its verification.
+3. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
    4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+4. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
    (docs/specs/presets.md, decisions not reviewed).
-4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+5. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
    compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
    download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
    without installing, the user said wait. Its decisions are proposals to review then.
-5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+6. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
 
 ## Done
 
+- **More fonts** (2026-10-17, docs/specs/more-fonts.md, ADR 0021): ten Apache-2.0 fonts
+  (Roboto Slab and Bold; scripts Satisfy, Yellowtail, Rochester; display Luckiest Guy,
+  Ultra, Chewy, Smokum, Cherry Cream Soda, Permanent Marker), the font list grouped and
+  drawn in each face; overlapping letter outlines merged (`merge::merge_overlaps`); golden
+  v29_script_text. Not released.
 - **Surface** (2026-10-17, docs/specs/surfacing.md, schema 29): flatten the spoilboard or
   face the stock: the whole stock, back and forth along its longer side with a wide
   endmill, going down beside it; cut once whatever the copies; first in its part. Ribbon

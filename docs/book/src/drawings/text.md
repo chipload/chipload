@@ -53,20 +53,43 @@ go, as one undo step. Hold **Alt** for no steps (any angle, any size) and no sna
 
 ## Fonts
 
-Chipload has six fonts built in, so a project writes the same letters on every computer:
-FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono and FreeMono Bold, from GNU
-FreeFont. They have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the
-common symbols (€, °, ±, and ⌀ in all but the two bold sans and mono fonts). A character a font lacks is left out, and the report
-names it. `chipload text fonts` lists them.
+Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
+*Font* list groups them and shows each name in its own face; `chipload text fonts` lists
+them with their style.
 
-Serif fonts V-carve beautifully: the V-bit cuts the thin strokes shallow and the thick ones
-deep. A sans font with even strokes is better for a pocket or a profile.
+![Every built-in font writing "Maker Space · Oak & Iron 1926"](../images/fonts.png)
+
+- **Plain:** FreeSans, FreeSerif and FreeMono, each also bold (GNU FreeFont), and Roboto
+  Slab and Roboto Slab Bold.
+- **Script:** Satisfy, Yellowtail and Rochester, handwriting with joined letters.
+- **Display:** Luckiest Guy, Ultra, Chewy, Smokum, Cherry Cream Soda and Permanent Marker,
+  bold and decorative, for headings and signs.
+
+They all have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the common
+symbols (€, °, ±; ⌀ only in some of the FreeFont faces). A character a font lacks is left
+out, and the report names it.
+
+**Joined letters:** where letters overlap, as in a script where one letter runs into the
+next, or where a letter is drawn as overlapping strokes, Chipload joins them into one
+outline, so a pocket or V-carve sees clean shapes. Holes stay holes where nothing covers
+them. Letters that don't overlap anything keep the font's exact outline.
+
+**Choosing:** serif fonts V-carve beautifully: the V-bit cuts the thin strokes shallow and
+the thick ones deep. The scripts V-carve well too. For a pocket or a profile, a font with
+even, sturdy strokes works best (FreeSans Bold, Roboto Slab, Ultra, Luckiest Guy, Chewy);
+Smokum's pointed serifs need a pocketing tool of 2 mm or more.
+
+**Licences:** GNU FreeFont is under the GPL with the font exception, the others under the
+Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
+their G-code are yours.
 
 ## In the project file
 
 A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
-installed. Chipload 0.19 and older can't open a project that has a text.
+installed. Chipload 0.19 and older can't open a project that has a text. A project with one
+of the fonts added in 0.22 opens in 0.20 and 0.21 and cuts the same, but its text can be
+changed only in 0.22 or newer.
 
 ## Leaving letters out
 

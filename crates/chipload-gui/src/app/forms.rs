@@ -1585,15 +1585,12 @@ pub(super) fn text_form(
             finished |= response.lost_focus();
             ui.end_row();
             ui.label("Font")
-                .on_hover_text("A built-in font (GNU FreeFont)");
+                .on_hover_text("A built-in font: plain, script or display (User guide: Text)");
             let before = draft.font.clone();
             egui::ComboBox::from_id_salt(("text-font", id))
                 .selected_text(draft.font.as_str())
-                .show_ui(ui, |ui| {
-                    for name in chipload_pipeline::texts::font_names() {
-                        ui.selectable_value(&mut draft.font, name.to_string(), name);
-                    }
-                });
+                .height(480.0)
+                .show_ui(ui, |ui| font_list(ui, &mut draft.font));
             finished |= draft.font != before;
             ui.end_row();
             ui.label("Height")
@@ -2892,6 +2889,28 @@ pub(super) fn rest_pass_form(
         request = Some(JobRequest::RemoveRestPass(i, k));
     }
     request
+}
+
+/// The built-in fonts by style, each name in its own face where the app loaded it
+/// (docs/specs/more-fonts.md §5).
+fn font_list(ui: &mut egui::Ui, chosen: &mut String) {
+    use chipload_text::{FONTS, Style};
+    let loaded = ui.ctx().fonts(|f| f.families());
+    for (style, heading) in [
+        (Style::Plain, "Plain"),
+        (Style::Script, "Script"),
+        (Style::Display, "Display"),
+    ] {
+        ui.label(RichText::new(heading).small().weak());
+        for font in FONTS.iter().filter(|f| f.style == style) {
+            let family = crate::fonts::text_font_family(font.name);
+            let mut text = RichText::new(font.name).size(18.0);
+            if loaded.contains(&family) {
+                text = text.family(family);
+            }
+            ui.selectable_value(chosen, font.name.to_string(), text);
+        }
+    }
 }
 
 #[cfg(test)]

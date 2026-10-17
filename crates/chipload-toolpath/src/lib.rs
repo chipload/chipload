@@ -16,6 +16,7 @@ pub mod lap;
 pub mod lead;
 pub mod left;
 pub(crate) mod medial;
+pub mod merge;
 pub mod model;
 pub mod offset;
 pub mod path;

@@ -23,7 +23,10 @@ use eframe::egui;
 
 fn main() -> ExitCode {
     let fonts = match fonts::system_fonts() {
-        Ok(fonts) => fonts,
+        Ok(mut fonts) => {
+            fonts::add_text_fonts(&mut fonts);
+            fonts
+        }
         Err(message) => {
             fatal(&message);
             return ExitCode::FAILURE;

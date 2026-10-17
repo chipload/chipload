@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Fonts come from the system, not the binary: egui's bundled fonts carry font licences
 //! outside our allowed list (decision 2026-10-09), so we load installed ones at startup.
+//! The built-in fonts for text (chipload-text) are added only to draw their own names in
+//! the font list (docs/specs/more-fonts.md §5).
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -73,6 +75,25 @@ fn find(pattern: &str, candidates: &[&str]) -> Option<PathBuf> {
             .map(PathBuf::from)
             .find(|p| is_loadable(p))
     })
+}
+
+/// The egui family that draws in built-in text font `name`.
+pub fn text_font_family(name: &str) -> FontFamily {
+    FontFamily::Name(format!("text:{name}").into())
+}
+
+/// Add every built-in text font as a family of its own (falling back to the sans font for
+/// anything it lacks), for the font list.
+pub fn add_text_fonts(fonts: &mut FontDefinitions) {
+    for font in chipload_text::FONTS {
+        let key = format!("text:{}", font.name);
+        fonts
+            .font_data
+            .insert(key.clone(), Arc::new(FontData::from_static(font.data())));
+        fonts
+            .families
+            .insert(text_font_family(font.name), vec![key, "sans".into()]);
+    }
 }
 
 /// Font definitions using installed fonts, or a message saying what to install.

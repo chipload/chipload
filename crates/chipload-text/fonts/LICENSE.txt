@@ -27,3 +27,11 @@ From the FreeFont README:
 
 The cut-down fonts keep this exception. The GNU General Public License, version 3, is the
 file LICENSE at the root of this repository.
+
+The other fonts in this folder (RobotoSlab, RobotoSlabBold, Satisfy, Yellowtail, Rochester,
+LuckiestGuy, Ultra, Chewy, Smokum, CherryCreamSoda, PermanentMarker) are from Google Fonts,
+https://github.com/google/fonts (apache folder, commit 47d54ca1), cut down to the same
+letters by packaging/fonts/make-fonts.sh; RobotoSlab and RobotoSlabBold are its variable
+font fixed at weights 400 and 700. They are under the Apache License, Version 2.0
+(LICENSE-Apache-2.0.txt). Their copyright notices are in each font's name table and in
+THIRD-PARTY-LICENSES.txt.

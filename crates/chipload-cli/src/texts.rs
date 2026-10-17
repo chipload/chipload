@@ -239,11 +239,21 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             }
         }
         TextAction::Fonts => {
+            // By style, as the app lists them (docs/specs/more-fonts.md §5).
             let fonts: Vec<&str> = font_names().collect();
-            for font in &fonts {
-                out.line(*font);
+            for font in chipload_text::FONTS {
+                out.line(format!("{} ({})", font.name, font.style.name()));
             }
             out.set("fonts", json!(fonts));
+            out.set(
+                "styles",
+                json!(
+                    chipload_text::FONTS
+                        .iter()
+                        .map(|f| f.style.name())
+                        .collect::<Vec<_>>()
+                ),
+            );
             ExitCode::SUCCESS
         }
     }
