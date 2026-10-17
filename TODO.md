@@ -5,7 +5,9 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased: 0.22.1 is published.
+- **Not released yet** (on main since v0.22.1): an operation on a text shows "all of text
+  N" as its geometry, not "no geometry"; the canvas says *Updating the simulation…* while
+  the simulated stock is worked out again (both from testing 0.22.1).
 
 ## State to remember (2026-10-17)
 

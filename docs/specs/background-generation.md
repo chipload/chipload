@@ -100,7 +100,9 @@ press Generate (F5) again to see what the edit did.
   results applied only to the project they were made from, quiet and loud errors, Ctrl+E
   while generating exports when done. The toolbar's Generate turns into ■ Cancel; the
   status bar shows a spinner; the canvas badge says "Updating the toolpath…" while the
-  live preview is on its way.
+  live preview is on its way, then "Updating the simulation…" while the simulated stock
+  (when shown) is worked out again: until then it shows the last toolpath's cut (added
+  2026-10-17, a user took the old stock for a failed run).
 - The live preview starts after an edit, undo or redo, not when a project is opened or a
   DXF imported (the import report stays on screen).
 - App settings schema 3 (`auto_generate`, `settings_v2_to_v3`, frozen sample

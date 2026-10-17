@@ -21,7 +21,8 @@ off and on.
 - **3D:** a surface you can turn.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its
   tip, and a drill's 118° point.
-- **When:** it runs in the background after each generation.
+- **When:** it runs in the background after each generation. Until it's done, the canvas
+  says *Updating the simulation…* and still shows the stock as the last toolpath cut it.
 - **Without the toolpath:** *View > Show toolpath* (also **Toolpath** on the navigation bar
   and a checkbox on the canvas legend)
   hides the toolpath's lines, plunges and tabs. During playback, the tool still shows where

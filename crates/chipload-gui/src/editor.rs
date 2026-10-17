@@ -730,9 +730,12 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
         return "the whole stock".into();
     }
     let select = op.select();
-    let source = match (select.dxf, select.image) {
-        (Some(dxf), _) => Some(format!("DXF {dxf}")),
-        (_, Some(image)) => Some(format!("image {image}")),
+    // A text is a source like a DXF or picture: its letters are written again when it
+    // changes, so operations select the text, not its shapes (docs/specs/text.md §5).
+    let source = match (select.dxf, select.image, select.text) {
+        (Some(dxf), _, _) => Some(format!("DXF {dxf}")),
+        (_, Some(image), _) => Some(format!("image {image}")),
+        (_, _, Some(text)) => Some(format!("text {text}")),
         _ => None,
     };
     if let Some(layer) = &select.layer {

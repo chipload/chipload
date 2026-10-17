@@ -104,6 +104,11 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().ops[index].op;
     assert_eq!(op.select().text, Some(id));
+    // Its form names the text, not "no geometry" (user report 2026-10-17).
+    assert_eq!(
+        crate::editor::geometry_summary(op, &app.contours),
+        format!("all of text {id}")
+    );
     assert_eq!(op.tool(), 2, "the V-bit");
     assert!(app.generate_and_wait(), "{:?}", app.report);
     // Removing the text leaves the operation with nothing: a problem, not a silent cut.

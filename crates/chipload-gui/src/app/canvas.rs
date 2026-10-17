@@ -326,7 +326,8 @@ impl ChiploadApp {
         self.orientation(ui, rect);
     }
 
-    /// On top of the canvas, inside it: the out-of-date notice and the legend.
+    /// On top of the canvas, inside it: the out-of-date notice (or the simulation being
+    /// updated) and the legend.
     /// (The legend's right edge is kept under `LEGEND_RIGHT` for the navigation bar.)
     fn canvas_overlays(&mut self, ui: &mut egui::Ui, rect: egui::Rect) {
         let visuals = ui.visuals().clone();
@@ -362,6 +363,20 @@ impl ChiploadApp {
                                 self.generate();
                             }
                         }
+                    });
+                });
+            });
+        } else if self.simulating() && self.show_simulation {
+            // The toolpath is current, but the simulated stock still shows the last one
+            // until its worker is done (user report 2026-10-17: it looked finished).
+            let top = egui::UiBuilder::new()
+                .max_rect(inner)
+                .layout(egui::Layout::top_down(egui::Align::Min));
+            ui.scope_builder(top, |ui| {
+                frame.show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.spinner();
+                        ui.label("Updating the simulation…");
                     });
                 });
             });
