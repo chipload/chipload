@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.21.1 user guide</title>
+        <title>Command line - Chipload 0.22.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a9dbeacd.js";
+            window.path_to_searchindex_js = "../searchindex-ba33c882.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ebb06b63.js"></script>
+        <script src="../toc-c71e25ca.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.21.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.22.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -368,7 +368,7 @@
 </table>
 </div>
 <h3 id="chipload-op-add-rest"><a class="header" href="#chipload-op-add-rest"><code>chipload op add-rest</code></a></h3>
-<p>Add a rest pocket after a pocket (docs/specs/rest-machining.md §10): its shapes and depths, cut with a smaller tool, clearing only what the pocket’s tool leaves</p>
+<p>Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears what the pocket’s tool (or its last pass’s) leaves, in the pocket’s shapes and depths. It is cut after the run of pockets with the pocket’s tool</p>
 <pre><code class="language-text">chipload op add-rest &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -380,6 +380,63 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The smaller tool’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-surface"><a class="header" href="#chipload-op-add-surface"><code>chipload op add-surface</code></a></h3>
+<p>Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock</p>
+<pre><code class="language-text">chipload op add-surface &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The endmill’s id in the project; default: the widest endmill.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How much comes off the top; default 0.5 mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-rest-pass"><a class="header" href="#chipload-op-rest-pass"><code>chipload op rest-pass</code></a></h3>
+<p>A pocket’s rest passes (docs/specs/rest-passes.md): without –pass, list them; with it, change, turn off or on, or remove one</p>
+<pre><code class="language-text">chipload op rest-pass &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--pass &lt;PASS&gt;</code></td><td>Which pass: 1 for the first (shown as 3.1 for operation 3)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project: an endmill smaller than the tool before it.</td></tr>
+<tr><td><code>--feed &lt;FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>A fraction of the tool’s diameter, at most 1.</td></tr>
+<tr><td><code>--enabled &lt;ENABLED&gt;</code></td><td>Cut it (true) or keep it without cutting (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the pass; the passes after it rest after the tool before it.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-make-rest-pass"><a class="header" href="#chipload-op-make-rest-pass"><code>chipload op make-rest-pass</code></a></h3>
+<p>Make a rest pocket that copies an earlier pocket (same shapes, depths, clearance and direction, rest after its tool) a rest pass of that pocket (docs/specs/rest-passes.md §5). It is then cut after the run of pockets it belongs to</p>
+<pre><code class="language-text">chipload op make-rest-pass &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The rest pocket’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>

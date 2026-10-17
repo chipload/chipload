@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.21.1 user guide</title>
+        <title>Chipload 0.22.1 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a9dbeacd.js";
+            window.path_to_searchindex_js = "searchindex-ba33c882.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ebb06b63.js"></script>
+        <script src="toc-c71e25ca.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.21.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.22.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -260,13 +260,13 @@ and every field of the files.</li>
 from the <a href="https://github.com/chipload/chipload/releases">releases page</a>: each release has the
 files below, the user guide to read offline, and <code>SHA256SUMS.txt</code> to check them.</p>
 <h2 id="linux"><a class="header" href="#linux">Linux</a></h2>
-<p>Download <code>Chipload-X.Y.Z-x86_64.AppImage</code>, make it executable and run it:</p>
-<pre><code class="language-sh">chmod +x Chipload-*.AppImage
-./Chipload-*.AppImage            # the app; add a .chipload or .dxf file to open it
+<p>Download <code>chipload-gui-X.Y.Z-linux-x86_64.AppImage</code>, make it executable and run it:</p>
+<pre><code class="language-sh">chmod +x chipload-gui-*.AppImage
+./chipload-gui-*.AppImage            # the app; add a .chipload or .dxf file to open it
 </code></pre>
 <ul>
 <li><strong>ARM64</strong> (Raspberry Pi 4 or 5 with a 64-bit OS, ARM boards and laptops): take
-<code>Chipload-X.Y.Z-aarch64.AppImage</code> instead. The app needs OpenGL 3, which a Pi 4 or 5 has
+<code>chipload-gui-X.Y.Z-linux-aarch64.AppImage</code> instead. The app needs OpenGL 3, which a Pi 4 or 5 has
 with its standard graphics driver. Not yet tried on a Pi: reports welcome.</li>
 <li><strong>Requirements:</strong> glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 or newer,
 Raspberry Pi OS 12 “Bookworm”).</li>
@@ -284,7 +284,7 @@ an ARM processor (Snapdragon), take the <code>…-windows-aarch64.exe</code> fil
 info &gt; Run anyway</em>.</p>
 <h2 id="macos"><a class="header" href="#macos">macOS</a></h2>
 <p>No release has macOS files yet. Until one does, build Chipload from the source (below).
-Once there: download <code>Chipload-X.Y.Z-macos-universal.dmg</code>, open it and drag <em>Chipload</em> onto
+Once there: download <code>chipload-gui-X.Y.Z-macos-universal.dmg</code>, open it and drag <em>Chipload</em> onto
 <em>Applications</em>. It runs on Apple silicon and Intel Macs with macOS 11 or newer.</p>
 <p>The app isn’t notarised by Apple, so macOS refuses it the first time. Open *System Settings</p>
 <blockquote>
@@ -471,7 +471,7 @@ guide, keyboard shortcuts, about) and the version.</li>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
 <tr><td>DRAW</td><td>Circle, Rectangle, Polyline, Text, Image, Add DXF</td><td>copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes)</td><td>Generate</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
 <tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme</td></tr>
 </tbody>
@@ -528,8 +528,10 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <ul>
 <li><strong>A DXF:</strong> <em>Place…</em> (its properties), <em>Update from a DXF…</em> and <em>Remove</em>.</li>
 <li><strong>A picture:</strong> <em>Trace settings…</em> and <em>Remove</em>.</li>
-<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>, <em>Add
-rest pocket</em> and <em>Delete</em>.</li>
+<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>, for a
+pocket <em>Add rest pass ▸</em> (a <a href="#rest-machining-1">rest pass</a> shows under it), and
+<em>Delete</em>.</li>
+<li><strong>A rest pass:</strong> <em>Remove</em>.</li>
 <li><strong>The Drawing folder:</strong> <em>Add DXF…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em> and <em>Delete part</em> (with its operations).</li>
@@ -671,8 +673,10 @@ can carry its unit: <code>--height 0.5in</code>, <code>--diameter 1/4in</code>, 
 (quoted), <code>--travel 30in,30in,4in</code>; feeds <code>--max-feed 200in/min</code>. <code>chipload run --sheet-units inch</code> and <code>chipload sheet --units inch</code> write the setup sheet in inches.
 <code>--json</code>, <code>get</code>, <code>set</code>, the <a href="#project-file">project file</a> and the
 <a href="#ai-assistants-mcp">MCP tools</a> are always in mm.</p>
-<p>Messages and notes in the report keep mm, and always say so (“cuts 0.300 mm below the
-stock”). The G-code’s units are a separate setting of the machine (above): you can show
+<p>Messages follow the display units too: the report’s notes, the checker’s warnings, the
+problems on fields and in the Problems strip, and the setup sheet’s <em>Watch out</em> list (“cuts
+0.0118 in below the stock”). On the command line they stay in mm, as its other output. The
+G-code’s units are a separate setting of the machine (above): you can show
 inches and send mm G-code, or the other way round.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stock-and-work-zero"><a class="header" href="#stock-and-work-zero">Stock and work zero</a></h1>
@@ -1301,7 +1305,7 @@ projects from Chipload 0.15 open as outlines without arcs, exactly as they were 
 <p>Write a name, a label or a sign straight into the project: Chipload turns the letters into
 shapes that you <a href="#v-carve">V-carve</a>, <a href="#pocket">pocket</a> or cut
 out with a <a href="#profile">profile</a>. (Design: <code>docs/specs/text.md</code>.)</p>
-<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/showcase.png" alt="A plaque with CHIPLOAD V-carved, in 3D with its simulated stock, and the text’s properties on the right"><span class="img-wrapper"><img src="images/showcase.png" alt="A plaque with CHIPLOAD V-carved, in 3D with its simulated stock, and the text’s properties on the right"></span></label></p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"><span class="img-wrapper"><img src="images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"></span></label></p>
 <h2 id="writing-a-text"><a class="header" href="#writing-a-text">Writing a text</a></h2>
 <ol>
 <li><strong>Draw &gt; Text</strong> in the ribbon (or <em>DRAW &gt; Text</em>), then click on the canvas where the text
@@ -1346,13 +1350,31 @@ corner stays where it is. Its height is rounded to 0.1 mm.</li>
 <p>The box follows the cursor while you drag, and the text is written again when you let
 go, as one undo step. Hold <strong>Alt</strong> for no steps (any angle, any size) and no snapping.</p>
 <h2 id="fonts"><a class="header" href="#fonts">Fonts</a></h2>
-<p>Chipload has six fonts built in, so a project writes the same letters on every computer:
-FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono and FreeMono Bold, from GNU
-FreeFont. They have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the
-common symbols (€, °, ±, and ⌀ in all but the two bold sans and mono fonts). A character a font lacks is left out, and the report
-names it. <code>chipload text fonts</code> lists them.</p>
-<p>Serif fonts V-carve beautifully: the V-bit cuts the thin strokes shallow and the thick ones
-deep. A sans font with even strokes is better for a pocket or a profile.</p>
+<p>Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
+<em>Font</em> list groups them and shows each name in its own face; <code>chipload text fonts</code> lists
+them with their style.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"><span class="img-wrapper"><img src="images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"></span></label></p>
+<ul>
+<li><strong>Plain:</strong> FreeSans, FreeSerif and FreeMono, each also bold (GNU FreeFont), and Roboto
+Slab and Roboto Slab Bold.</li>
+<li><strong>Script:</strong> Satisfy, Yellowtail and Rochester, handwriting with joined letters.</li>
+<li><strong>Display:</strong> Luckiest Guy, Ultra, Chewy, Smokum, Cherry Cream Soda and Permanent Marker,
+bold and decorative, for headings and signs.</li>
+</ul>
+<p>They all have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the common
+symbols (€, °, ±; ⌀ only in some of the FreeFont faces). A character a font lacks is left
+out, and the report names it.</p>
+<p><strong>Joined letters:</strong> where letters overlap, as in a script where one letter runs into the
+next, or where a letter is drawn as overlapping strokes, Chipload joins them into one
+outline, so a pocket or V-carve sees clean shapes. Holes stay holes where nothing covers
+them. Letters that don’t overlap anything keep the font’s exact outline.</p>
+<p><strong>Choosing:</strong> serif fonts V-carve beautifully: the V-bit cuts the thin strokes shallow and
+the thick ones deep. The scripts V-carve well too. For a pocket or a profile, a font with
+even, sturdy strokes works best (FreeSans Bold, Roboto Slab, Ultra, Luckiest Guy, Chewy);
+Smokum’s pointed serifs need a pocketing tool of 2 mm or more.</p>
+<p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, the others under the
+Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
+their G-code are yours.</p>
 <h2 id="in-the-project-file"><a class="header" href="#in-the-project-file">In the project file</a></h2>
 <p>A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
@@ -1624,7 +1646,7 @@ Chipload also warns about two things:</p>
 large for the shape). Lower the stepover.</li>
 <li><strong>A narrow part:</strong> the tool doesn’t fit through a narrow part of the pocket. The pocket
 is cleared as separate areas, and material stays in between; a <a href="#rest-machining-1">rest
-pocket</a> with a smaller tool can clear it.</li>
+pass</a> with a smaller tool can clear it.</li>
 </ul>
 <h2 id="entry"><a class="header" href="#entry">Entry</a></h2>
 <ul>
@@ -1646,7 +1668,8 @@ lead from the cleared side onto the wall.</p>
 <p><strong>Corners</strong> puts dogbones or T-bones into the pocket wall’s inside corners, as on
 <a href="#dogbones-and-t-bones">profiles</a>. Not with <a href="#rest-machining-1">rest machining</a>.</p>
 <h2 id="rest-machining"><a class="header" href="#rest-machining">Rest machining</a></h2>
-<p>A pocket can clear only what a larger tool left: see <a href="#rest-machining-1">Rest machining</a>.</p>
+<p>A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
+it in the Browser. See <a href="#rest-machining-1">Rest machining</a>.</p>
 <h2 id="in-the-file-2"><a class="header" href="#in-the-file-2">In the file</a></h2>
 <p><code>"type": "pocket"</code> in the <a href="#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>
@@ -1674,6 +1697,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>lead</code></td><td>Lead</td></tr>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
+<tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
 </div>
@@ -1688,44 +1712,78 @@ faster.</p>
 <li>inside corners rounded to its radius;</li>
 <li>slots and gaps narrower than the tool.</li>
 </ul>
-<p>A <strong>rest pocket</strong> with a smaller tool cuts only that material, instead of clearing the
-whole pocket again.</p>
+<p>A <strong>rest pass</strong> with a smaller tool cuts only that material, instead of clearing the whole
+pocket again. (Design: <code>docs/specs/rest-passes.md</code>.)</p>
 <h2 id="adding-one"><a class="header" href="#adding-one">Adding one</a></h2>
 <ul>
-<li><strong>From the pocket:</strong> right-click the large tool’s pocket in the Browser, then <em>Add
-rest pocket</em>, and pick the smaller endmill. Command line: <code>chipload op add-rest part.chipload --op 1 --tool 2</code>.</li>
-<li><strong>What you get:</strong> a new pocket right after it, with the same shapes, depths, oversize
-and direction, cut with the smaller tool, set to <em>Rest after</em> the large tool.</li>
+<li><strong>Right-click the pocket</strong> in the Browser, then <em>Add rest pass ▸</em>, and pick a smaller
+endmill: the project’s tools come first, then those in your tool library. A library tool
+is copied into the project’s Tools. When the entry is greyed out, point at it to see
+why: no smaller endmill in the project or your library, or the pocket has dogbone
+corners. Command line: <code>chipload op add-rest part.chipload --op 1 --tool 2</code> (copy a
+library tool in first with <code>chipload tool use</code>).</li>
+<li><strong>It belongs to the pocket:</strong> it shows as a leaf under it, numbered after it (<em>1.1</em>, <em>1.2</em>),
+and takes the pocket’s shapes, depths, oversize and direction. Change the pocket and the
+pass follows; turn the pocket off and its passes aren’t cut either.</li>
+<li><strong>Its own:</strong> the tool, feed, plunge feed, step down, stepover, entry, and on/off. Click
+the pass to change them; its right-click menu removes it.</li>
 <li><strong>Feeds and step down</strong> come from your tool library’s values for the small tool when it
-has them. Otherwise they’re copied from the large pocket: check them.</li>
+has them. Otherwise they’re copied from the pocket: check them.</li>
+<li><strong>Several passes:</strong> a pocket can have more than one, each with a smaller tool than the one
+before (12, then 6, then 3 mm). Each clears what the one before it left.</li>
 </ul>
-<p>Or set it on any pocket: <em>Clearing &gt; Rest after</em> (command line: <code>chipload op rest part.chipload --op 2 --after-tool 1</code>). The list offers the project’s endmills larger than
-the pocket’s own tool.</p>
+<p>Command line: <code>chipload op rest-pass part.chipload --op 1</code> lists a pocket’s passes, and with
+<code>--pass 1</code> changes one (<code>--tool</code>, <code>--feed</code>, <code>--plunge-feed</code>, <code>--step-down</code>, <code>--stepover</code>,
+<code>--enabled false</code>) or removes it (<code>--remove</code>).</p>
+<h2 id="when-it-is-cut"><a class="header" href="#when-it-is-cut">When it is cut</a></h2>
+<p>A rest pass waits for the <strong>pockets next to its pocket that use the same tool</strong>. After the
+last of them come all their rest passes, the larger tools first, then the operations after
+them. So with two pockets and an outline, all cut with a 12 mm tool, and a 4 mm rest pass on
+each pocket:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cut</th><th>Tool</th></tr>
+</thead>
+<tbody>
+<tr><td>Pocket 1, Pocket 2</td><td>12 mm</td></tr>
+<tr><td>Rest passes 1.1, 2.1</td><td>4 mm</td></tr>
+<tr><td>Outline 3</td><td>12 mm</td></tr>
+</tbody>
+</table>
+</div>
+<p>The small tool comes in once, and the outline, which frees the part, stays last. The report,
+the G-code headers and the setup sheet show the passes where they are cut.</p>
 <h2 id="what-it-cuts"><a class="header" href="#what-it-cuts">What it cuts</a></h2>
 <ul>
 <li><strong>Worked out from the tool’s size:</strong> Chipload works out what a tool of the larger tool’s
-size can’t reach in the pocket’s shapes. It looks at the size, not at what the earlier
-pocket’s toolpath did.</li>
+size can’t reach in the pocket’s shapes. It looks at the size, not at what the pocket’s
+toolpath did.</li>
 <li><strong>Rings:</strong> around each piece of that material, the small tool clears a small pocket with
 rings, within its own diameter. Along the real walls it follows the walls, so the
 corners come out with the small tool’s radius.</li>
 <li><strong>Pieces too small for the small tool too</strong> are skipped, with a note giving their size.</li>
 <li><strong>Nothing left:</strong> if the large tool reaches the whole pocket (a circle wider than it),
-the rest pocket cuts nothing and says so.</li>
+the pass cuts nothing and says so.</li>
 </ul>
 <p><em>View &gt; Show stock</em> shows the result: the corners cut by the small tool.</p>
 <h2 id="rules"><a class="header" href="#rules">Rules</a></h2>
 <ul>
-<li><strong>A larger endmill:</strong> the rest tool must be an endmill, and larger than the pocket’s own.</li>
-<li><strong>A warning, not a stop:</strong> Chipload warns when no earlier, enabled pocket cuts the same
-shapes with the larger tool at least as deep. The rest pocket is still safe on its own:
-it cuts its pieces from the start depth down in passes, like any pocket. It just leaves
-the bulk of the material.</li>
-<li><strong>No dogbones:</strong> a rest pocket can’t have dogbones. Put them on the large tool’s pocket.</li>
-<li><strong>Copies, not links:</strong> the rest pocket keeps its own copy of the shapes and depths. If you
-change the large pocket later, change the rest pocket too; the warning above catches a
-mismatch in shapes or depth.</li>
+<li><strong>A smaller endmill:</strong> a pass’s tool must be an endmill smaller than the tool before it.</li>
+<li><strong>No dogbones:</strong> a pocket with dogbones can’t have rest passes; its corners need no rest.</li>
 </ul>
+<h2 id="a-rest-pocket-on-its-own"><a class="header" href="#a-rest-pocket-on-its-own">A rest pocket on its own</a></h2>
+<p>When the large pocket is cut elsewhere, in another project or another program, a pocket can
+rest after a tool by itself: <em>Clearing &gt; Rest after</em> in its properties (command line:
+<code>chipload op rest part.chipload --op 2 --after-tool 1</code>). It is an ordinary operation in the
+list, cut where it stands. Chipload warns when no earlier, enabled pocket cuts the same
+shapes with that tool at least as deep; it is still safe, it just leaves the bulk of the
+material.</p>
+<p>A rest pocket that copies an earlier pocket of the project (same shapes, depths, oversize
+and direction, after its tool), as <em>Add rest pocket</em> made them before rest passes, can
+become that pocket’s rest pass: right-click it, <em>Make it a rest pass of operation N</em>
+(command line: <code>chipload op make-rest-pass part.chipload --op 2</code>). It is then cut after the
+run of pockets it belongs to.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="v-carve"><a class="header" href="#v-carve">V-carve</a></h1>
 <p>A V-carve engraves closed shapes, such as lettering (converted to outlines in CAD), logos
@@ -1911,6 +1969,73 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed: the bore’s helix and circle</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Drill feed, or the bore’s descent to the start depth</td></tr>
 <tr><td><code>method</code></td><td><code>{"type": "drill", "peck": … or null}</code> or <code>{"type": "bore", "step_down": …, "ramp_angle": …, "direction": …}</code></td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="surface"><a class="header" href="#surface">Surface</a></h1>
+<p><strong>Surface</strong> takes the whole stock top down flat with a wide endmill. Use it to flatten
+your spoilboard, or to face a board before cutting it. It needs no selection: click
+<strong>Surface</strong> (ribbon, OPERATION), or right-click a part, <em>New operation ▸ Surface</em>. On the
+command line, <code>chipload op add-surface part.chipload</code>.</p>
+<p>A new surface goes <strong>first</strong> in the active part, since it faces the stock before anything
+else is cut. It takes the project’s widest endmill and 0.5 mm off the top in one pass.</p>
+<h2 id="how-it-cuts"><a class="header" href="#how-it-cuts">How it cuts</a></h2>
+<ul>
+<li><strong>Back and forth</strong> along the stock’s longer side, in straight passes one stepover apart.
+Half the passes climb, half are conventional: usual for a shallow facing pass, and about
+half the time of cutting one way only.</li>
+<li><strong>Past the ends:</strong> each pass starts and ends beside the stock, the tool’s edge just
+clear of it, so the tool <strong>goes down in the air</strong>, never into the stock. No ramp or helix
+is needed. Between passes it moves across beside the stock, without lifting.</li>
+<li><strong>Past the sides:</strong> the first and last passes reach past the stock’s long sides by a
+quarter of the tool, so the edges come out clean even when the stock is a little larger
+than entered.</li>
+<li><strong>Depths:</strong> with a step down smaller than the end depth, each depth comes back the other
+way, going down beside the stock where the one before ended.</li>
+<li><strong>Once:</strong> the stock is faced once, even when the part has <a href="#copies">copies</a>.</li>
+</ul>
+<p>The setup sheet says how far the tool runs past the stock’s ends (its radius): keep clamps
+and fences clear of that.</p>
+<h2 id="settings-1"><a class="header" href="#settings-1">Settings</a></h2>
+<ul>
+<li><strong>End depth:</strong> how much comes off, from the stock top. At most the stock thickness.</li>
+<li><strong>Step down:</strong> the deepest each pass goes. Usually the whole depth in one pass.</li>
+<li><strong>Stepover:</strong> how far each pass moves across, as a fraction of the tool diameter, from
+0.1 to 0.9. A new surface takes 0.75.</li>
+<li><strong>Feed</strong> and <strong>plunge feed:</strong> the plunge feed is for the moves down beside the stock.</li>
+</ul>
+<p>The other operations’ depths don’t change: they still count from the stock top as
+entered. Facing 0.5 mm off means their first 0.5 mm cuts air, which is safe. A surface
+placed after other operations of its part gets a warning: it would face what they already
+cut.</p>
+<h2 id="flattening-the-spoilboard"><a class="header" href="#flattening-the-spoilboard">Flattening the spoilboard</a></h2>
+<ol>
+<li>Make a project whose <strong>stock</strong> is the spoilboard’s area, Z zero at its top
+(<a href="#stock-and-work-zero">Stock and work zero</a>).</li>
+<li>Copy your surfacing bit into the project (<a href="#tool-library">Tool library</a>).</li>
+<li>Add a Surface, with 0.3 to 0.5 mm off: enough to take out the dips.</li>
+<li>Export, zero Z on the spoilboard, and run it.</li>
+</ol>
+<h2 id="in-the-file-6"><a class="header" href="#in-the-file-6">In the file</a></h2>
+<p><code>"type": "surface"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, feeds in mm/min.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>tool</code></td><td>Tool: an endmill, the project tool’s id</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>end_depth</code></td><td>End depth: how much comes off</td></tr>
+<tr><td><code>step_down</code></td><td>Step down</td></tr>
+<tr><td><code>stepover</code></td><td>Stepover, a fraction of the tool diameter (0.1 to 0.9)</td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed: down beside the stock</td></tr>
 </tbody>
 </table>
 </div>
@@ -2738,7 +2863,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-op-add-rest"><a class="header" href="#chipload-op-add-rest"><code>chipload op add-rest</code></a></h3>
-<p>Add a rest pocket after a pocket (docs/specs/rest-machining.md §10): its shapes and depths, cut with a smaller tool, clearing only what the pocket’s tool leaves</p>
+<p>Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears what the pocket’s tool (or its last pass’s) leaves, in the pocket’s shapes and depths. It is cut after the run of pockets with the pocket’s tool</p>
 <pre><code class="language-text">chipload op add-rest &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -2750,6 +2875,63 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The smaller tool’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-surface"><a class="header" href="#chipload-op-add-surface"><code>chipload op add-surface</code></a></h3>
+<p>Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock</p>
+<pre><code class="language-text">chipload op add-surface &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The endmill’s id in the project; default: the widest endmill.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How much comes off the top; default 0.5 mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-rest-pass"><a class="header" href="#chipload-op-rest-pass"><code>chipload op rest-pass</code></a></h3>
+<p>A pocket’s rest passes (docs/specs/rest-passes.md): without –pass, list them; with it, change, turn off or on, or remove one</p>
+<pre><code class="language-text">chipload op rest-pass &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--pass &lt;PASS&gt;</code></td><td>Which pass: 1 for the first (shown as 3.1 for operation 3)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project: an endmill smaller than the tool before it.</td></tr>
+<tr><td><code>--feed &lt;FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>A fraction of the tool’s diameter, at most 1.</td></tr>
+<tr><td><code>--enabled &lt;ENABLED&gt;</code></td><td>Cut it (true) or keep it without cutting (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the pass; the passes after it rest after the tool before it.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-make-rest-pass"><a class="header" href="#chipload-op-make-rest-pass"><code>chipload op make-rest-pass</code></a></h3>
+<p>Make a rest pocket that copies an earlier pocket (same shapes, depths, clearance and direction, rest after its tool) a rest pass of that pocket (docs/specs/rest-passes.md §5). It is then cut after the run of pockets it belongs to</p>
+<pre><code class="language-text">chipload op make-rest-pass &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The rest pocket’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3695,7 +3877,7 @@ reaches the assistant only once you save.</li>
 <h1 id="project-file"><a class="header" href="#project-file">Project file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
-<p>Schema version 28. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 29. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file"><a class="header" href="#the-file">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -3708,7 +3890,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits and zero.</td></tr>
 <tr><td><code>operations</code></td><td>list of <a href="#operation">Operation</a></td><td>yes</td><td>The operations, cut in this order: grouped by part, in the parts’ order.</td></tr>
 <tr><td><code>parts</code></td><td>list of <a href="#part">Part</a></td><td>yes</td><td>The parts: groups of operations, each cut with its copies before the next part. At least one.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>28</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>29</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>stock</code></td><td><a href="#stock-1">Stock</a></td><td>yes</td><td>The material on the machine.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#tool">Tool</a></td><td>yes</td><td>The tools the operations cut with.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file, for reference.</td></tr>
@@ -4051,6 +4233,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
 <tr><td><code>rest</code></td><td><a href="#rest">Rest</a> or null</td><td>no</td><td>Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket.</td></tr>
+<tr><td><code>rest_passes</code></td><td>list of <a href="#restpass">RestPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there.</td></tr>
 <tr><td><code>starts</code></td><td>list of 2 × number</td><td>no</td><td>Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload.</td></tr>
@@ -4124,6 +4307,27 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="type-surface"><a class="header" href="#type-surface"><code>"type": "surface"</code></a></h3>
+<p>Surface: the whole stock top taken down flat, in straight passes back and forth.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>How far down the stock top is taken, mm. At most the stock thickness.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>). The stock is faced once, whatever copies the part has.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down beside the stock to each depth, mm/min.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between passes, as a fraction of the tool diameter: at least 0.1, at most 0.9.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an endmill.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="part"><a class="header" href="#part">Part</a></h2>
 <p>A part: a named group of operations, cut together, with its own copies (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.</p>
 <div class="table-wrapper">
@@ -4172,6 +4376,24 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>after_tool</code></td><td>integer</td><td>yes</td><td>The id of the larger project tool whose leftovers this pocket clears.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="restpass"><a class="header" href="#restpass">RestPass</a></h2>
+<p>One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket’s shapes, depths, clearance and direction, and clears only what the tool before it leaves.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an endmill smaller than the tool before it.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4625,7 +4847,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><em>tool (diameter … mm) does not fit in the pocket</em></td><td>The pocket is narrower than the tool everywhere. Use a smaller tool.</td></tr>
-<tr><td><em>the tool does not fit through a narrow part</em></td><td>A warning: the pocket is cleared as separate areas, and material stays in the narrow part. A <a href="#rest-machining-1">rest pocket</a> with a smaller tool can clear it.</td></tr>
+<tr><td><em>the tool does not fit through a narrow part</em></td><td>A warning: the pocket is cleared as separate areas, and material stays in the narrow part. A <a href="#rest-machining-1">rest pass</a> with a smaller tool can clear it.</td></tr>
 <tr><td><em>uncut material</em></td><td>The pocket’s stepover is too large for its shape. Lower the stepover.</td></tr>
 <tr><td><em>end depth … is … below the stock …, more than the allowed</em></td><td>The cut is deeper than <em>Max depth below stock</em> allows. Check the stock thickness, or raise the allowance (Job settings &gt; Stock).</td></tr>
 <tr><td><em>Tool N has no spindle speed</em></td><td>Set the tool’s spindle speed (rpm).</td></tr>

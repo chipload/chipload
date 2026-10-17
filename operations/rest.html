@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Rest machining - Chipload 0.21.1 user guide</title>
+        <title>Rest machining - Chipload 0.22.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a9dbeacd.js";
+            window.path_to_searchindex_js = "../searchindex-ba33c882.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ebb06b63.js"></script>
+        <script src="../toc-c71e25ca.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.21.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.22.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -183,44 +183,78 @@
 <li>inside corners rounded to its radius;</li>
 <li>slots and gaps narrower than the tool.</li>
 </ul>
-<p>A <strong>rest pocket</strong> with a smaller tool cuts only that material, instead of clearing the
-whole pocket again.</p>
+<p>A <strong>rest pass</strong> with a smaller tool cuts only that material, instead of clearing the whole
+pocket again. (Design: <code>docs/specs/rest-passes.md</code>.)</p>
 <h2 id="adding-one"><a class="header" href="#adding-one">Adding one</a></h2>
 <ul>
-<li><strong>From the pocket:</strong> right-click the large tool’s pocket in the Browser, then <em>Add
-rest pocket</em>, and pick the smaller endmill. Command line: <code>chipload op add-rest part.chipload --op 1 --tool 2</code>.</li>
-<li><strong>What you get:</strong> a new pocket right after it, with the same shapes, depths, oversize
-and direction, cut with the smaller tool, set to <em>Rest after</em> the large tool.</li>
+<li><strong>Right-click the pocket</strong> in the Browser, then <em>Add rest pass ▸</em>, and pick a smaller
+endmill: the project’s tools come first, then those in your tool library. A library tool
+is copied into the project’s Tools. When the entry is greyed out, point at it to see
+why: no smaller endmill in the project or your library, or the pocket has dogbone
+corners. Command line: <code>chipload op add-rest part.chipload --op 1 --tool 2</code> (copy a
+library tool in first with <code>chipload tool use</code>).</li>
+<li><strong>It belongs to the pocket:</strong> it shows as a leaf under it, numbered after it (<em>1.1</em>, <em>1.2</em>),
+and takes the pocket’s shapes, depths, oversize and direction. Change the pocket and the
+pass follows; turn the pocket off and its passes aren’t cut either.</li>
+<li><strong>Its own:</strong> the tool, feed, plunge feed, step down, stepover, entry, and on/off. Click
+the pass to change them; its right-click menu removes it.</li>
 <li><strong>Feeds and step down</strong> come from your tool library’s values for the small tool when it
-has them. Otherwise they’re copied from the large pocket: check them.</li>
+has them. Otherwise they’re copied from the pocket: check them.</li>
+<li><strong>Several passes:</strong> a pocket can have more than one, each with a smaller tool than the one
+before (12, then 6, then 3 mm). Each clears what the one before it left.</li>
 </ul>
-<p>Or set it on any pocket: <em>Clearing &gt; Rest after</em> (command line: <code>chipload op rest part.chipload --op 2 --after-tool 1</code>). The list offers the project’s endmills larger than
-the pocket’s own tool.</p>
+<p>Command line: <code>chipload op rest-pass part.chipload --op 1</code> lists a pocket’s passes, and with
+<code>--pass 1</code> changes one (<code>--tool</code>, <code>--feed</code>, <code>--plunge-feed</code>, <code>--step-down</code>, <code>--stepover</code>,
+<code>--enabled false</code>) or removes it (<code>--remove</code>).</p>
+<h2 id="when-it-is-cut"><a class="header" href="#when-it-is-cut">When it is cut</a></h2>
+<p>A rest pass waits for the <strong>pockets next to its pocket that use the same tool</strong>. After the
+last of them come all their rest passes, the larger tools first, then the operations after
+them. So with two pockets and an outline, all cut with a 12 mm tool, and a 4 mm rest pass on
+each pocket:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cut</th><th>Tool</th></tr>
+</thead>
+<tbody>
+<tr><td>Pocket 1, Pocket 2</td><td>12 mm</td></tr>
+<tr><td>Rest passes 1.1, 2.1</td><td>4 mm</td></tr>
+<tr><td>Outline 3</td><td>12 mm</td></tr>
+</tbody>
+</table>
+</div>
+<p>The small tool comes in once, and the outline, which frees the part, stays last. The report,
+the G-code headers and the setup sheet show the passes where they are cut.</p>
 <h2 id="what-it-cuts"><a class="header" href="#what-it-cuts">What it cuts</a></h2>
 <ul>
 <li><strong>Worked out from the tool’s size:</strong> Chipload works out what a tool of the larger tool’s
-size can’t reach in the pocket’s shapes. It looks at the size, not at what the earlier
-pocket’s toolpath did.</li>
+size can’t reach in the pocket’s shapes. It looks at the size, not at what the pocket’s
+toolpath did.</li>
 <li><strong>Rings:</strong> around each piece of that material, the small tool clears a small pocket with
 rings, within its own diameter. Along the real walls it follows the walls, so the
 corners come out with the small tool’s radius.</li>
 <li><strong>Pieces too small for the small tool too</strong> are skipped, with a note giving their size.</li>
 <li><strong>Nothing left:</strong> if the large tool reaches the whole pocket (a circle wider than it),
-the rest pocket cuts nothing and says so.</li>
+the pass cuts nothing and says so.</li>
 </ul>
 <p><em>View &gt; Show stock</em> shows the result: the corners cut by the small tool.</p>
 <h2 id="rules"><a class="header" href="#rules">Rules</a></h2>
 <ul>
-<li><strong>A larger endmill:</strong> the rest tool must be an endmill, and larger than the pocket’s own.</li>
-<li><strong>A warning, not a stop:</strong> Chipload warns when no earlier, enabled pocket cuts the same
-shapes with the larger tool at least as deep. The rest pocket is still safe on its own:
-it cuts its pieces from the start depth down in passes, like any pocket. It just leaves
-the bulk of the material.</li>
-<li><strong>No dogbones:</strong> a rest pocket can’t have dogbones. Put them on the large tool’s pocket.</li>
-<li><strong>Copies, not links:</strong> the rest pocket keeps its own copy of the shapes and depths. If you
-change the large pocket later, change the rest pocket too; the warning above catches a
-mismatch in shapes or depth.</li>
+<li><strong>A smaller endmill:</strong> a pass’s tool must be an endmill smaller than the tool before it.</li>
+<li><strong>No dogbones:</strong> a pocket with dogbones can’t have rest passes; its corners need no rest.</li>
 </ul>
+<h2 id="a-rest-pocket-on-its-own"><a class="header" href="#a-rest-pocket-on-its-own">A rest pocket on its own</a></h2>
+<p>When the large pocket is cut elsewhere, in another project or another program, a pocket can
+rest after a tool by itself: <em>Clearing &gt; Rest after</em> in its properties (command line:
+<code>chipload op rest part.chipload --op 2 --after-tool 1</code>). It is an ordinary operation in the
+list, cut where it stands. Chipload warns when no earlier, enabled pocket cuts the same
+shapes with that tool at least as deep; it is still safe, it just leaves the bulk of the
+material.</p>
+<p>A rest pocket that copies an earlier pocket of the project (same shapes, depths, oversize
+and direction, after its tool), as <em>Add rest pocket</em> made them before rest passes, can
+become that pocket’s rest pass: right-click it, <em>Make it a rest pass of operation N</em>
+(command line: <code>chipload op make-rest-pass part.chipload --op 2</code>). It is then cut after the
+run of pockets it belongs to.</p>
 
                     </main>
 
