@@ -308,6 +308,22 @@ impl ChiploadApp {
             self.set_show_grid(grid);
         }
         ui.checkbox(&mut self.legend_open, "Show legend");
+        ui.checkbox(&mut self.browser_open, "Show Browser");
+        ui.checkbox(&mut self.properties_open, "Show Properties");
+        if ui
+            .button(with_keys(
+                if self.browser_open || self.properties_open {
+                    "Fold both panels"
+                } else {
+                    "Open both panels"
+                },
+                Action::Panels,
+            ))
+            .on_hover_text("The largest canvas: the Browser and Properties folded to strips")
+            .clicked()
+        {
+            self.toggle_panels();
+        }
         let mut auto = self.auto_generate;
         if ui
             .checkbox(&mut auto, "Update toolpath automatically")

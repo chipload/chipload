@@ -81,6 +81,17 @@ selector*.
 Today's forms stay as they are, inside collapsing sections. Their label column gets one
 fixed width, so the values line up from section to section.
 
+**Narrow panels and folding (2026-10-17, user report: some pages kept the panel wide).**
+The forms follow the panel's width: the label column is 130 px, or 40 % of a narrower
+panel (at least 80 px); fields shrink to what is left of the row (at least 80 px); a
+field's button or note goes under it; section summaries and the title end in "…"; a row
+that still doesn't fit scrolls sideways rather than widening the panel. The Properties
+panel goes down to 250 px and the Browser to 180 px; every Properties page fits at 250
+(tested). Either panel folds to a 26 px strip with an arrow that opens it: drag its edge
+past its least width, double-click the edge, *View > Show Browser / Show Properties*, or
+**P** for both at once (open when either was folded: both fold). Folding lasts for the
+session.
+
 ## 5. Header: top bar and ribbon
 
 Today's header is a menu bar (File, Edit, Job, Settings, View, Draw, Help) over a row of

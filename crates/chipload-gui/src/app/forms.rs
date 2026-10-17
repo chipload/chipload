@@ -42,7 +42,7 @@ fn depth_rows(
     ui.end_row();
     ui.label("End depth")
         .on_hover_text("Where the cut ends, down from the stock top");
-    ui.horizontal(|ui| {
+    wrapped_cell(ui, |ui| {
         flag(ui.add(mm(end)), ui, "end_depth");
         if ui
             .small_button("Through")
@@ -90,8 +90,41 @@ pub(super) fn direction_combo(ui: &mut egui::Ui, id: (&str, usize), direction: &
         });
 }
 
-/// Least width of a form's label column, so the sections' grids line up.
+/// Least width of a form's label column, so the sections' grids line up; a narrow panel
+/// gives it less, down to [`NARROW_WIDTH`].
 const LABEL_WIDTH: f32 = 130.0;
+
+/// The least a label column or a field shrinks to in a narrow panel.
+const NARROW_WIDTH: f32 = 80.0;
+
+/// Where the panel's width is kept for [`label_width`] (`set_form_width`).
+const FORM_WIDTH_ID: &str = "form-width";
+
+/// The width the Properties forms get this frame: their label columns follow it, so the
+/// panel can be made narrow (user report 2026-10-17) and every grid still lines up.
+pub(super) fn set_form_width(ui: &egui::Ui) {
+    let width = ui.available_width();
+    ui.data_mut(|d| d.insert_temp(egui::Id::new(FORM_WIDTH_ID), width));
+}
+
+/// The forms' width this frame (`set_form_width`); unbounded outside the panel.
+fn form_width(ui: &egui::Ui) -> f32 {
+    ui.data(|d| d.get_temp::<f32>(egui::Id::new(FORM_WIDTH_ID)))
+        .unwrap_or(f32::INFINITY)
+}
+
+/// A form's label column: [`LABEL_WIDTH`], or 40 % of a narrower panel.
+fn label_width(ui: &egui::Ui) -> f32 {
+    (0.4 * form_width(ui)).clamp(NARROW_WIDTH, LABEL_WIDTH)
+}
+
+/// A field's width: `wanted`, or what the label column (with a section's indent) leaves
+/// of a narrow panel. Worked out from the panel, as a grid's cell doesn't know its own.
+pub(super) fn field_width(ui: &egui::Ui, wanted: f32) -> f32 {
+    let spacing = ui.spacing();
+    let left = form_width(ui) - label_width(ui) - spacing.indent - 2.0 * spacing.item_spacing.x;
+    wanted.min(left).max(NARROW_WIDTH)
+}
 
 /// A collapsible section of a form: a bold title with a short summary beside it (seen when
 /// folded), and its rows in a two-column grid. Its open state is kept per `key`.
@@ -142,17 +175,39 @@ fn section_marked<R>(
             Align::Center,
         );
     }
+    // A long summary ends in "…" in a narrow panel (past the arrow and a section's indent).
+    // Laid out here: the header lays text out again unwrapped, all but a finished galley.
+    header.wrap = egui::text::TextWrapping {
+        max_width: (form_width(ui) - 2.0 * ui.spacing().indent).max(NARROW_WIDTH),
+        max_rows: 1,
+        break_anywhere: true,
+        overflow_character: Some('…'),
+    };
+    let header = ui.fonts_mut(|f| f.layout_job(header));
     egui::CollapsingHeader::new(header)
         .id_salt(("section", key))
         .default_open(true)
         .show(ui, |ui| {
             Grid::new(("section-grid", key))
                 .num_columns(2)
-                .min_col_width(LABEL_WIDTH)
+                .min_col_width(label_width(ui))
                 .show(ui, rows)
                 .inner
         })
         .body_returned
+}
+
+/// A grid's value cell whose row wraps within the panel: a field with a button or a note
+/// beside it, which goes under it in a narrow panel.
+fn wrapped_cell<R>(
+    ui: &mut egui::Ui,
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> egui::InnerResponse<R> {
+    let width = field_width(ui, f32::INFINITY);
+    ui.scope(|ui| {
+        ui.set_max_width(width);
+        ui.horizontal_wrapped(add_contents).inner
+    })
 }
 
 /// The tabs' flank angle in degrees, and how far the feet reach (docs/specs/
@@ -285,11 +340,11 @@ pub(super) fn op_form(
     Grid::new(("op-form", index))
         .num_columns(2)
         // Past the sections' indent, so the values line up with theirs.
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             let name = entry.op.name_mut();
             ui.label("Name");
-            ui.add(TextEdit::singleline(name).desired_width(200.0));
+            ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
             ui.end_row();
             ui.label("Geometry");
             if surface {
@@ -300,7 +355,7 @@ pub(super) fn op_form(
                 tool_row(ui, index, &mut entry.op, &choice, &mut request);
                 return;
             }
-            let geometry = ui.horizontal(|ui| {
+            let geometry = wrapped_cell(ui, |ui| {
                 ui.label(&summary);
                 let label = match choice.selected {
                     0 => "Use selection".to_string(),
@@ -566,7 +621,8 @@ fn tool_row(
     ui.label("Tool");
     let combo = ComboBox::from_id_salt(("op-tool", index))
         .selected_text(selected)
-        .width(240.0)
+        .width(field_width(ui, 240.0))
+        .truncate()
         .show_ui(ui, |ui| {
             for tool in choice.tools {
                 if ui
@@ -671,7 +727,8 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
     );
     section(ui, "op-feeds", "Feeds", &text, |ui| {
         ui.label("Feed");
-        ui.horizontal(|ui| {
+        // The chip load goes under the feed when the panel is narrow.
+        wrapped_cell(ui, |ui| {
             flag(ui.add(feed(cut)), ui, "feed");
             if let Some(tool) = tool {
                 let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
@@ -970,7 +1027,7 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
         let text = format!("{} {feed_unit} down", feed_in(units, h.plunge_feed));
         section(ui, "op-feeds", "Feeds", &text, |ui| {
             ui.label("Drill feed");
-            ui.horizontal(|ui| {
+            wrapped_cell(ui, |ui| {
                 flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
                 if let Some(tool) = tool {
                     let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
@@ -1308,7 +1365,7 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
     super::browser::title_line(ui, crate::icons::Icon::Dxf, None, &source.name);
     Grid::new(("dxf-facts", id))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             ui.label("File");
             ui.label(&source.file);
@@ -1392,7 +1449,7 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
     let mut finished = false;
     Grid::new(("image-form", id))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             if let Some((w, h)) = pixels {
                 ui.label("Picture");
@@ -1498,7 +1555,8 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
             ui.end_row();
             ui.label("Layer")
                 .on_hover_text("The layer its shapes are on, for operations that select it");
-            let response = ui.add(TextEdit::singleline(&mut draft.layer).desired_width(160.0));
+            let response = ui
+                .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
             finished |= response.lost_focus();
             ui.end_row();
         });
@@ -1570,14 +1628,14 @@ pub(super) fn text_form(
     let mut finished = false;
     Grid::new(("text-form", id))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             ui.label("Text")
                 .on_hover_text("What it says; Enter starts a new line");
             let response = ui.add(
                 TextEdit::multiline(&mut draft.text)
                     .desired_rows(2)
-                    .desired_width(220.0),
+                    .desired_width(field_width(ui, 220.0)),
             );
             if grab {
                 response.request_focus();
@@ -1729,7 +1787,8 @@ pub(super) fn text_form(
             ui.end_row();
             ui.label("Layer")
                 .on_hover_text("The layer its letters are on, for operations that select it");
-            let response = ui.add(TextEdit::singleline(&mut draft.layer).desired_width(160.0));
+            let response = ui
+                .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
             finished |= response.lost_focus();
             ui.end_row();
             if let Some((w, h)) = size {
@@ -2025,7 +2084,7 @@ pub(super) fn tool_form(
     let mut removed = false;
     Grid::new(("tool-form", id))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH)
+        .min_col_width(label_width(ui))
         .show(ui, |ui| {
             removed = tool_body(ui, tool, &at, &users, library, &mut request);
         });
@@ -2255,10 +2314,11 @@ pub(super) fn part_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Optio
     let at = |field: &str| format!("parts.{index}.{field}");
     Grid::new(("part-form", id))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             ui.label("Name");
-            let response = ui.add(TextEdit::singleline(&mut part.name).desired_width(200.0));
+            let response =
+                ui.add(TextEdit::singleline(&mut part.name).desired_width(field_width(ui, 200.0)));
             flag(response, ui, &at("name"));
             ui.end_row();
             ui.label("Cut")
@@ -2813,7 +2873,7 @@ pub(super) fn rest_pass_form(
     );
     Grid::new(("rest-pass", i, k))
         .num_columns(2)
-        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             ui.label("Rest of").on_hover_text(
                 "It cuts its pocket's shapes and depths, and clears only what the tool before \

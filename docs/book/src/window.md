@@ -167,3 +167,16 @@ shape's values, open the project (Job settings) and select the shape. Nor is the
 the open DXF, picture or text is itself what is selected.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
+
+## Making room for the canvas
+
+- **Narrower panels:** drag the edge between a panel and the canvas. The Properties panel
+  goes down to about 250 pixels: its labels and fields get narrower, a button or a note
+  beside a field moves under it, and a long section summary ends in "…".
+- **Folding a panel:** drag its edge past its narrowest, or double-click the edge. It
+  folds to a thin strip at the window's side; the arrow on the strip opens it again.
+- **Both at once:** **P** folds the Browser and Properties together for the largest
+  canvas, and opens them again. Also in *View*: *Show Browser*, *Show Properties*, *Fold
+  both panels*.
+- The **Report** at the bottom folds with its triangle.
+

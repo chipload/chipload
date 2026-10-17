@@ -7,7 +7,9 @@ it's built (see `CLAUDE.md`).
 
 - **Not released yet** (on main since v0.22.1): an operation on a text shows "all of text
   N" as its geometry, not "no geometry"; the canvas says *Updating the simulation…* while
-  the simulated stock is worked out again (both from testing 0.22.1).
+  the simulated stock is worked out again; the Properties panel goes down to 250 px (its
+  forms follow the width) and both side panels fold to strips (P, View) for a larger
+  canvas (all from testing 0.22.1).
 
 ## State to remember (2026-10-17)
 

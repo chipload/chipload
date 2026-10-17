@@ -16,6 +16,7 @@ mod holding;
 mod images;
 mod leave_out_shapes;
 mod live_problems;
+mod narrow_panel;
 mod parts;
 mod posts;
 mod profile_form;

@@ -77,6 +77,23 @@ const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
 
+/// A folded side panel's width, and the least widths of the open ones: the Properties
+/// forms fit in theirs (narrower labels and fields, rows that wrap).
+const FOLDED_WIDTH: f32 = 26.0;
+const BROWSER_MIN_WIDTH: f32 = 180.0;
+pub(crate) const PROPERTIES_MIN_WIDTH: f32 = 250.0;
+
+/// A folded side panel: one button that opens it again. True when clicked.
+fn folded_strip(ui: &mut egui::Ui, arrow: &str, what: &str) -> bool {
+    ui.add_space(4.0);
+    ui.vertical_centered(|ui| {
+        ui.add(egui::Button::new(arrow).frame(false))
+            .on_hover_text(format!("{what} (P: both panels)"))
+            .clicked()
+    })
+    .inner
+}
+
 /// What a pocket's *Add rest pass ▸* offers (docs/specs/rest-passes.md §6).
 #[derive(Debug, Clone, PartialEq)]
 pub enum RestMenu {
@@ -274,6 +291,10 @@ pub struct ChiploadApp {
     context_pick: Option<usize>,
     /// View > Show stock (docs/specs/simulation.md §4): the simulation.
     pub show_simulation: bool,
+    /// The Browser and the Properties panel open, or folded to a strip for a larger canvas
+    /// (View, the P key, or dragging a panel's edge past its least width).
+    pub browser_open: bool,
+    pub properties_open: bool,
     /// The material-removal simulation of the last result (docs/specs/simulation.md).
     pub sim: Sim,
     /// The playback slider's state, once a toolpath has been generated.
@@ -396,6 +417,8 @@ impl Default for ChiploadApp {
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
             show_simulation: true,
+            browser_open: true,
+            properties_open: true,
             sim: Sim::default(),
             playback: None,
             three_d: false,
@@ -1069,6 +1092,13 @@ impl ChiploadApp {
         }
     }
 
+    /// Fold both side panels for the largest canvas, or open both again (View, P).
+    pub fn toggle_panels(&mut self) {
+        let open = !(self.browser_open || self.properties_open);
+        self.browser_open = open;
+        self.properties_open = open;
+    }
+
     /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
     /// open it. False, with the reason shown, when it can't be added.
     pub fn add_rest_pass(&mut self, i: usize, tool: i64) -> bool {
@@ -1731,20 +1761,61 @@ impl eframe::App for ChiploadApp {
         Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
         self.report_panel(ui);
-        Panel::left("operations")
-            .resizable(true)
-            .default_size(340.0)
-            .show(ui, |ui| self.sidebar(ui));
-        Panel::right("side")
-            .resizable(true)
-            .default_size(440.0)
-            .show(ui, |ui| {
+        // Each side panel folds to a strip (its edge dragged past the least width, a
+        // double-click on the edge, the strip's button, View or P) for a larger canvas.
+        let mut open = self.browser_open;
+        let unfold = Panel::show_switched(
+            ui,
+            &mut open,
+            Panel::left("operations-folded")
+                .resizable(true)
+                .exact_size(FOLDED_WIDTH),
+            Panel::left("operations")
+                .resizable(true)
+                .default_size(340.0)
+                .min_size(BROWSER_MIN_WIDTH),
+            |ui, open| {
+                if open {
+                    self.sidebar(ui);
+                    false
+                } else {
+                    folded_strip(ui, "▸", "Show the Browser")
+                }
+            },
+        )
+        .inner;
+        self.browser_open = open || unfold;
+        let mut open = self.properties_open;
+        let unfold = Panel::show_switched(
+            ui,
+            &mut open,
+            Panel::right("side-folded")
+                .resizable(true)
+                .exact_size(FOLDED_WIDTH),
+            Panel::right("side")
+                .resizable(true)
+                .default_size(440.0)
+                .min_size(PROPERTIES_MIN_WIDTH),
+            |ui, open| {
+                if !open {
+                    return folded_strip(ui, "◂", "Show Properties");
+                }
                 browser::caption(ui, "Properties");
-                ScrollArea::vertical()
+                // The forms are laid out in the panel's width; a row that still doesn't fit
+                // scrolls sideways instead of widening the panel.
+                let width = ui.available_width();
+                ScrollArea::both()
                     .id_salt("properties-scroll")
                     .auto_shrink([false, true])
-                    .show(ui, |ui| self.properties_panel(ui));
-            });
+                    .show(ui, |ui| {
+                        ui.set_max_width(width);
+                        self.properties_panel(ui);
+                    });
+                false
+            },
+        )
+        .inner;
+        self.properties_open = open || unfold;
         CentralPanel::no_frame().show(ui, |ui| {
             if self.edit.is_some() && self.playback.is_some() {
                 Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));

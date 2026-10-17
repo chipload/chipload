@@ -29,6 +29,7 @@ pub(super) enum Action {
     TopView,
     Grid,
     Measure,
+    Panels,
     Shortcuts,
 }
 
@@ -138,6 +139,13 @@ pub(super) const BINDINGS: &[Binding] = &[
         Key::M,
         "View",
         "Measure: two clicks give the distance and angle",
+    ),
+    bind(
+        Action::Panels,
+        Modifiers::NONE,
+        Key::P,
+        "View",
+        "Fold or open the side panels, for a larger canvas",
     ),
     bind(
         Action::Shortcuts,
@@ -279,6 +287,7 @@ impl ChiploadApp {
             Action::TopView => self.view_top(),
             Action::Grid => self.set_show_grid(!self.show_grid),
             Action::Measure => self.toggle_measure(),
+            Action::Panels => self.toggle_panels(),
             Action::Shortcuts => self.dialogs.shortcuts_open = true,
         }
     }

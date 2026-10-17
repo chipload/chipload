@@ -60,6 +60,7 @@ impl ChiploadApp {
             ui.weak("No project open.");
             return;
         }
+        forms::set_form_width(ui);
         self.problems_strip(ui);
         if self.selection_shown() {
             self.selection_section(ui);
