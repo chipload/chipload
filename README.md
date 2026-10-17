@@ -6,6 +6,11 @@ for Linux and Windows, written in Rust.
 ![Chipload: a plaque with a pocket round an island, bored holes, CHIPLOAD V-carved in a
 built-in font and an outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
 
+> **Testers with real machines wanted.** Chipload's programs pass its own checker and many
+> tests, but they have **not yet been run on a real controller**: not on GRBL, LinuxCNC or
+> Mach3/4, and not in inches (G20). If you have a CNC router or mill, please try it, starting
+> with an air cut, and [tell us how it went](#testing-on-your-machine).
+
 ## Highlights
 
 - **Checked G-code, always.** Every program goes through an independent checker before it
@@ -38,8 +43,9 @@ built-in font and an outline held by tabs, its simulated stock in 3D](docs/book/
   checked against each other's toolpaths.
 - **Your tools and machines:** a tool library and machine profiles, copied into each
   project and linked back. A project cuts the same on any computer.
-- **Any controller:** GRBL, LinuxCNC and Mach3/4 posts, with arcs as G2/G3. Posts are a
-  template and a small config, so you can copy one and make it yours.
+- **Any controller:** GRBL, LinuxCNC and Mach3/4 posts, with arcs as G2/G3, in mm or
+  inches. Posts are a template and a small config, so you can copy one and make it yours.
+  None of them is tested on a real machine yet: [help us](#testing-on-your-machine).
 - **Scriptable:**
   - every feature is on the command line;
   - `--json` on every command, and `get`/`set` for any value;
@@ -69,6 +75,35 @@ your tool or your machine's real state.
 3. Only then cut, and never leave a running machine unattended.
 
 Chipload comes with no warranty (GPL-3.0, sections 15 and 16).
+
+## Testing on your machine
+
+We need people who own a machine to run Chipload's programs on it. Every report helps, also
+"it worked".
+
+**How to try it safely:**
+1. Start with something simple: a shallow pocket or a profile in scrap, with the
+   machine's own feeds.
+2. Look at the program in Chipload's simulation and in a G-code viewer (see the
+   [safety warning](#safety-warning)).
+3. Do an **air cut** first: set Z0 well above the stock, run the whole program, hand on the
+   stop button. Watch the rapids, the plunges, the arcs and the tool changes.
+4. Then cut, and stay at the machine.
+
+**What to test, if you can:**
+- your controller with its post: GRBL (and which sender), LinuxCNC or Mach3/4;
+- arcs (G2/G3), helical entries and holes;
+- several tools, as separate files or one file with M6;
+- G-code in inches (G20), on a controller set to inches;
+- whether the work zero, depths and the setup sheet match what you set on the machine.
+
+**How to report:** open an [issue](https://github.com/gntech/chipload/issues) with:
+- the machine, the controller and its firmware version, and the sender;
+- the Chipload version and the post;
+- the project file (`.chipload`) and the G-code, or the part of it that went wrong;
+- what you expected and what happened, and a photo or video if you have one.
+
+Problems found this way become test cases, so they stay fixed (see `CONTRIBUTING.md`).
 
 ## Download
 

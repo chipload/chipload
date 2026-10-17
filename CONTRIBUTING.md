@@ -26,6 +26,11 @@ which adds `Signed-off-by: Your Name <you@example.com>`.
 - Changing golden G-code needs a note in the commit message explaining why.
 - New dependencies: state the license (must be GPL-3.0-compatible, see `CLAUDE.md`) and why.
 
+## Testing on a real machine
+
+Reports from real machines are the most useful help right now: see *Testing on your
+machine* in `README.md` for what to try and what to send, also when it worked.
+
 ## Reporting a bad toolpath
 
 Attach the DXF (anonymised if needed), the job file, the generated G-code and what went wrong.
