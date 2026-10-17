@@ -7,7 +7,7 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-core = { version = "0.21.1", path = "../chipload-core" }
+chipload-core = { version = "0.22.0", path = "../chipload-core" }
 thiserror = "2.0.21"
 # Reads the built-in fonts' outlines and kerning. MIT OR Apache-2.0, already in the tree
 # through egui (docs/specs/text.md §4).
