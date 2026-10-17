@@ -2309,6 +2309,27 @@ pub(super) fn machine_rows(
         }
     });
     ui.end_row();
+    ui.label("G-code units").on_hover_text(
+        "The units the G-code is written in: mm (G21) or inches (G20), as your controller \
+         is set. Everything else in the project stays in mm",
+    );
+    ui.horizontal(|ui| {
+        let row = ComboBox::from_id_salt((salt, "gcode-units"))
+            .selected_text(gcode_units_text(machine.gcode_units))
+            .show_ui(ui, |ui| {
+                for units in [Units::Mm, Units::Inch] {
+                    ui.selectable_value(&mut machine.gcode_units, units, gcode_units_text(units));
+                }
+            });
+        flag(row.response, ui, "machine.gcode_units");
+        if let Some(from) = from
+            && from.gcode_units != machine.gcode_units
+            && revert_mark(ui, profile, gcode_units_text(from.gcode_units))
+        {
+            machine.gcode_units = from.gcode_units;
+        }
+    });
+    ui.end_row();
     ui.label("Spindle");
     ui.horizontal(|ui| {
         ComboBox::from_id_salt((salt, "spindle"))
@@ -2394,6 +2415,10 @@ pub(super) fn machine_rows(
 fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
     for (label, value) in [
         ("Post", machine.post.clone()),
+        (
+            "G-code units",
+            gcode_units_text(machine.gcode_units).to_string(),
+        ),
         ("Spindle", spindle_text(machine.spindle).to_string()),
         ("Max feed", max_feed_text(machine.max_feed)),
         (
@@ -2405,6 +2430,14 @@ fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
         ui.label(label);
         ui.weak(value);
         ui.end_row();
+    }
+}
+
+/// "mm (G21)" or "inch (G20)".
+fn gcode_units_text(units: Units) -> &'static str {
+    match units {
+        Units::Mm => "mm (G21)",
+        Units::Inch => "inch (G20)",
     }
 }
 

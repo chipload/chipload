@@ -91,7 +91,12 @@ pub fn post_facts(name: &str, posts: Option<&Path>) -> Result<Vec<String>, Pipel
     };
     lines.insert(0, format!("Name: {}", config.name));
     lines.push(format!("File extension: {}", config.file_extension));
-    lines.push(format!("Decimals: {}", config.decimals));
+    lines.push(format!(
+        "Decimals: {} (mm), {} (inch)",
+        config.decimals, config.inch_decimals
+    ));
+    let units: Vec<&str> = config.units.iter().map(|u| u.name()).collect();
+    lines.push(format!("G-code units: {}", units.join(", ")));
     lines.push(format!(
         "Arcs: {}",
         if config.arcs {

@@ -41,3 +41,6 @@ Under Machine:
   moves farther than the machine can.
 - **Max feed:** the fastest feed the machine takes. Feeds above it are refused, and the
   cycle time uses it for rapid moves.
+- **G-code units:** mm (`G21`) or inch (`G20`), as your controller expects. Only the program
+  changes; see [Units and coordinates](units.md). Command line: `chipload set part.chipload
+  machine.gcode_units=inch`, or `--gcode-units inch` on `machine add` and `machine set`.

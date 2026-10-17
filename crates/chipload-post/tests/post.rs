@@ -69,6 +69,7 @@ fn rendered_program_passes_the_checker() {
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
         travel: Some((800.0, 600.0, 100.0)),
+        units: chipload_job::Units::Mm,
     };
     let report = check_gcode(&text, &limits);
     assert!(report.ok(), "{:?}", report.errors);
@@ -109,14 +110,14 @@ fn a_post_without_tool_changes_refuses_one_file_with_m6() {
             operations: vec![1],
         },
     ];
-    let err = render_with_tool_changes(&parts, &old, None).unwrap_err();
+    let err = render_with_tool_changes(&parts, &old, None, chipload_job::Units::Mm).unwrap_err();
     assert!(
         err.to_string()
             .contains("can't write tool changes in one file"),
         "{err}"
     );
     post.arcs = false;
-    let text = render_with_tool_changes(&parts, &post, None).unwrap();
+    let text = render_with_tool_changes(&parts, &post, None, chipload_job::Units::Mm).unwrap();
     assert_eq!(text.matches(" M6\n").count(), 2, "{text}");
 }
 
@@ -143,6 +144,7 @@ fn checked(text: &str) {
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0)]),
         travel: Some((800.0, 600.0, 100.0)),
+        units: chipload_job::Units::Mm,
     };
     let report = check_gcode(text, &limits);
     assert!(report.ok(), "{:?}\n{text}", report.errors);
@@ -240,4 +242,52 @@ fn a_template_that_never_ends_fails_instead_of_hanging() {
     let err = render_program(&program(Spindle::Cw), &config).unwrap_err();
     assert!(err.to_string().contains("fuel"), "{err}");
     assert!(started.elapsed().as_secs() < 10);
+}
+
+// -- inches (docs/specs/inch-units.md §4.2)
+
+#[test]
+fn a_post_writes_inches_only_if_its_config_says_its_template_can() {
+    use chipload_job::Units;
+    // A user post from before inches: its template writes G21 itself. An inch machine is
+    // refused rather than given inch numbers under G21.
+    let old = chipload_post::UserPost {
+        config: MY_CONFIG.into(),
+        template: "G21 G90\n{% for s in segments %}{% for m in s.moves %}{{ m.code }}\n\
+                   {% endfor %}{% endfor %}M30\n"
+            .into(),
+    };
+    let config = chipload_post::parse_user_post(&old).unwrap();
+    assert_eq!(config.units, [Units::Mm]);
+    let err = chipload_post::render_program_with(&program(Spindle::Cw), &config, None, Units::Inch)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("can't write G-code in inch"),
+        "{err}"
+    );
+    assert!(
+        chipload_post::render_program_with(&program(Spindle::Cw), &config, None, Units::Mm).is_ok()
+    );
+    // The built-in posts write either, with 4 decimals in inches.
+    for name in ["grbl", "linuxcnc", "mach3"] {
+        let post = load_builtin_post(name).unwrap();
+        assert_eq!(post.units, [Units::Mm, Units::Inch]);
+        let text =
+            chipload_post::render_program_with(&program(Spindle::Cw), &post, None, Units::Inch)
+                .unwrap();
+        assert!(
+            text.contains("G20 G90") && !text.contains("G21"),
+            "{name}: {text}"
+        );
+        assert!(text.contains("inch)"), "{name}: the tool comment says inch");
+    }
+}
+
+#[test]
+fn inch_decimals_are_checked_and_default_to_4() {
+    let config = parse_post_config(&format!("{MY_CONFIG}inch_decimals = 7\n"));
+    assert!(config.unwrap_err().to_string().contains("inch_decimals"));
+    assert_eq!(parse_post_config(MY_CONFIG).unwrap().inch_decimals, 4);
+    let none = parse_post_config(&format!("{MY_CONFIG}units = []\n"));
+    assert!(none.unwrap_err().to_string().contains("units"));
 }

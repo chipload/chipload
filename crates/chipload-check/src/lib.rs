@@ -12,10 +12,13 @@ mod parse;
 use std::collections::BTreeMap;
 
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
-use chipload_job::Job;
+use chipload_job::{Job, Units};
 
 /// Positional slack for comparisons against heights and bounds.
 pub const POSITION_TOL_MM: f64 = CHAIN_TOL_MM;
+/// What an inch program may be off by on top of [`POSITION_TOL_MM`]: half of 0.0001", the
+/// last decimal of an inch program written with 4 (docs/specs/inch-units.md §4.3).
+pub const INCH_ROUNDING_MM: f64 = 0.5 * 0.0001 * chipload_core::MM_PER_INCH;
 
 /// G-codes the checker reads. 40, 49, 54, 61, 64 and 80 only set the controller to a known
 /// state (docs/specs/user-posts.md §4); G91.1 is handled apart, as it is not whole.
@@ -52,6 +55,9 @@ pub struct CheckLimits {
     pub tool_radii: BTreeMap<i64, f64>,
     /// Machine travel span per axis.
     pub travel: Option<(f64, f64, f64)>,
+    /// The units the machine's G-code is in: a program in others is an error
+    /// (docs/specs/inch-units.md §4.3).
+    pub units: Units,
 }
 
 /// Derived here from the job's raw numbers, deliberately not via any generator code. The
@@ -99,6 +105,7 @@ fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
         tool_radius: radius,
         tool_radii: job.tools.iter().map(|t| (t.id, t.diameter / 2.0)).collect(),
         travel: job.machine.travel.as_ref().map(|t| (t.x, t.y, t.z)),
+        units: job.machine.gcode_units,
     }
 }
 
@@ -129,7 +136,11 @@ enum SpindleState {
 }
 
 struct State {
-    units_mm: Option<bool>,
+    /// The program's units, from its G20 or G21.
+    units: Option<Units>,
+    /// How far a position may be off: more in an inch program, whose numbers are rounded
+    /// more coarsely.
+    tol: f64,
     absolute: Option<bool>,
     motion: Option<i64>,
     feed: Option<f64>,
@@ -157,7 +168,8 @@ struct State {
 impl State {
     fn new() -> Self {
         Self {
-            units_mm: None,
+            units: None,
+            tol: POSITION_TOL_MM,
             absolute: None,
             motion: None,
             feed: None,
@@ -238,7 +250,7 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
             for (axis, span_limit) in AXES.into_iter().zip([tx, ty, tz]) {
                 if let (Some(lo), Some(hi)) = (state.lo.get(&axis), state.hi.get(&axis)) {
                     let span = hi - lo;
-                    if span > span_limit + POSITION_TOL_MM {
+                    if span > span_limit + state.tol {
                         report.errors.push(CheckIssue {
                             line: 0,
                             message: format!(
@@ -315,19 +327,45 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
         return problems;
     }
 
+    // Units first: every length and feed on the line is read in them, and kept in mm.
+    for (code, units) in [(20, Units::Inch), (21, Units::Mm)] {
+        if !g_codes.contains(&code) {
+            continue;
+        }
+        if state.units.is_some_and(|before| before != units) {
+            problems.push(format!(
+                "G{code} changes the units to {} within the program",
+                units.name()
+            ));
+        }
+        if units != limits.units {
+            problems.push(format!(
+                "G{code} ({}) but the machine's G-code units are {}",
+                units.name(),
+                limits.units.name()
+            ));
+        }
+        state.units = Some(units);
+        state.tol = match units {
+            Units::Mm => POSITION_TOL_MM,
+            Units::Inch => POSITION_TOL_MM + INCH_ROUNDING_MM,
+        };
+    }
+    if let Some(units) = state.units {
+        let k = units.mm_per_unit();
+        for letter in ['X', 'Y', 'Z', 'I', 'J', 'F'] {
+            if let Some(v) = values.get_mut(&letter) {
+                *v *= k;
+            }
+        }
+    }
+
     // Modal settings first, in the order a controller applies them.
     if let Some(&feed) = values.get(&'F') {
         if feed <= 0.0 {
             problems.push(format!("Feed F{feed} must be positive"));
         }
         state.feed = Some(feed);
-    }
-    if g_codes.contains(&20) {
-        problems.push("G20 (inch) used; programs must be in mm".into());
-        state.units_mm = Some(false);
-    }
-    if g_codes.contains(&21) {
-        state.units_mm = Some(true);
     }
     if g_codes.contains(&91) {
         problems.push("G91 (relative) is not supported".into());
@@ -428,7 +466,7 @@ fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<String> {
         .get(&'Z')
         .copied()
         .flatten()
-        .is_none_or(|z| z < limits.safe_z - POSITION_TOL_MM)
+        .is_none_or(|z| z < limits.safe_z - state.tol)
     {
         problems.push("Tool change (M6) below safe height (retract first)".into());
     }
@@ -444,8 +482,8 @@ fn move_to(
     limits: &CheckLimits,
 ) -> Vec<String> {
     let mut problems = Vec::new();
-    if state.units_mm != Some(true) {
-        problems.push("Motion before G21 (mm)".into());
+    if state.units.is_none() {
+        problems.push("Motion before G21 (mm) or G20 (inch)".into());
     }
     if state.absolute != Some(true) {
         problems.push("Motion before G90 (absolute)".into());
@@ -463,11 +501,11 @@ fn move_to(
 
     if motion == 0 {
         let z_now = current('Z');
-        if xy_changes && z_now.is_none_or(|z| z < limits.safe_z - POSITION_TOL_MM) {
+        if xy_changes && z_now.is_none_or(|z| z < limits.safe_z - state.tol) {
             problems.push("Rapid XY move while Z is below safe height (retract first)".into());
         }
         if let Some(z) = at('Z')
-            && z < limits.stock_top_z - POSITION_TOL_MM
+            && z < limits.stock_top_z - state.tol
             && !(!xy_changes && back_into_hole(state, current('X'), current('Y'), z))
         {
             problems.push(format!(
@@ -510,10 +548,10 @@ fn move_to(
     }
 
     if let Some(z) = at('Z')
-        && z < limits.stock_bottom_z - POSITION_TOL_MM
+        && z < limits.stock_bottom_z - state.tol
     {
         let floor = limits.stock_bottom_z - limits.max_overcut;
-        if z < floor - POSITION_TOL_MM {
+        if z < floor - state.tol {
             problems.push(format!(
                 "Z{z:.3} is below the stock bottom ({:.3}) by more than the allowed {:.3} mm",
                 limits.stock_bottom_z, limits.max_overcut
@@ -543,7 +581,7 @@ fn back_into_hole(state: &State, x: Option<f64>, y: Option<f64>, z: f64) -> bool
     let (Some(x), Some(y), Some((hx, hy, bottom))) = (x, y, state.hole) else {
         return false;
     };
-    (x - hx).hypot(y - hy) <= POSITION_TOL_MM && z >= bottom + PECK_CLEARANCE_MM - POSITION_TOL_MM
+    (x - hx).hypot(y - hy) <= state.tol && z >= bottom + PECK_CLEARANCE_MM - state.tol
 }
 
 /// After a move: a straight feed down records (or deepens) the hole; any XY move or arc

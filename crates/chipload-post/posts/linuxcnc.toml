@@ -4,6 +4,9 @@ schema_version = 1
 name = "LinuxCNC"
 template = "linuxcnc.ngc.j2"
 decimals = 3
+inch_decimals = 4
+# G21 and G20: the template writes {{ units_word }} (docs/specs/inch-units.md §4.2)
+units = ["mm", "inch"]
 file_extension = ".ngc"
 spindle_dwell_s = 3  # G4 P is seconds in LinuxCNC
 arcs = true  # G2/G3 with I/J relative to the start (G91.1 in the header)

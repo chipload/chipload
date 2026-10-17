@@ -4,7 +4,7 @@
 
 Your machine profiles (`machines.json` in the settings folder) and the files `machine export` writes. Lengths in mm, feeds in mm/min.
 
-Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 4. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -12,7 +12,7 @@ Schema version 3. Older files load through Chipload's migrations; this schema de
 |---|---|---|---|
 | `default_machine` | string or null | no | The name of the profile new projects start with. Null: the built-in values. |
 | `machines` | list of [MachineProfile](#machineprofile) | yes | The profiles. |
-| `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `4` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## MachineProfile
@@ -21,6 +21,7 @@ One machine profile: a project's machine values plus the spoilboard allowance.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `gcode_units` | [Units](#units) | yes | The units its G-code is written in: `mm` (G21) or `inch` (G20). |
 | `max_feed` | number or null | no | The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time uses it for rapids. Null: unknown. |
 | `max_overcut` | number | yes | How far a new project's cuts may go below the stock bottom, mm (`stock.max_overcut`). |
 | `name` | string | yes | The profile's name, unique in the file. |
@@ -57,6 +58,10 @@ How a job with several tools is written.
 | `x` | number | yes | Travel along X, mm. |
 | `y` | number | yes | Travel along Y, mm. |
 | `z` | number | yes | Travel along Z, mm. |
+
+## Units
+
+One of: `"mm"`, `"inch"`.
 
 ## WorkZero
 

@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use chipload_job::{Spindle, Tool, ToolChange};
+use chipload_job::{Spindle, Tool, ToolChange, Units};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
@@ -58,6 +58,14 @@ fn default_decimals() -> u32 {
     3
 }
 
+fn default_inch_decimals() -> u32 {
+    4
+}
+
+fn default_units() -> Vec<Units> {
+    vec![Units::Mm]
+}
+
 fn default_extension() -> String {
     ".nc".to_string()
 }
@@ -75,9 +83,19 @@ pub struct PostConfig {
     pub name: String,
     /// The template's file name, next to this file, e.g. `myrouter.nc.j2`.
     pub template: String,
-    /// Decimals for coordinates and feeds. Missing: 3.
+    /// Decimals for coordinates and feeds in mm. Missing: 3.
     #[serde(default = "default_decimals")]
     pub decimals: u32,
+    /// Decimals for coordinates and feeds in inches. Missing: 4.
+    // Spec: docs/specs/inch-units.md §4.2.
+    #[serde(default = "default_inch_decimals")]
+    pub inch_decimals: u32,
+    /// The units the template can write: `mm` (G21) and `inch` (G20) if it writes
+    /// `{{ units_word }}` instead of a fixed G21. Missing: mm only, so a machine set to inch
+    /// is refused rather than given inch numbers under G21.
+    // Spec: docs/specs/inch-units.md §4.2.
+    #[serde(default = "default_units")]
+    pub units: Vec<Units>,
     /// The G-code file's extension, e.g. `.nc`. Missing: `.nc`.
     #[serde(default = "default_extension")]
     pub file_extension: String,
@@ -157,6 +175,15 @@ pub fn parse_post_config(text: &str) -> Result<PostConfig, PostError> {
             "decimals must be at most 6, got {}",
             config.decimals
         ));
+    }
+    if config.inch_decimals > 6 {
+        problems.push(format!(
+            "inch_decimals must be at most 6, got {}",
+            config.inch_decimals
+        ));
+    }
+    if config.units.is_empty() {
+        problems.push("units must name at least one of mm and inch".into());
     }
     if !(config.spindle_dwell_s >= 0.0 && config.spindle_dwell_s.is_finite()) {
         problems.push(format!(
@@ -409,6 +436,10 @@ fn centre_offsets(
 #[derive(Serialize)]
 struct Context {
     post_name: String,
+    /// `G21` or `G20`: the program's units (docs/specs/inch-units.md §4.2).
+    units_word: &'static str,
+    /// `mm` or `inch`, for comments.
+    unit: &'static str,
     tool_id: i64,
     tool_diameter: String,
     rpm: String,
@@ -515,18 +546,82 @@ fn ascii_for(c: char) -> &'static str {
     }
 }
 
-/// `tool 2, 3.000 mm endmill "3 mm downcut"`: the tool as a G-code comment shows it.
-pub fn tool_text(tool: &Tool, decimals: u32) -> String {
+/// `tool 2, 3.000 mm endmill "3 mm downcut"`: the tool as a G-code comment shows it, its
+/// diameter in the program's units.
+pub fn tool_text(tool: &Tool, out: Output) -> String {
     let name = tool
         .name
         .as_deref()
         .map_or(String::new(), |n| format!(" \"{}\"", comment_safe(n)));
     format!(
-        "tool {}, {} mm {}{name}",
+        "tool {}, {} {} {}{name}",
         tool.id,
-        format_number(tool.diameter, decimals),
+        out.number(tool.diameter / out.units.mm_per_unit()),
+        out.units.name(),
         tool.kind.name()
     )
+}
+
+/// The units a program is written in and the decimals for them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Output {
+    pub units: Units,
+    pub decimals: u32,
+}
+
+impl Output {
+    /// `units` as `config` writes them; refused if its template can't
+    /// (docs/specs/inch-units.md §4.2).
+    pub fn of(config: &PostConfig, units: Units) -> Result<Output, PostError> {
+        if !config.units.contains(&units) {
+            return Err(PostError::Config(format!(
+                "Post-processor {:?} can't write G-code in {}: its config doesn't list {:?} \
+                 under units (its template must write {{{{ units_word }}}} instead of G21)",
+                config.name,
+                units.name(),
+                units.name()
+            )));
+        }
+        let decimals = match units {
+            Units::Mm => config.decimals,
+            Units::Inch => config.inch_decimals,
+        };
+        Ok(Output { units, decimals })
+    }
+
+    fn number(self, value: f64) -> String {
+        format_number(value, self.decimals)
+    }
+
+    fn units_word(self) -> &'static str {
+        match self.units {
+            Units::Mm => "G21",
+            Units::Inch => "G20",
+        }
+    }
+}
+
+/// `program` in `units`: every coordinate, arc centre and radius, feed, the safe height and
+/// the tool's diameter divided by the units' size in mm. Unchanged for mm.
+pub fn in_units(program: &Program, units: Units) -> Program {
+    let k = units.mm_per_unit();
+    if units == Units::Mm {
+        return program.clone();
+    }
+    let mut out = program.clone();
+    out.tool_diameter /= k;
+    out.safe_z /= k;
+    for m in &mut out.moves {
+        m.x = m.x.map(|v| v / k);
+        m.y = m.y.map(|v| v / k);
+        m.z = m.z.map(|v| v / k);
+        m.feed = m.feed.map(|v| v / k);
+        if let Some(c) = m.circle.as_mut() {
+            c.center = (c.center.0 / k, c.center.1 / k);
+            c.radius /= k;
+        }
+    }
+    out
 }
 
 /// `2, 4`: operation indexes as the user numbers them.
@@ -535,19 +630,20 @@ pub fn operations_text(operations: &[usize]) -> String {
     numbers.join(", ")
 }
 
-/// Render without a work-zero note (a bare toolpath, e.g. `chipload render`).
+/// Render in mm without a work-zero note (a bare toolpath, e.g. `chipload render`).
 pub fn render_program(program: &Program, config: &PostConfig) -> Result<String, PostError> {
-    render_program_with(program, config, None)
+    render_program_with(program, config, None, Units::Mm)
 }
 
-/// Render, stating in the header where the work zero is. The program must already be in
-/// program coordinates.
+/// Render in `units`, stating in the header where the work zero is. The program must
+/// already be in program coordinates.
 pub fn render_program_with(
     program: &Program,
     config: &PostConfig,
     work_zero: Option<&str>,
+    units: Units,
 ) -> Result<String, PostError> {
-    render(program, config, work_zero, None)
+    render(program, config, work_zero, None, units)
 }
 
 /// Render one file of a set written one file per tool group: the header also says which
@@ -557,8 +653,22 @@ pub fn render_tool_file(
     config: &PostConfig,
     work_zero: Option<&str>,
     file: &FileHeader,
+    units: Units,
 ) -> Result<String, PostError> {
-    render(program, config, work_zero, Some(file))
+    render(program, config, work_zero, Some(file), units)
+}
+
+/// The moves to write: arcs merged (in mm, as their tolerances are) if the post writes
+/// them, then in the program's units.
+fn written(program: &Program, config: &PostConfig, out: Output) -> Result<Program, PostError> {
+    // Chords of known arcs become G2/G3 only if the post writes arcs; otherwise the tags are
+    // ignored and the output is the chords, as before.
+    let merged = if config.arcs {
+        merge_arcs(program).map_err(|e| PostError::Render(e.to_string()))?
+    } else {
+        program.clone()
+    };
+    Ok(in_units(&merged, out.units))
 }
 
 fn render(
@@ -566,37 +676,37 @@ fn render(
     config: &PostConfig,
     work_zero: Option<&str>,
     file: Option<&FileHeader>,
+    units: Units,
 ) -> Result<String, PostError> {
-    let fmt = |v: f64| format_number(v, config.decimals);
-    // Chords of known arcs become G2/G3 only if the post writes arcs; otherwise the tags are
-    // ignored and the output is the chords, as before.
-    let output = if config.arcs {
-        merge_arcs(program).map_err(|e| PostError::Render(e.to_string()))?
-    } else {
-        program.clone()
-    };
+    let out = Output::of(config, units)?;
+    let fmt = |v: f64| out.number(v);
+    let output = written(program, config, out)?;
     let context = Context {
         post_name: comment_safe(&config.name),
+        units_word: out.units_word(),
+        unit: out.units.name(),
         tool_id: program.tool_id,
-        tool_diameter: fmt(program.tool_diameter),
+        tool_diameter: fmt(output.tool_diameter),
         rpm: format_number(program.rpm, 0),
         spindle: match program.spindle {
             Spindle::Cw => "cw",
             Spindle::Ccw => "ccw",
         },
-        safe_z: fmt(program.safe_z),
-        dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
+        safe_z: fmt(output.safe_z),
+        // Seconds: written the same in either units.
+        dwell: (config.spindle_dwell_s > 0.0)
+            .then(|| format_number(config.spindle_dwell_s, config.decimals)),
         work_zero: work_zero.map(comment_safe),
         file: file.map(|f| FileContext {
             number: f.number,
             count: f.count,
-            tool: tool_text(&f.tool, config.decimals),
+            tool: tool_text(&f.tool, out),
             operations: operations_text(&f.operations),
         }),
         tools: None,
         segments: vec![Segment {
             change: None,
-            moves: compress_moves(&output, config.decimals)?,
+            moves: compress_moves(&output, out.decimals)?,
         }],
     };
     fill_template(config, &context)
@@ -618,6 +728,7 @@ pub fn render_with_tool_changes(
     parts: &[ToolPart],
     config: &PostConfig,
     work_zero: Option<&str>,
+    units: Units,
 ) -> Result<String, PostError> {
     if !config.tool_changes.contains(&ToolChange::Program) {
         return Err(PostError::Config(format!(
@@ -629,21 +740,18 @@ pub fn render_with_tool_changes(
     let first = parts
         .first()
         .ok_or_else(|| PostError::Render("No tool groups to render".into()))?;
-    let fmt = |v: f64| format_number(v, config.decimals);
+    let out = Output::of(config, units)?;
+    let fmt = |v: f64| out.number(v);
     let mut segments = Vec::new();
     for (i, part) in parts.iter().enumerate() {
-        let output = if config.arcs {
-            merge_arcs(&part.program).map_err(|e| PostError::Render(e.to_string()))?
-        } else {
-            part.program.clone()
-        };
+        let output = written(&part.program, config, out)?;
         // Each part starts from fresh modal state: after a tool change every word is written
         // again, whatever the sender did to move the machine.
         let change = (i > 0).then(|| ChangeContext {
             comment: comment_safe(&format!(
                 "Tool change {i} of {}: {}, operations {}",
                 parts.len() - 1,
-                tool_text(&part.tool, config.decimals),
+                tool_text(&part.tool, out),
                 operations_text(&part.operations)
             )),
             tool_id: part.tool.id,
@@ -651,30 +759,34 @@ pub fn render_with_tool_changes(
         });
         segments.push(Segment {
             change,
-            moves: compress_moves(&output, config.decimals)?,
+            moves: compress_moves(&output, out.decimals)?,
         });
     }
     let context = Context {
         post_name: comment_safe(&config.name),
+        units_word: out.units_word(),
+        unit: out.units.name(),
         tool_id: first.program.tool_id,
-        tool_diameter: fmt(first.program.tool_diameter),
+        tool_diameter: fmt(first.program.tool_diameter / out.units.mm_per_unit()),
         rpm: format_number(first.program.rpm, 0),
         spindle: match first.program.spindle {
             Spindle::Cw => "cw",
             Spindle::Ccw => "ccw",
         },
-        safe_z: fmt(first.program.safe_z),
-        dwell: (config.spindle_dwell_s > 0.0).then(|| fmt(config.spindle_dwell_s)),
+        safe_z: fmt(first.program.safe_z / out.units.mm_per_unit()),
+        // Seconds: written the same in either units.
+        dwell: (config.spindle_dwell_s > 0.0)
+            .then(|| format_number(config.spindle_dwell_s, config.decimals)),
         work_zero: work_zero.map(comment_safe),
         file: None,
-        tools: Some(tool_list(parts, config.decimals)),
+        tools: Some(tool_list(parts, out)),
         segments,
     };
     fill_template(config, &context)
 }
 
 /// `T2 3.000 mm endmill "3 mm downcut"` for each tool once, in the order first used.
-fn tool_list(parts: &[ToolPart], decimals: u32) -> Vec<String> {
+fn tool_list(parts: &[ToolPart], out: Output) -> Vec<String> {
     let mut seen: Vec<i64> = Vec::new();
     let mut lines = Vec::new();
     for part in parts {
@@ -682,7 +794,7 @@ fn tool_list(parts: &[ToolPart], decimals: u32) -> Vec<String> {
             continue;
         }
         seen.push(part.tool.id);
-        let text = tool_text(&part.tool, decimals);
+        let text = tool_text(&part.tool, out);
         // "tool 2, 3.000 mm endmill" -> "T2 3.000 mm endmill"
         let rest = text
             .split_once(", ")
@@ -852,7 +964,7 @@ mod tests {
             comments: Vec::new(),
         };
         let config = load_builtin_post("grbl").unwrap();
-        let text = render_program_with(&program, &config, Some("x (y); z")).unwrap();
+        let text = render_program_with(&program, &config, Some("x (y); z"), Units::Mm).unwrap();
         assert!(!text.contains('\r'), "{text:?}");
         assert!(text.contains("(Work zero: x [y], z)\n"), "{text}");
     }

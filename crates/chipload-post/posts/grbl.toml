@@ -3,6 +3,9 @@ schema_version = 1
 name = "GRBL"
 template = "grbl.nc.j2"
 decimals = 3
+inch_decimals = 4
+# G21 and G20: the template writes {{ units_word }} (docs/specs/inch-units.md §4.2)
+units = ["mm", "inch"]
 file_extension = ".nc"
 spindle_dwell_s = 3  # router spindles need time to reach speed (decision 2026-10-08)
 arcs = true  # G2/G3 with I/J (docs/specs/arc-output.md)

@@ -62,6 +62,7 @@ fn shapeoko() -> MachineProfile {
         name: "Shapeoko".into(),
         uid: uid_for_name("Shapeoko"),
         post: "grbl".into(),
+        gcode_units: chipload_job::Units::Mm,
         safe_z: 10.0,
         spindle: Spindle::Cw,
         max_feed: Some(5000.0),
@@ -231,7 +232,7 @@ fn a_version_1_machine_library_writes_one_file_per_tool() {
                       "max_overcut": 0.3}]}"#;
     std::fs::write(&path, v1).unwrap();
     let library = load_machines(&path).unwrap();
-    assert_eq!(library.schema_version, 3);
+    assert_eq!(library.schema_version, 4);
     assert_eq!(library.machines, [shapeoko()]);
     assert_eq!(library.machines[0].tool_change, ToolChange::Files);
     // Version 2 needs it.

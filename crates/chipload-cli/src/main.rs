@@ -622,9 +622,18 @@ struct ShapeValues {
 }
 
 #[derive(Clone, Copy, ValueEnum)]
-enum UnitsArg {
+pub enum UnitsArg {
     Mm,
     Inch,
+}
+
+impl UnitsArg {
+    pub fn value(self) -> Units {
+        match self {
+            UnitsArg::Mm => Units::Mm,
+            UnitsArg::Inch => Units::Inch,
+        }
+    }
 }
 
 fn main() -> ExitCode {
@@ -639,12 +648,7 @@ fn main() -> ExitCode {
 
 /// Run one command, its output into `out` (also for the MCP server's tools).
 fn execute(out: &mut Out, command: Command) -> ExitCode {
-    let units = |u: Option<UnitsArg>| {
-        u.map(|u| match u {
-            UnitsArg::Mm => Units::Mm,
-            UnitsArg::Inch => Units::Inch,
-        })
-    };
+    let units = |u: Option<UnitsArg>| u.map(UnitsArg::value);
     match command {
         Command::Inspect { file, units: u } => inspect(out, &file, units(u)),
         Command::New { output, machine } => create(

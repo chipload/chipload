@@ -747,6 +747,7 @@ chipload machine add <NAME> [OPTIONS]
 | `--work-zero <WORK_ZERO>` | drawing-origin, stock-center, stock-bottom-left, stock-bottom-right, stock-top-left, stock-top-right, or a point "X,Y". |
 | `--max-overcut <MAX_OVERCUT>` | How far below the stock a cut may go (into the spoilboard) |
 | `--tool-change <TOOL_CHANGE>` | With several tools: one G-code file per tool, or one file with M6 tool changes that your sender handles. One of: `files` (One G-code file per tool group), `program` (One file with `T<n> M6` at each tool change). |
+| `--gcode-units <GCODE_UNITS>` | The units the G-code is written in: mm (G21) or inch (G20). Everything else stays in mm. One of: `mm`, `inch`. |
 
 ### `chipload machine set`
 
@@ -767,6 +768,7 @@ chipload machine set <NAME> [OPTIONS]
 | `--work-zero <WORK_ZERO>` | drawing-origin, stock-center, stock-bottom-left, stock-bottom-right, stock-top-left, stock-top-right, or a point "X,Y". |
 | `--max-overcut <MAX_OVERCUT>` | How far below the stock a cut may go (into the spoilboard) |
 | `--tool-change <TOOL_CHANGE>` | With several tools: one G-code file per tool, or one file with M6 tool changes that your sender handles. One of: `files` (One G-code file per tool group), `program` (One file with `T<n> M6` at each tool change). |
+| `--gcode-units <GCODE_UNITS>` | The units the G-code is written in: mm (G21) or inch (G20). Everything else stays in mm. One of: `mm`, `inch`. |
 | `--rename <RENAME>` | A new name. |
 
 ### `chipload machine remove`

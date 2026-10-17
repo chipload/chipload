@@ -11,11 +11,11 @@
 (Tool changes use M6: your sender must handle them and set Z zero for each tool.)
 (GRBL itself refuses M6.)
 {% endif %}
-(Tool {{ tool_id }}: {{ tool_diameter }} mm)
+(Tool {{ tool_id }}: {{ tool_diameter }} {{ unit }})
 {% if work_zero is not none %}
 (Work zero: {{ work_zero }})
 {% endif %}
-G21 G90 G17 G94
+{{ units_word }} G90 G17 G94
 {% if tools is not none %}
 G0 Z{{ safe_z }}
 T{{ tool_id }} M6

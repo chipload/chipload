@@ -9,14 +9,16 @@ A post-processor is a small TOML file (`name.toml`) and a Jinja template (`name.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `arcs` | boolean | no | Write arcs as G2/G3; false writes them as short lines (G1). Missing: false. |
-| `decimals` | integer | no | Decimals for coordinates and feeds. Missing: 3. |
+| `decimals` | integer | no | Decimals for coordinates and feeds in mm. Missing: 3. |
 | `file_extension` | string | no | The G-code file's extension, e.g. `.nc`. Missing: `.nc`. |
+| `inch_decimals` | integer | no | Decimals for coordinates and feeds in inches. Missing: 4. |
 | `name` | string | yes | The post's display name, e.g. "GRBL". |
 | `note` | string or null | no | A word for the operator, shown on the setup sheet, e.g. that the post isn't tested on a real controller yet. Missing: none. |
 | `schema_version` | integer | yes | The version of the settings format: 1. |
 | `spindle_dwell_s` | number | yes | Seconds to wait after starting the spindle, for it to reach speed; 0 for none. Required: a silent default could start cutting at low speed. |
 | `template` | string | yes | The template's file name, next to this file, e.g. `myrouter.nc.j2`. |
 | `tool_changes` | list of [ToolChange](#toolchange) | no | How the template can write a job with several tools: `files` (one program per tool), and `program` (one file with tool changes) if the template writes them. Missing: files only. |
+| `units` | list of [Units](#units) | no | The units the template can write: `mm` (G21) and `inch` (G20) if it writes `{{ units_word }}` instead of a fixed G21. Missing: mm only, so a machine set to inch is refused rather than given inch numbers under G21. |
 | `written_by` | string or null | no | Who or what wrote the file, for reference. |
 
 ## ToolChange
@@ -26,6 +28,10 @@ How a job with several tools is written.
 - `"files"`: One G-code file per tool group; the user changes the tool and sets Z zero between.
 
 - `"program"`: One file with `T<n> M6` at each change, for a sender that handles it.
+
+## Units
+
+One of: `"mm"`, `"inch"`.
 
 ## Built-in post-processors
 

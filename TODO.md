@@ -5,9 +5,10 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Inches** (docs/specs/inch-units.md, draft for review 2026-10-17): G-code in G20 per
-  machine, display units as a preference, inch input on the command line. Waiting for the
-  user's decisions (spec §7).
+- **Inches** (docs/specs/inch-units.md, approved 2026-10-17): step 1, G-code in G20 per
+  machine (schema 28, machines.json 4, post `units`/`inch_decimals`, the checker reads G20),
+  done 2026-10-17. Next: step 2, display units in the app and on the setup sheet; step 3,
+  inch input and `--units inch` on the command line.
 
 ## State to remember (2026-10-12)
 

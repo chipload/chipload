@@ -229,6 +229,10 @@ pub struct MachineValues {
     /// that your sender handles.
     #[arg(long)]
     tool_change: Option<ToolChangeArg>,
+    /// The units the G-code is written in: mm (G21) or inch (G20). Everything else stays
+    /// in mm.
+    #[arg(long)]
+    gcode_units: Option<crate::UnitsArg>,
 }
 
 /// docs/specs/tool-per-operation.md §3.
@@ -682,6 +686,7 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
                 name: name.clone(),
                 uid: library.new_uid(&name),
                 post: "grbl".into(),
+                gcode_units: chipload_job::Units::Mm,
                 safe_z: DEFAULT_SAFE_Z,
                 spindle: Spindle::Cw,
                 max_feed: None,
@@ -826,6 +831,9 @@ fn set_machine_values(
     if let Some(change) = values.tool_change {
         profile.tool_change = change.value();
     }
+    if let Some(units) = values.gcode_units {
+        profile.gcode_units = units.value();
+    }
     Ok(())
 }
 
@@ -881,10 +889,12 @@ fn list_machines(out: &mut Out, path: &Path) -> ExitCode {
             Spindle::Ccw => "ccw",
         };
         let mut line = format!(
-            "  {}{}: post {}, safe Z {} mm, spindle {spindle}, max overcut {} mm, tool changes {}",
+            "  {}{}: post {}, G-code in {}, safe Z {} mm, spindle {spindle}, max overcut {} mm, \
+             tool changes {}",
             m.name,
             mark(is_default),
             m.post,
+            m.gcode_units.name(),
             m.safe_z,
             m.max_overcut,
             m.tool_change.name()

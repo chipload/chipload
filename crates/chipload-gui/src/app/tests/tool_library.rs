@@ -42,6 +42,7 @@ mod library {
             name: "Shapeoko".into(),
             uid: uid_for_name("Shapeoko"),
             post: "grbl".into(),
+            gcode_units: chipload_job::Units::Mm,
             safe_z: 12.0,
             spindle: Spindle::Cw,
             max_feed: Some(5000.0),

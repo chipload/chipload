@@ -118,10 +118,15 @@ fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo) {
     let _ = writeln!(
         html,
         "<header>\n<h1>Setup sheet: {}</h1>\n<p class=\"meta\">{machine}post {} &middot; \
-         written by {} &middot; lengths in mm, feeds in mm/min</p>\n</header>",
+         written by {} &middot; lengths in mm, feeds in mm/min{}</p>\n</header>",
         escape(&info.project),
         escape(&result.post.name),
-        escape(&info.written_by)
+        escape(&info.written_by),
+        // The program's own units, when they aren't the sheet's (docs/specs/inch-units.md §3).
+        match job.machine.gcode_units {
+            chipload_job::Units::Mm => "",
+            chipload_job::Units::Inch => " &middot; <strong>G-code in inches (G20)</strong>",
+        }
     );
 }
 

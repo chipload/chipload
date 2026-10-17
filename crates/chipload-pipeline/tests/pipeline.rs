@@ -1275,3 +1275,37 @@ fn corpus_path(rel: &str) -> PathBuf {
         .join("../../tests/corpus")
         .join(rel)
 }
+
+// -- inches (docs/specs/inch-units.md §4.2)
+
+#[test]
+fn an_inch_machine_with_a_post_that_writes_only_mm_is_a_problem_and_writes_nothing() {
+    let mut job = load_job(&corpus("jobs/v4/simple_part_full.chipload")).unwrap();
+    job.machine.gcode_units = chipload_job::Units::Inch;
+    // The built-in posts write inches.
+    assert!(chipload_pipeline::job_problems(&job).is_empty());
+    let result = run_job(&job).unwrap();
+    assert!(result.files[0].gcode.contains("G20 G90"));
+    // A user post from before inches, copied into the project: its template writes G21.
+    let builtin = include_str!("../../chipload-post/templates/grbl.nc.j2");
+    job.machine.post = "old".into();
+    job.machine.custom_post = Some(chipload_job::CustomPost {
+        config: "schema_version = 1\nname = \"Old\"\ntemplate = \"old.nc.j2\"\n\
+                 spindle_dwell_s = 3\narcs = true\n"
+            .into(),
+        template: builtin.replace("{{ units_word }}", "G21"),
+    });
+    let problems = chipload_pipeline::job_problems(&job);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert_eq!(problems[0].path, "machine.gcode_units");
+    assert!(
+        problems[0].short.contains("writes only mm"),
+        "{}",
+        problems[0].short
+    );
+    let err = run_job(&job).unwrap_err().to_string();
+    assert!(err.contains("can't write G-code in inch"), "{err}");
+    // In mm it runs as before.
+    job.machine.gcode_units = chipload_job::Units::Mm;
+    assert!(run_job(&job).is_ok());
+}

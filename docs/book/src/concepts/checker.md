@@ -14,7 +14,9 @@ toolpath code is likely to be caught by the checker, and the other way round.
 - moves beyond the machine's travel, when the travel is set;
 - an arc whose ends don't lie on its circle, or an arc that is a full circle in one move;
 - a cutting move with no feed, a zero feed, or the spindle off;
-- inch (G20) or relative (G91) coordinates, and motion before G21 and G90;
+- relative (G91) coordinates, and motion before G21 or G20 and G90;
+- a program in other units than the machine's *G-code units*, or one that changes units
+  part way (an inch program is read in inches and checked in mm);
 - a tool change with the spindle running or below safe Z;
 - any G or M code it doesn't know (see [Post-processors](../posts.md#your-own-post)).
 

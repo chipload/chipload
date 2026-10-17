@@ -17,7 +17,7 @@ use crate::Problem;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 27;
+pub const CURRENT_VERSION: i64 = 28;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -187,6 +187,23 @@ impl Copies {
 pub enum Units {
     Mm,
     Inch,
+}
+
+impl Units {
+    pub fn name(self) -> &'static str {
+        match self {
+            Units::Mm => "mm",
+            Units::Inch => "inch",
+        }
+    }
+
+    /// Millimetres in one of these units.
+    pub fn mm_per_unit(self) -> f64 {
+        match self {
+            Units::Mm => 1.0,
+            Units::Inch => chipload_core::MM_PER_INCH,
+        }
+    }
 }
 
 /// The project's drawing: shapes in millimetres, or (only for jobs from before v4) a
@@ -1450,6 +1467,10 @@ pub struct Machine {
     pub library_uid: Option<String>,
     /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
+    /// The units the G-code is written in: `mm` (G21) or `inch` (G20). Everything else in
+    /// the project stays in mm. Since schema 28.
+    // Spec: docs/specs/inch-units.md §4.
+    pub gcode_units: Units,
     /// The height for rapid moves sideways, mm above Z0. Above the stock top.
     pub safe_z: f64,
     /// The spindle's direction: `cw` (M3) or `ccw` (M4).

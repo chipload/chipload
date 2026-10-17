@@ -44,7 +44,7 @@ The easiest start is a copy of a built-in post, from the `crates/chipload-post/p
   an error if it loops without end.
 - **The checker still decides.** Whatever your template writes, the [checker](first-part.md#the-checker)
   reads it back as a controller would. It accepts only the codes it knows: G0–G3, G4, G17,
-  G21, G90, G91.1, G94, the setup codes G40, G49, G80, G54, G61 and G64 P (at most
+  G20, G21, G90, G91.1, G94, the setup codes G40, G49, G80, G54, G61 and G64 P (at most
   0.05 mm), M3–M6, M7–M9 and M30, and `%` lines. Anything else, such as G41/G42 cutter
   compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves, makes the
   check fail, and nothing is exported.
@@ -60,9 +60,11 @@ cut).
 | Value | |
 |---|---|
 | `post_name` | the settings' `name` |
-| `tool_id`, `tool_diameter`, `rpm` | the (first) tool, its diameter in mm, its spindle speed |
+| `units_word` | `G21` or `G20`: the machine's *G-code units* |
+| `unit` | `mm` or `inch`, for comments |
+| `tool_id`, `tool_diameter`, `rpm` | the (first) tool, its diameter in the program's units, its spindle speed |
 | `spindle` | `"cw"` or `"ccw"` |
-| `safe_z` | the safe height, mm |
+| `safe_z` | the safe height, in the program's units |
 | `dwell` | seconds to wait after starting the spindle, or none |
 | `work_zero` | where the work zero is, as text for a comment, or none |
 | `file` | with one file per tool: `number`, `count`, `tool` (text) and `operations` (text); otherwise none |
@@ -72,11 +74,18 @@ cut).
 | `segment.moves` | the moves: `code` (`G0`, `G1`, `G2`, `G3`), and `x`, `y`, `z`, `i`, `j`, `f` (each none when unchanged) |
 | `move.comment` | text to write as a comment before the move, made safe for G-code: where each [part](operations/parts.md) starts, with two parts or more; otherwise none |
 
-Numbers come already formatted with the settings' `decimals`. The built-in GRBL template
-shows how they fit together:
+Numbers come already formatted in the program's units: with the settings' `decimals` in mm,
+`inch_decimals` (4 if missing) in inches.
+
+**Inches.** A post writes inch G-code only if its settings say its template can:
+`units = ["mm", "inch"]`, and the template writes `{{ units_word }}` where it would write
+`G21`. A post without `units` writes mm only, and a project whose machine is set to inch is
+refused with that post, so a template that writes `G21` itself never gets inch numbers.
+
+The built-in GRBL template shows how they fit together:
 
 ```jinja
-G21 G90 G17 G94
+{{ units_word }} G90 G17 G94
 {{ "M3" if spindle == "cw" else "M4" }} S{{ rpm }}
 {% if dwell is not none %}G4 P{{ dwell }}{% endif %}
 {% for s in segments %}

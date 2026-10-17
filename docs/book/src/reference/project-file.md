@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 27. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 28. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 27. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `27` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `28` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -239,6 +239,7 @@ Quarter-circle lead-in and lead-out.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `custom_post` | [CustomPost](#custompost) or null | no | Your own post-processor, copied into the project when chosen, so it gives the same G-code anywhere. Null: `post` is a built-in one. |
+| `gcode_units` | [Units](#units) | yes | The units the G-code is written in: `mm` (G21) or `inch` (G20). Everything else in the project stays in mm. Since schema 28. |
 | `library_uid` | string or null | no | The `uid` of the machine profile these values came from, for reference; nothing that cuts reads it. Null: not from a profile. |
 | `max_feed` | number or null | no | The machine's fastest feed, mm/min: higher feeds are refused, and the cycle time uses it for rapids. Null: unknown. |
 | `name` | string or null | no | The machine profile these values came from, for reference; nothing reads it. |

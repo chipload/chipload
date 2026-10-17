@@ -307,7 +307,25 @@ pub fn joined(problems: &[chipload_job::Problem]) -> String {
 pub fn job_problems(job: &Job) -> Vec<chipload_job::Problem> {
     let mut problems = job.validate();
     problems.extend(chipload_toolpath::job_problems(job));
+    problems.extend(units_problem(job));
     problems
+}
+
+/// The machine's G-code units, if its post can't write them (docs/specs/inch-units.md
+/// §4.2). A post that can't be read is reported when the project runs.
+fn units_problem(job: &Job) -> Option<chipload_job::Problem> {
+    let post = posts::job_post(job).ok()?;
+    let units = job.machine.gcode_units;
+    (!post.units.contains(&units)).then(|| {
+        chipload_job::Problem::at(
+            "machine.gcode_units",
+            format!(
+                "post {} writes only mm G-code (its config doesn't list \"{}\" under units)",
+                post.name,
+                units.name()
+            ),
+        )
+    })
 }
 
 /// Generate G-code from a project. Fails for anything that is not safe to cut, including a
@@ -362,6 +380,15 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     })
 }
 
+/// Where the work zero is, for the program's header. The drawing's coordinates are mm; an
+/// inch program says so (docs/specs/inch-units.md §4.2).
+fn work_zero_note(job: &Job) -> String {
+    match job.machine.gcode_units {
+        chipload_job::Units::Mm => job.work_zero_text(),
+        chipload_job::Units::Inch => format!("{}, drawing in mm", job.work_zero_text()),
+    }
+}
+
 /// Post and check a plan: one program, or one per tool group. Every program is checked
 /// with its own tool's radius before any is returned (docs/specs/tool-per-operation.md §6).
 pub fn post_and_check(
@@ -370,7 +397,8 @@ pub fn post_and_check(
     program: &Program,
     groups: &[ToolGroup],
 ) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
-    let work_zero = job.work_zero_text();
+    let work_zero = work_zero_note(job);
+    let units = job.machine.gcode_units;
     let several = groups.len() > 1;
     if several && job.machine.tool_change == ToolChange::Program {
         return one_file_with_tool_changes(job, post, program, groups);
@@ -386,9 +414,9 @@ pub fn post_and_check(
                 tool: group.tool.clone(),
                 operations: group.operations.clone(),
             };
-            render_tool_file(&part, post, Some(&work_zero), &header)?
+            render_tool_file(&part, post, Some(&work_zero), &header, units)?
         } else {
-            render_program_with(&part, post, Some(&work_zero))?
+            render_program_with(&part, post, Some(&work_zero), units)?
         };
         let limits = tool_limits(job, group.tool.id)?;
         let report = check_gcode(&gcode, &limits);
@@ -439,7 +467,12 @@ fn one_file_with_tool_changes(
             operations: g.operations.clone(),
         })
         .collect();
-    let gcode = render_with_tool_changes(&parts, post, Some(&job.work_zero_text()))?;
+    let gcode = render_with_tool_changes(
+        &parts,
+        post,
+        Some(&work_zero_note(job)),
+        job.machine.gcode_units,
+    )?;
     let report = check_gcode(&gcode, &limits_from_job(job));
     if !report.ok() {
         return Err(PipelineError::CheckFailed {
@@ -526,6 +559,7 @@ pub fn empty_project() -> Job {
             name: None,
             library_uid: None,
             post: "grbl".into(),
+            gcode_units: chipload_job::Units::Mm,
             safe_z: DEFAULT_SAFE_Z,
             spindle: Spindle::Cw,
             max_feed: None,

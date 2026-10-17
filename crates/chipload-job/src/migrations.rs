@@ -11,10 +11,10 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 23] = [
+const MIGRATIONS: [Migration; 24] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
-    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27,
+    v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -497,6 +497,16 @@ fn v26_to_v27(mut data: Value) -> Result<Value, String> {
         op.remove("lead");
     }
     Ok(set_version(data, 27))
+}
+
+/// 27 -> 28: the machine says which units its G-code is in (docs/specs/inch-units.md §4.1).
+/// Every older program was written in mm (G21), so that is what it says.
+fn v27_to_v28(mut data: Value) -> Result<Value, String> {
+    let Some(Value::Object(machine)) = data.get_mut("machine") else {
+        return Err("machine: missing".into());
+    };
+    machine.insert("gcode_units".into(), Value::from("mm"));
+    Ok(set_version(data, 28))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

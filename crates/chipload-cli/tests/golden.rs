@@ -311,3 +311,184 @@ fn every_golden_arc_is_consistent_as_written() {
     }
     assert!(count > 50, "the corpus should exercise arcs, found {count}");
 }
+
+// -- inch G-code (docs/specs/inch-units.md §4.4)
+
+/// (golden name, project) rendered with the machine's G-code in inches: the three posts,
+/// arcs and helices, tabs, holes, and both ways of changing tools.
+const INCH: [(&str, &str); 6] = [
+    ("v7_helix", "jobs/v7/helix.chipload"),
+    ("v15_linuxcnc_helix", "jobs/v15/linuxcnc_helix.chipload"),
+    ("v15_mach3_helix", "jobs/v15/mach3_helix.chipload"),
+    ("v18_holes", "jobs/v18/holes.chipload"),
+    ("v11_two_tools", "jobs/v11/two_tools.chipload"),
+    (
+        "v12_two_tools_program",
+        "jobs/v12/two_tools_program.chipload",
+    ),
+];
+
+/// The project's G-code in `units`, as run_job writes it (checked by the independent
+/// checker against the machine's units): (file name, G-code) as `run` names them.
+fn render_in(project: &Path, name: &str, units: chipload_job::Units) -> Vec<(String, String)> {
+    let mut job = chipload_job::load_job(project).unwrap();
+    job.machine.gcode_units = units;
+    let drawing = chipload_pipeline::load_drawing(&job).unwrap();
+    let plan = chipload_toolpath::plan_job(&job, &drawing.contours).unwrap();
+    let post = chipload_pipeline::posts::job_post(&job).unwrap();
+    let (files, _) =
+        chipload_pipeline::post_and_check(&job, &post, &plan.program, &plan.groups).unwrap();
+    files
+        .into_iter()
+        .map(|f| {
+            let file = format!("{name}{}.nc", f.suffix.unwrap_or_default());
+            (file, f.gcode)
+        })
+        .collect()
+}
+
+#[test]
+fn inch_golden_gcode() {
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let mut mismatches = Vec::new();
+    for (name, project) in INCH {
+        let files = render_in(&corpus(project), name, chipload_job::Units::Inch);
+        for (file, text) in &files {
+            assert!(text.contains("G20 G90"), "{file}: no G20");
+            assert!(!text.contains("G21"), "{file}: G21 in an inch program");
+            let expected = corpus(&format!("expected/inch/{file}"));
+            if update {
+                std::fs::write(&expected, text).unwrap();
+            } else if std::fs::read_to_string(&expected).ok().as_ref() != Some(text) {
+                mismatches.push(file.clone());
+            }
+        }
+    }
+    assert!(
+        mismatches.is_empty(),
+        "inch G-code differs for {mismatches:?}; if intended, regenerate with \
+         CHIPLOAD_UPDATE_GOLDEN=1 and explain the change in the commit message"
+    );
+}
+
+/// A line's words: its letter and number, as written.
+fn words(line: &str) -> Vec<(char, f64)> {
+    line.split_whitespace()
+        .filter_map(|w| {
+            let mut chars = w.chars();
+            let letter = chars.next()?;
+            Some((letter, chars.as_str().parse::<f64>().ok()?))
+        })
+        .collect()
+}
+
+/// One motion as a controller sees it: its G code, where it ends, its feed, and for an arc
+/// its centre (all in mm).
+#[derive(Debug, Clone, Copy)]
+struct Motion {
+    code: i64,
+    end: [f64; 3],
+    feed: f64,
+    centre: Option<(f64, f64)>,
+}
+
+/// The program's motions, every length times `scale` (25.4 for inches); its other lines
+/// (codes without motion) as text, comments left out.
+fn motions(gcode: &str, scale: f64) -> (Vec<Motion>, Vec<String>) {
+    let mut at = [f64::NAN; 3];
+    let (mut code, mut feed) = (0, 0.0);
+    let (mut moves, mut other) = (Vec::new(), Vec::new());
+    for line in gcode.lines().filter(|l| !l.starts_with('(')) {
+        let ws = words(line);
+        let moving = ws.iter().any(|(l, _)| "XYZ".contains(*l));
+        if !moving {
+            other.push(line.replace("G20", "G21"));
+            continue;
+        }
+        let start = at;
+        let (mut i, mut j) = (None, None);
+        for (letter, value) in ws {
+            match letter {
+                'G' => code = value as i64,
+                'X' => at[0] = value * scale,
+                'Y' => at[1] = value * scale,
+                'Z' => at[2] = value * scale,
+                'F' => feed = value * scale,
+                'I' => i = Some(value * scale),
+                'J' => j = Some(value * scale),
+                _ => {}
+            }
+        }
+        let centre = i.zip(j).map(|(i, j)| (start[0] + i, start[1] + j));
+        moves.push(Motion {
+            code,
+            end: at,
+            feed: if code == 0 { 0.0 } else { feed },
+            centre,
+        });
+    }
+    (moves, other)
+}
+
+#[test]
+fn every_golden_project_moves_the_same_in_inches() {
+    // The inch program is the mm program: the same codes, and every motion ends where the mm
+    // one does, at the same feed, within both roundings (half a step of each; an arc's
+    // centre is measured from its start as rounded and may take a neighbouring step to keep
+    // its radii equal, so two steps of each). A move shorter than an inch step can vanish
+    // in inches, where its end rounds to its start.
+    let inch_step = 0.0001 * chipload_core::MM_PER_INCH;
+    let mm_step = 0.001;
+    let tolerance = (inch_step + mm_step) / 2.0 + 1e-9;
+    let centre_tolerance = 2.0 * (inch_step + mm_step) + 1e-9;
+    for (name, project) in GOLDEN {
+        let project = corpus(project);
+        let mm = render_in(&project, name, chipload_job::Units::Mm);
+        let inch = render_in(&project, name, chipload_job::Units::Inch);
+        assert_eq!(mm.len(), inch.len(), "{name}: number of files");
+        for ((file, mm), (_, inch)) in mm.iter().zip(&inch) {
+            let (a, other_a) = motions(mm, 1.0);
+            let (b, other_b) = motions(inch, chipload_core::MM_PER_INCH);
+            assert_eq!(other_a, other_b, "{file}: lines without motion");
+            let close = |p: [f64; 3], q: [f64; 3], tol: f64| {
+                p.iter()
+                    .zip(&q)
+                    .all(|(u, v)| (u.is_nan() && v.is_nan()) || (u - v).abs() <= tol)
+            };
+            let (mut i, mut j, mut skipped) = (0, 0, 0);
+            while i < a.len() && j < b.len() {
+                let (m, n) = (a[i], b[j]);
+                let same = m.code == n.code
+                    && close(m.end, n.end, tolerance)
+                    && (m.feed - n.feed).abs() <= tolerance
+                    && match (m.centre, n.centre) {
+                        (Some(c), Some(d)) => {
+                            (c.0 - d.0).abs() <= centre_tolerance
+                                && (c.1 - d.1).abs() <= centre_tolerance
+                        }
+                        (None, None) => true,
+                        _ => false,
+                    };
+                if same {
+                    (i, j) = (i + 1, j + 1);
+                    continue;
+                }
+                // Only a move too short to show in inches may be missing.
+                let previous = if i > 0 { a[i - 1].end } else { [f64::NAN; 3] };
+                assert!(
+                    close(m.end, previous, inch_step),
+                    "{file}: motion {} {m:?} vs {n:?}",
+                    i + 1
+                );
+                i += 1;
+                skipped += 1;
+            }
+            assert_eq!(
+                (a.len() - i, b.len() - j),
+                (0, 0),
+                "{file}: motions left over"
+            );
+            assert!(skipped <= 10, "{file}: {skipped} moves vanished in inches");
+        }
+    }
+}

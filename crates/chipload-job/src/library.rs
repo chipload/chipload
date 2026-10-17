@@ -14,7 +14,8 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::models::{
-    Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, WorkZero, max_overcut_problems,
+    Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, Units, WorkZero,
+    max_overcut_problems,
 };
 
 pub const TOOLS_FILE: &str = "tools.json";
@@ -23,8 +24,9 @@ pub const MACHINES_FILE: &str = "machines.json";
 /// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9), version
 /// 3 each tool's `uid` (docs/specs/library-in-browser.md §2).
 pub const TOOLS_VERSION: i64 = 3;
-/// Current `schema_version` of `machines.json`. Version 3 added each profile's `uid`.
-pub const MACHINES_VERSION: i64 = 3;
+/// Current `schema_version` of `machines.json`. Version 3 added each profile's `uid`,
+/// version 4 its `gcode_units` (docs/specs/inch-units.md §4.1).
+pub const MACHINES_VERSION: i64 = 4;
 /// App settings: the recent projects (docs/specs/open-recent.md).
 pub const SETTINGS_FILE: &str = "settings.json";
 /// Current `schema_version` of `settings.json`. Version 2 added `theme`, version 3
@@ -323,6 +325,8 @@ pub struct MachineProfile {
     pub uid: String,
     /// The post-processor: `grbl`, `linuxcnc`, `mach3`, or the name of your own.
     pub post: String,
+    /// The units its G-code is written in: `mm` (G21) or `inch` (G20).
+    pub gcode_units: Units,
     /// The height for rapid moves sideways, mm above Z0. Above the stock top.
     pub safe_z: f64,
     /// The spindle's direction: `cw` (M3) or `ccw` (M4).
@@ -354,6 +358,7 @@ impl MachineProfile {
             name: name.to_string(),
             uid: uid.to_string(),
             post: m.post.clone(),
+            gcode_units: m.gcode_units,
             safe_z: m.safe_z,
             spindle: m.spindle,
             max_feed: m.max_feed,
@@ -370,6 +375,7 @@ impl MachineProfile {
             name: Some(self.name.clone()),
             library_uid: Some(self.uid.clone()),
             post: self.post.clone(),
+            gcode_units: self.gcode_units,
             safe_z: self.safe_z,
             spindle: self.spindle,
             max_feed: self.max_feed,
@@ -409,6 +415,11 @@ impl MachineProfile {
             }
         };
         differs("post", old.post.clone(), self.post.clone());
+        differs(
+            "G-code units",
+            old.gcode_units.name().into(),
+            self.gcode_units.name().into(),
+        );
         differs(
             "tool changes",
             old.tool_change.name().into(),
@@ -1000,6 +1011,16 @@ pub fn machines_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
     add_uids(data, "machines");
 }
 
+/// Machines 3 -> 4: each profile says its G-code units; every older one wrote mm (G21).
+pub fn machines_v3_to_v4(data: &mut serde_json::Map<String, Value>) {
+    if let Some(Value::Array(machines)) = data.get_mut("machines") {
+        for machine in machines.iter_mut().filter_map(Value::as_object_mut) {
+            machine.insert("gcode_units".into(), Value::from("mm"));
+        }
+    }
+    data.insert("schema_version".into(), Value::from(4));
+}
+
 impl LibraryFile for MachineLibrary {
     const VERSION: i64 = MACHINES_VERSION;
     const OLDEST: i64 = 1;
@@ -1014,6 +1035,7 @@ impl LibraryFile for MachineLibrary {
         match from {
             1 => machines_v1_to_v2(data),
             2 => machines_v2_to_v3(data),
+            3 => machines_v3_to_v4(data),
             _ => {}
         }
     }

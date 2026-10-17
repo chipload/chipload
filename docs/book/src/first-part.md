@@ -83,7 +83,7 @@ it if it finds, among other things:
 - a move beyond the machine's travel, when the travel is set;
 - an arc whose ends don't lie on its circle;
 - a cutting move with no feed, or with the spindle off;
-- inch or relative coordinates;
+- other units than the machine's, or relative coordinates;
 - a tool change with the spindle running or below the safe height.
 
 The checker is separate code that shares nothing with the part of Chipload that makes the

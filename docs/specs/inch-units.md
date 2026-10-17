@@ -1,6 +1,7 @@
 # Spec: inches (G-code and display)
 
-Status: **draft for review** (2026-10-17).
+Status: approved 2026-10-17 with the recommended decisions. Step 1 (§4, G-code units)
+built the same day; steps 2 and 3 to come.
 
 ## 1. Why
 

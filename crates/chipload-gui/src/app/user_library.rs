@@ -961,6 +961,7 @@ impl ChiploadApp {
                         name,
                         uid: uid.clone(),
                         post: "grbl".into(),
+                        gcode_units: chipload_job::Units::Mm,
                         safe_z: DEFAULT_SAFE_Z,
                         spindle: Spindle::Cw,
                         max_feed: None,

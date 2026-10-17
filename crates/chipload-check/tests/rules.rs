@@ -17,6 +17,7 @@ fn limits() -> CheckLimits {
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
         travel: Some((800.0, 600.0, 100.0)),
+        units: chipload_job::Units::Mm,
     }
 }
 
@@ -468,5 +469,107 @@ fn a_new_tool_forgets_the_hole() {
     assert!(
         found.iter().any(|e| e.contains("rapid into material")),
         "{found:?}"
+    );
+}
+
+// -- inches (docs/specs/inch-units.md §4.3)
+
+fn inch_limits() -> CheckLimits {
+    CheckLimits {
+        units: chipload_job::Units::Inch,
+        ..limits()
+    }
+}
+
+/// `good()` written in inches, rounded to 4 decimals as the posts write it.
+fn good_in_inches() -> String {
+    let inch = |mm: f64| format!("{:.4}", mm / 25.4);
+    format!(
+        "G20 G90 G17 G94\nG0 Z{z}\nM3 S18000\nG4 P3\nG0 X{a} Y{a}\nG1 Z{d} F{f}\nG1 X{b} F{g}\n\
+         G1 Y{b}\nG1 X{a}\nG1 Y{a}\nG0 Z{z}\nM5\nM30\n",
+        z = inch(5.0),
+        a = inch(10.0),
+        b = inch(50.0),
+        d = inch(-6.0),
+        f = inch(600.0),
+        g = inch(1800.0),
+    )
+}
+
+#[test]
+fn an_inch_program_is_checked_in_mm() {
+    let report = check_gcode(&good_in_inches(), &inch_limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    // Its depths are seen in mm: 0.5" (12.7 mm) into 18 mm stock is fine, into 10 mm
+    // stock it is not.
+    let thin = CheckLimits {
+        stock_bottom_z: -10.0,
+        ..inch_limits()
+    };
+    let deep = good_in_inches().replace("Z-0.2362", "Z-0.5000");
+    assert!(check_gcode(&deep, &inch_limits()).ok());
+    let report = check_gcode(&deep, &thin);
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.message.contains("below the stock bottom")),
+        "{:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn an_inch_program_rounded_just_below_safe_height_passes() {
+    // 4 decimals: 5.0 mm safe height could come out up to 0.00127 mm low.
+    let limits = CheckLimits {
+        safe_z: 5.001,
+        ..inch_limits()
+    };
+    let program = good_in_inches();
+    assert!(program.contains("Z0.1969"));
+    let report = check_gcode(&program.replace("G0 X", "G0 Z0.1969\nG0 X"), &limits);
+    assert!(report.ok(), "{:?}", report.errors);
+}
+
+#[test]
+fn units_that_differ_from_the_machine_or_change_are_errors() {
+    // An inch machine given a mm program, and the other way round.
+    let report = check_gcode(&good(), &inch_limits());
+    assert!(
+        report.errors.iter().any(|e| e
+            .message
+            .contains("G21 (mm) but the machine's G-code units are inch")),
+        "{:?}",
+        report.errors
+    );
+    let report = check_gcode(&good_in_inches(), &limits());
+    assert!(
+        report.errors.iter().any(|e| e
+            .message
+            .contains("G20 (inch) but the machine's G-code units are mm")),
+        "{:?}",
+        report.errors
+    );
+    // A change of units part way.
+    let changed = good_in_inches().replace("G1 Y", "G21\nG1 Y");
+    let report = check_gcode(&changed, &inch_limits());
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.message.contains("changes the units to mm")),
+        "{:?}",
+        report.errors
+    );
+    // Motion before either.
+    let report = check_gcode("G90\nG0 Z5\nM30\n", &inch_limits());
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.message.contains("Motion before G21 (mm) or G20 (inch)")),
+        "{:?}",
+        report.errors
     );
 }

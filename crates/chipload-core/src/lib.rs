@@ -12,5 +12,9 @@ pub mod primitives;
 pub mod text;
 pub mod tolerances;
 
+/// Millimetres in an inch, exactly. Only for converting at the edges (DXF import, inch
+/// G-code, inch display).
+pub const MM_PER_INCH: f64 = 25.4;
+
 /// A 2D point in millimetres.
 pub type Point = (f64, f64);
