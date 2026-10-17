@@ -7,7 +7,7 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-core = { version = "0.20.0", path = "../chipload-core" }
+chipload-core = { version = "0.21.0", path = "../chipload-core" }
 serde = { version = "1.0.229", features = ["derive"] }
 # float_roundtrip: parse every f64 exactly as written. The default parser can be off in the
 # last bit, and a project must reload exactly the geometry it saved.
