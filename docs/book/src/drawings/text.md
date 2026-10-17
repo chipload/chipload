@@ -4,8 +4,7 @@ Write a name, a label or a sign straight into the project: Chipload turns the le
 shapes that you [V-carve](../operations/vcarve.md), [pocket](../operations/pocket.md) or cut
 out with a [profile](../operations/profile.md). (Design: `docs/specs/text.md`.)
 
-![A plaque with CHIPLOAD V-carved, in 3D with its simulated stock, and the text's properties
-on the right](../images/showcase.png)
+![A text on the canvas, selected with its handles, and its properties on the right](../images/text.png)
 
 ## Writing a text
 

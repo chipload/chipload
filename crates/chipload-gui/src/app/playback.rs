@@ -322,6 +322,10 @@ impl ChiploadApp {
         if steps.contains(&"notoolpath") {
             self.show_toolpath = false;
         }
+        // The pictures under traced shapes left out, so the cut shows (the README's picture).
+        if steps.contains(&"noimages") {
+            self.show_images = false;
+        }
         let dxfs: Vec<u64> = self
             .edit
             .as_ref()

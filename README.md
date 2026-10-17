@@ -5,8 +5,9 @@ for Linux, Windows and macOS, written in Rust.
 
 **[User guide](https://chipload.github.io/chipload/)** · **[Download](https://github.com/chipload/chipload/releases)**
 
-![Chipload: a plaque with a pocket round an island, bored holes, CHIPLOAD V-carved in a
-built-in font and an outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
+![Chipload: a plaque with a pocket round an island, bored holes, the Chipload logo V-carved
+from a traced picture and an outline held by tabs, its toolpaths over the simulated stock in
+3D](docs/book/src/images/showcase.png)
 
 > **Testers with real machines wanted.** Chipload's programs pass its own checker and many
 > tests, but they have **not yet been run on a real controller**: not on GRBL, LinuxCNC or
