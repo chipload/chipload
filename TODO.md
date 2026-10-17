@@ -38,23 +38,20 @@ it's built (see `CLAUDE.md`).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-1. **Confirm the Windows CI fix** (run 39045771213 failed 2026-10-17: every command-line
-   test on Windows exited with STATUS_STACK_OVERFLOW; the CLI now runs on an 8 MB stack).
-   Check the next CI run on Windows.
-2. **Pocketing spiked outlines** (found 2026-10-17, ADR 0021): Smokum's "n" (an outline
+1. **Pocketing spiked outlines** (found 2026-10-17, ADR 0021): Smokum's "n" (an outline
    that turns back by more than 150°) pockets with a 2 mm tool but not with 1 mm or less:
    "tool does not fit" or "offsets are not nested". Add it to the corpus with a failing
    test, then fix the offset. Also V-carving lines of FreeSerif Bold or Permanent Marker
    set so close that strokes cross at shallow angles fails its verification.
-3. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
+2. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
    4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-4. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
    (docs/specs/presets.md, decisions not reviewed).
-5. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
    compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
    download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
    without installing, the user said wait. Its decisions are proposals to review then.
-6. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
 
