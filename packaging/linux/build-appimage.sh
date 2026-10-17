@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Build Chipload-<version>-<arch>.AppImage from target/release/chipload-gui, for the machine's
+# Build chipload-gui-<version>-linux-<arch>.AppImage from target/release/chipload-gui, for the machine's
 # architecture: x86_64 or aarch64 (ARM64, e.g. a Raspberry Pi 4 or 5).
 #
 # Usage: packaging/linux/build-appimage.sh <version> [output dir]
@@ -78,7 +78,7 @@ if [ -z "${APPIMAGETOOL:-}" ]; then
 fi
 
 mkdir -p "$OUT"
-TARGET="$OUT/Chipload-$VERSION-$ARCH.AppImage"
+TARGET="$OUT/chipload-gui-$VERSION-linux-$ARCH.AppImage"
 # Extract-and-run: CI machines and containers often have no FUSE.
 ARCH=$ARCH APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" --no-appstream "$APPDIR" "$TARGET"
 echo "Built $TARGET"

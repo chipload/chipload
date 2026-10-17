@@ -2,11 +2,11 @@
 # DRAFT GitHub Release with them. Review the draft, then publish it by hand. Run it by hand
 # (Actions > Release > Run workflow) to build every file without making a release.
 #
-#   Linux:   Chipload-X.Y.Z-x86_64.AppImage, Chipload-X.Y.Z-aarch64.AppImage (GUI),
+#   Linux:   chipload-gui-X.Y.Z-linux-x86_64.AppImage, chipload-gui-X.Y.Z-linux-aarch64.AppImage (GUI),
 #            chipload-X.Y.Z-linux-x86_64.tar.gz, chipload-X.Y.Z-linux-aarch64.tar.gz (CLI)
 #   Windows: chipload-gui-X.Y.Z-windows-x86_64.exe, chipload-gui-X.Y.Z-windows-aarch64.exe (GUI),
 #            chipload-X.Y.Z-windows-x86_64.exe, chipload-X.Y.Z-windows-aarch64.exe (CLI)
-#   macOS:   Chipload-X.Y.Z-macos-universal.dmg (GUI), chipload-X.Y.Z-macos-universal.tar.gz (CLI)
+#   macOS:   chipload-gui-X.Y.Z-macos-universal.dmg (GUI), chipload-X.Y.Z-macos-universal.tar.gz (CLI)
 #   chipload-guide-X.Y.Z.zip (the user guide), SHA256SUMS.txt
 name: Release
 
@@ -70,7 +70,7 @@ jobs:
       - name: AppImage
         run: REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist
       - name: The AppImage is for this machine
-        run: test -f "dist/Chipload-$VERSION-${{ matrix.arch }}.AppImage"
+        run: test -f "dist/chipload-gui-$VERSION-linux-${{ matrix.arch }}.AppImage"
       - name: CLI archive
         run: |
           stage="chipload-$VERSION-linux-${{ matrix.arch }}"
@@ -196,13 +196,13 @@ jobs:
           cat > notes.md <<NOTES
           Chipload $VERSION.
 
-          - **Linux:** \`Chipload-$VERSION-x86_64.AppImage\`, or \`Chipload-$VERSION-aarch64.AppImage\`
+          - **Linux:** \`chipload-gui-$VERSION-linux-x86_64.AppImage\`, or \`chipload-gui-$VERSION-linux-aarch64.AppImage\`
             for ARM64 (Raspberry Pi 4 and 5 with a 64-bit OS): make it executable and run it
             (\`chmod +x\`). Without FUSE: \`--appimage-extract-and-run\`.
           - **Windows:** \`chipload-gui-$VERSION-windows-x86_64.exe\`, or \`…-windows-aarch64.exe\` for
             ARM laptops: a single file, no installer. It is not code-signed yet, so Windows
             SmartScreen may ask before the first start.
-          - **macOS:** \`Chipload-$VERSION-macos-universal.dmg\` (Apple silicon and Intel, macOS 11+): drag
+          - **macOS:** \`chipload-gui-$VERSION-macos-universal.dmg\` (Apple silicon and Intel, macOS 11+): drag
             Chipload to Applications. It is not notarised yet: the first start is refused; open it
             from System Settings > Privacy & Security > *Open Anyway*.
           - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-linux-aarch64.tar.gz\`,

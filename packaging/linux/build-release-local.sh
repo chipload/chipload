@@ -8,7 +8,7 @@
 #   e.g. packaging/linux/build-release-local.sh 0.13.0 /tmp/release
 # Needs podman (or CONTAINER=docker) and the tag v<version>. Writes the AppImage, the CLI
 # archive, SHA256SUMS.txt and tests.log to the output dir. Then, to make the draft:
-#   gh release create v<version> <out>/Chipload-*.AppImage <out>/chipload-*.tar.gz \
+#   gh release create v<version> <out>/chipload-gui-*.AppImage <out>/chipload-*.tar.gz \
 #     <out>/SHA256SUMS.txt --draft --verify-tag --title "Chipload <version>" --notes-file notes.md
 set -eu
 

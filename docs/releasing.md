@@ -47,13 +47,13 @@ publish it.
 
 | File | What |
 |---|---|
-| `Chipload-X.Y.Z-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
-| `Chipload-X.Y.Z-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
+| `chipload-gui-X.Y.Z-linux-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
+| `chipload-gui-X.Y.Z-linux-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
 | `chipload-gui-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
 | `chipload-gui-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
 | `chipload-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
 | `chipload-X.Y.Z-windows-x86_64.exe`, `…-windows-aarch64.exe` | Windows command line |
-| `Chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
+| `chipload-gui-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
 | `chipload-X.Y.Z-macos-universal.tar.gz` | macOS command line, with LICENSE and the third-party notices |
 | `SHA256SUMS.txt` | checksums of the above |
 | `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`) |
@@ -77,7 +77,7 @@ Ubuntu 22.04 container, with the same steps and the same glibc:
 
     packaging/linux/build-release-local.sh 0.13.0 dist/local
 
-Then create the draft with `gh release create v0.13.0 dist/local/Chipload-*.AppImage
+Then create the draft with `gh release create v0.13.0 dist/local/chipload-gui-*.AppImage
 dist/local/chipload-*.tar.gz dist/local/SHA256SUMS.txt --draft --verify-tag --title
 "Chipload 0.13.0" --notes-file notes.md` (the `gh` token needs Contents read/write).
 

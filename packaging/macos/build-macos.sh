@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Build the macOS release files from the two per-architecture release builds:
-#   Chipload-<version>-macos-universal.dmg        the GUI as Chipload.app (Apple silicon + Intel)
+#   chipload-gui-<version>-macos-universal.dmg       the GUI as Chipload.app (Apple silicon + Intel)
 #   chipload-<version>-macos-universal.tar.gz     the command line, LICENSE, notices
 #
 # Usage: packaging/macos/build-macos.sh <version> [output dir]
@@ -81,7 +81,7 @@ mkdir -p "$OUT"
 
 # The disk image: the app and a link to Applications to drag it onto.
 ln -s /Applications "$WORK/dmg/Applications"
-DMG="$OUT/Chipload-$VERSION-macos-universal.dmg"
+DMG="$OUT/chipload-gui-$VERSION-macos-universal.dmg"
 rm -f "$DMG"
 hdiutil create -volname "Chipload $VERSION" -srcfolder "$WORK/dmg" -fs HFS+ -format UDZO \
     -ov "$DMG"

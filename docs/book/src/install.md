@@ -10,15 +10,15 @@ files below, the user guide to read offline, and `SHA256SUMS.txt` to check them.
 
 ## Linux
 
-Download `Chipload-X.Y.Z-x86_64.AppImage`, make it executable and run it:
+Download `chipload-gui-X.Y.Z-linux-x86_64.AppImage`, make it executable and run it:
 
 ```sh
-chmod +x Chipload-*.AppImage
-./Chipload-*.AppImage            # the app; add a .chipload or .dxf file to open it
+chmod +x chipload-gui-*.AppImage
+./chipload-gui-*.AppImage            # the app; add a .chipload or .dxf file to open it
 ```
 
 - **ARM64** (Raspberry Pi 4 or 5 with a 64-bit OS, ARM boards and laptops): take
-  `Chipload-X.Y.Z-aarch64.AppImage` instead. The app needs OpenGL 3, which a Pi 4 or 5 has
+  `chipload-gui-X.Y.Z-linux-aarch64.AppImage` instead. The app needs OpenGL 3, which a Pi 4 or 5 has
   with its standard graphics driver. Not yet tried on a Pi: reports welcome.
 - **Requirements:** glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 or newer,
   Raspberry Pi OS 12 "Bookworm").
@@ -40,7 +40,7 @@ info > Run anyway*.
 ## macOS
 
 No release has macOS files yet. Until one does, build Chipload from the source (below).
-Once there: download `Chipload-X.Y.Z-macos-universal.dmg`, open it and drag *Chipload* onto
+Once there: download `chipload-gui-X.Y.Z-macos-universal.dmg`, open it and drag *Chipload* onto
 *Applications*. It runs on Apple silicon and Intel Macs with macOS 11 or newer.
 
 The app isn't notarised by Apple, so macOS refuses it the first time. Open *System Settings
