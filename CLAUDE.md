@@ -167,6 +167,8 @@ Run the relevant tests after every change. Do not report a task done until they 
 - **Verify APIs against the version in `Cargo.lock`** (read the source in `~/.cargo/registry/src/`), don't rely on memory. This matters for `dxf`, `cavalier_contours`, `minijinja` and egui/eframe, whose APIs change between versions.
 - If something is ambiguous (units, offset side, climb vs conventional, machine behaviour), **stop and ask** instead of choosing silently.
 - Do not add dependencies without stating the license and why it's needed. Every dependency must be compatible with **GPL-3.0-or-later**. Allowed: MIT, BSD-2/3-Clause, ISC, Zlib, Apache-2.0, MPL-2.0, LGPL-2.1-or-later/3.0, GPL-2.0-or-later, GPL-3.0(-or-later), Unicode-3.0, BSL-1.0 (approved 2026-10-09). **Forbidden:** GPL-2.0-only (incompatible), proprietary, unknown or no license. **Needs explicit approval:** AGPL-3.0 (adds network obligations) and anything not listed. `deny.toml` encodes this list.
+- Keep `docs/architecture.md` (the overview for contributors) right when a crate, a layer,
+  a dependency between crates or the steps of `run_job` change.
 - Keep `docs/decisions/` updated with a short ADR for any significant architectural or library decision.
 - **The user guide** (`docs/book/`, mdBook, docs/specs/user-guide.md) is kept up to date in the
   same commit as the feature: a commit that adds or changes anything a user sees or uses

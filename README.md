@@ -78,7 +78,8 @@ chipload check part.nc --job part.chipload       # the checker on any G-code
 ```
 
 Everything else is in the [user guide](https://chipload.github.io/chipload/).
-Contributors: `CONTRIBUTING.md`, and `CLAUDE.md` for the architecture rules.
+Contributors: `CONTRIBUTING.md`, `docs/architecture.md` for an overview, and `CLAUDE.md` for
+the rules.
 
 ## License
 

@@ -38,6 +38,7 @@ comes from, ask in the pull request before writing it. The full rule is in `CLAU
 
 ## Before you open a pull request
 
+- Read `docs/architecture.md` for how the crates fit together.
 - Read `CLAUDE.md`: architecture rules, conventions and safety rules apply to everyone.
 - New toolpath operations or non-trivial algorithms start with a spec in `docs/specs/`.
 - Run the checks:
