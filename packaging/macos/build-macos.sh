@@ -39,7 +39,10 @@ lipo -create "$ARM/chipload" "$INTEL/chipload" -output "$WORK/chipload"
 
 # Only the system's own libraries: the app must run on a Mac without Homebrew.
 for binary in "$WORK/chipload-gui" "$WORK/chipload"; do
-    foreign=$(otool -L "$binary" | tail -n +2 | awk '{ print $1 }' \
+    # A universal binary lists its libraries once per architecture, each under a header
+    # line naming the file ("…/chipload-gui (architecture arm64):"); the libraries are the
+    # indented lines.
+    foreign=$(otool -L "$binary" | awk '/^[[:space:]]/ { print $1 }' \
         | grep -v -e '^/usr/lib/' -e '^/System/Library/' || true)
     if [ -n "$foreign" ]; then
         echo "error: $(basename "$binary") links libraries outside the system:" >&2
