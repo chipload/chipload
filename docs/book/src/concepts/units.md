@@ -39,6 +39,13 @@ With inch:
 
 In mm, fields also take a length in inches: type `1/4in` or `0.25"`.
 
+**On the command line** a plain number is mm, as always, so scripts don't change. A length
+can carry its unit: `--height 0.5in`, `--diameter 1/4in`, `--at 1in,2in`, `--width 1 1/2in`
+(quoted), `--travel 30in,30in,4in`; feeds `--max-feed 200in/min`. `chipload run
+--sheet-units inch` and `chipload sheet --units inch` write the setup sheet in inches.
+`--json`, `get`, `set`, the [project file](../reference/project-file.md) and the
+[MCP tools](../assistants.md) are always in mm.
+
 Messages and notes in the report keep mm, and always say so ("cuts 0.300 mm below the
 stock"). The G-code's units are a separate setting of the machine (above): you can show
 inches and send mm G-code, or the other way round.

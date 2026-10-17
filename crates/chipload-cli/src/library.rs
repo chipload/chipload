@@ -96,7 +96,7 @@ pub enum ToolAction {
 pub struct ToolValues {
     #[arg(long = "type")]
     kind: Option<TypeArg>,
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     diameter: Option<f64>,
     #[arg(long)]
     flutes: Option<i64>,
@@ -108,17 +108,17 @@ pub struct ToolValues {
     #[arg(long)]
     angle: Option<f64>,
     /// V-bits: the diameter of the flat tip, mm (0: pointed).
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     tip: Option<f64>,
     /// The id it gets in a project where that id is free (default 1).
     #[arg(long)]
     id: Option<i64>,
     /// Cutting values for new operations: give all four the first time.
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::feed, long)]
     feed: Option<f64>,
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::feed, long)]
     plunge_feed: Option<f64>,
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     step_down: Option<f64>,
     /// Fraction of the tool diameter (pockets).
     #[arg(long)]
@@ -209,11 +209,11 @@ pub struct MachineValues {
     /// Built-in post-processor.
     #[arg(long)]
     post: Option<String>,
-    #[arg(long, allow_hyphen_values = true)]
+    #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
     safe_z: Option<f64>,
     #[arg(long)]
     spindle: Option<SpindleArg>,
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::feed, long)]
     max_feed: Option<f64>,
     /// Travel "X,Y,Z".
     #[arg(long)]
@@ -223,7 +223,7 @@ pub struct MachineValues {
     #[arg(long, allow_hyphen_values = true)]
     work_zero: Option<String>,
     /// How far below the stock a cut may go (into the spoilboard).
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     max_overcut: Option<f64>,
     /// With several tools: one G-code file per tool, or one file with M6 tool changes
     /// that your sender handles.
@@ -838,10 +838,15 @@ fn set_machine_values(
 }
 
 fn travel_arg(text: &str) -> Result<Travel, String> {
-    let numbers: Option<Vec<f64>> = text.split(',').map(|n| n.trim().parse().ok()).collect();
+    let numbers: Option<Vec<f64>> = text
+        .split(',')
+        .map(|n| crate::lengths::length(n).ok())
+        .collect();
     match numbers.as_deref() {
         Some(&[x, y, z]) => Ok(Travel { x, y, z }),
-        _ => Err(format!("expected travel as X,Y,Z, got {text:?}")),
+        _ => Err(format!(
+            "expected travel as X,Y,Z (mm, or with a unit), got {text:?}"
+        )),
     }
 }
 

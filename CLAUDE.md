@@ -105,6 +105,8 @@ cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version
 cargo run -p chipload-cli -- dxf add part.chipload lid.dxf --name lid   # another DXF in the project (also dxf list/remove; place --dxf ID)
 cargo run -p chipload-cli -- image add part.chipload logo.png --width 120   # trace a picture into shapes on layer "logo" (also image set/list/preview/remove; --trace centre-line, --arcs false)
 cargo run -p chipload-cli -- text add part.chipload "MAKER\nSPACE" --height 20 --at 40,30   # text in a built-in font (also text set/list/remove/fonts, place --text)
+cargo run -p chipload-cli -- set part.chipload machine.gcode_units=inch   # G-code in inches (G20); the project stays mm (docs/specs/inch-units.md)
+cargo run -p chipload-cli -- text add part.chipload "SIGN" --height 1/2in --at 1in,2in   # any length option takes a unit; a plain number is mm
 cargo run -p chipload-cli -- check out.nc --job part.chipload      # the independent checker
 cargo run -p chipload-cli -- get part.chipload operations.0.end_depth   # any value by path (0-based, as problem paths)
 cargo run -p chipload-cli -- set part.chipload operations.0.end_depth=6.5  # checked, then written; `run/plan --set PATH=VALUE` for one run

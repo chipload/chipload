@@ -1,13 +1,20 @@
 # Spec: inches (G-code and display)
 
 Status: approved 2026-10-17 with the recommended decisions. Step 1 (§4, G-code units)
-and step 2 (§5.1, §5.2, display units in the app) built the same day; step 3 to come.
+step 2 (§5.1, §5.2, display units in the app) and step 3 (§5.3, the command line) built
+the same day.
 
 **As built, step 2:** every field, section summary, the canvas (cursor, grid, snapping,
 measure, drawing and drag hints), the playback line, the chip load and the setup sheet
 follow the display units. Report messages, planning notes and problem messages keep mm
 with the unit written ("cuts 0.300 mm below the stock"): about 110 texts in the library
 crates, left for a later step. In mm, a field also takes a length typed with `in` or `"`.
+
+**As built, step 3:** length options take a unit (`0.25in`, `1/4in`, `6mm`) and feed
+options `in/min`; X,Y pairs and the travel too. Since the command line's messages are those
+same report texts, `--units inch` (§5.3) went only where the output is the sheet: `chipload
+sheet --units inch` and `chipload run --sheet-units inch` (not `--units` on `run`, which
+reads as the G-code's units). The MCP tools keep numbers in mm.
 
 ## 1. Why
 

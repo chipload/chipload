@@ -7,6 +7,7 @@
 
 mod dxfs;
 mod images;
+mod lengths;
 mod library;
 mod parts;
 
@@ -140,6 +141,10 @@ enum Command {
         /// Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`).
         #[arg(long)]
         no_sheet: bool,
+        /// The setup sheet's lengths and feeds: mm (default) or inch. The G-code's units are
+        /// the machine's (machine.gcode_units).
+        #[arg(long, value_name = "UNITS")]
+        sheet_units: Option<UnitsArg>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -155,7 +160,7 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
         /// Cell size, mm (default: automatic, from the stock's size).
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         cell: Option<f64>,
         /// Print the numbers only.
         #[arg(long)]
@@ -187,6 +192,10 @@ enum Command {
         /// For this sheet only: one file per tool, or one file with M6 tool changes.
         #[arg(long)]
         tool_change: Option<library::ToolChangeArg>,
+        /// Its lengths and feeds: mm (default) or inch. The G-code's units are the
+        /// machine's (machine.gcode_units).
+        #[arg(long)]
+        units: Option<UnitsArg>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -274,7 +283,7 @@ enum Command {
         #[arg(long, allow_hyphen_values = true, conflicts_with = "gap")]
         pitch: Option<String>,
         /// Set the pitch so that this many mm are left between the cuts of neighbours.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         gap: Option<f64>,
         /// The cut order.
         #[arg(long)]
@@ -304,7 +313,7 @@ enum Command {
         #[arg(long)]
         align: Option<AlignArg>,
         /// With --align bottom-left: how far in from the stock's corner, mm.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         margin: Option<f64>,
         /// Turn it about its centre by this many degrees counter-clockwise (negative:
         /// clockwise), any angle, on top of any turn it has. Before --align when both are
@@ -316,10 +325,10 @@ enum Command {
         #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "width", "height"])]
         scale: Option<f64>,
         /// Scale it about its centre until it is this wide, mm (the height follows).
-        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "height"])]
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true, conflicts_with_all = ["by", "to", "height"])]
         width: Option<f64>,
         /// Scale it about its centre until it is this high, mm (the width follows).
-        #[arg(long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
         height: Option<f64>,
         /// Back to where the DXF has it: no turn, no scale, no move.
         #[arg(
@@ -544,10 +553,10 @@ enum ShapeAction {
         #[arg(required = true)]
         ids: Vec<u64>,
         /// How far to move the copies right, mm.
-        #[arg(long, allow_hyphen_values = true)]
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
         dx: f64,
         /// How far to move the copies up, mm.
-        #[arg(long, allow_hyphen_values = true)]
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
         dy: f64,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
@@ -589,20 +598,20 @@ struct ShapeValues {
     /// Centre "X,Y" (circle, rectangle).
     #[arg(long, allow_hyphen_values = true)]
     center: Option<String>,
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     radius: Option<f64>,
     /// Along the rectangle's own X axis.
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     length: Option<f64>,
     /// Along the rectangle's own Y axis.
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     width: Option<f64>,
     /// Rotation about the centre, degrees, counter-clockwise.
     #[arg(long, allow_hyphen_values = true)]
     angle_deg: Option<f64>,
     /// The radius of the rectangle's corners, at most half its shorter side (default 0:
     /// sharp).
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     corner_radius: Option<f64>,
     /// Polyline points "X,Y X,Y ...".
     #[arg(long, allow_hyphen_values = true)]
@@ -684,15 +693,28 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             output,
             tool_change,
             no_sheet,
+            sheet_units,
             sets,
-        } => run(out, &project, &output, tool_change, !no_sheet, &sets),
+        } => {
+            let sheet = (!no_sheet).then(|| units(sheet_units).unwrap_or(Units::Mm));
+            run(out, &project, &output, tool_change, sheet, &sets)
+        }
         Command::Sheet {
             project,
             output,
             gcode,
             tool_change,
+            units: sheet_units,
             sets,
-        } => sheet(out, &project, &output, gcode.as_deref(), tool_change, &sets),
+        } => sheet(
+            out,
+            &project,
+            &output,
+            gcode.as_deref(),
+            tool_change,
+            units(sheet_units).unwrap_or(Units::Mm),
+            &sets,
+        ),
         Command::Simulate {
             project,
             output,
@@ -1369,11 +1391,9 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     }
 }
 
+/// "X,Y" in mm, each optionally with a unit (`1in,2in`).
 fn point_arg(text: &str) -> Result<[f64; 2], String> {
-    let parsed = text
-        .split_once(',')
-        .and_then(|(x, y)| Some([x.trim().parse::<f64>().ok()?, y.trim().parse::<f64>().ok()?]));
-    parsed.ok_or_else(|| format!("expected a point as X,Y, got {text:?}"))
+    lengths::point(text)
 }
 
 fn points_arg(text: &str) -> Result<Vec<[f64; 2]>, String> {
@@ -1582,15 +1602,16 @@ fn load_and_run(
     }
 }
 
-/// What the sheet says it was made from: the project's file name and this version.
-fn sheet_info(project: &Path) -> SheetInfo {
+/// What the sheet says it was made from: the project's file name and this version; its
+/// lengths in `units`.
+fn sheet_info(project: &Path, units: Units) -> SheetInfo {
     SheetInfo {
         project: project.file_name().map_or_else(
             || project.display().to_string(),
             |n| n.to_string_lossy().into_owned(),
         ),
         written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
-        units: chipload_job::Units::Mm,
+        units,
     }
 }
 
@@ -1600,6 +1621,7 @@ fn sheet(
     output: &Path,
     gcode: Option<&Path>,
     tool_change: Option<library::ToolChangeArg>,
+    units: Units,
     sets: &[String],
 ) -> ExitCode {
     let (job, result) = match load_and_run(out, project, tool_change, sets) {
@@ -1610,7 +1632,7 @@ fn sheet(
         || project.with_extension(result.post.file_extension.trim_start_matches('.')),
         Path::to_path_buf,
     );
-    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project));
+    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project, units));
     if let Err(err) = write_atomically(output, &html) {
         out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
@@ -1722,7 +1744,7 @@ fn run(
     project: &Path,
     output: &Path,
     tool_change: Option<library::ToolChangeArg>,
-    with_sheet: bool,
+    sheet: Option<Units>,
     sets: &[String],
 ) -> ExitCode {
     let (job, result) = match load_and_run(out, project, tool_change, sets) {
@@ -1780,8 +1802,8 @@ fn run(
             result.post.name
         ));
     }
-    if with_sheet {
-        match write_setup_sheet(&job, &result, output, &sheet_info(project)) {
+    if let Some(units) = sheet {
+        match write_setup_sheet(&job, &result, output, &sheet_info(project, units)) {
             Ok(path) => {
                 out.wrote(&path, " (setup sheet)");
                 let shown = std::path::absolute(&path).unwrap_or(path);

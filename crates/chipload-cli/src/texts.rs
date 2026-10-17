@@ -26,7 +26,7 @@ pub enum TextAction {
         /// What it says.
         text: String,
         /// The height of a capital letter, mm.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         height: f64,
         #[command(flatten)]
         settings: Settings,
@@ -44,7 +44,7 @@ pub enum TextAction {
         #[arg(long)]
         text: Option<String>,
         /// The height of a capital letter, mm.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         height: Option<f64>,
         #[command(flatten)]
         settings: Settings,
@@ -93,7 +93,7 @@ pub struct Settings {
     #[arg(long, value_enum)]
     align: Option<AlignArg>,
     /// Extra space between letters, mm (default 0: the font's own).
-    #[arg(long, allow_hyphen_values = true)]
+    #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
     spacing: Option<f64>,
     /// From one line's base to the next, in capital heights (default 1.6).
     #[arg(long)]
@@ -136,12 +136,7 @@ impl From<AlignArg> for TextAlign {
 }
 
 fn parse_at(text: &str) -> Result<(f64, f64), String> {
-    let bad = || format!("expected X,Y in mm, got {text:?}");
-    let (x, y) = text.split_once(',').ok_or_else(bad)?;
-    Ok((
-        x.trim().parse().map_err(|_| bad())?,
-        y.trim().parse().map_err(|_| bad())?,
-    ))
+    crate::lengths::point(text).map(|[x, y]| (x, y))
 }
 
 /// "\n" typed on the command line starts a new line.

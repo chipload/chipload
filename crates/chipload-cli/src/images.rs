@@ -24,7 +24,7 @@ pub enum ImageAction {
         /// The picture.
         picture: PathBuf,
         /// The picture's width on the stock, mm; its height follows.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         width: f64,
         /// The layer for its shapes; default: the picture's file name.
         #[arg(long)]
@@ -45,7 +45,7 @@ pub enum ImageAction {
         /// The image's id (as `image list` shows it).
         id: u64,
         /// The picture's width on the stock, mm.
-        #[arg(long)]
+        #[arg(value_parser = crate::lengths::length, long)]
         width: Option<f64>,
         /// Turn it about its centre to this angle, degrees counter-clockwise (any angle; 0:
         /// as the picture is). `--at` stays the corner before the turn.
@@ -107,7 +107,7 @@ pub struct Settings {
     #[arg(long)]
     min_area: Option<f64>,
     /// How far an edge may be simplified, mm, 0.01 to 1 (default 0.05).
-    #[arg(long)]
+    #[arg(value_parser = crate::lengths::length, long)]
     smoothing: Option<f64>,
     /// What to trace: outline (for a V-carve, default) or centre-line (strokes, for a
     /// follow path).
@@ -127,12 +127,7 @@ fn parse_trace(text: &str) -> Result<ImageTrace, String> {
 }
 
 fn parse_at(text: &str) -> Result<(f64, f64), String> {
-    let bad = || format!("expected X,Y in mm, got {text:?}");
-    let (x, y) = text.split_once(',').ok_or_else(bad)?;
-    Ok((
-        x.trim().parse().map_err(|_| bad())?,
-        y.trim().parse().map_err(|_| bad())?,
-    ))
+    crate::lengths::point(text).map(|[x, y]| (x, y))
 }
 
 fn parse_threshold(text: &str) -> Result<ImageThreshold, String> {

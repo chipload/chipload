@@ -88,6 +88,7 @@ chipload run <PROJECT> [OPTIONS]
 | `-o, --output <OUTPUT>` | Where to write the G-code. With several tools and one file per tool: part.nc gives part-1-T1.nc, part-2-T2.nc, ... Required. |
 | `--tool-change <TOOL_CHANGE>` | For this run only: one file per tool, or one file with M6 tool changes (default: the project's machine setting) One of: `files` (One G-code file per tool group), `program` (One file with `T<n> M6` at each tool change). |
 | `--no-sheet` | Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`) |
+| `--sheet-units <UNITS>` | The setup sheet's lengths and feeds: mm (default) or inch. The G-code's units are the machine's (machine.gcode_units) One of: `mm`, `inch`. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
 ## `chipload simulate`
@@ -121,6 +122,7 @@ chipload sheet <PROJECT> [OPTIONS]
 | `-o, --output <OUTPUT>` | Where to write the sheet (.html) Required. |
 | `--gcode <GCODE>` | The G-code the sheet is for, as given to `run -o`, for its file names (default: the project's name with the post's extension) |
 | `--tool-change <TOOL_CHANGE>` | For this sheet only: one file per tool, or one file with M6 tool changes. One of: `files` (One G-code file per tool group), `program` (One file with `T<n> M6` at each tool change). |
+| `--units <UNITS>` | Its lengths and feeds: mm (default) or inch. The G-code's units are the machine's (machine.gcode_units) One of: `mm`, `inch`. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
 ## `chipload render`
