@@ -6,8 +6,9 @@ it's built (see `CLAUDE.md`).
 ## In progress
 
 - **Not released yet** (on main since v0.21.1): rest passes under their pocket; surfacing;
-  release files named in lowercase (`chipload-gui-X-linux-x86_64.AppImage`, …), first used
-  by the next release. Proposed next release: 0.22.0.
+  messages in inches; release files named in lowercase
+  (`chipload-gui-X-linux-x86_64.AppImage`, …), first used by the next release. Proposed
+  next release: 0.22.0.
 
 ## State to remember (2026-10-17)
 
@@ -48,8 +49,6 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 4. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
-5. **Inches, the rest** (docs/specs/inch-units.md): report and problem messages in the
-   display units (they keep mm, labelled).
 
 ## Done
 
@@ -87,6 +86,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 - **Release builds for every common platform** (2026-10-17, ADR 0010): Actions builds
   Linux and Windows on x86_64 and ARM64, macOS universal (`.dmg` and CLI), and the guide
   zip; first built for 0.21.1. Release files named in lowercase from the next release.
+- **Inches, messages** (2026-10-17, docs/specs/inch-units.md step 4): report notes, checker
+  warnings, problems and the setup sheet's *Watch out* list follow the display units; every
+  length in a library message is written with its unit and converted where it is shown.
 - **Inches** (2026-10-17, docs/specs/inch-units.md, schema 28, machines.json 4): G-code in
   G20 per machine (post `units`/`inch_decimals`, the checker reads G20); display units in
   the app (Preferences > Units: fields with fractions, grid, canvas, setup sheet, inch

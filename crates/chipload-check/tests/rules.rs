@@ -169,7 +169,7 @@ fn exact_messages() {
     let found = errors(&format!("{HEADER}G0 X10 Y10\nG1 Z-18.5 F100\n"));
     assert!(
         found.contains(
-            &"Z-18.500 is below the stock bottom (-18.000) by more than the allowed 0.000 mm"
+            &"Z-18.500 mm is below the stock bottom (-18.000 mm) by more than the allowed 0.000 mm"
                 .to_string()
         )
     );

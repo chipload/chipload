@@ -334,7 +334,7 @@ impl Image {
             if !(value.is_finite() && (low..=high).contains(&value)) {
                 problems.push(Problem::at(
                     format!("{at}.{field}"),
-                    format!("must be {low} to {high}{unit}, got {value}"),
+                    format!("must be {low} to {high}{unit}, got {value}{unit}"),
                 ));
             }
         };
@@ -364,7 +364,7 @@ impl Image {
         if !(self.width.is_finite() && self.width > 0.0) {
             problems.push(Problem::at(
                 format!("{at}.width"),
-                format!("must be greater than 0, got {}", self.width),
+                format!("must be greater than 0, got {} mm", self.width),
             ));
         }
         if !rotation_in_range(self.rotation) {
@@ -477,7 +477,7 @@ impl Text {
             problems.push(Problem::at(
                 format!("{at}.height"),
                 format!(
-                    "must be more than 0 and at most {TEXT_MAX_HEIGHT_MM} mm, got {}",
+                    "must be more than 0 and at most {TEXT_MAX_HEIGHT_MM} mm, got {} mm",
                     self.height
                 ),
             ));
@@ -499,7 +499,7 @@ impl Text {
             problems.push(Problem::at(
                 format!("{at}.spacing"),
                 format!(
-                    "must be at most {TEXT_MAX_SPACING_HEIGHTS} heights either way ({most} mm), got {}",
+                    "must be at most {TEXT_MAX_SPACING_HEIGHTS} heights either way ({most} mm), got {} mm",
                     self.spacing
                 ),
             ));
@@ -2482,7 +2482,7 @@ fn surface_problems(i: usize, f: &SurfaceOp, thickness: f64) -> Vec<Problem> {
         problems.push(Problem::at(
             format!("operations.{i}.end_depth"),
             format!(
-                "a surface can't go below the stock bottom ({thickness} mm thick), got {}",
+                "a surface can't go below the stock bottom ({thickness} mm thick), got {} mm",
                 f.end_depth
             ),
         ));
@@ -2757,7 +2757,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
         if !(value.is_finite() && value > 0.0) {
             problems.push(Problem::at(
                 field,
-                format!("must be a positive number, got {value}"),
+                format!("must be a positive number, got {value} mm"),
             ));
         }
     };
@@ -2807,19 +2807,19 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             if !corner_radius.is_finite() || *corner_radius < 0.0 {
                 problems.push(Problem::at(
                     "corner_radius",
-                    format!("must be 0 or more, got {corner_radius}"),
+                    format!("must be 0 or more, got {corner_radius} mm"),
                 ));
             } else if *corner_radius > 0.0 && *corner_radius < CHAIN_TOL_MM {
                 problems.push(Problem::at(
                     "corner_radius",
                     format!(
-                        "0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got {corner_radius}"
+                        "0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got {corner_radius} mm"
                     ),
                 ));
             } else if *corner_radius > most {
                 problems.push(Problem::at(
                     "corner_radius",
-                    format!("at most {most} mm, half the shorter side, got {corner_radius}"),
+                    format!("at most {most} mm, half the shorter side, got {corner_radius} mm"),
                 ));
             }
             if !finite(center) {
@@ -2886,7 +2886,7 @@ fn positive_problem(at: &str, field: &str, value: f64) -> Option<Problem> {
     (value <= 0.0 || value.is_nan()).then(|| {
         Problem::at(
             format!("{at}.{field}"),
-            format!("must be greater than 0, got {value}"),
+            format!("must be greater than 0, got {value} mm"),
         )
     })
 }
@@ -2898,7 +2898,7 @@ pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<Problem> {
     } else {
         vec![Problem::at(
             format!("{at}.max_overcut"),
-            format!("must be 0 or more, got {overcut}"),
+            format!("must be 0 or more, got {overcut} mm"),
         )]
     }
 }
@@ -2949,7 +2949,7 @@ impl Tool {
             problems.push(Problem::at(
                 format!("{at}.tip_diameter"),
                 format!(
-                    "must be 0 or more and less than the diameter ({}), got {tip}",
+                    "must be 0 or more and less than the diameter ({} mm), got {tip} mm",
                     self.diameter
                 ),
             ));
@@ -3062,7 +3062,7 @@ impl Job {
             if value <= 0.0 || value.is_nan() {
                 problems.push(Problem::at(
                     path,
-                    format!("must be greater than 0, got {value}"),
+                    format!("must be greater than 0, got {value} mm"),
                 ));
             }
         };
@@ -3072,11 +3072,20 @@ impl Job {
         for (i, tool) in self.tools.iter().enumerate() {
             problems.extend(tool.problems(&format!("tools.{i}")));
         }
+        // Feeds in mm/min, a stepover a fraction, everything else a length in mm (written,
+        // so messages can be shown in inches: docs/specs/inch-units.md §5.1).
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
+                let unit = if path.ends_with("feed") {
+                    " mm/min"
+                } else if path.ends_with("stepover") {
+                    ""
+                } else {
+                    " mm"
+                };
                 problems.push(Problem::at(
                     path,
-                    format!("must be greater than 0, got {value}"),
+                    format!("must be greater than 0, got {value}{unit}"),
                 ));
             }
         };
@@ -3158,12 +3167,12 @@ impl Job {
             if !(start.is_finite() && start >= 0.0) {
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
-                    format!("must be 0 or more, got {start}"),
+                    format!("must be 0 or more, got {start} mm"),
                 ));
             } else if start >= end {
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
-                    format!("must be less than end_depth ({end}), got {start}"),
+                    format!("must be less than end_depth ({end} mm), got {start} mm"),
                 ));
             }
             if !op.clearance().is_finite() {
@@ -3182,7 +3191,7 @@ impl Job {
                 problems.push(Problem::at(
                     format!("operations.{i}.clearance"),
                     format!(
-                        "a profile on the line has no side to clear towards; it must be 0, got {}",
+                        "a profile on the line has no side to clear towards; it must be 0, got {} mm",
                         p.clearance
                     ),
                 ));
@@ -3319,7 +3328,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.entry.radius"),
-                    format!("must be more than 0, got {radius}"),
+                    format!("must be more than 0, got {radius} mm"),
                 ));
             }
             if let Some(ramp_angle) = op.entry().ramp_angle()
@@ -3379,7 +3388,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.lead.radius"),
-                    format!("must be more than 0, got {}", lead.radius),
+                    format!("must be more than 0, got {} mm", lead.radius),
                 ));
             }
             if op

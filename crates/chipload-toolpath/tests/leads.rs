@@ -83,7 +83,7 @@ fn a_huge_lead_is_refused() {
     )
     .unwrap_err()
     .to_string();
-    assert!(err.contains("lead radius 60.1 is more than 10"), "{err}");
+    assert!(err.contains("lead radius 60.1 mm is more than 10"), "{err}");
 }
 
 #[test]

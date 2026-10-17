@@ -323,7 +323,7 @@ pub fn add_legs(
         };
         if distance(before, v) > CHAIN_TOL_MM || distance(after, v) > CHAIN_TOL_MM {
             return Err(ToolpathError::Geometry(format!(
-                "{}: the leg at corner ({:.3}, {:.3}) did not go into the ring as out and \
+                "{}: the leg at corner ({:.3}, {:.3}) mm did not go into the ring as out and \
                  back",
                 cut.label, corner.at.0, corner.at.1
             )));
@@ -356,7 +356,7 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
                     Corners::Tbone { .. } => "T-bone",
                 };
                 return Err(ToolpathError::Geometry(format!(
-                    "{}: the {style} at corner ({:.3}, {:.3}) would cut into contour #{}; \
+                    "{}: the {style} at corner ({:.3}, {:.3}) mm would cut into contour #{}; \
                      lower the corners' max angle or change the drawing",
                     cut.label, leg.corner.at.0, leg.corner.at.1, contour.id
                 )));
@@ -390,7 +390,7 @@ pub fn unreached_note(label: &str, corner: &Corner, style: Corners) -> String {
         Corners::Tbone { .. } => "no T-bone",
     };
     format!(
-        "{label}: corner at ({:.3}, {:.3}): the tool can't reach into it; {style}",
+        "{label}: corner at ({:.3}, {:.3}) mm: the tool can't reach into it; {style}",
         corner.at.0, corner.at.1
     )
 }

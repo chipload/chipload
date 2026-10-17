@@ -132,3 +132,39 @@ fn a_new_project_in_inches_starts_from_tidy_inch_values() {
     app.new_project();
     assert_eq!(app.edit.as_ref().unwrap().settings.stock.thickness, 10.0);
 }
+
+#[test]
+fn with_inches_the_report_shows_its_notes_and_checks_in_inches() {
+    // docs/specs/inch-units.md §5.1: a project with a cut below the stock (a note) and moves
+    // below its bottom (a checker warning), both written with mm lengths by the library.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/dogbones.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    assert!(
+        app.report.iter().any(|l| l.contains("mm below the stock")),
+        "{:?}",
+        app.report
+    );
+    app.report_open = true;
+    let painted = |units: Units, app: &mut ChiploadApp| {
+        let ctx = egui::Context::default();
+        let mut text = String::new();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            crate::units::set_display(ui.ctx(), units);
+            app.report_panel(ui);
+        });
+        output.textures_delta.clear();
+        for clipped in &output.shapes {
+            if let egui::Shape::Text(t) = &clipped.shape {
+                text.push_str(t.galley.text());
+                text.push('\n');
+            }
+        }
+        text
+    };
+    let mm = painted(Units::Mm, &mut app);
+    assert!(mm.contains("mm below the stock"), "{mm}");
+    let inch = painted(Units::Inch, &mut app);
+    assert!(inch.contains("in below the stock"), "{inch}");
+    assert_eq!(mm_lengths(&inch), Vec::<String>::new(), "{inch}");
+}

@@ -93,7 +93,7 @@ fn a_point_far_from_its_ring_gives_a_note_and_still_moves_the_start() {
     assert!(
         plan.notes
             .iter()
-            .any(|n| n.contains("start point (60.000, 90.000) is 17.000 mm from contour #0")),
+            .any(|n| n.contains("start point (60.000, 90.000) mm is 17.000 mm from contour #0")),
         "{:?}",
         plan.notes
     );
@@ -120,7 +120,7 @@ fn each_point_takes_the_nearest_ring_and_a_second_one_is_ignored() {
     assert!(
         plan.notes
             .iter()
-            .any(|n| n.contains("(145.000, 40.000) is on contour #1 too")),
+            .any(|n| n.contains("(145.000, 40.000) mm is on contour #1 too")),
         "{:?}",
         plan.notes
     );

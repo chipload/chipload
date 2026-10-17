@@ -298,7 +298,7 @@ fn a_notch_narrower_than_the_tool_is_skipped_with_a_note() {
         .collect::<Vec<_>>()
         .join("\n");
     assert!(
-        notes.contains("corner at (67.500, 70.000): the tool can't reach into it; no dogbone"),
+        notes.contains("corner at (67.500, 70.000) mm: the tool can't reach into it; no dogbone"),
         "{notes}"
     );
 }
@@ -323,7 +323,7 @@ fn a_leg_that_would_cut_into_another_contour_is_refused() {
     .unwrap_err()
     .to_string();
     assert!(
-        err.contains("the dogbone at corner (0.000, 0.000) would cut into contour #2"),
+        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
         "{err}"
     );
 }

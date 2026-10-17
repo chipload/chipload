@@ -23,6 +23,13 @@ pub fn display(ctx: &egui::Context) -> Units {
     ctx.data(|d| d.get_temp(key())).unwrap_or(Units::Mm)
 }
 
+/// A message from the library crates (a problem, note, report or checker line) in the
+/// display units: its `… mm` lengths and `… mm/min` feeds as inches when inches are shown
+/// (docs/specs/inch-units.md §5.1).
+pub fn message(ctx: &egui::Context, text: &str) -> String {
+    chipload_pipeline::units::text_in(text, display(ctx))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Kind {
     /// mm, or inches with 4 decimals.

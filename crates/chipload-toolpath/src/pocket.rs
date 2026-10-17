@@ -1207,7 +1207,7 @@ fn uncut_material(
     let places = format!("{count} place{}", if count > 1 { "s" } else { "" });
     let note = format!(
         "contours {}: uncut material in {places}, largest about {:.2} x {:.2} mm near \
-         ({:.1}, {:.1}); reduce the stepover to clear it",
+         ({:.1}, {:.1}) mm; reduce the stepover to clear it",
         ids_text(ids),
         x1 - x0,
         y1 - y0,
@@ -1366,7 +1366,7 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
     let offset = tool_radius - clearance;
     if offset <= 0.0 || offset.is_nan() {
         return Err(geometry(format!(
-            "clearance {clearance} must be less than the tool radius {tool_radius}"
+            "clearance {clearance} mm must be less than the tool radius {tool_radius} mm"
         )));
     }
     let mut remaining = build_region(contours)?;

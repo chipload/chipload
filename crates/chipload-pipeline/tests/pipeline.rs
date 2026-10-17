@@ -337,7 +337,7 @@ fn operations_are_checked_against_their_own_tool() {
     ops[0]["clearance"] = json!(2.0);
     job_error(
         &job(json!({"tools": two_tools(), "operations": ops})),
-        "clearance 2 must be less than the tool radius 1.5",
+        "clearance 2 mm must be less than the tool radius 1.5 mm",
     );
     let mut ops = current("jobs/v4/simple_part_full.chipload")["operations"].clone();
     ops[1]["tool"] = json!(3);
@@ -486,7 +486,7 @@ fn open_centreline_on_a_cutting_layer_is_skipped_and_reported() {
     assert_eq!(
         skipped,
         [
-            "Operation 1 (Outline): skipped open contour #22 on upper (64.750, 50.000) to (64.750, 20.000)"
+            "Operation 1 (Outline): skipped open contour #22 on upper (64.750, 50.000) mm to (64.750, 20.000) mm"
         ]
     );
 }
@@ -1085,7 +1085,7 @@ fn every_problem_is_found_at_once_with_its_field() {
     assert_eq!(&first.text, message);
     assert_eq!(err.operation(), None, "a machine rule is nobody's");
     assert!(first.text.starts_with("safe_z -1"), "{}", first.text);
-    assert_eq!(first.short, "must be above the stock top (Z 0)");
+    assert_eq!(first.short, "must be above the stock top (Z 0 mm)");
 }
 
 #[test]
@@ -1095,7 +1095,7 @@ fn the_short_message_leaves_out_the_operation() {
     assert_eq!(problem.path, "operations.0.clearance");
     assert_eq!(
         problem.short,
-        "clearance 5 must be less than the tool radius 3"
+        "clearance 5 mm must be less than the tool radius 3 mm"
     );
     assert!(problem.text.starts_with("Operation 1"), "{}", problem.text);
 }

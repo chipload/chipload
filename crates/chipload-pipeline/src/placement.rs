@@ -202,7 +202,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     }
     if let WorkZero::Point { x, y } = job.machine.work_zero {
         lines.push(format!(
-            "The work zero stays at the point X{x:.3} Y{y:.3}; check that it's still where \
+            "The work zero stays at the point X{x:.3} mm, Y{y:.3} mm; check that it's still where \
              you want it."
         ));
     }
@@ -359,7 +359,7 @@ fn step_for(
         Move::BottomLeft { margin } => {
             if !(margin.is_finite() && margin >= 0.0) {
                 return Err(PipelineError::Job(format!(
-                    "the margin must be 0 or more, got {margin}"
+                    "the margin must be 0 or more, got {margin} mm"
                 )));
             }
             let ((x0, y0), _) = bbox()?;

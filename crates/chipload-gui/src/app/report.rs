@@ -255,7 +255,11 @@ impl ChiploadApp {
                                 .show(ui, |ui| {
                                     ui.add(
                                         egui::Label::new(
-                                            RichText::new(facts.lines.join("\n")).monospace(),
+                                            RichText::new(crate::units::message(
+                                                ui.ctx(),
+                                                &facts.lines.join("\n"),
+                                            ))
+                                            .monospace(),
                                         )
                                         .extend(),
                                     );
@@ -268,7 +272,7 @@ impl ChiploadApp {
     /// One line: its mark and text in its tone; a line about an operation selects it.
     fn report_line(&mut self, ui: &mut egui::Ui, line: &ReportLine, headline: bool) {
         let color = line.tone.color(ui.visuals());
-        let mut text = RichText::new(&line.text).color(color);
+        let mut text = RichText::new(crate::units::message(ui.ctx(), &line.text)).color(color);
         if headline {
             text = text.strong();
         }

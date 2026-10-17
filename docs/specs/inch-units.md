@@ -10,6 +10,18 @@ follow the display units. Report messages, planning notes and problem messages k
 with the unit written ("cuts 0.300 mm below the stock"): about 110 texts in the library
 crates, left for a later step. In mm, a field also takes a length typed with `in` or `"`.
 
+**As built, step 4 (2026-10-17):** messages follow the display units too. The library
+crates write every length in a message as a number followed by ` mm` (feeds ` mm/min`,
+chip loads ` mm/tooth`, points `(x, y) mm`); the unlabelled ones (problems' "got …",
+depths, radii, Z values, coordinates in notes and checker messages) were labelled.
+`chipload_pipeline::units::text_in` turns those into inches, ranges (`A–B`, `A to B`,
+`A and B`) and points included, and the app applies it where it draws a message: report
+lines and facts, field hovers, the Problems strip and the Browser's operation hover; the
+setup sheet applies it to its *Watch out* list. Text without a unit after it is left alone,
+so a number that isn't a length can't be converted by mistake. The command line keeps mm
+(decision 5). The work zero line in the G-code header and the DXF placement text still
+write coordinates without a unit.
+
 **As built, step 3:** length options take a unit (`0.25in`, `1/4in`, `6mm`) and feed
 options `in/min`; X,Y pairs and the travel too. Since the command line's messages are those
 same report texts, `--units inch` (§5.3) went only where the output is the sheet: `chipload

@@ -66,7 +66,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
     for (i, name) in names.iter().enumerate() {
         file_section(&mut html, job, result, i, name, several, info.units);
     }
-    watch_out(&mut html, result);
+    watch_out(&mut html, result, info.units);
     let _ = writeln!(html, "<section class=\"total\">\n<h2>Time</h2>");
     for line in estimate_lines(job, &result.estimate, several) {
         let _ = writeln!(html, "<p>{}</p>", escape(line.trim_start()));
@@ -668,7 +668,9 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, u: Units) -
     Some(text)
 }
 
-fn watch_out(html: &mut String, result: &RunResult) {
+/// The notes and checker warnings, their lengths in the sheet's units
+/// (docs/specs/inch-units.md §5.1).
+fn watch_out(html: &mut String, result: &RunResult, u: Units) {
     let mut items: Vec<String> = Vec::new();
     if let Some(note) = &result.post.note {
         items.push(format!("Post {}: {note}", result.post.name));
@@ -686,7 +688,8 @@ fn watch_out(html: &mut String, result: &RunResult) {
     } else {
         html.push_str("<ul>\n");
         for item in items {
-            let _ = writeln!(html, "<li>{}</li>", escape(item.trim()));
+            let item = crate::units::text_in(item.trim(), u);
+            let _ = writeln!(html, "<li>{}</li>", escape(&item));
         }
         html.push_str("</ul>\n");
     }

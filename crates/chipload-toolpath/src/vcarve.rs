@@ -289,7 +289,7 @@ impl Graph {
                     if !inside || r > room + VCARVE_TOL_MM {
                         return Err(geometry(format!(
                             "contours {ids}: V-carve verification failed: the cut would \
-                             cross the outline near ({:.3}, {:.3})",
+                             cross the outline near ({:.3}, {:.3}) mm",
                             p.0, p.1
                         )));
                     }

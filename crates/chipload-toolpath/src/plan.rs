@@ -1478,7 +1478,7 @@ fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), 
             let ((x0, y0), (x1, y1)) = a.extent;
             return Err(ToolpathError::Overlap(format!(
                 "Part \"{}\" copy {number} overlaps part \"{}\" copy {other} (X{x0:.3} to \
-                 {x1:.3}, Y{y0:.3} to {y1:.3}): move the copies apart or change the grid",
+                 {x1:.3} mm, Y{y0:.3} to {y1:.3} mm): move the copies apart or change the grid",
                 job.parts[*p].name, job.parts[*q].name
             )));
         }
@@ -1637,9 +1637,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     if job.machine.safe_z <= top {
         problems.push(Problem::new(
             "machine.safe_z",
-            format!("must be above the stock top (Z {top})"),
+            format!("must be above the stock top (Z {top} mm)"),
             format!(
-                "safe_z {} must be above the stock top (Z {top}); z_zero is '{z_zero}'",
+                "safe_z {} mm must be above the stock top (Z {top} mm); z_zero is '{z_zero}'",
                 job.machine.safe_z
             ),
         ));
@@ -1675,7 +1675,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("end_depth"),
                 &label,
                 format!(
-                    "end depth {end_depth} is {below:.3} mm below the stock \
+                    "end depth {end_depth} mm is {below:.3} mm below the stock \
                      ({thickness} mm thick), more than the allowed {} mm (max depth below \
                      stock)",
                     job.stock.max_overcut
@@ -1692,7 +1692,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("clearance"),
                 &label,
                 format!(
-                    "clearance {} must be less than the tool radius {}",
+                    "clearance {} mm must be less than the tool radius {} mm",
                     op.clearance(),
                     tool.diameter / 2.0
                 ),
@@ -1708,7 +1708,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("finish.stock"),
                 &label,
                 format!(
-                    "finishing stock {} must be less than the tool radius {}",
+                    "finishing stock {} mm must be less than the tool radius {} mm",
                     finish.stock,
                     tool.diameter / 2.0
                 ),
@@ -1727,7 +1727,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 at("tabs.height"),
                 &label,
                 format!(
-                    "tab height {} must be less than the cut depth {cut} (end depth minus \
+                    "tab height {} mm must be less than the cut depth {cut} mm (end depth minus \
                      start depth)",
                     tabs.height
                 ),
@@ -1754,8 +1754,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                         at(name),
                         &numbered,
                         format!(
-                            "{name} {value} exceeds machine max_feed \
-                             {max_feed}"
+                            "{name} {value} mm/min exceeds machine max_feed \
+                             {max_feed} mm/min"
                         ),
                     ));
                 }
@@ -1774,7 +1774,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     at("entry"),
                     &label,
                     format!(
-                        "helix radius {radius} must be less than the tool radius {}, \
+                        "helix radius {radius} mm must be less than the tool radius {} mm, \
                          or it leaves a core standing in the middle",
                         tool.diameter / 2.0
                     ),
@@ -1788,7 +1788,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     at("lead"),
                     &label,
                     format!(
-                        "lead radius {} is more than {MAX_LEAD_DIAMETERS} × the tool \
+                        "lead radius {} mm is more than {MAX_LEAD_DIAMETERS} × the tool \
                          diameter ({longest:.3} mm)",
                         lead.radius
                     ),

@@ -129,7 +129,7 @@ fn select<'a>(
         .map(|c| {
             let (s, e) = (c.start(), c.end());
             format!(
-                "{op}: skipped open contour #{} on {} ({:.3}, {:.3}) to ({:.3}, {:.3})",
+                "{op}: skipped open contour #{} on {} ({:.3}, {:.3}) mm to ({:.3}, {:.3}) mm",
                 c.id,
                 c.layers().join(", "),
                 s.0,

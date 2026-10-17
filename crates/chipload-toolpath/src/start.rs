@@ -124,9 +124,9 @@ fn rotated(ring: &[Point], start: usize) -> Vec<Point> {
     out
 }
 
-/// "(12.000, 3.500)", for notes.
+/// "(12.000, 3.500) mm", for notes.
 pub fn point_text(p: Point) -> String {
-    format!("({:.3}, {:.3})", p.0, p.1)
+    format!("({:.3}, {:.3}) mm", p.0, p.1)
 }
 
 #[cfg(test)]

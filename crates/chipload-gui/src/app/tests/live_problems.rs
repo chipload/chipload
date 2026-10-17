@@ -22,13 +22,13 @@ fn a_bad_value_is_flagged_at_its_field_once_the_edit_is_finished() {
     let fields = app.form_problem_map(Focus::Op(0));
     assert_eq!(
         fields.get("feed").map(String::as_str),
-        Some("Must be greater than 0, got 0")
+        Some("Must be greater than 0, got 0 mm/min")
     );
     assert!(app.form_problem_map(Focus::Op(1)).is_empty());
     assert!(app.form_problem_map(Focus::Job).is_empty());
     assert_eq!(
         problems::plain(&app.problems[0]),
-        "Feed: must be greater than 0, got 0"
+        "Feed: must be greater than 0, got 0 mm/min"
     );
     // The forms, cards and strip draw with it.
     app.focus = Focus::Op(0);
@@ -48,12 +48,12 @@ fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
     assert_eq!(app.job_problems().count(), 1);
     assert_eq!(
         problems::plain(&app.problems[0]),
-        "Safe Z: must be above the stock top (Z 0)"
+        "Safe Z: must be above the stock top (Z 0 mm)"
     );
     let fields = app.form_problem_map(Focus::Job);
     assert_eq!(
         fields.get("machine.safe_z").map(String::as_str),
-        Some("Must be above the stock top (Z 0)")
+        Some("Must be above the stock top (Z 0 mm)")
     );
     app.focus = Focus::Job;
     draw_sidebar(&mut app);

@@ -217,7 +217,7 @@ fn tabs_must_be_lower_than_the_cut_between_the_depths() {
     let err = cut(9.0).unwrap_err(); // 3 mm cut
     assert!(
         err.to_string()
-            .contains("tab height 3 must be less than the cut depth 3"),
+            .contains("tab height 3 mm must be less than the cut depth 3 mm"),
         "{err}"
     );
 }

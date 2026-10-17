@@ -50,6 +50,7 @@ pub(super) fn flag(response: egui::Response, ui: &egui::Ui, field: &str) -> egui
         egui::Stroke::new(1.5, color),
         egui::StrokeKind::Outside,
     );
+    let text = crate::units::message(ui.ctx(), &text);
     response.on_hover_text(RichText::new(text).color(color))
 }
 
@@ -289,7 +290,8 @@ impl ChiploadApp {
                         Some(i) => format!("Operation {}", i + 1),
                         None => "Job".to_string(),
                     };
-                    let line = format!("{place} · {}", plain(problem));
+                    let line =
+                        crate::units::message(ui.ctx(), &format!("{place} · {}", plain(problem)));
                     if ui
                         .add(egui::Label::new(line).sense(egui::Sense::click()))
                         .on_hover_text("Show it")

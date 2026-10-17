@@ -876,7 +876,7 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
     for (k, sample) in samples.iter().enumerate() {
         if sample.z < lowest(sample.local) - DEPTH_TOL_MM {
             return fail(format!(
-                "Z{:.3} at {:.3} mm along the ring is below the tab",
+                "Z{:.3} mm at {:.3} mm along the ring is below the tab",
                 sample.z, sample.local
             ));
         }
@@ -903,8 +903,8 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
                     let z = sample.z + (next.z - sample.z) * t;
                     if z < tabs.z_tab - DEPTH_TOL_MM {
                         return fail(format!(
-                            "Z{z:.3} at the tab end {end:.3} mm along the ring is below the \
-                             tab top Z{:.3}",
+                            "Z{z:.3} mm at the tab end {end:.3} mm along the ring is below the \
+                             tab top Z{:.3} mm",
                             tabs.z_tab
                         ));
                     }

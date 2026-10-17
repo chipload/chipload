@@ -226,7 +226,7 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
         report.warnings.push(CheckIssue {
             line: 0,
             message: format!(
-                "{} moves go below the stock bottom (deepest Z{:.3}, bottom {:.3}), within the \
+                "{} moves go below the stock bottom (deepest Z{:.3} mm, bottom {:.3} mm), within the \
                  allowed {:.3} mm",
                 state.below_stock, state.deepest, limits.stock_bottom_z, limits.max_overcut
             ),
@@ -254,7 +254,7 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
                         report.errors.push(CheckIssue {
                             line: 0,
                             message: format!(
-                                "{axis} span {span:.3} mm exceeds machine travel {span_limit:.3}"
+                                "{axis} span {span:.3} mm exceeds machine travel {span_limit:.3} mm"
                             ),
                         });
                     }
@@ -509,7 +509,7 @@ fn move_to(
             && !(!xy_changes && back_into_hole(state, current('X'), current('Y'), z))
         {
             problems.push(format!(
-                "Rapid to Z{z:.3}, below the stock top (rapid into material)"
+                "Rapid to Z{z:.3} mm, below the stock top (rapid into material)"
             ));
         }
     } else {
@@ -553,7 +553,7 @@ fn move_to(
         let floor = limits.stock_bottom_z - limits.max_overcut;
         if z < floor - state.tol {
             problems.push(format!(
-                "Z{z:.3} is below the stock bottom ({:.3}) by more than the allowed {:.3} mm",
+                "Z{z:.3} mm is below the stock bottom ({:.3} mm) by more than the allowed {:.3} mm",
                 limits.stock_bottom_z, limits.max_overcut
             ));
         } else {
@@ -642,7 +642,7 @@ fn check_arc(
     let r_end = (ex - cx).hypot(ey - cy);
     if (r_start - r_end).abs() > ARC_APPROX_TOL_MM {
         problems.push(format!(
-            "Arc radius mismatch: start {r_start:.4} vs end {r_end:.4}"
+            "Arc radius mismatch: start {r_start:.4} mm vs end {r_end:.4} mm"
         ));
     }
     // Angles from the start going the arc's way; an axis extreme is on the arc if it comes

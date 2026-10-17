@@ -482,7 +482,7 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
     let out = ok(&["update", p, "--from", path(&dxf)]);
     assert!(
-        out.contains("to 250.000, Y")
+        out.contains("to 250.000 mm, Y")
             && out.contains("extends beyond the stock (100.000 × 200.000 mm)"),
         "{out}"
     );

@@ -720,7 +720,7 @@ pub fn stock_fit_note(job: &Job) -> Option<String> {
         && y1 <= sy1 + CHAIN_TOL_MM;
     (!fits).then(|| {
         format!(
-            "The drawing (X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}) extends beyond the stock \
+            "The drawing (X{x0:.3} to {x1:.3} mm, Y{y0:.3} to {y1:.3} mm) extends beyond the stock \
              ({:.3} × {:.3} mm); check the stock under Job settings.",
             job.stock.x, job.stock.y
         )
@@ -802,7 +802,7 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<String> {
             "The".to_string()
         };
         notes.push(format!(
-            "{whose} {} copies cut X{x0:.3} to {x1:.3}, Y{y0:.3} to {y1:.3}, beyond the stock \
+            "{whose} {} copies cut X{x0:.3} to {x1:.3} mm, Y{y0:.3} to {y1:.3} mm, beyond the stock \
              ({:.3} × {:.3} mm); check the stock or the part's copies.",
             part.count(),
             job.stock.x,

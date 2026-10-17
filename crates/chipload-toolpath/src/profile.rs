@@ -48,8 +48,8 @@ pub fn pass_depths(
     let range = end_depth - start_depth;
     if !(start_depth >= 0.0 && range > 0.0 && step_down > 0.0) {
         return Err(ToolpathError::Geometry(format!(
-            "depths must satisfy 0 <= start ({start_depth}) < end ({end_depth}) and step_down \
-             ({step_down}) must be positive"
+            "depths must satisfy 0 <= start ({start_depth} mm) < end ({end_depth} mm) and \
+             step_down ({step_down} mm) must be positive"
         )));
     }
     // Small positive whole number: depths and step_down are validated job values.
@@ -148,7 +148,7 @@ pub fn plan_profile(
     let offset = tool_radius - op.clearance;
     if op.side != Side::On && (offset <= 0.0 || offset.is_nan()) {
         return Err(ToolpathError::Job(format!(
-            "{label}: clearance {} must be less than the tool radius {tool_radius}",
+            "{label}: clearance {} mm must be less than the tool radius {tool_radius} mm",
             op.clearance
         )));
     }

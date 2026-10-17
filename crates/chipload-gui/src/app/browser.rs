@@ -876,7 +876,10 @@ impl ChiploadApp {
         } else {
             format!("T{}", op.tool())
         };
-        let hover = self.operation_hover(i, problem.as_deref(), hidden);
+        let hover = crate::units::message(
+            ui.ctx(),
+            &self.operation_hover(i, problem.as_deref(), hidden),
+        );
         // A rest pocket that copies an earlier pocket can become its rest pass (§5).
         let parent = match op {
             Operation::Pocket(p) if p.rest.is_some() => self.rest_pocket_parent(i),

@@ -432,7 +432,7 @@ fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour>
                     Severity::Warning,
                     "open_contour",
                     format!(
-                        "Contour {} on {} is open: ends at ({:.3}, {:.3}) and ({:.3}, {:.3})",
+                        "Contour {} on {} is open: ends at ({:.3}, {:.3}) mm and ({:.3}, {:.3}) mm",
                         contour.id,
                         contour.layers().join(", "),
                         s.0,

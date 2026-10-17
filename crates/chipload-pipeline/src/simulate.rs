@@ -163,7 +163,7 @@ fn run(
         Some(cell) => {
             if !(MIN_CELL_MM..=MAX_CELL_MM).contains(&cell) {
                 return Err(PipelineError::Job(format!(
-                    "cell size must be between {MIN_CELL_MM} and {MAX_CELL_MM} mm, got {cell}"
+                    "cell size must be between {MIN_CELL_MM} and {MAX_CELL_MM} mm, got {cell} mm"
                 )));
             }
             let cells = cells_for(stock.x, stock.y, cell);
@@ -773,7 +773,7 @@ impl Simulation {
         )];
         match self.numbers.deepest {
             Some(z) => lines.push(format!(
-                "  Deepest cut: Z{z:.3} ({:.3} mm below the stock top)",
+                "  Deepest cut: Z{z:.3} mm ({:.3} mm below the stock top)",
                 self.top - z
             )),
             None => lines.push("  Nothing cut".to_string()),

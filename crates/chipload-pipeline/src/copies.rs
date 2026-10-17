@@ -100,7 +100,7 @@ pub fn pitch_for_gap(
 ) -> Result<(f64, f64), PipelineError> {
     if !(gap.is_finite() && gap >= 0.0) {
         return Err(PipelineError::Job(format!(
-            "The gap must be 0 or more, got {gap}"
+            "The gap must be 0 or more, got {gap} mm"
         )));
     }
     let (width, height) = cut_size(job, part)?;
