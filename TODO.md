@@ -456,9 +456,6 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
-- **Ring corner radius per corner:** a ring now has one radius, set by its sharpest corner;
-  rounding each corner by its own angle would let acute shapes (triangles) keep larger
-  radii at their other corners (follow-up to docs/specs/pocket-round-corners.md).
 - **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
   and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
   now the Browser).
