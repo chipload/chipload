@@ -12,6 +12,30 @@ sign-off (https://developercertificate.org):
 
 which adds `Signed-off-by: Your Name <you@example.com>`.
 
+## Your own work only (clean room)
+
+Chipload is a clean-room implementation in Rust: every line is written here. Your
+contribution must be your own work, built only on publicly available, general knowledge.
+
+- **Allowed:**
+  - textbooks, published papers and standards (RS-274/NIST G-code);
+  - controller and tooling makers' public documentation (GRBL, LinuxCNC, Mach3/4 manuals;
+    feeds and chip loads);
+  - well-known algorithms, and first principles.
+
+  Name the source in the spec when an algorithm comes from one.
+- **Not allowed:** code copied, ported, translated or paraphrased from another CAM program or
+  toolpath library, open source or proprietary, whatever its licence (GPL-compatible
+  included). Nor their post-processor templates, help text, UI wording, icons or sample
+  files, nor anything reverse engineered from their binaries or output.
+- **Other programs** may be named for what users expect of a feature ("CamBam calls this
+  Parts"), not for how they do it inside.
+- **Libraries** are used as dependencies through their APIs, never copied into the
+  repository.
+
+Your DCO sign-off (above) certifies this. If you're unsure where an idea or a piece of code
+comes from, ask in the pull request before writing it. The full rule is in `CLAUDE.md`.
+
 ## Before you open a pull request
 
 - Read `CLAUDE.md`: architecture rules, conventions and safety rules apply to everyone.
