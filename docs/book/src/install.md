@@ -4,7 +4,9 @@ Chipload is two programs:
 - `chipload-gui`, the desktop app;
 - `chipload`, the command line.
 
-Both read and write the same project files, and both make the same G-code.
+Both read and write the same project files, and both make the same G-code. Download them
+from the [releases page](https://github.com/gntech/chipload/releases): each release has the
+files below, the user guide to read offline, and `SHA256SUMS.txt` to check them.
 
 ## Linux
 
@@ -32,7 +34,8 @@ info > Run anyway*.
 
 ## macOS
 
-Download `Chipload-X.Y.Z-macos-universal.dmg`, open it and drag *Chipload* onto
+No release has macOS files yet. Until one does, build Chipload from the source (below).
+Once there: download `Chipload-X.Y.Z-macos-universal.dmg`, open it and drag *Chipload* onto
 *Applications*. It runs on Apple silicon and Intel Macs with macOS 11 or newer.
 
 The app isn't notarised by Apple, so macOS refuses it the first time. Open *System Settings
@@ -46,9 +49,11 @@ The app isn't notarised by Apple, so macOS refuses it the first time. Open *Syst
 
 ## From source
 
-Install Rust with [rustup](https://rustup.rs), then in the source folder:
+Install Rust with [rustup](https://rustup.rs), then:
 
 ```sh
+git clone https://github.com/gntech/chipload
+cd chipload
 cargo build --release -p chipload-gui -p chipload-cli
 # target/release/chipload-gui and target/release/chipload
 ```

@@ -2,9 +2,10 @@
 
 Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.
 
-- **In:** a DXF drawing, or simple shapes drawn in Chipload (circles, rectangles, polylines).
-- **Out:** G-code for your controller, through a post-processor: GRBL, LinuxCNC and Mach3/4
-  are built in, and you can write your own.
+- **In:** DXF drawings, text in built-in fonts, pictures traced into shapes, and simple
+  shapes drawn in Chipload (circles, rectangles, polylines).
+- **Out:** G-code for your controller, in mm or inches, through a post-processor: GRBL,
+  LinuxCNC and Mach3/4 are built in, and you can write your own.
 - **Operations:**
   - profiles, spiralling down, with tabs, finishing passes, onion skins and dogbones;
   - ring pockets, with helix entry and rest machining;
@@ -16,7 +17,16 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
   cuts outside the machine, and other mistakes.
 - **Seen before cut:** a 3D view, a material-removal simulation, a playback slider, the
   cycle time, the chip load, and a setup sheet for the operator.
-- **Scriptable:** everything works from the command line too, with JSON output for scripts.
+- **Scriptable:** everything works from the command line too, with JSON output for scripts,
+  and AI assistants can drive it.
+- **mm or inches:** the app shows lengths in either, and the G-code can be in either.
+
+> **Testers with real machines wanted.** Chipload's programs pass its checker and many
+> tests, but they haven't been run on a real controller yet. If you have a CNC router or
+> mill, please try it, starting with an air cut, and tell us how it went in an
+> [issue](https://github.com/gntech/chipload/issues), also when it worked. The
+> [README](https://github.com/gntech/chipload#testing-on-your-machine) says what to try and
+> what to send.
 
 ## Safety
 

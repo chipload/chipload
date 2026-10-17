@@ -14,6 +14,9 @@ create-missing = false
 default-theme = "light"
 preferred-dark-theme = "navy"
 no-section-label = true
+git-repository-url = "https://github.com/gntech/chipload"
+# Served from https://gntech.github.io/chipload/ (GitHub Pages, gh-pages branch).
+site-url = "/chipload/"
 
 [output.html.search]
 enable = true

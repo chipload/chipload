@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Publish the user guide of a release to the gh-pages branch (docs/specs/user-guide.md §5).
-# Not used while the repository is private: GitHub Pages needs a public repository.
+# Served at https://gntech.github.io/chipload/. A guide-only fix after a release is tagged
+# guide-X.Y.Z-N (docs/releasing.md).
 #
 #   packaging/docs/publish-book.sh v0.14.0 --yes    build the tag's guide, commit, push
+#   packaging/docs/publish-book.sh guide-0.21.0-1 --yes   the same for a guide-only fix
 #   packaging/docs/publish-book.sh HEAD --dry-run   every step but the push, from any commit;
 #                                                   the result is left in target/gh-pages-dry-run
 set -euo pipefail

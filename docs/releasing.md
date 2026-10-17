@@ -29,7 +29,14 @@ publish it.
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
        gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip
 
-   Once the repository is public, also publish it: `packaging/docs/publish-book.sh vX.Y.Z --yes`.
+   Publish it at https://gntech.github.io/chipload/ (the gh-pages branch):
+   `packaging/docs/publish-book.sh vX.Y.Z --yes`.
+
+   A fix to the guide alone after a release (no change under `crates/` since the tag): tag
+   the commit `guide-X.Y.Z-N` (not `v…`, which would start the release workflow), push the
+   tag and publish that: `packaging/docs/publish-book.sh guide-X.Y.Z-N --yes`. While the
+   release is still a draft, also rebuild the guide zip and upload it again with
+   `gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip --clobber`.
 
 ## Files
 
