@@ -38,15 +38,18 @@ it's built (see `CLAUDE.md`).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
+1. **More fonts** (docs/specs/more-fonts.md): ten Apache-2.0 fonts (scripts, display,
+   Roboto Slab) and merged overlapping letter outlines; spec drafted 2026-10-17, decisions
+   not reviewed.
+2. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
    4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-2. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
    (docs/specs/presets.md, decisions not reviewed).
-3. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
    compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
    download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
    without installing, the user said wait. Its decisions are proposals to review then.
-4. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
 
