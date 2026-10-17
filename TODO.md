@@ -5,19 +5,16 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Not released yet** (on main since v0.22.1): an operation on a text shows "all of text
-  N" as its geometry, not "no geometry"; the canvas says *Updating the simulation…* while
-  the simulated stock is worked out again; the Properties panel goes down to 250 px (its
-  forms follow the width) and both side panels fold to strips (P, View) for a larger
-  canvas (all from testing 0.22.1).
+- Nothing unreleased: 0.22.2 is tagged.
 
 ## State to remember (2026-10-17)
 
-- **Releases**: the latest is 0.22.1 (published 2026-10-17, built by Actions: Linux and
-  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`; the guide is
-  online from `v0.22.1`). 0.22.0 was tagged (`v0.22.0`) but withdrawn unpublished: testing
-  found *Add rest pass* hard to find. No drafts are left. Old tags remain (`v0.3.0` on, and
-  the guide-only tags `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`).
+- **Releases**: the latest published is 0.22.1 (2026-10-17, built by Actions: Linux and
+  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). 0.22.2 is
+  tagged (`v0.22.2`) with fixes from testing 0.22.1, its draft to publish; then put the
+  guide online with `publish-book.sh v0.22.2`. 0.22.0 was tagged but withdrawn unpublished.
+  Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
+  `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
   github.com/chipload/chipload, the guide at chipload.github.io/chipload (published from
   v0.21.1; guide-only fixes go out with a `guide-X.Y.Z-N` tag and
