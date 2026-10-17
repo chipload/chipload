@@ -97,8 +97,6 @@ it's built (see `CLAUDE.md`).
 - **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
   against thousands before; find which pictures are slow (centre lines on noise?) and
   whether a user could hit it.
-- A light canvas for the light theme (the canvas is dark in both themes; its colours are
-  tuned for dark). Needs a second canvas palette.
 
 ## Done
 
