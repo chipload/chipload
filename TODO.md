@@ -58,8 +58,8 @@ it's built (see `CLAUDE.md`).
      comparing with the design (gouges), holders and flute length. Playback done
      2026-10-13 (docs/specs/playback.md); later: a G-code panel with the current line.
 
-  The user will test features 1–4 and 6, and the playback slider, and give feedback
-  (2026-10-13).
+  Features 1–4 and 6 and the playback slider were tested by the user: all okay
+  (2026-10-17).
 
 - **Trochoidal and adaptive clearing: removed 2026-10-13** (docs/decisions/0017-scope.md).
   The code is at the local tag `adaptive-final` (the work branches were deleted
