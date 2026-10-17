@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use chipload_job::{Spindle, Tool, ToolChange, Units};
+use chipload_job::{OpRef, Spindle, Tool, ToolChange, Units};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
 use minijinja::syntax::SyntaxConfig;
@@ -490,8 +490,8 @@ pub struct FileHeader {
     pub number: usize,
     pub count: usize,
     pub tool: Tool,
-    /// Indexes in `job.operations`.
-    pub operations: Vec<usize>,
+    /// The operations and rest passes, in cut order.
+    pub operations: Vec<OpRef>,
 }
 
 /// Text for a G-code comment: parentheses would end it early and ';' starts one, and
@@ -624,9 +624,9 @@ pub fn in_units(program: &Program, units: Units) -> Program {
     out
 }
 
-/// `2, 4`: operation indexes as the user numbers them.
-pub fn operations_text(operations: &[usize]) -> String {
-    let numbers: Vec<String> = operations.iter().map(|i| (i + 1).to_string()).collect();
+/// `2, 2.1, 4`: operations and rest passes as the user numbers them.
+pub fn operations_text(operations: &[OpRef]) -> String {
+    let numbers: Vec<String> = operations.iter().map(ToString::to_string).collect();
     numbers.join(", ")
 }
 
@@ -718,8 +718,8 @@ pub struct ToolPart {
     /// The group's moves with its tool, in program coordinates.
     pub program: Program,
     pub tool: Tool,
-    /// Indexes in `job.operations`.
-    pub operations: Vec<usize>,
+    /// The operations and rest passes, in cut order.
+    pub operations: Vec<OpRef>,
 }
 
 /// Render a job with several tools as one program with a tool change before each part but

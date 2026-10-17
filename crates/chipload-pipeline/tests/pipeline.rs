@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use chipload_job::migrations::migrate;
-use chipload_job::{Job, Note, Spindle, load_job, parse_job};
+use chipload_job::{Job, Note, OpRef, Spindle, load_job, parse_job};
 use chipload_pipeline::{
     Cancel, PipelineError, RunResult, new_project, run_job, run_job_cancellable, update_drawing,
 };
@@ -187,8 +187,14 @@ fn each_tool_group_is_a_checked_file_of_its_own() {
     let (first, second) = (&result.files[0], &result.files[1]);
     assert_eq!(first.suffix.as_deref(), Some("-1-T2"));
     assert_eq!(second.suffix.as_deref(), Some("-2-T1"));
-    assert_eq!((first.tool, first.operations.clone()), (2, vec![0]));
-    assert_eq!((second.tool, second.operations.clone()), (1, vec![1]));
+    assert_eq!(
+        (first.tool, first.operations.clone()),
+        (2, vec![OpRef::op(0)])
+    );
+    assert_eq!(
+        (second.tool, second.operations.clone()),
+        (1, vec![OpRef::op(1)])
+    );
     assert!(
         first.gcode.starts_with(
             "(Chipload - GRBL)\n(File 1 of 2: tool 2, 3.000 mm endmill \"3 mm [downcut]\")\n\
@@ -277,7 +283,7 @@ fn a_tool_that_comes_back_is_another_group_and_a_note() {
     );
     let result = run(&job2);
     assert_eq!(result.files.len(), 2);
-    assert_eq!(result.files[0].operations, [0, 1]);
+    assert_eq!(result.files[0].operations, [OpRef::op(0), OpRef::op(1)]);
     assert!(!result.notes.iter().any(|n| n.contains("tool change")));
     // A disabled operation between two with the same tool doesn't split them.
     let mut off = with_tool(1, 2);
@@ -286,7 +292,7 @@ fn a_tool_that_comes_back_is_another_group_and_a_note() {
         job(json!({"tools": two_tools(), "operations": [with_tool(0, 1), off, with_tool(1, 1)]}));
     let result = run(&job1);
     assert_eq!(result.files.len(), 1);
-    assert_eq!(result.files[0].operations, [0, 2]);
+    assert_eq!(result.files[0].operations, [OpRef::op(0), OpRef::op(2)]);
 }
 
 #[test]
@@ -350,7 +356,7 @@ fn with_tool_changes_in_the_program_it_is_one_checked_file_with_m6() {
     let file = &result.files[0];
     assert_eq!(
         (file.suffix.clone(), file.operations.clone()),
-        (None, vec![0, 1])
+        (None, vec![OpRef::op(0), OpRef::op(1)])
     );
     let lines: Vec<&str> = file.gcode.lines().collect();
     assert!(
@@ -407,7 +413,7 @@ fn gcode_file_names_add_the_group_and_tool_to_the_stem() {
     let file = |suffix: Option<&str>| chipload_pipeline::GcodeFile {
         suffix: suffix.map(String::from),
         tool: 3,
-        operations: vec![1, 3],
+        operations: vec![OpRef::op(1), OpRef::op(3)],
         gcode: String::new(),
     };
     let out = Path::new("dir/part.nc");
@@ -1126,7 +1132,7 @@ mod cycle_time {
     fn group(job: &Job, moves: std::ops::Range<usize>) -> ToolGroup {
         ToolGroup {
             tool: job.tools[0].clone(),
-            operations: vec![0],
+            operations: vec![OpRef::op(0)],
             moves,
         }
     }
@@ -1142,6 +1148,7 @@ mod cycle_time {
         let program = rectangle();
         let span = OpSpan {
             operation: 0,
+            pass: None,
             copy: 1,
             moves: 0..8,
             tool_radius: 3.0,
@@ -1176,6 +1183,7 @@ mod cycle_time {
             .enumerate()
             .map(|(k, moves)| OpSpan {
                 operation: 1,
+                pass: None,
                 copy: k as u32 + 1,
                 moves,
                 tool_radius: 3.0,

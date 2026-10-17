@@ -365,6 +365,18 @@ pub(super) fn tool_icon(kind: ToolType) -> Icon {
     }
 }
 
+/// What a part's rows need besides the part.
+struct PartRows<'a> {
+    /// Its place among the parts.
+    k: usize,
+    parts: &'a [chipload_job::Part],
+    active: Option<u64>,
+    op_parts: &'a [u64],
+    count: usize,
+    /// The tool cut just before each operation, in cut order.
+    tool_before: &'a std::collections::BTreeMap<usize, i64>,
+}
+
 /// What a click in the operation rows asks for, done after they are drawn.
 enum OpAction {
     Focus(usize),
@@ -372,8 +384,14 @@ enum OpAction {
     Move(usize, usize),
     Duplicate(usize),
     Delete(usize),
-    /// A rest pocket for pocket i with this tool (docs/specs/rest-machining.md §10).
+    /// A rest pass for pocket i with this tool (docs/specs/rest-passes.md §6).
     AddRest(usize, i64),
+    /// Pocket i's rest pass k: open it, turn it on or off, remove it.
+    PassFocus(usize, usize),
+    PassToggle(usize, usize),
+    PassRemove(usize, usize),
+    /// Rest pocket i becomes a rest pass of the pocket it copies.
+    MakePass(usize),
     /// Into part `id`, at the end of its operations (dropped on the part's row).
     ToPart(usize, u64),
     PartFocus(u64),
@@ -570,6 +588,25 @@ impl ChiploadApp {
             .trailing(parts.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
         let mut action: Option<OpAction> = None;
+        // The tool cut just before each operation, in cut order: rest passes wait for their
+        // run of pockets (docs/specs/rest-passes.md §3), so the list's order isn't enough.
+        let tool_before: std::collections::BTreeMap<usize, i64> = self
+            .edited_job()
+            .map(|job| {
+                let mut before = std::collections::BTreeMap::new();
+                let mut last: Option<i64> = None;
+                for at in job.cut_list() {
+                    let tool = job.resolve(at).map(|op| op.tool());
+                    if at.pass.is_none()
+                        && let Some(t) = last
+                    {
+                        before.insert(at.operation, t);
+                    }
+                    last = tool.or(last);
+                }
+                before
+            })
+            .unwrap_or_default();
         folder_row
             .response
             .on_hover_text(
@@ -582,7 +619,15 @@ impl ChiploadApp {
             });
         if open {
             for (k, part) in parts.iter().enumerate() {
-                if let Some(a) = self.part_rows(ui, part, k, &parts, active, &op_parts, count) {
+                let rows = PartRows {
+                    k,
+                    parts: &parts,
+                    active,
+                    op_parts: &op_parts,
+                    count,
+                    tool_before: &tool_before,
+                };
+                if let Some(a) = self.part_rows(ui, part, rows) {
                     action = Some(a);
                 }
             }
@@ -604,7 +649,11 @@ impl ChiploadApp {
                 self.focus = Focus::Op(i);
                 self.delete_operation();
             }
-            Some(OpAction::AddRest(i, tool)) => self.add_rest_pocket(i, tool),
+            Some(OpAction::AddRest(i, tool)) => self.add_rest_pass(i, tool),
+            Some(OpAction::PassFocus(i, k)) => self.focus = Focus::RestPass(i, k),
+            Some(OpAction::PassToggle(i, k)) => self.toggle_rest_pass(i, k),
+            Some(OpAction::PassRemove(i, k)) => self.remove_rest_pass(i, k),
+            Some(OpAction::MakePass(i)) => self.make_rest_pass(i),
             Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
             Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
             Some(OpAction::PartActivate(id)) => self.activate_part(id),
@@ -623,17 +672,20 @@ impl ChiploadApp {
     }
 
     /// Part `part`'s row (the `k`th part) and, when it is open, its operations.
-    #[allow(clippy::too_many_arguments)]
     fn part_rows(
         &mut self,
         ui: &mut egui::Ui,
         part: &chipload_job::Part,
-        k: usize,
-        parts: &[chipload_job::Part],
-        active: Option<u64>,
-        op_parts: &[u64],
-        count: usize,
+        rows: PartRows,
     ) -> Option<OpAction> {
+        let PartRows {
+            k,
+            parts,
+            active,
+            op_parts,
+            count,
+            tool_before,
+        } = rows;
         let mine: Vec<usize> = (0..count).filter(|i| op_parts[*i] == part.id).collect();
         let flagged = mine.iter().any(|i| {
             self.problems.iter().any(|p| p.operation() == Some(*i)) || self.error_ops.contains(i)
@@ -747,15 +799,22 @@ impl ChiploadApp {
             });
         }
         for i in mine {
-            if let Some(a) = self.operation_row(ui, i, count) {
+            if let Some(a) = self.operation_row(ui, i, count, tool_before.get(&i).copied()) {
                 action = Some(a);
             }
         }
         action
     }
 
-    /// Operation `i`'s row (and the tool change line above it).
-    fn operation_row(&mut self, ui: &mut egui::Ui, i: usize, count: usize) -> Option<OpAction> {
+    /// Operation `i`'s row (and the tool change line above it). `previous`: the tool cut
+    /// just before it, in cut order.
+    fn operation_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        i: usize,
+        count: usize,
+        previous: Option<i64>,
+    ) -> Option<OpAction> {
         let edit = self.edit.as_ref()?;
         let entry = edit.ops.get(i)?;
         let op = &entry.op;
@@ -764,11 +823,6 @@ impl ChiploadApp {
             op.enabled() && edit.settings.part(op.part()).is_some_and(|p| p.enabled)
         };
         // A line marks each tool change (docs/specs/tool-per-operation.md §8).
-        let previous = edit.ops[..i]
-            .iter()
-            .rev()
-            .find(|e| cut(&e.op))
-            .map(|e| e.op.tool());
         let is_cut = cut(op);
         if is_cut && previous.is_some_and(|t| t != op.tool()) {
             tool_change(ui, op.tool());
@@ -781,15 +835,16 @@ impl ChiploadApp {
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
-        // Smaller endmills a rest pocket for this pocket can use
-        // (docs/specs/rest-machining.md §10).
+        // Smaller endmills a rest pass for this pocket can use: smaller than the last tool
+        // of its chain (docs/specs/rest-passes.md §6). None with dogbones.
         let rest_tools: Vec<(i64, f64)> = match op {
-            Operation::Pocket(p) if p.rest.is_none() => {
+            Operation::Pocket(p) if p.corners.is_none() => {
+                let last = p.rest_passes.last().map_or(p.tool, |r| r.tool);
                 let diameter = edit
                     .settings
                     .tools
                     .iter()
-                    .find(|t| t.id == p.tool)
+                    .find(|t| t.id == last)
                     .map(|t| t.diameter);
                 edit.settings
                     .tools
@@ -812,6 +867,15 @@ impl ChiploadApp {
             format!("T{}", op.tool())
         };
         let hover = self.operation_hover(i, problem.as_deref(), hidden);
+        // A rest pocket that copies an earlier pocket can become its rest pass (§5).
+        let parent = match op {
+            Operation::Pocket(p) if p.rest.is_some() => self.rest_pocket_parent(i),
+            _ => None,
+        };
+        let passes: Vec<chipload_job::RestPass> = match op {
+            Operation::Pocket(p) => p.rest_passes.clone(),
+            _ => Vec::new(),
+        };
         let dark = ui.visuals().dark_mode;
         let row = Row::new(Id::new(("browser-op", i)), 3, format!("{}  {name}", i + 1))
             .tick(op.enabled())
@@ -862,9 +926,13 @@ impl ChiploadApp {
                 action = Some(OpAction::Duplicate(i));
             }
             if !rest_tools.is_empty() {
-                ui.menu_button("Add rest pocket", |ui| {
+                let units = crate::units::display(ui.ctx());
+                ui.menu_button("Add rest pass", |ui| {
                     for (tool, diameter) in &rest_tools {
-                        let label = format!("T{tool} · {diameter} mm endmill");
+                        let label = format!(
+                            "T{tool} · {} endmill",
+                            chipload_pipeline::units::length_text(*diameter, units)
+                        );
                         if ui.button(label).clicked() {
                             action = Some(OpAction::AddRest(i, *tool));
                         }
@@ -872,15 +940,81 @@ impl ChiploadApp {
                 })
                 .response
                 .on_hover_text(
-                    "A pocket after this one with the same shapes and depths, cut with a \
-                     smaller tool, that clears only what this pocket's tool leaves",
+                    "A smaller tool that clears only what this pocket's tool leaves, in its \
+                     shapes and depths. It follows the pocket, and is cut after the pockets \
+                     next to it with the same tool",
                 );
+            }
+            if let Some(parent) = parent
+                && ui
+                    .button(format!("Make it a rest pass of operation {}", parent + 1))
+                    .on_hover_text(
+                        "It copies that pocket: as its rest pass it follows it, and is cut \
+                         after the pockets next to it with the same tool",
+                    )
+                    .clicked()
+            {
+                action = Some(OpAction::MakePass(i));
             }
             ui.separator();
             if ui.button("Delete").clicked() {
                 action = Some(OpAction::Delete(i));
             }
         });
+        let color = kind_color(op, dark);
+        for (k, pass) in passes.iter().enumerate() {
+            if let Some(a) = self.rest_pass_row(ui, i, k, pass, is_cut, color) {
+                action = Some(a);
+            }
+        }
+        action
+    }
+
+    /// Pocket `i`'s rest pass `k`, a leaf under it (docs/specs/rest-passes.md §6).
+    fn rest_pass_row(
+        &self,
+        ui: &mut egui::Ui,
+        i: usize,
+        k: usize,
+        pass: &chipload_job::RestPass,
+        pocket_cut: bool,
+        color: Color32,
+    ) -> Option<OpAction> {
+        let at = chipload_job::OpRef::pass(i, k);
+        let flagged = self.problems.iter().any(|p| {
+            p.operation() == Some(i) && p.field().starts_with(&format!("rest_passes.{k}"))
+        });
+        let time = self
+            .result
+            .as_ref()
+            .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
+            .map_or(String::new(), |(_, s)| {
+                format!("{} · ", chipload_pipeline::estimate::duration_text(*s))
+            });
+        let row = Row::new(Id::new(("browser-pass", i, k)), 4, format!("{at}  Rest"))
+            .tick(pass.enabled)
+            .icon_colored(Icon::Pocket, color)
+            .trailing(format!("{time}T{}", pass.tool))
+            .selected(self.focus == Focus::RestPass(i, k))
+            .dim(!(pocket_cut && pass.enabled))
+            .alert(flagged)
+            .show(ui);
+        let mut action = None;
+        if row.tick {
+            action = Some(OpAction::PassToggle(i, k));
+        } else if row.response.clicked() {
+            action = Some(OpAction::PassFocus(i, k));
+        }
+        row.response
+            .on_hover_text(
+                "A rest pass: it clears what the tool before it leaves, in its pocket's shapes \
+                 and depths, and is cut after the pockets next to its pocket with the same tool",
+            )
+            .context_menu(|ui| {
+                if ui.button("Remove").clicked() {
+                    action = Some(OpAction::PassRemove(i, k));
+                }
+            });
         action
     }
 
@@ -910,7 +1044,12 @@ impl ChiploadApp {
         let time = self
             .result
             .as_ref()
-            .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == i))
+            .and_then(|r| {
+                r.estimate
+                    .operations
+                    .iter()
+                    .find(|(o, _)| *o == chipload_job::OpRef::op(i))
+            })
             .map_or(String::new(), |(_, s)| {
                 format!(" · {}", chipload_pipeline::estimate::duration_text(*s))
             });
@@ -943,7 +1082,7 @@ impl ChiploadApp {
             return false;
         }
         let open = match self.focus {
-            Focus::Op(_) => return false,
+            Focus::Op(_) | Focus::RestPass(..) => return false,
             Focus::Dxf(id) => ShapeFrom::Dxf(id),
             Focus::Image(id) => ShapeFrom::Image(id),
             Focus::Text(id) => ShapeFrom::Text(id),

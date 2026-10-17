@@ -82,6 +82,8 @@ pub const PROJECT_EXTENSION: &str = "chipload";
 pub enum Focus {
     Job,
     Op(usize),
+    /// Pocket `0`'s rest pass `1` (docs/specs/rest-passes.md §6).
+    RestPass(usize, usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
     /// The project's tools; one tool, by id; an imported DXF; a picture
@@ -1054,34 +1056,101 @@ impl ChiploadApp {
         }
     }
 
-    /// Add a rest pocket after pocket `i`, cut with `tool` (docs/specs/rest-machining.md
-    /// §10), and select it.
-    pub fn add_rest_pocket(&mut self, i: usize, tool: i64) {
+    /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
+    /// open it.
+    pub fn add_rest_pass(&mut self, i: usize, tool: i64) {
         let cutting = self.tool_cutting(tool);
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let Some(Operation::Pocket(pocket)) = edit.ops.get(i).map(|e| &e.op) else {
+        let tools = edit.settings.tools.clone();
+        let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
             return;
         };
-        match chipload_pipeline::rest_pocket_of(
-            pocket,
-            &edit.settings.tools,
-            tool,
-            cutting.as_ref(),
-        ) {
-            Ok(rest) => {
-                edit.ops.insert(
-                    i + 1,
-                    crate::editor::EditOp {
-                        op: Operation::Pocket(rest),
-                        side_chosen: true,
-                    },
-                );
-                self.focus = Focus::Op(i + 1);
+        match chipload_pipeline::rest_pass_of(pocket, &tools, tool, cutting.as_ref()) {
+            Ok(pass) => {
+                pocket.rest_passes.push(pass);
+                self.focus = Focus::RestPass(i, pocket.rest_passes.len() - 1);
                 self.commit();
             }
-            Err(err) => self.error(vec![format!("Could not add a rest pocket: {err}")]),
+            Err(err) => self.error(vec![format!("Could not add a rest pass: {err}")]),
+        }
+    }
+
+    /// Pocket `i`'s rest passes, to change.
+    pub(super) fn rest_passes_mut(&mut self, i: usize) -> Option<&mut Vec<chipload_job::RestPass>> {
+        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+            Some(Operation::Pocket(p)) => Some(&mut p.rest_passes),
+            _ => None,
+        }
+    }
+
+    /// Remove pocket `i`'s rest pass `k`; its pocket opens.
+    pub fn remove_rest_pass(&mut self, i: usize, k: usize) {
+        if let Some(passes) = self.rest_passes_mut(i)
+            && k < passes.len()
+        {
+            passes.remove(k);
+            self.focus = Focus::Op(i);
+            self.commit();
+        }
+    }
+
+    /// Turn pocket `i`'s rest pass `k` on or off.
+    pub fn toggle_rest_pass(&mut self, i: usize, k: usize) {
+        if let Some(pass) = self.rest_passes_mut(i).and_then(|p| p.get_mut(k)) {
+            pass.enabled = !pass.enabled;
+            self.commit();
+        }
+    }
+
+    /// The project as edited, its operations included, for the pipeline's job-level rules.
+    pub(super) fn edited_job(&self) -> Option<chipload_job::Job> {
+        let edit = self.edit.as_ref()?;
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        Some(job)
+    }
+
+    /// The pocket that rest pocket `i` copies, which it can become a rest pass of
+    /// (docs/specs/rest-passes.md §5).
+    pub(super) fn rest_pocket_parent(&self, i: usize) -> Option<usize> {
+        chipload_pipeline::rest_pocket_parent(&self.edited_job()?, i)
+    }
+
+    /// *Make it a rest pass*: rest pocket `i` becomes the last rest pass of the pocket it
+    /// copies, which opens on it.
+    pub fn make_rest_pass(&mut self, i: usize) {
+        let Some(parent) = self.rest_pocket_parent(i) else {
+            return;
+        };
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let Operation::Pocket(rest) = edit.ops.remove(i).op else {
+            return;
+        };
+        if let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(parent).map(|e| &mut e.op) {
+            pocket.rest_passes.push(chipload_job::RestPass {
+                tool: rest.tool,
+                feed: rest.feed,
+                plunge_feed: rest.plunge_feed,
+                step_down: rest.step_down,
+                stepover: rest.stepover,
+                entry: rest.entry,
+                enabled: rest.enabled,
+            });
+            self.focus = Focus::RestPass(parent, pocket.rest_passes.len() - 1);
+            self.commit();
+            self.set_status(
+                format!(
+                    "Operation {} is now a rest pass of operation {}; it is cut after the run \
+                     of pockets it belongs to",
+                    i + 1,
+                    parent + 1
+                ),
+                STATUS_SECONDS,
+            );
         }
     }
 
@@ -1362,7 +1431,7 @@ impl ChiploadApp {
     // -- internals
 
     fn focused_contours(&self) -> BTreeSet<usize> {
-        let (Focus::Op(i), Some(edit)) = (self.focus, &self.edit) else {
+        let (Focus::Op(i) | Focus::RestPass(i, _), Some(edit)) = (self.focus, &self.edit) else {
             return BTreeSet::new();
         };
         edit.ops

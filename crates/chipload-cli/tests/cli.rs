@@ -1304,7 +1304,7 @@ fn op_rest_sets_and_removes_rest_machining() {
     let out = chipload(&["op", "rest", path(&project), "--op", "2"]);
     assert_eq!(out.status.code(), Some(2));
 
-    // op add-rest: a copy of pocket 1 with tool 2, after it (§10).
+    // op add-rest: a rest pass of pocket 1 with tool 2 (docs/specs/rest-passes.md §6).
     let fresh = dir.join("fresh.chipload");
     let out = chipload(&[
         "set",
@@ -1317,16 +1317,90 @@ fn op_rest_sets_and_removes_rest_machining() {
     let out = chipload(&["op", "add-rest", path(&fresh), "--op", "1", "--tool", "2"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert!(
-        text(&out.stdout)
-            .contains("Added operation 2 (Rough (rest)), rest after operation 1's tool"),
+        text(&out.stdout).contains("Added rest pass 1.1 to operation 1, tool 2"),
         "{}",
         text(&out.stdout)
     );
-    let out = chipload(&["get", path(&fresh), "operations.1.rest"]);
-    assert_eq!(text(&out.stdout), "{\n  \"after_tool\": 1\n}\n");
-    let out = chipload(&["op", "add-rest", path(&fresh), "--op", "2", "--tool", "2"]);
+    let out = chipload(&["get", path(&fresh), "operations.0.rest_passes.0.tool"]);
+    assert_eq!(text(&out.stdout), "2\n");
+    // Not with the same tool again: it isn't smaller than the 4 mm before it.
+    let out = chipload(&["op", "add-rest", path(&fresh), "--op", "1", "--tool", "2"]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(text(&out.stderr).contains("it is a rest pocket itself"));
+    assert!(
+        text(&out.stderr).contains("is not smaller than tool 2"),
+        "{}",
+        text(&out.stderr)
+    );
+    // op rest-pass: list, change, turn off, remove.
+    let out = chipload(&["op", "rest-pass", path(&fresh), "--op", "1"]);
+    assert!(
+        text(&out.stdout).contains("1.1: tool 2"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&[
+        "op",
+        "rest-pass",
+        path(&fresh),
+        "--op",
+        "1",
+        "--pass",
+        "1",
+        "--feed",
+        "700",
+        "--enabled",
+        "false",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["get", path(&fresh), "operations.0.rest_passes.0.enabled"]);
+    assert_eq!(text(&out.stdout), "false\n");
+    // A larger tool for the pass is refused, with its field.
+    let out = chipload(&[
+        "op",
+        "rest-pass",
+        path(&fresh),
+        "--op",
+        "1",
+        "--pass",
+        "1",
+        "--tool",
+        "1",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains("Operation 1.1 (Rough, rest): tool 1 (12 mm) must be smaller"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&[
+        "op",
+        "rest-pass",
+        path(&fresh),
+        "--op",
+        "1",
+        "--pass",
+        "1",
+        "--remove",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["get", path(&fresh), "operations.0"]);
+    assert!(!text(&out.stdout).contains("rest_passes"));
+    // op make-rest-pass: the sample's rest pocket (operation 2) copies pocket 1.
+    let made = dir.join("made.chipload");
+    let sample = corpus("jobs/v18/rest.chipload");
+    let out = chipload(&[
+        "op",
+        "make-rest-pass",
+        path(&sample),
+        "--op",
+        "2",
+        "-o",
+        path(&made),
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("is now rest pass 1.1 of operation 1"));
+    let out = chipload(&["get", path(&made), "operations.0.rest_passes.0.tool"]);
+    assert_eq!(text(&out.stdout), "2\n");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

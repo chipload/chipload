@@ -16,7 +16,7 @@
 | Message | What to do |
 |---|---|
 | *tool (diameter … mm) does not fit in the pocket* | The pocket is narrower than the tool everywhere. Use a smaller tool. |
-| *the tool does not fit through a narrow part* | A warning: the pocket is cleared as separate areas, and material stays in the narrow part. A [rest pocket](operations/rest.md) with a smaller tool can clear it. |
+| *the tool does not fit through a narrow part* | A warning: the pocket is cleared as separate areas, and material stays in the narrow part. A [rest pass](operations/rest.md) with a smaller tool can clear it. |
 | *uncut material* | The pocket's stepover is too large for its shape. Lower the stepover. |
 | *end depth … is … below the stock …, more than the allowed* | The cut is deeper than *Max depth below stock* allows. Check the stock thickness, or raise the allowance (Job settings > Stock). |
 | *Tool N has no spindle speed* | Set the tool's spindle speed (rpm). |

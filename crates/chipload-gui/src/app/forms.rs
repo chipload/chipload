@@ -1197,6 +1197,10 @@ pub(super) fn work_zero_rows(
 pub(super) enum JobRequest {
     /// docs/specs/tool-library-and-machines.md §8.
     Library(LibraryRequest),
+    /// Open operation i (a rest pass's pocket).
+    OpenOperation(usize),
+    /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
+    RemoveRestPass(usize, usize),
     /// Set part `id`'s pitch so this many mm are left between its copies' cuts
     /// (docs/specs/copies-grid.md decision 2).
     CopiesGap(u64, f64),
@@ -2714,6 +2718,128 @@ fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
         }
     });
     ui.end_row();
+}
+
+/// Pocket `i`'s rest pass `k` (docs/specs/rest-passes.md §6): its own values, and what it
+/// takes from its pocket as facts. None when there is no such pass (after an undo).
+pub(super) fn rest_pass_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    i: usize,
+    k: usize,
+) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let tools = edit.settings.tools.clone();
+    let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        return None;
+    };
+    let before = match k {
+        0 => pocket.tool,
+        _ => pocket.rest_passes.get(k - 1)?.tool,
+    };
+    let before_diameter = tools.iter().find(|t| t.id == before).map(|t| t.diameter);
+    let pocket_name = match pocket.name.as_str() {
+        "" => format!("operation {}", i + 1),
+        name => format!("operation {} ({name})", i + 1),
+    };
+    let facts = format!(
+        "{}–{} {len_unit}, clearance {} {len_unit}, {}",
+        len_in(units, pocket.start_depth),
+        len_in(units, pocket.end_depth),
+        len_in(units, pocket.clearance),
+        match pocket.direction {
+            Direction::Climb => "climb",
+            Direction::Conventional => "conventional",
+        }
+    );
+    let pass = pocket.rest_passes.get_mut(k)?;
+    let at = chipload_job::OpRef::pass(i, k);
+    let mut request = None;
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Pocket,
+        None,
+        &format!("Rest pass · Operation {at}"),
+    );
+    Grid::new(("rest-pass", i, k))
+        .num_columns(2)
+        .min_col_width(LABEL_WIDTH + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label("Rest of").on_hover_text(
+                "It cuts its pocket's shapes and depths, and clears only what the tool before \
+                 it leaves",
+            );
+            ui.horizontal(|ui| {
+                ui.label(&pocket_name);
+                if ui.small_button("Open").clicked() {
+                    request = Some(JobRequest::OpenOperation(i));
+                }
+            });
+            ui.end_row();
+            ui.label("From the pocket");
+            ui.weak(&facts);
+            ui.end_row();
+            ui.label("After tool")
+                .on_hover_text("It clears what this tool leaves: the pocket's, or the pass before");
+            ui.weak(format!("T{before}"));
+            ui.end_row();
+            ui.label("Cut it");
+            ui.checkbox(&mut pass.enabled, "")
+                .on_hover_text("Off: kept, but not cut");
+            ui.end_row();
+            ui.label("Tool");
+            let label = |id: i64| {
+                tools
+                    .iter()
+                    .find(|t| t.id == id)
+                    .map_or(format!("T{id} (not in the project)"), |t| {
+                        tool_label(t, units)
+                    })
+            };
+            let combo = ComboBox::from_id_salt(("rest-pass-tool", i, k))
+                .selected_text(label(pass.tool))
+                .show_ui(ui, |ui| {
+                    for t in tools.iter().filter(|t| {
+                        t.kind == ToolType::Endmill
+                            && before_diameter.is_some_and(|d| t.diameter < d)
+                    }) {
+                        ui.selectable_value(&mut pass.tool, t.id, tool_label(t, units));
+                    }
+                });
+            flag(combo.response, ui, "tool");
+            ui.end_row();
+            ui.label("Step down");
+            flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
+            ui.end_row();
+            ui.label("Stepover");
+            let stepover = ui.add(
+                DragValue::new(&mut pass.stepover)
+                    .speed(0.01)
+                    .range(0.01..=1.0)
+                    .suffix(" × D"),
+            );
+            flag(stepover, ui, "stepover");
+            ui.end_row();
+            ui.label("Feed");
+            flag(ui.add(feed(&mut pass.feed)), ui, "feed");
+            ui.end_row();
+            ui.label("Plunge feed");
+            flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
+            ui.end_row();
+            let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
+            entry_rows(ui, 1000 + i * 100 + k, &mut pass.entry, diameter);
+        });
+    ui.add_space(6.0);
+    ui.weak(
+        "Cut after the pockets next to its pocket that use the same tool, all their rest \
+         passes together: the small tool comes in once.",
+    );
+    ui.add_space(6.0);
+    if ui.button("Remove rest pass").clicked() {
+        request = Some(JobRequest::RemoveRestPass(i, k));
+    }
+    request
 }
 
 #[cfg(test)]

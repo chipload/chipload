@@ -13,8 +13,8 @@ use chipload_core::chain::Contour;
 use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
-    Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
-    ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    Corners, Direction, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp, Side, Spindle,
+    Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -375,7 +375,7 @@ fn operations_table(
     html: &mut String,
     job: &Job,
     result: &RunResult,
-    operations: &[usize],
+    operations: &[OpRef],
     u: Units,
 ) {
     html.push_str(
@@ -384,10 +384,12 @@ fn operations_table(
     );
     // With two parts or more, a heading row where each part starts (docs/specs/parts.md §6).
     let mut part_shown: Option<u64> = None;
-    for &index in operations {
-        let Some(op) = job.operations.get(index) else {
+    for &at in operations {
+        // A rest pass is the pocket it makes (docs/specs/rest-passes.md §6).
+        let Some(op) = job.resolve(at) else {
             continue;
         };
+        let op = &op;
         if job.parts.len() > 1
             && part_shown != Some(op.part())
             && let Some((number, part)) = job
@@ -409,14 +411,14 @@ fn operations_table(
             );
         }
         let name = match op.name() {
-            "" => format!("Operation {}", index + 1),
+            "" => format!("Operation {at}"),
             name => name.to_string(),
         };
         let seconds = result
             .estimate
             .operations
             .iter()
-            .find(|(i, _)| *i == index)
+            .find(|(r, _)| *r == at)
             .map_or(0.0, |(_, s)| *s);
         let (feed, plunge) = feeds(op);
         // A drill only goes down (docs/specs/holes.md §2): its one feed.
@@ -435,7 +437,7 @@ fn operations_table(
             html,
             "<tr><td>{}</td><td><strong>{}</strong><br>{}</td><td>{}</td><td>{}{load}</td>\
              <td>{}</td><td>{}</td><td>{}</td></tr>",
-            index + 1,
+            at,
             escape(&name),
             escape(&kind_text(op, &job.tools, u)),
             escape(&depth_text(op, u)),

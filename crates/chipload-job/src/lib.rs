@@ -5,6 +5,7 @@
 //! `schema_version`; older versions are migrated step by step, missing or newer versions are
 //! refused, and validation only ever targets the current version.
 
+pub mod cut_list;
 pub mod edit;
 pub mod library;
 pub mod migrations;
@@ -20,6 +21,7 @@ use std::path::Path;
 use serde_json::Value;
 use thiserror::Error;
 
+pub use cut_list::OpRef;
 pub use models::*;
 pub use note::Note;
 pub use problem::Problem;

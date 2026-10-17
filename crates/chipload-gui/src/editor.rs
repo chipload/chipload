@@ -453,6 +453,7 @@ impl EditJob {
                     lead: None,
                     corners: None,
                     rest: None,
+                    rest_passes: Vec::new(),
                 }),
                 true,
             ),

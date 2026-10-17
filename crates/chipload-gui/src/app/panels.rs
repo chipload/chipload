@@ -95,6 +95,7 @@ impl ChiploadApp {
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
             Focus::Text(id) => request = forms::text_form(ui, edit, id, grab),
+            Focus::RestPass(i, k) => request = forms::rest_pass_form(ui, edit, i, k),
             // Drawn by `library_properties` above.
             Focus::LibraryTools
             | Focus::LibraryTool(_)
@@ -128,6 +129,8 @@ impl ChiploadApp {
         }
         match request {
             Some(JobRequest::Library(request)) => self.library_request(request),
+            Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
+            Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
             Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {

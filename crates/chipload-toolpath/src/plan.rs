@@ -7,9 +7,9 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_job::{
-    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, Operation, Part,
-    PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Tabs, Tool, ToolType, VcarveOp, ZZero,
-    rest_refusal,
+    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef, Operation,
+    Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Tabs, Tool, ToolType, VcarveOp,
+    ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -53,12 +53,13 @@ pub struct Plan {
     pub groups: Vec<ToolGroup>,
 }
 
-/// Operations next to each other that use the same tool, and the moves they made.
+/// Operations (and rest passes) next to each other in cut order that use the same tool, and
+/// the moves they made.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ToolGroup {
     pub tool: Tool,
-    /// Indexes in `job.operations`, in cut order.
-    pub operations: Vec<usize>,
+    /// The operations and rest passes, in cut order (docs/specs/rest-passes.md §3).
+    pub operations: Vec<OpRef>,
     pub moves: std::ops::Range<usize>,
 }
 
@@ -93,6 +94,9 @@ pub struct RingStart {
 pub struct OpSpan {
     /// Index in `job.operations`.
     pub operation: usize,
+    /// Which of its pocket's rest passes; None: the operation itself
+    /// (docs/specs/rest-passes.md).
+    pub pass: Option<usize>,
     /// Which copy of the part (docs/specs/copies-grid.md): 1 is the drawing as drawn.
     pub copy: u32,
     pub moves: std::ops::Range<usize>,
@@ -123,20 +127,25 @@ pub fn plan_job_cancellable(
     for step in &steps {
         cancel.check()?;
         let Chosen {
-            index, selection, ..
+            at, op, selection, ..
         } = &chosen[step.chosen];
         let group = &mut groups[step.group];
         if group.moves.is_empty() {
             group.moves = gathered.moves.len()..gathered.moves.len();
         }
-        let tool = op_tool(job, &job.operations[*index]).map_err(|err| err.at(*index))?;
-        if !gathered.started.contains(index) {
-            gathered.started.push(*index);
-            notes.extend(selection.notes.iter().map(|n| Note::at(*index, n.clone())));
+        let tool = op_tool(job, op).map_err(|err| err.at(at.operation))?;
+        if !gathered.started.contains(at) {
+            gathered.started.push(*at);
+            notes.extend(
+                selection
+                    .notes
+                    .iter()
+                    .map(|n| Note::at(at.operation, n.clone())),
+            );
         }
         let planned = plan_step(job, contours, cancel, &chosen[step.chosen], step, position)?;
         position = planned.end;
-        gathered.add(job, step, *index, tool.diameter / 2.0, planned, &mut notes);
+        gathered.add(job, step, *at, tool.diameter / 2.0, planned, &mut notes);
         groups[step.group].moves.end = gathered.moves.len();
     }
     let Gathered {
@@ -174,30 +183,36 @@ pub fn plan_job_cancellable(
     })
 }
 
-/// An enabled operation with its selection, chosen once on the drawing as drawn.
+/// An operation or rest pass that is cut, with its selection, chosen once on the drawing as
+/// drawn.
 struct Chosen<'a> {
-    /// Index in `job.operations`.
-    index: usize,
+    at: OpRef,
+    /// The operation; for a rest pass, the pocket it is (Job::resolve).
+    op: Operation,
     label: String,
     selection: Selection<'a>,
 }
 
-/// Every enabled operation's selection (docs/specs/v0-profile-pipeline.md §3).
+/// Every cut operation's and rest pass's selection (docs/specs/v0-profile-pipeline.md §3),
+/// in the job's cut list (docs/specs/rest-passes.md §3).
 fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>, ToolpathError> {
     let mut chosen = Vec::new();
-    for (index, op) in job.operations.iter().enumerate() {
-        if !job.cuts(index) {
-            continue; // kept in the file, skipped here; numbering stays as listed
-        }
-        let label = op.label(index);
+    // Operations that aren't cut are kept in the file and skipped here; numbering stays as
+    // listed.
+    for at in job.cut_list() {
+        let op = job
+            .resolve(at)
+            .ok_or_else(|| job_error(format!("No operation {at} in the job")))?;
+        let label = job.label(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
             Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
             _ => select_contours(contours, op.select(), &label),
         }
-        .map_err(|err| err.at(index))?;
+        .map_err(|err| err.at(at.operation))?;
         chosen.push(Chosen {
-            index,
+            at,
+            op,
             label,
             selection,
         });
@@ -223,27 +238,32 @@ struct Step {
 /// so a grid needs one tool change, not one per copy. The groups' move ranges are empty
 /// until planned.
 fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>), ToolpathError> {
+    // Tool groups: chosen operations next to each other in cut order with the same tool.
+    let mut tool_runs: Vec<(i64, Vec<usize>)> = Vec::new();
+    for (i, c) in chosen.iter().enumerate() {
+        match tool_runs.last_mut() {
+            Some((tool, members)) if *tool == c.op.tool() => members.push(i),
+            _ => tool_runs.push((c.op.tool(), vec![i])),
+        }
+    }
     let mut steps: Vec<Step> = Vec::new();
     let mut groups: Vec<ToolGroup> = Vec::new();
-    for (tool_id, indexes) in tool_groups(job) {
+    for (tool_id, members) in tool_runs {
         let tool = job
             .tool(tool_id)
             .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
-        let members: Vec<usize> = (0..chosen.len())
-            .filter(|i| indexes.contains(&chosen[*i].index))
-            .collect();
         // A group can run on from one part into the next: each part's run with its copies.
         let mut runs: Vec<Vec<usize>> = Vec::new();
-        for i in members {
-            let part = job.operations[chosen[i].index].part();
+        for &i in &members {
+            let part = chosen[i].op.part();
             match runs.last_mut() {
-                Some(run) if job.operations[chosen[run[0]].index].part() == part => run.push(i),
+                Some(run) if chosen[run[0]].op.part() == part => run.push(i),
                 _ => runs.push(vec![i]),
             }
         }
         let group = groups.len();
         for run in runs {
-            let part = job.part_of(&job.operations[chosen[run[0]].index]);
+            let part = job.part_of(&chosen[run[0]].op);
             let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
             let step = |i: usize, (copy, shift): (u32, Point)| Step {
                 chosen: i,
@@ -266,7 +286,7 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
         }
         groups.push(ToolGroup {
             tool: tool.clone(),
-            operations: indexes,
+            operations: members.iter().map(|&i| chosen[i].at).collect(),
             moves: 0..0,
         });
     }
@@ -308,8 +328,8 @@ fn plan_step(
     step: &Step,
     position: Point,
 ) -> Result<Planned, ToolpathError> {
-    let index = chosen.index;
-    let op = &job.operations[index];
+    let index = chosen.at.operation;
+    let op = &chosen.op;
     let tool = op_tool(job, op).map_err(|err| err.at(index))?;
     let top_z = job.stock.top_z();
     let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
@@ -411,9 +431,9 @@ struct Gathered {
     comments: Vec<String>,
     part_started: Option<u64>,
     /// Operations planned at least once: their selection's notes are listed once.
-    started: Vec<usize>,
+    started: Vec<OpRef>,
     /// Every copy repeats the original's notes: each is listed once per operation.
-    seen: Vec<(usize, String)>,
+    seen: Vec<(OpRef, String)>,
 }
 
 impl Gathered {
@@ -421,11 +441,12 @@ impl Gathered {
         &mut self,
         job: &Job,
         step: &Step,
-        index: usize,
+        at: OpRef,
         tool_radius: f64,
         planned: Planned,
         notes: &mut Vec<Note>,
     ) {
+        let index = at.operation;
         let first = self.moves.len();
         self.moves.extend(lower_approaches(
             planned.moves,
@@ -435,12 +456,13 @@ impl Gathered {
         self.comment_part_start(job, index, first);
         self.op_spans.push(OpSpan {
             operation: index,
+            pass: at.pass,
             copy: step.copy,
             moves: first..self.moves.len(),
             tool_radius,
         });
         for note in planned.notes {
-            let key = (index, note);
+            let key = (at, note);
             if !self.seen.contains(&key) {
                 notes.push(Note::at(index, key.1.clone()));
                 self.seen.push(key);
@@ -448,8 +470,9 @@ impl Gathered {
         }
         self.tabs.extend(planned.tabs);
         self.pockets.extend(planned.pockets);
-        // Start markers are drawn on the part: the copies' are the same.
-        if step.copy == 1 {
+        // Start markers are drawn on the part: the copies' are the same. A rest pass's rings
+        // start where the planner puts them: starts belong to the pocket.
+        if step.copy == 1 && at.pass.is_none() {
             self.ring_starts
                 .extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
                     operation: index,
@@ -1673,6 +1696,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 Err(text) => problems.push(labelled(at("rest"), &label, text)),
             }
         }
+        if let Operation::Pocket(pocket) = op {
+            let (more_problems, more_notes) = rest_pass_checks(job, index, pocket);
+            problems.extend(more_problems);
+            notes.extend(more_notes);
+        }
         if let Some(max_feed) = job.machine.max_feed {
             for (name, value) in [("feed", feed), ("plunge_feed", plunge_feed)] {
                 if value > max_feed {
@@ -1863,7 +1891,7 @@ fn rest_check(
     let earlier = job.operations[..index].iter().any(|op| {
         matches!(op, Operation::Pocket(p)
             if p.enabled
-                && p.tool == after_tool
+                && (p.tool == after_tool || p.rest_passes.iter().any(|r| r.tool == after_tool))
                 && p.select == pocket.select
                 && p.end_depth >= pocket.end_depth - DEPTH_TOL_MM)
     });
@@ -1875,6 +1903,84 @@ fn rest_check(
              with it as deep; the rest of the pocket will be left uncut"
         )])
     }
+}
+
+/// A pocket's rest passes (docs/specs/rest-passes.md §7): each cuts with a project endmill
+/// smaller than the tool before it, with a spindle speed, and not under dogbones. Their
+/// plunge notes are as for any pocket.
+fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>, Vec<Note>) {
+    let (mut problems, mut notes) = (Vec::new(), Vec::new());
+    if pocket.rest_passes.is_empty() {
+        return (problems, notes);
+    }
+    if pocket.corners.is_some() {
+        problems.push(labelled(
+            format!("operations.{index}.rest_passes"),
+            &job.label(OpRef::op(index)),
+            "dogbones and rest passes can't be combined yet; dogbone corners need no rest".into(),
+        ));
+    }
+    for (k, pass) in pocket.rest_passes.iter().enumerate() {
+        let label = job.label(OpRef::pass(index, k));
+        let at = |field: &str| format!("operations.{index}.rest_passes.{k}.{field}");
+        let Some(tool) = job.tool(pass.tool) else {
+            problems.push(labelled(
+                at("tool"),
+                &label,
+                format!("tool {} is not defined in the job", pass.tool),
+            ));
+            continue;
+        };
+        let before_id = match k {
+            0 => pocket.tool,
+            _ => pocket.rest_passes[k - 1].tool,
+        };
+        if let Some(before) = job.tool(before_id) {
+            match rest_refusal(tool, before) {
+                Some(RestRefusal::SmallNotEndmill) => problems.push(labelled(
+                    at("tool"),
+                    &label,
+                    format!(
+                        "tool {} is a {}; a rest pass cuts with an endmill",
+                        tool.id,
+                        tool.kind.name()
+                    ),
+                )),
+                Some(RestRefusal::NotLarger) => problems.push(labelled(
+                    at("tool"),
+                    &label,
+                    format!(
+                        "tool {} ({} mm) must be smaller than tool {} ({} mm) before it",
+                        tool.id,
+                        mm(tool.diameter),
+                        before.id,
+                        mm(before.diameter)
+                    ),
+                )),
+                // The tool before it is the pocket's (checked with the pocket) or a pass's
+                // (checked above).
+                Some(RestRefusal::LargeNotEndmill) | None => {}
+            }
+        }
+        if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
+            problems.push(labelled(
+                at("tool"),
+                &label,
+                format!("tool {} has no spindle speed (rpm)", tool.id),
+            ));
+        }
+        if let Ok(true) = pocket_tool_notes(tool, pass.entry) {
+            notes.push(Note::at(
+                index,
+                format!(
+                    "{label}: plunges straight down with tool {}, which isn't marked \
+                     centre-cutting; use a helix or a ramp if it isn't",
+                    tool.id
+                ),
+            ));
+        }
+    }
+    (problems, notes)
 }
 
 /// The enabled operations in tool groups: runs of operations next to each other (disabled

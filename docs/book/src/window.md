@@ -71,8 +71,10 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Right-click** a row for the rest:
   - **A DXF:** *Place…* (its properties), *Update from a DXF…* and *Remove*.
   - **A picture:** *Trace settings…* and *Remove*.
-  - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*, *Add
-    rest pocket* and *Delete*.
+  - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*, for a
+    pocket *Add rest pass ▸* (a [rest pass](operations/rest.md) shows under it), and
+    *Delete*.
+  - **A rest pass:** *Remove*.
   - **The Drawing folder:** *Add DXF…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down* and *Delete part* (with its operations).

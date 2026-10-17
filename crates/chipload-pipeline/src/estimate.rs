@@ -17,9 +17,9 @@ pub struct Estimate {
     pub cutting: f64,
     pub rapid: f64,
     pub spindle: f64,
-    /// (index in `job.operations`, seconds), in the order the operations are listed; the
-    /// time of all of an operation's copies.
-    pub operations: Vec<(usize, f64)>,
+    /// (operation or rest pass, seconds), in the order they are listed, each pass after its
+    /// pocket; the time of all of its copies.
+    pub operations: Vec<(chipload_job::OpRef, f64)>,
     /// Each tool group's time with its spindle wait: one file each when written one file
     /// per tool.
     pub groups: Vec<f64>,
@@ -94,12 +94,16 @@ pub fn estimate(
     let rapid: f64 = times.iter().map(|(_, r)| r).sum();
     let starts = groups.len().max(1);
     let spindle = dwell_s.max(0.0) * starts as f64;
-    let mut operations: Vec<(usize, f64)> = Vec::new();
+    let mut operations: Vec<(chipload_job::OpRef, f64)> = Vec::new();
     for span in spans {
         let seconds = sum(span.moves.clone());
-        match operations.iter_mut().find(|(op, _)| *op == span.operation) {
+        let at = chipload_job::OpRef {
+            operation: span.operation,
+            pass: span.pass,
+        };
+        match operations.iter_mut().find(|(op, _)| *op == at) {
             Some((_, total)) => *total += seconds,
-            None => operations.push((span.operation, seconds)),
+            None => operations.push((at, seconds)),
         }
     }
     operations.sort_by_key(|(op, _)| *op);
@@ -155,7 +159,8 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
     // §6); one part reads as before parts.
     let several_parts = job.parts.len() > 1;
     let mut part_shown: Option<u64> = None;
-    for &(index, seconds) in &estimate.operations {
+    for &(at, seconds) in &estimate.operations {
+        let index = at.operation;
         let Some(op) = job.operations.get(index) else {
             continue;
         };
@@ -170,7 +175,11 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                 let total: f64 = estimate
                     .operations
                     .iter()
-                    .filter(|(i, _)| job.operations.get(*i).is_some_and(|o| o.part() == part.id))
+                    .filter(|(r, _)| {
+                        job.operations
+                            .get(r.operation)
+                            .is_some_and(|o| o.part() == part.id)
+                    })
                     .map(|(_, s)| s)
                     .sum();
                 lines.push(Note::job(format!(
@@ -181,7 +190,7 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                 )));
             }
         }
-        let label = op.label(index);
+        let label = job.label(at);
         let indent = if several_parts { "    " } else { "  " };
         lines.push(Note::at(
             index,

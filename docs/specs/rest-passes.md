@@ -1,6 +1,7 @@
 # Spec: rest passes under their pocket
 
-Status: **draft for review** (2026-10-17). Builds on docs/specs/rest-machining.md.
+Status: approved 2026-10-17 with the recommended decisions, built the same day. Builds on
+docs/specs/rest-machining.md; its §10 (*Add rest pocket*, a copy) is replaced by this.
 
 ## 1. Why
 

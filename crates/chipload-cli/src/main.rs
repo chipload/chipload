@@ -35,7 +35,7 @@ use chipload_pipeline::report::{
 use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, add_rest_pocket, empty_project, load_drawing, new_project, run_job,
+    PipelineError, RunResult, add_rest_pass, empty_project, load_drawing, new_project, run_job,
     set_op_rest, set_op_tool, update_drawing, write_atomically, write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
@@ -458,8 +458,9 @@ enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Add a rest pocket after a pocket (docs/specs/rest-machining.md §10): its shapes and
-    /// depths, cut with a smaller tool, clearing only what the pocket's tool leaves.
+    /// Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears
+    /// what the pocket's tool (or its last pass's) leaves, in the pocket's shapes and depths.
+    /// It is cut after the run of pockets with the pocket's tool.
     AddRest {
         /// The project (.chipload).
         project: PathBuf,
@@ -470,6 +471,52 @@ enum OpAction {
         /// The smaller tool's id in the project.
         #[arg(long)]
         tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// A pocket's rest passes (docs/specs/rest-passes.md): without --pass, list them; with
+    /// it, change, turn off or on, or remove one.
+    RestPass {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The pocket's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+        /// Which pass: 1 for the first (shown as 3.1 for operation 3).
+        #[arg(long)]
+        pass: Option<usize>,
+        /// The tool's id in the project: an endmill smaller than the tool before it.
+        #[arg(long)]
+        tool: Option<i64>,
+        #[arg(long, value_parser = crate::lengths::feed)]
+        feed: Option<f64>,
+        #[arg(long, value_parser = crate::lengths::feed)]
+        plunge_feed: Option<f64>,
+        #[arg(long, value_parser = crate::lengths::length)]
+        step_down: Option<f64>,
+        /// A fraction of the tool's diameter, at most 1.
+        #[arg(long)]
+        stepover: Option<f64>,
+        /// Cut it (true) or keep it without cutting (false).
+        #[arg(long)]
+        enabled: Option<bool>,
+        /// Remove the pass; the passes after it rest after the tool before it.
+        #[arg(long, conflicts_with_all = ["tool", "feed", "plunge_feed", "step_down", "stepover", "enabled"])]
+        remove: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Make a rest pocket that copies an earlier pocket (same shapes, depths, clearance and
+    /// direction, rest after its tool) a rest pass of that pocket (docs/specs/rest-passes.md
+    /// §5). It is then cut after the run of pockets it belongs to.
+    MakeRestPass {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The rest pocket's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1785,7 +1832,8 @@ fn run(
         files.push(json!({
             "path": std::path::absolute(&path).unwrap_or(path).display().to_string(),
             "tool": file.tool,
-            "operations": file.operations,
+            "operations": operations_json(&file.operations),
+            "rest_passes": rest_passes_json(&file.operations),
         }));
     }
     out.set("files", json!(files));
@@ -1957,6 +2005,66 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
+        OpAction::RestPass {
+            project,
+            op,
+            pass,
+            tool,
+            feed,
+            plunge_feed,
+            step_down,
+            stepover,
+            enabled,
+            remove,
+            output,
+        } => rest_pass_command(
+            out,
+            &project,
+            op,
+            pass,
+            RestPassChange {
+                tool,
+                feed,
+                plunge_feed,
+                step_down,
+                stepover,
+                enabled,
+                remove,
+            },
+            output.as_deref(),
+        ),
+        OpAction::MakeRestPass {
+            project,
+            op,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let Some(at) = chipload_pipeline::make_rest_pass(&mut job, index) else {
+                return out.fail(format!(
+                    "operation {op} is not a rest pocket that copies an earlier pocket \
+                     (same shapes, depths, clearance and direction, rest after its tool)"
+                ));
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            out.line(format!(
+                "Operation {op} is now rest pass {at} of operation {}; the operations after it \
+                 move up one. It is cut after the run of pockets it belongs to.",
+                at.operation + 1
+            ));
+            out.set("operation", json!(at.operation));
+            out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
         OpAction::AddRest {
             project,
             op,
@@ -1976,8 +2084,8 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 .iter()
                 .find(|t| t.id == tool)
                 .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
-            let index = match add_rest_pocket(&mut job, op, tool, cutting.as_ref()) {
-                Ok(index) => index,
+            let at = match add_rest_pass(&mut job, op, tool, cutting.as_ref()) {
+                Ok(at) => at,
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
@@ -1990,11 +2098,10 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 "the pocket's feeds and step down; check them for the smaller tool"
             };
             out.line(format!(
-                "Added operation {} ({}), rest after operation {op}'s tool, with {from}.",
-                index + 1,
-                job.operations[index].name()
+                "Added rest pass {at} to operation {op}, tool {tool}, with {from}."
             ));
-            out.set("operation", json!(index));
+            out.set("operation", json!(at.operation));
+            out.set("pass", json!(at.pass));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
@@ -2193,7 +2300,8 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
             "program": program_with_groups(&plan.program, plan.groups.len()),
             "groups": plan.groups.iter().map(|g| json!({
                 "tool": g.tool.id,
-                "operations": g.operations,
+                "operations": operations_json(&g.operations),
+                "rest_passes": rest_passes_json(&g.operations),
                 "moves": [g.moves.start, g.moves.end],
             })).collect::<Vec<_>>(),
             "tabs": plan.tabs,
@@ -2260,6 +2368,123 @@ fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// What `op rest-pass` changes in one pass.
+struct RestPassChange {
+    tool: Option<i64>,
+    feed: Option<f64>,
+    plunge_feed: Option<f64>,
+    step_down: Option<f64>,
+    stepover: Option<f64>,
+    enabled: Option<bool>,
+    remove: bool,
+}
+
+/// `op rest-pass`: list a pocket's passes, or change or remove one.
+fn rest_pass_command(
+    out: &mut Out,
+    project: &Path,
+    op: usize,
+    pass: Option<usize>,
+    change: RestPassChange,
+    output: Option<&Path>,
+) -> ExitCode {
+    let mut job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let Some(index) = op.checked_sub(1).filter(|&i| i < job.operations.len()) else {
+        return out.fail(format!("there is no operation {op}"));
+    };
+    let Some(chipload_job::Operation::Pocket(pocket)) = job.operations.get_mut(index) else {
+        return out.fail(format!("operation {op} is not a pocket"));
+    };
+    let Some(k) = pass else {
+        if pocket.rest_passes.is_empty() {
+            out.line(format!("Operation {op} has no rest passes."));
+        }
+        for (k, p) in pocket.rest_passes.iter().enumerate() {
+            out.line(format!(
+                "{}: tool {}, feed {} / plunge {} mm/min, step down {} mm, stepover {}{}",
+                chipload_job::OpRef::pass(index, k),
+                p.tool,
+                p.feed,
+                p.plunge_feed,
+                p.step_down,
+                p.stepover,
+                if p.enabled { "" } else { ", off" }
+            ));
+        }
+        out.set("rest_passes", json!(pocket.rest_passes));
+        return ExitCode::SUCCESS;
+    };
+    let Some(k) = k.checked_sub(1).filter(|&k| k < pocket.rest_passes.len()) else {
+        return out.fail(format!(
+            "operation {op} has {} rest passes; passes are numbered from 1",
+            pocket.rest_passes.len()
+        ));
+    };
+    let at = chipload_job::OpRef::pass(index, k);
+    if change.remove {
+        pocket.rest_passes.remove(k);
+        out.line(format!("Removed rest pass {at}."));
+    } else {
+        let p = &mut pocket.rest_passes[k];
+        if let Some(tool) = change.tool {
+            p.tool = tool;
+        }
+        if let Some(v) = change.feed {
+            p.feed = v;
+        }
+        if let Some(v) = change.plunge_feed {
+            p.plunge_feed = v;
+        }
+        if let Some(v) = change.step_down {
+            p.step_down = v;
+        }
+        if let Some(v) = change.stepover {
+            p.stepover = v;
+        }
+        if let Some(on) = change.enabled {
+            p.enabled = on;
+        }
+        out.line(format!("Changed rest pass {at}."));
+    }
+    // The passes' own problems refuse the change; the project's others are as they were.
+    let prefix = format!("operations.{index}.rest_passes");
+    let problems: Vec<_> = chipload_pipeline::job_problems(&job)
+        .into_iter()
+        .filter(|p| p.path.starts_with(&prefix))
+        .collect();
+    if !problems.is_empty() {
+        return out.fail(chipload_pipeline::joined(&problems));
+    }
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&job, target) {
+        return out.fail(err);
+    }
+    out.wrote(target, "");
+    ExitCode::SUCCESS
+}
+
+/// The operations among `refs`, 0-based, as `--json` always listed them.
+fn operations_json(refs: &[chipload_job::OpRef]) -> Value {
+    json!(
+        refs.iter()
+            .filter(|r| r.pass.is_none())
+            .map(|r| r.operation)
+            .collect::<Vec<_>>()
+    )
+}
+
+/// The rest passes among `refs` (docs/specs/rest-passes.md): `{operation, pass}`, 0-based.
+fn rest_passes_json(refs: &[chipload_job::OpRef]) -> Value {
+    json!(
+        refs.iter()
+            .filter_map(|r| r.pass.map(|k| json!({"operation": r.operation, "pass": k})))
+            .collect::<Vec<_>>()
+    )
+}
+
 /// The cycle time estimate as `plan` and `run` print it with `--json`.
 fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) -> Value {
     json!({
@@ -2267,8 +2492,9 @@ fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) -> Value {
         "cutting_s": estimate.cutting,
         "rapid_s": estimate.rapid,
         "spindle_s": estimate.spindle,
-        "operations": estimate.operations.iter().map(|(op, s)| json!({
-            "operation": op,
+        "operations": estimate.operations.iter().map(|(at, s)| json!({
+            "operation": at.operation,
+            "pass": at.pass,
             "seconds": s,
         })).collect::<Vec<_>>(),
         "groups_s": estimate.groups,

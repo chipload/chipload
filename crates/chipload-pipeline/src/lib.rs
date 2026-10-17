@@ -105,8 +105,8 @@ pub struct GcodeFile {
     /// file of a set, cut with tool 3.
     pub suffix: Option<String>,
     pub tool: i64,
-    /// Indexes in `job.operations`, in cut order.
-    pub operations: Vec<usize>,
+    /// The operations and rest passes, in cut order.
+    pub operations: Vec<chipload_job::OpRef>,
     pub gcode: String,
 }
 
@@ -192,30 +192,36 @@ pub fn set_op_rest(job: &mut Job, number: usize, after: Option<i64>) -> Result<(
     Ok(())
 }
 
-/// A rest pocket for `pocket`, cut with project tool `tool` (docs/specs/rest-machining.md
-/// §10): its shapes, depths and settings, rest after its tool. The feeds and step down are
-/// `cutting`'s (the library's values for the tool) when given, else the pocket's. Refused,
-/// with the reason, for a rest pocket and for a tool that isn't a smaller endmill.
-pub fn rest_pocket_of(
+/// A rest pass for `pocket` with project tool `tool` (docs/specs/rest-passes.md §2): it
+/// rests after the last tool of the pocket's chain (its own, or its last pass's). The feeds,
+/// step down and stepover are `cutting`'s (the library's values for the tool) when given,
+/// else the pocket's; the entry is the pocket's, made to fit the smaller tool. Refused, with
+/// the reason, for dogbones and for a tool that isn't a smaller endmill.
+pub fn rest_pass_of(
     pocket: &PocketOp,
     tools: &[Tool],
     tool: i64,
     cutting: Option<&Cutting>,
-) -> Result<PocketOp, String> {
-    if pocket.rest.is_some() {
-        return Err("it is a rest pocket itself; add the rest pocket to the first one".into());
+) -> Result<chipload_job::RestPass, String> {
+    if pocket.corners.is_some() {
+        return Err(
+            "it has dogbones, and dogbones and rest machining can't be combined yet; \
+                    dogbone corners need no rest"
+                .into(),
+        );
     }
+    let before = pocket.rest_passes.last().map_or(pocket.tool, |p| p.tool);
     let small = find_tool(tools, tool).ok_or_else(|| format!("the project has no tool {tool}"))?;
-    let large = find_tool(tools, pocket.tool)
-        .ok_or_else(|| format!("the project has no tool {}", pocket.tool))?;
+    let large =
+        find_tool(tools, before).ok_or_else(|| format!("the project has no tool {before}"))?;
     match rest_refusal(small, large) {
         Some(RestRefusal::SmallNotEndmill) => return Err(format!("tool {tool} is not an endmill")),
         Some(RestRefusal::LargeNotEndmill) => {
-            return Err(format!("the pocket's tool {} is not an endmill", large.id));
+            return Err(format!("tool {} before it is not an endmill", large.id));
         }
         Some(RestRefusal::NotLarger) => {
             return Err(format!(
-                "tool {tool} ({} mm) is not smaller than the pocket's tool {} ({} mm)",
+                "tool {tool} ({} mm) is not smaller than tool {} ({} mm) before it",
                 small.diameter, large.id, large.diameter
             ));
         }
@@ -228,40 +234,34 @@ pub fn rest_pocket_of(
         }
         other => other,
     };
-    let name = match pocket.name.as_str() {
-        "" => "Rest".to_string(),
-        name => format!("{name} (rest)"),
+    let (feed, plunge_feed, step_down, stepover) = match cutting {
+        Some(c) => (c.feed, c.plunge_feed, c.step_down, c.stepover),
+        None => (
+            pocket.feed,
+            pocket.plunge_feed,
+            pocket.step_down,
+            pocket.stepover,
+        ),
     };
-    let mut rest = PocketOp {
-        name,
-        enabled: true,
+    Ok(chipload_job::RestPass {
         tool,
+        feed,
+        plunge_feed,
+        step_down,
+        stepover,
         entry,
-        starts: Vec::new(),
-        lead: None,
-        corners: None,
-        rest: Some(chipload_job::Rest {
-            after_tool: pocket.tool,
-        }),
-        ..pocket.clone()
-    };
-    if let Some(c) = cutting {
-        rest.feed = c.feed;
-        rest.plunge_feed = c.plunge_feed;
-        rest.step_down = c.step_down;
-        rest.stepover = c.stepover;
-    }
-    Ok(rest)
+        enabled: true,
+    })
 }
 
-/// Add a rest pocket for pocket `number` (1-based) with tool `tool`, right after it
-/// (docs/specs/rest-machining.md §10). Returns the new operation's index.
-pub fn add_rest_pocket(
+/// Add a rest pass to pocket `number` (1-based) with tool `tool` (docs/specs/rest-passes.md
+/// §6). Returns which pass it is.
+pub fn add_rest_pass(
     job: &mut Job,
     number: usize,
     tool: i64,
     cutting: Option<&Cutting>,
-) -> Result<usize, PipelineError> {
+) -> Result<chipload_job::OpRef, PipelineError> {
     let count = job.operations.len();
     let index = number
         .checked_sub(1)
@@ -271,15 +271,70 @@ pub fn add_rest_pocket(
                 "there is no operation {number}; the project has {count}"
             ))
         })?;
-    let Operation::Pocket(pocket) = &job.operations[index] else {
+    let tools = job.tools.clone();
+    let Operation::Pocket(pocket) = &mut job.operations[index] else {
         return Err(PipelineError::Job(format!(
             "operation {number} is not a pocket; only pockets rest machine"
         )));
     };
-    let rest = rest_pocket_of(pocket, &job.tools, tool, cutting)
+    let pass = rest_pass_of(pocket, &tools, tool, cutting)
         .map_err(|e| PipelineError::Job(format!("operation {number}: {e}")))?;
-    job.operations.insert(index + 1, Operation::Pocket(rest));
-    Ok(index + 1)
+    pocket.rest_passes.push(pass);
+    Ok(chipload_job::OpRef::pass(
+        index,
+        pocket.rest_passes.len() - 1,
+    ))
+}
+
+/// A standalone rest pocket that copies an earlier pocket of the same part: the same shapes,
+/// depths, clearance and direction, resting after that pocket's tool (or its last pass's).
+/// Its index, for *Make it a rest pass* (docs/specs/rest-passes.md §5).
+pub fn rest_pocket_parent(job: &Job, index: usize) -> Option<usize> {
+    let Some(Operation::Pocket(rest)) = job.operations.get(index) else {
+        return None;
+    };
+    let after = rest.rest?.after_tool;
+    (0..index).rev().find(|&i| {
+        let Operation::Pocket(p) = &job.operations[i] else {
+            return false;
+        };
+        let last = p.rest_passes.last().map_or(p.tool, |r| r.tool);
+        p.rest.is_none()
+            && p.part == rest.part
+            && p.select == rest.select
+            && p.start_depth == rest.start_depth
+            && p.end_depth == rest.end_depth
+            && p.clearance == rest.clearance
+            && p.direction == rest.direction
+            && p.corners.is_none()
+            && last == after
+    })
+}
+
+/// *Make it a rest pass*: the rest pocket at `index` becomes the last rest pass of the pocket
+/// it copies, keeping its tool, feeds, step down, stepover, entry and on/off. Returns the
+/// pass. None when it copies no earlier pocket.
+pub fn make_rest_pass(job: &mut Job, index: usize) -> Option<chipload_job::OpRef> {
+    let parent = rest_pocket_parent(job, index)?;
+    let Operation::Pocket(rest) = job.operations.remove(index) else {
+        return None;
+    };
+    let Operation::Pocket(pocket) = job.operations.get_mut(parent)? else {
+        return None;
+    };
+    pocket.rest_passes.push(chipload_job::RestPass {
+        tool: rest.tool,
+        feed: rest.feed,
+        plunge_feed: rest.plunge_feed,
+        step_down: rest.step_down,
+        stepover: rest.stepover,
+        entry: rest.entry,
+        enabled: rest.enabled,
+    });
+    Some(chipload_job::OpRef::pass(
+        parent,
+        pocket.rest_passes.len() - 1,
+    ))
 }
 
 /// Write every file of a run, each atomically. Returns the paths written.

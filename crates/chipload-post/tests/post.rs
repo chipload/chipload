@@ -102,12 +102,12 @@ fn a_post_without_tool_changes_refuses_one_file_with_m6() {
         ToolPart {
             program: program(Spindle::Cw),
             tool: tool(1, 6.0),
-            operations: vec![0],
+            operations: vec![chipload_job::OpRef::op(0)],
         },
         ToolPart {
             program: program(Spindle::Cw),
             tool: tool(2, 3.0),
-            operations: vec![1],
+            operations: vec![chipload_job::OpRef::op(1)],
         },
     ];
     let err = render_with_tool_changes(&parts, &old, None, chipload_job::Units::Mm).unwrap_err();

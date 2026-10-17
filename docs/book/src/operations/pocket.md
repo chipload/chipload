@@ -44,7 +44,7 @@ Chipload also warns about two things:
   large for the shape). Lower the stepover.
 - **A narrow part:** the tool doesn't fit through a narrow part of the pocket. The pocket
   is cleared as separate areas, and material stays in between; a [rest
-  pocket](rest.md) with a smaller tool can clear it.
+  pass](rest.md) with a smaller tool can clear it.
 
 ## Entry
 
@@ -68,7 +68,8 @@ lead from the cleared side onto the wall.
 
 ## Rest machining
 
-A pocket can clear only what a larger tool left: see [Rest machining](rest.md).
+A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
+it in the Browser. See [Rest machining](rest.md).
 
 ## In the file
 
@@ -95,6 +96,7 @@ in mm, feeds in mm/min, angles in radians.
 | `lead` | Lead |
 | `corners` | Corners (dogbones, T-bones) |
 | `rest` | Rest after: `{"after_tool": id}` or null |
+| `rest_passes` | Its rest passes, each `{tool, feed, plunge_feed, step_down, stepover, entry, enabled}`; left out when there are none |
 
 Projects from before Chipload 0.14 that used the removed *trochoidal* or *adaptive*
 clearing are cut as ring pockets. Projects from before 0.18 that had the tool retracting

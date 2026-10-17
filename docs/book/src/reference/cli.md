@@ -173,7 +173,7 @@ chipload op tool <PROJECT> [OPTIONS]
 
 ### `chipload op add-rest`
 
-Add a rest pocket after a pocket (docs/specs/rest-machining.md §10): its shapes and depths, cut with a smaller tool, clearing only what the pocket's tool leaves
+Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears what the pocket's tool (or its last pass's) leaves, in the pocket's shapes and depths. It is cut after the run of pockets with the pocket's tool
 
 ```text
 chipload op add-rest <PROJECT> [OPTIONS]
@@ -184,6 +184,42 @@ chipload op add-rest <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--op <OP>` | The pocket's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--tool <TOOL>` | The smaller tool's id in the project. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op rest-pass`
+
+A pocket's rest passes (docs/specs/rest-passes.md): without --pass, list them; with it, change, turn off or on, or remove one
+
+```text
+chipload op rest-pass <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The pocket's number as the app lists it (1 = first) Required. |
+| `--pass <PASS>` | Which pass: 1 for the first (shown as 3.1 for operation 3) |
+| `--tool <TOOL>` | The tool's id in the project: an endmill smaller than the tool before it. |
+| `--feed <FEED>` |  |
+| `--plunge-feed <PLUNGE_FEED>` |  |
+| `--step-down <STEP_DOWN>` |  |
+| `--stepover <STEPOVER>` | A fraction of the tool's diameter, at most 1. |
+| `--enabled <ENABLED>` | Cut it (true) or keep it without cutting (false) One of: `true`, `false`. |
+| `--remove` | Remove the pass; the passes after it rest after the tool before it. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op make-rest-pass`
+
+Make a rest pocket that copies an earlier pocket (same shapes, depths, clearance and direction, rest after its tool) a rest pass of that pocket (docs/specs/rest-passes.md §5). It is then cut after the run of pockets it belongs to
+
+```text
+chipload op make-rest-pass <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The rest pocket's number as the app lists it (1 = first) Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op part`

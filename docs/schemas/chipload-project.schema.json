@@ -962,6 +962,13 @@
               "default": null,
               "description": "Rest machining: clear only what a larger tool leaves in these shapes. Null: the\nwhole pocket."
             },
+            "rest_passes": {
+              "description": "Rest passes: smaller endmills that clear what this pocket's tool (or the pass before)\nleaves, in its shapes and depths. Missing or empty: none. Left out when empty.",
+              "items": {
+                "$ref": "#/$defs/RestPass"
+              },
+              "type": "array"
+            },
             "select": {
               "$ref": "#/$defs/Selector",
               "description": "What the operation cuts: the shapes on a layer, or shapes by id."
@@ -1356,6 +1363,55 @@
       },
       "required": [
         "after_tool"
+      ],
+      "type": "object"
+    },
+    "RestPass": {
+      "additionalProperties": false,
+      "description": "One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes,\ndepths, clearance and direction, and clears only what the tool before it leaves.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "False: kept, but not cut. Missing: true.",
+          "type": "boolean"
+        },
+        "entry": {
+          "$ref": "#/$defs/Entry",
+          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
+        },
+        "feed": {
+          "description": "The cutting feed, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "description": "The feed going down into the material, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "step_down": {
+          "description": "The deepest each pass goes, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
+          "format": "double",
+          "type": "number"
+        },
+        "tool": {
+          "description": "The id of the project tool it cuts with (`tools`): an endmill smaller than the tool\nbefore it.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "feed",
+        "plunge_feed",
+        "step_down",
+        "stepover",
+        "entry"
       ],
       "type": "object"
     },

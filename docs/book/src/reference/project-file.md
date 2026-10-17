@@ -292,6 +292,7 @@ Quarter-circle lead-in and lead-out.
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
+| `rest_passes` | list of [RestPass](#restpass) | no | Rest passes: smaller endmills that clear what this pocket's tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
@@ -386,6 +387,20 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `after_tool` | integer | yes | The id of the larger project tool whose leftovers this pocket clears. |
+
+## RestPass
+
+One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes, depths, clearance and direction, and clears only what the tool before it leaves.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
+| `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `step_down` | number | yes | The deepest each pass goes, mm. |
+| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an endmill smaller than the tool before it. |
 
 ## Selector
 

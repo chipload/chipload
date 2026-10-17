@@ -752,26 +752,58 @@ fn a_rest_pocket_generates_and_a_smaller_rest_tool_is_flagged_on_its_field() {
 }
 
 #[test]
-fn add_rest_pocket_inserts_a_rest_pocket_after_the_pocket_and_undo_removes_it() {
-    // docs/specs/rest-machining.md §10.
+fn a_rest_pass_is_added_under_its_pocket_opened_turned_off_and_undone() {
+    // docs/specs/rest-passes.md §6.
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v18/rest.chipload")));
     app.edit.as_mut().unwrap().ops.truncate(1);
     app.commit();
-    app.add_rest_pocket(0, 2);
+    app.add_rest_pass(0, 2);
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.ops.len(), 2);
-    assert_eq!(app.focus, Focus::Op(1));
-    let Operation::Pocket(p) = &edit.ops[1].op else {
+    assert_eq!(edit.ops.len(), 1, "under the pocket, not a new operation");
+    assert_eq!(app.focus, Focus::RestPass(0, 0));
+    let Operation::Pocket(p) = &edit.ops[0].op else {
         panic!("a pocket");
     };
-    assert_eq!((p.tool, p.rest.map(|r| r.after_tool)), (2, Some(1)));
+    assert_eq!(p.rest_passes.len(), 1);
+    assert_eq!(p.rest_passes[0].tool, 2);
+    // Its form, the Browser and a generation.
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
     assert!(app.generate_and_wait(), "{:?}", app.report);
+    let result = app.result.as_ref().unwrap();
+    assert!(result.op_spans.iter().any(|s| s.pass == Some(0)));
     // Not for a larger tool: an error, nothing added.
-    app.add_rest_pocket(1, 1);
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    app.add_rest_pass(0, 1);
+    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+        Operation::Pocket(p) => p.rest_passes.clone(),
+        _ => panic!(),
+    };
+    assert_eq!(passes(&app).len(), 1);
+    // Off, then removed, then back with undo.
+    app.toggle_rest_pass(0, 0);
+    assert!(!passes(&app)[0].enabled);
+    app.remove_rest_pass(0, 0);
+    assert!(passes(&app).is_empty());
+    assert_eq!(app.focus, Focus::Op(0));
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 1);
+    assert_eq!(passes(&app).len(), 1);
+}
+
+#[test]
+fn a_rest_pocket_that_copies_its_pocket_becomes_its_rest_pass() {
+    // docs/specs/rest-passes.md §5.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/rest.chipload")));
+    assert_eq!(app.rest_pocket_parent(1), Some(0));
+    app.make_rest_pass(1);
+    let edit = app.edit.as_ref().unwrap();
+    assert_eq!(edit.ops.len(), 1);
+    assert_eq!(app.focus, Focus::RestPass(0, 0));
+    draw_sidebar(&mut app);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    app.undo();
+    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
 }
 
 #[test]

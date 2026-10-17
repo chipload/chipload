@@ -2238,6 +2238,35 @@ pub struct PocketOp {
     // Spec: docs/specs/rest-machining.md.
     #[serde(default)]
     pub rest: Option<Rest>,
+    /// Rest passes: smaller endmills that clear what this pocket's tool (or the pass before)
+    /// leaves, in its shapes and depths. Missing or empty: none. Left out when empty.
+    // Spec: docs/specs/rest-passes.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rest_passes: Vec<RestPass>,
+}
+
+/// One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes,
+/// depths, clearance and direction, and clears only what the tool before it leaves.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct RestPass {
+    /// The id of the project tool it cuts with (`tools`): an endmill smaller than the tool
+    /// before it.
+    pub tool: i64,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down into the material, mm/min.
+    pub plunge_feed: f64,
+    /// The deepest each pass goes, mm.
+    pub step_down: f64,
+    /// The distance between the clearing rings, as a fraction of the tool diameter.
+    pub stepover: f64,
+    /// How the tool goes down: `plunge`, `ramp` or `helix`.
+    pub entry: Entry,
+    /// False: kept, but not cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
 }
 
 /// Rest machining: the pocket clears only the material the larger tool `after_tool` can't
@@ -2972,6 +3001,14 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                     positive(at("stepover"), p.stepover);
+                    // Rest passes (docs/specs/rest-passes.md §7).
+                    for (k, pass) in p.rest_passes.iter().enumerate() {
+                        let at = |field: &str| format!("operations.{i}.rest_passes.{k}.{field}");
+                        positive(at("step_down"), pass.step_down);
+                        positive(at("feed"), pass.feed);
+                        positive(at("plunge_feed"), pass.plunge_feed);
+                        positive(at("stepover"), pass.stepover);
+                    }
                 }
                 Operation::Vcarve(v) => {
                     positive(at("end_depth"), v.end_depth);
@@ -3249,6 +3286,19 @@ impl Job {
                         p.stepover
                     ),
                 ));
+            }
+            if let Operation::Pocket(p) = op {
+                for (k, pass) in p.rest_passes.iter().enumerate() {
+                    if pass.stepover > 1.0 {
+                        problems.push(Problem::at(
+                            format!("operations.{i}.rest_passes.{k}.stepover"),
+                            format!(
+                                "must be at most 1 (a fraction of the tool diameter), got {}",
+                                pass.stepover
+                            ),
+                        ));
+                    }
+                }
             }
             if let Operation::Profile(ProfileOp {
                 tabs: Some(tabs), ..

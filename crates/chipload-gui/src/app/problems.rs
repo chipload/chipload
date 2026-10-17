@@ -206,7 +206,7 @@ impl ChiploadApp {
         let settings = self.edit.as_ref().map(|e| &e.settings);
         let index_of = |list: Option<usize>, what: &str| list.map(|k| format!("{what}.{k}."));
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
-            Focus::Op(i) => Box::new(self.op_problems(i)),
+            Focus::Op(i) | Focus::RestPass(i, _) => Box::new(self.op_problems(i)),
             Focus::Job => Box::new(self.settings_problems()),
             Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
             Focus::LibraryTools
@@ -241,6 +241,16 @@ impl ChiploadApp {
         for problem in pick {
             map.entry(problem.field().to_string())
                 .or_insert_with(|| at_field(problem));
+        }
+        // A rest pass's form names its fields without the pass's place in its pocket.
+        if let Focus::RestPass(_, k) = focus {
+            let prefix = format!("rest_passes.{k}.");
+            map = map
+                .into_iter()
+                .filter_map(|(field, text)| {
+                    field.strip_prefix(&prefix).map(|f| (f.to_string(), text))
+                })
+                .collect();
         }
         map
     }

@@ -179,6 +179,9 @@ Warnings, which allow generating (decision 4):
 
 ## 10. Addendum: "Add rest pocket" (2026-10-13, built the same day)
 
+**Replaced 2026-10-17** by rest passes under their pocket (docs/specs/rest-passes.md): *Add
+rest pocket* and `op add-rest` now add a pass. What follows is how it was.
+
 User question: rest after an *operation* rather than a tool, inheriting its tool, shapes and
 depths. Two ways were weighed:
 - **A, a live link:** "after operation N". Operations have no stable ids, so this needs

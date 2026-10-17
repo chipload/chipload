@@ -51,7 +51,7 @@ fn run(job: &Job, moves: Vec<Move>) -> Simulation {
     };
     let groups = vec![ToolGroup {
         tool: job.tools[0].clone(),
-        operations: vec![0],
+        operations: vec![chipload_job::OpRef::op(0)],
         moves: 0..program.moves.len(),
     }];
     simulate(job, &program, &groups, Some(CELL), &Cancel::new()).unwrap()
@@ -266,7 +266,7 @@ fn program_of(job: &Job, moves: Vec<Move>) -> (Program, Vec<ToolGroup>) {
     };
     let groups = vec![ToolGroup {
         tool: job.tools[0].clone(),
-        operations: vec![0],
+        operations: vec![chipload_job::OpRef::op(0)],
         moves: 0..program.moves.len(),
     }];
     (program, groups)

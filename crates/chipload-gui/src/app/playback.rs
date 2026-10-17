@@ -322,6 +322,10 @@ impl ChiploadApp {
         if steps.contains(&"notoolpath") {
             self.show_toolpath = false;
         }
+        // The first pocket's first rest pass open (docs/specs/rest-passes.md).
+        if steps.contains(&"pass") {
+            self.focus = Focus::RestPass(0, 0);
+        }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
             self.show_images = false;
