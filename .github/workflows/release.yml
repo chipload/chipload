@@ -1,15 +1,19 @@
 # Push a tag vX.Y.Z (matching the workspace version) to build the release files and create a
-# DRAFT GitHub Release with them. Review the draft, then publish it by hand.
+# DRAFT GitHub Release with them. Review the draft, then publish it by hand. Run it by hand
+# (Actions > Release > Run workflow) to build every file without making a release.
 #
-#   Linux:   Chipload-X.Y.Z-x86_64.AppImage (GUI), chipload-X.Y.Z-linux-x86_64.tar.gz (CLI)
-#   Windows: chipload-gui-X.Y.Z-windows-x86_64.exe (GUI), chipload-X.Y.Z-windows-x86_64.exe (CLI)
+#   Linux:   Chipload-X.Y.Z-x86_64.AppImage, Chipload-X.Y.Z-aarch64.AppImage (GUI),
+#            chipload-X.Y.Z-linux-x86_64.tar.gz, chipload-X.Y.Z-linux-aarch64.tar.gz (CLI)
+#   Windows: chipload-gui-X.Y.Z-windows-x86_64.exe, chipload-gui-X.Y.Z-windows-aarch64.exe (GUI),
+#            chipload-X.Y.Z-windows-x86_64.exe, chipload-X.Y.Z-windows-aarch64.exe (CLI)
 #   macOS:   Chipload-X.Y.Z-macos-universal.dmg (GUI), chipload-X.Y.Z-macos-universal.tar.gz (CLI)
-#   SHA256SUMS.txt
+#   chipload-guide-X.Y.Z.zip (the user guide), SHA256SUMS.txt
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,42 +33,70 @@ jobs:
         run: |
           crate=$(cargo metadata --format-version 1 --no-deps --locked \
             | python3 -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"] == "chipload-gui"))')
-          tag="${GITHUB_REF_NAME#v}"
-          if [ "$crate" != "$tag" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $crate"
-            exit 1
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            tag="${GITHUB_REF_NAME#v}"
+            if [ "$crate" != "$tag" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $crate"
+              exit 1
+            fi
           fi
           echo "version=$crate" >> "$GITHUB_OUTPUT"
 
   linux:
     needs: version
-    # glibc 2.35: the AppImage runs on Ubuntu 22.04+, Debian 12+, Fedora 36+ and newer.
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # glibc 2.35: runs on Ubuntu 22.04+, Debian 12+, Fedora 36+ and newer.
+          - runner: ubuntu-22.04
+            arch: x86_64
+          # ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM laptops and boards.
+          - runner: ubuntu-22.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Rust (from rust-toolchain.toml)
+        run: |
+          command -v rustup || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - name: Libraries bundled into the AppImage
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon0 libxkbcommon-x11-0 libxcb-xkb1
       - run: packaging/test-release.sh
       - run: cargo build --release --locked -p chipload-gui -p chipload-cli
       - name: AppImage
         run: REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist
+      - name: The AppImage is for this machine
+        run: test -f "dist/Chipload-$VERSION-${{ matrix.arch }}.AppImage"
       - name: CLI archive
         run: |
-          stage="chipload-$VERSION-linux-x86_64"
+          stage="chipload-$VERSION-linux-${{ matrix.arch }}"
           mkdir -p "$stage"
           cp target/release/chipload LICENSE THIRD-PARTY-LICENSES.txt "$stage/"
           tar -czf "dist/$stage.tar.gz" "$stage"
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
   windows:
     needs: version
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+          # ARM64: Windows 11 on Snapdragon and other ARM laptops.
+          - runner: windows-11-arm
+            arch: aarch64
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
     env:
       VERSION: ${{ needs.version.outputs.version }}
     defaults:
@@ -72,14 +104,21 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+      - name: Rust (from rust-toolchain.toml)
+        run: |
+          if ! command -v rustup; then
+            curl -sSf -o rustup-init.exe "https://static.rust-lang.org/rustup/dist/${{ matrix.target }}/rustup-init.exe"
+            ./rustup-init.exe -y --profile minimal --default-toolchain none
+            echo "$USERPROFILE/.cargo/bin" >> "$GITHUB_PATH"
+          fi
       - run: packaging/test-release.sh
       # .cargo/config.toml links the C runtime statically: single-file executables.
       - run: cargo build --release --locked -p chipload-gui -p chipload-cli
       - name: Collect
         run: |
           mkdir -p dist
-          cp target/release/chipload-gui.exe "dist/chipload-gui-$VERSION-windows-x86_64.exe"
-          cp target/release/chipload.exe "dist/chipload-$VERSION-windows-x86_64.exe"
+          cp target/release/chipload-gui.exe "dist/chipload-gui-$VERSION-windows-${{ matrix.arch }}.exe"
+          cp target/release/chipload.exe "dist/chipload-$VERSION-windows-${{ matrix.arch }}.exe"
       - name: No runtime DLL beyond Windows itself
         shell: pwsh
         run: |
@@ -91,7 +130,7 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
+          name: windows-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
@@ -120,8 +159,24 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  guide:
+    needs: version
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: mdBook (the version build-book.sh wants)
+        run: cargo install mdbook --version 0.5.4 --locked
+      - run: packaging/docs/build-book.sh zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guide
+          path: target/chipload-guide-*.zip
+          if-no-files-found: error
+
   draft-release:
-    needs: [version, linux, windows, macos]
+    # Only for a tag: a run by hand builds the files and stops there.
+    if: github.event_name == 'push'
+    needs: [version, linux, windows, macos, guide]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -141,15 +196,20 @@ jobs:
           cat > notes.md <<NOTES
           Chipload $VERSION.
 
-          - **Linux:** \`Chipload-$VERSION-x86_64.AppImage\`: make it executable and run it
+          - **Linux:** \`Chipload-$VERSION-x86_64.AppImage\`, or \`Chipload-$VERSION-aarch64.AppImage\`
+            for ARM64 (Raspberry Pi 4 and 5 with a 64-bit OS): make it executable and run it
             (\`chmod +x\`). Without FUSE: \`--appimage-extract-and-run\`.
-          - **Windows:** \`chipload-gui-$VERSION-windows-x86_64.exe\`: a single file, no installer.
-            It is not code-signed yet, so Windows SmartScreen may ask before the first start.
+          - **Windows:** \`chipload-gui-$VERSION-windows-x86_64.exe\`, or \`…-windows-aarch64.exe\` for
+            ARM laptops: a single file, no installer. It is not code-signed yet, so Windows
+            SmartScreen may ask before the first start.
           - **macOS:** \`Chipload-$VERSION-macos-universal.dmg\` (Apple silicon and Intel, macOS 11+): drag
             Chipload to Applications. It is not notarised yet: the first start is refused; open it
             from System Settings > Privacy & Security > *Open Anyway*.
-          - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-windows-x86_64.exe\`,
+          - **Command line:** \`chipload-$VERSION-linux-x86_64.tar.gz\`, \`chipload-$VERSION-linux-aarch64.tar.gz\`,
+            \`chipload-$VERSION-windows-x86_64.exe\`, \`chipload-$VERSION-windows-aarch64.exe\`,
             \`chipload-$VERSION-macos-universal.tar.gz\`.
+          - **User guide:** \`chipload-guide-$VERSION.zip\` (open \`index.html\`), or online at
+            https://gntech.github.io/chipload/.
 
           Free software under GPL-3.0-or-later; the source is attached to this release.
           Third-party licences: Help > About and licences, or \`chipload licenses\`.

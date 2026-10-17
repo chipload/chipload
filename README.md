@@ -1,7 +1,7 @@
 # Chipload
 
 2.5D CAM for CNC routers and mills: drawings in (DXF), checked G-code out. Free software,
-for Linux and Windows, written in Rust.
+for Linux, Windows and macOS, written in Rust.
 
 **[User guide](https://gntech.github.io/chipload/)** · **[Download](https://github.com/gntech/chipload/releases)**
 
@@ -109,9 +109,10 @@ Problems found this way become test cases, so they stay fixed (see `CONTRIBUTING
 
 ## Download
 
-[Releases](https://github.com/gntech/chipload/releases) provide a Linux AppImage and a
-single Windows `.exe` for the GUI, plus the command line for both, and the user guide to read
-offline. The guide is also online: <https://gntech.github.io/chipload/>.
+[Releases](https://github.com/gntech/chipload/releases) provide the app and the command line
+for Linux (an AppImage) and Windows (a single `.exe`), each for x86_64 and ARM64 (Raspberry
+Pi 4/5, ARM laptops), and the user guide to read offline. macOS builds are set up and come
+with the next release built by GitHub. The guide is also online: <https://gntech.github.io/chipload/>.
 
 ## Quick start
 

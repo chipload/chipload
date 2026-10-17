@@ -3,6 +3,9 @@
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
 # Browser builds (docs/specs/web.md): getrandom's browser backend is chosen by this cfg.
 [target.wasm32-unknown-unknown]
 rustflags = ["--cfg", 'getrandom_backend="wasm_js"']

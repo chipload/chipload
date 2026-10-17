@@ -1,6 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Build Chipload-<version>-x86_64.AppImage from target/release/chipload-gui.
+# Build Chipload-<version>-<arch>.AppImage from target/release/chipload-gui, for the machine's
+# architecture: x86_64 or aarch64 (ARM64, e.g. a Raspberry Pi 4 or 5).
 #
 # Usage: packaging/linux/build-appimage.sh <version> [output dir]
 #
@@ -15,10 +16,19 @@ OUT=${2:-dist}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 BINARY="$ROOT/target/release/chipload-gui"
 
-# appimagetool 1.9.1 (2025-11-18). The project publishes no checksums; this is the sha256 of
-# the file as first downloaded, so a later change to it is caught.
-APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
-APPIMAGETOOL_SHA256=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+ARCH=$(uname -m)
+# appimagetool 1.9.1 (2025-11-18). The project publishes no checksums; these are the sha256 of
+# the files as first downloaded, so a later change to them is caught.
+case "$ARCH" in
+    x86_64)
+        APPIMAGETOOL_SHA256=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+        LDCONFIG_ARCH=x86-64 ;;
+    aarch64)
+        APPIMAGETOOL_SHA256=f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+        LDCONFIG_ARCH=AArch64 ;;
+    *) echo "error: no AppImage for $ARCH (x86_64 and aarch64 only)" >&2; exit 1 ;;
+esac
+APPIMAGETOOL_URL=https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-$ARCH.AppImage
 
 # Loaded at run time by winit for X11 keyboards; absent on minimal systems (e.g. WSL).
 # MIT-licensed; listed in THIRD-PARTY-LICENSES.txt.
@@ -40,7 +50,7 @@ install -Dm644 "$ROOT/LICENSE" "$APPDIR/usr/share/doc/chipload/LICENSE"
 install -Dm644 "$ROOT/THIRD-PARTY-LICENSES.txt" "$APPDIR/usr/share/doc/chipload/THIRD-PARTY-LICENSES.txt"
 
 for lib in $BUNDLED_LIBS; do
-    path=$(/sbin/ldconfig -p | awk -v lib="$lib" '$1 == lib && /x86-64/ { print $NF; exit }')
+    path=$(/sbin/ldconfig -p | awk -v lib="$lib" -v arch="$LDCONFIG_ARCH" '$1 == lib && index($0, arch) { print $NF; exit }')
     if [ -n "$path" ]; then
         install -Dm644 "$path" "$APPDIR/usr/lib/$lib"
         # Its licence: the Debian/Ubuntu package's copyright file.
@@ -68,7 +78,7 @@ if [ -z "${APPIMAGETOOL:-}" ]; then
 fi
 
 mkdir -p "$OUT"
-TARGET="$OUT/Chipload-$VERSION-x86_64.AppImage"
+TARGET="$OUT/Chipload-$VERSION-$ARCH.AppImage"
 # Extract-and-run: CI machines and containers often have no FUSE.
-ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" --no-appstream "$APPDIR" "$TARGET"
+ARCH=$ARCH APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" --no-appstream "$APPDIR" "$TARGET"
 echo "Built $TARGET"

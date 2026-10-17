@@ -17,14 +17,19 @@ publish it.
        git tag -a v0.2.0 -m "Chipload 0.2.0"
        git push origin v0.2.0
 
-4. The workflow checks that the tag matches the workspace version, runs the tests on Linux,
-   Windows and macOS, builds the files, and creates a draft release with them and `SHA256SUMS.txt`.
-5. Download and try the AppImage, the Windows `.exe` and the macOS app, edit the notes, then **Publish**.
-6. Build the user guide and attach it to the release (docs/specs/user-guide.md §5). First
-   renew its screenshots (needs a display) and commit them if they changed:
+4. The workflow checks that the tag matches the workspace version, runs the tests on Linux
+   and Windows (x86_64 and ARM64) and macOS, builds the files and the user guide, and creates
+   a draft release with them and `SHA256SUMS.txt`. To try the builds without a release, run
+   it by hand: *Actions > Release > Run workflow* (the files are left as run artifacts).
+5. Download and try the AppImages, the Windows `.exe` files and the macOS app, edit the notes,
+   then **Publish**.
+6. The user guide (docs/specs/user-guide.md §5): renew its screenshots **before tagging**
+   (needs a display) and commit them if they changed; the workflow builds the zip from the
+   tag:
 
        packaging/docs/screenshots.sh         # docs/book/src/images/*.png
 
+   Without the workflow, build and attach it by hand:
 
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
        gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip
@@ -43,13 +48,15 @@ publish it.
 | File | What |
 |---|---|
 | `Chipload-X.Y.Z-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
+| `Chipload-X.Y.Z-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
 | `chipload-gui-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
-| `chipload-X.Y.Z-linux-x86_64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
-| `chipload-X.Y.Z-windows-x86_64.exe` | Windows command line |
+| `chipload-gui-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
+| `chipload-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
+| `chipload-X.Y.Z-windows-x86_64.exe`, `…-windows-aarch64.exe` | Windows command line |
 | `Chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
 | `chipload-X.Y.Z-macos-universal.tar.gz` | macOS command line, with LICENSE and the third-party notices |
 | `SHA256SUMS.txt` | checksums of the above |
-| `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`), attached by hand (step 6) |
+| `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`) |
 
 GitHub attaches the source archives of the tag, which with `LICENSE` covers the GPL's
 corresponding-source requirement. Every binary also carries the licence texts (GUI:

@@ -5,6 +5,11 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
+- **More platforms** (2026-10-17): the release workflow builds Linux and Windows for ARM64 too
+  (AppImage and CLI, native GitHub runners), and the guide zip; a run by hand builds without
+  a release. Not run yet: try it once Actions run again (*Actions > Release > Run workflow*).
+  macOS files (universal) were set up earlier and have never been built either.
+
 - **Inches** (docs/specs/inch-units.md, approved 2026-10-17): step 1, G-code in G20 per
   machine (schema 28, machines.json 4, post `units`/`inch_decimals`, the checker reads G20),
   done 2026-10-17. Step 2, display units in the app (Preferences > Units: fields with
