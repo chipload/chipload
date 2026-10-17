@@ -5,34 +5,28 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
+- **Not released yet** (on main since v0.21.1): rest passes under their pocket; release
+  files named in lowercase (`chipload-gui-X-linux-x86_64.AppImage`, …), first used by the
+  next release. Proposed next release: 0.22.0.
 
-- **More platforms** (2026-10-17): the release workflow builds Linux and Windows for ARM64 too
-  (AppImage and CLI, native GitHub runners), and the guide zip; a run by hand builds without
-  a release. Not run yet: try it once Actions run again (*Actions > Release > Run workflow*).
-  macOS files (universal) were set up earlier and have never been built either.
+## State to remember (2026-10-17)
 
-- **Inches** (docs/specs/inch-units.md, approved 2026-10-17): step 1, G-code in G20 per
-  machine (schema 28, machines.json 4, post `units`/`inch_decimals`, the checker reads G20),
-  done 2026-10-17. Step 2, display units in the app (Preferences > Units: fields with
-  fractions, grid, canvas, setup sheet, inch defaults for new projects) done 2026-10-17.
-  Step 3, the command line (lengths with a unit, `sheet --units`, `run --sheet-units`)
-  done 2026-10-17. Later: report and problem messages in the display units (they keep mm,
-  labelled).
-
-## State to remember (2026-10-12)
-
-- **Release 0.13.0**: tag `v0.13.0` (14a1b71), published on GitHub with the Linux files
-  (AppImage, CLI tar.gz) and, since 2026-10-12, the Windows files (GUI and CLI `.exe`), with
-  `SHA256SUMS.txt` covering all four. The Windows GUI hasn't been started on Windows yet:
-  try it. Old drafts (0.3.0–0.10.1) were deleted; their tags remain.
+- **Releases**: the latest is 0.21.1 (published 2026-10-17, built by Actions: Linux and
+  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). No drafts are
+  left. Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
-  github.com/chipload/chipload, the guide at chipload.github.io/chipload. Actions run again
-  (free for public repositories): a `vX.Y.Z` tag builds every file and drafts the release.
-  The local builds below remain the fallback. The `gh` token needs Contents read/write on
-  `chipload/chipload` for releases and the guide (it had it only on the old place).
-- **Windows builds** (local, no Actions): Rust (msvc) and the Build Tools are installed on
-  the Windows side, checkout `C:\code\chipload`; the steps are in docs/releasing.md
-  (*Without GitHub Actions*). 0.13.0 was built and uploaded that way.
+  github.com/chipload/chipload, the guide at chipload.github.io/chipload (published from
+  v0.21.1; guide-only fixes go out with a `guide-X.Y.Z-N` tag and
+  `packaging/docs/publish-book.sh`). Actions run (free for public repositories): a `vX.Y.Z`
+  tag builds every file and drafts the release; *Actions > Release > Run workflow* builds
+  without a release. The `gh` token's resource owner is `chipload` (Contents, Actions and
+  Pages read/write).
+- **For the user to do on GitHub**: the organisation's avatar
+  (`packaging/brand/png/chipload-avatar-512.png`), its name, description and website, and
+  the repository's social preview (`packaging/brand/png/github-social-preview.png`).
+- **Windows builds** (local fallback, without Actions): Rust (msvc) and the Build Tools are
+  installed on the Windows side, checkout `C:\code\chipload`; the steps are in
+  docs/releasing.md (*Without GitHub Actions*).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
   history). Tag `adaptive-final` (local): main before the removal.
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
@@ -74,8 +68,9 @@ it's built (see `CLAUDE.md`).
 - **Lean plan** (approved 2026-10-13, ADR 0017), in this order, each with a spec first:
   1. Operation presets and layer rules: paused 2026-10-13 by the user, spec drafted
      (docs/specs/presets.md, decisions not reviewed).
-  2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md). Later: rest
-     profiles if missed; dogbones on a rest pocket.
+  2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md), as rest passes under
+     their pocket since 2026-10-17 (docs/specs/rest-passes.md). Later: rest passes for
+     profiles if missed; dogbones with rest passes.
   3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/book/src/scripting.md). Batch
      runs: shell recipes instead of a command (decision 8).
   4. Feeds and speeds per material in the library, with a chip-load warning.
@@ -91,12 +86,14 @@ it's built (see `CLAUDE.md`).
   7–8. Done (cycle time estimate and the setup sheet, see Done).
   - Small items done (see Done). Later from them: copy imported shapes (as drawn
     polylines); a chip load range per tool in the library (amber warning, schema change).
-  - Later from the same pass: a bug-report bundle, inch display and entry, operation
-    presets (now in the lean plan; toolpath playback: done, see Done).
+  - Later from the same pass: a bug-report bundle, operation presets (now in the lean
+    plan; inches and toolpath playback: done, see Done).
 - **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
-  download, browser storage, a bundled font), after user testing; its decisions are
-  proposals to review then.
+  download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
+  without installing, the user said wait. Its decisions are proposals to review then.
+- **Inches, later** (docs/specs/inch-units.md): report and problem messages in the display
+  units (they keep mm, labelled).
 - **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
   against thousands before; find which pictures are slow (centre lines on noise?) and
   whether a user could hit it.
@@ -108,6 +105,22 @@ it's built (see `CLAUDE.md`).
 - **Rest passes under their pocket** (2026-10-17, docs/specs/rest-passes.md): a pocket's
   rest passes follow it, shown as leaves under it (*1.1*), cut after the run of same-tool
   pockets; `op add-rest`, `op rest-pass`, `op make-rest-pass`; golden v28_rest_passes.
+  Replaces *Add rest pocket*'s copy; a standalone rest pocket stays for a pocket cut
+  elsewhere.
+- **Brand and the public repository** (2026-10-17): a logo (icon and wordmark, inspired by
+  the GNTECH logo; `packaging/brand/`) in the app icon, window, README and guide; the
+  repository moved to the `chipload` organisation and was made public; the guide published
+  at chipload.github.io/chipload; the README asks for tests on real machines and says that
+  what you make with Chipload is yours; the organisation's profile page, topics and social
+  preview; a showcase picture with the logo V-carved and the toolpaths shown.
+- **Release builds for every common platform** (2026-10-17, ADR 0010): Actions builds
+  Linux and Windows on x86_64 and ARM64, macOS universal (`.dmg` and CLI), and the guide
+  zip; first built for 0.21.1. Release files named in lowercase from the next release.
+- **Inches** (2026-10-17, docs/specs/inch-units.md, schema 28, machines.json 4): G-code in
+  G20 per machine (post `units`/`inch_decimals`, the checker reads G20); display units in
+  the app (Preferences > Units: fields with fractions, grid, canvas, setup sheet, inch
+  defaults for new projects); lengths with a unit on the command line (`sheet --units`,
+  `run --sheet-units`). In 0.21.0.
 
 - **Profiles always spiral** (2026-10-15, schema 27, docs/specs/profile-always-spiral.md):
   the straight plunge and the lead are gone from profiles (no worse options); a profile
@@ -141,7 +154,7 @@ it's built (see `CLAUDE.md`).
   plainly; default feeds from the tool diameter; the profile's entry as a combo; the
   clearance field shown as Oversize; copies and parts overlap by their tools' paths;
   a rapid to 1 mm above the stock before every plunge (docs/specs/approach.md, every
-  G-code golden changed by those `G0 Z1.000` lines). Not pushed.
+  G-code golden changed by those `G0 Z1.000` lines).
 
 - **Refactoring pass** (2026-10-14, 13 commits, no change to any G-code or golden): typed
   problems (`Problem::at`, no re-parsing of "path: message"), notes and toolpath errors
@@ -150,7 +163,7 @@ it's built (see `CLAUDE.md`).
   `Job::tool`, `Operation::label`, `chipload_core::text`, `Ordered` sort keys; the pocket
   planner on `PocketRing`/`PocketRequest`/`PocketCut`; every cavalier_contours call in
   `cavalier.rs`; `plan_job` in steps; the GUI's state in `Sim`, `Drag` and `Dialogs` and
-  its tests split by area. Not pushed.
+  its tests split by area.
 
 - **Rounded rectangle corners** (2026-10-14, docs/specs/rectangle-corner-radius.md, schema
   25): a drawn rectangle's corner radius, true arcs, at most half the shorter side; the
@@ -213,8 +226,8 @@ it's built (see `CLAUDE.md`).
   when the canvas is too narrow, clear of the legend.
 - **macOS release build** (2026-10-16, ADR 0010): the release workflow builds a universal
   `Chipload.app` in a `.dmg` and a CLI archive (`packaging/macos/build-macos.sh`), signed ad
-  hoc. Never run yet (no Actions minutes, no Mac here): the first tagged run is its test, and
-  nobody has started the app on a Mac. Later: notarisation, opening files from Finder.
+  hoc. Built since 0.21.1 (after a fix for `otool -L` on universal binaries); nobody has
+  started the app on a Mac yet. Later: notarisation, opening files from Finder.
 - **A new project drops the old simulation** (0.18.0): New, Open and Import DXF clear the
   stock simulation and playback with the toolpath.
 - **Unsaved changes** (0.17.4): Save, Don't save or Cancel, in a centred modal.
@@ -298,8 +311,8 @@ it's built (see `CLAUDE.md`).
 - **Add rest pocket** (2026-10-13, docs/specs/rest-machining.md §10): from a pocket, a rest
   pocket right after it with the same shapes, depths and settings, a smaller tool, rest
   after the pocket's tool; library cutting values when the tool has them. GUI: the
-  operation card's right-click menu; CLI: `op add-rest`. Copies at creation (option B);
-  a live link to the operation (A) only if drift turns out to be a nuisance.
+  operation card's right-click menu; CLI: `op add-rest`. Copied at creation (option B);
+  replaced 2026-10-17 by the live link (A), rest passes (see above).
 - **Scripting** (2026-10-13, docs/specs/scripting.md; user guide docs/book/src/scripting.md):
   - `--json` on every command, with one envelope (`chipload_json`, `ok`, `notes`,
     `written`, and `error` with the problems' paths) and each command's own keys;
@@ -446,19 +459,14 @@ it's built (see `CLAUDE.md`).
 - **Ring corner radius per corner:** a ring now has one radius, set by its sharpest corner;
   rounding each corner by its own angle would let acute shapes (triangles) keep larger
   radii at their other corners (follow-up to docs/specs/pocket-round-corners.md).
-- **A list of every shape** in the Shapes section of the sidebar, drawn and imported, to
-  click and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12).
-- **Several DXFs in one project:** import more than one drawing into a project, each with
-  its own source and placement (user request 2026-10-11).
+- **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
+  and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
+  now the Browser).
 - **Import SVG** as well as DXF, working the same way: units, contours, the import report,
   update from a new version, placement (user request 2026-10-11).
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
-  0015) can make other parts faster or more robust: pocket clearing and adaptive, material
-  left, narrow-part checks, distance queries (user request 2026-10-11).
-- **V-carve: text typed in the app** (docs/specs/v-carve.md, step 2): a text shape with a
-  font, size and position, its outlines V-carved. Needs a font decision (bundle an OFL font,
-  or use the system's fonts) and a schema bump. Not prioritised (2026-10-11).
-- **V-carve: tracing a black-and-white picture** (step 3): outlines from a bitmap, with the
-  pixel size in mm chosen explicitly. Not prioritised.
+  0015) can make other parts faster or more robust: pocket clearing, narrow-part checks,
+  distance queries (user request 2026-10-11).
 - **V-carve: a flat floor** for strokes wider than the bit carves: the V-bit cuts the walls,
-  an endmill clears the floor. Needs a tool per operation. Not prioritised.
+  an endmill clears the floor (a tool per operation exists now). Not prioritised. (Steps 2
+  and 3 of docs/specs/v-carve.md, text and traced pictures, are done: see Text and Images.)
