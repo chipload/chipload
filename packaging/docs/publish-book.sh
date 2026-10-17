@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Publish the user guide of a release to the gh-pages branch (docs/specs/user-guide.md §5).
-# Served at https://gntech.github.io/chipload/. A guide-only fix after a release is tagged
+# Served at https://chipload.github.io/chipload/. A guide-only fix after a release is tagged
 # guide-X.Y.Z-N (docs/releasing.md).
 #
 #   packaging/docs/publish-book.sh v0.14.0 --yes    build the tag's guide, commit, push

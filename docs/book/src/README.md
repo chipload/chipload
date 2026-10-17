@@ -1,5 +1,7 @@
 # Chipload
 
+<img src="images/chipload-wordmark.svg" alt="Chipload" height="64">
+
 Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.
 
 - **In:** DXF drawings, text in built-in fonts, pictures traced into shapes, and simple
@@ -24,8 +26,8 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
 > **Testers with real machines wanted.** Chipload's programs pass its checker and many
 > tests, but they haven't been run on a real controller yet. If you have a CNC router or
 > mill, please try it, starting with an air cut, and tell us how it went in an
-> [issue](https://github.com/gntech/chipload/issues), also when it worked. The
-> [README](https://github.com/gntech/chipload#testing-on-your-machine) says what to try and
+> [issue](https://github.com/chipload/chipload/issues), also when it worked. The
+> [README](https://github.com/chipload/chipload#testing-on-your-machine) says what to try and
 > what to send.
 
 ## Safety

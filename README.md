@@ -1,9 +1,9 @@
-# Chipload
+<h1><img src="packaging/brand/chipload-wordmark.svg" alt="Chipload" height="72"></h1>
 
 2.5D CAM for CNC routers and mills: drawings in (DXF), checked G-code out. Free software,
 for Linux, Windows and macOS, written in Rust.
 
-**[User guide](https://gntech.github.io/chipload/)** · **[Download](https://github.com/gntech/chipload/releases)**
+**[User guide](https://chipload.github.io/chipload/)** · **[Download](https://github.com/chipload/chipload/releases)**
 
 ![Chipload: a plaque with a pocket round an island, bored holes, CHIPLOAD V-carved in a
 built-in font and an outline held by tabs, its simulated stock in 3D](docs/book/src/images/showcase.png)
@@ -99,7 +99,7 @@ We need people who own a machine to run Chipload's programs on it. Every report 
 - G-code in inches (G20), on a controller set to inches;
 - whether the work zero, depths and the setup sheet match what you set on the machine.
 
-**How to report:** open an [issue](https://github.com/gntech/chipload/issues) with:
+**How to report:** open an [issue](https://github.com/chipload/chipload/issues) with:
 - the machine, the controller and its firmware version, and the sender;
 - the Chipload version and the post;
 - the project file (`.chipload`) and the G-code, or the part of it that went wrong;
@@ -109,10 +109,10 @@ Problems found this way become test cases, so they stay fixed (see `CONTRIBUTING
 
 ## Download
 
-[Releases](https://github.com/gntech/chipload/releases) provide the app and the command line
+[Releases](https://github.com/chipload/chipload/releases) provide the app and the command line
 for Linux (an AppImage) and Windows (a single `.exe`), each for x86_64 and ARM64 (Raspberry
 Pi 4/5, ARM laptops), and the user guide to read offline. macOS builds are set up and come
-with the next release built by GitHub. The guide is also online: <https://gntech.github.io/chipload/>.
+with the next release built by GitHub. The guide is also online: <https://chipload.github.io/chipload/>.
 
 ## Quick start
 

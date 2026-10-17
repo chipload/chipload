@@ -24,22 +24,18 @@ it's built (see `CLAUDE.md`).
   (AppImage, CLI tar.gz) and, since 2026-10-12, the Windows files (GUI and CLI `.exe`), with
   `SHA256SUMS.txt` covering all four. The Windows GUI hasn't been started on Windows yet:
   try it. Old drafts (0.3.0–0.10.1) were deleted; their tags remain.
-- **No GitHub Actions minutes left**: the release workflow can't run. Linux release files
-  are built locally with `packaging/linux/build-release-local.sh <version> [out]` (podman,
-  Ubuntu 22.04 container, tests first, the same steps as the workflow), then uploaded with
-  `gh release create v<version> … --draft --verify-tag`. The `gh` token now has Contents
-  read/write on `gntech/chipload` (needed for releases). Remember the usual release steps
-  first (docs/releasing.md: version bump, internal pins, `cargo about generate`).
+- **The repository is public, under the `chipload` organisation** (2026-10-17):
+  github.com/chipload/chipload, the guide at chipload.github.io/chipload. Actions run again
+  (free for public repositories): a `vX.Y.Z` tag builds every file and drafts the release.
+  The local builds below remain the fallback. The `gh` token needs Contents read/write on
+  `chipload/chipload` for releases and the guide (it had it only on the old place).
 - **Windows builds** (local, no Actions): Rust (msvc) and the Build Tools are installed on
   the Windows side, checkout `C:\code\chipload`; the steps are in docs/releasing.md
   (*Without GitHub Actions*). 0.13.0 was built and uploaded that way.
-- **The repository is private**: testers can't download releases or open issues without
-  being added as collaborators. When it goes public, publish the user guide: the steps are
-  at the end of docs/releasing.md (the publish script's dry run passes, 2026-10-13). Decide: make it public, add testers, or another way to
-  collect reports (the 0.13.0 notes ask for issues).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
   history). Tag `adaptive-final` (local): main before the removal.
-- **Waiting on the user**: real-controller tests of the LinuxCNC and Mach3/4 posts.
+- **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
+  G-code, and the new builds (macOS, ARM64 Linux and Windows); the README asks for them.
 - **Property tests** (fixed 2026-10-13): release builds run them with a fixed seed
   (`packaging/test-release.sh`), so a release can't fail on an unseen case; everyday runs
   keep drawing new cases, and failures are now saved next to each test file (they weren't:

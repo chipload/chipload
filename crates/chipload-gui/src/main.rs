@@ -44,9 +44,11 @@ fn main() -> ExitCode {
         size = [w, h];
     }
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title("Chipload")
-            .with_inner_size(size),
+        viewport: window_icon(
+            egui::ViewportBuilder::default()
+                .with_title("Chipload")
+                .with_inner_size(size),
+        ),
         ..Default::default()
     };
     let result = eframe::run_native(
@@ -86,4 +88,13 @@ fn fatal(message: &str) {
         .set_title("Chipload cannot start")
         .set_description(message)
         .show();
+}
+
+/// The window's icon: Chipload's mark (packaging/brand/). A picture that can't be read leaves
+/// the system's default, which is no reason to stop.
+fn window_icon(builder: egui::ViewportBuilder) -> egui::ViewportBuilder {
+    match eframe::icon_data::from_png_bytes(include_bytes!("../assets/chipload-256.png")) {
+        Ok(icon) => builder.with_icon(icon),
+        Err(_) => builder,
+    }
 }

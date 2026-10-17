@@ -5,7 +5,7 @@ Chipload is two programs:
 - `chipload`, the command line.
 
 Both read and write the same project files, and both make the same G-code. Download them
-from the [releases page](https://github.com/gntech/chipload/releases): each release has the
+from the [releases page](https://github.com/chipload/chipload/releases): each release has the
 files below, the user guide to read offline, and `SHA256SUMS.txt` to check them.
 
 ## Linux
@@ -57,7 +57,7 @@ The app isn't notarised by Apple, so macOS refuses it the first time. Open *Syst
 Install Rust with [rustup](https://rustup.rs), then:
 
 ```sh
-git clone https://github.com/gntech/chipload
+git clone https://github.com/chipload/chipload
 cd chipload
 cargo build --release -p chipload-gui -p chipload-cli
 # target/release/chipload-gui and target/release/chipload

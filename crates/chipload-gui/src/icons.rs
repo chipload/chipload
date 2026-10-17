@@ -405,6 +405,38 @@ pub fn tick_box(painter: &Painter, rect: Rect, ticked: bool, color: Color32, fil
     }
 }
 
+/// The tool's orange in Chipload's mark (packaging/brand/README.md).
+pub const LOGO_TOOL: Color32 = Color32::from_rgb(0xf2, 0x9e, 0x38);
+
+/// Chipload's mark (packaging/brand/make-brand.py): a C of three rings spiralling in, as a
+/// pocket's rings are cut, and the tool, orange, where the cut starts.
+pub fn paint_logo(painter: &Painter, rect: Rect, color: Color32) {
+    let side = rect.width().min(rect.height());
+    let pen = Pen {
+        painter,
+        rect,
+        // As drawn on a 256 square: rings 20 wide at radii 100, 70 and 40.
+        stroke: Stroke::new(side * 20.0 / 256.0, color),
+    };
+    // The opening faces right: from 42° round to 318°, counter-clockwise (Y is down here).
+    let (start, end) = (-42f32.to_radians(), -318f32.to_radians());
+    let mut points = Vec::new();
+    for (i, r) in [100.0f32, 70.0, 40.0].into_iter().enumerate() {
+        let (from, to) = if i % 2 == 0 {
+            (start, end)
+        } else {
+            (end, start)
+        };
+        points.extend(pen.arc((0.5, 0.5), r / 256.0, from, to));
+    }
+    pen.poly(&points);
+    let tool = (
+        0.5 + 100.0 / 256.0 * start.cos(),
+        0.5 + 100.0 / 256.0 * start.sin(),
+    );
+    painter.circle_filled(pen.at(tool), side * 23.0 / 256.0, LOGO_TOOL);
+}
+
 /// Lines in unit coordinates of the icon's square (0,0 top left, 1,1 bottom right).
 struct Pen<'a> {
     painter: &'a Painter,

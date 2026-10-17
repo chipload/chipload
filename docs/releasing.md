@@ -34,7 +34,7 @@ publish it.
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
        gh release upload vX.Y.Z target/chipload-guide-X.Y.Z.zip
 
-   Publish it at https://gntech.github.io/chipload/ (the gh-pages branch):
+   Publish it at https://chipload.github.io/chipload/ (the gh-pages branch):
    `packaging/docs/publish-book.sh vX.Y.Z --yes`.
 
    A fix to the guide alone after a release (no change under `crates/` since the tag): tag
@@ -125,7 +125,7 @@ HEAD --dry-run` checks every step but the push. Then:
    published, so the first release after the guide (0.14.0 or later) is the first one with it.
 2. On GitHub: *Settings > Pages > Build and deployment*: source *Deploy from a branch*,
    branch `gh-pages`, folder `/ (root)`. The site is then at
-   `https://gntech.github.io/chipload/`.
+   `https://chipload.github.io/chipload/`.
 3. Point the app at it: set `USER_GUIDE_URL` in `crates/chipload-gui/src/app/dialogs.rs`,
    and replace the "comes with each release" text in the guide's install page if wanted.
 4. From then on, run step 1 for every release, after step 6 above.

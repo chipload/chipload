@@ -209,7 +209,7 @@ jobs:
             \`chipload-$VERSION-windows-x86_64.exe\`, \`chipload-$VERSION-windows-aarch64.exe\`,
             \`chipload-$VERSION-macos-universal.tar.gz\`.
           - **User guide:** \`chipload-guide-$VERSION.zip\` (open \`index.html\`), or online at
-            https://gntech.github.io/chipload/.
+            https://chipload.github.io/chipload/.
 
           Free software under GPL-3.0-or-later; the source is attached to this release.
           Third-party licences: Help > About and licences, or \`chipload licenses\`.

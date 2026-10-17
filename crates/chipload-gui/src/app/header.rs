@@ -49,8 +49,8 @@ impl ChiploadApp {
         ui.horizontal_centered(|ui| {
             ui.spacing_mut().item_spacing.x = 2.0;
             let logo = logo_color(ui.visuals());
-            let (rect, _) = ui.allocate_exact_size(vec2(18.0, 18.0), Sense::hover());
-            icons::paint(ui.painter(), rect, Icon::Project, logo);
+            let (rect, _) = ui.allocate_exact_size(vec2(20.0, 20.0), Sense::hover());
+            icons::paint_logo(ui.painter(), rect, logo);
             ui.add_space(4.0);
             ui.label(RichText::new("Chipload").strong());
             ui.add_space(14.0);
@@ -612,11 +612,12 @@ pub(crate) fn plain_icon_button(
     response
 }
 
-/// The logo's colour: a blue that reads on the top bar in either theme.
+/// The mark's green (packaging/brand/README.md): the brand green on dark, a deeper one
+/// on light, where the brand green is too pale.
 fn logo_color(visuals: &egui::Visuals) -> Color32 {
     if visuals.dark_mode {
-        Color32::from_rgb(0x5a, 0x9c, 0xe0)
+        Color32::from_rgb(0x9a, 0xb9, 0x64)
     } else {
-        Color32::from_rgb(0x1f, 0x5c, 0xb0)
+        Color32::from_rgb(0x6f, 0x8f, 0x3c)
     }
 }
