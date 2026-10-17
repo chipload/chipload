@@ -27,79 +27,50 @@ it's built (see `CLAUDE.md`).
 - **Windows builds** (local fallback, without Actions): Rust (msvc) and the Build Tools are
   installed on the Windows side, checkout `C:\code\chipload`; the steps are in
   docs/releasing.md (*Without GitHub Actions*).
-- **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for
-  history). Tag `adaptive-final` (local): main before the removal.
+- **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for history). Local tags
+  `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
   G-code, and the new builds (macOS, ARM64 Linux and Windows); the README asks for them.
-- **Property tests** (fixed 2026-10-13): release builds run them with a fixed seed
-  (`packaging/test-release.sh`), so a release can't fail on an unseen case; everyday runs
-  keep drawing new cases, and failures are now saved next to each test file (they weren't:
-  proptest's default needs a lib.rs or main.rs) to commit with the fix. The
-  `material_left_is_out_of_reach_and_complete` failure was found again (seed 59245510) and
-  fixed: an island loop that touches itself came back from the offset library as open scraps.
+- **Scope** (ADR 0017): a lean power tool; the drawing tools are frozen.
 
 ## Next
 
-- **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"), each with its
-  own spec first, in this order:
-  1. **Follow path** — done 2026-10-13 (docs/specs/follow-path.md, schema 17).
-  2. **Finishing pass and onion skin** — done 2026-10-13 (docs/specs/finish-and-skin.md,
-     optional profile fields, no version bump). Later: a separate finishing feed, and a
-     finishing pass for pockets (walls and floor), each with its own spec.
-  3. **Drilling and helical boring** — done 2026-10-13 (docs/specs/holes.md, schema 18).
-     Later (§9 there): canned cycles G81/G83 as a post option, DXF points as hole centres,
-     a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers, counterbores in one
-     operation.
-  4. **Dogbone and T-bone corners** — done 2026-10-13 (docs/specs/dogbones.md, optional
-     `corners` field, no version bump). Later: a choice per corner on the canvas.
-  5. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
-     Skipped for now (user, 2026-10-13): after the simulation.
-  6. **Material-removal simulation** — done 2026-10-13 (docs/specs/simulation.md). Later:
-     comparing with the design (gouges), holders and flute length. Playback done
-     2026-10-13 (docs/specs/playback.md); later: a G-code panel with the current line.
+In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-  Features 1–4 and 6 and the playback slider were tested by the user: all okay
-  (2026-10-17).
-
-- **Trochoidal and adaptive clearing: removed 2026-10-13** (docs/decisions/0017-scope.md).
-  The code is at the local tag `adaptive-final` (the work branches were deleted
-  2026-10-13, with the user's agreement). Projects that use
-  them load and are refused when generating ("switch the pocket to rings").
-- **Lean plan** (approved 2026-10-13, ADR 0017), in this order, each with a spec first:
-  1. Operation presets and layer rules: paused 2026-10-13 by the user, spec drafted
-     (docs/specs/presets.md, decisions not reviewed).
-  2. Rest machining — done 2026-10-13 (docs/specs/rest-machining.md), as rest passes under
-     their pocket since 2026-10-17 (docs/specs/rest-passes.md). Later: rest passes for
-     profiles if missed; dogbones with rest passes.
-  3. Scripting — done 2026-10-13 (docs/specs/scripting.md, docs/book/src/scripting.md). Batch
-     runs: shell recipes instead of a command (decision 8).
-  4. Feeds and speeds per material in the library, with a chip-load warning.
-  5. Material left merged into the simulation — done 2026-10-13
-     (docs/specs/material-left-merge.md).
-  6. Fuzz the DXF importer — done 2026-10-13 (fuzz/README.md; one overflow found and fixed).
-  Also: the drawing tools are frozen (ADR 0017); real-machine validation (the user).
-- **General improvement pass** (proposed and approved 2026-10-12, in this order):
-  1–2. Done (background generation and live preview, see Done).
-  3–4. Done (recovery copies and the `.bak` on save, see Done).
-  5. Done (user post-processors, LinuxCNC and Mach3/4 posts, see Done).
-  6. Done (problems while editing, see Done).
-  7–8. Done (cycle time estimate and the setup sheet, see Done).
-  - Small items done (see Done). Later from them: copy imported shapes (as drawn
-    polylines); a chip load range per tool in the library (amber warning, schema change).
-  - Later from the same pass: a bug-report bundle, operation presets (now in the lean
-    plan; inches and toolpath playback: done, see Done).
-- **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
-  compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
-  download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
-  without installing, the user said wait. Its decisions are proposals to review then.
-- **Inches, later** (docs/specs/inch-units.md): report and problem messages in the display
-  units (they keep mm, labelled).
-- **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
-  against thousands before; find which pictures are slow (centre lines on noise?) and
-  whether a user could hit it.
+1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
+   4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
+2. **Surfacing / facing**: flatten the spoilboard or face the stock (raster or spiral).
+   Skipped 2026-10-13 by the user until after the simulation, which is done.
+3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+   (docs/specs/presets.md, decisions not reviewed).
+4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
+   download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
+   without installing, the user said wait. Its decisions are proposals to review then.
+5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+   against thousands before; find which pictures are slow (centre lines on noise?) and
+   whether a user could hit it.
+6. **Inches, the rest** (docs/specs/inch-units.md): report and problem messages in the
+   display units (they keep mm, labelled).
 
 ## Done
 
+- **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"): follow path,
+  finishing pass and onion skin, drilling and helical boring, dogbone and T-bone corners,
+  the material-removal simulation and playback (entries below); tested by the user, all
+  okay (2026-10-17). Surfacing is under Next.
+- **Lean plan** (approved 2026-10-13, ADR 0017): rest machining, scripting, material left
+  merged into the simulation and DXF fuzzing done (entries below); feeds and speeds and
+  presets are under Next.
+- **General improvement pass** (approved 2026-10-12): background generation and live
+  preview, recovery copies and `.bak`, user posts, problems while editing, cycle time,
+  the setup sheet, the small items, playback and inches (entries below).
+- **Trochoidal and adaptive clearing removed** (2026-10-13, ADR 0017): the code is at the
+  local tag `adaptive-final`; since schema 26 such a pocket loads as a rings pocket.
+- **Property tests with a fixed seed for releases** (2026-10-13): release builds run them
+  with a fixed seed (`packaging/test-release.sh`), so a release can't fail on an unseen
+  case; everyday runs keep drawing new cases, and failures are saved next to each test
+  file to commit with the fix.
 - **Rest passes under their pocket** (2026-10-17, docs/specs/rest-passes.md): a pocket's
   rest passes follow it, shown as leaves under it (*1.1*), cut after the run of same-tool
   pockets; `op add-rest`, `op rest-pass`, `op make-rest-pass`; golden v28_rest_passes.
@@ -437,8 +408,7 @@ it's built (see `CLAUDE.md`).
 - **Scaling the imported drawing** (docs/specs/drawing-scale.md): uniformly, about its
   centre, by a factor or to a width or height; updates re-approximate curves at the new size
   (schema 11, `chipload place --scale/--width/--height`, GUI *Size* rows).
-- **Trochoidal vs adaptive:** dropped 2026-10-11; adaptive covers it, trochoidal stays as
-  it is.
+- **Trochoidal vs adaptive:** dropped 2026-10-11 (both were removed 2026-10-13).
 - **GUI pass** (approved 2026-10-11): report under the canvas, forms in sections, operations
   as cards, a toolbar row and start screen, a canvas legend, View > Theme (remembered).
 - **V-carving, step 1** (docs/specs/v-carve.md): a V-bit follows the centre line of closed
@@ -454,6 +424,18 @@ it's built (see `CLAUDE.md`).
 
 ## Later
 
+Follow-ups, not planned yet:
+
+- **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
+- **Pockets:** a finishing pass (walls and floor); dogbones with rest passes.
+- **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
+  hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
+  counterbores in one operation.
+- **Dogbones:** a choice per corner on the canvas.
+- **Simulation:** comparing with the design (gouges), holders and flute length; a G-code
+  panel with the current line during playback.
+- **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
+- **A bug-report bundle.**
 - **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
   and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
   now the Browser).
