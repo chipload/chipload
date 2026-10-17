@@ -1,7 +1,13 @@
 # Spec: inches (G-code and display)
 
 Status: approved 2026-10-17 with the recommended decisions. Step 1 (§4, G-code units)
-built the same day; steps 2 and 3 to come.
+and step 2 (§5.1, §5.2, display units in the app) built the same day; step 3 to come.
+
+**As built, step 2:** every field, section summary, the canvas (cursor, grid, snapping,
+measure, drawing and drag hints), the playback line, the chip load and the setup sheet
+follow the display units. Report messages, planning notes and problem messages keep mm
+with the unit written ("cuts 0.300 mm below the stock"): about 110 texts in the library
+crates, left for a later step. In mm, a field also takes a length typed with `in` or `"`.
 
 ## 1. Why
 

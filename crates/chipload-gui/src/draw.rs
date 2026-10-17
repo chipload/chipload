@@ -5,12 +5,14 @@
 
 use std::collections::BTreeSet;
 
+use chipload_core::MM_PER_INCH;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::CHAIN_TOL_MM;
-use chipload_job::{Geometry, Shape};
+use chipload_job::{Geometry, Shape, Units};
+use chipload_pipeline::units::length_text;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tool {
@@ -162,46 +164,79 @@ impl Sketch {
         }
     }
 
-    /// Status bar text: what is being drawn, its size at the cursor, the next step.
-    pub fn status(&self, p: Point, step: f64) -> String {
+    /// Status bar text: what is being drawn, its size at the cursor, the next step; lengths
+    /// in `units`.
+    pub fn status(&self, p: Point, step: f64, units: Units) -> String {
+        let n = |mm: f64| fixed(mm, units);
         let size = match (self.tool, self.points.first()) {
-            (Tool::Circle, Some(&c)) => format!(" radius {:.3}", distance(c, p)),
+            (Tool::Circle, Some(&c)) => format!(" radius {}", n(distance(c, p))),
             (Tool::Rectangle, Some(&c)) => {
-                format!(" {:.3} x {:.3}", (p.0 - c.0).abs(), (p.1 - c.1).abs())
+                format!(" {} x {}", n((p.0 - c.0).abs()), n((p.1 - c.1).abs()))
             }
             (Tool::Polyline, _) => format!(" {} points", self.points.len()),
             _ => String::new(),
         };
         format!(
-            "Drawing a {}{size}: {} (grid {step} mm, Esc cancels)",
+            "Drawing a {}{size}: {} (grid {}, Esc cancels)",
             self.tool.name(),
-            self.tool.hint(self.points.len())
+            self.tool.hint(self.points.len()),
+            length_text(step, units)
         )
     }
 }
 
-/// The grid clicks are rounded to: the finest of 0.01, 0.1, 0.5, 1, 5, 10, 50 mm that is at
-/// least 8 pixels at this zoom (pixels per mm).
-pub fn grid_step(scale: f64) -> f64 {
-    const STEPS: [f64; 7] = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0];
-    STEPS
-        .into_iter()
-        .find(|s| s * scale >= 8.0)
-        .unwrap_or(STEPS[STEPS.len() - 1])
+/// The grid clicks are rounded to, in mm: the finest step that is at least 8 pixels at this
+/// zoom (pixels per mm). In mm: 0.01, 0.1, 0.5, 1, 5, 10, 50 mm; in inches 0.001", 0.01",
+/// 1/32", 1/16", 1/8", 1/4", 1/2", 1", 2", 6", 12" (docs/specs/inch-units.md §5.1).
+pub fn grid_step(scale: f64, units: Units) -> f64 {
+    const MM: [f64; 7] = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0];
+    const INCH: [f64; 11] = [
+        0.001, 0.01, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 6.0, 12.0,
+    ];
+    let steps: Vec<f64> = match units {
+        Units::Mm => MM.to_vec(),
+        Units::Inch => INCH.iter().map(|s| s * MM_PER_INCH).collect(),
+    };
+    let last = steps.last().copied().unwrap_or(1.0);
+    steps.into_iter().find(|s| s * scale >= 8.0).unwrap_or(last)
 }
 
-/// `p` rounded to the grid. Steps below 1 divide by a whole number of steps per mm, so
-/// 0.3 comes out as the double nearest 0.3, not 3 × 0.1.
-pub fn snap(p: Point, step: f64) -> Point {
-    let round = |v: f64| {
-        if step < 1.0 {
-            let per_mm = (1.0 / step).round();
-            (v * per_mm).round() / per_mm
-        } else {
-            (v / step).round() * step
+/// A stronger grid line every this many steps: every ten in mm; in inches every inch, or
+/// every foot from 1" up.
+pub fn grid_major_every(step: f64, units: Units) -> i64 {
+    match units {
+        Units::Mm => 10,
+        Units::Inch => {
+            let inches = step / MM_PER_INCH;
+            let per = if inches < 1.0 { 1.0 } else { 12.0 };
+            ((per / inches).round() as i64).max(1)
         }
+    }
+}
+
+/// `p` rounded to the grid. Steps below 1 (mm or inch) divide by a whole number of steps per
+/// unit, so 0.3 comes out as the double nearest 0.3, not 3 × 0.1.
+pub fn snap(p: Point, step: f64, units: Units) -> Point {
+    let size = units.mm_per_unit();
+    let unit_step = step / size;
+    let round = |v: f64| {
+        let v = v / size;
+        let r = if unit_step < 1.0 {
+            let per_unit = (1.0 / unit_step).round();
+            (v * per_unit).round() / per_unit
+        } else {
+            (v / unit_step).round() * unit_step
+        };
+        r * size
     };
     (round(p.0), round(p.1))
+}
+
+/// A length in `units` with a fixed number of decimals (3 in mm, 4 in inches), for the status
+/// bar.
+pub fn fixed(mm: f64, units: Units) -> String {
+    let d = chipload_pipeline::units::decimals(units);
+    format!("{:.d$}", chipload_pipeline::units::from_mm(mm, units))
 }
 
 // -- snapping (docs/specs/drawing-follow-ups.md section 2)
@@ -273,6 +308,7 @@ pub fn snap_cursor(
     skip: &BTreeSet<usize>,
     scale: f64,
     step: f64,
+    units: Units,
     free: bool,
 ) -> (Point, Option<SnapPoint>) {
     if free {
@@ -287,7 +323,7 @@ pub fn snap_cursor(
         .min_by_key(|(d, p)| (Ordered(*d), p.kind, p.contour));
     match best {
         Some((_, p)) => (p.at, Some(*p)),
-        None => (snap(at, step), None),
+        None => (snap(at, step, units), None),
     }
 }
 
@@ -391,15 +427,23 @@ mod tests {
 
     #[test]
     fn the_grid_follows_the_zoom_and_snaps_to_round_values() {
-        assert_eq!(grid_step(2.0), 5.0); // 2 px/mm: the whole part on screen
-        assert_eq!(grid_step(10.0), 1.0);
-        assert_eq!(grid_step(20.0), 0.5);
-        assert_eq!(grid_step(100.0), 0.1);
-        assert_eq!(grid_step(10_000.0), 0.01);
-        assert_eq!(grid_step(0.01), 50.0);
-        assert_eq!(snap((0.31, -0.26), 0.1), (0.3, -0.3));
-        assert_eq!(snap((12.26, 7.74), 0.5), (12.5, 7.5));
-        assert_eq!(snap((12.6, -2.4), 5.0), (15.0, 0.0));
+        assert_eq!(grid_step(2.0, Units::Mm), 5.0); // 2 px/mm: the whole part on screen
+        assert_eq!(grid_step(10.0, Units::Mm), 1.0);
+        assert_eq!(grid_step(20.0, Units::Mm), 0.5);
+        assert_eq!(grid_step(100.0, Units::Mm), 0.1);
+        assert_eq!(grid_step(10_000.0, Units::Mm), 0.01);
+        assert_eq!(grid_step(0.01, Units::Mm), 50.0);
+        assert_eq!(snap((0.31, -0.26), 0.1, Units::Mm), (0.3, -0.3));
+        assert_eq!(snap((12.26, 7.74), 0.5, Units::Mm), (12.5, 7.5));
+        assert_eq!(snap((12.6, -2.4), 5.0, Units::Mm), (15.0, 0.0));
+        // Inches: a 1/8" grid at 4 px/mm (1/16" would be 6.35 px), lines each inch.
+        let eighth = grid_step(4.0, Units::Inch);
+        assert_eq!(eighth, 0.125 * 25.4);
+        assert_eq!(grid_major_every(eighth, Units::Inch), 8);
+        assert_eq!(grid_major_every(25.4, Units::Inch), 12);
+        assert_eq!(grid_major_every(5.0, Units::Mm), 10);
+        // 10.1 mm is 0.3976": the nearest 1/8" is 3/8" = 9.525 mm.
+        assert_eq!(snap((10.1, -0.1), eighth, Units::Inch), (0.375 * 25.4, 0.0));
     }
 
     fn contour(id: usize, prims: Vec<Primitive>) -> Contour {
@@ -447,7 +491,7 @@ mod tests {
         assert_eq!(points.len(), 3 + 4);
         let none = BTreeSet::new();
         // 10 px per mm: 8 px is 0.8 mm.
-        let at = |p: Point| snap_cursor(p, &points, &none, 10.0, 1.0, false);
+        let at = |p: Point| snap_cursor(p, &points, &none, 10.0, 1.0, Units::Mm, false);
         let (p, hit) = at((9.5, 0.3));
         assert_eq!(p, (10.0, 0.0));
         let hit = hit.unwrap();
@@ -461,21 +505,21 @@ mod tests {
         assert_eq!(at((2.6, 2.4)), ((3.0, 2.0), None));
         // Alt: exactly where the cursor is.
         assert_eq!(
-            snap_cursor((9.5, 0.3), &points, &none, 10.0, 1.0, true),
+            snap_cursor((9.5, 0.3), &points, &none, 10.0, 1.0, Units::Mm, true),
             ((9.5, 0.3), None)
         );
         // The dragged shape's own points are skipped.
         let skip: BTreeSet<usize> = [1].into();
-        let (_, hit) = snap_cursor((9.5, 0.3), &points, &skip, 10.0, 1.0, false);
+        let (_, hit) = snap_cursor((9.5, 0.3), &points, &skip, 10.0, 1.0, Units::Mm, false);
         assert_eq!(hit.unwrap().name(), "end of #2");
         // Zoomed out, the same distance is within reach of more.
         assert!(
-            snap_cursor((8.0, 0.0), &points, &none, 1.0, 1.0, false)
+            snap_cursor((8.0, 0.0), &points, &none, 1.0, 1.0, Units::Mm, false)
                 .1
                 .is_some()
         );
         assert!(
-            snap_cursor((8.0, 0.0), &points, &none, 10.0, 1.0, false)
+            snap_cursor((8.0, 0.0), &points, &none, 10.0, 1.0, Units::Mm, false)
                 .1
                 .is_none()
         );

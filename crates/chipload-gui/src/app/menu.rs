@@ -337,6 +337,28 @@ impl ChiploadApp {
             self.set_show_simulation(sim);
         }
         ui.separator();
+        ui.label("Units");
+        for (choice, label, hover) in [
+            (
+                chipload_job::Units::Mm,
+                "mm",
+                "Lengths in mm, feeds in mm/min",
+            ),
+            (
+                chipload_job::Units::Inch,
+                "inch",
+                "Lengths in inches, feeds in in/min; projects stay in mm",
+            ),
+        ] {
+            if ui
+                .radio(self.units == choice, label)
+                .on_hover_text(hover)
+                .clicked()
+            {
+                self.set_units(choice);
+            }
+        }
+        ui.separator();
         ui.label("Colour theme");
         for (choice, label, hover) in [
             (
@@ -431,7 +453,8 @@ impl ChiploadApp {
                     None => format!("cycle {time}"),
                 }
             });
-            let grid = (self.show_grid && self.edit.is_some()).then(|| grid_step(self.view.scale));
+            let grid = (self.show_grid && self.edit.is_some())
+                .then(|| grid_step(self.view.scale, self.units));
             // With two parts or more, the one new operations go into (docs/specs/parts.md §8),
             // unless the cycle time already names it.
             let active = self.edit.as_ref().and_then(|e| {
@@ -449,6 +472,7 @@ impl ChiploadApp {
                 .as_ref()
                 .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
             let cursor = self.cursor;
+            let units = self.units;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if let Some(name) = active {
                     ui.weak(format!("active part: {name}")).on_hover_text(
@@ -457,10 +481,15 @@ impl ChiploadApp {
                     ui.separator();
                 }
                 if let Some(post) = post {
-                    ui.weak("mm");
+                    ui.weak(chipload_pipeline::units::length_unit(units))
+                        .on_hover_text("Lengths are shown in these (Settings > Units)");
                     ui.separator();
                     if let Some(step) = grid {
-                        ui.weak(format!("grid {step} mm")).on_hover_text(
+                        ui.weak(format!(
+                            "grid {}",
+                            chipload_pipeline::units::length_text(step, units)
+                        ))
+                        .on_hover_text(
                             "The grid's step: clicks while drawing snap to it (G hides it)",
                         );
                         ui.separator();
@@ -486,13 +515,17 @@ impl ChiploadApp {
                 if let Some((x, y)) = cursor {
                     // Drawing coordinates, and program coordinates when they differ.
                     let (zx, zy) = zero;
+                    let n = |mm: f64| crate::draw::fixed(mm, units);
+                    let unit = chipload_pipeline::units::length_unit(units);
                     if (zx, zy) == (0.0, 0.0) {
-                        ui.monospace(format!("X {x:.3}  Y {y:.3} mm"));
+                        ui.monospace(format!("X {}  Y {} {unit}", n(x), n(y)));
                     } else {
                         ui.monospace(format!(
-                            "X {x:.3}  Y {y:.3} mm  (work X {:.3}  Y {:.3})",
-                            x - zx,
-                            y - zy
+                            "X {}  Y {} {unit}  (work X {}  Y {})",
+                            n(x),
+                            n(y),
+                            n(x - zx),
+                            n(y - zy)
                         ));
                     }
                     ui.separator();
@@ -521,13 +554,14 @@ impl ChiploadApp {
         {
             ui.label(text);
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
-            let step = grid_step(self.view.scale);
-            ui.label(format!("{}{name}", sketch.status(*at, step)));
+            let step = grid_step(self.view.scale, self.units);
+            ui.label(format!("{}{name}", sketch.status(*at, step, self.units)));
         } else if let (Some(_), Some((at, name))) = (&self.drag.handle, &snapped) {
             ui.label(format!(
-                "Dragging to ({:.3}, {:.3}){name} (Alt: no snapping; Shift on a middle \
+                "Dragging to ({}, {}){name} (Alt: no snapping; Shift on a middle \
                  bends the segment)",
-                at.0, at.1
+                crate::draw::fixed(at.0, self.units),
+                crate::draw::fixed(at.1, self.units)
             ));
         } else if let Some((text, until)) = &self.status {
             if Instant::now() < *until {

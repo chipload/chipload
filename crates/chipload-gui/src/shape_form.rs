@@ -38,11 +38,8 @@ pub enum ShapeAction {
     Delete,
 }
 
-fn mm(value: &mut f64) -> DragValue<'_> {
-    DragValue::new(value)
-        .speed(0.1)
-        .max_decimals(3)
-        .suffix(" mm")
+fn mm(value: &mut f64) -> crate::units::Field<'_> {
+    crate::units::length(value).speed(0.1).max_decimals(3)
 }
 
 /// The form. Edits change `draft` in place; the caller applies it if it differs.

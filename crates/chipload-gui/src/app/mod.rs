@@ -320,6 +320,9 @@ pub struct ChiploadApp {
     pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
     /// Settings > Colour theme, kept in the app settings.
     pub theme: Theme,
+    /// Settings > Units: what lengths and feeds are shown and typed in
+    /// (docs/specs/inch-units.md §5), kept in the app settings.
+    pub units: chipload_job::Units,
     /// The theme last handed to egui.
     applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
@@ -401,6 +404,7 @@ impl Default for ChiploadApp {
             auto_generate: true,
             setup_sheet: true,
             show_grid: true,
+            units: chipload_job::Units::Mm,
             changed_at: None,
             export_when_done: false,
             all_parts: false,
@@ -636,11 +640,20 @@ impl ChiploadApp {
         true
     }
 
+    /// A new project's starting values: tidy inch ones when lengths are shown in inches
+    /// (docs/specs/inch-units.md §5.2).
+    fn in_display_units(&self, job: chipload_job::Job) -> chipload_job::Job {
+        match self.units {
+            Units::Mm => job,
+            Units::Inch => chipload_pipeline::with_inch_defaults(job),
+        }
+    }
+
     /// Start a new, unsaved project with no drawing (docs/specs/new-project.md).
     pub fn new_project(&mut self) {
         self.dialogs.prompt = None;
         self.reload_library();
-        let mut job = empty_project();
+        let mut job = self.in_display_units(empty_project());
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
@@ -679,7 +692,7 @@ impl ChiploadApp {
         let shapes = imported.shapes.len();
         // The library gives starting values (the default machine and tool).
         self.reload_library();
-        let mut job = new_project(imported);
+        let mut job = self.in_display_units(new_project(imported));
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
@@ -1119,6 +1132,7 @@ impl ChiploadApp {
                         .as_deref()
                         .map_or_else(|| "Untitled project".into(), file_name),
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
+                    units: self.units,
                 };
                 match write_setup_sheet(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),
@@ -1541,6 +1555,7 @@ impl eframe::App for ChiploadApp {
                 self.clear_recovery(); // nothing unsaved: no copy to leave behind
             }
         }
+        crate::units::set_display(&ctx, self.units);
         if self.applied_theme != Some(self.theme) {
             ctx.set_theme(theme_preference(self.theme));
             self.applied_theme = Some(self.theme);

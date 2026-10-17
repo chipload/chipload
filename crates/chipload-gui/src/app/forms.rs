@@ -5,7 +5,6 @@ use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
-use chipload_core::text::mm as len;
 use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{
@@ -19,11 +18,10 @@ use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::Move as PlaceMove;
 
-pub(super) fn mm(value: &mut f64) -> DragValue<'_> {
-    DragValue::new(value)
+pub(super) fn mm(value: &mut f64) -> crate::units::Field<'_> {
+    crate::units::length(value)
         .speed(0.1)
         .range(0.0..=100_000.0)
-        .suffix(" mm")
 }
 
 /// Start depth, end depth and clearance (docs/specs/depths-and-clearance.md). `through`:
@@ -36,6 +34,8 @@ fn depth_rows(
     can_clear: bool,
     through: f64,
 ) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     ui.label("Start depth")
         .on_hover_text("Where the cut starts, down from the stock top");
     flag(ui.add(mm(start)), ui, "start_depth");
@@ -47,9 +47,9 @@ fn depth_rows(
         if ui
             .small_button("Through")
             .on_hover_text(format!(
-                "Cut through the stock: {} mm, its thickness plus the allowed depth below it \
+                "Cut through the stock: {} {len_unit}, its thickness plus the allowed depth below it \
                  (Job settings > Stock)",
-                len(through)
+                len_in(units, through)
             ))
             .clicked()
         {
@@ -65,21 +65,17 @@ fn depth_rows(
     let response = ui
         .add_enabled(
             can_clear,
-            DragValue::new(clearance)
+            crate::units::length(clearance)
                 .speed(0.01)
-                .range(-100_000.0..=100_000.0)
-                .suffix(" mm"),
+                .range(-100_000.0..=100_000.0),
         )
         .on_disabled_hover_text("A profile on the line has no side to cut more on");
     flag(response, ui, "clearance");
     ui.end_row();
 }
 
-pub(super) fn feed(value: &mut f64) -> DragValue<'_> {
-    DragValue::new(value)
-        .speed(10.0)
-        .range(0.0..=100_000.0)
-        .suffix(" mm/min")
+pub(super) fn feed(value: &mut f64) -> crate::units::Field<'_> {
+    crate::units::feed(value).speed(10.0).range(0.0..=100_000.0)
 }
 
 pub(super) fn direction_combo(ui: &mut egui::Ui, id: (&str, usize), direction: &mut Direction) {
@@ -162,6 +158,8 @@ fn section_marked<R>(
 /// The tabs' flank angle in degrees, and how far the feet reach (docs/specs/
 /// profile-spiral.md §4).
 fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     ui.label("  flank angle").on_hover_text(
         "How steeply the tab's sides slope down from its flat top. 90° is a straight tab: \
          the tool goes straight up and down. Below that the tool follows the slope, so it \
@@ -184,7 +182,7 @@ fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
             ui.weak("straight");
         } else if tabs.height > 0.0 {
             let foot = tabs.height / tabs.flank_angle.tan();
-            ui.weak(format!("feet {} mm each side", len(foot)));
+            ui.weak(format!("feet {} {len_unit} each side", len_in(units, foot)));
         }
     });
     ui.end_row();
@@ -203,18 +201,19 @@ fn direction_name(direction: Direction) -> &'static str {
     }
 }
 
-fn entry_summary(entry: &Entry, lead: Option<&Lead>) -> String {
+fn entry_summary(entry: &Entry, lead: Option<&Lead>, units: Units) -> String {
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let entry = match entry {
         Entry::Plunge {} => "straight plunge".to_string(),
         Entry::Ramp { ramp_angle } => format!("ramp {:.1}°", ramp_angle.to_degrees()),
         Entry::Helix { radius, ramp_angle } => format!(
-            "helix r {} mm, {:.1}°",
-            len(*radius),
+            "helix r {} {len_unit}, {:.1}°",
+            len_in(units, *radius),
             ramp_angle.to_degrees()
         ),
     };
     match lead {
-        Some(lead) => format!("{entry}, lead {} mm", len(lead.radius)),
+        Some(lead) => format!("{entry}, lead {} {len_unit}", len_in(units, lead.radius)),
         None => entry,
     }
 }
@@ -249,6 +248,8 @@ pub(super) fn op_form(
     choice: ToolChoice<'_>,
     through: f64,
 ) -> OpFormRequest {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let mut request = OpFormRequest::default();
     let mut use_selection = false;
     let tool_diameter = choice
@@ -345,10 +346,10 @@ pub(super) fn op_form(
     match &mut entry.op {
         Operation::Profile(p) => {
             let cut = format!(
-                "{}–{} mm, steps of {} mm, {}, spiral ramp {}°",
-                len(p.start_depth),
-                len(p.end_depth),
-                len(p.step_down),
+                "{}–{} {len_unit}, steps of {} {len_unit}, {}, spiral ramp {}°",
+                len_in(units, p.start_depth),
+                len_in(units, p.end_depth),
+                len_in(units, p.step_down),
                 direction_name(p.direction),
                 degrees(p.ramp_angle)
             );
@@ -380,10 +381,10 @@ pub(super) fn op_form(
         }
         Operation::Pocket(p) => {
             let cut = format!(
-                "{}–{} mm, steps of {} mm, {}",
-                len(p.start_depth),
-                len(p.end_depth),
-                len(p.step_down),
+                "{}–{} {len_unit}, steps of {} {len_unit}, {}",
+                len_in(units, p.start_depth),
+                len_in(units, p.end_depth),
+                len_in(units, p.step_down),
                 direction_name(p.direction)
             );
             section(ui, "op-cut", "Cut", &cut, |ui| {
@@ -422,7 +423,7 @@ pub(super) fn op_form(
                 ui.end_row();
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let entry_text = entry_summary(&p.entry, p.lead.as_ref());
+            let entry_text = entry_summary(&p.entry, p.lead.as_ref(), units);
             section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter);
@@ -430,12 +431,12 @@ pub(super) fn op_form(
         }
         Operation::Vcarve(v) => {
             let passes = v.step_down.map_or("one pass".to_string(), |s| {
-                format!("steps of {} mm", len(s))
+                format!("steps of {} {len_unit}", len_in(units, s))
             });
             let cut = format!(
-                "from {} mm, at most {} mm deep, {passes}",
-                len(v.start_depth),
-                len(v.end_depth)
+                "from {} {len_unit}, at most {} {len_unit} deep, {passes}",
+                len_in(units, v.start_depth),
+                len_in(units, v.end_depth)
             );
             section(ui, "op-cut", "Cut", &cut, |ui| {
                 ui.label("Start depth").on_hover_text(
@@ -466,10 +467,10 @@ pub(super) fn op_form(
         }
         Operation::Path(p) => {
             let cut = format!(
-                "{}–{} mm, steps of {} mm, on the line",
-                len(p.start_depth),
-                len(p.end_depth),
-                len(p.step_down)
+                "{}–{} {len_unit}, steps of {} {len_unit}, on the line",
+                len_in(units, p.start_depth),
+                len_in(units, p.end_depth),
+                len_in(units, p.step_down)
             );
             section(ui, "op-cut", "Cut", &cut, |ui| {
                 ui.label("Start depth")
@@ -485,7 +486,7 @@ pub(super) fn op_form(
                 ui.end_row();
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let entry_text = entry_summary(&p.entry, None);
+            let entry_text = entry_summary(&p.entry, None, units);
             section(ui, "op-entry", "Entry", &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, None);
             });
@@ -506,12 +507,17 @@ fn tool_row(
     choice: &ToolChoice<'_>,
     request: &mut OpFormRequest,
 ) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let feed_unit = chipload_pipeline::units::feed_unit(units);
     let current = op.tool();
     let selected = choice
         .tools
         .iter()
         .find(|t| t.id == current)
-        .map_or(format!("T{current} (not in the project)"), tool_label);
+        .map_or(format!("T{current} (not in the project)"), |t| {
+            tool_label(t, units)
+        });
     ui.label("Tool");
     let combo = ComboBox::from_id_salt(("op-tool", index))
         .selected_text(selected)
@@ -519,7 +525,7 @@ fn tool_row(
         .show_ui(ui, |ui| {
             for tool in choice.tools {
                 if ui
-                    .selectable_label(tool.id == current, tool_label(tool))
+                    .selectable_label(tool.id == current, tool_label(tool, units))
                     .clicked()
                 {
                     op.set_tool(tool.id);
@@ -547,10 +553,10 @@ fn tool_row(
         if ui
             .button("Use the tool's cutting values")
             .on_hover_text(format!(
-                "From the library: feed {} / plunge {} mm/min, step down {} mm, stepover {}",
-                len(cutting.feed),
-                len(cutting.plunge_feed),
-                len(cutting.step_down),
+                "From the library: feed {} / plunge {} {feed_unit}, step down {} {len_unit}, stepover {}",
+                feed_in(units, cutting.feed),
+                feed_in(units, cutting.plunge_feed),
+                len_in(units, cutting.step_down),
                 cutting.stepover
             ))
             .clicked()
@@ -604,14 +610,20 @@ fn apply_cutting(op: &mut Operation, c: &Cutting) {
 /// The feeds, and the chip load next to the feed (docs/specs/small-items.md §5) when the
 /// operation's tool is known.
 fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Option<&Tool>) {
-    let text = format!("{} / {} mm/min", len(*cut), len(*plunge));
+    let units = crate::units::display(ui.ctx());
+    let feed_unit = chipload_pipeline::units::feed_unit(units);
+    let text = format!(
+        "{} / {} {feed_unit}",
+        feed_in(units, *cut),
+        feed_in(units, *plunge)
+    );
     section(ui, "op-feeds", "Feeds", &text, |ui| {
         ui.label("Feed");
         ui.horizontal(|ui| {
             flag(ui.add(feed(cut)), ui, "feed");
             if let Some(tool) = tool {
                 let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
-                ui.label(RichText::new(load.text()).weak())
+                ui.label(RichText::new(load.text_in(units)).weak())
                     .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
             }
         });
@@ -718,11 +730,19 @@ fn rest_row(
     tools: &[Tool],
     tool: Option<&Tool>,
 ) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     ui.label("Rest after").on_hover_text(
         "Clear only what a larger tool leaves in these shapes: the corners it leaves round \
          and the slots it doesn't fit in. Cut the pocket with that tool first",
     );
-    let name = |t: &Tool| format!("T{} · {} mm endmill", t.id, len(t.diameter));
+    let name = |t: &Tool| {
+        format!(
+            "T{} · {} {len_unit} endmill",
+            t.id,
+            len_in(units, t.diameter)
+        )
+    };
     let selected = match rest {
         None => "none".to_string(),
         Some(r) => tools
@@ -811,20 +831,29 @@ fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, a
 /// A Holes operation's cut, method and feeds (docs/specs/holes.md §7): a drill shows its
 /// pecks and plunge feed, an endmill the helix.
 fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option<&Tool>) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let feed_unit = chipload_pipeline::units::feed_unit(units);
     let method = match h.method {
-        HoleMethod::Drill { peck: Some(peck) } => format!("drilled, pecks {} mm", len(peck)),
+        HoleMethod::Drill { peck: Some(peck) } => {
+            format!("drilled, pecks {} {len_unit}", len_in(units, peck))
+        }
         HoleMethod::Drill { peck: None } => "drilled in one go".to_string(),
         HoleMethod::Bore {
             step_down,
             direction,
             ..
         } => format!(
-            "helical bore, {} mm per turn, {}",
-            len(step_down),
+            "helical bore, {} {len_unit} per turn, {}",
+            len_in(units, step_down),
             direction_name(direction)
         ),
     };
-    let cut = format!("{}–{} mm, {method}", len(h.start_depth), len(h.end_depth));
+    let cut = format!(
+        "{}–{} {len_unit}, {method}",
+        len_in(units, h.start_depth),
+        len_in(units, h.end_depth)
+    );
     section(ui, "op-cut", "Cut", &cut, |ui| {
         ui.label("Start depth")
             .on_hover_text("Where the cut starts, down from the stock top");
@@ -886,14 +915,14 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
     });
     if matches!(h.method, HoleMethod::Drill { .. }) {
         // A drill only goes down: no cutting feed to show.
-        let text = format!("{} mm/min down", len(h.plunge_feed));
+        let text = format!("{} {feed_unit} down", feed_in(units, h.plunge_feed));
         section(ui, "op-feeds", "Feeds", &text, |ui| {
             ui.label("Drill feed");
             ui.horizontal(|ui| {
                 flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
                 if let Some(tool) = tool {
                     let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
-                    ui.label(RichText::new(load.text()).weak())
+                    ui.label(RichText::new(load.text_in(units)).weak())
                         .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
                 }
             });
@@ -973,18 +1002,20 @@ impl Holding {
 /// A profile's tabs and onion skin as one choice, with the chosen kind's rows
 /// (docs/specs/holding.md §2).
 fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Option<&Tool>) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let holding = Holding::of(p);
     let mut summary = holding.name().to_string();
     if let Some(t) = &p.tabs {
         summary += &format!(
-            ": {} × {} mm, {} mm high",
+            ": {} × {} {len_unit}, {} {len_unit} high",
             t.count,
-            len(t.width),
-            len(t.height)
+            len_in(units, t.width),
+            len_in(units, t.height)
         );
     }
     if let Some(skin) = p.skin {
-        summary += &format!(", skin {} mm", len(skin.thickness));
+        summary += &format!(", skin {} {len_unit}", len_in(units, skin.thickness));
     }
     section(ui, "op-holding", "Holding", &summary, |ui| {
         ui.label("Hold the part").on_hover_text(
@@ -1036,8 +1067,10 @@ fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Option<&Tool>)
 
 /// A profile's finishing pass (docs/specs/finish-and-skin.md).
 fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let summary = p.finish.map_or("none".to_string(), |f| {
-        format!("{} mm left, then one lap", len(f.stock))
+        format!("{} {len_unit} left, then one lap", len_in(units, f.stock))
     });
     section(ui, "op-finish", "Finishing pass", &summary, |ui| {
         ui.label("Finishing pass").on_hover_text(
@@ -1204,6 +1237,8 @@ pub(super) struct ImagePlace {
 /// An imported DXF's properties (docs/specs/properties-for-tools-and-dxfs.md §3): what it
 /// is, its placement, and buttons to update or remove it.
 pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let drawing = &edit.settings.drawing;
     let source = drawing.dxfs.iter().find(|d| d.id == id)?;
     let bbox = chipload_pipeline::placement::dxf_box(&drawing.shapes, id);
@@ -1233,7 +1268,7 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
             ui.end_row();
         });
     let summary = size.map_or(String::new(), |(w, h)| {
-        format!("{} × {} mm", len(w), len(h))
+        format!("{} × {} {len_unit}", len_in(units, w), len_in(units, h))
     });
     section(
         ui,
@@ -1267,6 +1302,8 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
 /// A picture's properties (§3b): what it is, then its width, corner and layer. Each change
 /// applies when the edit is finished, as one undo step, and traces the picture again.
 pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let image = edit.settings.drawing.images.iter().find(|i| i.id == id)?;
     let mut request = None;
     super::browser::title_line(ui, crate::icons::Icon::Image, None, &image.file);
@@ -1390,14 +1427,16 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 .on_hover_text("The picture's width before it is turned; the height follows");
             ui.horizontal(|ui| {
                 let response = ui.add(
-                    DragValue::new(&mut draft.width)
+                    crate::units::length(&mut draft.width)
                         .range(0.1..=10_000.0)
-                        .speed(0.5)
-                        .suffix(" mm"),
+                        .speed(0.5),
                 );
                 finished |= response.drag_stopped() || response.lost_focus();
                 if pixels.is_some() {
-                    ui.weak(format!("height {} mm", len(draft.width * aspect)));
+                    ui.weak(format!(
+                        "height {} {len_unit}",
+                        len_in(units, draft.width * aspect)
+                    ));
                 }
             });
             ui.end_row();
@@ -1441,6 +1480,8 @@ pub(super) fn text_form(
     id: u64,
     grab: bool,
 ) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     use chipload_job::{Text, TextAlign, TextAnchor};
     let text = edit.settings.drawing.texts.iter().find(|t| t.id == id)?;
     let mut request = None;
@@ -1502,10 +1543,9 @@ pub(super) fn text_form(
             ui.label("Height")
                 .on_hover_text("The height of a capital letter");
             let response = ui.add(
-                DragValue::new(&mut draft.height)
+                crate::units::length(&mut draft.height)
                     .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
-                    .speed(0.1)
-                    .suffix(" mm"),
+                    .speed(0.1),
             );
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
@@ -1618,10 +1658,9 @@ pub(super) fn text_form(
                 .on_hover_text("Extra space between letters; 0: the font's own");
             let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
             let response = ui.add(
-                DragValue::new(&mut draft.spacing)
+                crate::units::length(&mut draft.spacing)
                     .range(-most..=most)
-                    .speed(0.05)
-                    .suffix(" mm"),
+                    .speed(0.05),
             );
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
@@ -1642,7 +1681,11 @@ pub(super) fn text_form(
             ui.end_row();
             if let Some((w, h)) = size {
                 ui.label("Size");
-                ui.weak(format!("{} × {} mm", len(w), len(h)));
+                ui.weak(format!(
+                    "{} × {} {len_unit}",
+                    len_in(units, w),
+                    len_in(units, h)
+                ));
                 ui.end_row();
             }
         });
@@ -1671,16 +1714,18 @@ pub(super) fn job_form(
     edit: &mut EditJob,
     library: Option<&Library>,
 ) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let mut request = None;
     let mut copies_request = None;
     let job = &mut edit.settings;
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, "Job settings");
 
     let stock = format!(
-        "{} × {} × {} mm",
-        len(job.stock.x),
-        len(job.stock.y),
-        len(job.stock.thickness)
+        "{} × {} × {} {len_unit}",
+        len_in(units, job.stock.x),
+        len_in(units, job.stock.y),
+        len_in(units, job.stock.thickness)
     );
     section(ui, "job-stock", "Stock", &stock, |ui| {
         ui.label("Size X × Y");
@@ -1739,9 +1784,9 @@ pub(super) fn job_form(
     });
 
     let machine = format!(
-        "{}, safe Z {} mm, {}",
+        "{}, safe Z {} {len_unit}, {}",
         job.machine.post,
-        len(job.machine.safe_z),
+        len_in(units, job.machine.safe_z),
         match job.machine.spindle {
             Spindle::Cw => "M3",
             Spindle::Ccw => "M4",
@@ -1795,16 +1840,17 @@ pub(super) fn job_form(
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
-pub(super) fn tool_label(tool: &Tool) -> String {
+pub(super) fn tool_label(tool: &Tool, units: Units) -> String {
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let name = tool
         .name
         .as_deref()
         .map_or(String::new(), |n| format!(" \"{n}\""));
     format!(
-        "T{} {} Ø{} mm{name}",
+        "T{} {} Ø{} {len_unit}{name}",
         tool.id,
         tool.kind.name(),
-        len(tool.diameter)
+        len_in(units, tool.diameter)
     )
 }
 
@@ -1873,7 +1919,7 @@ pub(super) fn tools_form(
             0 => "not used".to_string(),
             _ => format!("operations {}", users.join(", ")),
         };
-        let title = tool_label(&edit.settings.tools[index]);
+        let title = tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx()));
         let at = format!("tools.{index}");
         let marked = problems::has_problem_under(ui, &at);
         let tool = &mut edit.settings.tools[index];
@@ -1911,7 +1957,12 @@ pub(super) fn tool_form(
         ToolType::Drill => crate::icons::Icon::Drill,
         ToolType::Vbit => crate::icons::Icon::Vbit,
     };
-    super::browser::title_line(ui, icon, None, &tool_label(&edit.settings.tools[index]));
+    super::browser::title_line(
+        ui,
+        icon,
+        None,
+        &tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx())),
+    );
     ui.weak(match users.len() {
         0 => "Not used by an operation".to_string(),
         _ => format!("Cuts operations {}", users.join(", ")),
@@ -1970,10 +2021,10 @@ fn finished_number(
     ui: &mut egui::Ui,
     id: egui::Id,
     current: f64,
-    field: impl FnOnce(&mut f64) -> DragValue<'_>,
+    field: impl FnOnce(&mut egui::Ui, &mut f64) -> egui::Response,
 ) -> Option<f64> {
     let mut value = ui.data(|d| d.get_temp::<f64>(id)).unwrap_or(current);
-    let response = ui.add(field(&mut value));
+    let response = field(ui, &mut value);
     if response.has_focus() || response.dragged() {
         ui.data_mut(|d| d.insert_temp(id, value));
         return None;
@@ -1983,9 +2034,19 @@ fn finished_number(
     (done && value != current).then_some(value)
 }
 
-/// A position field: mm, half a millimetre per pixel dragged.
-fn mm_field(value: &mut f64) -> DragValue<'_> {
-    DragValue::new(value).speed(0.5).suffix(" mm")
+/// A position field: half a millimetre per pixel dragged.
+fn mm_field(value: &mut f64) -> crate::units::Field<'_> {
+    crate::units::length(value).speed(0.5)
+}
+
+/// A length (or feed) in mm as a number in `units`, for reading.
+fn len_in(units: Units, mm: f64) -> String {
+    chipload_pipeline::units::length_number(mm, units)
+}
+
+/// A feed in mm/min as a number in `units` per minute, for reading.
+fn feed_in(units: Units, mm_per_min: f64) -> String {
+    chipload_pipeline::units::feed_number(mm_per_min, units)
 }
 
 /// A small reset button after a row; true when clicked.
@@ -2005,6 +2066,8 @@ pub(super) fn placement_rows(
     bbox: Option<((f64, f64), (f64, f64))>,
     request: &mut Option<JobRequest>,
 ) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let mut place = |how: PlaceMove| *request = Some(JobRequest::Place(dxf, how));
     let salt = |what: &str| egui::Id::new(("dxf-place", dxf, what.to_string()));
     if let Some(((x0, y0), _)) = bbox {
@@ -2013,10 +2076,14 @@ pub(super) fn placement_rows(
              other DXFs don't move.",
         );
         ui.horizontal(|ui| {
-            if let Some(x) = finished_number(ui, salt("x"), x0, |v| mm_field(v).prefix("X ")) {
+            if let Some(x) =
+                finished_number(ui, salt("x"), x0, |ui, v| ui.add(mm_field(v).prefix("X ")))
+            {
                 place(PlaceMove::Corner(x, y0));
             }
-            if let Some(y) = finished_number(ui, salt("y"), y0, |v| mm_field(v).prefix("Y ")) {
+            if let Some(y) =
+                finished_number(ui, salt("y"), y0, |ui, v| ui.add(mm_field(v).prefix("Y ")))
+            {
                 place(PlaceMove::Corner(x0, y));
             }
             let moved = (placement.dx, placement.dy) != (0.0, 0.0);
@@ -2057,8 +2124,8 @@ pub(super) fn placement_rows(
     );
     ui.horizontal(|ui| {
         let current = placement.rotation;
-        if let Some(degrees) = finished_number(ui, salt("rotation"), current, |v| {
-            DragValue::new(v).speed(1.0).suffix("°").max_decimals(3)
+        if let Some(degrees) = finished_number(ui, salt("rotation"), current, |ui, v| {
+            ui.add(DragValue::new(v).speed(1.0).suffix("°").max_decimals(3))
         }) {
             place(PlaceMove::Rotate(degrees - current));
         }
@@ -2087,12 +2154,14 @@ pub(super) fn placement_rows(
     );
     ui.horizontal(|ui| {
         let current = placement.scale;
-        if let Some(scale) = finished_number(ui, salt("scale"), current, |v| {
-            DragValue::new(v)
-                .speed(0.01)
-                .range(Placement::MIN_SCALE..=Placement::MAX_SCALE)
-                .max_decimals(6)
-                .prefix("× ")
+        if let Some(scale) = finished_number(ui, salt("scale"), current, |ui, v| {
+            ui.add(
+                DragValue::new(v)
+                    .speed(0.01)
+                    .range(Placement::MIN_SCALE..=Placement::MAX_SCALE)
+                    .max_decimals(6)
+                    .prefix("× "),
+            )
         }) {
             place(PlaceMove::Scale(scale / current));
         }
@@ -2103,7 +2172,11 @@ pub(super) fn placement_rows(
     ui.end_row();
     if let Some(((x0, y0), (x1, y1))) = bbox {
         ui.label("Size");
-        ui.label(format!("{} × {} mm", len(x1 - x0), len(y1 - y0)));
+        ui.label(format!(
+            "{} × {} {len_unit}",
+            len_in(units, x1 - x0),
+            len_in(units, y1 - y0)
+        ));
         ui.end_row();
     }
 }
@@ -2220,10 +2293,9 @@ fn copies_rows(
     ui.horizontal(|ui| {
         for (name, value) in [("dx", &mut grid.dx), ("dy", &mut grid.dy)] {
             let response = ui.add(
-                DragValue::new(value)
+                crate::units::length(value)
                     .speed(0.1)
-                    .range(-100_000.0..=100_000.0)
-                    .suffix(" mm"),
+                    .range(-100_000.0..=100_000.0),
             );
             flag(response, ui, &format!("{at}.{name}"));
         }
@@ -2357,7 +2429,11 @@ pub(super) fn machine_rows(
         }
         if let Some(from) = from
             && from.max_feed != machine.max_feed
-            && revert_mark(ui, profile, &max_feed_text(from.max_feed))
+            && revert_mark(
+                ui,
+                profile,
+                &max_feed_text(from.max_feed, crate::units::display(ui.ctx())),
+            )
         {
             machine.max_feed = from.max_feed;
         }
@@ -2401,7 +2477,11 @@ pub(super) fn machine_rows(
         }
         if let Some(from) = from
             && from.travel != machine.travel
-            && revert_mark(ui, profile, &travel_text(from.travel.as_ref()))
+            && revert_mark(
+                ui,
+                profile,
+                &travel_text(from.travel.as_ref(), crate::units::display(ui.ctx())),
+            )
         {
             machine.travel = from.travel.clone();
         }
@@ -2420,12 +2500,18 @@ fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
             gcode_units_text(machine.gcode_units).to_string(),
         ),
         ("Spindle", spindle_text(machine.spindle).to_string()),
-        ("Max feed", max_feed_text(machine.max_feed)),
+        (
+            "Max feed",
+            max_feed_text(machine.max_feed, crate::units::display(ui.ctx())),
+        ),
         (
             "Tool changes",
             tool_change_name(machine.tool_change).to_string(),
         ),
-        ("Travel X Y Z", travel_text(machine.travel.as_ref())),
+        (
+            "Travel X Y Z",
+            travel_text(machine.travel.as_ref(), crate::units::display(ui.ctx())),
+        ),
     ] {
         ui.label(label);
         ui.weak(value);
@@ -2446,7 +2532,7 @@ pub(super) fn safe_z_row(ui: &mut egui::Ui, label: &str, machine: &mut Machine) 
     ui.label(label)
         .on_hover_text("The height for rapid moves sideways, above the stock and its clamps");
     flag(
-        ui.add(DragValue::new(&mut machine.safe_z).speed(0.1).suffix(" mm")),
+        ui.add(crate::units::length(&mut machine.safe_z).speed(0.1)),
         ui,
         "machine.safe_z",
     );
@@ -2469,13 +2555,22 @@ fn spindle_text(spindle: Spindle) -> &'static str {
     }
 }
 
-fn max_feed_text(max: Option<f64>) -> String {
-    max.map_or("not set".into(), |f| format!("{} mm/min", len(f)))
+fn max_feed_text(max: Option<f64>, units: Units) -> String {
+    let feed_unit = chipload_pipeline::units::feed_unit(units);
+    max.map_or("not set".into(), |f| {
+        format!("{} {feed_unit}", feed_in(units, f))
+    })
 }
 
-fn travel_text(travel: Option<&Travel>) -> String {
+fn travel_text(travel: Option<&Travel>, units: Units) -> String {
+    let len_unit = chipload_pipeline::units::length_unit(units);
     travel.map_or("not checked".into(), |t| {
-        format!("{} × {} × {} mm", len(t.x), len(t.y), len(t.z))
+        format!(
+            "{} × {} × {} {len_unit}",
+            len_in(units, t.x),
+            len_in(units, t.y),
+            len_in(units, t.z)
+        )
     })
 }
 
@@ -2660,21 +2755,26 @@ mod tests {
 
     #[test]
     fn summaries_are_short() {
-        assert_eq!(len(12.0), "12");
-        assert_eq!(len(0.25), "0.25");
-        assert_eq!(len(12.3456), "12.346");
+        assert_eq!(len_in(Units::Mm, 12.0), "12");
+        assert_eq!(len_in(Units::Mm, 0.25), "0.25");
+        assert_eq!(len_in(Units::Mm, 12.3456), "12.346");
+        assert_eq!(len_in(Units::Inch, 6.35), "0.25");
         let ramp = Entry::Ramp {
             ramp_angle: 3f64.to_radians(),
         };
-        assert_eq!(entry_summary(&ramp, None), "ramp 3.0°");
+        assert_eq!(entry_summary(&ramp, None, Units::Mm), "ramp 3.0°");
         let helix = Entry::Helix {
             radius: 1.5,
             ramp_angle: 3f64.to_radians(),
         };
         let lead = Lead { radius: 2.0 };
         assert_eq!(
-            entry_summary(&helix, Some(&lead)),
+            entry_summary(&helix, Some(&lead), Units::Mm),
             "helix r 1.5 mm, 3.0°, lead 2 mm"
+        );
+        assert_eq!(
+            entry_summary(&helix, Some(&lead), Units::Inch),
+            "helix r 0.0591 in, 3.0°, lead 0.0787 in"
         );
     }
 }

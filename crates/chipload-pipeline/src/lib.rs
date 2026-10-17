@@ -18,6 +18,7 @@ pub mod shapes;
 pub mod sheet;
 pub mod simulate;
 pub mod texts;
+pub mod units;
 
 use std::path::{Path, PathBuf};
 
@@ -589,6 +590,32 @@ pub fn empty_project() -> Job {
         active_part: Some(1),
         operations: Vec::new(),
     }
+}
+
+/// A new project's starting values when lengths are shown in inches
+/// (docs/specs/inch-units.md §5.2): tidy inch numbers, not converted mm ones. Stock 3/4"
+/// thick (24" × 12" without a drawing), 0.02" below it allowed, safe Z 0.2", a 1/4" endmill.
+/// Only values that are still the mm defaults change; the project stays in mm.
+pub fn with_inch_defaults(mut job: Job) -> Job {
+    let inch = chipload_core::MM_PER_INCH;
+    if job.drawing.shapes.is_empty() && (job.stock.x, job.stock.y) == DEFAULT_EMPTY_STOCK {
+        (job.stock.x, job.stock.y) = (24.0 * inch, 12.0 * inch);
+    }
+    if job.stock.thickness == DEFAULT_THICKNESS {
+        job.stock.thickness = 0.75 * inch;
+    }
+    if job.stock.max_overcut == DEFAULT_MAX_OVERCUT {
+        job.stock.max_overcut = 0.02 * inch;
+    }
+    if job.machine.safe_z == DEFAULT_SAFE_Z {
+        job.machine.safe_z = 0.2 * inch;
+    }
+    for tool in &mut job.tools {
+        if tool.library_uid.is_none() && tool.diameter == DEFAULT_TOOL_DIAMETER {
+            tool.diameter = 0.25 * inch;
+        }
+    }
+    job
 }
 
 /// A new project holding an imported drawing: stock covering it (origin bottom left if it

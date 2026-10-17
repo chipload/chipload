@@ -71,8 +71,18 @@ impl ChipLoad {
 
     /// `0.042 mm/tooth`, or what to set to know it.
     pub fn text(self) -> String {
+        self.text_in(chipload_job::Units::Mm)
+    }
+
+    /// As [`ChipLoad::text`], in `units`: `0.0017 in/tooth` (docs/specs/inch-units.md §5.1).
+    pub fn text_in(self, units: chipload_job::Units) -> String {
         match self {
-            ChipLoad::Mm(mm) => format!("{mm:.3} mm/tooth"),
+            ChipLoad::Mm(mm) => match units {
+                chipload_job::Units::Mm => format!("{mm:.3} mm/tooth"),
+                chipload_job::Units::Inch => {
+                    format!("{:.4} in/tooth", mm / chipload_core::MM_PER_INCH)
+                }
+            },
             ChipLoad::NoFlutes => "set the tool's flutes to see the chip load".into(),
             ChipLoad::NoRpm => "set the tool's spindle speed to see the chip load".into(),
             ChipLoad::NoTool => "no tool".into(),
@@ -120,6 +130,7 @@ mod tests {
         let load = chip_load_of(1800.0, &tool(Some(2), Some(18000.0)));
         assert_eq!(load, ChipLoad::Mm(0.05));
         assert_eq!(load.text(), "0.050 mm/tooth");
+        assert_eq!(load.text_in(chipload_job::Units::Inch), "0.0020 in/tooth");
         assert_eq!(
             chip_load_of(1800.0, &tool(None, Some(18000.0))),
             ChipLoad::NoFlutes

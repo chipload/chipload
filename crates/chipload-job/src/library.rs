@@ -658,6 +658,14 @@ pub struct AppSettings {
     /// (written before it existed): on.
     #[serde(default = "show_grid_default")]
     pub show_grid: bool,
+    /// The units the app shows and takes lengths and feeds in; the project stays in mm
+    /// (docs/specs/inch-units.md §5). Missing (written before it existed): mm.
+    #[serde(default = "display_units_default")]
+    pub units: Units,
+}
+
+fn display_units_default() -> Units {
+    Units::Mm
 }
 
 fn setup_sheet_default() -> bool {
@@ -678,6 +686,7 @@ impl Default for AppSettings {
             auto_generate: true,
             setup_sheet: true,
             show_grid: true,
+            units: Units::Mm,
         }
     }
 }

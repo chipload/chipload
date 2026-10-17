@@ -233,8 +233,9 @@ impl Playback {
         }
     }
 
-    /// "12 min 30 s of 41 min · Operation 3 (Outline), copy 2 · X … Y … Z …, F 1800, cutting"
-    pub fn readout(&self, job: Option<&Job>) -> String {
+    /// "12 min 30 s of 41 min · Operation 3 (Outline), copy 2 · X … Y … Z … mm, F 1800,
+    /// cutting", lengths and the feed in `units`.
+    pub fn readout(&self, job: Option<&Job>, units: chipload_job::Units) -> String {
         let mut parts = vec![format!(
             "{} of {}",
             duration_text(self.time),
@@ -255,10 +256,20 @@ impl Playback {
             .tool_at()
             .or_else(|| self.positions.last().copied().flatten())
         {
-            let mut text = format!("X {x:.3} Y {y:.3} Z {z:.3}");
+            let n = |mm: f64| crate::draw::fixed(mm, units);
+            let mut text = format!(
+                "X {} Y {} Z {} {}",
+                n(x),
+                n(y),
+                n(z),
+                chipload_pipeline::units::length_unit(units)
+            );
             match self.kinds.get(k) {
                 Some((MoveKind::Rapid, _)) => text += ", rapid",
-                Some((_, Some(feed))) => text += &format!(", F {feed:.0}, cutting"),
+                Some((_, Some(feed))) => {
+                    let feed = chipload_pipeline::units::feed_number(*feed, units);
+                    text += &format!(", F {feed}, cutting");
+                }
                 _ => {}
             }
             parts.push(text);
@@ -594,6 +605,8 @@ impl ChiploadApp {
                 visuals.selection.stroke.color,
             );
         });
-        ui.label(RichText::new(playback.readout(job.as_ref())).small());
+        ui.label(
+            RichText::new(playback.readout(job.as_ref(), crate::units::display(ui.ctx()))).small(),
+        );
     }
 }

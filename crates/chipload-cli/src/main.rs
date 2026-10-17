@@ -1590,6 +1590,7 @@ fn sheet_info(project: &Path) -> SheetInfo {
             |n| n.to_string_lossy().into_owned(),
         ),
         written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
+        units: chipload_job::Units::Mm,
     }
 }
 

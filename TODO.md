@@ -7,8 +7,10 @@ it's built (see `CLAUDE.md`).
 
 - **Inches** (docs/specs/inch-units.md, approved 2026-10-17): step 1, G-code in G20 per
   machine (schema 28, machines.json 4, post `units`/`inch_decimals`, the checker reads G20),
-  done 2026-10-17. Next: step 2, display units in the app and on the setup sheet; step 3,
-  inch input and `--units inch` on the command line.
+  done 2026-10-17. Step 2, display units in the app (Preferences > Units: fields with
+  fractions, grid, canvas, setup sheet, inch defaults for new projects) done 2026-10-17.
+  Next: step 3, inch input and `--units inch` on the command line. Later: report and
+  problem messages in the display units (they keep mm, labelled).
 
 ## State to remember (2026-10-12)
 

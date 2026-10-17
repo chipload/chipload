@@ -181,7 +181,11 @@ impl ChiploadApp {
             let draft = self.library_state.tool_drafts.contains_key(&tool.uid);
             let row = Row::new(Id::new(("browser-library-tool", &tool.uid)), 2, &tool.name)
                 .icon(tool_icon(tool.kind))
-                .trailing(leaf_note(&tool_summary(tool), is_default, draft))
+                .trailing(leaf_note(
+                    &tool_summary(tool, self.units),
+                    is_default,
+                    draft,
+                ))
                 .selected(self.focus == Focus::LibraryTool(uid_key(&tool.uid)))
                 .draggable()
                 .show(ui);
@@ -231,7 +235,11 @@ impl ChiploadApp {
                 &machine.name,
             )
             .icon(Icon::Machine)
-            .trailing(leaf_note(&machine_summary(machine), is_default, draft))
+            .trailing(leaf_note(
+                &machine_summary(machine, self.units),
+                is_default,
+                draft,
+            ))
             .selected(self.focus == Focus::LibraryMachine(uid_key(&machine.uid)))
             .show(ui);
             if row.response.clicked() {

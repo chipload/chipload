@@ -24,8 +24,8 @@ impl Measure {
     }
 }
 
-/// `L 26.926  ΔX 25.000  ΔY 10.000  21.8°` from `a` to `b`, mm.
-pub fn measure_text(a: Point, b: Point) -> String {
+/// `L 26.926  ΔX 25.000  ΔY 10.000  21.8°` from `a` to `b`, in `units`.
+pub fn measure_text(a: Point, b: Point, units: chipload_job::Units) -> String {
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
     let length = dx.hypot(dy);
     let angle = if length > 0.0 {
@@ -34,7 +34,8 @@ pub fn measure_text(a: Point, b: Point) -> String {
         0.0
     };
     let angle = if angle.abs() < 0.05 { 0.0 } else { angle };
-    format!("L {length:.3}  ΔX {dx:.3}  ΔY {dy:.3}  {angle:.1}°")
+    let n = |mm: f64| crate::draw::fixed(mm, units);
+    format!("L {}  ΔX {}  ΔY {}  {angle:.1}°", n(length), n(dx), n(dy))
 }
 
 impl ChiploadApp {
@@ -64,7 +65,7 @@ impl ChiploadApp {
         let measure = self.measure?;
         let start = measure.start?;
         let end = measure.end.or(cursor)?;
-        Some((start, end, measure_text(start, end)))
+        Some((start, end, measure_text(start, end, self.units)))
     }
 
     /// The status bar while measuring.
@@ -77,7 +78,7 @@ impl ChiploadApp {
             (Some(_), None) => format!("Measure: click the second point{snapped}"),
             (Some(a), Some(b)) => format!(
                 "{}  · click to measure again, Esc or M ends",
-                measure_text(a, b)
+                measure_text(a, b, self.units)
             ),
         })
     }
@@ -94,18 +95,22 @@ mod tests {
         m.click((25.0, 10.0));
         assert_eq!(m.end, Some((25.0, 10.0)));
         assert_eq!(
-            measure_text(m.start.unwrap(), m.end.unwrap()),
+            measure_text(m.start.unwrap(), m.end.unwrap(), chipload_job::Units::Mm),
             "L 26.926  ΔX 25.000  ΔY 10.000  21.8°"
         );
         m.click((5.0, 5.0));
         assert_eq!((m.start, m.end), (Some((5.0, 5.0)), None));
         assert_eq!(
-            measure_text((10.0, 0.0), (0.0, -10.0)),
+            measure_text((10.0, 0.0), (0.0, -10.0), chipload_job::Units::Mm),
             "L 14.142  ΔX -10.000  ΔY -10.000  -135.0°"
         );
         assert_eq!(
-            measure_text((1.0, 1.0), (1.0, 1.0)),
+            measure_text((1.0, 1.0), (1.0, 1.0), chipload_job::Units::Mm),
             "L 0.000  ΔX 0.000  ΔY 0.000  0.0°"
+        );
+        assert_eq!(
+            measure_text((0.0, 0.0), (25.4, 0.0), chipload_job::Units::Inch),
+            "L 1.0000  ΔX 1.0000  ΔY 0.0000  0.0°"
         );
     }
 }

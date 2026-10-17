@@ -2,6 +2,7 @@
 //! "This computer" in the Browser, beside the library (docs/specs/this-computer.md):
 //! Preferences, and the post-processors with what each writes.
 
+use chipload_job::Units;
 use chipload_pipeline::posts::{builtin_posts, post_facts};
 use eframe::egui::Id;
 
@@ -91,6 +92,7 @@ impl ChiploadApp {
         let mut sheet = self.setup_sheet;
         let mut auto = self.auto_generate;
         let mut theme = self.theme;
+        let mut units = self.units;
         Grid::new("preferences")
             .num_columns(2)
             .spacing([12.0, 6.0])
@@ -117,6 +119,15 @@ impl ChiploadApp {
                 ui.checkbox(&mut auto, "update automatically (View menu too)")
                     .on_hover_text("Generate by itself half a second after each change");
                 ui.end_row();
+                ui.label("Units").on_hover_text(
+                    "What lengths and feeds are shown and typed in. Projects stay in mm; \
+                     the G-code's units are the machine's (Job settings > Machine)",
+                );
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut units, Units::Mm, "mm");
+                    ui.selectable_value(&mut units, Units::Inch, "inch");
+                });
+                ui.end_row();
                 ui.label("Colour theme");
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut theme, Theme::System, "System");
@@ -133,6 +144,9 @@ impl ChiploadApp {
         }
         if theme != self.theme {
             self.set_theme(theme);
+        }
+        if units != self.units {
+            self.set_units(units);
         }
     }
 

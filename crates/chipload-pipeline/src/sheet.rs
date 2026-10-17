@@ -14,7 +14,7 @@ use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{
     Corners, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PocketOp, Side, Spindle, Tool,
-    ToolChange, ToolType, WorkZero, ZZero, find_tool,
+    ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -30,6 +30,8 @@ pub struct SheetInfo {
     pub project: String,
     /// `chipload 0.13.0`.
     pub written_by: String,
+    /// What lengths and feeds are written in (docs/specs/inch-units.md §5.1).
+    pub units: Units,
 }
 
 /// `part-sheet.html` next to `part.nc` (§4, decision 7).
@@ -57,12 +59,12 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
     let mut html = String::new();
     head(&mut html, info);
     header(&mut html, job, result, info);
-    setup(&mut html, job);
+    setup(&mut html, job, info.units);
     picture(&mut html, job, result);
     let names: Vec<String> = result.files.iter().map(|f| file_name(f, output)).collect();
     let several = result.files.len() > 1;
     for (i, name) in names.iter().enumerate() {
-        file_section(&mut html, job, result, i, name, several);
+        file_section(&mut html, job, result, i, name, several, info.units);
     }
     watch_out(&mut html, result);
     let _ = writeln!(html, "<section class=\"total\">\n<h2>Time</h2>");
@@ -118,10 +120,12 @@ fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo) {
     let _ = writeln!(
         html,
         "<header>\n<h1>Setup sheet: {}</h1>\n<p class=\"meta\">{machine}post {} &middot; \
-         written by {} &middot; lengths in mm, feeds in mm/min{}</p>\n</header>",
+         written by {} &middot; lengths in {}, feeds in {}{}</p>\n</header>",
         escape(&info.project),
         escape(&result.post.name),
         escape(&info.written_by),
+        crate::units::length_unit(info.units),
+        crate::units::feed_unit(info.units),
         // The program's own units, when they aren't the sheet's (docs/specs/inch-units.md §3).
         match job.machine.gcode_units {
             chipload_job::Units::Mm => "",
@@ -130,31 +134,31 @@ fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo) {
     );
 }
 
-fn setup(html: &mut String, job: &Job) {
+fn setup(html: &mut String, job: &Job, u: Units) {
     let stock = &job.stock;
     html.push_str("<section class=\"setup\">\n<h2>Stock and zero</h2>\n<table class=\"facts\">\n");
     let _ = writeln!(
         html,
-        "<tr><th>Stock</th><td>{} &times; {} mm, {} mm thick</td></tr>",
-        num(stock.x),
-        num(stock.y),
-        num(stock.thickness)
+        "<tr><th>Stock</th><td>{} &times; {}, {} thick</td></tr>",
+        len(u, stock.x),
+        len_u(u, stock.y),
+        len_u(u, stock.thickness)
     );
     let _ = writeln!(
         html,
         "<tr><th>X0 Y0</th><td>{}</td></tr>",
-        escape(&xy_zero_text(job))
+        escape(&xy_zero_text_in(job, u))
     );
     let _ = writeln!(
         html,
         "<tr><th>Z0</th><td>{}</td></tr>",
         escape(z_zero_text(job))
     );
-    if let Some(text) = copies::copies_text(job) {
+    if let Some(text) = copies::copies_text_in(job, u) {
         let _ = writeln!(html, "<tr><th>Copies</th><td>{}</td></tr>", escape(&text));
     }
     // Several parts: each with its copies (docs/specs/parts.md §6).
-    for line in copies::parts_lines(job) {
+    for line in copies::parts_lines_in(job, u) {
         let _ = writeln!(html, "<tr><th>Part</th><td>{}</td></tr>", escape(&line));
     }
     // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
@@ -173,26 +177,26 @@ fn setup(html: &mut String, job: &Job) {
         for image in &job.drawing.images {
             let _ = writeln!(
                 html,
-                "<tr><th>Image {}</th><td>{} on layer {}, {} mm wide at X{} Y{}</td></tr>",
+                "<tr><th>Image {}</th><td>{} on layer {}, {} wide at X{} Y{}</td></tr>",
                 image.id,
                 escape(&image.file),
                 escape(&image.layer),
-                num(image.width),
-                num(image.x),
-                num(image.y)
+                len_u(u, image.width),
+                len(u, image.x),
+                len(u, image.y)
             );
         }
         for text in &job.drawing.texts {
             let _ = writeln!(
                 html,
-                "<tr><th>Text {}</th><td>{} in {} on layer {}, {} mm high at X{} Y{}</td></tr>",
+                "<tr><th>Text {}</th><td>{} in {} on layer {}, {} high at X{} Y{}</td></tr>",
                 text.id,
                 escape(&crate::texts::text_label(text)),
                 escape(&text.font),
                 escape(&text.layer),
-                num(text.height),
-                num(text.x),
-                num(text.y)
+                len_u(u, text.height),
+                len(u, text.x),
+                len(u, text.y)
             );
         }
     }
@@ -201,6 +205,11 @@ fn setup(html: &mut String, job: &Job) {
 
 /// Where X0 Y0 is, in words measured on the stock (§2.3).
 pub fn xy_zero_text(job: &Job) -> String {
+    xy_zero_text_in(job, Units::Mm)
+}
+
+/// As [`xy_zero_text`], its distances in `u`.
+pub fn xy_zero_text_in(job: &Job, u: Units) -> String {
     if let WorkZero::Stock { corner } = job.machine.work_zero {
         return match corner {
             chipload_job::StockCorner::Center => "the centre of the stock".into(),
@@ -213,11 +222,11 @@ pub fn xy_zero_text(job: &Job) -> String {
     let mut parts = Vec::new();
     if dx.abs() > CHAIN_TOL_MM {
         let side = if dx > 0.0 { "right of" } else { "left of" };
-        parts.push(format!("{} mm {side}", num(dx.abs())));
+        parts.push(format!("{} {side}", len_u(u, dx.abs())));
     }
     if dy.abs() > CHAIN_TOL_MM {
         let side = if dy > 0.0 { "above" } else { "below" };
-        parts.push(format!("{} mm {side}", num(dy.abs())));
+        parts.push(format!("{} {side}", len_u(u, dy.abs())));
     }
     let mut text = if parts.is_empty() {
         "the stock's bottom left corner".to_string()
@@ -269,6 +278,7 @@ fn file_section(
     index: usize,
     name: &str,
     several: bool,
+    u: Units,
 ) {
     let groups = file_groups(result, index);
     let seconds: f64 = groups
@@ -286,12 +296,12 @@ fn file_section(
         !several && groups.len() > 1 && job.machine.tool_change == ToolChange::Program;
     for (n, (g, group)) in groups.iter().enumerate() {
         let tool = &group.tool;
-        let what = tool_text(tool);
+        let what = tool_text(tool, u);
         let todo = if index == 0 && n == 0 {
             format!(
                 "Load tool T{} ({what}). Set X0 Y0 at {} and Z0 on {}.",
                 tool.id,
-                xy_zero_text(job),
+                xy_zero_text_in(job, u),
                 z_zero_text(job)
             )
         } else if one_file_m6 {
@@ -326,21 +336,21 @@ fn file_section(
             num(tool.rpm.unwrap_or(0.0)),
             spindle_text(job.machine.spindle)
         );
-        operations_table(html, job, result, &group.operations);
-        if let Some(text) = deepest_cut_text(job, &result.program, group) {
+        operations_table(html, job, result, &group.operations, u);
+        if let Some(text) = deepest_cut_text(job, &result.program, group, u) {
             let _ = writeln!(html, "<p>{}</p>", escape(&text));
         }
     }
     html.push_str("</section>\n");
 }
 
-fn tool_text(tool: &Tool) -> String {
+fn tool_text(tool: &Tool, u: Units) -> String {
     let flutes = tool.flutes.map_or(String::new(), |n| {
         format!(", {n} flute{}", if n == 1 { "" } else { "s" })
     });
     match tool.kind {
-        ToolType::Endmill => format!("{} mm end mill{flutes}", num(tool.diameter)),
-        ToolType::Drill => format!("{} mm drill{flutes}", num(tool.diameter)),
+        ToolType::Endmill => format!("{} end mill{flutes}", len_u(u, tool.diameter)),
+        ToolType::Drill => format!("{} drill{flutes}", len_u(u, tool.diameter)),
         ToolType::Vbit => {
             let angle = tool
                 .angle
@@ -348,8 +358,8 @@ fn tool_text(tool: &Tool) -> String {
             let tip = tool
                 .tip_diameter
                 .filter(|t| *t > 0.0)
-                .map_or(String::new(), |t| format!(", tip {} mm", num(t)));
-            format!("{angle}V-bit, {} mm{tip}{flutes}", num(tool.diameter))
+                .map_or(String::new(), |t| format!(", tip {}", len_u(u, t)));
+            format!("{angle}V-bit, {}{tip}{flutes}", len_u(u, tool.diameter))
         }
     }
 }
@@ -361,7 +371,13 @@ fn spindle_text(spindle: Spindle) -> &'static str {
     }
 }
 
-fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations: &[usize]) {
+fn operations_table(
+    html: &mut String,
+    job: &Job,
+    result: &RunResult,
+    operations: &[usize],
+    u: Units,
+) {
     html.push_str(
         "<div class=\"scroll\"><table class=\"ops\">\n<tr><th>#</th><th>Operation</th>\
          <th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>\n",
@@ -408,11 +424,11 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
             Operation::Holes(HolesOp {
                 method: HoleMethod::Drill { .. },
                 ..
-            }) => format!("{} down", num(plunge)),
-            _ => format!("{} / {}", num(feed), num(plunge)),
+            }) => format!("{} down", len(u, plunge)),
+            _ => format!("{} / {}", len(u, feed), len(u, plunge)),
         };
         let load = match crate::chip_load::chip_load(job, op) {
-            known @ crate::chip_load::ChipLoad::Mm(_) => format!("<br>{}", known.text()),
+            known @ crate::chip_load::ChipLoad::Mm(_) => format!("<br>{}", known.text_in(u)),
             _ => String::new(),
         };
         let _ = writeln!(
@@ -421,11 +437,11 @@ fn operations_table(html: &mut String, job: &Job, result: &RunResult, operations
              <td>{}</td><td>{}</td><td>{}</td></tr>",
             index + 1,
             escape(&name),
-            escape(&kind_text(op, &job.tools)),
-            escape(&depth_text(op)),
+            escape(&kind_text(op, &job.tools, u)),
+            escape(&depth_text(op, u)),
             feeds_text,
-            escape(&entry_text(op)),
-            escape(&tabs_text(op)),
+            escape(&entry_text(op, u)),
+            escape(&tabs_text(op, u)),
             duration_text(seconds)
         );
     }
@@ -450,7 +466,7 @@ fn direction_text(direction: Direction) -> &'static str {
 }
 
 /// "Profile, outside, climb, leaves 0.2 mm" (a negative clearance).
-fn kind_text(op: &Operation, tools: &[Tool]) -> String {
+fn kind_text(op: &Operation, tools: &[Tool], u: Units) -> String {
     let mut text = match op {
         Operation::Profile(p) => {
             let side = match p.side {
@@ -480,9 +496,9 @@ fn kind_text(op: &Operation, tools: &[Tool]) -> String {
     // (docs/specs/depths-and-clearance.md §3).
     let clearance = op.clearance();
     if clearance > 0.0 {
-        let _ = write!(text, ", cuts {} mm past the line", num(clearance));
+        let _ = write!(text, ", cuts {} past the line", len_u(u, clearance));
     } else if clearance < 0.0 {
-        let _ = write!(text, ", leaves {} mm", num(-clearance));
+        let _ = write!(text, ", leaves {}", len_u(u, -clearance));
     }
     // docs/specs/rest-machining.md §6.
     if let Operation::Pocket(PocketOp {
@@ -491,7 +507,7 @@ fn kind_text(op: &Operation, tools: &[Tool]) -> String {
     {
         let _ = write!(text, ", rest after T{}", rest.after_tool);
         if let Some(tool) = find_tool(tools, rest.after_tool) {
-            let _ = write!(text, " ({} mm)", num(tool.diameter));
+            let _ = write!(text, " ({})", len_u(u, tool.diameter));
         }
     }
     // docs/specs/dogbones.md §7.
@@ -510,7 +526,7 @@ fn kind_text(op: &Operation, tools: &[Tool]) -> String {
 }
 
 /// "0 to 6, 2 per pass", with a profile's finishing stock and skin.
-fn depth_text(op: &Operation) -> String {
+fn depth_text(op: &Operation, u: Units) -> String {
     let (start, end) = op.depths();
     let step = match op {
         Operation::Profile(p) => Some(p.step_down),
@@ -526,7 +542,7 @@ fn depth_text(op: &Operation) -> String {
             ..
         }) => {
             let pecks = match peck {
-                Some(peck) if *peck < end - start => format!(", pecks {} mm", num(*peck)),
+                Some(peck) if *peck < end - start => format!(", pecks {}", len_u(u, *peck)),
                 _ => ", in one go".to_string(),
             };
             format!(" (the drill's point){pecks}")
@@ -534,26 +550,28 @@ fn depth_text(op: &Operation) -> String {
         Operation::Holes(HolesOp {
             method: HoleMethod::Bore { step_down, .. },
             ..
-        }) => format!(", {} per turn", num(*step_down)),
+        }) => format!(", {} per turn", len(u, *step_down)),
         _ => match step {
-            Some(step) if step > 0.0 && step < end - start => format!(", {} per pass", num(step)),
+            Some(step) if step > 0.0 && step < end - start => {
+                format!(", {} per pass", len(u, step))
+            }
             _ => ", one pass".to_string(),
         },
     };
-    let mut text = format!("{} to {}{passes}", num(start), num(end));
+    let mut text = format!("{} to {}{passes}", len(u, start), len(u, end));
     if let Operation::Profile(p) = op {
         // docs/specs/finish-and-skin.md §6: "finish 0.3 mm, skin 0.2 mm".
         if let Some(finish) = p.finish {
-            let _ = write!(text, ", finish {} mm", num(finish.stock));
+            let _ = write!(text, ", finish {}", len_u(u, finish.stock));
         }
         if let Some(skin) = p.skin {
-            let _ = write!(text, ", skin {} mm", num(skin.thickness));
+            let _ = write!(text, ", skin {}", len_u(u, skin.thickness));
         }
     }
     text
 }
 
-fn entry_text(op: &Operation) -> String {
+fn entry_text(op: &Operation, u: Units) -> String {
     if let Operation::Holes(h) = op {
         return match h.method {
             HoleMethod::Drill { .. } => "straight down".to_string(),
@@ -567,25 +585,25 @@ fn entry_text(op: &Operation) -> String {
         Entry::Ramp { ramp_angle } => format!("ramp {}\u{b0}", num(ramp_angle.to_degrees())),
         Entry::Helix { radius, ramp_angle } => format!(
             "helix r {}, {}\u{b0}",
-            num(radius),
+            len(u, radius),
             num(ramp_angle.to_degrees())
         ),
     };
     if let Some(lead) = op.lead() {
-        let _ = write!(text, ", lead r {}", num(lead.radius));
+        let _ = write!(text, ", lead r {}", len(u, lead.radius));
     }
     text
 }
 
-fn tabs_text(op: &Operation) -> String {
+fn tabs_text(op: &Operation, u: Units) -> String {
     match op {
         Operation::Profile(p) => match &p.tabs {
             Some(t) if t.count > 0 => {
                 let mut text = format!(
                     "{} \u{d7} {} wide, {} high",
                     t.count,
-                    num(t.width),
-                    num(t.height)
+                    len(u, t.width),
+                    len(u, t.height)
                 );
                 if !t.is_straight() {
                     let degrees = trimmed(t.flank_angle.to_degrees(), 1);
@@ -600,7 +618,7 @@ fn tabs_text(op: &Operation) -> String {
 }
 
 /// "Cuts down to Z-12.3: 12.3 mm below the stock top, 0.3 mm into the spoilboard."
-fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup) -> Option<String> {
+fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, u: Units) -> Option<String> {
     let moves = program.moves.get(group.moves.clone())?;
     let lowest = moves
         .iter()
@@ -612,13 +630,13 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup) -> Option<S
     let top = job.stock.top_z();
     let depth = top - lowest;
     let mut text = format!(
-        "Cuts down to Z{}: {} mm below the stock top",
-        num(lowest),
-        num(depth)
+        "Cuts down to Z{}: {} below the stock top",
+        len(u, lowest),
+        len_u(u, depth)
     );
     let into = depth - job.stock.thickness;
     if into > CHAIN_TOL_MM {
-        let _ = write!(text, ", {} mm into the spoilboard", num(into));
+        let _ = write!(text, ", {} into the spoilboard", len_u(u, into));
     } else if into.abs() <= CHAIN_TOL_MM {
         text.push_str(", through the stock");
     }
@@ -922,6 +940,16 @@ impl Bounds {
 /// A length for reading: at most 3 decimals, no trailing zeros, never `-0`.
 fn num(value: f64) -> String {
     trimmed(value, 3)
+}
+
+/// A length (or feed) in `u`, the number only.
+fn len(u: Units, mm: f64) -> String {
+    crate::units::length_number(mm, u)
+}
+
+/// A length in `u` with its unit: `6 mm`, `0.25 in`.
+fn len_u(u: Units, mm: f64) -> String {
+    crate::units::length_text(mm, u)
 }
 
 /// A coordinate in the picture: 2 decimals are plenty on paper.

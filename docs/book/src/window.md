@@ -23,7 +23,7 @@ Under it, the **ribbon** groups the buttons:
 | DRAW | Circle, Rectangle, Polyline, Text, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
-| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, colour theme |
+| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme |
 
 **Generate** (F5) and **Export** sit at the right end.
 
@@ -41,7 +41,7 @@ The **Browser** on the left holds your library and the whole project as a tree:
 - **This computer**, at the top and folded at the start: what is kept on this computer for
   every project. It is there also with no project open.
   - **Preferences:** the [setup sheet](checking/sheet.md), updating the toolpath by
-    itself, and the colour theme.
+    itself, the [units](concepts/units.md#mm-or-inches-on-screen) and the colour theme.
   - **Tools** and **Machines:** your [tool library](library/tools.md) and [machine
     profiles](library/machines.md).
   - **Post-processors:** the built-in ones and [yours](posts.md#your-own-post); click one
@@ -138,7 +138,8 @@ navigation bar](images/simulation-3d.png)
 The **Properties** panel on the right shows what is open, under a title:
 - **Job settings:** the stock, the machine and the post.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is
-  written with the G-code, updating the toolpath automatically, and the colour theme.
+  written with the G-code, updating the toolpath automatically, the units (mm or inch) and
+  the colour theme.
 - **A post-processor:** its name, files, extension, decimals, arcs and tool changes.
 - **Tools:** every tool, with *Add from library…* and *New tool*; **a tool** alone, with
   how it stands to the library tool it came from, *Save to library* and *Remove tool*.

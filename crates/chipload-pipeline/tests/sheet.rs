@@ -23,6 +23,7 @@ fn info(project: &str) -> SheetInfo {
         project: project.into(),
         // Not the real version: the golden sheets stay the same from release to release.
         written_by: "chipload (test)".into(),
+        units: chipload_job::Units::Mm,
     }
 }
 
@@ -248,4 +249,58 @@ fn the_sheet_is_written_next_to_the_gcode() {
             .contains("part-1-T2.nc")
     );
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// Sheets in inches (docs/specs/inch-units.md §5.4): shown in inches, and one whose G-code
+/// is in inches too.
+#[test]
+fn inch_sheets_match_their_golden_files() {
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    for (name, project, gcode_in_inches) in [
+        (
+            "v15_linuxcnc_helix",
+            "jobs/v15/linuxcnc_helix.chipload",
+            false,
+        ),
+        ("v18_holes", "jobs/v18/holes.chipload", true),
+        ("v22_two_parts", "jobs/v22/two_parts.chipload", false),
+    ] {
+        let mut job = load_job(&corpus(project)).unwrap();
+        if gcode_in_inches {
+            job.machine.gcode_units = chipload_job::Units::Inch;
+        }
+        let result = run_job(&job).unwrap();
+        let info = SheetInfo {
+            units: chipload_job::Units::Inch,
+            ..info(project)
+        };
+        let sheet = setup_sheet(&job, &result, Path::new("part.nc"), &info);
+        assert!(sheet.contains("lengths in in, feeds in in/min"), "{name}");
+        assert_eq!(
+            sheet.contains("G-code in inches (G20)"),
+            gcode_in_inches,
+            "{name}"
+        );
+        // Messages (Watch out, the estimate's note) keep mm, with the unit written
+        // (docs/specs/inch-units.md, as built).
+        let left: Vec<&str> = sheet
+            .lines()
+            .filter(|l| l.contains(" mm"))
+            .filter(|l| !l.starts_with("<li>") && !l.contains("At the programmed feeds"))
+            .collect();
+        assert!(left.is_empty(), "{name}: lengths left in mm: {left:?}");
+        let golden = corpus(&format!("expected/sheets/inch/{name}.html"));
+        if update {
+            std::fs::create_dir_all(golden.parent().unwrap()).unwrap();
+            std::fs::write(&golden, &sheet).unwrap();
+            continue;
+        }
+        let expected = std::fs::read_to_string(&golden)
+            .unwrap_or_else(|e| panic!("{}: {e}", golden.display()));
+        assert!(
+            sheet == expected,
+            "{name}: differs from {}",
+            golden.display()
+        );
+    }
 }

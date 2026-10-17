@@ -13,6 +13,7 @@ mod fonts;
 mod icons;
 mod shape_form;
 mod style;
+mod units;
 mod view;
 
 use std::path::PathBuf;

@@ -678,7 +678,7 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
         app.playback
             .as_ref()
             .unwrap()
-            .readout(None)
+            .readout(None, chipload_job::Units::Mm)
             .contains(" of ")
     );
     // With the simulation: the stock half way, then the full image back at the end.

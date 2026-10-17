@@ -60,6 +60,7 @@ impl ChiploadApp {
         self.scene.hide_toolpath = !self.show_toolpath;
         self.scene.hide_drawing = !self.show_drawing();
         self.scene.grid = self.show_grid;
+        self.scene.inch_grid = self.units == chipload_job::Units::Inch;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self
             .edit
@@ -467,13 +468,14 @@ impl ChiploadApp {
                 .map(|ids| ids.into_iter().collect())
                 .unwrap_or_default(),
         };
-        let step = grid_step(self.view.scale);
+        let step = grid_step(self.view.scale, self.units);
         let (p, hit) = snap_cursor(
             at,
             &self.drag.snap_points,
             &skip,
             self.view.scale,
             step,
+            self.units,
             free,
         );
         self.drag.snapped = Some((p, hit));

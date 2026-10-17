@@ -704,20 +704,18 @@ fn settings_form(ui: &mut egui::Ui, draft: &mut Image, picked: Option<u8>) {
             ui.label("Smallest piece")
                 .on_hover_text("Black or white specks smaller than this are dropped.");
             ui.add(
-                egui::DragValue::new(&mut draft.min_area)
+                crate::units::area(&mut draft.min_area)
                     .range(0.0..=100.0)
-                    .speed(0.05)
-                    .suffix(" mm²"),
+                    .speed(0.05),
             );
             ui.end_row();
             ui.label("Smoothing").on_hover_text(
                 "How far a traced edge may be straightened away from the picture's edge.",
             );
             ui.add(
-                egui::DragValue::new(&mut draft.smoothing)
+                crate::units::length(&mut draft.smoothing)
                     .range(0.01..=1.0)
-                    .speed(0.005)
-                    .suffix(" mm"),
+                    .speed(0.005),
             );
             ui.end_row();
             ui.label("Trace").on_hover_text(

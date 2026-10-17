@@ -23,3 +23,7 @@ The sheet is written:
   in the Browser is on (the default; it applies to every project);
 - on the command line, by `chipload run` unless you add `--no-sheet`;
 - alone, by `chipload sheet part.chipload -o sheet.html`.
+
+Its lengths and feeds are in the app's [units](../concepts/units.md#mm-or-inches-on-screen)
+(the command line writes mm). When the machine's G-code is in inches, the top of the
+sheet says so: *G-code in inches (G20)*.

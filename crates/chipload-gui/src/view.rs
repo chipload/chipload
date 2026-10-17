@@ -135,8 +135,6 @@ const GHOST_FADE: f32 = 0.65;
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
 const AXIS_LENGTH_MM: f64 = 15.0;
-/// A stronger grid line every this many steps.
-const GRID_MAJOR_EVERY: i64 = 10;
 /// More lines than this across the area and the finer ones are left out.
 const GRID_MAX_LINES: usize = 400;
 /// In 3D the grid reaches at least this far past the stock.
@@ -783,6 +781,8 @@ pub struct Scene {
     /// View → Show grid: lines on the snap grid, on the stock top (docs/specs/
     /// browser-and-layout.md §6b).
     pub grid: bool,
+    /// The grid in inch steps (display units inch, docs/specs/inch-units.md §5.1).
+    pub inch_grid: bool,
 }
 
 /// A ring's start that can be dragged along the ring.
@@ -943,8 +943,14 @@ impl Scene {
     /// click lands on a line it can see.
     fn paint_grid(&self, painter: &Painter, view: &View) {
         let pal = &self.palette;
-        let step = crate::draw::grid_step(view.scale);
-        let major = step * GRID_MAJOR_EVERY as f64;
+        let units = if self.inch_grid {
+            chipload_job::Units::Inch
+        } else {
+            chipload_job::Units::Mm
+        };
+        let step = crate::draw::grid_step(view.scale, units);
+        let every = crate::draw::grid_major_every(step, units);
+        let major = step * every as f64;
         let ((x0, y0), (x1, y1)) = self.grid_area(painter, view);
         if x0 >= x1 || y0 >= y1 {
             return;
@@ -974,7 +980,7 @@ impl Scene {
             let first = (x0 / spacing).ceil() as i64;
             let last = (x1 / spacing).floor() as i64;
             for k in first..=last {
-                if !is_major && k.rem_euclid(GRID_MAJOR_EVERY) == 0 {
+                if !is_major && k.rem_euclid(every) == 0 {
                     continue;
                 }
                 let x = k as f64 * spacing;
@@ -983,7 +989,7 @@ impl Scene {
             let first = (y0 / spacing).ceil() as i64;
             let last = (y1 / spacing).floor() as i64;
             for k in first..=last {
-                if !is_major && k.rem_euclid(GRID_MAJOR_EVERY) == 0 {
+                if !is_major && k.rem_euclid(every) == 0 {
                     continue;
                 }
                 let y = k as f64 * spacing;

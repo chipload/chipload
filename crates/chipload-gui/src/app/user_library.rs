@@ -388,13 +388,19 @@ pub(super) fn library_message(
     }
 }
 
-pub(super) fn tool_summary(t: &LibraryTool) -> String {
-    format!("{} {} mm", t.kind.name(), t.diameter)
+pub(super) fn tool_summary(t: &LibraryTool, units: chipload_job::Units) -> String {
+    format!(
+        "{} {}",
+        t.kind.name(),
+        chipload_pipeline::units::length_text(t.diameter, units)
+    )
 }
 
-pub(super) fn machine_summary(m: &MachineProfile) -> String {
+pub(super) fn machine_summary(m: &MachineProfile, units: chipload_job::Units) -> String {
+    let n = |mm: f64| chipload_pipeline::units::length_number(mm, units);
+    let unit = chipload_pipeline::units::length_unit(units);
     match &m.travel {
-        Some(t) => format!("{}, {} × {} × {} mm", m.post, t.x, t.y, t.z),
+        Some(t) => format!("{}, {} × {} × {} {unit}", m.post, n(t.x), n(t.y), n(t.z)),
         None => m.post.clone(),
     }
 }
@@ -415,7 +421,14 @@ impl ChiploadApp {
         self.auto_generate = settings.auto_generate;
         self.setup_sheet = settings.setup_sheet;
         self.show_grid = settings.show_grid;
+        self.units = settings.units;
         self.start_recovery();
+    }
+
+    /// Settings > Units: used at once and kept in the settings for next time.
+    pub fn set_units(&mut self, units: chipload_job::Units) {
+        self.units = units;
+        self.change_settings(|settings| settings.units = units);
     }
 
     /// Settings > Colour theme: used at once and kept in the settings for next time.
