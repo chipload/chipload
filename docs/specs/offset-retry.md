@@ -136,3 +136,27 @@ the same way.
   100 nm (`OFFSET_FAR_SLACK_MM`) a profile may already leave.
 
 Both minimal cases are tests (`…_retried_farther` in `tests/pocket.rs`).
+
+## 8. Arcs as chords (2026-10-17)
+
+Found with the Smokum font (docs/specs/more-fonts.md §6): its "n" has a sharp inside notch
+where the arc of the shoulder runs into the line of the stem. cavalier_contours returned
+**nothing at all** when shrinking that 47 mm² letter by 0.05 to 0.3 mm (any nudge, tight or
+not, shifted by a hair or not), and lost parts of it at other distances. The pocket said
+"tool does not fit" or "pocket offsets are not nested". The same loop with the arcs as
+chords offsets correctly.
+
+- **An empty shrink is retried flattened** (`cavalier::flattened_shrink`): the loops' arcs
+  as chords within the arc tolerance, shrunk by that much more. The chords lie within the
+  tolerance of the arcs, so the result lies inside the true one (up to notches narrower
+  than the tolerance): anything it finds proves the empty answer wrong, and is used. Empty
+  again, the shape really is too narrow for the tool.
+- **The last pocket attempt is flattened** (`Nudge::flat`, after the tight one): the pocket's
+  region with its arcs as chords and the walls moved out by the arc tolerance, so the tool
+  never comes nearer a wall than with the arcs. Its rings are chords (G1), not arcs; the
+  verification is the same as for every attempt.
+- **The cost:** nothing unless an attempt failed; then up to 0.01 mm more left on the walls,
+  the tolerance the arcs are fitted to anyway.
+
+Tests: `smokum_pockets_with_a_small_tool` (crates/chipload-pipeline/tests/fonts.rs, 0.3 to
+2 mm tools, failing before), `the_flat_attempt_follows_the_tight_one` (retry.rs).

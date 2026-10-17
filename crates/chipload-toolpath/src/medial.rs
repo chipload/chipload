@@ -226,8 +226,12 @@ impl Graph {
     }
 }
 
-/// Points after `a` up to and including `b`, split until the radius at every midpoint is
-/// within half of `tol` of linear between its ends.
+/// Points after `a` up to and including `b`, split until the radius at the quarter, middle
+/// and three-quarter points is within half of `tol` of linear between its ends: the points
+/// the verification checks. The cut is the distance capped at the deepest radius, so it has
+/// a kink where it meets the cap that a midpoint alone can miss (a stroke that narrows fast
+/// beside one wider than the cap: the groove came out 0.04 mm too wide between points,
+/// found with overlapping lines of FreeSerif Bold, docs/specs/more-fonts.md §6).
 #[allow(clippy::too_many_arguments)]
 fn split_linear(
     a: Point,
@@ -239,9 +243,11 @@ fn split_linear(
     depth: u32,
     out: &mut Vec<(Point, f64)>,
 ) {
-    let m = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
+    let at = |t: f64| (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
+    let off = |t: f64| (ra + (rb - ra) * t - cut(at(t))).abs() > tol / 2.0;
+    let m = at(0.5);
     let rm = cut(m);
-    if depth > 0 && ((ra + rb) / 2.0 - rm).abs() > tol / 2.0 {
+    if depth > 0 && (off(0.25) || off(0.5) || off(0.75)) {
         split_linear(a, ra, m, rm, cut, tol, depth - 1, out);
         split_linear(m, rm, b, rb, cut, tol, depth - 1, out);
     } else {

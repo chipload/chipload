@@ -38,25 +38,25 @@ it's built (see `CLAUDE.md`).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-1. **Pocketing spiked outlines** (found 2026-10-17, ADR 0021): Smokum's "n" (an outline
-   that turns back by more than 150°) pockets with a 2 mm tool but not with 1 mm or less:
-   "tool does not fit" or "offsets are not nested". Add it to the corpus with a failing
-   test, then fix the offset. Also V-carving lines of FreeSerif Bold or Permanent Marker
-   set so close that strokes cross at shallow angles fails its verification.
-2. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
+1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
    4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+2. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
    (docs/specs/presets.md, decisions not reviewed).
-4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+3. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
    compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
    download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
    without installing, the user said wait. Its decisions are proposals to review then.
-5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+4. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
 
 ## Done
 
+- **Two toolpath fixes found with the fonts** (2026-10-17): an empty or broken pocket offset
+  (the offset library on a sharp notch where an arc meets a line, Smokum's "n") is retried
+  with the arcs as chords (docs/specs/offset-retry.md §8); a V-carve centre line is split
+  until its quarter points are within tolerance, so the groove no longer comes out up to
+  0.04 mm too wide where the depth meets its cap (golden v19_image_vcarve gained points).
 - **More fonts** (2026-10-17, docs/specs/more-fonts.md, ADR 0021): ten Apache-2.0 fonts
   (Roboto Slab and Bold; scripts Satisfy, Yellowtail, Rochester; display Luckiest Guy,
   Ultra, Chewy, Smokum, Cherry Cream Soda, Permanent Marker), the font list grouped and

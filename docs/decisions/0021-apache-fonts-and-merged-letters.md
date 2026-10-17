@@ -37,7 +37,6 @@ outlines as they are, crossing each other, which a pocket or V-carve can't use.
   older versions keep cutting a project with a new font (its letters are stored shapes).
 - Existing texts don't change until they are changed; FreeFont texts without overlaps make
   the same shapes as before (tested).
-- Found while testing: Smokum's spiked serifs make a pocket's first offset fail with tools
-  under 2 mm, with or without merging (TODO.md), and V-carving letters whose strokes cross
-  at shallow angles (lines set closer than their descenders) can fail its verification.
-  Both stop with an error; neither cuts wrongly.
+- Found while testing and fixed the same day: an offset library failure on Smokum's sharp
+  notches (pockets now retry with the arcs as chords, offset-retry.md §8), and V-carve
+  centre lines split too coarsely where the depth meets its cap (more-fonts.md §6).

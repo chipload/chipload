@@ -2,7 +2,9 @@
 //! Retrying an offset that hit a numerical coincidence with a negligibly different one
 //! (docs/specs/offset-retry.md).
 
-use chipload_core::tolerances::{OFFSET_RETRY_NUDGE_MM, OFFSET_RETRY_WIDE_NUDGE_MM};
+use chipload_core::tolerances::{
+    ARC_APPROX_TOL_MM, OFFSET_RETRY_NUDGE_MM, OFFSET_RETRY_WIDE_NUDGE_MM,
+};
 
 use crate::ToolpathError;
 
@@ -26,6 +28,10 @@ pub(crate) struct Nudge {
     pub wall: f64,
     /// Pocket shape offsets with the tight slice tolerance (`nudged_or_tight`).
     pub tight: bool,
+    /// The pocket's region with its arcs as chords, and the walls moved out by the arc
+    /// tolerance so the chords never let the tool nearer than the arcs would (the last
+    /// attempt of `nudged_or_tight`, spec §8).
+    pub flat: bool,
 }
 
 impl Nudge {
@@ -33,6 +39,7 @@ impl Nudge {
         step: 0.0,
         wall: 0.0,
         tight: false,
+        flat: false,
     };
 }
 
@@ -60,9 +67,9 @@ pub(crate) fn nudged<T>(
     retried(attempt, false)
 }
 
-/// [`nudged`], and when every attempt failed by a numerical coincidence, one more: un-nudged,
-/// with the tight slice tolerance in the shape offsets (docs/specs/offset-retry.md §6). If
-/// that fails too, the first attempt's error.
+/// [`nudged`], and when every attempt failed by a numerical coincidence, two more: un-nudged,
+/// with the tight slice tolerance in the shape offsets (docs/specs/offset-retry.md §6), then
+/// with the arcs as chords (§8). If those fail too, the first attempt's error.
 pub(crate) fn nudged_or_tight<T>(
     attempt: impl FnMut(Nudge) -> Result<T, Failure>,
 ) -> Result<T, ToolpathError> {
@@ -83,6 +90,7 @@ fn retried<T>(
             step: by,
             wall: if move_wall { by } else { 0.0 },
             tight: false,
+            flat: false,
         };
         match attempt(nudge) {
             Ok(value) => return Ok(value),
@@ -94,6 +102,18 @@ fn retried<T>(
     if tight {
         let nudge = Nudge {
             tight: true,
+            ..Nudge::NONE
+        };
+        match attempt(nudge) {
+            Ok(value) => return Ok(value),
+            Err(Failure::Final(ToolpathError::Cancelled)) => return Err(ToolpathError::Cancelled),
+            Err(_) => {}
+        }
+        // Last, the arcs as chords: cavalier_contours can lose part of a shape whose arc
+        // runs into a sharp inside notch, at many distances at once (spec §8).
+        let nudge = Nudge {
+            wall: ARC_APPROX_TOL_MM,
+            flat: true,
             ..Nudge::NONE
         };
         match attempt(nudge) {
@@ -142,7 +162,7 @@ mod tests {
         let nudge = |step: f64, wall: f64| Nudge {
             step,
             wall,
-            tight: false,
+            ..Nudge::NONE
         };
         assert_eq!(
             seen,
@@ -176,7 +196,7 @@ mod tests {
             Nudge {
                 step: e,
                 wall: e,
-                tight: false
+                ..Nudge::NONE
             }
         );
     }
@@ -237,5 +257,30 @@ mod tests {
         let result: Result<(), _> =
             nudged_or_tight(|n| Err(numerical(if n.tight { "tight" } else { "first" }, false)));
         assert_eq!(result, Err(ToolpathError::Geometry("first".into())));
+    }
+
+    #[test]
+    fn the_flat_attempt_follows_the_tight_one() {
+        // docs/specs/offset-retry.md §8: arcs as chords, the walls moved out by the arc
+        // tolerance, after every other attempt failed.
+        let mut seen = Vec::new();
+        let result = nudged_or_tight(|n| {
+            seen.push(n);
+            if n.flat {
+                Ok(seen.len())
+            } else {
+                Err(numerical("wall", true))
+            }
+        });
+        assert_eq!(result, Ok(9));
+        assert_eq!(
+            seen[8],
+            Nudge {
+                wall: chipload_core::tolerances::ARC_APPROX_TOL_MM,
+                flat: true,
+                ..Nudge::NONE
+            }
+        );
+        assert!(seen[..8].iter().all(|n| !n.flat));
     }
 }

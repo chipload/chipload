@@ -58,14 +58,18 @@ fn vcarve() -> Operation {
 }
 
 #[test]
-fn every_font_v_carves_a_sentence() {
+fn every_font_v_carves_a_sentence_also_on_lines_that_overlap() {
     assert_eq!(FONTS.len(), 17);
+    // Also on lines 0.7 capital heights apart, where letters of different lines overlap and
+    // are merged, and strokes narrow fast beside wide ones (docs/specs/more-fonts.md §6).
     let mut failed = Vec::new();
-    for font in FONTS {
-        let mut job = written("Maker Space Oak\nIron & Ash 1926", font.name, 1.4);
-        job.operations.push(vcarve());
-        if let Err(e) = run_job(&job) {
-            failed.push(format!("{}: {e}", font.name));
+    for spacing in [1.4, 0.7] {
+        for font in FONTS {
+            let mut job = written("Maker Space Oak\nIron & Ash 1926", font.name, spacing);
+            job.operations.push(vcarve());
+            if let Err(e) = run_job(&job) {
+                failed.push(format!("{} at {spacing}: {e}", font.name));
+            }
         }
     }
     assert!(failed.is_empty(), "{failed:#?}");
@@ -75,11 +79,8 @@ fn every_font_v_carves_a_sentence() {
 fn every_font_pockets_a_sentence_on_lines_that_overlap() {
     // Lines 0.7 capital heights apart: descenders reach into the line below, so letters of
     // different lines overlap too, and are merged. A pocket refuses outlines that cross.
-    // Smokum is left out: its spiked serifs (the outline turns back by more than 150°) make
-    // the pocket's first offset fail with tools under 2 mm even where nothing is merged, a
-    // pocket limit of its own (TODO.md).
     let mut failed = Vec::new();
-    for font in FONTS.iter().filter(|f| f.name != "Smokum") {
+    for font in FONTS {
         let mut job = written("Maker Space Oak\nIron & Ash 1926", font.name, 0.7);
         job.operations.push(pocket());
         if let Err(e) = run_job(&job) {
@@ -144,4 +145,18 @@ fn letters_that_overlap_nothing_are_kept_exactly() {
     .unwrap();
     assert_eq!(merged.outlines, raw.outlines);
     assert_eq!(merged.letter, raw.letter);
+}
+
+#[test]
+fn smokum_pockets_with_a_small_tool() {
+    // Smokum's "n" has a sharp notch where its shoulder meets the stem, an arc running into
+    // a line: the offset library returned nothing when shrinking it by 0.05 to 0.3 mm and
+    // lost parts at other distances, so the pocket said "tool does not fit" or "offsets are
+    // not nested" (docs/specs/offset-retry.md §8).
+    for diameter in [0.3, 0.6, 1.0, 2.0] {
+        let mut job = written("n", "Smokum", 1.4);
+        job.tools[2].diameter = diameter;
+        job.operations.push(pocket());
+        run_job(&job).unwrap_or_else(|e| panic!("{diameter} mm: {e}"));
+    }
 }

@@ -328,6 +328,13 @@ fn ring_tree(
     let stepover = stepover - nudge.step;
     let mut nodes: Vec<Node> = Vec::new();
     let mut roots = Vec::new();
+    let flat;
+    let region = if nudge.flat {
+        flat = region.flattened();
+        &flat
+    } else {
+        region
+    };
     for area in region
         .shrunk_with(wall_offset, nudge.tight)
         .map_err(numerical(true))?

@@ -16,12 +16,14 @@ As built:
   apart. Hairlines thinner than the arc tolerance on average are dropped, and a two-piece
   lens gets its arc split so it has three points. The check samples a 65 × 65 grid over
   each merged group, away from every edge.
-- §6: every font V-carves a two-line sentence; every font but Smokum pockets one with
-  lines that overlap (0.7 capital heights apart). Found: Smokum's spiked serifs (the
-  outline turns back by more than 150°) make the pocket's first offset fail with tools
-  under 2 mm even unmerged; V-carving lines that overlap can fail its own verification in
-  FreeSerif Bold and Permanent Marker where strokes cross at shallow angles. Both stop with
-  an error (TODO.md). Golden `v29_script_text`: two lines of Satisfy V-carved, an Ultra B
+- §6: every font V-carves and pockets a two-line sentence, also with lines 0.7 capital
+  heights apart, where letters of different lines overlap. Two problems found on the way
+  were fixed the same day: the offset library returned nothing for Smokum's "n" (a sharp
+  notch where an arc meets a line) shrunk by a small tool's radius, now retried with the
+  arcs as chords (offset-retry.md §8); and a V-carve whose depth meets its cap beside a
+  stroke that narrows fast cut up to 0.04 mm too wide between two centre-line points,
+  which the verification refused (FreeSerif Bold, Permanent Marker): the centre line is
+  now split until the quarter points are within tolerance too, not only the midpoint. Golden `v29_script_text`: two lines of Satisfy V-carved, an Ultra B
   pocketed. The inch comparison of the golden test now lets a move shorter than a rounding
   step vanish from either program (the grids don't nest), at most 1 % of a file's moves.
 - §5: the guide's picture of the fonts is made by `packaging/docs/font-samples.py` (Pillow,

@@ -17,10 +17,10 @@ use cavalier_contours::shape_algorithms::{Shape, ShapeOffsetOptions};
 use chipload_core::Point;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Primitive, distance};
-use chipload_core::tolerances::{CHAIN_TOL_MM, OFFSET_TIGHT_SLICE_EPS_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_TIGHT_SLICE_EPS_MM};
 
 use crate::ToolpathError;
-use crate::offset::{pline_segments, point_distance};
+use crate::offset::{flatten, pline_segments, point_distance};
 use crate::retry::NUDGES;
 
 pub(crate) fn geometry(message: String) -> ToolpathError {
@@ -153,11 +153,50 @@ fn offset_loops_with(
     tight: bool,
 ) -> Result<Vec<Area>, ToolpathError> {
     let plines: Vec<Polyline<f64>> = plines.collect();
-    match offset_once(&plines, d, tight) {
+    let result = match offset_once(&plines, d, tight) {
         // An island across an area is the loose slice tolerance's doing: the tight one gets
         // it right (docs/specs/offset-retry.md §6).
         Err(error) if !tight => offset_once(&plines, d, true).map_err(|_| error),
         result => result,
+    };
+    match result {
+        Ok(areas) if areas.is_empty() && d > 0.0 => flattened_shrink(&plines, d),
+        result => result,
+    }
+}
+
+impl Area {
+    /// The area with every arc as chords within the arc tolerance (offset-retry.md §8).
+    pub(crate) fn flattened(&self) -> Area {
+        Area {
+            outer: chords(&self.outer),
+            holes: self.holes.iter().map(chords).collect(),
+        }
+    }
+}
+
+/// A closed loop with its arcs as chords within the arc tolerance.
+fn chords(pline: &Polyline<f64>) -> Polyline<f64> {
+    let mut out = Polyline::new_closed();
+    for (x, y) in flatten(pline) {
+        out.add(x, y, 0.0);
+    }
+    out
+}
+
+/// A shrink that came back empty, tried again with every arc as chords
+/// (docs/specs/offset-retry.md §8). cavalier_contours can return nothing at all for a loop
+/// with a sharp inside notch where an arc meets a line (a letter of Smokum: an "n" of
+/// 47 mm² shrunk by 0.3 mm), which reads as "the tool doesn't fit". The chords lie within
+/// the arc tolerance of the arcs, so shrinking them by that much more stays inside the
+/// true result (up to notches narrower than the tolerance): anything it finds proves the
+/// empty answer wrong. Empty again, the shape really is too narrow.
+fn flattened_shrink(plines: &[Polyline<f64>], d: f64) -> Result<Vec<Area>, ToolpathError> {
+    let flat: Vec<Polyline<f64>> = plines.iter().map(chords).collect();
+    match offset_once(&flat, d + ARC_APPROX_TOL_MM, false) {
+        Ok(areas) => Ok(areas),
+        // The fallback failing changes nothing: the first answer stands.
+        Err(_) => Ok(Vec::new()),
     }
 }
 
