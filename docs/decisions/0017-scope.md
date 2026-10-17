@@ -35,6 +35,9 @@ the project file are first-class) as well as in the GUI.
   the controller's own software.
 - **CAD** beyond the few shapes Chipload draws (circle, rectangle, polyline): any CAD
   program. The drawing tools are frozen as they are.
+  - 2026-10-17: the freeze is lifted (user). Rounded rectangle corners, text and the
+    picture and text handles came since; drawing additions are judged one by one by the
+    rules below, and full CAD stays out.
 - **Surfacing and facing** (decided 2026-10-13): skipped. A flattening program is a few
   lines of G-code that any sender or a small script makes; reconsider only if users ask.
 
