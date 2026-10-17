@@ -38,8 +38,9 @@ it's built (see `CLAUDE.md`).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
-1. **Fix the CI failure** of 2026-10-17 (run 39045771213, after the surfacing push): the
-   user asked to look at it later.
+1. **Confirm the Windows CI fix** (run 39045771213 failed 2026-10-17: every command-line
+   test on Windows exited with STATUS_STACK_OVERFLOW; the CLI now runs on an 8 MB stack).
+   Check the next CI run on Windows.
 2. **Pocketing spiked outlines** (found 2026-10-17, ADR 0021): Smokum's "n" (an outline
    that turns back by more than 150°) pockets with a 2 mm tool but not with 1 mm or less:
    "tool does not fit" or "offsets are not nested". Add it to the corpus with a failing

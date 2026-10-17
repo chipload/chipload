@@ -708,7 +708,28 @@ impl UnitsArg {
     }
 }
 
+/// The command line's stack: Linux's default for a main thread. Windows gives its main
+/// thread 1 MB, which the parser's command tree overflows in debug builds (CI, 2026-10-17:
+/// every command exited with STATUS_STACK_OVERFLOW).
+const STACK_BYTES: usize = 8 * 1024 * 1024;
+
 fn main() -> ExitCode {
+    let worker = std::thread::Builder::new()
+        .name("chipload".into())
+        .stack_size(STACK_BYTES)
+        .spawn(command_line);
+    match worker.map(std::thread::JoinHandle::join) {
+        Ok(Ok(code)) => code,
+        // A panic has already printed its message; a thread that can't start says why.
+        Ok(Err(_)) => ExitCode::FAILURE,
+        Err(err) => {
+            eprintln!("error: can't start: {err}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn command_line() -> ExitCode {
     let cli = Cli::parse();
     if matches!(cli.command, Command::Mcp) {
         return mcp::serve_stdio();
