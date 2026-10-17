@@ -274,6 +274,76 @@ mod library {
     }
 
     #[test]
+    fn add_rest_pass_offers_library_tools_and_says_why_when_it_cannot() {
+        // docs/specs/rest-passes.md §6: the entry is always there on a pocket, greyed out
+        // with the reason when no endmill is smaller.
+        let dir = settings("rest-menu");
+        let mut app = lower_part();
+        app.set_settings_dir(Some(dir.clone()));
+        let mm = chipload_job::Units::Mm;
+        match app.rest_menu(0, mm) {
+            Some(RestMenu::Unavailable(why)) => {
+                assert!(why.contains("No endmill smaller than T1 (6 mm)"), "{why}")
+            }
+            other => panic!("{other:?}"),
+        }
+        // Only pockets have it.
+        assert_eq!(app.rest_menu(1, mm), None);
+        // A smaller library tool is offered, and picking it copies it in: one undo step.
+        save_tools(
+            &ToolLibrary {
+                tools: vec![upcut()],
+                ..ToolLibrary::default()
+            },
+            &dir.join("tools.json"),
+        )
+        .unwrap();
+        app.reload_library();
+        assert_eq!(
+            app.rest_menu(0, mm),
+            Some(RestMenu::Tools {
+                project: vec![],
+                library: vec![("3 mm upcut".into(), 3.0)],
+            })
+        );
+        let before = settings_of(&app).clone();
+        let pocket = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+            Operation::Pocket(p) => p.clone(),
+            other => panic!("{other:?}"),
+        };
+        assert!(app.add_rest_pass_from_library(0, "3 mm upcut"));
+        assert_eq!(settings_of(&app).tools.len(), 2);
+        let pass = &pocket(&app).rest_passes[0];
+        assert_eq!((pass.tool, pass.feed), (2, 800.0), "the library's feed");
+        assert_eq!(app.focus, Focus::RestPass(0, 0));
+        // Now the chain ends with the 3 mm tool: nothing smaller.
+        assert!(matches!(
+            app.rest_menu(0, mm),
+            Some(RestMenu::Unavailable(_))
+        ));
+        app.undo();
+        assert_eq!(settings_of(&app).tools, before.tools);
+        assert!(pocket(&app).rest_passes.is_empty());
+        // Once in the project, it's listed as the project's, not twice.
+        app.add_library_tool("3 mm upcut").unwrap();
+        assert_eq!(
+            app.rest_menu(0, mm),
+            Some(RestMenu::Tools {
+                project: vec![(2, 3.0)],
+                library: vec![],
+            })
+        );
+        // Dogbones: greyed out, with why.
+        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+            p.corners = Some(chipload_job::Corners::Dogbone { max_angle: 1.745 });
+        }
+        match app.rest_menu(0, mm) {
+            Some(RestMenu::Unavailable(why)) => assert!(why.contains("dogbone"), "{why}"),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
     fn an_operation_takes_a_library_tool_of_its_own() {
         // docs/specs/tool-per-operation.md §8.
         let dir = settings("op-tool");

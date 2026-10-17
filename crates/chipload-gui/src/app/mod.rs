@@ -77,6 +77,19 @@ const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
 
+/// What a pocket's *Add rest pass ▸* offers (docs/specs/rest-passes.md §6).
+#[derive(Debug, Clone, PartialEq)]
+pub enum RestMenu {
+    /// Smaller endmills: the project's (id, diameter mm), then the library's not yet in the
+    /// project (name, diameter mm).
+    Tools {
+        project: Vec<(i64, f64)>,
+        library: Vec<(String, f64)>,
+    },
+    /// Shown greyed out, with why.
+    Unavailable(String),
+}
+
 /// What the properties panel shows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
@@ -1057,24 +1070,98 @@ impl ChiploadApp {
     }
 
     /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
-    /// open it.
-    pub fn add_rest_pass(&mut self, i: usize, tool: i64) {
+    /// open it. False, with the reason shown, when it can't be added.
+    pub fn add_rest_pass(&mut self, i: usize, tool: i64) -> bool {
         let cutting = self.tool_cutting(tool);
         let Some(edit) = self.edit.as_mut() else {
-            return;
+            return false;
         };
         let tools = edit.settings.tools.clone();
         let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
-            return;
+            return false;
         };
         match chipload_pipeline::rest_pass_of(pocket, &tools, tool, cutting.as_ref()) {
             Ok(pass) => {
                 pocket.rest_passes.push(pass);
                 self.focus = Focus::RestPass(i, pocket.rest_passes.len() - 1);
                 self.commit();
+                true
             }
-            Err(err) => self.error(vec![format!("Could not add a rest pass: {err}")]),
+            Err(err) => {
+                self.error(vec![format!("Could not add a rest pass: {err}")]);
+                false
+            }
         }
+    }
+
+    /// Add a rest pass to pocket `i` cut with the library tool `name`, copied into the
+    /// project first unless it is there already: one undo step (docs/specs/rest-passes.md
+    /// §6). If the pass can't be added, the project's tools stay as they were.
+    pub fn add_rest_pass_from_library(&mut self, i: usize, name: &str) -> bool {
+        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+            return false;
+        };
+        let Some(tool) = self.insert_library_tool(name) else {
+            return false;
+        };
+        if self.add_rest_pass(i, tool) {
+            return true;
+        }
+        if let Some(edit) = self.edit.as_mut() {
+            edit.settings.tools = before;
+        }
+        false
+    }
+
+    /// What pocket `i`'s *Add rest pass ▸* offers: the endmills smaller than the last tool
+    /// of its chain, the project's and then the library's, or why there are none
+    /// (docs/specs/rest-passes.md §6). None for any other operation.
+    pub fn rest_menu(&self, i: usize, units: Units) -> Option<RestMenu> {
+        let edit = self.edit.as_ref()?;
+        let Operation::Pocket(pocket) = &edit.ops.get(i)?.op else {
+            return None;
+        };
+        if pocket.corners.is_some() {
+            return Some(RestMenu::Unavailable(
+                "This pocket has dogbone or T-bone corners, and rest passes can't be combined \
+                 with them yet. The corners already reach where a rest pass would."
+                    .into(),
+            ));
+        }
+        let tools = &edit.settings.tools;
+        let last = pocket.rest_passes.last().map_or(pocket.tool, |r| r.tool);
+        let Some(diameter) = tools.iter().find(|t| t.id == last).map(|t| t.diameter) else {
+            return Some(RestMenu::Unavailable(format!(
+                "Tool T{last} isn't in the project: give the pocket a tool first."
+            )));
+        };
+        let project: Vec<(i64, f64)> = tools
+            .iter()
+            .filter(|t| t.kind == ToolType::Endmill && t.diameter < diameter)
+            .map(|t| (t.id, t.diameter))
+            .collect();
+        // A library tool already copied in with the same values is listed as the project's.
+        let library: Vec<(String, f64)> = self
+            .library()
+            .map(|l| l.tools.tools.as_slice())
+            .unwrap_or_default()
+            .iter()
+            .filter(|e| e.kind == ToolType::Endmill && e.diameter < diameter)
+            .filter(|e| {
+                !tools
+                    .iter()
+                    .any(|t| t.library_uid.as_deref() == Some(e.uid.as_str()) && e.same_values(t))
+            })
+            .map(|e| (e.name.clone(), e.diameter))
+            .collect();
+        if project.is_empty() && library.is_empty() {
+            return Some(RestMenu::Unavailable(format!(
+                "No endmill smaller than T{last} ({}) in the project or your tool library. \
+                 Add one under Tools, then right-click the pocket again.",
+                chipload_pipeline::units::length_text(diameter, units)
+            )));
+        }
+        Some(RestMenu::Tools { project, library })
     }
 
     /// Pocket `i`'s rest passes, to change.

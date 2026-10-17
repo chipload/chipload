@@ -387,6 +387,8 @@ enum OpAction {
     Delete(usize),
     /// A rest pass for pocket i with this tool (docs/specs/rest-passes.md §6).
     AddRest(usize, i64),
+    /// The same with a library tool, by name, copied into the project first.
+    AddRestFromLibrary(usize, String),
     /// Pocket i's rest pass k: open it, turn it on or off, remove it.
     PassFocus(usize, usize),
     PassToggle(usize, usize),
@@ -656,7 +658,12 @@ impl ChiploadApp {
                 self.focus = Focus::Op(i);
                 self.delete_operation();
             }
-            Some(OpAction::AddRest(i, tool)) => self.add_rest_pass(i, tool),
+            Some(OpAction::AddRest(i, tool)) => {
+                self.add_rest_pass(i, tool);
+            }
+            Some(OpAction::AddRestFromLibrary(i, name)) => {
+                self.add_rest_pass_from_library(i, &name);
+            }
             Some(OpAction::PassFocus(i, k)) => self.focus = Focus::RestPass(i, k),
             Some(OpAction::PassToggle(i, k)) => self.toggle_rest_pass(i, k),
             Some(OpAction::PassRemove(i, k)) => self.remove_rest_pass(i, k),
@@ -845,28 +852,10 @@ impl ChiploadApp {
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
-        // Smaller endmills a rest pass for this pocket can use: smaller than the last tool
-        // of its chain (docs/specs/rest-passes.md §6). None with dogbones.
-        let rest_tools: Vec<(i64, f64)> = match op {
-            Operation::Pocket(p) if p.corners.is_none() => {
-                let last = p.rest_passes.last().map_or(p.tool, |r| r.tool);
-                let diameter = edit
-                    .settings
-                    .tools
-                    .iter()
-                    .find(|t| t.id == last)
-                    .map(|t| t.diameter);
-                edit.settings
-                    .tools
-                    .iter()
-                    .filter(|t| {
-                        t.kind == ToolType::Endmill && diameter.is_some_and(|d| t.diameter < d)
-                    })
-                    .map(|t| (t.id, t.diameter))
-                    .collect()
-            }
-            _ => Vec::new(),
-        };
+        // What a rest pass for this pocket can be cut with, or why it can't
+        // (docs/specs/rest-passes.md §6).
+        let units = crate::units::display(ui.ctx());
+        let rest_menu = self.rest_menu(i, units);
         let name = match op.name() {
             "" => "(no name)",
             name => name,
@@ -938,25 +927,46 @@ impl ChiploadApp {
             if ui.button("Duplicate").clicked() {
                 action = Some(OpAction::Duplicate(i));
             }
-            if !rest_tools.is_empty() {
-                let units = crate::units::display(ui.ctx());
-                ui.menu_button("Add rest pass", |ui| {
-                    for (tool, diameter) in &rest_tools {
-                        let label = format!(
-                            "T{tool} · {} endmill",
-                            chipload_pipeline::units::length_text(*diameter, units)
-                        );
-                        if ui.button(label).clicked() {
-                            action = Some(OpAction::AddRest(i, *tool));
+            match &rest_menu {
+                Some(RestMenu::Tools { project, library }) => {
+                    let size = |d: f64| chipload_pipeline::units::length_text(d, units);
+                    ui.menu_button("Add rest pass", |ui| {
+                        for (tool, diameter) in project {
+                            if ui
+                                .button(format!("T{tool} · {} endmill", size(*diameter)))
+                                .clicked()
+                            {
+                                action = Some(OpAction::AddRest(i, *tool));
+                            }
                         }
-                    }
-                })
-                .response
-                .on_hover_text(
-                    "A smaller tool that clears only what this pocket's tool leaves, in its \
-                     shapes and depths. It follows the pocket, and is cut after the pockets \
-                     next to it with the same tool",
-                );
+                        if !library.is_empty() {
+                            if !project.is_empty() {
+                                ui.separator();
+                            }
+                            ui.weak("From your tool library");
+                            for (name, diameter) in library {
+                                if ui
+                                    .button(format!("{name} · {} endmill", size(*diameter)))
+                                    .on_hover_text("Copied into the project's Tools")
+                                    .clicked()
+                                {
+                                    action = Some(OpAction::AddRestFromLibrary(i, name.clone()));
+                                }
+                            }
+                        }
+                    })
+                    .response
+                    .on_hover_text(
+                        "A smaller tool that clears only what this pocket's tool leaves, in \
+                         its shapes and depths. It follows the pocket, and is cut after the \
+                         pockets next to it with the same tool",
+                    );
+                }
+                Some(RestMenu::Unavailable(why)) => {
+                    ui.add_enabled(false, egui::Button::new("Add rest pass"))
+                        .on_disabled_hover_text(why);
+                }
+                None => {}
             }
             if let Some(parent) = parent
                 && ui

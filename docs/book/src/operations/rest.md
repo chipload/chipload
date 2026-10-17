@@ -10,7 +10,11 @@ pocket again. (Design: `docs/specs/rest-passes.md`.)
 ## Adding one
 
 - **Right-click the pocket** in the Browser, then *Add rest pass ▸*, and pick a smaller
-  endmill. Command line: `chipload op add-rest part.chipload --op 1 --tool 2`.
+  endmill: the project's tools come first, then those in your tool library. A library tool
+  is copied into the project's Tools. When the entry is greyed out, point at it to see
+  why: no smaller endmill in the project or your library, or the pocket has dogbone
+  corners. Command line: `chipload op add-rest part.chipload --op 1 --tool 2` (copy a
+  library tool in first with `chipload tool use`).
 - **It belongs to the pocket:** it shows as a leaf under it, numbered after it (*1.1*, *1.2*),
   and takes the pocket's shapes, depths, oversize and direction. Change the pocket and the
   pass follows; turn the pocket off and its passes aren't cut either.

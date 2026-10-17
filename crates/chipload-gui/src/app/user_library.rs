@@ -676,7 +676,7 @@ impl ChiploadApp {
         true
     }
 
-    fn insert_library_tool(&mut self, name: &str) -> Option<i64> {
+    pub(super) fn insert_library_tool(&mut self, name: &str) -> Option<i64> {
         self.reload_library();
         let Some(entry) = self.library.tools.find(name).cloned() else {
             self.error(vec![format!("There is no library tool \"{name}\".")]);

@@ -78,8 +78,13 @@ order rule of §3 applies; the report says when the cut order changed.
 ## 6. In the app and on the command line
 
 - **Browser:** the pass is a leaf under its pocket, with its tool and time: "↳ Rest · T2 ·
-  3 mm · 1 min 10 s". Right-click a pocket: *Add rest pass ▸* lists the project's endmills
-  smaller than the last tool of its chain. Right-click a pass: *Remove*, on/off.
+  3 mm · 1 min 10 s". Right-click a pocket: *Add rest pass ▸* lists the endmills smaller
+  than the last tool of its chain: the project's first, then the user's library's that
+  aren't in the project yet. Picking a library tool copies it into the project (as
+  *Tools*, tool-per-operation.md §8) and adds the pass: one undo step. When no tool is
+  smaller, or the pocket has dogbones, the entry is still shown, greyed out, and its hover
+  says why (changed in 0.22.1: before, it was left out, and users couldn't find it).
+  Right-click a pass: *Remove*, on/off.
 - **Properties:** a pass shows its own fields, and its pocket's (shapes, depths) as read-only
   facts with a link to the pocket.
 - **CLI:** `chipload op add-rest part.chipload --op 1 --tool 2` adds a pass (as now, but

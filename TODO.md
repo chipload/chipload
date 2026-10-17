@@ -5,16 +5,17 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Not released yet** (on main since v0.21.1): rest passes under their pocket; surfacing;
-  messages in inches; more fonts; release files named in lowercase
-  (`chipload-gui-X-linux-x86_64.AppImage`, …), first used by the next release. Proposed
-  next release: 0.22.0.
+- **Not released yet** (on main since v0.22.0): *Add rest pass ▸* on a pocket also offers
+  the smaller endmills of the tool library (copied in when picked), and is shown greyed out
+  with the reason instead of left out (found testing 0.22.0). Proposed next release: 0.22.1.
 
 ## State to remember (2026-10-17)
 
-- **Releases**: the latest is 0.21.1 (published 2026-10-17, built by Actions: Linux and
-  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). No drafts are
-  left. Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`).
+- **Releases**: the latest published is 0.21.1 (2026-10-17, built by Actions: Linux and
+  Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`). 0.22.0 is
+  tagged (`v0.22.0`, 9daf83a) with a draft release waiting to be published; its guide is
+  `guide-0.22.0-1`, to put online with `publish-book.sh` once published. Old tags remain
+  (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
   github.com/chipload/chipload, the guide at chipload.github.io/chipload (published from
   v0.21.1; guide-only fixes go out with a `guide-X.Y.Z-N` tag and
