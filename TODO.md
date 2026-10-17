@@ -5,6 +5,10 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
+- **Rest passes under their pocket** (docs/specs/rest-passes.md, draft for review 2026-10-17):
+  a rest becomes a leaf of its pocket, cut after the run of same-tool pockets. Waiting for
+  the user's decisions (spec §9).
+
 - **More platforms** (2026-10-17): the release workflow builds Linux and Windows for ARM64 too
   (AppImage and CLI, native GitHub runners), and the guide zip; a run by hand builds without
   a release. Not run yet: try it once Actions run again (*Actions > Release > Run workflow*).
