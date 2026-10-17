@@ -40,6 +40,11 @@ the project file are first-class) as well as in the GUI.
     rules below, and full CAD stays out.
 - **Surfacing and facing** (decided 2026-10-13): skipped. A flattening program is a few
   lines of G-code that any sender or a small script makes; reconsider only if users ask.
+  - 2026-10-17: taken in at the user's request (docs/specs/surfacing.md). A script gives
+    the moves, but not the checker, the simulation, the time estimate or the setup sheet,
+    and a surfacing program runs the largest tool at the edges of the stock. The whole
+    stock only, one pattern (back and forth), no settings beyond depth, step down,
+    stepover and feeds.
 
 ## Removed
 - **Trochoidal and adaptive pocket clearing** (2026-10-13). Experimental since 2026-10-12,

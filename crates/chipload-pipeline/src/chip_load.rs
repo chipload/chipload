@@ -25,6 +25,28 @@ pub const CHIP_LOAD_HINT: &str = "Chip load: how thick a chip each cutting edge 
     wood and plastics with 3–12 mm tools often take 0.05–0.25 mm/tooth, aluminium \
     0.02–0.08. Check the tool maker's figures.";
 
+/// The feeds without a tool to go by (no tool chosen yet).
+pub const DEFAULT_FEED: f64 = 500.0;
+pub const DEFAULT_PLUNGE_FEED: f64 = 150.0;
+
+/// The feed a new operation starts with when the tool has no cutting values in the library
+/// and there is no operation above to copy from: 250 mm/min per mm of diameter (6 mm:
+/// 1500), within 300 to 3000, to the nearest 10. A starting point for wood and plastics
+/// at a hobby spindle's speed, to be checked against the chip load.
+pub fn default_feed(diameter: f64) -> f64 {
+    if diameter <= 0.0 || diameter.is_nan() {
+        return DEFAULT_FEED;
+    }
+    ((diameter * 250.0).clamp(300.0, 3000.0) / 10.0).round() * 10.0
+}
+
+/// A third of [`default_feed`], to the nearest 10.
+pub fn default_plunge_feed(diameter: f64) -> f64 {
+    if diameter <= 0.0 || diameter.is_nan() {
+        return DEFAULT_PLUNGE_FEED;
+    }
+    (default_feed(diameter) / 30.0).round() * 10.0
+}
 /// The chip load of cutting at `feed` (mm/min) with `tool`.
 pub fn chip_load_of(feed: f64, tool: &Tool) -> ChipLoad {
     let Some(flutes) = tool.flutes.filter(|n| *n > 0) else {
@@ -48,6 +70,7 @@ pub fn cutting_feed(op: &Operation) -> f64 {
             HoleMethod::Drill { .. } => h.plunge_feed,
             HoleMethod::Bore { .. } => h.feed,
         },
+        Operation::Surface(f) => f.feed,
     }
 }
 

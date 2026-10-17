@@ -17,6 +17,7 @@ pub mod report;
 pub mod shapes;
 pub mod sheet;
 pub mod simulate;
+pub mod surface;
 pub mod texts;
 pub mod units;
 

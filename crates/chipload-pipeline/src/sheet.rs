@@ -457,6 +457,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Vcarve(v) => (v.feed, v.plunge_feed),
         Operation::Path(p) => (p.feed, p.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
+        Operation::Surface(f) => (f.feed, f.plunge_feed),
     }
 }
 
@@ -493,6 +494,23 @@ fn kind_text(op: &Operation, tools: &[Tool], u: Units) -> String {
                 format!("Holes, helical bore, {}", direction_text(direction))
             }
         },
+        // docs/specs/surfacing.md §3, §5.
+        Operation::Surface(f) => {
+            let past = tools
+                .iter()
+                .find(|t| t.id == f.tool)
+                .map_or(String::new(), |t| {
+                    format!(
+                        "; runs {} past the stock ends: keep clamps clear",
+                        len_u(u, t.diameter / 2.0)
+                    )
+                });
+            format!(
+                "Surface, the whole stock, back and forth (climb and conventional), \
+                 stepover {} %{past}",
+                num(f.stepover * 100.0)
+            )
+        }
     };
     // Positive clearance cuts into the material that is kept, negative leaves some
     // (docs/specs/depths-and-clearance.md §3).
@@ -536,6 +554,7 @@ fn depth_text(op: &Operation, u: Units) -> String {
         Operation::Vcarve(v) => v.step_down,
         Operation::Path(p) => Some(p.step_down),
         Operation::Holes(_) => None,
+        Operation::Surface(f) => Some(f.step_down),
     };
     let passes = match op {
         // docs/specs/holes.md §6: a drill's depth is its point's.
@@ -574,6 +593,9 @@ fn depth_text(op: &Operation, u: Units) -> String {
 }
 
 fn entry_text(op: &Operation, u: Units) -> String {
+    if let Operation::Surface(_) = op {
+        return "down beside the stock".to_string();
+    }
     if let Operation::Holes(h) = op {
         return match h.method {
             HoleMethod::Drill { .. } => "straight down".to_string(),
@@ -865,7 +887,11 @@ pub fn contour_copies<'a>(job: &Job, contours: &'a [Contour]) -> Vec<(&'a Contou
     let mut cut_by: Vec<Vec<Point>> = vec![Vec::new(); contours.len()];
     for part in &job.parts {
         let mut ids: Vec<usize> = Vec::new();
-        for op in job.operations.iter().filter(|op| op.part() == part.id) {
+        for op in job
+            .operations
+            .iter()
+            .filter(|op| op.part() == part.id && op.selects_shapes())
+        {
             let picked = match op {
                 Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), ""),
                 _ => select_contours(contours, op.select(), ""),

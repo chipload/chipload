@@ -37,6 +37,7 @@
 - [V-carve](operations/vcarve.md)
 - [Follow path](operations/path.md)
 - [Holes](operations/holes.md)
+- [Surface](operations/surface.md)
 
 # Tools, machines and posts
 

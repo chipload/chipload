@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 28. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 29. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 28. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `28` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `29` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -351,6 +351,23 @@ Holes: drilled with a drill, bored with a helix with an endmill.
 | `select` | [Selector](#selector) | yes | What the operation cuts: the circles among the shapes on a layer, or shapes by id. Other shapes are skipped with a note. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
+
+### `"type": "surface"`
+
+Surface: the whole stock top taken down flat, in straight passes back and forth.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | How far down the stock top is taken, mm. At most the stock thickness. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). The stock is faced once, whatever copies the part has. |
+| `plunge_feed` | number | yes | The feed going down beside the stock to each depth, mm/min. |
+| `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top. |
+| `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
+| `stepover` | number | yes | The distance between passes, as a fraction of the tool diameter: at least 0.1, at most 0.9. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an endmill. |
 
 ## Part
 

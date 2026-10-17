@@ -67,7 +67,11 @@ fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
 #[test]
 fn an_operation_without_shapes_is_a_problem_of_the_operation() {
     let mut app = lower_part();
-    app.edit.as_mut().unwrap().ops[1].op.select_mut().shapes = Some(Vec::new());
+    app.edit.as_mut().unwrap().ops[1]
+        .op
+        .select_mut()
+        .unwrap()
+        .shapes = Some(Vec::new());
     app.commit();
     assert_eq!(problem_paths(&app), ["operations.1.select"]);
     assert_eq!(

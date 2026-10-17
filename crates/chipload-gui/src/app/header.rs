@@ -346,14 +346,16 @@ impl ChiploadApp {
                             OpKind::Vcarve => Icon::Vcarve,
                             OpKind::Path => Icon::FollowPath,
                             OpKind::Holes => Icon::Holes,
+                            OpKind::Surface => Icon::Surface,
                         };
                         let short = if kind == OpKind::Path {
                             "Follow"
                         } else {
                             label
                         };
-                        let response = ribbon_button(ui, icon, short, selected, false);
-                        let response = if selected {
+                        let enabled = selected || !kind.needs_selection();
+                        let response = ribbon_button(ui, icon, short, enabled, false);
+                        let response = if enabled {
                             response.on_hover_text(hover)
                         } else {
                             response.on_hover_text(format!("{hover}. Select shapes first."))
@@ -367,7 +369,10 @@ impl ChiploadApp {
                     let selected = !app.selection.ids(&app.contours).is_empty();
                     for (label, kind, hover) in super::browser::NEW_OPERATIONS {
                         if ui
-                            .add_enabled(selected, egui::Button::new(format!("New {label}")))
+                            .add_enabled(
+                                selected || !kind.needs_selection(),
+                                egui::Button::new(format!("New {label}")),
+                            )
                             .on_hover_text(hover)
                             .on_disabled_hover_text("Select shapes first")
                             .clicked()

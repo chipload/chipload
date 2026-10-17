@@ -74,7 +74,9 @@ fn pin_layers(job: &mut Job, added: u64) -> Vec<String> {
     let mut pinned: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     let shapes = job.drawing.shapes.clone();
     for (i, op) in job.operations.iter_mut().enumerate() {
-        let select = op.select_mut();
+        let Some(select) = op.select_mut() else {
+            continue;
+        };
         let Some(layer) = select.layer.clone() else {
             continue;
         };

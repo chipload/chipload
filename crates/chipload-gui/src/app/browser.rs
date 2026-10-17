@@ -353,6 +353,7 @@ pub(super) fn op_icon(op: &Operation) -> Icon {
         Operation::Vcarve(_) => Icon::Vcarve,
         Operation::Path(_) => Icon::FollowPath,
         Operation::Holes(_) => Icon::Holes,
+        Operation::Surface(_) => Icon::Surface,
     }
 }
 
@@ -405,7 +406,7 @@ enum OpAction {
 }
 
 /// The kinds of new operation: label, kind and what it does.
-pub(super) const NEW_OPERATIONS: [(&str, OpKind, &str); 5] = [
+pub(super) const NEW_OPERATIONS: [(&str, OpKind, &str); 6] = [
     (
         "Profile",
         OpKind::Profile,
@@ -432,6 +433,12 @@ pub(super) const NEW_OPERATIONS: [(&str, OpKind, &str); 5] = [
         "Holes",
         OpKind::Holes,
         "The selected circles: drilled with a drill, or bored with a helix with an endmill",
+    ),
+    (
+        "Surface",
+        OpKind::Surface,
+        "The whole stock taken down flat with a wide endmill: flatten the spoilboard or face \
+         the stock. Needs no selection",
     ),
 ];
 
@@ -749,7 +756,10 @@ impl ChiploadApp {
             ui.menu_button("New operation", |ui| {
                 for (label, kind, hover) in NEW_OPERATIONS {
                     if ui
-                        .add_enabled(selected, egui::Button::new(label))
+                        .add_enabled(
+                            selected || !kind.needs_selection(),
+                            egui::Button::new(label),
+                        )
                         .on_hover_text(hover)
                         .on_disabled_hover_text("Select shapes first")
                         .clicked()
@@ -1031,6 +1041,7 @@ impl ChiploadApp {
             Operation::Vcarve(_) => "V-carve",
             Operation::Path(_) => "Follow path",
             Operation::Holes(_) => "Holes",
+            Operation::Surface(_) => "Surface",
         };
         let summary = geometry_summary(op, &self.contours);
         let (start, end) = op.depths();
@@ -1166,5 +1177,7 @@ pub(super) fn kind_color(op: &Operation, dark: bool) -> Color32 {
         (Operation::Path(_), false) => Color32::from_rgb(0x1f, 0x5c, 0xb0),
         (Operation::Holes(_), true) => Color32::from_rgb(0xf0, 0x9a, 0xb4),
         (Operation::Holes(_), false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
+        (Operation::Surface(_), true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
+        (Operation::Surface(_), false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
     }
 }

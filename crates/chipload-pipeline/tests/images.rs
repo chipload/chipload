@@ -159,7 +159,7 @@ fn traced_shapes_are_selected_by_their_image_not_by_id() {
     let project = chipload_job::load_job(&corpus).unwrap();
     let (mut job, report) = add_image(&project, NewImage::new("logo.png", &bytes, 80.0)).unwrap();
     assert!(job.validate().is_empty(), "{:?}", job.validate());
-    *job.operations[0].select_mut() = Selector {
+    *job.operations[0].select_mut().unwrap() = Selector {
         shapes: Some(vec![report.shapes[0]]),
         ..Selector::default()
     };
@@ -289,7 +289,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
             .filter(|s| s.image() == Some(1))
             .all(|s| !s.closed())
     );
-    *job.operations[0].select_mut() = Selector {
+    *job.operations[0].select_mut().unwrap() = Selector {
         layer: Some("open_strokes".into()),
         ..Selector::default()
     };
@@ -302,7 +302,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
         "{problems:?}"
     );
     // Selecting the image itself is refused the same way.
-    *job.operations[0].select_mut() = Selector {
+    *job.operations[0].select_mut().unwrap() = Selector {
         image: Some(1),
         ..Selector::default()
     };
@@ -318,7 +318,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
     let mut new = NewImage::new("strokes.png", &strokes, 60.0);
     new.trace = ImageTrace::CentreLine;
     let (mut job, _) = add_image(&project, new).unwrap();
-    *job.operations[0].select_mut() = Selector {
+    *job.operations[0].select_mut().unwrap() = Selector {
         image: Some(1),
         ..Selector::default()
     };

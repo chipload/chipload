@@ -475,6 +475,22 @@ enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide
+    /// endmill, in straight passes back and forth, first in the active part. Flattens the
+    /// spoilboard or faces the stock.
+    AddSurface {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The endmill's id in the project; default: the widest endmill.
+        #[arg(long)]
+        tool: Option<i64>,
+        /// How much comes off the top; default 0.5 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        depth: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// A pocket's rest passes (docs/specs/rest-passes.md): without --pass, list them; with
     /// it, change, turn off or on, or remove one.
     RestPass {
@@ -2062,6 +2078,56 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ));
             out.set("operation", json!(at.operation));
             out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddSurface {
+            project,
+            tool,
+            depth,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let chosen = tool.or_else(|| chipload_pipeline::surface::surface_tool(&job));
+            let cutting = job
+                .tools
+                .iter()
+                .find(|t| Some(t.id) == chosen)
+                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
+            let index = match chipload_pipeline::surface::add_surface(
+                &mut job,
+                tool,
+                depth,
+                cutting.as_ref(),
+            ) {
+                Ok(index) => index,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            let op = &job.operations[index];
+            let (_, end_depth) = op.depths();
+            let moved = if index + 1 < job.operations.len() {
+                " The operations after it move down one."
+            } else {
+                ""
+            };
+            out.line(format!(
+                "Added operation {}: a surface of the whole stock with tool {}, {} mm off the \
+                 top.{moved}",
+                index + 1,
+                op.tool(),
+                chipload_core::text::mm(end_depth)
+            ));
+            out.set("operation", json!(index));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

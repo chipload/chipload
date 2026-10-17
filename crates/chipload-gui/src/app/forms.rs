@@ -272,7 +272,9 @@ pub(super) fn op_form(
         Operation::Vcarve(_) => "V-carve",
         Operation::Path(_) => "Follow path",
         Operation::Holes(_) => "Holes",
+        Operation::Surface(_) => "Surface",
     };
+    let surface = !entry.op.selects_shapes();
     let color = super::browser::kind_color(&entry.op, ui.visuals().dark_mode);
     super::browser::title_line(
         ui,
@@ -290,6 +292,14 @@ pub(super) fn op_form(
             ui.add(TextEdit::singleline(name).desired_width(200.0));
             ui.end_row();
             ui.label("Geometry");
+            if surface {
+                // docs/specs/surfacing.md §2.
+                ui.label("The whole stock")
+                    .on_hover_text("A surface faces the whole stock, once, whatever the copies");
+                ui.end_row();
+                tool_row(ui, index, &mut entry.op, &choice, &mut request);
+                return;
+            }
             let geometry = ui.horizontal(|ui| {
                 ui.label(&summary);
                 let label = match choice.selected {
@@ -492,6 +502,41 @@ pub(super) fn op_form(
             });
         }
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool),
+        Operation::Surface(f) => {
+            let cut = format!(
+                "{}–{} {len_unit}, steps of {} {len_unit}, stepover {:.2} × D",
+                len_in(units, f.start_depth),
+                len_in(units, f.end_depth),
+                len_in(units, f.step_down),
+                f.stepover
+            );
+            section(ui, "op-cut", "Cut", &cut, |ui| {
+                ui.label("Start depth")
+                    .on_hover_text("Where the cut starts, down from the stock top");
+                flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
+                ui.end_row();
+                ui.label("End depth")
+                    .on_hover_text("How much comes off the top, down from the stock top");
+                flag(ui.add(mm(&mut f.end_depth)), ui, "end_depth");
+                ui.end_row();
+                ui.label("Step down");
+                flag(ui.add(mm(&mut f.step_down)), ui, "step_down");
+                ui.end_row();
+                ui.label("Stepover").on_hover_text(
+                    "How far each pass moves across, as a fraction of the tool diameter",
+                );
+                let (lo, hi) = chipload_job::SURFACE_STEPOVER;
+                let stepover = ui.add(
+                    DragValue::new(&mut f.stepover)
+                        .speed(0.01)
+                        .range(lo..=hi)
+                        .suffix(" × D"),
+                );
+                flag(stepover, ui, "stepover");
+                ui.end_row();
+            });
+            feeds_section(ui, &mut f.feed, &mut f.plunge_feed, op_tool);
+        }
     }
     request.use_selection = use_selection;
     request
@@ -585,6 +630,10 @@ fn has_cutting_values(op: &Operation, c: &Cutting) -> bool {
         }
         // A hole has no step down in the library's sense: only the feeds.
         Operation::Holes(h) => (h.feed, h.plunge_feed) == (c.feed, c.plunge_feed),
+        // A surface keeps its own stepover: the library's is a pocket's.
+        Operation::Surface(f) => {
+            (f.feed, f.plunge_feed, f.step_down) == (c.feed, c.plunge_feed, c.step_down)
+        }
     }
 }
 
@@ -604,6 +653,9 @@ fn apply_cutting(op: &mut Operation, c: &Cutting) {
             (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
         }
         Operation::Holes(h) => (h.feed, h.plunge_feed) = (c.feed, c.plunge_feed),
+        Operation::Surface(f) => {
+            (f.feed, f.plunge_feed, f.step_down) = (c.feed, c.plunge_feed, c.step_down);
+        }
     }
 }
 

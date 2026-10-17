@@ -11,10 +11,11 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 24] = [
+const MIGRATIONS: [Migration; 25] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
+    v28_to_v29,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -507,6 +508,12 @@ fn v27_to_v28(mut data: Value) -> Result<Value, String> {
     };
     machine.insert("gcode_units".into(), Value::from("mm"));
     Ok(set_version(data, 28))
+}
+
+/// 28 -> 29: a new operation, `surface` (docs/specs/surfacing.md). No older file has one,
+/// so only the version changes.
+fn v28_to_v29(data: Value) -> Result<Value, String> {
+    Ok(set_version(data, 29))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

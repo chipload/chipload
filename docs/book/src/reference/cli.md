@@ -186,6 +186,21 @@ chipload op add-rest <PROJECT> [OPTIONS]
 | `--tool <TOOL>` | The smaller tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op add-surface`
+
+Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock
+
+```text
+chipload op add-surface <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--tool <TOOL>` | The endmill's id in the project; default: the widest endmill. |
+| `--depth <DEPTH>` | How much comes off the top; default 0.5 mm. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op rest-pass`
 
 A pocket's rest passes (docs/specs/rest-passes.md): without --pass, list them; with it, change, turn off or on, or remove one

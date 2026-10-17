@@ -9,35 +9,15 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, Problem, ProfileOp, Selector, Side, ToolType, VcarveOp, find_tool,
+    PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, ToolType, VcarveOp,
+    find_tool,
 };
 
 use crate::view::Kind;
 
 /// Defaults for a new operation when there's none above it to copy from (decision
 /// 2026-10-09): a shallow, slow test cut.
-/// The feeds without a tool to go by (no tool chosen yet).
-pub const DEFAULT_FEED: f64 = 500.0;
-pub const DEFAULT_PLUNGE_FEED: f64 = 150.0;
-
-/// The feed a new operation starts with when the tool has no cutting values in the library
-/// and there is no operation above to copy from: 250 mm/min per mm of diameter (6 mm:
-/// 1500), within 300 to 3000, to the nearest 10. A starting point for wood and plastics
-/// at a hobby spindle's speed, to be checked against the chip load.
-pub fn default_feed(diameter: f64) -> f64 {
-    if diameter <= 0.0 || diameter.is_nan() {
-        return DEFAULT_FEED;
-    }
-    ((diameter * 250.0).clamp(300.0, 3000.0) / 10.0).round() * 10.0
-}
-
-/// A third of [`default_feed`], to the nearest 10.
-pub fn default_plunge_feed(diameter: f64) -> f64 {
-    if diameter <= 0.0 || diameter.is_nan() {
-        return DEFAULT_PLUNGE_FEED;
-    }
-    (default_feed(diameter) / 30.0).round() * 10.0
-}
+pub use chipload_pipeline::chip_load::{default_feed, default_plunge_feed};
 pub const DEFAULT_DEPTH: f64 = 1.0;
 pub const DEFAULT_STEP_DOWN: f64 = 1.0;
 pub const DEFAULT_STEPOVER: f64 = 0.4;
@@ -201,6 +181,17 @@ pub enum OpKind {
     Path,
     /// Holes (docs/specs/holes.md).
     Holes,
+    /// Surface: the whole stock (docs/specs/surfacing.md).
+    Surface,
+}
+
+use chipload_pipeline::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
+
+impl OpKind {
+    /// Whether it cuts selected shapes; a surface faces the whole stock.
+    pub fn needs_selection(self) -> bool {
+        self != OpKind::Surface
+    }
 }
 
 /// A Holes operation's method follows its tool (docs/specs/holes.md §7): after the tool
@@ -279,6 +270,12 @@ impl EditJob {
     /// kinds don't (user report 2026-10-14: a V-carve made in a project with a V-bit got
     /// the endmill and was refused).
     pub fn tool_for(&self, kind: OpKind) -> i64 {
+        // A surface takes the widest endmill (docs/specs/surfacing.md §4).
+        if kind == OpKind::Surface
+            && let Some(widest) = chipload_pipeline::surface::surface_tool(&self.settings)
+        {
+            return widest;
+        }
         let suits = |id: i64| {
             self.settings
                 .tools
@@ -317,6 +314,7 @@ impl EditJob {
             ),
             Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
+            Operation::Surface(f) => (f.step_down, f.feed, f.plunge_feed, None),
         });
         let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
             Operation::Pocket(p) => Some(p.stepover),
@@ -365,7 +363,16 @@ impl EditJob {
     ) -> usize {
         // Into the active part, after its operations (docs/specs/parts.md §8).
         let part = self.settings.active_part_id().unwrap_or(1);
-        let index = self.insert_index(part);
+        // A surface goes first in its part: it faces the stock before anything is cut
+        // (docs/specs/surfacing.md §6).
+        let index = match kind {
+            OpKind::Surface => self
+                .ops
+                .iter()
+                .position(|e| e.op.part() == part)
+                .unwrap_or_else(|| self.insert_index(part)),
+            _ => self.insert_index(part),
+        };
         let tool = self.tool_for(kind);
         let chosen = self.settings.tool(tool);
         let diameter = chosen.map_or(0.0, |t| t.diameter);
@@ -381,6 +388,7 @@ impl EditJob {
                         | (Operation::Vcarve(_), OpKind::Vcarve)
                         | (Operation::Path(_), OpKind::Path)
                         | (Operation::Holes(_), OpKind::Holes)
+                        | (Operation::Surface(_), OpKind::Surface)
                 )
             })
             .count()
@@ -402,8 +410,8 @@ impl EditJob {
             (false, OpKind::Path) => Entry::Ramp {
                 ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
             },
-            // Holes go down their own way; the entry isn't used.
-            (false, OpKind::Holes) => Entry::Plunge {},
+            // Holes go down their own way, a surface beside the stock; the entry isn't used.
+            (false, OpKind::Holes | OpKind::Surface) => Entry::Plunge {},
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
@@ -514,6 +522,24 @@ impl EditJob {
                     true,
                 )
             }
+            OpKind::Surface => {
+                let (lo, hi) = SURFACE_STEPOVER;
+                (
+                    Operation::Surface(SurfaceOp {
+                        name: format!("Surface {number}"),
+                        enabled: true,
+                        part,
+                        tool,
+                        start_depth: 0.0,
+                        end_depth: DEFAULT_SURFACE_DEPTH,
+                        step_down: step_down.max(DEFAULT_SURFACE_DEPTH),
+                        stepover: DEFAULT_SURFACE_STEPOVER.clamp(lo, hi),
+                        feed,
+                        plunge_feed,
+                    }),
+                    true,
+                )
+            }
         };
         self.ops.insert(index, EditOp { op, side_chosen });
         index
@@ -545,6 +571,8 @@ impl EditJob {
             Operation::Vcarve(v) => v.select = select,
             Operation::Path(p) => p.select = select,
             Operation::Holes(h) => h.select = select,
+            // The whole stock: no shapes to set.
+            Operation::Surface(_) => {}
         }
     }
 
@@ -652,7 +680,7 @@ impl EditJob {
             }
             // A whole DXF or picture is geometry too (user report 2026-10-14: a V-carve of
             // a traced picture was refused as "no geometry").
-            if edit.op.select().is_empty() {
+            if edit.op.selects_shapes() && edit.op.select().is_empty() {
                 lack("select", "no geometry: select contours, then Use selection");
             }
         }
@@ -698,6 +726,9 @@ impl EditJob {
 
 /// A short description of what an operation selects, e.g. "#4, #6" or "layer upper".
 pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
+    if !op.selects_shapes() {
+        return "the whole stock".into();
+    }
     let select = op.select();
     let source = match (select.dxf, select.image) {
         (Some(dxf), _) => Some(format!("DXF {dxf}")),
@@ -819,7 +850,10 @@ mod tests {
             (750.0, 250.0)
         );
         assert_eq!((default_feed(20.0), default_feed(0.5)), (3000.0, 300.0));
-        assert_eq!(default_feed(0.0), DEFAULT_FEED);
+        assert_eq!(
+            default_feed(0.0),
+            chipload_pipeline::chip_load::DEFAULT_FEED
+        );
         assert_eq!(p.name, "Profile 1");
         p.feed = 1200.0;
         p.step_down = 3.0;

@@ -529,6 +529,34 @@ fn holes_take_the_tools_method_and_generate() {
 }
 
 #[test]
+fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
+    // docs/specs/surfacing.md §8: the two-parts project, nothing selected.
+    let mut app = two_parts();
+    app.selection = Default::default();
+    let first_part = app.edit.as_ref().unwrap().settings.parts[0].id;
+    app.edit.as_mut().unwrap().settings.active_part = Some(first_part);
+    let i = app.add_operation(OpKind::Surface).unwrap();
+    assert_eq!(i, 0, "first in part 1");
+    let edit = app.edit.as_ref().unwrap();
+    let Operation::Surface(f) = &edit.ops[i].op else {
+        panic!("a surface");
+    };
+    assert_eq!(f.name, "Surface 1");
+    assert_eq!(f.part, first_part);
+    // The project's only endmill; 0.5 mm off in one pass.
+    assert_eq!((f.tool, f.end_depth, f.step_down), (1, 0.5, 1.0));
+    assert_eq!(
+        crate::editor::geometry_summary(&edit.ops[i].op, &app.contours),
+        "the whole stock"
+    );
+    assert!(app.op_contours(&edit.ops[i].op).is_empty());
+    // Its form and Browser row draw without a selection.
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+}
+
+#[test]
 fn dogbones_are_set_on_a_profile_and_generated() {
     // docs/specs/dogbones.md §7: the slot of the dogbones project, as round corners first.
     let mut app = ChiploadApp::default();

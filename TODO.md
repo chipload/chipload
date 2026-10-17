@@ -5,9 +5,9 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Not released yet** (on main since v0.21.1): rest passes under their pocket; release
-  files named in lowercase (`chipload-gui-X-linux-x86_64.AppImage`, …), first used by the
-  next release. Proposed next release: 0.22.0.
+- **Not released yet** (on main since v0.21.1): rest passes under their pocket; surfacing;
+  release files named in lowercase (`chipload-gui-X-linux-x86_64.AppImage`, …), first used
+  by the next release. Proposed next release: 0.22.0.
 
 ## State to remember (2026-10-17)
 
@@ -31,8 +31,7 @@ it's built (see `CLAUDE.md`).
   `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
   G-code, and the new builds (macOS, ARM64 Linux and Windows); the README asks for them.
-- **Scope** (ADR 0017): a lean power tool; surfacing and facing are out of scope unless
-  users ask.
+- **Scope** (ADR 0017): a lean power tool.
 
 ## Next
 
@@ -40,26 +39,28 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
    4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-2. **Surfacing** (docs/specs/surfacing.md): spec drafted 2026-10-17, decisions not
-   reviewed; it reopens ADR 0017's "out of scope".
-3. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
+2. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
    (docs/specs/presets.md, decisions not reviewed).
-4. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
+3. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
    compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
    download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
    without installing, the user said wait. Its decisions are proposals to review then.
-5. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
+4. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
    against thousands before; find which pictures are slow (centre lines on noise?) and
    whether a user could hit it.
-6. **Inches, the rest** (docs/specs/inch-units.md): report and problem messages in the
+5. **Inches, the rest** (docs/specs/inch-units.md): report and problem messages in the
    display units (they keep mm, labelled).
 
 ## Done
 
+- **Surface** (2026-10-17, docs/specs/surfacing.md, schema 29): flatten the spoilboard or
+  face the stock: the whole stock, back and forth along its longer side with a wide
+  endmill, going down beside it; cut once whatever the copies; first in its part. Ribbon
+  *Surface* (no selection), `op add-surface`; golden v29_surface. Not released.
 - **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"): follow path,
   finishing pass and onion skin, drilling and helical boring, dogbone and T-bone corners,
   the material-removal simulation and playback (entries below); tested by the user, all
-  okay (2026-10-17). Surfacing was left out (ADR 0017).
+  okay (2026-10-17). Surfacing came later (see Surface).
 - **Lean plan** (approved 2026-10-13, ADR 0017): rest machining, scripting, material left
   merged into the simulation and DXF fuzzing done (entries below); feeds and speeds and
   presets are under Next.

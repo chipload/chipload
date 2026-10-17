@@ -1442,6 +1442,9 @@ impl ChiploadApp {
 
     /// The contours an operation cuts, as planning selects them.
     pub(super) fn op_contours(&self, op: &Operation) -> BTreeSet<usize> {
+        if !op.selects_shapes() {
+            return BTreeSet::new();
+        }
         let selected = match op {
             Operation::Path(_) | Operation::Holes(_) => {
                 select_paths(&self.contours, op.select(), "Operation")

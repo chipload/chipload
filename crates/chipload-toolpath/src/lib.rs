@@ -26,6 +26,7 @@ pub mod ramp;
 mod retry;
 pub mod select;
 pub mod start;
+pub mod surface;
 pub mod tabs;
 pub mod vcarve;
 

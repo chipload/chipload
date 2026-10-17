@@ -8,8 +8,8 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef, Operation,
-    Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Tabs, Tool, ToolType, VcarveOp,
-    ZZero, rest_refusal,
+    Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs, Tool, ToolType,
+    VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -31,6 +31,7 @@ use crate::pocket::{
 };
 use crate::profile::{PathRing, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours, select_paths};
+use crate::surface::{SurfaceCut, surface_moves};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
@@ -207,6 +208,11 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
             Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
+            // The whole stock, no shapes (docs/specs/surfacing.md §2).
+            Operation::Surface(_) => Ok(Selection {
+                contours: Vec::new(),
+                notes: Vec::new(),
+            }),
             _ => select_contours(contours, op.select(), &label),
         }
         .map_err(|err| err.at(at.operation))?;
@@ -271,15 +277,27 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
                 shift,
                 group,
             };
+            // A surface faces the stock once, whatever the part's copies
+            // (docs/specs/surfacing.md §2).
+            let copies_of = |i: usize| -> Vec<(u32, Point)> {
+                match chosen[i].op {
+                    Operation::Surface(_) => vec![(1, (0.0, 0.0))],
+                    _ => copies.clone(),
+                }
+            };
             match part.and_then(|p| p.copies).map(|c| c.order) {
                 Some(CopyOrder::ByCopy) => {
                     for &copy in &copies {
-                        steps.extend(run.iter().map(|&i| step(i, copy)));
+                        steps.extend(
+                            run.iter()
+                                .filter(|&&i| copies_of(i).contains(&copy))
+                                .map(|&i| step(i, copy)),
+                        );
                     }
                 }
                 _ => {
                     for &i in &run {
-                        steps.extend(copies.iter().map(|&copy| step(i, copy)));
+                        steps.extend(copies_of(i).into_iter().map(|copy| step(i, copy)));
                     }
                 }
             }
@@ -300,7 +318,8 @@ fn pass_heights(op: &Operation, top_z: f64) -> Result<Vec<f64>, ToolpathError> {
     Ok(match op {
         Operation::Profile(ProfileOp { step_down, .. })
         | Operation::Pocket(PocketOp { step_down, .. })
-        | Operation::Path(PathOp { step_down, .. }) => {
+        | Operation::Path(PathOp { step_down, .. })
+        | Operation::Surface(SurfaceOp { step_down, .. }) => {
             heights(pass_depths(start_depth, end_depth, *step_down)?)
         }
         // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
@@ -374,6 +393,7 @@ fn plan_step(
         Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
+        Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
     };
     planned.map_err(|err| {
         let part = job.part_of(op);
@@ -917,6 +937,29 @@ fn plan_holes_op(
     })
 }
 
+/// A surface (docs/specs/surfacing.md): the whole stock, back and forth along its longer
+/// side, every depth started beside it.
+fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
+    let cut = SurfaceCut {
+        stock: ctx.job.stock.xy_bounds(),
+        tool_radius: ctx.tool.diameter / 2.0,
+        stepover: op.stepover * ctx.tool.diameter,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+    };
+    let (moves, end) = surface_moves(&cut, ctx.pass_z, start);
+    Planned {
+        moves,
+        notes: Vec::new(),
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: ArcTable::default(),
+        end,
+        starts: Vec::new(),
+    }
+}
+
 /// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5).
 fn groove_note(tool: &Tool, depth: f64) -> Option<String> {
     if tool.kind != ToolType::Vbit {
@@ -1406,12 +1449,14 @@ fn areas_overlap(a: &CutArea, b: &CutArea) -> bool {
 fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), ToolpathError> {
     let mut areas: Vec<(usize, u32, CutArea)> = Vec::new();
     for (p, part) in job.parts.iter().enumerate() {
+        // A surface covers the whole stock, every part's copies included
+        // (docs/specs/surfacing.md §2): it overlaps them by design.
         let mine: Vec<OpSpan> = spans
             .iter()
             .filter(|s| {
                 job.operations
                     .get(s.operation)
-                    .is_some_and(|op| op.part() == part.id)
+                    .is_some_and(|op| op.part() == part.id && !matches!(op, Operation::Surface(_)))
             })
             .cloned()
             .collect();
@@ -1618,6 +1663,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Vcarve(v) => (v.feed, v.plunge_feed),
             Operation::Path(p) => (p.feed, p.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
+            Operation::Surface(f) => (f.feed, f.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
@@ -1781,6 +1827,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .map_err(|e| (at("tool"), numbered.clone(), e)),
                 Vec::new(),
             ),
+            // It goes down beside the stock: no plunge into material.
+            Operation::Surface(_) => (
+                surface_tool_rule(tool).map_err(|e| (at("tool"), numbered.clone(), e)),
+                surface_order_note(job, index, &label).into_iter().collect(),
+            ),
             Operation::Vcarve(_) => match vcarve_tool_notes(&label, tool) {
                 Ok(found) => (Ok(false), found),
                 Err(e) => {
@@ -1842,7 +1893,40 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Vcarve(_) => "V-carve",
         Operation::Path(_) => "follow path",
         Operation::Holes(_) => "holes",
+        Operation::Surface(_) => "surface",
     }
+}
+
+/// A surface needs an endmill (docs/specs/surfacing.md §4). It never plunges into
+/// material.
+fn surface_tool_rule(tool: &Tool) -> Result<bool, String> {
+    match tool.kind {
+        ToolType::Endmill => Ok(false),
+        other => Err(format!(
+            "tool {} is a {}; a surface needs an endmill",
+            tool.id,
+            other.name()
+        )),
+    }
+}
+
+/// A surface after other operations of its part faces what they already cut
+/// (docs/specs/surfacing.md §6): a warning, as it is usually put first.
+fn surface_order_note(job: &Job, index: usize, label: &str) -> Option<String> {
+    let part = job.operations.get(index)?.part();
+    let before: Vec<String> = (0..index)
+        .filter(|&i| job.cuts(i) && job.operations[i].part() == part)
+        .filter(|&i| !matches!(job.operations[i], Operation::Surface(_)))
+        .map(|i| (i + 1).to_string())
+        .collect();
+    let listed = match before.as_slice() {
+        [] => return None,
+        [one] => format!("operation {one} has"),
+        [rest @ .., last] => format!("operations {} and {last} have", rest.join(", ")),
+    };
+    Some(format!(
+        "{label} faces the stock after {listed} cut it: surfacing usually comes first"
+    ))
 }
 
 /// Rest machining's rules (docs/specs/rest-machining.md §5) for the pocket at `index`,

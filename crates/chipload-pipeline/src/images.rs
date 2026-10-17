@@ -312,7 +312,9 @@ pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape])
     let after = relative(&new_refs);
     let mut lines = Vec::new();
     for (i, op) in job.operations.iter_mut().enumerate() {
-        let select = op.select_mut();
+        let Some(select) = op.select_mut() else {
+            continue;
+        };
         let selects = match from {
             ShapeFrom::Dxf(id) => select.dxf == Some(id),
             ShapeFrom::Image(id) => select.image == Some(id),

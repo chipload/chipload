@@ -1,6 +1,47 @@
 # Spec: surfacing (flatten the spoilboard, face the stock)
 
-Status: **draft 2026-10-17**, decisions in §10 for review.
+Status: **approved 2026-10-17**, all decisions as recommended (§10); built the same day.
+As built, two changes from the draft, both found while building:
+
+- **The whole stock only (decision 3 narrowed).** Selected shapes are left out: a shape's
+  edges aren't air, so each depth would have to go down into material and need an entry,
+  as a pocket does, and a pocket with a wide endmill already flattens an area. The
+  operation has no `select` field (`Operation::select` gives an empty selector,
+  `select_mut` None), so shapes can be added later without a version bump.
+- **No overrun setting (decision 5 replaced).** The tool runs past the stock's ends by its
+  radius, so it goes down just clear of the stock, and past its long sides by a quarter of
+  its diameter (`SIDE_OVERLAP_DIAMETERS`), so the edges come out clean if the stock is a
+  little larger than entered. Every cut then stays within the stock grown by the tool
+  radius, where the independent checker counts a cut as on the stock: no "outside the
+  stock" warnings. More only adds moves in the air; less goes down onto the edge. The fence
+  case (§4) is left for if it is asked for.
+
+Also as built:
+- §3: one pass in the middle only when it passes both sides by the quarter diameter (the
+  stock at most the tool's radius wide); otherwise the passes are even, at most a stepover
+  apart (rounded up). The corner to start at is the one nearest the tool. Each depth after
+  the first goes down where the one before ended and comes back the other way: no retract
+  between depths.
+- §5: the planner doesn't check the machine's travel; the checker's travel rule refuses a
+  program wider than the travel (the travel is a span, not a position, so "X −12" can't be
+  said). The surface's moves are left out of the copies-and-parts overlap check: it covers
+  every part by design.
+- §6: the warning lists the operations before it in its part ("faces the stock after
+  operations 1 and 2 have cut it: surfacing usually comes first").
+- §7: the setup sheet's kind column: "Surface, the whole stock, back and forth (climb and
+  conventional), stepover 75 %; runs 12.5 mm past the stock ends: keep clamps clear"; entry
+  "down beside the stock". Its picture draws the passes as cut, like any operation.
+- §8: a new surface (app or `op add-surface`) takes the widest endmill, 0.5 mm in one pass,
+  stepover 0.75, feeds from the library or the tool's diameter, and goes before the active
+  part's first operation. `--depth` takes a unit like other lengths. The ribbon and the
+  part's *New operation* menu offer it with nothing selected.
+- Tests: crates/chipload-toolpath/tests/surface.rs (pass spacing, depths, along Y, a
+  property test that found a gap 0.0005 mm over the stepover, fixed),
+  crates/chipload-pipeline/tests/surface.rs (simulated flat at the end depth, once with
+  copies, problems, the order warning, `add_surface`), the migration test, a GUI workflow
+  test, and the golden `v29_surface` (G-code, lines/, setup sheet).
+
+Guide: docs/book/src/operations/surface.md.
 
 User request (2026-10-17): "how would the surfacing work?", then "go ahead with the spec".
 ADR 0017 has surfacing out of scope since 2026-10-13 ("a few lines of G-code that any
@@ -116,10 +157,13 @@ draws the grown area dashed.
 
 ```json
 {"type": "surface", "name": "Surface", "enabled": true, "part": 1,
- "select": {}, "tool": 3, "start_depth": 0.0, "end_depth": 0.5,
- "step_down": 0.5, "stepover": 19.05, "overrun": 12.7,
+ "tool": 3, "start_depth": 0.0, "end_depth": 0.5,
+ "step_down": 0.5, "stepover": 0.75,
  "feed": 3000.0, "plunge_feed": 1000.0}
 ```
+
+As built: `stepover` is a fraction of the tool diameter (as a pocket's), and there is no
+`select` or `overrun` (see the status notes).
 
 A new operation type: older Chipload would refuse the file, so the version goes to 29.
 `v28_to_v29` changes nothing (no older file has one); the frozen sample is

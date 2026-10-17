@@ -17,7 +17,7 @@ use crate::Problem;
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 28;
+pub const CURRENT_VERSION: i64 = 29;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1855,7 +1855,20 @@ pub enum Operation {
     /// Holes: drilled with a drill, bored with a helix with an endmill.
     // Spec: docs/specs/holes.md.
     Holes(HolesOp),
+    /// Surface: the whole stock top taken down flat, in straight passes back and forth.
+    // Spec: docs/specs/surfacing.md.
+    Surface(SurfaceOp),
 }
+
+/// The selector of an operation that selects nothing (a surface faces the whole stock).
+static NO_SELECTOR: Selector = Selector {
+    layer: None,
+    shapes: None,
+    dxf: None,
+    image: None,
+    text: None,
+    exclude: None,
+};
 
 fn enabled_default() -> bool {
     true
@@ -1882,6 +1895,7 @@ impl Operation {
             Operation::Vcarve(op) => &op.name,
             Operation::Path(op) => &op.name,
             Operation::Holes(op) => &op.name,
+            Operation::Surface(op) => &op.name,
         }
     }
 
@@ -1892,6 +1906,7 @@ impl Operation {
             Operation::Vcarve(op) => &mut op.name,
             Operation::Path(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
+            Operation::Surface(op) => &mut op.name,
         }
     }
 
@@ -1902,6 +1917,7 @@ impl Operation {
             Operation::Vcarve(op) => op.enabled = enabled,
             Operation::Path(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
+            Operation::Surface(op) => op.enabled = enabled,
         }
     }
 
@@ -1912,6 +1928,7 @@ impl Operation {
             Operation::Vcarve(op) => op.enabled,
             Operation::Path(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
+            Operation::Surface(op) => op.enabled,
         }
     }
 
@@ -1923,6 +1940,7 @@ impl Operation {
             Operation::Vcarve(op) => op.part,
             Operation::Path(op) => op.part,
             Operation::Holes(op) => op.part,
+            Operation::Surface(op) => op.part,
         }
     }
 
@@ -1933,6 +1951,7 @@ impl Operation {
             Operation::Vcarve(op) => op.part = part,
             Operation::Path(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
+            Operation::Surface(op) => op.part = part,
         }
     }
 
@@ -1943,6 +1962,7 @@ impl Operation {
             Operation::Vcarve(op) => op.tool,
             Operation::Path(op) => op.tool,
             Operation::Holes(op) => op.tool,
+            Operation::Surface(op) => op.tool,
         }
     }
 
@@ -1953,6 +1973,7 @@ impl Operation {
             Operation::Vcarve(op) => op.tool = tool,
             Operation::Path(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
+            Operation::Surface(op) => op.tool = tool,
         }
     }
 
@@ -1964,6 +1985,7 @@ impl Operation {
             Operation::Vcarve(op) => (op.start_depth, op.end_depth),
             Operation::Path(op) => (op.start_depth, op.end_depth),
             Operation::Holes(op) => (op.start_depth, op.end_depth),
+            Operation::Surface(op) => (op.start_depth, op.end_depth),
         }
     }
 
@@ -1979,6 +2001,8 @@ impl Operation {
             Operation::Path(p) => p.entry,
             // Holes go down their own way (docs/specs/holes.md §3, §4).
             Operation::Holes(_) => Entry::Plunge {},
+            // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
+            Operation::Surface(_) => Entry::Plunge {},
         }
     }
 
@@ -1987,16 +2011,20 @@ impl Operation {
             Operation::Profile(p) => &p.starts,
             Operation::Pocket(p) => &p.starts,
             Operation::Vcarve(_) => &[],
-            Operation::Path(_) | Operation::Holes(_) => &[],
+            Operation::Path(_) | Operation::Holes(_) | Operation::Surface(_) => &[],
         }
     }
 
-    /// None for an operation without start points (a V-carve, a follow path, holes).
+    /// None for an operation without start points (a V-carve, a follow path, holes, a
+    /// surface).
     pub fn starts_mut(&mut self) -> Option<&mut Vec<[f64; 2]>> {
         match self {
             Operation::Profile(p) => Some(&mut p.starts),
             Operation::Pocket(p) => Some(&mut p.starts),
-            Operation::Vcarve(_) | Operation::Path(_) | Operation::Holes(_) => None,
+            Operation::Vcarve(_)
+            | Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_) => None,
         }
     }
 
@@ -2016,7 +2044,8 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Vcarve(_)
             | Operation::Path(_)
-            | Operation::Holes(_) => None,
+            | Operation::Holes(_)
+            | Operation::Surface(_) => None,
         }
     }
 
@@ -2030,6 +2059,8 @@ impl Operation {
             Operation::Path(_) => 0.0,
             // Cut to the drawn size (docs/specs/holes.md decision 9).
             Operation::Holes(_) => 0.0,
+            // The whole stock: no wall to clear.
+            Operation::Surface(_) => 0.0,
         }
     }
 
@@ -2040,17 +2071,25 @@ impl Operation {
             Operation::Vcarve(op) => &op.select,
             Operation::Path(op) => &op.select,
             Operation::Holes(op) => &op.select,
+            Operation::Surface(_) => &NO_SELECTOR,
         }
     }
 
-    pub fn select_mut(&mut self) -> &mut Selector {
+    /// None for an operation that selects no shapes (a surface).
+    pub fn select_mut(&mut self) -> Option<&mut Selector> {
         match self {
-            Operation::Profile(op) => &mut op.select,
-            Operation::Pocket(op) => &mut op.select,
-            Operation::Vcarve(op) => &mut op.select,
-            Operation::Path(op) => &mut op.select,
-            Operation::Holes(op) => &mut op.select,
+            Operation::Profile(op) => Some(&mut op.select),
+            Operation::Pocket(op) => Some(&mut op.select),
+            Operation::Vcarve(op) => Some(&mut op.select),
+            Operation::Path(op) => Some(&mut op.select),
+            Operation::Holes(op) => Some(&mut op.select),
+            Operation::Surface(_) => None,
         }
+    }
+
+    /// Whether it cuts shapes of the drawing; a surface faces the stock instead.
+    pub fn selects_shapes(&self) -> bool {
+        !matches!(self, Operation::Surface(_))
     }
 }
 
@@ -2384,6 +2423,71 @@ pub struct HolesOp {
     pub plunge_feed: f64,
     /// How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill.
     pub method: HoleMethod,
+}
+
+/// Surface: the whole stock top taken down flat by a wide flat endmill, in straight passes
+/// back and forth along the stock's longer side, each depth started beside the stock.
+// Spec: docs/specs/surfacing.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct SurfaceOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`). The stock is faced once, whatever copies
+    /// the part has.
+    // Spec: docs/specs/parts.md.
+    pub part: u64,
+    /// The id of the project tool it cuts with (`tools`): an endmill.
+    pub tool: i64,
+    /// Where the cut starts, mm down from the stock top: 0 for the top.
+    pub start_depth: f64,
+    /// How far down the stock top is taken, mm. At most the stock thickness.
+    pub end_depth: f64,
+    /// The deepest each pass goes, mm. The passes are equal, and the last one ends exactly
+    /// at the end depth.
+    pub step_down: f64,
+    /// The distance between passes, as a fraction of the tool diameter: at least 0.1, at
+    /// most 0.9.
+    pub stepover: f64,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down beside the stock to each depth, mm/min.
+    pub plunge_feed: f64,
+}
+
+/// The smallest and largest stepover of a surface, as a fraction of the tool diameter
+/// (docs/specs/surfacing.md §4).
+pub const SURFACE_STEPOVER: (f64, f64) = (0.1, 0.9);
+
+/// A surface's own rules (docs/specs/surfacing.md §4, §5): its stepover's range, and no
+/// deeper than the stock.
+fn surface_problems(i: usize, f: &SurfaceOp, thickness: f64) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    let (lo, hi) = SURFACE_STEPOVER;
+    if !(f.stepover.is_finite() && (lo..=hi).contains(&f.stepover)) {
+        problems.push(Problem::at(
+            format!("operations.{i}.stepover"),
+            format!(
+                "must be from {lo} to {hi} of the tool diameter, got {}",
+                f.stepover
+            ),
+        ));
+    }
+    if f.end_depth > thickness + DEPTH_TOL_MM {
+        problems.push(Problem::at(
+            format!("operations.{i}.end_depth"),
+            format!(
+                "a surface can't go below the stock bottom ({thickness} mm thick), got {}",
+                f.end_depth
+            ),
+        ));
+    }
+    problems
 }
 
 /// How a Holes operation cuts.
@@ -3024,6 +3128,12 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Surface(f) => {
+                    positive(at("end_depth"), f.end_depth);
+                    positive(at("step_down"), f.step_down);
+                    positive(at("feed"), f.feed);
+                    positive(at("plunge_feed"), f.plunge_feed);
+                }
                 Operation::Holes(h) => {
                     positive(at("end_depth"), h.end_depth);
                     positive(at("feed"), h.feed);
@@ -3062,6 +3172,9 @@ impl Job {
                     format!("must be a number, got {}", op.clearance()),
                 ));
             }
+            if let Operation::Surface(f) = op {
+                problems.extend(surface_problems(i, f, self.stock.thickness));
+            }
             if let Operation::Profile(p) = op
                 && p.side == Side::On
                 && p.clearance != 0.0
@@ -3076,6 +3189,9 @@ impl Job {
             }
         }
         for (i, op) in self.operations.iter().enumerate() {
+            if !op.selects_shapes() {
+                continue;
+            }
             let selector = op.select();
             if selector.is_empty() {
                 problems.push(Problem::at(

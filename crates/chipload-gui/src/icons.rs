@@ -30,6 +30,7 @@ pub enum Icon {
     Vcarve,
     FollowPath,
     Holes,
+    Surface,
     Eye,
     EyeOff,
     New,
@@ -168,6 +169,16 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.circle((0.5, 0.5), 0.34);
             pen.line([(0.5, 0.28), (0.5, 0.72)]);
             pen.line([(0.28, 0.5), (0.72, 0.5)]);
+        }
+        Icon::Surface => {
+            pen.poly(&[
+                (0.12, 0.25),
+                (0.88, 0.25),
+                (0.88, 0.5),
+                (0.12, 0.5),
+                (0.12, 0.75),
+                (0.88, 0.75),
+            ]);
         }
         Icon::New => {
             pen.sheet();
