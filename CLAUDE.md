@@ -34,6 +34,34 @@ Enforced on the resolved dependency graph by `crates/chipload-cli/tests/architec
 6. The UI is thin: it builds a Job, calls the pipeline, displays results. No geometry or toolpath logic in `chipload-gui`.
 7. Post-processors are **data-driven** (Jinja templates via minijinja + a small TOML config), never hardcoded per machine.
 
+## Clean-room implementation (non-negotiable)
+
+Chipload is a clean-room implementation in Rust, written from scratch in this repository
+(user rule, 2026-10-10, made explicit 2026-10-17). Its value and its licence depend on every
+line being its own.
+
+- **Never copy, port, translate or paraphrase code** from another CAM program or toolpath
+  library, open source or proprietary, whatever its licence (FreeCAD, PyCAM, OpenCAMLib,
+  Kiri:Moto, CamBam, Fusion 360, Vectric, Estlcam, Carbide Create, and so on). Don't read
+  their source to implement a feature here. GPL-compatible doesn't make it allowed.
+- **Don't copy their other text either:** post-processor templates, help pages, UI wording,
+  icons, sample files or project formats. Write templates from the controller's own public
+  documentation (GRBL, LinuxCNC, Mach3/4 manuals) and the G-code standard (RS-274/NIST).
+- **Build only on publicly available, general knowledge:** textbooks, published papers,
+  standards, controller and tooling manufacturers' public documentation (feeds, chip loads,
+  G-code dialects), well-known algorithms (offsetting, medial axis, Voronoi diagrams, marching
+  squares), and first principles. Name the source in the spec when an algorithm comes from
+  one.
+- **Other programs may be named for what users expect**, at the level of a feature
+  ("CamBam calls this Parts", "a Browser like Fusion 360's"), never for how they do it
+  inside. No reverse engineering of binaries, file formats or output to reproduce them.
+- **Dependencies are used, not copied:** a crate is used through its API under its own
+  licence (the dependency rules below). Code is never lifted out of a dependency into this
+  repository.
+- **When in doubt about where an idea or snippet comes from, stop and ask.** Code suggested
+  from memory that resembles a specific project's source is treated the same as copying it:
+  write it again from the spec.
+
 ## Conventions
 
 - **Units:** internal geometry and toolpaths are always **millimetres**. Convert only at the edges (DXF import via `$INSUNITS`, UI display, post-processor output). Never guess units silently: if the DXF has no units, require an explicit choice and record it in the job.
