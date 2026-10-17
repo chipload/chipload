@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>3D view, simulation and playback - Chipload 0.22.1 user guide</title>
+        <title>3D view, simulation and playback - Chipload 0.22.2 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ba33c882.js";
+            window.path_to_searchindex_js = "../searchindex-2bc6eb8a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c71e25ca.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.22.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.22.2 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -199,7 +199,8 @@ off and on.</p>
 <li><strong>3D:</strong> a surface you can turn.</li>
 <li><strong>Tool shapes:</strong> each tool’s real shape is used: a flat endmill, a V-bit’s cone with its
 tip, and a drill’s 118° point.</li>
-<li><strong>When:</strong> it runs in the background after each generation.</li>
+<li><strong>When:</strong> it runs in the background after each generation. Until it’s done, the canvas
+says <em>Updating the simulation…</em> and still shows the stock as the last toolpath cut it.</li>
 <li><strong>Without the toolpath:</strong> <em>View &gt; Show toolpath</em> (also <strong>Toolpath</strong> on the navigation bar
 and a checkbox on the canvas legend)
 hides the toolpath’s lines, plunges and tabs. During playback, the tool still shows where
