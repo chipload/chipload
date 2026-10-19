@@ -5,9 +5,10 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased: 0.22.2 is published.
+- Nothing unreleased: 0.22.2 is published. Pushed since: the smaller debug builds (see Done),
+  which change no program.
 
-## State to remember (2026-10-17)
+## State to remember (2026-10-19)
 
 - **Releases**: the latest is 0.22.2 (published 2026-10-18, built by Actions: Linux and
   Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`; the guide is
@@ -32,6 +33,10 @@ it's built (see `CLAUDE.md`).
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
   G-code, and the new builds (macOS, ARM64 Linux and Windows); the README asks for them.
 - **Scope** (ADR 0017): a lean power tool.
+- **Disk space** (2026-10-19): `target/` had grown to 322 GB and WSL's `ext4.vhdx` on C: to
+  360 GB (C: 94 % full). The user ran `cargo clean`; the image shrinks only after
+  `wsl --manage Ubuntu --set-sparse true` (or a `diskpart` compact) on the Windows side.
+  Run `cargo clean` now and then, and after a Rust update.
 
 ## Next
 
@@ -51,6 +56,21 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Smaller debug builds** (2026-10-19): `[profile.dev]` keeps line tables for
+  our crates and no debug info for dependencies; after a full test build `target/` is
+  3.1 GB. A debugger no longer shows local variables.
+- **A narrow Properties panel and folding side panels** (2026-10-17, 0.22.2): every
+  Properties page fits the least width (250 px; rows wrap, long names end in …); P or
+  *View* folds both side panels for a larger canvas (docs/specs/browser-and-layout.md).
+- **A text's operations name it, and the canvas says when the simulation updates**
+  (2026-10-17, 0.22.2; user report on a V-carve that seemed not to update after a stock
+  change): the selection read "no geometry" for a text, and a slow simulation had no sign.
+- **An architecture overview for contributors** (2026-10-17): `docs/architecture.md`, the
+  layers as a diagram, the steps of `run_job` and the crates; linked from the README and
+  CONTRIBUTING.md, kept right by a CLAUDE.md rule.
+- **Add rest pass from the Browser** (2026-10-17, 0.22.1; hidden in 0.22.0, which was
+  withdrawn): right-click an operation for project tools and tools from the library, and
+  the reason when it can't (docs/specs/rest-passes.md §6).
 - **Two toolpath fixes found with the fonts** (2026-10-17): an empty or broken pocket offset
   (the offset library on a sharp notch where an arc meets a line, Smokum's "n") is retried
   with the arcs as chords (docs/specs/offset-retry.md §8); a V-carve centre line is split
@@ -60,11 +80,11 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
   (Roboto Slab and Bold; scripts Satisfy, Yellowtail, Rochester; display Luckiest Guy,
   Ultra, Chewy, Smokum, Cherry Cream Soda, Permanent Marker), the font list grouped and
   drawn in each face; overlapping letter outlines merged (`merge::merge_overlaps`); golden
-  v29_script_text. Not released.
+  v29_script_text. Released in 0.22.1.
 - **Surface** (2026-10-17, docs/specs/surfacing.md, schema 29): flatten the spoilboard or
   face the stock: the whole stock, back and forth along its longer side with a wide
   endmill, going down beside it; cut once whatever the copies; first in its part. Ribbon
-  *Surface* (no selection), `op add-surface`; golden v29_surface. Not released.
+  *Surface* (no selection), `op add-surface`; golden v29_surface. Released in 0.22.1.
 - **Commercial-CAM features** (user, 2026-10-13: "1-5 and 7 we should add"): follow path,
   finishing pass and onion skin, drilling and helical boring, dogbone and T-bone corners,
   the material-removal simulation and playback (entries below); tested by the user, all
