@@ -5,13 +5,15 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased in the programs: 0.22.2 is published. Since: the smaller debug builds
-  (pushed) and the new release file names (pushed; see Done), which change no program.
-  The next release is the first with the new names: check the draft's file list and notes.
+- **0.23.0** tagged and pushed 2026-10-24: the first release with the new file names (the app
+  `chipload-X.Y.Z-…`, the command line in `chipload-cli-X.Y.Z-…` archives) and the first run
+  of the changed workflow. The programs are the same as 0.22.2 apart from the version. Check
+  the draft's file list (the Windows CLI as `.zip`) and notes, then publish it and the guide
+  (`packaging/docs/publish-book.sh v0.23.0 --yes`).
 
 ## State to remember (2026-10-19)
 
-- **Releases**: the latest is 0.22.2 (published 2026-10-18, built by Actions: Linux and
+- **Releases**: the latest published is 0.22.2 (0.23.0 tagged, see In progress) (published 2026-10-18, built by Actions: Linux and
   Windows x86_64 and ARM64, macOS universal, the guide zip, `SHA256SUMS.txt`; the guide is
   online from `v0.22.2`). 0.22.0 was tagged but withdrawn unpublished. No drafts are left.
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
