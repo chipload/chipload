@@ -35,7 +35,7 @@ impl ChiploadApp {
                 Some(text)
             }
             Err(err) => {
-                self.error(vec![err.to_string()]);
+                self.error_report(Report::of_error(err.message()));
                 None
             }
         }
@@ -72,7 +72,10 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec![t!(self, "copy-paste-cannot-paste"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "copy-paste-cannot-paste"),
+                    err.message(),
+                ));
                 false
             }
         }
@@ -107,7 +110,10 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec![t!(self, "copy-paste-cannot-mirror"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "copy-paste-cannot-mirror"),
+                    err.message(),
+                ));
                 false
             }
         }

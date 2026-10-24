@@ -48,10 +48,12 @@ pub fn pass_depths(
 ) -> Result<Vec<f64>, ToolpathError> {
     let range = end_depth - start_depth;
     if !(start_depth >= 0.0 && range > 0.0 && step_down > 0.0) {
-        return Err(ToolpathError::Geometry(format!(
-            "depths must satisfy 0 <= start ({start_depth} mm) < end ({end_depth} mm) and \
-             step_down ({step_down} mm) must be positive"
-        )));
+        return Err(ToolpathError::Geometry(
+            Message::new("toolpath-error-pass-depths")
+                .arg("start", Value::Length(start_depth, Digits::Shortest))
+                .arg("end", Value::Length(end_depth, Digits::Shortest))
+                .arg("step_down", Value::Length(step_down, Digits::Shortest)),
+        ));
     }
     // Small positive whole number: depths and step_down are validated job values.
     let count = ((range - DEPTH_TOL_MM) / step_down).ceil().max(1.0) as u32;
@@ -145,13 +147,14 @@ pub fn plan_profile(
     starts: &[Point],
 ) -> Result<ProfilePlan, ToolpathError> {
     let clockwise = cut_clockwise(op.side, op.direction, spindle);
-    let label_text = label.english();
     // The tool centre runs this far from the contour (docs/specs/depths-and-clearance.md).
     let offset = tool_radius - op.clearance;
     if op.side != Side::On && (offset <= 0.0 || offset.is_nan()) {
-        return Err(ToolpathError::Job(format!(
-            "{label_text}: clearance {} mm must be less than the tool radius {tool_radius} mm",
-            op.clearance
+        return Err(ToolpathError::Job(labelled_note(
+            label,
+            Message::new("toolpath-clearance-radius")
+                .arg("clearance", Value::Length(op.clearance, Digits::Shortest))
+                .arg("radius", Value::Length(tool_radius, Digits::Shortest)),
         )));
     }
     let mut rings = Vec::new();
@@ -159,7 +162,7 @@ pub fn plan_profile(
     let mut arcs = ArcTable::default();
     for contour in contours {
         let paths = offset_rings_tagged(contour, op.side, offset, &mut arcs)
-            .map_err(|err| err.with_context(&format!("{label_text}, contour #{}", contour.id)))?;
+            .map_err(|err| err.with_context(contour_context(label, contour.id)))?;
         if paths.len() > 1 {
             notes.push(contour_note(
                 label,
@@ -199,6 +202,13 @@ pub fn labelled_note(label: &Message, note: Message) -> Message {
     Message::new("toolpath-labelled")
         .arg("label", label.clone())
         .arg("note", note)
+}
+
+/// Where an error happened: "Operation 3 (Outline), contour #4", put in front of it.
+pub fn contour_context(label: &Message, contour: usize) -> Message {
+    Message::new("toolpath-error-label-contour")
+        .arg("label", label.clone())
+        .arg("contour", contour)
 }
 
 /// A note about one contour of an operation: "Operation 3 (Outline), contour #4: …".

@@ -92,11 +92,35 @@ impl Report {
         report
     }
 
+    /// Messages from the library crates (a report of a change), all informational.
+    pub fn of_messages(messages: impl IntoIterator<Item = Message>) -> Self {
+        let mut report = Report::default();
+        for message in messages {
+            report.push_message(Tone::Info, message, None);
+        }
+        report
+    }
+
+    /// A failure that its message from the library crates (an error) says all of.
+    pub fn of_error(why: Message) -> Self {
+        let mut report = Report::default();
+        report.push_message(Tone::Error, why, None);
+        report
+    }
+
+    /// A failure: `head`, then why, a message from the library crates (an error).
+    pub fn failed(head: String, why: Message) -> Self {
+        let mut report = Report::error([head]);
+        report.push_message(Tone::Error, why, None);
+        report
+    }
+
     /// A failure: `head`, then every problem, each leading to its operation.
     pub fn of_problems(head: &str, problems: &[Problem]) -> Self {
         let mut report = Report::error([head.to_string()]);
         for problem in problems {
-            report.push_at(Tone::Error, format!("  {problem}"), problem.operation());
+            let line = Message::new("report-indented").arg("line", problem.text_message.clone());
+            report.push_message(Tone::Error, line, problem.operation());
         }
         report
     }
@@ -156,7 +180,7 @@ pub struct DrawingFacts {
     /// Shown in the app's language and display units.
     pub lines: Vec<Message>,
     /// Why the drawing could not be read, instead of the lines.
-    pub error: Option<String>,
+    pub error: Option<Message>,
     pub contours: usize,
     /// Import issues; errors among them make the section red.
     pub issues: usize,
@@ -177,7 +201,7 @@ impl DrawingFacts {
     }
 
     /// The drawing could not be read.
-    pub fn failed(message: String) -> Self {
+    pub fn failed(message: Message) -> Self {
         DrawingFacts {
             lines: Vec::new(),
             error: Some(message),
@@ -190,8 +214,7 @@ impl DrawingFacts {
     /// The facts as shown: in the language of `ui` and the display units.
     fn text(&self, ui: &egui::Ui) -> String {
         if let Some(error) = &self.error {
-            // An error isn't a message yet (docs/specs/translations.md §7.3, step 5).
-            return crate::units::message(ui.ctx(), error);
+            return error.render(ui.lang(), crate::units::display(ui.ctx()).into());
         }
         let units = crate::units::display(ui.ctx()).into();
         let lines: Vec<String> = self

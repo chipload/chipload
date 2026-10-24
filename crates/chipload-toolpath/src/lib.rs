@@ -32,47 +32,75 @@ pub mod tabs;
 pub mod vcarve;
 
 pub use cancel::Cancel;
+use chipload_i18n::Message;
 pub use plan::{
     OpSpan, Plan, RingStart, ToolGroup, job_problems, op_tool, plan_job, plan_job_cancellable,
     tool_groups, validate_job,
 };
 
-/// Why no toolpath could be made. Messages are the user-facing text.
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+/// Why no toolpath could be made. Each holds its message (`toolpath.ftl`), shown in the
+/// app's language; `Display` writes it in English for the command line.
+#[derive(Debug, Clone, PartialEq)]
 pub enum ToolpathError {
     /// The job asks for something this version can't or won't do.
-    #[error("{0}")]
-    Job(String),
+    Job(Message),
     /// A selector matches nothing, only part of a contour, or an invalid contour.
-    #[error("{0}")]
-    Selector(String),
+    Selector(Message),
     /// The geometry can't be machined as asked (tool too big, failed verification, ...).
-    #[error("{0}")]
-    Geometry(String),
+    Geometry(Message),
     /// Copies or parts would cut into each other (docs/specs/copies-grid.md §4,
     /// docs/specs/parts.md §5).
-    #[error("{0}")]
-    Overlap(String),
+    Overlap(Message),
     /// An error of the operation at `index` in `job.operations`: its message already names
     /// the operation, so this only says which one, for anything that leads the user to it.
-    #[error("{source}")]
     Operation {
         index: usize,
         source: Box<ToolpathError>,
     },
     /// The run was stopped by its [`cancel::Cancel`] flag.
-    #[error("Generation cancelled")]
     Cancelled,
 }
 
-impl ToolpathError {
-    /// The same error with "`context`: " in front of its message.
-    pub fn with_context(self, context: &str) -> Self {
+impl std::fmt::Display for ToolpathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for ToolpathError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            ToolpathError::Job(m) => ToolpathError::Job(format!("{context}: {m}")),
-            ToolpathError::Selector(m) => ToolpathError::Selector(format!("{context}: {m}")),
-            ToolpathError::Geometry(m) => ToolpathError::Geometry(format!("{context}: {m}")),
-            ToolpathError::Overlap(m) => ToolpathError::Overlap(format!("{context}: {m}")),
+            ToolpathError::Operation { source, .. } => Some(source.as_ref()),
+            _ => None,
+        }
+    }
+}
+
+impl ToolpathError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            ToolpathError::Job(m)
+            | ToolpathError::Selector(m)
+            | ToolpathError::Geometry(m)
+            | ToolpathError::Overlap(m) => m.clone(),
+            ToolpathError::Operation { source, .. } => source.message(),
+            ToolpathError::Cancelled => Message::new("toolpath-error-cancelled"),
+        }
+    }
+
+    /// The same error with "`context`: " in front of its message.
+    pub fn with_context(self, context: Message) -> Self {
+        let wrap = |m: Message| {
+            Message::new("toolpath-error-context")
+                .arg("context", context.clone())
+                .arg("error", m)
+        };
+        match self {
+            ToolpathError::Job(m) => ToolpathError::Job(wrap(m)),
+            ToolpathError::Selector(m) => ToolpathError::Selector(wrap(m)),
+            ToolpathError::Geometry(m) => ToolpathError::Geometry(wrap(m)),
+            ToolpathError::Overlap(m) => ToolpathError::Overlap(wrap(m)),
             ToolpathError::Operation { index, source } => ToolpathError::Operation {
                 index,
                 source: Box::new(source.with_context(context)),

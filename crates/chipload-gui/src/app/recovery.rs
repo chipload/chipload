@@ -56,7 +56,11 @@ impl ChiploadApp {
         match Session::start(&dir) {
             Ok(session) => self.recovery = Some(session),
             Err(err) => self.set_status(
-                t!(self, "recovery-copies-off", error = err.to_string()),
+                t!(
+                    self,
+                    "recovery-copies-off",
+                    error = self.say(&err.message())
+                ),
                 ERROR_STATUS_SECONDS,
             ),
         }
@@ -89,7 +93,7 @@ impl ChiploadApp {
             session.clear()
         };
         if let Err(err) = result {
-            self.set_status(format!("{err}"), ERROR_STATUS_SECONDS);
+            self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
     }
 
@@ -97,7 +101,7 @@ impl ChiploadApp {
     pub(super) fn clear_recovery(&mut self) {
         self.recovery_due = None;
         if let Some(Err(err)) = self.recovery.as_ref().map(Session::clear) {
-            self.set_status(format!("{err}"), ERROR_STATUS_SECONDS);
+            self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
     }
 
@@ -111,7 +115,10 @@ impl ChiploadApp {
         let job = match left.open() {
             Ok(job) => job,
             Err(err) => {
-                self.error(vec![t!(self, "recovery-cannot-open"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "recovery-cannot-open"),
+                    err.message(),
+                ));
                 self.leftovers.insert(index, left);
                 return false;
             }
@@ -120,7 +127,7 @@ impl ChiploadApp {
         self.start_editing(EditJob::from_job(&job), false, left.project_path.clone());
         self.write_recovery();
         if let Err(err) = left.delete() {
-            self.set_status(format!("{err}"), ERROR_STATUS_SECONDS);
+            self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
         self.set_report(Report::info([t!(
             self,
@@ -135,7 +142,7 @@ impl ChiploadApp {
         if index < self.leftovers.len()
             && let Err(err) = self.leftovers.remove(index).delete()
         {
-            self.set_status(format!("{err}"), ERROR_STATUS_SECONDS);
+            self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
     }
 
@@ -172,7 +179,7 @@ impl ChiploadApp {
                             t!(
                                 ui,
                                 "recovery-cannot-be-opened",
-                                problem = problem.to_string()
+                                problem = problem.render(ui.lang(), self.units.into())
                             ),
                         );
                     }

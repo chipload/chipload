@@ -13,7 +13,6 @@ serde = { version = "1.0.229", features = ["derive"] }
 # float_roundtrip: parse every f64 exactly as written. The default parser can be off in the
 # last bit, and a project must reload exactly the geometry it saved.
 serde_json = { version = "1.0.151", features = ["float_roundtrip"] }
-thiserror = "2.0.21"
 # JSON Schemas of the persisted formats (docs/specs/scripting.md §2), for the CLI only.
 schemars = { version = "1.2.3", optional = true }
 

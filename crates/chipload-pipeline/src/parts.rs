@@ -3,19 +3,20 @@
 //! between them. Every change keeps the operations grouped by part, in the parts' order,
 //! so the list's order stays the cutting order.
 
+use chipload_i18n::Message;
 use chipload_job::{Job, Part};
 
 use crate::PipelineError;
 
-fn refused(text: String) -> PipelineError {
-    PipelineError::Job(text)
+fn refused(message: Message) -> PipelineError {
+    PipelineError::Job(message)
 }
 
 fn index_of(job: &Job, id: u64) -> Result<usize, PipelineError> {
     job.parts
         .iter()
         .position(|p| p.id == id)
-        .ok_or_else(|| refused(format!("No part {id} in the project")))
+        .ok_or_else(|| refused(Message::new("pipeline-no-part").arg("id", id)))
 }
 
 /// A name no part has: `wanted`, or "Part N", N one more than the parts there are (the
@@ -28,13 +29,12 @@ pub fn free_name(job: &Job, wanted: Option<&str>) -> Result<String, PipelineErro
     };
     if let Some(name) = wanted {
         if name.trim().is_empty() {
-            return Err(refused("A part's name can't be empty".into()));
+            return Err(refused(Message::new("pipeline-part-name-empty")));
         }
         if taken(name) {
-            return Err(refused(format!(
-                "Another part is named \"{}\"",
-                name.trim()
-            )));
+            return Err(refused(
+                Message::new("pipeline-part-name-taken").arg("name", name.trim()),
+            ));
         }
         return Ok(name.trim().to_string());
     }
@@ -58,7 +58,7 @@ fn group_operations(job: &mut Job) {
 /// Refuse a result the project's rules don't allow.
 fn checked(job: Job) -> Result<Job, PipelineError> {
     match job.validate().into_iter().next() {
-        Some(problem) => Err(refused(problem.to_string())),
+        Some(problem) => Err(refused(problem.text_message)),
         None => Ok(job),
     }
 }
@@ -115,21 +115,18 @@ pub fn remove_part(
 ) -> Result<(Job, Vec<String>), PipelineError> {
     let at = index_of(job, id)?;
     if job.parts.len() == 1 {
-        return Err(refused(
-            "A project needs at least one part: this is the last one".into(),
-        ));
+        return Err(refused(Message::new("pipeline-last-part")));
     }
     let name = job.parts[at].name.clone();
     let operations: Vec<usize> = (0..job.operations.len())
         .filter(|i| job.operations[*i].part() == id)
         .collect();
     if !operations.is_empty() && !with_operations {
-        return Err(refused(format!(
-            "Part {name} has {} operation{}: move them to another part first, or remove \
-             them with it",
-            operations.len(),
-            if operations.len() == 1 { "" } else { "s" }
-        )));
+        return Err(refused(
+            Message::new("pipeline-part-has-operations")
+                .arg("name", name)
+                .arg("count", operations.len()),
+        ));
     }
     let mut job = job.clone();
     job.parts.remove(at);
@@ -158,10 +155,9 @@ pub fn move_operation_to_part(
     index_of(job, id)?;
     let mut job = job.clone();
     if index >= job.operations.len() {
-        return Err(refused(format!(
-            "No operation {} in the project",
-            index + 1
-        )));
+        return Err(refused(
+            Message::new("pipeline-part-no-operation").arg("number", index + 1),
+        ));
     }
     let mut op = job.operations.remove(index);
     op.set_part(id);

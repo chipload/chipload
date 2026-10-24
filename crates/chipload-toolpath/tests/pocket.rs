@@ -156,7 +156,7 @@ fn same_shape_twice_is_refused() {
     let refs: Vec<&Contour> = contours.iter().collect();
     let err = build_region(&refs).unwrap_err();
     assert!(
-        matches!(&err, ToolpathError::Selector(m) if m.contains("same shape")),
+        matches!(&err, ToolpathError::Selector(m) if m.english().contains("same shape")),
         "{err}"
     );
 }

@@ -291,7 +291,7 @@ fn job_error(
     result: Result<(Job, chipload_pipeline::placement::PlaceReport), PipelineError>,
 ) -> String {
     match result {
-        Err(PipelineError::Job(text)) => text,
+        Err(PipelineError::Job(text)) => text.english(),
         other => panic!("expected a job error, got {other:?}"),
     }
 }
@@ -965,7 +965,7 @@ mod steps {
                 match place_drawing(&job, how) {
                     Ok((next, _)) => job = next,
                     // Out of the scale range: that step is refused and nothing changes.
-                    Err(PipelineError::Job(m)) if m.contains("must stay between") => {}
+                    Err(PipelineError::Job(m)) if m.english().contains("must stay between") => {}
                     Err(err) => panic!("{how:?}: {err}"),
                 }
             }

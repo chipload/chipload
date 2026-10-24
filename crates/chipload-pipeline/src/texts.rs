@@ -4,6 +4,7 @@
 //! placed and turned as a picture's shapes are; the CLI and the GUI both go through these.
 
 use chipload_core::chain::ShapeFrom;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, Shape, TEXT_DEFAULT_LINE_SPACING, Text, TextAlign, TextAnchor};
 use chipload_text::{Align, Layout, Lettering, letters};
 
@@ -61,8 +62,10 @@ pub struct TextReport {
     pub height: f64,
     /// Characters the font has no letter for, left out.
     pub missing: Vec<char>,
-    /// The report as sentences, for the CLI and the GUI.
+    /// The report as sentences, in English, for the command line: `messages` in English.
     pub lines: Vec<String>,
+    /// The report as messages, for the app (docs/specs/translations.md §7).
+    pub messages: Vec<Message>,
 }
 
 /// Add a text and make its letters. Returns the project and what was made.
@@ -105,10 +108,11 @@ pub fn lettering(text: &Text) -> Result<Lettering, PipelineError> {
     })?;
     let merged = chipload_toolpath::merge::merge_overlaps(&lettering.outlines, &lettering.letter)
         .map_err(|err| {
-        PipelineError::Job(format!(
-            "{}: couldn't join the letters' overlapping outlines: {err}",
-            text_label(text)
-        ))
+        PipelineError::Job(
+            Message::new("pipeline-text-join-failed")
+                .arg("text", text_label(text))
+                .arg("error", err.message()),
+        )
     })?;
     (lettering.outlines, lettering.letter) = merged.into_iter().unzip();
     Ok(lettering)
@@ -117,10 +121,7 @@ pub fn lettering(text: &Text) -> Result<Lettering, PipelineError> {
 /// Make text `id`'s letters again with its current values, replacing its shapes.
 pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
     let (index, text) = find(job, id)?;
-    let problems: Vec<String> = text.problems(index).iter().map(|p| p.to_string()).collect();
-    if !problems.is_empty() {
-        return Err(PipelineError::Job(problems.join("; ")));
-    }
+    crate::refuse_problems(&text.problems(index))?;
     let lettering = lettering(text)?;
     let mut out = job.clone();
     let old: Vec<Shape> = job
@@ -156,9 +157,9 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
         });
     }
     let mut report = report(text, &lettering, ids);
-    report
-        .lines
-        .extend(find_left_out_again(&mut out, ShapeFrom::Text(id), &old));
+    let found = find_left_out_again(&mut out, ShapeFrom::Text(id), &old);
+    report.lines.extend(found.iter().map(Message::english));
+    report.messages.extend(found);
     Ok((out, report))
 }
 
@@ -225,7 +226,7 @@ fn find(job: &Job, id: u64) -> Result<(usize, &Text), PipelineError> {
         .iter()
         .enumerate()
         .find(|(_, t)| t.id == id)
-        .ok_or_else(|| PipelineError::Job(format!("there is no text {id}")))
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-text").arg("id", id)))
 }
 
 /// The first line of a text, shortened, for reports and the Browser.
@@ -240,29 +241,26 @@ pub fn text_label(text: &Text) -> String {
 
 fn report(text: &Text, l: &Lettering, shapes: Vec<u64>) -> TextReport {
     let count = shapes.len();
-    let mut lines = vec![format!(
-        "Wrote {} in {}, {} mm high ({:.1} × {:.1} mm): {count} {} on layer {}.",
-        text_label(text),
-        text.font,
-        chipload_core::text::mm(text.height),
-        l.width,
-        l.height,
-        if count == 1 { "shape" } else { "shapes" },
-        text.layer
-    )];
+    let mut lines = vec![
+        Message::new("pipeline-text-wrote")
+            .arg("text", text_label(text))
+            .arg("font", text.font.as_str())
+            .arg("height", Value::mm(text.height))
+            .arg("width", Value::LengthNumber(l.width, Digits::Fixed(1)))
+            .arg("tall", Value::Length(l.height, Digits::Fixed(1)))
+            .arg("count", count)
+            .arg("layer", text.layer.as_str()),
+    ];
     if !l.missing.is_empty() {
         let missing: String = l.missing.iter().collect();
-        lines.push(format!(
-            "{} has no letter for \"{missing}\": left out.",
-            text.font
-        ));
+        lines.push(
+            Message::new("pipeline-text-missing")
+                .arg("font", text.font.as_str())
+                .arg("missing", missing),
+        );
     }
     if l.dropped > 0 {
-        lines.push(format!(
-            "{} outline{} too small to cut left out.",
-            l.dropped,
-            if l.dropped == 1 { "" } else { "s" }
-        ));
+        lines.push(Message::new("pipeline-text-dropped").arg("count", l.dropped));
     }
     TextReport {
         id: text.id,
@@ -270,6 +268,7 @@ fn report(text: &Text, l: &Lettering, shapes: Vec<u64>) -> TextReport {
         width: l.width,
         height: l.height,
         missing: l.missing.clone(),
-        lines,
+        lines: lines.iter().map(Message::english).collect(),
+        messages: lines,
     }
 }

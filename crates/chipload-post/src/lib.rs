@@ -8,6 +8,7 @@
 
 use std::path::Path;
 
+use chipload_i18n::Message;
 use chipload_job::{OpRef, Spindle, Tool, ToolChange, Units};
 use chipload_toolpath::arcs::merge_arcs;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -41,17 +42,43 @@ const TEMPLATES: [(&str, &str); 3] = [
 const RENDER_FUEL_PER_MOVE: u64 = 2_000;
 const RENDER_FUEL_BASE: u64 = 1_000_000;
 
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+/// Why a post-processor can't be read or can't write a program. Its text is a message
+/// (`post.ftl`), shown in the app's language; `Display` writes it in English.
+#[derive(Debug, Clone, PartialEq)]
 pub enum PostError {
-    #[error(
-        "Post-processor config schema_version {found} is not supported (this app supports up \
-         to {current}). Update the application or check the file."
-    )]
     UnsupportedVersion { found: String, current: i64 },
-    #[error("{0}")]
-    Config(String),
-    #[error("{0}")]
-    Render(String),
+    Config(Message),
+    Render(Message),
+}
+
+impl PostError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            PostError::UnsupportedVersion { found, current } => Message::new("post-error-version")
+                .arg("found", found)
+                .arg("current", *current),
+            PostError::Config(message) | PostError::Render(message) => message.clone(),
+        }
+    }
+}
+
+impl std::fmt::Display for PostError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for PostError {}
+
+/// Words of another library (TOML, minijinja, the file system), kept as they are.
+fn foreign(error: impl std::fmt::Display) -> chipload_i18n::Value {
+    chipload_i18n::Value::Text(error.to_string())
+}
+
+/// A name as Rust's `{:?}` writes it: in quotes, with escapes.
+fn quoted(name: &str) -> String {
+    format!("{name:?}")
 }
 
 fn default_decimals() -> u32 {
@@ -146,8 +173,9 @@ fn is_safe_name(name: &str) -> bool {
 
 /// Parse a post config from TOML text: check the version, migrate, validate.
 pub fn parse_post_config(text: &str) -> Result<PostConfig, PostError> {
-    let data: toml::Table = toml::from_str(text)
-        .map_err(|e| PostError::Config(format!("Cannot read post-processor config: {e}")))?;
+    let data: toml::Table = toml::from_str(text).map_err(|e| {
+        PostError::Config(Message::new("post-error-cannot-read").arg("error", foreign(e)))
+    })?;
     let raw = data.get("schema_version");
     // TOML integers only; a bool, float or string is refused, never converted.
     match raw.and_then(toml::Value::as_integer) {
@@ -160,53 +188,44 @@ pub fn parse_post_config(text: &str) -> Result<PostConfig, PostError> {
         }
     }
     // No migrations yet: version 1 is the only one.
-    let config: PostConfig = toml::Value::Table(data)
-        .try_into()
-        .map_err(|e| PostError::Config(format!("Invalid post-processor config: {e}")))?;
+    let config: PostConfig = toml::Value::Table(data).try_into().map_err(|e| {
+        PostError::Config(Message::new("post-error-invalid").arg("error", foreign(e)))
+    })?;
     let mut problems = Vec::new();
     if !is_safe_name(&config.template) {
-        problems.push(format!(
-            "template must be a plain file name, got {:?}",
-            config.template
-        ));
+        problems
+            .push(Message::new("post-error-template-name").arg("got", quoted(&config.template)));
     }
     if config.decimals > 6 {
-        problems.push(format!(
-            "decimals must be at most 6, got {}",
-            config.decimals
-        ));
+        problems.push(Message::new("post-error-decimals").arg("got", config.decimals));
     }
     if config.inch_decimals > 6 {
-        problems.push(format!(
-            "inch_decimals must be at most 6, got {}",
-            config.inch_decimals
-        ));
+        problems.push(Message::new("post-error-inch-decimals").arg("got", config.inch_decimals));
     }
     if config.units.is_empty() {
-        problems.push("units must name at least one of mm and inch".into());
+        problems.push(Message::new("post-error-units-empty"));
     }
     if !(config.spindle_dwell_s >= 0.0 && config.spindle_dwell_s.is_finite()) {
-        problems.push(format!(
-            "spindle_dwell_s must be at least 0, got {}",
-            config.spindle_dwell_s
+        problems.push(Message::new("post-error-dwell").arg(
+            "got",
+            chipload_i18n::Value::Number(config.spindle_dwell_s, chipload_i18n::Digits::Shortest),
         ));
     }
-    if problems.is_empty() {
-        Ok(config)
-    } else {
-        Err(PostError::Config(format!(
-            "Invalid post-processor config: {}",
-            problems.join("; ")
-        )))
+    match chipload_job::problem::semicolons(problems) {
+        None => Ok(config),
+        Some(problems) => Err(PostError::Config(
+            Message::new("post-error-invalid").arg("error", problems),
+        )),
     }
 }
 
 pub fn load_post_config(path: &Path) -> Result<PostConfig, PostError> {
     let text = std::fs::read_to_string(path).map_err(|e| {
-        PostError::Config(format!(
-            "Cannot read post-processor config {}: {e}",
-            path.display()
-        ))
+        PostError::Config(
+            Message::new("post-error-cannot-read-file")
+                .arg("path", path.display().to_string())
+                .arg("error", foreign(e)),
+        )
     })?;
     parse_post_config(&text)
 }
@@ -223,7 +242,11 @@ pub fn parse_user_post(post: &UserPost) -> Result<PostConfig, PostError> {
     let template = post.template.replace("\r\n", "\n");
     let env = environment()?;
     env.template_from_str(&template).map_err(|e| {
-        PostError::Config(format!("Template {:?} can't be read: {e}", config.template))
+        PostError::Config(
+            Message::new("post-error-template-unreadable")
+                .arg("template", quoted(&config.template))
+                .arg("error", foreign(e)),
+        )
     })?;
     config.template_text = Some(template);
     Ok(config)
@@ -233,18 +256,23 @@ pub fn parse_user_post(post: &UserPost) -> Result<PostConfig, PostError> {
 /// it. A built-in's name is refused, as is a name that isn't a plain file name.
 pub fn read_user_post(dir: &Path, name: &str) -> Result<UserPost, PostError> {
     if !is_safe_name(name) {
-        return Err(PostError::Config(format!(
-            "Invalid post-processor name {name:?}"
-        )));
+        return Err(PostError::Config(
+            Message::new("post-error-name").arg("name", quoted(name)),
+        ));
     }
     if builtin_posts().contains(&name) {
-        return Err(PostError::Config(format!(
-            "{name:?} is the name of a built-in post-processor; rename your file"
-        )));
+        return Err(PostError::Config(
+            Message::new("post-error-builtin-name").arg("name", quoted(name)),
+        ));
     }
     let read = |path: &Path| {
-        std::fs::read_to_string(path)
-            .map_err(|e| PostError::Config(format!("Cannot read {}: {e}", path.display())))
+        std::fs::read_to_string(path).map_err(|e| {
+            PostError::Config(
+                Message::new("post-error-cannot-read-path")
+                    .arg("path", path.display().to_string())
+                    .arg("error", foreign(e)),
+            )
+        })
     };
     let config = read(&dir.join(format!("{name}.toml")))?;
     // The template's name comes from the config, checked to be a plain file name.
@@ -279,14 +307,16 @@ pub fn list_user_posts(dir: &Path) -> Vec<(String, Result<UserPost, PostError>)>
 /// Load a post shipped with Chipload, e.g. "grbl".
 pub fn load_builtin_post(name: &str) -> Result<PostConfig, PostError> {
     if !is_safe_name(name) {
-        return Err(PostError::Config(format!(
-            "Invalid post-processor name {name:?}"
-        )));
+        return Err(PostError::Config(
+            Message::new("post-error-name").arg("name", quoted(name)),
+        ));
     }
     let (_, text) = BUILTIN_POSTS
         .iter()
         .find(|(n, _)| *n == name)
-        .ok_or_else(|| PostError::Config(format!("Unknown post-processor {name:?}")))?;
+        .ok_or_else(|| {
+            PostError::Config(Message::new("post-error-unknown").arg("name", quoted(name)))
+        })?;
     parse_post_config(text)
 }
 
@@ -343,12 +373,12 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
         if arc {
             let circle = m
                 .circle
-                .ok_or_else(|| PostError::Render("Arc move without a centre".into()))?;
+                .ok_or_else(|| PostError::Render(Message::new("post-error-arc-centre")))?;
             let start = |axis: usize| {
                 last[axis]
                     .as_deref()
                     .and_then(|t| t.parse::<f64>().ok())
-                    .ok_or_else(|| PostError::Render("Arc from an unknown position".into()))
+                    .ok_or_else(|| PostError::Render(Message::new("post-error-arc-from")))
             };
             let (sx, sy) = (start(0)?, start(1)?);
             let end = |axis: usize, value: Option<f64>| {
@@ -357,7 +387,7 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
                     .or(last[axis].as_deref())
                     .and_then(|t| t.parse::<f64>().ok())
                     .or(value)
-                    .ok_or_else(|| PostError::Render("Arc to an unknown position".into()))
+                    .ok_or_else(|| PostError::Render(Message::new("post-error-arc-to")))
             };
             let (ex, ey) = (end(0, m.x)?, end(1, m.y)?);
             let (ci, cj) = centre_offsets((sx, sy), (ex, ey), circle.center, decimals);
@@ -368,7 +398,7 @@ pub fn compress_moves(program: &Program, decimals: u32) -> Result<Vec<PostMove>,
         if m.kind != MoveKind::Rapid {
             let rate = m
                 .feed
-                .ok_or_else(|| PostError::Render("Feed move without a feed rate".into()))?;
+                .ok_or_else(|| PostError::Render(Message::new("post-error-feed-rate")))?;
             let text = format_number(rate, decimals);
             if Some(&text) != last_f.as_ref() {
                 feed = Some(text.clone());
@@ -574,13 +604,12 @@ impl Output {
     /// (docs/specs/inch-units.md §4.2).
     pub fn of(config: &PostConfig, units: Units) -> Result<Output, PostError> {
         if !config.units.contains(&units) {
-            return Err(PostError::Config(format!(
-                "Post-processor {:?} can't write G-code in {}: its config doesn't list {:?} \
-                 under units (its template must write {{{{ units_word }}}} instead of G21)",
-                config.name,
-                units.name(),
-                units.name()
-            )));
+            return Err(PostError::Config(
+                Message::new("post-error-units")
+                    .arg("post", quoted(&config.name))
+                    .arg("units", units.name())
+                    .arg("listed", quoted(units.name())),
+            ));
         }
         let decimals = match units {
             Units::Mm => config.decimals,
@@ -664,7 +693,7 @@ fn written(program: &Program, config: &PostConfig, out: Output) -> Result<Progra
     // Chords of known arcs become G2/G3 only if the post writes arcs; otherwise the tags are
     // ignored and the output is the chords, as before.
     let merged = if config.arcs {
-        merge_arcs(program).map_err(|e| PostError::Render(e.to_string()))?
+        merge_arcs(program).map_err(|e| PostError::Render(e.message()))?
     } else {
         program.clone()
     };
@@ -731,15 +760,13 @@ pub fn render_with_tool_changes(
     units: Units,
 ) -> Result<String, PostError> {
     if !config.tool_changes.contains(&ToolChange::Program) {
-        return Err(PostError::Config(format!(
-            "Post-processor {:?} can't write tool changes in one file; write one file per \
-             tool instead (tool changes: files)",
-            config.name
-        )));
+        return Err(PostError::Config(
+            Message::new("post-error-tool-changes").arg("post", quoted(&config.name)),
+        ));
     }
     let first = parts
         .first()
-        .ok_or_else(|| PostError::Render("No tool groups to render".into()))?;
+        .ok_or_else(|| PostError::Render(Message::new("post-error-no-groups")))?;
     let out = Output::of(config, units)?;
     let fmt = |v: f64| out.number(v);
     let mut segments = Vec::new();
@@ -815,7 +842,9 @@ fn environment() -> Result<Environment<'static>, PostError> {
             .lstrip_blocks(true)
             .keep_trailing_newline(true)
             .build()
-            .map_err(|e| PostError::Config(format!("Template syntax settings: {e}")))?,
+            .map_err(|e| {
+                PostError::Config(Message::new("post-error-syntax").arg("error", foreign(e)))
+            })?,
     );
     env.set_undefined_behavior(UndefinedBehavior::Strict);
     env.set_auto_escape_callback(|_| AutoEscape::None);
@@ -824,7 +853,11 @@ fn environment() -> Result<Environment<'static>, PostError> {
 
 fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostError> {
     let failed = |e: minijinja::Error| {
-        PostError::Render(format!("Template {:?} failed: {e}", config.template))
+        PostError::Render(
+            Message::new("post-error-template-failed")
+                .arg("template", quoted(&config.template))
+                .arg("error", foreign(e)),
+        )
     };
     let source = match &config.template_text {
         Some(text) => text.as_str(),
@@ -832,7 +865,12 @@ fn fill_template(config: &PostConfig, context: &Context) -> Result<String, PostE
             .iter()
             .find(|(name, _)| *name == config.template)
             .map(|(_, source)| *source)
-            .ok_or_else(|| PostError::Config(format!("Unknown template {:?}", config.template)))?,
+            .ok_or_else(|| {
+                PostError::Config(
+                    Message::new("post-error-unknown-template")
+                        .arg("template", quoted(&config.template)),
+                )
+            })?,
     };
     let mut env = environment()?;
     let moves: usize = context.segments.iter().map(|s| s.moves.len()).sum();

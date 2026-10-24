@@ -14,6 +14,7 @@ path = "src/main.rs"
 chipload-check = { version = "0.23.0", path = "../chipload-check" }
 chipload-core = { version = "0.23.0", path = "../chipload-core" }
 chipload-dxf = { version = "0.23.0", path = "../chipload-dxf" }
+chipload-i18n = { version = "0.23.0", path = "../chipload-i18n" }
 chipload-pipeline = { version = "0.23.0", path = "../chipload-pipeline" }
 chipload-text = { version = "0.23.0", path = "../chipload-text" }
 chipload-post = { version = "0.23.0", path = "../chipload-post", features = ["schema"] }

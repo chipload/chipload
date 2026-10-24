@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use chipload_i18n::Message;
 use chipload_job::ToolChange;
 use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
 use chipload_job::library::{
@@ -13,8 +14,13 @@ use chipload_job::library::{
     export, import_into, import_plan, load_machines, load_tools, read_import, save_machines,
     save_tools, update_tools, use_tool, write_export,
 };
-use chipload_job::library::{Link, fresh_uid, machine_link, tool_link, uid_for_name};
+use chipload_job::library::{Link, LinkEntry, fresh_uid, machine_link, tool_link, uid_for_name};
 use chipload_job::{Job, Spindle, StockCorner, ToolType, Travel, WorkZero, load_job};
+
+/// Messages as the command line writes them.
+fn english(messages: &[Message]) -> Vec<String> {
+    messages.iter().map(Message::english).collect()
+}
 
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("chipload-library-{name}-{}", std::process::id()));
@@ -390,7 +396,7 @@ fn a_library_tool_lists_what_it_changes() {
     tool.center_cutting = None;
     tool.rpm = None;
     assert_eq!(
-        entry.changes(&tool),
+        english(&entry.changes(&tool)),
         [
             "diameter 8 mm -> 6 mm",
             "centre cutting unknown -> yes",
@@ -405,7 +411,8 @@ fn a_machine_profile_lists_what_it_changes() {
     job.machine.max_feed = None;
     job.machine.travel = None;
     let profile = shapeoko();
-    let changes = profile.changes(&job);
+    let messages = profile.changes(&job);
+    let changes = english(&messages);
     assert!(
         changes.contains(&"travel none -> X830 Y830 Z95 mm".to_string()),
         "{changes:?}"
@@ -419,7 +426,7 @@ fn a_machine_profile_lists_what_it_changes() {
         "{changes:?}"
     );
 
-    assert_eq!(profile.apply(&mut job), changes);
+    assert_eq!(profile.apply(&mut job), messages);
     assert_eq!(job.machine.name.as_deref(), Some("Shapeoko"));
     assert_eq!(job.stock.max_overcut, 0.3);
     assert!(profile.changes(&job).is_empty());
@@ -667,13 +674,9 @@ fn import_adds_new_keeps_or_replaces_differing_and_skips_same() {
     let plan = import_into(&mut kept, &theirs, false);
     assert_eq!(plan.added, ["1 mm"]);
     assert_eq!(plan.same, ["6 mm upcut"]);
-    assert_eq!(
-        plan.differing,
-        [(
-            "3 mm downcut".to_string(),
-            vec!["diameter 3 mm -> 3.175 mm".to_string()]
-        )]
-    );
+    assert_eq!(plan.differing.len(), 1);
+    assert_eq!(plan.differing[0].0, "3 mm downcut");
+    assert_eq!(english(&plan.differing[0].1), ["diameter 3 mm -> 3.175 mm"]);
     // The library has a default: it stays.
     assert_eq!(plan.default, None);
     assert_eq!(kept.default_tool, mine.default_tool);
@@ -699,8 +702,12 @@ fn differing_tools_and_machines_say_what_differs() {
         },
     );
     assert_eq!(plan.differing[0].1.len(), 2, "{plan:?}");
-    assert_eq!(plan.differing[0].1[0], "id 1 -> 4");
-    assert!(plan.differing[0].1[1].starts_with("cutting values feed 1200"));
+    assert_eq!(plan.differing[0].1[0].english(), "id 1 -> 4");
+    assert!(
+        plan.differing[0].1[1]
+            .english()
+            .starts_with("cutting values feed 1200")
+    );
 
     let mut other = shapeoko();
     other.safe_z = 5.0;
@@ -713,7 +720,7 @@ fn differing_tools_and_machines_say_what_differs() {
         },
     );
     assert_eq!(
-        plan.differing[0].1,
+        english(&plan.differing[0].1),
         ["safe Z 10 mm -> 5 mm", "max overcut 0.3 mm -> 0.5 mm"]
     );
 }
@@ -882,14 +889,14 @@ fn a_project_tool_links_by_uid_and_survives_a_rename() {
     assert_eq!(tool_link(&library, &tool), Link::Same("Upcut 6".into()));
     // Other values in the library.
     library.tools[0].diameter = 8.0;
+    let Link::Differs(name, changes) = tool_link(&library, &tool) else {
+        panic!("not differing");
+    };
+    assert_eq!(name, "Upcut 6");
+    assert_eq!(english(&changes), ["diameter 6 mm -> 8 mm"]);
     assert_eq!(
-        tool_link(&library, &tool),
-        Link::Differs("Upcut 6".into(), vec!["diameter 6 mm -> 8 mm".into()])
-    );
-    assert!(
-        tool_link(&library, &tool)
-            .text("library tool")
-            .starts_with("differs from")
+        tool_link(&library, &tool).text(LinkEntry::Tool),
+        "differs from library tool \"Upcut 6\": diameter 6 mm -> 8 mm"
     );
     // Gone from the library.
     library.tools.clear();
@@ -917,10 +924,11 @@ fn the_machine_links_by_uid() {
     job.stock.max_overcut = 0.1;
     assert_eq!(machine_link(&library, &job), Link::Same("Shapeoko".into()));
     library.machines[0].spindle = Spindle::Ccw;
-    assert_eq!(
-        machine_link(&library, &job),
-        Link::Differs("Shapeoko".into(), vec!["spindle cw -> ccw".into()])
-    );
+    let Link::Differs(name, changes) = machine_link(&library, &job) else {
+        panic!("not differing");
+    };
+    assert_eq!(name, "Shapeoko");
+    assert_eq!(english(&changes), ["spindle cw -> ccw"]);
     library.machines.clear();
     assert_eq!(machine_link(&library, &job).state(), "missing");
 }

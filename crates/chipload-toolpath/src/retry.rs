@@ -128,10 +128,16 @@ fn retried<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chipload_i18n::Message;
+
+    /// An error told apart from others by `text`.
+    fn error(text: &str) -> ToolpathError {
+        ToolpathError::Geometry(Message::new("toolpath-error-joined-cross").arg("test", text))
+    }
 
     fn numerical(text: &str, wall: bool) -> Failure {
         Failure::Numerical {
-            error: ToolpathError::Geometry(text.into()),
+            error: error(text),
             wall,
         }
     }
@@ -157,7 +163,7 @@ mod tests {
                 seen.len() == 2,
             ))
         });
-        assert_eq!(result, Err(ToolpathError::Geometry("attempt 1".into())));
+        assert_eq!(result, Err(error("attempt 1")));
         let (e, w) = (OFFSET_RETRY_NUDGE_MM, OFFSET_RETRY_WIDE_NUDGE_MM);
         let nudge = |step: f64, wall: f64| Nudge {
             step,
@@ -206,11 +212,9 @@ mod tests {
         let mut calls = 0;
         let result: Result<(), _> = nudged(|_| {
             calls += 1;
-            Err(Failure::Final(ToolpathError::Geometry(
-                "does not fit".into(),
-            )))
+            Err(Failure::Final(error("does not fit")))
         });
-        assert_eq!(result, Err(ToolpathError::Geometry("does not fit".into())));
+        assert_eq!(result, Err(error("does not fit")));
         assert_eq!(calls, 1);
         let mut calls = 0;
         let result: Result<(), _> = nudged(|_| {
@@ -218,12 +222,10 @@ mod tests {
             if calls == 1 {
                 Err(numerical("verification", false))
             } else {
-                Err(Failure::Final(ToolpathError::Geometry(
-                    "does not fit".into(),
-                )))
+                Err(Failure::Final(error("does not fit")))
             }
         });
-        assert_eq!(result, Err(ToolpathError::Geometry("verification".into())));
+        assert_eq!(result, Err(error("verification")));
         assert_eq!(calls, 2);
     }
 
@@ -252,11 +254,11 @@ mod tests {
             calls += 1;
             Err(numerical("verification", false))
         });
-        assert_eq!(result, Err(ToolpathError::Geometry("verification".into())));
+        assert_eq!(result, Err(error("verification")));
         assert_eq!(calls, 7);
         let result: Result<(), _> =
             nudged_or_tight(|n| Err(numerical(if n.tight { "tight" } else { "first" }, false)));
-        assert_eq!(result, Err(ToolpathError::Geometry("first".into())));
+        assert_eq!(result, Err(error("first")));
     }
 
     #[test]

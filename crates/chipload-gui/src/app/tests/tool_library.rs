@@ -197,7 +197,10 @@ mod library {
     }
 
     fn pending_differs(pending: &super::library_transfer::PendingImport) -> bool {
-        pending.lines().iter().any(|l| l.starts_with("Differs"))
+        pending
+            .lines()
+            .iter()
+            .any(|l| l.english().starts_with("Differs"))
     }
 
     #[test]

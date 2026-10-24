@@ -19,12 +19,20 @@ use chipload_core::order::Ordered;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_TIGHT_SLICE_EPS_MM};
 
+use chipload_i18n::Message;
+
 use crate::ToolpathError;
 use crate::offset::{flatten, pline_segments, point_distance};
 use crate::retry::NUDGES;
 
-pub(crate) fn geometry(message: String) -> ToolpathError {
+pub(crate) fn geometry(message: Message) -> ToolpathError {
     ToolpathError::Geometry(message)
+}
+
+/// A step of the planner that calls the geometry library, named in its error: `key` is a
+/// key of `toolpath-error-step` ("pocket-offset").
+pub(crate) fn step(key: &str) -> Message {
+    Message::new("toolpath-error-step").arg("step", key)
 }
 
 /// A loop too small to be a path: within float noise of no area at all.
@@ -34,7 +42,7 @@ pub(crate) fn too_small(pline: &Polyline<f64>) -> bool {
 
 /// `a` combined with `b` by `op`; a panic inside the library is an error named `what`.
 pub(crate) fn boolean(
-    what: &str,
+    what: Message,
     a: &Polyline<f64>,
     b: &Polyline<f64>,
     op: BooleanOp,
@@ -43,9 +51,9 @@ pub(crate) fn boolean(
 }
 
 /// Run a cavalier operation; a panic inside the library becomes a GeometryError.
-pub(crate) fn guarded<T>(what: &str, f: impl FnOnce() -> T) -> Result<T, ToolpathError> {
+pub(crate) fn guarded<T>(what: Message, f: impl FnOnce() -> T) -> Result<T, ToolpathError> {
     catch_unwind(AssertUnwindSafe(f))
-        .map_err(|_| geometry(format!("{what} failed inside the geometry library")))
+        .map_err(|_| geometry(Message::new("toolpath-error-library-failed").arg("what", what)))
 }
 
 pub(crate) fn ccw(mut pline: Polyline<f64>) -> Polyline<f64> {
@@ -202,7 +210,7 @@ fn flattened_shrink(plines: &[Polyline<f64>], d: f64) -> Result<Vec<Area>, Toolp
 
 fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area>, ToolpathError> {
     let shape = Shape::from_plines(plines.iter().cloned());
-    let offset = guarded("Pocket offset", || {
+    let offset = guarded(step("pocket-offset"), || {
         let mut options = ShapeOffsetOptions::new();
         if tight {
             options.offset_dist_eps = OFFSET_TIGHT_SLICE_EPS_MM;
@@ -240,9 +248,7 @@ fn offset_once(plines: &[Polyline<f64>], d: f64, tight: bool) -> Result<Vec<Area
         // neither crosses nor holds any area takes nothing away from them.
         let apart = |a: &Area| matches!(a.outer.contains(&hole), PlineContainsResult::Disjoint);
         if !areas.iter().all(apart) {
-            return Err(geometry(
-                "pocket offset produced an island outside every area".into(),
-            ));
+            return Err(geometry(Message::new("toolpath-error-island-outside")));
         }
     }
     areas.sort_by_key(Area::sort_key);
@@ -265,7 +271,9 @@ impl Area {
         let mut holes: Vec<Polyline<f64>> = Vec::new();
         // Positive offsets go inwards for counter-clockwise loops.
         let outline = ccw(self.outer.clone());
-        for loop_ in closed_loops(guarded("Pocket offset", || outline.parallel_offset(-d))?)? {
+        for loop_ in closed_loops(guarded(step("pocket-offset"), || {
+            outline.parallel_offset(-d)
+        })?)? {
             if !keep(&loop_) {
                 continue;
             }
@@ -278,7 +286,7 @@ impl Area {
         }
         for hole in &self.holes {
             let inside = ccw(hole.clone());
-            let raw = guarded("Pocket offset", || inside.parallel_offset(d))?;
+            let raw = guarded(step("pocket-offset"), || inside.parallel_offset(d))?;
             let loops = match closed_loops(raw) {
                 Ok(loops) => loops,
                 // A hole that touches itself can come back as open scraps (a piece with
@@ -309,9 +317,7 @@ impl Area {
             match parent {
                 Some(area) => area.holes.push(hole),
                 None => {
-                    return Err(geometry(
-                        "pocket offset produced an island outside every area".into(),
-                    ));
+                    return Err(geometry(Message::new("toolpath-error-island-outside")));
                 }
             }
         }
@@ -326,9 +332,7 @@ fn shrunk_loop(outline: &Polyline<f64>, d: f64) -> Result<Vec<Polyline<f64>>, To
     let mut loops = Vec::new();
     for area in Area::of(outline.clone()).shrunk(d)? {
         if !area.holes.is_empty() {
-            return Err(geometry(
-                "pocket offset made a hole while shrinking a single loop".into(),
-            ));
+            return Err(geometry(Message::new("toolpath-error-shrink-hole")));
         }
         loops.push(area.outer);
     }
@@ -350,9 +354,7 @@ fn closed_loops(loops: Vec<Polyline<f64>>) -> Result<Vec<Polyline<f64>>, Toolpat
                 _ => continue,
             };
             if distance(ends.0, ends.1) > CHAIN_TOL_MM {
-                return Err(geometry(
-                    "pocket offset returned an open loop where a closed one was expected".into(),
-                ));
+                return Err(geometry(Message::new("toolpath-error-open-loop")));
             }
             loop_.set_is_closed(true);
         }

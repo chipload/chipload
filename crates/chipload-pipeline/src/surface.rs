@@ -2,6 +2,7 @@
 //! Adding a surface (docs/specs/surfacing.md): the whole stock taken down flat, first in its
 //! part.
 
+use chipload_i18n::Message;
 use chipload_job::library::Cutting;
 use chipload_job::{Job, Operation, SurfaceOp, ToolType};
 
@@ -46,20 +47,20 @@ pub fn add_surface(
     let id = match tool.or_else(|| surface_tool(job)) {
         Some(id) => id,
         None => {
-            return Err(PipelineError::Job(
-                "the project has no endmill: a surface needs one (copy one in with `tool use`)"
-                    .into(),
-            ));
+            return Err(PipelineError::Job(Message::new(
+                "pipeline-surface-no-endmill",
+            )));
         }
     };
     let found = job
         .tool(id)
-        .ok_or_else(|| PipelineError::Job(format!("the project has no tool {id}")))?;
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-tool").arg("tool", id)))?;
     if found.kind != ToolType::Endmill {
-        return Err(PipelineError::Job(format!(
-            "tool {id} is a {}; a surface needs an endmill",
-            found.kind.name()
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-surface-not-endmill")
+                .arg("tool", id)
+                .arg("type", found.kind.name()),
+        ));
     }
     let diameter = found.diameter;
     let depth = depth.unwrap_or(DEFAULT_SURFACE_DEPTH);

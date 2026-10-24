@@ -175,11 +175,14 @@ impl ChiploadApp {
                 self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
-                self.set_report(Report::info(lines));
+                self.set_report(Report::of_messages(lines));
                 true
             }
             Err(err) => {
-                self.error(vec![t!(self, "sources-remove-dxf-failed"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "sources-remove-dxf-failed"),
+                    err.message(),
+                ));
                 false
             }
         }

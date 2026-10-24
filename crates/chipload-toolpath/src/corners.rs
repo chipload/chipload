@@ -9,6 +9,7 @@ use chipload_core::Point;
 use chipload_core::chain::{Contour, OrientedSegment};
 use chipload_core::primitives::{Primitive, distance, signed_area};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::Corners;
 
 use crate::ToolpathError;
@@ -215,7 +216,7 @@ pub struct CornerCut<'a> {
     pub everything: &'a [Contour],
     /// Contours a leg may cross besides its own walls (a pocket's other boundaries).
     pub exempt: &'a [usize],
-    pub label: &'a str,
+    pub label: &'a Message,
 }
 
 /// One ring the corners may go into: its points, and the part of them that is the ring
@@ -322,11 +323,14 @@ pub fn add_legs(
             slot.points[slot.range.start]
         };
         if distance(before, v) > CHAIN_TOL_MM || distance(after, v) > CHAIN_TOL_MM {
-            return Err(ToolpathError::Geometry(format!(
-                "{}: the leg at corner ({:.3}, {:.3}) mm did not go into the ring as out and \
-                 back",
-                cut.label, corner.at.0, corner.at.1
-            )));
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-error-corner-leg")
+                    .arg("label", cut.label.clone())
+                    .arg(
+                        "at",
+                        Value::Point(corner.at.0, corner.at.1, Digits::Fixed(3)),
+                    ),
+            ));
         }
         added[r] += 2;
         legs.push(leg);
@@ -353,13 +357,18 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
             if segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM {
                 let style = match cut.style {
                     Corners::Dogbone { .. } => "dogbone",
-                    Corners::Tbone { .. } => "T-bone",
+                    Corners::Tbone { .. } => "tbone",
                 };
-                return Err(ToolpathError::Geometry(format!(
-                    "{}: the {style} at corner ({:.3}, {:.3}) mm would cut into contour #{}; \
-                     lower the corners' max angle or change the drawing",
-                    cut.label, leg.corner.at.0, leg.corner.at.1, contour.id
-                )));
+                return Err(ToolpathError::Geometry(
+                    Message::new("toolpath-error-corner-cuts")
+                        .arg("label", cut.label.clone())
+                        .arg("style", style)
+                        .arg(
+                            "at",
+                            Value::Point(leg.corner.at.0, leg.corner.at.1, Digits::Fixed(3)),
+                        )
+                        .arg("contour", contour.id),
+                ));
             }
         }
     }

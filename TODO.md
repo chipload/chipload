@@ -27,8 +27,11 @@ it's built (see `CLAUDE.md`).
     replace `text_in`. Planned in the spec, §7 (decisions 11–17, order of six commits),
     approved 2026-10-24. Done: 7.3.1 (the `Message` type, the frozen English snapshot)
     and 7.3.2 (problems), 7.3.3 (planning notes, the time estimate and chip loads, the
-    drawing's facts and the DXF import's issues), 7.3.4 (the checker's findings). Next:
-    7.3.5 errors.
+    drawing's facts and the DXF import's issues), 7.3.4 (the checker's findings), 7.3.5
+    (errors, library and recovery messages, the reports of changes to the drawing).
+    Next: 7.3.6, `text_in` deleted (its last callers: the report's plain lines and the
+    Browser's operation hover); then the new texts of 7.3.5 translated into the five
+    languages (they are English there for now).
   - **Step 3:** the setup sheet in the app's language.
   - Not translated on purpose so far: a new text's starting word "Text", the setup sheet's
     "Untitled project", startup errors before the window opens.

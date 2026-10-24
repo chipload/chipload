@@ -27,7 +27,7 @@ use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::cancel::{self, Cancel};
 use crate::cavalier::{
-    Area, boolean, ccw, cw, encloses, first_point, geometry, shrunk_farther, too_small,
+    Area, boolean, ccw, cw, encloses, first_point, geometry, shrunk_farther, step, too_small,
 };
 use crate::geom::PrimIndex;
 use crate::helix::{Helix, helix_moves};
@@ -215,13 +215,15 @@ fn refuse_duplicates(shapes: &[(usize, Polyline<f64>, Ring)]) -> Result<(), Tool
             {
                 continue;
             }
-            let common = boolean("Comparing shapes", a, b, BooleanOp::And)?;
+            let common = boolean(step("comparing-shapes"), a, b, BooleanOp::And)?;
             let symmetric = a.area().abs() + b.area().abs() - 2.0 * boolean_area(&common);
             let slack = CHAIN_TOL_MM * a.path_length().max(b.path_length());
             if symmetric <= slack {
-                return Err(ToolpathError::Selector(format!(
-                    "contours #{id_a} and #{id_b} are the same shape; select only one of them"
-                )));
+                return Err(ToolpathError::Selector(
+                    Message::new("toolpath-error-same-shape")
+                        .arg("a", *id_a)
+                        .arg("b", *id_b),
+                ));
             }
         }
     }
@@ -241,13 +243,11 @@ fn merge_islands(
             .position(|other| !matches!(current.contains(other), PlineContainsResult::Disjoint))
         {
             let other = merged.remove(j);
-            let mut union = boolean("Merging islands", &current, &other, BooleanOp::Or)?;
+            let mut union = boolean(step("merging-islands"), &current, &other, BooleanOp::Or)?;
             if union.pos_plines.len() != 1 || !union.neg_plines.is_empty() {
-                return Err(geometry(format!(
-                    "contours {}: overlapping islands enclose an area between them, which \
-                     pockets don't support yet",
-                    ids_text(ids)
-                )));
+                return Err(geometry(
+                    Message::new("toolpath-error-islands-enclose").arg("contours", ids_text(ids)),
+                ));
             }
             current = ccw(union.pos_plines.swap_remove(0).pline);
         }
@@ -276,7 +276,7 @@ fn subtract_islands(
                 }
                 PlineContainsResult::Intersected | PlineContainsResult::Pline1InsidePline2 => {
                     let cut = boolean(
-                        "Subtracting an island",
+                        step("subtracting-an-island"),
                         &area.outer,
                         &island,
                         BooleanOp::Not,
@@ -352,16 +352,20 @@ fn ring_tree(
         });
     }
     if roots.is_empty() {
-        return Err(Failure::Final(geometry(format!(
-            "contours {}: tool (diameter {:.3} mm{}) does not fit in the pocket",
-            ids_text(ids),
-            2.0 * tool_radius,
-            if radius == tool_radius {
-                String::new()
-            } else {
-                format!(", clearance {:.3} mm", tool_radius - radius)
-            }
-        ))));
+        let message = if radius == tool_radius {
+            Message::new("toolpath-error-pocket-no-fit")
+        } else {
+            Message::new("toolpath-error-pocket-no-fit-clearance").arg(
+                "clearance",
+                Value::Length(tool_radius - radius, Digits::Fixed(3)),
+            )
+        };
+        return Err(Failure::Final(geometry(
+            message.arg("contours", ids_text(ids)).arg(
+                "diameter",
+                Value::Length(2.0 * tool_radius, Digits::Fixed(3)),
+            ),
+        )));
     }
     let mut level = roots.clone();
     for k in 1..=MAX_RING_LEVELS {
@@ -376,10 +380,9 @@ fn ring_tree(
             let inside = first_point(&area.outer);
             let Some(&parent) = level.iter().find(|&&n| nodes[n].area.contains(inside)) else {
                 return Err(Failure::Numerical {
-                    error: geometry(format!(
-                        "contours {}: pocket offsets are not nested",
-                        ids_text(ids)
-                    )),
+                    error: geometry(
+                        Message::new("toolpath-error-not-nested").arg("contours", ids_text(ids)),
+                    ),
                     wall: false,
                 });
             };
@@ -393,10 +396,11 @@ fn ring_tree(
         }
         level = next_level;
     }
-    Err(Failure::Final(geometry(format!(
-        "contours {}: more than {MAX_RING_LEVELS} pocket rings",
-        ids_text(ids)
-    ))))
+    Err(Failure::Final(geometry(
+        Message::new("toolpath-error-too-many-rings")
+            .arg("contours", ids_text(ids))
+            .arg("most", MAX_RING_LEVELS),
+    )))
 }
 
 /// Rounds of the uncut check, each halving the radii of the rings near material left.
@@ -657,11 +661,7 @@ fn segment_is_clear(
 }
 
 fn verification_failed(ids: &[usize]) -> ToolpathError {
-    geometry(format!(
-        "contours {}: pocket toolpath failed verification (too close to a wall or island); \
-         the drawing may be degenerate",
-        ids_text(ids)
-    ))
+    geometry(Message::new("toolpath-error-pocket-verification").arg("contours", ids_text(ids)))
 }
 
 /// Order for the travel direction and start at the vertex nearest `near` (ties: y, x).
@@ -1367,25 +1367,26 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
             },
     } = *request;
     if stepover <= 0.0 || stepover.is_nan() {
-        return Err(geometry(format!(
-            "stepover must be positive, got {stepover}"
-        )));
+        return Err(geometry(
+            Message::new("toolpath-error-stepover")
+                .arg("got", Value::Number(stepover, Digits::Shortest)),
+        ));
     }
     let offset = tool_radius - clearance;
     if offset <= 0.0 || offset.is_nan() {
-        return Err(geometry(format!(
-            "clearance {clearance} mm must be less than the tool radius {tool_radius} mm"
-        )));
+        return Err(geometry(
+            Message::new("toolpath-clearance-radius")
+                .arg("clearance", Value::Length(clearance, Digits::Shortest))
+                .arg("radius", Value::Length(tool_radius, Digits::Shortest)),
+        ));
     }
     let mut remaining = build_region(contours)?;
     if remaining.is_empty() {
         let mut ids: Vec<usize> = contours.iter().map(|c| c.id).collect();
         ids.sort_unstable();
-        return Err(geometry(format!(
-            "Nothing to clear: the selected islands cover the selected boundaries \
-             (contours {})",
-            ids_text(&ids)
-        )));
+        return Err(geometry(
+            Message::new("toolpath-error-nothing-to-clear").arg("contours", ids_text(&ids)),
+        ));
     }
     let mut pieces = Vec::new();
     let mut notes = Vec::new();

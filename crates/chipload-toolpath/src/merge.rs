@@ -16,9 +16,10 @@ use chipload_core::Point;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{Arc, Primitive};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
-use crate::cavalier::{Area, boolean, ccw, cw, encloses, geometry, guarded, too_small};
+use crate::cavalier::{Area, boolean, ccw, cw, encloses, geometry, guarded, step, too_small};
 use crate::left::minus_area;
 use crate::offset::{pline_segments, point_distance};
 
@@ -222,7 +223,7 @@ fn contact(a: &Polyline<f64>, b: &Polyline<f64>) -> Result<Contact, ToolpathErro
         PlineContainsResult::Pline1InsidePline2 => Ok(Contact::AInsideB),
         PlineContainsResult::Pline2InsidePline1 => Ok(Contact::BInsideA),
         PlineContainsResult::Intersected => {
-            let common = boolean("Joining letters", a, b, BooleanOp::And)?;
+            let common = boolean(step("joining-letters"), a, b, BooleanOp::And)?;
             let shared: f64 = common.pos_plines.iter().map(|p| p.pline.area().abs()).sum();
             Ok(if shared <= CHAIN_TOL_MM * CHAIN_TOL_MM {
                 Contact::Apart
@@ -230,9 +231,9 @@ fn contact(a: &Polyline<f64>, b: &Polyline<f64>) -> Result<Contact, ToolpathErro
                 Contact::Overlap
             })
         }
-        PlineContainsResult::InvalidInput => Err(geometry(
-            "an outline the geometry library can't read".into(),
-        )),
+        PlineContainsResult::InvalidInput => {
+            Err(geometry(Message::new("toolpath-error-outline-unreadable")))
+        }
     }
 }
 
@@ -269,7 +270,7 @@ fn merge_group(
                 }
                 Contact::Overlap => {
                     let other = outers.swap_remove(k);
-                    let union = boolean("Joining letters", &current, &other, BooleanOp::Or)?;
+                    let union = boolean(step("joining-letters"), &current, &other, BooleanOp::Or)?;
                     let mut pos: Vec<Polyline<f64>> = union
                         .pos_plines
                         .into_iter()
@@ -277,10 +278,9 @@ fn merge_group(
                         .filter(|p| !too_small(p))
                         .collect();
                     if pos.len() != 1 {
-                        return Err(geometry(format!(
-                            "joining two overlapping outlines gave {} outlines",
-                            pos.len()
-                        )));
+                        return Err(geometry(
+                            Message::new("toolpath-error-join-gave").arg("outlines", pos.len()),
+                        ));
                     }
                     current = ccw(pos.swap_remove(0));
                     gaps.extend(
@@ -371,7 +371,7 @@ fn check_group(
             let winding: i32 = members
                 .iter()
                 .map(|&i| {
-                    guarded("Checking joined letters", || {
+                    guarded(step("checking-joined-letters"), || {
                         plines[i].winding_number(Vector2::new(p.0, p.1))
                     })
                 })
@@ -380,10 +380,10 @@ fn check_group(
             let filled = winding != 0;
             let merged = areas.iter().any(|a| a.contains(p));
             if filled != merged {
-                return Err(geometry(format!(
-                    "joining overlapping outlines changed what is filled near ({:.3}, {:.3}) mm",
-                    p.0, p.1
-                )));
+                return Err(geometry(
+                    Message::new("toolpath-error-join-changed")
+                        .arg("at", Value::Point(p.0, p.1, Digits::Fixed(3))),
+                ));
             }
         }
     }
@@ -398,7 +398,7 @@ fn check_group(
                 ccw((*a).clone()).contains(&ccw((*b).clone())),
                 PlineContainsResult::Intersected
             ) {
-                return Err(geometry("joined outlines cross each other".into()));
+                return Err(geometry(Message::new("toolpath-error-joined-cross")));
             }
         }
     }

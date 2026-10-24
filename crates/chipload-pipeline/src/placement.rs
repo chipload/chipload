@@ -11,9 +11,10 @@ use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, PLACEMENT_ROUNDING_MM};
 use chipload_dxf::contours_from_shapes;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, PathSegment, Placement, Selector, Shape, WorkZero, rotated};
 
-use crate::{PipelineError, stock_fit_note};
+use crate::{PipelineError, stock_fit_message};
 
 /// How to move the imported drawing.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -74,7 +75,29 @@ pub fn degrees_text(degrees: f64) -> String {
 /// What placing did: lines to show.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlaceReport {
+    /// The report as sentences, in English, for the command line: `messages` in English.
     pub lines: Vec<String>,
+    /// The report as messages, for the app (docs/specs/translations.md §7).
+    pub messages: Vec<Message>,
+}
+
+impl PlaceReport {
+    fn of(messages: Vec<Message>) -> Self {
+        PlaceReport {
+            lines: messages.iter().map(Message::english).collect(),
+            messages,
+        }
+    }
+}
+
+/// A scale factor as [`factor_text`] writes it.
+fn factor_value(factor: f64) -> Value {
+    Value::Number(factor, Digits::Trim(6))
+}
+
+/// Degrees as [`degrees_text`] writes them.
+fn degrees_value(degrees: f64) -> Value {
+    Value::Number(degrees, Digits::Trim(3))
 }
 
 /// Move, turn or scale the project's one DXF ([`place_dxf`]); refused when it has several.
@@ -82,11 +105,11 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
     match job.drawing.dxfs.as_slice() {
         [] => Err(nothing_imported()),
         [only] => place_dxf(job, only.id, how),
-        several => Err(PipelineError::Job(format!(
-            "the project has {} DXFs ({}): say which to place",
-            several.len(),
-            dxf_list(several)
-        ))),
+        several => Err(PipelineError::Job(
+            Message::new("pipeline-place-which-dxf")
+                .arg("count", several.len())
+                .arg("dxfs", dxf_list(several)),
+        )),
     }
 }
 
@@ -102,12 +125,12 @@ pub fn dxf_list(dxfs: &[chipload_job::DrawingSource]) -> String {
 /// move: other DXFs, drawn and traced shapes and a work zero at a point stay where they are.
 pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), PipelineError> {
     let Some(source) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
-        return Err(PipelineError::Job(format!("there is no DXF {id}")));
+        return Err(no_dxf(id));
     };
-    let what = if job.drawing.dxfs.len() > 1 {
-        source.name.clone()
+    let what: Value = if job.drawing.dxfs.len() > 1 {
+        source.name.clone().into()
     } else {
-        "the imported drawing".to_string()
+        Message::new("pipeline-place-the-drawing").into()
     };
     let imported: Vec<Shape> = job
         .drawing
@@ -127,14 +150,14 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
         dy,
     } = step;
     if !(dx.is_finite() && dy.is_finite()) {
-        return Err(PipelineError::Job(format!(
-            "can't move the drawing by ({dx}, {dy})"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-place-cannot-move")
+                .arg("dx", Value::Number(dx, Digits::Shortest))
+                .arg("dy", Value::Number(dy, Digits::Shortest)),
+        ));
     }
     if (scale, normal_degrees(degrees), dx, dy) == (1.0, 0.0, 0.0, 0.0) {
-        let report = PlaceReport {
-            lines: vec!["The drawing is already there; nothing moved.".into()],
-        };
+        let report = PlaceReport::of(vec![Message::new("pipeline-place-already-there")]);
         return Ok((job.clone(), report));
     }
 
@@ -169,68 +192,97 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     }
 
     let done = match how {
-        Move::Rotate(d) => format!(
-            "Turned {what} {}° {}",
-            degrees_text(d.abs()),
-            if d > 0.0 {
-                "counter-clockwise"
-            } else {
-                "clockwise"
-            }
-        ),
-        Move::Reset => format!("Put {what} back where the DXF has it"),
+        Move::Rotate(d) => Message::new("pipeline-place-turned")
+            .arg("what", what)
+            .arg("degrees", degrees_value(d.abs()))
+            .arg("direction", if d > 0.0 { "ccw" } else { "cw" }),
+        Move::Reset => Message::new("pipeline-place-reset").arg("what", what),
         Move::Scale(_) | Move::Width(_) | Move::Height(_) => {
-            let size = dxf_size(&out.drawing.shapes, id)
-                .map(|(w, h)| format!(" (now {w:.3} × {h:.3} mm)"))
-                .unwrap_or_default();
-            format!("Scaled {what} ×{}{size}", factor_text(scale))
+            let scaled = Message::new("pipeline-place-scaled")
+                .arg("what", what)
+                .arg("factor", factor_value(scale));
+            match dxf_size(&out.drawing.shapes, id) {
+                Some((w, h)) => Message::new("pipeline-place-scaled-size")
+                    .arg("scaled", scaled)
+                    .arg("width", Value::LengthNumber(w, Digits::Fixed(3)))
+                    .arg("height", Value::Length(h, Digits::Fixed(3))),
+                None => scaled,
+            }
         }
-        _ => format!("Moved {what} by X{dx:.3} Y{dy:.3} mm"),
+        _ => Message::new("pipeline-place-moved")
+            .arg("what", what)
+            .arg("dx", Value::LengthNumber(dx, Digits::Fixed(3)))
+            .arg("dy", Value::Length(dy, Digits::Fixed(3))),
     };
-    let mut lines = vec![format!("{done}; it is now {}.", placement_text(placement))];
+    let mut lines = vec![
+        Message::new("pipeline-place-done")
+            .arg("done", done)
+            .arg("placement", placement_message(placement)),
+    ];
     if scale != 1.0 {
         lines.extend(scale_notes(&imported, &out.drawing.shapes, id, scale));
     }
     if moved_starts > 0 {
-        lines.push(format!("Moved {moved_starts} start point(s) with it."));
+        lines.push(Message::new("pipeline-place-moved-starts").arg("count", moved_starts));
     }
     if job.drawing.shapes.iter().any(Shape::is_drawn) {
-        lines.push("Shapes drawn in Chipload stay where they are.".into());
+        lines.push(Message::new("pipeline-place-drawn-stay"));
     }
     if job.drawing.dxfs.len() > 1 {
-        lines.push("The other DXFs stay where they are.".into());
+        lines.push(Message::new("pipeline-place-other-dxfs-stay"));
     }
     if let WorkZero::Point { x, y } = job.machine.work_zero {
-        lines.push(format!(
-            "The work zero stays at the point X{x:.3} mm, Y{y:.3} mm; check that it's still where \
-             you want it."
-        ));
+        lines.push(
+            Message::new("pipeline-place-work-zero-stays")
+                .arg("x", Value::Length(x, Digits::Fixed(3)))
+                .arg("y", Value::Length(y, Digits::Fixed(3))),
+        );
     }
-    lines.extend(stock_fit_note(&out));
-    let problems = out.validate();
-    if !problems.is_empty() {
-        return Err(PipelineError::Job(crate::joined(&problems)));
-    }
-    Ok((out, PlaceReport { lines }))
+    lines.extend(stock_fit_message(&out));
+    crate::refuse_problems(&out.validate())?;
+    Ok((out, PlaceReport::of(lines)))
 }
 
 /// "as in the DXF", or e.g. "scaled ×2, turned 90°, moved X12.000 Y-3.500 from the DXF".
 pub fn placement_text(placement: Placement) -> String {
+    placement_message(placement).english()
+}
+
+/// [`placement_text`] as a message.
+pub fn placement_message(placement: Placement) -> Message {
     let mut parts = Vec::new();
     if placement.scale != 1.0 {
-        parts.push(format!("scaled ×{}", factor_text(placement.scale)));
+        parts.push(
+            Message::new("pipeline-placement-scaled").arg("factor", factor_value(placement.scale)),
+        );
     }
     if placement.rotation != 0.0 {
-        parts.push(format!("turned {}°", degrees_text(placement.rotation)));
+        parts.push(
+            Message::new("pipeline-placement-turned")
+                .arg("degrees", degrees_value(placement.rotation)),
+        );
     }
     if (placement.dx, placement.dy) != (0.0, 0.0) {
-        parts.push(format!("moved X{:.3} Y{:.3}", placement.dx, placement.dy));
+        parts.push(
+            Message::new("pipeline-placement-moved")
+                .arg("dx", Value::Number(placement.dx, Digits::Fixed(3)))
+                .arg("dy", Value::Number(placement.dy, Digits::Fixed(3))),
+        );
     }
-    if parts.is_empty() {
-        "as in the DXF".into()
-    } else {
-        format!("{} from the DXF", parts.join(", "))
+    let joined = parts.into_iter().reduce(|list, last| {
+        Message::new("pipeline-placement-and")
+            .arg("list", list)
+            .arg("last", last)
+    });
+    match joined {
+        None => Message::new("pipeline-placement-as-dxf"),
+        Some(parts) => Message::new("pipeline-placement-from-dxf").arg("parts", parts),
     }
+}
+
+/// The refusal for a DXF the project doesn't have.
+pub(crate) fn no_dxf(id: u64) -> PipelineError {
+    PipelineError::Job(Message::new("pipeline-no-dxf").arg("id", id))
 }
 
 /// A scale factor for people: up to 6 decimals, without trailing zeros ("2", "0.5",
@@ -278,7 +330,7 @@ fn size_of(shapes: &[Shape]) -> Option<(f64, f64)> {
 /// What scaling DXF `id` by `factor` may have changed beyond the size
 /// (docs/specs/drawing-scale.md §3): curves approximated at the old size, contours that join
 /// differently, units. `before` is that DXF's shapes before.
-fn scale_notes(before: &[Shape], after: &[Shape], id: u64, factor: f64) -> Vec<String> {
+fn scale_notes(before: &[Shape], after: &[Shape], id: u64, by: f64) -> Vec<Message> {
     let mut notes = Vec::new();
     let after: Vec<Shape> = after
         .iter()
@@ -289,15 +341,17 @@ fn scale_notes(before: &[Shape], after: &[Shape], id: u64, factor: f64) -> Vec<S
         .iter()
         .filter(|s| matches!(s.dxf_type(), Some("SPLINE" | "ELLIPSE")))
         .count();
-    if curves > 0 && factor > 1.0 {
-        notes.push(format!(
-            "{curves} shape(s) from splines or ellipses were approximated within {:.3} mm at \
-             the size before; scaled ×{}, they may be up to {:.3} mm off their curves. Update \
-             from the DXF to approximate them again at this size.",
-            ARC_APPROX_TOL_MM,
-            factor_text(factor),
-            ARC_APPROX_TOL_MM * factor
-        ));
+    if curves > 0 && by > 1.0 {
+        notes.push(
+            Message::new("pipeline-scale-curves")
+                .arg("count", curves)
+                .arg("within", Value::Length(ARC_APPROX_TOL_MM, Digits::Fixed(3)))
+                .arg("factor", factor_value(by))
+                .arg(
+                    "off",
+                    Value::Length(ARC_APPROX_TOL_MM * by, Digits::Fixed(3)),
+                ),
+        );
     }
     let closed = |shapes: &[Shape]| {
         contours_from_shapes(shapes, &[])
@@ -308,25 +362,25 @@ fn scale_notes(before: &[Shape], after: &[Shape], id: u64, factor: f64) -> Vec<S
     };
     let (was, now) = (closed(before), closed(&after));
     if was != now {
-        notes.push(format!(
-            "{was} closed contour(s) before, {now} now: gaps are joined within {:.3} mm at \
-             the new size. Check the import report and the operations' selections.",
-            chipload_core::tolerances::CHAIN_TOL_MM
-        ));
+        notes.push(
+            Message::new("pipeline-scale-contours")
+                .arg("was", was)
+                .arg("now", now)
+                .arg(
+                    "within",
+                    Value::Length(chipload_core::tolerances::CHAIN_TOL_MM, Digits::Fixed(3)),
+                ),
+        );
     }
     let units = |f: f64| (f - 25.4).abs() <= 1e-9 * 25.4 || (f * 25.4 - 1.0).abs() <= 1e-9;
-    if units(factor) {
-        notes.push(
-            "If the DXF's units are wrong, set them on update instead (--units), so the \
-             project records them."
-                .into(),
-        );
+    if units(by) {
+        notes.push(Message::new("pipeline-scale-units"));
     }
     notes
 }
 
 fn nothing_imported() -> PipelineError {
-    PipelineError::Job("the project has no imported drawing to move".into())
+    PipelineError::Job(Message::new("pipeline-place-nothing-imported"))
 }
 
 /// The step `how` asks for, from the current placement and the imported shapes' extent.
@@ -358,9 +412,10 @@ fn step_for(
         }
         Move::BottomLeft { margin } => {
             if !(margin.is_finite() && margin >= 0.0) {
-                return Err(PipelineError::Job(format!(
-                    "the margin must be 0 or more, got {margin} mm"
-                )));
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-place-margin")
+                        .arg("got", Value::Length(margin, Digits::Shortest)),
+                ));
             }
             let ((x0, y0), _) = bbox()?;
             moved(sx0 + margin - x0, sy0 + margin - y0)
@@ -397,9 +452,10 @@ fn step_for(
         }
         Move::Rotate(d) => {
             if !d.is_finite() {
-                return Err(PipelineError::Job(format!(
-                    "the rotation must be a number of degrees, got {d}"
-                )));
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-place-rotation")
+                        .arg("got", Value::Number(d, Digits::Shortest)),
+                ));
             }
             // About the bounding box's centre c: p -> turn(p - c) + c = turn(p) + c - turn(c).
             let ((x0, y0), (x1, y1)) = bbox()?;
@@ -423,18 +479,19 @@ fn scaled_about_centre(
     factor: f64,
 ) -> Result<Step, PipelineError> {
     if !(factor.is_finite() && factor > 0.0) {
-        return Err(PipelineError::Job(format!(
-            "the scale must be a number greater than 0, got {factor}"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-place-scale")
+                .arg("got", Value::Number(factor, Digits::Shortest)),
+        ));
     }
     let total = current.scale * factor;
     if !Placement::scale_in_range(total) {
-        return Err(PipelineError::Job(format!(
-            "that would scale the drawing ×{} from the DXF; it must stay between ×{} and ×{}",
-            factor_text(total),
-            factor_text(Placement::MIN_SCALE),
-            factor_text(Placement::MAX_SCALE)
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-place-scale-range")
+                .arg("factor", factor_value(total))
+                .arg("min", factor_value(Placement::MIN_SCALE))
+                .arg("max", factor_value(Placement::MAX_SCALE)),
+        ));
     }
     let ((x0, y0), (x1, y1)) = bbox;
     let c = [(x0 + x1) / 2.0, (y0 + y1) / 2.0];
@@ -449,14 +506,16 @@ fn scaled_about_centre(
 /// The factor that makes `current` mm into `wanted` mm.
 fn size_factor(what: &str, wanted: f64, current: f64) -> Result<f64, PipelineError> {
     if !(wanted.is_finite() && wanted > 0.0) {
-        return Err(PipelineError::Job(format!(
-            "the {what} must be greater than 0, got {wanted}"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-place-size")
+                .arg("what", what)
+                .arg("got", Value::LengthNumber(wanted, Digits::Shortest)),
+        ));
     }
     if current <= PLACEMENT_ROUNDING_MM {
-        return Err(PipelineError::Job(format!(
-            "the imported drawing has no {what} to scale"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-place-no-size").arg("what", what),
+        ));
     }
     Ok(wanted / current)
 }

@@ -14,6 +14,7 @@
 use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::flank_is_straight;
 
 use crate::ToolpathError;
@@ -57,6 +58,11 @@ pub struct RingCut<'a> {
     pub tool_diameter: f64,
 }
 
+/// A length with 3 decimals and its unit, for messages.
+fn mm3(value: f64) -> Value {
+    Value::Length(value, Digits::Fixed(3))
+}
+
 /// The moves, and where the tool is when they end (retracted above it).
 #[derive(Debug, Clone, PartialEq)]
 pub struct RingMoves {
@@ -74,9 +80,9 @@ pub fn ring_moves(cut: &RingCut, arcs: &ArcTable) -> Result<RingMoves, ToolpathE
     };
     let along = Along::new(cut.ring);
     if along.length <= CHAIN_TOL_MM {
-        return Err(ToolpathError::Geometry(
-            "a profile ring has no length".to_string(),
-        ));
+        return Err(ToolpathError::Geometry(Message::new(
+            "toolpath-error-ring-no-length",
+        )));
     }
     match cut.ramp_angle {
         Some(ramp_angle) => spiral(cut, &along, ramp_angle, arcs),
@@ -207,9 +213,9 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     let along = Along::new(lap.ring);
     let length = along.length;
     if lap.ring.is_empty() || length <= CHAIN_TOL_MM {
-        return Err(ToolpathError::Geometry(
-            "a profile ring has no length".to_string(),
-        ));
+        return Err(ToolpathError::Geometry(Message::new(
+            "toolpath-error-ring-no-length",
+        )));
     }
     let s0 = lap
         .tabs
@@ -268,9 +274,9 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
     }
     let samples = course(lap.tabs, &along, &legs)?;
     let (Some(first), Some(last)) = (samples.first(), samples.last()) else {
-        return Err(ToolpathError::Geometry(
-            "a wall lap has no course".to_string(),
-        ));
+        return Err(ToolpathError::Geometry(Message::new(
+            "toolpath-error-lap-no-course",
+        )));
     };
     let start = along.point(lap.ring, first);
     let finish = along.point(lap.ring, last);
@@ -304,12 +310,15 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
 fn ramp_length(drop: f64, ramp_angle: f64, length: f64) -> Result<f64, ToolpathError> {
     let ramp = drop / ramp_angle.tan();
     if ramp / length > MAX_RAMP_LEGS as f64 {
-        return Err(ToolpathError::Geometry(format!(
-            "The ring is too short to ramp down {drop:.3} mm at {:.1}° ({length:.3} mm \
-             around); use a steeper ramp angle or a straight plunge with a \
-             centre-cutting tool",
-            ramp_angle.to_degrees()
-        )));
+        return Err(ToolpathError::Geometry(
+            Message::new("toolpath-error-ring-ramp")
+                .arg("drop", mm3(drop))
+                .arg(
+                    "angle",
+                    Value::Number(ramp_angle.to_degrees(), Digits::Fixed(1)),
+                )
+                .arg("length", mm3(length)),
+        ));
     }
     Ok(ramp)
 }
@@ -448,10 +457,11 @@ pub fn carry_tabs(
         let (pa, pb) = (position_on(&to, onto, at(a)), position_on(&to, onto, at(b)));
         let forward = (pb - pa).rem_euclid(to.length);
         if forward > to.length / 2.0 {
-            return Err(ToolpathError::Geometry(format!(
-                "could not carry a tab ({a:.3} to {b:.3} mm along the ring) onto the \
-                 roughing ring"
-            )));
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-error-tab-carry")
+                    .arg("from", Value::LengthNumber(a, Digits::Fixed(3)))
+                    .arg("to", mm3(b)),
+            ));
         }
         if pa + forward <= to.length {
             spans.push((pa, pa + forward));
@@ -868,17 +878,18 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
             }
         }
     };
-    let fail = |what: String| {
-        Err(ToolpathError::Geometry(format!(
-            "Tab toolpath failed verification: {what}"
-        )))
+    let fail = |what: Message| {
+        Err(ToolpathError::Geometry(
+            Message::new("toolpath-error-tab-verification").arg("what", what),
+        ))
     };
     for (k, sample) in samples.iter().enumerate() {
         if sample.z < lowest(sample.local) - DEPTH_TOL_MM {
-            return fail(format!(
-                "Z{:.3} mm at {:.3} mm along the ring is below the tab",
-                sample.z, sample.local
-            ));
+            return fail(
+                Message::new("toolpath-error-tab-below")
+                    .arg("z", mm3(sample.z))
+                    .arg("at", mm3(sample.local)),
+            );
         }
         let Some(next) = samples.get(k + 1) else {
             break;
@@ -888,10 +899,7 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
             next.lap as f64 * length + next.local,
         );
         if s1 < s0 - CHAIN_TOL_MM {
-            return fail(format!(
-                "the tool goes back along the ring at {:.3} mm",
-                sample.local
-            ));
+            return fail(Message::new("toolpath-error-tab-back").arg("at", mm3(sample.local)));
         }
         if next.lap != sample.lap || s1 - s0 <= 0.0 {
             continue;
@@ -902,11 +910,12 @@ fn verify(samples: &[Sample], tabs: TabSurface, along: &Along) -> Result<(), Too
                     let t = (end - sample.local) / (next.local - sample.local);
                     let z = sample.z + (next.z - sample.z) * t;
                     if z < tabs.z_tab - DEPTH_TOL_MM {
-                        return fail(format!(
-                            "Z{z:.3} mm at the tab end {end:.3} mm along the ring is below the \
-                             tab top Z{:.3} mm",
-                            tabs.z_tab
-                        ));
+                        return fail(
+                            Message::new("toolpath-error-tab-end-below")
+                                .arg("z", mm3(z))
+                                .arg("end", mm3(end))
+                                .arg("top", mm3(tabs.z_tab)),
+                        );
                     }
                 }
             }

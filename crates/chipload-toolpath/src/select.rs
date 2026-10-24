@@ -22,7 +22,7 @@ pub struct Selection<'a> {
 pub fn select_contours<'a>(
     contours: &'a [Contour],
     selector: &Selector,
-    op: &str,
+    op: &Message,
 ) -> Result<Selection<'a>, ToolpathError> {
     select(contours, selector, op, false)
 }
@@ -33,7 +33,7 @@ pub fn select_contours<'a>(
 pub fn select_paths<'a>(
     contours: &'a [Contour],
     selector: &Selector,
-    op: &str,
+    op: &Message,
 ) -> Result<Selection<'a>, ToolpathError> {
     select(contours, selector, op, true)
 }
@@ -41,9 +41,10 @@ pub fn select_paths<'a>(
 fn select<'a>(
     contours: &'a [Contour],
     selector: &Selector,
-    op: &str,
+    op: &Message,
     paths: bool,
 ) -> Result<Selection<'a>, ToolpathError> {
+    let refused = |message: Message| ToolpathError::Selector(message).with_context(op.clone());
     // Every selected shape must be part of some contour; otherwise it was deleted, or chaining
     // dropped it (a duplicate or zero-length segment). Never skip it silently.
     if let Some(ids) = &selector.shapes {
@@ -57,11 +58,9 @@ fn select<'a>(
             .map(|id| format!("S{id}"))
             .collect();
         if !missing.is_empty() {
-            return Err(ToolpathError::Selector(format!(
-                "{op}: shape {} is not part of any contour (deleted, or a duplicate or \
-                 zero-length segment the import removed)",
-                missing.join(", ")
-            )));
+            return Err(refused(
+                Message::new("toolpath-error-shape-missing").arg("shapes", missing.join(", ")),
+            ));
         }
     }
     let mut selected = Vec::new();
@@ -89,12 +88,11 @@ fn select<'a>(
             continue;
         }
         if !matches.iter().all(|&m| m) {
-            return Err(ToolpathError::Selector(format!(
-                "{op}: contour #{} is only partly selected (layers {}); fix the drawing or \
-                 the selector",
-                contour.id,
-                contour.layers().join(", ")
-            )));
+            return Err(refused(
+                Message::new("toolpath-error-partly-selected")
+                    .arg("contour", contour.id)
+                    .arg("layers", contour.layers().join(", ")),
+            ));
         }
         if paths {
             selected.push(contour);
@@ -105,24 +103,22 @@ fn select<'a>(
             continue;
         }
         if let Some(reason) = &contour.invalid_reason {
-            return Err(ToolpathError::Selector(format!(
-                "{op}: contour #{} is invalid: {reason}",
-                contour.id
-            )));
+            return Err(refused(
+                Message::new("toolpath-error-contour-invalid")
+                    .arg("contour", contour.id)
+                    .arg("reason", reason),
+            ));
         }
         selected.push(contour);
     }
     if selected.is_empty() {
         let ids: Vec<String> = skipped.iter().map(|c| format!("#{}", c.id)).collect();
-        return Err(ToolpathError::Selector(if skipped.is_empty() {
-            format!("{op}: selector {} matches nothing", describe(selector))
+        return Err(refused(if skipped.is_empty() {
+            Message::new("toolpath-error-selects-nothing").arg("selector", describe(selector))
         } else {
-            format!(
-                "{op}: selector {} matches only open contours ({}); this operation needs \
-                 closed ones",
-                describe(selector),
-                ids.join(", ")
-            )
+            Message::new("toolpath-error-selects-open")
+                .arg("selector", describe(selector))
+                .arg("contours", ids.join(", "))
         }));
     }
     let notes = skipped
@@ -173,31 +169,48 @@ fn matches(segment: &Segment, selector: &Selector) -> bool {
     true
 }
 
-fn describe(selector: &Selector) -> String {
+/// The selector in words: "layer 'cut' and shapes S1, S2 of DXF 1 but S3"; no words for a
+/// selector that names nothing.
+fn describe(selector: &Selector) -> Value {
+    let shape_list = |ids: &[u64]| {
+        ids.iter()
+            .map(|id| format!("S{id}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
     let mut parts = Vec::new();
     if let Some(layer) = &selector.layer {
-        parts.push(format!("layer '{layer}'"));
+        parts.push(Message::new("toolpath-error-selector-layer").arg("layer", layer));
     }
     if let Some(shapes) = &selector.shapes
         && !shapes.is_empty()
     {
-        let ids: Vec<String> = shapes.iter().map(|id| format!("S{id}")).collect();
-        parts.push(format!("shapes {}", ids.join(", ")));
+        parts
+            .push(Message::new("toolpath-error-selector-shapes").arg("shapes", shape_list(shapes)));
     }
-    let text = parts.join(" and ");
+    let text = parts.into_iter().reduce(|first, second| {
+        Message::new("toolpath-error-selector-and")
+            .arg("first", first)
+            .arg("second", second)
+    });
     let mut source = match (selector.dxf, selector.image, selector.text) {
-        (Some(dxf), _, _) => format!("DXF {dxf}"),
-        (None, Some(image), _) => format!("image {image}"),
-        (None, None, Some(id)) => format!("text {id}"),
-        (None, None, None) => return text,
+        (Some(dxf), _, _) => Message::new("toolpath-error-selector-dxf").arg("id", dxf),
+        (None, Some(image), _) => Message::new("toolpath-error-selector-image").arg("id", image),
+        (None, None, Some(id)) => Message::new("toolpath-error-selector-text").arg("id", id),
+        (None, None, None) => {
+            return text.map_or_else(|| Value::Text(String::new()), Value::from);
+        }
     };
     if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
-        let ids: Vec<String> = exclude.iter().map(|id| format!("S{id}")).collect();
-        source += &format!(" but {}", ids.join(", "));
+        source = Message::new("toolpath-error-selector-but")
+            .arg("source", source)
+            .arg("shapes", shape_list(exclude));
     }
-    if text.is_empty() {
-        source
-    } else {
-        format!("{text} of {source}")
+    match text {
+        None => source.into(),
+        Some(text) => Message::new("toolpath-error-selector-of")
+            .arg("what", text)
+            .arg("source", source)
+            .into(),
     }
 }

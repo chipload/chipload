@@ -11,7 +11,7 @@ use chipload_dxf::shapes_from_dxf_scaled;
 use chipload_i18n::Message;
 use chipload_job::{Geometry, Job, Note, Placement, Shape, Units};
 
-use crate::{PipelineError, UpdateReport, ids_text, op_label, placement, stock_fit_note};
+use crate::{PipelineError, UpdateReport, ids_text, placement, stock_fit_message};
 
 /// Add `dxf` to the project as a new DXF, where the file has it (moved with the Drawing
 /// panel or `place --dxf` afterwards), named `name` or after its file. Its shapes get new
@@ -48,30 +48,27 @@ pub fn add_named_dxf(
         report.added.push(shape.id);
         out.drawing.shapes.push(shape);
     }
-    report.lines.push(format!(
-        "Added {} as DXF {id} \"{}\": {} {}.",
-        dxf.display(),
-        imported.source.name,
-        report.added.len(),
-        if report.added.len() == 1 {
-            "shape"
-        } else {
-            "shapes"
-        }
-    ));
+    report.messages.push(
+        Message::new("pipeline-dxf-added")
+            .arg("file", dxf.display().to_string())
+            .arg("id", id)
+            .arg("name", imported.source.name.as_str())
+            .arg("count", report.added.len()),
+    );
     out.drawing.dxfs.push(imported.source);
-    report.lines.extend(pin_layers(&mut out, id));
-    report.lines.extend(stock_fit_note(&out));
+    report.messages.extend(pin_layers(&mut out, id));
+    report.messages.extend(stock_fit_message(&out));
     report
-        .lines
-        .extend(layer_clash_notes(&out).into_iter().map(|n| n.text));
+        .messages
+        .extend(layer_clash_notes(&out).into_iter().map(|n| n.message));
+    report.lines = english(&report.messages);
     Ok((out, report))
 }
 
 /// Operations that select a layer of one DXF, by its name alone, keep cutting that DXF
 /// only when DXF `added` brings the same layer: their selector gets that DXF. Adding a part
 /// never changes what an existing operation cuts. Returns the report's lines.
-fn pin_layers(job: &mut Job, added: u64) -> Vec<String> {
+fn pin_layers(job: &mut Job, added: u64) -> Vec<Message> {
     let mut pinned: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     let shapes = job.drawing.shapes.clone();
     for (i, op) in job.operations.iter_mut().enumerate() {
@@ -114,21 +111,19 @@ fn pin_layers(job: &mut Job, added: u64) -> Vec<String> {
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!(
-                "Operation{} {list} keep{} cutting {name} only: the new DXF has {} layers too.",
-                if ops.len() == 1 { "" } else { "s" },
-                if ops.len() == 1 { "s" } else { "" },
-                if ops.len() == 1 { "its" } else { "their" }
-            )
+            Message::new("pipeline-dxf-pinned")
+                .arg("count", ops.len())
+                .arg("operations", list)
+                .arg("name", name)
         })
         .collect()
 }
 
 /// Remove DXF `id` and its shapes, and anything hidden of it. Operations that selected its
 /// shapes stay; the report names them, and the project's problems show them.
-pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineError> {
+pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<Message>), PipelineError> {
     let Some(source) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
-        return Err(PipelineError::Job(format!("there is no DXF {id}")));
+        return Err(placement::no_dxf(id));
     };
     let removed: BTreeSet<u64> = job
         .drawing
@@ -144,16 +139,12 @@ pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineErro
     out.drawing
         .hidden
         .retain(|h| h != &key && !h.starts_with(&format!("{key}/")));
-    let mut lines = vec![format!(
-        "Removed DXF {id} \"{}\" and its {} {}.",
-        source.name,
-        removed.len(),
-        if removed.len() == 1 {
-            "shape"
-        } else {
-            "shapes"
-        }
-    )];
+    let mut lines = vec![
+        Message::new("pipeline-dxf-removed")
+            .arg("id", id)
+            .arg("name", source.name.as_str())
+            .arg("count", removed.len()),
+    ];
     for (i, op) in out.operations.iter().enumerate() {
         let select = op.select();
         let lost: Vec<u64> = select
@@ -164,16 +155,13 @@ pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineErro
             .filter(|s| removed.contains(s))
             .collect();
         if !lost.is_empty() {
-            lines.push(format!(
-                "{}: shapes {} no longer exist; choose its geometry again",
-                op_label(i, op),
-                ids_text(&lost)
-            ));
+            lines.push(
+                Message::new("pipeline-dxf-shapes-gone")
+                    .arg("label", op.label_message(i))
+                    .arg("shapes", ids_text(&lost)),
+            );
         } else if select.dxf == Some(id) {
-            lines.push(format!(
-                "{}: its DXF is gone; choose its geometry again",
-                op_label(i, op)
-            ));
+            lines.push(Message::new("pipeline-dxf-gone").arg("label", op.label_message(i)));
         }
     }
     Ok((out, lines))
@@ -271,7 +259,7 @@ pub fn update_dxf(
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
     let Some(previous) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
-        return Err(PipelineError::Job(format!("there is no DXF {id}")));
+        return Err(placement::no_dxf(id));
     };
     let expected = units.or(Some(previous.units));
     // The new drawing goes where the old one was put (docs/specs/drawing-placement.md), read
@@ -355,26 +343,26 @@ pub fn update_dxf(
     if let Some(entry) = out.drawing.dxfs.iter_mut().find(|d| d.id == id) {
         *entry = imported.source;
     }
-    report.lines.push(format!(
-        "Updated from {}: {} unchanged, {} changed, {} added, {} removed.",
-        dxf.display(),
-        report.unchanged.len(),
-        report.changed.len(),
-        report.added.len(),
-        report.removed.len()
-    ));
+    report.messages.push(
+        Message::new("pipeline-dxf-updated")
+            .arg("file", dxf.display().to_string())
+            .arg("unchanged", report.unchanged.len())
+            .arg("changed", report.changed.len())
+            .arg("added", report.added.len())
+            .arg("removed", report.removed.len()),
+    );
     if placed != Placement::default() {
-        report.lines.push(format!(
-            "Placed as before: {}.",
-            placement::placement_text(placed)
-        ));
+        report.messages.push(
+            Message::new("pipeline-dxf-placed-as-before")
+                .arg("placement", placement::placement_message(placed)),
+        );
     }
-    report.lines.extend(stock_fit_note(&out));
+    report.messages.extend(stock_fit_message(&out));
     report
-        .lines
-        .extend(layer_clash_notes(&out).into_iter().map(|n| n.text));
+        .messages
+        .extend(layer_clash_notes(&out).into_iter().map(|n| n.message));
     for (i, op) in out.operations.iter().enumerate() {
-        let label = op_label(i, op);
+        let label = op.label_message(i);
         let select = op.select();
         if let Some(ids) = &select.shapes {
             let lost: Vec<u64> = ids
@@ -389,25 +377,35 @@ pub fn update_dxf(
                 .collect();
             if !lost.is_empty() {
                 report.lost.push(i);
-                report.lines.push(format!(
-                    "{label}: shapes {} no longer exist; choose its geometry again",
-                    ids_text(&lost)
-                ));
+                report.messages.push(
+                    Message::new("pipeline-dxf-shapes-gone")
+                        .arg("label", label)
+                        .arg("shapes", ids_text(&lost)),
+                );
             } else if !changed.is_empty() {
-                report.lines.push(format!(
-                    "{label}: geometry changed (shapes {}); check its toolpath",
-                    ids_text(&changed)
-                ));
+                report.messages.push(
+                    Message::new("pipeline-dxf-geometry-changed")
+                        .arg("label", label)
+                        .arg("shapes", ids_text(&changed)),
+                );
             }
         } else if let Some(layer) = &select.layer
             && select.dxf.is_none_or(|d| d == id)
             && select.image.is_none()
             && select.text.is_none()
         {
-            report.lines.push(format!(
-                "{label}: layer {layer} now uses the updated drawing; check its toolpath"
-            ));
+            report.messages.push(
+                Message::new("pipeline-dxf-layer-updated")
+                    .arg("label", label)
+                    .arg("layer", layer.as_str()),
+            );
         }
     }
+    report.lines = english(&report.messages);
     Ok((out, report))
+}
+
+/// Messages in English, for the command line.
+fn english(messages: &[Message]) -> Vec<String> {
+    messages.iter().map(Message::english).collect()
 }

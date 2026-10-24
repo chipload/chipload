@@ -2,18 +2,26 @@
 //! Drawing in a project: add, change and delete drawn shapes (docs/specs/drawing-tools.md).
 //! The CLI and the GUI both go through these, so they follow the same rules.
 
+use chipload_i18n::Message;
 use chipload_job::edit::{Mirror, mirrored, translated};
 use chipload_job::{Geometry, Job, Operation, Shape};
 
 use crate::{PipelineError, ids_text, load_drawing, op_label};
 
+fn refused(message: Message) -> PipelineError {
+    PipelineError::Job(message)
+}
+
+/// "there is no shape 7".
+pub fn no_shape(id: u64) -> PipelineError {
+    refused(Message::new("pipeline-no-shape").arg("id", id))
+}
+
 /// Add a drawn shape. It takes `next_shape_id`, which then grows (ids are never reused).
 /// Returns the project and the new id.
 pub fn add_shape(job: &Job, layer: &str, geometry: Geometry) -> Result<(Job, u64), PipelineError> {
     if matches!(geometry, Geometry::Path { .. }) {
-        return Err(PipelineError::Job(
-            "only circles, rectangles and polylines can be drawn".into(),
-        ));
+        return Err(refused(Message::new("pipeline-shape-not-drawable")));
     }
     let mut out = job.clone();
     let id = out.drawing.next_shape_id;
@@ -37,10 +45,11 @@ pub fn set_shape(
     let mut out = job.clone();
     let shape = drawn_mut(&mut out, id)?;
     if std::mem::discriminant(&shape.geometry) != std::mem::discriminant(&geometry) {
-        return Err(PipelineError::Job(format!(
-            "shape {id} is a {}; its kind can't change",
-            shape.kind_name()
-        )));
+        return Err(refused(
+            Message::new("pipeline-shape-kind")
+                .arg("id", id)
+                .arg("kind", shape.kind_name()),
+        ));
     }
     shape.layer = layer.to_string();
     shape.geometry = geometry;
@@ -75,23 +84,22 @@ pub fn delete_shape(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineEr
 /// be named twice.
 fn drawn_shapes<'a>(job: &'a Job, ids: &[u64]) -> Result<Vec<&'a Shape>, PipelineError> {
     if ids.is_empty() {
-        return Err(PipelineError::Job("no shapes given".into()));
+        return Err(refused(Message::new("pipeline-no-shapes-given")));
     }
     for (i, id) in ids.iter().enumerate() {
         if ids[..i].contains(id) {
-            return Err(PipelineError::Job(format!("shape {id} is given twice")));
+            return Err(refused(Message::new("pipeline-shape-twice").arg("id", *id)));
         }
         let shape = job
             .drawing
             .shapes
             .iter()
             .find(|s| s.id == *id)
-            .ok_or_else(|| PipelineError::Job(format!("there is no shape {id}")))?;
+            .ok_or_else(|| no_shape(*id))?;
         if !shape.is_drawn() {
-            return Err(PipelineError::Job(format!(
-                "shape {id} was imported from the DXF; only drawn shapes can be copied or \
-                 mirrored"
-            )));
+            return Err(refused(
+                Message::new("pipeline-shape-imported-copy").arg("id", *id),
+            ));
         }
     }
     Ok(job
@@ -157,7 +165,7 @@ pub fn paste_shapes(
             alone.drawing.next_shape_id = 1;
             let (alone, ids) = add_moved(&alone, shapes, (0.0, 0.0))?;
             let ((x0, y0), (x1, y1)) = shapes_bounds(&alone, &ids)
-                .ok_or_else(|| PipelineError::Job("the shapes have no extent".into()))?;
+                .ok_or_else(|| refused(Message::new("pipeline-shapes-no-extent")))?;
             (x - (x0 + x1) / 2.0, y - (y0 + y1) / 2.0)
         }
     };
@@ -204,14 +212,13 @@ fn add_moved(
     by: (f64, f64),
 ) -> Result<(Job, Vec<u64>), PipelineError> {
     if shapes.is_empty() {
-        return Err(PipelineError::Job("no shapes given".into()));
+        return Err(refused(Message::new("pipeline-no-shapes-given")));
     }
     let mut out = job.clone();
     let mut new_ids = Vec::new();
     for (layer, geometry) in shapes {
-        let geometry = translated(geometry, [by.0, by.1]).ok_or_else(|| {
-            PipelineError::Job("only drawn shapes can be copied, not imported ones".into())
-        })?;
+        let geometry = translated(geometry, [by.0, by.1])
+            .ok_or_else(|| refused(Message::new("pipeline-shapes-copy-imported")))?;
         let id = out.drawing.next_shape_id;
         out.drawing.next_shape_id += 1;
         out.drawing.shapes.push(Shape {
@@ -229,7 +236,7 @@ fn add_moved(
 pub fn mirror_shapes(job: &Job, ids: &[u64], mirror: Mirror) -> Result<Job, PipelineError> {
     drawn_shapes(job, ids)?;
     let ((x0, y0), (x1, y1)) = shapes_bounds(job, ids)
-        .ok_or_else(|| PipelineError::Job("the shapes have no extent".into()))?;
+        .ok_or_else(|| refused(Message::new("pipeline-shapes-no-extent")))?;
     let about = match mirror {
         Mirror::LeftRight => (x0 + x1) / 2.0,
         Mirror::UpDown => (y0 + y1) / 2.0,
@@ -258,24 +265,19 @@ fn drawn_mut(job: &mut Job, id: u64) -> Result<&mut Shape, PipelineError> {
         .shapes
         .iter_mut()
         .find(|s| s.id == id)
-        .ok_or_else(|| PipelineError::Job(format!("there is no shape {id}")))?;
+        .ok_or_else(|| no_shape(id))?;
     if !shape.is_drawn() {
-        return Err(PipelineError::Job(format!(
-            "shape {id} was imported from the DXF and can't be changed here; change the \
-             drawing and use Update drawing from DXF"
-        )));
+        return Err(refused(
+            Message::new("pipeline-shape-imported-change").arg("id", id),
+        ));
     }
     Ok(shape)
 }
 
 /// The project's own rules (values, ids) must hold after every change.
 fn checked(job: Job) -> Result<Job, PipelineError> {
-    let problems = job.drawing.validate();
-    if problems.is_empty() {
-        Ok(job)
-    } else {
-        Err(PipelineError::Job(crate::joined(&problems)))
-    }
+    crate::refuse_problems(&job.drawing.validate())?;
+    Ok(job)
 }
 
 #[cfg(test)]

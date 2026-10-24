@@ -3,6 +3,7 @@
 //! keys and array indexes from 0, as in the file and in problem paths
 //! (`operations.1.end_depth`).
 
+use chipload_i18n::Message;
 use serde_json::Value;
 
 use crate::{Job, JobError, parse_job};
@@ -102,10 +103,10 @@ pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String
     }
     let shown: Vec<&str> = assignments.iter().map(|(p, _)| p.as_str()).collect();
     parse_job(value, "").map_err(|e| match e {
-        JobError::Invalid { reason, .. } => format!(
-            "the project wouldn't load after setting {}: {reason}",
-            shown.join(", ")
-        ),
+        JobError::Invalid { reason, .. } => Message::new("job-set-would-not-load")
+            .arg("paths", shown.join(", "))
+            .arg("reason", reason)
+            .english(),
         other => other.to_string(),
     })
 }

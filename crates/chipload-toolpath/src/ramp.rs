@@ -9,6 +9,7 @@
 use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::Entry;
 
 use crate::ToolpathError;
@@ -98,12 +99,15 @@ fn zigzag(
     let full = drop / ramp_angle.tan();
     let reach = (full / 2.0).min(available).min(polyline_length(path));
     let too_short = || {
-        ToolpathError::Geometry(format!(
-            "The path is too short to ramp down {drop:.3} mm at {:.1}° (only {reach:.3} mm \
-             to ramp along); use a steeper ramp angle or a straight plunge with a \
-             centre-cutting tool",
-            ramp_angle.to_degrees()
-        ))
+        ToolpathError::Geometry(
+            Message::new("toolpath-error-ramp-reach")
+                .arg("drop", Value::Length(drop, Digits::Fixed(3)))
+                .arg(
+                    "angle",
+                    Value::Number(ramp_angle.to_degrees(), Digits::Fixed(1)),
+                )
+                .arg("reach", Value::Length(reach, Digits::Fixed(3))),
+        )
     };
     if reach <= CHAIN_TOL_MM {
         return Err(too_short());

@@ -11,6 +11,7 @@ use chipload_core::Point;
 use chipload_core::fit::fit_path;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use ttf_parser::gpos::{PairAdjustment, PositioningSubtable};
 use ttf_parser::{Face, GlyphId, OutlineBuilder, Tag};
 
@@ -194,25 +195,56 @@ pub struct Lettering {
     pub dropped: usize,
 }
 
-#[derive(Debug, Clone, thiserror::Error, PartialEq)]
+/// Why a text can't be turned into letters. Its text is a message (`text.ftl`), shown in
+/// the app's language; `Display` writes it in English.
+#[derive(Debug, Clone, PartialEq)]
 pub enum TextError {
-    #[error("there is no built-in font \"{0}\"; the fonts are: {1}")]
+    /// The font asked for, and the built-in fonts' names.
     UnknownFont(String, String),
-    #[error("the text is empty: write something to cut")]
     Empty,
-    #[error("the text is too long: {0} characters, at most {MAX_CHARS}")]
+    /// How many characters the text has.
     TooLong(usize),
-    #[error("the height must be more than 0 mm, got {0}")]
+    /// The height asked for, mm.
     Height(f64),
-    #[error("the line spacing must be more than 0, got {0}")]
     LineSpacing(f64),
-    #[error("the letter spacing must be a number, got {0}")]
     Spacing(f64),
-    #[error("the font \"{0}\" can't be read")]
+    /// The font's name.
     BadFont(String),
-    #[error("nothing to cut: the font has no letters for this text")]
     NoLetters,
 }
+
+impl TextError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            TextError::UnknownFont(font, fonts) => Message::new("text-error-unknown-font")
+                .arg("font", font)
+                .arg("fonts", fonts),
+            TextError::Empty => Message::new("text-error-empty"),
+            TextError::TooLong(count) => Message::new("text-error-too-long")
+                .arg("count", *count)
+                .arg("most", MAX_CHARS),
+            TextError::Height(got) => Message::new("text-error-height")
+                .arg("zero", Value::mm(0.0))
+                .arg("got", Value::LengthNumber(*got, Digits::Shortest)),
+            TextError::LineSpacing(got) => Message::new("text-error-line-spacing")
+                .arg("got", Value::Number(*got, Digits::Shortest)),
+            TextError::Spacing(got) => {
+                Message::new("text-error-spacing").arg("got", Value::Number(*got, Digits::Shortest))
+            }
+            TextError::BadFont(font) => Message::new("text-error-bad-font").arg("font", font),
+            TextError::NoLetters => Message::new("text-error-no-letters"),
+        }
+    }
+}
+
+impl std::fmt::Display for TextError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for TextError {}
 
 /// The text's letters as closed outlines (spec §4).
 pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {

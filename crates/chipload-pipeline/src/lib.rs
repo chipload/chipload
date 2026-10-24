@@ -49,29 +49,85 @@ use chipload_toolpath::{
     OpSpan, RingStart, ToolGroup, ToolpathError, plan_job_cancellable, validate_job,
 };
 
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+/// Why a project couldn't be changed, planned or written. Its text is a message, shown in
+/// the app's language; `Display` writes it in English for the command line.
+#[derive(Debug, Clone, PartialEq)]
 pub enum PipelineError {
-    #[error("{0}")]
-    Job(String),
-    #[error(transparent)]
-    Import(#[from] ImportError),
-    #[error(transparent)]
-    Toolpath(#[from] ToolpathError),
-    #[error(transparent)]
-    Image(#[from] chipload_image::ImageError),
-    #[error(transparent)]
-    Text(#[from] chipload_text::TextError),
-    #[error(transparent)]
-    Post(#[from] PostError),
+    /// A change or run the project refuses (`pipeline.ftl`, or the problems of `job.ftl`).
+    Job(Message),
+    Import(ImportError),
+    Toolpath(ToolpathError),
+    Image(chipload_image::ImageError),
+    Text(chipload_text::TextError),
+    Post(PostError),
     /// The independent checker rejected the program. No G-code is returned; `program` is
     /// the rejected toolpath, for display only, and must never be posted or written out.
     /// `messages` are `errors` as messages, for the app (docs/specs/translations.md §7).
-    #[error("G-code check failed:\n{}", errors.iter().map(|e| format!("  {e}")).collect::<Vec<_>>().join("\n"))]
     CheckFailed {
         errors: Vec<String>,
         messages: Vec<Message>,
         program: Box<Program>,
     },
+}
+
+impl PipelineError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            PipelineError::Job(message) => message.clone(),
+            PipelineError::Import(e) => e.message(),
+            PipelineError::Toolpath(e) => e.message(),
+            PipelineError::Image(e) => e.message(),
+            PipelineError::Text(e) => e.message(),
+            PipelineError::Post(e) => e.message(),
+            PipelineError::CheckFailed { messages, .. } => messages.iter().fold(
+                Message::new("pipeline-error-check-failed"),
+                |list, finding| {
+                    Message::new("pipeline-error-check-finding")
+                        .arg("list", list)
+                        .arg("finding", finding.clone())
+                },
+            ),
+        }
+    }
+}
+
+impl std::fmt::Display for PipelineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for PipelineError {}
+
+impl From<ImportError> for PipelineError {
+    fn from(e: ImportError) -> Self {
+        PipelineError::Import(e)
+    }
+}
+
+impl From<ToolpathError> for PipelineError {
+    fn from(e: ToolpathError) -> Self {
+        PipelineError::Toolpath(e)
+    }
+}
+
+impl From<chipload_image::ImageError> for PipelineError {
+    fn from(e: chipload_image::ImageError) -> Self {
+        PipelineError::Image(e)
+    }
+}
+
+impl From<chipload_text::TextError> for PipelineError {
+    fn from(e: chipload_text::TextError) -> Self {
+        PipelineError::Text(e)
+    }
+}
+
+impl From<PostError> for PipelineError {
+    fn from(e: PostError) -> Self {
+        PipelineError::Post(e)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -133,36 +189,48 @@ impl GcodeFile {
 
     /// `part-1-T1.nc (tool 1, operations 1, 3)`, for the CLI and the report.
     pub fn describe(&self, output: &Path) -> String {
+        self.describe_message(output).english()
+    }
+
+    /// [`GcodeFile::describe`] as a message.
+    pub fn describe_message(&self, output: &Path) -> Message {
         let path = self.path(output);
         let name = path.file_name().map_or_else(
             || path.display().to_string(),
             |n| n.to_string_lossy().into_owned(),
         );
-        format!(
-            "{name} (tool {}, operations {})",
-            self.tool,
-            chipload_post::operations_text(&self.operations)
-        )
+        Message::new("pipeline-gcode-file")
+            .arg("name", name)
+            .arg("tool", self.tool)
+            .arg(
+                "operations",
+                chipload_post::operations_text(&self.operations),
+            )
     }
+}
+
+/// "there is no operation 7; the project has 6".
+fn no_operation(number: usize, count: usize) -> PipelineError {
+    PipelineError::Job(
+        Message::new("pipeline-no-operation")
+            .arg("number", number)
+            .arg("count", count),
+    )
 }
 
 /// Set the tool operation `number` (1-based, as listed) cuts with. The tool must be in the
 /// project; feeds stay as they are (docs/specs/tool-per-operation.md §7, decision 6).
 pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), PipelineError> {
     if job.tool(tool).is_none() {
-        return Err(PipelineError::Job(format!(
-            "the project has no tool {tool}; copy one in from your library with `tool use`"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-no-tool-use").arg("tool", tool),
+        ));
     }
     let count = job.operations.len();
     let op = number
         .checked_sub(1)
         .and_then(|i| job.operations.get_mut(i))
-        .ok_or_else(|| {
-            PipelineError::Job(format!(
-                "there is no operation {number}; the project has {count}"
-            ))
-        })?;
+        .ok_or_else(|| no_operation(number, count))?;
     op.set_tool(tool);
     Ok(())
 }
@@ -174,23 +242,19 @@ pub fn set_op_rest(job: &mut Job, number: usize, after: Option<i64>) -> Result<(
     if let Some(tool) = after
         && job.tool(tool).is_none()
     {
-        return Err(PipelineError::Job(format!(
-            "the project has no tool {tool}; copy one in from your library with `tool use`"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-no-tool-use").arg("tool", tool),
+        ));
     }
     let count = job.operations.len();
     let op = number
         .checked_sub(1)
         .and_then(|i| job.operations.get_mut(i))
-        .ok_or_else(|| {
-            PipelineError::Job(format!(
-                "there is no operation {number}; the project has {count}"
-            ))
-        })?;
+        .ok_or_else(|| no_operation(number, count))?;
     let Operation::Pocket(pocket) = op else {
-        return Err(PipelineError::Job(format!(
-            "operation {number} is not a pocket; only pockets rest machine"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-not-a-pocket").arg("number", number),
+        ));
     };
     pocket.rest = after.map(|after_tool| chipload_job::Rest { after_tool });
     Ok(())
@@ -206,28 +270,30 @@ pub fn rest_pass_of(
     tools: &[Tool],
     tool: i64,
     cutting: Option<&Cutting>,
-) -> Result<chipload_job::RestPass, String> {
+) -> Result<chipload_job::RestPass, Message> {
     if pocket.corners.is_some() {
-        return Err(
-            "it has dogbones, and dogbones and rest machining can't be combined yet; \
-                    dogbone corners need no rest"
-                .into(),
-        );
+        return Err(Message::new("pipeline-rest-dogbones"));
     }
     let before = pocket.rest_passes.last().map_or(pocket.tool, |p| p.tool);
-    let small = find_tool(tools, tool).ok_or_else(|| format!("the project has no tool {tool}"))?;
-    let large =
-        find_tool(tools, before).ok_or_else(|| format!("the project has no tool {before}"))?;
+    let no_tool = |id: i64| Message::new("pipeline-no-tool").arg("tool", id);
+    let small = find_tool(tools, tool).ok_or_else(|| no_tool(tool))?;
+    let large = find_tool(tools, before).ok_or_else(|| no_tool(before))?;
     match rest_refusal(small, large) {
-        Some(RestRefusal::SmallNotEndmill) => return Err(format!("tool {tool} is not an endmill")),
+        Some(RestRefusal::SmallNotEndmill) => {
+            return Err(Message::new("pipeline-rest-not-endmill").arg("tool", tool));
+        }
         Some(RestRefusal::LargeNotEndmill) => {
-            return Err(format!("tool {} before it is not an endmill", large.id));
+            return Err(Message::new("pipeline-rest-before-not-endmill").arg("tool", large.id));
         }
         Some(RestRefusal::NotLarger) => {
-            return Err(format!(
-                "tool {tool} ({} mm) is not smaller than tool {} ({} mm) before it",
-                small.diameter, large.id, large.diameter
-            ));
+            return Err(Message::new("pipeline-rest-not-smaller")
+                .arg("tool", tool)
+                .arg("diameter", Value::Length(small.diameter, Digits::Shortest))
+                .arg("before", large.id)
+                .arg(
+                    "before_diameter",
+                    Value::Length(large.diameter, Digits::Shortest),
+                ));
         }
         None => {}
     }
@@ -270,19 +336,20 @@ pub fn add_rest_pass(
     let index = number
         .checked_sub(1)
         .filter(|&i| i < count)
-        .ok_or_else(|| {
-            PipelineError::Job(format!(
-                "there is no operation {number}; the project has {count}"
-            ))
-        })?;
+        .ok_or_else(|| no_operation(number, count))?;
     let tools = job.tools.clone();
     let Operation::Pocket(pocket) = &mut job.operations[index] else {
-        return Err(PipelineError::Job(format!(
-            "operation {number} is not a pocket; only pockets rest machine"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-not-a-pocket").arg("number", number),
+        ));
     };
-    let pass = rest_pass_of(pocket, &tools, tool, cutting)
-        .map_err(|e| PipelineError::Job(format!("operation {number}: {e}")))?;
+    let pass = rest_pass_of(pocket, &tools, tool, cutting).map_err(|e| {
+        PipelineError::Job(
+            Message::new("pipeline-operation-refused")
+                .arg("number", number)
+                .arg("reason", e),
+        )
+    })?;
     pocket.rest_passes.push(pass);
     Ok(chipload_job::OpRef::pass(
         index,
@@ -359,6 +426,20 @@ pub fn joined(problems: &[chipload_job::Problem]) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join("; ")
+}
+
+/// Words of the command line or another library, as a message that shows them as they are.
+pub fn foreign_text(text: impl Into<String>) -> Message {
+    Message::new("pipeline-text").arg("text", text.into())
+}
+
+/// A change refused for its problems, as [`joined`] writes them; Ok without problems.
+pub fn refuse_problems(problems: &[chipload_job::Problem]) -> Result<(), PipelineError> {
+    let messages = problems.iter().map(|p| p.text_message.clone());
+    match chipload_job::problem::semicolons(messages) {
+        None => Ok(()),
+        Some(message) => Err(PipelineError::Job(message)),
+    }
 }
 
 /// Every problem that keeps a project from being planned and needs no geometry to find:
@@ -562,8 +643,9 @@ fn check_failed(errors: &[CheckIssue], file: Option<usize>, program: &Program) -
 }
 
 fn tool_limits(job: &Job, tool: i64) -> Result<CheckLimits, PipelineError> {
-    limits_for_tool(job, tool)
-        .ok_or_else(|| PipelineError::Job(format!("Tool {tool} is not defined in the job")))
+    limits_for_tool(job, tool).ok_or_else(|| {
+        PipelineError::Job(Message::new("toolpath-tool-undefined").arg("tool", tool))
+    })
 }
 
 /// The program moved so the work zero is at X0 Y0: every X and Y minus the work zero.
@@ -719,6 +801,11 @@ pub fn new_project(imported: ImportedShapes) -> Job {
 /// A note when the drawing reaches beyond the stock (docs/specs/new-project.md §3); None
 /// when it fits or is empty.
 pub fn stock_fit_note(job: &Job) -> Option<String> {
+    stock_fit_message(job).map(|m| m.english())
+}
+
+/// [`stock_fit_note`] as a message.
+pub fn stock_fit_message(job: &Job) -> Option<Message> {
     let bbox = contours_from_shapes(&job.drawing.shapes, &job.drawing.dxfs)
         .report
         .bbox?;
@@ -728,12 +815,16 @@ pub fn stock_fit_note(job: &Job) -> Option<String> {
         && y0 >= sy0 - CHAIN_TOL_MM
         && x1 <= sx1 + CHAIN_TOL_MM
         && y1 <= sy1 + CHAIN_TOL_MM;
+    let number = |v: f64| Value::LengthNumber(v, Digits::Fixed(3));
+    let length = |v: f64| Value::Length(v, Digits::Fixed(3));
     (!fits).then(|| {
-        format!(
-            "The drawing (X{x0:.3} to {x1:.3} mm, Y{y0:.3} to {y1:.3} mm) extends beyond the stock \
-             ({:.3} × {:.3} mm); check the stock under Job settings.",
-            job.stock.x, job.stock.y
-        )
+        Message::new("pipeline-stock-fit")
+            .arg("x0", number(x0))
+            .arg("x1", length(x1))
+            .arg("y0", number(y0))
+            .arg("y1", length(y1))
+            .arg("width", number(job.stock.x))
+            .arg("length", length(job.stock.y))
     })
 }
 
@@ -757,7 +848,10 @@ pub struct UpdateReport {
     pub removed: Vec<u64>,
     /// Operations (indices) that selected a removed shape: they can't run until fixed.
     pub lost: Vec<usize>,
+    /// The report as sentences, in English, for the command line: `messages` in English.
     pub lines: Vec<String>,
+    /// The report as messages, for the app (docs/specs/translations.md §7).
+    pub messages: Vec<Message>,
 }
 
 /// Update the project's one DXF from `dxf` ([`dxfs::update_dxf`]); with none, `dxf` becomes
@@ -770,11 +864,11 @@ pub fn update_drawing(
     match job.drawing.dxfs.as_slice() {
         [] => dxfs::add_dxf(job, dxf, units),
         [only] => dxfs::update_dxf(job, only.id, dxf, units),
-        several => Err(PipelineError::Job(format!(
-            "the project has {} DXFs ({}): say which to update",
-            several.len(),
-            placement::dxf_list(several)
-        ))),
+        several => Err(PipelineError::Job(
+            Message::new("pipeline-update-which-dxf")
+                .arg("count", several.len())
+                .arg("dxfs", placement::dxf_list(several)),
+        )),
     }
 }
 

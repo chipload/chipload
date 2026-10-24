@@ -79,9 +79,9 @@ pub fn plan_vcarve(
     start: Point,
 ) -> Result<VcarvePlan, ToolpathError> {
     if !(bit.angle > 0.0 && bit.angle < std::f64::consts::PI) {
-        return Err(geometry(format!(
-            "the V-bit angle must be more than 0 and less than 180 degrees, got {:.3}",
-            bit.angle.to_degrees()
+        return Err(geometry(Message::new("toolpath-error-vbit-angle").arg(
+            "got",
+            Value::Number(bit.angle.to_degrees(), Digits::Fixed(3)),
         )));
     }
     let cap = max_depth.min(bit.deepest());
@@ -290,11 +290,11 @@ impl Graph {
                     let room = outline.distance(p);
                     let inside = area.contains(p) || room <= VCARVE_TOL_MM;
                     if !inside || r > room + VCARVE_TOL_MM {
-                        return Err(geometry(format!(
-                            "contours {ids}: V-carve verification failed: the cut would \
-                             cross the outline near ({:.3}, {:.3}) mm",
-                            p.0, p.1
-                        )));
+                        return Err(geometry(
+                            Message::new("toolpath-error-vcarve-verification")
+                                .arg("contours", ids)
+                                .arg("at", Value::Point(p.0, p.1, Digits::Fixed(3))),
+                        ));
                     }
                 }
             }

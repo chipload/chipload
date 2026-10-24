@@ -6,10 +6,11 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use chipload_i18n::Message;
 use chipload_job::Job;
 use chipload_job::library::{
-    MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary, load_machines,
-    load_tools,
+    LibraryError, MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary,
+    load_machines, load_tools,
 };
 
 /// Overrides the settings folder (tests, a portable install, a shared workshop folder).
@@ -56,29 +57,33 @@ pub fn settings_path(dir: &Path) -> PathBuf {
 pub struct Library {
     pub tools: ToolLibrary,
     pub machines: MachineLibrary,
-    pub problems: Vec<String>,
+    /// Why a file couldn't be read, as messages.
+    pub problems: Vec<Message>,
     /// Where the user's post-processors are (docs/specs/user-posts.md); None: no settings
     /// folder.
     pub posts: Option<PathBuf>,
     /// The user's post-processors as read, by name, with why one can't be used.
-    pub user_posts: Vec<(String, Result<chipload_post::UserPost, String>)>,
+    pub user_posts: Vec<(String, Result<chipload_post::UserPost, Message>)>,
 }
 
 impl Library {
     pub fn load(dir: &Path) -> Library {
         let mut problems = Vec::new();
+        let defaults = |err: LibraryError| {
+            Message::new("pipeline-library-defaults").arg("error", err.message())
+        };
         let tools = load_tools(&tools_path(dir)).unwrap_or_else(|err| {
-            problems.push(format!("{err} (using built-in defaults)"));
+            problems.push(defaults(err));
             ToolLibrary::default()
         });
         let machines = load_machines(&machines_path(dir)).unwrap_or_else(|err| {
-            problems.push(format!("{err} (using built-in defaults)"));
+            problems.push(defaults(err));
             MachineLibrary::default()
         });
         let posts = crate::posts::posts_dir(dir);
         let user_posts = chipload_post::list_user_posts(&posts)
             .into_iter()
-            .map(|(name, read)| (name, read.map_err(|e| e.to_string())))
+            .map(|(name, read)| (name, read.map_err(|e| e.message())))
             .collect();
         Library {
             tools,
@@ -97,29 +102,37 @@ pub fn apply_library(
     job: &mut Job,
     library: &Library,
     machine: Option<&str>,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<Message>, Message> {
     let mut notes = Vec::new();
     let profile = match machine {
         Some(name) => Some((
             library
                 .machines
                 .find(name)
-                .ok_or_else(|| format!("no machine profile named \"{name}\""))?,
+                .ok_or_else(|| Message::new("pipeline-library-no-profile").arg("name", name))?,
             "profile",
         )),
         None => library
             .machines
             .default_entry()
-            .map(|profile| (profile, "default profile")),
+            .map(|profile| (profile, "default")),
     };
     if let Some((profile, how)) = profile {
         profile.apply(job);
-        notes.push(format!("machine: {} ({how})", profile.name));
+        notes.push(
+            Message::new("pipeline-library-machine")
+                .arg("name", &profile.name)
+                .arg("how", how),
+        );
         notes.extend(copy_profile_post(job, library.posts.as_deref()));
     }
     if let Some(entry) = library.tools.default_entry() {
         let tool = entry.tool(entry.id.max(1));
-        notes.push(format!("tool {}: {} (default tool)", tool.id, entry.name));
+        notes.push(
+            Message::new("pipeline-library-tool")
+                .arg("tool", tool.id)
+                .arg("name", &entry.name),
+        );
         job.tools = vec![tool];
     }
     Ok(notes)
@@ -128,29 +141,31 @@ pub fn apply_library(
 /// After a machine profile is applied: copy its post in if it is a user post. A post that
 /// can't be read is named in the returned note; the project keeps the name and can't make
 /// G-code until the post is there (or another is chosen).
-pub fn copy_profile_post(job: &mut Job, posts: Option<&Path>) -> Option<String> {
+pub fn copy_profile_post(job: &mut Job, posts: Option<&Path>) -> Option<Message> {
     let name = job.machine.post.clone();
     if chipload_post::builtin_posts().contains(&name.as_str()) {
         return None;
     }
     crate::posts::choose_post(job, &name, posts)
         .err()
-        .map(|err| format!("post-processor \"{name}\": {err}"))
+        .map(|err| {
+            Message::new("pipeline-library-post-unusable")
+                .arg("name", name)
+                .arg("error", err.message())
+        })
 }
 
 /// Notes for imported machine profiles whose post-processor this Chipload doesn't have,
 /// built in or in `posts` (docs/specs/library-import-export.md §4): imported anyway,
 /// refused only when used.
-pub fn unknown_posts(file: &MachineLibrary, posts: Option<&Path>) -> Vec<String> {
+pub fn unknown_posts(file: &MachineLibrary, posts: Option<&Path>) -> Vec<Message> {
     file.machines
         .iter()
         .filter(|m| !crate::posts::post_exists(&m.post, posts))
         .map(|m| {
-            format!(
-                "Machine \"{}\": this Chipload has no post-processor \"{}\"; projects using \
-                 it can't make G-code until it has",
-                m.name, m.post
-            )
+            Message::new("pipeline-library-unknown-post")
+                .arg("name", &m.name)
+                .arg("post", &m.post)
         })
         .collect()
 }

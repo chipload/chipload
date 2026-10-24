@@ -69,7 +69,7 @@ fn tab_as_high_as_the_cut_is_an_error() {
         json!({"count": 4, "width": 8, "height": 12, "flank_angle": std::f64::consts::FRAC_PI_2});
     let err = plan_job(&job(profile("outside", tabs)), &part()).unwrap_err();
     assert!(
-        matches!(err.cause(), ToolpathError::Job(m) if m.contains("tab height 12")),
+        matches!(err.cause(), ToolpathError::Job(m) if m.english().contains("tab height 12")),
         "{err}"
     );
     assert_eq!(err.operation(), Some(0));
@@ -93,7 +93,7 @@ fn too_many_tabs_names_the_contour() {
         json!({"count": 40, "width": 8, "height": 3, "flank_angle": std::f64::consts::FRAC_PI_2});
     let err = plan_job(&job(profile("outside", tabs)), &part()).unwrap_err();
     assert!(
-        matches!(err.cause(), ToolpathError::Geometry(m) if m.starts_with("Operation 1, contour #1:")),
+        matches!(err.cause(), ToolpathError::Geometry(m) if m.english().starts_with("Operation 1, contour #1:")),
         "{err}"
     );
 }

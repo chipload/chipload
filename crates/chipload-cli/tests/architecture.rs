@@ -101,22 +101,24 @@ fn core_is_headless_and_at_the_bottom() {
 
 #[test]
 fn image_tracing_sits_beside_the_dxf_reader() {
-    // docs/specs/image-trace.md §7: pictures in, loops out, on chipload-core alone.
+    // docs/specs/image-trace.md §7: pictures in, loops out, on chipload-core alone (and
+    // the texts of its errors, which use no workspace crate: translations.md §7).
     let deps = &runtime_closure()["chipload-image"];
     let bad: Vec<&String> = deps
         .iter()
-        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core")
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
         .collect();
     assert!(bad.is_empty(), "chipload-image depends on {bad:?}");
 }
 
 #[test]
 fn text_lettering_sits_beside_image_tracing() {
-    // docs/specs/text.md §4: text in, outlines out, on chipload-core alone.
+    // docs/specs/text.md §4: text in, outlines out, on chipload-core alone (and the texts
+    // of its errors).
     let deps = &runtime_closure()["chipload-text"];
     let bad: Vec<&String> = deps
         .iter()
-        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core")
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
         .collect();
     assert!(bad.is_empty(), "chipload-text depends on {bad:?}");
 }

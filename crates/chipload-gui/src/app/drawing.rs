@@ -81,7 +81,10 @@ impl ChiploadApp {
                 Some(id)
             }
             Err(err) => {
-                self.error(vec![t!(self, "drawing-add-failed"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "drawing-add-failed"),
+                    err.message(),
+                ));
                 None
             }
         }
@@ -136,6 +139,7 @@ impl ChiploadApp {
     /// and the reason is returned (shown under the form).
     pub fn set_selected_shape(&mut self, layer: &str, geometry: Geometry) -> Result<(), String> {
         let lang = crate::i18n::Lang::lang(self);
+        let units = self.units.into();
         let id = self
             .selected_shape()
             .ok_or_else(|| t!(lang, "drawing-no-shape-selected"))?;
@@ -143,7 +147,8 @@ impl ChiploadApp {
             .edit
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
-        let job = set_shape(&edit.settings, id, layer, geometry).map_err(|e| e.to_string())?;
+        let job = set_shape(&edit.settings, id, layer, geometry)
+            .map_err(|e| e.message().render(lang, units))?;
         edit.settings = job;
         self.drawing_changed(&[id]);
         Ok(())
@@ -204,7 +209,7 @@ impl ChiploadApp {
                     flagged.extend(lines);
                 }
                 Err(err) => {
-                    self.error(vec![err.to_string()]);
+                    self.error_report(Report::of_error(err.message()));
                     return;
                 }
             }

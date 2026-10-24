@@ -223,7 +223,7 @@ impl ChiploadApp {
                 };
                 self.error_ops = op.into_iter().collect();
                 let mut report = Report::error([t!(self, "generation-failed")]);
-                report.push_at(Tone::Error, err.to_string(), op);
+                report.push_message(Tone::Error, err.message(), op);
                 self.fail_with(report, loud);
                 false
             }

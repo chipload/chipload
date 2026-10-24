@@ -202,6 +202,29 @@ lengths. The numbers it writes after a G-code letter without a unit (the F of "F
 must be positive", G64's P and its limit, a T word) stay plain numbers, never converted.
 The setup sheet still writes the findings through `text_in` (step 3).
 
+**As built, 7.3.5 (2026-10-24):** errors and the library's, recovery's and drawing
+reports' sentences. Each error enum (`JobError`, `LibraryError`, `ImportError`,
+`ImageError`, `TextError`, `PostError`, `ToolpathError`, `PipelineError`,
+`RecoveryError`) has `message()`, and its `Display` writes that message in English, so the
+command line reads as before; `thiserror` is gone from those crates. A wrapped error of
+another crate is a nested message; the words of another library (the file system, the
+JSON and TOML readers, the template engine, the picture decoder) go in as text, as that
+library writes them. Variants that carried a finished sentence now carry the message
+(`ToolpathError::Geometry(Message)`, `PipelineError::Job(Message)`, …), and reasons that
+are either a message or foreign words carry a `Value`. New files `image.ftl`, `text.ftl`
+and `post.ftl`; more texts in `job.ftl` (errors, the library's comparisons "diameter 6 mm
+-> 8 mm", links, import plans), `toolpath.ftl` (planning errors), `pipeline.ftl` (refused
+changes, the reports of adding, updating, placing and removing a DXF, of tracing a
+picture and writing a text, post-processor facts, the library's starting values,
+recovery) and `dxf.ftl`. Reports keep their English `lines` and gain `messages`;
+functions the command line uses keep an English form over the message one
+(`Link::text`, `ImportPlan::report`, `post_facts`, `stock_fit_note`,
+`UsedTool::describe`). `chipload-image`, `chipload-text`, `chipload-post` and
+`chipload-cli` depend on `chipload-i18n`; the architecture test allows it beside the
+core for pictures and texts. The app shows these errors and reports in its language and
+display units. Still English on purpose: migration reasons and a library file's rule
+violations (they name the file's fields), and the setup sheet's own words (step 3).
+
 ### 7.1 What there is
 
 The library crates write about 450 messages as finished English sentences (`format!`),

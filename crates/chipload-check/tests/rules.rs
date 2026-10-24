@@ -185,7 +185,7 @@ fn below_the_stock_is_a_warning_within_the_overcut_and_an_error_beyond() {
     assert!(
         within.warnings.iter().any(|w| w
             .message
-            .contains("1 moves go below the stock bottom (deepest Z-18.300")),
+            .contains("1 move goes below the stock bottom (deepest Z-18.300")),
         "{:?}",
         within.warnings
     );

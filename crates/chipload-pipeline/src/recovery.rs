@@ -11,6 +11,7 @@ use std::fs::{File, OpenOptions, TryLockError};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+use chipload_i18n::{Message, Value};
 use chipload_job::library::{LibraryError, RecoveryNote, load_recovery_note, save_recovery_note};
 use chipload_job::{Job, JobError, dump_job, load_job};
 
@@ -23,20 +24,56 @@ pub fn recovery_dir(settings: &Path) -> PathBuf {
     settings.join(RECOVERY_DIR)
 }
 
-#[derive(Debug, thiserror::Error)]
+/// Why a recovery copy couldn't be written, read or removed. Its text is a message, shown
+/// in the app's language; `Display` writes it in English.
+#[derive(Debug)]
 pub enum RecoveryError {
-    #[error("Cannot write the recovery copy {path}: {reason}")]
-    Io { path: String, reason: String },
-    #[error(transparent)]
-    Job(#[from] JobError),
-    #[error(transparent)]
-    Note(#[from] LibraryError),
+    /// `reason` is the operating system's words, or a message.
+    Io {
+        path: String,
+        reason: Value,
+    },
+    Job(JobError),
+    Note(LibraryError),
+}
+
+impl RecoveryError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            RecoveryError::Io { path, reason } => Message::new("pipeline-recovery-io")
+                .arg("path", path)
+                .arg("reason", reason.clone()),
+            RecoveryError::Job(e) => e.message(),
+            RecoveryError::Note(e) => e.message(),
+        }
+    }
+}
+
+impl std::fmt::Display for RecoveryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for RecoveryError {}
+
+impl From<JobError> for RecoveryError {
+    fn from(e: JobError) -> Self {
+        RecoveryError::Job(e)
+    }
+}
+
+impl From<LibraryError> for RecoveryError {
+    fn from(e: LibraryError) -> Self {
+        RecoveryError::Note(e)
+    }
 }
 
 fn io_error(path: &Path) -> impl Fn(std::io::Error) -> RecoveryError + '_ {
     move |e| RecoveryError::Io {
         path: path.display().to_string(),
-        reason: e.to_string(),
+        reason: Value::Text(e.to_string()),
     }
 }
 
@@ -87,7 +124,7 @@ impl Session {
         if lock.is_none() {
             return Err(RecoveryError::Io {
                 path: lock_path.display().to_string(),
-                reason: "already locked".into(),
+                reason: Message::new("pipeline-recovery-locked").into(),
             });
         }
         Ok(Session {
@@ -157,7 +194,7 @@ pub struct Leftover {
     /// The project file was saved after the copy was written.
     pub project_changed: bool,
     /// Why it can't be opened (a cut-short copy, a newer Chipload, a broken note).
-    pub problem: Option<String>,
+    pub problem: Option<Message>,
 }
 
 impl Leftover {
@@ -218,8 +255,8 @@ pub fn leftovers(dir: &Path) -> Vec<Leftover> {
             _ => false,
         };
         let problem = match (&note, load_job(&copy)) {
-            (Err(e), _) => Some(e.to_string()),
-            (_, Err(e)) => Some(e.to_string()),
+            (Err(e), _) => Some(e.message()),
+            (_, Err(e)) => Some(e.message()),
             _ => None,
         };
         found.push(Leftover {

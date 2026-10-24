@@ -89,11 +89,12 @@ impl ChiploadApp {
         let job = match load_job(path) {
             Ok(job) => job,
             Err(err) => {
-                self.error(vec![
+                let mut report = Report::failed(
                     t!(self, "disk-cannot-load", file = file_name(path)),
-                    err.to_string(),
-                    t!(self, "disk-unchanged"),
-                ]);
+                    err.message(),
+                );
+                report.push(Tone::Error, t!(self, "disk-unchanged"));
+                self.error_report(report);
                 return;
             }
         };

@@ -8,15 +8,17 @@
 
 use std::path::Path;
 
+use chipload_i18n::{Digits, Message, Value as I18nValue};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use thiserror::Error;
 
+use crate::foreign;
 use crate::models::{
     Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, Units, WorkZero,
     max_overcut_problems,
 };
+use crate::problem::{commas, semicolons};
 
 pub const TOOLS_FILE: &str = "tools.json";
 pub const MACHINES_FILE: &str = "machines.json";
@@ -35,28 +37,75 @@ pub const SETTINGS_VERSION: i64 = 3;
 /// How many recent projects are kept.
 pub const RECENT_MAX: usize = 10;
 
-#[derive(Debug, Error)]
+/// Why a library, settings or recovery file can't be read or changed. Its text is a
+/// message (`job.ftl`), shown in the app's language; `Display` writes it in English.
+#[derive(Debug)]
 pub enum LibraryError {
     /// Missing, malformed or newer-than-known `schema_version`. Never guessed.
-    #[error(
-        "{path}: schema_version {found} is not supported: this version of Chipload reads \
-         {current}. Update Chipload or check the file."
-    )]
     UnsupportedVersion {
         path: String,
         found: String,
         current: i64,
     },
-    #[error("Cannot read {path}: {reason}")]
-    Unreadable { path: String, reason: String },
-    #[error("Invalid {path}: {reason}")]
-    Invalid { path: String, reason: String },
-    #[error("Cannot write {path}: {reason}")]
-    Unwritable { path: String, reason: String },
-    /// A change the library refuses, e.g. a name that isn't there.
-    #[error("{0}")]
-    Refused(String),
+    /// `reason` is the file system's or JSON reader's own words, or a message.
+    Unreadable {
+        path: String,
+        reason: I18nValue,
+    },
+    /// `reason` is the JSON reader's own words, or the file's rule violations (English:
+    /// they name the file's fields).
+    Invalid {
+        path: String,
+        reason: I18nValue,
+    },
+    Unwritable {
+        path: String,
+        reason: I18nValue,
+    },
+    /// A change the library refuses, e.g. a name that isn't there: a message, or words the
+    /// caller wrote.
+    Refused(I18nValue),
 }
+
+impl LibraryError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            LibraryError::UnsupportedVersion {
+                path,
+                found,
+                current,
+            } => Message::new("job-library-error-version")
+                .arg("path", path)
+                .arg("found", found)
+                .arg("current", *current),
+            LibraryError::Unreadable { path, reason } => {
+                Message::new("job-library-error-unreadable")
+                    .arg("path", path)
+                    .arg("reason", reason.clone())
+            }
+            LibraryError::Invalid { path, reason } => Message::new("job-library-error-invalid")
+                .arg("path", path)
+                .arg("reason", reason.clone()),
+            LibraryError::Unwritable { path, reason } => {
+                Message::new("job-library-error-unwritable")
+                    .arg("path", path)
+                    .arg("reason", reason.clone())
+            }
+            LibraryError::Refused(reason) => {
+                Message::new("job-library-error-refused").arg("reason", reason.clone())
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for LibraryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for LibraryError {}
 
 /// Values filled into an operation when it is created with this tool. Never applied to an
 /// existing operation.
@@ -146,47 +195,42 @@ impl LibraryTool {
         }
     }
 
-    /// What replacing a project tool's values with this entry would change, one line per
-    /// value ("diameter 6 mm -> 8 mm"); empty when they match (id and name aside).
-    pub fn changes(&self, tool: &Tool) -> Vec<String> {
-        let mut changes = Vec::new();
-        let mut differs = |what: &str, from: String, to: String| {
-            if from != to {
-                changes.push(format!("{what} {from} -> {to}"));
-            }
-        };
-        differs(
+    /// What replacing a project tool's values with this entry would change, one message
+    /// per value ("diameter 6 mm -> 8 mm"); empty when they match (id and name aside).
+    pub fn changes(&self, tool: &Tool) -> Vec<Message> {
+        let mut changes = Changes::default();
+        changes.differs(
             "type",
             ToolType::name(tool.kind).into(),
             ToolType::name(self.kind).into(),
         );
-        differs("diameter", mm(tool.diameter), mm(self.diameter));
-        differs(
+        changes.differs("diameter", mm(tool.diameter), mm(self.diameter));
+        changes.differs(
             "flutes",
-            optional(tool.flutes.map(|f| f.to_string())),
-            optional(self.flutes.map(|f| f.to_string())),
+            optional(tool.flutes.map(|f| f.to_string().into())),
+            optional(self.flutes.map(|f| f.to_string().into())),
         );
-        differs(
-            "centre cutting",
-            yes_no(tool.center_cutting).into(),
-            yes_no(self.center_cutting).into(),
+        changes.differs(
+            "centre-cutting",
+            yes_no(tool.center_cutting),
+            yes_no(self.center_cutting),
         );
-        differs(
+        changes.differs(
             "rpm",
-            optional(tool.rpm.map(|r| r.to_string())),
-            optional(self.rpm.map(|r| r.to_string())),
+            optional(tool.rpm.map(number)),
+            optional(self.rpm.map(number)),
         );
-        differs(
+        changes.differs(
             "angle",
             optional(tool.angle.map(degrees)),
             optional(self.angle.map(degrees)),
         );
-        differs(
+        changes.differs(
             "tip",
             optional(tool.tip_diameter.map(mm)),
             optional(self.tip_diameter.map(mm)),
         );
-        changes
+        changes.0
     }
 
     /// Whether a project tool has this entry's values (id, name and link aside).
@@ -256,7 +300,7 @@ impl ToolLibrary {
     pub fn remove(&mut self, name: &str) -> Result<LibraryTool, LibraryError> {
         let i = self
             .position(name)
-            .ok_or_else(|| LibraryError::Refused(format!("no tool named \"{name}\"")))?;
+            .ok_or_else(|| refused(Message::new("job-library-no-tool").arg("name", name)))?;
         if self
             .default_tool
             .as_deref()
@@ -389,75 +433,70 @@ impl MachineProfile {
 
     /// What applying this profile would change in a project, one line per value
     /// ("safe Z 5 -> 10 mm"); empty when the values already match (the name aside).
-    pub fn changes(&self, job: &Job) -> Vec<String> {
+    pub fn changes(&self, job: &Job) -> Vec<Message> {
         self.changes_from(&job.machine, job.stock.max_overcut)
     }
 
     /// What differs in the machine values only (post, tool changes, spindle, max feed,
     /// travel): what the link compares (docs/specs/linked-machine.md §2). Safe Z, the work
     /// zero and the max overcut are the job's, and a profile only starts them.
-    pub fn machine_changes(&self, old: &Machine) -> Vec<String> {
+    pub fn machine_changes(&self, old: &Machine) -> Vec<Message> {
         self.compare(old, None)
     }
 
     /// As `changes`, from a machine and a max overcut.
-    fn changes_from(&self, old: &Machine, max_overcut: f64) -> Vec<String> {
+    fn changes_from(&self, old: &Machine, max_overcut: f64) -> Vec<Message> {
         self.compare(old, Some(max_overcut))
     }
 
     /// What differs from `old`; with the job values too when `max_overcut` is given.
-    fn compare(&self, old: &Machine, max_overcut: Option<f64>) -> Vec<String> {
+    fn compare(&self, old: &Machine, max_overcut: Option<f64>) -> Vec<Message> {
         let job_values = max_overcut.is_some();
-        let mut changes = Vec::new();
-        let mut differs = |what: &str, from: String, to: String| {
-            if from != to {
-                changes.push(format!("{what} {from} -> {to}"));
-            }
-        };
-        differs("post", old.post.clone(), self.post.clone());
-        differs(
-            "G-code units",
+        let mut changes = Changes::default();
+        changes.differs("post", old.post.clone().into(), self.post.clone().into());
+        changes.differs(
+            "G-code-units",
             old.gcode_units.name().into(),
             self.gcode_units.name().into(),
         );
-        differs(
-            "tool changes",
+        changes.differs(
+            "tool-changes",
             old.tool_change.name().into(),
             self.tool_change.name().into(),
         );
         if job_values {
-            differs("safe Z", mm(old.safe_z), mm(self.safe_z));
+            changes.differs("safe-Z", mm(old.safe_z), mm(self.safe_z));
         }
-        differs(
+        changes.differs(
             "spindle",
             spindle_name(old.spindle).into(),
             spindle_name(self.spindle).into(),
         );
-        differs(
-            "max feed",
-            optional(old.max_feed.map(|f| format!("{f} mm/min"))),
-            optional(self.max_feed.map(|f| format!("{f} mm/min"))),
+        changes.differs(
+            "max-feed",
+            optional(old.max_feed.map(feed)),
+            optional(self.max_feed.map(feed)),
         );
-        differs(
+        changes.differs(
             "travel",
             optional(old.travel.as_ref().map(travel_text)),
             optional(self.travel.as_ref().map(travel_text)),
         );
         if let Some(max_overcut) = max_overcut {
-            differs(
-                "work zero",
+            changes.differs(
+                "work-zero",
                 work_zero_name(&old.work_zero),
                 work_zero_name(&self.work_zero),
             );
-            differs("max overcut", mm(max_overcut), mm(self.max_overcut));
+            changes.differs("max-overcut", mm(max_overcut), mm(self.max_overcut));
         }
-        changes
+        changes.0
     }
 
     /// Copy only this profile's machine values (and its name and uid) into a project,
     /// keeping its safe Z, work zero and max overcut; returns what changed
     /// (docs/specs/linked-machine.md §3).
-    pub fn update_machine_values(&self, job: &mut Job) -> Vec<String> {
+    pub fn update_machine_values(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.machine_changes(&job.machine);
         let keep = (job.machine.safe_z, job.machine.work_zero);
         job.machine = self.machine();
@@ -466,7 +505,7 @@ impl MachineProfile {
     }
 
     /// Copy this profile's values (and name) into a project; returns what changed.
-    pub fn apply(&self, job: &mut Job) -> Vec<String> {
+    pub fn apply(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.changes(job);
         job.machine = self.machine();
         job.stock.max_overcut = self.max_overcut;
@@ -474,28 +513,65 @@ impl MachineProfile {
     }
 }
 
-fn mm(value: f64) -> String {
-    format!("{value} mm")
+/// What differs between two entries, one message per value: "diameter 6 mm -> 8 mm".
+#[derive(Default)]
+struct Changes(Vec<Message>);
+
+impl Changes {
+    /// A change of the value `field` (a key of `job-library-field`), if `from` isn't `to`.
+    fn differs(&mut self, field: &str, from: I18nValue, to: I18nValue) {
+        if from != to {
+            self.0.push(
+                Message::new("job-library-change")
+                    .arg(
+                        "what",
+                        Message::new("job-library-field").arg("field", field),
+                    )
+                    .arg("from", from)
+                    .arg("to", to),
+            );
+        }
+    }
 }
 
-fn degrees(radians: f64) -> String {
-    format!("{}°", radians.to_degrees())
+/// A length as Rust writes it, with its unit.
+fn mm(value: f64) -> I18nValue {
+    I18nValue::Length(value, Digits::Shortest)
 }
 
-fn optional(text: Option<String>) -> String {
-    text.unwrap_or_else(|| "none".into())
+fn feed(value: f64) -> I18nValue {
+    I18nValue::Feed(value, Digits::Shortest)
 }
 
-fn travel_text(t: &Travel) -> String {
-    format!("X{} Y{} Z{} mm", t.x, t.y, t.z)
+fn number(value: f64) -> I18nValue {
+    I18nValue::Number(value, Digits::Shortest)
 }
 
-fn yes_no(value: Option<bool>) -> &'static str {
-    match value {
+fn degrees(radians: f64) -> I18nValue {
+    Message::new("job-library-degrees")
+        .arg("degrees", number(radians.to_degrees()))
+        .into()
+}
+
+fn optional(value: Option<I18nValue>) -> I18nValue {
+    value.unwrap_or_else(|| Message::new("job-library-none").into())
+}
+
+fn travel_text(t: &Travel) -> I18nValue {
+    Message::new("job-library-travel")
+        .arg("x", I18nValue::LengthNumber(t.x, Digits::Shortest))
+        .arg("y", I18nValue::LengthNumber(t.y, Digits::Shortest))
+        .arg("z", mm(t.z))
+        .into()
+}
+
+fn yes_no(value: Option<bool>) -> I18nValue {
+    let word = match value {
         Some(true) => "yes",
         Some(false) => "no",
         None => "unknown",
-    }
+    };
+    Message::new("job-library-yes-no").arg("value", word).into()
 }
 
 fn spindle_name(spindle: Spindle) -> &'static str {
@@ -505,12 +581,17 @@ fn spindle_name(spindle: Spindle) -> &'static str {
     }
 }
 
-fn work_zero_name(zero: &WorkZero) -> String {
-    match zero {
-        WorkZero::DrawingOrigin {} => "drawing origin".into(),
-        WorkZero::Stock { corner } => format!("stock {}", corner.name()),
-        WorkZero::Point { x, y } => format!("point X{x} Y{y}"),
-    }
+fn work_zero_name(zero: &WorkZero) -> I18nValue {
+    let message = match zero {
+        WorkZero::DrawingOrigin {} => Message::new("job-library-work-zero-origin"),
+        WorkZero::Stock { corner } => {
+            Message::new("job-library-work-zero-stock").arg("corner", corner.name())
+        }
+        WorkZero::Point { x, y } => Message::new("job-library-work-zero-point")
+            .arg("x", I18nValue::LengthNumber(*x, Digits::Shortest))
+            .arg("y", I18nValue::LengthNumber(*y, Digits::Shortest)),
+    };
+    message.into()
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -569,7 +650,7 @@ impl MachineLibrary {
     pub fn remove(&mut self, name: &str) -> Result<MachineProfile, LibraryError> {
         let i = self
             .position(name)
-            .ok_or_else(|| LibraryError::Refused(format!("no machine named \"{name}\"")))?;
+            .ok_or_else(|| refused(Message::new("job-library-no-machine").arg("name", name)))?;
         if self
             .default_machine
             .as_deref()
@@ -855,14 +936,17 @@ impl UsedTool {
     /// "tool 3 (added)", "tool 3 (added as 3; tool 1 was taken)", "tool 2 (already in the
     /// project)".
     pub fn describe(&self, library_id: i64) -> String {
-        match (self.added, self.id == library_id) {
-            (false, _) => format!("tool {} (already in the project)", self.id),
-            (true, true) => format!("tool {} (added)", self.id),
-            (true, false) => format!(
-                "tool {} (added as {}; tool {library_id} was taken)",
-                self.id, self.id
-            ),
-        }
+        self.describe_message(library_id).english()
+    }
+
+    /// `describe` as a message.
+    pub fn describe_message(&self, library_id: i64) -> Message {
+        let message = match (self.added, self.id == library_id) {
+            (false, _) => Message::new("job-library-tool-there"),
+            (true, true) => Message::new("job-library-tool-added"),
+            (true, false) => Message::new("job-library-tool-added-as").arg("taken", library_id),
+        };
+        message.arg("id", self.id)
     }
 }
 
@@ -902,20 +986,49 @@ pub enum Link {
     /// The entry, by its current name, has the same values.
     Same(String),
     /// The entry, by its current name, has other values: what updating would change.
-    Differs(String, Vec<String>),
+    Differs(String, Vec<Message>),
+}
+
+/// What a link's entry is called in its messages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkEntry {
+    /// "library tool"
+    Tool,
+    /// "profile"
+    Profile,
+}
+
+impl LinkEntry {
+    fn key(self) -> &'static str {
+        match self {
+            LinkEntry::Tool => "tool",
+            LinkEntry::Profile => "profile",
+        }
+    }
 }
 
 impl Link {
+    /// One line for the user, in English: `message` in English.
+    pub fn text(&self, what: LinkEntry) -> String {
+        self.message(what).english()
+    }
+
     /// One line for the user; `what` names the entry ("library tool", "profile").
-    pub fn text(&self, what: &str) -> String {
+    pub fn message(&self, what: LinkEntry) -> Message {
+        let entry = what.key();
         match self {
-            Link::None => "not from your library".into(),
-            Link::Missing(Some(name)) => format!("{what} \"{name}\" is not in your library"),
-            Link::Missing(None) => format!("its {what} is not in your library"),
-            Link::Same(name) => format!("from {what} \"{name}\""),
-            Link::Differs(name, changes) => {
-                format!("differs from {what} \"{name}\": {}", changes.join(", "))
-            }
+            Link::None => Message::new("job-link-none"),
+            Link::Missing(Some(name)) => Message::new("job-link-missing-named")
+                .arg("entry", entry)
+                .arg("name", name),
+            Link::Missing(None) => Message::new("job-link-missing").arg("entry", entry),
+            Link::Same(name) => Message::new("job-link-same")
+                .arg("entry", entry)
+                .arg("name", name),
+            Link::Differs(name, changes) => Message::new("job-link-differs")
+                .arg("entry", entry)
+                .arg("name", name)
+                .arg("changes", commas(changes.iter().cloned())),
         }
     }
 
@@ -1136,7 +1249,7 @@ pub fn load_recovery_note(path: &Path) -> Result<RecoveryNote, LibraryError> {
     let shown = path.display().to_string();
     let text = std::fs::read_to_string(path).map_err(|e| LibraryError::Unreadable {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     parse(&text, &shown)
 }
@@ -1225,26 +1338,26 @@ fn update<L: LibraryFile, T>(
 
 fn load<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
     let shown = path.display().to_string();
-    let unreadable = |reason: String| LibraryError::Unreadable {
+    let unreadable = |reason: I18nValue| LibraryError::Unreadable {
         path: shown.clone(),
         reason,
     };
     match std::fs::read_to_string(path) {
         Ok(text) => parse(&text, &shown),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(L::default()),
-        Err(e) => Err(unreadable(e.to_string())),
+        Err(e) => Err(unreadable(foreign(e))),
     }
 }
 
 /// A library file's text, read as `load` does: migrated, then checked.
 fn parse<L: LibraryFile>(text: &str, shown: &str) -> Result<L, LibraryError> {
-    let unreadable = |reason: String| LibraryError::Unreadable {
+    let unreadable = |reason: I18nValue| LibraryError::Unreadable {
         path: shown.to_string(),
         reason,
     };
-    let data: Value = serde_json::from_str(text).map_err(|e| unreadable(e.to_string()))?;
+    let data: Value = serde_json::from_str(text).map_err(|e| unreadable(foreign(e)))?;
     let Value::Object(mut object) = data else {
-        return Err(unreadable("must contain a JSON object".into()));
+        return Err(unreadable(Message::new("job-error-not-object").into()));
     };
     let version = object.get("schema_version");
     let Some(found) = version
@@ -1264,7 +1377,7 @@ fn parse<L: LibraryFile>(text: &str, shown: &str) -> Result<L, LibraryError> {
     let data = Value::Object(object);
     let library: L = serde_json::from_value(data).map_err(|e| LibraryError::Invalid {
         path: shown.to_string(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     check(&library, shown)?;
     Ok(library)
@@ -1277,7 +1390,7 @@ fn check<L: LibraryFile>(library: &L, path: &str) -> Result<(), LibraryError> {
     } else {
         Err(LibraryError::Invalid {
             path: path.to_string(),
-            reason: problems.join("; "),
+            reason: I18nValue::Text(problems.join("; ")),
         })
     }
 }
@@ -1292,13 +1405,13 @@ fn write<L: LibraryFile>(library: &L, path: &Path, backup: bool) -> Result<(), L
     check(library, &shown)?;
     let failed = |e: std::io::Error| LibraryError::Unwritable {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     };
     let mut current = library.clone();
     current.stamp();
     let text = serde_json::to_string_pretty(&current).map_err(|e| LibraryError::Invalid {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     if let Some(folder) = path.parent() {
         std::fs::create_dir_all(folder).map_err(failed)?;
@@ -1325,7 +1438,8 @@ pub trait Collection: LibraryFile {
     const LIST: &'static str;
     /// One entry in messages ("tool").
     const ENTRY: &'static str;
-    /// The other library's list field, and what to say when a file holds that one.
+    /// The other library's list field, and the message (its id) to say when a file holds
+    /// that one.
     const OTHER: (&'static str, &'static str);
     fn entries(&self) -> &[Self::Entry];
     fn entries_mut(&mut self) -> &mut Vec<Self::Entry>;
@@ -1338,7 +1452,7 @@ pub trait Entry: Clone + PartialEq {
     fn name(&self) -> &str;
     /// What taking `other`'s values would change, one line per value ("diameter 6 mm ->
     /// 8 mm"); empty when they match (the name aside).
-    fn differences(&self, other: &Self) -> Vec<String>;
+    fn differences(&self, other: &Self) -> Vec<Message>;
     /// The same entry with another name.
     fn renamed(&self, name: &str) -> Self;
     fn uid(&self) -> &str;
@@ -1350,10 +1464,7 @@ impl Collection for ToolLibrary {
     type Entry = LibraryTool;
     const LIST: &'static str = "tools";
     const ENTRY: &'static str = "tool";
-    const OTHER: (&'static str, &'static str) = (
-        "machines",
-        "this file holds machine profiles, not tools: import it as machines",
-    );
+    const OTHER: (&'static str, &'static str) = ("machines", "job-library-holds-machines");
     fn entries(&self) -> &[LibraryTool] {
         &self.tools
     }
@@ -1372,10 +1483,7 @@ impl Collection for MachineLibrary {
     type Entry = MachineProfile;
     const LIST: &'static str = "machines";
     const ENTRY: &'static str = "machine";
-    const OTHER: (&'static str, &'static str) = (
-        "tools",
-        "this file holds tools, not machine profiles: import it as tools",
-    );
+    const OTHER: (&'static str, &'static str) = ("tools", "job-library-holds-tools");
     fn entries(&self) -> &[MachineProfile] {
         &self.machines
     }
@@ -1409,19 +1517,17 @@ impl Entry for LibraryTool {
             ..self.clone()
         }
     }
-    fn differences(&self, other: &Self) -> Vec<String> {
-        let mut changes = other.changes(&self.tool(self.id));
-        if self.id != other.id {
-            changes.push(format!("id {} -> {}", self.id, other.id));
-        }
+    fn differences(&self, other: &Self) -> Vec<Message> {
+        let mut changes = Changes(other.changes(&self.tool(self.id)));
+        changes.differs("id", self.id.into(), other.id.into());
         if self.cutting != other.cutting {
-            changes.push(format!(
-                "cutting values {} -> {}",
+            changes.differs(
+                "cutting-values",
                 cutting_text(self.cutting.as_ref()),
-                cutting_text(other.cutting.as_ref())
-            ));
+                cutting_text(other.cutting.as_ref()),
+            );
         }
-        changes
+        changes.0
     }
 }
 
@@ -1444,20 +1550,19 @@ impl Entry for MachineProfile {
             ..self.clone()
         }
     }
-    fn differences(&self, other: &Self) -> Vec<String> {
+    fn differences(&self, other: &Self) -> Vec<Message> {
         other.changes_from(&self.machine(), self.max_overcut)
     }
 }
 
-fn cutting_text(cutting: Option<&Cutting>) -> String {
+fn cutting_text(cutting: Option<&Cutting>) -> I18nValue {
     optional(cutting.map(|c| {
-        format!(
-            "feed {} mm/min, plunge {} mm/min, step down {}, stepover {}",
-            c.feed,
-            c.plunge_feed,
-            mm(c.step_down),
-            c.stepover
-        )
+        Message::new("job-library-cutting")
+            .arg("feed", feed(c.feed))
+            .arg("plunge", feed(c.plunge_feed))
+            .arg("step_down", mm(c.step_down))
+            .arg("stepover", number(c.stepover))
+            .into()
     }))
 }
 
@@ -1469,7 +1574,7 @@ pub struct ImportPlan {
     /// Entries the library has with the same values.
     pub same: Vec<String>,
     /// Entries the library has with other values, and what importing would change.
-    pub differing: Vec<(String, Vec<String>)>,
+    pub differing: Vec<(String, Vec<Message>)>,
     /// The file's default, taken because the library has none.
     pub default: Option<String>,
 }
@@ -1487,7 +1592,7 @@ pub fn import_plan<L: Collection>(library: &L, file: &L) -> ImportPlan {
             Some(mine) => {
                 let mut differences = mine.differences(entry);
                 if differences.is_empty() && !same_values(mine, entry) {
-                    differences.push("other values".into());
+                    differences.push(Message::new("job-library-other-values"));
                 }
                 if differences.is_empty() {
                     plan.same.push(mine.name().to_string());
@@ -1563,7 +1668,11 @@ pub fn export<L: Collection>(library: &L, names: &[String]) -> Result<L, Library
                 .iter()
                 .find(|e| same_name(e.name(), name))
                 .ok_or_else(|| {
-                    LibraryError::Refused(format!("no {} named \"{name}\"", L::ENTRY))
+                    refused(
+                        Message::new("job-library-no-entry")
+                            .arg("entry", L::ENTRY)
+                            .arg("name", name),
+                    )
                 })?;
             if !out.entries().iter().any(|e| same_name(e.name(), name)) {
                 out.entries_mut().push(entry.clone());
@@ -1583,12 +1692,16 @@ pub fn read_import<L: Collection>(path: &Path) -> Result<L, LibraryError> {
     let shown = path.display().to_string();
     let text = std::fs::read_to_string(path).map_err(|e| LibraryError::Unreadable {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     if let Ok(Value::Object(object)) = serde_json::from_str::<Value>(&text) {
         let (other, hint) = L::OTHER;
         if !object.contains_key(L::LIST) && object.contains_key(other) {
-            return Err(LibraryError::Refused(format!("{shown}: {hint}")));
+            return Err(refused(
+                Message::new("job-library-other-file")
+                    .arg("path", shown)
+                    .arg("hint", Message::new(hint)),
+            ));
         }
     }
     parse(&text, &shown)
@@ -1600,52 +1713,85 @@ pub fn write_export<L: Collection>(library: &L, path: &Path) -> Result<(), Libra
 }
 
 impl ImportPlan {
-    /// The plan as lines for the user; `replace` says whether differing entries were
-    /// replaced or kept, `what` names the entries ("tools").
+    /// The plan as lines for the user, in English: `report_messages` in English.
     pub fn report(&self, what: &str, replace: bool) -> Vec<String> {
+        self.report_messages(what, replace)
+            .iter()
+            .map(Message::english)
+            .collect()
+    }
+
+    /// The plan as lines for the user; `replace` says whether differing entries were
+    /// replaced or kept, `what` names the entries ("tools", "machines").
+    pub fn report_messages(&self, what: &str, replace: bool) -> Vec<Message> {
         let mut lines = Vec::new();
         if self.added.is_empty() && self.same.is_empty() && self.differing.is_empty() {
-            lines.push(format!("The file holds no {what}."));
+            lines.push(Message::new("job-import-empty").arg("list", what));
         }
         if !self.added.is_empty() {
-            lines.push(format!("Added: {}", self.added.join(", ")));
+            lines.push(Message::new("job-import-added").arg("names", self.added.join(", ")));
         }
         if !self.same.is_empty() {
-            lines.push(format!("Already in the library: {}", self.same.join(", ")));
+            lines.push(Message::new("job-import-same").arg("names", self.same.join(", ")));
         }
         for (name, differences) in &self.differing {
-            let verb = if replace { "Replaced" } else { "Kept yours" };
-            lines.push(format!("{verb}: {name} (file: {})", differences.join("; ")));
+            let id = if replace {
+                "job-import-replaced"
+            } else {
+                "job-import-kept"
+            };
+            lines.push(Message::new(id).arg("name", name).arg(
+                "differences",
+                semicolons(differences.iter().cloned()).unwrap_or_else(other_values),
+            ));
         }
         if let Some(name) = &self.default {
-            lines.push(format!("Default: {name}"));
+            lines.push(Message::new("job-import-default").arg("name", name));
         }
         lines
     }
 
-    /// What importing would do, as lines for the user before it is done.
+    /// What importing would do, as lines for the user before it is done, in English.
     pub fn preview(&self, what: &str) -> Vec<String> {
+        self.preview_messages(what)
+            .iter()
+            .map(Message::english)
+            .collect()
+    }
+
+    /// What importing would do, as lines for the user before it is done.
+    pub fn preview_messages(&self, what: &str) -> Vec<Message> {
         let mut lines = Vec::new();
         if self.added.is_empty() && self.same.is_empty() && self.differing.is_empty() {
-            lines.push(format!("The file holds no {what}."));
+            lines.push(Message::new("job-import-empty").arg("list", what));
         }
         if !self.added.is_empty() {
-            lines.push(format!("New: {}", self.added.join(", ")));
+            lines.push(Message::new("job-import-new").arg("names", self.added.join(", ")));
         }
         if !self.same.is_empty() {
-            lines.push(format!("Already in the library: {}", self.same.join(", ")));
+            lines.push(Message::new("job-import-same").arg("names", self.same.join(", ")));
         }
         for (name, differences) in &self.differing {
-            lines.push(format!(
-                "Differs from yours: {name} (file: {})",
-                differences.join("; ")
+            lines.push(Message::new("job-import-differs").arg("name", name).arg(
+                "differences",
+                semicolons(differences.iter().cloned()).unwrap_or_else(other_values),
             ));
         }
         if let Some(name) = &self.default {
-            lines.push(format!("Becomes the default: {name}"));
+            lines.push(Message::new("job-import-becomes-default").arg("name", name));
         }
         lines
     }
+}
+
+/// A differing entry always says how; this stands in should its list ever be empty.
+fn other_values() -> Message {
+    Message::new("job-library-other-values")
+}
+
+/// A library's refusal, as a message.
+fn refused(message: Message) -> LibraryError {
+    LibraryError::Refused(message.into())
 }
 
 /// Load any library file; a missing file is an empty library (as `load_tools`).

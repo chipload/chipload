@@ -33,9 +33,10 @@ use eframe::egui::{
 
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
-use crate::i18n::t;
+use crate::i18n::{Lang, t};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
+use chipload_i18n::Message;
 
 mod box_drag;
 mod browser;
@@ -638,7 +639,7 @@ impl ChiploadApp {
                 self.hidden_contours.clear();
                 self.scene.contours.clear();
                 self.drag.snap_points.clear();
-                self.drawing_facts = Some(DrawingFacts::failed(err.to_string()));
+                self.drawing_facts = Some(DrawingFacts::failed(err.message()));
             }
         }
     }
@@ -658,10 +659,10 @@ impl ChiploadApp {
         let job = match load_job(path) {
             Ok(job) => job,
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "app-cannot-open", file = file_name(path)),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 return false;
             }
         };
@@ -704,8 +705,12 @@ impl ChiploadApp {
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
         let mut lines = vec![t!(self, "app-new-project")];
-        lines.extend(notes.iter().map(|n| t!(self, "app-started-with", what = n)));
-        lines.extend(self.library.problems.iter().cloned());
+        lines.extend(
+            notes
+                .iter()
+                .map(|n| t!(self, "app-started-with", what = self.say(n))),
+        );
+        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-new-project-next"));
         self.set_report(Report::info(lines));
     }
@@ -725,10 +730,10 @@ impl ChiploadApp {
                 return false;
             }
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "app-cannot-import", file = file_name(path)),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 return false;
             }
         };
@@ -745,8 +750,12 @@ impl ChiploadApp {
             file = file_name(path),
             shapes = shapes
         )];
-        lines.extend(notes.iter().map(|n| t!(self, "app-started-with", what = n)));
-        lines.extend(self.library.problems.iter().cloned());
+        lines.extend(
+            notes
+                .iter()
+                .map(|n| t!(self, "app-started-with", what = self.say(n))),
+        );
+        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-import-next"));
         self.set_report(Report::info(lines));
         true
@@ -791,7 +800,7 @@ impl ChiploadApp {
                 self.commit();
                 self.refresh_drawing();
                 self.error_ops = report.lost.iter().copied().collect();
-                self.set_report(Report::info(report.lines));
+                self.set_report(Report::of_messages(report.messages));
                 if !report.lost.is_empty() {
                     self.set_status(t!(self, "app-lost-geometry"), ERROR_STATUS_SECONDS);
                 }
@@ -807,10 +816,10 @@ impl ChiploadApp {
                 false
             }
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "app-could-not-update-drawing"),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 false
             }
         }
@@ -843,7 +852,7 @@ impl ChiploadApp {
                 self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
-                self.set_report(Report::info(report.lines));
+                self.set_report(Report::of_messages(report.messages));
                 true
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
@@ -856,10 +865,10 @@ impl ChiploadApp {
                 false
             }
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "app-could-not-add", file = file_name(dxf)),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 false
             }
         }
@@ -931,14 +940,14 @@ impl ChiploadApp {
                 self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
-                self.set_report(Report::info(report.lines));
+                self.set_report(Report::of_messages(report.messages));
                 true
             }
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "app-could-not-move-drawing"),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 false
             }
         }
@@ -992,7 +1001,10 @@ impl ChiploadApp {
                 );
                 self.set_status(text, STATUS_SECONDS);
             }
-            Err(err) => self.error(vec![t!(self, "app-pitch-needs-plan"), err.to_string()]),
+            Err(err) => self.error_report(Report::failed(
+                t!(self, "app-pitch-needs-plan"),
+                err.message(),
+            )),
         }
     }
 
@@ -1126,7 +1138,7 @@ impl ChiploadApp {
                 self.error(vec![t!(
                     self,
                     "app-could-not-add-rest-pass",
-                    error = err.to_string()
+                    error = self.say(&err)
                 )]);
                 false
             }
@@ -1304,6 +1316,7 @@ impl ChiploadApp {
         let written = match write_gcode_files(path, &result.files) {
             Ok(written) => written,
             Err(err) => {
+                // The file system's own words.
                 self.error(vec![
                     t!(
                         self,
@@ -1328,6 +1341,7 @@ impl ChiploadApp {
                 match write_setup_sheet(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),
                     Err(err) => {
+                        // The file system's own words.
                         self.error(vec![
                             t!(
                                 self,
@@ -1350,7 +1364,7 @@ impl ChiploadApp {
                 t!(self, "app-exported-n-files", count = written.len()),
             );
             for file in &result.files {
-                report.push(Tone::Info, file.describe(path));
+                report.push_message(Tone::Info, file.describe_message(path), None);
             }
             if let Some(sheet) = &sheet {
                 report.push(
@@ -1407,14 +1421,14 @@ impl ChiploadApp {
             }
         };
         if let Err(err) = save_job(&job, path) {
-            self.error(vec![
+            self.error_report(Report::failed(
                 t!(
                     self,
                     "app-could-not-save",
                     path = path.display().to_string()
                 ),
-                err.to_string(),
-            ]);
+                err.message(),
+            ));
             return false;
         }
         let saved = EditJob::from_job(&job);
@@ -1587,9 +1601,9 @@ impl ChiploadApp {
         }
         let selected = match op {
             Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(&self.contours, op.select(), "Operation")
+                select_paths(&self.contours, op.select(), &op.label_message(0))
             }
-            _ => select_contours(&self.contours, op.select(), "Operation"),
+            _ => select_contours(&self.contours, op.select(), &op.label_message(0)),
         };
         // Holes cut circles only: other shapes stay unhighlighted (docs/specs/holes.md §7).
         let holes = matches!(op, Operation::Holes(_));
@@ -1622,7 +1636,9 @@ impl ChiploadApp {
         edit.ops
             .iter()
             .filter(|e| e.op.enabled() && matches!(e.op, Operation::Path(_)))
-            .filter_map(|e| select_paths(&self.contours, e.op.select(), "Operation").ok())
+            .filter_map(|e| {
+                select_paths(&self.contours, e.op.select(), &e.op.label_message(0)).ok()
+            })
             .flat_map(|s| {
                 s.contours
                     .iter()
@@ -1674,7 +1690,11 @@ impl ChiploadApp {
     /// A failure: shown in the report, its first line in the status bar too.
     fn error_report(&mut self, report: Report) {
         if let Some(first) = report.lines.first() {
-            self.set_status(first.text.clone(), ERROR_STATUS_SECONDS);
+            let text = match &first.message {
+                Some(message) => self.say(message),
+                None => first.text.clone(),
+            };
+            self.set_status(text, ERROR_STATUS_SECONDS);
         }
         self.set_report(report);
     }
@@ -1896,5 +1916,14 @@ impl eframe::App for ChiploadApp {
 impl crate::i18n::Lang for ChiploadApp {
     fn lang(&self) -> crate::i18n::Language {
         self.language
+    }
+}
+
+impl ChiploadApp {
+    /// A message from the library crates (an error, a report line) in the app's language
+    /// and display units (docs/specs/translations.md §7).
+    pub(crate) fn say(&self, message: &chipload_i18n::Message) -> String {
+        use crate::i18n::Lang;
+        message.render(self.lang(), self.units.into())
     }
 }

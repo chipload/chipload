@@ -555,7 +555,10 @@ impl ChiploadApp {
                 .show(ui);
                 dropped = dropped.or(self.library_drop(ui, &row.response));
                 let response = match &link {
-                    Some(link) => row.response.on_hover_text(link.text("library tool")),
+                    Some(link) => row.response.on_hover_text(
+                        link.message(chipload_job::library::LinkEntry::Tool)
+                            .render(ui.lang(), self.units.into()),
+                    ),
                     None => row.response,
                 };
                 if response.clicked() {

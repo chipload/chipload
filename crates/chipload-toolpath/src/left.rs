@@ -14,9 +14,11 @@ use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
 
+use chipload_i18n::Message;
+
 use crate::ToolpathError;
 use crate::cavalier::{
-    Area, boolean, ccw, cw, encloses, first_point, geometry, guarded, offset_loops, too_small,
+    Area, boolean, ccw, cw, encloses, first_point, geometry, guarded, offset_loops, step, too_small,
 };
 use crate::offset::flatten;
 
@@ -76,9 +78,7 @@ pub fn rest_areas(region: &Area, left: &[Area], grow: f64) -> Result<Vec<Area>, 
             .into_iter()
             .any(|p| region.distance(p) > OUTSIDE_LIMIT_MM);
         if outside {
-            return Err(geometry(
-                "the rest machining area lies outside the pocket".into(),
-            ));
+            return Err(geometry(Message::new("toolpath-error-rest-outside")));
         }
     }
     Ok(areas)
@@ -137,7 +137,7 @@ fn areas_of(result: BooleanResult<Polyline<f64>>) -> Result<Vec<Area>, ToolpathE
             .min_by_key(|a| Ordered(a.outer.area().abs()));
         match parent {
             Some(area) => area.holes.push(cw(hole)),
-            None => return Err(geometry("material left: a hole outside every piece".into())),
+            None => return Err(geometry(Message::new("toolpath-error-left-hole-outside"))),
         }
     }
     Ok(areas)
@@ -159,9 +159,11 @@ fn difference(piece: &Area, cutter: &Polyline<f64>) -> Result<Vec<Area>, Toolpat
                     PlineContainsResult::Pline1InsidePline2 => hole = existing,
                     PlineContainsResult::Intersected => {
                         let mut union =
-                            boolean("Material left union", &hole, &existing, BooleanOp::Or)?;
+                            boolean(step("material-left-union"), &hole, &existing, BooleanOp::Or)?;
                         if union.pos_plines.len() != 1 || !union.neg_plines.is_empty() {
-                            return Err(geometry("material left: holes enclose an area".into()));
+                            return Err(geometry(Message::new(
+                                "toolpath-error-left-holes-enclose",
+                            )));
                         }
                         hole = ccw(union.pos_plines.swap_remove(0).pline);
                     }
@@ -216,7 +218,7 @@ fn checked_boolean(
         BooleanOp::Not => -CHAIN_TOL_MM,
         _ => CHAIN_TOL_MM,
     };
-    let moved = guarded("Material left offset", || {
+    let moved = guarded(step("material-left-offset"), || {
         ccw(other.clone()).parallel_offset(nudge)
     })?
     .into_iter()
@@ -228,9 +230,7 @@ fn checked_boolean(
     if area_is_plausible(outer, &moved, op, &second) {
         Ok(second)
     } else {
-        Err(geometry(
-            "material left: a boolean gave the wrong area".into(),
-        ))
+        Err(geometry(Message::new("toolpath-error-left-wrong-area")))
     }
 }
 
@@ -239,7 +239,7 @@ fn boolean_areas(
     other: &Polyline<f64>,
     op: BooleanOp,
 ) -> Result<Vec<Area>, ToolpathError> {
-    let result = boolean("Material left boolean", outer, other, op)?;
+    let result = boolean(step("material-left-boolean"), outer, other, op)?;
     areas_of(result)
 }
 
@@ -277,7 +277,7 @@ fn subtract_holes(
 }
 
 fn invalid() -> ToolpathError {
-    geometry("material left: invalid geometry from the offset library".into())
+    geometry(Message::new("toolpath-error-left-invalid"))
 }
 
 #[cfg(test)]

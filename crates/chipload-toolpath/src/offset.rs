@@ -14,11 +14,12 @@ use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, OFFSET_FAR_SLACK_MM,
 };
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::Side;
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
-use crate::cavalier::{guarded, too_small};
+use crate::cavalier::{guarded, step, too_small};
 use crate::retry::{Failure, nudged};
 
 /// The contour as a closed polyline with true arcs (bulges). Arcs over half a turn are split,
@@ -272,16 +273,16 @@ fn offset_attempt(
     };
     let numerical = |error| Failure::Numerical { error, wall: true };
     // A panic in the offset library becomes an error, never a crash or a toolpath.
-    let raw = guarded("Offset", || pline.parallel_offset(signed)).map_err(numerical)?;
+    let raw = guarded(step("offset"), || pline.parallel_offset(signed)).map_err(numerical)?;
     let mut results: Vec<Polyline<f64>> = raw
         .into_iter()
         .filter(|p| p.is_closed() && !too_small(p))
         .collect();
     if results.is_empty() {
-        return Err(Failure::Final(geometry(&format!(
-            "Tool does not fit inside the contour (its centre would run {tool_radius:.3} mm \
-             inside the line)"
-        ))));
+        return Err(Failure::Final(geometry(
+            Message::new("toolpath-error-tool-does-not-fit")
+                .arg("offset", Value::Length(tool_radius, Digits::Fixed(3))),
+        )));
     }
     if side == Side::Outside {
         // Growing one loop gives one region; any further loops are holes it encloses (e.g. a
@@ -301,8 +302,8 @@ fn offset_attempt(
     Ok(rings)
 }
 
-fn geometry(message: &str) -> ToolpathError {
-    ToolpathError::Geometry(message.to_string())
+fn geometry(message: Message) -> ToolpathError {
+    ToolpathError::Geometry(message)
 }
 
 /// Post-condition: never trust the offset blindly. Every vertex must be r from the contour
@@ -347,10 +348,7 @@ fn verify_offset(
     if ok {
         Ok(())
     } else {
-        Err(geometry(
-            "Offset failed verification (path not at tool radius from the contour); the \
-             contour may be degenerate",
-        ))
+        Err(geometry(Message::new("toolpath-error-offset-verification")))
     }
 }
 
@@ -406,7 +404,7 @@ mod tests {
             nudges.push(nudge.wall);
             if nudges.len() == 1 {
                 return Err(Failure::Numerical {
-                    error: geometry("forced"),
+                    error: geometry(Message::new("toolpath-error-offset-verification")),
                     wall: true,
                 });
             }

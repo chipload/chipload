@@ -142,6 +142,7 @@ fn removing_a_dxf_removes_its_shapes_and_names_the_operations_that_used_it() {
     two.operations[1].select_mut().unwrap().dxf = Some(2);
     two.drawing.hidden = vec!["dxf:2".into(), "dxf:2/layer:HOLES".into(), "dxf:1".into()];
     let (removed, lines) = remove_dxf(&two, 2).unwrap();
+    let lines: Vec<String> = lines.iter().map(|l| l.english()).collect();
     assert!(shapes_of(&removed, 2).is_empty());
     assert_eq!(shapes_of(&removed, 1), shapes_of(&one, 1));
     assert_eq!(removed.drawing.hidden, vec!["dxf:1".to_string()]);

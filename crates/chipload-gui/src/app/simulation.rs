@@ -152,7 +152,7 @@ impl ChiploadApp {
             Ok(Err(err)) => {
                 self.report.push(
                     Tone::Warning,
-                    t!(self, "simulation-failed", error = err.to_string()),
+                    t!(self, "simulation-failed", error = self.say(&err.message())),
                 );
                 return;
             }

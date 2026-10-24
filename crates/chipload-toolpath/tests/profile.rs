@@ -45,7 +45,7 @@ fn on_follows_the_contour() {
 fn tool_larger_than_hole_is_an_error() {
     let hole = polygon(&[(0.0, 0.0), (5.0, 0.0), (5.0, 5.0), (0.0, 5.0)]);
     let err = offset_rings(&hole, Side::Inside, 3.0).unwrap_err();
-    assert!(matches!(&err, ToolpathError::Geometry(m) if m.contains("does not fit")));
+    assert!(matches!(&err, ToolpathError::Geometry(m) if m.english().contains("does not fit")));
 }
 
 #[test]

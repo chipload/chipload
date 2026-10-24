@@ -8,6 +8,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Direction, Entry, Side, Spindle};
 
 use crate::ToolpathError;
@@ -212,12 +213,15 @@ fn open_moves(
                     .ceil()
                     .max(1.0);
                 if needed > MAX_RAMP_LEGS as f64 {
-                    return Err(ToolpathError::Geometry(format!(
-                        "The path is too short to ramp down {drop:.3} mm at {:.1}° \
-                         ({length:.3} mm long); use a steeper ramp angle or a straight plunge \
-                         with a centre-cutting tool",
-                        ramp_angle.to_degrees()
-                    )));
+                    return Err(ToolpathError::Geometry(
+                        Message::new("toolpath-error-path-ramp")
+                            .arg("drop", Value::Length(drop, Digits::Fixed(3)))
+                            .arg(
+                                "angle",
+                                Value::Number(ramp_angle.to_degrees(), Digits::Fixed(1)),
+                            )
+                            .arg("length", Value::Length(length, Digits::Fixed(3))),
+                    ));
                 }
                 // Small positive whole number (checked above).
                 let count = needed as usize;

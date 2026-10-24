@@ -13,6 +13,7 @@ mod simplify;
 
 use chipload_core::Point;
 use chipload_core::primitives::Primitive;
+use chipload_i18n::{Digits, Message, Value};
 
 pub use decode::{Decoded, MAX_BYTES, MAX_PIXELS, decode};
 pub use field::otsu;
@@ -68,45 +69,78 @@ pub const MAX_SMOOTHING_MM: f64 = 1.0;
 impl Settings {
     /// The first setting out of its range, as a message.
     pub fn check(&self) -> Result<(), ImageError> {
-        let bad = |what: &str| Err(ImageError::Setting(what.into()));
+        let bad = |message: Message| Err(ImageError::Setting(message));
         if let Threshold::Level(t) = self.threshold
             && !(1..=254).contains(&t)
         {
-            return bad("the threshold must be 1 to 254, or auto");
+            return bad(Message::new("image-error-threshold"));
         }
         if !(0.0..=MAX_BLUR_PX).contains(&self.blur) {
-            return bad("the blur must be 0 to 10 px");
+            return bad(Message::new("image-error-blur"));
         }
         if !(0.0..=MAX_MIN_AREA_MM2).contains(&self.min_area) {
-            return bad("the smallest piece must be 0 to 100 mm²");
+            return bad(Message::new("image-error-smallest-piece"));
         }
         if !(MIN_SMOOTHING_MM..=MAX_SMOOTHING_MM).contains(&self.smoothing) {
-            return bad("the smoothing must be 0.01 to 1 mm");
+            return bad(Message::new("image-error-smoothing")
+                .arg(
+                    "min",
+                    Value::LengthNumber(MIN_SMOOTHING_MM, Digits::Shortest),
+                )
+                .arg("max", Value::Length(MAX_SMOOTHING_MM, Digits::Shortest)));
         }
         Ok(())
     }
 }
 
-#[derive(Debug, Clone, thiserror::Error, PartialEq)]
+/// Why a picture can't be traced. Its text is a message (`image.ftl`), shown in the app's
+/// language; `Display` writes it in English.
+#[derive(Debug, Clone, PartialEq)]
 pub enum ImageError {
-    #[error("the picture is {0} bytes; at most 20 MB is supported: scale it down")]
+    /// The file's size in bytes.
     TooLarge(usize),
-    #[error("the picture is {0} × {1} pixels; at most 20 megapixels is supported: scale it down")]
+    /// Width and height in pixels.
     TooManyPixels(u32, u32),
-    #[error("not a PNG, JPEG or BMP picture")]
     UnsupportedFormat,
-    #[error("the picture can't be read: {0}")]
-    Decode(String),
-    #[error("the width must be more than 0 mm")]
+    /// The decoder's own words, or a message.
+    Decode(Value),
     Width,
-    #[error("{0}")]
-    Setting(String),
-    #[error(
-        "the picture traces into {0} loops, more than {MAX_LOOPS}: blur it more, raise the \
-         smallest piece, or change the threshold"
-    )]
+    /// A setting out of its range.
+    Setting(Message),
+    /// How many loops the picture traces into.
     TooManyLoops(usize),
 }
+
+impl ImageError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            ImageError::TooLarge(bytes) => {
+                Message::new("image-error-too-large").arg("bytes", *bytes)
+            }
+            ImageError::TooManyPixels(width, height) => Message::new("image-error-too-many-pixels")
+                .arg("width", *width)
+                .arg("height", *height),
+            ImageError::UnsupportedFormat => Message::new("image-error-format"),
+            ImageError::Decode(reason) => {
+                Message::new("image-error-decode").arg("reason", reason.clone())
+            }
+            ImageError::Width => Message::new("image-error-width").arg("zero", Value::mm(0.0)),
+            ImageError::Setting(message) => message.clone(),
+            ImageError::TooManyLoops(loops) => Message::new("image-error-too-many-loops")
+                .arg("loops", *loops)
+                .arg("most", MAX_LOOPS),
+        }
+    }
+}
+
+impl std::fmt::Display for ImageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for ImageError {}
 
 /// A traced picture.
 #[derive(Debug, Clone, PartialEq)]

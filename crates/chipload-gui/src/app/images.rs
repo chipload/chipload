@@ -14,8 +14,8 @@ use chipload_pipeline::images::{
 use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Stroke, TextureOptions, Vec2};
 
 use super::{ChiploadApp, STATUS_SECONDS};
-use crate::app::report::Report;
-use crate::i18n::t;
+use crate::app::report::{Report, Tone};
+use crate::i18n::{Lang, t};
 
 /// What a picture's texture was made from: the image's id, picture, place and width.
 type PictureKey = (u64, String, f64, f64, f64, f64);
@@ -147,8 +147,10 @@ impl ImageDialog {
         if self.shown.as_ref() != Some(&self.draft) {
             let (tx, rx) = mpsc::channel();
             let (picture, draft) = (Arc::clone(&self.picture), self.draft.clone());
+            // Why it fails is said in the app's language and display units.
+            let (lang, units) = (ctx.lang(), crate::units::display(ctx).into());
             std::thread::spawn(move || {
-                let result = preview(&picture, &draft).map_err(|e| e.to_string());
+                let result = preview(&picture, &draft).map_err(|e| e.message().render(lang, units));
                 let _ = tx.send(result);
             });
             self.pending = Some(rx);
@@ -236,14 +238,14 @@ impl ChiploadApp {
         let picture = match decode_picture(&bytes) {
             Ok(picture) => picture,
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(
                         self,
                         "images-cannot-import",
                         path = path.display().to_string()
                     ),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 return false;
             }
         };
@@ -300,7 +302,7 @@ impl ChiploadApp {
         let picture = match picture_bytes(&image).and_then(|b| decode_picture(&b)) {
             Ok(picture) => picture,
             Err(err) => {
-                self.error(vec![err.to_string()]);
+                self.error_report(Report::of_error(err.message()));
                 return false;
             }
         };
@@ -365,9 +367,9 @@ impl ChiploadApp {
                 // Its size and place are in its properties, right after importing.
                 self.focus = super::Focus::Image(report.id);
                 self.commit();
-                let mut lines = report.lines.clone();
-                lines.push(t!(self, "images-traced-next"));
-                self.set_report(Report::info(lines));
+                let mut lines = Report::of_messages(report.messages.clone());
+                lines.push(Tone::Info, t!(self, "images-traced-next"));
+                self.set_report(lines);
                 self.set_status(
                     t!(self, "images-traced", file = draft.file.as_str()),
                     STATUS_SECONDS,
@@ -375,8 +377,9 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
+                let why = self.say(&err.message());
                 if let Some(dialog) = self.image_dialog.as_mut() {
-                    dialog.preview = Some(Err(err.to_string()));
+                    dialog.preview = Some(Err(why));
                 }
                 false
             }
@@ -407,14 +410,14 @@ impl ChiploadApp {
                     chipload_core::chain::ShapeFrom::Image(report.id),
                 );
                 self.commit();
-                self.set_report(Report::info(report.lines));
+                self.set_report(Report::of_messages(report.messages));
                 true
             }
             Err(err) => {
-                self.error(vec![
+                self.error_report(Report::failed(
                     t!(self, "images-trace-at-size-failed"),
-                    err.to_string(),
-                ]);
+                    err.message(),
+                ));
                 false
             }
         }
@@ -446,7 +449,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec![err.to_string()]);
+                self.error_report(Report::of_error(err.message()));
                 false
             }
         }

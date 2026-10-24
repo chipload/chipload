@@ -2567,7 +2567,9 @@ pub(super) fn machine_rows(
                         egui::Button::selectable(machine.post == *name, label),
                     );
                     if let Err(problem) = read {
-                        response.on_disabled_hover_text(problem.as_str());
+                        response.on_disabled_hover_text(
+                            problem.render(ui.lang(), crate::units::display(ui.ctx()).into()),
+                        );
                     } else if response.clicked() {
                         picked = Some(name.clone());
                     }

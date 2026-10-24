@@ -4,6 +4,7 @@
 //! result through the same setters as Properties.
 
 use chipload_core::Point;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Image, Text, TextAnchor, rotated};
 
 /// The smallest box side a size drag gives, mm.
@@ -80,7 +81,7 @@ pub fn drag_box(
     handle: BoxHandle,
     to: Point,
     free: bool,
-) -> Result<PlacedBox, String> {
+) -> Result<PlacedBox, Message> {
     match handle {
         BoxHandle::Move => Ok(PlacedBox {
             corner: (to.0 - start.size.0 / 2.0, to.1 - start.size.1 / 2.0),
@@ -90,7 +91,7 @@ pub fn drag_box(
             let (cx, cy) = start.center();
             let (dx, dy) = (to.0 - cx, to.1 - cy);
             if dx == 0.0 && dy == 0.0 {
-                return Err("the turn handle is on the centre".into());
+                return Err(Message::new("pipeline-box-turn-centre"));
             }
             let step = if free {
                 FREE_TURN_STEP_DEGREES
@@ -109,13 +110,14 @@ pub fn drag_box(
             let diagonal = (corners[k].0 - opposite.0, corners[k].1 - opposite.1);
             let length2 = diagonal.0 * diagonal.0 + diagonal.1 * diagonal.1;
             if length2 == 0.0 {
-                return Err("the box has no size".into());
+                return Err(Message::new("pipeline-box-no-size"));
             }
             let factor =
                 ((to.0 - opposite.0) * diagonal.0 + (to.1 - opposite.1) * diagonal.1) / length2;
             let size = (start.size.0 * factor, start.size.1 * factor);
             if size.0.min(size.1) < MIN_SIZE_MM {
-                return Err(format!("it can't be smaller than {MIN_SIZE_MM} mm"));
+                return Err(Message::new("pipeline-box-too-small")
+                    .arg("min", Value::Length(MIN_SIZE_MM, Digits::Shortest)));
             }
             // The centre moves along the diagonal, so the opposite corner stays.
             let center = (
@@ -128,7 +130,7 @@ pub fn drag_box(
                 rotation: start.rotation,
             })
         }
-        BoxHandle::Size(k) => Err(format!("a box has no corner {k}")),
+        BoxHandle::Size(k) => Err(Message::new("pipeline-box-no-corner").arg("corner", k)),
     }
 }
 

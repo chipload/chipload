@@ -19,7 +19,7 @@ pub(super) struct PendingImport {
     file: PathBuf,
     entries: ImportFile,
     /// What the import would do, and notes (unknown post-processors).
-    lines: Vec<String>,
+    lines: Vec<Message>,
     differing: bool,
 }
 
@@ -30,8 +30,8 @@ enum ImportFile {
 }
 
 impl PendingImport {
-    /// What the import would do, as shown.
-    pub(super) fn lines(&self) -> &[String] {
+    /// What the import would do, as messages.
+    pub(super) fn lines(&self) -> &[Message] {
         &self.lines
     }
 }
@@ -58,8 +58,9 @@ pub(super) fn import_preview(
         "library-transfer-import-from",
         file = pending.file.display().to_string()
     ));
+    let units = crate::units::display(ui.ctx()).into();
     for line in pending.lines() {
-        ui.label(line);
+        ui.label(line.render(ui.lang(), units));
     }
     ui.horizontal(|ui| {
         if ui
@@ -91,9 +92,9 @@ fn list_name(kind: LibraryKind) -> &'static str {
     }
 }
 
-fn plan_for<L: Collection>(library: &L, file: &L) -> (ImportPlan, Vec<String>) {
+fn plan_for<L: Collection>(library: &L, file: &L) -> (ImportPlan, Vec<Message>) {
     let plan = import_plan(library, file);
-    let lines = plan.preview(L::LIST);
+    let lines = plan.preview_messages(L::LIST);
     (plan, lines)
 }
 
@@ -155,7 +156,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(err.to_string());
+                self.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }
@@ -190,7 +191,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(err.to_string());
+                self.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }
@@ -223,12 +224,16 @@ impl ChiploadApp {
         self.reload_library();
         match done {
             Ok(plan) => {
-                let lines = plan.report(list_name(pending.kind), replace);
+                let lines: Vec<String> = plan
+                    .report_messages(list_name(pending.kind), replace)
+                    .iter()
+                    .map(|line| self.say(line))
+                    .collect();
                 self.library_state.message = Some((pending.kind, lines.join("\n")));
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(err.to_string());
+                self.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }

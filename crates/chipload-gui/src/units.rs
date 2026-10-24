@@ -23,10 +23,11 @@ pub fn display(ctx: &egui::Context) -> Units {
     ctx.data(|d| d.get_temp(key())).unwrap_or(Units::Mm)
 }
 
-/// Text from the library crates that isn't a message yet (checker findings, errors, the
-/// lines of an update or library report) in the display units: its `… mm` lengths and
-/// `… mm/min` feeds as inches when inches are shown (docs/specs/inch-units.md §5.1). A
-/// message is rendered in the language and units instead (docs/specs/translations.md §7).
+/// A plain line of the report (the app's own words, or another library's, such as the
+/// file system's) in the display units: its `… mm` lengths and `… mm/min` feeds as inches
+/// when inches are shown (docs/specs/inch-units.md §5.1). Everything from the library
+/// crates is a message, rendered in the language and units instead
+/// (docs/specs/translations.md §7); this goes with `text_in` in step 7.3.6.
 pub fn message(ctx: &egui::Context, text: &str) -> String {
     chipload_pipeline::units::text_in(text, display(ctx))
 }

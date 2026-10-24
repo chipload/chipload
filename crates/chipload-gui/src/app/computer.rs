@@ -3,7 +3,7 @@
 //! Preferences, and the post-processors with what each writes.
 
 use chipload_job::Units;
-use chipload_pipeline::posts::{builtin_posts, post_facts};
+use chipload_pipeline::posts::{builtin_posts, post_fact_messages};
 use eframe::egui::Id;
 
 use super::browser::{Row, title_line, toggle_folder};
@@ -20,12 +20,10 @@ impl ChiploadApp {
             .into_iter()
             .map(|name| (name.to_string(), true, None))
             .collect();
-        list.extend(
-            self.library
-                .user_posts
-                .iter()
-                .map(|(name, read)| (name.clone(), false, read.as_ref().err().cloned())),
-        );
+        list.extend(self.library.user_posts.iter().map(|(name, read)| {
+            let problem = read.as_ref().err().map(|why| self.say(why));
+            (name.clone(), false, problem)
+        }));
         list
     }
 
@@ -223,7 +221,9 @@ impl ChiploadApp {
             .as_ref()
             .is_some_and(|(n, _)| *n == name);
         if !cached {
-            let facts = post_facts(&name, self.library.posts.as_deref()).map_err(|e| e.to_string());
+            let facts = post_fact_messages(&name, self.library.posts.as_deref())
+                .map(|lines| lines.iter().map(|line| self.say(line)).collect())
+                .map_err(|e| self.say(&e.message()));
             self.library_state.post_facts = Some((name.clone(), facts));
         }
         let facts = self

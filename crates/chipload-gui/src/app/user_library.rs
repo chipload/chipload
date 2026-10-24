@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 
 use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
-    Cutting, LibraryError, LibraryTool, Link, MachineProfile, linked_cutting, machine_link,
-    same_name, tool_link, update_machines, update_tools,
+    Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineProfile, linked_cutting,
+    machine_link, same_name, tool_link, update_machines, update_tools,
 };
 use chipload_job::{Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
@@ -110,10 +110,10 @@ impl LibraryRows {
         }
     }
 
-    fn what(&self) -> &'static str {
+    fn what(&self) -> LinkEntry {
         match self.target {
-            SaveTarget::Machine => "profile",
-            SaveTarget::Tool(_) => "library tool",
+            SaveTarget::Machine => LinkEntry::Profile,
+            SaveTarget::Tool(_) => LinkEntry::Tool,
         }
     }
 }
@@ -205,7 +205,10 @@ pub(super) fn library_rows(
     };
     ui.label("");
     ui.horizontal_wrapped(|ui| {
-        ui.weak(link.text(what));
+        ui.weak(
+            link.message(what)
+                .render(ui.lang(), crate::units::display(ui.ctx()).into()),
+        );
         if let Link::Differs(name, _) = &link
             && ui
                 .button(t!(ui, "user-library-update-from-library"))
@@ -264,12 +267,13 @@ enum Pick {
     Uid(String),
 }
 
+/// A refusal in the app's own words, already in its language.
 fn refused(text: String) -> LibraryError {
-    LibraryError::Refused(text)
+    LibraryError::Refused(chipload_i18n::Value::Text(text))
 }
 
 /// Where the library is kept, and why it couldn't be read.
-pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[String]) {
+pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[Message]) {
     match path {
         Some(path) => {
             ui.weak(t!(
@@ -289,8 +293,10 @@ pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &
             );
         }
     }
+    let units = crate::units::display(ui.ctx()).into();
     for problem in problems {
-        ui.colored_label(ui.visuals().error_fg_color, problem);
+        let text = problem.render(ui.lang(), units);
+        ui.colored_label(ui.visuals().error_fg_color, text);
     }
 }
 
@@ -501,7 +507,7 @@ impl ChiploadApp {
                 let status = t!(
                     self,
                     "user-library-settings-not-saved",
-                    error = err.to_string()
+                    error = self.say(&err.message())
                 );
                 self.set_status(status, ERROR_STATUS_SECONDS);
             }
@@ -609,7 +615,7 @@ impl ChiploadApp {
             chipload_pipeline::posts::choose_post(&mut edit.settings, name, posts.as_deref())
         {
             let title = t!(self, "user-library-post-named", name = name);
-            self.error(vec![title, err.to_string()]);
+            self.error_report(Report::failed(title, err.message()));
             return false;
         }
         self.commit();
@@ -735,14 +741,16 @@ impl ChiploadApp {
         };
         let edit = self.edit.as_mut()?;
         let used = chipload_job::library::use_tool(&mut edit.settings, &entry);
-        self.set_status(
-            format!("\"{}\": {}", entry.name, used.describe(entry.id)),
-            STATUS_SECONDS,
+        let text = format!(
+            "\"{}\": {}",
+            entry.name,
+            self.say(&used.describe_message(entry.id))
         );
+        self.set_status(text, STATUS_SECONDS);
         Some(used.id)
     }
 
-    fn report_changes(&mut self, what: &str, changes: Vec<String>) {
+    fn report_changes(&mut self, what: &str, changes: Vec<Message>) {
         let status = if changes.is_empty() {
             t!(self, "user-library-no-values-changed-status", what = what)
         } else {
@@ -753,12 +761,18 @@ impl ChiploadApp {
                 count = changes.len()
             )
         };
-        let mut lines = vec![t!(self, "user-library-changes-heading", what = what)];
-        lines.extend(changes.iter().map(|c| format!("  {c}")));
+        let mut report = Report::info([t!(self, "user-library-changes-heading", what = what)]);
         if changes.is_empty() {
-            lines.push(format!("  {}", t!(self, "user-library-no-values-changed")));
+            report.push(
+                Tone::Info,
+                format!("  {}", t!(self, "user-library-no-values-changed")),
+            );
         }
-        self.set_report(Report::info(lines));
+        for change in changes {
+            let line = Message::new("report-indented").arg("line", change);
+            report.push_message(Tone::Info, line, None);
+        }
+        self.set_report(report);
         self.set_status(status, STATUS_SECONDS);
     }
 
@@ -852,7 +866,7 @@ impl ChiploadApp {
             Ok(saved) => saved,
             Err(err) => {
                 let title = t!(self, "user-library-not-saved");
-                self.error(vec![title, err.to_string()]);
+                self.error_report(Report::failed(title, err.message()));
                 return false;
             }
         };
@@ -969,7 +983,7 @@ impl ChiploadApp {
             Ok(())
         });
         self.reload_library();
-        result.map_err(|e| e.to_string())
+        result.map_err(|e| self.say(&e.message()))
     }
 
     /// Store a machine profile edited in Properties, as `store_library_tool`.
@@ -1007,7 +1021,7 @@ impl ChiploadApp {
             Ok(())
         });
         self.reload_library();
-        result.map_err(|e| e.to_string())
+        result.map_err(|e| self.say(&e.message()))
     }
 
     /// A new library tool or machine, saved at once under a free name ("New tool 2") and
@@ -1090,7 +1104,7 @@ impl ChiploadApp {
             }),
         };
         self.reload_library();
-        result.map_err(|e| e.to_string())
+        result.map_err(|e| self.say(&e.message()))
     }
 
     /// The tool or machine new projects start with.
@@ -1110,6 +1124,6 @@ impl ChiploadApp {
             }),
         };
         self.reload_library();
-        result.map_err(|e| e.to_string())
+        result.map_err(|e| self.say(&e.message()))
     }
 }

@@ -12,6 +12,7 @@ use chipload_core::fit::fit_path;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::Primitive;
 use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_image::{ImageError, MAX_LOOPS, Settings, Threshold};
 use chipload_job::{
     ArcSegment, Geometry, Image, ImageThreshold, ImageTrace, Job, LineSegment, PathSegment, Shape,
@@ -140,8 +141,10 @@ pub struct ImageReport {
     /// The picture's size on the stock, mm.
     pub width: f64,
     pub height: f64,
-    /// The report as sentences, for the CLI and the GUI.
+    /// The report as sentences, in English, for the command line: `messages` in English.
     pub lines: Vec<String>,
+    /// The report as messages, for the app (docs/specs/translations.md §7).
+    pub messages: Vec<Message>,
 }
 
 /// Add a picture and trace it. Returns the project and what was traced.
@@ -178,10 +181,7 @@ pub fn add_image(job: &Job, new: NewImage) -> Result<(Job, ImageReport), Pipelin
 /// Trace image `id` again with its current settings, replacing its shapes.
 pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> {
     let image = find(job, id)?;
-    let problems = image_problems(job, id);
-    if !problems.is_empty() {
-        return Err(PipelineError::Job(problems.join("; ")));
-    }
+    crate::refuse_problems(&image_problems(job, id))?;
     let trace = traced(image)?;
     let mut out = job.clone();
     let old: Vec<Shape> = job
@@ -212,9 +212,9 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
         });
     }
     let mut report = report(image, &trace, ids);
-    report
-        .lines
-        .extend(find_left_out_again(&mut out, ShapeFrom::Image(id), &old));
+    let found = find_left_out_again(&mut out, ShapeFrom::Image(id), &old);
+    report.lines.extend(found.iter().map(Message::english));
+    report.messages.extend(found);
     Ok((out, report))
 }
 
@@ -298,7 +298,7 @@ pub(crate) fn comes_from(shape: &Shape, from: ShapeFrom) -> bool {
 /// (docs/specs/leave-out-shapes.md §4, text.md §3). One that isn't found keeps its old id,
 /// so the project shows a problem until the shapes are picked again: nothing left out is
 /// ever cut silently. Returns report lines.
-pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape]) -> Vec<String> {
+pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape]) -> Vec<Message> {
     let old_refs: Vec<&Shape> = old.iter().collect();
     let new_refs: Vec<Shape> = job
         .drawing
@@ -357,18 +357,13 @@ pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape])
         }
         let count = exclude.len();
         lines.push(if lost == 0 {
-            format!(
-                "Operation {}: its {count} left-out {} found again.",
-                i + 1,
-                if count == 1 { "shape" } else { "shapes" }
-            )
+            Message::new("pipeline-left-out-found")
+                .arg("number", i + 1)
+                .arg("count", count)
         } else {
-            format!(
-                "Operation {}: {lost} left-out {} not found again: pick the shapes to leave \
-                 out again.",
-                i + 1,
-                if lost == 1 { "shape" } else { "shapes" }
-            )
+            Message::new("pipeline-left-out-lost")
+                .arg("number", i + 1)
+                .arg("count", lost)
         });
     }
     lines
@@ -420,25 +415,26 @@ pub fn black_white_png(job: &Job, id: u64) -> Result<Vec<u8>, PipelineError> {
     let mut encoder = png::Encoder::new(&mut bytes, bw.width, bw.height);
     encoder.set_color(png::ColorType::Grayscale);
     encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder
-        .write_header()
-        .map_err(|e| PipelineError::Job(format!("writing the picture: {e}")))?;
-    writer
-        .write_image_data(&pixels)
-        .map_err(|e| PipelineError::Job(format!("writing the picture: {e}")))?;
-    writer
-        .finish()
-        .map_err(|e| PipelineError::Job(format!("writing the picture: {e}")))?;
+    let mut writer = encoder.write_header().map_err(png_failed)?;
+    writer.write_image_data(&pixels).map_err(png_failed)?;
+    writer.finish().map_err(png_failed)?;
     Ok(bytes)
+}
+
+fn png_failed(e: png::EncodingError) -> PipelineError {
+    PipelineError::Job(
+        Message::new("pipeline-image-png-failed").arg("error", Value::Text(e.to_string())),
+    )
 }
 
 /// The picture's bytes, decoded from the project.
 pub fn picture_bytes(image: &Image) -> Result<Vec<u8>, PipelineError> {
     STANDARD.decode(&image.data).map_err(|e| {
-        PipelineError::Job(format!(
-            "drawing.images: the picture of image {} can't be read: {e}",
-            image.id
-        ))
+        PipelineError::Job(
+            Message::new("pipeline-image-unreadable")
+                .arg("id", image.id)
+                .arg("error", Value::Text(e.to_string())),
+        )
     })
 }
 
@@ -447,17 +443,16 @@ fn find(job: &Job, id: u64) -> Result<&Image, PipelineError> {
         .images
         .iter()
         .find(|i| i.id == id)
-        .ok_or_else(|| PipelineError::Job(format!("there is no image {id}")))
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-image").arg("id", id)))
 }
 
-fn image_problems(job: &Job, id: u64) -> Vec<String> {
+fn image_problems(job: &Job, id: u64) -> Vec<chipload_job::Problem> {
     job.drawing
         .images
         .iter()
         .enumerate()
         .filter(|(_, i)| i.id == id)
         .flat_map(|(k, i)| i.problems(k))
-        .map(|p| p.to_string())
         .collect()
 }
 
@@ -656,97 +651,57 @@ fn default_layer(job: &Job, file: &str, id: u64) -> String {
 
 fn report(image: &Image, trace: &Traced, shapes: Vec<u64>) -> ImageReport {
     let count = trace.paths.len();
-    let what = match (trace.centre_lines, count == 1) {
-        (false, true) => "shape",
-        (false, false) => "shapes",
-        (true, true) => "centre line",
-        (true, false) => "centre lines",
-    };
-    let mut lines = vec![format!(
-        "Traced {} ({:.1} × {:.1} mm, threshold {}{}): {count} {what} on layer {}.",
-        image.file,
-        trace.width,
-        trace.height,
-        trace.threshold,
-        if matches!(image.threshold, ImageThreshold::Auto(_)) {
-            ", picked"
-        } else {
-            ""
-        },
-        image.layer
-    )];
+    let mut lines = vec![
+        Message::new("pipeline-image-traced")
+            .arg("file", image.file.as_str())
+            .arg("width", Value::LengthNumber(trace.width, Digits::Fixed(1)))
+            .arg("height", Value::Length(trace.height, Digits::Fixed(1)))
+            .arg("threshold", u32::from(trace.threshold))
+            .arg(
+                "picked",
+                if matches!(image.threshold, ImageThreshold::Auto(_)) {
+                    "yes"
+                } else {
+                    "no"
+                },
+            )
+            .arg("count", count)
+            .arg("lines", if trace.centre_lines { "yes" } else { "no" })
+            .arg("layer", image.layer.as_str()),
+    ];
     if count == 0 && trace.dots == 0 {
-        lines.push(
-            "Nothing is black: change the threshold, or invert if the picture is light on dark."
-                .into(),
-        );
+        lines.push(Message::new("pipeline-image-nothing-black"));
     }
     if let Some((narrow, wide)) = trace.widths {
-        lines.push(format!(
-            "Strokes {narrow:.2} to {wide:.2} mm wide: cut them with a follow path."
-        ));
+        lines.push(
+            Message::new("pipeline-image-strokes")
+                .arg("narrow", Value::LengthNumber(narrow, Digits::Fixed(2)))
+                .arg("wide", Value::Length(wide, Digits::Fixed(2))),
+        );
     }
     // A closed centre line (an outline drawn by hand) is an area as well.
     let closed = trace.paths.iter().filter(|p| p.closed).count();
     if trace.centre_lines && closed > 0 {
-        lines.push(format!(
-            "{closed} closed {}: a profile or pocket can cut round {}, as round any outline.",
-            if closed == 1 { "line" } else { "lines" },
-            if closed == 1 { "it" } else { "them" }
-        ));
+        lines.push(Message::new("pipeline-image-closed-lines").arg("count", closed));
     }
     if trace.dots > 0 {
-        lines.push(format!(
-            "{} {} too small for a centre line left out.",
-            trace.dots,
-            if trace.dots == 1 { "dot" } else { "dots" }
-        ));
+        lines.push(Message::new("pipeline-image-dots").arg("count", trace.dots));
     }
     if trace.dropped > 0 {
-        lines.push(format!(
-            "{} {} smaller than {} mm² dropped.",
-            trace.dropped,
-            if trace.dropped == 1 {
-                "speck"
-            } else {
-                "specks"
-            },
-            image.min_area
-        ));
-    }
-    if trace.black_at_border {
         lines.push(
-            "Black touches the picture's edge and is closed along it; if that's the background, \
-             invert."
-                .into(),
+            Message::new("pipeline-image-specks")
+                .arg("count", trace.dropped)
+                .arg("area", Value::Number(image.min_area, Digits::Shortest)),
         );
     }
+    if trace.black_at_border {
+        lines.push(Message::new("pipeline-image-black-at-border"));
+    }
     if trace.without_arcs > 0 {
-        lines.push(format!(
-            "{} {} kept as lines: {} arcs came too near another shape.",
-            trace.without_arcs,
-            if trace.without_arcs == 1 {
-                "shape"
-            } else {
-                "shapes"
-            },
-            if trace.without_arcs == 1 {
-                "its"
-            } else {
-                "their"
-            }
-        ));
+        lines.push(Message::new("pipeline-image-without-arcs").arg("count", trace.without_arcs));
     }
     if trace.unsimplified > 0 {
-        lines.push(format!(
-            "{} {} kept as traced: smoothing made them cross.",
-            trace.unsimplified,
-            if trace.unsimplified == 1 {
-                "shape"
-            } else {
-                "shapes"
-            }
-        ));
+        lines.push(Message::new("pipeline-image-unsimplified").arg("count", trace.unsimplified));
     }
     ImageReport {
         id: image.id,
@@ -761,6 +716,7 @@ fn report(image: &Image, trace: &Traced, shapes: Vec<u64>) -> ImageReport {
         black_at_border: trace.black_at_border,
         width: trace.width,
         height: trace.height,
-        lines,
+        lines: lines.iter().map(Message::english).collect(),
+        messages: lines,
     }
 }

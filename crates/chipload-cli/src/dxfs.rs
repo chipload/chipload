@@ -95,7 +95,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             match remove_dxf(&job, id) {
                 Ok((job, lines)) => {
                     for line in lines {
-                        out.line(line);
+                        out.line(line.english());
                     }
                     write(out, &job, output.as_deref().unwrap_or(&project))
                 }

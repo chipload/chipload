@@ -11,6 +11,8 @@ use chipload_core::Point;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, VORONOI_GRID_MM};
 
+use chipload_i18n::{Digits, Message, Value};
+
 use crate::ToolpathError;
 use crate::cavalier::{Area, geometry, guarded};
 use crate::geom::PrimIndex;
@@ -290,16 +292,21 @@ pub(crate) fn medial_axis(
     if chords.is_empty() {
         return Ok(Graph::default());
     }
-    let built = guarded(&format!("The {name} centre line"), || {
-        Builder::<i32>::default()
-            .with_segments(chords.iter())
-            .and_then(Builder::build)
-    })?;
+    let built = guarded(
+        Message::new("toolpath-error-medial-step").arg("name", medial_name(name)),
+        || {
+            Builder::<i32>::default()
+                .with_segments(chords.iter())
+                .and_then(Builder::build)
+        },
+    )?;
     let failed = |e: boostvoronoi::prelude::BvError| {
-        geometry(format!(
-            "contours {ids}: the {name} centre line could not be built ({e}); does the outline \
-             touch or cross itself?"
-        ))
+        geometry(
+            Message::new("toolpath-error-medial-failed")
+                .arg("contours", ids)
+                .arg("name", medial_name(name))
+                .arg("error", e.to_string()),
+        )
     };
     let diagram = built.map_err(failed)?;
     let mut graph = Graph::default();
@@ -362,7 +369,8 @@ fn site(
     ends: &[(Point, Point)],
     name: &str,
 ) -> Result<Site, ToolpathError> {
-    let unknown = || geometry(format!("{name} centre line: a cell without its chord"));
+    let unknown =
+        || geometry(Message::new("toolpath-error-medial-cell").arg("name", medial_name(name)));
     let cell = diagram.cell(cell).map_err(|_| unknown())?;
     let (index, category) = cell.source_index_2();
     let &(a, b) = ends.get(index.usize()).ok_or_else(unknown)?;
@@ -462,6 +470,16 @@ fn fine_ring(pline: &cavalier_contours::polyline::Polyline<f64>, tol: f64) -> Ve
     ring
 }
 
+/// What a centre line is for, in messages: `name` is "V-carve" or "centre line".
+fn medial_name(name: &str) -> Message {
+    let key = if name == "V-carve" {
+        "vcarve"
+    } else {
+        "centre-line"
+    };
+    Message::new("toolpath-error-medial-name").arg("name", key)
+}
+
 /// A closed ring on the Voronoi grid, without repeated points or spikes that double back.
 fn snapped_ring(points: &[Point], name: &str) -> Result<Vec<(i32, i32)>, ToolpathError> {
     let snap = |v: f64| -> Result<i32, ToolpathError> {
@@ -470,11 +488,15 @@ fn snapped_ring(points: &[Point], name: &str) -> Result<Vec<(i32, i32)>, Toolpat
             // In range, checked just above.
             Ok(units as i32)
         } else {
-            Err(geometry(format!(
-                "a {name} outline at {v:.3} mm is too far from the drawing origin (the \
-                 centre line works within ±{:.0} mm)",
-                f64::from(i32::MAX) * VORONOI_GRID_MM
-            )))
+            Err(geometry(
+                Message::new("toolpath-error-medial-far")
+                    .arg("name", medial_name(name))
+                    .arg("at", Value::Length(v, Digits::Fixed(3)))
+                    .arg(
+                        "reach",
+                        Value::Length(f64::from(i32::MAX) * VORONOI_GRID_MM, Digits::Fixed(0)),
+                    ),
+            ))
         }
     };
     let mut ring: Vec<(i32, i32)> = Vec::with_capacity(points.len());

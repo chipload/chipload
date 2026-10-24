@@ -52,13 +52,16 @@ impl ChiploadApp {
                 self.focus = Focus::Text(report.id);
                 self.focus_text_field = true;
                 self.commit();
-                let mut lines = report.lines.clone();
-                lines.push(t!(self, "texts-added-next"));
-                self.set_report(Report::info(lines));
+                let mut lines = Report::of_messages(report.messages.clone());
+                lines.push(Tone::Info, t!(self, "texts-added-next"));
+                self.set_report(lines);
                 Some(report.id)
             }
             Err(err) => {
-                self.error(vec![t!(self, "texts-write-failed"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "texts-write-failed"),
+                    err.message(),
+                ));
                 None
             }
         }
@@ -82,11 +85,14 @@ impl ChiploadApp {
                 self.drawing_changed(&[]);
                 self.selection = CanvasSelection::Source(ShapeFrom::Text(id));
                 self.commit();
-                self.set_report(Report::info(report.lines));
+                self.set_report(Report::of_messages(report.messages));
                 true
             }
             Err(err) => {
-                self.error(vec![t!(self, "texts-write-failed"), err.to_string()]);
+                self.error_report(Report::failed(
+                    t!(self, "texts-write-failed"),
+                    err.message(),
+                ));
                 false
             }
         }
@@ -110,7 +116,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec![err.to_string()]);
+                self.error_report(Report::of_error(err.message()));
                 false
             }
         }

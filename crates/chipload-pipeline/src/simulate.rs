@@ -5,6 +5,7 @@
 
 use chipload_core::text::mm;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Tool, ToolType};
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::{Cancel, ToolGroup};
@@ -162,26 +163,32 @@ fn run(
     let cell = match cell {
         Some(cell) => {
             if !(MIN_CELL_MM..=MAX_CELL_MM).contains(&cell) {
-                return Err(PipelineError::Job(format!(
-                    "cell size must be between {MIN_CELL_MM} and {MAX_CELL_MM} mm, got {cell} mm"
-                )));
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-simulate-cell-size")
+                        .arg("min", Value::LengthNumber(MIN_CELL_MM, Digits::Shortest))
+                        .arg("max", Value::Length(MAX_CELL_MM, Digits::Shortest))
+                        .arg("got", Value::Length(cell, Digits::Shortest)),
+                ));
             }
             let cells = cells_for(stock.x, stock.y, cell);
             if cells > MAX_CELLS {
-                return Err(PipelineError::Job(format!(
-                    "a {cell} mm cell makes {cells} cells for this stock, more than \
-                     {MAX_CELLS}; use a larger cell"
-                )));
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-simulate-too-many-cells")
+                        .arg("cell", Value::Length(cell, Digits::Shortest))
+                        .arg("cells", cells)
+                        .arg("most", MAX_CELLS),
+                ));
             }
             cell
         }
         None => {
             let cell = auto_cell(stock.x, stock.y);
             if cells_for(stock.x, stock.y, cell) > MAX_CELLS {
-                return Err(PipelineError::Job(format!(
-                    "the stock is too large to simulate at {cell} mm cells (more than \
-                     {MAX_CELLS} cells)"
-                )));
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-simulate-stock-too-large")
+                        .arg("cell", Value::Length(cell, Digits::Shortest))
+                        .arg("most", MAX_CELLS),
+                ));
             }
             cell
         }
@@ -746,14 +753,20 @@ impl Simulation {
 
     /// The shaded image as PNG bytes, fixed settings (§6).
     pub fn png(&self, palette: Palette) -> Result<Vec<u8>, PipelineError> {
-        let width = u32::try_from(self.columns).map_err(|e| PipelineError::Job(e.to_string()))?;
-        let height = u32::try_from(self.rows).map_err(|e| PipelineError::Job(e.to_string()))?;
+        let foreign =
+            |e: std::num::TryFromIntError| PipelineError::Job(crate::foreign_text(e.to_string()));
+        let width = u32::try_from(self.columns).map_err(foreign)?;
+        let height = u32::try_from(self.rows).map_err(foreign)?;
         let mut bytes = Vec::new();
         let mut encoder = png::Encoder::new(&mut bytes, width, height);
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
         encoder.set_compression(png::Compression::Balanced);
-        let png_error = |e: png::EncodingError| PipelineError::Job(format!("PNG: {e}"));
+        let png_error = |e: png::EncodingError| {
+            PipelineError::Job(
+                Message::new("pipeline-simulate-png").arg("error", Value::Text(e.to_string())),
+            )
+        };
         let mut writer = encoder.write_header().map_err(png_error)?;
         writer
             .write_image_data(&self.shaded(palette))

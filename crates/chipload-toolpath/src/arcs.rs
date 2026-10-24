@@ -11,6 +11,7 @@ use std::f64::consts::PI;
 use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 use crate::model::{Move, MoveKind, Program};
@@ -186,10 +187,11 @@ fn emit_run(
 ) -> Result<(), ToolpathError> {
     for &v in vertices {
         if (distance(v, circle.center) - circle.radius).abs() > CHAIN_TOL_MM {
-            return Err(ToolpathError::Geometry(format!(
-                "arc output: ({:.4}, {:.4}) is not on the circle it was tagged with",
-                v.0, v.1
-            )));
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-error-arc-off-circle")
+                    .arg("x", Value::LengthNumber(v.0, Digits::Fixed(4)))
+                    .arg("y", Value::LengthNumber(v.1, Digits::Fixed(4))),
+            ));
         }
     }
     let mut first = 0; // index of the piece's first vertex

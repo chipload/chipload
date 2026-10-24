@@ -69,6 +69,27 @@ impl Problem {
     }
 }
 
+/// Messages one after the other, joined by semicolons: "a; b; c". None for none.
+pub fn semicolons(messages: impl IntoIterator<Item = Message>) -> Option<Message> {
+    messages.into_iter().reduce(|list, last| {
+        Message::new("job-semicolons")
+            .arg("list", list)
+            .arg("last", last)
+    })
+}
+
+/// Messages one after the other, joined by commas: "a, b, c"; "none" for none.
+pub fn commas(messages: impl IntoIterator<Item = Message>) -> Message {
+    messages
+        .into_iter()
+        .reduce(|list, last| {
+            Message::new("job-commas")
+                .arg("list", list)
+                .arg("last", last)
+        })
+        .unwrap_or_else(|| Message::new("job-library-none"))
+}
+
 impl fmt::Display for Problem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.text)

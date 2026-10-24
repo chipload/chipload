@@ -8,10 +8,10 @@ rust-version.workspace = true
 
 [dependencies]
 chipload-core = { version = "0.23.0", path = "../chipload-core" }
+chipload-i18n = { version = "0.23.0", path = "../chipload-i18n" }
 # Already in the tree through the dxf crate (bmp, png); jpeg adds zune-jpeg (MIT OR
 # Apache-2.0 OR Zlib), also already in the tree. docs/specs/image-trace.md §7.
 image = { version = "0.25.9", default-features = false, features = ["bmp", "jpeg", "png"] }
-thiserror = "2.0.21"
 
 [lints]
 workspace = true

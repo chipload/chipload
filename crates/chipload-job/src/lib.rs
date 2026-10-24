@@ -18,36 +18,64 @@ pub mod schema;
 
 use std::path::Path;
 
+use chipload_i18n::{Message, Value as I18nValue};
 use serde_json::Value;
-use thiserror::Error;
 
 pub use cut_list::OpRef;
 pub use models::*;
 pub use note::Note;
 pub use problem::Problem;
 
-#[derive(Debug, Error)]
+/// Why a project file can't be read or written. Its text is a message (`job.ftl`), shown
+/// in the app's language; `Display` writes it in English for the command line.
+#[derive(Debug)]
 pub enum JobError {
     /// Missing, malformed or newer-than-known `schema_version`. Never guessed.
-    #[error(
-        "Job schema_version {found} is not supported: this version of Chipload reads \
-         {oldest} to {current}. Update Chipload or check the file.",
-        oldest = OLDEST_VERSION
-    )]
     UnsupportedVersion { found: String, current: i64 },
     /// A job from before projects (schema 1-3), which this version no longer reads.
-    #[error(
-        "Job schema_version {found} is from before projects and is no longer read. Open it \
-         with Chipload 0.3.0 and save it, or import its DXF again."
-    )]
     TooOld { found: i64 },
-    /// An older file that can't be carried forward without changing what it means.
-    #[error("This job (schema_version {from}) can't be opened: {reason}")]
+    /// An older file that can't be carried forward without changing what it means. The
+    /// migration's `reason` is English: it names fields of the old file.
     CannotMigrate { from: i64, reason: String },
-    #[error("Cannot read job file {path}: {reason}")]
-    Unreadable { path: String, reason: String },
-    #[error("Invalid job file {path}: {reason}")]
-    Invalid { path: String, reason: String },
+    /// `reason` is the file system's or JSON reader's own words, or a message.
+    Unreadable { path: String, reason: I18nValue },
+    /// `reason` is the JSON reader's own words, or the project's problems.
+    Invalid { path: String, reason: I18nValue },
+}
+
+impl JobError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            JobError::UnsupportedVersion { found, current } => Message::new("job-error-version")
+                .arg("found", found)
+                .arg("oldest", OLDEST_VERSION)
+                .arg("current", *current),
+            JobError::TooOld { found } => Message::new("job-error-too-old").arg("found", *found),
+            JobError::CannotMigrate { from, reason } => Message::new("job-error-cannot-migrate")
+                .arg("from", *from)
+                .arg("reason", reason),
+            JobError::Unreadable { path, reason } => Message::new("job-error-unreadable")
+                .arg("path", path)
+                .arg("reason", reason.clone()),
+            JobError::Invalid { path, reason } => Message::new("job-error-invalid")
+                .arg("path", path)
+                .arg("reason", reason.clone()),
+        }
+    }
+}
+
+impl std::fmt::Display for JobError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for JobError {}
+
+/// Words of another library (the file system, the JSON reader), kept as they are.
+pub(crate) fn foreign(error: impl std::fmt::Display) -> I18nValue {
+    I18nValue::Text(error.to_string())
 }
 
 /// Load a job file: migrate older versions, refuse unknown or newer ones, then validate.
@@ -55,16 +83,16 @@ pub fn load_job(path: &Path) -> Result<Job, JobError> {
     let shown = path.display().to_string();
     let text = std::fs::read_to_string(path).map_err(|e| JobError::Unreadable {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     let data: Value = serde_json::from_str(&text).map_err(|e| JobError::Unreadable {
         path: shown.clone(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     if !data.is_object() {
         return Err(JobError::Unreadable {
             path: shown,
-            reason: "must contain a JSON object".into(),
+            reason: Message::new("job-error-not-object").into(),
         });
     }
     parse_job(migrations::migrate(data)?, &shown)
@@ -81,7 +109,7 @@ pub fn dump_job(job: &Job) -> Result<String, JobError> {
     current.written_by = Some(format!("chipload {}", env!("CARGO_PKG_VERSION")));
     let text = serde_json::to_string_pretty(&current).map_err(|e| JobError::Invalid {
         path: "(job)".into(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
     Ok(ascii_json(&text))
 }
@@ -110,7 +138,9 @@ pub(crate) fn ascii_json(text: &str) -> String {
 pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
     let failed = |e: std::io::Error| JobError::Unreadable {
         path: path.display().to_string(),
-        reason: format!("cannot write: {e}"),
+        reason: Message::new("job-error-cannot-write")
+            .arg("error", foreign(e))
+            .into(),
     };
     let text = dump_job(job)?;
     let with_suffix = |suffix: &str| {
@@ -127,7 +157,9 @@ pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
         let _ = std::fs::remove_file(&tmp);
         return Err(JobError::Unreadable {
             path: path.display().to_string(),
-            reason: format!("cannot keep the previous version as .bak: {e}"),
+            reason: Message::new("job-error-no-backup")
+                .arg("error", foreign(e))
+                .into(),
         });
     }
     std::fs::rename(&tmp, path).map_err(failed)
@@ -137,19 +169,14 @@ pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
 pub fn parse_job(data: Value, path: &str) -> Result<Job, JobError> {
     let job: Job = serde_json::from_value(data).map_err(|e| JobError::Invalid {
         path: path.to_string(),
-        reason: e.to_string(),
+        reason: foreign(e),
     })?;
-    let problems = job.validate();
-    if problems.is_empty() {
-        Ok(job)
-    } else {
-        Err(JobError::Invalid {
+    let problems = job.validate().into_iter().map(|p| p.text_message);
+    match problem::semicolons(problems) {
+        None => Ok(job),
+        Some(problems) => Err(JobError::Invalid {
             path: path.to_string(),
-            reason: problems
-                .iter()
-                .map(Problem::to_string)
-                .collect::<Vec<_>>()
-                .join("; "),
-        })
+            reason: problems.into(),
+        }),
     }
 }

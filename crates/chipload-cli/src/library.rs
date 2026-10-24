@@ -5,10 +5,12 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use chipload_i18n::Message;
 use chipload_job::library::{
-    Collection, Cutting, LibraryError, LibraryTool, Link, MachineLibrary, MachineProfile,
-    ToolLibrary, export, import_into, load_library, load_machines, load_tools, machine_link,
-    read_import, tool_link, update_library, update_machines, update_tools, use_tool, write_export,
+    Collection, Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineLibrary,
+    MachineProfile, ToolLibrary, export, import_into, load_library, load_machines, load_tools,
+    machine_link, read_import, tool_link, update_library, update_machines, update_tools, use_tool,
+    write_export,
 };
 use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
 use chipload_pipeline::library::{
@@ -267,7 +269,7 @@ fn dir() -> Result<PathBuf, String> {
 }
 
 fn refused(text: String) -> LibraryError {
-    LibraryError::Refused(text)
+    LibraryError::Refused(chipload_i18n::Value::Text(text))
 }
 
 pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
@@ -413,7 +415,7 @@ fn compare_tools(out: &mut Out, path: &Path, project: &Path) -> ExitCode {
     let mut rows = Vec::new();
     for tool in &job.tools {
         let link = tool_link(&library, tool);
-        out.line(format!("  T{}: {}", tool.id, link.text("library tool")));
+        out.line(format!("  T{}: {}", tool.id, link.text(LinkEntry::Tool)));
         rows.push(link_json(&link, serde_json::json!({ "id": tool.id })));
     }
     out.set("tools", serde_json::Value::Array(rows));
@@ -426,7 +428,10 @@ fn link_json(link: &Link, mut row: serde_json::Value) -> serde_json::Value {
         Link::None => (None, Vec::new()),
         Link::Missing(name) => (name.clone(), Vec::new()),
         Link::Same(name) => (Some(name.clone()), Vec::new()),
-        Link::Differs(name, changes) => (Some(name.clone()), changes.clone()),
+        Link::Differs(name, changes) => (
+            Some(name.clone()),
+            changes.iter().map(Message::english).collect(),
+        ),
     };
     if let Some(map) = row.as_object_mut() {
         map.insert("state".into(), serde_json::json!(link.state()));
@@ -674,6 +679,9 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
         MachineAction::Import { file, replace } => {
             return import_file::<MachineLibrary>(out, &path, &file, replace, |from| {
                 unknown_posts(from, Some(&posts))
+                    .iter()
+                    .map(Message::english)
+                    .collect()
             });
         }
         MachineAction::Add { name, values } => update_machines(&path, |library| {
@@ -785,7 +793,7 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
                 Err(code) => return code,
             };
             let link = machine_link(&library, &job);
-            out.line(format!("Machine: {}", link.text("profile")));
+            out.line(format!("Machine: {}", link.text(LinkEntry::Profile)));
             out.set("machine", link_json(&link, serde_json::json!({})));
             return ExitCode::SUCCESS;
         }
@@ -952,7 +960,7 @@ fn use_machine(
         out.line("  no values changed");
     }
     for change in changes {
-        out.line(format!("  {change}"));
+        out.line(format!("  {}", change.english()));
     }
     out.wrote(target, "");
     ExitCode::SUCCESS
@@ -1015,7 +1023,7 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
                         .map(|c| serde_json::json!({
                             "name": c.name,
                             "builtin": c.builtin,
-                            "problem": c.problem,
+                            "problem": c.problem.as_ref().map(Message::english),
                         }))
                         .collect::<Vec<_>>()
                 ),
@@ -1026,8 +1034,9 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
                     None => out.line(format!("  {} ({kind})", choice.name)),
                     Some(problem) => {
                         out.line(format!(
-                            "  {} ({kind}) can't be used: {problem}",
-                            choice.name
+                            "  {} ({kind}) can't be used: {}",
+                            choice.name,
+                            problem.english()
                         ));
                     }
                 }

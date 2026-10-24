@@ -35,8 +35,9 @@ use chipload_pipeline::report::{
 use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, add_rest_pass, empty_project, load_drawing, new_project, run_job,
-    set_op_rest, set_op_tool, update_drawing, write_atomically, write_gcode_files,
+    PipelineError, RunResult, add_rest_pass, empty_project, foreign_text, load_drawing,
+    new_project, run_job, set_op_rest, set_op_tool, update_drawing, write_atomically,
+    write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -1034,17 +1035,17 @@ fn create(
         .unwrap_or_default();
     let notes = match apply_library(&mut job, &library, machine) {
         Ok(notes) => notes,
-        Err(err) => return out.fail(err),
+        Err(err) => return out.fail(err.english()),
     };
     if let Err(err) = save_job(&job, output) {
         return out.fail(err);
     }
     out.line(line.to_string());
     for problem in &library.problems {
-        out.err(format!("warning: {problem}"));
+        out.err(format!("warning: {}", problem.english()));
     }
     for note in notes {
-        out.line(note.to_string());
+        out.line(note.english());
     }
     out.wrote(output, "");
     ExitCode::SUCCESS
@@ -1406,7 +1407,7 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     let mut new_ids: Option<Vec<u64>> = None;
     let changed = match action {
         ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
-            .map_err(PipelineError::Job)
+            .map_err(|e| PipelineError::Job(foreign_text(e)))
             .and_then(|geometry| {
                 let layer = values.layer.as_deref().unwrap_or("0");
                 add_shape(&job, layer, geometry)
@@ -1420,10 +1421,10 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             .shapes
             .iter()
             .find(|s| s.id == id)
-            .ok_or_else(|| PipelineError::Job(format!("there is no shape {id}")))
+            .ok_or_else(|| chipload_pipeline::shapes::no_shape(id))
             .and_then(|shape| {
-                let geometry =
-                    changed_geometry(&shape.geometry, &values).map_err(PipelineError::Job)?;
+                let geometry = changed_geometry(&shape.geometry, &values)
+                    .map_err(|e| PipelineError::Job(foreign_text(e)))?;
                 let layer = values.layer.clone().unwrap_or_else(|| shape.layer.clone());
                 set_shape(&job, id, &layer, geometry)
             })

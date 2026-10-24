@@ -134,7 +134,7 @@ impl ChiploadApp {
         match drag_box(&drag.start, drag.handle, to, free) {
             Ok(b) => drag.now = b,
             Err(why) => {
-                let text = t!(self, "box-drag-not-that-size", error = why.to_string());
+                let text = t!(self, "box-drag-not-that-size", error = self.say(&why));
                 self.set_status(text, STATUS_SECONDS);
             }
         }

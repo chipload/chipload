@@ -47,3 +47,18 @@ dxf-ring-self-intersecting = si autointerseca
 # $x and $y are a point's coordinates, without their unit.
 dxf-ring-folds = si ripiega su se stesso: i suoi lati arrivano entro { $within } l'uno dall'altro vicino a ({ $x }, { $y })
 dxf-ring-no-area = non racchiude alcuna area
+
+## Why a DXF can't be imported
+
+# $path is the file; $reason the operating system's or the DXF reader's own words, or one
+# of the texts below.
+dxf-error-unreadable = Cannot read DXF { $path }: { $reason }
+dxf-error-parser-crashed = the DXF parser crashed on this file
+# $scale is a factor without a unit.
+dxf-error-scale = can't import at scale { $scale }
+# $INSUNITS is the name of the DXF header variable: keep it as written.
+dxf-error-units-missing = DXF has no units ($INSUNITS=0); specify mm or inch explicitly
+# $code is the number the DXF gives its units.
+dxf-error-units-unsupported = DXF $INSUNITS={ $code } is not supported (only mm, inch or unitless). Re-export the drawing in mm or inch.
+# $dxf and $expected are "mm" or "inch".
+dxf-error-units-mismatch = DXF declares { $dxf } but { $expected } was expected. Fix the drawing or choose the units explicitly; units are never guessed.

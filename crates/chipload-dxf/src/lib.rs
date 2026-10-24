@@ -37,26 +37,49 @@ pub use convert::{Affine, MAX_BLOCK_DEPTH};
 /// Millimetres per inch.
 const MM_PER_INCH: f64 = 25.4;
 
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+/// Why a DXF can't be imported. Its text is a message (`dxf.ftl`), shown in the app's
+/// language; `Display` writes it in English for the command line.
+#[derive(Debug, Clone, PartialEq)]
 pub enum ImportError {
-    #[error("Cannot read DXF {path}: {reason}")]
-    Unreadable { path: String, reason: String },
-    #[error("DXF has no units ($INSUNITS=0); specify mm or inch explicitly")]
+    /// `reason` is the parser's or the file system's own words, or a message.
+    Unreadable {
+        path: String,
+        reason: Value,
+    },
     UnitsMissing,
-    #[error(
-        "DXF $INSUNITS={0} is not supported (only mm, inch or unitless). \
-         Re-export the drawing in mm or inch."
-    )]
     UnsupportedUnits(i32),
-    #[error(
-        "DXF declares {dxf} but {expected} was expected. Fix the drawing or choose the units \
-         explicitly; units are never guessed."
-    )]
     UnitsMismatch {
         dxf: &'static str,
         expected: &'static str,
     },
 }
+
+impl ImportError {
+    /// The error as a message.
+    pub fn message(&self) -> Message {
+        match self {
+            ImportError::Unreadable { path, reason } => Message::new("dxf-error-unreadable")
+                .arg("path", path)
+                .arg("reason", reason.clone()),
+            ImportError::UnitsMissing => Message::new("dxf-error-units-missing"),
+            ImportError::UnsupportedUnits(code) => Message::new("dxf-error-units-unsupported")
+                .arg("code", Value::Text(code.to_string())),
+            ImportError::UnitsMismatch { dxf, expected } => {
+                Message::new("dxf-error-units-mismatch")
+                    .arg("dxf", *dxf)
+                    .arg("expected", *expected)
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for ImportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message().english())
+    }
+}
+
+impl std::error::Error for ImportError {}
 
 /// `message` is `text_message` in English and mm, for the command line and `--json`; the
 /// app shows `text_message` in its language and units (docs/specs/translations.md §7).
@@ -166,7 +189,7 @@ pub fn shapes_from_dxf_scaled(
 ) -> Result<ImportedShapes, ImportError> {
     let bytes = std::fs::read(path).map_err(|err| ImportError::Unreadable {
         path: path.display().to_string(),
-        reason: err.to_string(),
+        reason: Value::Text(err.to_string()),
     })?;
     let name = path.file_name().map_or_else(
         || path.display().to_string(),
@@ -184,7 +207,7 @@ pub fn shapes_from_dxf_bytes(
     units: Option<Units>,
     scale: f64,
 ) -> Result<ImportedShapes, ImportError> {
-    let unreadable = |reason: String| ImportError::Unreadable {
+    let unreadable = |reason: Value| ImportError::Unreadable {
         path: name.to_string(),
         reason,
     };
@@ -192,8 +215,8 @@ pub fn shapes_from_dxf_bytes(
     // The parser is third-party code fed hostile input: a panic in it becomes an import
     // error instead of taking the application down.
     let parsed = std::panic::catch_unwind(|| Drawing::load(&mut cleaned.as_slice()))
-        .map_err(|_| unreadable("the DXF parser crashed on this file".into()))?;
-    let drawing = parsed.map_err(|err| unreadable(err.to_string()))?;
+        .map_err(|_| unreadable(Message::new("dxf-error-parser-crashed").into()))?;
+    let drawing = parsed.map_err(|err| unreadable(Value::Text(err.to_string())))?;
     let mut imported = shapes_from_drawing_scaled(&drawing, units, scale)?;
     imported.source.file = name.to_string();
     imported.source.name = chipload_job::migrations::dxf_name(name);
@@ -218,7 +241,9 @@ pub fn shapes_from_drawing_scaled(
     if !(scale.is_finite() && scale > 0.0) {
         return Err(ImportError::Unreadable {
             path: String::new(),
-            reason: format!("can't import at scale {scale}"),
+            reason: Message::new("dxf-error-scale")
+                .arg("scale", Value::Number(scale, Digits::Shortest))
+                .into(),
         });
     }
     let (file_units, units_from) = resolve_units(drawing, units)?;

@@ -2,6 +2,7 @@
 //! Copies of a part in a grid (docs/specs/copies-grid.md, parts.md): the text shown for a
 //! grid and the pitch for a gap between copies.
 
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Copies, CopyOrder, Job, Units};
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::plan_job;
@@ -85,7 +86,7 @@ pub fn cut_size(job: &Job, part: u64) -> Result<(f64, f64), PipelineError> {
     let imported = load_drawing(&one)?;
     let plan = plan_job(&one, &imported.contours)?;
     let ((x0, y0), (x1, y1)) = cut_extent(&plan.program.moves, &plan.op_spans, None)
-        .ok_or_else(|| PipelineError::Job("The part cuts nothing".into()))?;
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-part-cuts-nothing")))?;
     Ok((x1 - x0, y1 - y0))
 }
 
@@ -99,9 +100,9 @@ pub fn pitch_for_gap(
     current: (f64, f64),
 ) -> Result<(f64, f64), PipelineError> {
     if !(gap.is_finite() && gap >= 0.0) {
-        return Err(PipelineError::Job(format!(
-            "The gap must be 0 or more, got {gap} mm"
-        )));
+        return Err(PipelineError::Job(
+            Message::new("pipeline-copies-gap").arg("got", Value::Length(gap, Digits::Shortest)),
+        ));
     }
     let (width, height) = cut_size(job, part)?;
     let along = |size: f64, now: f64| {

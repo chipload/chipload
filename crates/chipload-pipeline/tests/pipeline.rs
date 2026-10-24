@@ -107,7 +107,7 @@ fn job_error(job: &Job, text: &str) {
     let err = error(job);
     assert!(
         matches!(&err, PipelineError::Toolpath(e)
-            if matches!(e.cause(), ToolpathError::Job(m) if m.contains(text))),
+            if matches!(e.cause(), ToolpathError::Job(m) if m.english().contains(text))),
         "{err}"
     );
 }
@@ -441,7 +441,7 @@ fn selector_error(job: &Job, text: &str) {
     let err = error(job);
     assert!(
         matches!(&err, PipelineError::Toolpath(e)
-            if matches!(e.cause(), ToolpathError::Selector(m) if m.contains(text))),
+            if matches!(e.cause(), ToolpathError::Selector(m) if m.english().contains(text))),
         "{err}"
     );
 }
@@ -498,7 +498,7 @@ fn tool_larger_than_hole_names_the_contour() {
     let err = error(&job(json!({"tools": tools, "operations": [holes]})));
     assert!(
         matches!(&err, PipelineError::Toolpath(e)
-            if matches!(e.cause(), ToolpathError::Geometry(m) if m.contains("contour #2"))),
+            if matches!(e.cause(), ToolpathError::Geometry(m) if m.english().contains("contour #2"))),
         "{err}"
     );
 }
@@ -1088,7 +1088,7 @@ fn every_problem_is_found_at_once_with_its_field() {
     let ToolpathError::Job(message) = err.cause() else {
         panic!("a job error");
     };
-    assert_eq!(&first.text, message);
+    assert_eq!(first.text, message.english());
     assert_eq!(err.operation(), None, "a machine rule is nobody's");
     assert!(first.text.starts_with("safe_z -1"), "{}", first.text);
     assert_eq!(first.short, "must be above the stock top (Z 0 mm)");

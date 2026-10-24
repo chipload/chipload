@@ -30,7 +30,9 @@ use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{
     Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
 };
-use crate::profile::{PathRing, contour_note, labelled_note, pass_depths, plan_profile};
+use crate::profile::{
+    PathRing, contour_context, contour_note, labelled_note, pass_depths, plan_profile,
+};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::surface::{SurfaceCut, surface_moves};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
@@ -167,7 +169,7 @@ pub fn plan_job_cancellable(
     check_parts_apart(job, &moves, &op_spans)?;
     let first = groups
         .first()
-        .ok_or_else(|| job_error("Every operation is disabled: nothing to cut".into()))?;
+        .ok_or_else(|| job_error(Message::new("toolpath-all-disabled")))?;
     // Chords of known arcs are tagged; the post writes them as G2/G3 if it does arcs.
     tag_moves(&mut moves, &arcs);
     Ok(Plan {
@@ -195,7 +197,6 @@ struct Chosen<'a> {
     at: OpRef,
     /// The operation; for a rest pass, the pocket it is (Job::resolve).
     op: Operation,
-    label: String,
     label_message: Message,
     selection: Selection<'a>,
 }
@@ -207,26 +208,27 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
     // Operations that aren't cut are kept in the file and skipped here; numbering stays as
     // listed.
     for at in job.cut_list() {
-        let op = job
-            .resolve(at)
-            .ok_or_else(|| job_error(format!("No operation {at} in the job")))?;
-        let label = job.label(at);
+        let op = job.resolve(at).ok_or_else(|| {
+            job_error(Message::new("toolpath-error-no-operation").arg("at", at.to_string()))
+        })?;
+        let label_message = job.label_message(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), &label),
+            Operation::Path(_) | Operation::Holes(_) => {
+                select_paths(contours, op.select(), &label_message)
+            }
             // The whole stock, no shapes (docs/specs/surfacing.md §2).
             Operation::Surface(_) => Ok(Selection {
                 contours: Vec::new(),
                 notes: Vec::new(),
             }),
-            _ => select_contours(contours, op.select(), &label),
+            _ => select_contours(contours, op.select(), &label_message),
         }
         .map_err(|err| err.at(at.operation))?;
         chosen.push(Chosen {
             at,
             op,
-            label,
-            label_message: job.label_message(at),
+            label_message,
             selection,
         });
     }
@@ -262,9 +264,9 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
     let mut steps: Vec<Step> = Vec::new();
     let mut groups: Vec<ToolGroup> = Vec::new();
     for (tool_id, members) in tool_runs {
-        let tool = job
-            .tool(tool_id)
-            .ok_or_else(|| job_error(format!("Tool {tool_id} is not defined in the job")))?;
+        let tool = job.tool(tool_id).ok_or_else(|| {
+            job_error(Message::new("toolpath-tool-undefined").arg("tool", tool_id))
+        })?;
         // A group can run on from one part into the next: each part's run with its copies.
         let mut runs: Vec<Vec<usize>> = Vec::new();
         for &i in &members {
@@ -369,7 +371,6 @@ fn plan_step(
         Vec::new()
     };
     let context = Context {
-        label: &chosen.label,
         label_message: &chosen.label_message,
         tool,
         job,
@@ -408,9 +409,13 @@ fn plan_step(
         let several = part.is_some_and(|p| p.count() > 1);
         let err = if several && job.parts.len() > 1 {
             let name = part.map_or("", |p| p.name.as_str());
-            err.with_context(&format!("part {name}, copy {}", step.copy))
+            err.with_context(
+                Message::new("toolpath-error-part-copy")
+                    .arg("part", name)
+                    .arg("copy", step.copy),
+            )
         } else if several {
-            err.with_context(&format!("copy {}", step.copy))
+            err.with_context(Message::new("toolpath-error-copy").arg("copy", step.copy))
         } else {
             err
         };
@@ -536,7 +541,6 @@ impl Gathered {
 
 /// What every operation needs from the job.
 struct Context<'a> {
-    label: &'a str,
     label_message: &'a Message,
     tool: &'a Tool,
     job: &'a Job,
@@ -567,7 +571,6 @@ fn plan_pocket_op(
     start: Point,
     starts: &[Point],
 ) -> Result<Planned, ToolpathError> {
-    let label = ctx.label;
     // Checked before planning (check_job); never fall back to the whole pocket.
     let rest = match op.rest {
         Some(rest) => Some(
@@ -575,9 +578,9 @@ fn plan_pocket_op(
                 .tool(rest.after_tool)
                 .map(|t| t.diameter / 2.0)
                 .ok_or_else(|| {
-                    job_error(format!(
-                        "{label}: rest after tool {}, which the project doesn't have",
-                        rest.after_tool
+                    job_error(labelled_note(
+                        ctx.label_message,
+                        Message::new("toolpath-error-rest-tool").arg("tool", rest.after_tool),
                     ))
                 })?,
         ),
@@ -604,7 +607,7 @@ fn plan_pocket_op(
             rest,
         },
     };
-    let plan = plan_pocket(&request).map_err(|err| err.with_context(label))?;
+    let plan = plan_pocket(&request).map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let mut plan = plan;
     let mut corner_notes = Vec::new();
     if let Some(style) = op.corners {
@@ -616,7 +619,7 @@ fn plan_pocket_op(
             everything: ctx.everything,
             // Another boundary of the pocket has waste on both sides near a corner.
             exempt: &boundaries,
-            label,
+            label: ctx.label_message,
         };
         for piece in &mut plan.pieces {
             let unreached = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
@@ -654,8 +657,9 @@ fn plan_pocket_op(
             // Without the leads, if it has them.
             out.starts.push((ring.plain().to_vec(), ring.chosen));
         }
-        out.moves
-            .extend(pocket_moves(piece, &cut).map_err(|err| err.with_context(label))?);
+        out.moves.extend(
+            pocket_moves(piece, &cut).map_err(|err| err.with_context(ctx.label_message.clone()))?,
+        );
         // Retracted above the start of the wall ring.
         if let Some(end) = piece.rings.last().and_then(PocketRing::end) {
             out.end = end;
@@ -771,7 +775,6 @@ fn plan_path_op(
     selection: &Selection,
     start: Point,
 ) -> Result<Planned, ToolpathError> {
-    let label = ctx.label;
     let mut arcs = ArcTable::default();
     let mut notes = Vec::new();
     let paths = order_paths(
@@ -803,7 +806,7 @@ fn plan_path_op(
     for path in &paths {
         ctx.cancel.check()?;
         let (more, at) = path_moves(path, &cut, &arcs)
-            .map_err(|err| err.with_context(&format!("{label}, contour #{}", path.contour_id)))?;
+            .map_err(|err| err.with_context(contour_context(ctx.label_message, path.contour_id)))?;
         moves.extend(more);
         end = at;
     }
@@ -824,7 +827,6 @@ fn plan_holes_op(
     selection: &Selection,
     start: Point,
 ) -> Result<Planned, ToolpathError> {
-    let label = ctx.label;
     let tool = ctx.tool;
     let (found, others) = find_holes(&selection.contours);
     let mut notes = Vec::new();
@@ -858,10 +860,11 @@ fn plan_holes_op(
         {
             // A core is left standing inside the helix's ring (docs/specs/holes.md §4).
             if op.end_depth < ctx.job.stock.thickness - DEPTH_TOL_MM {
-                return Err(job_error(format!(
-                    "{label}: hole {diameter} mm is blind and more than twice the {} mm tool; \
-                     use a pocket",
-                    mm(tool.diameter)
+                return Err(job_error(labelled_note(
+                    ctx.label_message,
+                    Message::new("toolpath-error-blind-bore")
+                        .arg("diameter", Value::mm(2.0 * hole.radius))
+                        .arg("tool", Value::mm(tool.diameter)),
                 )));
             }
             cores += 1;
@@ -889,18 +892,20 @@ fn plan_holes_op(
         ));
     }
     if holes.is_empty() {
-        return Err(job_error(format!(
-            "{label}: no selected circle can be cut with tool {} ({} mm {})",
-            tool.id,
-            mm(tool.diameter),
-            tool.kind.name()
+        return Err(job_error(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-error-no-hole-fits")
+                .arg("tool", tool.id)
+                .arg("diameter", Value::mm(tool.diameter))
+                .arg("type", tool.kind.name()),
         )));
     }
-    let end_z = ctx
-        .pass_z
-        .last()
-        .copied()
-        .ok_or_else(|| job_error(format!("{label}: no depth to cut to")))?;
+    let end_z = ctx.pass_z.last().copied().ok_or_else(|| {
+        job_error(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-error-no-depth"),
+        ))
+    })?;
     let cut = HoleCut {
         top_z: ctx.top_z,
         end_z,
@@ -927,7 +932,7 @@ fn plan_holes_op(
                     spindle: ctx.job.machine.spindle,
                 };
                 moves.extend(bore_moves(&hole, &bore, &cut).map_err(|err| {
-                    err.with_context(&format!("{label}, contour #{}", hole.contour_id))
+                    err.with_context(contour_context(ctx.label_message, hole.contour_id))
                 })?);
             }
         }
@@ -990,12 +995,14 @@ fn plan_vcarve_op(
     selection: &Selection,
     start: Point,
 ) -> Result<Planned, ToolpathError> {
-    let label = ctx.label;
     let tool = ctx.tool;
     // Validated in validate_job: a V-bit with an angle.
-    let angle = tool
-        .angle
-        .ok_or_else(|| job_error(format!("{label}: tool {} has no angle", tool.id)))?;
+    let angle = tool.angle.ok_or_else(|| {
+        job_error(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-error-no-angle").arg("tool", tool.id),
+        ))
+    })?;
     let bit = VBit {
         angle,
         tip_diameter: tool.tip_diameter.unwrap_or(0.0),
@@ -1007,7 +1014,7 @@ fn plan_vcarve_op(
         op.end_depth - op.start_depth,
         start,
     )
-    .map_err(|err| err.with_context(label))?;
+    .map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let levels = carve_levels(plan.deepest, op.step_down)?;
     let moves = vcarve_moves(
         &plan.paths,
@@ -1044,7 +1051,6 @@ fn plan_profile_op(
     start: Point,
     starts: &[Point],
 ) -> Result<Planned, ToolpathError> {
-    let label = ctx.label;
     let machine = &ctx.job.machine;
     let radius = ctx.tool.diameter / 2.0;
     // The rings at the wall; with a finishing pass the roughing rings run `stock` farther
@@ -1083,7 +1089,7 @@ fn plan_profile_op(
             clearance: op.clearance,
             everything: ctx.everything,
             exempt: &[],
-            label,
+            label: ctx.label_message,
         };
         let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
         plan.notes.extend(
@@ -1148,7 +1154,7 @@ fn plan_profile_op(
     // Roughing: every ring as a spiral, down to the skin.
     for (k, ring) in rough_rings.iter().enumerate() {
         let context = |err: ToolpathError| {
-            err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+            err.with_context(contour_context(ctx.label_message, ring.contour_id))
         };
         let layout = if rough.is_some() {
             carried_tabs(&plan.rings, &layouts, k, rough_rings).map_err(context)?
@@ -1177,7 +1183,7 @@ fn plan_profile_op(
     for z in stages.into_iter().flatten() {
         for (ring, layout) in plan.rings.iter().zip(&layouts) {
             let context = |err: ToolpathError| {
-                err.with_context(&format!("{label}, contour #{}", ring.contour_id))
+                err.with_context(contour_context(ctx.label_message, ring.contour_id))
             };
             let slot: Vec<&[Point]> = rough_rings
                 .iter()
@@ -1187,8 +1193,14 @@ fn plan_profile_op(
             if let Some(finish) = op.finish
                 && z == rough_bottom
             {
-                let labels = (label, ctx.label_message);
-                slot_note(ring, &slot, radius, finish.stock, labels, &mut out.notes)?;
+                slot_note(
+                    ring,
+                    &slot,
+                    radius,
+                    finish.stock,
+                    ctx.label_message,
+                    &mut out.notes,
+                )?;
             }
             let tabs = surface(layout);
             let lap = WallLap {
@@ -1227,7 +1239,6 @@ fn profile_tabs(
     rings: &[PathRing],
     out: &mut Planned,
 ) -> Result<(Vec<Option<TabLayout>>, Vec<usize>), ToolpathError> {
-    let label = ctx.label;
     let Some(tabs) = &op.tabs else {
         return Ok((vec![None; rings.len()], Vec::new()));
     };
@@ -1243,7 +1254,7 @@ fn profile_tabs(
         // Validated: count >= 1.
         let count = usize::try_from(tabs.count).unwrap_or(0);
         let placed = place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
-            .map_err(|err| err.with_context(&format!("{label}, contour #{}", ring.contour_id)))?;
+            .map_err(|err| err.with_context(contour_context(ctx.label_message, ring.contour_id)))?;
         if placed.on_curves > 0 {
             curved.push(ring.contour_id);
         }
@@ -1317,17 +1328,16 @@ fn slot_note(
     slot: &[&[Point]],
     radius: f64,
     stock: f64,
-    (label, label_message): (&str, &Message),
+    label_message: &Message,
     notes: &mut Vec<Message>,
 ) -> Result<(), ToolpathError> {
     let farthest = farthest_from(&ring.points, slot, radius / 2.0);
     let id = ring.contour_id;
     if farthest >= radius {
-        return Err(ToolpathError::Geometry(format!(
-            "{label}, contour #{id}: the roughing can't reach part of the wall (the finishing \
-             lap runs {} mm from the roughing path, a tool radius or more): use less \
-             finishing stock or a smaller tool",
-            mm(farthest)
+        return Err(ToolpathError::Geometry(contour_note(
+            label_message,
+            id,
+            Message::new("toolpath-error-roughing-reach").arg("farthest", Value::mm(farthest)),
         )));
     }
     if farthest > 2.0 * stock + CHAIN_TOL_MM {
@@ -1494,11 +1504,17 @@ fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), 
                 continue;
             }
             let ((x0, y0), (x1, y1)) = a.extent;
-            return Err(ToolpathError::Overlap(format!(
-                "Part \"{}\" copy {number} overlaps part \"{}\" copy {other} (X{x0:.3} to \
-                 {x1:.3} mm, Y{y0:.3} to {y1:.3} mm): move the copies apart or change the grid",
-                job.parts[*p].name, job.parts[*q].name
-            )));
+            return Err(ToolpathError::Overlap(
+                Message::new("toolpath-error-parts-overlap")
+                    .arg("part", job.parts[*p].name.as_str())
+                    .arg("copy", *number)
+                    .arg("other_part", job.parts[*q].name.as_str())
+                    .arg("other_copy", *other)
+                    .arg("x0", Value::LengthNumber(x0, Digits::Fixed(3)))
+                    .arg("x1", Value::Length(x1, Digits::Fixed(3)))
+                    .arg("y0", Value::LengthNumber(y0, Digits::Fixed(3)))
+                    .arg("y1", Value::Length(y1, Digits::Fixed(3))),
+            ));
         }
     }
     Ok(())
@@ -1540,25 +1556,21 @@ fn check_copies_apart(
             }
             let same_row = (shift.1 - shift_other.1).abs() <= CHAIN_TOL_MM;
             let same_column = (shift.0 - shift_other.0).abs() <= CHAIN_TOL_MM;
+            let fixed = |v: f64| Value::LengthNumber(v, Digits::Fixed(3));
             let text = if same_row {
-                format!(
-                    "Copies overlap: with columns the pitch dx must be at least {width:.3} mm \
-                     (the cut is {width:.3} mm wide), got {:.3}",
-                    grid.dx.abs()
-                )
+                Message::new("toolpath-error-copies-dx")
+                    .arg("width", Value::Length(width, Digits::Fixed(3)))
+                    .arg("got", fixed(grid.dx.abs()))
             } else if same_column {
-                format!(
-                    "Copies overlap: with rows the pitch dy must be at least {height:.3} mm \
-                     (the cut is {height:.3} mm high), got {:.3}",
-                    grid.dy.abs()
-                )
+                Message::new("toolpath-error-copies-dy")
+                    .arg("height", Value::Length(height, Digits::Fixed(3)))
+                    .arg("got", fixed(grid.dy.abs()))
             } else {
-                format!(
-                    "Copies overlap: copies {other} and {number} cut into each other; move \
-                     them apart (pitch dx {:.3}, dy {:.3})",
-                    grid.dx.abs(),
-                    grid.dy.abs()
-                )
+                Message::new("toolpath-error-copies-overlap")
+                    .arg("other", *other)
+                    .arg("copy", *number)
+                    .arg("dx", fixed(grid.dx.abs()))
+                    .arg("dy", fixed(grid.dy.abs()))
             };
             return Err(ToolpathError::Overlap(text));
         }
@@ -1566,14 +1578,14 @@ fn check_copies_apart(
     Ok(())
 }
 
-fn job_error(message: String) -> ToolpathError {
+fn job_error(message: Message) -> ToolpathError {
     ToolpathError::Job(message)
 }
 
 /// The tool an operation names (docs/specs/tool-per-operation.md §4).
 pub fn op_tool<'a>(job: &'a Job, op: &Operation) -> Result<&'a Tool, ToolpathError> {
     job.tool(op.tool())
-        .ok_or_else(|| job_error(format!("Tool {} is not defined in the job", op.tool())))
+        .ok_or_else(|| job_error(Message::new("toolpath-tool-undefined").arg("tool", op.tool())))
 }
 
 /// Generation-time rules from the specs, each operation against its own tool. Returns
@@ -1582,8 +1594,8 @@ pub fn validate_job(job: &Job) -> Result<Vec<Note>, ToolpathError> {
     let (problems, notes) = check_job(job);
     match problems.into_iter().next() {
         Some(first) => Err(match first.operation() {
-            Some(index) => job_error(first.text).at(index),
-            None => job_error(first.text),
+            Some(index) => job_error(first.text_message).at(index),
+            None => job_error(first.text_message),
         }),
         None => Ok(notes),
     }

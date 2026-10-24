@@ -20,3 +20,6 @@ report-drawing-title = Dibujo: { $contours ->
        *[other] { $issues } incidencias
     }
 report-select-operation-hover = Seleccionar la operación { $number }
+# A line of a list in the report, indented under its heading: $line is a message from
+# the project (a problem). Only the two spaces in front are this text's.
+report-indented = {"  "}{ $line }

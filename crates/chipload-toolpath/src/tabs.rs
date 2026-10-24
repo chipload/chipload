@@ -6,6 +6,7 @@ use std::f64::consts::TAU;
 use chipload_core::Point;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 
@@ -43,14 +44,13 @@ pub fn place_tabs(
     if count == 0 || spacing - gap < tool_diameter {
         // Small non-negative whole number of tabs.
         let fits = (length / (gap + tool_diameter)).floor() as u64;
-        let most = if fits > 0 {
-            format!("at most {fits} fit")
-        } else {
-            "not even one fits".to_string()
-        };
-        return Err(ToolpathError::Geometry(format!(
-            "{count} tabs of {width:.3} mm don't fit on a {length:.1} mm path ({most})"
-        )));
+        return Err(ToolpathError::Geometry(
+            Message::new("toolpath-error-tabs-fit")
+                .arg("count", count)
+                .arg("width", Value::Length(width, Digits::Fixed(3)))
+                .arg("length", Value::Length(length, Digits::Fixed(1)))
+                .arg("fits", fits),
+        ));
     }
     let (positions, turns) = vertex_turns(ring);
     let mut spans = Vec::with_capacity(count);

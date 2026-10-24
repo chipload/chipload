@@ -765,6 +765,7 @@ dependencies = [
  "chipload-check",
  "chipload-core",
  "chipload-dxf",
+ "chipload-i18n",
  "chipload-job",
  "chipload-pipeline",
  "chipload-post",
@@ -795,7 +796,6 @@ dependencies = [
  "dxf",
  "serde_json",
  "sha2",
- "thiserror 2.0.21",
  "uuid",
 ]
 
@@ -832,9 +832,9 @@ name = "chipload-image"
 version = "0.23.0"
 dependencies = [
  "chipload-core",
+ "chipload-i18n",
  "image",
  "proptest",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -846,7 +846,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -867,7 +866,6 @@ dependencies = [
  "proptest",
  "serde_json",
  "sha2",
- "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -875,12 +873,12 @@ name = "chipload-post"
 version = "0.23.0"
 dependencies = [
  "chipload-check",
+ "chipload-i18n",
  "chipload-job",
  "chipload-toolpath",
  "minijinja",
  "schemars",
  "serde",
- "thiserror 2.0.21",
  "toml",
 ]
 
@@ -889,7 +887,7 @@ name = "chipload-text"
 version = "0.23.0"
 dependencies = [
  "chipload-core",
- "thiserror 2.0.21",
+ "chipload-i18n",
  "ttf-parser",
 ]
 
@@ -905,7 +903,6 @@ dependencies = [
  "getrandom 0.3.4",
  "proptest",
  "serde_json",
- "thiserror 2.0.21",
 ]
 
 [[package]]

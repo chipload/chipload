@@ -896,8 +896,10 @@ pub fn contour_copies<'a>(job: &Job, contours: &'a [Contour]) -> Vec<(&'a Contou
             .filter(|op| op.part() == part.id && op.selects_shapes())
         {
             let picked = match op {
-                Operation::Path(_) | Operation::Holes(_) => select_paths(contours, op.select(), ""),
-                _ => select_contours(contours, op.select(), ""),
+                Operation::Path(_) | Operation::Holes(_) => {
+                    select_paths(contours, op.select(), &op.label_message(0))
+                }
+                _ => select_contours(contours, op.select(), &op.label_message(0)),
             };
             if let Ok(selection) = picked {
                 ids.extend(selection.contours.iter().map(|c| c.id));

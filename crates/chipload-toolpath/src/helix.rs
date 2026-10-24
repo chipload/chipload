@@ -8,6 +8,7 @@ use std::f64::consts::TAU;
 use chipload_core::Point;
 use chipload_core::primitives::segment_count;
 use chipload_core::tolerances::DEPTH_TOL_MM;
+use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 use crate::arcs::Circle;
@@ -74,12 +75,19 @@ pub fn helix_moves(
         // Whole turns: the slope is at most the angle. A small positive whole number.
         let turns = (drop / per_turn).ceil().max(1.0) as usize;
         if turns > MAX_HELIX_TURNS {
-            return Err(ToolpathError::Geometry(format!(
-                "a helix of radius {:.3} mm at {:.2}° would need {turns} turns to go down \
-                 {drop:.3} mm; use a larger radius or a steeper angle",
-                helix.circle.radius,
-                ramp_angle.to_degrees()
-            )));
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-error-helix-turns")
+                    .arg(
+                        "radius",
+                        Value::Length(helix.circle.radius, Digits::Fixed(3)),
+                    )
+                    .arg(
+                        "angle",
+                        Value::Number(ramp_angle.to_degrees(), Digits::Fixed(2)),
+                    )
+                    .arg("turns", turns)
+                    .arg("drop", Value::Length(drop, Digits::Fixed(3))),
+            ));
         }
         let steps = turns * n;
         for k in 1..=steps {

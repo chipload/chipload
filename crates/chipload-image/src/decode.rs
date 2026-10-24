@@ -5,6 +5,7 @@
 use std::io::Cursor;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+use chipload_i18n::{Message, Value};
 use image::{ImageFormat, ImageReader, Limits};
 
 use crate::ImageError;
@@ -38,7 +39,7 @@ pub fn decode(bytes: &[u8]) -> Result<Decoded, ImageError> {
     let reader = || -> Result<ImageReader<Cursor<&[u8]>>, ImageError> {
         let reader = ImageReader::new(Cursor::new(bytes))
             .with_guessed_format()
-            .map_err(|e| ImageError::Decode(e.to_string()))?;
+            .map_err(|e| ImageError::Decode(Value::Text(e.to_string())))?;
         match reader.format() {
             Some(ImageFormat::Png | ImageFormat::Jpeg | ImageFormat::Bmp) => Ok(reader),
             _ => Err(ImageError::UnsupportedFormat),
@@ -46,9 +47,11 @@ pub fn decode(bytes: &[u8]) -> Result<Decoded, ImageError> {
     };
     let (width, height) = reader()?
         .into_dimensions()
-        .map_err(|e| ImageError::Decode(e.to_string()))?;
+        .map_err(|e| ImageError::Decode(Value::Text(e.to_string())))?;
     if width == 0 || height == 0 {
-        return Err(ImageError::Decode("the picture has no pixels".into()));
+        return Err(ImageError::Decode(
+            Message::new("image-error-no-pixels").into(),
+        ));
     }
     if u64::from(width) * u64::from(height) > MAX_PIXELS {
         return Err(ImageError::TooManyPixels(width, height));
@@ -59,8 +62,8 @@ pub fn decode(bytes: &[u8]) -> Result<Decoded, ImageError> {
     limits.max_image_height = Some(height);
     reader.limits(limits);
     let picture = catch_unwind(AssertUnwindSafe(|| reader.decode()))
-        .map_err(|_| ImageError::Decode("the decoder failed".into()))?
-        .map_err(|e| ImageError::Decode(e.to_string()))?;
+        .map_err(|_| ImageError::Decode(Message::new("image-error-decoder-failed").into()))?
+        .map_err(|e| ImageError::Decode(Value::Text(e.to_string())))?;
     let rgba = picture.to_rgba16();
     let grey = rgba
         .pixels()
