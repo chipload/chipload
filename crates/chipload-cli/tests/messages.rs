@@ -54,7 +54,7 @@ fn steady(text: &str) -> String {
             while end < bytes.len() && bytes[end].is_ascii_digit() {
                 end += 1;
             }
-            if end - i - 1 >= 7 {
+            if end - i > 7 {
                 let value: f64 = text[start..end].parse().unwrap();
                 out.push_str(&format!("{value:.6}"));
                 i = end;
