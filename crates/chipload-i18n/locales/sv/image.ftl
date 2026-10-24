@@ -4,21 +4,21 @@
 ## The picture
 
 # $bytes is the file's size in bytes.
-image-error-too-large = the picture is { $bytes } bytes; at most 20 MB is supported: scale it down
-image-error-too-many-pixels = the picture is { $width } × { $height } pixels; at most 20 megapixels is supported: scale it down
-image-error-format = not a PNG, JPEG or BMP picture
+image-error-too-large = bilden är { $bytes } byte; högst 20 MB stöds: skala ned den
+image-error-too-many-pixels = bilden är { $width } × { $height } pixlar; högst 20 megapixlar stöds: skala ned den
+image-error-format = inte en PNG-, JPEG- eller BMP-bild
 # $reason is the picture decoder's own words, or one of the two texts below.
-image-error-decode = the picture can't be read: { $reason }
-image-error-no-pixels = the picture has no pixels
-image-error-decoder-failed = the decoder failed
+image-error-decode = bilden kan inte läsas: { $reason }
+image-error-no-pixels = bilden har inga pixlar
+image-error-decoder-failed = avkodaren misslyckades
 # $zero is the length 0 with its unit.
-image-error-width = the width must be more than { $zero }
-image-error-too-many-loops = the picture traces into { $loops } loops, more than { $most }: blur it more, raise the smallest piece, or change the threshold
+image-error-width = bredden måste vara mer än { $zero }
+image-error-too-many-loops = bilden spåras till { $loops } slingor, fler än { $most }: öka oskärpan, öka minsta bit eller ändra tröskeln
 
 ## Its settings
 
-image-error-threshold = the threshold must be 1 to 254, or auto
-image-error-blur = the blur must be 0 to 10 px
-image-error-smallest-piece = the smallest piece must be 0 to 100 mm²
+image-error-threshold = tröskeln måste vara 1 till 254, eller auto
+image-error-blur = oskärpan måste vara 0 till 10 px
+image-error-smallest-piece = minsta bit måste vara 0 till 100 mm²
 # $min is a length without its unit, $max one with it: "0.01 to 1 mm".
-image-error-smoothing = the smoothing must be { $min } to { $max }
+image-error-smoothing = utjämningen måste vara { $min } till { $max }

@@ -2,13 +2,13 @@
 # letters. Font names are never translated.
 
 # $fonts is the built-in fonts' names, separated by commas.
-text-error-unknown-font = there is no built-in font "{ $font }"; the fonts are: { $fonts }
-text-error-empty = the text is empty: write something to cut
-text-error-too-long = the text is too long: { $count } characters, at most { $most }
+text-error-unknown-font = es gibt keine eingebaute Schrift „{ $font }“; die Schriften sind: { $fonts }
+text-error-empty = der Text ist leer: schreiben Sie etwas zum Fräsen
+text-error-too-long = der Text ist zu lang: { $count } Zeichen, höchstens { $most }
 # $zero is the length 0 with its unit; $got the height asked for, without its unit.
-text-error-height = the height must be more than { $zero }, got { $got }
+text-error-height = die Höhe muss mehr als { $zero } sein, ist { $got }
 # Spacings are factors, without a unit.
-text-error-line-spacing = the line spacing must be more than 0, got { $got }
-text-error-spacing = the letter spacing must be a number, got { $got }
-text-error-bad-font = the font "{ $font }" can't be read
-text-error-no-letters = nothing to cut: the font has no letters for this text
+text-error-line-spacing = der Zeilenabstand muss mehr als 0 sein, ist { $got }
+text-error-spacing = der Buchstabenabstand muss eine Zahl sein, ist { $got }
+text-error-bad-font = die Schrift „{ $font }“ kann nicht gelesen werden
+text-error-no-letters = nichts zu fräsen: die Schrift hat keine Buchstaben für diesen Text

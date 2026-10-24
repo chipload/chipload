@@ -164,49 +164,49 @@ job-skin-above-tabs = doit être inférieure à la hauteur des attaches ({ $heig
 ## Lists
 
 # Messages joined: "a; b; c" and "a, b, c".
-job-semicolons = { $list }; { $last }
+job-semicolons = { $list } ; { $last }
 job-commas = { $list }, { $last }
 
 ## Project files that can't be read
 
 # $found is the schema_version in the file, as written there ("missing" when there is none).
-job-error-version = Job schema_version { $found } is not supported: this version of Chipload reads { $oldest } to { $current }. Update Chipload or check the file.
-job-error-too-old = Job schema_version { $found } is from before projects and is no longer read. Open it with Chipload 0.3.0 and save it, or import its DXF again.
+job-error-version = La version schema_version { $found } du projet n'est pas prise en charge : cette version de Chipload lit de { $oldest } à { $current }. Mettez à jour Chipload ou vérifiez le fichier.
+job-error-too-old = La version schema_version { $found } du projet date d'avant les projets et n'est plus lue. Ouvrez-le avec Chipload 0.3.0 et enregistrez-le, ou importez à nouveau son DXF.
 # $reason is why the old file can't be carried forward, in English: it names the file's fields.
-job-error-cannot-migrate = This job (schema_version { $from }) can't be opened: { $reason }
+job-error-cannot-migrate = Ce projet (schema_version { $from }) ne peut pas être ouvert : { $reason }
 # $reason is the operating system's or JSON reader's own words, or one of the job-error texts below.
-job-error-unreadable = Cannot read job file { $path }: { $reason }
+job-error-unreadable = Impossible de lire le fichier de projet { $path } : { $reason }
 # $reason is the JSON reader's own words, or the project's problems joined by semicolons.
-job-error-invalid = Invalid job file { $path }: { $reason }
-job-error-not-object = must contain a JSON object
+job-error-invalid = Fichier de projet non valide { $path } : { $reason }
+job-error-not-object = doit contenir un objet JSON
 # $error is the operating system's words.
-job-error-cannot-write = cannot write: { $error }
-job-error-no-backup = cannot keep the previous version as .bak: { $error }
+job-error-cannot-write = impossible d'écrire : { $error }
+job-error-no-backup = impossible de garder la version précédente en .bak : { $error }
 # On the command line, after `set`: $paths are the values set, as paths in the project file.
-job-set-would-not-load = the project wouldn't load after setting { $paths }: { $reason }
+job-set-would-not-load = le projet ne se chargerait plus après avoir modifié { $paths } : { $reason }
 
 ## The tool library and machine profiles
 
 # $path is the library, settings or recovery file; $found its schema_version as written there.
-job-library-error-version = { $path }: schema_version { $found } is not supported: this version of Chipload reads { $current }. Update Chipload or check the file.
+job-library-error-version = { $path } : schema_version { $found } n'est pas prise en charge : cette version de Chipload lit { $current }. Mettez à jour Chipload ou vérifiez le fichier.
 # $reason is the operating system's or JSON reader's own words, or a job- text.
-job-library-error-unreadable = Cannot read { $path }: { $reason }
+job-library-error-unreadable = Impossible de lire { $path } : { $reason }
 # $reason is the JSON reader's own words, or the file's rule violations (in English).
-job-library-error-invalid = Invalid { $path }: { $reason }
-job-library-error-unwritable = Cannot write { $path }: { $reason }
+job-library-error-invalid = Fichier non valide { $path } : { $reason }
+job-library-error-unwritable = Impossible d'écrire { $path } : { $reason }
 # A change the library refuses: $reason is one of the texts below, or the app's own words.
 job-library-error-refused = { $reason }
-job-library-no-tool = no tool named "{ $name }"
-job-library-no-machine = no machine named "{ $name }"
+job-library-no-tool = aucun outil nommé « { $name } »
+job-library-no-machine = aucune machine nommée « { $name } »
 # $entry is "tool" or "machine".
-job-library-no-entry = no { $entry ->
-    [machine] machine
-   *[tool] tool
-} named "{ $name }"
+job-library-no-entry = { $entry ->
+    [machine] aucune machine nommée
+   *[tool] aucun outil nommé
+} « { $name } »
 # A file to import that holds the other library: $path is the file, $hint one of the two texts after it.
-job-library-other-file = { $path }: { $hint }
-job-library-holds-machines = this file holds machine profiles, not tools: import it as machines
-job-library-holds-tools = this file holds tools, not machine profiles: import it as tools
+job-library-other-file = { $path } : { $hint }
+job-library-holds-machines = ce fichier contient des profils de machine, pas des outils : importez-le comme machines
+job-library-holds-tools = ce fichier contient des outils, pas des profils de machine : importez-le comme outils
 # A value that differs between a project and the library, or a library and a file:
 # "diameter 6 mm -> 8 mm". $what is job-library-field; $from and $to its values. Values
 # that are words of the project file (endmill, vbit, cw, ccw, files, program, mm, inch,
@@ -214,84 +214,84 @@ job-library-holds-tools = this file holds tools, not machine profiles: import it
 job-library-change = { $what } { $from } -> { $to }
 job-library-field = { $field ->
     [type] type
-    [diameter] diameter
-    [flutes] flutes
-    [centre-cutting] centre cutting
-    [rpm] rpm
+    [diameter] diamètre
+    [flutes] dents
+    [centre-cutting] coupe au centre
+    [rpm] vitesse de broche
     [angle] angle
-    [tip] tip
-    [id] id
-    [cutting-values] cutting values
-    [post] post
-    [G-code-units] G-code units
-    [tool-changes] tool changes
-    [safe-Z] safe Z
-    [spindle] spindle
-    [max-feed] max feed
-    [travel] travel
-    [work-zero] work zero
-    [max-overcut] max overcut
+    [tip] pointe
+    [id] numéro
+    [cutting-values] valeurs de coupe
+    [post] post-processeur
+    [G-code-units] unités G-code
+    [tool-changes] changements d'outil
+    [safe-Z] Z de sécurité
+    [spindle] broche
+    [max-feed] avance max
+    [travel] course
+    [work-zero] origine pièce
+    [max-overcut] prof. max sous le brut
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.
 job-library-degrees = { $degrees }°
 # No value.
-job-library-none = none
+job-library-none = aucun
 job-library-yes-no = { $value ->
-    [yes] yes
-    [no] no
-   *[unknown] unknown
+    [yes] oui
+    [no] non
+   *[unknown] inconnu
 }
 # The travel of a machine: $x and $y without their unit, $z with it.
 job-library-travel = X{ $x } Y{ $y } Z{ $z }
-job-library-work-zero-origin = drawing origin
+job-library-work-zero-origin = origine du dessin
 # $corner is a word of the project file: bottom-left, top-right, …
-job-library-work-zero-stock = stock { $corner }
+job-library-work-zero-stock = brut { $corner }
 # $x and $y are lengths without their unit.
 job-library-work-zero-point = point X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
-job-library-cutting = feed { $feed }, plunge { $plunge }, step down { $step_down }, stepover { $stepover }
-job-library-other-values = other values
+job-library-cutting = avance { $feed }, plongée { $plunge }, profondeur de passe { $step_down }, pas latéral { $stepover }
+job-library-other-values = autres valeurs
 # A library tool put into a project: $id is its number there.
-job-library-tool-there = tool { $id } (already in the project)
-job-library-tool-added = tool { $id } (added)
+job-library-tool-there = outil { $id } (déjà dans le projet)
+job-library-tool-added = outil { $id } (ajouté)
 # $taken is the number the tool has in the library, taken in the project by another tool.
-job-library-tool-added-as = tool { $id } (added as { $id }; tool { $taken } was taken)
+job-library-tool-added-as = outil { $id } (ajouté comme { $id } ; l'outil { $taken } était pris)
 # How a project's tool or machine stands to the library entry it was copied from. $entry
 # is "tool" (a library tool) or "profile" (a machine profile); $name the entry's name.
-job-link-none = not from your library
+job-link-none = pas de votre bibliothèque
 job-link-missing-named = { $entry ->
-    [profile] profile
-   *[tool] library tool
-} "{ $name }" is not in your library
-job-link-missing = its { $entry ->
-    [profile] profile
-   *[tool] library tool
-} is not in your library
-job-link-same = from { $entry ->
-    [profile] profile
-   *[tool] library tool
-} "{ $name }"
+    [profile] le profil
+   *[tool] l'outil de bibliothèque
+} « { $name } » n'est pas dans votre bibliothèque
+job-link-missing = { $entry ->
+    [profile] son profil
+   *[tool] son outil de bibliothèque
+} n'est pas dans votre bibliothèque
+job-link-same = { $entry ->
+    [profile] du profil
+   *[tool] de l'outil de bibliothèque
+} « { $name } »
 # $changes lists what updating would change (job-library-change texts).
-job-link-differs = differs from { $entry ->
-    [profile] profile
-   *[tool] library tool
-} "{ $name }": { $changes }
+job-link-differs = { $entry ->
+    [profile] diffère du profil
+   *[tool] diffère de l'outil de bibliothèque
+} « { $name } » : { $changes }
 
 ## Importing a library file
 
 # $list is "tools" or "machines", the list in the file.
-job-import-empty = The file holds no { $list ->
-    [machines] machines
-   *[tools] tools
+job-import-empty = Le fichier ne contient { $list ->
+    [machines] aucune machine
+   *[tools] aucun outil
 }.
 # $names are the entries' names, separated by commas.
-job-import-added = Added: { $names }
-job-import-new = New: { $names }
-job-import-same = Already in the library: { $names }
+job-import-added = Ajoutés : { $names }
+job-import-new = Nouveaux : { $names }
+job-import-same = Déjà dans la bibliothèque : { $names }
 # $differences are job-library-change texts joined by semicolons.
-job-import-replaced = Replaced: { $name } (file: { $differences })
-job-import-kept = Kept yours: { $name } (file: { $differences })
-job-import-differs = Differs from yours: { $name } (file: { $differences })
-job-import-default = Default: { $name }
-job-import-becomes-default = Becomes the default: { $name }
+job-import-replaced = Remplacé : { $name } (fichier : { $differences })
+job-import-kept = Le vôtre gardé : { $name } (fichier : { $differences })
+job-import-differs = Diffère du vôtre : { $name } (fichier : { $differences })
+job-import-default = Par défaut : { $name }
+job-import-becomes-default = Devient celui par défaut : { $name }

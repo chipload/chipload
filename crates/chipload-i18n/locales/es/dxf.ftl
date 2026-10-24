@@ -55,13 +55,13 @@ dxf-ring-no-area = no encierra ningún área
 
 # $path is the file; $reason the operating system's or the DXF reader's own words, or one
 # of the texts below.
-dxf-error-unreadable = Cannot read DXF { $path }: { $reason }
-dxf-error-parser-crashed = the DXF parser crashed on this file
+dxf-error-unreadable = No se puede leer el DXF { $path }: { $reason }
+dxf-error-parser-crashed = el lector de DXF falló con este archivo
 # $scale is a factor without a unit.
-dxf-error-scale = can't import at scale { $scale }
+dxf-error-scale = no se puede importar a escala { $scale }
 # $INSUNITS is the name of the DXF header variable: keep it as written.
-dxf-error-units-missing = DXF has no units ($INSUNITS=0); specify mm or inch explicitly
+dxf-error-units-missing = El DXF no tiene unidades ($INSUNITS=0); indica mm o pulgadas explícitamente
 # $code is the number the DXF gives its units.
-dxf-error-units-unsupported = DXF $INSUNITS={ $code } is not supported (only mm, inch or unitless). Re-export the drawing in mm or inch.
+dxf-error-units-unsupported = El $INSUNITS={ $code } del DXF no es compatible (solo mm, pulgadas o sin unidades). Vuelve a exportar el dibujo en mm o pulgadas.
 # $dxf and $expected are "mm" or "inch".
-dxf-error-units-mismatch = DXF declares { $dxf } but { $expected } was expected. Fix the drawing or choose the units explicitly; units are never guessed.
+dxf-error-units-mismatch = El DXF declara { $dxf }, pero se esperaba { $expected }. Corrige el dibujo o elige las unidades explícitamente; las unidades nunca se adivinan.

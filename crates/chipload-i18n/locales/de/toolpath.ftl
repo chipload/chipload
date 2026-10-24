@@ -187,157 +187,161 @@ toolpath-holes-core = { $count ->
 
 ## Errors: why no toolpath could be made
 
-toolpath-error-cancelled = Generation cancelled
+toolpath-error-cancelled = Berechnung abgebrochen
 # An error after where it happened: $context is an operation's label, or one of the
 # context texts below.
 toolpath-error-context = { $context }: { $error }
-toolpath-error-label-contour = { $label }, contour #{ $contour }
+toolpath-error-label-contour = { $label }, Kontur #{ $contour }
 # $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = part { $part }, copy { $copy }
-toolpath-error-copy = copy { $copy }
+toolpath-error-part-copy = Teil { $part }, Kopie { $copy }
+toolpath-error-copy = Kopie { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
-toolpath-error-no-operation = No operation { $at } in the job
+toolpath-error-no-operation = Keine Bearbeitung { $at } im Job
 
 ## Errors: selecting shapes
 
 # $shapes are shape numbers ("S4, S7").
-toolpath-error-shape-missing = shape { $shapes } is not part of any contour (deleted, or a duplicate or zero-length segment the import removed)
+toolpath-error-shape-missing = Form { $shapes } gehört zu keiner Kontur (gelöscht, oder ein doppeltes Segment oder eines der Länge null, das der Import entfernt hat)
 # $layers are layer names, separated by commas.
-toolpath-error-partly-selected = contour #{ $contour } is only partly selected (layers { $layers }); fix the drawing or the selector
+toolpath-error-partly-selected = Kontur #{ $contour } ist nur teilweise ausgewählt (Layer { $layers }); korrigieren Sie die Zeichnung oder die Auswahl
 # $reason is why the drawing's contour can't be machined, as the DXF import found it (in English).
-toolpath-error-contour-invalid = contour #{ $contour } is invalid: { $reason }
+toolpath-error-contour-invalid = Kontur #{ $contour } ist ungültig: { $reason }
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
-toolpath-error-selects-nothing = selector { $selector } matches nothing
+toolpath-error-selects-nothing = Auswahl { $selector } trifft nichts
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = selector { $selector } matches only open contours ({ $contours }); this operation needs closed ones
-toolpath-error-selector-layer = layer '{ $layer }'
-toolpath-error-selector-shapes = shapes { $shapes }
-toolpath-error-selector-and = { $first } and { $second }
+toolpath-error-selects-open = Auswahl { $selector } trifft nur offene Konturen ({ $contours }); diese Bearbeitung braucht geschlossene
+toolpath-error-selector-layer = Layer '{ $layer }'
+toolpath-error-selector-shapes = Formen { $shapes }
+toolpath-error-selector-and = { $first } und { $second }
 # $id is the number of a DXF, a picture or a text in the project.
 toolpath-error-selector-dxf = DXF { $id }
-toolpath-error-selector-image = image { $id }
-toolpath-error-selector-text = text { $id }
+toolpath-error-selector-image = Bild { $id }
+toolpath-error-selector-text = Text { $id }
 # $shapes are the shapes left out ("S3, S5").
-toolpath-error-selector-but = { $source } but { $shapes }
-toolpath-error-selector-of = { $what } of { $source }
+toolpath-error-selector-but = { $source } außer { $shapes }
+toolpath-error-selector-of = { $what } aus { $source }
 # $a and $b are contour numbers.
-toolpath-error-same-shape = contours #{ $a } and #{ $b } are the same shape; select only one of them
+toolpath-error-same-shape = Konturen #{ $a } und #{ $b } sind dieselbe Form; wählen Sie nur eine davon aus
 
 ## Errors: operations and tools
 
-toolpath-error-pass-depths = depths must satisfy 0 <= start ({ $start }) < end ({ $end }) and step_down ({ $step_down }) must be positive
+toolpath-error-pass-depths = Tiefen müssen 0 <= Start ({ $start }) < Ende ({ $end }) erfüllen, und step_down ({ $step_down }) muss positiv sein
 # $tool is a tool's number.
-toolpath-error-rest-tool = rest after tool { $tool }, which the project doesn't have
+toolpath-error-rest-tool = Rest nach Werkzeug { $tool }, das es im Projekt nicht gibt
 # $diameter is the hole's, $tool the tool's diameter.
-toolpath-error-blind-bore = hole { $diameter } is blind and more than twice the { $tool } tool; use a pocket
+toolpath-error-blind-bore = Bohrung { $diameter } ist ein Sackloch und mehr als doppelt so groß wie das Werkzeug ({ $tool }); verwenden Sie eine Tasche
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
-toolpath-error-no-hole-fits = no selected circle can be cut with tool { $tool } ({ $diameter } { $type })
-toolpath-error-no-depth = no depth to cut to
-toolpath-error-no-angle = tool { $tool } has no angle
+toolpath-error-no-hole-fits = kein ausgewählter Kreis kann mit Werkzeug { $tool } ({ $diameter } { $type }) gefräst werden
+toolpath-error-no-depth = keine Tiefe zum Fräsen
+toolpath-error-no-angle = Werkzeug { $tool } hat keinen Winkel
 # $got is an angle in degrees, without its unit.
-toolpath-error-vbit-angle = the V-bit angle must be more than 0 and less than 180 degrees, got { $got }
+toolpath-error-vbit-angle = der Winkel des V-Fräsers muss mehr als 0 und weniger als 180 Grad sein, ist { $got }
 # $got is a length, without its unit.
-toolpath-error-stepover = stepover must be positive, got { $got }
+toolpath-error-stepover = die seitliche Zustellung muss positiv sein, ist { $got }
 
 ## Errors: profiles, ramps and tabs
 
-toolpath-error-ring-no-length = a profile ring has no length
-toolpath-error-lap-no-course = a wall lap has no course
+toolpath-error-ring-no-length = ein Ring des Konturfräsens hat keine Länge
+toolpath-error-lap-no-course = ein Umlauf an der Wand hat keinen Verlauf
 # $angle is in degrees, without its unit; $length is how far the ring goes around.
-toolpath-error-ring-ramp = The ring is too short to ramp down { $drop } at { $angle }° ({ $length } around); use a steeper ramp angle or a straight plunge with a centre-cutting tool
+toolpath-error-ring-ramp = Der Ring ist zu kurz, um per Rampe mit { $angle }° um { $drop } abzusenken ({ $length } Umfang); verwenden Sie einen steileren Rampenwinkel oder tauchen Sie mit einem über Mitte schneidenden Werkzeug senkrecht ein
 # $reach is how much of the path the ramp may use.
-toolpath-error-ramp-reach = The path is too short to ramp down { $drop } at { $angle }° (only { $reach } to ramp along); use a steeper ramp angle or a straight plunge with a centre-cutting tool
-toolpath-error-path-ramp = The path is too short to ramp down { $drop } at { $angle }° ({ $length } long); use a steeper ramp angle or a straight plunge with a centre-cutting tool
+toolpath-error-ramp-reach = Der Pfad ist zu kurz, um per Rampe mit { $angle }° um { $drop } abzusenken (nur { $reach } Weg für die Rampe); verwenden Sie einen steileren Rampenwinkel oder tauchen Sie mit einem über Mitte schneidenden Werkzeug senkrecht ein
+toolpath-error-path-ramp = Der Pfad ist zu kurz, um per Rampe mit { $angle }° um { $drop } abzusenken ({ $length } lang); verwenden Sie einen steileren Rampenwinkel oder tauchen Sie mit einem über Mitte schneidenden Werkzeug senkrecht ein
 # $angle is in degrees, without its unit.
-toolpath-error-helix-turns = a helix of radius { $radius } at { $angle }° would need { $turns } turns to go down { $drop }; use a larger radius or a steeper angle
+toolpath-error-helix-turns = eine Helix mit Radius { $radius } bei { $angle }° bräuchte { $turns } Umdrehungen, um { $drop } abzusenken; verwenden Sie einen größeren Radius oder einen steileren Winkel
 # $offset is how far inside the line the tool's centre would run.
-toolpath-error-tool-does-not-fit = Tool does not fit inside the contour (its centre would run { $offset } inside the line)
-toolpath-error-offset-verification = Offset failed verification (path not at tool radius from the contour); the contour may be degenerate
+toolpath-error-tool-does-not-fit = Das Werkzeug passt nicht in die Kontur (sein Mittelpunkt liefe { $offset } innerhalb der Linie)
+toolpath-error-offset-verification = Offset hat die Prüfung nicht bestanden (Weg nicht im Abstand des Werkzeugradius von der Kontur); die Kontur ist möglicherweise entartet
 # $farthest is how far the finishing lap runs from the roughing path.
-toolpath-error-roughing-reach = the roughing can't reach part of the wall (the finishing lap runs { $farthest } from the roughing path, a tool radius or more): use less finishing stock or a smaller tool
+toolpath-error-roughing-reach = das Schruppen erreicht einen Teil der Wand nicht (der Schlichtgang verläuft { $farthest } vom Schruppweg entfernt, einen Werkzeugradius oder mehr): verwenden Sie weniger Aufmaß für den Schlichtgang oder ein kleineres Werkzeug
 # $fits is how many tabs would fit.
-toolpath-error-tabs-fit = { $count } tabs of { $width } don't fit on a { $length } path ({ $fits ->
-    [0] not even one fits
-   *[other] at most { $fits } fit
+toolpath-error-tabs-fit = { $count ->
+    [one] { $count } Haltesteg
+   *[other] { $count } Haltestege
+} von { $width } passen nicht auf einen Weg von { $length } ({ $fits ->
+    [0] nicht einmal einer passt
+    [one] höchstens { $fits } passt
+   *[other] höchstens { $fits } passen
 })
 # $from is a distance along the ring without its unit, $to one with it.
-toolpath-error-tab-carry = could not carry a tab ({ $from } to { $to } along the ring) onto the roughing ring
+toolpath-error-tab-carry = ein Haltesteg ({ $from } bis { $to } entlang des Rings) ließ sich nicht auf den Schrupp-Ring übertragen
 # $what is one of the three texts after it.
-toolpath-error-tab-verification = Tab toolpath failed verification: { $what }
+toolpath-error-tab-verification = Werkzeugweg der Haltestege hat die Prüfung nicht bestanden: { $what }
 # $z is a height, $at a distance along the ring.
-toolpath-error-tab-below = Z{ $z } at { $at } along the ring is below the tab
-toolpath-error-tab-back = the tool goes back along the ring at { $at }
-toolpath-error-tab-end-below = Z{ $z } at the tab end { $end } along the ring is below the tab top Z{ $top }
+toolpath-error-tab-below = Z{ $z } bei { $at } entlang des Rings liegt unter dem Haltesteg
+toolpath-error-tab-back = das Werkzeug fährt bei { $at } entlang des Rings zurück
+toolpath-error-tab-end-below = Z{ $z } am Ende des Haltestegs bei { $end } entlang des Rings liegt unter der Oberkante des Haltestegs Z{ $top }
 # $label is the operation's label; $at the corner's point.
-toolpath-error-corner-leg = { $label }: the leg at corner { $at } did not go into the ring as out and back
-toolpath-error-corner-cuts = { $label }: the { $style ->
-    [dogbone] dogbone
-   *[tbone] T-bone
-} at corner { $at } would cut into contour #{ $contour }; lower the corners' max angle or change the drawing
+toolpath-error-corner-leg = { $label }: der Abstecher an Ecke { $at } ging nicht als Hin- und Rückweg in den Ring
+toolpath-error-corner-cuts = { $label }: { $style ->
+    [dogbone] der Dogbone
+   *[tbone] der T-Bone
+} an Ecke { $at } würde in Kontur #{ $contour } schneiden; verringern Sie den max. Winkel der Ecken oder ändern Sie die Zeichnung
 # $x and $y are a point's coordinates, without their unit.
-toolpath-error-arc-off-circle = arc output: ({ $x }, { $y }) is not on the circle it was tagged with
+toolpath-error-arc-off-circle = Bogenausgabe: ({ $x }, { $y }) liegt nicht auf dem Kreis, dem der Punkt zugeordnet wurde
 
 ## Errors: pockets
 
 # $contours are contour numbers ("#3, #4"): the pocket's boundary and its islands.
-toolpath-error-islands-enclose = contours { $contours }: overlapping islands enclose an area between them, which pockets don't support yet
-toolpath-error-pocket-no-fit = contours { $contours }: tool (diameter { $diameter }) does not fit in the pocket
-toolpath-error-pocket-no-fit-clearance = contours { $contours }: tool (diameter { $diameter }, clearance { $clearance }) does not fit in the pocket
-toolpath-error-not-nested = contours { $contours }: pocket offsets are not nested
-toolpath-error-too-many-rings = contours { $contours }: more than { $most } pocket rings
-toolpath-error-pocket-verification = contours { $contours }: pocket toolpath failed verification (too close to a wall or island); the drawing may be degenerate
-toolpath-error-nothing-to-clear = Nothing to clear: the selected islands cover the selected boundaries (contours { $contours })
-toolpath-error-island-outside = pocket offset produced an island outside every area
-toolpath-error-shrink-hole = pocket offset made a hole while shrinking a single loop
-toolpath-error-open-loop = pocket offset returned an open loop where a closed one was expected
-toolpath-error-rest-outside = the rest machining area lies outside the pocket
-toolpath-error-left-hole-outside = material left: a hole outside every piece
-toolpath-error-left-holes-enclose = material left: holes enclose an area
-toolpath-error-left-wrong-area = material left: a boolean gave the wrong area
-toolpath-error-left-invalid = material left: invalid geometry from the offset library
+toolpath-error-islands-enclose = Konturen { $contours }: überlappende Inseln umschließen eine Fläche zwischen sich, was Taschen noch nicht unterstützen
+toolpath-error-pocket-no-fit = Konturen { $contours }: Werkzeug (Durchmesser { $diameter }) passt nicht in die Tasche
+toolpath-error-pocket-no-fit-clearance = Konturen { $contours }: Werkzeug (Durchmesser { $diameter }, Übermaß { $clearance }) passt nicht in die Tasche
+toolpath-error-not-nested = Konturen { $contours }: Offsets der Tasche sind nicht ineinander verschachtelt
+toolpath-error-too-many-rings = Konturen { $contours }: mehr als { $most } Ringe in der Tasche
+toolpath-error-pocket-verification = Konturen { $contours }: Werkzeugweg der Tasche hat die Prüfung nicht bestanden (zu nah an einer Wand oder Insel); die Zeichnung ist möglicherweise entartet
+toolpath-error-nothing-to-clear = Nichts auszuräumen: die ausgewählten Inseln bedecken die ausgewählten Begrenzungen (Konturen { $contours })
+toolpath-error-island-outside = Taschen-Offset ergab eine Insel außerhalb aller Flächen
+toolpath-error-shrink-hole = Taschen-Offset erzeugte beim Verkleinern einer einzelnen Schleife ein Loch
+toolpath-error-open-loop = Taschen-Offset lieferte eine offene Schleife, wo eine geschlossene erwartet wurde
+toolpath-error-rest-outside = der Bereich der Restbearbeitung liegt außerhalb der Tasche
+toolpath-error-left-hole-outside = Restmaterial: ein Loch außerhalb aller Stücke
+toolpath-error-left-holes-enclose = Restmaterial: Löcher umschließen eine Fläche
+toolpath-error-left-wrong-area = Restmaterial: eine boolesche Operation ergab die falsche Fläche
+toolpath-error-left-invalid = Restmaterial: ungültige Geometrie aus der Offset-Bibliothek
 
 ## Errors: V-carving, centre lines and letters
 
 # What a centre line is for, inside the texts below.
 toolpath-error-medial-name = { $name ->
-    [vcarve] V-carve
-   *[centre-line] centre line
+    [vcarve] der V-Gravur
+   *[centre-line] der nachgezeichneten Striche
 }
 # $name is toolpath-error-medial-name; $error the Voronoi library's own words.
-toolpath-error-medial-failed = contours { $contours }: the { $name } centre line could not be built ({ $error }); does the outline touch or cross itself?
-toolpath-error-medial-cell = { $name } centre line: a cell without its chord
+toolpath-error-medial-failed = Konturen { $contours }: die Mittellinie { $name } konnte nicht erstellt werden ({ $error }); berührt oder kreuzt sich der Umriss selbst?
+toolpath-error-medial-cell = Mittellinie { $name }: eine Zelle ohne ihre Sehne
 # $reach is how far from the origin the centre line works.
-toolpath-error-medial-far = a { $name } outline at { $at } is too far from the drawing origin (the centre line works within ±{ $reach })
-toolpath-error-medial-step = The { $name } centre line
-toolpath-error-vcarve-verification = contours { $contours }: V-carve verification failed: the cut would cross the outline near { $at }
-toolpath-error-join-gave = joining two overlapping outlines gave { $outlines } outlines
-toolpath-error-join-changed = joining overlapping outlines changed what is filled near { $at }
-toolpath-error-joined-cross = joined outlines cross each other
-toolpath-error-outline-unreadable = an outline the geometry library can't read
+toolpath-error-medial-far = ein Umriss { $name } bei { $at } liegt zu weit vom Ursprung der Zeichnung entfernt (die Mittellinie funktioniert innerhalb ±{ $reach })
+toolpath-error-medial-step = Die Mittellinie { $name }
+toolpath-error-vcarve-verification = Konturen { $contours }: Prüfung der V-Gravur fehlgeschlagen: der Schnitt würde den Umriss bei { $at } kreuzen
+toolpath-error-join-gave = das Vereinigen zweier überlappender Umrisse ergab { $outlines } Umrisse
+toolpath-error-join-changed = das Vereinigen überlappender Umrisse hat bei { $at } geändert, was gefüllt ist
+toolpath-error-joined-cross = vereinigte Umrisse kreuzen sich
+toolpath-error-outline-unreadable = ein Umriss, den die Geometriebibliothek nicht lesen kann
 
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Copies overlap: with columns the pitch dx must be at least { $width } (the cut is { $width } wide), got { $got }
-toolpath-error-copies-dy = Copies overlap: with rows the pitch dy must be at least { $height } (the cut is { $height } high), got { $got }
+toolpath-error-copies-dx = Kopien überlappen: mit Spalten muss die Teilung dx mindestens { $width } sein (der Schnitt ist { $width } breit), ist { $got }
+toolpath-error-copies-dy = Kopien überlappen: mit Zeilen muss die Teilung dy mindestens { $height } sein (der Schnitt ist { $height } hoch), ist { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Copies overlap: copies { $other } and { $copy } cut into each other; move them apart (pitch dx { $dx }, dy { $dy })
+toolpath-error-copies-overlap = Kopien überlappen: die Kopien { $other } und { $copy } schneiden ineinander; rücken Sie sie auseinander (Teilung dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = Part "{ $part }" copy { $copy } overlaps part "{ $other_part }" copy { $other_copy } (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }): move the copies apart or change the grid
+toolpath-error-parts-overlap = Teil „{ $part }“ Kopie { $copy } überlappt Teil „{ $other_part }“ Kopie { $other_copy } (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }): rücken Sie die Kopien auseinander oder ändern Sie das Raster
 
 ## Errors: inside the geometry library
 
 # $what is toolpath-error-step or toolpath-error-medial-step.
-toolpath-error-library-failed = { $what } failed inside the geometry library
+toolpath-error-library-failed = { $what } ist in der Geometriebibliothek fehlgeschlagen
 toolpath-error-step = { $step ->
-    [pocket-offset] Pocket offset
-    [joining-letters] Joining letters
-    [checking-joined-letters] Checking joined letters
-    [material-left-union] Material left union
-    [material-left-offset] Material left offset
-    [material-left-boolean] Material left boolean
-    [comparing-shapes] Comparing shapes
-    [merging-islands] Merging islands
-    [subtracting-an-island] Subtracting an island
+    [pocket-offset] Taschen-Offset
+    [joining-letters] Vereinigen der Buchstaben
+    [checking-joined-letters] Prüfen der vereinigten Buchstaben
+    [material-left-union] Vereinigung des Restmaterials
+    [material-left-offset] Offset des Restmaterials
+    [material-left-boolean] Boolesche Operation des Restmaterials
+    [comparing-shapes] Vergleichen der Formen
+    [merging-islands] Zusammenführen der Inseln
+    [subtracting-an-island] Abziehen einer Insel
    *[offset] Offset
 }

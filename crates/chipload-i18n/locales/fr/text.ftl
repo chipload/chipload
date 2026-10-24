@@ -2,13 +2,16 @@
 # letters. Font names are never translated.
 
 # $fonts is the built-in fonts' names, separated by commas.
-text-error-unknown-font = there is no built-in font "{ $font }"; the fonts are: { $fonts }
-text-error-empty = the text is empty: write something to cut
-text-error-too-long = the text is too long: { $count } characters, at most { $most }
+text-error-unknown-font = il n'y a pas de police intégrée "{ $font }" ; les polices sont : { $fonts }
+text-error-empty = le texte est vide : écrivez quelque chose à usiner
+text-error-too-long = le texte est trop long : { $count ->
+        [one] { $count } caractère
+       *[other] { $count } caractères
+    }, au plus { $most }
 # $zero is the length 0 with its unit; $got the height asked for, without its unit.
-text-error-height = the height must be more than { $zero }, got { $got }
+text-error-height = la hauteur doit être supérieure à { $zero }, reçu { $got }
 # Spacings are factors, without a unit.
-text-error-line-spacing = the line spacing must be more than 0, got { $got }
-text-error-spacing = the letter spacing must be a number, got { $got }
-text-error-bad-font = the font "{ $font }" can't be read
-text-error-no-letters = nothing to cut: the font has no letters for this text
+text-error-line-spacing = l'interligne doit être supérieur à 0, reçu { $got }
+text-error-spacing = l'interlettrage doit être un nombre, reçu { $got }
+text-error-bad-font = impossible de lire la police "{ $font }"
+text-error-no-letters = rien à usiner : la police n'a aucune lettre pour ce texte

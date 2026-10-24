@@ -55,13 +55,13 @@ dxf-ring-no-area = omsluter ingen yta
 
 # $path is the file; $reason the operating system's or the DXF reader's own words, or one
 # of the texts below.
-dxf-error-unreadable = Cannot read DXF { $path }: { $reason }
-dxf-error-parser-crashed = the DXF parser crashed on this file
+dxf-error-unreadable = Kan inte läsa DXF:en { $path }: { $reason }
+dxf-error-parser-crashed = DXF-läsaren kraschade på den här filen
 # $scale is a factor without a unit.
-dxf-error-scale = can't import at scale { $scale }
+dxf-error-scale = kan inte importera i skala { $scale }
 # $INSUNITS is the name of the DXF header variable: keep it as written.
-dxf-error-units-missing = DXF has no units ($INSUNITS=0); specify mm or inch explicitly
+dxf-error-units-missing = DXF:en har inga enheter ($INSUNITS=0); ange mm eller tum uttryckligen
 # $code is the number the DXF gives its units.
-dxf-error-units-unsupported = DXF $INSUNITS={ $code } is not supported (only mm, inch or unitless). Re-export the drawing in mm or inch.
+dxf-error-units-unsupported = DXF $INSUNITS={ $code } stöds inte (bara mm, tum eller utan enhet). Exportera om ritningen i mm eller tum.
 # $dxf and $expected are "mm" or "inch".
-dxf-error-units-mismatch = DXF declares { $dxf } but { $expected } was expected. Fix the drawing or choose the units explicitly; units are never guessed.
+dxf-error-units-mismatch = DXF:en anger { $dxf } men { $expected } väntades. Rätta ritningen eller välj enheterna uttryckligen; enheter gissas aldrig.

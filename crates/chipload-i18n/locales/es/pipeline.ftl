@@ -110,7 +110,7 @@ pipeline-check-file-line = archivo { $file }, línea { $line }: { $message }
 ## Errors: a change or run the project refuses
 
 # The independent checker refused the program; each finding follows on its own line.
-pipeline-error-check-failed = G-code check failed:
+pipeline-error-check-failed = La comprobación del código G falló:
 # One more finding (a pipeline-check-… text) on a line of its own, indented, after $list.
 pipeline-error-check-finding =
     { $list }
@@ -122,279 +122,288 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = The drawing (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }) extends beyond the stock ({ $width } × { $length }); check the stock under Job settings.
+pipeline-stock-fit = El dibujo (X{ $x0 } a { $x1 }, Y{ $y0 } a { $y1 }) se sale del material en bruto ({ $width } × { $length }); revisa el material en bruto en Ajustes del trabajo.
 
 ## Placing a DXF: moving, turning and scaling it
 
 # $count is how many DXFs the project has, $dxfs their numbers and names ("1 part-a, 2 part-b").
-pipeline-place-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to place
-pipeline-no-dxf = there is no DXF { $id }
-pipeline-place-nothing-imported = the project has no imported drawing to move
+pipeline-place-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál colocar
+pipeline-no-dxf = no hay DXF { $id }
+pipeline-place-nothing-imported = el proyecto no tiene ningún dibujo importado que mover
 # What is placed, when the project has a single DXF (otherwise it is the DXF's name).
-pipeline-place-the-drawing = the imported drawing
+pipeline-place-the-drawing = el dibujo importado
 # $dx and $dy are numbers as typed, without a unit.
-pipeline-place-cannot-move = can't move the drawing by ({ $dx }, { $dy })
-pipeline-place-already-there = The drawing is already there; nothing moved.
+pipeline-place-cannot-move = no se puede mover el dibujo ({ $dx }, { $dy })
+pipeline-place-already-there = El dibujo ya está ahí; no se movió nada.
 # $what is pipeline-place-the-drawing or a DXF's name; $degrees without its unit.
-pipeline-place-turned = Turned { $what } { $degrees }° { $direction ->
-    [ccw] counter-clockwise
-   *[cw] clockwise
+pipeline-place-turned = Se giró { $what } { $degrees }° en sentido { $direction ->
+    [ccw] antihorario
+   *[cw] horario
 }
-pipeline-place-reset = Put { $what } back where the DXF has it
+pipeline-place-reset = Se devolvió { $what } a donde lo tiene el DXF
 # $factor is a scale factor ("2", "0.5").
-pipeline-place-scaled = Scaled { $what } ×{ $factor }
+pipeline-place-scaled = Se escaló { $what } ×{ $factor }
 # $scaled is pipeline-place-scaled; $width is a length without its unit, $height with it.
-pipeline-place-scaled-size = { $scaled } (now { $width } × { $height })
+pipeline-place-scaled-size = { $scaled } (ahora { $width } × { $height })
 # $dx is a length without its unit, $dy with it.
-pipeline-place-moved = Moved { $what } by X{ $dx } Y{ $dy }
+pipeline-place-moved = Se movió { $what } X{ $dx } Y{ $dy }
 # $done is one of the texts above; $placement a pipeline-placement text.
-pipeline-place-done = { $done }; it is now { $placement }.
-pipeline-place-moved-starts = Moved { $count } start point(s) with it.
-pipeline-place-drawn-stay = Shapes drawn in Chipload stay where they are.
-pipeline-place-other-dxfs-stay = The other DXFs stay where they are.
-pipeline-place-work-zero-stays = The work zero stays at the point X{ $x }, Y{ $y }; check that it's still where you want it.
-pipeline-place-margin = the margin must be 0 or more, got { $got }
+pipeline-place-done = { $done }; ahora está { $placement }.
+pipeline-place-moved-starts = { $count ->
+    [one] Se movió { $count } punto de inicio con él.
+   *[other] Se movieron { $count } puntos de inicio con él.
+}
+pipeline-place-drawn-stay = Las formas dibujadas en Chipload se quedan donde están.
+pipeline-place-other-dxfs-stay = Los demás DXF se quedan donde están.
+pipeline-place-work-zero-stays = El cero pieza se queda en el punto X{ $x }, Y{ $y }; comprueba que sigue donde lo quieres.
+pipeline-place-margin = el margen debe ser 0 o más, es { $got }
 # $got is a number as typed, in degrees, without a unit.
-pipeline-place-rotation = the rotation must be a number of degrees, got { $got }
-pipeline-place-scale = the scale must be a number greater than 0, got { $got }
+pipeline-place-rotation = el giro debe ser un número de grados, es { $got }
+pipeline-place-scale = la escala debe ser un número mayor que 0, es { $got }
 # Scale factors: the result, and the smallest and largest allowed.
-pipeline-place-scale-range = that would scale the drawing ×{ $factor } from the DXF; it must stay between ×{ $min } and ×{ $max }
+pipeline-place-scale-range = eso escalaría el dibujo ×{ $factor } respecto al DXF; debe quedar entre ×{ $min } y ×{ $max }
 # $what is "width" or "height"; $got a length without its unit.
-pipeline-place-size = the { $what ->
-    [height] height
-   *[width] width
-} must be greater than 0, got { $got }
-pipeline-place-no-size = the imported drawing has no { $what ->
-    [height] height
-   *[width] width
-} to scale
+pipeline-place-size = { $what ->
+    [height] la altura
+   *[width] el ancho
+} debe ser mayor que 0, es { $got }
+pipeline-place-no-size = el dibujo importado no tiene { $what ->
+    [height] altura
+   *[width] ancho
+} que escalar
 # How a DXF is placed: "scaled ×2, turned 90°, moved X12.000 Y-3.500 from the DXF".
-pipeline-placement-as-dxf = as in the DXF
-pipeline-placement-from-dxf = { $parts } from the DXF
+pipeline-placement-as-dxf = como en el DXF
+pipeline-placement-from-dxf = { $parts } respecto al DXF
 pipeline-placement-and = { $list }, { $last }
-pipeline-placement-scaled = scaled ×{ $factor }
-pipeline-placement-turned = turned { $degrees }°
+pipeline-placement-scaled = escalado ×{ $factor }
+pipeline-placement-turned = girado { $degrees }°
 # $dx and $dy are lengths without their unit.
-pipeline-placement-moved = moved X{ $dx } Y{ $dy }
+pipeline-placement-moved = movido X{ $dx } Y{ $dy }
 # After scaling: $within and $off are lengths, $factor the scale factor.
-pipeline-scale-curves = { $count } shape(s) from splines or ellipses were approximated within { $within } at the size before; scaled ×{ $factor }, they may be up to { $off } off their curves. Update from the DXF to approximate them again at this size.
-pipeline-scale-contours = { $was } closed contour(s) before, { $now } now: gaps are joined within { $within } at the new size. Check the import report and the operations' selections.
+pipeline-scale-curves = { $count ->
+    [one] { $count } forma de splines o elipses se aproximó
+   *[other] { $count } formas de splines o elipses se aproximaron
+} con una tolerancia de { $within } al tamaño anterior; escaladas ×{ $factor }, pueden desviarse hasta { $off } de sus curvas. Actualiza desde el DXF para volver a aproximarlas a este tamaño.
+pipeline-scale-contours = { $was ->
+    [one] { $was } contorno cerrado
+   *[other] { $was } contornos cerrados
+} antes, { $now } ahora: los huecos de hasta { $within } se unen al nuevo tamaño. Revisa el informe de importación y las selecciones de las operaciones.
 # --units is an option of the command line.
-pipeline-scale-units = If the DXF's units are wrong, set them on update instead (--units), so the project records them.
+pipeline-scale-units = Si las unidades del DXF están mal, fíjalas al actualizar (--units), para que el proyecto las registre.
 
 ## Adding, updating and removing a DXF
 
 # $file is the DXF's file, $id its number, $name its name in the project.
-pipeline-dxf-added = Added { $file } as DXF { $id } "{ $name }": { $count } { $count ->
-    [one] shape
-   *[other] shapes
+pipeline-dxf-added = Se añadió { $file } como DXF { $id } "{ $name }": { $count } { $count ->
+    [one] forma
+   *[other] formas
 }.
 # $operations are operation numbers ("2, 5"); $name a DXF's name.
 pipeline-dxf-pinned = { $count ->
-    [one] Operation { $operations } keeps cutting { $name } only: the new DXF has its layers too.
-   *[other] Operations { $operations } keep cutting { $name } only: the new DXF has their layers too.
+    [one] La operación { $operations } sigue cortando solo { $name }: el DXF nuevo también tiene sus capas.
+   *[other] Las operaciones { $operations } siguen cortando solo { $name }: el DXF nuevo también tiene sus capas.
 }
-pipeline-dxf-removed = Removed DXF { $id } "{ $name }" and its { $count } { $count ->
-    [one] shape
-   *[other] shapes
+pipeline-dxf-removed = Se eliminó el DXF { $id } "{ $name }" y { $count ->
+    [one] su { $count } forma
+   *[other] sus { $count } formas
 }.
 # $label is an operation's label; $shapes shape numbers ("S3, S4").
-pipeline-dxf-shapes-gone = { $label }: shapes { $shapes } no longer exist; choose its geometry again
-pipeline-dxf-gone = { $label }: its DXF is gone; choose its geometry again
-pipeline-dxf-updated = Updated from { $file }: { $unchanged } unchanged, { $changed } changed, { $added } added, { $removed } removed.
+pipeline-dxf-shapes-gone = { $label }: las formas { $shapes } ya no existen; vuelve a elegir su geometría
+pipeline-dxf-gone = { $label }: su DXF ya no está; vuelve a elegir su geometría
+pipeline-dxf-updated = Actualizado desde { $file }: { $unchanged } sin cambios, { $changed } cambiadas, { $added } añadidas, { $removed } eliminadas.
 # $placement is a pipeline-placement text.
-pipeline-dxf-placed-as-before = Placed as before: { $placement }.
-pipeline-dxf-geometry-changed = { $label }: geometry changed (shapes { $shapes }); check its toolpath
-pipeline-dxf-layer-updated = { $label }: layer { $layer } now uses the updated drawing; check its toolpath
+pipeline-dxf-placed-as-before = Colocado como antes: { $placement }.
+pipeline-dxf-geometry-changed = { $label }: la geometría cambió (formas { $shapes }); revisa su trayectoria
+pipeline-dxf-layer-updated = { $label }: la capa { $layer } usa ahora el dibujo actualizado; revisa su trayectoria
 
 ## Pictures and texts
 
 # $number is an operation's number.
-pipeline-left-out-found = Operation { $number }: its { $count } left-out { $count ->
-    [one] shape
-   *[other] shapes
-} found again.
-pipeline-left-out-lost = Operation { $number }: { $count } left-out { $count ->
-    [one] shape
-   *[other] shapes
-} not found again: pick the shapes to leave out again.
-pipeline-no-image = there is no image { $id }
+pipeline-left-out-found = Operación { $number }: { $count ->
+    [one] se volvió a encontrar su { $count } forma excluida
+   *[other] se volvieron a encontrar sus { $count } formas excluidas
+}.
+pipeline-left-out-lost = Operación { $number }: { $count ->
+    [one] no se volvió a encontrar { $count } forma excluida
+   *[other] no se volvieron a encontrar { $count } formas excluidas
+}: vuelve a elegir las formas que excluir.
+pipeline-no-image = no hay imagen { $id }
 # $error is the PNG writer's own words.
-pipeline-image-png-failed = writing the picture: { $error }
+pipeline-image-png-failed = al escribir la imagen: { $error }
 # drawing.images is a place in the project file; $error the decoder's own words.
-pipeline-image-unreadable = drawing.images: the picture of image { $id } can't be read: { $error }
+pipeline-image-unreadable = drawing.images: no se puede leer el archivo guardado de la imagen { $id }: { $error }
 # $file is the picture's file; $width a length without its unit, $height with it;
 # $threshold a grey level (0–255); $picked "yes" when the threshold was picked from the
 # picture; $lines "yes" for centre lines, "no" for outlines.
-pipeline-image-traced = Traced { $file } ({ $width } × { $height }, threshold { $threshold }{ $picked ->
-    [yes] , picked
+pipeline-image-traced = Se vectorizó { $file } ({ $width } × { $height }, umbral { $threshold }{ $picked ->
+    [yes] , elegido
    *[no] {""}
 }): { $count } { $lines ->
     [yes] { $count ->
-        [one] centre line
-       *[other] centre lines
+        [one] línea central
+       *[other] líneas centrales
     }
    *[no] { $count ->
-        [one] shape
-       *[other] shapes
+        [one] forma
+       *[other] formas
     }
-} on layer { $layer }.
-pipeline-image-nothing-black = Nothing is black: change the threshold, or invert if the picture is light on dark.
+} en la capa { $layer }.
+pipeline-image-nothing-black = Nada es negro: cambia el umbral, o invierte si la imagen es clara sobre oscuro.
 # $narrow is a length without its unit, $wide with it.
-pipeline-image-strokes = Strokes { $narrow } to { $wide } wide: cut them with a follow path.
+pipeline-image-strokes = Trazos de { $narrow } a { $wide } de ancho: córtalos con un seguir trayectoria.
 pipeline-image-closed-lines = { $count ->
-    [one] { $count } closed line: a profile or pocket can cut round it, as round any outline.
-   *[other] { $count } closed lines: a profile or pocket can cut round them, as round any outline.
+    [one] { $count } línea cerrada: un contorneado o una cajera puede cortar alrededor de ella, como de cualquier contorno.
+   *[other] { $count } líneas cerradas: un contorneado o una cajera puede cortar alrededor de ellas, como de cualquier contorno.
 }
-pipeline-image-dots = { $count } { $count ->
-    [one] dot
-   *[other] dots
-} too small for a centre line left out.
+pipeline-image-dots = { $count ->
+    [one] Se omitió { $count } punto demasiado pequeño para una línea central.
+   *[other] Se omitieron { $count } puntos demasiado pequeños para una línea central.
+}
 # $area is the smallest piece's area in mm², without its unit.
-pipeline-image-specks = { $count } { $count ->
-    [one] speck
-   *[other] specks
-} smaller than { $area } mm² dropped.
-pipeline-image-black-at-border = Black touches the picture's edge and is closed along it; if that's the background, invert.
-pipeline-image-without-arcs = { $count ->
-    [one] { $count } shape kept as lines: its arcs came too near another shape.
-   *[other] { $count } shapes kept as lines: their arcs came too near another shape.
+pipeline-image-specks = { $count ->
+    [one] Se descartó { $count } mota menor que { $area } mm².
+   *[other] Se descartaron { $count } motas menores que { $area } mm².
 }
-pipeline-image-unsimplified = { $count } { $count ->
-    [one] shape
-   *[other] shapes
-} kept as traced: smoothing made them cross.
-pipeline-no-text = there is no text { $id }
+pipeline-image-black-at-border = El negro toca el borde de la imagen y se cierra a lo largo de él; si es el fondo, invierte.
+pipeline-image-without-arcs = { $count ->
+    [one] { $count } forma se conserva como líneas: sus arcos quedaban demasiado cerca de otra forma.
+   *[other] { $count } formas se conservan como líneas: sus arcos quedaban demasiado cerca de otra forma.
+}
+pipeline-image-unsimplified = { $count ->
+    [one] { $count } forma se conserva tal como se vectorizó: el suavizado la hacía cruzarse.
+   *[other] { $count } formas se conservan tal como se vectorizaron: el suavizado las hacía cruzarse.
+}
+pipeline-no-text = no hay texto { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
-pipeline-text-join-failed = { $text }: couldn't join the letters' overlapping outlines: { $error }
+pipeline-text-join-failed = { $text }: no se pudieron unir los contornos superpuestos de las letras: { $error }
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
-pipeline-text-wrote = Wrote { $text } in { $font }, { $height } high ({ $width } × { $tall }): { $count } { $count ->
-    [one] shape
-   *[other] shapes
-} on layer { $layer }.
+pipeline-text-wrote = Se escribió { $text } en { $font }, de { $height } de alto ({ $width } × { $tall }): { $count } { $count ->
+    [one] forma
+   *[other] formas
+} en la capa { $layer }.
 # $missing are the characters the font has no letter for.
-pipeline-text-missing = { $font } has no letter for "{ $missing }": left out.
-pipeline-text-dropped = { $count } { $count ->
-    [one] outline
-   *[other] outlines
-} too small to cut left out.
+pipeline-text-missing = { $font } no tiene letra para "{ $missing }": se omite.
+pipeline-text-dropped = { $count ->
+    [one] Se omitió { $count } contorno demasiado pequeño para cortarlo.
+   *[other] Se omitieron { $count } contornos demasiado pequeños para cortarlos.
+}
 
 ## Errors: operations and tools
 
 # `tool use` is a command of the command line: keep it as written.
-pipeline-no-tool-use = the project has no tool { $tool }; copy one in from your library with `tool use`
-pipeline-no-tool = the project has no tool { $tool }
+pipeline-no-tool-use = el proyecto no tiene la herramienta { $tool }; copia una de tu biblioteca con `tool use`
+pipeline-no-tool = el proyecto no tiene la herramienta { $tool }
 # $number is the operation's number as listed, $count how many the project has.
-pipeline-no-operation = there is no operation { $number }; the project has { $count }
-pipeline-not-a-pocket = operation { $number } is not a pocket; only pockets rest machine
+pipeline-no-operation = no hay operación { $number }; el proyecto tiene { $count }
+pipeline-not-a-pocket = la operación { $number } no es una cajera; solo las cajeras admiten mecanizado de restos
 # $reason is one of the pipeline-rest-… texts.
-pipeline-operation-refused = operation { $number }: { $reason }
-pipeline-rest-dogbones = it has dogbones, and dogbones and rest machining can't be combined yet; dogbone corners need no rest
-pipeline-rest-not-endmill = tool { $tool } is not an endmill
-pipeline-rest-before-not-endmill = tool { $tool } before it is not an endmill
-pipeline-rest-not-smaller = tool { $tool } ({ $diameter }) is not smaller than tool { $before } ({ $before_diameter }) before it
+pipeline-operation-refused = operación { $number }: { $reason }
+pipeline-rest-dogbones = tiene dogbones, y los dogbones y el mecanizado de restos aún no se pueden combinar; las esquinas dogbone no necesitan restos
+pipeline-rest-not-endmill = la herramienta { $tool } no es una fresa
+pipeline-rest-before-not-endmill = la herramienta { $tool } anterior no es una fresa
+pipeline-rest-not-smaller = la herramienta { $tool } ({ $diameter }) no es más pequeña que la herramienta { $before } ({ $before_diameter }) anterior
 # $dxfs lists the project's DXFs by number and name ("1 part-a, 2 part-b").
-pipeline-update-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to update
+pipeline-update-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál actualizar
 # `tool use` is a command of the command line: keep it as written.
-pipeline-surface-no-endmill = the project has no endmill: a surface needs one (copy one in with `tool use`)
+pipeline-surface-no-endmill = el proyecto no tiene ninguna fresa: un planeado necesita una (cópiala con `tool use`)
 # $type is the tool's type as written in the project file (drill, vbit).
-pipeline-surface-not-endmill = tool { $tool } is a { $type }; a surface needs an endmill
+pipeline-surface-not-endmill = la herramienta { $tool } es { $type }; un planeado necesita una fresa
 
 ## Errors: drawn shapes
 
-pipeline-shape-not-drawable = only circles, rectangles and polylines can be drawn
+pipeline-shape-not-drawable = solo se pueden dibujar círculos, rectángulos y polilíneas
 # $kind is the shape's kind as written in the project file (circle, rectangle, polyline).
-pipeline-shape-kind = shape { $id } is a { $kind }; its kind can't change
-pipeline-no-shapes-given = no shapes given
-pipeline-shape-twice = shape { $id } is given twice
-pipeline-no-shape = there is no shape { $id }
-pipeline-shape-imported-copy = shape { $id } was imported from the DXF; only drawn shapes can be copied or mirrored
-pipeline-shapes-no-extent = the shapes have no extent
-pipeline-shapes-copy-imported = only drawn shapes can be copied, not imported ones
+pipeline-shape-kind = la forma { $id } es { $kind }; su tipo no puede cambiar
+pipeline-no-shapes-given = no se indicó ninguna forma
+pipeline-shape-twice = la forma { $id } se indicó dos veces
+pipeline-no-shape = no hay forma { $id }
+pipeline-shape-imported-copy = la forma { $id } se importó del DXF; solo las formas dibujadas se pueden copiar o reflejar
+pipeline-shapes-no-extent = las formas no tienen extensión
+pipeline-shapes-copy-imported = solo se pueden copiar las formas dibujadas, no las importadas
 # "Update drawing from DXF" is the command in the app's File menu.
-pipeline-shape-imported-change = shape { $id } was imported from the DXF and can't be changed here; change the drawing and use Update drawing from DXF
+pipeline-shape-imported-change = la forma { $id } se importó del DXF y no se puede cambiar aquí; cambia el dibujo y usa Actualizar dibujo desde DXF
 
 ## Errors: parts and copies
 
-pipeline-no-part = No part { $id } in the project
-pipeline-part-name-empty = A part's name can't be empty
-pipeline-part-name-taken = Another part is named "{ $name }"
-pipeline-last-part = A project needs at least one part: this is the last one
-pipeline-part-has-operations = Part { $name } has { $count ->
-    [one] { $count } operation
-   *[other] { $count } operations
-}: move them to another part first, or remove them with it
-pipeline-part-no-operation = No operation { $number } in the project
-pipeline-part-cuts-nothing = The part cuts nothing
-pipeline-copies-gap = The gap must be 0 or more, got { $got }
+pipeline-no-part = No hay pieza { $id } en el proyecto
+pipeline-part-name-empty = El nombre de una pieza no puede estar vacío
+pipeline-part-name-taken = Otra pieza se llama "{ $name }"
+pipeline-last-part = Un proyecto necesita al menos una pieza: esta es la última
+pipeline-part-has-operations = La pieza { $name } tiene { $count ->
+    [one] { $count } operación
+   *[other] { $count } operaciones
+}: muévelas antes a otra pieza, o elimínalas con ella
+pipeline-part-no-operation = No hay operación { $number } en el proyecto
+pipeline-part-cuts-nothing = La pieza no corta nada
+pipeline-copies-gap = La separación debe ser 0 o más, es { $got }
 
 ## Errors: the simulation
 
 # $min is a length without its unit, $max and $got with it.
-pipeline-simulate-cell-size = cell size must be between { $min } and { $max }, got { $got }
+pipeline-simulate-cell-size = el tamaño de celda debe estar entre { $min } y { $max }, es { $got }
 # $cell is the size of one cell, a length.
-pipeline-simulate-too-many-cells = a { $cell } cell makes { $cells } cells for this stock, more than { $most }; use a larger cell
-pipeline-simulate-stock-too-large = the stock is too large to simulate at { $cell } cells (more than { $most } cells)
+pipeline-simulate-too-many-cells = una celda de { $cell } da { $cells } celdas para este material en bruto, más de { $most }; usa una celda mayor
+pipeline-simulate-stock-too-large = el material en bruto es demasiado grande para simularlo con celdas de { $cell } (más de { $most } celdas)
 # $error is the PNG encoder's own words.
 pipeline-simulate-png = PNG: { $error }
 
 ## Post-processors
 
-pipeline-post-no-settings = no settings folder, so no post "{ $name }"
-pipeline-post-no-folder = No post-processor "{ $name }": it isn't built in, and there is no posts folder
+pipeline-post-no-settings = no hay carpeta de ajustes, así que no hay postprocesador "{ $name }"
+pipeline-post-no-folder = No existe el postprocesador "{ $name }": no está incluido y no hay carpeta posts
 # Why a project's copy of a user post can't be compared with its file.
-pipeline-post-no-posts-folder = no posts folder
+pipeline-post-no-posts-folder = no hay carpeta posts
 # What a post-processor is, one line each (Settings, This computer). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
-pipeline-post-name = Name: { $name }
-pipeline-post-builtin = Built in
-pipeline-post-yours = Yours
-pipeline-post-settings = Settings: { $path }
-pipeline-post-template = Template: { $path }
-pipeline-post-extension = File extension: { $extension }
-pipeline-post-decimals = Decimals: { $mm } (mm), { $inch } (inch)
-pipeline-post-units-list = G-code units: { $units }
-pipeline-post-arcs = Arcs: { $arcs ->
+pipeline-post-name = Nombre: { $name }
+pipeline-post-builtin = Incluido
+pipeline-post-yours = Tuyo
+pipeline-post-settings = Ajustes: { $path }
+pipeline-post-template = Plantilla: { $path }
+pipeline-post-extension = Extensión de archivo: { $extension }
+pipeline-post-decimals = Decimales: { $mm } (mm), { $inch } (inch)
+pipeline-post-units-list = Unidades del código G: { $units }
+pipeline-post-arcs = Arcos: { $arcs ->
     [arcs] G2/G3
-   *[lines] as short lines (G1)
+   *[lines] como líneas cortas (G1)
 }
-pipeline-post-tool-changes = Several tools: { $modes }
+pipeline-post-tool-changes = Varias herramientas: { $modes }
 # $seconds is a time in seconds, without its unit.
-pipeline-post-dwell = Spindle dwell: { $seconds } s
-pipeline-post-no-dwell = Spindle dwell: none
+pipeline-post-dwell = Espera del husillo: { $seconds } s
+pipeline-post-no-dwell = Espera del husillo: ninguna
 
 ## The tool library and machine profiles
 
 # $error is why the library file couldn't be read (a job-library-error text).
-pipeline-library-defaults = { $error } (using built-in defaults)
-pipeline-library-no-profile = no machine profile named "{ $name }"
+pipeline-library-defaults = { $error } (se usan los valores incluidos por defecto)
+pipeline-library-no-profile = no hay ningún perfil de máquina llamado "{ $name }"
 # What a new project started with. $how is "profile" (asked for) or "default".
-pipeline-library-machine = machine: { $name } ({ $how ->
-    [default] default profile
-   *[profile] profile
+pipeline-library-machine = máquina: { $name } ({ $how ->
+    [default] perfil predeterminado
+   *[profile] perfil
 })
-pipeline-library-tool = tool { $tool }: { $name } (default tool)
+pipeline-library-tool = herramienta { $tool }: { $name } (herramienta predeterminada)
 # $error is why the post can't be used (a post-error text).
-pipeline-library-post-unusable = post-processor "{ $name }": { $error }
-pipeline-library-unknown-post = Machine "{ $name }": this Chipload has no post-processor "{ $post }"; projects using it can't make G-code until it has
+pipeline-library-post-unusable = postprocesador "{ $name }": { $error }
+pipeline-library-unknown-post = Máquina "{ $name }": este Chipload no tiene el postprocesador "{ $post }"; los proyectos que la usan no pueden generar código G hasta que lo tenga
 
 ## Recovery copies
 
 # $reason is the operating system's words, or the text below.
-pipeline-recovery-io = Cannot write the recovery copy { $path }: { $reason }
-pipeline-recovery-locked = already locked
+pipeline-recovery-io = No se puede escribir la copia de recuperación { $path }: { $reason }
+pipeline-recovery-locked = ya está bloqueada
 
 ## Dragging a picture's or text's box
 
-pipeline-box-turn-centre = the turn handle is on the centre
-pipeline-box-no-size = the box has no size
+pipeline-box-turn-centre = el tirador de giro está en el centro
+pipeline-box-no-size = el recuadro no tiene tamaño
 # $min is the smallest size, a length.
-pipeline-box-too-small = it can't be smaller than { $min }
-pipeline-box-no-corner = a box has no corner { $corner }
+pipeline-box-too-small = no puede ser menor que { $min }
+pipeline-box-no-corner = un recuadro no tiene esquina { $corner }
 
 ## G-code files
 
 # One of several G-code files: $name is its file name, $operations the numbers of the
 # operations it cuts ("1, 3").
-pipeline-gcode-file = { $name } (tool { $tool }, operations { $operations })
+pipeline-gcode-file = { $name } (herramienta { $tool }, operaciones { $operations })
