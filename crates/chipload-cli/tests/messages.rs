@@ -37,6 +37,62 @@ fn files(dir: &str, ext: &str) -> Vec<String> {
     out
 }
 
+/// `text` with every number of 7 or more decimals rounded to 6: full-precision numbers
+/// (`--json`'s coordinates) differ in their last digits between platforms' maths
+/// libraries, and the snapshot is about the messages, not the last bits of a float.
+fn steady(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let start = i;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+        if i > start && i + 1 < bytes.len() && bytes[i] == b'.' {
+            let mut end = i + 1;
+            while end < bytes.len() && bytes[end].is_ascii_digit() {
+                end += 1;
+            }
+            if end - i - 1 >= 7 {
+                let value: f64 = text[start..end].parse().unwrap();
+                out.push_str(&format!("{value:.6}"));
+                i = end;
+                continue;
+            }
+        }
+        if i == start {
+            let c = text[i..].chars().next().unwrap();
+            out.push(c);
+            i += c.len_utf8();
+        } else {
+            out.push_str(&text[start..i]);
+        }
+    }
+    out
+}
+
+/// The first lines where `got` differs from `want`, to show in a failure.
+fn first_differences(want: &str, got: &str) -> String {
+    let mut out = String::new();
+    let (mut w, mut g) = (want.lines(), got.lines());
+    let mut shown = 0;
+    for n in 1.. {
+        match (w.next(), g.next()) {
+            (None, None) => break,
+            (a, b) if a == b => {}
+            (a, b) => {
+                writeln!(out, "  line {n}:\n    want {a:?}\n    got  {b:?}").unwrap();
+                shown += 1;
+                if shown == 5 {
+                    break;
+                }
+            }
+        }
+    }
+    out
+}
+
 /// One command's exit code, standard output and standard error, as frozen.
 fn run(args: &[&str], settings: &Path) -> String {
     let out = Command::new(env!("CARGO_BIN_EXE_chipload"))
@@ -52,7 +108,7 @@ fn run(args: &[&str], settings: &Path) -> String {
     text.push_str("--- stderr\n");
     text.push_str(&String::from_utf8_lossy(&out.stderr));
     text.push('\n');
-    text
+    steady(&text)
 }
 
 /// Every command of the snapshot, grouped by the file it is frozen in.
@@ -122,14 +178,18 @@ fn messages_are_unchanged() {
         if update {
             std::fs::create_dir_all(&expected).unwrap();
             std::fs::write(&path, &text).unwrap();
-        } else if std::fs::read_to_string(&path).ok().as_deref() != Some(text.as_str()) {
-            changed.push(path.display().to_string());
+        } else {
+            let want = std::fs::read_to_string(&path).unwrap_or_default();
+            if want != text {
+                changed.push(format!("{name}.txt\n{}", first_differences(&want, &text)));
+            }
         }
     }
     let _ = std::fs::remove_dir_all(&settings);
     assert!(
         changed.is_empty(),
-        "messages changed: {changed:?}; if intended, regenerate with \
-         CHIPLOAD_UPDATE_GOLDEN=1, review the diff and explain it in the commit message"
+        "messages changed (if intended, regenerate with CHIPLOAD_UPDATE_GOLDEN=1, review \
+         the diff and explain it in the commit message):\n{}",
+        changed.join("\n")
     );
 }
