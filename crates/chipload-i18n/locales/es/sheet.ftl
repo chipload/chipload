@@ -4,149 +4,152 @@
 # $feed are numbers alone, in the sheet's units, as are $z and $peck where said. Names
 # (project, tools, parts, operations, layers, files) are never translated.
 
-sheet-title = Setup sheet: { $project }
+sheet-title = Hoja de preparación: { $project }
 # The line under the title, its parts joined with " · ".
-sheet-post = post { $post }
-sheet-written-by = written by { $by }
+sheet-post = postprocesador { $post }
+sheet-written-by = escrita por { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".
-sheet-units = lengths in { $length }, feeds in { $feed }
-sheet-gcode-inch = G-code in inches (G20)
+sheet-units = longitudes en { $length }, avances en { $feed }
+sheet-gcode-inch = Código G en pulgadas (G20)
 
 ## Stock and zero
-sheet-stock-and-zero = Stock and zero
-sheet-stock = Stock
+sheet-stock-and-zero = Material en bruto y cero
+sheet-stock = Material en bruto
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
-sheet-stock-size = { $width } &times; { $length }, { $thickness } thick
-sheet-copies = Copies
-sheet-part = Part
+sheet-stock-size = { $width } &times; { $length }, { $thickness } de espesor
+sheet-copies = Copias
+sheet-part = Pieza
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
 sheet-dxf-placed = { $name } ({ $file }), { $placement }
-sheet-image = Image { $id }
-sheet-image-placed = { $file } on layer { $layer }, { $width } wide at X{ $x } Y{ $y }
-sheet-text = Text { $id }
+sheet-image = Imagen { $id }
+sheet-image-placed = { $file } en la capa { $layer }, { $width } de ancho en X{ $x } Y{ $y }
+sheet-text = Texto { $id }
 # $text is the text's first words in quotes, $font its font.
-sheet-text-placed = { $text } in { $font } on layer { $layer }, { $height } high at X{ $x } Y{ $y }
+sheet-text-placed = { $text } con la fuente { $font } en la capa { $layer }, { $height } de alto en X{ $x } Y{ $y }
 
 ## Where X0 Y0 is, said on the stock
-sheet-zero-centre = the centre of the stock
-sheet-zero-bottom-left = the stock's bottom left corner
-sheet-zero-bottom-right = the stock's bottom right corner
-sheet-zero-top-left = the stock's top left corner
-sheet-zero-top-right = the stock's top right corner
+sheet-zero-centre = el centro del material en bruto
+sheet-zero-bottom-left = la esquina inferior izquierda del material en bruto
+sheet-zero-bottom-right = la esquina inferior derecha del material en bruto
+sheet-zero-top-left = la esquina superior izquierda del material en bruto
+sheet-zero-top-right = la esquina superior derecha del material en bruto
 # A zero away from the stock's bottom left corner: "25 mm right of and 10 mm above the
 # stock's bottom left corner". $offset is one or two of the four below, joined with -and.
-sheet-zero-from-corner = { $offset } the stock's bottom left corner
-sheet-zero-right-of = { $distance } right of
-sheet-zero-left-of = { $distance } left of
-sheet-zero-above = { $distance } above
-sheet-zero-below = { $distance } below
-sheet-zero-and = { $first } and { $second }
-sheet-zero-outside = { $zero } (outside the stock)
+sheet-zero-from-corner = { $offset } de la esquina inferior izquierda del material en bruto
+sheet-zero-right-of = { $distance } a la derecha
+sheet-zero-left-of = { $distance } a la izquierda
+sheet-zero-above = { $distance } por encima
+sheet-zero-below = { $distance } por debajo
+sheet-zero-and = { $first } y { $second }
+sheet-zero-outside = { $zero } (fuera del material en bruto)
 # Where Z0 is.
-sheet-z-top = the top of the stock
-sheet-z-bottom = the bottom of the stock (the spoilboard)
+sheet-z-top = la cara superior del material en bruto
+sheet-z-bottom = la cara inferior del material en bruto (el tablero de sacrificio)
 
 ## A file's tools. $what is the tool: "6 mm end mill, 2 flutes".
 # $xy is where X0 Y0 is, $z where Z0 is (texts above).
-sheet-load-tool = Load tool T{ $tool } ({ $what }). Set X0 Y0 at { $xy } and Z0 on { $z }.
-sheet-tool-change-m6 = Tool change (M6) to T{ $tool } ({ $what }), as your controller handles it.
-sheet-change-tool = Change to tool T{ $tool } ({ $what }). Set Z0 again with this tool on { $z }; keep X0 Y0.
+sheet-load-tool = Carga la herramienta T{ $tool } ({ $what }). Fija X0 Y0 en { $xy } y Z0 en { $z }.
+sheet-tool-change-m6 = Cambio de herramienta (M6) a T{ $tool } ({ $what }), según lo gestione tu controlador.
+sheet-change-tool = Cambia a la herramienta T{ $tool } ({ $what }). Vuelve a fijar Z0 con esta herramienta en { $z }; mantén X0 Y0.
 # These two texts are HTML: keep &ldquo; and &rdquo; (the quotes round the tool's name).
 # $rpm is the spindle speed, $spindle one of the two -spindle- texts.
-sheet-tool-named = Tool T{ $tool }: &ldquo;{ $name }&rdquo;, { $what }, { $rpm } rpm { $spindle }.
-sheet-tool = Tool T{ $tool }: { $what }, { $rpm } rpm { $spindle }.
-sheet-spindle-cw = clockwise (M3)
-sheet-spindle-ccw = counter-clockwise (M4)
+sheet-tool-named = Herramienta T{ $tool }: &ldquo;{ $name }&rdquo;, { $what }, { $rpm } rpm en sentido { $spindle }.
+sheet-tool = Herramienta T{ $tool }: { $what }, { $rpm } rpm en sentido { $spindle }.
+sheet-spindle-cw = horario (M3)
+sheet-spindle-ccw = antihorario (M4)
 # The parts of $what, joined with ", ".
-sheet-end-mill = { $diameter } end mill
-sheet-drill = { $diameter } drill
+sheet-end-mill = fresa de { $diameter }
+sheet-drill = broca de { $diameter }
 # $angle in degrees.
-sheet-vbit-angle = { $angle }° V-bit, { $diameter }
-sheet-vbit = V-bit, { $diameter }
-sheet-tip = tip { $diameter }
+sheet-vbit-angle = fresa en V de { $angle }°, { $diameter }
+sheet-vbit = fresa en V, { $diameter }
+sheet-tip = punta { $diameter }
 sheet-flutes = { $count ->
-    [one] { $count } flute
-   *[other] { $count } flutes
+    [one] { $count } filo
+   *[other] { $count } filos
 }
 
 ## The table of operations
-sheet-column-operation = Operation
-sheet-column-depth = Depth
-sheet-column-feeds = Feed / plunge
-sheet-column-entry = Entry
-sheet-column-tabs = Tabs
-sheet-column-time = Time
+sheet-column-operation = Operación
+sheet-column-depth = Profundidad
+sheet-column-feeds = Avance / penetración
+sheet-column-entry = Entrada
+sheet-column-tabs = Puentes
+sheet-column-time = Tiempo
 # A part's row over its operations, numbered from 1.
-sheet-part-row = Part { $number }: { $name }
-sheet-part-row-copies = Part { $number }: { $name }, { $count } copies
+sheet-part-row = Pieza { $number }: { $name }
+sheet-part-row-copies = Pieza { $number }: { $name }, { $count ->
+    [one] { $count } copia
+   *[other] { $count } copias
+}
 # An operation without a name.
-sheet-operation = Operation { $number }
+sheet-operation = Operación { $number }
 # A drill's one feed: $feed is a number alone.
-sheet-feed-down = { $feed } down
+sheet-feed-down = { $feed } bajando
 # The kind column, its parts joined with ", ": "Profile, outside, climb, leaves 0.2 mm".
-sheet-kind-profile = Profile
-sheet-side-outside = outside
-sheet-side-inside = inside
-sheet-side-on = on the line
-sheet-kind-pocket = Pocket, rings
-sheet-climb = climb
-sheet-conventional = conventional
+sheet-kind-profile = Contorneado
+sheet-side-outside = exterior
+sheet-side-inside = interior
+sheet-side-on = sobre la línea
+sheet-kind-pocket = Cajera, anillos
+sheet-climb = en concordancia
+sheet-conventional = en oposición
 # $percent: the stepover in percent of the tool's diameter.
-sheet-stepover = stepover { $percent } %
-sheet-kind-vcarve = V-carve
-sheet-kind-path = Follow path, on the line
-sheet-kind-holes-drilled = Holes, drilled
-sheet-kind-holes-bored = Holes, helical bore
-sheet-kind-surface = Surface, the whole stock, back and forth (climb and conventional), stepover { $percent } %
+sheet-stepover = paso lateral { $percent } %
+sheet-kind-vcarve = Tallado en V
+sheet-kind-path = Seguir trayectoria, sobre la línea
+sheet-kind-holes-drilled = Taladros, taladrados
+sheet-kind-holes-bored = Taladros, taladrado helicoidal
+sheet-kind-surface = Planeado, todo el material en bruto, en vaivén (en concordancia y en oposición), paso lateral { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
-sheet-kind-surface-past = { $surface }; runs { $distance } past the stock ends: keep clamps clear
-sheet-cuts-past = cuts { $distance } past the line
-sheet-leaves = leaves { $distance }
-sheet-rest-after = rest after T{ $tool }
-sheet-rest-after-size = rest after T{ $tool } ({ $diameter })
+sheet-kind-surface-past = { $surface }; sobrepasa { $distance } los extremos del material en bruto: mantén las sujeciones fuera del recorrido
+sheet-cuts-past = corta { $distance } más allá de la línea
+sheet-leaves = deja { $distance }
+sheet-rest-after = restos tras T{ $tool }
+sheet-rest-after-size = restos tras T{ $tool } ({ $diameter })
 # $degrees: the sharpest corner angle that gets one.
-sheet-dogbones = dogbones at corners up to { $degrees }°
-sheet-tbones = T-bones at corners up to { $degrees }°
+sheet-dogbones = dogbones en esquinas de hasta { $degrees }°
+sheet-tbones = T-bones en esquinas de hasta { $degrees }°
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
-sheet-depths = { $start } to { $end }
-sheet-depths-drill = { $start } to { $end } (the drill's point)
-sheet-pecks = pecks { $peck }
-sheet-one-go = in one go
-sheet-per-turn = { $step } per turn
-sheet-per-pass = { $step } per pass
-sheet-one-pass = one pass
-sheet-finish = finish { $stock }
-sheet-skin = skin { $thickness }
+sheet-depths = de { $start } a { $end }
+sheet-depths-drill = de { $start } a { $end } (la punta de la broca)
+sheet-pecks = picoteo { $peck }
+sheet-one-go = de una vez
+sheet-per-turn = { $step } por vuelta
+sheet-per-pass = { $step } por pasada
+sheet-one-pass = una pasada
+sheet-finish = acabado { $stock }
+sheet-skin = piel { $thickness }
 # The entry column.
-sheet-entry-beside = down beside the stock
-sheet-entry-straight = straight down
-sheet-entry-plunge = plunge
-sheet-entry-ramp = ramp { $degrees }°
-sheet-entry-helix = helix { $degrees }°
-sheet-entry-helix-radius = helix r { $radius }, { $degrees }°
-sheet-lead = lead r { $radius }
+sheet-entry-beside = baja junto al material en bruto
+sheet-entry-straight = recta hacia abajo
+sheet-entry-plunge = penetración
+sheet-entry-ramp = rampa { $degrees }°
+sheet-entry-helix = hélice { $degrees }°
+sheet-entry-helix-radius = hélice r { $radius }, { $degrees }°
+sheet-lead = aproximación r { $radius }
 # The tabs column: $count tabs, $width and $height numbers alone.
-sheet-tabs = { $count } × { $width } wide, { $height } high
-sheet-flanks = flanks { $degrees }°
-sheet-tabs-none = none
+sheet-tabs = { $count } × { $width } de ancho, { $height } de alto
+sheet-flanks = flancos { $degrees }°
+sheet-tabs-none = ninguno
 # Under the table: how deep the tool goes. $z is a number alone; the parts are joined with ", ".
-sheet-cuts-down = Cuts down to Z{ $z }: { $depth } below the stock top
-sheet-into-spoilboard = { $depth } into the spoilboard
-sheet-through = through the stock
-sheet-sticks-out = { $cut }. Check that the tool sticks out far enough.
+sheet-cuts-down = Corta hasta Z{ $z }: { $depth } por debajo de la cara superior del material en bruto
+sheet-into-spoilboard = { $depth } dentro del tablero de sacrificio
+sheet-through = atraviesa el material en bruto
+sheet-sticks-out = { $cut }. Comprueba que la herramienta sobresale lo suficiente.
 
 ## Watch out: the notes and the checker's findings
-sheet-watch-out = Watch out
-sheet-nothing-reported = Nothing was reported.
+sheet-watch-out = Atención
+sheet-nothing-reported = No se ha señalado nada.
 # $note is the post-processor's own note, as its file writes it.
-sheet-post-note = Post { $post }: { $note }
-sheet-check = Check: { $finding }
+sheet-post-note = Postprocesador { $post }: { $note }
+sheet-check = Comprobación: { $finding }
 
 ## The picture's legend
-sheet-legend-file = File { $number } (T{ $tool })
-sheet-legend-tabs = tabs
-sheet-legend-grey = Grey: the parts. Cutting moves only, no rapids.
+sheet-legend-file = Archivo { $number } (T{ $tool })
+sheet-legend-tabs = puentes
+sheet-legend-grey = Gris: las piezas. Solo movimientos de corte, sin rápidos.
 
 ## The time
-sheet-time = Time
+sheet-time = Tiempo

@@ -13,7 +13,7 @@ toolpath-all-disabled = Toutes les opérations sont désactivées : rien à usin
 toolpath-tool-undefined = L'outil { $tool } n'est pas défini dans le projet
 # Under the tool's spindle speed field.
 toolpath-no-rpm-short = aucune vitesse de broche
-toolpath-no-rpm = L'outil { $tool } n'a pas de vitesse de broche (tr/min)
+toolpath-no-rpm = L'outil { $tool } n'a pas de vitesse de broche (rpm)
 # Under the machine's safe height; $top is the height of the stock's top.
 toolpath-safe-z-short = doit être au-dessus du dessus du brut (Z { $top })
 # $zero is "top" or "bottom", as written in the project file.
@@ -65,7 +65,7 @@ toolpath-rest-passes-dogbones = les dogbones et les passes de reprise ne peuvent
 toolpath-rest-pass-no-tool = l'outil { $tool } n'est pas défini dans le projet
 toolpath-rest-pass-endmill = l'outil { $tool } est de type { $type } ; une passe de reprise usine avec une fraise
 toolpath-rest-pass-larger = l'outil { $tool } ({ $diameter }) doit être plus petit que l'outil { $before } ({ $before_diameter }) qui le précède
-toolpath-rest-pass-no-rpm = l'outil { $tool } n'a pas de vitesse de broche (tr/min)
+toolpath-rest-pass-no-rpm = l'outil { $tool } n'a pas de vitesse de broche (rpm)
 
 ## Planning notes: warnings that don't stop the G-code
 

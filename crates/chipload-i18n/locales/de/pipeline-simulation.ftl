@@ -3,10 +3,10 @@
 # The lines under the first start with spaces, written {"  "}: keep them, they indent the line.
 
 # $volume: cubic centimetres removed; $cell: a cell's size; $columns × $rows cells.
-pipeline-simulation-removed = Simulation: { $volume } cm³ removed, cells { $cell } ({ $columns } × { $rows })
+pipeline-simulation-removed = Simulation: { $volume } cm³ abgetragen, Zellen { $cell } ({ $columns } × { $rows })
 # $z: the lowest height cut; $depth: how far that is below the stock top.
-pipeline-simulation-deepest = {"  "}Deepest cut: Z{ $z } ({ $depth } below the stock top)
-pipeline-simulation-nothing-cut = {"  "}Nothing cut
-pipeline-simulation-below-bottom = {"  "}Cuts { $depth } below the stock bottom (into the spoilboard)
-pipeline-simulation-drill-point = {"  "}Drills simulated with a 118° point
-pipeline-simulation-vbit-angle = {"  "}A V-bit without an angle simulated as 90°
+pipeline-simulation-deepest = {"  "}Tiefster Schnitt: Z{ $z } ({ $depth } unter der Rohteiloberkante)
+pipeline-simulation-nothing-cut = {"  "}Nichts gefräst
+pipeline-simulation-below-bottom = {"  "}Fräst { $depth } unter die Rohteilunterkante (in die Opferplatte)
+pipeline-simulation-drill-point = {"  "}Bohrer mit einer 118°-Spitze simuliert
+pipeline-simulation-vbit-angle = {"  "}Ein V-Fräser ohne Winkel als 90° simuliert

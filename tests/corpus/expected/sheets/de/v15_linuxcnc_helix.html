@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Setup sheet: jobs/v15/linuxcnc_helix.chipload</title>
+<title>Einrichteblatt: jobs/v15/linuxcnc_helix.chipload</title>
 <style>
 body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111; background: #fff; margin: 24px auto; max-width: 900px; padding: 0 16px; line-height: 1.4; }
 h1 { font-size: 1.5em; margin: 0; }
@@ -32,15 +32,15 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 </head>
 <body>
 <header>
-<h1>Setup sheet: jobs/v15/linuxcnc_helix.chipload</h1>
-<p class="meta">post LinuxCNC &middot; written by chipload (test) &middot; lengths in mm, feeds in mm/min</p>
+<h1>Einrichteblatt: jobs/v15/linuxcnc_helix.chipload</h1>
+<p class="meta">Postprozessor LinuxCNC &middot; erstellt von chipload (test) &middot; L&#xe4;ngen in mm, Vorsch&#xfc;be in mm/min</p>
 </header>
 <section class="setup">
-<h2>Stock and zero</h2>
+<h2>Rohteil und Nullpunkt</h2>
 <table class="facts">
-<tr><th>Stock</th><td>300 &times; 220 mm, 12 mm thick</td></tr>
-<tr><th>X0 Y0</th><td>the stock&#39;s bottom left corner</td></tr>
-<tr><th>Z0</th><td>the top of the stock</td></tr>
+<tr><th>Rohteil</th><td>300 &times; 220 mm, 12 mm dick</td></tr>
+<tr><th>X0 Y0</th><td>die untere linke Ecke des Rohteils</td></tr>
+<tr><th>Z0</th><td>die Rohteiloberkante</td></tr>
 </table>
 </section>
 <figure>
@@ -52,29 +52,29 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 <g stroke="#000" stroke-width="2" vector-effect="non-scaling-stroke" fill="none"><circle cx="0" cy="0" r="3.6"/><path d="M0 0 H24 M18 -3 L24 0 L18 3 M0 0 V-24 M-3 -18 L0 -24 L3 -18"/></g>
 <g font-size="9" font-family="sans-serif" fill="#000"><text x="26.7" y="3.15">X+</text><text x="-4.5" y="-27.6">Y+</text><text x="3.6" y="11.7">X0 Y0</text></g>
 </svg>
-<figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> T1</span><span><svg width="36" height="10"><line x1="4" y1="5" x2="32" y2="5" stroke="#e67e22" stroke-width="5" stroke-linecap="round"/></svg> tabs</span><span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>
+<figcaption class="legend"><span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#1f5fbf" stroke-width="2"/></svg> T1</span><span><svg width="36" height="10"><line x1="4" y1="5" x2="32" y2="5" stroke="#e67e22" stroke-width="5" stroke-linecap="round"/></svg> Haltestege</span><span>Grau: die Teile. Nur Fr&#xe4;sbewegungen, keine Eilg&#xe4;nge.</span></figcaption>
 </figure>
 <section class="file">
 <h2>1. part.ngc <span class="time">1 min 51 s</span></h2>
-<p class="do">Load tool T1 (6 mm end mill, 2 flutes). Set X0 Y0 at the stock&#39;s bottom left corner and Z0 on the top of the stock.</p>
-<p>Tool T1: 6 mm end mill, 2 flutes, 18000 rpm clockwise (M3).</p>
+<p class="do">Spannen Sie Werkzeug T1 (6 mm Schaftfr&#xe4;ser, 2 Schneiden) ein. X0 Y0: die untere linke Ecke des Rohteils. Z0: die Rohteiloberkante.</p>
+<p>Werkzeug T1: 6 mm Schaftfr&#xe4;ser, 2 Schneiden, 18000 rpm im Uhrzeigersinn (M3).</p>
 <div class="scroll"><table class="ops">
-<tr><th>#</th><th>Operation</th><th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>
-<tr><td>1</td><td><strong>Holes</strong><br>Pocket, rings, climb, stepover 40 %, cuts 0.2 mm past the line</td><td>2 to 6, 2 per pass</td><td>1200 / 400<br>0.033 mm/tooth</td><td>helix r 1.5, 3&#xb0;, lead r 2</td><td>-</td><td>49 s</td></tr>
-<tr><td>2</td><td><strong>Outline</strong><br>Profile, outside, climb, leaves 0.3 mm</td><td>0 to 12.3, 4 per pass</td><td>1800 / 600<br>0.050 mm/tooth</td><td>ramp 3&#xb0;</td><td>4 &#xd7; 6 wide, 2 high, flanks 3&#xb0;</td><td>59 s</td></tr>
+<tr><th>#</th><th>Bearbeitung</th><th>Tiefe</th><th>Vorschub / Eintauchen</th><th>Eintauchen</th><th>Haltestege</th><th>Zeit</th></tr>
+<tr><td>1</td><td><strong>Holes</strong><br>Tasche, Ringe, Gleichlauf, seitliche Zustellung 40 %, fr&#xe4;st 0.2 mm &#xfc;ber die Linie hinaus</td><td>2 bis 6, 2 pro Durchgang</td><td>1200 / 400<br>0.033 mm/tooth</td><td>Helix r 1.5, 3&#xb0;, Anfahrt r 2</td><td>-</td><td>49 s</td></tr>
+<tr><td>2</td><td><strong>Outline</strong><br>Konturfr&#xe4;sen, au&#xdf;en, Gleichlauf, l&#xe4;sst 0.3 mm stehen</td><td>0 bis 12.3, 4 pro Durchgang</td><td>1800 / 600<br>0.050 mm/tooth</td><td>Rampe 3&#xb0;</td><td>4 &#xd7; 6 breit, 2 hoch, Flanken 3&#xb0;</td><td>59 s</td></tr>
 </table></div>
-<p>Cuts down to Z-12.3: 12.3 mm below the stock top, 0.3 mm into the spoilboard. Check that the tool sticks out far enough.</p>
+<p>Fr&#xe4;st bis Z-12.3: 12.3 mm unter der Rohteiloberkante, 0.3 mm in die Opferplatte. Pr&#xfc;fen Sie, ob das Werkzeug weit genug aus dem Spannfutter ragt.</p>
 </section>
 <section class="warn">
-<h2>Watch out</h2>
+<h2>Achtung</h2>
 <ul>
-<li>Post LinuxCNC: Not yet tested on a real LinuxCNC machine: check the program and air-cut first.</li>
+<li>Postprozessor LinuxCNC: Not yet tested on a real LinuxCNC machine: check the program and air-cut first.</li>
 <li>Bearbeitung 2 (Outline): fr&#xe4;st 0.300 mm unter das Rohteil (in die Opferplatte)</li>
-<li>Check: 9 Bewegungen gehen unter die Rohteilunterkante (tiefstes Z-12.300 mm, Unterkante -12.000 mm), innerhalb der erlaubten 0.500 mm</li>
+<li>Pr&#xfc;fung: 9 Bewegungen gehen unter die Rohteilunterkante (tiefstes Z-12.300 mm, Unterkante -12.000 mm), innerhalb der erlaubten 0.500 mm</li>
 </ul>
 </section>
 <section class="total">
-<h2>Time</h2>
+<h2>Zeit</h2>
 <p>Gesch&#xe4;tzte Zeit: 1 min 51 s (Fr&#xe4;sen 1 min 45 s, Eilg&#xe4;nge 3 s, Spindel 3 s)</p>
 <p>Bearbeitung 1 (Holes): 49 s</p>
 <p>Bearbeitung 2 (Outline): 59 s</p>

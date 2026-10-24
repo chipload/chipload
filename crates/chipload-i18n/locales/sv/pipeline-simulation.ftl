@@ -3,10 +3,10 @@
 # The lines under the first start with spaces, written {"  "}: keep them, they indent the line.
 
 # $volume: cubic centimetres removed; $cell: a cell's size; $columns × $rows cells.
-pipeline-simulation-removed = Simulation: { $volume } cm³ removed, cells { $cell } ({ $columns } × { $rows })
+pipeline-simulation-removed = Simulering: { $volume } cm³ borttaget, celler { $cell } ({ $columns } × { $rows })
 # $z: the lowest height cut; $depth: how far that is below the stock top.
-pipeline-simulation-deepest = {"  "}Deepest cut: Z{ $z } ({ $depth } below the stock top)
-pipeline-simulation-nothing-cut = {"  "}Nothing cut
-pipeline-simulation-below-bottom = {"  "}Cuts { $depth } below the stock bottom (into the spoilboard)
-pipeline-simulation-drill-point = {"  "}Drills simulated with a 118° point
-pipeline-simulation-vbit-angle = {"  "}A V-bit without an angle simulated as 90°
+pipeline-simulation-deepest = {"  "}Djupaste fräsning: Z{ $z } ({ $depth } under ämnets ovansida)
+pipeline-simulation-nothing-cut = {"  "}Inget fräst
+pipeline-simulation-below-bottom = {"  "}Fräser { $depth } under ämnets undersida (ned i offerskivan)
+pipeline-simulation-drill-point = {"  "}Borrar simulerade med 118° spets
+pipeline-simulation-vbit-angle = {"  "}En V-fräs utan vinkel simulerad som 90°

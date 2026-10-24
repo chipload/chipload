@@ -13,7 +13,7 @@ toolpath-all-disabled = Alle Bearbeitungen sind deaktiviert: nichts zu fräsen
 toolpath-tool-undefined = Werkzeug { $tool } ist im Job nicht definiert
 # Under the tool's spindle speed field.
 toolpath-no-rpm-short = keine Drehzahl
-toolpath-no-rpm = Werkzeug { $tool } hat keine Drehzahl (U/min)
+toolpath-no-rpm = Werkzeug { $tool } hat keine Drehzahl (rpm)
 # Under the machine's safe height; $top is the height of the stock's top.
 toolpath-safe-z-short = muss über der Rohteiloberkante liegen (Z { $top })
 # $zero is "top" or "bottom", as written in the project file.
@@ -65,7 +65,7 @@ toolpath-rest-passes-dogbones = Dogbones und Restdurchgänge lassen sich noch ni
 toolpath-rest-pass-no-tool = Werkzeug { $tool } ist im Job nicht definiert
 toolpath-rest-pass-endmill = Werkzeug { $tool } ist ein { $type }; ein Restdurchgang fräst mit einem Schaftfräser
 toolpath-rest-pass-larger = Werkzeug { $tool } ({ $diameter }) muss kleiner sein als Werkzeug { $before } ({ $before_diameter }) davor
-toolpath-rest-pass-no-rpm = Werkzeug { $tool } hat keine Drehzahl (U/min)
+toolpath-rest-pass-no-rpm = Werkzeug { $tool } hat keine Drehzahl (rpm)
 
 ## Planning notes: warnings that don't stop the G-code
 
