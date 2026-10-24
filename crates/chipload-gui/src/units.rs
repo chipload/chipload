@@ -111,9 +111,30 @@ impl<'a> Field<'a> {
     }
 }
 
+/// A typed number with its decimal comma made a point, when the app's language writes
+/// decimals with a comma (docs/specs/translations.md decision 6): `6,5` is 6.5 in German,
+/// and stays unreadable in English, where `1,000` means a thousand.
+pub fn decimal_point(text: &str, comma: bool) -> String {
+    if comma && !text.contains('.') && text.matches(',').count() == 1 {
+        text.replace(',', ".")
+    } else {
+        text.to_string()
+    }
+}
+
+/// A number field (no unit) that also takes a decimal comma in a language that writes one.
+pub fn number<'a, N: egui::emath::Numeric>(ui: &Ui, value: &'a mut N) -> DragValue<'a> {
+    let comma = crate::i18n::Lang::lang(ui).decimal_comma();
+    DragValue::new(value).custom_parser(move |text| {
+        let text = decimal_point(text, comma);
+        text.trim().replace('−', "-").parse::<f64>().ok()
+    })
+}
+
 impl Widget for Field<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let units = display(ui.ctx());
+        let comma = crate::i18n::Lang::lang(ui).decimal_comma();
         let kind = self.kind;
         // How many mm (mm/min, mm²) one shown unit is.
         let size = match kind {
@@ -141,9 +162,11 @@ impl Widget for Field<'_> {
         field = field.suffix(suffix);
         // A typed length may carry its own unit ("1/4in" in mm, "12mm" in inches).
         field = match kind {
-            Kind::Length => field.custom_parser(move |text| parse_length(text, units)),
+            Kind::Length => {
+                field.custom_parser(move |text| parse_length(&decimal_point(text, comma), units))
+            }
             Kind::Feed | Kind::Area => field.custom_parser(move |text| {
-                let number = text.trim().parse::<f64>().ok()?;
+                let number = decimal_point(text, comma).trim().parse::<f64>().ok()?;
                 number.is_finite().then_some(number * size)
             }),
         };
@@ -155,5 +178,21 @@ impl Widget for Field<'_> {
             field = field.custom_formatter(move |value, _| format!("{:.decimals$}", value / size));
         }
         ui.add(field)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decimal_point;
+
+    #[test]
+    fn a_decimal_comma_is_read_only_in_languages_that_write_one() {
+        assert_eq!(decimal_point("6,5", true), "6.5");
+        assert_eq!(decimal_point("-0,25 in", true), "-0.25 in");
+        assert_eq!(decimal_point("6,5", false), "6,5");
+        assert_eq!(decimal_point("1,000", false), "1,000");
+        // A point already there, or two commas: left as typed, so it doesn't parse.
+        assert_eq!(decimal_point("1.000,5", true), "1.000,5");
+        assert_eq!(decimal_point("1,0,5", true), "1,0,5");
     }
 }

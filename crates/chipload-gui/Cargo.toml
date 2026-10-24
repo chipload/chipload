@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 chipload-core = { version = "0.23.0", path = "../chipload-core" }
 chipload-dxf = { version = "0.23.0", path = "../chipload-dxf" }
+chipload-i18n = { version = "0.23.0", path = "../chipload-i18n" }
 chipload-job = { version = "0.23.0", path = "../chipload-job" }
 chipload-pipeline = { version = "0.23.0", path = "../chipload-pipeline" }
 chipload-text = { version = "0.23.0", path = "../chipload-text" }
@@ -22,6 +23,10 @@ chipload-toolpath = { version = "0.23.0", path = "../chipload-toolpath" }
 eframe = { version = "0.36.2", default-features = false, features = ["accesskit", "glow", "wayland", "x11"] }
 rfd = "0.17.2"
 serde_json = "1"
+# The system's language, for the app's default language (docs/specs/translations.md decision
+# 5): on Windows and macOS it takes the system API, which forbid(unsafe_code) rules out here.
+# MIT OR Apache-2.0.
+sys-locale = "0.3.2"
 # Only to pick the window frame: winit's fallback frame (what eframe gets without its default
 # features) makes WSLg's compositor drop the connection while resizing; the adwaita frame
 # (winit's own default) is fine. See ADR 0008.

@@ -235,44 +235,55 @@ impl Playback {
 
     /// "12 min 30 s of 41 min · Operation 3 (Outline), copy 2 · X … Y … Z … mm, F 1800,
     /// cutting", lengths and the feed in `units`.
-    pub fn readout(&self, job: Option<&Job>, units: chipload_job::Units) -> String {
-        let mut parts = vec![format!(
-            "{} of {}",
-            duration_text(self.time),
-            duration_text(self.total())
+    pub fn readout(
+        &self,
+        job: Option<&Job>,
+        units: chipload_job::Units,
+        lang: &impl crate::i18n::Lang,
+    ) -> String {
+        let mut parts = vec![t!(
+            lang,
+            "playback-time-of",
+            time = duration_text(self.time),
+            total = duration_text(self.total())
         )];
         let k = self.current();
         if let Some((_, op, copy)) = self.spans.iter().find(|(moves, _, _)| moves.contains(&k)) {
             let name = job
                 .and_then(|j| j.operations.get(*op))
                 .map_or("", |o| o.name());
-            let mut text = operation_label(*op, name);
-            if *copy > 1 {
-                text += &format!(", copy {copy}");
-            }
-            parts.push(text);
+            let label = operation_label(*op, name);
+            parts.push(if *copy > 1 {
+                t!(
+                    lang,
+                    "playback-operation-copy",
+                    operation = label,
+                    copy = *copy
+                )
+            } else {
+                label
+            });
         }
         if let Some((x, y, z)) = self
             .tool_at()
             .or_else(|| self.positions.last().copied().flatten())
         {
             let n = |mm: f64| crate::draw::fixed(mm, units);
-            let mut text = format!(
+            let at = format!(
                 "X {} Y {} Z {} {}",
                 n(x),
                 n(y),
                 n(z),
                 chipload_pipeline::units::length_unit(units)
             );
-            match self.kinds.get(k) {
-                Some((MoveKind::Rapid, _)) => text += ", rapid",
+            parts.push(match self.kinds.get(k) {
+                Some((MoveKind::Rapid, _)) => t!(lang, "playback-rapid", position = at),
                 Some((_, Some(feed))) => {
                     let feed = chipload_pipeline::units::feed_number(*feed, units);
-                    text += &format!(", F {feed}, cutting");
+                    t!(lang, "playback-cutting", position = at, feed = feed)
                 }
-                _ => {}
-            }
-            parts.push(text);
+                _ => at,
+            });
         }
         parts.join(" · ")
     }
@@ -542,7 +553,7 @@ impl ChiploadApp {
             let play = if playback.playing() { "⏸" } else { "▶" };
             if ui
                 .button(play)
-                .on_hover_text("Play the program at the chosen speed")
+                .on_hover_text(t!(ui, "playback-play-hover"))
                 .clicked()
             {
                 if playback.playing() {
@@ -614,7 +625,8 @@ impl ChiploadApp {
             );
         });
         ui.label(
-            RichText::new(playback.readout(job.as_ref(), crate::units::display(ui.ctx()))).small(),
+            RichText::new(playback.readout(job.as_ref(), crate::units::display(ui.ctx()), ui))
+                .small(),
         );
     }
 }

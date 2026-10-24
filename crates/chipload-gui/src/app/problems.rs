@@ -93,41 +93,45 @@ pub(super) fn section_has_problem(ui: &egui::Ui, key: &str) -> bool {
 }
 
 /// What the form calls a field: of an operation (`feed`), or of the job (`machine.safe_z`).
-fn field_label(field: &str) -> &'static str {
+/// Empty for a field without a name of its own.
+fn field_label(src: &impl crate::i18n::Lang, field: &str) -> String {
     let parts: Vec<&str> = field.split('.').collect();
-    match parts.as_slice() {
-        ["stock", "x"] => return "Stock X",
-        ["stock", "y"] => return "Stock Y",
-        ["stock", "thickness"] => return "Thickness",
-        ["stock", "max_overcut"] => return "Max depth below stock",
-        ["machine", "safe_z"] => return "Safe Z",
-        ["machine", "travel", ..] => return "Travel",
-        ["parts", _, "copies", ..] => return "Copies",
-        ["parts", _, "name"] => return "Part name",
-        ["parts", ..] => return "Parts",
-        ["tools", _, "diameter"] => return "Tool diameter",
-        ["tools", _, "rpm"] => return "Spindle speed",
-        ["tools", _, "angle"] => return "V-bit angle",
-        ["tools", _, "tip_diameter"] => return "Tip",
-        _ => {}
+    let label = match parts.as_slice() {
+        ["stock", "x"] => Some(t!(src, "problems-field-stock-x")),
+        ["stock", "y"] => Some(t!(src, "problems-field-stock-y")),
+        ["stock", "thickness"] => Some(t!(src, "problems-field-thickness")),
+        ["stock", "max_overcut"] => Some(t!(src, "problems-field-max-overcut")),
+        ["machine", "safe_z"] => Some(t!(src, "problems-field-safe-z")),
+        ["machine", "travel", ..] => Some(t!(src, "problems-field-travel")),
+        ["parts", _, "copies", ..] => Some(t!(src, "problems-field-copies")),
+        ["parts", _, "name"] => Some(t!(src, "problems-field-part-name")),
+        ["parts", ..] => Some(t!(src, "problems-field-parts")),
+        ["tools", _, "diameter"] => Some(t!(src, "problems-field-tool-diameter")),
+        ["tools", _, "rpm"] => Some(t!(src, "problems-field-spindle-speed")),
+        ["tools", _, "angle"] => Some(t!(src, "problems-field-vbit-angle")),
+        ["tools", _, "tip_diameter"] => Some(t!(src, "problems-field-tip")),
+        _ => None,
+    };
+    if let Some(label) = label {
+        return label;
     }
     match field {
-        "feed" => "Feed",
-        "plunge_feed" => "Plunge feed",
-        "start_depth" => "Start depth",
-        "end_depth" => "End depth",
-        "step_down" => "Step down",
-        "stepover" => "Stepover",
-        "clearance" => "Clearance",
-        "entry" => "Entry",
-        "ramp_angle" => "Ramp angle",
-        "lead" => "Lead",
-        "tool" => "Tool",
-        "part" => "Part",
-        "side" => "Side",
-        "select" => "Geometry",
-        f if f.starts_with("tabs") => "Tabs",
-        _ => "",
+        "feed" => t!(src, "problems-field-feed"),
+        "plunge_feed" => t!(src, "problems-field-plunge-feed"),
+        "start_depth" => t!(src, "problems-field-start-depth"),
+        "end_depth" => t!(src, "problems-field-end-depth"),
+        "step_down" => t!(src, "problems-field-step-down"),
+        "stepover" => t!(src, "problems-field-stepover"),
+        "clearance" => t!(src, "problems-field-clearance"),
+        "entry" => t!(src, "problems-field-entry"),
+        "ramp_angle" => t!(src, "problems-field-ramp-angle"),
+        "lead" => t!(src, "problems-field-lead"),
+        "tool" => t!(src, "problems-field-tool"),
+        "part" => t!(src, "problems-field-part"),
+        "side" => t!(src, "problems-field-side"),
+        "select" => t!(src, "problems-field-geometry"),
+        f if f.starts_with("tabs") => t!(src, "problems-field-tabs"),
+        _ => String::new(),
     }
 }
 
@@ -146,8 +150,8 @@ pub(super) fn at_field(problem: &Problem) -> String {
 
 /// The problem in plain words on its own, with the field's name: "Feed: must be greater
 /// than 0, got 0". A message that already names the field isn't given it twice.
-pub(super) fn plain(problem: &Problem) -> String {
-    let label = field_label(problem.field());
+pub(super) fn plain(src: &impl crate::i18n::Lang, problem: &Problem) -> String {
+    let label = field_label(src, problem.field());
     if label.is_empty()
         || problem
             .short
@@ -156,7 +160,12 @@ pub(super) fn plain(problem: &Problem) -> String {
     {
         capitalized(&problem.short)
     } else {
-        format!("{label}: {}", problem.short)
+        t!(
+            src,
+            "problems-with-field",
+            field = label,
+            problem = problem.short.as_str()
+        )
     }
 }
 
@@ -280,21 +289,28 @@ impl ChiploadApp {
             .inner_margin(egui::Margin::symmetric(8, 6))
             .show(ui, |ui| {
                 let count = self.problems.len();
-                let s = if count == 1 { "" } else { "s" };
-                ui.colored_label(color, RichText::new(format!("{count} problem{s}")).strong());
+                ui.colored_label(
+                    color,
+                    RichText::new(t!(ui, "problems-count", count = count)).strong(),
+                );
                 if self.auto_generate {
-                    ui.weak("The toolpath updates once they are fixed.");
+                    ui.weak(t!(ui, "problems-updates-when-fixed"));
                 }
                 for problem in &self.problems {
                     let place = match problem.operation() {
-                        Some(i) => format!("Operation {}", i + 1),
-                        None => "Job".to_string(),
+                        Some(i) => t!(ui, "problems-place-operation", number = i + 1),
+                        None => t!(ui, "problems-place-job"),
                     };
-                    let line =
-                        crate::units::message(ui.ctx(), &format!("{place} · {}", plain(problem)));
+                    let line = t!(
+                        ui,
+                        "problems-line",
+                        place = place,
+                        problem = plain(ui, problem)
+                    );
+                    let line = crate::units::message(ui.ctx(), &line);
                     if ui
                         .add(egui::Label::new(line).sense(egui::Sense::click()))
-                        .on_hover_text("Show it")
+                        .on_hover_text(t!(ui, "problems-show-it-hover"))
                         .clicked()
                     {
                         // A part's or a tool's field opens it (docs/specs/parts.md §8,

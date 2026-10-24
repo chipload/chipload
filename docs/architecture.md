@@ -1,7 +1,7 @@
 # Architecture
 
 Chipload turns drawings, pictures and text into checked G-code for CNC routers and mills.
-It is a Rust workspace of eleven crates in layers: geometry at the bottom, two thin front
+It is a Rust workspace of twelve crates in layers: geometry at the bottom, two thin front
 ends on top, and an independent checker that every program must pass before it leaves.
 
 This page is the overview. The rules in full are in `CLAUDE.md`, each feature's behaviour
@@ -25,6 +25,8 @@ flowchart TB
     text["chipload-text<br/>fonts to outlines"] --> core
     job["chipload-job<br/>project file, migrations"] --> core
     core["chipload-core<br/>lines, arcs, chaining, tolerances"]
+    i18n["chipload-i18n<br/>texts in six languages"]
+    gui --> i18n
 
     check["chipload-check<br/>independent G-code checker"] --> job
     pipeline -.-> check
@@ -40,7 +42,7 @@ flowchart TB
 | Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-image`, `chipload-text` |
 | Model | `chipload-job` |
 | Geometry | `chipload-core` |
-| Beside the rest | `chipload-check`: uses only `core` and `job` |
+| Beside the rest | `chipload-check`: uses only `core` and `job`; `chipload-i18n`: the app's texts, no workspace crate |
 
 `chipload-check` reads the finished G-code text and checks it on its own terms. It shares no
 code with the generator, so it can disagree with it.
@@ -84,7 +86,8 @@ error.
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices. | every library crate |
 | `chipload-cli` | The `chipload` command: every feature, `--json` on every command, `get`/`set` by path, JSON schemas, an MCP server. | pipeline and below; clap |
-| `chipload-gui` | The desktop app: ribbon, browser of parts and operations, canvas, forms, simulation playback. It builds a `Job` and calls the pipeline on a background thread. | pipeline and below; eframe, rfd |
+| `chipload-i18n` | The app's texts in English, German, French, Spanish, Italian and Swedish: Fluent files compiled in, looked up by id (docs/specs/translations.md). No I/O. | no workspace crate; fluent-bundle |
+| `chipload-gui` | The desktop app: ribbon, browser of parts and operations, canvas, forms, simulation playback. It builds a `Job` and calls the pipeline on a background thread. Its texts come from `chipload-i18n`. | pipeline and below, i18n; eframe, rfd, sys-locale |
 
 ## Rules the code follows
 

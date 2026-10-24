@@ -53,27 +53,31 @@ pub(super) fn import_preview(
     let pending = pending.filter(|p| p.kind == kind)?;
     let mut choice = None;
     ui.separator();
-    ui.strong(format!("Import from {}", pending.file.display()));
+    ui.strong(t!(
+        ui,
+        "library-transfer-import-from",
+        file = pending.file.display().to_string()
+    ));
     for line in pending.lines() {
         ui.label(line);
     }
     ui.horizontal(|ui| {
         if ui
-            .button("Import")
-            .on_hover_text("Add what is new; keep yours where they differ")
+            .button(t!(ui, "library-transfer-import"))
+            .on_hover_text(t!(ui, "library-transfer-import-hover"))
             .clicked()
         {
             choice = Some(ImportChoice::Keep);
         }
         if pending.differing
             && ui
-                .button("Import and replace")
-                .on_hover_text("Also take the file's values where they differ from yours")
+                .button(t!(ui, "library-transfer-import-replace"))
+                .on_hover_text(t!(ui, "library-transfer-import-replace-hover"))
                 .clicked()
         {
             choice = Some(ImportChoice::Replace);
         }
-        if ui.button("Cancel").clicked() {
+        if ui.button(t!(ui, "common-cancel")).clicked() {
             choice = Some(ImportChoice::Cancel);
         }
     });
@@ -100,9 +104,8 @@ impl ChiploadApp {
             LibraryKind::Tools => "chipload-tools.json",
             LibraryKind::Machines => "chipload-machines.json",
         };
-        if let Some(file) =
-            super::dialogs::save_dialog(Path::new(suggested), "Library files", "json")
-        {
+        let filter = t!(self, "library-transfer-library-files");
+        if let Some(file) = super::dialogs::save_dialog(Path::new(suggested), &filter, "json") {
             self.export_library(kind, &file);
         }
     }
@@ -110,7 +113,7 @@ impl ChiploadApp {
     /// Import… : read a file the user picks and show what importing it would do.
     pub(super) fn import_library_dialog(&mut self, kind: LibraryKind) {
         if let Some(file) = rfd::FileDialog::new()
-            .add_filter("Library files", &["json", "bak"])
+            .add_filter(t!(self, "library-transfer-library-files"), &["json", "bak"])
             .pick_file()
         {
             self.preview_library_import(kind, &file);
@@ -129,11 +132,25 @@ impl ChiploadApp {
         };
         match written {
             Ok(count) => {
-                let text = format!(
-                    "Exported {}: {count} to {}",
-                    list_name(kind),
-                    file.display()
-                );
+                let file = file.display().to_string();
+                let text = match kind {
+                    LibraryKind::Tools => {
+                        t!(
+                            self,
+                            "library-transfer-exported-tools",
+                            count = count,
+                            file = file
+                        )
+                    }
+                    LibraryKind::Machines => {
+                        t!(
+                            self,
+                            "library-transfer-exported-machines",
+                            count = count,
+                            file = file
+                        )
+                    }
+                };
                 self.library_state.message = Some((kind, text));
                 true
             }
@@ -190,7 +207,7 @@ impl ChiploadApp {
             ImportChoice::Replace => true,
         };
         let Some(dir) = self.settings_dir.clone() else {
-            self.library_state.error = Some("No settings folder".into());
+            self.library_state.error = Some(t!(self, "library-transfer-no-settings-folder"));
             return false;
         };
         let done = match &pending.entries {

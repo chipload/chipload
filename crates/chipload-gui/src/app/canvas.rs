@@ -268,8 +268,8 @@ impl ChiploadApp {
                     .get(marker)
                     .is_some_and(|m| m.stored.is_some());
                 if ui
-                    .add_enabled(moved, egui::Button::new("Reset start"))
-                    .on_disabled_hover_text("This ring starts where Chipload chose")
+                    .add_enabled(moved, egui::Button::new(t!(ui, "canvas-reset-start")))
+                    .on_disabled_hover_text(t!(ui, "canvas-reset-start-disabled-hover"))
                     .clicked()
                 {
                     self.reset_start(marker);
@@ -277,19 +277,25 @@ impl ChiploadApp {
                 }
             }
             (None, Some(id)) => {
-                if ui.button(format!("Select #{id}")).clicked() {
+                if ui
+                    .button(t!(ui, "canvas-select-contour", id = id.to_string()))
+                    .clicked()
+                {
                     self.click(Some(id), false);
                     ui.close();
                 }
                 for layer in &layers {
-                    if ui.button(format!("Select layer {layer}")).clicked() {
+                    if ui
+                        .button(t!(ui, "canvas-select-layer", layer = layer))
+                        .clicked()
+                    {
                         self.selection = CanvasSelection::Layer(layer.clone(), from);
                         ui.close();
                     }
                 }
             }
             (None, None) => {
-                ui.label("Right-click a contour to select its layer.");
+                ui.label(t!(ui, "canvas-right-click-hint"));
             }
         });
         let operation = match self.focus {
@@ -306,8 +312,8 @@ impl ChiploadApp {
             .and_then(|i| self.scene.start_markers.get(i));
         if let Some(marker) = on_start.filter(|_| !response.dragged()) {
             let text = match marker.stored {
-                Some(_) => "Start of this ring: drag it along the ring; right-click to reset",
-                None => "Start of this ring: drag it along the ring to move it",
+                Some(_) => t!(ui, "canvas-start-moved-hover"),
+                None => t!(ui, "canvas-start-hover"),
             };
             response.on_hover_text_at_pointer(text);
         } else if !plunges.is_empty() && !response.dragged() {
@@ -349,15 +355,15 @@ impl ChiploadApp {
                             self.generating() || (self.auto_generate && self.changed_at.is_some());
                         if coming {
                             ui.spinner();
-                            ui.label("Updating the toolpath…");
+                            ui.label(t!(ui, "canvas-updating-toolpath"));
                         } else {
+                            let stale = t!(ui, "canvas-toolpath-out-of-date");
                             ui.label(
-                                RichText::new("⚠ Toolpath out of date")
-                                    .color(visuals.warn_fg_color),
+                                RichText::new(format!("⚠ {stale}")).color(visuals.warn_fg_color),
                             );
                             if ui
-                                .button("▶ Generate")
-                                .on_hover_text("The project changed since it was generated (F5)")
+                                .button(format!("▶ {}", t!(ui, "canvas-generate")))
+                                .on_hover_text(t!(ui, "canvas-generate-hover"))
                                 .clicked()
                             {
                                 self.generate();
@@ -376,12 +382,12 @@ impl ChiploadApp {
                 frame.show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.spinner();
-                        ui.label("Updating the simulation…");
+                        ui.label(t!(ui, "canvas-updating-simulation"));
                     });
                 });
             });
         }
-        let items = crate::view::legend(&self.scene);
+        let items = crate::view::legend(&self.scene, ui);
         // Anchored at the bottom: placed by its height last frame (estimated on the first).
         let size_id = egui::Id::new("legend-height");
         let rows = if self.legend_open { items.len() } else { 0 };
@@ -410,12 +416,15 @@ impl ChiploadApp {
     }
 
     /// The legend's title (it folds) and its entries.
-    fn legend_ui(&mut self, ui: &mut egui::Ui, items: Vec<(crate::view::Swatch, &str)>) {
+    fn legend_ui(&mut self, ui: &mut egui::Ui, items: Vec<(crate::view::Swatch, String)>) {
         ui.spacing_mut().item_spacing.y = 1.0;
         let arrow = if self.legend_open { "▾" } else { "▸" };
         if ui
-            .selectable_label(false, RichText::new(format!("{arrow} Legend")).small())
-            .on_hover_text("What the canvas shows")
+            .selectable_label(
+                false,
+                RichText::new(format!("{arrow} {}", t!(ui, "canvas-legend"))).small(),
+            )
+            .on_hover_text(t!(ui, "canvas-legend-hover"))
             .clicked()
         {
             self.legend_open = !self.legend_open;
@@ -424,11 +433,9 @@ impl ChiploadApp {
             return;
         }
         if self.scene.toolpath.is_some() {
-            ui.checkbox(
-                &mut self.show_toolpath,
-                RichText::new("Show toolpath").small(),
-            )
-            .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
+            let label = t!(ui, "canvas-show-toolpath");
+            ui.checkbox(&mut self.show_toolpath, RichText::new(label).small())
+                .on_hover_text(t!(ui, "canvas-show-toolpath-hover"));
         }
         for (swatch, text) in items {
             ui.horizontal(|ui| {
@@ -630,15 +637,19 @@ impl ChiploadApp {
             .into_iter()
             .map(|(op, numbers)| {
                 let total = path.starts.iter().filter(|s| s.operation == op).count();
-                let label =
-                    op.map_or_else(|| "Rejected toolpath".to_string(), |i| self.op_label(i));
+                let label = op.map_or_else(
+                    || t!(self, "canvas-rejected-toolpath"),
+                    |i| self.op_label(i),
+                );
                 let list: Vec<String> = numbers.iter().map(ToString::to_string).collect();
-                let noun = if numbers.len() == 1 {
-                    "plunge"
-                } else {
-                    "plunges"
-                };
-                format!("{label}: {noun} {} of {total}", list.join(", "))
+                t!(
+                    self,
+                    "canvas-plunges",
+                    operation = label,
+                    count = numbers.len(),
+                    numbers = list.join(", "),
+                    total = total.to_string()
+                )
             })
             .collect::<Vec<_>>()
             .join("\n")

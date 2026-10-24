@@ -27,7 +27,7 @@ fn a_bad_value_is_flagged_at_its_field_once_the_edit_is_finished() {
     assert!(app.form_problem_map(Focus::Op(1)).is_empty());
     assert!(app.form_problem_map(Focus::Job).is_empty());
     assert_eq!(
-        problems::plain(&app.problems[0]),
+        problems::plain(&app, &app.problems[0]),
         "Feed: must be greater than 0, got 0 mm/min"
     );
     // The forms, cards and strip draw with it.
@@ -47,7 +47,7 @@ fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
     assert_eq!(problem_paths(&app), ["machine.safe_z"]);
     assert_eq!(app.job_problems().count(), 1);
     assert_eq!(
-        problems::plain(&app.problems[0]),
+        problems::plain(&app, &app.problems[0]),
         "Safe Z: must be above the stock top (Z 0 mm)"
     );
     let fields = app.form_problem_map(Focus::Job);
@@ -75,7 +75,7 @@ fn an_operation_without_shapes_is_a_problem_of_the_operation() {
     app.commit();
     assert_eq!(problem_paths(&app), ["operations.1.select"]);
     assert_eq!(
-        problems::plain(&app.problems[0]),
+        problems::plain(&app, &app.problems[0]),
         "Geometry: no geometry: select contours, then Use selection"
     );
 }

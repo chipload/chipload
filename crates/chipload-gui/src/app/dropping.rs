@@ -28,38 +28,31 @@ pub(super) fn dropped_kind(path: &Path) -> Option<Dropped> {
 
 /// What dropping `paths` does, for the hover hint (`open`: a project is open); Err: the
 /// status line when nothing will.
-pub(super) fn drop_meaning(paths: &[PathBuf], open: bool) -> Result<String, &'static str> {
-    const TAKEN: &str = "Drop a .chipload project, or DXFs and pictures";
+pub(super) fn drop_meaning(
+    lang: &impl crate::i18n::Lang,
+    paths: &[PathBuf],
+    open: bool,
+) -> Result<String, String> {
     let kinds: Option<Vec<Dropped>> = paths.iter().map(|p| dropped_kind(p)).collect();
     let Some(kinds) = kinds.filter(|k| !k.is_empty()) else {
-        return Err(TAKEN);
+        return Err(t!(lang, "dropping-unsupported"));
     };
     if kinds.contains(&Dropped::Project) {
         return if kinds.len() == 1 {
-            Ok("Open this project".into())
+            Ok(t!(lang, "dropping-open-project"))
         } else {
-            Err("Drop one .chipload project at a time")
+            Err(t!(lang, "dropping-one-project"))
         };
     }
     let dxfs = kinds.iter().filter(|&&k| k == Dropped::Dxf).count();
     let pictures = kinds.len() - dxfs;
-    let count = |n: usize, one: &str, many: &str| match n {
-        0 => None,
-        1 => Some(format!("1 {one}")),
-        n => Some(format!("{n} {many}")),
-    };
-    let what = [
-        count(dxfs, "DXF", "DXFs"),
-        count(pictures, "picture", "pictures"),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
-    .join(" and ");
-    Ok(if open {
-        format!("Add {what} to the project")
-    } else {
-        format!("New project with {what}")
+    Ok(match (open, dxfs, pictures) {
+        (true, _, 0) => t!(lang, "dropping-add-dxfs", dxfs = dxfs),
+        (true, 0, _) => t!(lang, "dropping-add-pictures", pictures = pictures),
+        (true, _, _) => t!(lang, "dropping-add-both", dxfs = dxfs, pictures = pictures),
+        (false, _, 0) => t!(lang, "dropping-new-dxfs", dxfs = dxfs),
+        (false, 0, _) => t!(lang, "dropping-new-pictures", pictures = pictures),
+        (false, _, _) => t!(lang, "dropping-new-both", dxfs = dxfs, pictures = pictures),
     })
 }
 
@@ -68,8 +61,8 @@ impl ChiploadApp {
     /// lost); DXFs and pictures are queued and brought in one at a time. Returns whether
     /// the app takes the files.
     pub fn drop_files(&mut self, paths: &[PathBuf]) -> bool {
-        if let Err(why) = drop_meaning(paths, self.edit.is_some()) {
-            self.set_status(why.into(), STATUS_SECONDS);
+        if let Err(why) = drop_meaning(self, paths, self.edit.is_some()) {
+            self.set_status(why, STATUS_SECONDS);
             return false;
         }
         if let [path] = paths
@@ -129,11 +122,10 @@ impl ChiploadApp {
         if ctx.input(|i| i.raw.hovered_files.is_empty()) {
             return;
         }
-        let text = match drop_meaning(&hovered, self.edit.is_some()) {
-            Ok(meaning) => meaning,
-            // Some systems don't say what is being dragged until it is dropped.
-            Err(_) if hovered.is_empty() => "Drop a .chipload project, or DXFs and pictures".into(),
-            Err(why) => why.into(),
+        // Some systems don't say what is being dragged until it is dropped: the general
+        // hint then.
+        let text = match drop_meaning(self, &hovered, self.edit.is_some()) {
+            Ok(meaning) | Err(meaning) => meaning,
         };
         let painter = ctx.layer_painter(egui::LayerId::new(
             egui::Order::Foreground,
@@ -158,6 +150,8 @@ mod tests {
     #[test]
     fn a_project_alone_or_dxfs_and_pictures() {
         let p = |names: &[&str]| -> Vec<PathBuf> { names.iter().map(PathBuf::from).collect() };
+        let drop_meaning =
+            |paths: &[PathBuf], open| drop_meaning(&crate::i18n::Language::En, paths, open);
         assert_eq!(
             drop_meaning(&p(&["a.chipload"]), true).as_deref(),
             Ok("Open this project")

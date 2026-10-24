@@ -17,11 +17,11 @@ impl ChiploadApp {
         let (ids, imported) = self.deletable_shapes();
         if ids.is_empty() {
             let why = if imported {
-                "Imported shapes can't be copied; only drawn ones"
+                t!(self, "copy-paste-imported-no-copy")
             } else {
-                "Select drawn shapes to copy"
+                t!(self, "copy-paste-select-to-copy")
             };
-            self.set_status(why.into(), STATUS_SECONDS);
+            self.set_status(why, STATUS_SECONDS);
             return None;
         }
         let edit = self.edit.as_ref()?;
@@ -30,8 +30,8 @@ impl ChiploadApp {
                 let text = clipboard_text(&shapes);
                 let n = shapes.len();
                 self.shape_clipboard = shapes;
-                let s = if n == 1 { "" } else { "s" };
-                self.set_status(format!("Copied {n} shape{s}"), STATUS_SECONDS);
+                let status = t!(self, "copy-paste-copied", count = n);
+                self.set_status(status, STATUS_SECONDS);
                 Some(text)
             }
             Err(err) => {
@@ -48,14 +48,14 @@ impl ChiploadApp {
             Some(text) => match shapes_from_clipboard(text) {
                 Some(shapes) => shapes,
                 None => {
-                    self.set_status("The clipboard holds no shapes".into(), STATUS_SECONDS);
+                    self.set_status(t!(self, "copy-paste-no-shapes"), STATUS_SECONDS);
                     return false;
                 }
             },
             None => self.shape_clipboard.clone(),
         };
         if shapes.is_empty() {
-            self.set_status("Copy drawn shapes first (Ctrl+C)".into(), STATUS_SECONDS);
+            self.set_status(t!(self, "copy-paste-copy-first"), STATUS_SECONDS);
             return false;
         }
         let at = self.cursor.filter(|_| !self.three_d);
@@ -67,11 +67,12 @@ impl ChiploadApp {
                 edit.settings.drawing = job.drawing;
                 self.drawing_changed(&ids);
                 let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
-                self.set_status(format!("Pasted {}", names.join(", ")), STATUS_SECONDS);
+                let text = t!(self, "copy-paste-pasted", shapes = names.join(", "));
+                self.set_status(text, STATUS_SECONDS);
                 true
             }
             Err(err) => {
-                self.error(vec!["Cannot paste:".into(), err.to_string()]);
+                self.error(vec![t!(self, "copy-paste-cannot-paste"), err.to_string()]);
                 false
             }
         }
@@ -82,11 +83,11 @@ impl ChiploadApp {
         let (ids, imported) = self.deletable_shapes();
         if ids.is_empty() {
             let why = if imported {
-                "Imported shapes can't be mirrored; only drawn ones"
+                t!(self, "copy-paste-imported-no-mirror")
             } else {
-                "Select drawn shapes to mirror"
+                t!(self, "copy-paste-select-to-mirror")
             };
-            self.set_status(why.into(), STATUS_SECONDS);
+            self.set_status(why, STATUS_SECONDS);
             return false;
         }
         let Some(edit) = self.edit.as_mut() else {
@@ -97,15 +98,16 @@ impl ChiploadApp {
                 edit.settings.drawing = job.drawing;
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
-                let mut note = String::new();
-                if imported {
-                    note = " (imported shapes in the selection stay as they are)".into();
-                }
-                self.set_status(format!("Mirrored{note}"), STATUS_SECONDS);
+                let text = if imported {
+                    t!(self, "copy-paste-mirrored-drawn")
+                } else {
+                    t!(self, "copy-paste-mirrored")
+                };
+                self.set_status(text, STATUS_SECONDS);
                 true
             }
             Err(err) => {
-                self.error(vec!["Cannot mirror:".into(), err.to_string()]);
+                self.error(vec![t!(self, "copy-paste-cannot-mirror"), err.to_string()]);
                 false
             }
         }

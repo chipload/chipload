@@ -72,13 +72,12 @@ impl ChiploadApp {
     pub(super) fn measure_status(&self, snapped: &str) -> Option<String> {
         let measure = self.measure?;
         Some(match (measure.start, measure.end) {
-            (None, _) => {
-                format!("Measure: click the first point{snapped} (Alt: no snapping; Esc or M ends)")
-            }
-            (Some(_), None) => format!("Measure: click the second point{snapped}"),
+            (None, _) => t!(self, "measure-first-point", snapped = snapped),
+            (Some(_), None) => t!(self, "measure-second-point", snapped = snapped),
             (Some(a), Some(b)) => format!(
-                "{}  · click to measure again, Esc or M ends",
-                measure_text(a, b, self.units)
+                "{}  · {}",
+                measure_text(a, b, self.units),
+                t!(self, "measure-again")
             ),
         })
     }

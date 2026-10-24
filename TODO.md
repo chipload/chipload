@@ -11,6 +11,24 @@ it's built (see `CLAUDE.md`).
   the draft's file list (the Windows CLI as `.zip`) and notes, then publish it and the guide
   (`packaging/docs/publish-book.sh v0.23.0 --yes`).
 
+- **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
+  German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
+  `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`
+  (about 1,180 texts in 34 `.ftl` files), the five translations (machine-made from
+  `crates/chipload-i18n/GLOSSARY.md`), View > Language and *This computer > Preferences*
+  (the system's language by default, `language` in `settings.json`), a decimal comma in
+  fields in those five languages, the guide page *Languages*. Left:
+  - The user reviews Swedish; the other four wait for native speakers who machine
+    (marked *review wanted* in the menu; `Language::reviewed`). The translators' open
+    suggestions are at the end of the glossary.
+  - **Step 2:** messages from the library crates (problems, report lines, notes, checker,
+    import report, `operation_label`, error texts, `Link::text`), and the GUI's own
+    problems in `EditJob::missing()`, which are worded like them. Typed length arguments
+    replace `text_in`.
+  - **Step 3:** the setup sheet in the app's language.
+  - Not translated on purpose so far: a new text's starting word "Text", the setup sheet's
+    "Untitled project", startup errors before the window opens.
+
 ## State to remember (2026-10-19)
 
 - **Releases**: the latest published is 0.22.2 (0.23.0 tagged, see In progress) (published 2026-10-18, built by Actions: Linux and

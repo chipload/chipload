@@ -10,6 +10,7 @@ mod app;
 mod draw;
 mod editor;
 mod fonts;
+mod i18n;
 mod icons;
 mod shape_form;
 mod style;

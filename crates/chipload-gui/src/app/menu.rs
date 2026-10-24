@@ -51,15 +51,21 @@ impl ChiploadApp {
         let has_job = self.edit.is_some();
         let has_result = self.result.is_some();
 
-        if ui.button(with_keys("New project", Action::New)).clicked() {
+        if ui
+            .button(with_keys(&t!(ui, "menu-new-project"), Action::New))
+            .clicked()
+        {
             self.ask_new();
         }
-        if ui.button(with_keys("Open…", Action::Open)).clicked() {
+        if ui
+            .button(with_keys(&t!(ui, "menu-open"), Action::Open))
+            .clicked()
+        {
             self.ask_open();
         }
         let recent = self.recent.clone();
         ui.add_enabled_ui(!recent.is_empty(), |ui| {
-            ui.menu_button("Open recent", |ui| {
+            ui.menu_button(t!(ui, "menu-open-recent"), |ui| {
                 for path in &recent {
                     let name = file_name(Path::new(path));
                     if ui.button(name).on_hover_text(path).clicked() {
@@ -67,38 +73,38 @@ impl ChiploadApp {
                     }
                 }
                 ui.separator();
-                if ui.button("Clear list").clicked() {
+                if ui.button(t!(ui, "menu-clear-list")).clicked() {
                     self.forget_recent(None);
                 }
             });
         });
         if ui
-            .button(with_keys("Import DXF…", Action::Import))
+            .button(with_keys(&t!(ui, "menu-import-dxf"), Action::Import))
             .clicked()
         {
             self.ask_import();
         }
         if ui
-            .button("Import image…")
-            .on_hover_text("Trace a picture into shapes, for V-carving")
+            .button(t!(ui, "menu-import-image"))
+            .on_hover_text(t!(ui, "menu-import-image-hover"))
             .clicked()
         {
             self.import_image_dialog();
         }
-        if ui.button("Open path…").clicked() {
+        if ui.button(t!(ui, "menu-open-path")).clicked() {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
         }
-        if ui.button("Import image from path…").clicked() {
+        if ui.button(t!(ui, "menu-import-image-path")).clicked() {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
         }
         ui.separator();
         let (update, update_path) = self.update_labels();
         // With several DXFs, each is updated from its row in the Browser.
         let one = has_job && self.dxf_count() <= 1;
-        let several = "Several DXFs: update one from the Browser (right-click it)";
+        let several = t!(ui, "menu-several-dxfs");
         if ui
             .add_enabled(one, egui::Button::new(update))
-            .on_disabled_hover_text(several)
+            .on_disabled_hover_text(&several)
             .clicked()
         {
             self.ask_update();
@@ -112,21 +118,24 @@ impl ChiploadApp {
         }
         let adding = has_job && self.dxf_count() > 0;
         if ui
-            .add_enabled(adding, egui::Button::new("Add DXF to project…"))
-            .on_hover_text("Another part: a DXF placed and updated on its own")
+            .add_enabled(adding, egui::Button::new(t!(ui, "menu-add-dxf")))
+            .on_hover_text(t!(ui, "menu-add-dxf-hover"))
             .clicked()
         {
             self.ask_add_dxf();
         }
         if ui
-            .add_enabled(adding, egui::Button::new("Add DXF from path…"))
+            .add_enabled(adding, egui::Button::new(t!(ui, "menu-add-dxf-path")))
             .clicked()
         {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::AddDxf, String::new()));
         }
         ui.separator();
         if ui
-            .add_enabled(has_job, egui::Button::new(with_keys("Save", Action::Save)))
+            .add_enabled(
+                has_job,
+                egui::Button::new(with_keys(&t!(ui, "menu-save"), Action::Save)),
+            )
             .clicked()
         {
             self.ask_save(false);
@@ -134,14 +143,14 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 has_job,
-                egui::Button::new(with_keys("Save as…", Action::SaveAs)),
+                egui::Button::new(with_keys(&t!(ui, "menu-save-as"), Action::SaveAs)),
             )
             .clicked()
         {
             self.ask_save(true);
         }
         if ui
-            .add_enabled(has_job, egui::Button::new("Save to path…"))
+            .add_enabled(has_job, egui::Button::new(t!(ui, "menu-save-path")))
             .clicked()
         {
             self.dialogs.prompt = Some(Prompt::Path(
@@ -153,14 +162,14 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 has_result || self.generating(),
-                egui::Button::new(with_keys("Export G-code…", Action::Export)),
+                egui::Button::new(with_keys(&t!(ui, "menu-export"), Action::Export)),
             )
             .clicked()
         {
             self.export_when_ready();
         }
         if ui
-            .add_enabled(has_result, egui::Button::new("Export G-code to path…"))
+            .add_enabled(has_result, egui::Button::new(t!(ui, "menu-export-path")))
             .clicked()
         {
             self.dialogs.prompt = Some(Prompt::Path(
@@ -169,7 +178,10 @@ impl ChiploadApp {
             ));
         }
         ui.separator();
-        if ui.button(with_keys("Quit", Action::Quit)).clicked() {
+        if ui
+            .button(with_keys(&t!(ui, "menu-quit"), Action::Quit))
+            .clicked()
+        {
             ui.ctx().send_viewport_cmd(ViewportCommand::Close);
         }
     }
@@ -179,7 +191,7 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 !self.undo.is_empty(),
-                egui::Button::new(with_keys("Undo", Action::Undo)),
+                egui::Button::new(with_keys(&t!(ui, "menu-undo"), Action::Undo)),
             )
             .clicked()
         {
@@ -188,7 +200,7 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 !self.redo.is_empty(),
-                egui::Button::new(with_keys("Redo", Action::Redo)),
+                egui::Button::new(with_keys(&t!(ui, "menu-redo"), Action::Redo)),
             )
             .clicked()
         {
@@ -200,10 +212,13 @@ impl ChiploadApp {
     pub(super) fn shape_menu(&mut self, ui: &mut egui::Ui) {
         let has_job = self.edit.is_some();
         let drawn = !self.deletable_shapes().0.is_empty();
-        let only_drawn = "Only drawn shapes; imported ones change only with the DXF";
+        let only_drawn = t!(ui, "menu-only-drawn");
         if ui
-            .add_enabled(drawn, egui::Button::new(with_keys("Copy", Action::Copy)))
-            .on_disabled_hover_text(only_drawn)
+            .add_enabled(
+                drawn,
+                egui::Button::new(with_keys(&t!(ui, "menu-copy"), Action::Copy)),
+            )
+            .on_disabled_hover_text(&only_drawn)
             .clicked()
             && let Some(text) = self.copy_selected_shapes()
         {
@@ -212,35 +227,36 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 !self.shape_clipboard.is_empty() && has_job,
-                egui::Button::new(with_keys("Paste", Action::Paste)),
+                egui::Button::new(with_keys(&t!(ui, "menu-paste"), Action::Paste)),
             )
-            .on_hover_text("10 mm right and up from the copied shapes; Ctrl+V over the canvas pastes at the cursor")
+            .on_hover_text(t!(ui, "menu-paste-hover"))
             .clicked()
         {
             self.paste(None);
         }
         if ui
-            .add_enabled(drawn, egui::Button::new("Mirror left–right"))
-            .on_hover_text("Flip the selected drawn shapes about the middle of their box")
-            .on_disabled_hover_text(only_drawn)
+            .add_enabled(drawn, egui::Button::new(t!(ui, "menu-mirror-left-right")))
+            .on_hover_text(t!(ui, "menu-mirror-hover"))
+            .on_disabled_hover_text(&only_drawn)
             .clicked()
         {
             self.mirror_selected(Mirror::LeftRight);
         }
         if ui
-            .add_enabled(drawn, egui::Button::new("Mirror up–down"))
-            .on_hover_text("Flip the selected drawn shapes about the middle of their box")
-            .on_disabled_hover_text(only_drawn)
+            .add_enabled(drawn, egui::Button::new(t!(ui, "menu-mirror-up-down")))
+            .on_hover_text(t!(ui, "menu-mirror-hover"))
+            .on_disabled_hover_text(&only_drawn)
             .clicked()
         {
             self.mirror_selected(Mirror::UpDown);
         }
         ui.separator();
         if ui
-            .add_enabled(drawn, egui::Button::new("Delete shapes  (Del)"))
-            .on_hover_text(
-                "Deletes the selected drawn shapes; imported ones change only with the DXF",
+            .add_enabled(
+                drawn,
+                egui::Button::new(format!("{}  (Del)", t!(ui, "menu-delete-shapes"))),
             )
+            .on_hover_text(t!(ui, "menu-delete-shapes-hover"))
             .clicked()
         {
             self.delete_selected_shapes();
@@ -248,7 +264,10 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 self.selector_json().is_some(),
-                egui::Button::new(with_keys("Copy as selector", Action::CopySelector)),
+                egui::Button::new(with_keys(
+                    &t!(ui, "menu-copy-selector"),
+                    Action::CopySelector,
+                )),
             )
             .clicked()
         {
@@ -259,13 +278,13 @@ impl ChiploadApp {
     /// The Job menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn job_menu(&mut self, ui: &mut egui::Ui) {
         if self.generating() {
-            if ui.button("Cancel generation").clicked() {
+            if ui.button(t!(ui, "menu-cancel-generation")).clicked() {
                 self.cancel_generation();
             }
         } else if ui
             .add_enabled(
                 self.can_generate(),
-                egui::Button::new(with_keys("Generate", Action::Generate)),
+                egui::Button::new(with_keys(&t!(ui, "menu-generate"), Action::Generate)),
             )
             .clicked()
         {
@@ -275,95 +294,104 @@ impl ChiploadApp {
 
     /// The View menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn view_menu(&mut self, ui: &mut egui::Ui) {
-        if ui.button(with_keys("Fit view", Action::Fit)).clicked() {
+        if ui
+            .button(with_keys(&t!(ui, "menu-fit-view"), Action::Fit))
+            .clicked()
+        {
             self.fit_pending = true;
         }
-        if ui.button(with_keys("Top view", Action::TopView)).clicked() {
+        if ui
+            .button(with_keys(&t!(ui, "menu-top-view"), Action::TopView))
+            .clicked()
+        {
             self.view_top();
         }
         if ui
             .add(
-                egui::Button::new(with_keys("Measure", Action::Measure))
+                egui::Button::new(with_keys(&t!(ui, "menu-measure"), Action::Measure))
                     .selected(self.measure.is_some()),
             )
-            .on_hover_text("Two clicks give the distance, ΔX, ΔY and the angle")
+            .on_hover_text(t!(ui, "menu-measure-hover"))
             .clicked()
         {
             self.toggle_measure();
         }
-        if ui.button("3D view").clicked() {
+        if ui.button(t!(ui, "menu-3d-view")).clicked() {
             self.view_3d();
         }
-        ui.menu_button("Z scale in 3D", |ui| {
+        ui.menu_button(t!(ui, "menu-z-scale"), |ui| {
             for factor in [1.0, 2.0, 5.0, 10.0] {
                 ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
         });
         let mut grid = self.show_grid;
         if ui
-            .checkbox(&mut grid, with_keys("Show grid", Action::Grid))
-            .on_hover_text("Lines on the snap grid, a stronger one every ten")
+            .checkbox(
+                &mut grid,
+                with_keys(&t!(ui, "menu-show-grid"), Action::Grid),
+            )
+            .on_hover_text(t!(ui, "menu-show-grid-hover"))
             .changed()
         {
             self.set_show_grid(grid);
         }
-        ui.checkbox(&mut self.legend_open, "Show legend");
-        ui.checkbox(&mut self.browser_open, "Show Browser");
-        ui.checkbox(&mut self.properties_open, "Show Properties");
+        ui.checkbox(&mut self.legend_open, t!(ui, "menu-show-legend"));
+        ui.checkbox(&mut self.browser_open, t!(ui, "menu-show-browser"));
+        ui.checkbox(&mut self.properties_open, t!(ui, "menu-show-properties"));
         if ui
             .button(with_keys(
-                if self.browser_open || self.properties_open {
-                    "Fold both panels"
+                &if self.browser_open || self.properties_open {
+                    t!(ui, "menu-fold-panels")
                 } else {
-                    "Open both panels"
+                    t!(ui, "menu-open-panels")
                 },
                 Action::Panels,
             ))
-            .on_hover_text("The largest canvas: the Browser and Properties folded to strips")
+            .on_hover_text(t!(ui, "menu-panels-hover"))
             .clicked()
         {
             self.toggle_panels();
         }
         let mut auto = self.auto_generate;
         if ui
-            .checkbox(&mut auto, "Update toolpath automatically")
-            .on_hover_text("Generate by itself half a second after each change")
+            .checkbox(&mut auto, t!(ui, "menu-auto-update"))
+            .on_hover_text(t!(ui, "menu-auto-update-hover"))
             .changed()
         {
             self.set_auto_generate(auto);
         }
-        ui.checkbox(&mut self.show_toolpath, "Show toolpath")
-            .on_hover_text("Hide the toolpath to see the drawing or the simulated stock");
+        ui.checkbox(&mut self.show_toolpath, t!(ui, "menu-show-toolpath"))
+            .on_hover_text(t!(ui, "menu-show-toolpath-hover"));
         let mut drawing = self.show_drawing();
         if ui
-            .checkbox(&mut drawing, "Show drawing")
-            .on_hover_text("Hide the drawing to see the stock or the toolpath alone")
+            .checkbox(&mut drawing, t!(ui, "menu-show-drawing"))
+            .on_hover_text(t!(ui, "menu-show-drawing-hover"))
             .changed()
         {
             self.set_show_drawing(drawing);
         }
-        ui.checkbox(&mut self.show_images, "Show images")
-            .on_hover_text("The pictures traced into shapes, faintly over the stock");
+        ui.checkbox(&mut self.show_images, t!(ui, "menu-show-images"))
+            .on_hover_text(t!(ui, "menu-show-images-hover"));
         let mut sim = self.show_simulation;
         if ui
-            .checkbox(&mut sim, "Show stock (simulation)")
-            .on_hover_text(SIMULATION_HINT)
+            .checkbox(&mut sim, t!(ui, "menu-show-simulation"))
+            .on_hover_text(simulation_hint(ui))
             .changed()
         {
             self.set_show_simulation(sim);
         }
         ui.separator();
-        ui.label("Units");
+        ui.label(t!(ui, "menu-units"));
         for (choice, label, hover) in [
             (
                 chipload_job::Units::Mm,
-                "mm",
-                "Lengths in mm, feeds in mm/min",
+                "mm".to_string(),
+                t!(ui, "menu-units-mm-hover"),
             ),
             (
                 chipload_job::Units::Inch,
-                "inch",
-                "Lengths in inches, feeds in in/min; projects stay in mm",
+                t!(ui, "menu-units-inch"),
+                t!(ui, "menu-units-inch-hover"),
             ),
         ] {
             if ui
@@ -375,15 +403,23 @@ impl ChiploadApp {
             }
         }
         ui.separator();
-        ui.label("Colour theme");
+        ui.label(t!(ui, "menu-theme"));
         for (choice, label, hover) in [
             (
                 Theme::System,
-                "System",
-                "Light or dark, as the operating system is set",
+                t!(ui, "menu-theme-system"),
+                t!(ui, "menu-theme-system-hover"),
             ),
-            (Theme::Light, "Light", "Light panels and canvas"),
-            (Theme::Dark, "Dark", "Dark panels and canvas"),
+            (
+                Theme::Light,
+                t!(ui, "menu-theme-light"),
+                t!(ui, "menu-theme-light-hover"),
+            ),
+            (
+                Theme::Dark,
+                t!(ui, "menu-theme-dark"),
+                t!(ui, "menu-theme-dark-hover"),
+            ),
         ] {
             if ui
                 .radio(self.theme == choice, label)
@@ -393,23 +429,50 @@ impl ChiploadApp {
                 self.set_theme(choice);
             }
         }
+        ui.separator();
+        self.language_menu(ui);
+    }
+
+    /// View > Language: the system's, or one of ours, each named in itself; those not yet
+    /// read by a native speaker ask for a review (docs/specs/translations.md).
+    fn language_menu(&mut self, ui: &mut egui::Ui) {
+        ui.label(t!(ui, "menu-language"));
+        let system = chipload_job::library::SYSTEM_LANGUAGE;
+        let mut choice = None;
+        let codes = std::iter::once(system).chain(crate::i18n::Language::ALL.map(|l| l.code()));
+        for code in codes {
+            let mut response = ui.radio(self.language_setting == code, language_name(ui, code));
+            response = match crate::i18n::Language::from_tag(code) {
+                None => response.on_hover_text(t!(ui, "menu-language-system-hover")),
+                Some(l) if !l.reviewed() => {
+                    response.on_hover_text(t!(ui, "menu-language-review-hover"))
+                }
+                Some(_) => response,
+            };
+            if response.clicked() {
+                choice = Some(code);
+            }
+        }
+        if let Some(setting) = choice {
+            self.set_language(setting);
+        }
     }
 
     /// The Draw menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn draw_menu(&mut self, ui: &mut egui::Ui) {
         let can_draw = self.can_draw();
         for (tool, label) in [
-            (Tool::Circle, "Circle"),
-            (Tool::Rectangle, "Rectangle"),
-            (Tool::Polyline, "Polyline"),
+            (Tool::Circle, t!(ui, "menu-draw-circle")),
+            (Tool::Rectangle, t!(ui, "menu-draw-rectangle")),
+            (Tool::Polyline, t!(ui, "menu-draw-polyline")),
         ] {
             if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
                 self.start_drawing(tool);
             }
         }
         if ui
-            .add_enabled(can_draw, egui::Button::new("Text"))
-            .on_hover_text("Write a text, then click where it starts")
+            .add_enabled(can_draw, egui::Button::new(t!(ui, "menu-draw-text")))
+            .on_hover_text(t!(ui, "menu-draw-text-hover"))
             .clicked()
         {
             self.start_text();
@@ -418,16 +481,16 @@ impl ChiploadApp {
 
     /// The Help menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn help_menu(&mut self, ui: &mut egui::Ui) {
-        if ui.button("User guide").clicked() {
+        if ui.button(t!(ui, "menu-user-guide")).clicked() {
             self.open_user_guide(ui.ctx());
         }
         if ui
-            .button(with_keys("Keyboard shortcuts", Action::Shortcuts))
+            .button(with_keys(&t!(ui, "menu-shortcuts"), Action::Shortcuts))
             .clicked()
         {
             self.dialogs.shortcuts_open = true;
         }
-        if ui.button("About and licences").clicked() {
+        if ui.button(t!(ui, "menu-about")).clicked() {
             self.dialogs.about_open = true;
         }
     }
@@ -457,16 +520,17 @@ impl ChiploadApp {
                 (parts.len() > 1).then(|| match self.result_part {
                     Some(id) => {
                         let k = parts.iter().position(|p| p.id == id).map_or(0, |k| k + 1);
-                        format!("part {k} of {}", parts.len())
+                        t!(ui, "menu-status-part-of", part = k, count = parts.len())
                     }
-                    None => "all parts".to_string(),
+                    None => t!(ui, "menu-status-all-parts"),
                 })
             });
             let time = self.result.as_ref().map(|r| {
                 let time = chipload_pipeline::estimate::duration_text(r.estimate.total);
+                let cycle = t!(ui, "menu-status-cycle", time = time);
                 match &scope {
-                    Some(scope) => format!("{scope} · cycle {time}"),
-                    None => format!("cycle {time}"),
+                    Some(scope) => format!("{scope} · {cycle}"),
+                    None => cycle,
                 }
             });
             let grid = (self.show_grid && self.edit.is_some())
@@ -491,40 +555,38 @@ impl ChiploadApp {
             let units = self.units;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if let Some(name) = active {
-                    ui.weak(format!("active part: {name}")).on_hover_text(
-                        "New operations go into the active part (Browser, right-click a part)",
-                    );
+                    ui.weak(t!(ui, "menu-status-active-part", name = name))
+                        .on_hover_text(t!(ui, "menu-status-active-part-hover"));
                     ui.separator();
                 }
                 if let Some(post) = post {
                     ui.weak(chipload_pipeline::units::length_unit(units))
-                        .on_hover_text("Lengths are shown in these (Settings > Units)");
+                        .on_hover_text(t!(ui, "menu-status-units-hover"));
                     ui.separator();
                     if let Some(step) = grid {
-                        ui.weak(format!(
-                            "grid {}",
-                            chipload_pipeline::units::length_text(step, units)
+                        ui.weak(t!(
+                            ui,
+                            "menu-status-grid",
+                            step = chipload_pipeline::units::length_text(step, units)
                         ))
-                        .on_hover_text(
-                            "The grid's step: clicks while drawing snap to it (G hides it)",
-                        );
+                        .on_hover_text(t!(ui, "menu-status-grid-hover"));
                         ui.separator();
                     }
                     ui.weak(post)
-                        .on_hover_text("The post-processor (Job settings > Machine)");
+                        .on_hover_text(t!(ui, "menu-status-post-hover"));
                     ui.separator();
                 }
                 if let Some(time) = time {
                     ui.weak(time)
-                        .on_hover_text("Estimated cycle time (the report has the details)");
+                        .on_hover_text(t!(ui, "menu-status-time-hover"));
                     ui.separator();
                 }
                 if let Some(n) = copies {
                     // With parts, what comes off the sheet (docs/specs/parts.md §8).
                     ui.label(if several {
-                        format!("{n} pieces")
+                        t!(ui, "menu-status-pieces", count = n)
                     } else {
-                        format!("{n} copies")
+                        t!(ui, "menu-status-copies", count = n)
                     });
                     ui.separator();
                 }
@@ -536,13 +598,8 @@ impl ChiploadApp {
                     if (zx, zy) == (0.0, 0.0) {
                         ui.monospace(format!("X {}  Y {} {unit}", n(x), n(y)));
                     } else {
-                        ui.monospace(format!(
-                            "X {}  Y {} {unit}  (work X {}  Y {})",
-                            n(x),
-                            n(y),
-                            n(x - zx),
-                            n(y - zy)
-                        ));
+                        let work = t!(ui, "menu-status-work", x = n(x - zx), y = n(y - zy));
+                        ui.monospace(format!("X {}  Y {} {unit}  {work}", n(x), n(y)));
                     }
                     ui.separator();
                 }
@@ -559,25 +616,31 @@ impl ChiploadApp {
     /// The status bar's left side: what is going on, a message, or a hint.
     fn status_message(&mut self, ui: &mut egui::Ui) {
         let snapped = self.drag.snapped.map(|(p, hit)| {
-            let name = hit.map_or_else(String::new, |h| format!(" — snapped to {}", h.name()));
+            let name = hit.map_or_else(String::new, |h| {
+                format!(" {}", t!(ui, "menu-snapped-to", target = h.name(ui)))
+            });
             (p, name)
         });
         if self.generating() {
             ui.spinner();
-            ui.label("Generating…");
+            ui.label(t!(ui, "menu-generating"));
         } else if let Some(text) =
             self.measure_status(snapped.as_ref().map_or("", |(_, name)| name.as_str()))
         {
             ui.label(text);
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
             let step = grid_step(self.view.scale, self.units);
-            ui.label(format!("{}{name}", sketch.status(*at, step, self.units)));
-        } else if let (Some(_), Some((at, name))) = (&self.drag.handle, &snapped) {
             ui.label(format!(
-                "Dragging to ({}, {}){name} (Alt: no snapping; Shift on a middle \
-                 bends the segment)",
-                crate::draw::fixed(at.0, self.units),
-                crate::draw::fixed(at.1, self.units)
+                "{}{name}",
+                sketch.status(*at, step, self.units, ui)
+            ));
+        } else if let (Some(_), Some((at, name))) = (&self.drag.handle, &snapped) {
+            ui.label(t!(
+                ui,
+                "menu-dragging",
+                x = crate::draw::fixed(at.0, self.units),
+                y = crate::draw::fixed(at.1, self.units),
+                snapped = name.as_str()
             ));
         } else if let Some((text, until)) = &self.status {
             if Instant::now() < *until {
@@ -587,19 +650,24 @@ impl ChiploadApp {
                 self.status = None;
             }
         } else if self.polyline_selected() {
-            ui.label(RichText::new(crate::shape_form::POLYLINE_HELP).weak());
+            ui.label(RichText::new(crate::shape_form::polyline_help(ui)).weak());
         } else if self.edit.is_some() {
-            ui.label(
-                RichText::new(
-                    "Click a contour to select it · Ctrl+click adds or removes · \
-                     right-click selects its layer · Esc clears",
-                )
-                .weak(),
-            );
+            ui.label(RichText::new(t!(ui, "menu-status-hint")).weak());
         }
     }
 }
 
 /// What the simulation toggle does (docs/specs/simulation.md §4).
-pub(super) const SIMULATION_HINT: &str = "Show the stock as the program leaves it: every move cut with \
-    the tool's shape (darker is deeper; red is below the stock). Display only.";
+pub(super) fn simulation_hint(src: &impl crate::i18n::Lang) -> String {
+    t!(src, "menu-simulation-hint")
+}
+
+/// A `language` setting as the language menus name it: *System*, or the language in itself,
+/// asking for a review when no native speaker has read it yet.
+pub(super) fn language_name(src: &impl crate::i18n::Lang, setting: &str) -> String {
+    match crate::i18n::Language::from_tag(setting) {
+        None => t!(src, "menu-language-system"),
+        Some(l) if l.reviewed() => l.native_name().to_string(),
+        Some(l) => t!(src, "menu-language-review", language = l.native_name()),
+    }
+}

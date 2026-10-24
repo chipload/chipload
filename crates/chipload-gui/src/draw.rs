@@ -14,36 +14,13 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::length_text;
 
+use crate::i18n::{Lang, t};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tool {
     Circle,
     Rectangle,
     Polyline,
-}
-
-impl Tool {
-    pub fn name(self) -> &'static str {
-        match self {
-            Tool::Circle => "circle",
-            Tool::Rectangle => "rectangle",
-            Tool::Polyline => "polyline",
-        }
-    }
-
-    /// What the next click does.
-    fn hint(self, clicks: usize) -> &'static str {
-        match (self, clicks) {
-            (Tool::Circle, 0) => "click the centre",
-            (Tool::Circle, _) => "click a point on the circle",
-            (Tool::Rectangle, 0) => "click a corner",
-            (Tool::Rectangle, _) => "click the opposite corner",
-            (Tool::Polyline, 0) => "click the first point",
-            (Tool::Polyline, _) => {
-                "click the next point; Enter or double-click finishes it open, the first \
-                 point closes it, Backspace removes the last point"
-            }
-        }
-    }
 }
 
 /// A shape being drawn: the tool and the points clicked so far (already on the grid).
@@ -60,9 +37,29 @@ pub enum Step {
     Continue,
     /// The shape is complete.
     Done(Geometry),
-    /// Nothing happened, and why (empty when there's nothing worth saying, e.g. the second
+    /// Nothing happened, and why (None when there's nothing worth saying, e.g. the second
     /// click of a double-click on the same point).
-    Ignored(String),
+    Ignored(Option<Why>),
+}
+
+/// Why a click or Enter did nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Why {
+    /// The circle or rectangle would have no size.
+    NoSize(Tool),
+    /// A polyline finished with fewer than 2 points.
+    TooFewPoints,
+}
+
+impl Why {
+    /// For the status bar.
+    pub fn text(self, lang: &impl Lang) -> String {
+        match self {
+            Why::NoSize(Tool::Circle) => t!(lang, "draw-no-size-circle"),
+            Why::NoSize(_) => t!(lang, "draw-no-size-rectangle"),
+            Why::TooFewPoints => t!(lang, "draw-polyline-too-short"),
+        }
+    }
 }
 
 impl Sketch {
@@ -81,7 +78,7 @@ impl Sketch {
             .last()
             .is_some_and(|&last| distance(last, p) < CHAIN_TOL_MM)
         {
-            return Step::Ignored(String::new());
+            return Step::Ignored(None);
         }
         match self.tool {
             Tool::Circle | Tool::Rectangle if self.points.is_empty() => {
@@ -90,7 +87,7 @@ impl Sketch {
             }
             Tool::Circle | Tool::Rectangle => match self.geometry_to(p) {
                 Some(geometry) => Step::Done(geometry),
-                None => Step::Ignored(format!("the {} would have no size", self.tool.name())),
+                None => Step::Ignored(Some(Why::NoSize(self.tool))),
             },
             Tool::Polyline => {
                 if on_first && self.points.len() >= 3 {
@@ -108,10 +105,10 @@ impl Sketch {
     /// Enter or double-click: finish a polyline open.
     pub fn finish(&mut self) -> Step {
         if self.tool != Tool::Polyline {
-            return Step::Ignored(String::new());
+            return Step::Ignored(None);
         }
         if self.points.len() < 2 {
-            return Step::Ignored("a polyline needs at least 2 points".into());
+            return Step::Ignored(Some(Why::TooFewPoints));
         }
         Step::Done(Geometry::straight_polyline(
             false,
@@ -166,22 +163,36 @@ impl Sketch {
 
     /// Status bar text: what is being drawn, its size at the cursor, the next step; lengths
     /// in `units`.
-    pub fn status(&self, p: Point, step: f64, units: Units) -> String {
+    pub fn status(&self, p: Point, step: f64, units: Units, lang: &impl Lang) -> String {
         let n = |mm: f64| fixed(mm, units);
-        let size = match (self.tool, self.points.first()) {
-            (Tool::Circle, Some(&c)) => format!(" radius {}", n(distance(c, p))),
-            (Tool::Rectangle, Some(&c)) => {
-                format!(" {} x {}", n((p.0 - c.0).abs()), n((p.1 - c.1).abs()))
+        let grid = length_text(step, units);
+        let count = self.points.len();
+        match (self.tool, self.points.first()) {
+            (Tool::Circle, Some(&c)) => t!(
+                lang,
+                "draw-status-circle",
+                radius = n(distance(c, p)),
+                grid = grid
+            ),
+            (Tool::Circle, None) => t!(lang, "draw-status-circle-start", grid = grid),
+            (Tool::Rectangle, Some(&c)) => t!(
+                lang,
+                "draw-status-rectangle",
+                length = n((p.0 - c.0).abs()),
+                width = n((p.1 - c.1).abs()),
+                grid = grid
+            ),
+            (Tool::Rectangle, None) => t!(lang, "draw-status-rectangle-start", grid = grid),
+            (Tool::Polyline, None) => t!(
+                lang,
+                "draw-status-polyline-start",
+                count = count,
+                grid = grid
+            ),
+            (Tool::Polyline, Some(_)) => {
+                t!(lang, "draw-status-polyline", count = count, grid = grid)
             }
-            (Tool::Polyline, _) => format!(" {} points", self.points.len()),
-            _ => String::new(),
-        };
-        format!(
-            "Drawing a {}{size}: {} (grid {}, Esc cancels)",
-            self.tool.name(),
-            self.tool.hint(self.points.len()),
-            length_text(step, units)
-        )
+        }
     }
 }
 
@@ -263,13 +274,13 @@ pub struct SnapPoint {
 
 impl SnapPoint {
     /// For the status bar: "end of #4".
-    pub fn name(&self) -> String {
-        let what = match self.kind {
-            SnapKind::End => "end",
-            SnapKind::Centre => "centre",
-            SnapKind::Middle => "middle",
-        };
-        format!("{what} of #{}", self.contour)
+    pub fn name(&self, lang: &impl Lang) -> String {
+        let contour = self.contour;
+        match self.kind {
+            SnapKind::End => t!(lang, "draw-snap-end", contour = contour),
+            SnapKind::Centre => t!(lang, "draw-snap-centre", contour = contour),
+            SnapKind::Middle => t!(lang, "draw-snap-middle", contour = contour),
+        }
     }
 }
 
@@ -354,6 +365,7 @@ pub fn outline(geometry: &Geometry) -> Vec<Vec<Point>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::i18n::Language::En;
 
     #[test]
     fn a_circle_is_its_centre_and_a_point_on_it() {
@@ -385,9 +397,10 @@ mod tests {
         // A flat rectangle is refused, and drawing goes on.
         let mut flat = Sketch::new(Tool::Rectangle);
         flat.click((0.0, 0.0), false);
-        assert!(
-            matches!(flat.click((10.0, 0.0), false), Step::Ignored(m) if m.contains("no size"))
-        );
+        assert!(matches!(
+            flat.click((10.0, 0.0), false),
+            Step::Ignored(Some(Why::NoSize(Tool::Rectangle)))
+        ));
         assert_eq!(flat.points.len(), 1);
     }
 
@@ -399,10 +412,7 @@ mod tests {
             assert_eq!(sketch.click(p, false), Step::Continue);
         }
         // The second click of a double-click lands on the same point: ignored.
-        assert_eq!(
-            sketch.click((10.0, 5.0), false),
-            Step::Ignored(String::new())
-        );
+        assert_eq!(sketch.click((10.0, 5.0), false), Step::Ignored(None));
         let mut open = sketch.clone();
         assert_eq!(
             open.finish(),
@@ -496,11 +506,11 @@ mod tests {
         assert_eq!(p, (10.0, 0.0));
         let hit = hit.unwrap();
         // Line 1 ends at (10, 0), and so does the arc of #2: the end of #1 wins (lowest id).
-        assert_eq!(hit.name(), "end of #1");
+        assert_eq!(hit.name(&En), "end of #1");
         // The line's middle and the arc's centre are both (5, 0): the centre wins.
-        assert_eq!(at((5.2, 0.1)).1.unwrap().name(), "centre of #2");
+        assert_eq!(at((5.2, 0.1)).1.unwrap().name(&En), "centre of #2");
         // Nearest wins over kind: the arc's top (middle) when it is closer than anything.
-        assert_eq!(at((5.0, 4.6)).1.unwrap().name(), "middle of #2");
+        assert_eq!(at((5.0, 4.6)).1.unwrap().name(&En), "middle of #2");
         // Nothing within 0.8 mm: the grid.
         assert_eq!(at((2.6, 2.4)), ((3.0, 2.0), None));
         // Alt: exactly where the cursor is.
@@ -511,7 +521,7 @@ mod tests {
         // The dragged shape's own points are skipped.
         let skip: BTreeSet<usize> = [1].into();
         let (_, hit) = snap_cursor((9.5, 0.3), &points, &skip, 10.0, 1.0, Units::Mm, false);
-        assert_eq!(hit.unwrap().name(), "end of #2");
+        assert_eq!(hit.unwrap().name(&En), "end of #2");
         // Zoomed out, the same distance is within reach of more.
         assert!(
             snap_cursor((8.0, 0.0), &points, &none, 1.0, 1.0, Units::Mm, false)

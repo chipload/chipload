@@ -15,6 +15,7 @@ use eframe::egui::{self, Color32, ColorImage, Pos2, Rect, Stroke, TextureOptions
 
 use super::{ChiploadApp, STATUS_SECONDS};
 use crate::app::report::Report;
+use crate::i18n::t;
 
 /// What a picture's texture was made from: the image's id, picture, place and width.
 type PictureKey = (u64, String, f64, f64, f64, f64);
@@ -137,7 +138,7 @@ impl ImageDialog {
                 }
                 Err(mpsc::TryRecvError::Empty) => return true,
                 Err(mpsc::TryRecvError::Disconnected) => {
-                    self.preview = Some(Err("tracing the picture failed".into()));
+                    self.preview = Some(Err(t!(ctx, "images-tracing-failed")));
                     self.shown = self.asked.take();
                     self.pending = None;
                 }
@@ -207,7 +208,10 @@ impl ChiploadApp {
     /// File > Import image…: pick a picture and open the image window for it.
     pub(super) fn import_image_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("Pictures", &["png", "jpg", "jpeg", "bmp"])
+            .add_filter(
+                t!(self, "images-pictures-filter"),
+                &["png", "jpg", "jpeg", "bmp"],
+            )
             .pick_file()
         {
             self.import_image(&path);
@@ -220,7 +224,12 @@ impl ChiploadApp {
         let bytes = match std::fs::read(path) {
             Ok(bytes) => bytes,
             Err(err) => {
-                self.error(vec![format!("Cannot read {}: {err}", path.display())]);
+                self.error(vec![t!(
+                    self,
+                    "images-cannot-read",
+                    path = path.display().to_string(),
+                    error = err.to_string()
+                )]);
                 return false;
             }
         };
@@ -228,7 +237,11 @@ impl ChiploadApp {
             Ok(picture) => picture,
             Err(err) => {
                 self.error(vec![
-                    format!("Cannot import {}:", path.display()),
+                    t!(
+                        self,
+                        "images-cannot-import",
+                        path = path.display().to_string()
+                    ),
                     err.to_string(),
                 ]);
                 return false;
@@ -353,13 +366,12 @@ impl ChiploadApp {
                 self.focus = super::Focus::Image(report.id);
                 self.commit();
                 let mut lines = report.lines.clone();
-                lines.push(
-                    "The picture is selected: V-carve (ribbon) carves it. Set its size and \
-                     place in Properties."
-                        .to_string(),
-                );
+                lines.push(t!(self, "images-traced-next"));
                 self.set_report(Report::info(lines));
-                self.set_status(format!("Traced {}", draft.file), STATUS_SECONDS);
+                self.set_status(
+                    t!(self, "images-traced", file = draft.file.as_str()),
+                    STATUS_SECONDS,
+                );
                 true
             }
             Err(err) => {
@@ -400,7 +412,7 @@ impl ChiploadApp {
             }
             Err(err) => {
                 self.error(vec![
-                    "Could not trace the picture at that size:".into(),
+                    t!(self, "images-trace-at-size-failed"),
                     err.to_string(),
                 ]);
                 false
@@ -430,7 +442,7 @@ impl ChiploadApp {
                 self.drawing_changed(&[]);
                 self.selection = super::CanvasSelection::Nothing;
                 self.commit();
-                self.set_status(format!("Removed image {id}"), STATUS_SECONDS);
+                self.set_status(t!(self, "images-removed", id = id), STATUS_SECONDS);
                 true
             }
             Err(err) => {
@@ -536,8 +548,10 @@ impl ChiploadApp {
             ctx.request_repaint_after(std::time::Duration::from_millis(30));
         }
         let title = match &dialog.target {
-            ImageTarget::New { file, .. } => format!("Import image: {file}"),
-            ImageTarget::Existing(_) => format!("Trace {}", dialog.draft.file),
+            ImageTarget::New { file, .. } => t!(ctx, "images-import-title", file = file.as_str()),
+            ImageTarget::Existing(_) => {
+                t!(ctx, "images-trace-title", file = dialog.draft.file.as_str())
+            }
         };
         let mut open = true;
         let mut apply = false;
@@ -562,8 +576,8 @@ impl ChiploadApp {
                         summary(ui, dialog);
                         ui.add_space(6.0);
                         let label = match dialog.target {
-                            ImageTarget::New { .. } => "Import",
-                            ImageTarget::Existing(_) => "Apply",
+                            ImageTarget::New { .. } => t!(ui, "images-import"),
+                            ImageTarget::Existing(_) => t!(ui, "common-apply"),
                         };
                         apply = ui
                             .add_enabled(dialog.ready(), egui::Button::new(label))
@@ -627,12 +641,10 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
             }
         }
         let note = if dialog.zoom.zoom > 1.0 {
-            format!(
-                "Zoom {:.0}% · drag to pan · double-click to fit",
-                dialog.zoom.zoom * 100.0
-            )
+            let zoom = format!("{:.0}%", dialog.zoom.zoom * 100.0);
+            t!(ui, "images-zoom-note", zoom = zoom)
         } else {
-            "Scroll to zoom in".to_owned()
+            t!(ui, "images-scroll-to-zoom")
         };
         ui.weak(note);
     });
@@ -675,17 +687,15 @@ fn settings_form(ui: &mut egui::Ui, draft: &mut Image, picked: Option<u8>) {
     egui::Grid::new("image-settings")
         .num_columns(2)
         .show(ui, |ui| {
-            ui.label("Threshold").on_hover_text(
-                "Grey values below it are black (0 black, 255 white). Auto picks the value that \
-                 best separates the dark and light parts.",
-            );
+            ui.label(t!(ui, "images-threshold"))
+                .on_hover_text(t!(ui, "images-threshold-hover"));
             ui.horizontal(|ui| {
                 let mut auto = matches!(draft.threshold, ImageThreshold::Auto(_));
                 let mut level = match draft.threshold {
                     ImageThreshold::Level(t) => t,
                     ImageThreshold::Auto(_) => picked.unwrap_or(128),
                 };
-                ui.checkbox(&mut auto, "auto");
+                ui.checkbox(&mut auto, t!(ui, "images-threshold-auto"));
                 ui.add_enabled(!auto, egui::Slider::new(&mut level, 1..=254));
                 draft.threshold = if auto {
                     ImageThreshold::AUTO
@@ -694,55 +704,51 @@ fn settings_form(ui: &mut egui::Ui, draft: &mut Image, picked: Option<u8>) {
                 };
             });
             ui.end_row();
-            ui.label("Invert");
-            ui.checkbox(&mut draft.invert, "carve the light parts");
+            ui.label(t!(ui, "images-invert"));
+            ui.checkbox(&mut draft.invert, t!(ui, "images-invert-check"));
             ui.end_row();
-            ui.label("Blur")
-                .on_hover_text("Smooths ragged edges and noise before the threshold.");
+            ui.label(t!(ui, "images-blur"))
+                .on_hover_text(t!(ui, "images-blur-hover"));
             ui.add(egui::Slider::new(&mut draft.blur, 0.0..=10.0).suffix(" px"));
             ui.end_row();
-            ui.label("Smallest piece")
-                .on_hover_text("Black or white specks smaller than this are dropped.");
+            ui.label(t!(ui, "images-smallest-piece"))
+                .on_hover_text(t!(ui, "images-smallest-piece-hover"));
             ui.add(
                 crate::units::area(&mut draft.min_area)
                     .range(0.0..=100.0)
                     .speed(0.05),
             );
             ui.end_row();
-            ui.label("Smoothing").on_hover_text(
-                "How far a traced edge may be straightened away from the picture's edge.",
-            );
+            ui.label(t!(ui, "images-smoothing"))
+                .on_hover_text(t!(ui, "images-smoothing-hover"));
             ui.add(
                 crate::units::length(&mut draft.smoothing)
                     .range(0.01..=1.0)
                     .speed(0.005),
             );
             ui.end_row();
-            ui.label("Trace").on_hover_text(
-                "Outlines round the black parts, for a V-carve; or the centre lines of black \
-                 strokes (handwriting, line art), for a follow path.",
-            );
+            ui.label(t!(ui, "images-trace"))
+                .on_hover_text(t!(ui, "images-trace-hover"));
             egui::ComboBox::from_id_salt("image-trace")
-                .selected_text(trace_name(draft.trace))
+                .selected_text(trace_name(ui, draft.trace))
                 .show_ui(ui, |ui| {
                     for trace in [ImageTrace::Outline, ImageTrace::CentreLine] {
-                        ui.selectable_value(&mut draft.trace, trace, trace_name(trace));
+                        let name = trace_name(ui, trace);
+                        ui.selectable_value(&mut draft.trace, trace, name);
                     }
                 });
             ui.end_row();
-            ui.label("Arcs").on_hover_text(
-                "Fit arcs as well as lines: smaller programs and smoother motion for profiles, \
-                 pockets and follow paths.",
-            );
-            ui.checkbox(&mut draft.arcs, "fit arcs");
+            ui.label(t!(ui, "images-arcs"))
+                .on_hover_text(t!(ui, "images-arcs-hover"));
+            ui.checkbox(&mut draft.arcs, t!(ui, "images-arcs-check"));
             ui.end_row();
         });
 }
 
-fn trace_name(trace: ImageTrace) -> &'static str {
+fn trace_name(ui: &egui::Ui, trace: ImageTrace) -> String {
     match trace {
-        ImageTrace::Outline => "Outlines (V-carve)",
-        ImageTrace::CentreLine => "Centre lines (follow path)",
+        ImageTrace::Outline => t!(ui, "images-trace-outlines"),
+        ImageTrace::CentreLine => t!(ui, "images-trace-centre-lines"),
     }
 }
 
@@ -750,40 +756,48 @@ fn trace_name(trace: ImageTrace) -> &'static str {
 fn summary(ui: &mut egui::Ui, dialog: &ImageDialog) {
     match &dialog.preview {
         None => {
-            ui.label("Tracing…");
+            ui.label(t!(ui, "images-tracing"));
         }
         Some(Err(err)) => {
             ui.colored_label(ui.visuals().error_fg_color, err);
         }
         Some(Ok(p)) => {
             let t = &p.trace;
-            let picked = if matches!(dialog.draft.threshold, ImageThreshold::Auto(_)) {
-                format!(" (threshold {} picked)", t.threshold)
-            } else {
-                String::new()
-            };
             let count = t.paths.len();
-            let what = match (t.centre_lines, count == 1) {
-                (false, true) => "shape",
-                (false, false) => "shapes",
-                (true, true) => "centre line",
-                (true, false) => "centre lines",
+            let threshold = u32::from(t.threshold);
+            let auto = matches!(dialog.draft.threshold, ImageThreshold::Auto(_));
+            let found = match (t.centre_lines, auto) {
+                (false, false) => t!(ui, "images-found-shapes", count = count),
+                (false, true) => t!(
+                    ui,
+                    "images-found-shapes-auto",
+                    count = count,
+                    threshold = threshold
+                ),
+                (true, false) => t!(ui, "images-found-centre-lines", count = count),
+                (true, true) => t!(
+                    ui,
+                    "images-found-centre-lines-auto",
+                    count = count,
+                    threshold = threshold
+                ),
             };
-            ui.label(format!("{count} {what}{picked}"));
+            ui.label(found);
             if let Some((narrow, wide)) = t.widths {
-                ui.label(format!("Strokes {narrow:.2} to {wide:.2} mm wide"));
+                let (narrow, wide) = (format!("{narrow:.2}"), format!("{wide:.2} mm"));
+                ui.label(t!(ui, "images-stroke-widths", narrow = narrow, wide = wide));
             }
             if t.dots > 0 {
-                ui.label(format!("{} dots left out", t.dots));
+                ui.label(t!(ui, "images-dots-left-out", count = t.dots));
             }
             if t.without_arcs > 0 {
-                ui.label(format!("{} kept as lines", t.without_arcs));
+                ui.label(t!(ui, "images-kept-as-lines", count = t.without_arcs));
             }
             if t.dropped > 0 {
-                ui.label(format!("{} specks dropped", t.dropped));
+                ui.label(t!(ui, "images-specks-dropped", count = t.dropped));
             }
             if t.black_at_border {
-                ui.label("Black touches the edge: invert if it's the background.");
+                ui.label(t!(ui, "images-black-at-border"));
             }
         }
     }

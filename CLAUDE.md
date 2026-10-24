@@ -20,7 +20,8 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text, the material-removal simulation (height map) |
 | `chipload-cli` | the `chipload` command line (`--json` on every command through `out::Out`; no printing elsewhere) |
-| `chipload-gui` | the egui desktop app (`chipload-gui`) |
+| `chipload-i18n` | the app's texts in en, de, fr, es, it, sv: Fluent files in `locales/<lang>/`, compiled in, `tr(lang, id, args)` (docs/specs/translations.md, ADR 0022); no I/O, no other workspace crate |
+| `chipload-gui` | the egui desktop app (`chipload-gui`); every text it shows is `t!(ui, "id", …)` from `chipload-i18n`, never an English literal |
 
 ## Architecture rules (non-negotiable)
 
@@ -110,7 +111,7 @@ cargo test -p chipload-pipeline --test sheet               # golden setup sheets
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
-cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-text -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
+cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-text -p chipload-i18n -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)

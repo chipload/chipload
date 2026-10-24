@@ -662,6 +662,18 @@ pub struct AppSettings {
     /// (docs/specs/inch-units.md §5). Missing (written before it existed): mm.
     #[serde(default = "display_units_default")]
     pub units: Units,
+    /// The app's language: `"system"` or a language code such as `"de"`
+    /// (docs/specs/translations.md decision 5). A code the app doesn't know (written by a
+    /// newer version) counts as `"system"`. Missing (written before it existed): system.
+    #[serde(default = "language_default")]
+    pub language: String,
+}
+
+/// The `language` that follows the system's language.
+pub const SYSTEM_LANGUAGE: &str = "system";
+
+fn language_default() -> String {
+    SYSTEM_LANGUAGE.to_string()
 }
 
 fn display_units_default() -> Units {
@@ -687,6 +699,7 @@ impl Default for AppSettings {
             setup_sheet: true,
             show_grid: true,
             units: Units::Mm,
+            language: language_default(),
         }
     }
 }

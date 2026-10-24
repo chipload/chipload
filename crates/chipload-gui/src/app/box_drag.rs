@@ -133,7 +133,10 @@ impl ChiploadApp {
         drag.free = free;
         match drag_box(&drag.start, drag.handle, to, free) {
             Ok(b) => drag.now = b,
-            Err(why) => self.set_status(format!("Not that size: {why}"), STATUS_SECONDS),
+            Err(why) => {
+                let text = t!(self, "box-drag-not-that-size", error = why.to_string());
+                self.set_status(text, STATUS_SECONDS);
+            }
         }
     }
 

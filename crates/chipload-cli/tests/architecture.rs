@@ -122,6 +122,15 @@ fn text_lettering_sits_beside_image_tracing() {
 }
 
 #[test]
+fn texts_sit_beside_the_core() {
+    // docs/specs/translations.md decision 3: any crate may use the texts, so they use no
+    // workspace crate themselves.
+    let deps = &runtime_closure()["chipload-i18n"];
+    let bad: Vec<&String> = deps.iter().filter(|d| d.starts_with("chipload-")).collect();
+    assert!(bad.is_empty(), "chipload-i18n depends on {bad:?}");
+}
+
+#[test]
 fn only_the_gui_crate_uses_gui_libraries() {
     for (crate_name, deps) in runtime_closure() {
         if crate_name == "chipload-gui" {

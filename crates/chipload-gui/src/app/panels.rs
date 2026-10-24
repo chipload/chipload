@@ -19,7 +19,7 @@ impl ChiploadApp {
             return;
         };
         if !shape.is_drawn() {
-            for line in imported_lines(&shape) {
+            for line in imported_lines(&shape, ui) {
                 ui.label(line);
             }
             return;
@@ -57,7 +57,7 @@ impl ChiploadApp {
             return;
         }
         if self.edit.is_none() {
-            ui.weak("No project open.");
+            ui.weak(t!(ui, "panels-no-project"));
             return;
         }
         forms::set_form_width(ui);
@@ -143,7 +143,7 @@ impl ChiploadApp {
             Some(JobRequest::ToolRemoved) => self.focus = Focus::Tools,
             Some(JobRequest::UpdateDxf(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("DXF drawings", &["dxf"])
+                    .add_filter(t!(self, "panels-dxf-filter"), &["dxf"])
                     .pick_file()
                 {
                     self.update_dxf_from(Some(dxf), &path, None);
@@ -202,25 +202,25 @@ impl ChiploadApp {
                 .show(ui, |ui| {
                     ui.set_max_width(START_WIDTH);
                     ui.heading(RichText::new("Chipload").size(28.0).strong());
-                    ui.weak("2.5D CAM: drawings in, checked G-code out");
+                    ui.weak(t!(ui, "panels-tagline"));
                     ui.add_space(16.0);
                     let wide = egui::vec2(START_WIDTH, 32.0);
                     if ui
-                        .add(egui::Button::new("New project").min_size(wide))
-                        .on_hover_text("An empty project: draw shapes or import a DXF later")
+                        .add(egui::Button::new(t!(ui, "panels-new-project")).min_size(wide))
+                        .on_hover_text(t!(ui, "panels-new-project-hover"))
                         .clicked()
                     {
                         self.ask_new();
                     }
                     if ui
-                        .add(egui::Button::new("Import DXF…").min_size(wide))
-                        .on_hover_text("A new project from a drawing (Ctrl+I)")
+                        .add(egui::Button::new(t!(ui, "panels-import-dxf")).min_size(wide))
+                        .on_hover_text(t!(ui, "panels-import-dxf-hover"))
                         .clicked()
                     {
                         self.ask_import();
                     }
                     if ui
-                        .add(egui::Button::new("Open project…").min_size(wide))
+                        .add(egui::Button::new(t!(ui, "panels-open-project")).min_size(wide))
                         .on_hover_text("Ctrl+O")
                         .clicked()
                     {
@@ -230,7 +230,7 @@ impl ChiploadApp {
                         self.recent.iter().take(START_RECENT).cloned().collect();
                     if !recent.is_empty() {
                         ui.add_space(16.0);
-                        ui.label(RichText::new("Recent").strong());
+                        ui.label(RichText::new(t!(ui, "panels-recent")).strong());
                         for path in &recent {
                             let name = file_name(Path::new(path));
                             if ui
@@ -244,12 +244,9 @@ impl ChiploadApp {
                     }
                     ui.add_space(16.0);
                     ui.label(
-                        RichText::new(
-                            "⚠ Machines are dangerous. Check every program in a G-code viewer \
-                             and with an air cut before cutting material.",
-                        )
-                        .small()
-                        .color(ui.visuals().warn_fg_color),
+                        RichText::new(format!("⚠ {}", t!(ui, "panels-danger")))
+                            .small()
+                            .color(ui.visuals().warn_fg_color),
                     );
                 });
         });

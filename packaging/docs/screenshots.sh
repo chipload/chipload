@@ -7,11 +7,17 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 cargo build -q --release -p chipload-gui --features screenshots
-out=docs/book/src/images
+out=${SHOTS_OUT:-docs/book/src/images}
 mkdir -p "$out"
 # An empty settings folder: the pictures don't depend on this computer's library.
 settings=$(mktemp -d)
 trap 'rm -rf "$settings"' EXIT
+
+# The guide is English, and the app follows the system's language
+# (docs/specs/translations.md), which it reads from LANGUAGE first. SHOTS_LANGUAGE=de (fr,
+# es, it, sv) shows the app in another language, to check that its texts fit; SHOTS_OUT=DIR
+# writes the pictures there instead of into the guide.
+export LANGUAGE="${SHOTS_LANGUAGE:-en}"
 
 shot() { # name project steps
     echo "$1.png"

@@ -20,6 +20,7 @@ use super::forms::{feed, machine_rows, mm, safe_z_row, tool_rows, work_zero_rows
 use super::library_transfer::PendingImport;
 use super::library_view::uid_key;
 use super::*;
+use crate::i18n::Lang;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LibraryKind {
@@ -139,20 +140,20 @@ pub(super) fn library_rows(
     let target = rows.target;
     let what = rows.what();
     let choose = match target {
-        SaveTarget::Machine => "Use profile…",
-        SaveTarget::Tool(_) => "Use library tool…",
+        SaveTarget::Machine => t!(ui, "user-library-use-profile"),
+        SaveTarget::Tool(_) => t!(ui, "user-library-use-tool"),
     };
     let use_entry = |name: String| match target {
         SaveTarget::Machine => LibraryRequest::UseMachine(name),
         SaveTarget::Tool(id) => LibraryRequest::UseTool(id, name),
     };
     let linked = rows.link.as_ref().and_then(|(_, uid)| uid.clone());
-    ui.label("Library");
+    ui.label(t!(ui, "user-library-library"));
     ui.horizontal_wrapped(|ui| {
         let available = rows.names.is_some();
         let names = rows.names.clone().unwrap_or_default();
         ui.add_enabled_ui(available && !names.is_empty(), |ui| {
-            ComboBox::from_id_salt(("library", choose, target_salt(target)))
+            ComboBox::from_id_salt(("library", target_salt(target)))
                 .selected_text(choose)
                 .show_ui(ui, |ui| {
                     for name in names {
@@ -163,31 +164,36 @@ pub(super) fn library_rows(
                 })
         });
         if !available {
-            ui.add_enabled(false, egui::Button::new("Save to library…"))
-                .on_disabled_hover_text(format!(
-                    "No settings folder found; set {}",
-                    chipload_pipeline::library::CONFIG_DIR_VAR
-                ));
+            ui.add_enabled(
+                false,
+                egui::Button::new(t!(ui, "user-library-save-to-library-named")),
+            )
+            .on_disabled_hover_text(t!(
+                ui,
+                "user-library-no-settings-folder-set",
+                var = chipload_pipeline::library::CONFIG_DIR_VAR
+            ));
         } else if linked.is_some() {
             if ui
-                .button("Save to library")
-                .on_hover_text(format!(
-                    "Write these values into the {what} it is linked to, for other projects"
-                ))
+                .button(t!(ui, "user-library-save-to-library"))
+                .on_hover_text(match target {
+                    SaveTarget::Machine => t!(ui, "user-library-save-to-linked-profile-hover"),
+                    SaveTarget::Tool(_) => t!(ui, "user-library-save-to-linked-tool-hover"),
+                })
                 .clicked()
             {
                 *request = Some(LibraryRequest::SaveLinked(target));
             }
             if ui
-                .button("Save as new…")
-                .on_hover_text("Keep these values in your library under another name")
+                .button(t!(ui, "user-library-save-as-new"))
+                .on_hover_text(t!(ui, "user-library-save-as-new-hover"))
                 .clicked()
             {
                 *request = Some(LibraryRequest::Save(target));
             }
         } else if ui
-            .button("Save to library…")
-            .on_hover_text("Copies these values into your library, for other projects")
+            .button(t!(ui, "user-library-save-to-library-named"))
+            .on_hover_text(t!(ui, "user-library-save-to-library-hover"))
             .clicked()
         {
             *request = Some(LibraryRequest::Save(target));
@@ -202,8 +208,8 @@ pub(super) fn library_rows(
         ui.weak(link.text(what));
         if let Link::Differs(name, _) = &link
             && ui
-                .button("Update from library")
-                .on_hover_text("Copy the library's values into the project (undo with Ctrl+Z)")
+                .button(t!(ui, "user-library-update-from-library"))
+                .on_hover_text(t!(ui, "user-library-update-from-library-hover"))
                 .clicked()
         {
             *request = Some(match target {
@@ -213,8 +219,8 @@ pub(super) fn library_rows(
         }
         if let Some(uid) = uid
             && ui
-                .button("Show in library")
-                .on_hover_text("Open it under This computer in the Browser")
+                .button(t!(ui, "user-library-show-in-library"))
+                .on_hover_text(t!(ui, "user-library-show-in-library-hover"))
                 .clicked()
         {
             *request = Some(LibraryRequest::Show(target.kind(), uid));
@@ -266,14 +272,19 @@ fn refused(text: String) -> LibraryError {
 pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &[String]) {
     match path {
         Some(path) => {
-            ui.weak(format!("Kept in {}", path.display()));
+            ui.weak(t!(
+                ui,
+                "user-library-kept-in",
+                path = path.display().to_string()
+            ));
         }
         None => {
             ui.colored_label(
                 ui.visuals().warn_fg_color,
-                format!(
-                    "No settings folder found; set {} to use a library.",
-                    chipload_pipeline::library::CONFIG_DIR_VAR
+                t!(
+                    ui,
+                    "user-library-no-settings-folder-use",
+                    var = chipload_pipeline::library::CONFIG_DIR_VAR
                 ),
             );
         }
@@ -285,12 +296,12 @@ pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &
 
 pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
     Grid::new("library-tool").num_columns(2).show(ui, |ui| {
-        ui.label("Name");
+        ui.label(t!(ui, "user-library-name"));
         ui.text_edit_singleline(&mut entry.name);
         ui.end_row();
-        ui.label("Tool number")
-            .on_hover_text("The id it gets in a project where that id is free");
-        ui.add(DragValue::new(&mut entry.id).range(1..=9999));
+        ui.label(t!(ui, "user-library-tool-number"))
+            .on_hover_text(t!(ui, "user-library-tool-number-hover"));
+        ui.add(crate::units::number(ui, &mut entry.id).range(1..=9999));
         ui.end_row();
         let mut tool = entry.tool(entry.id);
         tool_rows(ui, "library", "", &mut tool);
@@ -300,21 +311,19 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         entry.center_cutting = tool.center_cutting;
         entry.angle = tool.angle;
         entry.tip_diameter = tool.tip_diameter;
-        ui.label("Flutes");
+        ui.label(t!(ui, "user-library-flutes"));
         ui.horizontal(|ui| {
             let mut set = entry.flutes.is_some();
             if ui.checkbox(&mut set, "").changed() {
                 entry.flutes = set.then_some(2);
             }
             if let Some(flutes) = &mut entry.flutes {
-                ui.add(DragValue::new(flutes).range(1..=16));
+                ui.add(crate::units::number(ui, flutes).range(1..=16));
             }
         });
         ui.end_row();
-        ui.label("Cutting values").on_hover_text(
-            "Filled into a new operation with this tool when there is no operation above to \
-             copy from. Never changes an existing operation.",
-        );
+        ui.label(t!(ui, "user-library-cutting-values"))
+            .on_hover_text(t!(ui, "user-library-cutting-values-hover"));
         let mut set = entry.cutting.is_some();
         if ui.checkbox(&mut set, "").changed() {
             entry.cutting = set.then_some(Cutting {
@@ -326,18 +335,18 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         }
         ui.end_row();
         if let Some(c) = &mut entry.cutting {
-            ui.label("  Feed");
+            ui.label(format!("  {}", t!(ui, "user-library-feed")));
             ui.add(feed(&mut c.feed));
             ui.end_row();
-            ui.label("  Plunge feed");
+            ui.label(format!("  {}", t!(ui, "user-library-plunge-feed")));
             ui.add(feed(&mut c.plunge_feed));
             ui.end_row();
-            ui.label("  Step down");
+            ui.label(format!("  {}", t!(ui, "user-library-step-down")));
             ui.add(mm(&mut c.step_down));
             ui.end_row();
-            ui.label("  Stepover");
+            ui.label(format!("  {}", t!(ui, "user-library-stepover")));
             ui.add(
-                DragValue::new(&mut c.stepover)
+                crate::units::number(ui, &mut c.stepover)
                     .speed(0.01)
                     .range(0.01..=1.0)
                     .suffix(" × D"),
@@ -353,7 +362,7 @@ pub(super) fn machine_entry_form(
     library: &Library,
 ) {
     Grid::new("library-machine").num_columns(2).show(ui, |ui| {
-        ui.label("Name");
+        ui.label(t!(ui, "user-library-name"));
         ui.text_edit_singleline(&mut profile.name);
         ui.end_row();
         let mut machine = profile.machine();
@@ -361,7 +370,8 @@ pub(super) fn machine_entry_form(
         if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library), None) {
             machine.post = post;
         }
-        safe_z_row(ui, "Safe Z", &mut machine);
+        let safe_z = t!(ui, "user-library-safe-z");
+        safe_z_row(ui, &safe_z, &mut machine);
         work_zero_rows(ui, "library", &mut machine.work_zero, (0.0, 0.0));
         profile.post = machine.post;
         profile.safe_z = machine.safe_z;
@@ -369,8 +379,8 @@ pub(super) fn machine_entry_form(
         profile.max_feed = machine.max_feed;
         profile.travel = machine.travel;
         profile.work_zero = machine.work_zero;
-        ui.label("Max depth below stock")
-            .on_hover_text("How far a cut may go below the stock (into the spoilboard)");
+        ui.label(t!(ui, "user-library-max-overcut"))
+            .on_hover_text(t!(ui, "user-library-max-overcut-hover"));
         ui.add(mm(&mut profile.max_overcut));
         ui.end_row();
     });
@@ -422,6 +432,8 @@ impl ChiploadApp {
         self.setup_sheet = settings.setup_sheet;
         self.show_grid = settings.show_grid;
         self.units = settings.units;
+        self.show_in(crate::i18n::resolve(&settings.language));
+        self.language_setting = settings.language;
         self.start_recovery();
     }
 
@@ -429,6 +441,23 @@ impl ChiploadApp {
     pub fn set_units(&mut self, units: chipload_job::Units) {
         self.units = units;
         self.change_settings(|settings| settings.units = units);
+    }
+
+    /// Settings > Language: used at once and kept in the settings for next time.
+    pub fn set_language(&mut self, setting: &str) {
+        self.show_in(crate::i18n::resolve(setting));
+        self.language_setting = setting.to_string();
+        self.change_settings(|settings| settings.language = setting.to_string());
+    }
+
+    /// Show the app in `language`. The start screen's hint, written before the language
+    /// was known, is written again in it.
+    fn show_in(&mut self, language: crate::i18n::Language) {
+        let hint = |l| Report::info([t!(l, "app-start-hint")]);
+        if self.report == hint(self.language) {
+            self.report = hint(language);
+        }
+        self.language = language;
     }
 
     /// Settings > Colour theme: used at once and kept in the settings for next time.
@@ -468,7 +497,14 @@ impl ChiploadApp {
         });
         match result {
             Ok(recent) => self.recent = recent,
-            Err(err) => self.set_status(format!("Settings not saved: {err}"), ERROR_STATUS_SECONDS),
+            Err(err) => {
+                let status = t!(
+                    self,
+                    "user-library-settings-not-saved",
+                    error = err.to_string()
+                );
+                self.set_status(status, ERROR_STATUS_SECONDS);
+            }
         }
     }
 
@@ -476,9 +512,7 @@ impl ChiploadApp {
     pub fn open_recent(&mut self, path: &str) -> bool {
         let file = PathBuf::from(path);
         if !file.exists() {
-            self.error(vec![format!(
-                "{path} no longer exists; it was taken off the recent list."
-            )]);
+            self.error(vec![t!(self, "user-library-recent-gone", path = path)]);
             self.forget_recent(Some(path));
             return false;
         }
@@ -574,11 +608,13 @@ impl ChiploadApp {
         if let Err(err) =
             chipload_pipeline::posts::choose_post(&mut edit.settings, name, posts.as_deref())
         {
-            self.error(vec![format!("Post-processor \"{name}\":"), err.to_string()]);
+            let title = t!(self, "user-library-post-named", name = name);
+            self.error(vec![title, err.to_string()]);
             return false;
         }
         self.commit();
-        self.set_status(format!("Post-processor: {name}"), STATUS_SECONDS);
+        let status = t!(self, "user-library-post-chosen", name = name);
+        self.set_status(status, STATUS_SECONDS);
         true
     }
 
@@ -586,7 +622,11 @@ impl ChiploadApp {
     pub fn use_machine_profile(&mut self, name: &str) -> bool {
         self.reload_library();
         let Some(profile) = self.library.machines.find(name).cloned() else {
-            self.error(vec![format!("There is no machine profile \"{name}\".")]);
+            self.error(vec![t!(
+                self,
+                "user-library-no-machine-profile",
+                name = name
+            )]);
             return false;
         };
         let Some(edit) = self.edit.as_mut() else {
@@ -598,7 +638,12 @@ impl ChiploadApp {
             self.library.posts.as_deref(),
         ));
         self.commit();
-        self.report_changes(&format!("Machine profile \"{}\"", profile.name), changes);
+        let what = t!(
+            self,
+            "user-library-machine-profile-named",
+            name = &profile.name
+        );
+        self.report_changes(&what, changes);
         true
     }
 
@@ -623,7 +668,12 @@ impl ChiploadApp {
             self.library.posts.as_deref(),
         ));
         self.commit();
-        self.report_changes(&format!("Machine profile \"{}\"", profile.name), changes);
+        let what = t!(
+            self,
+            "user-library-machine-profile-named",
+            name = &profile.name
+        );
+        self.report_changes(&what, changes);
         true
     }
 
@@ -632,20 +682,21 @@ impl ChiploadApp {
     pub fn use_library_tool(&mut self, id: i64, name: &str) -> bool {
         self.reload_library();
         let Some(entry) = self.library.tools.find(name).cloned() else {
-            self.error(vec![format!("There is no library tool \"{name}\".")]);
+            self.error(vec![t!(self, "user-library-no-library-tool", name = name)]);
             return false;
         };
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
         let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) else {
-            self.error(vec![format!("The project has no tool {id}.")]);
+            self.error(vec![t!(self, "user-library-no-project-tool", id = id)]);
             return false;
         };
         let changes = entry.changes(tool);
         *tool = entry.tool(id);
         self.commit();
-        self.report_changes(&format!("Library tool \"{}\"", entry.name), changes);
+        let what = t!(self, "user-library-library-tool-named", name = &entry.name);
+        self.report_changes(&what, changes);
         true
     }
 
@@ -679,7 +730,7 @@ impl ChiploadApp {
     pub(super) fn insert_library_tool(&mut self, name: &str) -> Option<i64> {
         self.reload_library();
         let Some(entry) = self.library.tools.find(name).cloned() else {
-            self.error(vec![format!("There is no library tool \"{name}\".")]);
+            self.error(vec![t!(self, "user-library-no-library-tool", name = name)]);
             return None;
         };
         let edit = self.edit.as_mut()?;
@@ -693,14 +744,19 @@ impl ChiploadApp {
 
     fn report_changes(&mut self, what: &str, changes: Vec<String>) {
         let status = if changes.is_empty() {
-            format!("{what}: no values changed")
+            t!(self, "user-library-no-values-changed-status", what = what)
         } else {
-            format!("{what}: {} value(s) changed", changes.len())
+            t!(
+                self,
+                "user-library-values-changed-status",
+                what = what,
+                count = changes.len()
+            )
         };
-        let mut lines = vec![format!("{what}:")];
+        let mut lines = vec![t!(self, "user-library-changes-heading", what = what)];
         lines.extend(changes.iter().map(|c| format!("  {c}")));
         if changes.is_empty() {
-            lines.push("  no values changed".into());
+            lines.push(format!("  {}", t!(self, "user-library-no-values-changed")));
         }
         self.set_report(Report::info(lines));
         self.set_status(status, STATUS_SECONDS);
@@ -736,6 +792,7 @@ impl ChiploadApp {
             return false;
         };
         let settings = edit.settings.clone();
+        let lang = self.lang();
         // The entry's name and uid after saving.
         let result: Result<(String, String), LibraryError> = match target {
             SaveTarget::Machine => update_machines(&machines_path(&dir), |library| {
@@ -757,9 +814,7 @@ impl ChiploadApp {
                             .push(MachineProfile::from_job(name, &uid, &settings));
                         Ok((name.clone(), uid))
                     }
-                    (None, Pick::Uid(_)) => Err(refused(
-                        "The profile it came from is not in your library.".into(),
-                    )),
+                    (None, Pick::Uid(_)) => Err(refused(t!(lang, "user-library-profile-gone"))),
                 }
             }),
             SaveTarget::Tool(id) => match settings.tool(id) {
@@ -784,19 +839,20 @@ impl ChiploadApp {
                                 .push(LibraryTool::from_tool(name, &uid, tool, None));
                             Ok((name.clone(), uid))
                         }
-                        (None, Pick::Uid(_)) => Err(refused(
-                            "The library tool it came from is not in your library.".into(),
-                        )),
+                        (None, Pick::Uid(_)) => {
+                            Err(refused(t!(lang, "user-library-library-tool-gone")))
+                        }
                     }
                 }),
-                None => Err(refused("The project has no tool to save.".into())),
+                None => Err(refused(t!(lang, "user-library-no-tool-to-save"))),
             },
         };
         self.reload_library();
         let (name, uid) = match result {
             Ok(saved) => saved,
             Err(err) => {
-                self.error(vec!["Not saved to the library:".into(), err.to_string()]);
+                let title = t!(self, "user-library-not-saved");
+                self.error(vec![title, err.to_string()]);
                 return false;
             }
         };
@@ -815,7 +871,8 @@ impl ChiploadApp {
             }
         }
         self.commit();
-        self.set_status(format!("Saved \"{name}\" to your library"), STATUS_SECONDS);
+        let status = t!(self, "user-library-saved", name = &name);
+        self.set_status(status, STATUS_SECONDS);
         true
     }
 
@@ -827,14 +884,14 @@ impl ChiploadApp {
     ) {
         let (title, taken) = match target.kind() {
             LibraryKind::Machines => (
-                "Save machine profile",
+                t!(ctx, "user-library-save-machine-title"),
                 self.library
                     .machines
                     .find(text.trim())
                     .map(|m| m.name.clone()),
             ),
             LibraryKind::Tools => (
-                "Save tool to library",
+                t!(ctx, "user-library-save-tool-title"),
                 self.library.tools.find(text.trim()).map(|t| t.name.clone()),
             ),
         };
@@ -844,16 +901,20 @@ impl ChiploadApp {
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
-                ui.label("Name in your library:");
+                ui.label(t!(ui, "user-library-name-in-library"));
                 ui.add(TextEdit::singleline(&mut text).desired_width(320.0));
                 if let Some(existing) = &taken {
                     ui.colored_label(
                         ui.visuals().warn_fg_color,
-                        format!("Replaces \"{existing}\" in your library."),
+                        t!(ui, "user-library-replaces", name = existing),
                     );
                 }
                 ui.horizontal(|ui| {
-                    let label = if taken.is_some() { "Replace" } else { "Save" };
+                    let label = if taken.is_some() {
+                        t!(ui, "user-library-replace")
+                    } else {
+                        t!(ui, "common-save")
+                    };
                     if ui
                         .add_enabled(!text.trim().is_empty(), egui::Button::new(label))
                         .clicked()
@@ -861,7 +922,7 @@ impl ChiploadApp {
                         save = true;
                         done = true;
                     }
-                    if ui.button("Cancel").clicked() {
+                    if ui.button(t!(ui, "common-cancel")).clicked() {
                         done = true;
                     }
                 });
@@ -875,16 +936,21 @@ impl ChiploadApp {
     /// Store a library tool edited in Properties: it replaces the tool with its uid, or is
     /// added. A name another tool has is refused.
     pub fn store_library_tool(&mut self, entry: LibraryTool) -> Result<(), String> {
-        let dir = self.settings_dir.clone().ok_or("No settings folder")?;
+        let dir = self
+            .settings_dir
+            .clone()
+            .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
+        let lang = self.lang();
         let result = update_tools(&tools_path(&dir), |library| {
             if library
                 .tools
                 .iter()
                 .any(|t| t.uid != entry.uid && same_name(&t.name, &entry.name))
             {
-                return Err(refused(format!(
-                    "There is already a tool \"{}\".",
-                    entry.name
+                return Err(refused(t!(
+                    lang,
+                    "user-library-tool-exists",
+                    name = &entry.name
                 )));
             }
             match library.tools.iter().position(|t| t.uid == entry.uid) {
@@ -908,16 +974,21 @@ impl ChiploadApp {
 
     /// Store a machine profile edited in Properties, as `store_library_tool`.
     pub fn store_machine_profile(&mut self, profile: MachineProfile) -> Result<(), String> {
-        let dir = self.settings_dir.clone().ok_or("No settings folder")?;
+        let dir = self
+            .settings_dir
+            .clone()
+            .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
+        let lang = self.lang();
         let result = update_machines(&machines_path(&dir), |library| {
             if library
                 .machines
                 .iter()
                 .any(|m| m.uid != profile.uid && same_name(&m.name, &profile.name))
             {
-                return Err(refused(format!(
-                    "There is already a machine \"{}\".",
-                    profile.name
+                return Err(refused(t!(
+                    lang,
+                    "user-library-machine-exists",
+                    name = &profile.name
                 )));
             }
             match library.machines.iter().position(|m| m.uid == profile.uid) {
@@ -945,7 +1016,8 @@ impl ChiploadApp {
         self.reload_library();
         let result = match kind {
             LibraryKind::Tools => {
-                let name = unique_name("New tool", |n| self.library.tools.find(n).is_some());
+                let base = t!(self, "user-library-new-tool");
+                let name = unique_name(&base, |n| self.library.tools.find(n).is_some());
                 let uid = self.library.tools.new_uid(&name);
                 let entry = match self.edit.as_ref().and_then(|e| e.settings.tools.first()) {
                     Some(tool) => LibraryTool::from_tool(&name, &uid, tool, None),
@@ -966,7 +1038,8 @@ impl ChiploadApp {
                 self.store_library_tool(entry).map(|()| uid)
             }
             LibraryKind::Machines => {
-                let name = unique_name("New machine", |n| self.library.machines.find(n).is_some());
+                let base = t!(self, "user-library-new-machine");
+                let name = unique_name(&base, |n| self.library.machines.find(n).is_some());
                 let uid = self.library.machines.new_uid(&name);
                 let profile = match self.edit.as_ref() {
                     Some(edit) => MachineProfile::from_job(&name, &uid, &edit.settings),
@@ -1004,7 +1077,10 @@ impl ChiploadApp {
         kind: LibraryKind,
         name: &str,
     ) -> Result<(), String> {
-        let dir = self.settings_dir.clone().ok_or("No settings folder")?;
+        let dir = self
+            .settings_dir
+            .clone()
+            .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
         let result = match kind {
             LibraryKind::Tools => update_tools(&tools_path(&dir), |library| {
                 library.remove(name).map(|_| ())
@@ -1019,7 +1095,10 @@ impl ChiploadApp {
 
     /// The tool or machine new projects start with.
     pub fn set_library_default(&mut self, kind: LibraryKind, name: &str) -> Result<(), String> {
-        let dir = self.settings_dir.clone().ok_or("No settings folder")?;
+        let dir = self
+            .settings_dir
+            .clone()
+            .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
         let result = match kind {
             LibraryKind::Tools => update_tools(&tools_path(&dir), |library| {
                 library.default_tool = Some(name.to_string());

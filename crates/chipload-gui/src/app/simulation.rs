@@ -66,18 +66,21 @@ impl ChiploadApp {
         let (sender, receiver) = channel();
         let cancel = Arc::new(Cancel::new());
         let flag = Arc::clone(&cancel);
+        let lang = crate::i18n::Lang::lang(self);
         let spawned = std::thread::Builder::new()
             .name("simulate".into())
             .spawn(move || {
                 let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
                     simulate_with_history(&job, &program, &groups, None, &flag)
                 }))
-                .map_err(|_| "the simulation stopped unexpectedly".to_string());
+                .map_err(|_| t!(lang, "simulation-stopped-unexpectedly"));
                 let _ = sender.send(outcome);
             });
         if let Err(err) = spawned {
-            self.report
-                .push(Tone::Warning, format!("Simulation could not start: {err}"));
+            self.report.push(
+                Tone::Warning,
+                t!(self, "simulation-could-not-start", error = err.to_string()),
+            );
             return;
         }
         self.sim.run = Some(SimRun {
@@ -115,7 +118,7 @@ impl ChiploadApp {
         let outcome = match run.receiver.try_recv() {
             Ok(outcome) => outcome,
             Err(TryRecvError::Empty) => return true,
-            Err(TryRecvError::Disconnected) => Err("the simulation stopped unexpectedly".into()),
+            Err(TryRecvError::Disconnected) => Err(t!(self, "simulation-stopped-unexpectedly")),
         };
         let serial = run.serial;
         self.sim.run = None;
@@ -132,7 +135,7 @@ impl ChiploadApp {
         let outcome = run
             .receiver
             .recv()
-            .unwrap_or_else(|_| Err("the simulation stopped unexpectedly".into()));
+            .unwrap_or_else(|_| Err(t!(self, "simulation-stopped-unexpectedly")));
         self.finish_simulation(ctx, run.serial, outcome);
         self.sim.simulation.is_some()
     }
@@ -147,13 +150,15 @@ impl ChiploadApp {
                 return;
             }
             Ok(Err(err)) => {
-                self.report
-                    .push(Tone::Warning, format!("Simulation failed: {err}"));
+                self.report.push(
+                    Tone::Warning,
+                    t!(self, "simulation-failed", error = err.to_string()),
+                );
                 return;
             }
             Err(panic) => {
                 self.report
-                    .push(Tone::Warning, format!("Simulation failed: {panic}"));
+                    .push(Tone::Warning, t!(self, "simulation-failed", error = panic));
                 return;
             }
         };
@@ -180,9 +185,7 @@ impl ChiploadApp {
         if history.is_none() {
             self.report.push(
                 Tone::Info,
-                "  The program is too long to play back the stock; the slider shows the \
-                 toolpath only"
-                    .into(),
+                format!("  {}", t!(self, "simulation-too-long-to-play")),
             );
         }
         self.sim.history = history;

@@ -5,6 +5,7 @@ use super::problems::{self, flag};
 use super::user_library::{LibraryRequest, LibraryRows, library_rows};
 use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
+use crate::i18n::{Lang, Language};
 use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{
@@ -36,20 +37,20 @@ fn depth_rows(
 ) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    ui.label("Start depth")
-        .on_hover_text("Where the cut starts, down from the stock top");
+    ui.label(t!(ui, "forms-start-depth"))
+        .on_hover_text(t!(ui, "forms-start-depth-hover"));
     flag(ui.add(mm(start)), ui, "start_depth");
     ui.end_row();
-    ui.label("End depth")
-        .on_hover_text("Where the cut ends, down from the stock top");
+    ui.label(t!(ui, "forms-end-depth"))
+        .on_hover_text(t!(ui, "forms-end-depth-hover"));
     wrapped_cell(ui, |ui| {
         flag(ui.add(mm(end)), ui, "end_depth");
         if ui
-            .small_button("Through")
-            .on_hover_text(format!(
-                "Cut through the stock: {} {len_unit}, its thickness plus the allowed depth below it \
-                 (Job settings > Stock)",
-                len_in(units, through)
+            .small_button(t!(ui, "forms-through"))
+            .on_hover_text(t!(
+                ui,
+                "forms-through-hover",
+                depth = format!("{} {len_unit}", len_in(units, through))
             ))
             .clicked()
         {
@@ -57,11 +58,8 @@ fn depth_rows(
         }
     });
     ui.end_row();
-    ui.label("Oversize").on_hover_text(
-        "How much more than drawn is cut, mm (clearance in the file): positive makes a \
-         pocket larger or a part smaller, negative leaves stock on for a later cut. Less \
-         than the tool radius. Other CAM programs call the opposite \"stock to leave\".",
-    );
+    ui.label(t!(ui, "forms-oversize"))
+        .on_hover_text(t!(ui, "forms-oversize-hover"));
     let response = ui
         .add_enabled(
             can_clear,
@@ -69,7 +67,7 @@ fn depth_rows(
                 .speed(0.01)
                 .range(-100_000.0..=100_000.0),
         )
-        .on_disabled_hover_text("A profile on the line has no side to cut more on");
+        .on_disabled_hover_text(t!(ui, "forms-oversize-disabled"));
     flag(response, ui, "clearance");
     ui.end_row();
 }
@@ -80,13 +78,11 @@ pub(super) fn feed(value: &mut f64) -> crate::units::Field<'_> {
 
 pub(super) fn direction_combo(ui: &mut egui::Ui, id: (&str, usize), direction: &mut Direction) {
     ComboBox::from_id_salt(id)
-        .selected_text(match direction {
-            Direction::Climb => "climb",
-            Direction::Conventional => "conventional",
-        })
+        .selected_text(direction_name(ui, *direction))
         .show_ui(ui, |ui| {
-            ui.selectable_value(direction, Direction::Climb, "climb");
-            ui.selectable_value(direction, Direction::Conventional, "conventional");
+            for choice in [Direction::Climb, Direction::Conventional] {
+                ui.selectable_value(direction, choice, direction_name(ui, choice));
+            }
         });
 }
 
@@ -215,16 +211,12 @@ fn wrapped_cell<R>(
 fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    ui.label("  flank angle").on_hover_text(
-        "How steeply the tab's sides slope down from its flat top. 90° is a straight tab: \
-         the tool goes straight up and down. Below that the tool follows the slope, so it \
-         never plunges after a tab. Going down a flank is a ramp: with a tool that isn't \
-         centre-cutting, no steeper than the ramp angle.",
-    );
+    ui.label(format!("  {}", t!(ui, "forms-flank-angle")))
+        .on_hover_text(t!(ui, "forms-flank-angle-hover"));
     ui.horizontal(|ui| {
         let mut value = tabs.flank_angle.to_degrees();
         let response = ui.add(
-            DragValue::new(&mut value)
+            crate::units::number(ui, &mut value)
                 .speed(0.5)
                 .range(0.5..=90.0)
                 .suffix("°"),
@@ -234,10 +226,11 @@ fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
         }
         flag(response, ui, "tabs.flank_angle");
         if tabs.is_straight() {
-            ui.weak("straight");
+            ui.weak(t!(ui, "forms-flank-straight"));
         } else if tabs.height > 0.0 {
             let foot = tabs.height / tabs.flank_angle.tan();
-            ui.weak(format!("feet {} {len_unit} each side", len_in(units, foot)));
+            let length = format!("{} {len_unit}", len_in(units, foot));
+            ui.weak(t!(ui, "forms-flank-feet", length = length));
         }
     });
     ui.end_row();
@@ -249,26 +242,36 @@ fn degrees(radians: f64) -> String {
     text.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
-fn direction_name(direction: Direction) -> &'static str {
+fn direction_name(ui: &egui::Ui, direction: Direction) -> String {
     match direction {
-        Direction::Climb => "climb",
-        Direction::Conventional => "conventional",
+        Direction::Climb => t!(ui, "forms-climb"),
+        Direction::Conventional => t!(ui, "forms-conventional"),
     }
 }
 
-fn entry_summary(entry: &Entry, lead: Option<&Lead>, units: Units) -> String {
+fn entry_summary(lang: Language, entry: &Entry, lead: Option<&Lead>, units: Units) -> String {
     let len_unit = chipload_pipeline::units::length_unit(units);
     let entry = match entry {
-        Entry::Plunge {} => "straight plunge".to_string(),
-        Entry::Ramp { ramp_angle } => format!("ramp {:.1}°", ramp_angle.to_degrees()),
-        Entry::Helix { radius, ramp_angle } => format!(
-            "helix r {} {len_unit}, {:.1}°",
-            len_in(units, *radius),
-            ramp_angle.to_degrees()
+        Entry::Plunge {} => t!(lang, "forms-entry-plunge"),
+        Entry::Ramp { ramp_angle } => t!(
+            lang,
+            "forms-entry-ramp-summary",
+            angle = format!("{:.1}°", ramp_angle.to_degrees())
+        ),
+        Entry::Helix { radius, ramp_angle } => t!(
+            lang,
+            "forms-entry-helix-summary",
+            radius = format!("{} {len_unit}", len_in(units, *radius)),
+            angle = format!("{:.1}°", ramp_angle.to_degrees())
         ),
     };
     match lead {
-        Some(lead) => format!("{entry}, lead {} {len_unit}", len_in(units, lead.radius)),
+        Some(lead) => t!(
+            lang,
+            "forms-entry-with-lead",
+            entry = entry,
+            radius = format!("{} {len_unit}", len_in(units, lead.radius))
+        ),
         None => entry,
     }
 }
@@ -319,15 +322,15 @@ pub(super) fn op_form(
         .find(|t| t.id == entry.op.tool())
         .cloned();
     let op_tool = op_tool.as_ref();
-    let summary = geometry_summary(&entry.op, contours);
+    let summary = geometry_summary(&entry.op, contours, ui);
     let side_chosen = &mut entry.side_chosen;
     let kind = match &entry.op {
-        Operation::Profile(_) => "Profile",
-        Operation::Pocket(_) => "Pocket",
-        Operation::Vcarve(_) => "V-carve",
-        Operation::Path(_) => "Follow path",
-        Operation::Holes(_) => "Holes",
-        Operation::Surface(_) => "Surface",
+        Operation::Profile(_) => t!(ui, "forms-kind-profile"),
+        Operation::Pocket(_) => t!(ui, "forms-kind-pocket"),
+        Operation::Vcarve(_) => t!(ui, "forms-kind-vcarve"),
+        Operation::Path(_) => t!(ui, "forms-kind-path"),
+        Operation::Holes(_) => t!(ui, "forms-kind-holes"),
+        Operation::Surface(_) => t!(ui, "forms-kind-surface"),
     };
     let surface = !entry.op.selects_shapes();
     let color = super::browser::kind_color(&entry.op, ui.visuals().dark_mode);
@@ -335,7 +338,10 @@ pub(super) fn op_form(
         ui,
         super::browser::op_icon(&entry.op),
         Some(color),
-        &format!("{kind} · Operation {}", index + 1),
+        &format!(
+            "{kind} · {}",
+            t!(ui, "forms-operation-number", number = index + 1)
+        ),
     );
     Grid::new(("op-form", index))
         .num_columns(2)
@@ -343,14 +349,14 @@ pub(super) fn op_form(
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             let name = entry.op.name_mut();
-            ui.label("Name");
+            ui.label(t!(ui, "forms-name"));
             ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
             ui.end_row();
-            ui.label("Geometry");
+            ui.label(t!(ui, "forms-geometry"));
             if surface {
                 // docs/specs/surfacing.md §2.
-                ui.label("The whole stock")
-                    .on_hover_text("A surface faces the whole stock, once, whatever the copies");
+                ui.label(t!(ui, "forms-whole-stock"))
+                    .on_hover_text(t!(ui, "forms-whole-stock-hover"));
                 ui.end_row();
                 tool_row(ui, index, &mut entry.op, &choice, &mut request);
                 return;
@@ -358,16 +364,17 @@ pub(super) fn op_form(
             let geometry = wrapped_cell(ui, |ui| {
                 ui.label(&summary);
                 let label = match choice.selected {
-                    0 => "Use selection".to_string(),
-                    n => format!("Use selection ({n})"),
+                    0 => t!(ui, "forms-use-selection"),
+                    n => t!(ui, "forms-use-selection-count", count = n),
                 };
                 if ui
                     .add_enabled(choice.selected > 0, egui::Button::new(label))
                     .on_hover_text(format!(
-                        "Replace with the contours selected on the canvas.\n{}",
+                        "{}\n{}",
+                        t!(ui, "forms-use-selection-hover"),
                         choice.selection_text
                     ))
-                    .on_disabled_hover_text("Select contours on the canvas first")
+                    .on_disabled_hover_text(t!(ui, "forms-use-selection-disabled"))
                     .clicked()
                 {
                     use_selection = true;
@@ -377,24 +384,22 @@ pub(super) fn op_form(
             ui.end_row();
             tool_row(ui, index, &mut entry.op, &choice, &mut request);
             if let Operation::Profile(p) = &mut entry.op {
-                ui.label("Side");
+                ui.label(t!(ui, "forms-side"));
+                let side_name = |ui: &egui::Ui, side: Side| match side {
+                    Side::Inside => t!(ui, "forms-side-inside"),
+                    Side::Outside => t!(ui, "forms-side-outside"),
+                    Side::On => t!(ui, "forms-side-on"),
+                };
                 let text = if *side_chosen {
-                    match p.side {
-                        Side::Inside => "inside",
-                        Side::Outside => "outside",
-                        Side::On => "on",
-                    }
+                    side_name(ui, p.side)
                 } else {
-                    "— choose —"
+                    t!(ui, "forms-side-choose")
                 };
                 let side = ComboBox::from_id_salt(("side", index))
                     .selected_text(text)
                     .show_ui(ui, |ui| {
-                        for (side, label) in [
-                            (Side::Outside, "outside"),
-                            (Side::Inside, "inside"),
-                            (Side::On, "on"),
-                        ] {
+                        for side in [Side::Outside, Side::Inside, Side::On] {
+                            let label = side_name(ui, side);
                             if ui
                                 .selectable_label(*side_chosen && p.side == side, label)
                                 .clicked()
@@ -410,50 +415,60 @@ pub(super) fn op_form(
         });
     match &mut entry.op {
         Operation::Profile(p) => {
-            let cut = format!(
-                "{}–{} {len_unit}, steps of {} {len_unit}, {}, spiral ramp {}°",
-                len_in(units, p.start_depth),
-                len_in(units, p.end_depth),
-                len_in(units, p.step_down),
-                direction_name(p.direction),
-                degrees(p.ramp_angle)
+            let cut = t!(
+                ui,
+                "forms-profile-cut-summary",
+                start = len_in(units, p.start_depth),
+                end = len_in(units, p.end_depth),
+                unit = len_unit,
+                step = len_in(units, p.step_down),
+                direction = direction_name(ui, p.direction),
+                ramp = degrees(p.ramp_angle)
             );
-            section(ui, "op-profile-cut", "Cut", &cut, |ui| {
-                ui.label("Direction");
-                direction_combo(ui, ("direction", index), &mut p.direction);
-                ui.end_row();
-                let can_clear = p.side != Side::On;
-                if !can_clear {
-                    p.clearance = 0.0;
-                }
-                depth_rows(
-                    ui,
-                    &mut p.start_depth,
-                    &mut p.end_depth,
-                    &mut p.clearance,
-                    can_clear,
-                    through,
-                );
-                ui.label("Step down");
-                flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
-                ui.end_row();
-                ramp_angle_row(ui, &mut p.ramp_angle);
-                corner_rows(ui, index, &mut p.corners, can_clear);
-            });
+            section(
+                ui,
+                "op-profile-cut",
+                &t!(ui, "forms-section-cut"),
+                &cut,
+                |ui| {
+                    ui.label(t!(ui, "forms-direction"));
+                    direction_combo(ui, ("direction", index), &mut p.direction);
+                    ui.end_row();
+                    let can_clear = p.side != Side::On;
+                    if !can_clear {
+                        p.clearance = 0.0;
+                    }
+                    depth_rows(
+                        ui,
+                        &mut p.start_depth,
+                        &mut p.end_depth,
+                        &mut p.clearance,
+                        can_clear,
+                        through,
+                    );
+                    ui.label(t!(ui, "forms-step-down"));
+                    flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
+                    ui.end_row();
+                    ramp_angle_row(ui, &mut p.ramp_angle);
+                    corner_rows(ui, index, &mut p.corners, can_clear);
+                },
+            );
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             holding_section(ui, p, op_tool);
             finish_section(ui, p);
         }
         Operation::Pocket(p) => {
-            let cut = format!(
-                "{}–{} {len_unit}, steps of {} {len_unit}, {}",
-                len_in(units, p.start_depth),
-                len_in(units, p.end_depth),
-                len_in(units, p.step_down),
-                direction_name(p.direction)
+            let cut = t!(
+                ui,
+                "forms-pocket-cut-summary",
+                start = len_in(units, p.start_depth),
+                end = len_in(units, p.end_depth),
+                unit = len_unit,
+                step = len_in(units, p.step_down),
+                direction = direction_name(ui, p.direction)
             );
-            section(ui, "op-cut", "Cut", &cut, |ui| {
-                ui.label("Direction");
+            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+                ui.label(t!(ui, "forms-direction"));
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
                 depth_rows(
@@ -464,22 +479,28 @@ pub(super) fn op_form(
                     true,
                     through,
                 );
-                ui.label("Step down");
+                ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
                 corner_rows(ui, index, &mut p.corners, true);
             });
-            let mut clearing = format!("rings, stepover {:.2} × D", p.stepover);
-            if let Some(rest) = p.rest {
-                clearing += &format!(", rest after T{}", rest.after_tool);
-            }
-            section(ui, "op-clearing", "Clearing", &clearing, |ui| {
+            let stepover = format!("{:.2}", p.stepover);
+            let clearing = match p.rest {
+                None => t!(ui, "forms-clearing-summary", stepover = stepover),
+                Some(rest) => t!(
+                    ui,
+                    "forms-clearing-summary-rest",
+                    stepover = stepover,
+                    tool = rest.after_tool
+                ),
+            };
+            let title = t!(ui, "forms-section-clearing");
+            section(ui, "op-clearing", &title, &clearing, |ui| {
                 rest_row(ui, index, &mut p.rest, choice.tools, op_tool);
-                ui.label("Stepover").on_hover_text(
-                    "How far each ring moves on, as a fraction of the tool diameter",
-                );
+                ui.label(t!(ui, "forms-stepover"))
+                    .on_hover_text(t!(ui, "forms-stepover-hover"));
                 let stepover = ui.add(
-                    DragValue::new(&mut p.stepover)
+                    crate::units::number(ui, &mut p.stepover)
                         .speed(0.01)
                         .range(0.01..=1.0)
                         .suffix(" × D"),
@@ -488,42 +509,46 @@ pub(super) fn op_form(
                 ui.end_row();
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let entry_text = entry_summary(&p.entry, p.lead.as_ref(), units);
-            section(ui, "op-entry", "Entry and lead", &entry_text, |ui| {
+            let entry_text = entry_summary(ui.lang(), &p.entry, p.lead.as_ref(), units);
+            let title = t!(ui, "forms-section-entry-lead");
+            section(ui, "op-entry", &title, &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter);
             });
         }
         Operation::Vcarve(v) => {
-            let passes = v.step_down.map_or("one pass".to_string(), |s| {
-                format!("steps of {} {len_unit}", len_in(units, s))
-            });
-            let cut = format!(
-                "from {} {len_unit}, at most {} {len_unit} deep, {passes}",
-                len_in(units, v.start_depth),
-                len_in(units, v.end_depth)
-            );
-            section(ui, "op-cut", "Cut", &cut, |ui| {
-                ui.label("Start depth").on_hover_text(
-                    "The surface carved, down from the stock top (0: the top; more to carve \
-                     into a pocket floor)",
-                );
+            let start = format!("{} {len_unit}", len_in(units, v.start_depth));
+            let end = format!("{} {len_unit}", len_in(units, v.end_depth));
+            let cut = match v.step_down {
+                None => t!(ui, "forms-vcarve-cut-one-pass", start = start, end = end),
+                Some(s) => t!(
+                    ui,
+                    "forms-vcarve-cut-steps",
+                    start = start,
+                    end = end,
+                    step = format!("{} {len_unit}", len_in(units, s))
+                ),
+            };
+            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+                ui.label(t!(ui, "forms-start-depth"))
+                    .on_hover_text(t!(ui, "forms-vcarve-start-depth-hover"));
                 flag(ui.add(mm(&mut v.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label("End depth").on_hover_text(
-                    "The deepest the tip goes, from the stock top (end_depth in the file). \
-                     Wider strokes are carved to it and reported",
-                );
+                ui.label(t!(ui, "forms-end-depth"))
+                    .on_hover_text(t!(ui, "forms-vcarve-end-depth-hover"));
                 flag(ui.add(mm(&mut v.end_depth)), ui, "end_depth");
                 ui.end_row();
-                ui.label("Passes");
+                ui.label(t!(ui, "forms-passes"));
                 let mut stepped = v.step_down.is_some();
-                if ui.checkbox(&mut stepped, "in steps").changed() {
+                if ui
+                    .checkbox(&mut stepped, t!(ui, "forms-in-steps"))
+                    .changed()
+                {
                     v.step_down = stepped.then_some(DEFAULT_STEP_DOWN);
                 }
                 ui.end_row();
                 if let Some(step) = &mut v.step_down {
-                    ui.label("  step down");
+                    ui.label(format!("  {}", t!(ui, "forms-step-down-sub")));
                     flag(ui.add(mm(step)), ui, "step_down");
                     ui.end_row();
                 }
@@ -531,58 +556,62 @@ pub(super) fn op_form(
             feeds_section(ui, &mut v.feed, &mut v.plunge_feed, op_tool);
         }
         Operation::Path(p) => {
-            let cut = format!(
-                "{}–{} {len_unit}, steps of {} {len_unit}, on the line",
-                len_in(units, p.start_depth),
-                len_in(units, p.end_depth),
-                len_in(units, p.step_down)
+            let cut = t!(
+                ui,
+                "forms-path-cut-summary",
+                start = len_in(units, p.start_depth),
+                end = len_in(units, p.end_depth),
+                unit = len_unit,
+                step = len_in(units, p.step_down)
             );
-            section(ui, "op-cut", "Cut", &cut, |ui| {
-                ui.label("Start depth")
-                    .on_hover_text("Where the cut starts, down from the stock top");
+            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+                ui.label(t!(ui, "forms-start-depth"))
+                    .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut p.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label("End depth")
-                    .on_hover_text("Where the cut ends, down from the stock top");
+                ui.label(t!(ui, "forms-end-depth"))
+                    .on_hover_text(t!(ui, "forms-end-depth-hover"));
                 flag(ui.add(mm(&mut p.end_depth)), ui, "end_depth");
                 ui.end_row();
-                ui.label("Step down");
+                ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
             });
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
-            let entry_text = entry_summary(&p.entry, None, units);
-            section(ui, "op-entry", "Entry", &entry_text, |ui| {
+            let entry_text = entry_summary(ui.lang(), &p.entry, None, units);
+            let title = t!(ui, "forms-section-entry");
+            section(ui, "op-entry", &title, &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, None);
             });
         }
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool),
         Operation::Surface(f) => {
-            let cut = format!(
-                "{}–{} {len_unit}, steps of {} {len_unit}, stepover {:.2} × D",
-                len_in(units, f.start_depth),
-                len_in(units, f.end_depth),
-                len_in(units, f.step_down),
-                f.stepover
+            let cut = t!(
+                ui,
+                "forms-surface-cut-summary",
+                start = len_in(units, f.start_depth),
+                end = len_in(units, f.end_depth),
+                unit = len_unit,
+                step = len_in(units, f.step_down),
+                stepover = format!("{:.2}", f.stepover)
             );
-            section(ui, "op-cut", "Cut", &cut, |ui| {
-                ui.label("Start depth")
-                    .on_hover_text("Where the cut starts, down from the stock top");
+            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+                ui.label(t!(ui, "forms-start-depth"))
+                    .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label("End depth")
-                    .on_hover_text("How much comes off the top, down from the stock top");
+                ui.label(t!(ui, "forms-end-depth"))
+                    .on_hover_text(t!(ui, "forms-surface-end-depth-hover"));
                 flag(ui.add(mm(&mut f.end_depth)), ui, "end_depth");
                 ui.end_row();
-                ui.label("Step down");
+                ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut f.step_down)), ui, "step_down");
                 ui.end_row();
-                ui.label("Stepover").on_hover_text(
-                    "How far each pass moves across, as a fraction of the tool diameter",
-                );
+                ui.label(t!(ui, "forms-stepover"))
+                    .on_hover_text(t!(ui, "forms-surface-stepover-hover"));
                 let (lo, hi) = chipload_job::SURFACE_STEPOVER;
                 let stepover = ui.add(
-                    DragValue::new(&mut f.stepover)
+                    crate::units::number(ui, &mut f.stepover)
                         .speed(0.01)
                         .range(lo..=hi)
                         .suffix(" × D"),
@@ -615,10 +644,10 @@ fn tool_row(
         .tools
         .iter()
         .find(|t| t.id == current)
-        .map_or(format!("T{current} (not in the project)"), |t| {
+        .map_or(t!(ui, "forms-tool-not-in-project", tool = current), |t| {
             tool_label(t, units)
         });
-    ui.label("Tool");
+    ui.label(t!(ui, "forms-tool"));
     let combo = ComboBox::from_id_salt(("op-tool", index))
         .selected_text(selected)
         .width(field_width(ui, 240.0))
@@ -637,7 +666,7 @@ fn tool_row(
                 && !names.is_empty()
             {
                 ui.separator();
-                ui.weak("From your library:");
+                ui.weak(t!(ui, "forms-from-library"));
                 for name in names {
                     if ui.selectable_label(false, format!("+ {name}")).clicked() {
                         request.tool_from_library = Some(name.clone());
@@ -652,13 +681,15 @@ fn tool_row(
     {
         ui.label("");
         if ui
-            .button("Use the tool's cutting values")
-            .on_hover_text(format!(
-                "From the library: feed {} / plunge {} {feed_unit}, step down {} {len_unit}, stepover {}",
-                feed_in(units, cutting.feed),
-                feed_in(units, cutting.plunge_feed),
-                len_in(units, cutting.step_down),
-                cutting.stepover
+            .button(t!(ui, "forms-use-cutting-values"))
+            .on_hover_text(t!(
+                ui,
+                "forms-use-cutting-values-hover",
+                feed = feed_in(units, cutting.feed),
+                plunge = feed_in(units, cutting.plunge_feed),
+                feed_unit = feed_unit,
+                step_down = format!("{} {len_unit}", len_in(units, cutting.step_down)),
+                stepover = cutting.stepover.to_string()
             ))
             .clicked()
         {
@@ -725,57 +756,65 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
         feed_in(units, *cut),
         feed_in(units, *plunge)
     );
-    section(ui, "op-feeds", "Feeds", &text, |ui| {
-        ui.label("Feed");
-        // The chip load goes under the feed when the panel is narrow.
-        wrapped_cell(ui, |ui| {
-            flag(ui.add(feed(cut)), ui, "feed");
-            if let Some(tool) = tool {
-                let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
-                ui.label(RichText::new(load.text_in(units)).weak())
-                    .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
-            }
-        });
-        ui.end_row();
-        ui.label("Plunge feed");
-        flag(ui.add(feed(plunge)), ui, "plunge_feed");
-        ui.end_row();
-    });
+    section(
+        ui,
+        "op-feeds",
+        &t!(ui, "forms-section-feeds"),
+        &text,
+        |ui| {
+            ui.label(t!(ui, "forms-feed"));
+            // The chip load goes under the feed when the panel is narrow.
+            wrapped_cell(ui, |ui| {
+                flag(ui.add(feed(cut)), ui, "feed");
+                if let Some(tool) = tool {
+                    let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
+                    ui.label(RichText::new(load.text_in(units)).weak())
+                        .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-plunge-feed"));
+            flag(ui.add(feed(plunge)), ui, "plunge_feed");
+            ui.end_row();
+        },
+    );
 }
 
 /// How the tool goes down into each pass (docs/specs/ramp-entry.md); angles are shown in
 /// degrees and kept in radians. `helix`: the tool diameter, for a pocket, which may also go
 /// down round a helix (docs/specs/helix-and-leads.md part C).
 fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<f64>) {
-    ui.label("Entry").on_hover_text(
-        "How the tool goes down into the material. A ramp goes down along the path (a \
-         profile spirals down round its ring, a follow path goes down as it goes back and \
-         forth, a pocket ramps out and back), a helix (pockets) round a small circle, so the \
-         tool needn't be centre-cutting; both use the cutting feed.",
-    );
+    ui.label(t!(ui, "forms-entry"))
+        .on_hover_text(t!(ui, "forms-entry-hover"));
     let ramp = Entry::Ramp {
         ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
     };
     let combo = ComboBox::from_id_salt(("entry", index))
         .selected_text(match entry {
-            Entry::Plunge {} => "straight plunge",
-            Entry::Ramp { .. } => "ramp",
-            Entry::Helix { .. } => "helix",
+            Entry::Plunge {} => t!(ui, "forms-entry-plunge"),
+            Entry::Ramp { .. } => t!(ui, "forms-entry-ramp"),
+            Entry::Helix { .. } => t!(ui, "forms-entry-helix"),
         })
         .show_ui(ui, |ui| {
             let is_ramp = matches!(entry, Entry::Ramp { .. });
             let is_helix = matches!(entry, Entry::Helix { .. });
             if ui
-                .selectable_label(!is_ramp && !is_helix, "straight plunge")
+                .selectable_label(!is_ramp && !is_helix, t!(ui, "forms-entry-plunge"))
                 .clicked()
             {
                 *entry = Entry::Plunge {};
             }
-            if ui.selectable_label(is_ramp, "ramp").clicked() && !is_ramp {
+            if ui
+                .selectable_label(is_ramp, t!(ui, "forms-entry-ramp"))
+                .clicked()
+                && !is_ramp
+            {
                 *entry = ramp;
             }
             if let Some(diameter) = helix
-                && ui.selectable_label(is_helix, "helix").clicked()
+                && ui
+                    .selectable_label(is_helix, t!(ui, "forms-entry-helix"))
+                    .clicked()
                 && !is_helix
             {
                 *entry = Entry::default_helix(diameter);
@@ -784,19 +823,17 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
     flag(combo.response, ui, "entry");
     ui.end_row();
     if let Entry::Helix { radius, .. } = entry {
-        ui.label("  helix radius").on_hover_text(
-            "Of the circle the tool centre follows: less than the tool radius, so no core is \
-             left standing",
-        );
+        ui.label(format!("  {}", t!(ui, "forms-helix-radius")))
+            .on_hover_text(t!(ui, "forms-helix-radius-hover"));
         flag(ui.add(mm(radius)), ui, "entry");
         ui.end_row();
     }
     if let Entry::Ramp { ramp_angle } | Entry::Helix { ramp_angle, .. } = entry {
-        ui.label("  ramp angle");
+        ui.label(format!("  {}", t!(ui, "forms-ramp-angle-sub")));
         let mut degrees = ramp_angle.to_degrees();
         if ui
             .add(
-                DragValue::new(&mut degrees)
+                crate::units::number(ui, &mut degrees)
                     .speed(0.1)
                     .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
                     .suffix("°"),
@@ -812,14 +849,11 @@ fn entry_rows(ui: &mut egui::Ui, index: usize, entry: &mut Entry, helix: Option<
 /// A profile's way down (docs/specs/profile-always-spiral.md): it always spirals down along
 /// the contour; only the angle is set, after the step down.
 fn ramp_angle_row(ui: &mut egui::Ui, ramp_angle: &mut f64) {
-    ui.label("Ramp angle").on_hover_text(
-        "The tool spirals down along the contour, never steeper than this and never more \
-         than one step down per lap: no plunge into the part. Each pass goes down at this \
-         angle, then runs level; a steeper angle makes the ramp shorter.",
-    );
+    ui.label(t!(ui, "forms-ramp-angle"))
+        .on_hover_text(t!(ui, "forms-ramp-angle-hover"));
     let mut value = ramp_angle.to_degrees();
     let response = ui.add(
-        DragValue::new(&mut value)
+        crate::units::number(ui, &mut value)
             .speed(0.1)
             .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
             .suffix("°"),
@@ -841,28 +875,31 @@ fn rest_row(
 ) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    ui.label("Rest after").on_hover_text(
-        "Clear only what a larger tool leaves in these shapes: the corners it leaves round \
-         and the slots it doesn't fit in. Cut the pocket with that tool first",
-    );
+    ui.label(t!(ui, "forms-rest-after"))
+        .on_hover_text(t!(ui, "forms-rest-after-hover"));
+    let lang = ui.lang();
     let name = |t: &Tool| {
+        let diameter = format!("{} {len_unit}", len_in(units, t.diameter));
         format!(
-            "T{} · {} {len_unit} endmill",
+            "T{} · {}",
             t.id,
-            len_in(units, t.diameter)
+            t!(lang, "forms-rest-endmill", diameter = diameter)
         )
     };
     let selected = match rest {
-        None => "none".to_string(),
-        Some(r) => tools
-            .iter()
-            .find(|t| t.id == r.after_tool)
-            .map_or(format!("T{} (not in the project)", r.after_tool), name),
+        None => t!(ui, "forms-rest-none"),
+        Some(r) => tools.iter().find(|t| t.id == r.after_tool).map_or(
+            t!(ui, "forms-tool-not-in-project", tool = r.after_tool),
+            name,
+        ),
     };
     let response = ComboBox::from_id_salt(("rest", index))
         .selected_text(selected)
         .show_ui(ui, |ui| {
-            if ui.selectable_label(rest.is_none(), "none").clicked() {
+            if ui
+                .selectable_label(rest.is_none(), t!(ui, "forms-rest-none"))
+                .clicked()
+            {
                 *rest = None;
             }
             for t in rest_choices(tools, tool) {
@@ -888,27 +925,40 @@ fn rest_choices<'a>(tools: &'a [Tool], small: Option<&'a Tool>) -> impl Iterator
 /// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7). `allowed`: false
 /// for a profile on the line, which has no inside corners to clear.
 fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, allowed: bool) {
-    ui.label("Corners").on_hover_text(
-        "Inside corners a round tool leaves round: a dogbone goes into the corner along its \
-         middle, a T-bone along the longer wall (the notch is in the shorter one), so a \
-         square part fits all the way in",
-    );
+    ui.label(t!(ui, "forms-corners"))
+        .on_hover_text(t!(ui, "forms-corners-hover"));
     let angle = corners.map_or(DEFAULT_CORNER_ANGLE_RAD, |c| c.max_angle());
-    let name = match corners {
-        None => "round",
-        Some(Corners::Dogbone { .. }) => "dogbones",
-        Some(Corners::Tbone { .. }) => "T-bones",
+    // Which kind of corners: none, dogbones or T-bones.
+    let kind = |c: Option<Corners>| match c {
+        None => 0,
+        Some(Corners::Dogbone { .. }) => 1,
+        Some(Corners::Tbone { .. }) => 2,
     };
+    let choices = [
+        (None, t!(ui, "forms-corners-round")),
+        (
+            Some(Corners::Dogbone { max_angle: angle }),
+            t!(ui, "forms-corners-dogbones"),
+        ),
+        (
+            Some(Corners::Tbone { max_angle: angle }),
+            t!(ui, "forms-corners-tbones"),
+        ),
+    ];
+    let current = kind(*corners);
+    let name = choices
+        .iter()
+        .find(|(choice, _)| kind(*choice) == current)
+        .map_or(String::new(), |(_, label)| label.clone());
     let combo = ui.add_enabled_ui(allowed || corners.is_some(), |ui| {
         ComboBox::from_id_salt(("corners", index))
             .selected_text(name)
             .show_ui(ui, |ui| {
-                for (choice, label) in [
-                    (None, "round"),
-                    (Some(Corners::Dogbone { max_angle: angle }), "dogbones"),
-                    (Some(Corners::Tbone { max_angle: angle }), "T-bones"),
-                ] {
-                    if ui.selectable_label(name == label, label).clicked() {
+                for (choice, label) in choices {
+                    if ui
+                        .selectable_label(kind(choice) == current, label)
+                        .clicked()
+                    {
                         *corners = choice;
                     }
                 }
@@ -916,16 +966,15 @@ fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, a
     });
     let response = combo
         .response
-        .on_disabled_hover_text("A profile cut on the line has no inside corners");
+        .on_disabled_hover_text(t!(ui, "forms-corners-disabled"));
     flag(response, ui, "corners");
     ui.end_row();
     if let Some(Corners::Dogbone { max_angle } | Corners::Tbone { max_angle }) = corners {
-        ui.label("  up to").on_hover_text(
-            "Only corners this sharp or sharper (90° corners drawn slightly off still count)",
-        );
+        ui.label(format!("  {}", t!(ui, "forms-corners-up-to")))
+            .on_hover_text(t!(ui, "forms-corners-up-to-hover"));
         let mut degrees = max_angle.to_degrees();
         let response = ui.add(
-            DragValue::new(&mut degrees)
+            crate::units::number(ui, &mut degrees)
                 .speed(1.0)
                 .range(1.0..=179.0)
                 .suffix("°"),
@@ -944,52 +993,56 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
     let len_unit = chipload_pipeline::units::length_unit(units);
     let feed_unit = chipload_pipeline::units::feed_unit(units);
     let method = match h.method {
-        HoleMethod::Drill { peck: Some(peck) } => {
-            format!("drilled, pecks {} {len_unit}", len_in(units, peck))
-        }
-        HoleMethod::Drill { peck: None } => "drilled in one go".to_string(),
+        HoleMethod::Drill { peck: Some(peck) } => t!(
+            ui,
+            "forms-holes-drilled-pecks",
+            peck = format!("{} {len_unit}", len_in(units, peck))
+        ),
+        HoleMethod::Drill { peck: None } => t!(ui, "forms-holes-drilled-once"),
         HoleMethod::Bore {
             step_down,
             direction,
             ..
-        } => format!(
-            "helical bore, {} {len_unit} per turn, {}",
-            len_in(units, step_down),
-            direction_name(direction)
+        } => t!(
+            ui,
+            "forms-holes-bore",
+            step = format!("{} {len_unit}", len_in(units, step_down)),
+            direction = direction_name(ui, direction)
         ),
     };
-    let cut = format!(
-        "{}–{} {len_unit}, {method}",
-        len_in(units, h.start_depth),
-        len_in(units, h.end_depth)
+    let cut = t!(
+        ui,
+        "forms-holes-cut-summary",
+        start = len_in(units, h.start_depth),
+        end = len_in(units, h.end_depth),
+        unit = len_unit,
+        method = method
     );
-    section(ui, "op-cut", "Cut", &cut, |ui| {
-        ui.label("Start depth")
-            .on_hover_text("Where the cut starts, down from the stock top");
+    section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+        ui.label(t!(ui, "forms-start-depth"))
+            .on_hover_text(t!(ui, "forms-start-depth-hover"));
         flag(ui.add(mm(&mut h.start_depth)), ui, "start_depth");
         ui.end_row();
         let drill = matches!(h.method, HoleMethod::Drill { .. });
-        ui.label("End depth").on_hover_text(if drill {
-            "Where the drill's point ends, down from the stock top: the full diameter stops \
-             about 0.3 × the drill's diameter higher"
+        ui.label(t!(ui, "forms-end-depth")).on_hover_text(if drill {
+            t!(ui, "forms-holes-drill-end-depth-hover")
         } else {
-            "Where the cut ends, down from the stock top"
+            t!(ui, "forms-end-depth-hover")
         });
         flag(ui.add(mm(&mut h.end_depth)), ui, "end_depth");
         ui.end_row();
         match &mut h.method {
             HoleMethod::Drill { peck } => {
-                ui.label("Pecks").on_hover_text(
-                    "Drill this deep at a time, rising out of the hole in between to clear \
-                     the chips",
-                );
+                ui.label(t!(ui, "forms-pecks"))
+                    .on_hover_text(t!(ui, "forms-pecks-hover"));
                 let mut on = peck.is_some();
-                if flag(ui.checkbox(&mut on, "in pecks"), ui, "method.peck").changed() {
+                let check = ui.checkbox(&mut on, t!(ui, "forms-in-pecks"));
+                if flag(check, ui, "method.peck").changed() {
                     *peck = on.then_some(DEFAULT_STEP_DOWN);
                 }
                 ui.end_row();
                 if let Some(peck) = peck {
-                    ui.label("  peck");
+                    ui.label(format!("  {}", t!(ui, "forms-peck")));
                     flag(ui.add(mm(peck)), ui, "method.peck");
                     ui.end_row();
                 }
@@ -999,18 +1052,18 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
                 ramp_angle,
                 direction,
             } => {
-                ui.label("Direction");
+                ui.label(t!(ui, "forms-direction"));
                 direction_combo(ui, ("direction", index), direction);
                 ui.end_row();
-                ui.label("Step per turn")
-                    .on_hover_text("The most the helix goes down in one turn");
+                ui.label(t!(ui, "forms-step-per-turn"))
+                    .on_hover_text(t!(ui, "forms-step-per-turn-hover"));
                 flag(ui.add(mm(step_down)), ui, "method.step_down");
                 ui.end_row();
-                ui.label("Ramp angle")
-                    .on_hover_text("The helix is never steeper than this");
+                ui.label(t!(ui, "forms-ramp-angle"))
+                    .on_hover_text(t!(ui, "forms-bore-ramp-angle-hover"));
                 let mut degrees = ramp_angle.to_degrees();
                 let response = ui.add(
-                    DragValue::new(&mut degrees)
+                    crate::units::number(ui, &mut degrees)
                         .speed(0.1)
                         .range(0.5..=MAX_RAMP_ANGLE_RAD.to_degrees())
                         .suffix("°"),
@@ -1024,19 +1077,30 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
     });
     if matches!(h.method, HoleMethod::Drill { .. }) {
         // A drill only goes down: no cutting feed to show.
-        let text = format!("{} {feed_unit} down", feed_in(units, h.plunge_feed));
-        section(ui, "op-feeds", "Feeds", &text, |ui| {
-            ui.label("Drill feed");
-            wrapped_cell(ui, |ui| {
-                flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
-                if let Some(tool) = tool {
-                    let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
-                    ui.label(RichText::new(load.text_in(units)).weak())
-                        .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
-                }
-            });
-            ui.end_row();
-        });
+        let text = t!(
+            ui,
+            "forms-drill-feeds-summary",
+            feed = feed_in(units, h.plunge_feed),
+            unit = feed_unit
+        );
+        section(
+            ui,
+            "op-feeds",
+            &t!(ui, "forms-section-feeds"),
+            &text,
+            |ui| {
+                ui.label(t!(ui, "forms-drill-feed"));
+                wrapped_cell(ui, |ui| {
+                    flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
+                    if let Some(tool) = tool {
+                        let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
+                        ui.label(RichText::new(load.text_in(units)).weak())
+                            .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+                    }
+                });
+                ui.end_row();
+            },
+        );
     } else {
         feeds_section(ui, &mut h.feed, &mut h.plunge_feed, tool);
     }
@@ -1069,12 +1133,12 @@ impl Holding {
         }
     }
 
-    fn name(self) -> &'static str {
+    fn name(self, ui: &egui::Ui) -> String {
         match self {
-            Holding::None => "none",
-            Holding::Tabs => "tabs",
-            Holding::Skin => "onion skin",
-            Holding::SkinAndTabs => "onion skin and tabs",
+            Holding::None => t!(ui, "forms-holding-none"),
+            Holding::Tabs => t!(ui, "forms-holding-tabs"),
+            Holding::Skin => t!(ui, "forms-holding-skin"),
+            Holding::SkinAndTabs => t!(ui, "forms-holding-skin-tabs"),
         }
     }
 
@@ -1114,92 +1178,101 @@ fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Option<&Tool>)
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
     let holding = Holding::of(p);
-    let mut summary = holding.name().to_string();
-    if let Some(t) = &p.tabs {
-        summary += &format!(
-            ": {} × {} {len_unit}, {} {len_unit} high",
-            t.count,
-            len_in(units, t.width),
-            len_in(units, t.height)
+    let mut summary = holding.name(ui);
+    if let Some(tabs) = &p.tabs {
+        summary = t!(
+            ui,
+            "forms-holding-summary-tabs",
+            holding = summary,
+            count = tabs.count,
+            width = len_in(units, tabs.width),
+            unit = len_unit,
+            height = len_in(units, tabs.height)
         );
     }
     if let Some(skin) = p.skin {
-        summary += &format!(", skin {} {len_unit}", len_in(units, skin.thickness));
-    }
-    section(ui, "op-holding", "Holding", &summary, |ui| {
-        ui.label("Hold the part").on_hover_text(
-            "How a part cut out stays in place.\n\
-             Tabs: bridges left at the bottom of the cut; the part stays attached until you \
-             cut it free.\n\
-             Onion skin: a thin skin left all round during the roughing, then a last lap \
-             after every ring of the operation cuts through it. The part is free during that \
-             lap: add tabs if the parts must not move then.",
+        summary = t!(
+            ui,
+            "forms-holding-summary-skin",
+            summary = summary,
+            thickness = format!("{} {len_unit}", len_in(units, skin.thickness))
         );
-        let mut chosen = holding;
-        ComboBox::from_id_salt("holding")
-            .selected_text(holding.name())
-            .show_ui(ui, |ui| {
-                for choice in Holding::ALL {
-                    ui.selectable_value(&mut chosen, choice, choice.name());
-                }
-            });
-        if chosen != holding {
-            chosen.apply(p, op_tool.and_then(|t| t.center_cutting));
-        }
-        ui.end_row();
-        if let Some(tabs) = &mut p.tabs {
-            ui.label("  tab count");
-            flag(
-                ui.add(DragValue::new(&mut tabs.count).range(1..=100)),
-                ui,
-                "tabs.count",
-            );
+    }
+    section(
+        ui,
+        "op-holding",
+        &t!(ui, "forms-section-holding"),
+        &summary,
+        |ui| {
+            ui.label(t!(ui, "forms-hold-the-part"))
+                .on_hover_text(t!(ui, "forms-hold-the-part-hover"));
+            let mut chosen = holding;
+            ComboBox::from_id_salt("holding")
+                .selected_text(holding.name(ui))
+                .show_ui(ui, |ui| {
+                    for choice in Holding::ALL {
+                        ui.selectable_value(&mut chosen, choice, choice.name(ui));
+                    }
+                });
+            if chosen != holding {
+                chosen.apply(p, op_tool.and_then(|t| t.center_cutting));
+            }
             ui.end_row();
-            ui.label("  width");
-            flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");
-            ui.end_row();
-            ui.label("  height");
-            flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
-            ui.end_row();
-            flank_row(ui, tabs);
-        }
-        if let Some(skin) = &mut p.skin {
-            ui.label("  skin thickness").on_hover_text(
-                "Left above the end depth until the last lap: at most one step down, and \
-                 thinner than the tabs",
-            );
-            flag(ui.add(mm(&mut skin.thickness)), ui, "skin.thickness");
-            ui.end_row();
-        }
-    });
+            if let Some(tabs) = &mut p.tabs {
+                ui.label(format!("  {}", t!(ui, "forms-tab-count")));
+                flag(
+                    ui.add(crate::units::number(ui, &mut tabs.count).range(1..=100)),
+                    ui,
+                    "tabs.count",
+                );
+                ui.end_row();
+                ui.label(format!("  {}", t!(ui, "forms-tab-width")));
+                flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");
+                ui.end_row();
+                ui.label(format!("  {}", t!(ui, "forms-tab-height")));
+                flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
+                ui.end_row();
+                flank_row(ui, tabs);
+            }
+            if let Some(skin) = &mut p.skin {
+                ui.label(format!("  {}", t!(ui, "forms-skin-thickness")))
+                    .on_hover_text(t!(ui, "forms-skin-thickness-hover"));
+                flag(ui.add(mm(&mut skin.thickness)), ui, "skin.thickness");
+                ui.end_row();
+            }
+        },
+    );
 }
 
 /// A profile's finishing pass (docs/specs/finish-and-skin.md).
 fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let summary = p.finish.map_or("none".to_string(), |f| {
-        format!("{} {len_unit} left, then one lap", len_in(units, f.stock))
-    });
-    section(ui, "op-finish", "Finishing pass", &summary, |ui| {
-        ui.label("Finishing pass").on_hover_text(
-            "Rough with this much left on the wall, then cut it away in one light lap at \
-             full depth: a cleaner wall without step marks. The lap goes down in the \
-             roughing's slot, never on the finished wall.",
-        );
+    let summary = match p.finish {
+        None => t!(ui, "forms-finish-none"),
+        Some(f) => t!(
+            ui,
+            "forms-finish-summary",
+            stock = format!("{} {len_unit}", len_in(units, f.stock))
+        ),
+    };
+    let title = t!(ui, "forms-finishing-pass");
+    section(ui, "op-finish", &title, &summary, |ui| {
+        ui.label(t!(ui, "forms-finishing-pass"))
+            .on_hover_text(t!(ui, "forms-finishing-pass-hover"));
         let mut on = p.finish.is_some();
         let response = ui
             .add_enabled(
                 p.side != Side::On || on,
-                egui::Checkbox::new(&mut on, "finishing lap"),
+                egui::Checkbox::new(&mut on, t!(ui, "forms-finishing-lap")),
             )
-            .on_disabled_hover_text("A profile cut on the line has no wall to finish");
+            .on_disabled_hover_text(t!(ui, "forms-finishing-disabled"));
         if flag(response, ui, "finish").changed() {
             p.finish = on.then_some(Finish { stock: 0.3 });
         }
         ui.end_row();
         if let Some(finish) = &mut p.finish {
-            ui.label("  stock");
+            ui.label(format!("  {}", t!(ui, "forms-finish-stock")));
             flag(ui.add(mm(&mut finish.stock)), ui, "finish.stock");
             ui.end_row();
         }
@@ -1209,13 +1282,10 @@ fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
 /// A pocket's lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and
 /// the radius, the tool radius by default.
 fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64) {
-    ui.label("Lead").on_hover_text(
-        "Arc onto the wall from the cleared pocket and off it again, so the tool never \
-         stops against the wall. A lead without room shrinks, or is left out (the report \
-         says so).",
-    );
+    ui.label(t!(ui, "forms-lead"))
+        .on_hover_text(t!(ui, "forms-lead-hover"));
     let mut on = lead.is_some();
-    let response = ui.checkbox(&mut on, "lead-in and lead-out");
+    let response = ui.checkbox(&mut on, t!(ui, "forms-lead-in-out"));
     let response = flag(response, ui, "lead");
     if response.changed() {
         *lead = on.then_some(Lead {
@@ -1224,7 +1294,7 @@ fn lead_rows(ui: &mut egui::Ui, lead: &mut Option<Lead>, tool_diameter: f64) {
     }
     ui.end_row();
     if let Some(lead) = lead {
-        ui.label("  radius");
+        ui.label(format!("  {}", t!(ui, "forms-lead-radius")));
         flag(ui.add(mm(&mut lead.radius)), ui, "lead");
         ui.end_row();
     }
@@ -1240,45 +1310,48 @@ pub(super) fn work_zero_rows(
     here: (f64, f64),
 ) {
     let choices = [
-        (WorkZero::DrawingOrigin {}, "drawing origin"),
+        (
+            WorkZero::DrawingOrigin {},
+            t!(ui, "forms-zero-drawing-origin"),
+        ),
         (
             WorkZero::Stock {
                 corner: StockCorner::Center,
             },
-            "stock centre",
+            t!(ui, "forms-zero-stock-centre"),
         ),
         (
             WorkZero::Stock {
                 corner: StockCorner::BottomLeft,
             },
-            "stock bottom left",
+            t!(ui, "forms-zero-stock-bottom-left"),
         ),
         (
             WorkZero::Stock {
                 corner: StockCorner::BottomRight,
             },
-            "stock bottom right",
+            t!(ui, "forms-zero-stock-bottom-right"),
         ),
         (
             WorkZero::Stock {
                 corner: StockCorner::TopLeft,
             },
-            "stock top left",
+            t!(ui, "forms-zero-stock-top-left"),
         ),
         (
             WorkZero::Stock {
                 corner: StockCorner::TopRight,
             },
-            "stock top right",
+            t!(ui, "forms-zero-stock-top-right"),
         ),
     ];
     let current = *work_zero;
     let selected = choices
         .iter()
         .find(|(choice, _)| *choice == current)
-        .map_or("point", |(_, name)| *name);
-    ui.label("Work zero X Y")
-        .on_hover_text("The point that becomes X0 Y0 in the G-code. The geometry doesn't move.");
+        .map_or(t!(ui, "forms-zero-point"), |(_, name)| name.clone());
+    ui.label(t!(ui, "forms-work-zero"))
+        .on_hover_text(t!(ui, "forms-work-zero-hover"));
     ComboBox::from_id_salt((salt, "work_zero"))
         .selected_text(selected)
         .show_ui(ui, |ui| {
@@ -1287,7 +1360,11 @@ pub(super) fn work_zero_rows(
             }
             let (x, y) = here;
             let is_point = matches!(work_zero, WorkZero::Point { .. });
-            if ui.selectable_label(is_point, "point").clicked() && !is_point {
+            if ui
+                .selectable_label(is_point, t!(ui, "forms-zero-point"))
+                .clicked()
+                && !is_point
+            {
                 *work_zero = WorkZero::Point { x, y };
             }
         });
@@ -1367,43 +1444,38 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
         .num_columns(2)
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
-            ui.label("File");
+            ui.label(t!(ui, "forms-file"));
             ui.label(&source.file);
             ui.end_row();
-            ui.label("Units");
+            ui.label(t!(ui, "forms-units"));
             ui.label(match source.units {
-                Units::Mm => "mm",
-                Units::Inch => "inch (converted to mm)",
+                Units::Mm => "mm".to_string(),
+                Units::Inch => t!(ui, "forms-dxf-inch"),
             });
             ui.end_row();
-            ui.label("Shapes");
+            ui.label(t!(ui, "forms-shapes"));
             ui.label(shapes.to_string());
             ui.end_row();
         });
     let summary = size.map_or(String::new(), |(w, h)| {
         format!("{} × {} {len_unit}", len_in(units, w), len_in(units, h))
     });
-    section(
-        ui,
-        "dxf-place",
-        "Position, rotation and scale",
-        &summary,
-        |ui| {
-            placement_rows(ui, id, source.placement, bbox, &mut request);
-        },
-    );
+    let title = t!(ui, "forms-section-placement");
+    section(ui, "dxf-place", &title, &summary, |ui| {
+        placement_rows(ui, id, source.placement, bbox, &mut request);
+    });
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         if ui
-            .button("Update from a DXF…")
-            .on_hover_text("A new version of the drawing: operations keep their layers")
+            .button(t!(ui, "forms-update-dxf"))
+            .on_hover_text(t!(ui, "forms-update-dxf-hover"))
             .clicked()
         {
             request = Some(JobRequest::UpdateDxf(id));
         }
         if ui
-            .button("Remove")
-            .on_hover_text("Remove this DXF and its shapes")
+            .button(t!(ui, "forms-remove"))
+            .on_hover_text(t!(ui, "forms-remove-dxf-hover"))
             .clicked()
         {
             request = Some(JobRequest::RemoveDxf(id));
@@ -1452,14 +1524,14 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
             if let Some((w, h)) = pixels {
-                ui.label("Picture");
-                ui.label(format!("{w} × {h} pixels"));
+                ui.label(t!(ui, "forms-picture"));
+                ui.label(t!(ui, "forms-picture-pixels", width = w, height = h));
                 ui.end_row();
             }
-            ui.label("Traced as");
+            ui.label(t!(ui, "forms-traced-as"));
             ui.label(match image.trace {
-                ImageTrace::Outline => "outlines",
-                ImageTrace::CentreLine => "centre lines",
+                ImageTrace::Outline => t!(ui, "forms-traced-outlines"),
+                ImageTrace::CentreLine => t!(ui, "forms-traced-centre-lines"),
             });
             ui.end_row();
             // The picture's height follows from its width; its box is turned with it
@@ -1477,8 +1549,8 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 )
             };
             let ((x0, y0), _) = turned(&draft);
-            ui.label("Position")
-                .on_hover_text("The lower-left corner of the picture's box, mm");
+            ui.label(t!(ui, "forms-position"))
+                .on_hover_text(t!(ui, "forms-picture-position-hover"));
             ui.horizontal(|ui| {
                 let (mut cx, mut cy) = (x0, y0);
                 for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
@@ -1488,21 +1560,20 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 // Moving the box's corner moves the picture's own corner as much.
                 draft.x += cx - x0;
                 draft.y += cy - y0;
-                if reset_button(ui, (x0, y0) != (0.0, 0.0), "The box's corner at X0 Y0") {
+                let hover = t!(ui, "forms-picture-reset-position");
+                if reset_button(ui, (x0, y0) != (0.0, 0.0), &hover) {
                     draft.x -= x0;
                     draft.y -= y0;
                     finished = true;
                 }
             });
             ui.end_row();
-            ui.label("Rotation").on_hover_text(
-                "Degrees counter-clockwise, any angle, about the picture's centre. The picture \
-                 is traced as it is, then its shapes are turned.",
-            );
+            ui.label(t!(ui, "forms-rotation"))
+                .on_hover_text(t!(ui, "forms-picture-rotation-hover"));
             ui.horizontal(|ui| {
                 // Turning keeps the picture's centre where it is: x, y stay.
                 let response = ui.add(
-                    DragValue::new(&mut draft.rotation)
+                    crate::units::number(ui, &mut draft.rotation)
                         .speed(1.0)
                         .suffix("°")
                         .max_decimals(3),
@@ -1514,19 +1585,20 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 };
                 if ui
                     .small_button("⟲ 90")
-                    .on_hover_text("90° counter-clockwise")
+                    .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
                     .clicked()
                 {
                     turn(90.0);
                 }
                 if ui
                     .small_button("⟳ 90")
-                    .on_hover_text("90° clockwise")
+                    .on_hover_text(t!(ui, "forms-turn-cw-hover"))
                     .clicked()
                 {
                     turn(-90.0);
                 }
-                if reset_button(ui, draft.rotation != 0.0, "As the picture is (0°)") {
+                let hover = t!(ui, "forms-picture-reset-rotation");
+                if reset_button(ui, draft.rotation != 0.0, &hover) {
                     draft.rotation = 0.0;
                     finished = true;
                 }
@@ -1536,8 +1608,8 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 }
             });
             ui.end_row();
-            ui.label("Width")
-                .on_hover_text("The picture's width before it is turned; the height follows");
+            ui.label(t!(ui, "forms-width"))
+                .on_hover_text(t!(ui, "forms-picture-width-hover"));
             ui.horizontal(|ui| {
                 let response = ui.add(
                     crate::units::length(&mut draft.width)
@@ -1546,15 +1618,13 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 );
                 finished |= response.drag_stopped() || response.lost_focus();
                 if pixels.is_some() {
-                    ui.weak(format!(
-                        "height {} {len_unit}",
-                        len_in(units, draft.width * aspect)
-                    ));
+                    let height = format!("{} {len_unit}", len_in(units, draft.width * aspect));
+                    ui.weak(t!(ui, "forms-picture-height", height = height));
                 }
             });
             ui.end_row();
-            ui.label("Layer")
-                .on_hover_text("The layer its shapes are on, for operations that select it");
+            ui.label(t!(ui, "forms-layer"))
+                .on_hover_text(t!(ui, "forms-picture-layer-hover"));
             let response = ui
                 .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
             finished |= response.lost_focus();
@@ -1567,15 +1637,15 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         if ui
-            .button("Trace settings…")
-            .on_hover_text("Threshold, smoothing, outlines or centre lines, with a preview")
+            .button(t!(ui, "forms-trace-settings"))
+            .on_hover_text(t!(ui, "forms-trace-settings-hover"))
             .clicked()
         {
             request = Some(JobRequest::TraceSettings(id));
         }
         if ui
-            .button("Remove")
-            .on_hover_text("Remove the picture and its shapes")
+            .button(t!(ui, "forms-remove"))
+            .on_hover_text(t!(ui, "forms-remove-picture-hover"))
             .clicked()
         {
             request = Some(JobRequest::RemoveImage(id));
@@ -1630,8 +1700,8 @@ pub(super) fn text_form(
         .num_columns(2)
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
-            ui.label("Text")
-                .on_hover_text("What it says; Enter starts a new line");
+            ui.label(t!(ui, "forms-text"))
+                .on_hover_text(t!(ui, "forms-text-hover"));
             let response = ui.add(
                 TextEdit::multiline(&mut draft.text)
                     .desired_rows(2)
@@ -1642,8 +1712,8 @@ pub(super) fn text_form(
             }
             finished |= response.lost_focus();
             ui.end_row();
-            ui.label("Font")
-                .on_hover_text("A built-in font: plain, script or display (User guide: Text)");
+            ui.label(t!(ui, "forms-font"))
+                .on_hover_text(t!(ui, "forms-font-hover"));
             let before = draft.font.clone();
             egui::ComboBox::from_id_salt(("text-font", id))
                 .selected_text(draft.font.as_str())
@@ -1651,8 +1721,8 @@ pub(super) fn text_form(
                 .show_ui(ui, |ui| font_list(ui, &mut draft.font));
             finished |= draft.font != before;
             ui.end_row();
-            ui.label("Height")
-                .on_hover_text("The height of a capital letter");
+            ui.label(t!(ui, "forms-height"))
+                .on_hover_text(t!(ui, "forms-text-height-hover"));
             let response = ui.add(
                 crate::units::length(&mut draft.height)
                     .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
@@ -1661,20 +1731,20 @@ pub(super) fn text_form(
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
             let (w, h) = size.unwrap_or((0.0, 0.0));
-            ui.label("Anchor").on_hover_text(
-                "What Position is: the lower-left corner of the text's box, or its centre. A \
-                 centred text stays centred when its words, font or size change",
-            );
+            ui.label(t!(ui, "forms-anchor"))
+                .on_hover_text(t!(ui, "forms-anchor-hover"));
             let before = draft.anchor;
             let mut anchor = draft.anchor;
             egui::ComboBox::from_id_salt(("text-anchor", id))
                 .selected_text(match anchor {
-                    TextAnchor::Corner => "lower-left corner",
-                    TextAnchor::Center => "centre",
+                    TextAnchor::Corner => t!(ui, "forms-anchor-corner"),
+                    TextAnchor::Center => t!(ui, "forms-anchor-centre"),
                 })
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut anchor, TextAnchor::Corner, "lower-left corner");
-                    ui.selectable_value(&mut anchor, TextAnchor::Center, "centre");
+                    let corner = t!(ui, "forms-anchor-corner");
+                    ui.selectable_value(&mut anchor, TextAnchor::Corner, corner);
+                    let centre = t!(ui, "forms-anchor-centre");
+                    ui.selectable_value(&mut anchor, TextAnchor::Center, centre);
                 });
             if anchor != before {
                 // The text stays where it is: only what Position means changes.
@@ -1691,10 +1761,11 @@ pub(super) fn text_form(
                 }
             };
             let (x0, y0) = shown(&draft);
-            ui.label("Position").on_hover_text(match draft.anchor {
-                TextAnchor::Corner => "The lower-left corner of the text's box, mm",
-                TextAnchor::Center => "The centre of the text's box, mm",
-            });
+            ui.label(t!(ui, "forms-position"))
+                .on_hover_text(match draft.anchor {
+                    TextAnchor::Corner => t!(ui, "forms-text-position-corner-hover"),
+                    TextAnchor::Center => t!(ui, "forms-text-position-centre-hover"),
+                });
             ui.horizontal(|ui| {
                 let (mut cx, mut cy) = (x0, y0);
                 for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
@@ -1704,18 +1775,19 @@ pub(super) fn text_form(
                 // Moving what is shown moves the text's own position as much.
                 draft.x += cx - x0;
                 draft.y += cy - y0;
-                if reset_button(ui, (x0, y0) != (0.0, 0.0), "At X0 Y0") {
+                let hover = t!(ui, "forms-text-reset-position");
+                if reset_button(ui, (x0, y0) != (0.0, 0.0), &hover) {
                     draft.x -= x0;
                     draft.y -= y0;
                     finished = true;
                 }
             });
             ui.end_row();
-            ui.label("Rotation")
-                .on_hover_text("Degrees counter-clockwise, any angle, about the text's centre");
+            ui.label(t!(ui, "forms-rotation"))
+                .on_hover_text(t!(ui, "forms-text-rotation-hover"));
             ui.horizontal(|ui| {
                 let response = ui.add(
-                    DragValue::new(&mut draft.rotation)
+                    crate::units::number(ui, &mut draft.rotation)
                         .speed(1.0)
                         .suffix("°")
                         .max_decimals(3),
@@ -1727,19 +1799,20 @@ pub(super) fn text_form(
                 };
                 if ui
                     .small_button("⟲ 90")
-                    .on_hover_text("90° counter-clockwise")
+                    .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
                     .clicked()
                 {
                     turn(90.0);
                 }
                 if ui
                     .small_button("⟳ 90")
-                    .on_hover_text("90° clockwise")
+                    .on_hover_text(t!(ui, "forms-turn-cw-hover"))
                     .clicked()
                 {
                     turn(-90.0);
                 }
-                if reset_button(ui, draft.rotation != 0.0, "Level (0°)") {
+                let hover = t!(ui, "forms-text-reset-rotation");
+                if reset_button(ui, draft.rotation != 0.0, &hover) {
                     draft.rotation = 0.0;
                     finished = true;
                 }
@@ -1749,24 +1822,25 @@ pub(super) fn text_form(
                 }
             });
             ui.end_row();
-            ui.label("Align")
-                .on_hover_text("How the lines line up against each other");
+            ui.label(t!(ui, "forms-align"))
+                .on_hover_text(t!(ui, "forms-align-hover"));
             let before = draft.align;
+            let align_name = |ui: &egui::Ui, align: TextAlign| match align {
+                TextAlign::Left => t!(ui, "forms-align-left"),
+                TextAlign::Center => t!(ui, "forms-align-centre"),
+                TextAlign::Right => t!(ui, "forms-align-right"),
+            };
             egui::ComboBox::from_id_salt(("text-align", id))
-                .selected_text(match draft.align {
-                    TextAlign::Left => "left",
-                    TextAlign::Center => "centre",
-                    TextAlign::Right => "right",
-                })
+                .selected_text(align_name(ui, draft.align))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut draft.align, TextAlign::Left, "left");
-                    ui.selectable_value(&mut draft.align, TextAlign::Center, "centre");
-                    ui.selectable_value(&mut draft.align, TextAlign::Right, "right");
+                    for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+                        ui.selectable_value(&mut draft.align, align, align_name(ui, align));
+                    }
                 });
             finished |= draft.align != before;
             ui.end_row();
-            ui.label("Letter spacing")
-                .on_hover_text("Extra space between letters; 0: the font's own");
+            ui.label(t!(ui, "forms-letter-spacing"))
+                .on_hover_text(t!(ui, "forms-letter-spacing-hover"));
             let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
             let response = ui.add(
                 crate::units::length(&mut draft.spacing)
@@ -1775,24 +1849,24 @@ pub(super) fn text_form(
             );
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
-            ui.label("Line spacing")
-                .on_hover_text("From one line's base to the next, in capital heights");
+            ui.label(t!(ui, "forms-line-spacing"))
+                .on_hover_text(t!(ui, "forms-line-spacing-hover"));
             let response = ui.add(
-                DragValue::new(&mut draft.line_spacing)
+                crate::units::number(ui, &mut draft.line_spacing)
                     .range(0.1..=chipload_job::TEXT_MAX_LINE_SPACING)
                     .speed(0.01)
-                    .suffix(" × height"),
+                    .suffix(format!(" {}", t!(ui, "forms-line-spacing-suffix"))),
             );
             finished |= response.drag_stopped() || response.lost_focus();
             ui.end_row();
-            ui.label("Layer")
-                .on_hover_text("The layer its letters are on, for operations that select it");
+            ui.label(t!(ui, "forms-layer"))
+                .on_hover_text(t!(ui, "forms-text-layer-hover"));
             let response = ui
                 .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
             finished |= response.lost_focus();
             ui.end_row();
             if let Some((w, h)) = size {
-                ui.label("Size");
+                ui.label(t!(ui, "forms-size"));
                 ui.weak(format!(
                     "{} × {} {len_unit}",
                     len_in(units, w),
@@ -1807,8 +1881,8 @@ pub(super) fn text_form(
     ui.data_mut(|d| d.insert_temp(key, (stored, draft)));
     ui.add_space(4.0);
     if ui
-        .button("Remove")
-        .on_hover_text("Remove the text and its letters")
+        .button(t!(ui, "forms-remove"))
+        .on_hover_text(t!(ui, "forms-remove-text-hover"))
         .clicked()
     {
         request = Some(JobRequest::RemoveText(id));
@@ -1831,7 +1905,8 @@ pub(super) fn job_form(
     let mut request = None;
     let mut copies_request = None;
     let job = &mut edit.settings;
-    super::browser::title_line(ui, crate::icons::Icon::Settings, None, "Job settings");
+    let title = t!(ui, "forms-job-settings");
+    super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
 
     let stock = format!(
         "{} × {} × {} {len_unit}",
@@ -1839,67 +1914,68 @@ pub(super) fn job_form(
         len_in(units, job.stock.y),
         len_in(units, job.stock.thickness)
     );
-    section(ui, "job-stock", "Stock", &stock, |ui| {
-        ui.label("Size X × Y");
-        ui.horizontal(|ui| {
-            flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
-            flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
-        });
-        ui.end_row();
-        ui.label("Thickness");
-        flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
-        ui.end_row();
-        ui.label("Max depth below stock").on_hover_text(
-            "How far a cut may go below the stock (into the spoilboard). Cuts within it are \
-             warned about; deeper ones are refused.",
-        );
-        flag(
-            ui.add(mm(&mut job.stock.max_overcut)),
-            ui,
-            "stock.max_overcut",
-        );
-        ui.end_row();
-        // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
-        // zero: that's the work zero below (docs/specs/work-zero.md).
-        ui.label("Stock position");
-        ComboBox::from_id_salt("origin")
-            .selected_text(match job.stock.origin {
-                StockOrigin::BottomLeft => "corner at drawing origin",
-                StockOrigin::Center => "centred on drawing origin",
-            })
-            .show_ui(ui, |ui| {
-                ui.selectable_value(
-                    &mut job.stock.origin,
-                    StockOrigin::BottomLeft,
-                    "corner at drawing origin",
-                );
-                ui.selectable_value(
-                    &mut job.stock.origin,
-                    StockOrigin::Center,
-                    "centred on drawing origin",
-                );
+    section(
+        ui,
+        "job-stock",
+        &t!(ui, "forms-section-stock"),
+        &stock,
+        |ui| {
+            ui.label(t!(ui, "forms-stock-size"));
+            ui.horizontal(|ui| {
+                flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+                flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
             });
-        ui.end_row();
-        let here = job.work_zero_xy();
-        work_zero_rows(ui, "job", &mut job.machine.work_zero, here);
-        ui.label("Z zero");
-        ComboBox::from_id_salt("z_zero")
-            .selected_text(match job.stock.z_zero {
-                ZZero::Top => "stock top",
-                ZZero::Bottom => "stock bottom",
-            })
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut job.stock.z_zero, ZZero::Top, "stock top");
-                ui.selectable_value(&mut job.stock.z_zero, ZZero::Bottom, "stock bottom");
-            });
-        ui.end_row();
-    });
+            ui.end_row();
+            ui.label(t!(ui, "forms-thickness"));
+            flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
+            ui.end_row();
+            ui.label(t!(ui, "forms-max-overcut"))
+                .on_hover_text(t!(ui, "forms-max-overcut-hover"));
+            flag(
+                ui.add(mm(&mut job.stock.max_overcut)),
+                ui,
+                "stock.max_overcut",
+            );
+            ui.end_row();
+            // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
+            // zero: that's the work zero below (docs/specs/work-zero.md).
+            ui.label(t!(ui, "forms-stock-position"));
+            let origin_name = |ui: &egui::Ui, origin: StockOrigin| match origin {
+                StockOrigin::BottomLeft => t!(ui, "forms-stock-corner-at-origin"),
+                StockOrigin::Center => t!(ui, "forms-stock-centred-on-origin"),
+            };
+            ComboBox::from_id_salt("origin")
+                .selected_text(origin_name(ui, job.stock.origin))
+                .show_ui(ui, |ui| {
+                    for origin in [StockOrigin::BottomLeft, StockOrigin::Center] {
+                        ui.selectable_value(&mut job.stock.origin, origin, origin_name(ui, origin));
+                    }
+                });
+            ui.end_row();
+            let here = job.work_zero_xy();
+            work_zero_rows(ui, "job", &mut job.machine.work_zero, here);
+            ui.label(t!(ui, "forms-z-zero"));
+            let z_name = |ui: &egui::Ui, z: ZZero| match z {
+                ZZero::Top => t!(ui, "forms-z-zero-top"),
+                ZZero::Bottom => t!(ui, "forms-z-zero-bottom"),
+            };
+            ComboBox::from_id_salt("z_zero")
+                .selected_text(z_name(ui, job.stock.z_zero))
+                .show_ui(ui, |ui| {
+                    for z in [ZZero::Top, ZZero::Bottom] {
+                        ui.selectable_value(&mut job.stock.z_zero, z, z_name(ui, z));
+                    }
+                });
+            ui.end_row();
+        },
+    );
 
-    let machine = format!(
-        "{}, safe Z {} {len_unit}, {}",
-        job.machine.post,
-        len_in(units, job.machine.safe_z),
-        match job.machine.spindle {
+    let machine = t!(
+        ui,
+        "forms-machine-summary",
+        post = job.machine.post.as_str(),
+        safe_z = format!("{} {len_unit}", len_in(units, job.machine.safe_z)),
+        spindle = match job.machine.spindle {
             Spindle::Cw => "M3",
             Spindle::Ccw => "M4",
         }
@@ -1915,38 +1991,41 @@ pub(super) fn job_form(
         .is_some_and(|p| p.machine_changes(&job.machine).is_empty());
     let edit_here = egui::Id::new("job-machine-edit-here");
     let editing = ui.data(|d| d.get_temp::<bool>(edit_here).unwrap_or(false));
-    section(ui, "job-machine", "Machine", &machine, |ui| {
-        match &profile {
-            Some(p) if same && !editing => {
-                ui.label("From machine");
-                ui.horizontal(|ui| {
-                    ui.strong(&p.name);
-                    if ui
-                        .button("Edit here")
-                        .on_hover_text(
-                            "Change the machine's values for this project only; it stays \
-                             linked, and shows what differs",
-                        )
-                        .clicked()
+    section(
+        ui,
+        "job-machine",
+        &t!(ui, "forms-section-machine"),
+        &machine,
+        |ui| {
+            match &profile {
+                Some(p) if same && !editing => {
+                    ui.label(t!(ui, "forms-from-machine"));
+                    ui.horizontal(|ui| {
+                        ui.strong(&p.name);
+                        if ui
+                            .button(t!(ui, "forms-edit-here"))
+                            .on_hover_text(t!(ui, "forms-edit-here-hover"))
+                            .clicked()
+                        {
+                            ui.data_mut(|d| d.insert_temp(edit_here, true));
+                        }
+                    });
+                    ui.end_row();
+                    machine_text_rows(ui, &job.machine);
+                }
+                _ => {
+                    if let Some(post) =
+                        machine_rows(ui, "job", &mut job.machine, library, profile.as_ref())
                     {
-                        ui.data_mut(|d| d.insert_temp(edit_here, true));
+                        copies_request = Some(JobRequest::Post(post));
                     }
-                });
-                ui.end_row();
-                machine_text_rows(ui, &job.machine);
-            }
-            _ => {
-                if let Some(post) =
-                    machine_rows(ui, "job", &mut job.machine, library, profile.as_ref())
-                {
-                    copies_request = Some(JobRequest::Post(post));
                 }
             }
-        }
-        safe_z_row(ui, "Safe Z (this job)", &mut job.machine);
-        post_copy_row(ui, &job.machine, library, &mut copies_request);
-        library_rows(ui, &mut request, LibraryRows::machine(job, library));
-    });
+            safe_z_row(ui, &t!(ui, "forms-safe-z-job"), &mut job.machine);
+            post_copy_row(ui, &job.machine, library, &mut copies_request);
+            library_rows(ui, &mut request, LibraryRows::machine(job, library));
+        },
+    );
 
     copies_request.or(request.map(JobRequest::Library))
 }
@@ -1985,14 +2064,15 @@ pub(super) fn tools_form(
     library: Option<&Library>,
 ) -> Option<JobRequest> {
     let mut request = None;
-    super::browser::title_line(ui, crate::icons::Icon::Tools, None, "Tools");
+    let title = t!(ui, "forms-tools");
+    super::browser::title_line(ui, crate::icons::Icon::Tools, None, &title);
     ui.horizontal(|ui| {
         let names: Vec<String> = library
             .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect())
             .unwrap_or_default();
         ui.add_enabled_ui(!names.is_empty(), |ui| {
             ComboBox::from_id_salt("add-library-tool")
-                .selected_text("Add from library…")
+                .selected_text(t!(ui, "forms-add-from-library"))
                 .show_ui(ui, |ui| {
                     for name in names {
                         if ui.selectable_label(false, &name).clicked() {
@@ -2002,8 +2082,8 @@ pub(super) fn tools_form(
                 });
         });
         if ui
-            .button("New tool")
-            .on_hover_text("A 6 mm endmill to edit; operations pick it in their Tool row")
+            .button(t!(ui, "forms-new-tool"))
+            .on_hover_text(t!(ui, "forms-new-tool-hover"))
             .clicked()
         {
             let job = &mut edit.settings;
@@ -2028,8 +2108,8 @@ pub(super) fn tools_form(
         let id = edit.settings.tools[index].id;
         let users = tool_users(edit, id);
         let summary = match users.len() {
-            0 => "not used".to_string(),
-            _ => format!("operations {}", users.join(", ")),
+            0 => t!(ui, "forms-tool-not-used"),
+            _ => t!(ui, "forms-tool-used-by", operations = users.join(", ")),
         };
         let title = tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx()));
         let at = format!("tools.{index}");
@@ -2076,8 +2156,8 @@ pub(super) fn tool_form(
         &tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx())),
     );
     ui.weak(match users.len() {
-        0 => "Not used by an operation".to_string(),
-        _ => format!("Cuts operations {}", users.join(", ")),
+        0 => t!(ui, "forms-tool-not-used-long"),
+        _ => t!(ui, "forms-tool-cuts", operations = users.join(", ")),
     });
     let at = format!("tools.{index}");
     let tool = &mut edit.settings.tools[index];
@@ -2109,14 +2189,18 @@ fn tool_body(
     library_rows(ui, request, LibraryRows::tool(tool, library));
     tool_rows(ui, &salt, at, tool);
     ui.label("");
-    let button = ui.add_enabled(users.is_empty(), egui::Button::new("Remove tool"));
+    let button = ui.add_enabled(
+        users.is_empty(),
+        egui::Button::new(t!(ui, "forms-remove-tool")),
+    );
     let mut remove = false;
     if users.is_empty() {
         remove = button.clicked();
     } else {
-        button.on_disabled_hover_text(format!(
-            "Used by operations {}; give them another tool first",
-            users.join(", ")
+        button.on_disabled_hover_text(t!(
+            ui,
+            "forms-remove-tool-disabled",
+            operations = users.join(", ")
         ));
     }
     ui.end_row();
@@ -2163,7 +2247,8 @@ fn feed_in(units: Units, mm_per_min: f64) -> String {
 
 /// A small reset button after a row; true when clicked.
 fn reset_button(ui: &mut egui::Ui, enabled: bool, hover: &str) -> bool {
-    super::header::icon_button(ui, crate::icons::Icon::Undo, "Reset", enabled, false, 18.0)
+    let label = t!(ui, "forms-reset");
+    super::header::icon_button(ui, crate::icons::Icon::Undo, &label, enabled, false, 18.0)
         .on_hover_text(hover)
         .clicked()
 }
@@ -2183,10 +2268,8 @@ pub(super) fn placement_rows(
     let mut place = |how: PlaceMove| *request = Some(JobRequest::Place(dxf, how));
     let salt = |what: &str| egui::Id::new(("dxf-place", dxf, what.to_string()));
     if let Some(((x0, y0), _)) = bbox {
-        ui.label("Position").on_hover_text(
-            "The lower-left corner of the drawing's box, mm. Shapes drawn in Chipload and \
-             other DXFs don't move.",
-        );
+        ui.label(t!(ui, "forms-position"))
+            .on_hover_text(t!(ui, "forms-dxf-position-hover"));
         ui.horizontal(|ui| {
             if let Some(x) =
                 finished_number(ui, salt("x"), x0, |ui, v| ui.add(mm_field(v).prefix("X ")))
@@ -2199,11 +2282,8 @@ pub(super) fn placement_rows(
                 place(PlaceMove::Corner(x0, y));
             }
             let moved = (placement.dx, placement.dy) != (0.0, 0.0);
-            if reset_button(
-                ui,
-                moved,
-                "Back to where the DXF has it (turn and scale stay)",
-            ) {
+            let hover = t!(ui, "forms-dxf-reset-position");
+            if reset_button(ui, moved, &hover) {
                 place(PlaceMove::To(0.0, 0.0));
             }
         });
@@ -2211,9 +2291,11 @@ pub(super) fn placement_rows(
         ui.label("");
         ui.horizontal(|ui| {
             if ui
-                .small_button("Bottom left")
-                .on_hover_text(format!(
-                    "The drawing's corner {PLACE_MARGIN} mm in from the stock's lower-left corner"
+                .small_button(t!(ui, "forms-bottom-left"))
+                .on_hover_text(t!(
+                    ui,
+                    "forms-bottom-left-hover",
+                    margin = format!("{PLACE_MARGIN} mm")
                 ))
                 .clicked()
             {
@@ -2222,8 +2304,8 @@ pub(super) fn placement_rows(
                 });
             }
             if ui
-                .small_button("Centre")
-                .on_hover_text("The drawing's centre on the stock's centre")
+                .small_button(t!(ui, "forms-centre"))
+                .on_hover_text(t!(ui, "forms-centre-hover"))
                 .clicked()
             {
                 place(PlaceMove::Center);
@@ -2231,44 +2313,47 @@ pub(super) fn placement_rows(
         });
         ui.end_row();
     }
-    ui.label("Rotation").on_hover_text(
-        "Degrees counter-clockwise from the DXF as drawn, any angle, about the drawing's centre",
-    );
+    ui.label(t!(ui, "forms-rotation"))
+        .on_hover_text(t!(ui, "forms-dxf-rotation-hover"));
     ui.horizontal(|ui| {
         let current = placement.rotation;
         if let Some(degrees) = finished_number(ui, salt("rotation"), current, |ui, v| {
-            ui.add(DragValue::new(v).speed(1.0).suffix("°").max_decimals(3))
+            ui.add(
+                crate::units::number(ui, v)
+                    .speed(1.0)
+                    .suffix("°")
+                    .max_decimals(3),
+            )
         }) {
             place(PlaceMove::Rotate(degrees - current));
         }
         if ui
             .small_button("⟲ 90")
-            .on_hover_text("90° counter-clockwise")
+            .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
             .clicked()
         {
             place(PlaceMove::Rotate(90.0));
         }
         if ui
             .small_button("⟳ 90")
-            .on_hover_text("90° clockwise")
+            .on_hover_text(t!(ui, "forms-turn-cw-hover"))
             .clicked()
         {
             place(PlaceMove::Rotate(-90.0));
         }
-        if reset_button(ui, current != 0.0, "Back to the DXF's own angle (0°)") {
+        let hover = t!(ui, "forms-dxf-reset-rotation");
+        if reset_button(ui, current != 0.0, &hover) {
             place(PlaceMove::Rotate(-current));
         }
     });
     ui.end_row();
-    ui.label("Scale").on_hover_text(
-        "From the DXF as drawn, about the drawing's centre. Tool sizes, depths and tabs \
-         don't scale.",
-    );
+    ui.label(t!(ui, "forms-scale"))
+        .on_hover_text(t!(ui, "forms-scale-hover"));
     ui.horizontal(|ui| {
         let current = placement.scale;
         if let Some(scale) = finished_number(ui, salt("scale"), current, |ui, v| {
             ui.add(
-                DragValue::new(v)
+                crate::units::number(ui, v)
                     .speed(0.01)
                     .range(Placement::MIN_SCALE..=Placement::MAX_SCALE)
                     .max_decimals(6)
@@ -2277,13 +2362,14 @@ pub(super) fn placement_rows(
         }) {
             place(PlaceMove::Scale(scale / current));
         }
-        if reset_button(ui, current != 1.0, "Back to the DXF's own size (× 1)") {
+        let hover = t!(ui, "forms-dxf-reset-scale");
+        if reset_button(ui, current != 1.0, &hover) {
             place(PlaceMove::Scale(1.0 / current));
         }
     });
     ui.end_row();
     if let Some(((x0, y0), (x1, y1))) = bbox {
-        ui.label("Size");
+        ui.label(t!(ui, "forms-size"));
         ui.label(format!(
             "{} × {} {len_unit}",
             len_in(units, x1 - x0),
@@ -2309,48 +2395,51 @@ pub(super) fn part_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Optio
         ui,
         crate::icons::Icon::Part,
         None,
-        &format!("Part {} · {}", index + 1, part.name),
+        &format!(
+            "{} · {}",
+            t!(ui, "forms-part-number", number = index + 1),
+            part.name
+        ),
     );
     let at = |field: &str| format!("parts.{index}.{field}");
     Grid::new(("part-form", id))
         .num_columns(2)
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
-            ui.label("Name");
+            ui.label(t!(ui, "forms-name"));
             let response =
                 ui.add(TextEdit::singleline(&mut part.name).desired_width(field_width(ui, 200.0)));
             flag(response, ui, &at("name"));
             ui.end_row();
-            ui.label("Cut")
-                .on_hover_text("Off: the part and its operations stay in the project, not cut");
-            ui.checkbox(&mut part.enabled, "this part and its operations");
+            ui.label(t!(ui, "forms-part-cut"))
+                .on_hover_text(t!(ui, "forms-part-cut-hover"));
+            ui.checkbox(&mut part.enabled, t!(ui, "forms-part-cut-check"));
             ui.end_row();
-            ui.label("Active").on_hover_text(
-                "New operations go into the active part. Right-click a part to activate it",
-            );
+            ui.label(t!(ui, "forms-active"))
+                .on_hover_text(t!(ui, "forms-active-hover"));
             if active {
-                ui.label("yes: new operations go here");
-            } else if ui.button("Activate").clicked() {
+                ui.label(t!(ui, "forms-active-yes"));
+            } else if ui.button(t!(ui, "forms-activate")).clicked() {
                 request = Some(JobRequest::Activate(id));
             }
             ui.end_row();
-            ui.label("Operations");
+            ui.label(t!(ui, "forms-operations"));
             ui.label(if numbers.is_empty() {
-                "none yet".to_string()
+                t!(ui, "forms-operations-none")
             } else {
                 numbers.join(", ")
             });
             ui.end_row();
         });
-    let copies = part.copies.map_or("one".to_string(), |c| {
+    let copies = part.copies.map_or(t!(ui, "forms-copies-one"), |c| {
         format!("{} × {} = {}", c.columns, c.rows, c.count())
     });
-    section(ui, "part-copies", "Copies", &copies, |ui| {
+    section(ui, "part-copies", &t!(ui, "forms-copies"), &copies, |ui| {
         copies_rows(ui, &mut part.copies, &mut request, &at("copies"), id);
     });
     if several {
         ui.add_space(4.0);
-        ui.weak("Parts are cut one after the other, each with its copies.");
+        ui.weak(t!(ui, "forms-parts-note"));
     }
     request
 }
@@ -2364,12 +2453,10 @@ fn copies_rows(
     at: &str,
     part: u64,
 ) {
-    ui.label("Copies").on_hover_text(
-        "Cut the part several times in a grid. The copies are drawn faded; only the drawing \
-         itself can be selected.",
-    );
+    ui.label(t!(ui, "forms-copies"))
+        .on_hover_text(t!(ui, "forms-copies-hover"));
     let mut on = copies.is_some();
-    if ui.checkbox(&mut on, "several, in a grid").changed() {
+    if ui.checkbox(&mut on, t!(ui, "forms-copies-grid")).changed() {
         *copies = on.then_some(Copies {
             columns: 2,
             rows: 1,
@@ -2385,24 +2472,24 @@ fn copies_rows(
     let Some(grid) = copies else {
         return;
     };
-    ui.label("  columns × rows");
+    ui.label(format!("  {}", t!(ui, "forms-columns-rows")));
     ui.horizontal(|ui| {
         let count = 1..=MAX_COPIES_PER_SIDE;
         flag(
-            ui.add(DragValue::new(&mut grid.columns).range(count.clone())),
+            ui.add(crate::units::number(ui, &mut grid.columns).range(count.clone())),
             ui,
             &format!("{at}.columns"),
         );
         flag(
-            ui.add(DragValue::new(&mut grid.rows).range(count)),
+            ui.add(crate::units::number(ui, &mut grid.rows).range(count)),
             ui,
             &format!("{at}.rows"),
         );
         ui.label(format!("= {}", grid.count()));
     });
     ui.end_row();
-    ui.label("  pitch X Y")
-        .on_hover_text("Copy to copy, mm. Negative grows to the left or down.");
+    ui.label(format!("  {}", t!(ui, "forms-pitch")))
+        .on_hover_text(t!(ui, "forms-pitch-hover"));
     ui.horizontal(|ui| {
         for (name, value) in [("dx", &mut grid.dx), ("dy", &mut grid.dy)] {
             let response = ui.add(
@@ -2414,21 +2501,19 @@ fn copies_rows(
         }
     });
     ui.end_row();
-    ui.label("  gap").on_hover_text(
-        "Sets the pitch once so this much is left between the cuts of neighbouring copies. \
-         The project keeps the pitch.",
-    );
+    ui.label(format!("  {}", t!(ui, "forms-gap")))
+        .on_hover_text(t!(ui, "forms-gap-hover"));
     ui.horizontal(|ui| {
         let id = egui::Id::new(("copies-gap", part));
         let mut gap = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_COPIES_GAP));
         ui.add(mm(&mut gap));
         ui.data_mut(|d| d.insert_temp(id, gap));
-        if ui.button("Set pitch").clicked() {
+        if ui.button(t!(ui, "forms-set-pitch")).clicked() {
             *request = Some(JobRequest::CopiesGap(part, gap));
         }
     });
     ui.end_row();
-    ui.label("  order");
+    ui.label(format!("  {}", t!(ui, "forms-order")));
     ComboBox::from_id_salt("copies-order")
         .selected_text(order_name(grid.order))
         .show_ui(ui, |ui| {
@@ -2454,7 +2539,7 @@ pub(super) fn machine_rows(
     let mut picked = None;
     let from = profile.map(MachineProfile::machine);
     let from = from.as_ref();
-    ui.label("Post");
+    ui.label(t!(ui, "forms-post"));
     ui.horizontal(|ui| {
         ComboBox::from_id_salt((salt, "post"))
             .selected_text(machine.post.clone())
@@ -2469,7 +2554,7 @@ pub(super) fn machine_rows(
                     ui.separator();
                 }
                 for (name, read) in yours {
-                    let label = format!("{name} (yours)");
+                    let label = t!(ui, "forms-post-yours", name = name.as_str());
                     let response = ui.add_enabled(
                         read.is_ok(),
                         egui::Button::selectable(machine.post == *name, label),
@@ -2483,8 +2568,12 @@ pub(super) fn machine_rows(
             })
             .response
             .on_hover_text(match library.and_then(|l| l.posts.as_deref()) {
-                Some(dir) => format!("Your own post-processors go in {}", dir.display()),
-                None => "The built-in post-processors".into(),
+                Some(dir) => t!(
+                    ui,
+                    "forms-post-folder-hover",
+                    folder = dir.display().to_string()
+                ),
+                None => t!(ui, "forms-post-builtin-hover"),
             });
         if let Some(from) = from
             && from.post != machine.post
@@ -2494,44 +2583,44 @@ pub(super) fn machine_rows(
         }
     });
     ui.end_row();
-    ui.label("G-code units").on_hover_text(
-        "The units the G-code is written in: mm (G21) or inches (G20), as your controller \
-         is set. Everything else in the project stays in mm",
-    );
+    ui.label(t!(ui, "forms-gcode-units"))
+        .on_hover_text(t!(ui, "forms-gcode-units-hover"));
     ui.horizontal(|ui| {
         let row = ComboBox::from_id_salt((salt, "gcode-units"))
-            .selected_text(gcode_units_text(machine.gcode_units))
+            .selected_text(gcode_units_text(ui, machine.gcode_units))
             .show_ui(ui, |ui| {
                 for units in [Units::Mm, Units::Inch] {
-                    ui.selectable_value(&mut machine.gcode_units, units, gcode_units_text(units));
+                    let text = gcode_units_text(ui, units);
+                    ui.selectable_value(&mut machine.gcode_units, units, text);
                 }
             });
         flag(row.response, ui, "machine.gcode_units");
         if let Some(from) = from
             && from.gcode_units != machine.gcode_units
-            && revert_mark(ui, profile, gcode_units_text(from.gcode_units))
+            && revert_mark(ui, profile, &gcode_units_text(ui, from.gcode_units))
         {
             machine.gcode_units = from.gcode_units;
         }
     });
     ui.end_row();
-    ui.label("Spindle");
+    ui.label(t!(ui, "forms-spindle"));
     ui.horizontal(|ui| {
         ComboBox::from_id_salt((salt, "spindle"))
-            .selected_text(spindle_text(machine.spindle))
+            .selected_text(spindle_text(ui, machine.spindle))
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut machine.spindle, Spindle::Cw, "cw (M3)");
-                ui.selectable_value(&mut machine.spindle, Spindle::Ccw, "ccw (M4)");
+                for spindle in [Spindle::Cw, Spindle::Ccw] {
+                    ui.selectable_value(&mut machine.spindle, spindle, spindle_text(ui, spindle));
+                }
             });
         if let Some(from) = from
             && from.spindle != machine.spindle
-            && revert_mark(ui, profile, spindle_text(from.spindle))
+            && revert_mark(ui, profile, &spindle_text(ui, from.spindle))
         {
             machine.spindle = from.spindle;
         }
     });
     ui.end_row();
-    ui.label("Max feed");
+    ui.label(t!(ui, "forms-max-feed"));
     ui.horizontal(|ui| {
         let mut set = machine.max_feed.is_some();
         if ui.checkbox(&mut set, "").changed() {
@@ -2542,38 +2631,32 @@ pub(super) fn machine_rows(
         }
         if let Some(from) = from
             && from.max_feed != machine.max_feed
-            && revert_mark(
-                ui,
-                profile,
-                &max_feed_text(from.max_feed, crate::units::display(ui.ctx())),
-            )
+            && revert_mark(ui, profile, &max_feed_text(ui, from.max_feed))
         {
             machine.max_feed = from.max_feed;
         }
     });
     ui.end_row();
-    ui.label("Tool changes").on_hover_text(
-        "With several tools: one G-code file per tool (change the tool and set Z zero \
-         between files), or one file with M6 tool changes that your sender handles \
-         (GRBL itself refuses M6)",
-    );
+    ui.label(t!(ui, "forms-tool-changes"))
+        .on_hover_text(t!(ui, "forms-tool-changes-hover"));
     ui.horizontal(|ui| {
         ComboBox::from_id_salt((salt, "tool-change"))
-            .selected_text(tool_change_name(machine.tool_change))
+            .selected_text(tool_change_name(ui, machine.tool_change))
             .show_ui(ui, |ui| {
                 for change in [ToolChange::Files, ToolChange::Program] {
-                    ui.selectable_value(&mut machine.tool_change, change, tool_change_name(change));
+                    let name = tool_change_name(ui, change);
+                    ui.selectable_value(&mut machine.tool_change, change, name);
                 }
             });
         if let Some(from) = from
             && from.tool_change != machine.tool_change
-            && revert_mark(ui, profile, tool_change_name(from.tool_change))
+            && revert_mark(ui, profile, &tool_change_name(ui, from.tool_change))
         {
             machine.tool_change = from.tool_change;
         }
     });
     ui.end_row();
-    ui.label("Travel X Y Z");
+    ui.label(t!(ui, "forms-travel"));
     ui.horizontal(|ui| {
         let mut set = machine.travel.is_some();
         if ui.checkbox(&mut set, "").changed() {
@@ -2590,11 +2673,7 @@ pub(super) fn machine_rows(
         }
         if let Some(from) = from
             && from.travel != machine.travel
-            && revert_mark(
-                ui,
-                profile,
-                &travel_text(from.travel.as_ref(), crate::units::display(ui.ctx())),
-            )
+            && revert_mark(ui, profile, &travel_text(ui, from.travel.as_ref()))
         {
             machine.travel = from.travel.clone();
         }
@@ -2607,23 +2686,23 @@ pub(super) fn machine_rows(
 /// (docs/specs/linked-machine.md §3).
 fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
     for (label, value) in [
-        ("Post", machine.post.clone()),
+        (t!(ui, "forms-post"), machine.post.clone()),
         (
-            "G-code units",
-            gcode_units_text(machine.gcode_units).to_string(),
+            t!(ui, "forms-gcode-units"),
+            gcode_units_text(ui, machine.gcode_units),
         ),
-        ("Spindle", spindle_text(machine.spindle).to_string()),
+        (t!(ui, "forms-spindle"), spindle_text(ui, machine.spindle)),
         (
-            "Max feed",
-            max_feed_text(machine.max_feed, crate::units::display(ui.ctx())),
-        ),
-        (
-            "Tool changes",
-            tool_change_name(machine.tool_change).to_string(),
+            t!(ui, "forms-max-feed"),
+            max_feed_text(ui, machine.max_feed),
         ),
         (
-            "Travel X Y Z",
-            travel_text(machine.travel.as_ref(), crate::units::display(ui.ctx())),
+            t!(ui, "forms-tool-changes"),
+            tool_change_name(ui, machine.tool_change),
+        ),
+        (
+            t!(ui, "forms-travel"),
+            travel_text(ui, machine.travel.as_ref()),
         ),
     ] {
         ui.label(label);
@@ -2633,17 +2712,16 @@ fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
 }
 
 /// "mm (G21)" or "inch (G20)".
-fn gcode_units_text(units: Units) -> &'static str {
+fn gcode_units_text(ui: &egui::Ui, units: Units) -> String {
     match units {
-        Units::Mm => "mm (G21)",
-        Units::Inch => "inch (G20)",
+        Units::Mm => t!(ui, "forms-gcode-mm"),
+        Units::Inch => t!(ui, "forms-gcode-inch"),
     }
 }
 
 /// Safe Z: a job value, editable also while the machine is linked.
 pub(super) fn safe_z_row(ui: &mut egui::Ui, label: &str, machine: &mut Machine) {
-    ui.label(label)
-        .on_hover_text("The height for rapid moves sideways, above the stock and its clamps");
+    ui.label(label).on_hover_text(t!(ui, "forms-safe-z-hover"));
     flag(
         ui.add(crate::units::length(&mut machine.safe_z).speed(0.1)),
         ui,
@@ -2657,27 +2735,29 @@ pub(super) fn safe_z_row(ui: &mut egui::Ui, label: &str, machine: &mut Machine) 
 fn revert_mark(ui: &mut egui::Ui, profile: Option<&MachineProfile>, value: &str) -> bool {
     let name = profile.map_or("", |p| p.name.as_str());
     super::header::icon_button(ui, crate::icons::Icon::Undo, "", true, false, 18.0)
-        .on_hover_text(format!("\"{name}\" has {value}: click to take it"))
+        .on_hover_text(t!(ui, "forms-revert-hover", name = name, value = value))
         .clicked()
 }
 
-fn spindle_text(spindle: Spindle) -> &'static str {
+fn spindle_text(ui: &egui::Ui, spindle: Spindle) -> String {
     match spindle {
-        Spindle::Cw => "cw (M3)",
-        Spindle::Ccw => "ccw (M4)",
+        Spindle::Cw => t!(ui, "forms-spindle-cw"),
+        Spindle::Ccw => t!(ui, "forms-spindle-ccw"),
     }
 }
 
-fn max_feed_text(max: Option<f64>, units: Units) -> String {
+fn max_feed_text(ui: &egui::Ui, max: Option<f64>) -> String {
+    let units = crate::units::display(ui.ctx());
     let feed_unit = chipload_pipeline::units::feed_unit(units);
-    max.map_or("not set".into(), |f| {
+    max.map_or(t!(ui, "forms-max-feed-not-set"), |f| {
         format!("{} {feed_unit}", feed_in(units, f))
     })
 }
 
-fn travel_text(travel: Option<&Travel>, units: Units) -> String {
+fn travel_text(ui: &egui::Ui, travel: Option<&Travel>) -> String {
+    let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    travel.map_or("not checked".into(), |t| {
+    travel.map_or(t!(ui, "forms-travel-not-checked"), |t| {
         format!(
             "{} × {} × {} {len_unit}",
             len_in(units, t.x),
@@ -2702,14 +2782,14 @@ fn post_copy_row(
     ui.label("");
     match file.map(|(_, read)| read) {
         Some(Ok(read)) if read.config == copy.config && read.template == copy.template => {
-            ui.label(RichText::new("Yours, copied into the project").weak());
+            ui.label(RichText::new(t!(ui, "forms-post-yours-copied")).weak());
         }
         Some(Ok(_)) => {
             ui.horizontal(|ui| {
-                ui.colored_label(ui.visuals().warn_fg_color, "Your post file has changed");
+                ui.colored_label(ui.visuals().warn_fg_color, t!(ui, "forms-post-changed"));
                 if ui
-                    .button("Update")
-                    .on_hover_text("Copy the post as it is now into the project")
+                    .button(t!(ui, "forms-post-update"))
+                    .on_hover_text(t!(ui, "forms-post-update-hover"))
                     .clicked()
                 {
                     *request = Some(JobRequest::Post(machine.post.clone()));
@@ -2717,25 +2797,23 @@ fn post_copy_row(
             });
         }
         _ => {
-            ui.label(
-                RichText::new("Yours; the project keeps its copy (the file isn't there)").weak(),
-            );
+            ui.label(RichText::new(t!(ui, "forms-post-file-missing")).weak());
         }
     }
     ui.end_row();
 }
 
-fn tool_change_name(change: ToolChange) -> &'static str {
+fn tool_change_name(ui: &egui::Ui, change: ToolChange) -> String {
     match change {
-        ToolChange::Files => "one file per tool",
-        ToolChange::Program => "one file with M6 (your sender handles the change)",
+        ToolChange::Files => t!(ui, "forms-tool-change-files"),
+        ToolChange::Program => t!(ui, "forms-tool-change-program"),
     }
 }
 
 /// Type, diameter, spindle speed and centre cutting.
 /// `at`: the tool's path in the project (`tools.0`), for its problems; empty elsewhere.
 pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool) {
-    ui.label("Type");
+    ui.label(t!(ui, "forms-tool-type"));
     ComboBox::from_id_salt((salt, "tool-type"))
         .selected_text(tool.kind.name())
         .show_ui(ui, |ui| {
@@ -2744,17 +2822,17 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool
             }
         });
     ui.end_row();
-    ui.label("Diameter");
+    ui.label(t!(ui, "forms-diameter"));
     flag(
         ui.add(mm(&mut tool.diameter)),
         ui,
         &format!("{at}.diameter"),
     );
     ui.end_row();
-    ui.label("Spindle speed");
+    ui.label(t!(ui, "forms-spindle-speed"));
     let mut rpm = tool.rpm.unwrap_or(0.0);
     let response = ui.add(
-        DragValue::new(&mut rpm)
+        crate::units::number(ui, &mut rpm)
             .speed(100.0)
             .range(0.0..=100_000.0)
             .suffix(" rpm"),
@@ -2763,17 +2841,19 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool
         tool.rpm = (rpm > 0.0).then_some(rpm);
     }
     ui.end_row();
-    ui.label("Centre cutting");
+    ui.label(t!(ui, "forms-centre-cutting"));
+    let cutting_name = |ui: &egui::Ui, cutting: Option<bool>| match cutting {
+        Some(true) => t!(ui, "forms-yes"),
+        Some(false) => t!(ui, "forms-no"),
+        None => t!(ui, "forms-unknown"),
+    };
     ComboBox::from_id_salt((salt, "center-cutting"))
-        .selected_text(match tool.center_cutting {
-            Some(true) => "yes",
-            Some(false) => "no",
-            None => "unknown",
-        })
+        .selected_text(cutting_name(ui, tool.center_cutting))
         .show_ui(ui, |ui| {
-            ui.selectable_value(&mut tool.center_cutting, Some(true), "yes");
-            ui.selectable_value(&mut tool.center_cutting, Some(false), "no");
-            ui.selectable_value(&mut tool.center_cutting, None, "unknown");
+            for cutting in [Some(true), Some(false), None] {
+                let name = cutting_name(ui, cutting);
+                ui.selectable_value(&mut tool.center_cutting, cutting, name);
+            }
         });
     ui.end_row();
     if tool.kind == ToolType::Vbit {
@@ -2784,8 +2864,8 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool
 /// A V-bit's included angle (degrees here, radians in the file) and flat tip
 /// (docs/specs/v-carve.md §2). Both can be left unset; V-carving needs the angle.
 fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
-    ui.label("Angle")
-        .on_hover_text("The included angle of the V; V-carving needs it");
+    ui.label(t!(ui, "forms-angle"))
+        .on_hover_text(t!(ui, "forms-angle-hover"));
     let angle_row = ui.horizontal(|ui| {
         let mut set = tool.angle.is_some();
         if ui.checkbox(&mut set, "").changed() {
@@ -2795,7 +2875,7 @@ fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
             let mut degrees = angle.to_degrees();
             if ui
                 .add(
-                    DragValue::new(&mut degrees)
+                    crate::units::number(ui, &mut degrees)
                         .speed(0.5)
                         .range(1.0..=179.0)
                         .suffix("°"),
@@ -2805,13 +2885,13 @@ fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
                 *angle = degrees.to_radians();
             }
         } else {
-            ui.weak("unknown");
+            ui.weak(t!(ui, "forms-unknown"));
         }
     });
     flag(angle_row.response, ui, &format!("{at}.angle"));
     ui.end_row();
-    ui.label("Tip")
-        .on_hover_text("The diameter of the flat tip; not set is taken as pointed");
+    ui.label(t!(ui, "forms-tip"))
+        .on_hover_text(t!(ui, "forms-tip-hover"));
     ui.horizontal(|ui| {
         let mut set = tool.tip_diameter.is_some();
         if ui.checkbox(&mut set, "").changed() {
@@ -2822,7 +2902,7 @@ fn vbit_rows(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
                 flag(ui.add(mm(tip)), ui, &format!("{at}.tip_diameter"));
             }
             None => {
-                ui.weak("pointed");
+                ui.weak(t!(ui, "forms-pointed"));
             }
         }
     });
@@ -2849,18 +2929,17 @@ pub(super) fn rest_pass_form(
     };
     let before_diameter = tools.iter().find(|t| t.id == before).map(|t| t.diameter);
     let pocket_name = match pocket.name.as_str() {
-        "" => format!("operation {}", i + 1),
-        name => format!("operation {} ({name})", i + 1),
+        "" => t!(ui, "forms-rest-pass-of", number = i + 1),
+        name => t!(ui, "forms-rest-pass-of-named", number = i + 1, name = name),
     };
-    let facts = format!(
-        "{}–{} {len_unit}, clearance {} {len_unit}, {}",
-        len_in(units, pocket.start_depth),
-        len_in(units, pocket.end_depth),
-        len_in(units, pocket.clearance),
-        match pocket.direction {
-            Direction::Climb => "climb",
-            Direction::Conventional => "conventional",
-        }
+    let facts = t!(
+        ui,
+        "forms-rest-pass-facts",
+        start = len_in(units, pocket.start_depth),
+        end = len_in(units, pocket.end_depth),
+        unit = len_unit,
+        clearance = len_in(units, pocket.clearance),
+        direction = direction_name(ui, pocket.direction)
     );
     let pass = pocket.rest_passes.get_mut(k)?;
     let at = chipload_job::OpRef::pass(i, k);
@@ -2869,40 +2948,43 @@ pub(super) fn rest_pass_form(
         ui,
         crate::icons::Icon::Pocket,
         None,
-        &format!("Rest pass · Operation {at}"),
+        &format!(
+            "{} · {}",
+            t!(ui, "forms-rest-pass"),
+            t!(ui, "forms-operation-number", number = at.to_string())
+        ),
     );
     Grid::new(("rest-pass", i, k))
         .num_columns(2)
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
-            ui.label("Rest of").on_hover_text(
-                "It cuts its pocket's shapes and depths, and clears only what the tool before \
-                 it leaves",
-            );
+            ui.label(t!(ui, "forms-rest-of"))
+                .on_hover_text(t!(ui, "forms-rest-of-hover"));
             ui.horizontal(|ui| {
                 ui.label(&pocket_name);
-                if ui.small_button("Open").clicked() {
+                if ui.small_button(t!(ui, "forms-open")).clicked() {
                     request = Some(JobRequest::OpenOperation(i));
                 }
             });
             ui.end_row();
-            ui.label("From the pocket");
+            ui.label(t!(ui, "forms-from-pocket"));
             ui.weak(&facts);
             ui.end_row();
-            ui.label("After tool")
-                .on_hover_text("It clears what this tool leaves: the pocket's, or the pass before");
+            ui.label(t!(ui, "forms-after-tool"))
+                .on_hover_text(t!(ui, "forms-after-tool-hover"));
             ui.weak(format!("T{before}"));
             ui.end_row();
-            ui.label("Cut it");
+            ui.label(t!(ui, "forms-cut-it"));
             ui.checkbox(&mut pass.enabled, "")
-                .on_hover_text("Off: kept, but not cut");
+                .on_hover_text(t!(ui, "forms-cut-it-hover"));
             ui.end_row();
-            ui.label("Tool");
+            ui.label(t!(ui, "forms-tool"));
+            let lang = ui.lang();
             let label = |id: i64| {
                 tools
                     .iter()
                     .find(|t| t.id == id)
-                    .map_or(format!("T{id} (not in the project)"), |t| {
+                    .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
                         tool_label(t, units)
                     })
             };
@@ -2918,34 +3000,31 @@ pub(super) fn rest_pass_form(
                 });
             flag(combo.response, ui, "tool");
             ui.end_row();
-            ui.label("Step down");
+            ui.label(t!(ui, "forms-step-down"));
             flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
             ui.end_row();
-            ui.label("Stepover");
+            ui.label(t!(ui, "forms-stepover"));
             let stepover = ui.add(
-                DragValue::new(&mut pass.stepover)
+                crate::units::number(ui, &mut pass.stepover)
                     .speed(0.01)
                     .range(0.01..=1.0)
                     .suffix(" × D"),
             );
             flag(stepover, ui, "stepover");
             ui.end_row();
-            ui.label("Feed");
+            ui.label(t!(ui, "forms-feed"));
             flag(ui.add(feed(&mut pass.feed)), ui, "feed");
             ui.end_row();
-            ui.label("Plunge feed");
+            ui.label(t!(ui, "forms-plunge-feed"));
             flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
             ui.end_row();
             let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
             entry_rows(ui, 1000 + i * 100 + k, &mut pass.entry, diameter);
         });
     ui.add_space(6.0);
-    ui.weak(
-        "Cut after the pockets next to its pocket that use the same tool, all their rest \
-         passes together: the small tool comes in once.",
-    );
+    ui.weak(t!(ui, "forms-rest-pass-note"));
     ui.add_space(6.0);
-    if ui.button("Remove rest pass").clicked() {
+    if ui.button(t!(ui, "forms-remove-rest-pass")).clicked() {
         request = Some(JobRequest::RemoveRestPass(i, k));
     }
     request
@@ -2957,9 +3036,9 @@ fn font_list(ui: &mut egui::Ui, chosen: &mut String) {
     use chipload_text::{FONTS, Style};
     let loaded = ui.ctx().fonts(|f| f.families());
     for (style, heading) in [
-        (Style::Plain, "Plain"),
-        (Style::Script, "Script"),
-        (Style::Display, "Display"),
+        (Style::Plain, t!(ui, "forms-font-plain")),
+        (Style::Script, t!(ui, "forms-font-script")),
+        (Style::Display, t!(ui, "forms-font-display")),
     ] {
         ui.label(RichText::new(heading).small().weak());
         for font in FONTS.iter().filter(|f| f.style == style) {
@@ -3019,18 +3098,19 @@ mod tests {
         let ramp = Entry::Ramp {
             ramp_angle: 3f64.to_radians(),
         };
-        assert_eq!(entry_summary(&ramp, None, Units::Mm), "ramp 3.0°");
+        let en = Language::En;
+        assert_eq!(entry_summary(en, &ramp, None, Units::Mm), "ramp 3.0°");
         let helix = Entry::Helix {
             radius: 1.5,
             ramp_angle: 3f64.to_radians(),
         };
         let lead = Lead { radius: 2.0 };
         assert_eq!(
-            entry_summary(&helix, Some(&lead), Units::Mm),
+            entry_summary(en, &helix, Some(&lead), Units::Mm),
             "helix r 1.5 mm, 3.0°, lead 2 mm"
         );
         assert_eq!(
-            entry_summary(&helix, Some(&lead), Units::Inch),
+            entry_summary(en, &helix, Some(&lead), Units::Inch),
             "helix r 0.0591 in, 3.0°, lead 0.0787 in"
         );
     }

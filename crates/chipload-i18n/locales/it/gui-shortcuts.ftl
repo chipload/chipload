@@ -1,0 +1,74 @@
+# Help > Keyboard shortcuts (crates/chipload-gui/src/app/shortcuts.rs).
+
+shortcuts-window = Scorciatoie da tastiera
+
+# The window's group headings: menus (File, Edit, View, Help), the Generate button, and
+# what is done on the canvas or while drawing a shape.
+shortcuts-group-file = File
+shortcuts-group-edit = Modifica
+shortcuts-group-generate = Calcola
+shortcuts-group-view = Vista
+shortcuts-group-help = Aiuto
+shortcuts-group-canvas = Area di disegno
+shortcuts-group-drawing = Disegno di forme
+
+# What each keyboard shortcut does.
+shortcuts-copy-selector = Copia la selezione come selettore (JSON)
+shortcuts-save-as = Salva come
+shortcuts-redo = Ripeti
+shortcuts-copy = Copia le forme disegnate selezionate
+shortcuts-paste = Incollale (nel punto del cursore, sull'area di disegno)
+shortcuts-new = Nuovo progetto
+shortcuts-open = Apri un progetto
+shortcuts-import = Nuovo progetto da un DXF
+shortcuts-save = Salva
+shortcuts-export = Esporta G-code (dopo il calcolo)
+shortcuts-quit = Esci
+shortcuts-undo = Annulla
+shortcuts-move-up = Sposta su la lavorazione
+shortcuts-move-down = Sposta giù la lavorazione
+shortcuts-generate = Calcola il percorso utensile e il G-code
+shortcuts-fit = Adatta la vista
+shortcuts-top-view = Vista dall'alto
+shortcuts-grid = Mostra o nascondi la griglia
+shortcuts-measure = Misura: due clic danno distanza e angolo
+shortcuts-panels = Chiudi o apri i pannelli laterali, per un'area di disegno più grande
+shortcuts-this-list = Questo elenco
+
+# Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the
+# keyboard), then what they do.
+shortcuts-click = Clic
+shortcuts-click-select = Seleziona un contorno
+shortcuts-ctrl-click = Ctrl+clic
+shortcuts-ctrl-click-what = Aggiungi un contorno alla selezione, o toglilo
+shortcuts-right-click = Clic destro
+shortcuts-right-click-what = Seleziona un contorno o il suo layer; ripristina un inizio anello spostato
+shortcuts-scroll = Rotellina
+shortcuts-scroll-what = Zoom nel punto del cursore
+shortcuts-drag = Trascina
+shortcuts-drag-what = Sposta (vista dall'alto); orbita (vista 3D)
+shortcuts-pan-drag = Trascina col tasto destro o centrale, Shift+trascina
+shortcuts-pan-drag-what = Sposta (vista 3D)
+shortcuts-delete = Delete
+shortcuts-delete-what = Elimina le forme disegnate selezionate
+shortcuts-escape = Escape
+shortcuts-escape-clear = Annulla la selezione
+# A ring: a profile's closed path; its start can be dragged on the canvas.
+shortcuts-drag-start = Trascina l'inizio di un anello
+shortcuts-drag-start-what = Sposta il punto in cui inizia l'anello
+shortcuts-drop = Rilascia un file
+shortcuts-drop-what = Apri un progetto .chipload, o iniziane uno da un .dxf
+shortcuts-click-point = Posiziona un punto (si aggancia a estremi, centri e punti medi)
+shortcuts-alt = Alt
+shortcuts-alt-what = Tieni premuto: niente aggancio
+shortcuts-enter = Enter, doppio clic
+shortcuts-enter-what = Termina una polilinea
+shortcuts-backspace = Backspace
+shortcuts-backspace-what = Togli l'ultimo punto
+shortcuts-escape-stop = Smetti di disegnare
+shortcuts-drag-handle = Trascina una maniglia
+shortcuts-drag-handle-what = Sposta un punto, il centro o un angolo; ruota un rettangolo
+shortcuts-drag-middle = Trascina il centro di un segmento
+shortcuts-drag-middle-what = Inserisci lì un punto
+shortcuts-shift-drag-middle = Shift+trascina il centro di un segmento
+shortcuts-shift-drag-middle-what = Curva il segmento in un arco

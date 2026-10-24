@@ -13,11 +13,10 @@ impl ChiploadApp {
     pub(super) fn open_user_guide(&mut self, ctx: &egui::Context) {
         match USER_GUIDE_URL {
             Some(url) => ctx.open_url(egui::OpenUrl::new_tab(url)),
-            None => self.set_report(super::report::Report::info([
-                "The user guide comes with each release as chipload-guide-<version>.zip \
-                 (open index.html). From the source: packaging/docs/build-book.sh."
-                    .to_string(),
-            ])),
+            None => self.set_report(super::report::Report::info([t!(
+                self,
+                "dialogs-user-guide"
+            )])),
         }
     }
 
@@ -25,8 +24,11 @@ impl ChiploadApp {
 
     pub(super) fn open_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("Chipload projects", &[PROJECT_EXTENSION, "json"])
-            .add_filter("DXF drawings", &["dxf"])
+            .add_filter(
+                t!(self, "dialogs-filter-projects"),
+                &[PROJECT_EXTENSION, "json"],
+            )
+            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
             .pick_file()
         {
             self.open(&path);
@@ -35,7 +37,7 @@ impl ChiploadApp {
 
     pub(super) fn import_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("DXF drawings", &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
             .pick_file()
         {
             self.import_dxf(&path, None);
@@ -62,7 +64,7 @@ impl ChiploadApp {
 
     pub(super) fn ask_update(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("DXF drawings", &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
             .pick_file()
         {
             self.update_from(&path, None);
@@ -72,7 +74,7 @@ impl ChiploadApp {
     /// File > Add DXF to project… (docs/specs/drawing-sources.md §2).
     pub(super) fn ask_add_dxf(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("DXF drawings", &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
             .pick_file()
         {
             self.add_dxf_from(&path, None);
@@ -93,7 +95,8 @@ impl ChiploadApp {
             return self.save_project(&path);
         }
         let suggested = self.default_project_path();
-        match save_dialog(&suggested, "Chipload projects", PROJECT_EXTENSION) {
+        let filter = t!(self, "dialogs-filter-projects");
+        match save_dialog(&suggested, &filter, PROJECT_EXTENSION) {
             Some(path) => self.save_project(&path),
             None => false,
         }
@@ -101,7 +104,7 @@ impl ChiploadApp {
 
     pub(super) fn ask_export(&mut self) {
         if self.result.is_none() {
-            self.error(vec!["Generate (F5) before exporting G-code.".into()]);
+            self.error(vec![t!(self, "app-generate-before-export")]);
             return;
         }
         let suggested = self.default_export_path();
@@ -113,23 +116,20 @@ impl ChiploadApp {
     pub(super) fn copy_selector(&mut self, ctx: &egui::Context) {
         if let Some(text) = self.selector_json() {
             ctx.copy_text(text);
-            self.set_status("Selector copied to the clipboard".into(), STATUS_SECONDS);
+            self.set_status(t!(self, "dialogs-selector-copied"), STATUS_SECONDS);
         }
     }
 
     pub(super) fn about(&mut self, ctx: &egui::Context) {
         let mut open = self.dialogs.about_open;
-        egui::Window::new("About Chipload")
+        egui::Window::new(t!(ctx, "dialogs-about-title"))
+            .id(egui::Id::new("about-chipload"))
             .open(&mut open)
             .default_size([640.0, 520.0])
             .show(ctx, |ui| {
                 ui.label(chipload_pipeline::notices::short_notice());
                 if cfg!(target_os = "linux") {
-                    ui.label(
-                        "The Linux AppImage also contains libxkbcommon and libxcb-xkb \
-                         (MIT-style licences); their copyright files are in \
-                         usr/share/doc/chipload/bundled inside the AppImage.",
-                    );
+                    ui.label(t!(ui, "dialogs-about-appimage"));
                 }
                 ui.separator();
                 egui::CollapsingHeader::new("GNU General Public License v3.0").show(ui, |ui| {
@@ -140,7 +140,8 @@ impl ChiploadApp {
                             ui.monospace(chipload_pipeline::notices::LICENSE);
                         });
                 });
-                egui::CollapsingHeader::new("Third-party licences")
+                egui::CollapsingHeader::new(t!(ui, "dialogs-third-party"))
+                    .id_salt("third-party-licences")
                     .default_open(true)
                     .show(ui, |ui| {
                         ScrollArea::vertical()
@@ -160,17 +161,17 @@ impl ChiploadApp {
         };
         match prompt {
             Prompt::Units(path, purpose) => {
-                egui::Window::new("Drawing units")
+                egui::Window::new(t!(ctx, "dialogs-units-title"))
+                    .id(egui::Id::new("drawing-units"))
                     .collapsible(false)
                     .resizable(false)
                     .show(ctx, |ui| {
-                        ui.label(format!(
-                            "{} does not say which units it uses.",
-                            file_name(&path)
-                        ));
-                        ui.label("What units was it drawn in?");
+                        ui.label(t!(ui, "dialogs-units-unknown", file = file_name(&path)));
+                        ui.label(t!(ui, "dialogs-units-question"));
                         ui.horizontal(|ui| {
-                            for (label, units) in [("mm", Units::Mm), ("inch", Units::Inch)] {
+                            let inch = t!(ui, "dialogs-inch");
+                            for (label, units) in [("mm", Units::Mm), (inch.as_str(), Units::Inch)]
+                            {
                                 if ui.button(label).clicked() {
                                     match purpose {
                                         UnitsFor::NewProject => {
@@ -185,11 +186,9 @@ impl ChiploadApp {
                                     }
                                 }
                             }
-                            if ui.button("Cancel").clicked() {
+                            if ui.button(t!(ui, "common-cancel")).clicked() {
                                 self.dialogs.prompt = None;
-                                self.error(vec![
-                                    "Drawing not imported: its units are unknown.".into(),
-                                ]);
+                                self.error(vec![t!(ui, "dialogs-units-cancelled")]);
                             }
                         });
                     });
@@ -199,31 +198,33 @@ impl ChiploadApp {
                 let mut answer: Option<Unsaved> = None;
                 let modal = egui::Modal::new(egui::Id::new("unsaved-changes")).show(ctx, |ui| {
                     ui.set_width(360.0);
-                    ui.heading("Unsaved changes");
+                    ui.heading(t!(ui, "dialogs-unsaved-title"));
                     ui.add_space(4.0);
-                    ui.label("The project has changes that aren't saved. Save them first?");
+                    ui.label(t!(ui, "dialogs-unsaved-body"));
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
                         let accent = ui.visuals().selection.bg_fill;
                         let on_accent = ui.visuals().selection.stroke.color;
                         if ui
                             .add(
-                                egui::Button::new(RichText::new("Save").color(on_accent))
-                                    .fill(accent),
+                                egui::Button::new(
+                                    RichText::new(t!(ui, "common-save")).color(on_accent),
+                                )
+                                .fill(accent),
                             )
-                            .on_hover_text("Save, then go on")
+                            .on_hover_text(t!(ui, "dialogs-save-hover"))
                             .clicked()
                         {
                             answer = Some(Unsaved::Save);
                         }
                         if ui
-                            .button("Don't save")
-                            .on_hover_text("Throw the changes away and go on")
+                            .button(t!(ui, "dialogs-dont-save"))
+                            .on_hover_text(t!(ui, "dialogs-dont-save-hover"))
                             .clicked()
                         {
                             answer = Some(Unsaved::Discard);
                         }
-                        if ui.button("Cancel").clicked() {
+                        if ui.button(t!(ui, "common-cancel")).clicked() {
                             answer = Some(Unsaved::Cancel);
                         }
                     });
@@ -261,26 +262,24 @@ impl ChiploadApp {
         let mut load: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("changed-on-disk")).show(ctx, |ui| {
             ui.set_width(380.0);
-            ui.heading(format!("{name} changed on disk"));
+            ui.heading(t!(ui, "dialogs-changed-title", file = name.as_str()));
             ui.add_space(4.0);
-            ui.label(
-                "Another program saved the project. Load its version? Your unsaved changes \
-                 stay one Ctrl+Z away.",
-            );
+            ui.label(t!(ui, "dialogs-changed-body"));
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 let accent = ui.visuals().selection.bg_fill;
                 let on_accent = ui.visuals().selection.stroke.color;
+                let load_it = RichText::new(t!(ui, "dialogs-load-it")).color(on_accent);
                 if ui
-                    .add(egui::Button::new(RichText::new("Load it").color(on_accent)).fill(accent))
-                    .on_hover_text("Show the file's version; Ctrl+Z brings yours back")
+                    .add(egui::Button::new(load_it).fill(accent))
+                    .on_hover_text(t!(ui, "dialogs-load-it-hover"))
                     .clicked()
                 {
                     load = Some(true);
                 }
                 if ui
-                    .button("Keep mine")
-                    .on_hover_text("Keep your changes; the next Save overwrites the file")
+                    .button(t!(ui, "dialogs-keep-mine"))
+                    .on_hover_text(t!(ui, "dialogs-keep-mine-hover"))
                     .clicked()
                 {
                     load = Some(false);
@@ -304,13 +303,34 @@ impl ChiploadApp {
         mut text: String,
     ) {
         let (title, label) = match purpose {
-            PathPurpose::Open => ("Open path", "A .chipload project or a .dxf:"),
-            PathPurpose::Save => ("Save project", "Save the project to:"),
-            PathPurpose::Export => ("Export G-code", "Export the checked G-code to:"),
-            PathPurpose::Update => ("Update drawing", "The DXF:"),
-            PathPurpose::Image => ("Import image", "A picture (PNG, JPEG or BMP):"),
-            PathPurpose::AddDxf => ("Add DXF", "The DXF to add to the project:"),
-            PathPurpose::UpdateDxf(_) => ("Update DXF", "The new version of the DXF:"),
+            PathPurpose::Open => (
+                t!(ctx, "dialogs-path-open-title"),
+                t!(ctx, "dialogs-path-open"),
+            ),
+            PathPurpose::Save => (
+                t!(ctx, "dialogs-path-save-title"),
+                t!(ctx, "dialogs-path-save"),
+            ),
+            PathPurpose::Export => (
+                t!(ctx, "dialogs-path-export-title"),
+                t!(ctx, "dialogs-path-export"),
+            ),
+            PathPurpose::Update => (
+                t!(ctx, "dialogs-path-update-title"),
+                t!(ctx, "dialogs-path-update"),
+            ),
+            PathPurpose::Image => (
+                t!(ctx, "dialogs-path-image-title"),
+                t!(ctx, "dialogs-path-image"),
+            ),
+            PathPurpose::AddDxf => (
+                t!(ctx, "dialogs-path-add-dxf-title"),
+                t!(ctx, "dialogs-path-add-dxf"),
+            ),
+            PathPurpose::UpdateDxf(_) => (
+                t!(ctx, "dialogs-path-update-dxf-title"),
+                t!(ctx, "dialogs-path-update-dxf"),
+            ),
         };
         let mut done = false;
         let mut chosen: Option<PathBuf> = None;
@@ -318,11 +338,11 @@ impl ChiploadApp {
             ui.label(label);
             ui.add(TextEdit::singleline(&mut text).desired_width(460.0));
             ui.horizontal(|ui| {
-                if ui.button("OK").clicked() {
+                if ui.button(t!(ui, "common-ok")).clicked() {
                     chosen = Some(PathBuf::from(text.trim()));
                     done = true;
                 }
-                if ui.button("Cancel").clicked() {
+                if ui.button(t!(ui, "common-cancel")).clicked() {
                     done = true;
                 }
             });
@@ -364,7 +384,7 @@ impl ChiploadApp {
             let name = self
                 .job_path
                 .as_deref()
-                .map_or("new project".to_string(), file_name);
+                .map_or_else(|| t!(self, "dialogs-title-new-project"), file_name);
             parts.push(if self.dirty() {
                 format!("{name} *")
             } else {

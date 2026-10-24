@@ -26,10 +26,7 @@ impl ChiploadApp {
         self.sketch = None;
         self.measure = None;
         self.placing_text = true;
-        self.set_status(
-            "Click where the text starts (its lower-left corner); Esc cancels".into(),
-            STATUS_SECONDS,
-        );
+        self.set_status(t!(self, "texts-place-hint"), STATUS_SECONDS);
     }
 
     /// Placing a text: the next canvas click places it.
@@ -56,15 +53,12 @@ impl ChiploadApp {
                 self.focus_text_field = true;
                 self.commit();
                 let mut lines = report.lines.clone();
-                lines.push(
-                    "Type the text in Properties; V-carve, Pocket or Profile (ribbon) cuts it."
-                        .to_string(),
-                );
+                lines.push(t!(self, "texts-added-next"));
                 self.set_report(Report::info(lines));
                 Some(report.id)
             }
             Err(err) => {
-                self.error(vec!["Could not write the text:".into(), err.to_string()]);
+                self.error(vec![t!(self, "texts-write-failed"), err.to_string()]);
                 None
             }
         }
@@ -92,7 +86,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec!["Could not write the text:".into(), err.to_string()]);
+                self.error(vec![t!(self, "texts-write-failed"), err.to_string()]);
                 false
             }
         }
@@ -112,7 +106,7 @@ impl ChiploadApp {
                     self.focus = Focus::Job;
                 }
                 self.commit();
-                self.set_status(format!("Removed text {id}"), STATUS_SECONDS);
+                self.set_status(t!(self, "texts-removed", id = id), STATUS_SECONDS);
                 true
             }
             Err(err) => {

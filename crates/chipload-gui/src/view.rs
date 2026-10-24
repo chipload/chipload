@@ -4,6 +4,7 @@
 
 use std::collections::BTreeSet;
 
+use crate::i18n::{Lang, t};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::order::Ordered;
@@ -1656,18 +1657,27 @@ pub enum Swatch {
 
 /// What the canvas shows, explained: contours always; the toolpath and what goes with it once
 /// generated; copies when there are some.
-pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
+pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
     let pal = &scene.palette;
     let mut items = vec![
-        (Swatch::Line(pal.outer, 1.5), "outline"),
-        (Swatch::Line(pal.hole, 1.5), "hole"),
-        (Swatch::Dashed(pal.open), "open contour (not cut)"),
-        (Swatch::Line(pal.selected, 3.0), "selected"),
-        (Swatch::Line(pal.operation, 6.0), "the operation's contours"),
-        (Swatch::Dashed(pal.stock), "stock"),
+        (
+            Swatch::Line(pal.outer, 1.5),
+            t!(lang, "view-legend-outline"),
+        ),
+        (Swatch::Line(pal.hole, 1.5), t!(lang, "view-legend-hole")),
+        (Swatch::Dashed(pal.open), t!(lang, "view-legend-open")),
+        (
+            Swatch::Line(pal.selected, 3.0),
+            t!(lang, "view-legend-selected"),
+        ),
+        (
+            Swatch::Line(pal.operation, 6.0),
+            t!(lang, "view-legend-operation"),
+        ),
+        (Swatch::Dashed(pal.stock), t!(lang, "view-legend-stock")),
     ];
     if !scene.copies.is_empty() {
-        items.push((Swatch::Line(pal.ghost, 1.0), "copies"));
+        items.push((Swatch::Line(pal.ghost, 1.0), t!(lang, "view-legend-copies")));
     }
     if let Some(path) = scene.toolpath.as_ref().filter(|_| !scene.hide_toolpath) {
         let feed = if path.rejected {
@@ -1675,14 +1685,14 @@ pub fn legend(scene: &Scene) -> Vec<(Swatch, &'static str)> {
         } else {
             pal.feed
         };
-        items.push((Swatch::Line(feed, 2.0), "cutting move"));
-        items.push((Swatch::Dashed(pal.rapid), "rapid, above the stock"));
-        items.push((Swatch::Plunge, "where the tool goes down"));
+        items.push((Swatch::Line(feed, 2.0), t!(lang, "view-legend-cutting")));
+        items.push((Swatch::Dashed(pal.rapid), t!(lang, "view-legend-rapid")));
+        items.push((Swatch::Plunge, t!(lang, "view-legend-plunge")));
         if !scene.tabs.is_empty() {
-            items.push((Swatch::Line(pal.tab, 6.0), "tab"));
+            items.push((Swatch::Line(pal.tab, 6.0), t!(lang, "view-legend-tab")));
         }
         if !scene.start_markers.is_empty() {
-            items.push((Swatch::Start, "ring start (drag to move)"));
+            items.push((Swatch::Start, t!(lang, "view-legend-ring-start")));
         }
     }
     items

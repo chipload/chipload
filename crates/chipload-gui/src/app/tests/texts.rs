@@ -106,7 +106,7 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     assert_eq!(op.select().text, Some(id));
     // Its form names the text, not "no geometry" (user report 2026-10-17).
     assert_eq!(
-        crate::editor::geometry_summary(op, &app.contours),
+        crate::editor::geometry_summary(op, &app.contours, &crate::i18n::Language::En),
         format!("all of text {id}")
     );
     assert_eq!(op.tool(), 2, "the V-bit");

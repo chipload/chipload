@@ -73,7 +73,11 @@ fn drawing_snaps_to_the_drawing_unless_alt_is_held() {
     let p = app.snap_world((110.3, 65.4), false, false);
     assert_eq!(p, (110.0, 65.0));
     let (_, hit) = app.drag.snapped.unwrap();
-    assert!(hit.unwrap().name().starts_with("end of #"));
+    assert!(
+        hit.unwrap()
+            .name(&crate::i18n::Language::En)
+            .starts_with("end of #")
+    );
     // Alt: exactly the cursor.
     assert_eq!(app.snap_world((110.3, 65.4), true, false), (110.3, 65.4));
     // Far from everything: the grid (1 mm at 10 px/mm).

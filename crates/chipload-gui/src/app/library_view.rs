@@ -53,16 +53,16 @@ enum Act {
 
 fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
     let new = match kind {
-        LibraryKind::Tools => "New tool",
-        LibraryKind::Machines => "New machine",
+        LibraryKind::Tools => t!(ui, "library-view-new-tool"),
+        LibraryKind::Machines => t!(ui, "library-view-new-machine"),
     };
     if ui.button(new).clicked() {
         *act = Some(Act::New(kind));
     }
-    if ui.button("Import…").clicked() {
+    if ui.button(t!(ui, "library-view-import")).clicked() {
         *act = Some(Act::Import(kind));
     }
-    if ui.button("Export…").clicked() {
+    if ui.button(t!(ui, "library-view-export")).clicked() {
         *act = Some(Act::Export(kind));
     }
 }
@@ -80,39 +80,45 @@ impl ChiploadApp {
                 d.insert_persisted(Id::new(sub).with("folder-open"), true);
             });
         }
-        let root = Row::new(Id::new(ROOT), 0, "This computer")
+        let root = Row::new(Id::new(ROOT), 0, t!(ui, "library-view-this-computer"))
             .icon(Icon::Library)
             .alert(!self.library.problems.is_empty() || self.post_problems() > 0);
         let (open, out) = folder(ui, root, false);
-        out.response.on_hover_text(
-            "Your preferences, tools, machines and post-processors, kept on this computer for \
-             every project. A project keeps copies of what it uses, so it cuts the same in a \
-             year and on another computer.",
-        );
+        out.response
+            .on_hover_text(t!(ui, "library-view-this-computer-hover"));
         if !open {
             return;
         }
         let mut act = None;
-        let preferences = Row::new(Id::new(ROOT).with("preferences"), 1, "Preferences")
-            .icon(Icon::Settings)
-            .selected(self.focus == Focus::Preferences)
-            .show(ui);
+        let preferences = Row::new(
+            Id::new(ROOT).with("preferences"),
+            1,
+            t!(ui, "library-view-preferences"),
+        )
+        .icon(Icon::Settings)
+        .selected(self.focus == Focus::Preferences)
+        .show(ui);
         if preferences
             .response
-            .on_hover_text("The setup sheet, updating the toolpath automatically, the colour theme")
+            .on_hover_text(t!(ui, "library-view-preferences-hover"))
             .clicked()
         {
             act = Some(Act::Focus(Focus::Preferences));
         }
         if self.settings_dir.is_none() {
-            Row::new(Id::new(ROOT).with("none"), 1, "No settings folder")
-                .dim(true)
-                .show(ui)
-                .response
-                .on_hover_text(format!(
-                    "Set {} to keep a library",
-                    chipload_pipeline::library::CONFIG_DIR_VAR
-                ));
+            Row::new(
+                Id::new(ROOT).with("none"),
+                1,
+                t!(ui, "library-view-no-settings-folder"),
+            )
+            .dim(true)
+            .show(ui)
+            .response
+            .on_hover_text(t!(
+                ui,
+                "library-view-no-settings-folder-hover",
+                var = chipload_pipeline::library::CONFIG_DIR_VAR
+            ));
         } else {
             self.library_tool_rows(ui, &mut act);
             self.library_machine_rows(ui, &mut act);
@@ -136,17 +142,17 @@ impl ChiploadApp {
         let (key, label, icon, focus, hover) = match kind {
             LibraryKind::Tools => (
                 TOOLS,
-                "Tools",
+                t!(ui, "library-view-tools"),
                 Icon::Tools,
                 Focus::LibraryTools,
-                "Your tool library: drag a tool onto the project's Tools to use it",
+                t!(ui, "library-view-tools-hover"),
             ),
             LibraryKind::Machines => (
                 MACHINES,
-                "Machines",
+                t!(ui, "library-view-machines"),
                 Icon::Machine,
                 Focus::LibraryMachines,
-                "Your machine profiles: the values new projects start with",
+                t!(ui, "library-view-machines-hover"),
             ),
         };
         let id = Id::new(key);
@@ -182,6 +188,7 @@ impl ChiploadApp {
             let row = Row::new(Id::new(("browser-library-tool", &tool.uid)), 2, &tool.name)
                 .icon(tool_icon(tool.kind))
                 .trailing(leaf_note(
+                    ui,
                     &tool_summary(tool, self.units),
                     is_default,
                     draft,
@@ -191,26 +198,32 @@ impl ChiploadApp {
                 .show(ui);
             row.response
                 .dnd_set_drag_payload(DraggedTool(tool.uid.clone()));
-            let response = row.response.on_hover_text(
-                "Click to edit it; drag it onto the project's Tools to use it there",
-            );
+            let response = row
+                .response
+                .on_hover_text(t!(ui, "library-view-tool-hover"));
             if response.clicked() {
                 *act = Some(Act::Focus(Focus::LibraryTool(uid_key(&tool.uid))));
             }
             response.context_menu(|ui| {
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Add to project"))
+                    .add_enabled(
+                        has_job,
+                        egui::Button::new(t!(ui, "library-view-add-to-project")),
+                    )
                     .clicked()
                 {
                     *act = Some(Act::AddTool(tool.uid.clone()));
                 }
                 if ui
-                    .add_enabled(!is_default, egui::Button::new("Make default"))
+                    .add_enabled(
+                        !is_default,
+                        egui::Button::new(t!(ui, "library-view-make-default")),
+                    )
                     .clicked()
                 {
                     *act = Some(Act::Default(LibraryKind::Tools, tool.name.clone()));
                 }
-                if ui.button("Delete").clicked() {
+                if ui.button(t!(ui, "common-delete")).clicked() {
                     *act = Some(Act::Delete(LibraryKind::Tools, tool.name.clone()));
                 }
             });
@@ -236,6 +249,7 @@ impl ChiploadApp {
             )
             .icon(Icon::Machine)
             .trailing(leaf_note(
+                ui,
                 &machine_summary(machine, self.units),
                 is_default,
                 draft,
@@ -247,18 +261,24 @@ impl ChiploadApp {
             }
             row.response.context_menu(|ui| {
                 if ui
-                    .add_enabled(has_job, egui::Button::new("Use in this project"))
+                    .add_enabled(
+                        has_job,
+                        egui::Button::new(t!(ui, "library-view-use-in-project")),
+                    )
                     .clicked()
                 {
                     *act = Some(Act::UseMachine(machine.uid.clone()));
                 }
                 if ui
-                    .add_enabled(!is_default, egui::Button::new("Make default"))
+                    .add_enabled(
+                        !is_default,
+                        egui::Button::new(t!(ui, "library-view-make-default")),
+                    )
                     .clicked()
                 {
                     *act = Some(Act::Default(LibraryKind::Machines, machine.name.clone()));
                 }
-                if ui.button("Delete").clicked() {
+                if ui.button(t!(ui, "common-delete")).clicked() {
                     *act = Some(Act::Delete(LibraryKind::Machines, machine.name.clone()));
                 }
             });
@@ -294,34 +314,27 @@ impl ChiploadApp {
         let dir = self.settings_dir.clone();
         let (title, icon, path, count, about) = match kind {
             LibraryKind::Tools => (
-                "Tool library",
+                t!(ui, "library-view-tool-library"),
                 Icon::Tools,
                 dir.as_deref().map(chipload_pipeline::library::tools_path),
                 self.library.tools.tools.len(),
-                "A project keeps a copy of each tool it uses. Click a tool under This computer to edit \
-                 it; drag it onto the project's Tools, or right-click it, to use it.",
+                t!(ui, "library-view-tool-library-about"),
             ),
             LibraryKind::Machines => (
-                "Machines",
+                t!(ui, "library-view-machines"),
                 Icon::Machine,
                 dir.as_deref()
                     .map(chipload_pipeline::library::machines_path),
                 self.library.machines.machines.len(),
-                "A project keeps a copy of its machine's values. Right-click a profile to use it \
-                 in this project; the default is what new projects start with.",
+                t!(ui, "library-view-machines-about"),
             ),
         };
-        title_line(ui, icon, None, title);
+        title_line(ui, icon, None, &title);
         library_header(ui, path.as_deref(), &self.library.problems);
-        ui.label(format!(
-            "{count} {} in your library.",
-            match (kind, count) {
-                (LibraryKind::Tools, 1) => "tool",
-                (LibraryKind::Tools, _) => "tools",
-                (LibraryKind::Machines, 1) => "machine",
-                (LibraryKind::Machines, _) => "machines",
-            }
-        ));
+        ui.label(match kind {
+            LibraryKind::Tools => t!(ui, "library-view-tool-count", count = count),
+            LibraryKind::Machines => t!(ui, "library-view-machine-count", count = count),
+        });
         ui.weak(about);
         ui.add_space(4.0);
         ui.add_enabled_ui(path.is_some(), |ui| {
@@ -336,8 +349,9 @@ impl ChiploadApp {
 
     fn library_tool_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<Act>) {
         let Some(stored) = self.library.tools.find_uid(uid).cloned() else {
-            title_line(ui, Icon::Tools, None, "Library tool");
-            ui.weak("This tool is no longer in your library.");
+            let title = t!(ui, "library-view-library-tool");
+            title_line(ui, Icon::Tools, None, &title);
+            ui.weak(t!(ui, "library-view-tool-gone"));
             return;
         };
         let mut draft = self
@@ -347,7 +361,7 @@ impl ChiploadApp {
             .cloned()
             .unwrap_or_else(|| stored.clone());
         title_line(ui, tool_icon(stored.kind), None, &stored.name);
-        ui.weak("In your library, for every project. Changes are kept when you press Save.");
+        ui.weak(t!(ui, "library-view-entry-about"));
         ui.add_space(4.0);
         tool_entry_form(ui, &mut draft);
         let changed = draft != stored;
@@ -369,10 +383,10 @@ impl ChiploadApp {
             if ui
                 .add_enabled(
                     self.edit.is_some() && !changed,
-                    egui::Button::new("Add to project"),
+                    egui::Button::new(t!(ui, "library-view-add-to-project")),
                 )
-                .on_hover_text("Copy it into the project as a tool of its own")
-                .on_disabled_hover_text("Open a project, and save or revert the changes first")
+                .on_hover_text(t!(ui, "library-view-add-to-project-hover"))
+                .on_disabled_hover_text(t!(ui, "library-view-entry-disabled-hover"))
                 .clicked()
             {
                 *act = Some(Act::AddTool(uid.to_string()));
@@ -388,15 +402,20 @@ impl ChiploadApp {
                 .map(|t| format!("T{}", t.id))
                 .collect();
             if !users.is_empty() {
-                ui.weak(format!("This project has a copy: {}", users.join(", ")));
+                ui.weak(t!(
+                    ui,
+                    "library-view-project-copies",
+                    tools = users.join(", ")
+                ));
             }
         }
     }
 
     fn library_machine_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<Act>) {
         let Some(stored) = self.library.machines.find_uid(uid).cloned() else {
-            title_line(ui, Icon::Machine, None, "Machine profile");
-            ui.weak("This profile is no longer in your library.");
+            let title = t!(ui, "library-view-machine-profile");
+            title_line(ui, Icon::Machine, None, &title);
+            ui.weak(t!(ui, "library-view-profile-gone"));
             return;
         };
         let mut draft = self
@@ -406,7 +425,7 @@ impl ChiploadApp {
             .cloned()
             .unwrap_or_else(|| stored.clone());
         title_line(ui, Icon::Machine, None, &stored.name);
-        ui.weak("In your library, for every project. Changes are kept when you press Save.");
+        ui.weak(t!(ui, "library-view-entry-about"));
         ui.add_space(4.0);
         machine_entry_form(ui, &mut draft, &self.library);
         let changed = draft != stored;
@@ -428,10 +447,10 @@ impl ChiploadApp {
             if ui
                 .add_enabled(
                     self.edit.is_some() && !changed,
-                    egui::Button::new("Use in this project"),
+                    egui::Button::new(t!(ui, "library-view-use-in-project")),
                 )
-                .on_hover_text("Copy its values into the project's machine (undo with Ctrl+Z)")
-                .on_disabled_hover_text("Open a project, and save or revert the changes first")
+                .on_hover_text(t!(ui, "library-view-use-in-project-hover"))
+                .on_disabled_hover_text(t!(ui, "library-view-entry-disabled-hover"))
                 .clicked()
             {
                 *act = Some(Act::UseMachine(uid.to_string()));
@@ -441,7 +460,7 @@ impl ChiploadApp {
         if let Some(edit) = &self.edit
             && edit.settings.machine.library_uid.as_deref() == Some(uid)
         {
-            ui.weak("This project's machine came from it.");
+            ui.weak(t!(ui, "library-view-project-machine"));
         }
     }
 
@@ -471,10 +490,8 @@ impl ChiploadApp {
                         LibraryKind::Tools => Focus::LibraryTools,
                         LibraryKind::Machines => Focus::LibraryMachines,
                     };
-                    self.set_status(
-                        format!("Deleted \"{name}\" from your library; projects keep their copies"),
-                        STATUS_SECONDS,
-                    );
+                    let status = t!(self, "library-view-deleted", name = name);
+                    self.set_status(status, STATUS_SECONDS);
                 }
                 Err(err) => self.library_state.error = Some(err),
             },
@@ -535,7 +552,8 @@ impl ChiploadApp {
                         self.library_state.machine_drafts.remove(uid);
                     }
                 }
-                self.set_status("Saved to your library".into(), STATUS_SECONDS);
+                let status = t!(self, "library-view-saved");
+                self.set_status(status, STATUS_SECONDS);
                 true
             }
             Err(err) => {
@@ -557,13 +575,13 @@ impl ChiploadApp {
 }
 
 /// A leaf's right end: its summary, *default*, and *unsaved* while it has a draft.
-fn leaf_note(summary: &str, is_default: bool, draft: bool) -> String {
+fn leaf_note(ui: &egui::Ui, summary: &str, is_default: bool, draft: bool) -> String {
     let mut parts = vec![summary.to_string()];
     if is_default {
-        parts.push("default".into());
+        parts.push(t!(ui, "library-view-note-default"));
     }
     if draft {
-        parts.push("unsaved".into());
+        parts.push(t!(ui, "library-view-note-unsaved"));
     }
     parts.join(" · ")
 }
@@ -577,21 +595,21 @@ fn save_buttons(
 ) {
     ui.horizontal(|ui| {
         if ui
-            .add_enabled(changed, egui::Button::new("Save"))
-            .on_hover_text("Write the changes into your library")
+            .add_enabled(changed, egui::Button::new(t!(ui, "common-save")))
+            .on_hover_text(t!(ui, "library-view-save-hover"))
             .clicked()
         {
             *act = Some(Act::Save(kind, uid.to_string()));
         }
         if ui
-            .add_enabled(changed, egui::Button::new("Revert"))
-            .on_hover_text("Drop the changes")
+            .add_enabled(changed, egui::Button::new(t!(ui, "library-view-revert")))
+            .on_hover_text(t!(ui, "library-view-revert-hover"))
             .clicked()
         {
             *act = Some(Act::Revert(kind, uid.to_string()));
         }
         if changed {
-            ui.colored_label(ui.visuals().warn_fg_color, "not saved");
+            ui.colored_label(ui.visuals().warn_fg_color, t!(ui, "library-view-not-saved"));
         }
     });
 }
@@ -604,16 +622,19 @@ fn entry_buttons(
     act: &mut Option<Act>,
 ) {
     if ui
-        .add_enabled(!is_default, egui::Button::new("Make default"))
-        .on_hover_text("New projects start with it")
-        .on_disabled_hover_text("New projects start with it")
+        .add_enabled(
+            !is_default,
+            egui::Button::new(t!(ui, "library-view-make-default")),
+        )
+        .on_hover_text(t!(ui, "library-view-make-default-hover"))
+        .on_disabled_hover_text(t!(ui, "library-view-make-default-hover"))
         .clicked()
     {
         *act = Some(Act::Default(kind, name.to_string()));
     }
     if ui
-        .button("Delete")
-        .on_hover_text("Take it out of your library; projects keep their copies")
+        .button(t!(ui, "common-delete"))
+        .on_hover_text(t!(ui, "library-view-delete-hover"))
         .clicked()
     {
         *act = Some(Act::Delete(kind, name.to_string()));

@@ -6,9 +6,10 @@
 use eframe::egui::{Align2, FontId, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
 use super::header::{plain_icon_button, ribbon_button};
-use super::menu::SIMULATION_HINT;
+use super::menu::simulation_hint;
 use super::shortcuts::{Action, hover_keys};
 use super::*;
+use crate::i18n::{Lang, Language};
 use crate::icons::Icon;
 use crate::view::MAX_TILT_RAD;
 
@@ -48,7 +49,7 @@ fn nav_button(
 
 /// A face of the orientation cube: its label, outward normal, and the view that looks at it.
 struct Face {
-    label: &'static str,
+    label: fn(Language) -> String,
     normal: (f64, f64, f64),
     /// (turn, tilt) of View::orient; None: back to the top view.
     look: Option<(f64, f64)>,
@@ -56,27 +57,27 @@ struct Face {
 
 const FACES: [Face; 5] = [
     Face {
-        label: "TOP",
+        label: |l| t!(l, "navigation-face-top"),
         normal: (0.0, 0.0, 1.0),
         look: None,
     },
     Face {
-        label: "FRONT",
+        label: |l| t!(l, "navigation-face-front"),
         normal: (0.0, -1.0, 0.0),
         look: Some((0.0, MAX_TILT_RAD)),
     },
     Face {
-        label: "RIGHT",
+        label: |l| t!(l, "navigation-face-right"),
         normal: (1.0, 0.0, 0.0),
         look: Some((3.0 * std::f64::consts::FRAC_PI_2, MAX_TILT_RAD)),
     },
     Face {
-        label: "BACK",
+        label: |l| t!(l, "navigation-face-back"),
         normal: (0.0, 1.0, 0.0),
         look: Some((std::f64::consts::PI, MAX_TILT_RAD)),
     },
     Face {
-        label: "LEFT",
+        label: |l| t!(l, "navigation-face-left"),
         normal: (-1.0, 0.0, 0.0),
         look: Some((std::f64::consts::FRAC_PI_2, MAX_TILT_RAD)),
     },
@@ -155,28 +156,31 @@ impl ChiploadApp {
 
     /// Fit, Top and 3D.
     fn view_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
-        if nav_button(ui, compact, Icon::Fit, "Fit", true, false)
-            .on_hover_text(hover_keys("Fit the view", Action::Fit))
+        let fit = t!(ui, "navigation-fit");
+        if nav_button(ui, compact, Icon::Fit, &fit, true, false)
+            .on_hover_text(hover_keys(&t!(ui, "navigation-fit-hover"), Action::Fit))
             .clicked()
         {
             self.fit_pending = true;
         }
-        if nav_button(ui, compact, Icon::Top, "Top", true, !self.three_d)
-            .on_hover_text(hover_keys("Look straight down", Action::TopView))
+        let top = t!(ui, "navigation-top");
+        if nav_button(ui, compact, Icon::Top, &top, true, !self.three_d)
+            .on_hover_text(hover_keys(&t!(ui, "navigation-top-hover"), Action::TopView))
             .clicked()
         {
             self.view_top();
         }
         let three_d = if self.view.z_scale == 1.0 {
-            "3D: left-drag turns and tilts; right-drag or Shift+drag pans".to_string()
+            t!(ui, "navigation-3d-hover")
         } else {
-            format!(
-                "3D, Z stretched × {}: left-drag turns and tilts; right-drag or Shift+drag \
-                 pans",
-                self.view.z_scale
+            t!(
+                ui,
+                "navigation-3d-stretched-hover",
+                scale = self.view.z_scale.to_string()
             )
         };
-        if nav_button(ui, compact, Icon::ThreeD, "3D", true, self.three_d)
+        let label = t!(ui, "navigation-3d");
+        if nav_button(ui, compact, Icon::ThreeD, &label, true, self.three_d)
             .on_hover_text(three_d)
             .clicked()
         {
@@ -189,22 +193,22 @@ impl ChiploadApp {
     fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
         let can = self.result.is_some();
         let label = if self.simulating() {
-            "Stock…"
+            t!(ui, "navigation-stock-busy")
         } else {
-            "Stock"
+            t!(ui, "navigation-stock")
         };
         let hover = if self.simulating() {
-            "Simulating…"
+            t!(ui, "navigation-simulating-hover")
         } else if can {
-            SIMULATION_HINT
+            simulation_hint(ui)
         } else {
-            "The stock as cut: generate the toolpath first"
+            t!(ui, "navigation-stock-first-hover")
         };
         if nav_button(
             ui,
             compact,
             Icon::Simulation,
-            label,
+            &label,
             can,
             can && self.show_simulation,
         )
@@ -214,28 +218,32 @@ impl ChiploadApp {
             self.set_show_simulation(!self.show_simulation);
         }
         let toolpath = self.show_toolpath;
-        if nav_button(ui, compact, Icon::Toolpath, "Toolpath", true, toolpath)
-            .on_hover_text("Show the toolpath; off, the drawing or the simulated stock alone")
+        let label = t!(ui, "navigation-toolpath");
+        if nav_button(ui, compact, Icon::Toolpath, &label, true, toolpath)
+            .on_hover_text(t!(ui, "navigation-toolpath-hover"))
             .clicked()
         {
             self.show_toolpath = !toolpath;
         }
         let drawing = self.show_drawing();
-        if nav_button(ui, compact, Icon::Drawing, "Drawing", true, drawing)
-            .on_hover_text("Show the drawing's contours; off, the stock or the toolpath alone")
+        let label = t!(ui, "navigation-drawing");
+        if nav_button(ui, compact, Icon::Drawing, &label, true, drawing)
+            .on_hover_text(t!(ui, "navigation-drawing-hover"))
             .clicked()
         {
             self.set_show_drawing(!drawing);
         }
         let images = self.show_images;
-        if nav_button(ui, compact, Icon::Image, "Images", true, images)
-            .on_hover_text("The pictures traced into shapes, faintly over the stock")
+        let label = t!(ui, "navigation-images");
+        if nav_button(ui, compact, Icon::Image, &label, true, images)
+            .on_hover_text(t!(ui, "navigation-images-hover"))
             .clicked()
         {
             self.show_images = !images;
         }
-        if nav_button(ui, compact, Icon::Grid, "Grid", true, self.show_grid)
-            .on_hover_text(hover_keys("Show the grid", Action::Grid))
+        let label = t!(ui, "navigation-grid");
+        if nav_button(ui, compact, Icon::Grid, &label, true, self.show_grid)
+            .on_hover_text(hover_keys(&t!(ui, "navigation-grid-hover"), Action::Grid))
             .clicked()
         {
             self.set_show_grid(!self.show_grid);
@@ -246,12 +254,10 @@ impl ChiploadApp {
             .edit
             .as_ref()
             .map_or(0, |e| e.settings.parts.iter().filter(|p| p.enabled).count());
+        let label = t!(ui, "navigation-all-parts");
         if parts > 1
-            && nav_button(ui, compact, Icon::Parts, "All parts", true, self.all_parts)
-                .on_hover_text(
-                    "Generate and simulate every part, not only the active one. Export always \
-                     writes every part.",
-                )
+            && nav_button(ui, compact, Icon::Parts, &label, true, self.all_parts)
+                .on_hover_text(t!(ui, "navigation-all-parts-hover"))
                 .clicked()
         {
             self.set_all_parts(!self.all_parts);
@@ -272,12 +278,13 @@ impl ChiploadApp {
         let area = Rect::from_center_size(centre, Vec2::splat(CUBE_CORNER));
         let response = ui
             .interact(area, egui::Id::new("orientation-cube"), Sense::click())
-            .on_hover_text("Click a face to look at it");
+            .on_hover_text(t!(ui, "navigation-cube-hover"));
         let hover = response.hover_pos();
         let mut picked = None;
         let visuals = ui.visuals().clone();
         let painter = ui.painter_at(area);
         let toward = self.toward_viewer();
+        let language = ui.ctx().lang();
         for (k, face) in FACES.iter().enumerate() {
             let facing = dot(face.normal, toward);
             if facing <= 0.02 {
@@ -306,7 +313,7 @@ impl ChiploadApp {
             };
             // A label only where it fits: a face seen nearly edge-on is too narrow.
             let label =
-                painter.layout_no_wrap(face.label.to_string(), FontId::proportional(9.0), text);
+                painter.layout_no_wrap((face.label)(language), FontId::proportional(9.0), text);
             let (left, right) = corners
                 .iter()
                 .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), p| {
@@ -420,10 +427,10 @@ mod tests {
         app.view
             .orient(-30f64.to_radians(), 55f64.to_radians(), (0.0, 0.0));
         let toward = app.toward_viewer();
-        let seen: Vec<&str> = FACES
+        let seen: Vec<String> = FACES
             .iter()
             .filter(|f| dot(f.normal, toward) > 0.0)
-            .map(|f| f.label)
+            .map(|f| (f.label)(Language::En))
             .collect();
         assert_eq!(seen, ["TOP", "FRONT", "RIGHT"]);
         // Each face's look turns the view to face it straight on (as far as the tilt goes).
@@ -431,7 +438,11 @@ mod tests {
             let (turn, tilt) = face.look.unwrap();
             app.view.orient(turn, tilt, (0.0, 0.0));
             let toward = app.toward_viewer();
-            assert!(dot(face.normal, toward) > 0.99, "{}", face.label);
+            assert!(
+                dot(face.normal, toward) > 0.99,
+                "{}",
+                (face.label)(Language::En)
+            );
         }
     }
 

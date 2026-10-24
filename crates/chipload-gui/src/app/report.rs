@@ -8,6 +8,7 @@ use chipload_pipeline::report::{format_contours, format_import_report};
 use eframe::egui::{self, Color32, RichText, ScrollArea, Sense};
 
 use super::{ChiploadApp, Focus, Panel};
+use crate::i18n::t;
 use chipload_job::Problem;
 
 /// Height the open report starts with.
@@ -149,17 +150,13 @@ impl DrawingFacts {
         }
     }
 
-    fn title(&self) -> String {
-        let contours = match self.contours {
-            1 => "1 contour".to_string(),
-            n => format!("{n} contours"),
-        };
-        let issues = match self.issues {
-            0 => "no issues".to_string(),
-            1 => "1 issue".to_string(),
-            n => format!("{n} issues"),
-        };
-        format!("Drawing: {contours}, {issues}")
+    fn title(&self, src: &impl crate::i18n::Lang) -> String {
+        t!(
+            src,
+            "report-drawing-title",
+            contours = self.contours,
+            issues = self.issues
+        )
     }
 }
 
@@ -194,11 +191,14 @@ impl ChiploadApp {
         ui.horizontal(|ui| {
             let arrow = if self.report_open { "▾" } else { "▸" };
             if ui
-                .selectable_label(false, RichText::new(format!("{arrow} Report")).strong())
+                .selectable_label(
+                    false,
+                    RichText::new(format!("{arrow} {}", t!(ui, "report-heading"))).strong(),
+                )
                 .on_hover_text(if self.report_open {
-                    "Hide the report"
+                    t!(ui, "report-hide-hover")
                 } else {
-                    "Show the report"
+                    t!(ui, "report-show-hover")
                 })
                 .clicked()
             {
@@ -214,10 +214,7 @@ impl ChiploadApp {
                 });
             if rest > 0 && !self.report_open {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let text = match rest {
-                        1 => "1 more warning".to_string(),
-                        n => format!("{n} more warnings"),
-                    };
+                    let text = t!(ui, "report-more-warnings", count = rest);
                     ui.label(RichText::new(text).color(Tone::Warning.color(ui.visuals())));
                 });
             }
@@ -237,7 +234,7 @@ impl ChiploadApp {
                     if !lines.is_empty() {
                         ui.add_space(4.0);
                     }
-                    let mut title = RichText::new(facts.title());
+                    let mut title = RichText::new(facts.title(ui));
                     if facts.issues > 0 {
                         let tone = if facts.errors {
                             Tone::Error
@@ -287,7 +284,8 @@ impl ChiploadApp {
         });
         let response = row.inner;
         if let Some(op) = line.op {
-            let response = response.on_hover_text(format!("Select operation {}", op + 1));
+            let response =
+                response.on_hover_text(t!(ui, "report-select-operation-hover", number = op + 1));
             if response.hovered() {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
             }

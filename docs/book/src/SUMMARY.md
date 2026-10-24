@@ -68,3 +68,4 @@
 # Help
 
 - [Troubleshooting](troubleshooting.md)
+- [Languages](languages.md)

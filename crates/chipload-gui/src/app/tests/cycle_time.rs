@@ -17,13 +17,13 @@ fn the_report_and_the_cards_show_the_estimated_time() {
 }
 
 mod keyboard_shortcuts {
-    use super::super::shortcuts::{BINDINGS, OTHERS, keys_text, shortcut_rows, with_keys};
+    use super::super::shortcuts::{BINDINGS, keys_text, others, shortcut_rows, with_keys};
     use super::*;
 
     #[test]
     fn every_shortcut_is_listed_once_and_shift_ones_come_first() {
         // docs/specs/small-items.md §1
-        let listed: Vec<String> = shortcut_rows()
+        let listed: Vec<String> = shortcut_rows(&crate::i18n::Language::En)
             .into_iter()
             .flat_map(|(_, rows)| rows.into_iter().map(|(keys, _)| keys))
             .collect();
@@ -50,7 +50,8 @@ mod keyboard_shortcuts {
         }
         // The keys handled outside the table are listed too.
         for keys in ["Delete", "Escape", "Enter, double-click", "Backspace"] {
-            assert!(OTHERS.iter().any(|(_, k, _)| *k == keys), "{keys}");
+            let others = others(&crate::i18n::Language::En);
+            assert!(others.iter().any(|(_, k, _)| k == keys), "{keys}");
         }
         assert_eq!(
             with_keys("Undo", super::super::shortcuts::Action::Undo),

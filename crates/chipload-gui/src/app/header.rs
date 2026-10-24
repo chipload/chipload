@@ -23,7 +23,7 @@ impl ChiploadApp {
     /// (docs/specs/active-part-preview.md §2).
     fn export_hover(&self) -> String {
         let Some(edit) = &self.edit else {
-            return "Save the checked G-code".to_string();
+            return t!(self, "header-export-hover");
         };
         let cut = edit.settings.parts.iter().filter(|p| p.enabled).count();
         let shown = self
@@ -31,14 +31,16 @@ impl ChiploadApp {
             .and_then(|id| edit.settings.part(id))
             .map(|p| p.name.as_str());
         match (cut, shown) {
-            (n, Some(name)) if n > 1 => format!(
-                "Save the checked G-code of every part that is cut ({n} parts); the preview \
-                 shows only \"{name}\""
-            ),
-            (n, _) if n > 1 => {
-                format!("Save the checked G-code of every part that is cut ({n} parts)")
+            (n, Some(name)) if n > 1 => {
+                t!(
+                    self,
+                    "header-export-hover-parts-shown",
+                    count = n,
+                    part = name
+                )
             }
-            _ => "Save the checked G-code".to_string(),
+            (n, _) if n > 1 => t!(self, "header-export-hover-parts", count = n),
+            _ => t!(self, "header-export-hover"),
         }
     }
 
@@ -55,44 +57,20 @@ impl ChiploadApp {
             ui.label(RichText::new("Chipload").strong());
             ui.add_space(14.0);
             let has_job = self.edit.is_some();
-            if quick_button(
-                ui,
-                Icon::Open,
-                &hover_keys("Open a project", Action::Open),
-                true,
-            )
-            .clicked()
-            {
+            let hover = hover_keys(&t!(ui, "header-open-hover"), Action::Open);
+            if quick_button(ui, Icon::Open, &hover, true).clicked() {
                 self.ask_open();
             }
-            if quick_button(
-                ui,
-                Icon::Save,
-                &hover_keys("Save the project", Action::Save),
-                has_job,
-            )
-            .clicked()
-            {
+            let hover = hover_keys(&t!(ui, "header-save-hover"), Action::Save);
+            if quick_button(ui, Icon::Save, &hover, has_job).clicked() {
                 self.ask_save(false);
             }
-            if quick_button(
-                ui,
-                Icon::Undo,
-                &hover_keys("Undo", Action::Undo),
-                !self.undo.is_empty(),
-            )
-            .clicked()
-            {
+            let hover = hover_keys(&t!(ui, "header-undo"), Action::Undo);
+            if quick_button(ui, Icon::Undo, &hover, !self.undo.is_empty()).clicked() {
                 self.undo();
             }
-            if quick_button(
-                ui,
-                Icon::Redo,
-                &hover_keys("Redo", Action::Redo),
-                !self.redo.is_empty(),
-            )
-            .clicked()
-            {
+            let hover = hover_keys(&t!(ui, "header-redo"), Action::Redo);
+            if quick_button(ui, Icon::Redo, &hover, !self.redo.is_empty()).clicked() {
                 self.redo();
             }
             let left_end = ui.min_rect().right();
@@ -105,16 +83,28 @@ impl ChiploadApp {
                         .weak(),
                 );
                 ui.add_space(6.0);
-                let help = quick_button(ui, Icon::Help, "Help", true);
+                let label = t!(ui, "header-help");
+                let help = quick_button(ui, Icon::Help, &label, true);
                 egui::Popup::menu(&help).show(|ui| self.help_menu(ui));
                 // The colour theme: a click goes on to the next (docs/specs/
                 // view-and-settings.md §3).
-                let (icon, now, next) = match self.theme {
-                    Theme::System => (Icon::ThemeSystem, "as the system is set", Theme::Light),
-                    Theme::Light => (Icon::ThemeLight, "light", Theme::Dark),
-                    Theme::Dark => (Icon::ThemeDark, "dark", Theme::System),
+                let (icon, hover, next) = match self.theme {
+                    Theme::System => (
+                        Icon::ThemeSystem,
+                        t!(ui, "header-theme-system-hover"),
+                        Theme::Light,
+                    ),
+                    Theme::Light => (
+                        Icon::ThemeLight,
+                        t!(ui, "header-theme-light-hover"),
+                        Theme::Dark,
+                    ),
+                    Theme::Dark => (
+                        Icon::ThemeDark,
+                        t!(ui, "header-theme-dark-hover"),
+                        Theme::System,
+                    ),
                 };
-                let hover = format!("Colour theme: {now}. Click for the next.");
                 if quick_button(ui, icon, &hover, true).clicked() {
                     self.set_theme(next);
                 }
@@ -133,7 +123,7 @@ impl ChiploadApp {
         let name = self
             .job_path
             .as_deref()
-            .map_or("New project".to_string(), file_name);
+            .map_or_else(|| t!(ui, "header-new-project"), file_name);
         let dirty = self.dirty();
         let galley = egui::WidgetText::from(RichText::new(&name)).into_galley(
             ui,
@@ -175,9 +165,13 @@ impl ChiploadApp {
             painter.circle_filled(dot, 3.5, visuals.text_color());
         }
         let hover = match (&self.job_path, dirty) {
-            (Some(path), true) => format!("{}\nUnsaved changes", path.display()),
+            (Some(path), true) => t!(
+                ui,
+                "header-tab-unsaved-hover",
+                path = path.display().to_string()
+            ),
             (Some(path), false) => path.display().to_string(),
-            (None, _) => "Not saved yet".to_string(),
+            (None, _) => t!(ui, "header-tab-not-saved-hover"),
         };
         ui.interact(rect, egui::Id::new("project-tab"), Sense::hover())
             .on_hover_text(hover);
@@ -204,269 +198,397 @@ impl ChiploadApp {
                         .color(ui.visuals().weak_text_color());
                     let response = ui
                         .add(egui::Button::new(text).frame(false))
-                        .on_hover_text(format!("Everything in {caption}"));
+                        .on_hover_text(t!(ui, "header-group-hover", group = caption));
                     egui::Popup::menu(&response).show(|ui| menu(self, ui));
                 },
             );
         });
     }
 
-    /// The ribbon: FILE, DRAW, OPERATION and VIEW groups, Generate and Export at the right.
+    /// The ribbon: FILE, DRAW, OPERATION, LIBRARY and VIEW groups, Generate and Export at the
+    /// right. The groups get the width Generate and Export leave, and scroll when they don't
+    /// fit, as they may in a longer language or a narrow window.
     pub(super) fn ribbon(&mut self, ui: &mut egui::Ui) {
         ui.add_space(2.0);
+        let actions = self.ribbon_actions(ui);
+        let mut clicked = None;
         ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 2.0;
-            let has_job = self.edit.is_some();
-            self.group(
-                ui,
-                "File",
-                |app, ui| {
-                    if ribbon_button(ui, Icon::New, "New", true, false)
-                        .on_hover_text(hover_keys("New project", Action::New))
-                        .clicked()
-                    {
-                        app.ask_new();
-                    }
-                    if ribbon_button(ui, Icon::Open, "Open", true, false)
-                        .on_hover_text(hover_keys("Open a project", Action::Open))
-                        .clicked()
-                    {
-                        app.ask_open();
-                    }
-                    if ribbon_button(ui, Icon::Import, "Import", true, false)
-                        .on_hover_text(hover_keys("New project from a DXF", Action::Import))
-                        .clicked()
-                    {
-                        app.ask_import();
-                    }
-                    if ribbon_button(ui, Icon::Save, "Save", has_job, false)
-                        .on_hover_text(hover_keys("Save the project", Action::Save))
-                        .clicked()
-                    {
-                        app.ask_save(false);
-                    }
-                },
-                |app, ui| {
-                    app.file_menu(ui);
-                    ui.separator();
-                    app.undo_menu(ui);
-                },
+            let groups = vec2(
+                (ui.available_width() - actions.width(ui)).max(0.0),
+                RIBBON_BUTTON.0 + 20.0,
             );
-            ui.separator();
-            self.group(
-                ui,
-                "Draw",
-                |app, ui| {
-                    let can_draw = app.can_draw();
-                    for (tool, icon, label, hint) in [
-                        (
-                            Tool::Circle,
-                            Icon::Circle,
-                            "Circle",
-                            "Draw a circle: centre, then a point on it",
-                        ),
-                        (
-                            Tool::Rectangle,
-                            Icon::Rectangle,
-                            "Rectangle",
-                            "Draw a rectangle: two opposite corners",
-                        ),
-                        (
-                            Tool::Polyline,
-                            Icon::Polyline,
-                            "Polyline",
-                            "Draw a polyline: click points",
-                        ),
-                    ] {
-                        let active = app.sketch.as_ref().is_some_and(|s| s.tool == tool);
-                        if ribbon_button(ui, icon, label, can_draw, active)
-                            .on_hover_text(hint)
-                            .clicked()
-                        {
-                            app.start_drawing(tool);
-                        }
-                    }
-                    if ribbon_button(ui, Icon::Text, "Text", can_draw, app.placing_text())
-                        .on_hover_text(
-                            "Write a text: click where it starts, then type it in Properties",
-                        )
-                        .clicked()
-                    {
-                        app.start_text();
-                    }
-                    if ribbon_button(ui, Icon::Image, "Image", true, false)
-                        .on_hover_text(
-                            "Trace a picture into shapes, for V-carving or a follow path",
-                        )
-                        .clicked()
-                    {
-                        app.import_image_dialog();
-                    }
-                    let adding = has_job && app.dxf_count() > 0;
-                    if ribbon_button(ui, Icon::Dxf, "Add DXF", adding, false)
-                        .on_hover_text(if adding {
-                            "Another part: a DXF placed and updated on its own"
-                        } else {
-                            "Import a DXF first (FILE > Import)"
-                        })
-                        .clicked()
-                    {
-                        app.ask_add_dxf();
-                    }
-                },
-                |app, ui| {
-                    app.draw_menu(ui);
-                    ui.separator();
-                    if ui.button("Import image…").clicked() {
-                        app.import_image_dialog();
-                    }
-                    if ui
-                        .add_enabled(
-                            app.edit.is_some() && app.dxf_count() > 0,
-                            egui::Button::new("Add DXF to project…"),
-                        )
-                        .clicked()
-                    {
-                        app.ask_add_dxf();
-                    }
-                    ui.separator();
-                    app.shape_menu(ui);
-                },
-            );
-            ui.separator();
-            self.group(
-                ui,
-                "Operation",
-                |app, ui| {
-                    let selected = !app.selection.ids(&app.contours).is_empty();
-                    for (label, kind, hover) in super::browser::NEW_OPERATIONS {
-                        let icon = match kind {
-                            OpKind::Profile => Icon::Profile,
-                            OpKind::Pocket => Icon::Pocket,
-                            OpKind::Vcarve => Icon::Vcarve,
-                            OpKind::Path => Icon::FollowPath,
-                            OpKind::Holes => Icon::Holes,
-                            OpKind::Surface => Icon::Surface,
-                        };
-                        let short = if kind == OpKind::Path {
-                            "Follow"
-                        } else {
-                            label
-                        };
-                        let enabled = selected || !kind.needs_selection();
-                        let response = ribbon_button(ui, icon, short, enabled, false);
-                        let response = if enabled {
-                            response.on_hover_text(hover)
-                        } else {
-                            response.on_hover_text(format!("{hover}. Select shapes first."))
-                        };
-                        if response.clicked() {
-                            app.add_operation(kind);
-                        }
-                    }
-                },
-                |app, ui| {
-                    let selected = !app.selection.ids(&app.contours).is_empty();
-                    for (label, kind, hover) in super::browser::NEW_OPERATIONS {
-                        if ui
-                            .add_enabled(
-                                selected || !kind.needs_selection(),
-                                egui::Button::new(format!("New {label}")),
-                            )
-                            .on_hover_text(hover)
-                            .on_disabled_hover_text("Select shapes first")
-                            .clicked()
-                        {
-                            app.add_operation(kind);
-                        }
-                    }
-                    ui.separator();
-                    app.job_menu(ui);
-                },
-            );
-            ui.separator();
-            self.group(
-                ui,
-                "Library",
-                |app, ui| {
-                    if ribbon_button(ui, Icon::Tools, "Tools", true, false)
-                        .on_hover_text("Your tool library, under This computer in the Browser")
-                        .clicked()
-                    {
-                        app.show_library(LibraryKind::Tools, None);
-                    }
-                    if ribbon_button(ui, Icon::Machine, "Machines", true, false)
-                        .on_hover_text("Your machine profiles, under This computer in the Browser")
-                        .clicked()
-                    {
-                        app.show_library(LibraryKind::Machines, None);
-                    }
-                },
-                |app, ui| {
-                    if ui.button("Tool library").clicked() {
-                        app.show_library(LibraryKind::Tools, None);
-                    }
-                    if ui.button("Machines").clicked() {
-                        app.show_library(LibraryKind::Machines, None);
-                    }
-                },
-            );
-            ui.separator();
-            self.group(
-                ui,
-                "View",
-                |app, ui| {
-                    if ribbon_button(ui, Icon::Measure, "Measure", has_job, app.measure.is_some())
-                        .on_hover_text(hover_keys(
-                            "Two clicks give the distance, ΔX, ΔY and the angle. What is \
-                             shown is on the canvas's bar.",
-                            Action::Measure,
-                        ))
-                        .clicked()
-                    {
-                        app.toggle_measure();
-                    }
-                },
-                |app, ui| app.view_menu(ui),
-            );
+            ui.allocate_ui_with_layout(groups, Layout::left_to_right(Align::Min), |ui| {
+                egui::ScrollArea::horizontal()
+                    .id_salt("ribbon")
+                    .show(ui, |ui| ui.horizontal(|ui| self.ribbon_groups(ui)));
+            });
             ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
-                ui.spacing_mut().item_spacing.x = 4.0;
-                ui.add_space(4.0);
-                let has_result = self.result.is_some();
-                let can_export = has_result || self.generating();
-                let hover = if has_result {
-                    self.export_hover()
-                } else if self.generating() {
-                    "Save the G-code once it is generated".to_string()
-                } else {
-                    "Generate first".to_string()
-                };
-                if ribbon_button(ui, Icon::Export, "Export", can_export, false)
-                    .on_hover_text(hover_keys(&hover, Action::Export))
-                    .clicked()
-                {
-                    self.export_when_ready();
-                }
-                if self.generating() {
-                    if generate_button(ui, Icon::Stop, "Cancel", true)
-                        .on_hover_text("Stop generating")
-                        .clicked()
-                    {
-                        self.cancel_generation();
-                    }
-                } else if generate_button(ui, Icon::Generate, "Generate", self.can_generate())
-                    .on_hover_text(hover_keys(
-                        "Plan the toolpaths, write and check the G-code",
-                        Action::Generate,
-                    ))
-                    .clicked()
-                {
-                    self.generate();
-                }
+                clicked = actions.show(ui);
             });
         });
+        match clicked {
+            Some(RibbonAction::Export) => self.export_when_ready(),
+            Some(RibbonAction::Generate) => {
+                self.generate();
+            }
+            Some(RibbonAction::Cancel) => self.cancel_generation(),
+            None => {}
+        }
         ui.add_space(2.0);
     }
+
+    /// What Generate and Export show this frame.
+    fn ribbon_actions(&self, ui: &egui::Ui) -> RibbonActions {
+        let has_result = self.result.is_some();
+        let export_hover = if has_result {
+            self.export_hover()
+        } else if self.generating() {
+            t!(ui, "header-export-generating-hover")
+        } else {
+            t!(ui, "header-export-first-hover")
+        };
+        RibbonActions {
+            can_export: has_result || self.generating(),
+            export_hover,
+            generating: self.generating(),
+            can_generate: self.can_generate(),
+        }
+    }
+
+    /// The ribbon's groups, left to right.
+    fn ribbon_groups(&mut self, ui: &mut egui::Ui) {
+        ui.spacing_mut().item_spacing.x = 2.0;
+        let has_job = self.edit.is_some();
+        let caption = t!(ui, "header-group-file");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let label = t!(ui, "header-new");
+                if ribbon_button(ui, Icon::New, &label, true, false)
+                    .on_hover_text(hover_keys(&t!(ui, "header-new-hover"), Action::New))
+                    .clicked()
+                {
+                    app.ask_new();
+                }
+                let label = t!(ui, "header-open");
+                if ribbon_button(ui, Icon::Open, &label, true, false)
+                    .on_hover_text(hover_keys(&t!(ui, "header-open-hover"), Action::Open))
+                    .clicked()
+                {
+                    app.ask_open();
+                }
+                let label = t!(ui, "header-import");
+                if ribbon_button(ui, Icon::Import, &label, true, false)
+                    .on_hover_text(hover_keys(&t!(ui, "header-import-hover"), Action::Import))
+                    .clicked()
+                {
+                    app.ask_import();
+                }
+                let label = t!(ui, "header-save");
+                if ribbon_button(ui, Icon::Save, &label, has_job, false)
+                    .on_hover_text(hover_keys(&t!(ui, "header-save-hover"), Action::Save))
+                    .clicked()
+                {
+                    app.ask_save(false);
+                }
+            },
+            |app, ui| {
+                app.file_menu(ui);
+                ui.separator();
+                app.undo_menu(ui);
+            },
+        );
+        ui.separator();
+        let caption = t!(ui, "header-group-draw");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let can_draw = app.can_draw();
+                for (tool, icon, label, hint) in [
+                    (
+                        Tool::Circle,
+                        Icon::Circle,
+                        t!(ui, "header-circle"),
+                        t!(ui, "header-circle-hover"),
+                    ),
+                    (
+                        Tool::Rectangle,
+                        Icon::Rectangle,
+                        t!(ui, "header-rectangle"),
+                        t!(ui, "header-rectangle-hover"),
+                    ),
+                    (
+                        Tool::Polyline,
+                        Icon::Polyline,
+                        t!(ui, "header-polyline"),
+                        t!(ui, "header-polyline-hover"),
+                    ),
+                ] {
+                    let active = app.sketch.as_ref().is_some_and(|s| s.tool == tool);
+                    if ribbon_button(ui, icon, &label, can_draw, active)
+                        .on_hover_text(hint)
+                        .clicked()
+                    {
+                        app.start_drawing(tool);
+                    }
+                }
+                let label = t!(ui, "header-text");
+                if ribbon_button(ui, Icon::Text, &label, can_draw, app.placing_text())
+                    .on_hover_text(t!(ui, "header-text-hover"))
+                    .clicked()
+                {
+                    app.start_text();
+                }
+                let label = t!(ui, "header-image");
+                if ribbon_button(ui, Icon::Image, &label, true, false)
+                    .on_hover_text(t!(ui, "header-image-hover"))
+                    .clicked()
+                {
+                    app.import_image_dialog();
+                }
+                let adding = has_job && app.dxf_count() > 0;
+                let label = t!(ui, "header-add-dxf");
+                if ribbon_button(ui, Icon::Dxf, &label, adding, false)
+                    .on_hover_text(if adding {
+                        t!(ui, "header-add-dxf-hover")
+                    } else {
+                        t!(ui, "header-add-dxf-first-hover")
+                    })
+                    .clicked()
+                {
+                    app.ask_add_dxf();
+                }
+            },
+            |app, ui| {
+                app.draw_menu(ui);
+                ui.separator();
+                if ui.button(t!(ui, "header-import-image-menu")).clicked() {
+                    app.import_image_dialog();
+                }
+                if ui
+                    .add_enabled(
+                        app.edit.is_some() && app.dxf_count() > 0,
+                        egui::Button::new(t!(ui, "header-add-dxf-menu")),
+                    )
+                    .clicked()
+                {
+                    app.ask_add_dxf();
+                }
+                ui.separator();
+                app.shape_menu(ui);
+            },
+        );
+        ui.separator();
+        let caption = t!(ui, "header-group-operation");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let selected = !app.selection.ids(&app.contours).is_empty();
+                for (label, kind, hover) in super::browser::new_operations(ui) {
+                    let icon = match kind {
+                        OpKind::Profile => Icon::Profile,
+                        OpKind::Pocket => Icon::Pocket,
+                        OpKind::Vcarve => Icon::Vcarve,
+                        OpKind::Path => Icon::FollowPath,
+                        OpKind::Holes => Icon::Holes,
+                        OpKind::Surface => Icon::Surface,
+                    };
+                    let short = if kind == OpKind::Path {
+                        t!(ui, "header-follow")
+                    } else {
+                        label
+                    };
+                    let enabled = selected || !kind.needs_selection();
+                    let response = ribbon_button(ui, icon, &short, enabled, false);
+                    let response = if enabled {
+                        response.on_hover_text(hover)
+                    } else {
+                        response.on_hover_text(t!(
+                            ui,
+                            "header-needs-selection-hover",
+                            operation = hover
+                        ))
+                    };
+                    if response.clicked() {
+                        app.add_operation(kind);
+                    }
+                }
+            },
+            |app, ui| {
+                let selected = !app.selection.ids(&app.contours).is_empty();
+                for (_, kind, hover) in super::browser::new_operations(ui) {
+                    if ui
+                        .add_enabled(
+                            selected || !kind.needs_selection(),
+                            egui::Button::new(new_operation(ui, kind)),
+                        )
+                        .on_hover_text(hover)
+                        .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+                        .clicked()
+                    {
+                        app.add_operation(kind);
+                    }
+                }
+                ui.separator();
+                app.job_menu(ui);
+            },
+        );
+        ui.separator();
+        let caption = t!(ui, "header-group-library");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let label = t!(ui, "header-tools");
+                if ribbon_button(ui, Icon::Tools, &label, true, false)
+                    .on_hover_text(t!(ui, "header-tools-hover"))
+                    .clicked()
+                {
+                    app.show_library(LibraryKind::Tools, None);
+                }
+                let label = t!(ui, "header-machines");
+                if ribbon_button(ui, Icon::Machine, &label, true, false)
+                    .on_hover_text(t!(ui, "header-machines-hover"))
+                    .clicked()
+                {
+                    app.show_library(LibraryKind::Machines, None);
+                }
+            },
+            |app, ui| {
+                if ui.button(t!(ui, "header-tool-library")).clicked() {
+                    app.show_library(LibraryKind::Tools, None);
+                }
+                if ui.button(t!(ui, "header-machines")).clicked() {
+                    app.show_library(LibraryKind::Machines, None);
+                }
+            },
+        );
+        ui.separator();
+        let caption = t!(ui, "header-group-view");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let label = t!(ui, "header-measure");
+                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure.is_some())
+                    .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
+                    .clicked()
+                {
+                    app.toggle_measure();
+                }
+            },
+            |app, ui| app.view_menu(ui),
+        );
+    }
+}
+
+/// A click on Generate, Cancel or Export, acted on after the ribbon is drawn.
+enum RibbonAction {
+    Generate,
+    Cancel,
+    Export,
+}
+
+/// Generate (or Cancel) and Export, at the ribbon's right.
+struct RibbonActions {
+    can_export: bool,
+    export_hover: String,
+    generating: bool,
+    can_generate: bool,
+}
+
+impl RibbonActions {
+    /// The width Export and Generate (or Cancel) take, spacing included.
+    fn width(&self, ui: &egui::Ui) -> f32 {
+        let label = if self.generating {
+            t!(ui, "header-cancel")
+        } else {
+            t!(ui, "header-generate")
+        };
+        let export = ribbon_button_width(ui, &t!(ui, "header-export"));
+        let generate = generate_button_width(ui, &label);
+        RIBBON_ACTIONS_SPACING + export + generate
+    }
+
+    fn show(&self, ui: &mut egui::Ui) -> Option<RibbonAction> {
+        ui.spacing_mut().item_spacing.x = 4.0;
+        ui.add_space(4.0);
+        let mut clicked = None;
+        let label = t!(ui, "header-export");
+        if ribbon_button(ui, Icon::Export, &label, self.can_export, false)
+            .on_hover_text(hover_keys(&self.export_hover, Action::Export))
+            .clicked()
+        {
+            clicked = Some(RibbonAction::Export);
+        }
+        if self.generating {
+            let label = t!(ui, "header-cancel");
+            if generate_button(ui, Icon::Stop, &label, true)
+                .on_hover_text(t!(ui, "header-cancel-hover"))
+                .clicked()
+            {
+                clicked = Some(RibbonAction::Cancel);
+            }
+        } else {
+            let label = t!(ui, "header-generate");
+            if generate_button(ui, Icon::Generate, &label, self.can_generate)
+                .on_hover_text(hover_keys(
+                    &t!(ui, "header-generate-hover"),
+                    Action::Generate,
+                ))
+                .clicked()
+            {
+                clicked = Some(RibbonAction::Generate);
+            }
+        }
+        clicked
+    }
+}
+
+/// "New Profile" and the like: a menu item that adds an operation of `kind`.
+fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
+    match kind {
+        OpKind::Profile => t!(ui, "header-new-profile"),
+        OpKind::Pocket => t!(ui, "header-new-pocket"),
+        OpKind::Vcarve => t!(ui, "header-new-vcarve"),
+        OpKind::Path => t!(ui, "header-new-follow-path"),
+        OpKind::Holes => t!(ui, "header-new-holes"),
+        OpKind::Surface => t!(ui, "header-new-surface"),
+    }
+}
+
+/// Room around Export and Generate: the gap to the groups, between the two buttons and at
+/// the window's edge.
+const RIBBON_ACTIONS_SPACING: f32 = 16.0;
+
+/// A ribbon button's label, laid out once for its width and again to paint.
+fn ribbon_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
+    egui::WidgetText::from(RichText::new(label).small()).into_galley(
+        ui,
+        Some(egui::TextWrapMode::Extend),
+        f32::INFINITY,
+        egui::TextStyle::Small,
+    )
+}
+
+fn ribbon_button_width(ui: &egui::Ui, label: &str) -> f32 {
+    (ribbon_label(ui, label).size().x + 10.0).max(RIBBON_BUTTON.1)
+}
+
+fn generate_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
+    egui::WidgetText::from(RichText::new(label).strong()).into_galley(
+        ui,
+        Some(egui::TextWrapMode::Extend),
+        f32::INFINITY,
+        egui::TextStyle::Button,
+    )
+}
+
+fn generate_button_width(ui: &egui::Ui, label: &str) -> f32 {
+    generate_label(ui, label).size().x + 44.0
 }
 
 /// A ribbon button: an icon over a short word. Disabled ones are dimmed and don't click.
@@ -477,14 +599,8 @@ pub(super) fn ribbon_button(
     enabled: bool,
     selected: bool,
 ) -> Response {
-    let galley = egui::WidgetText::from(RichText::new(label).small()).into_galley(
-        ui,
-        Some(egui::TextWrapMode::Extend),
-        f32::INFINITY,
-        egui::TextStyle::Small,
-    );
-    let (height, narrowest) = RIBBON_BUTTON;
-    let size = vec2((galley.size().x + 10.0).max(narrowest), height);
+    let galley = ribbon_label(ui, label);
+    let size = vec2(ribbon_button_width(ui, label), RIBBON_BUTTON.0);
     let sense = if enabled {
         Sense::click()
     } else {
@@ -523,13 +639,8 @@ pub(super) fn ribbon_button(
 
 /// Generate (or Cancel): the one accent-coloured button, an icon beside a word.
 fn generate_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) -> Response {
-    let galley = egui::WidgetText::from(RichText::new(label).strong()).into_galley(
-        ui,
-        Some(egui::TextWrapMode::Extend),
-        f32::INFINITY,
-        egui::TextStyle::Button,
-    );
-    let size = vec2(galley.size().x + 44.0, RIBBON_BUTTON.0);
+    let galley = generate_label(ui, label);
+    let size = vec2(generate_button_width(ui, label), RIBBON_BUTTON.0);
     let sense = if enabled {
         Sense::click()
     } else {

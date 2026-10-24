@@ -27,12 +27,13 @@ use chipload_pipeline::{
 };
 use chipload_toolpath::select::{select_contours, select_paths};
 use eframe::egui::{
-    self, Align, CentralPanel, ComboBox, DragValue, Grid, Key, Layout, Modifiers, Panel, RichText,
-    ScrollArea, Sense, TextEdit, ViewportCommand,
+    self, Align, CentralPanel, ComboBox, Grid, Key, Layout, Modifiers, Panel, RichText, ScrollArea,
+    Sense, TextEdit, ViewportCommand,
 };
 
 use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
+use crate::i18n::t;
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
 
@@ -84,11 +85,11 @@ const BROWSER_MIN_WIDTH: f32 = 180.0;
 pub(crate) const PROPERTIES_MIN_WIDTH: f32 = 250.0;
 
 /// A folded side panel: one button that opens it again. True when clicked.
-fn folded_strip(ui: &mut egui::Ui, arrow: &str, what: &str) -> bool {
+fn folded_strip(ui: &mut egui::Ui, arrow: &str, hover: &str) -> bool {
     ui.add_space(4.0);
     ui.vertical_centered(|ui| {
         ui.add(egui::Button::new(arrow).frame(false))
-            .on_hover_text(format!("{what} (P: both panels)"))
+            .on_hover_text(hover)
             .clicked()
     })
     .inner
@@ -359,6 +360,11 @@ pub struct ChiploadApp {
     /// Settings > Units: what lengths and feeds are shown and typed in
     /// (docs/specs/inch-units.md §5), kept in the app settings.
     pub units: chipload_job::Units,
+    /// Settings > Language as kept in the app settings: `"system"` or a language code.
+    pub language_setting: String,
+    /// The language the app is shown in: `language_setting` resolved
+    /// (docs/specs/translations.md decision 5).
+    pub language: crate::i18n::Language,
     /// The theme last handed to egui.
     applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
@@ -430,9 +436,7 @@ impl Default for ChiploadApp {
             shape_draft: None,
             drag: Drag::default(),
             box_size: box_drag::BoxSize::default(),
-            report: Report::info([
-                "Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).".into(),
-            ]),
+            report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
             report_open: false,
             drawing_facts: None,
             legend_open: true,
@@ -443,6 +447,8 @@ impl Default for ChiploadApp {
             setup_sheet: true,
             show_grid: true,
             units: chipload_job::Units::Mm,
+            language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
+            language: crate::i18n::Language::En,
             changed_at: None,
             export_when_done: false,
             all_parts: false,
@@ -653,7 +659,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(err) => {
                 self.error(vec![
-                    format!("Cannot open {}:", file_name(path)),
+                    t!(self, "app-cannot-open", file = file_name(path)),
                     err.to_string(),
                 ]);
                 return false;
@@ -662,15 +668,17 @@ impl ChiploadApp {
         let version = raw_schema_version(path);
         self.start_editing(EditJob::from_job(&job), true, Some(path.to_path_buf()));
         self.record_recent(path);
-        let mut lines = vec![format!("Project: {}", file_name(path))];
+        let mut lines = vec![t!(self, "app-project", file = file_name(path))];
         if let Some(v) = version
             && v < chipload_job::CURRENT_VERSION
         {
             lines.insert(
                 1,
-                format!(
-                    "This file is schema version {v}; saving writes version {}.",
-                    chipload_job::CURRENT_VERSION
+                t!(
+                    self,
+                    "app-old-schema",
+                    version = v,
+                    current = chipload_job::CURRENT_VERSION
                 ),
             );
         }
@@ -695,14 +703,10 @@ impl ChiploadApp {
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
-        let mut lines = vec!["New project.".to_string()];
-        lines.extend(notes.iter().map(|n| format!("Started with {n}.")));
+        let mut lines = vec![t!(self, "app-new-project")];
+        lines.extend(notes.iter().map(|n| t!(self, "app-started-with", what = n)));
         lines.extend(self.library.problems.iter().cloned());
-        lines.push(
-            "Draw shapes from the Draw menu, or bring in a drawing with File > Import DXF \
-             into project. Check stock, machine and tool under Job settings."
-                .into(),
-        );
+        lines.push(t!(self, "app-new-project-next"));
         self.set_report(Report::info(lines));
     }
 
@@ -713,15 +717,16 @@ impl ChiploadApp {
             Ok(imported) => imported,
             Err(ImportError::UnitsMissing) => {
                 self.dialogs.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
-                self.set_report(Report::info([format!(
-                    "{} does not say which units it uses; choose mm or inch.",
-                    file_name(path)
+                self.set_report(Report::info([t!(
+                    self,
+                    "app-units-missing",
+                    file = file_name(path)
                 )]));
                 return false;
             }
             Err(err) => {
                 self.error(vec![
-                    format!("Cannot import {}:", file_name(path)),
+                    t!(self, "app-cannot-import", file = file_name(path)),
                     err.to_string(),
                 ]);
                 return false;
@@ -734,17 +739,15 @@ impl ChiploadApp {
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
-        let mut lines = vec![format!(
-            "New project from {} ({shapes} shapes).",
-            file_name(path)
+        let mut lines = vec![t!(
+            self,
+            "app-new-project-from",
+            file = file_name(path),
+            shapes = shapes
         )];
-        lines.extend(notes.iter().map(|n| format!("Started with {n}.")));
+        lines.extend(notes.iter().map(|n| t!(self, "app-started-with", what = n)));
         lines.extend(self.library.problems.iter().cloned());
-        lines.push(
-            "Select contours, then New profile or New pocket. Check stock, machine and tool \
-             under Job settings."
-                .into(),
-        );
+        lines.push(t!(self, "app-import-next"));
         self.set_report(Report::info(lines));
         true
     }
@@ -767,7 +770,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project is not complete:",
+                    &t!(self, "app-project-incomplete"),
                     &problems,
                 ));
                 return false;
@@ -790,24 +793,22 @@ impl ChiploadApp {
                 self.error_ops = report.lost.iter().copied().collect();
                 self.set_report(Report::info(report.lines));
                 if !report.lost.is_empty() {
-                    self.set_status(
-                        "Some operations lost their geometry: choose it again".into(),
-                        ERROR_STATUS_SECONDS,
-                    );
+                    self.set_status(t!(self, "app-lost-geometry"), ERROR_STATUS_SECONDS);
                 }
                 true
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
                 self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Update(id)));
-                self.set_report(Report::info([format!(
-                    "{} does not say which units it uses; choose mm or inch.",
-                    file_name(dxf)
+                self.set_report(Report::info([t!(
+                    self,
+                    "app-units-missing",
+                    file = file_name(dxf)
                 )]));
                 false
             }
             Err(err) => {
                 self.error(vec![
-                    "Could not update the drawing:".into(),
+                    t!(self, "app-could-not-update-drawing"),
                     err.to_string(),
                 ]);
                 false
@@ -827,7 +828,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project is not complete:",
+                    &t!(self, "app-project-incomplete"),
                     &problems,
                 ));
                 return false;
@@ -847,15 +848,16 @@ impl ChiploadApp {
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
                 self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Add));
-                self.set_report(Report::info([format!(
-                    "{} does not say which units it uses; choose mm or inch.",
-                    file_name(dxf)
+                self.set_report(Report::info([t!(
+                    self,
+                    "app-units-missing",
+                    file = file_name(dxf)
                 )]));
                 false
             }
             Err(err) => {
                 self.error(vec![
-                    format!("Could not add {}:", file_name(dxf)),
+                    t!(self, "app-could-not-add", file = file_name(dxf)),
                     err.to_string(),
                 ]);
                 false
@@ -878,7 +880,13 @@ impl ChiploadApp {
         let cutting = self.tool_cutting(tool);
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
-        let index = edit.add_with(kind, &selection, &self.contours, cutting.as_ref());
+        let index = edit.add_with(
+            kind,
+            &selection,
+            &self.contours,
+            cutting.as_ref(),
+            &self.language,
+        );
         self.focus = Focus::Op(index);
         self.commit();
         Some(index)
@@ -903,7 +911,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project is not complete:",
+                    &t!(self, "app-project-incomplete"),
                     &problems,
                 ));
                 return false;
@@ -927,7 +935,10 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec!["Could not move the drawing:".into(), err.to_string()]);
+                self.error(vec![
+                    t!(self, "app-could-not-move-drawing"),
+                    err.to_string(),
+                ]);
                 false
             }
         }
@@ -947,7 +958,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project is not complete:",
+                    &t!(self, "app-project-incomplete"),
                     &problems,
                 ));
                 return;
@@ -972,15 +983,16 @@ impl ChiploadApp {
                     copies.dy = dy;
                 }
                 self.commit();
-                self.set_status(
-                    format!("Pitch {dx:.3} × {dy:.3} mm ({gap:.3} mm gap)"),
-                    STATUS_SECONDS,
+                let text = t!(
+                    self,
+                    "app-pitch-set",
+                    dx = format!("{dx:.3}"),
+                    dy = format!("{dy:.3} mm"),
+                    gap = format!("{gap:.3} mm")
                 );
+                self.set_status(text, STATUS_SECONDS);
             }
-            Err(err) => self.error(vec![
-                "Could not set the pitch from a gap: the part has to be planned first.".into(),
-                err.to_string(),
-            ]),
+            Err(err) => self.error(vec![t!(self, "app-pitch-needs-plan"), err.to_string()]),
         }
     }
 
@@ -1040,17 +1052,10 @@ impl ChiploadApp {
             Some(ops) => {
                 self.focus = Focus::Job;
                 self.commit();
-                let what = match ops {
-                    0 => String::new(),
-                    1 => " and its operation".into(),
-                    n => format!(" and its {n} operations"),
-                };
-                self.set_status(
-                    format!("Deleted part {name}{what} (Ctrl+Z brings it back)"),
-                    STATUS_SECONDS,
-                );
+                let text = t!(self, "app-deleted-part", count = ops, name = name);
+                self.set_status(text, STATUS_SECONDS);
             }
-            None => self.set_status("A project needs at least one part".into(), STATUS_SECONDS),
+            None => self.set_status(t!(self, "app-part-needed"), STATUS_SECONDS),
         }
     }
 
@@ -1085,7 +1090,7 @@ impl ChiploadApp {
 
     pub fn duplicate_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut())
-            && let Some(copy) = edit.duplicate(i)
+            && let Some(copy) = edit.duplicate(i, &self.language)
         {
             self.focus = Focus::Op(copy);
             self.commit();
@@ -1118,7 +1123,11 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec![format!("Could not add a rest pass: {err}")]);
+                self.error(vec![t!(
+                    self,
+                    "app-could-not-add-rest-pass",
+                    error = err.to_string()
+                )]);
                 false
             }
         }
@@ -1152,17 +1161,15 @@ impl ChiploadApp {
             return None;
         };
         if pocket.corners.is_some() {
-            return Some(RestMenu::Unavailable(
-                "This pocket has dogbone or T-bone corners, and rest passes can't be combined \
-                 with them yet. The corners already reach where a rest pass would."
-                    .into(),
-            ));
+            return Some(RestMenu::Unavailable(t!(self, "app-rest-with-corners")));
         }
         let tools = &edit.settings.tools;
         let last = pocket.rest_passes.last().map_or(pocket.tool, |r| r.tool);
         let Some(diameter) = tools.iter().find(|t| t.id == last).map(|t| t.diameter) else {
-            return Some(RestMenu::Unavailable(format!(
-                "Tool T{last} isn't in the project: give the pocket a tool first."
+            return Some(RestMenu::Unavailable(t!(
+                self,
+                "app-rest-tool-missing",
+                tool = format!("T{last}")
             )));
         };
         let project: Vec<(i64, f64)> = tools
@@ -1185,10 +1192,11 @@ impl ChiploadApp {
             .map(|e| (e.name.clone(), e.diameter))
             .collect();
         if project.is_empty() && library.is_empty() {
-            return Some(RestMenu::Unavailable(format!(
-                "No endmill smaller than T{last} ({}) in the project or your tool library. \
-                 Add one under Tools, then right-click the pocket again.",
-                chipload_pipeline::units::length_text(diameter, units)
+            return Some(RestMenu::Unavailable(t!(
+                self,
+                "app-rest-no-smaller",
+                tool = format!("T{last}"),
+                diameter = chipload_pipeline::units::length_text(diameter, units)
             )));
         }
         Some(RestMenu::Tools { project, library })
@@ -1259,15 +1267,8 @@ impl ChiploadApp {
             });
             self.focus = Focus::RestPass(parent, pocket.rest_passes.len() - 1);
             self.commit();
-            self.set_status(
-                format!(
-                    "Operation {} is now a rest pass of operation {}; it is cut after the run \
-                     of pockets it belongs to",
-                    i + 1,
-                    parent + 1
-                ),
-                STATUS_SECONDS,
-            );
+            let text = t!(self, "app-now-rest-pass", op = i + 1, parent = parent + 1);
+            self.set_status(text, STATUS_SECONDS);
         }
     }
 
@@ -1288,7 +1289,7 @@ impl ChiploadApp {
     /// setting asks for one (docs/specs/setup-sheet.md §4).
     pub fn export_gcode(&mut self, path: &Path) -> bool {
         let Some(result) = &self.result else {
-            self.error(vec!["Generate (F5) before exporting G-code.".into()]);
+            self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         };
         // Never a preview of one part: every part is planned first, then written there
@@ -1296,7 +1297,7 @@ impl ChiploadApp {
         if self.result_part.is_some() {
             if self.start_generation_of(true, true) {
                 self.export_path_when_done = Some(path.to_path_buf());
-                self.set_status("Planning every part, then exporting".into(), STATUS_SECONDS);
+                self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
             }
             return false;
         }
@@ -1304,7 +1305,11 @@ impl ChiploadApp {
             Ok(written) => written,
             Err(err) => {
                 self.error(vec![
-                    format!("Could not export {}:", path.display()),
+                    t!(
+                        self,
+                        "app-could-not-export",
+                        path = path.display().to_string()
+                    ),
                     err.to_string(),
                 ]);
                 return false;
@@ -1324,9 +1329,10 @@ impl ChiploadApp {
                     Ok(sheet) => Some(sheet),
                     Err(err) => {
                         self.error(vec![
-                            format!(
-                                "Exported the G-code, but could not write the setup sheet {}:",
-                                sheet_path(path).display()
+                            t!(
+                                self,
+                                "app-sheet-failed",
+                                path = sheet_path(path).display().to_string()
                             ),
                             err.to_string(),
                         ]);
@@ -1336,19 +1342,12 @@ impl ChiploadApp {
             }
             _ => None,
         };
-        let and_sheet = match &sheet {
-            Some(sheet) => format!(" and the setup sheet {}", file_name(sheet)),
-            None => String::new(),
-        };
+        let shown = path.display().to_string();
         if written.len() > 1 {
             let mut report = Report::default();
             report.push(
                 Tone::Good,
-                format!(
-                    "Exported {} files: change the tool and set Z zero between them, \
-                     keeping X and Y zero.",
-                    written.len()
-                ),
+                t!(self, "app-exported-n-files", count = written.len()),
             );
             for file in &result.files {
                 report.push(Tone::Info, file.describe(path));
@@ -1356,23 +1355,37 @@ impl ChiploadApp {
             if let Some(sheet) = &sheet {
                 report.push(
                     Tone::Info,
-                    format!("Setup sheet for the operator: {}", sheet.display()),
+                    t!(
+                        self,
+                        "app-sheet-for-operator",
+                        path = sheet.display().to_string()
+                    ),
                 );
             }
             self.set_report(report);
-            self.set_status(
-                format!(
-                    "Exported {} files{and_sheet} next to {}",
-                    written.len(),
-                    path.display()
+            let count = written.len();
+            let text = match &sheet {
+                Some(sheet) => t!(
+                    self,
+                    "app-exported-files-sheet",
+                    count = count,
+                    sheet = file_name(sheet),
+                    path = shown
                 ),
-                STATUS_SECONDS,
-            );
+                None => t!(self, "app-exported-files", count = count, path = shown),
+            };
+            self.set_status(text, STATUS_SECONDS);
         } else {
-            self.set_status(
-                format!("Exported {}{and_sheet}", path.display()),
-                STATUS_SECONDS,
-            );
+            let text = match &sheet {
+                Some(sheet) => t!(
+                    self,
+                    "app-exported-sheet",
+                    path = shown,
+                    sheet = file_name(sheet)
+                ),
+                None => t!(self, "app-exported", path = shown),
+            };
+            self.set_status(text, STATUS_SECONDS);
         }
         true
     }
@@ -1387,7 +1400,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project can't be saved yet:",
+                    &t!(self, "app-cannot-save-yet"),
                     &problems,
                 ));
                 return false;
@@ -1395,7 +1408,11 @@ impl ChiploadApp {
         };
         if let Err(err) = save_job(&job, path) {
             self.error(vec![
-                format!("Could not save {}:", path.display()),
+                t!(
+                    self,
+                    "app-could-not-save",
+                    path = path.display().to_string()
+                ),
                 err.to_string(),
             ]);
             return false;
@@ -1407,7 +1424,8 @@ impl ChiploadApp {
         self.job_path = Some(path.to_path_buf());
         self.remember_disk();
         self.clear_recovery();
-        self.set_status(format!("Saved {}", path.display()), STATUS_SECONDS);
+        let text = t!(self, "app-saved", path = path.display().to_string());
+        self.set_status(text, STATUS_SECONDS);
         self.record_recent(path);
         true
     }
@@ -1503,35 +1521,29 @@ impl ChiploadApp {
     pub fn selection_lines(&self) -> Vec<String> {
         let ids = self.selection.ids(&self.contours);
         if ids.is_empty() {
-            return vec!["Nothing selected.".into()];
+            return vec![t!(self, "app-nothing-selected")];
         }
         let what = match &self.selection {
-            CanvasSelection::Layer(layer, _) => format!("layer {layer}"),
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(id)) => {
-                format!("DXF {id}")
-            }
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(id)) => {
-                format!("image {id}")
-            }
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id)) => {
-                format!("text {id}")
-            }
+            CanvasSelection::Layer(layer, _) => t!(self, "app-selection-layer", layer = layer),
+            CanvasSelection::Source(from) => self.source_text(*from),
             CanvasSelection::Except(from, _) => {
-                let source = match from {
-                    chipload_core::chain::ShapeFrom::Dxf(id) => format!("DXF {id}"),
-                    chipload_core::chain::ShapeFrom::Image(id) => format!("image {id}"),
-                    chipload_core::chain::ShapeFrom::Text(id) => format!("text {id}"),
-                };
                 let all = CanvasSelection::Source(*from).ids(&self.contours).len();
-                format!("{source}, {} left out", all - ids.len())
+                t!(
+                    self,
+                    "app-selection-left-out",
+                    source = self.source_text(*from),
+                    count = all - ids.len()
+                )
             }
-            _ => "contours".into(),
+            _ => t!(self, "app-selection-contours"),
         };
         let list: Vec<String> = ids.iter().map(|i| format!("#{i}")).collect();
-        let mut lines = vec![format!(
-            "{} selected ({what}): {}",
-            ids.len(),
-            list.join(", ")
+        let mut lines = vec![t!(
+            self,
+            "app-selected",
+            count = ids.len(),
+            what = what,
+            list = list.join(", ")
         )];
         let open: Vec<String> = self
             .contours
@@ -1540,9 +1552,20 @@ impl ChiploadApp {
             .map(|c| format!("#{}", c.id))
             .collect();
         if !open.is_empty() {
-            lines.push(format!("Open (not cut): {}", open.join(", ")));
+            lines.push(t!(self, "app-open-not-cut", list = open.join(", ")));
         }
         lines
+    }
+
+    /// What the selection's shapes come from: a DXF, an image or a text.
+    fn source_text(&self, from: chipload_core::chain::ShapeFrom) -> String {
+        match from {
+            chipload_core::chain::ShapeFrom::Dxf(id) => t!(self, "app-selection-dxf", id = id),
+            chipload_core::chain::ShapeFrom::Image(id) => {
+                t!(self, "app-selection-image", id = id)
+            }
+            chipload_core::chain::ShapeFrom::Text(id) => t!(self, "app-selection-text", id = id),
+        }
     }
 
     // -- internals
@@ -1692,18 +1715,21 @@ impl ChiploadApp {
 
     /// The File menu's labels for bringing in a DXF: the first one into a project started
     /// empty, or a new version of it (docs/specs/new-project.md §3).
-    pub fn update_labels(&self) -> (&'static str, &'static str) {
+    pub fn update_labels(&self) -> (String, String) {
         let first = self
             .edit
             .as_ref()
             .is_some_and(|e| e.settings.drawing.dxfs.is_empty());
         if first {
             (
-                "Import DXF into project…",
-                "Import DXF into project from path…",
+                t!(self, "app-import-dxf-into-project"),
+                t!(self, "app-import-dxf-into-project-path"),
             )
         } else {
-            ("Update drawing from DXF…", "Update drawing from path…")
+            (
+                t!(self, "app-update-drawing-from-dxf"),
+                t!(self, "app-update-drawing-from-path"),
+            )
         }
     }
 
@@ -1745,6 +1771,7 @@ impl eframe::App for ChiploadApp {
             }
         }
         crate::units::set_display(&ctx, self.units);
+        crate::i18n::set_language(&ctx, self.language);
         if self.applied_theme != Some(self.theme) {
             ctx.set_theme(theme_preference(self.theme));
             self.applied_theme = Some(self.theme);
@@ -1779,7 +1806,8 @@ impl eframe::App for ChiploadApp {
                     self.sidebar(ui);
                     false
                 } else {
-                    folded_strip(ui, "▸", "Show the Browser")
+                    let hover = t!(ui, "app-show-browser-hover");
+                    folded_strip(ui, "▸", &hover)
                 }
             },
         )
@@ -1798,9 +1826,11 @@ impl eframe::App for ChiploadApp {
                 .min_size(PROPERTIES_MIN_WIDTH),
             |ui, open| {
                 if !open {
-                    return folded_strip(ui, "◂", "Show Properties");
+                    let hover = t!(ui, "app-show-properties-hover");
+                    return folded_strip(ui, "◂", &hover);
                 }
-                browser::caption(ui, "Properties");
+                let caption = t!(ui, "app-properties");
+                browser::caption(ui, &caption);
                 // The forms are laid out in the panel's width; a row that still doesn't fit
                 // scrolls sideways instead of widening the panel.
                 let width = ui.available_width();
@@ -1860,5 +1890,11 @@ impl eframe::App for ChiploadApp {
             ctx.request_repaint_after(wait);
         }
         self.update_title(&ctx);
+    }
+}
+
+impl crate::i18n::Lang for ChiploadApp {
+    fn lang(&self) -> crate::i18n::Language {
+        self.language
     }
 }

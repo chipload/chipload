@@ -292,10 +292,10 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
 fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
-    let drawing_only = crate::view::legend(&app.scene).len();
+    let drawing_only = crate::view::legend(&app.scene, &crate::i18n::Language::En).len();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.toolpath_stale);
-    let generated = crate::view::legend(&app.scene).len();
+    let generated = crate::view::legend(&app.scene, &crate::i18n::Language::En).len();
     assert!(
         generated > drawing_only,
         "the legend explains the toolpath too"
@@ -440,7 +440,7 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     );
     // Duplicating keeps the kind and marks the name.
     let edit = app.edit.as_mut().unwrap();
-    let copy = edit.duplicate(i).unwrap();
+    let copy = edit.duplicate(i, &crate::i18n::Language::En).unwrap();
     assert_eq!(edit.ops[copy].op.name(), "V-carve 1 (copy)");
     assert!(matches!(edit.ops[copy].op, Operation::Vcarve(_)));
 }
@@ -546,7 +546,7 @@ fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
     // The project's only endmill; 0.5 mm off in one pass.
     assert_eq!((f.tool, f.end_depth, f.step_down), (1, 0.5, 1.0));
     assert_eq!(
-        crate::editor::geometry_summary(&edit.ops[i].op, &app.contours),
+        crate::editor::geometry_summary(&edit.ops[i].op, &app.contours, &crate::i18n::Language::En),
         "the whole stock"
     );
     assert!(app.op_contours(&edit.ops[i].op).is_empty());
@@ -706,7 +706,7 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
         app.playback
             .as_ref()
             .unwrap()
-            .readout(None, chipload_job::Units::Mm)
+            .readout(None, chipload_job::Units::Mm, &crate::i18n::Language::En)
             .contains(" of ")
     );
     // With the simulation: the stock half way, then the full image back at the end.

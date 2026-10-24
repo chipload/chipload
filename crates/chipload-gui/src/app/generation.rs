@@ -86,7 +86,7 @@ impl ChiploadApp {
         self.stop_generation();
         self.changed_at = None;
         let Some(edit) = &self.edit else {
-            self.fail(vec!["Import a DXF or open a project first.".into()], loud);
+            self.fail(vec![t!(self, "generation-no-project")], loud);
             return false;
         };
         let project = edit.clone();
@@ -104,7 +104,7 @@ impl ChiploadApp {
             Err(problems) => {
                 self.error_ops = problems.iter().filter_map(Problem::operation).collect();
                 self.fail_with(
-                    Report::of_problems("The project is not complete:", &problems),
+                    Report::of_problems(&t!(self, "app-project-incomplete"), &problems),
                     loud,
                 );
                 return false;
@@ -125,7 +125,8 @@ impl ChiploadApp {
                 let _ = sender.send(outcome);
             });
         if let Err(err) = spawned {
-            self.fail(vec![format!("Generation could not start: {err}")], loud);
+            let text = t!(self, "generation-could-not-start", error = err.to_string());
+            self.fail(vec![text], loud);
             return false;
         }
         self.generation = Some(Generation {
@@ -152,7 +153,7 @@ impl ChiploadApp {
             self.stop_generation();
             self.export_when_done = false;
             self.export_path_when_done = None;
-            self.set_status("Generation cancelled".into(), STATUS_SECONDS);
+            self.set_status(t!(self, "generation-cancelled"), STATUS_SECONDS);
         }
     }
 
@@ -162,7 +163,7 @@ impl ChiploadApp {
         let outcome = match self.generation.as_ref()?.receiver.try_recv() {
             Ok(outcome) => outcome,
             Err(TryRecvError::Empty) => return None,
-            Err(TryRecvError::Disconnected) => Err("the worker stopped without a result".into()),
+            Err(TryRecvError::Disconnected) => Err(t!(self, "generation-worker-stopped")),
         };
         let generation = self.generation.take()?;
         Some(self.finish_generation(generation, outcome))
@@ -177,7 +178,7 @@ impl ChiploadApp {
         let outcome = generation
             .receiver
             .recv()
-            .unwrap_or_else(|_| Err("the worker stopped without a result".into()));
+            .unwrap_or_else(|_| Err(t!(self, "generation-worker-stopped")));
         self.finish_generation(generation, outcome)
     }
 
@@ -204,7 +205,7 @@ impl ChiploadApp {
             Ok(Err(PipelineError::CheckFailed { errors, program })) => {
                 self.clear_toolpath();
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
-                let mut lines = vec!["G-code check FAILED. Nothing can be exported.".to_string()];
+                let mut lines = vec![t!(self, "generation-check-failed")];
                 lines.extend(errors);
                 self.fail(lines, loud);
                 false
@@ -216,21 +217,18 @@ impl ChiploadApp {
                     _ => None,
                 };
                 self.error_ops = op.into_iter().collect();
-                let mut report = Report::error(["Generation failed:".to_string()]);
+                let mut report = Report::error([t!(self, "generation-failed")]);
                 report.push_at(Tone::Error, err.to_string(), op);
                 self.fail_with(report, loud);
                 false
             }
             Err(panic) => {
                 self.clear_toolpath();
-                self.fail(
-                    vec![
-                        format!("Generation failed unexpectedly: {panic}"),
-                        "Your project is unchanged. Please report this with the project file."
-                            .into(),
-                    ],
-                    loud,
-                );
+                let lines = vec![
+                    t!(self, "generation-failed-unexpectedly", error = panic),
+                    t!(self, "generation-please-report"),
+                ];
+                self.fail(lines, loud);
                 false
             }
         };
@@ -261,17 +259,22 @@ impl ChiploadApp {
             .iter()
             .map(|f| f.gcode.matches('\n').count())
             .sum();
-        let files = match result.files.len() {
-            1 => String::new(),
-            n => format!(" in {n} files, one per tool group"),
-        };
-        report.push(
-            Tone::Good,
-            format!(
-                "Generated {lines} lines{files} for {}. Check passed.",
-                result.post.name
+        let done = match result.files.len() {
+            1 => t!(
+                self,
+                "generation-done",
+                lines = lines,
+                post = result.post.name.as_str()
             ),
-        );
+            n => t!(
+                self,
+                "generation-done-files",
+                lines = lines,
+                files = n,
+                post = result.post.name.as_str()
+            ),
+        };
+        report.push(Tone::Good, done);
         let several = result.files.len() > 1;
         for line in chipload_pipeline::estimate::estimate_lines(job, &result.estimate, several) {
             report.push_at(Tone::Info, line.text, line.operation);
@@ -280,18 +283,18 @@ impl ChiploadApp {
             report.push_at(Tone::Warning, note.text.clone(), note.operation);
         }
         for warning in &result.check_warnings {
-            report.push(Tone::Warning, format!("Check: {}", warning.message));
-        }
-        report.push(Tone::Info, format!("Work zero: {}", job.work_zero_text()));
-        if let Some(part) = self.result_part.and_then(|id| job.part(id)) {
-            report.push(
-                Tone::Info,
-                format!(
-                    "Shown: part \"{}\" only (All parts on the canvas bar shows every part). \
-                     Export writes every part that is cut.",
-                    part.name
-                ),
+            let text = t!(
+                self,
+                "generation-check-warning",
+                message = warning.message.as_str()
             );
+            report.push(Tone::Warning, text);
+        }
+        let zero = t!(self, "generation-work-zero", zero = job.work_zero_text());
+        report.push(Tone::Info, zero);
+        if let Some(part) = self.result_part.and_then(|id| job.part(id)) {
+            let text = t!(self, "generation-one-part-shown", part = part.name.as_str());
+            report.push(Tone::Info, text);
         }
         self.set_report(report);
         self.result_job = Some(job.clone());
@@ -367,10 +370,7 @@ impl ChiploadApp {
             self.ask_export();
         } else if running_whole || self.start_generation_of(true, true) {
             self.export_when_done = true;
-            self.set_status(
-                "Exporting once the toolpath is generated".into(),
-                STATUS_SECONDS,
-            );
+            self.set_status(t!(self, "generation-export-when-done"), STATUS_SECONDS);
         }
     }
 

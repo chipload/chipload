@@ -7,6 +7,7 @@ use chipload_pipeline::posts::{builtin_posts, post_facts};
 use eframe::egui::Id;
 
 use super::browser::{Row, title_line, toggle_folder};
+use super::menu::language_name;
 use super::*;
 use crate::icons::Icon;
 
@@ -43,7 +44,7 @@ impl ChiploadApp {
         let id = Id::new(POSTS);
         let open_id = id.with("folder-open");
         let open = super::browser::folder_open(ui, open_id, false);
-        let out = Row::new(id, 1, "Post-processors")
+        let out = Row::new(id, 1, t!(ui, "computer-posts"))
             .folder(open)
             .icon(Icon::Export)
             .trailing(posts.len().to_string())
@@ -56,7 +57,7 @@ impl ChiploadApp {
         let mut focus = None;
         if out
             .response
-            .on_hover_text("What turns toolpaths into G-code for your machine: built in and yours")
+            .on_hover_text(t!(ui, "computer-posts-hover"))
             .clicked()
         {
             focus = Some(Focus::Posts);
@@ -67,9 +68,13 @@ impl ChiploadApp {
         let current = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
         for (k, (name, builtin, problem)) in posts.iter().enumerate() {
             let k = u32::try_from(k).unwrap_or(u32::MAX);
-            let mut trailing = vec![if *builtin { "built in" } else { "yours" }];
+            let mut trailing = vec![if *builtin {
+                t!(ui, "computer-post-built-in")
+            } else {
+                t!(ui, "computer-post-yours")
+            }];
             if current.as_deref() == Some(name.as_str()) {
-                trailing.push("this project");
+                trailing.push(t!(ui, "computer-post-this-project"));
             }
             let row = Row::new(id.with(name), 2, name)
                 .icon(Icon::Export)
@@ -84,56 +89,69 @@ impl ChiploadApp {
         focus
     }
 
-    /// Preferences: the settings folder, the setup sheet, updating automatically, the theme.
+    /// Preferences: the settings folder, the setup sheet, updating automatically, the units,
+    /// the theme and the language.
     pub(super) fn preferences_form(&mut self, ui: &mut egui::Ui) {
-        title_line(ui, Icon::Settings, None, "Preferences");
-        ui.weak("For every project on this computer.");
+        let title = t!(ui, "computer-preferences");
+        title_line(ui, Icon::Settings, None, &title);
+        ui.weak(t!(ui, "computer-preferences-about"));
         ui.add_space(4.0);
         let mut sheet = self.setup_sheet;
         let mut auto = self.auto_generate;
         let mut theme = self.theme;
         let mut units = self.units;
+        let mut language = self.language_setting.clone();
         Grid::new("preferences")
             .num_columns(2)
             .spacing([12.0, 6.0])
             .show(ui, |ui| {
-                ui.label("Settings folder");
+                ui.label(t!(ui, "computer-settings-folder"));
                 match &self.settings_dir {
                     Some(dir) => ui.label(dir.display().to_string()),
                     None => ui.colored_label(
                         ui.visuals().warn_fg_color,
-                        format!(
-                            "none: set {} to keep settings and a library",
-                            chipload_pipeline::library::CONFIG_DIR_VAR
+                        t!(
+                            ui,
+                            "computer-settings-folder-none",
+                            var = chipload_pipeline::library::CONFIG_DIR_VAR
                         ),
                     ),
                 };
                 ui.end_row();
-                ui.label("Setup sheet").on_hover_text(
-                    "An HTML page for the operator next to the exported files: stock, zero, \
-                     tools in order, operations, times and warnings",
-                );
-                ui.checkbox(&mut sheet, "write one with the G-code");
+                ui.label(t!(ui, "computer-setup-sheet"))
+                    .on_hover_text(t!(ui, "computer-setup-sheet-hover"));
+                ui.checkbox(&mut sheet, t!(ui, "computer-setup-sheet-write"));
                 ui.end_row();
-                ui.label("Toolpath");
-                ui.checkbox(&mut auto, "update automatically (View menu too)")
-                    .on_hover_text("Generate by itself half a second after each change");
+                ui.label(t!(ui, "computer-toolpath"));
+                ui.checkbox(&mut auto, t!(ui, "computer-toolpath-auto"))
+                    .on_hover_text(t!(ui, "computer-toolpath-auto-hover"));
                 ui.end_row();
-                ui.label("Units").on_hover_text(
-                    "What lengths and feeds are shown and typed in. Projects stay in mm; \
-                     the G-code's units are the machine's (Job settings > Machine)",
-                );
+                ui.label(t!(ui, "computer-units"))
+                    .on_hover_text(t!(ui, "computer-units-hover"));
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut units, Units::Mm, "mm");
-                    ui.selectable_value(&mut units, Units::Inch, "inch");
+                    ui.selectable_value(&mut units, Units::Inch, t!(ui, "menu-units-inch"));
                 });
                 ui.end_row();
-                ui.label("Colour theme");
+                ui.label(t!(ui, "computer-theme"));
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut theme, Theme::System, "System");
-                    ui.selectable_value(&mut theme, Theme::Light, "Light");
-                    ui.selectable_value(&mut theme, Theme::Dark, "Dark");
+                    ui.selectable_value(&mut theme, Theme::System, t!(ui, "computer-theme-system"));
+                    ui.selectable_value(&mut theme, Theme::Light, t!(ui, "computer-theme-light"));
+                    ui.selectable_value(&mut theme, Theme::Dark, t!(ui, "computer-theme-dark"));
                 });
+                ui.end_row();
+                ui.label(t!(ui, "menu-language"));
+                let system = chipload_job::library::SYSTEM_LANGUAGE;
+                ComboBox::from_id_salt("language")
+                    .selected_text(language_name(ui, &language))
+                    .show_ui(ui, |ui| {
+                        let label = language_name(ui, system);
+                        ui.selectable_value(&mut language, system.to_string(), label);
+                        for choice in crate::i18n::Language::ALL {
+                            let label = language_name(ui, choice.code());
+                            ui.selectable_value(&mut language, choice.code().to_string(), label);
+                        }
+                    });
                 ui.end_row();
             });
         if sheet != self.setup_sheet {
@@ -148,35 +166,41 @@ impl ChiploadApp {
         if units != self.units {
             self.set_units(units);
         }
+        if language != self.language_setting {
+            self.set_language(&language);
+        }
     }
 
     /// The Post-processors folder: where yours go and how to make one.
     pub(super) fn posts_form(&mut self, ui: &mut egui::Ui) {
-        title_line(ui, Icon::Export, None, "Post-processors");
+        let title = t!(ui, "computer-posts");
+        title_line(ui, Icon::Export, None, &title);
         let yours = self.library.user_posts.len();
-        ui.label(format!(
-            "{} built in, {yours} of yours.",
-            builtin_posts().len()
+        ui.label(t!(
+            ui,
+            "computer-posts-count",
+            builtin = builtin_posts().len(),
+            yours = yours
         ));
         match &self.library.posts {
             Some(dir) => {
-                ui.label(format!("Yours go in {}", dir.display()));
+                ui.label(t!(
+                    ui,
+                    "computer-posts-folder",
+                    folder = dir.display().to_string()
+                ));
             }
             None => {
                 ui.colored_label(
                     ui.visuals().warn_fg_color,
-                    "No settings folder, so only the built-in posts.",
+                    t!(ui, "computer-posts-no-folder"),
                 );
             }
         }
-        ui.weak(
-            "A post of your own is two files: NAME.toml with its settings, and the template it \
-             names. Start from a copy of a built-in one; the guide's Post-processors page \
-             explains both.",
-        );
+        ui.weak(t!(ui, "computer-posts-about"));
         if ui
-            .button("Read the folder again")
-            .on_hover_text("After adding or changing a post's files")
+            .button(t!(ui, "computer-posts-reload"))
+            .on_hover_text(t!(ui, "computer-posts-reload-hover"))
             .clicked()
         {
             self.reload_library();
@@ -186,8 +210,9 @@ impl ChiploadApp {
     /// One post: what it writes, and *Use in this project*.
     pub(super) fn post_form(&mut self, ui: &mut egui::Ui, k: usize) {
         let Some((name, builtin, _)) = self.post_list().get(k).cloned() else {
-            title_line(ui, Icon::Export, None, "Post-processor");
-            ui.weak("This post is no longer there.");
+            let title = t!(ui, "computer-post");
+            title_line(ui, Icon::Export, None, &title);
+            ui.weak(t!(ui, "computer-post-gone"));
             return;
         };
         title_line(ui, Icon::Export, None, &name);
@@ -213,7 +238,10 @@ impl ChiploadApp {
                 }
             }
             Err(err) => {
-                ui.colored_label(ui.visuals().error_fg_color, format!("Can't be used: {err}"));
+                ui.colored_label(
+                    ui.visuals().error_fg_color,
+                    t!(ui, "computer-post-unusable", error = err),
+                );
             }
         }
         ui.add_space(4.0);
@@ -224,17 +252,17 @@ impl ChiploadApp {
             chosen = ui
                 .add_enabled(
                     self.edit.is_some() && !mine,
-                    egui::Button::new("Use in this project"),
+                    egui::Button::new(t!(ui, "computer-post-use")),
                 )
                 .on_hover_text(if builtin {
-                    "Make it the project's post-processor"
+                    t!(ui, "computer-post-use-hover")
                 } else {
-                    "Make it the project's post-processor: a copy goes into the project"
+                    t!(ui, "computer-post-use-copy-hover")
                 })
                 .on_disabled_hover_text(if mine {
-                    "The project uses it"
+                    t!(ui, "computer-post-in-use")
                 } else {
-                    "Open a project first"
+                    t!(ui, "computer-post-no-project")
                 })
                 .clicked();
         });

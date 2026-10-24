@@ -49,8 +49,8 @@ impl ChiploadApp {
         match step {
             Step::Continue => {}
             Step::Ignored(why) => {
-                if !why.is_empty() {
-                    self.set_status(why, STATUS_SECONDS);
+                if let Some(why) = why {
+                    self.set_status(why.text(self), STATUS_SECONDS);
                 }
             }
             Step::Done(geometry) => {
@@ -68,17 +68,20 @@ impl ChiploadApp {
             Ok((job, id)) => {
                 edit.settings = job;
                 self.drawing_changed(&[id]);
-                let kind = self
-                    .shape(id)
-                    .map_or("shape", chipload_job::Shape::kind_name);
+                let kind = match self.shape(id).map(|s| &s.geometry) {
+                    Some(Geometry::Circle { .. }) => t!(self, "drawing-kind-circle"),
+                    Some(Geometry::Rectangle { .. }) => t!(self, "drawing-kind-rectangle"),
+                    Some(Geometry::Polyline { .. }) => t!(self, "drawing-kind-polyline"),
+                    Some(Geometry::Path { .. }) | None => t!(self, "drawing-shape"),
+                };
                 self.set_status(
-                    format!("Added {kind} S{id} on layer {layer}"),
+                    t!(self, "drawing-added", kind = kind, id = id, layer = layer),
                     STATUS_SECONDS,
                 );
                 Some(id)
             }
             Err(err) => {
-                self.error(vec!["Cannot add the shape:".into(), err.to_string()]);
+                self.error(vec![t!(self, "drawing-add-failed"), err.to_string()]);
                 None
             }
         }
@@ -132,8 +135,14 @@ impl ChiploadApp {
     /// Apply new values to the selected drawn shape. On failure the project is unchanged
     /// and the reason is returned (shown under the form).
     pub fn set_selected_shape(&mut self, layer: &str, geometry: Geometry) -> Result<(), String> {
-        let id = self.selected_shape().ok_or("no shape selected")?;
-        let edit = self.edit.as_mut().ok_or("no project")?;
+        let lang = crate::i18n::Lang::lang(self);
+        let id = self
+            .selected_shape()
+            .ok_or_else(|| t!(lang, "drawing-no-shape-selected"))?;
+        let edit = self
+            .edit
+            .as_mut()
+            .ok_or_else(|| t!(lang, "drawing-no-project"))?;
         let job = set_shape(&edit.settings, id, layer, geometry).map_err(|e| e.to_string())?;
         edit.settings = job;
         self.drawing_changed(&[id]);
@@ -178,11 +187,7 @@ impl ChiploadApp {
         let (ids, imported) = self.deletable_shapes();
         if ids.is_empty() {
             if imported {
-                self.error(vec![
-                    "Imported shapes can't be deleted here; change the drawing and use Update \
-                     drawing from DXF."
-                        .to_string(),
-                ]);
+                self.error(vec![t!(self, "drawing-imported-not-deletable")]);
             }
             return;
         }
@@ -221,18 +226,25 @@ impl ChiploadApp {
         self.shape_draft = None;
         self.drawing_changed(&[]);
         let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
-        let what = if ids.len() == 1 { "shape" } else { "shapes" };
-        let mut lines = vec![format!("Deleted {what} {}.", names.join(", "))];
+        let names = names.join(", ");
+        let mut lines = vec![t!(
+            self,
+            "drawing-deleted-report",
+            count = ids.len(),
+            shapes = names.as_str()
+        )];
         if imported {
-            lines.push(
-                "Imported shapes in the selection were kept (they change only with the DXF)."
-                    .into(),
-            );
+            lines.push(t!(self, "drawing-imported-kept"));
         }
         lines.extend(flagged);
         self.set_report(Report::info(lines));
         self.set_status(
-            format!("Deleted {what} {}", names.join(", ")),
+            t!(
+                self,
+                "drawing-deleted-status",
+                count = ids.len(),
+                shapes = names
+            ),
             STATUS_SECONDS,
         );
     }

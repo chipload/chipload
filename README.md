@@ -32,6 +32,8 @@ from a traced picture and an outline held by tabs, its toolpaths over the simula
   a template and a small config, easy to copy and change.
 - **Scriptable:** every feature on the command line, `--json` everywhere, and `chipload mcp`
   for AI assistants.
+- **In six languages:** English, German, French, Spanish, Italian and Swedish (translations
+  waiting for review by machinists: corrections welcome).
 - **No account, no network, no install.** Your files stay on your computer.
 
 ## Safety warning

@@ -60,7 +60,10 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         assert!(
             app.problems.is_empty(),
             "{file} {trace:?}: {:?}",
-            app.problems.iter().map(problems::plain).collect::<Vec<_>>()
+            app.problems
+                .iter()
+                .map(|p| problems::plain(&app, p))
+                .collect::<Vec<_>>()
         );
         assert!(
             app.generate_and_wait(),

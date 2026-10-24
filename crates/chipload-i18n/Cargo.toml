@@ -1,0 +1,17 @@
+[package]
+name = "chipload-i18n"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Fluent: plurals per language and named arguments (docs/specs/translations.md decision 2).
+# Apache-2.0 OR MIT, as are unic-langid and fluent-syntax.
+fluent-bundle = "0.16.0"
+fluent-syntax = "0.12"
+unic-langid = "0.9.6"
+
+[lints]
+workspace = true

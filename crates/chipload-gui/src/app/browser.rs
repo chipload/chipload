@@ -189,9 +189,9 @@ impl Row {
             let hit = ui
                 .interact(area, self.id.with("eye"), Sense::click())
                 .on_hover_text(if shown {
-                    "Hide it on the canvas; it is still cut"
+                    t!(ui, "browser-eye-hide-hover")
                 } else {
-                    "Hidden on the canvas (still cut): show it"
+                    t!(ui, "browser-eye-show-hover")
                 });
             let color = if hit.hovered() {
                 text_color
@@ -214,9 +214,9 @@ impl Row {
             let hit = ui
                 .interact(area, self.id.with("tick"), Sense::click())
                 .on_hover_text(if on {
-                    "Cut: untick to leave it out of the program"
+                    t!(ui, "browser-tick-on-hover")
                 } else {
-                    "Not cut: tick to cut it"
+                    t!(ui, "browser-tick-off-hover")
                 });
             let fill = if self.selected {
                 visuals.selection.bg_fill
@@ -337,13 +337,13 @@ pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, 
 }
 
 /// A project tool's link to the library, short, for its row's right end.
-fn link_note(link: &chipload_job::library::Link) -> String {
+fn link_note(ui: &egui::Ui, link: &chipload_job::library::Link) -> String {
     use chipload_job::library::Link;
     match link {
         Link::None => String::new(),
         Link::Same(name) => format!("← {name}"),
-        Link::Differs(name, _) => format!("← {name} (changed)"),
-        Link::Missing(_) => "(not in library)".into(),
+        Link::Differs(name, _) => format!("← {}", t!(ui, "browser-link-changed", name = name)),
+        Link::Missing(_) => t!(ui, "browser-link-missing"),
     }
 }
 
@@ -410,46 +410,46 @@ enum OpAction {
 }
 
 /// The kinds of new operation: label, kind and what it does.
-pub(super) const NEW_OPERATIONS: [(&str, OpKind, &str); 6] = [
-    (
-        "Profile",
-        OpKind::Profile,
-        "A profile operation for the selected contours",
-    ),
-    (
-        "Pocket",
-        OpKind::Pocket,
-        "A pocket operation for the selected contours",
-    ),
-    (
-        "V-carve",
-        OpKind::Vcarve,
-        "A V-bit along the centre line of the selected closed contours, as deep as makes the \
-         cut as wide as the shape",
-    ),
-    (
-        "Follow path",
-        OpKind::Path,
-        "The tool on the line of the selected shapes, open or closed: engraving, grooves and \
-         score lines",
-    ),
-    (
-        "Holes",
-        OpKind::Holes,
-        "The selected circles: drilled with a drill, or bored with a helix with an endmill",
-    ),
-    (
-        "Surface",
-        OpKind::Surface,
-        "The whole stock taken down flat with a wide endmill: flatten the spoilboard or face \
-         the stock. Needs no selection",
-    ),
-];
+pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 6] {
+    [
+        (
+            t!(src, "browser-profile"),
+            OpKind::Profile,
+            t!(src, "browser-profile-hover"),
+        ),
+        (
+            t!(src, "browser-pocket"),
+            OpKind::Pocket,
+            t!(src, "browser-pocket-hover"),
+        ),
+        (
+            t!(src, "browser-vcarve"),
+            OpKind::Vcarve,
+            t!(src, "browser-vcarve-hover"),
+        ),
+        (
+            t!(src, "browser-follow-path"),
+            OpKind::Path,
+            t!(src, "browser-follow-path-hover"),
+        ),
+        (
+            t!(src, "browser-holes"),
+            OpKind::Holes,
+            t!(src, "browser-holes-hover"),
+        ),
+        (
+            t!(src, "browser-surface"),
+            OpKind::Surface,
+            t!(src, "browser-surface-hover"),
+        ),
+    ]
+}
 
 impl ChiploadApp {
     /// Left: the Browser.
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
-        caption(ui, "Browser");
+        let browser = t!(ui, "browser-caption");
+        caption(ui, &browser);
         ScrollArea::vertical()
             .id_salt("browser-scroll")
             .auto_shrink([false, false])
@@ -461,7 +461,7 @@ impl ChiploadApp {
                 if self.edit.is_some() {
                     self.browser_tree(ui);
                 } else {
-                    ui.weak("No project open.");
+                    ui.weak(t!(ui, "browser-no-project"));
                 }
             });
     }
@@ -470,26 +470,27 @@ impl ChiploadApp {
         let name = self
             .job_path
             .as_deref()
-            .map_or("New project".to_string(), file_name);
+            .map_or_else(|| t!(ui, "browser-new-project"), file_name);
         let root = Row::new(Id::new("browser-project"), 0, name).icon(Icon::Project);
         let (open, _) = folder(ui, root, true);
         if !open {
             return;
         }
         let problems = self.settings_problems().count();
-        let job = Row::new(Id::new("browser-job"), 1, "Job settings")
+        let job = Row::new(Id::new("browser-job"), 1, t!(ui, "browser-job-settings"))
             .icon(Icon::Settings)
             .selected(self.focus == Focus::Job)
             .alert(problems > 0)
             .show(ui);
         let job = if problems > 0 {
-            job.response.on_hover_text(format!(
-                "Stock, machine, post-processor and tools. {problems} {}",
-                if problems == 1 { "problem" } else { "problems" }
+            job.response.on_hover_text(t!(
+                ui,
+                "browser-job-settings-problems-hover",
+                count = problems
             ))
         } else {
             job.response
-                .on_hover_text("Stock, machine, post-processor and tools")
+                .on_hover_text(t!(ui, "browser-job-settings-hover"))
         };
         if job.clicked() {
             self.focus = Focus::Job;
@@ -516,7 +517,7 @@ impl ChiploadApp {
         let id = Id::new("browser-tools");
         let open_id = id.with("folder-open");
         let open = folder_open(ui, open_id, false);
-        let out = Row::new(id, 1, "Tools")
+        let out = Row::new(id, 1, t!(ui, "browser-tools"))
             .folder(open)
             .icon(Icon::Tools)
             .trailing(tools.len().to_string())
@@ -531,7 +532,7 @@ impl ChiploadApp {
         // (docs/specs/properties-for-tools-and-dxfs.md §2).
         if out
             .response
-            .on_hover_text("The project's tools: click to see them all and add one")
+            .on_hover_text(t!(ui, "browser-tools-hover"))
             .clicked()
         {
             self.focus = Focus::Tools;
@@ -547,7 +548,7 @@ impl ChiploadApp {
                     forms::tool_label(tool, crate::units::display(ui.ctx())),
                 )
                 .icon(tool_icon(tool.kind))
-                .trailing(link.as_ref().map(link_note).unwrap_or_default())
+                .trailing(link.as_ref().map(|l| link_note(ui, l)).unwrap_or_default())
                 .selected(self.focus == Focus::Tool(tool.id))
                 .alert(flagged(k))
                 .show(ui);
@@ -594,7 +595,7 @@ impl ChiploadApp {
         let active = edit.settings.active_part_id();
         let count = edit.ops.len();
         let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
-        let row = Row::new(Id::new("browser-parts"), 1, "Parts")
+        let row = Row::new(Id::new("browser-parts"), 1, t!(ui, "browser-parts"))
             .icon(Icon::Parts)
             .trailing(parts.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
@@ -620,11 +621,9 @@ impl ChiploadApp {
             .unwrap_or_default();
         folder_row
             .response
-            .on_hover_text(
-                "Each part is cut with its copies before the next; right-click for a new part",
-            )
+            .on_hover_text(t!(ui, "browser-parts-hover"))
             .context_menu(|ui| {
-                if ui.button("New part").clicked() {
+                if ui.button(t!(ui, "browser-new-part")).clicked() {
                     action = Some(OpAction::NewPart);
                 }
             });
@@ -709,7 +708,7 @@ impl ChiploadApp {
         let is_active = active == Some(part.id);
         let mut trailing = Vec::new();
         if is_active && parts.len() > 1 {
-            trailing.push("active".to_string());
+            trailing.push(t!(ui, "browser-part-active"));
         }
         if part.count() > 1 {
             trailing.push(format!("×{}", part.count()));
@@ -750,27 +749,27 @@ impl ChiploadApp {
         }
         let selected = !self.selection.ids(&self.contours).is_empty();
         let hover = if is_active {
-            "The active part: new operations go here. Click for its copies; right-click for more"
+            t!(ui, "browser-part-active-hover")
         } else {
-            "Click for its copies; double-click to make it the active part; right-click for more"
+            t!(ui, "browser-part-hover")
         };
         out.response.on_hover_text(hover).context_menu(|ui| {
             if ui
-                .add_enabled(!is_active, egui::Button::new("Activate"))
-                .on_hover_text("New operations go into the active part")
+                .add_enabled(!is_active, egui::Button::new(t!(ui, "browser-activate")))
+                .on_hover_text(t!(ui, "browser-activate-hover"))
                 .clicked()
             {
                 action = Some(OpAction::PartActivate(part.id));
             }
-            ui.menu_button("New operation", |ui| {
-                for (label, kind, hover) in NEW_OPERATIONS {
+            ui.menu_button(t!(ui, "browser-new-operation"), |ui| {
+                for (label, kind, hover) in new_operations(ui) {
                     if ui
                         .add_enabled(
                             selected || !kind.needs_selection(),
                             egui::Button::new(label),
                         )
                         .on_hover_text(hover)
-                        .on_disabled_hover_text("Select shapes first")
+                        .on_disabled_hover_text(t!(ui, "browser-select-shapes-first"))
                         .clicked()
                     {
                         action = Some(OpAction::NewIn(kind, part.id));
@@ -779,26 +778,25 @@ impl ChiploadApp {
             });
             ui.separator();
             if ui
-                .add_enabled(k > 0, egui::Button::new("Move up"))
+                .add_enabled(k > 0, egui::Button::new(t!(ui, "browser-move-up")))
                 .clicked()
             {
                 action = Some(OpAction::PartMove(part.id, true));
             }
             if ui
-                .add_enabled(k + 1 < parts.len(), egui::Button::new("Move down"))
+                .add_enabled(
+                    k + 1 < parts.len(),
+                    egui::Button::new(t!(ui, "browser-move-down")),
+                )
                 .clicked()
             {
                 action = Some(OpAction::PartMove(part.id, false));
             }
             ui.separator();
-            let what = match mine.len() {
-                0 => "Delete part".to_string(),
-                1 => "Delete part and its operation".to_string(),
-                n => format!("Delete part and its {n} operations"),
-            };
+            let what = t!(ui, "browser-delete-part", count = mine.len());
             if ui
                 .add_enabled(parts.len() > 1, egui::Button::new(what))
-                .on_disabled_hover_text("A project needs at least one part")
+                .on_disabled_hover_text(t!(ui, "browser-delete-part-disabled-hover"))
                 .clicked()
             {
                 action = Some(OpAction::PartDelete(part.id));
@@ -811,9 +809,9 @@ impl ChiploadApp {
             ui.horizontal(|ui| {
                 ui.add_space(PAD + 4.0 * INDENT);
                 ui.weak(if is_active {
-                    "Select shapes, then add an operation"
+                    t!(ui, "browser-part-empty-active")
                 } else {
-                    "No operations: drag one here"
+                    t!(ui, "browser-part-empty")
                 });
             });
         }
@@ -850,7 +848,7 @@ impl ChiploadApp {
             .problems
             .iter()
             .find(|p| p.operation() == Some(i))
-            .map(problems::plain);
+            .map(|p| problems::plain(ui, p));
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
@@ -859,11 +857,12 @@ impl ChiploadApp {
         let units = crate::units::display(ui.ctx());
         let rest_menu = self.rest_menu(i, units);
         let name = match op.name() {
-            "" => "(no name)",
-            name => name,
+            "" => t!(ui, "browser-no-name"),
+            name => name.to_string(),
         };
         let trailing = if hidden > 0 {
-            format!("{hidden} hidden · T{}", op.tool())
+            let hidden = t!(ui, "browser-op-hidden", count = hidden);
+            format!("{hidden} · T{}", op.tool())
         } else {
             format!("T{}", op.tool())
         };
@@ -911,7 +910,10 @@ impl ChiploadApp {
             if ui
                 .add_enabled(
                     i > 0,
-                    egui::Button::new(with_keys("Move up", shortcuts::Action::MoveUp)),
+                    egui::Button::new(with_keys(
+                        &t!(ui, "browser-move-up"),
+                        shortcuts::Action::MoveUp,
+                    )),
                 )
                 .clicked()
             {
@@ -920,22 +922,30 @@ impl ChiploadApp {
             if ui
                 .add_enabled(
                     i + 1 < count,
-                    egui::Button::new(with_keys("Move down", shortcuts::Action::MoveDown)),
+                    egui::Button::new(with_keys(
+                        &t!(ui, "browser-move-down"),
+                        shortcuts::Action::MoveDown,
+                    )),
                 )
                 .clicked()
             {
                 action = Some(OpAction::Move(i, i + 1));
             }
-            if ui.button("Duplicate").clicked() {
+            if ui.button(t!(ui, "browser-duplicate")).clicked() {
                 action = Some(OpAction::Duplicate(i));
             }
             match &rest_menu {
                 Some(RestMenu::Tools { project, library }) => {
                     let size = |d: f64| chipload_pipeline::units::length_text(d, units);
-                    ui.menu_button("Add rest pass", |ui| {
+                    ui.menu_button(t!(ui, "browser-add-rest-pass"), |ui| {
                         for (tool, diameter) in project {
                             if ui
-                                .button(format!("T{tool} · {} endmill", size(*diameter)))
+                                .button(t!(
+                                    ui,
+                                    "browser-rest-project-tool",
+                                    tool = tool.to_string(),
+                                    size = size(*diameter)
+                                ))
                                 .clicked()
                             {
                                 action = Some(OpAction::AddRest(i, *tool));
@@ -945,11 +955,16 @@ impl ChiploadApp {
                             if !project.is_empty() {
                                 ui.separator();
                             }
-                            ui.weak("From your tool library");
+                            ui.weak(t!(ui, "browser-from-library"));
                             for (name, diameter) in library {
                                 if ui
-                                    .button(format!("{name} · {} endmill", size(*diameter)))
-                                    .on_hover_text("Copied into the project's Tools")
+                                    .button(t!(
+                                        ui,
+                                        "browser-rest-library-tool",
+                                        name = name,
+                                        size = size(*diameter)
+                                    ))
+                                    .on_hover_text(t!(ui, "browser-copied-into-project-hover"))
                                     .clicked()
                                 {
                                     action = Some(OpAction::AddRestFromLibrary(i, name.clone()));
@@ -958,31 +973,28 @@ impl ChiploadApp {
                         }
                     })
                     .response
-                    .on_hover_text(
-                        "A smaller tool that clears only what this pocket's tool leaves, in \
-                         its shapes and depths. It follows the pocket, and is cut after the \
-                         pockets next to it with the same tool",
-                    );
+                    .on_hover_text(t!(ui, "browser-add-rest-pass-hover"));
                 }
                 Some(RestMenu::Unavailable(why)) => {
-                    ui.add_enabled(false, egui::Button::new("Add rest pass"))
+                    ui.add_enabled(false, egui::Button::new(t!(ui, "browser-add-rest-pass")))
                         .on_disabled_hover_text(why);
                 }
                 None => {}
             }
             if let Some(parent) = parent
                 && ui
-                    .button(format!("Make it a rest pass of operation {}", parent + 1))
-                    .on_hover_text(
-                        "It copies that pocket: as its rest pass it follows it, and is cut \
-                         after the pockets next to it with the same tool",
-                    )
+                    .button(t!(
+                        ui,
+                        "browser-make-rest-pass",
+                        number = (parent + 1).to_string()
+                    ))
+                    .on_hover_text(t!(ui, "browser-make-rest-pass-hover"))
                     .clicked()
             {
                 action = Some(OpAction::MakePass(i));
             }
             ui.separator();
-            if ui.button("Delete").clicked() {
+            if ui.button(t!(ui, "browser-delete")).clicked() {
                 action = Some(OpAction::Delete(i));
             }
         });
@@ -1016,14 +1028,18 @@ impl ChiploadApp {
             .map_or(String::new(), |(_, s)| {
                 format!("{} · ", chipload_pipeline::estimate::duration_text(*s))
             });
-        let row = Row::new(Id::new(("browser-pass", i, k)), 4, format!("{at}  Rest"))
-            .tick(pass.enabled)
-            .icon_colored(Icon::Pocket, color)
-            .trailing(format!("{time}T{}", pass.tool))
-            .selected(self.focus == Focus::RestPass(i, k))
-            .dim(!(pocket_cut && pass.enabled))
-            .alert(flagged)
-            .show(ui);
+        let row = Row::new(
+            Id::new(("browser-pass", i, k)),
+            4,
+            format!("{at}  {}", t!(ui, "browser-rest")),
+        )
+        .tick(pass.enabled)
+        .icon_colored(Icon::Pocket, color)
+        .trailing(format!("{time}T{}", pass.tool))
+        .selected(self.focus == Focus::RestPass(i, k))
+        .dim(!(pocket_cut && pass.enabled))
+        .alert(flagged)
+        .show(ui);
         let mut action = None;
         if row.tick {
             action = Some(OpAction::PassToggle(i, k));
@@ -1031,12 +1047,9 @@ impl ChiploadApp {
             action = Some(OpAction::PassFocus(i, k));
         }
         row.response
-            .on_hover_text(
-                "A rest pass: it clears what the tool before it leaves, in its pocket's shapes \
-                 and depths, and is cut after the pockets next to its pocket with the same tool",
-            )
+            .on_hover_text(t!(ui, "browser-rest-pass-hover"))
             .context_menu(|ui| {
-                if ui.button("Remove").clicked() {
+                if ui.button(t!(ui, "browser-remove")).clicked() {
                     action = Some(OpAction::PassRemove(i, k));
                 }
             });
@@ -1051,20 +1064,25 @@ impl ChiploadApp {
         };
         let op = &entry.op;
         let kind = match op {
-            Operation::Profile(_) => "Profile",
-            Operation::Pocket(_) => "Pocket",
-            Operation::Vcarve(_) => "V-carve",
-            Operation::Path(_) => "Follow path",
-            Operation::Holes(_) => "Holes",
-            Operation::Surface(_) => "Surface",
+            Operation::Profile(_) => t!(self, "browser-profile"),
+            Operation::Pocket(_) => t!(self, "browser-pocket"),
+            Operation::Vcarve(_) => t!(self, "browser-vcarve"),
+            Operation::Path(_) => t!(self, "browser-follow-path"),
+            Operation::Holes(_) => t!(self, "browser-holes"),
+            Operation::Surface(_) => t!(self, "browser-surface"),
         };
-        let summary = geometry_summary(op, &self.contours);
+        let summary = geometry_summary(op, &self.contours, self);
         let (start, end) = op.depths();
         // docs/specs/rest-machining.md §6.
         let rest = match op {
-            Operation::Pocket(p) => p
-                .rest
-                .map_or(String::new(), |r| format!(", rest after T{}", r.after_tool)),
+            Operation::Pocket(p) => p.rest.map_or(String::new(), |r| {
+                let rest = t!(
+                    self,
+                    "browser-op-rest-after",
+                    tool = r.after_tool.to_string()
+                );
+                format!(", {rest}")
+            }),
             _ => String::new(),
         };
         let time = self
@@ -1084,18 +1102,15 @@ impl ChiploadApp {
             op.tool()
         )];
         if !op.enabled() {
-            lines.push("Not cut (ticked off)".into());
+            lines.push(t!(self, "browser-op-not-cut"));
         }
         if let Some(problem) = problem {
             lines.push(format!("⚠ {problem}"));
         }
         if hidden > 0 {
-            lines.push(format!(
-                "Cuts {hidden} hidden {}: show them in Drawing to see them",
-                if hidden == 1 { "contour" } else { "contours" }
-            ));
+            lines.push(t!(self, "browser-op-hidden-hover", count = hidden));
         }
-        lines.push("Drag to reorder; right-click for more".into());
+        lines.push(t!(self, "browser-op-drag-hover"));
         lines.join("\n")
     }
 
@@ -1133,7 +1148,10 @@ impl ChiploadApp {
         };
         let id = ui.make_persistent_id("properties-selection");
         egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, true)
-            .show_header(ui, |ui| title_line(ui, icon, None, "Selection"))
+            .show_header(ui, |ui| {
+                let title = t!(ui, "browser-selection");
+                title_line(ui, icon, None, &title);
+            })
             .body(|ui| {
                 for line in self.selection_lines() {
                     ui.label(line);
@@ -1142,9 +1160,9 @@ impl ChiploadApp {
                 if ui
                     .add_enabled(
                         self.selector_json().is_some(),
-                        egui::Button::new("Copy as selector"),
+                        egui::Button::new(t!(ui, "browser-copy-as-selector")),
                     )
-                    .on_hover_text("The selection as JSON, for an operation in a project file")
+                    .on_hover_text(t!(ui, "browser-copy-as-selector-hover"))
                     .clicked()
                 {
                     self.copy_selector(ui.ctx());
@@ -1159,13 +1177,15 @@ fn tool_change(ui: &mut egui::Ui, tool: i64) {
     let painter = ui.painter_at(rect);
     let color = ui.visuals().weak_text_color();
     let left = rect.left() + PAD + 3.0 * INDENT + INDENT;
-    let galley = egui::WidgetText::from(RichText::new(format!("tool change → T{tool}")).small())
-        .into_galley(
-            ui,
-            Some(egui::TextWrapMode::Extend),
-            f32::INFINITY,
-            egui::TextStyle::Small,
-        );
+    let galley = egui::WidgetText::from(
+        RichText::new(t!(ui, "browser-tool-change", tool = tool.to_string())).small(),
+    )
+    .into_galley(
+        ui,
+        Some(egui::TextWrapMode::Extend),
+        f32::INFINITY,
+        egui::TextStyle::Small,
+    );
     let text_at = egui::pos2(left, rect.center().y - galley.size().y / 2.0);
     let line_from = left + galley.size().x + GAP * 2.0;
     painter.galley(text_at, galley, color);

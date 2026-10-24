@@ -13,6 +13,7 @@ use chipload_job::{
     find_tool,
 };
 
+use crate::i18n::{Lang, t};
 use crate::view::Kind;
 
 /// Defaults for a new operation when there's none above it to copy from (decision
@@ -349,17 +350,19 @@ impl EditJob {
         selection: &CanvasSelection,
         contours: &[Contour],
     ) -> usize {
-        self.add_with(kind, selection, contours, None)
+        self.add_with(kind, selection, contours, None, &crate::i18n::Language::En)
     }
 
     /// As `add`, with the tool's cutting values from the library (used when there is no
-    /// operation above to copy from; docs/specs/tool-library-and-machines.md §3).
+    /// operation above to copy from; docs/specs/tool-library-and-machines.md §3). The new
+    /// operation is named in `lang`'s language.
     pub fn add_with(
         &mut self,
         kind: OpKind,
         selection: &CanvasSelection,
         contours: &[Contour],
         cutting: Option<&Cutting>,
+        lang: &impl Lang,
     ) -> usize {
         // Into the active part, after its operations (docs/specs/parts.md §8).
         let part = self.settings.active_part_id().unwrap_or(1);
@@ -418,7 +421,7 @@ impl EditJob {
                 let side = default_side(&selection.ids(contours), contours);
                 (
                     Operation::Profile(ProfileOp {
-                        name: format!("Profile {number}"),
+                        name: t!(lang, "editor-name-profile", number = number),
                         enabled: true,
                         part,
                         select,
@@ -443,7 +446,7 @@ impl EditJob {
             }
             OpKind::Pocket => (
                 Operation::Pocket(PocketOp {
-                    name: format!("Pocket {number}"),
+                    name: t!(lang, "editor-name-pocket", number = number),
                     enabled: true,
                     part,
                     select,
@@ -467,7 +470,7 @@ impl EditJob {
             ),
             OpKind::Vcarve => (
                 Operation::Vcarve(VcarveOp {
-                    name: format!("V-carve {number}"),
+                    name: t!(lang, "editor-name-vcarve", number = number),
                     enabled: true,
                     part,
                     select,
@@ -482,7 +485,7 @@ impl EditJob {
             ),
             OpKind::Path => (
                 Operation::Path(PathOp {
-                    name: format!("Follow path {number}"),
+                    name: t!(lang, "editor-name-path", number = number),
                     enabled: true,
                     part,
                     select,
@@ -508,7 +511,7 @@ impl EditJob {
                     });
                 (
                     Operation::Holes(HolesOp {
-                        name: format!("Holes {number}"),
+                        name: t!(lang, "editor-name-holes", number = number),
                         enabled: true,
                         part,
                         select,
@@ -526,7 +529,7 @@ impl EditJob {
                 let (lo, hi) = SURFACE_STEPOVER;
                 (
                     Operation::Surface(SurfaceOp {
-                        name: format!("Surface {number}"),
+                        name: t!(lang, "editor-name-surface", number = number),
                         enabled: true,
                         part,
                         tool,
@@ -650,10 +653,12 @@ impl EditJob {
         });
     }
 
-    pub fn duplicate(&mut self, index: usize) -> Option<usize> {
+    /// Copy operation `index` to just after it, its name marked as a copy in `lang`'s
+    /// language.
+    pub fn duplicate(&mut self, index: usize, lang: &impl Lang) -> Option<usize> {
         let mut copy = self.ops.get(index)?.clone();
         let name = copy.op.name_mut();
-        *name = format!("{name} (copy)");
+        *name = t!(lang, "editor-name-copy", name = name.as_str());
         self.ops.insert(index + 1, copy);
         Some(index + 1)
     }
@@ -725,23 +730,28 @@ impl EditJob {
 }
 
 /// A short description of what an operation selects, e.g. "#4, #6" or "layer upper".
-pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
+pub fn geometry_summary(op: &Operation, contours: &[Contour], lang: &impl Lang) -> String {
     if !op.selects_shapes() {
-        return "the whole stock".into();
+        return t!(lang, "editor-summary-whole-stock");
     }
     let select = op.select();
     // A text is a source like a DXF or picture: its letters are written again when it
     // changes, so operations select the text, not its shapes (docs/specs/text.md §5).
     let source = match (select.dxf, select.image, select.text) {
-        (Some(dxf), _, _) => Some(format!("DXF {dxf}")),
-        (_, Some(image), _) => Some(format!("image {image}")),
-        (_, _, Some(text)) => Some(format!("text {text}")),
+        (Some(dxf), _, _) => Some(t!(lang, "editor-summary-dxf", id = dxf)),
+        (_, Some(image), _) => Some(t!(lang, "editor-summary-image", id = image)),
+        (_, _, Some(text)) => Some(t!(lang, "editor-summary-text", id = text)),
         _ => None,
     };
     if let Some(layer) = &select.layer {
         return match source {
-            Some(source) => format!("layer {layer} of {source}"),
-            None => format!("layer {layer}"),
+            Some(source) => t!(
+                lang,
+                "editor-summary-layer-of",
+                layer = layer,
+                source = source
+            ),
+            None => t!(lang, "editor-summary-layer", layer = layer),
         };
     }
     if let Some(source) = source
@@ -749,8 +759,8 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
     {
         let left_out = select.exclude.as_ref().map_or(0, Vec::len);
         return match left_out {
-            0 => format!("all of {source}"),
-            n => format!("{source} but {n} left out"),
+            0 => t!(lang, "editor-summary-all-of", source = source),
+            n => t!(lang, "editor-summary-left-out", source = source, count = n),
         };
     }
     if let Some(shapes) = select.shapes.as_ref().filter(|s| !s.is_empty()) {
@@ -764,17 +774,18 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour]) -> String {
             .map(|c| format!("#{}", c.id))
             .collect();
         return if ids.is_empty() {
-            "shapes not in the drawing".into()
+            t!(lang, "editor-summary-not-in-drawing")
         } else {
             ids.join(", ")
         };
     }
-    "no geometry".into()
+    t!(lang, "editor-summary-no-geometry")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::i18n::Language::En;
     use chipload_dxf::shapes_from_dxf;
     use chipload_pipeline::{load_drawing, new_project};
     use std::path::PathBuf;
@@ -827,12 +838,15 @@ mod tests {
             panic!()
         };
         assert_eq!(pocket.select.shapes.as_ref().unwrap().len(), 2);
-        assert_eq!(geometry_summary(&job.ops[a].op, &contours), "#4, #6");
+        assert_eq!(geometry_summary(&job.ops[a].op, &contours, &En), "#4, #6");
         let Operation::Profile(profile) = &job.ops[b].op else {
             panic!()
         };
         assert_eq!(profile.select.layer.as_deref(), Some("upper"));
-        assert_eq!(geometry_summary(&job.ops[b].op, &contours), "layer upper");
+        assert_eq!(
+            geometry_summary(&job.ops[b].op, &contours, &En),
+            "layer upper"
+        );
     }
 
     #[test]
@@ -881,7 +895,7 @@ mod tests {
             step_down: 2.5,
             stepover: 0.3,
         };
-        let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting));
+        let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting), &En);
         let Operation::Pocket(p) = &mut job.ops[first].op else {
             panic!()
         };
@@ -892,7 +906,7 @@ mod tests {
         // The depth is not a tool value: still the shallow test cut.
         assert_eq!(p.end_depth, DEFAULT_DEPTH);
         p.feed = 900.0;
-        let second = job.add_with(OpKind::Profile, &ids(&[2]), &contours, Some(&cutting));
+        let second = job.add_with(OpKind::Profile, &ids(&[2]), &contours, Some(&cutting), &En);
         let Operation::Profile(q) = &job.ops[second].op else {
             panic!()
         };
@@ -947,7 +961,7 @@ mod tests {
         job.move_op(0, 2);
         assert_eq!(names(&job), ["Pocket 1", "Profile 1", "Pocket 2"]);
         job.move_op(0, 9); // out of range: no change
-        assert_eq!(job.duplicate(1), Some(2));
+        assert_eq!(job.duplicate(1, &En), Some(2));
         assert_eq!(
             names(&job),
             ["Pocket 1", "Profile 1", "Profile 1 (copy)", "Pocket 2"]

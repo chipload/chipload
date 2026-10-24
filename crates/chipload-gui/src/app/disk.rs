@@ -90,9 +90,9 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(err) => {
                 self.error(vec![
-                    format!("{} changed on disk but can't be loaded:", file_name(path)),
+                    t!(self, "disk-cannot-load", file = file_name(path)),
                     err.to_string(),
-                    "The project shown is unchanged.".into(),
+                    t!(self, "disk-unchanged"),
                 ]);
                 return;
             }
@@ -135,9 +135,12 @@ impl ChiploadApp {
         self.commit();
         self.after_history_step();
         let name = self.job_path.as_deref().map(file_name).unwrap_or_default();
-        self.set_report(Report::info([format!(
-            "Reloaded {name}: it changed on disk. Ctrl+Z goes back."
+        self.set_report(Report::info([t!(
+            self,
+            "disk-reloaded-report",
+            file = name.as_str()
         )]));
-        self.set_status(format!("Reloaded {name} (changed on disk)"), STATUS_SECONDS);
+        let text = t!(self, "disk-reloaded", file = name);
+        self.set_status(text, STATUS_SECONDS);
     }
 }

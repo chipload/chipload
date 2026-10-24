@@ -90,28 +90,34 @@ impl ChiploadApp {
         for image in &drawing.images {
             push(
                 format!("image:{}", image.id),
-                format!("{} (image {})", image.file, image.id),
+                t!(
+                    self,
+                    "sources-image-title",
+                    file = image.file.as_str(),
+                    id = image.id
+                ),
                 GroupKind::Image(image.id),
             );
         }
         for text in &drawing.texts {
             push(
                 format!("text:{}", text.id),
-                format!(
-                    "{} (text {})",
-                    chipload_pipeline::texts::text_label(text),
-                    text.id
+                t!(
+                    self,
+                    "sources-text-title",
+                    text = chipload_pipeline::texts::text_label(text),
+                    id = text.id
                 ),
                 GroupKind::Text(text.id),
             );
         }
         for (key, title) in [
-            ("drawn:rectangle", "Rectangles"),
-            ("drawn:circle", "Circles"),
-            ("drawn:polyline", "Polylines"),
-            ("paths", "Other paths"),
+            ("drawn:rectangle", t!(self, "sources-rectangles")),
+            ("drawn:circle", t!(self, "sources-circles")),
+            ("drawn:polyline", t!(self, "sources-polylines")),
+            ("paths", t!(self, "sources-other-paths")),
         ] {
-            push(key.into(), title.into(), GroupKind::Drawn);
+            push(key.into(), title, GroupKind::Drawn);
         }
         groups
     }
@@ -154,7 +160,7 @@ impl ChiploadApp {
             Ok(job) => job,
             Err(problems) => {
                 self.error_report(Report::of_problems(
-                    "The project is not complete:",
+                    &t!(self, "sources-project-incomplete"),
                     &problems,
                 ));
                 return false;
@@ -173,7 +179,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.error(vec!["Could not remove the DXF:".into(), err.to_string()]);
+                self.error(vec![t!(self, "sources-remove-dxf-failed"), err.to_string()]);
                 false
             }
         }
@@ -229,34 +235,38 @@ impl ChiploadApp {
     pub(super) fn drawing_rows(&mut self, ui: &mut egui::Ui) {
         let groups = self.drawing_groups();
         let shapes: usize = groups.iter().map(|g| g.shapes).sum();
-        let row = Row::new(egui::Id::new("browser-drawing"), 1, "Drawing")
-            .icon(Icon::Drawing)
-            .trailing(shapes.to_string());
+        let row = Row::new(
+            egui::Id::new("browser-drawing"),
+            1,
+            t!(ui, "sources-drawing"),
+        )
+        .icon(Icon::Drawing)
+        .trailing(shapes.to_string());
         let (open, folder_row) = super::browser::folder(ui, row, true);
         let mut action: Option<PanelAction> = None;
         folder_row
             .response
-            .on_hover_text("DXFs, pictures, texts and drawn shapes; right-click to add one")
+            .on_hover_text(t!(ui, "sources-drawing-hover"))
             .context_menu(|ui| {
                 let adding = self.dxf_count() > 0;
                 if ui
-                    .add_enabled(adding, egui::Button::new("Add DXF…"))
-                    .on_hover_text("Another part: a DXF placed and updated on its own")
-                    .on_disabled_hover_text("File > Import DXF starts a project from one")
+                    .add_enabled(adding, egui::Button::new(t!(ui, "sources-add-dxf")))
+                    .on_hover_text(t!(ui, "sources-add-dxf-hover"))
+                    .on_disabled_hover_text(t!(ui, "sources-add-dxf-disabled-hover"))
                     .clicked()
                 {
                     action = Some(PanelAction::AddDxf);
                 }
                 if ui
-                    .button("Import image…")
-                    .on_hover_text("Trace a picture into shapes, for V-carving")
+                    .button(t!(ui, "sources-import-image"))
+                    .on_hover_text(t!(ui, "sources-import-image-hover"))
                     .clicked()
                 {
                     action = Some(PanelAction::AddImage);
                 }
                 if ui
-                    .button("Add text")
-                    .on_hover_text("Write a text, then click where it starts")
+                    .button(t!(ui, "sources-add-text"))
+                    .on_hover_text(t!(ui, "sources-add-text-hover"))
                     .clicked()
                 {
                     action = Some(PanelAction::AddText);
@@ -266,7 +276,7 @@ impl ChiploadApp {
             if groups.is_empty() {
                 ui.horizontal(|ui| {
                     ui.add_space(4.0 + 3.0 * 14.0);
-                    ui.weak("No shapes yet.");
+                    ui.weak(t!(ui, "sources-no-shapes"));
                 });
             }
             for group in &groups {
@@ -294,7 +304,7 @@ impl ChiploadApp {
             Some(PanelAction::Place(dxf)) => self.focus = Focus::Dxf(dxf),
             Some(PanelAction::Update(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter("DXF drawings", &["dxf"])
+                    .add_filter(t!(ui, "sources-dxf-filter"), &["dxf"])
                     .pick_file()
                 {
                     self.update_dxf_from(Some(dxf), &path, None);
@@ -371,47 +381,45 @@ impl ChiploadApp {
             *action = Some(PanelAction::SelectGroup(group.key.clone()));
         }
         let hover = match group.kind {
-            GroupKind::Dxf(_) => {
-                "Click selects the whole DXF: an operation made from it follows its updates. \
-                 Its position and scale show in Properties; right-click for more"
-            }
-            GroupKind::Image(_) => {
-                "Click selects the whole picture: an operation made from it follows its \
-                 retracing. Its size and place show in Properties; double-click for its trace settings"
-            }
-            GroupKind::Text(_) => {
-                "Click selects the whole text: an operation made from it follows its changes. \
-                 What it says, its font, size and place are in Properties"
-            }
-            GroupKind::Drawn => "Click selects these shapes; Ctrl+click adds them",
+            GroupKind::Dxf(_) => t!(ui, "sources-dxf-hover"),
+            GroupKind::Image(_) => t!(ui, "sources-image-hover"),
+            GroupKind::Text(_) => t!(ui, "sources-text-hover"),
+            GroupKind::Drawn => t!(ui, "sources-drawn-hover"),
         };
         out.response.on_hover_text(hover).context_menu(|ui| {
-            if ui.button("Select").clicked() {
+            if ui.button(t!(ui, "sources-select")).clicked() {
                 *action = Some(PanelAction::SelectGroup(group.key.clone()));
             }
-            if ui.button(if hidden { "Show" } else { "Hide" }).clicked() {
+            if ui
+                .button(if hidden {
+                    t!(ui, "sources-show")
+                } else {
+                    t!(ui, "sources-hide")
+                })
+                .clicked()
+            {
                 *action = Some(PanelAction::Toggle(group.key.clone()));
             }
             match group.kind {
                 GroupKind::Dxf(dxf) => {
                     ui.separator();
                     if ui
-                        .button("Place…")
-                        .on_hover_text("Move, turn or scale this DXF, in its properties")
+                        .button(t!(ui, "sources-place"))
+                        .on_hover_text(t!(ui, "sources-place-hover"))
                         .clicked()
                     {
                         *action = Some(PanelAction::Place(dxf));
                     }
-                    if ui.button("Update from a DXF…").clicked() {
+                    if ui.button(t!(ui, "sources-update-from-dxf")).clicked() {
                         *action = Some(PanelAction::Update(dxf));
                     }
-                    if ui.button("Update from a path…").clicked() {
+                    if ui.button(t!(ui, "sources-update-from-path")).clicked() {
                         *action = Some(PanelAction::UpdatePath(dxf));
                     }
                     ui.separator();
                     if ui
-                        .button("Remove")
-                        .on_hover_text("Remove this DXF and its shapes")
+                        .button(t!(ui, "common-remove"))
+                        .on_hover_text(t!(ui, "sources-remove-dxf-hover"))
                         .clicked()
                     {
                         *action = Some(PanelAction::RemoveDxf(dxf));
@@ -420,16 +428,16 @@ impl ChiploadApp {
                 GroupKind::Image(image) => {
                     ui.separator();
                     if ui
-                        .button("Trace settings…")
-                        .on_hover_text("Threshold, smoothing, outlines or centre lines; its size and place are in its properties")
+                        .button(t!(ui, "sources-trace-settings"))
+                        .on_hover_text(t!(ui, "sources-trace-settings-hover"))
                         .clicked()
                     {
                         *action = Some(PanelAction::EditImage(image));
                     }
                     ui.separator();
                     if ui
-                        .button("Remove")
-                        .on_hover_text("Remove the picture and its shapes")
+                        .button(t!(ui, "common-remove"))
+                        .on_hover_text(t!(ui, "sources-remove-image-hover"))
                         .clicked()
                     {
                         *action = Some(PanelAction::RemoveImage(image));
@@ -438,8 +446,8 @@ impl ChiploadApp {
                 GroupKind::Text(text) => {
                     ui.separator();
                     if ui
-                        .button("Remove")
-                        .on_hover_text("Remove the text and its letters")
+                        .button(t!(ui, "common-remove"))
+                        .on_hover_text(t!(ui, "sources-remove-text-hover"))
                         .clicked()
                     {
                         *action = Some(PanelAction::RemoveText(text));
@@ -474,16 +482,17 @@ impl ChiploadApp {
                 *action = Some(PanelAction::SelectLayer(layer.clone(), from));
             }
             out.response
-                .on_hover_text(
-                    "Click selects this layer of this DXF: an operation made from it cuts only \
-                     this DXF's layer",
-                )
+                .on_hover_text(t!(ui, "sources-layer-hover"))
                 .context_menu(|ui| {
-                    if ui.button("Select").clicked() {
+                    if ui.button(t!(ui, "sources-select")).clicked() {
                         *action = Some(PanelAction::SelectLayer(layer.clone(), from));
                     }
                     if ui
-                        .button(if layer_hidden { "Show" } else { "Hide" })
+                        .button(if layer_hidden {
+                            t!(ui, "sources-show")
+                        } else {
+                            t!(ui, "sources-hide")
+                        })
                         .clicked()
                     {
                         *action = Some(PanelAction::Toggle(key.clone()));
