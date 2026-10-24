@@ -14,6 +14,7 @@ use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
 
 use crate::Problem;
+use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
@@ -154,26 +155,31 @@ impl Copies {
             if !(1..=MAX_COPIES_PER_SIDE).contains(&n) {
                 problems.push(Problem::at(
                     format!("{at}.{name}"),
-                    format!("must be from 1 to {MAX_COPIES_PER_SIDE}, got {n}"),
+                    Message::new("job-copies-per-side")
+                        .arg("most", MAX_COPIES_PER_SIDE)
+                        .arg("got", n),
                 ));
             }
         }
         if self.count() > MAX_COPIES {
             problems.push(Problem::at(
                 at,
-                format!("at most {MAX_COPIES} copies in all, got {}", self.count()),
+                Message::new("job-copies-too-many")
+                    .arg("most", MAX_COPIES)
+                    .arg("got", self.count()),
             ));
         }
         for (name, pitch, n) in [("dx", self.dx, self.columns), ("dy", self.dy, self.rows)] {
             if !pitch.is_finite() {
                 problems.push(Problem::at(
                     format!("{at}.{name}"),
-                    format!("must be a number, got {pitch}"),
+                    Message::new("job-must-be-number")
+                        .arg("got", Value::LengthNumber(pitch, Digits::Shortest)),
                 ));
             } else if n > 1 && pitch == 0.0 {
                 problems.push(Problem::at(
                     format!("{at}.{name}"),
-                    "must not be 0 with more than one copy that way",
+                    Message::new("job-copies-pitch-zero"),
                 ));
             }
         }
@@ -340,63 +346,84 @@ impl Image {
     pub fn problems(&self, index: usize) -> Vec<Problem> {
         let at = format!("drawing.images.{index}");
         let mut problems = Vec::new();
-        let mut range = |field: &str, value: f64, low: f64, high: f64, unit: &str| {
+        let mut range = |field: &str, value: f64, (low, high): (f64, f64), message: Message| {
             if !(value.is_finite() && (low..=high).contains(&value)) {
-                problems.push(Problem::at(
-                    format!("{at}.{field}"),
-                    format!("must be {low} to {high}{unit}, got {value}{unit}"),
-                ));
+                problems.push(Problem::at(format!("{at}.{field}"), message));
             }
         };
-        range("blur", self.blur, 0.0, IMAGE_MAX_BLUR_PX, " px");
+        let number = |v: f64| Value::Number(v, Digits::Shortest);
+        let length = |v: f64| Value::Length(v, Digits::Shortest);
+        range(
+            "blur",
+            self.blur,
+            (0.0, IMAGE_MAX_BLUR_PX),
+            Message::new("job-image-range-px")
+                .arg("low", number(0.0))
+                .arg("high", number(IMAGE_MAX_BLUR_PX))
+                .arg("got", number(self.blur)),
+        );
         range(
             "min_area",
             self.min_area,
-            0.0,
-            IMAGE_MAX_MIN_AREA_MM2,
-            " mm²",
+            (0.0, IMAGE_MAX_MIN_AREA_MM2),
+            Message::new("job-image-range-area")
+                .arg("low", number(0.0))
+                .arg("high", number(IMAGE_MAX_MIN_AREA_MM2))
+                .arg("got", number(self.min_area)),
         );
         range(
             "smoothing",
             self.smoothing,
-            IMAGE_MIN_SMOOTHING_MM,
-            IMAGE_MAX_SMOOTHING_MM,
-            " mm",
+            (IMAGE_MIN_SMOOTHING_MM, IMAGE_MAX_SMOOTHING_MM),
+            Message::new("job-image-range-length")
+                .arg(
+                    "low",
+                    Value::LengthNumber(IMAGE_MIN_SMOOTHING_MM, Digits::Shortest),
+                )
+                .arg("high", length(IMAGE_MAX_SMOOTHING_MM))
+                .arg("got", length(self.smoothing)),
         );
         if let ImageThreshold::Level(t) = self.threshold
             && !(1..=254).contains(&t)
         {
             problems.push(Problem::at(
                 format!("{at}.threshold"),
-                format!("must be 1 to 254 or \"auto\", got {t}"),
+                Message::new("job-image-threshold").arg("got", u32::from(t)),
             ));
         }
         if !(self.width.is_finite() && self.width > 0.0) {
             problems.push(Problem::at(
                 format!("{at}.width"),
-                format!("must be greater than 0, got {} mm", self.width),
+                Message::new("job-must-be-positive")
+                    .arg("got", Value::Length(self.width, Digits::Shortest)),
             ));
         }
         if !rotation_in_range(self.rotation) {
             problems.push(Problem::at(
                 format!("{at}.rotation"),
-                format!(
-                    "must be at least 0 and less than 360 degrees, got {}",
-                    self.rotation
-                ),
+                Message::new("job-rotation-range")
+                    .arg("got", Value::Number(self.rotation, Digits::Shortest)),
             ));
         }
         if !(self.x.is_finite() && self.y.is_finite()) {
             problems.push(Problem::at(
                 &at,
-                format!("x and y must be numbers, got ({}, {})", self.x, self.y),
+                Message::new("job-xy-must-be-numbers")
+                    .arg("x", Value::LengthNumber(self.x, Digits::Shortest))
+                    .arg("y", Value::LengthNumber(self.y, Digits::Shortest)),
             ));
         }
         if self.layer.trim().is_empty() {
-            problems.push(Problem::at(format!("{at}.layer"), "must not be empty"));
+            problems.push(Problem::at(
+                format!("{at}.layer"),
+                Message::new("job-must-not-be-empty"),
+            ));
         }
         if self.data.is_empty() {
-            problems.push(Problem::at(format!("{at}.data"), "the picture is missing"));
+            problems.push(Problem::at(
+                format!("{at}.data"),
+                Message::new("job-image-missing"),
+            ));
         }
         problems
     }
@@ -480,16 +507,15 @@ impl Text {
         if self.text.trim().is_empty() {
             problems.push(Problem::at(
                 format!("{at}.text"),
-                "is empty: write something to cut",
+                Message::new("job-text-empty"),
             ));
         }
         if !(self.height.is_finite() && self.height > 0.0 && self.height <= TEXT_MAX_HEIGHT_MM) {
             problems.push(Problem::at(
                 format!("{at}.height"),
-                format!(
-                    "must be more than 0 and at most {TEXT_MAX_HEIGHT_MM} mm, got {} mm",
-                    self.height
-                ),
+                Message::new("job-text-height")
+                    .arg("most", Value::Length(TEXT_MAX_HEIGHT_MM, Digits::Shortest))
+                    .arg("got", Value::Length(self.height, Digits::Shortest)),
             ));
         }
         if !(self.line_spacing.is_finite()
@@ -498,42 +524,53 @@ impl Text {
         {
             problems.push(Problem::at(
                 format!("{at}.line_spacing"),
-                format!(
-                    "must be more than 0 and at most {TEXT_MAX_LINE_SPACING}, got {}",
-                    self.line_spacing
-                ),
+                Message::new("job-more-than-0-at-most")
+                    .arg(
+                        "most",
+                        Value::Number(TEXT_MAX_LINE_SPACING, Digits::Shortest),
+                    )
+                    .arg("got", Value::Number(self.line_spacing, Digits::Shortest)),
             ));
         }
         let most = TEXT_MAX_SPACING_HEIGHTS * self.height.abs();
         if !(self.spacing.is_finite() && self.spacing.abs() <= most) {
             problems.push(Problem::at(
                 format!("{at}.spacing"),
-                format!(
-                    "must be at most {TEXT_MAX_SPACING_HEIGHTS} heights either way ({most} mm), got {} mm",
-                    self.spacing
-                ),
+                Message::new("job-text-spacing")
+                    .arg(
+                        "heights",
+                        Value::Number(TEXT_MAX_SPACING_HEIGHTS, Digits::Shortest),
+                    )
+                    .arg("most", Value::Length(most, Digits::Shortest))
+                    .arg("got", Value::Length(self.spacing, Digits::Shortest)),
             ));
         }
         if !rotation_in_range(self.rotation) {
             problems.push(Problem::at(
                 format!("{at}.rotation"),
-                format!(
-                    "must be at least 0 and less than 360 degrees, got {}",
-                    self.rotation
-                ),
+                Message::new("job-rotation-range")
+                    .arg("got", Value::Number(self.rotation, Digits::Shortest)),
             ));
         }
         if !(self.x.is_finite() && self.y.is_finite()) {
             problems.push(Problem::at(
                 &at,
-                format!("x and y must be numbers, got ({}, {})", self.x, self.y),
+                Message::new("job-xy-must-be-numbers")
+                    .arg("x", Value::LengthNumber(self.x, Digits::Shortest))
+                    .arg("y", Value::LengthNumber(self.y, Digits::Shortest)),
             ));
         }
         if self.layer.trim().is_empty() {
-            problems.push(Problem::at(format!("{at}.layer"), "must not be empty"));
+            problems.push(Problem::at(
+                format!("{at}.layer"),
+                Message::new("job-must-not-be-empty"),
+            ));
         }
         if self.font.trim().is_empty() {
-            problems.push(Problem::at(format!("{at}.font"), "must not be empty"));
+            problems.push(Problem::at(
+                format!("{at}.font"),
+                Message::new("job-must-not-be-empty"),
+            ));
         }
         problems
     }
@@ -1708,6 +1745,25 @@ impl ToolType {
             ToolType::Vbit => "a V-bit",
         }
     }
+
+    /// [`ToolType::name`] as a message, for problems shown in the reader's language.
+    pub fn name_message(self) -> Message {
+        Message::new("job-tool-type").arg("type", self.key())
+    }
+
+    /// [`ToolType::with_article`] as a message.
+    pub fn with_article_message(self) -> Message {
+        Message::new("job-tool-type-article").arg("type", self.key())
+    }
+
+    /// The kind as the project file writes it, which the messages select on.
+    fn key(self) -> &'static str {
+        match self {
+            ToolType::Endmill => "endmill",
+            ToolType::Drill => "drill",
+            ToolType::Vbit => "vbit",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1892,10 +1948,25 @@ pub fn operation_label(index: usize, name: &str) -> String {
     }
 }
 
+/// [`operation_label`] as a message, for problems shown in the reader's language.
+pub fn operation_label_message(index: usize, name: &str) -> Message {
+    match name {
+        "" => Message::new("job-operation-label").arg("number", index + 1),
+        name => Message::new("job-operation-label-named")
+            .arg("number", index + 1)
+            .arg("name", name),
+    }
+}
+
 impl Operation {
     /// "Operation 3" or "Operation 3 (lid)", for the operation at `index`.
     pub fn label(&self, index: usize) -> String {
         operation_label(index, self.name())
+    }
+
+    /// [`Operation::label`] as a message.
+    pub fn label_message(&self, index: usize) -> Message {
+        operation_label_message(index, self.name())
     }
 
     pub fn name(&self) -> &str {
@@ -2482,19 +2553,18 @@ fn surface_problems(i: usize, f: &SurfaceOp, thickness: f64) -> Vec<Problem> {
     if !(f.stepover.is_finite() && (lo..=hi).contains(&f.stepover)) {
         problems.push(Problem::at(
             format!("operations.{i}.stepover"),
-            format!(
-                "must be from {lo} to {hi} of the tool diameter, got {}",
-                f.stepover
-            ),
+            Message::new("job-surface-stepover")
+                .arg("low", Value::Number(lo, Digits::Shortest))
+                .arg("high", Value::Number(hi, Digits::Shortest))
+                .arg("got", Value::Number(f.stepover, Digits::Shortest)),
         ));
     }
     if f.end_depth > thickness + DEPTH_TOL_MM {
         problems.push(Problem::at(
             format!("operations.{i}.end_depth"),
-            format!(
-                "a surface can't go below the stock bottom ({thickness} mm thick), got {} mm",
-                f.end_depth
-            ),
+            Message::new("job-surface-too-deep")
+                .arg("thickness", Value::Length(thickness, Digits::Shortest))
+                .arg("got", Value::Length(f.end_depth, Digits::Shortest)),
         ));
     }
     problems
@@ -2666,33 +2736,31 @@ impl Drawing {
             if shape.id == 0 || shape.id >= self.next_shape_id {
                 problems.push(Problem::at(
                     format!("{at}.id"),
-                    format!(
-                        "must be between 1 and next_shape_id - 1 ({}), got {}",
-                        self.next_shape_id.saturating_sub(1),
-                        shape.id
-                    ),
+                    Message::new("job-shape-id-range")
+                        .arg("most", self.next_shape_id.saturating_sub(1))
+                        .arg("got", shape.id),
                 ));
             }
             if !seen.insert(shape.id) {
                 problems.push(Problem::at(
                     format!("{at}.id"),
-                    format!("{} is used twice", shape.id),
+                    Message::new("job-id-twice").arg("id", shape.id),
                 ));
             }
             // The text names the shape as well, which has no field of its own.
             problems.extend(shape_problems(&shape.geometry).into_iter().map(|p| {
-                Problem::new(
-                    format!("{at}.{}", p.path),
-                    p.short,
-                    format!("{at} (S{}).{}", shape.id, p.text),
-                )
+                let text = Message::new("job-shape-problem")
+                    .arg("at", at.as_str())
+                    .arg("id", shape.id)
+                    .arg("problem", p.text_message);
+                Problem::new(format!("{at}.{}", p.path), p.short_message, text)
             }));
             if let Some(image) = shape.image()
                 && !self.images.iter().any(|i| i.id == image)
             {
                 problems.push(Problem::at(
                     format!("{at}.image"),
-                    format!("no image {image} in drawing.images"),
+                    Message::new("job-no-image").arg("id", image),
                 ));
             }
             if let Some(dxf) = shape.dxf()
@@ -2700,7 +2768,7 @@ impl Drawing {
             {
                 problems.push(Problem::at(
                     format!("{at}.dxf"),
-                    format!("no DXF {dxf} in drawing.dxfs"),
+                    Message::new("job-no-dxf").arg("id", dxf),
                 ));
             }
             if let Some(text) = shape.text()
@@ -2708,15 +2776,12 @@ impl Drawing {
             {
                 problems.push(Problem::at(
                     format!("{at}.text"),
-                    format!("no text {text} in drawing.texts"),
+                    Message::new("job-no-text").arg("id", text),
                 ));
             }
             let sources = [shape.image(), shape.dxf(), shape.text()];
             if sources.iter().flatten().count() > 1 {
-                problems.push(Problem::at(
-                    at,
-                    "a shape comes from one image, DXF or text, not more",
-                ));
+                problems.push(Problem::at(at, Message::new("job-shape-one-source")));
             }
         }
         let mut ids = std::collections::BTreeSet::new();
@@ -2724,7 +2789,7 @@ impl Drawing {
             if !ids.insert(image.id) {
                 problems.push(Problem::at(
                     format!("drawing.images.{i}.id"),
-                    format!("{} is used twice", image.id),
+                    Message::new("job-id-twice").arg("id", image.id),
                 ));
             }
             problems.extend(image.problems(i));
@@ -2734,7 +2799,7 @@ impl Drawing {
             if !ids.insert(text.id) {
                 problems.push(Problem::at(
                     format!("drawing.texts.{i}.id"),
-                    format!("{} is used twice", text.id),
+                    Message::new("job-id-twice").arg("id", text.id),
                 ));
             }
             problems.extend(text.problems(i));
@@ -2744,13 +2809,13 @@ impl Drawing {
             if !ids.insert(dxf.id) {
                 problems.push(Problem::at(
                     format!("drawing.dxfs.{i}.id"),
-                    format!("{} is used twice", dxf.id),
+                    Message::new("job-id-twice").arg("id", dxf.id),
                 ));
             }
             if dxf.name.trim().is_empty() {
                 problems.push(Problem::at(
                     format!("drawing.dxfs.{i}.name"),
-                    "must not be empty",
+                    Message::new("job-must-not-be-empty"),
                 ));
             }
         }
@@ -2767,7 +2832,8 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
         if !(value.is_finite() && value > 0.0) {
             problems.push(Problem::at(
                 field,
-                format!("must be a positive number, got {value} mm"),
+                Message::new("job-must-be-positive-number")
+                    .arg("got", Value::Length(value, Digits::Shortest)),
             ));
         }
     };
@@ -2776,7 +2842,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             if segments.is_empty() {
                 problems.push(Problem::at(
                     "segments",
-                    "a shape needs at least one segment",
+                    Message::new("job-path-no-segments"),
                 ));
             }
             for (j, segment) in segments.iter().enumerate() {
@@ -2793,7 +2859,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
                 if !ok {
                     problems.push(Problem::at(
                         format!("segments.{j}"),
-                        "coordinates must be finite and radii positive",
+                        Message::new("job-segment-not-finite"),
                     ));
                 }
             }
@@ -2801,7 +2867,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
         Geometry::Circle { center, radius } => {
             positive("radius", *radius);
             if !finite(center) {
-                problems.push(Problem::at("center", "must be finite"));
+                problems.push(Problem::at("center", Message::new("job-must-be-finite")));
             }
         }
         Geometry::Rectangle {
@@ -2817,26 +2883,33 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             if !corner_radius.is_finite() || *corner_radius < 0.0 {
                 problems.push(Problem::at(
                     "corner_radius",
-                    format!("must be 0 or more, got {corner_radius} mm"),
+                    Message::new("job-must-be-0-or-more")
+                        .arg("got", Value::Length(*corner_radius, Digits::Shortest)),
                 ));
             } else if *corner_radius > 0.0 && *corner_radius < CHAIN_TOL_MM {
                 problems.push(Problem::at(
                     "corner_radius",
-                    format!(
-                        "0 for sharp corners, or at least {CHAIN_TOL_MM} mm, got {corner_radius} mm"
-                    ),
+                    Message::new("job-corner-radius-tiny")
+                        .arg("least", Value::Length(CHAIN_TOL_MM, Digits::Shortest))
+                        .arg("got", Value::Length(*corner_radius, Digits::Shortest)),
                 ));
             } else if *corner_radius > most {
                 problems.push(Problem::at(
                     "corner_radius",
-                    format!("at most {most} mm, half the shorter side, got {corner_radius} mm"),
+                    Message::new("job-corner-radius-too-large")
+                        .arg("most", Value::Length(most, Digits::Shortest))
+                        .arg("got", Value::Length(*corner_radius, Digits::Shortest)),
                 ));
             }
             if !finite(center) {
-                problems.push(Problem::at("center", "must be finite"));
+                problems.push(Problem::at("center", Message::new("job-must-be-finite")));
             }
             if !angle.is_finite() {
-                problems.push(Problem::at("angle", format!("must be finite, got {angle}")));
+                problems.push(Problem::at(
+                    "angle",
+                    Message::new("job-must-be-finite-got")
+                        .arg("got", Value::Number(*angle, Digits::Shortest)),
+                ));
             }
         }
         Geometry::Polyline {
@@ -2848,15 +2921,14 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             if points.len() < least {
                 problems.push(Problem::at(
                     "points",
-                    format!(
-                        "a{} polyline needs at least {least} points, got {}",
-                        if *closed { " closed" } else { "n open" },
-                        points.len()
-                    ),
+                    Message::new("job-polyline-points")
+                        .arg("closed", if *closed { "closed" } else { "open" })
+                        .arg("least", least)
+                        .arg("got", points.len()),
                 ));
             }
             if !points.iter().all(finite) {
-                problems.push(Problem::at("points", "must be finite"));
+                problems.push(Problem::at("points", Message::new("job-must-be-finite")));
             }
             let n = points.len();
             let pairs = if *closed { n } else { n.saturating_sub(1) };
@@ -2865,24 +2937,25 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
                 if (a[0] - b[0]).hypot(a[1] - b[1]) <= CHAIN_TOL_MM {
                     problems.push(Problem::at(
                         format!("points.{}", (i + 1) % n),
-                        format!("is on top of the previous point (closer than {CHAIN_TOL_MM} mm)"),
+                        Message::new("job-point-on-previous")
+                            .arg("tolerance", Value::Length(CHAIN_TOL_MM, Digits::Shortest)),
                     ));
                 }
             }
             if bulges.len() != pairs {
                 problems.push(Problem::at(
                     "bulges",
-                    format!(
-                        "one per segment, {pairs} for this polyline, got {}",
-                        bulges.len()
-                    ),
+                    Message::new("job-bulges-count")
+                        .arg("wanted", pairs)
+                        .arg("got", bulges.len()),
                 ));
             }
             for (i, b) in bulges.iter().enumerate() {
                 if !(b.is_finite() && b.abs() <= 1.0) {
                     problems.push(Problem::at(
                         format!("bulges.{i}"),
-                        format!("must be between -1 and 1 (at most a half circle), got {b}"),
+                        Message::new("job-bulge-range")
+                            .arg("got", Value::Number(*b, Digits::Shortest)),
                     ));
                 }
             }
@@ -2896,7 +2969,7 @@ fn positive_problem(at: &str, field: &str, value: f64) -> Option<Problem> {
     (value <= 0.0 || value.is_nan()).then(|| {
         Problem::at(
             format!("{at}.{field}"),
-            format!("must be greater than 0, got {value} mm"),
+            Message::new("job-must-be-positive").arg("got", Value::Length(value, Digits::Shortest)),
         )
     })
 }
@@ -2908,7 +2981,8 @@ pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<Problem> {
     } else {
         vec![Problem::at(
             format!("{at}.max_overcut"),
-            format!("must be 0 or more, got {overcut} mm"),
+            Message::new("job-must-be-0-or-more")
+                .arg("got", Value::Length(overcut, Digits::Shortest)),
         )]
     }
 }
@@ -2923,7 +2997,9 @@ impl Machine {
         {
             problems.push(Problem::at(
                 format!("{at}.work_zero"),
-                format!("x and y must be finite, got {x}, {y}"),
+                Message::new("job-work-zero-not-finite")
+                    .arg("x", Value::LengthNumber(x, Digits::Shortest))
+                    .arg("y", Value::LengthNumber(y, Digits::Shortest)),
             ));
         }
         if let Some(t) = &self.travel {
@@ -2947,10 +3023,8 @@ impl Tool {
         {
             problems.push(Problem::at(
                 format!("{at}.angle"),
-                format!(
-                    "must be more than 0 and less than 180 degrees, got {:.3} degrees",
-                    angle.to_degrees()
-                ),
+                Message::new("job-angle-below-180")
+                    .arg("got", Value::Number(angle.to_degrees(), Digits::Fixed(3))),
             ));
         }
         if let Some(tip) = self.tip_diameter
@@ -2958,10 +3032,9 @@ impl Tool {
         {
             problems.push(Problem::at(
                 format!("{at}.tip_diameter"),
-                format!(
-                    "must be 0 or more and less than the diameter ({} mm), got {tip} mm",
-                    self.diameter
-                ),
+                Message::new("job-tip-diameter")
+                    .arg("diameter", Value::Length(self.diameter, Digits::Shortest))
+                    .arg("got", Value::Length(tip, Digits::Shortest)),
             ));
         }
         problems
@@ -2975,28 +3048,34 @@ impl Job {
     fn part_problems(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
         if self.parts.is_empty() {
-            problems.push(Problem::at("parts", "a project needs at least one part"));
+            problems.push(Problem::at("parts", Message::new("job-no-parts")));
         }
         for (i, part) in self.parts.iter().enumerate() {
             if part.id == 0 {
-                problems.push(Problem::at(format!("parts.{i}.id"), "must be 1 or more"));
+                problems.push(Problem::at(
+                    format!("parts.{i}.id"),
+                    Message::new("job-must-be-1-or-more"),
+                ));
             }
             if self.parts[..i].iter().any(|p| p.id == part.id) {
                 problems.push(Problem::at(
                     format!("parts.{i}.id"),
-                    format!("part {} is listed twice", part.id),
+                    Message::new("job-part-twice").arg("id", part.id),
                 ));
             }
             let name = part.name.trim();
             if name.is_empty() {
-                problems.push(Problem::at(format!("parts.{i}.name"), "must not be empty"));
+                problems.push(Problem::at(
+                    format!("parts.{i}.name"),
+                    Message::new("job-must-not-be-empty"),
+                ));
             } else if self.parts[..i]
                 .iter()
                 .any(|p| p.name.trim().eq_ignore_ascii_case(name))
             {
                 problems.push(Problem::at(
                     format!("parts.{i}.name"),
-                    format!("another part is named \"{name}\""),
+                    Message::new("job-part-name-taken").arg("name", name),
                 ));
             }
             if let Some(copies) = &part.copies {
@@ -3009,7 +3088,7 @@ impl Job {
             let Some(here) = rank(op.part()) else {
                 problems.push(Problem::at(
                     format!("operations.{i}.part"),
-                    format!("no part {} in parts", op.part()),
+                    Message::new("job-no-part").arg("id", op.part()),
                 ));
                 continue;
             };
@@ -3018,11 +3097,9 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.part"),
-                    format!(
-                        "part {}'s operations must all come before part {}'s",
-                        op.part(),
-                        before_id
-                    ),
+                    Message::new("job-part-order")
+                        .arg("part", op.part())
+                        .arg("before", before_id),
                 ));
             }
             if last.is_none_or(|(before, _)| here > before) {
@@ -3048,23 +3125,28 @@ impl Job {
             if !Placement::scale_in_range(scale) {
                 problems.push(Problem::at(
                     format!("{at}.scale"),
-                    format!(
-                        "must be {} to {}, got {scale}",
-                        Placement::MIN_SCALE,
-                        Placement::MAX_SCALE
-                    ),
+                    Message::new("job-scale-range")
+                        .arg("low", Value::Number(Placement::MIN_SCALE, Digits::Shortest))
+                        .arg(
+                            "high",
+                            Value::Number(Placement::MAX_SCALE, Digits::Shortest),
+                        )
+                        .arg("got", Value::Number(scale, Digits::Shortest)),
                 ));
             }
             if !(dx.is_finite() && dy.is_finite()) {
                 problems.push(Problem::at(
                     &at,
-                    format!("must be numbers, got ({dx}, {dy})"),
+                    Message::new("job-must-be-numbers")
+                        .arg("x", Value::LengthNumber(dx, Digits::Shortest))
+                        .arg("y", Value::LengthNumber(dy, Digits::Shortest)),
                 ));
             }
             if !rotation_in_range(rotation) {
                 problems.push(Problem::at(
                     format!("{at}.rotation"),
-                    format!("must be at least 0 and less than 360 degrees, got {rotation}"),
+                    Message::new("job-rotation-range")
+                        .arg("got", Value::Number(rotation, Digits::Shortest)),
                 ));
             }
         }
@@ -3072,7 +3154,8 @@ impl Job {
             if value <= 0.0 || value.is_nan() {
                 problems.push(Problem::at(
                     path,
-                    format!("must be greater than 0, got {value} mm"),
+                    Message::new("job-must-be-positive")
+                        .arg("got", Value::Length(value, Digits::Shortest)),
                 ));
             }
         };
@@ -3086,16 +3169,16 @@ impl Job {
         // so messages can be shown in inches: docs/specs/inch-units.md §5.1).
         let mut positive = |path: String, value: f64| {
             if value <= 0.0 || value.is_nan() {
-                let unit = if path.ends_with("feed") {
-                    " mm/min"
+                let got = if path.ends_with("feed") {
+                    Value::Feed(value, Digits::Shortest)
                 } else if path.ends_with("stepover") {
-                    ""
+                    Value::Number(value, Digits::Shortest)
                 } else {
-                    " mm"
+                    Value::Length(value, Digits::Shortest)
                 };
                 problems.push(Problem::at(
                     path,
-                    format!("must be greater than 0, got {value}{unit}"),
+                    Message::new("job-must-be-positive").arg("got", got),
                 ));
             }
         };
@@ -3177,18 +3260,22 @@ impl Job {
             if !(start.is_finite() && start >= 0.0) {
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
-                    format!("must be 0 or more, got {start} mm"),
+                    Message::new("job-must-be-0-or-more")
+                        .arg("got", Value::Length(start, Digits::Shortest)),
                 ));
             } else if start >= end {
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
-                    format!("must be less than end_depth ({end} mm), got {start} mm"),
+                    Message::new("job-start-below-end")
+                        .arg("end", Value::Length(end, Digits::Shortest))
+                        .arg("got", Value::Length(start, Digits::Shortest)),
                 ));
             }
             if !op.clearance().is_finite() {
                 problems.push(Problem::at(
                     format!("operations.{i}.clearance"),
-                    format!("must be a number, got {}", op.clearance()),
+                    Message::new("job-must-be-number")
+                        .arg("got", Value::LengthNumber(op.clearance(), Digits::Shortest)),
                 ));
             }
             if let Operation::Surface(f) = op {
@@ -3200,10 +3287,8 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.clearance"),
-                    format!(
-                        "a profile on the line has no side to clear towards; it must be 0, got {} mm",
-                        p.clearance
-                    ),
+                    Message::new("job-on-line-clearance")
+                        .arg("got", Value::Length(p.clearance, Digits::Shortest)),
                 ));
             }
         }
@@ -3215,7 +3300,7 @@ impl Job {
             if selector.is_empty() {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),
-                    "selector needs a DXF, an image, a text, a layer or shapes",
+                    Message::new("job-selector-empty"),
                 ));
             }
             if let Some(dxf) = selector.dxf
@@ -3223,7 +3308,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.select.dxf"),
-                    format!("no DXF {dxf} in drawing.dxfs"),
+                    Message::new("job-no-dxf").arg("id", dxf),
                 ));
             }
             if let Some(image) = selector.image
@@ -3231,7 +3316,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.select.image"),
-                    format!("no image {image} in drawing.images"),
+                    Message::new("job-no-image").arg("id", image),
                 ));
             }
             if let Some(text) = selector.text
@@ -3239,14 +3324,14 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.select.text"),
-                    format!("no text {text} in drawing.texts"),
+                    Message::new("job-no-text").arg("id", text),
                 ));
             }
             // Shapes left out of a whole DXF, image or text (docs/specs/leave-out-shapes.md
             // §2, text.md §3).
             if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
                 let source = match (selector.dxf, selector.image, selector.text) {
-                    (Some(dxf), _, _) => Some(("DXF", dxf, 0)),
+                    (Some(dxf), _, _) => Some(("dxf", dxf, 0)),
                     (None, Some(image), _) => Some(("image", image, 1)),
                     (None, None, Some(text)) => Some(("text", text, 2)),
                     (None, None, None) => None,
@@ -3254,7 +3339,7 @@ impl Job {
                 match source {
                     None => problems.push(Problem::at(
                         format!("operations.{i}.select.exclude"),
-                        "shapes can only be left out of a whole DXF, image or text",
+                        Message::new("job-exclude-no-source"),
                     )),
                     Some((what, id, kind)) => {
                         let of_source = |shape: &Shape| match kind {
@@ -3269,7 +3354,13 @@ impl Job {
                                 .iter()
                                 .any(|s| s.id == **e && of_source(s))
                         }) {
-                            problems.push(Problem::at(format!("operations.{i}.select.exclude"), format!("shape {missing} is not in {what} {id} any more: pick the shapes to leave out again")));
+                            problems.push(Problem::at(
+                                format!("operations.{i}.select.exclude"),
+                                Message::new("job-exclude-missing")
+                                    .arg("shape", *missing)
+                                    .arg("source", what)
+                                    .arg("id", id),
+                            ));
                         }
                     }
                 }
@@ -3282,7 +3373,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),
-                    "a selector names one DXF, image or text, not more",
+                    Message::new("job-selector-one-source"),
                 ));
             }
             // A text's letters get new ids each time it is made again (text.md §3).
@@ -3293,9 +3384,12 @@ impl Job {
                     .find(|s| s.id == *id && s.text().is_some())
             });
             if let Some(shape) = letter {
-                problems.push(Problem::at(format!("operations.{i}.select"), format!("shape {} is a letter of a text and changes each time the text is made again: select the text instead ({{\"text\": {}}})",
-                    shape.id,
-                    shape.text().unwrap_or_default())));
+                problems.push(Problem::at(
+                    format!("operations.{i}.select"),
+                    Message::new("job-select-letter")
+                        .arg("shape", shape.id)
+                        .arg("text", shape.text().unwrap_or_default()),
+                ));
             }
             // Traced shapes get new ids each time their image is traced again
             // (docs/specs/image-trace.md §4, decision 6).
@@ -3306,9 +3400,12 @@ impl Job {
                     .find(|s| s.id == *id && s.image().is_some())
             });
             if let Some(shape) = traced {
-                problems.push(Problem::at(format!("operations.{i}.select"), format!("shape {} is traced from an image and changes each time the image is traced again: select the image instead ({{\"image\": {}}})", 
-                    shape.id,
-                    shape.image().unwrap_or_default())));
+                problems.push(Problem::at(
+                    format!("operations.{i}.select"),
+                    Message::new("job-select-traced")
+                        .arg("shape", shape.id)
+                        .arg("image", shape.image().unwrap_or_default()),
+                ));
             }
             // Open centre lines are paths to follow, not areas
             // (docs/specs/image-arcs-centrelines.md §5). A closed one, such as an outline
@@ -3330,15 +3427,18 @@ impl Job {
             if let Some(image) = centre_lines
                 && !matches!(op, Operation::Path(_))
             {
-                problems.push(Problem::at(format!("operations.{i}.select"), format!("image {} is traced as open centre lines: cut them with a follow path, or trace the image as outlines", 
-                    image.id)));
+                problems.push(Problem::at(
+                    format!("operations.{i}.select"),
+                    Message::new("job-select-centre-lines").arg("image", image.id),
+                ));
             }
             if let Entry::Helix { radius, .. } = op.entry()
                 && !(radius.is_finite() && radius > 0.0)
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.entry.radius"),
-                    format!("must be more than 0, got {radius} mm"),
+                    Message::new("job-must-be-more-than-0")
+                        .arg("got", Value::Length(radius, Digits::Shortest)),
                 ));
             }
             if let Some(ramp_angle) = op.entry().ramp_angle()
@@ -3351,9 +3451,9 @@ impl Job {
                 };
                 problems.push(Problem::at(
                     format!("operations.{i}.{field}"),
-                    format!(
-                        "must be more than 0 and at most 30 degrees, got {:.3} degrees",
-                        ramp_angle.to_degrees()
+                    Message::new("job-ramp-angle-range").arg(
+                        "got",
+                        Value::Number(ramp_angle.to_degrees(), Digits::Fixed(3)),
                     ),
                 ));
             }
@@ -3362,10 +3462,8 @@ impl Job {
                 if !(angle.is_finite() && angle > 0.0 && angle < std::f64::consts::PI) {
                     problems.push(Problem::at(
                         format!("operations.{i}.corners.max_angle"),
-                        format!(
-                            "must be more than 0 and less than 180 degrees, got {:.3} degrees",
-                            angle.to_degrees()
-                        ),
+                        Message::new("job-angle-below-180")
+                            .arg("got", Value::Number(angle.to_degrees(), Digits::Fixed(3))),
                     ));
                 }
                 if let Operation::Profile(p) = op
@@ -3373,7 +3471,7 @@ impl Job {
                 {
                     problems.push(Problem::at(
                         format!("operations.{i}.corners"),
-                        "a profile on the line has no inside corners to clear",
+                        Message::new("job-on-line-corners"),
                     ));
                 }
             }
@@ -3387,9 +3485,9 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.method.ramp_angle"),
-                    format!(
-                        "must be more than 0 and at most 30 degrees, got {:.3} degrees",
-                        ramp_angle.to_degrees()
+                    Message::new("job-ramp-angle-range").arg(
+                        "got",
+                        Value::Number(ramp_angle.to_degrees(), Digits::Fixed(3)),
                     ),
                 ));
             }
@@ -3398,7 +3496,8 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.lead.radius"),
-                    format!("must be more than 0, got {} mm", lead.radius),
+                    Message::new("job-must-be-more-than-0")
+                        .arg("got", Value::Length(lead.radius, Digits::Shortest)),
                 ));
             }
             if op
@@ -3408,7 +3507,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.starts"),
-                    "every start point needs finite x and y",
+                    Message::new("job-starts-not-finite"),
                 ));
             }
             if let Operation::Pocket(p) = op
@@ -3416,10 +3515,8 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.stepover"),
-                    format!(
-                        "must be at most 1 (a fraction of the tool diameter), got {}",
-                        p.stepover
-                    ),
+                    Message::new("job-stepover-at-most-1")
+                        .arg("got", Value::Number(p.stepover, Digits::Shortest)),
                 ));
             }
             if let Operation::Pocket(p) = op {
@@ -3427,10 +3524,8 @@ impl Job {
                     if pass.stepover > 1.0 {
                         problems.push(Problem::at(
                             format!("operations.{i}.rest_passes.{k}.stepover"),
-                            format!(
-                                "must be at most 1 (a fraction of the tool diameter), got {}",
-                                pass.stepover
-                            ),
+                            Message::new("job-stepover-at-most-1")
+                                .arg("got", Value::Number(pass.stepover, Digits::Shortest)),
                         ));
                     }
                 }
@@ -3442,7 +3537,7 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.tabs.count"),
-                    "must be at least 1",
+                    Message::new("job-must-be-at-least-1"),
                 ));
             }
             if let Operation::Profile(ProfileOp {
@@ -3454,9 +3549,9 @@ impl Job {
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.tabs.flank_angle"),
-                    format!(
-                        "must be more than 0 and at most 90 degrees, got {:.3} degrees",
-                        tabs.flank_angle.to_degrees()
+                    Message::new("job-flank-angle-range").arg(
+                        "got",
+                        Value::Number(tabs.flank_angle.to_degrees(), Digits::Fixed(3)),
                     ),
                 ));
             }
@@ -3475,7 +3570,7 @@ fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
     if p.finish.is_some() && p.side == Side::On {
         problems.push(Problem::at(
             format!("{at}.finish"),
-            "a profile on the line has no wall to finish; use inside or outside",
+            Message::new("job-on-line-finish"),
         ));
     }
     let Some(skin) = p.skin else {
@@ -3488,14 +3583,21 @@ fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
     if t > p.step_down + DEPTH_TOL_MM {
         problems.push(Problem::at(
             format!("{at}.skin.thickness"),
-            format!("must be at most the step down ({}), got {t}", p.step_down),
+            Message::new("job-skin-above-step-down")
+                .arg(
+                    "step_down",
+                    Value::LengthNumber(p.step_down, Digits::Shortest),
+                )
+                .arg("got", Value::LengthNumber(t, Digits::Shortest)),
         ));
     }
     let cut = p.end_depth - p.start_depth;
     if t >= cut {
         problems.push(Problem::at(
             format!("{at}.skin.thickness"),
-            format!("must be less than the cut ({cut}, end depth minus start depth), got {t}"),
+            Message::new("job-skin-above-cut")
+                .arg("cut", Value::LengthNumber(cut, Digits::Shortest))
+                .arg("got", Value::LengthNumber(t, Digits::Shortest)),
         ));
     }
     if let Some(tabs) = &p.tabs
@@ -3503,10 +3605,9 @@ fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
     {
         problems.push(Problem::at(
             format!("{at}.skin.thickness"),
-            format!(
-                "must be less than the tab height ({}), got {t}",
-                tabs.height
-            ),
+            Message::new("job-skin-above-tabs")
+                .arg("height", Value::LengthNumber(tabs.height, Digits::Shortest))
+                .arg("got", Value::LengthNumber(t, Digits::Shortest)),
         ));
     }
     problems

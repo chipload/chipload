@@ -28,3 +28,8 @@ editor-summary-all-of = { $source } (tout)
 editor-summary-left-out = { $source }, { $count } exclus
 editor-summary-not-in-drawing = formes absentes du dessin
 editor-summary-no-geometry = aucune géométrie
+
+# What an operation still lacks, under its field and in the list of problems. "Use
+# selection" is the button that gives the operation the selected shapes.
+editor-choose-side = choisissez le côté du contournage (intérieur, extérieur ou sur la ligne)
+editor-no-geometry = aucune géométrie : sélectionnez des contours, puis Prendre la sélection

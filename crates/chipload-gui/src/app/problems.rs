@@ -11,7 +11,8 @@ use chipload_job::Problem;
 use super::*;
 
 /// The problems of the form being drawn, by field (relative to the operation for an
-/// operation's form, the project path for the job form), in plain words. Kept in egui's
+/// operation's form, the project path for the job form), in plain words, in the app's
+/// language and display units. Kept in egui's
 /// temporary data while the form is drawn, so its rows needn't pass it along.
 #[derive(Clone, Default)]
 pub(super) struct FormProblems(Arc<BTreeMap<String, String>>);
@@ -50,7 +51,6 @@ pub(super) fn flag(response: egui::Response, ui: &egui::Ui, field: &str) -> egui
         egui::Stroke::new(1.5, color),
         egui::StrokeKind::Outside,
     );
-    let text = crate::units::message(ui.ctx(), &text);
     response.on_hover_text(RichText::new(text).color(color))
 }
 
@@ -143,28 +143,30 @@ fn capitalized(text: &str) -> String {
     }
 }
 
+/// The problem's message for its field in the language of `src`, its lengths and feeds
+/// in `units` (docs/specs/translations.md §7).
+fn short(src: &impl crate::i18n::Lang, units: Units, problem: &Problem) -> String {
+    problem.short_message.render(src.lang(), units.into())
+}
+
 /// The problem in plain words at its field: "Must be greater than 0, got 0".
-pub(super) fn at_field(problem: &Problem) -> String {
-    capitalized(&problem.short)
+pub(super) fn at_field(src: &impl crate::i18n::Lang, units: Units, problem: &Problem) -> String {
+    capitalized(&short(src, units, problem))
 }
 
 /// The problem in plain words on its own, with the field's name: "Feed: must be greater
 /// than 0, got 0". A message that already names the field isn't given it twice.
-pub(super) fn plain(src: &impl crate::i18n::Lang, problem: &Problem) -> String {
+pub(super) fn plain(src: &impl crate::i18n::Lang, units: Units, problem: &Problem) -> String {
     let label = field_label(src, problem.field());
-    if label.is_empty()
-        || problem
-            .short
-            .to_lowercase()
-            .starts_with(&label.to_lowercase())
-    {
-        capitalized(&problem.short)
+    let short = short(src, units, problem);
+    if label.is_empty() || short.to_lowercase().starts_with(&label.to_lowercase()) {
+        capitalized(&short)
     } else {
         t!(
             src,
             "problems-with-field",
             field = label,
-            problem = problem.short.as_str()
+            problem = short.as_str()
         )
     }
 }
@@ -250,7 +252,7 @@ impl ChiploadApp {
         let mut map = BTreeMap::new();
         for problem in pick {
             map.entry(problem.field().to_string())
-                .or_insert_with(|| at_field(problem));
+                .or_insert_with(|| at_field(self, self.units, problem));
         }
         // A rest pass's form names its fields without the pass's place in its pocket.
         if let Focus::RestPass(_, k) = focus {
@@ -282,6 +284,7 @@ impl ChiploadApp {
             .as_ref()
             .map(|e| e.settings.tools.iter().map(|t| t.id).collect())
             .unwrap_or_default();
+        let units = self.units;
         let mut go = None;
         egui::Frame::new()
             .stroke(egui::Stroke::new(1.0, color))
@@ -305,9 +308,8 @@ impl ChiploadApp {
                         ui,
                         "problems-line",
                         place = place,
-                        problem = plain(ui, problem)
+                        problem = plain(ui, units, problem)
                     );
-                    let line = crate::units::message(ui.ctx(), &line);
                     if ui
                         .add(egui::Label::new(line).sense(egui::Sense::click()))
                         .on_hover_text(t!(ui, "problems-show-it-hover"))

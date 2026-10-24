@@ -172,6 +172,14 @@ part) may be translated later, once the app's features settle.
 Status: **approved 2026-10-24** with the recommended decisions ("this change will make the
 mm to inch conversion cleaner as well"). Built commit by commit in the order of §7.3.
 
+**As built:** 7.3.1 and 7.3.2 (2026-10-24). Every problem is a message (`job.ftl` 77
+texts, `toolpath.ftl` 33, `pipeline.ftl` 1, two in `gui-editor.ftl`); `Problem` keeps its
+English strings and gains `short_message` and `text_message`, which the app renders in
+its language and display units. Numbers written with Rust's `{}` keep that form in mm
+(`Digits::Shortest`). A few problems give two numbers without a unit, "(x, y)" and the
+skin's "at most … got …": their numbers follow the display units, still without one.
+An area (a picture's smallest speck, in mm²) isn't converted to square inches.
+
 ### 7.1 What there is
 
 The library crates write about 450 messages as finished English sentences (`format!`),

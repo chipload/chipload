@@ -376,11 +376,9 @@ fn units_problem(job: &Job) -> Option<chipload_job::Problem> {
     (!post.units.contains(&units)).then(|| {
         chipload_job::Problem::at(
             "machine.gcode_units",
-            format!(
-                "post {} writes only mm G-code (its config doesn't list \"{}\" under units)",
-                post.name,
-                units.name()
-            ),
+            chipload_i18n::Message::new("pipeline-post-units")
+                .arg("post", post.name.as_str())
+                .arg("units", units.name()),
         )
     })
 }

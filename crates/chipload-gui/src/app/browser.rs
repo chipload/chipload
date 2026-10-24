@@ -848,7 +848,7 @@ impl ChiploadApp {
             .problems
             .iter()
             .find(|p| p.operation() == Some(i))
-            .map(|p| problems::plain(ui, p));
+            .map(|p| problems::plain(ui, self.units, p));
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
@@ -866,10 +866,7 @@ impl ChiploadApp {
         } else {
             format!("T{}", op.tool())
         };
-        let hover = crate::units::message(
-            ui.ctx(),
-            &self.operation_hover(i, problem.as_deref(), hidden),
-        );
+        let hover = self.operation_hover(i, problem.as_deref(), hidden);
         // A rest pocket that copies an earlier pocket can become its rest pass (§5).
         let parent = match op {
             Operation::Pocket(p) if p.rest.is_some() => self.rest_pocket_parent(i),
@@ -1057,7 +1054,7 @@ impl ChiploadApp {
     }
 
     /// An operation row's hover text: its kind, tool, geometry, depths and time, then its
-    /// first problem and the hidden contours it cuts.
+    /// first problem (already in the display units) and the hidden contours it cuts.
     fn operation_hover(&self, i: usize, problem: Option<&str>, hidden: usize) -> String {
         let Some(entry) = self.edit.as_ref().and_then(|e| e.ops.get(i)) else {
             return String::new();
@@ -1097,10 +1094,11 @@ impl ChiploadApp {
             .map_or(String::new(), |(_, s)| {
                 format!(" · {}", chipload_pipeline::estimate::duration_text(*s))
             });
-        let mut lines = vec![format!(
+        let first = format!(
             "{kind} · T{}{rest} · {summary} · {start}–{end} mm{time}",
             op.tool()
-        )];
+        );
+        let mut lines = vec![chipload_pipeline::units::text_in(&first, self.units)];
         if !op.enabled() {
             lines.push(t!(self, "browser-op-not-cut"));
         }

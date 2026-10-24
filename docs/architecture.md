@@ -28,6 +28,8 @@ flowchart TB
     i18n["chipload-i18n<br/>texts in six languages"]
     gui --> i18n
     job --> i18n
+    toolpath --> i18n
+    pipeline --> i18n
 
     check["chipload-check<br/>independent G-code checker"] --> job
     pipeline -.-> check
@@ -82,7 +84,7 @@ error.
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job; dxf |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core; ttf-parser |
-| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job; cavalier_contours, boostvoronoi |
+| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, check; minijinja |
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices. | every library crate |

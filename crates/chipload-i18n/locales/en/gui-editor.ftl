@@ -28,3 +28,8 @@ editor-summary-all-of = all of { $source }
 editor-summary-left-out = { $source } but { $count } left out
 editor-summary-not-in-drawing = shapes not in the drawing
 editor-summary-no-geometry = no geometry
+
+# What an operation still lacks, under its field and in the list of problems. "Use
+# selection" is the button that gives the operation the selected shapes.
+editor-choose-side = choose the profile side (inside, outside or on)
+editor-no-geometry = no geometry: select contours, then Use selection

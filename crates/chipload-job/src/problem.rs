@@ -3,8 +3,12 @@
 
 use std::fmt;
 
+use chipload_i18n::Message;
+
 /// One problem: the field it is about, the message for that field, and the full message
-/// as the CLI prints it.
+/// as the CLI prints it. Each is kept as a `Message` too, which the app shows in its
+/// language and units (docs/specs/translations.md §7); the strings are those messages in
+/// English and mm, for the command line and `--json`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Problem {
     /// The field, as a path into the project file (`operations.1.feed`, `machine.safe_z`,
@@ -14,28 +18,35 @@ pub struct Problem {
     pub short: String,
     /// The full message: "operations.1.feed: must be greater than 0, got 0".
     pub text: String,
+    /// `short` as a message.
+    pub short_message: Message,
+    /// `text` as a message.
+    pub text_message: Message,
 }
 
 impl Problem {
-    pub fn new(path: impl Into<String>, short: impl Into<String>, text: impl Into<String>) -> Self {
+    pub fn new(path: impl Into<String>, short: Message, text: Message) -> Self {
         Problem {
             path: path.into(),
-            short: short.into(),
-            text: text.into(),
+            short: short.english(),
+            text: text.english(),
+            short_message: short,
+            text_message: text,
         }
     }
 
     /// A problem whose full text is also its message for the field (nothing to shorten).
-    pub fn whole(path: impl Into<String>, text: impl Into<String>) -> Self {
-        let text = text.into();
-        Problem::new(path, text.clone(), text)
+    pub fn whole(path: impl Into<String>, message: Message) -> Self {
+        Problem::new(path, message.clone(), message)
     }
 
     /// A problem at `path` worded `short`, whose full text is "path: short".
-    pub fn at(path: impl Into<String>, short: impl Into<String>) -> Self {
-        let (path, short) = (path.into(), short.into());
-        let text = format!("{path}: {short}");
-        Problem { path, short, text }
+    pub fn at(path: impl Into<String>, short: Message) -> Self {
+        let path = path.into();
+        let text = Message::new("job-problem-at")
+            .arg("path", path.as_str())
+            .arg("problem", short.clone());
+        Problem::new(path, short, text)
     }
 
     /// The operation (index in `operations`) the problem is about, if any.
@@ -70,7 +81,8 @@ mod tests {
 
     #[test]
     fn paths_split_into_operation_and_field() {
-        let p = Problem::at("operations.12.tabs.width", "must be greater than 0, got 0");
+        let short = Message::new("job-must-be-positive").arg("got", "0");
+        let p = Problem::at("operations.12.tabs.width", short);
         assert_eq!(p.path, "operations.12.tabs.width");
         assert_eq!(p.short, "must be greater than 0, got 0");
         assert_eq!(
@@ -79,15 +91,21 @@ mod tests {
         );
         assert_eq!(p.operation(), Some(12));
         assert_eq!(p.field(), "tabs.width");
-        let whole = Problem::new("operations.3", "no geometry", "Operation 4: no geometry");
-        assert_eq!((whole.operation(), whole.field()), (Some(3), ""));
-        let job = Problem::at("machine.safe_z", "must be above 0");
+        let job = Problem::at(
+            "machine.safe_z",
+            Message::new("job-must-be-positive").arg("got", "0"),
+        );
         assert_eq!((job.operation(), job.field()), (None, "machine.safe_z"));
-        let loose = Problem::whole("", "Job has no operations");
+        let whole = Problem::at(
+            "operations.3",
+            Message::new("job-must-be-positive").arg("got", "0"),
+        );
+        assert_eq!((whole.operation(), whole.field()), (Some(3), ""));
+        let loose = Problem::whole("", Message::new("job-must-be-positive").arg("got", "0"));
         assert_eq!(
             (loose.path.as_str(), loose.short.as_str()),
-            ("", "Job has no operations")
+            ("", "must be greater than 0, got 0")
         );
-        assert_eq!(loose.to_string(), "Job has no operations");
+        assert_eq!(loose.to_string(), "must be greater than 0, got 0");
     }
 }

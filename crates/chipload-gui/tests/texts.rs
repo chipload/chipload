@@ -57,6 +57,15 @@ fn named_ids(code: &str) -> Vec<String> {
         .collect()
 }
 
+/// The id of each `Message::new("…")`: the GUI's own problems, worded like the library's.
+fn message_ids(code: &str) -> Vec<String> {
+    code.split("Message::new(\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .map(str::to_string)
+        .collect()
+}
+
 /// The English texts of the app: `common.ftl` and the `gui-*.ftl` files.
 fn english() -> BTreeSet<String> {
     SOURCES
@@ -73,6 +82,28 @@ fn every_text_the_code_names_exists() {
     for (path, code) in code() {
         for id in named_ids(&code) {
             if !english.contains(&id) {
+                missing.push(format!("{}: {id}", path.display()));
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "no English text:\n{}",
+        missing.join("\n")
+    );
+}
+
+#[test]
+fn every_message_the_app_makes_exists() {
+    // Messages may use the library crates' texts too ("Operation 3: …").
+    let all: BTreeSet<String> = SOURCES
+        .iter()
+        .flat_map(|(_, sources)| texts(sources[0]).texts.into_keys())
+        .collect();
+    let mut missing = Vec::new();
+    for (path, code) in code() {
+        for id in message_ids(&code) {
+            if !all.contains(&id) {
                 missing.push(format!("{}: {id}", path.display()));
             }
         }

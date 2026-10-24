@@ -6,6 +6,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef, Operation,
     Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs, Tool, ToolType,
@@ -1579,9 +1580,16 @@ pub fn job_problems(job: &Job) -> Vec<Problem> {
 
 /// A problem of an operation: the field shows `short`, the full text starts with the
 /// operation's `label` and ": ".
-fn labelled(path: String, label: &str, short: String) -> Problem {
-    let text = format!("{label}: {short}");
+fn labelled(path: String, label: &Message, short: Message) -> Problem {
+    let text = Message::new("job-operation-problem")
+        .arg("label", label.clone())
+        .arg("problem", short.clone());
     Problem::new(path, short, text)
+}
+
+/// A length as Rust writes it with `{}`, with its unit.
+fn length(mm: f64) -> Value {
+    Value::Length(mm, Digits::Shortest)
 }
 
 /// The problems, in the order the checks were always made (so the first is the error
@@ -1589,13 +1597,16 @@ fn labelled(path: String, label: &str, short: String) -> Problem {
 fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     let mut problems = Vec::new();
     if job.operations.is_empty() {
-        problems.push(Problem::whole("operations", "Job has no operations"));
+        problems.push(Problem::whole(
+            "operations",
+            Message::new("toolpath-no-operations"),
+        ));
         return (problems, Vec::new());
     }
     if !(0..job.operations.len()).any(|i| job.cuts(i)) {
         problems.push(Problem::whole(
             "operations",
-            "Every operation is disabled: nothing to cut",
+            Message::new("toolpath-all-disabled"),
         ));
         return (problems, Vec::new());
     }
@@ -1612,18 +1623,17 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             None => {
                 problems.push(Problem::whole(
                     format!("operations.{index}.tool"),
-                    format!("Tool {} is not defined in the job", op.tool()),
+                    Message::new("toolpath-tool-undefined").arg("tool", op.tool()),
                 ));
             }
             Some(k) => {
                 let tool = &job.tools[k];
                 if tool.rpm.is_none_or(|rpm| rpm <= 0.0) && !no_rpm.contains(&tool.id) {
                     no_rpm.push(tool.id);
-                    let text = format!("Tool {} has no spindle speed (rpm)", tool.id);
                     problems.push(Problem::new(
                         format!("tools.{k}.rpm"),
-                        "no spindle speed",
-                        text,
+                        Message::new("toolpath-no-rpm-short"),
+                        Message::new("toolpath-no-rpm").arg("tool", tool.id),
                     ));
                 }
             }
@@ -1637,11 +1647,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     if job.machine.safe_z <= top {
         problems.push(Problem::new(
             "machine.safe_z",
-            format!("must be above the stock top (Z {top} mm)"),
-            format!(
-                "safe_z {} mm must be above the stock top (Z {top} mm); z_zero is '{z_zero}'",
-                job.machine.safe_z
-            ),
+            Message::new("toolpath-safe-z-short").arg("top", length(top)),
+            Message::new("toolpath-safe-z")
+                .arg("safe", length(job.machine.safe_z))
+                .arg("top", length(top))
+                .arg("zero", z_zero),
         ));
     }
     let mut notes = tool_group_notes(job);
@@ -1655,7 +1665,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         let tool = &job.tools[k];
         let number = index + 1;
         let label = op.label(index);
-        let numbered = format!("Operation {number}");
+        let label_message = op.label_message(index);
+        let numbered = Message::new("job-operation-label").arg("number", number);
         let at = |field: &str| format!("operations.{index}.{field}");
         let (feed, plunge_feed) = match op {
             Operation::Profile(p) => (p.feed, p.plunge_feed),
@@ -1673,13 +1684,12 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         if below > job.stock.max_overcut + DEPTH_TOL_MM {
             problems.push(labelled(
                 at("end_depth"),
-                &label,
-                format!(
-                    "end depth {end_depth} mm is {below:.3} mm below the stock \
-                     ({thickness} mm thick), more than the allowed {} mm (max depth below \
-                     stock)",
-                    job.stock.max_overcut
-                ),
+                &label_message,
+                Message::new("toolpath-too-deep")
+                    .arg("end", length(end_depth))
+                    .arg("below", Value::Length(below, Digits::Fixed(3)))
+                    .arg("thickness", length(thickness))
+                    .arg("allowed", length(job.stock.max_overcut)),
             ));
         } else if below > DEPTH_TOL_MM {
             notes.push(Note::at(
@@ -1690,12 +1700,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         if op.clearance() >= tool.diameter / 2.0 {
             problems.push(labelled(
                 at("clearance"),
-                &label,
-                format!(
-                    "clearance {} mm must be less than the tool radius {} mm",
-                    op.clearance(),
-                    tool.diameter / 2.0
-                ),
+                &label_message,
+                Message::new("toolpath-clearance-radius")
+                    .arg("clearance", length(op.clearance()))
+                    .arg("radius", length(tool.diameter / 2.0)),
             ));
         }
         if let Operation::Profile(ProfileOp {
@@ -1706,12 +1714,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         {
             problems.push(labelled(
                 at("finish.stock"),
-                &label,
-                format!(
-                    "finishing stock {} mm must be less than the tool radius {} mm",
-                    finish.stock,
-                    tool.diameter / 2.0
-                ),
+                &label_message,
+                Message::new("toolpath-finish-radius")
+                    .arg("stock", length(finish.stock))
+                    .arg("radius", length(tool.diameter / 2.0)),
             ));
         }
         if let Operation::Profile(ProfileOp {
@@ -1725,12 +1731,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             let cut = end_depth - start_depth;
             problems.push(labelled(
                 at("tabs.height"),
-                &label,
-                format!(
-                    "tab height {} mm must be less than the cut depth {cut} mm (end depth minus \
-                     start depth)",
-                    tabs.height
-                ),
+                &label_message,
+                Message::new("toolpath-tab-height")
+                    .arg("height", length(tabs.height))
+                    .arg("cut", length(cut)),
             ));
         }
         if let Operation::Pocket(PocketOp {
@@ -1739,7 +1743,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         {
             match rest_check(job, index, rest.after_tool, tool, &label) {
                 Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
-                Err(text) => problems.push(labelled(at("rest"), &label, text)),
+                Err(short) => problems.push(labelled(at("rest"), &label_message, short)),
             }
         }
         if let Operation::Pocket(pocket) = op {
@@ -1753,10 +1757,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     problems.push(labelled(
                         at(name),
                         &numbered,
-                        format!(
-                            "{name} {value} mm/min exceeds machine max_feed \
-                             {max_feed} mm/min"
-                        ),
+                        Message::new("toolpath-max-feed")
+                            .arg("field", name)
+                            .arg("feed", Value::Feed(value, Digits::Shortest))
+                            .arg("max", Value::Feed(max_feed, Digits::Shortest)),
                     ));
                 }
             }
@@ -1765,19 +1769,16 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             if let Operation::Path(_) = op {
                 problems.push(labelled(
                     at("entry"),
-                    &label,
-                    "helix entry is for pockets; a follow path can ramp in (entry: ramp)"
-                        .to_string(),
+                    &label_message,
+                    Message::new("toolpath-helix-for-path"),
                 ));
             } else if radius >= tool.diameter / 2.0 {
                 problems.push(labelled(
                     at("entry"),
-                    &label,
-                    format!(
-                        "helix radius {radius} mm must be less than the tool radius {} mm, \
-                         or it leaves a core standing in the middle",
-                        tool.diameter / 2.0
-                    ),
+                    &label_message,
+                    Message::new("toolpath-helix-radius")
+                        .arg("radius", length(radius))
+                        .arg("tool_radius", length(tool.diameter / 2.0)),
                 ));
             }
         }
@@ -1786,12 +1787,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             if lead.radius > longest {
                 problems.push(labelled(
                     at("lead"),
-                    &label,
-                    format!(
-                        "lead radius {} mm is more than {MAX_LEAD_DIAMETERS} × the tool \
-                         diameter ({longest:.3} mm)",
-                        lead.radius
-                    ),
+                    &label_message,
+                    Message::new("toolpath-lead-radius")
+                        .arg("radius", length(lead.radius))
+                        .arg("most", Value::Number(MAX_LEAD_DIAMETERS, Digits::Shortest))
+                        .arg("longest", Value::Length(longest, Digits::Fixed(3))),
                 ));
             }
         }
@@ -1840,7 +1840,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     } else {
                         at("tool")
                     };
-                    (Err((path, label.clone(), e)), Vec::new())
+                    (Err((path, label_message.clone(), e)), Vec::new())
                 }
             },
         };
@@ -1883,7 +1883,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
 
 /// A tool rule's outcome: whether the operation plunges with a tool of unknown
 /// centre-cutting, or the problem's (path, label, short text).
-type ToolRule = Result<bool, (String, String, String)>;
+type ToolRule = Result<bool, (String, Message, Message)>;
 
 /// The kind of an operation in a note: "pocket", "profile", "follow path".
 fn op_kind_name(op: &Operation) -> &'static str {
@@ -1899,14 +1899,12 @@ fn op_kind_name(op: &Operation) -> &'static str {
 
 /// A surface needs an endmill (docs/specs/surfacing.md §4). It never plunges into
 /// material.
-fn surface_tool_rule(tool: &Tool) -> Result<bool, String> {
+fn surface_tool_rule(tool: &Tool) -> Result<bool, Message> {
     match tool.kind {
         ToolType::Endmill => Ok(false),
-        other => Err(format!(
-            "tool {} is a {}; a surface needs an endmill",
-            tool.id,
-            other.name()
-        )),
+        other => Err(Message::new("toolpath-surface-endmill")
+            .arg("tool", tool.id)
+            .arg("type", other.name_message())),
     }
 }
 
@@ -1937,40 +1935,31 @@ fn rest_check(
     after_tool: i64,
     tool: &Tool,
     label: &str,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, Message> {
     // The warnings carry the label; a problem's text gets it from `labelled`.
     let Some(Operation::Pocket(pocket)) = job.operations.get(index) else {
         return Ok(Vec::new());
     };
     let Some(large) = job.tool(after_tool) else {
-        return Err(format!(
-            "rest after tool {after_tool}, which the project doesn't have"
-        ));
+        return Err(Message::new("toolpath-rest-no-tool").arg("tool", after_tool));
     };
     match rest_refusal(tool, large) {
         Some(RestRefusal::LargeNotEndmill) => {
-            return Err(format!(
-                "rest after tool {after_tool}, a {}; a pocket's tool is an endmill",
-                large.kind.name()
-            ));
+            return Err(Message::new("toolpath-rest-not-endmill")
+                .arg("tool", after_tool)
+                .arg("type", large.kind.name_message()));
         }
         Some(RestRefusal::NotLarger) => {
-            return Err(format!(
-                "rest after tool {after_tool} ({} mm) needs a tool larger than this \
-                 pocket's ({} mm)",
-                mm(large.diameter),
-                mm(tool.diameter)
-            ));
+            return Err(Message::new("toolpath-rest-not-larger")
+                .arg("tool", after_tool)
+                .arg("large", Value::mm(large.diameter))
+                .arg("small", Value::mm(tool.diameter)));
         }
         // The pocket's own tool is checked with the pocket's tool rules.
         Some(RestRefusal::SmallNotEndmill) | None => {}
     }
     if pocket.corners.is_some() {
-        return Err(
-            "dogbones and rest machining can't be combined yet; dogbone the large tool's \
-             pocket"
-                .to_string(),
-        );
+        return Err(Message::new("toolpath-rest-dogbones"));
     }
     let earlier = job.operations[..index].iter().any(|op| {
         matches!(op, Operation::Pocket(p)
@@ -2000,18 +1989,19 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
     if pocket.corners.is_some() {
         problems.push(labelled(
             format!("operations.{index}.rest_passes"),
-            &job.label(OpRef::op(index)),
-            "dogbones and rest passes can't be combined yet; dogbone corners need no rest".into(),
+            &job.label_message(OpRef::op(index)),
+            Message::new("toolpath-rest-passes-dogbones"),
         ));
     }
     for (k, pass) in pocket.rest_passes.iter().enumerate() {
         let label = job.label(OpRef::pass(index, k));
+        let label_message = job.label_message(OpRef::pass(index, k));
         let at = |field: &str| format!("operations.{index}.rest_passes.{k}.{field}");
         let Some(tool) = job.tool(pass.tool) else {
             problems.push(labelled(
                 at("tool"),
-                &label,
-                format!("tool {} is not defined in the job", pass.tool),
+                &label_message,
+                Message::new("toolpath-rest-pass-no-tool").arg("tool", pass.tool),
             ));
             continue;
         };
@@ -2023,23 +2013,19 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
             match rest_refusal(tool, before) {
                 Some(RestRefusal::SmallNotEndmill) => problems.push(labelled(
                     at("tool"),
-                    &label,
-                    format!(
-                        "tool {} is a {}; a rest pass cuts with an endmill",
-                        tool.id,
-                        tool.kind.name()
-                    ),
+                    &label_message,
+                    Message::new("toolpath-rest-pass-endmill")
+                        .arg("tool", tool.id)
+                        .arg("type", tool.kind.name_message()),
                 )),
                 Some(RestRefusal::NotLarger) => problems.push(labelled(
                     at("tool"),
-                    &label,
-                    format!(
-                        "tool {} ({} mm) must be smaller than tool {} ({} mm) before it",
-                        tool.id,
-                        mm(tool.diameter),
-                        before.id,
-                        mm(before.diameter)
-                    ),
+                    &label_message,
+                    Message::new("toolpath-rest-pass-larger")
+                        .arg("tool", tool.id)
+                        .arg("diameter", Value::mm(tool.diameter))
+                        .arg("before", before.id)
+                        .arg("before_diameter", Value::mm(before.diameter)),
                 )),
                 // The tool before it is the pocket's (checked with the pocket) or a pass's
                 // (checked above).
@@ -2049,8 +2035,8 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
         if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
             problems.push(labelled(
                 at("tool"),
-                &label,
-                format!("tool {} has no spindle speed (rpm)", tool.id),
+                &label_message,
+                Message::new("toolpath-rest-pass-no-rpm").arg("tool", tool.id),
             ));
         }
         if let Ok(true) = pocket_tool_notes(tool, pass.entry) {
@@ -2134,19 +2120,14 @@ fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<Note> {
 /// V-carving needs a V-bit with a known angle; a tip that isn't set is taken as pointed and
 /// said so (docs/specs/v-carve.md §2, decision 11). The notes carry the label; a problem's
 /// text gets it from `labelled`, as for the other tool rules below.
-fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, String> {
+fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, Message> {
     if tool.kind != ToolType::Vbit {
-        return Err(format!(
-            "V-carving needs a V-bit, tool {} is a {}",
-            tool.id,
-            tool.kind.name()
-        ));
+        return Err(Message::new("toolpath-vcarve-vbit")
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.name_message()));
     }
     if tool.angle.is_none() {
-        return Err(format!(
-            "tool {} is a V-bit with no angle; set its angle",
-            tool.id
-        ));
+        return Err(Message::new("toolpath-vbit-no-angle").arg("tool", tool.id));
     }
     if tool.tip_diameter.is_none() {
         return Ok(vec![format!(
@@ -2159,25 +2140,20 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, String> {
 
 /// Pockets need an endmill; a straight plunge also needs it to be centre-cutting. Ok(true):
 /// it plunges with a tool of unknown centre-cutting.
-fn pocket_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, String> {
+fn pocket_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, Message> {
     if tool.kind != ToolType::Endmill {
-        return Err(format!(
-            "pockets need an endmill, tool {} is a {}",
-            tool.id,
-            tool.kind.name()
-        ));
+        return Err(Message::new("toolpath-pocket-endmill")
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.name_message()));
     }
     plunge_unknown(tool, entry)
 }
 
 /// A follow path takes an endmill (which must be centre-cutting to plunge) or a V-bit
 /// (centre-cutting by its shape); a drill can't follow a path (docs/specs/follow-path.md §5).
-fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, String> {
+fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, Message> {
     match tool.kind {
-        ToolType::Drill => Err(format!(
-            "tool {} is a drill, which can't follow a path; use an endmill or a V-bit",
-            tool.id
-        )),
+        ToolType::Drill => Err(Message::new("toolpath-path-drill").arg("tool", tool.id)),
         ToolType::Vbit => Ok(false),
         ToolType::Endmill => plunge_unknown(tool, entry),
     }
@@ -2185,24 +2161,20 @@ fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, String> {
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match
 /// the tool; a V-bit can't cut holes.
-fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), String> {
+fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), Message> {
     if tool.kind == ToolType::Vbit {
-        return Err(format!(
-            "tool {} is a V-bit, which can't cut holes; use a drill or an endmill",
-            tool.id
-        ));
+        return Err(Message::new("toolpath-holes-vbit").arg("tool", tool.id));
     }
     let wanted = method.tool_type();
     if tool.kind != wanted {
-        let (method_name, fits) = match method {
-            HoleMethod::Drill { .. } => ("drill", "a drill"),
-            HoleMethod::Bore { .. } => ("bore", "an endmill"),
+        let method_name = match method {
+            HoleMethod::Drill { .. } => "drill",
+            HoleMethod::Bore { .. } => "bore",
         };
-        let is = tool.kind.with_article();
-        return Err(format!(
-            "the method is {method_name}, which needs {fits}; tool {} is {is}",
-            tool.id
-        ));
+        return Err(Message::new("toolpath-holes-method")
+            .arg("method", method_name)
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.with_article_message()));
     }
     Ok(())
 }
@@ -2210,7 +2182,7 @@ fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), String> {
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): flanks steeper
 /// than the ramp angle are refused for a tool marked not centre-cutting, and a note when
 /// it's unknown.
-fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, String> {
+fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, Message> {
     let Some(tabs) = &op.tabs else {
         return Ok(Vec::new());
     };
@@ -2220,12 +2192,10 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>
     }
     let (flank, ramp) = (tabs.flank_angle.to_degrees(), ramp_angle.to_degrees());
     match tool.center_cutting {
-        Some(false) => Err(format!(
-            "tool {} is not centre-cutting and the tabs' flanks ({flank:.1}°) are steeper \
-             than the ramp angle ({ramp:.1}°); going down a flank is a ramp, so make them \
-             no steeper than {ramp:.1}°",
-            tool.id
-        )),
+        Some(false) => Err(Message::new("toolpath-flank-not-centre-cutting")
+            .arg("tool", tool.id)
+            .arg("flank", Value::Number(flank, Digits::Fixed(1)))
+            .arg("ramp", Value::Number(ramp, Digits::Fixed(1)))),
         None => Ok(vec![format!(
             "Operation {number}: the tabs' flanks ({flank:.1}°) are steeper than the ramp \
              angle ({ramp:.1}°); tool {} isn't marked center_cutting, make sure it is a \
@@ -2239,16 +2209,12 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>
 /// A straight plunge needs a centre-cutting tool (docs/specs/ramp-entry.md §6): refused
 /// for a tool marked not centre-cutting; Ok(true) when it's unknown (one note per tool).
 /// A ramp needs neither.
-fn plunge_unknown(tool: &Tool, entry: Entry) -> Result<bool, String> {
+fn plunge_unknown(tool: &Tool, entry: Entry) -> Result<bool, Message> {
     if entry.ramp_angle().is_some() {
         return Ok(false);
     }
     match tool.center_cutting {
-        Some(false) => Err(format!(
-            "tool {} is not centre-cutting and this operation plunges straight down; ramp in \
-             instead (entry: ramp) or use a centre-cutting tool",
-            tool.id
-        )),
+        Some(false) => Err(Message::new("toolpath-plunge-not-centre-cutting").arg("tool", tool.id)),
         None => Ok(true),
         Some(true) => Ok(false),
     }

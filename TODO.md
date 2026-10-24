@@ -25,7 +25,8 @@ it's built (see `CLAUDE.md`).
     import report, `operation_label`, error texts, `Link::text`), and the GUI's own
     problems in `EditJob::missing()`, which are worded like them. Typed length arguments
     replace `text_in`. Planned in the spec, §7 (decisions 11–17, order of six commits),
-    2026-10-24: waiting for the user's review.
+    approved 2026-10-24. Done: 7.3.1 (the `Message` type, the frozen English snapshot)
+    and 7.3.2 (problems). Next: 7.3.3 planning notes and the report.
   - **Step 3:** the setup sheet in the app's language.
   - Not translated on purpose so far: a new text's starting word "Text", the setup sheet's
     "Untitled project", startup errors before the window opens.

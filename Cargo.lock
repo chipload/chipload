@@ -898,6 +898,7 @@ dependencies = [
  "boostvoronoi",
  "cavalier_contours",
  "chipload-core",
+ "chipload-i18n",
  "chipload-job",
  "getrandom 0.3.4",
  "proptest",

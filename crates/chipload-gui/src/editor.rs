@@ -6,6 +6,7 @@
 use std::collections::BTreeSet;
 
 use chipload_core::chain::{Contour, ShapeFrom};
+use chipload_i18n::Message;
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
@@ -673,20 +674,20 @@ impl EditJob {
     pub fn missing(&self) -> Vec<Problem> {
         let mut out = Vec::new();
         for (i, edit) in self.ops.iter().enumerate() {
-            let mut lack = |field: &str, what: &str| {
-                out.push(Problem::new(
-                    format!("operations.{i}.{field}"),
-                    what,
-                    format!("Operation {}: {what}", i + 1),
-                ));
+            let mut lack = |field: &str, what: Message| {
+                let label = Message::new("job-operation-label").arg("number", i + 1);
+                let text = Message::new("job-operation-problem")
+                    .arg("label", label)
+                    .arg("problem", what.clone());
+                out.push(Problem::new(format!("operations.{i}.{field}"), what, text));
             };
             if !edit.side_chosen {
-                lack("side", "choose the profile side (inside, outside or on)");
+                lack("side", Message::new("editor-choose-side"));
             }
             // A whole DXF or picture is geometry too (user report 2026-10-14: a V-carve of
             // a traced picture was refused as "no geometry").
             if edit.op.selects_shapes() && edit.op.select().is_empty() {
-                lack("select", "no geometry: select contours, then Use selection");
+                lack("select", Message::new("editor-no-geometry"));
             }
         }
         out

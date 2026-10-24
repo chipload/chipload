@@ -62,7 +62,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
             "{file} {trace:?}: {:?}",
             app.problems
                 .iter()
-                .map(|p| problems::plain(&app, p))
+                .map(|p| problems::plain(&app, app.units, p))
                 .collect::<Vec<_>>()
         );
         assert!(

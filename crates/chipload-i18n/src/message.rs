@@ -26,12 +26,14 @@ impl Units {
 }
 
 /// How a number is written in mm: at most so many decimals and no trailing zeros
-/// (`12.5`), or exactly so many (`0.300`). In inches lengths keep 4 decimals, feeds 2, as
-/// the app shows them (docs/specs/inch-units.md §5.1).
+/// (`12.5`), exactly so many (`0.300`), or as Rust writes it with `{}` (`0.1`, `1e-7`
+/// written out, `NaN`), the shortest text that reads back as the same number. In inches
+/// lengths keep 4 decimals, feeds 2, as the app shows them (docs/specs/inch-units.md §5.1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Digits {
     Trim(usize),
     Fixed(usize),
+    Shortest,
 }
 
 impl Digits {
@@ -39,6 +41,7 @@ impl Digits {
         match self {
             Digits::Trim(decimals) => trimmed(value, decimals),
             Digits::Fixed(decimals) => fixed(value, decimals),
+            Digits::Shortest => format!("{value}"),
         }
     }
 }

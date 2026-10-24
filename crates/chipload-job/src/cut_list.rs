@@ -5,7 +5,9 @@
 
 use std::fmt;
 
-use crate::models::{Job, Operation, PocketOp, Rest, operation_label};
+use chipload_i18n::Message;
+
+use crate::models::{Job, Operation, PocketOp, Rest, operation_label, operation_label_message};
 
 /// An operation, or one of its pocket's rest passes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -139,6 +141,18 @@ impl Job {
                 "" => format!("Operation {r} (rest)"),
                 name => format!("Operation {r} ({name}, rest)"),
             },
+        }
+    }
+
+    /// [`Job::label`] as a message, for problems shown in the reader's language.
+    pub fn label_message(&self, r: OpRef) -> Message {
+        let name = self.operations.get(r.operation).map_or("", |op| op.name());
+        match (r.pass, name) {
+            (None, name) => operation_label_message(r.operation, name),
+            (Some(_), "") => Message::new("job-operation-label-rest").arg("number", r.to_string()),
+            (Some(_), name) => Message::new("job-operation-label-named-rest")
+                .arg("number", r.to_string())
+                .arg("name", name),
         }
     }
 }

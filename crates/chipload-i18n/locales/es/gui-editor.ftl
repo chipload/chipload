@@ -28,3 +28,8 @@ editor-summary-all-of = todo { $source }
 editor-summary-left-out = { $source } salvo { $count } excluidos
 editor-summary-not-in-drawing = formas que no están en el dibujo
 editor-summary-no-geometry = sin geometría
+
+# What an operation still lacks, under its field and in the list of problems. "Use
+# selection" is the button that gives the operation the selected shapes.
+editor-choose-side = elige el lado del contorneado (interior, exterior o sobre la línea)
+editor-no-geometry = sin geometría: selecciona contornos y luego Usar selección
