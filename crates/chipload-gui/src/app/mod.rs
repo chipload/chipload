@@ -1334,13 +1334,16 @@ impl ChiploadApp {
         };
         let sheet = match (&self.result_job, self.setup_sheet) {
             (Some(job), true) => {
+                // In the app's language and display units (docs/specs/translations.md
+                // step 3).
                 let info = SheetInfo {
                     project: self
                         .job_path
                         .as_deref()
-                        .map_or_else(|| "Untitled project".into(), file_name),
+                        .map_or_else(|| t!(self, "export-untitled-project"), file_name),
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
                     units: self.units,
+                    language: self.lang(),
                 };
                 match write_setup_sheet(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),

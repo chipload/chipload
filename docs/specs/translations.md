@@ -155,6 +155,13 @@ the app turns into inches (`chipload_pipeline::units::text_in`, inch-units.md st
    length arguments. Planned in detail in §7.
 3. **The setup sheet** in the app's language (and `chipload sheet --lang` on the command
    line, the one place the command line takes a language).
+   **As built (2026-10-24):** every word of the sheet is a text of `sheet.ftl`;
+   `SheetInfo` takes a `Language` beside its units, and `<html lang>` follows it. The app
+   writes the sheet in its language ("Untitled project" too); `chipload sheet --lang` and
+   `chipload run --sheet-lang` choose it on the command line, English by default, and the
+   MCP tools take the same options. A copy's grid and a part's line are messages
+   (`pipeline-copies.ftl`). English sheets are unchanged byte for byte; a German golden
+   sheet freezes the German output (setup-sheet.md §7).
 
 The user guide gets a page on choosing the language and on helping with a translation.
 The guide itself stays English for now (decided 2026-10-24): 22 000 words that change with

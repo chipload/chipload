@@ -9,11 +9,14 @@ At the start the app follows your computer's language, and English when it isn't
 these. To choose another, use *View > Language* or *This computer > Preferences* in the
 Browser. The change is immediate, and the app keeps it for next time.
 
-What stays in English, whatever the language:
-- Checker messages, error messages, and the issues found when a DXF was first read (they
-  come in a later version).
-- The setup sheet, the G-code and its comments.
-- The command line, `--json` output and the [AI assistant tools](assistants.md).
+Problems, the report, the checker's findings, error messages and the
+[setup sheet](checking/sheet.md) follow the language too. What stays in English, whatever
+the language:
+- The G-code and its comments.
+- The command line, `--json` output and the [AI assistant tools](assistants.md) (a setup
+  sheet written by `chipload sheet --lang` or `chipload run --sheet-lang` excepted).
+- The issues found when a DXF was first read, which the project keeps as they were
+  written, and what other programs say (the file system, a picture that can't be read).
 - This guide.
 
 Names you give things (parts, operations, tools, machines, layers) are yours and are never

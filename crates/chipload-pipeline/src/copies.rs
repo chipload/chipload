@@ -11,34 +11,34 @@ use crate::{PipelineError, load_drawing};
 
 /// "3 × 2 copies, pitch 120.000 × 80.000 mm, operation by operation".
 pub fn grid_text(c: &Copies) -> String {
-    grid_text_in(c, Units::Mm)
+    grid_message(c, Units::Mm).english()
 }
 
-/// As [`grid_text`], the pitch in `units` (docs/specs/inch-units.md §5.1).
-pub fn grid_text_in(c: &Copies, units: Units) -> String {
+/// [`grid_text`] as a message, the pitch in `units` (docs/specs/inch-units.md §5.1): 3
+/// decimals in mm and 4 in inches, kept even when they are zeros, so the pitch is converted
+/// here.
+pub fn grid_message(c: &Copies, units: Units) -> Message {
     let d = crate::units::decimals(units);
-    let n = |mm: f64| format!("{:.d$}", crate::units::from_mm(mm, units));
-    format!(
-        "{} × {} copies, pitch {} × {} {}, {}",
-        c.columns,
-        c.rows,
-        n(c.dx),
-        n(c.dy),
-        crate::units::length_unit(units),
-        order_name(c.order)
-    )
+    let n = |mm: f64| Value::Number(crate::units::from_mm(mm, units), Digits::Fixed(d));
+    Message::new("pipeline-copies-grid")
+        .arg("columns", c.columns)
+        .arg("rows", c.rows)
+        .arg("dx", n(c.dx))
+        .arg("dy", n(c.dy))
+        .arg("unit", crate::units::length_unit(units))
+        .arg("order", order_message(c.order))
 }
 
 /// The copies of a project with one part, as before parts came: None without a grid or
 /// with two parts or more (then [`parts_lines`] tells them).
 pub fn copies_text(job: &Job) -> Option<String> {
-    copies_text_in(job, Units::Mm)
+    copies_message(job, Units::Mm).map(|m| m.english())
 }
 
-/// As [`copies_text`], in `units`.
-pub fn copies_text_in(job: &Job, units: Units) -> Option<String> {
+/// [`copies_text`] as a message, in `units`.
+pub fn copies_message(job: &Job, units: Units) -> Option<Message> {
     match job.parts.as_slice() {
-        [part] => part.copies.as_ref().map(|c| grid_text_in(c, units)),
+        [part] => part.copies.as_ref().map(|c| grid_message(c, units)),
         _ => None,
     }
 }
@@ -46,11 +46,14 @@ pub fn copies_text_in(job: &Job, units: Units) -> Option<String> {
 /// With two parts or more, one line each: "Part 2 box: 2 × 1 copies, …" or "Part 1 lid:
 /// one, off" (docs/specs/parts.md §6). Empty with one part.
 pub fn parts_lines(job: &Job) -> Vec<String> {
-    parts_lines_in(job, Units::Mm)
+    parts_messages(job, Units::Mm)
+        .iter()
+        .map(Message::english)
+        .collect()
 }
 
-/// As [`parts_lines`], in `units`.
-pub fn parts_lines_in(job: &Job, units: Units) -> Vec<String> {
+/// [`parts_lines`] as messages, in `units`.
+pub fn parts_messages(job: &Job, units: Units) -> Vec<Message> {
     if job.parts.len() < 2 {
         return Vec::new();
     }
@@ -58,21 +61,29 @@ pub fn parts_lines_in(job: &Job, units: Units) -> Vec<String> {
         .iter()
         .enumerate()
         .map(|(i, part)| {
-            let copies = part
-                .copies
-                .as_ref()
-                .map_or("one".to_string(), |c| grid_text_in(c, units));
-            let off = if part.enabled { "" } else { ", off: not cut" };
-            format!("Part {} {}: {copies}{off}", i + 1, part.name)
+            let copies = part.copies.as_ref().map_or_else(
+                || Message::new("pipeline-copies-one"),
+                |c| grid_message(c, units),
+            );
+            let id = if part.enabled {
+                "pipeline-copies-part"
+            } else {
+                "pipeline-copies-part-off"
+            };
+            Message::new(id)
+                .arg("number", i + 1)
+                .arg("name", part.name.as_str())
+                .arg("copies", copies)
         })
         .collect()
 }
 
-pub fn order_name(order: CopyOrder) -> &'static str {
-    match order {
-        CopyOrder::ByOperation => "operation by operation",
-        CopyOrder::ByCopy => "copy by copy",
-    }
+/// How the copies are cut: "operation by operation", "copy by copy".
+pub fn order_message(order: CopyOrder) -> Message {
+    Message::new(match order {
+        CopyOrder::ByOperation => "pipeline-copies-by-operation",
+        CopyOrder::ByCopy => "pipeline-copies-by-copy",
+    })
 }
 
 /// Width and height the tool cuts for one copy of part `part` (the toolpath plus the tool

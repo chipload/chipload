@@ -28,13 +28,21 @@ it's built (see `CLAUDE.md`).
     approved 2026-10-24. Done: 7.3.1 (the `Message` type, the frozen English snapshot)
     and 7.3.2 (problems), 7.3.3 (planning notes, the time estimate and chip loads, the
     drawing's facts and the DXF import's issues), 7.3.4 (the checker's findings), 7.3.5
-    (errors, library and recovery messages, the reports of changes to the drawing).
-    Next: 7.3.6, `text_in` deleted (its last callers: the report's plain lines and the
-    Browser's operation hover); then the new texts of 7.3.5 translated into the five
-    languages (they are English there for now).
-  - **Step 3:** the setup sheet in the app's language.
-  - Not translated on purpose so far: a new text's starting word "Text", the setup sheet's
-    "Untitled project", startup errors before the window opens.
+    (errors, library and recovery messages, the reports of changes to the drawing), 7.3.6
+    (`text_in` deleted; the simulation's lines, the work zero line, hovers with a length
+    and the tool types and copy order in lists follow the language and display units).
+    **Done.**
+  - **Step 3 done 2026-10-24:** the setup sheet in the app's language (`sheet.ftl`;
+    `chipload sheet --lang`, `run --sheet-lang`; a German golden sheet).
+  - Left: the new files of 7.3.5–step 3 translated into the five languages
+    (`sheet.ftl`, `pipeline-copies.ftl`, `pipeline-simulation.ftl`, `gui-units-text.ftl`,
+    `gui-names.ftl`, `gui-export.ftl` are English there for now; the German golden sheet is
+    regenerated once `sheet.ftl` is), and the eight texts `gui-units-text.ftl` replaces
+    removed from `gui-menu.ftl` and `gui-forms.ftl` (listed in `crates/chipload-gui/tests/
+    texts.rs`). Native review of all five. Still English on purpose: the issues a DXF had
+    when it was read (stored in the project as words), migration reasons and a library
+    file's rule violations, what other libraries write (file system, JSON, TOML, pictures),
+    a new text's starting word "Text", startup errors before the window opens.
 
 ## State to remember (2026-10-19)
 

@@ -24,6 +24,7 @@ fn info(project: &str) -> SheetInfo {
         // Not the real version: the golden sheets stay the same from release to release.
         written_by: "chipload (test)".into(),
         units: chipload_job::Units::Mm,
+        language: chipload_i18n::Language::En,
     }
 }
 
@@ -305,4 +306,34 @@ fn inch_sheets_match_their_golden_files() {
             golden.display()
         );
     }
+}
+
+/// A sheet in German (docs/specs/translations.md step 3): its words, the notes and the
+/// estimate in the language; names, numbers and G-code as they are. Still ASCII.
+#[test]
+fn a_german_sheet_matches_its_golden_file() {
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let (name, project) = ("v15_linuxcnc_helix", "jobs/v15/linuxcnc_helix.chipload");
+    let job = load_job(&corpus(project)).unwrap();
+    let result = run_job(&job).unwrap();
+    let info = SheetInfo {
+        language: chipload_i18n::Language::De,
+        ..info(project)
+    };
+    let sheet = setup_sheet(&job, &result, Path::new("part.ngc"), &info);
+    assert!(sheet.is_ascii(), "{name}: not ASCII");
+    assert!(sheet.contains("<html lang=\"de\">"), "{name}");
+    let golden = corpus(&format!("expected/sheets/de/{name}.html"));
+    if update {
+        std::fs::create_dir_all(golden.parent().unwrap()).unwrap();
+        std::fs::write(&golden, &sheet).unwrap();
+        return;
+    }
+    let expected =
+        std::fs::read_to_string(&golden).unwrap_or_else(|e| panic!("{}: {e}", golden.display()));
+    assert!(
+        sheet == expected,
+        "{name}: differs from {}",
+        golden.display()
+    );
 }

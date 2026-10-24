@@ -27,3 +27,7 @@ The sheet is written:
 Its lengths and feeds are in the app's [units](../concepts/units.md#mm-or-inches-on-screen)
 (the command line writes mm). When the machine's G-code is in inches, the top of the
 sheet says so: *G-code in inches (G20)*.
+
+Its words are in the app's [language](../languages.md); the command line writes English
+unless you add `--lang de` to `chipload sheet` (or `--sheet-lang de` to `chipload run`;
+also `fr`, `es`, `it`, `sv`). Names, numbers and the G-code are never translated.

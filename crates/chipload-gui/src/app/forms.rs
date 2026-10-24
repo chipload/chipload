@@ -2567,10 +2567,8 @@ pub(super) fn tool_kind_name(lang: &impl crate::i18n::Lang, kind: ToolType) -> S
 
 /// How the copies of a part are cut, in the app's language.
 fn order_name(ui: &egui::Ui, order: CopyOrder) -> String {
-    match order {
-        CopyOrder::ByOperation => t!(ui, "names-order-by-operation"),
-        CopyOrder::ByCopy => t!(ui, "names-order-by-copy"),
-    }
+    let units = crate::units::display(ui.ctx()).into();
+    chipload_pipeline::copies::order_message(order).render(ui.lang(), units)
 }
 
 /// The machine values: post, spindle, max feed, tool changes and travel (safe Z and the

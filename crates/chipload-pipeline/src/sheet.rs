@@ -3,7 +3,8 @@
 //! to the G-code, saying what stock to load, where the zero is, which tool goes in for which
 //! file and what to watch for. Made from the checked run, so it can't disagree with the
 //! programs. ASCII only (names are written as character references) and no date, so the same
-//! run gives the same sheet.
+//! run gives the same sheet. Its words are texts of `sheet.ftl`, in the sheet's language
+//! (docs/specs/translations.md step 3); names, numbers and G-code are never translated.
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -12,15 +13,16 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
     Corners, Direction, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp, Side, Spindle,
-    Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    StockCorner, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::select::{select_contours, select_paths};
 
-use crate::estimate::{duration_text, estimate_lines};
+use crate::estimate::{duration_message, estimate_lines};
 use crate::{GcodeFile, RunResult, copies, write_atomically};
 
 /// What the sheet says about where it comes from.
@@ -32,6 +34,8 @@ pub struct SheetInfo {
     pub written_by: String,
     /// What lengths and feeds are written in (docs/specs/inch-units.md §5.1).
     pub units: Units,
+    /// What its words are written in.
+    pub language: Language,
 }
 
 /// `part-sheet.html` next to `part.nc` (§4, decision 7).
@@ -54,22 +58,64 @@ pub fn write_setup_sheet(
     Ok(path)
 }
 
+/// The sheet's language and units, which its texts are written in.
+#[derive(Debug, Clone, Copy)]
+struct Words {
+    lang: Language,
+    units: Units,
+}
+
+impl Words {
+    /// A text, as plain words.
+    fn say(self, message: &Message) -> String {
+        message.render(self.lang, self.units.into())
+    }
+
+    /// A text as HTML: escaped.
+    fn text(self, message: &Message) -> String {
+        escape(&self.say(message))
+    }
+
+    /// A text that is HTML itself (it holds an entity such as `&times;`), its arguments
+    /// escaped by the caller: only what is outside ASCII becomes a reference.
+    fn html(self, message: &Message) -> String {
+        ascii(&self.say(message))
+    }
+}
+
+/// Plain words joined with `, `: "Profile, outside, climb".
+fn listed(w: Words, parts: &[Message]) -> String {
+    let parts: Vec<String> = parts.iter().map(|m| w.say(m)).collect();
+    parts.join(", ")
+}
+
 /// The sheet of a run whose G-code is (or will be) written to `output`, as HTML.
 pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInfo) -> String {
+    let w = Words {
+        lang: info.language,
+        units: info.units,
+    };
     let mut html = String::new();
-    head(&mut html, info);
-    header(&mut html, job, result, info);
-    setup(&mut html, job, info.units);
-    picture(&mut html, job, result);
+    head(&mut html, info, w);
+    header(&mut html, job, result, info, w);
+    setup(&mut html, job, w);
+    picture(&mut html, job, result, w);
     let names: Vec<String> = result.files.iter().map(|f| file_name(f, output)).collect();
     let several = result.files.len() > 1;
     for (i, name) in names.iter().enumerate() {
-        file_section(&mut html, job, result, i, name, several, info.units);
+        file_section(&mut html, job, result, i, name, several, w);
     }
-    watch_out(&mut html, result, info.units);
-    let _ = writeln!(html, "<section class=\"total\">\n<h2>Time</h2>");
+    watch_out(&mut html, result, w);
+    let _ = writeln!(
+        html,
+        "<section class=\"total\">\n<h2>{}</h2>",
+        w.text(&Message::new("sheet-time"))
+    );
+    // The estimate's lines keep mm in an inch sheet, as they always have (the rapid rate;
+    // docs/specs/inch-units.md §5.4).
     for line in estimate_lines(job, &result.estimate, several) {
-        let _ = writeln!(html, "<p>{}</p>", escape(line.trim_start()));
+        let text = line.message.render(w.lang, chipload_i18n::Units::Mm);
+        let _ = writeln!(html, "<p>{}</p>", escape(text.trim_start()));
     }
     html.push_str("</section>\n</body>\n</html>\n");
     html
@@ -102,152 +148,201 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 }
 ";
 
-fn head(html: &mut String, info: &SheetInfo) {
+/// "Setup sheet: part.chipload", escaped.
+fn title(info: &SheetInfo, w: Words) -> String {
+    w.text(&Message::new("sheet-title").arg("project", info.project.as_str()))
+}
+
+fn head(html: &mut String, info: &SheetInfo, w: Words) {
     let _ = writeln!(
         html,
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n\
+        "<!doctype html>\n<html lang=\"{}\">\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>Setup sheet: {}</title>\n<style>\n{STYLE}</style>\n</head>\n<body>",
-        escape(&info.project)
+         <title>{}</title>\n<style>\n{STYLE}</style>\n</head>\n<body>",
+        info.language.code(),
+        title(info, w)
     );
 }
 
-fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo) {
-    let machine = match &job.machine.name {
-        Some(name) => format!("{} &middot; ", escape(name)),
-        None => String::new(),
-    };
+fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo, w: Words) {
+    let mut meta = Vec::new();
+    if let Some(name) = &job.machine.name {
+        meta.push(escape(name));
+    }
+    meta.push(w.text(&Message::new("sheet-post").arg("post", result.post.name.as_str())));
+    meta.push(w.text(&Message::new("sheet-written-by").arg("by", info.written_by.as_str())));
+    meta.push(
+        w.text(
+            &Message::new("sheet-units")
+                .arg("length", crate::units::length_unit(w.units))
+                .arg("feed", crate::units::feed_unit(w.units)),
+        ),
+    );
+    // The program's own units, when they aren't the sheet's (docs/specs/inch-units.md §3).
+    if job.machine.gcode_units == Units::Inch {
+        meta.push(format!(
+            "<strong>{}</strong>",
+            w.text(&Message::new("sheet-gcode-inch"))
+        ));
+    }
     let _ = writeln!(
         html,
-        "<header>\n<h1>Setup sheet: {}</h1>\n<p class=\"meta\">{machine}post {} &middot; \
-         written by {} &middot; lengths in {}, feeds in {}{}</p>\n</header>",
-        escape(&info.project),
-        escape(&result.post.name),
-        escape(&info.written_by),
-        crate::units::length_unit(info.units),
-        crate::units::feed_unit(info.units),
-        // The program's own units, when they aren't the sheet's (docs/specs/inch-units.md §3).
-        match job.machine.gcode_units {
-            chipload_job::Units::Mm => "",
-            chipload_job::Units::Inch => " &middot; <strong>G-code in inches (G20)</strong>",
-        }
+        "<header>\n<h1>{}</h1>\n<p class=\"meta\">{}</p>\n</header>",
+        title(info, w),
+        meta.join(" &middot; ")
     );
 }
 
-fn setup(html: &mut String, job: &Job, u: Units) {
+/// A row of the facts table: its heading and value, both HTML.
+fn fact(html: &mut String, heading: &str, value: &str) {
+    let _ = writeln!(html, "<tr><th>{heading}</th><td>{value}</td></tr>");
+}
+
+fn setup(html: &mut String, job: &Job, w: Words) {
     let stock = &job.stock;
-    html.push_str("<section class=\"setup\">\n<h2>Stock and zero</h2>\n<table class=\"facts\">\n");
     let _ = writeln!(
         html,
-        "<tr><th>Stock</th><td>{} &times; {}, {} thick</td></tr>",
-        len(u, stock.x),
-        len_u(u, stock.y),
-        len_u(u, stock.thickness)
+        "<section class=\"setup\">\n<h2>{}</h2>\n<table class=\"facts\">",
+        w.text(&Message::new("sheet-stock-and-zero"))
     );
-    let _ = writeln!(
+    fact(
         html,
-        "<tr><th>X0 Y0</th><td>{}</td></tr>",
-        escape(&xy_zero_text_in(job, u))
+        &w.text(&Message::new("sheet-stock")),
+        &w.html(
+            &Message::new("sheet-stock-size")
+                .arg("width", len(stock.x))
+                .arg("length", len_u(stock.y))
+                .arg("thickness", len_u(stock.thickness)),
+        ),
     );
-    let _ = writeln!(
-        html,
-        "<tr><th>Z0</th><td>{}</td></tr>",
-        escape(z_zero_text(job))
-    );
-    if let Some(text) = copies::copies_text_in(job, u) {
-        let _ = writeln!(html, "<tr><th>Copies</th><td>{}</td></tr>", escape(&text));
+    fact(html, "X0 Y0", &w.text(&xy_zero_message(job)));
+    fact(html, "Z0", &w.text(&z_zero_message(job)));
+    if let Some(copies) = copies::copies_message(job, w.units) {
+        fact(
+            html,
+            &w.text(&Message::new("sheet-copies")),
+            &w.text(&copies),
+        );
     }
     // Several parts: each with its copies (docs/specs/parts.md §6).
-    for line in copies::parts_lines_in(job, u) {
-        let _ = writeln!(html, "<tr><th>Part</th><td>{}</td></tr>", escape(&line));
+    for line in copies::parts_messages(job, w.units) {
+        fact(html, &w.text(&Message::new("sheet-part")), &w.text(&line));
     }
     // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
     let d = &job.drawing;
     if d.dxfs.len() + d.images.len() + d.texts.len() > 1 {
         for dxf in &job.drawing.dxfs {
-            let _ = writeln!(
+            fact(
                 html,
-                "<tr><th>DXF {}</th><td>{} ({}), {}</td></tr>",
-                dxf.id,
-                escape(&dxf.name),
-                escape(&dxf.file),
-                escape(&crate::placement::placement_text(dxf.placement))
+                &w.text(&Message::new("sheet-dxf").arg("id", dxf.id)),
+                &w.text(
+                    &Message::new("sheet-dxf-placed")
+                        .arg("name", dxf.name.as_str())
+                        .arg("file", dxf.file.as_str())
+                        .arg(
+                            "placement",
+                            crate::placement::placement_message(dxf.placement),
+                        ),
+                ),
             );
         }
         for image in &job.drawing.images {
-            let _ = writeln!(
+            fact(
                 html,
-                "<tr><th>Image {}</th><td>{} on layer {}, {} wide at X{} Y{}</td></tr>",
-                image.id,
-                escape(&image.file),
-                escape(&image.layer),
-                len_u(u, image.width),
-                len(u, image.x),
-                len(u, image.y)
+                &w.text(&Message::new("sheet-image").arg("id", image.id)),
+                &w.text(
+                    &Message::new("sheet-image-placed")
+                        .arg("file", image.file.as_str())
+                        .arg("layer", image.layer.as_str())
+                        .arg("width", len_u(image.width))
+                        .arg("x", len(image.x))
+                        .arg("y", len(image.y)),
+                ),
             );
         }
         for text in &job.drawing.texts {
-            let _ = writeln!(
+            fact(
                 html,
-                "<tr><th>Text {}</th><td>{} in {} on layer {}, {} high at X{} Y{}</td></tr>",
-                text.id,
-                escape(&crate::texts::text_label(text)),
-                escape(&text.font),
-                escape(&text.layer),
-                len_u(u, text.height),
-                len(u, text.x),
-                len(u, text.y)
+                &w.text(&Message::new("sheet-text").arg("id", text.id)),
+                &w.text(
+                    &Message::new("sheet-text-placed")
+                        .arg("text", crate::texts::text_label(text))
+                        .arg("font", text.font.as_str())
+                        .arg("layer", text.layer.as_str())
+                        .arg("height", len_u(text.height))
+                        .arg("x", len(text.x))
+                        .arg("y", len(text.y)),
+                ),
             );
         }
     }
     html.push_str("</table>\n</section>\n");
 }
 
-/// Where X0 Y0 is, in words measured on the stock (§2.3).
+/// Where X0 Y0 is, in words measured on the stock (§2.3), in English and mm.
 pub fn xy_zero_text(job: &Job) -> String {
-    xy_zero_text_in(job, Units::Mm)
+    xy_zero_message(job).english()
 }
 
-/// As [`xy_zero_text`], its distances in `u`.
-pub fn xy_zero_text_in(job: &Job, u: Units) -> String {
-    if let WorkZero::Stock { corner } = job.machine.work_zero {
-        return match corner {
-            chipload_job::StockCorner::Center => "the centre of the stock".into(),
-            corner => format!("the stock's {}", corner.name()),
-        };
+/// [`xy_zero_text`] as a message.
+pub fn xy_zero_message(job: &Job) -> Message {
+    let corner = |corner: StockCorner| {
+        Message::new(match corner {
+            StockCorner::Center => "sheet-zero-centre",
+            StockCorner::BottomLeft => "sheet-zero-bottom-left",
+            StockCorner::BottomRight => "sheet-zero-bottom-right",
+            StockCorner::TopLeft => "sheet-zero-top-left",
+            StockCorner::TopRight => "sheet-zero-top-right",
+        })
+    };
+    if let WorkZero::Stock { corner: at } = job.machine.work_zero {
+        return corner(at);
     }
     let ((x0, y0), (x1, y1)) = job.stock.xy_bounds();
     let (zx, zy) = job.work_zero_xy();
     let (dx, dy) = (zx - x0, zy - y0);
     let mut parts = Vec::new();
     if dx.abs() > CHAIN_TOL_MM {
-        let side = if dx > 0.0 { "right of" } else { "left of" };
-        parts.push(format!("{} {side}", len_u(u, dx.abs())));
+        let side = if dx > 0.0 {
+            "sheet-zero-right-of"
+        } else {
+            "sheet-zero-left-of"
+        };
+        parts.push(Message::new(side).arg("distance", len_u(dx.abs())));
     }
     if dy.abs() > CHAIN_TOL_MM {
-        let side = if dy > 0.0 { "above" } else { "below" };
-        parts.push(format!("{} {side}", len_u(u, dy.abs())));
+        let side = if dy > 0.0 {
+            "sheet-zero-above"
+        } else {
+            "sheet-zero-below"
+        };
+        parts.push(Message::new(side).arg("distance", len_u(dy.abs())));
     }
-    let mut text = if parts.is_empty() {
-        "the stock's bottom left corner".to_string()
-    } else {
-        format!("{} the stock's bottom left corner", parts.join(" and "))
+    let offset = parts.into_iter().reduce(|first, second| {
+        Message::new("sheet-zero-and")
+            .arg("first", first)
+            .arg("second", second)
+    });
+    let text = match offset {
+        None => corner(StockCorner::BottomLeft),
+        Some(offset) => Message::new("sheet-zero-from-corner").arg("offset", offset),
     };
     let outside = zx < x0 - CHAIN_TOL_MM
         || zx > x1 + CHAIN_TOL_MM
         || zy < y0 - CHAIN_TOL_MM
         || zy > y1 + CHAIN_TOL_MM;
     if outside {
-        text.push_str(" (outside the stock)");
+        Message::new("sheet-zero-outside").arg("zero", text)
+    } else {
+        text
     }
-    text
 }
 
-fn z_zero_text(job: &Job) -> &'static str {
-    match job.stock.z_zero {
-        ZZero::Top => "the top of the stock",
-        ZZero::Bottom => "the bottom of the stock (the spoilboard)",
-    }
+fn z_zero_message(job: &Job) -> Message {
+    Message::new(match job.stock.z_zero {
+        ZZero::Top => "sheet-z-top",
+        ZZero::Bottom => "sheet-z-bottom",
+    })
 }
 
 fn file_name(file: &GcodeFile, output: &Path) -> String {
@@ -271,6 +366,11 @@ fn file_groups(result: &RunResult, index: usize) -> Vec<(usize, &ToolGroup)> {
     }
 }
 
+/// A time for reading, escaped: `12 min 30 s`.
+fn duration(w: Words, seconds: f64) -> String {
+    w.text(&duration_message(seconds))
+}
+
 fn file_section(
     html: &mut String,
     job: &Job,
@@ -278,7 +378,7 @@ fn file_section(
     index: usize,
     name: &str,
     several: bool,
-    u: Units,
+    w: Words,
 ) {
     let groups = file_groups(result, index);
     let seconds: f64 = groups
@@ -290,85 +390,86 @@ fn file_section(
         "<section class=\"file\">\n<h2>{}. {} <span class=\"time\">{}</span></h2>",
         index + 1,
         escape(name),
-        duration_text(seconds)
+        duration(w, seconds)
     );
     let one_file_m6 =
         !several && groups.len() > 1 && job.machine.tool_change == ToolChange::Program;
     for (n, (g, group)) in groups.iter().enumerate() {
         let tool = &group.tool;
-        let what = tool_text(tool, u);
+        let what = tool_text(tool, w);
         let todo = if index == 0 && n == 0 {
-            format!(
-                "Load tool T{} ({what}). Set X0 Y0 at {} and Z0 on {}.",
-                tool.id,
-                xy_zero_text_in(job, u),
-                z_zero_text(job)
-            )
+            Message::new("sheet-load-tool")
+                .arg("tool", tool.id)
+                .arg("what", what.as_str())
+                .arg("xy", xy_zero_message(job))
+                .arg("z", z_zero_message(job))
         } else if one_file_m6 {
-            format!(
-                "Tool change (M6) to T{} ({what}), as your controller handles it.",
-                tool.id
-            )
+            Message::new("sheet-tool-change-m6")
+                .arg("tool", tool.id)
+                .arg("what", what.as_str())
         } else {
-            format!(
-                "Change to tool T{} ({what}). Set Z0 again with this tool on {}; keep X0 Y0.",
-                tool.id,
-                z_zero_text(job)
-            )
+            Message::new("sheet-change-tool")
+                .arg("tool", tool.id)
+                .arg("what", what.as_str())
+                .arg("z", z_zero_message(job))
         };
         if one_file_m6 {
             let _ = writeln!(
                 html,
                 "<h3>T{} <span class=\"time\">{}</span></h3>",
                 tool.id,
-                duration_text(result.estimate.groups.get(*g).copied().unwrap_or(0.0))
+                duration(w, result.estimate.groups.get(*g).copied().unwrap_or(0.0))
             );
         }
-        let _ = writeln!(html, "<p class=\"do\">{}</p>", escape(&todo));
-        let _ = writeln!(
-            html,
-            "<p>Tool T{}: {}{}, {} rpm {}.</p>",
-            tool.id,
-            tool.name
-                .as_ref()
-                .map_or(String::new(), |n| format!("&ldquo;{}&rdquo;, ", escape(n))),
-            escape(&what),
-            num(tool.rpm.unwrap_or(0.0)),
-            spindle_text(job.machine.spindle)
-        );
-        operations_table(html, job, result, &group.operations, u);
-        if let Some(text) = deepest_cut_text(job, &result.program, group, u) {
+        let _ = writeln!(html, "<p class=\"do\">{}</p>", w.text(&todo));
+        let line = match &tool.name {
+            Some(name) => Message::new("sheet-tool-named").arg("name", escape(name)),
+            None => Message::new("sheet-tool"),
+        };
+        let line = line
+            .arg("tool", tool.id)
+            .arg("what", escape(&what))
+            .arg("rpm", num(tool.rpm.unwrap_or(0.0)))
+            .arg("spindle", spindle_message(job.machine.spindle));
+        let _ = writeln!(html, "<p>{}</p>", w.html(&line));
+        operations_table(html, job, result, &group.operations, w);
+        if let Some(text) = deepest_cut_text(job, &result.program, group, w) {
             let _ = writeln!(html, "<p>{}</p>", escape(&text));
         }
     }
     html.push_str("</section>\n");
 }
 
-fn tool_text(tool: &Tool, u: Units) -> String {
-    let flutes = tool.flutes.map_or(String::new(), |n| {
-        format!(", {n} flute{}", if n == 1 { "" } else { "s" })
-    });
-    match tool.kind {
-        ToolType::Endmill => format!("{} end mill{flutes}", len_u(u, tool.diameter)),
-        ToolType::Drill => format!("{} drill{flutes}", len_u(u, tool.diameter)),
+/// "6 mm end mill, 2 flutes", "60° V-bit, 12.7 mm, tip 0.2 mm".
+fn tool_text(tool: &Tool, w: Words) -> String {
+    let diameter = len_u(tool.diameter);
+    let mut parts = match tool.kind {
+        ToolType::Endmill => vec![Message::new("sheet-end-mill").arg("diameter", diameter)],
+        ToolType::Drill => vec![Message::new("sheet-drill").arg("diameter", diameter)],
         ToolType::Vbit => {
-            let angle = tool
-                .angle
-                .map_or(String::new(), |a| format!("{}\u{b0} ", num(a.to_degrees())));
-            let tip = tool
-                .tip_diameter
-                .filter(|t| *t > 0.0)
-                .map_or(String::new(), |t| format!(", tip {}", len_u(u, t)));
-            format!("{angle}V-bit, {}{tip}{flutes}", len_u(u, tool.diameter))
+            let mut parts = vec![match tool.angle {
+                Some(angle) => Message::new("sheet-vbit-angle")
+                    .arg("angle", num(angle.to_degrees()))
+                    .arg("diameter", diameter),
+                None => Message::new("sheet-vbit").arg("diameter", diameter),
+            }];
+            if let Some(tip) = tool.tip_diameter.filter(|t| *t > 0.0) {
+                parts.push(Message::new("sheet-tip").arg("diameter", len_u(tip)));
+            }
+            parts
         }
+    };
+    if let Some(n) = tool.flutes {
+        parts.push(Message::new("sheet-flutes").arg("count", n));
     }
+    listed(w, &parts)
 }
 
-fn spindle_text(spindle: Spindle) -> &'static str {
-    match spindle {
-        Spindle::Cw => "clockwise (M3)",
-        Spindle::Ccw => "counter-clockwise (M4)",
-    }
+fn spindle_message(spindle: Spindle) -> Message {
+    Message::new(match spindle {
+        Spindle::Cw => "sheet-spindle-cw",
+        Spindle::Ccw => "sheet-spindle-ccw",
+    })
 }
 
 fn operations_table(
@@ -376,11 +477,19 @@ fn operations_table(
     job: &Job,
     result: &RunResult,
     operations: &[OpRef],
-    u: Units,
+    w: Words,
 ) {
-    html.push_str(
-        "<div class=\"scroll\"><table class=\"ops\">\n<tr><th>#</th><th>Operation</th>\
-         <th>Depth</th><th>Feed / plunge</th><th>Entry</th><th>Tabs</th><th>Time</th></tr>\n",
+    let heading = |id: &'static str| w.text(&Message::new(id));
+    let _ = writeln!(
+        html,
+        "<div class=\"scroll\"><table class=\"ops\">\n<tr><th>#</th><th>{}</th>\
+         <th>{}</th><th>{}</th><th>{}</th><th>{}</th><th>{}</th></tr>",
+        heading("sheet-column-operation"),
+        heading("sheet-column-depth"),
+        heading("sheet-column-feeds"),
+        heading("sheet-column-entry"),
+        heading("sheet-column-tabs"),
+        heading("sheet-column-time"),
     );
     // With two parts or more, a heading row where each part starts (docs/specs/parts.md §6).
     let mut part_shown: Option<u64> = None;
@@ -399,19 +508,21 @@ fn operations_table(
                 .find(|(_, p)| p.id == op.part())
         {
             part_shown = Some(part.id);
-            let copies = match part.count() {
-                1 => String::new(),
-                n => format!(", {n} copies"),
+            let row = match part.count() {
+                1 => Message::new("sheet-part-row"),
+                n => Message::new("sheet-part-row-copies").arg("count", n),
             };
+            let row = row
+                .arg("number", number + 1)
+                .arg("name", part.name.as_str());
             let _ = writeln!(
                 html,
-                "<tr class=\"part\"><th colspan=\"7\">Part {}: {}{copies}</th></tr>",
-                number + 1,
-                escape(&part.name)
+                "<tr class=\"part\"><th colspan=\"7\">{}</th></tr>",
+                w.text(&row)
             );
         }
         let name = match op.name() {
-            "" => format!("Operation {at}"),
+            "" => w.say(&Message::new("sheet-operation").arg("number", at.to_string())),
             name => name.to_string(),
         };
         let seconds = result
@@ -426,11 +537,17 @@ fn operations_table(
             Operation::Holes(HolesOp {
                 method: HoleMethod::Drill { .. },
                 ..
-            }) => format!("{} down", len(u, plunge)),
-            _ => format!("{} / {}", len(u, feed), len(u, plunge)),
+            }) => w.text(&Message::new("sheet-feed-down").arg("feed", len(plunge))),
+            _ => format!(
+                "{} / {}",
+                crate::units::length_number(feed, w.units),
+                crate::units::length_number(plunge, w.units)
+            ),
         };
         let load = match crate::chip_load::chip_load(job, op) {
-            known @ crate::chip_load::ChipLoad::Mm(_) => format!("<br>{}", known.text_in(u)),
+            known @ crate::chip_load::ChipLoad::Mm(_) => {
+                format!("<br>{}", w.text(&known.message()))
+            }
             _ => String::new(),
         };
         let _ = writeln!(
@@ -439,12 +556,12 @@ fn operations_table(
              <td>{}</td><td>{}</td><td>{}</td></tr>",
             at,
             escape(&name),
-            escape(&kind_text(op, &job.tools, u)),
-            escape(&depth_text(op, u)),
+            escape(&kind_text(op, &job.tools, w)),
+            escape(&depth_text(op, w)),
             feeds_text,
-            escape(&entry_text(op, u)),
-            escape(&tabs_text(op, u)),
-            duration_text(seconds)
+            escape(&entry_text(op, w)),
+            escape(&tabs_text(op, w)),
+            duration(w, seconds)
         );
     }
     html.push_str("</table></div>\n");
@@ -461,92 +578,87 @@ fn feeds(op: &Operation) -> (f64, f64) {
     }
 }
 
-fn direction_text(direction: Direction) -> &'static str {
-    match direction {
-        Direction::Climb => "climb",
-        Direction::Conventional => "conventional",
-    }
+fn direction_message(direction: Direction) -> Message {
+    Message::new(match direction {
+        Direction::Climb => "sheet-climb",
+        Direction::Conventional => "sheet-conventional",
+    })
 }
 
 /// "Profile, outside, climb, leaves 0.2 mm" (a negative clearance).
-fn kind_text(op: &Operation, tools: &[Tool], u: Units) -> String {
-    let mut text = match op {
+fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
+    let stepover = |s: f64| Message::new("sheet-stepover").arg("percent", num(s * 100.0));
+    let mut parts = match op {
         Operation::Profile(p) => {
             let side = match p.side {
-                Side::Outside => "outside",
-                Side::Inside => "inside",
-                Side::On => "on the line",
+                Side::Outside => "sheet-side-outside",
+                Side::Inside => "sheet-side-inside",
+                Side::On => "sheet-side-on",
             };
-            format!("Profile, {side}, {}", direction_text(p.direction))
+            vec![
+                Message::new("sheet-kind-profile"),
+                Message::new(side),
+                direction_message(p.direction),
+            ]
         }
-        Operation::Pocket(p) => {
-            format!(
-                "Pocket, rings, {}, stepover {} %",
-                direction_text(p.direction),
-                num(p.stepover * 100.0)
-            )
-        }
-        Operation::Vcarve(_) => "V-carve".to_string(),
-        Operation::Path(_) => "Follow path, on the line".to_string(),
+        Operation::Pocket(p) => vec![
+            Message::new("sheet-kind-pocket"),
+            direction_message(p.direction),
+            stepover(p.stepover),
+        ],
+        Operation::Vcarve(_) => vec![Message::new("sheet-kind-vcarve")],
+        Operation::Path(_) => vec![Message::new("sheet-kind-path")],
         Operation::Holes(h) => match h.method {
-            HoleMethod::Drill { .. } => "Holes, drilled".to_string(),
-            HoleMethod::Bore { direction, .. } => {
-                format!("Holes, helical bore, {}", direction_text(direction))
-            }
+            HoleMethod::Drill { .. } => vec![Message::new("sheet-kind-holes-drilled")],
+            HoleMethod::Bore { direction, .. } => vec![
+                Message::new("sheet-kind-holes-bored"),
+                direction_message(direction),
+            ],
         },
         // docs/specs/surfacing.md §3, §5.
         Operation::Surface(f) => {
-            let past = tools
-                .iter()
-                .find(|t| t.id == f.tool)
-                .map_or(String::new(), |t| {
-                    format!(
-                        "; runs {} past the stock ends: keep clamps clear",
-                        len_u(u, t.diameter / 2.0)
-                    )
-                });
-            format!(
-                "Surface, the whole stock, back and forth (climb and conventional), \
-                 stepover {} %{past}",
-                num(f.stepover * 100.0)
-            )
+            let kind = Message::new("sheet-kind-surface").arg("percent", num(f.stepover * 100.0));
+            vec![match tools.iter().find(|t| t.id == f.tool) {
+                Some(t) => Message::new("sheet-kind-surface-past")
+                    .arg("surface", kind)
+                    .arg("distance", len_u(t.diameter / 2.0)),
+                None => kind,
+            }]
         }
     };
     // Positive clearance cuts into the material that is kept, negative leaves some
     // (docs/specs/depths-and-clearance.md §3).
     let clearance = op.clearance();
     if clearance > 0.0 {
-        let _ = write!(text, ", cuts {} past the line", len_u(u, clearance));
+        parts.push(Message::new("sheet-cuts-past").arg("distance", len_u(clearance)));
     } else if clearance < 0.0 {
-        let _ = write!(text, ", leaves {}", len_u(u, -clearance));
+        parts.push(Message::new("sheet-leaves").arg("distance", len_u(-clearance)));
     }
     // docs/specs/rest-machining.md §6.
     if let Operation::Pocket(PocketOp {
         rest: Some(rest), ..
     }) = op
     {
-        let _ = write!(text, ", rest after T{}", rest.after_tool);
-        if let Some(tool) = find_tool(tools, rest.after_tool) {
-            let _ = write!(text, " ({})", len_u(u, tool.diameter));
-        }
+        parts.push(match find_tool(tools, rest.after_tool) {
+            Some(tool) => Message::new("sheet-rest-after-size")
+                .arg("tool", rest.after_tool)
+                .arg("diameter", len_u(tool.diameter)),
+            None => Message::new("sheet-rest-after").arg("tool", rest.after_tool),
+        });
     }
     // docs/specs/dogbones.md §7.
     if let Some(corners) = op.corners() {
         let style = match corners {
-            Corners::Dogbone { .. } => "dogbones",
-            Corners::Tbone { .. } => "T-bones",
+            Corners::Dogbone { .. } => "sheet-dogbones",
+            Corners::Tbone { .. } => "sheet-tbones",
         };
-        let _ = write!(
-            text,
-            ", {style} at corners up to {}\u{b0}",
-            num(corners.max_angle().to_degrees())
-        );
+        parts.push(Message::new(style).arg("degrees", num(corners.max_angle().to_degrees())));
     }
-    text
+    listed(w, &parts)
 }
 
 /// "0 to 6, 2 per pass", with a profile's finishing stock and skin.
-fn depth_text(op: &Operation, u: Units) -> String {
+fn depth_text(op: &Operation, w: Words) -> String {
     let (start, end) = op.depths();
     let step = match op {
         Operation::Profile(p) => Some(p.step_down),
@@ -556,93 +668,106 @@ fn depth_text(op: &Operation, u: Units) -> String {
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
     };
-    let passes = match op {
+    let depths = |id: &'static str| {
+        Message::new(id)
+            .arg("start", len(start))
+            .arg("end", len(end))
+    };
+    let mut parts = match op {
         // docs/specs/holes.md §6: a drill's depth is its point's.
         Operation::Holes(HolesOp {
             method: HoleMethod::Drill { peck },
             ..
-        }) => {
-            let pecks = match peck {
-                Some(peck) if *peck < end - start => format!(", pecks {}", len_u(u, *peck)),
-                _ => ", in one go".to_string(),
-            };
-            format!(" (the drill's point){pecks}")
-        }
+        }) => vec![
+            depths("sheet-depths-drill"),
+            match peck {
+                Some(peck) if *peck < end - start => {
+                    Message::new("sheet-pecks").arg("peck", len_u(*peck))
+                }
+                _ => Message::new("sheet-one-go"),
+            },
+        ],
         Operation::Holes(HolesOp {
             method: HoleMethod::Bore { step_down, .. },
             ..
-        }) => format!(", {} per turn", len(u, *step_down)),
-        _ => match step {
-            Some(step) if step > 0.0 && step < end - start => {
-                format!(", {} per pass", len(u, step))
-            }
-            _ => ", one pass".to_string(),
-        },
+        }) => vec![
+            depths("sheet-depths"),
+            Message::new("sheet-per-turn").arg("step", len(*step_down)),
+        ],
+        _ => vec![
+            depths("sheet-depths"),
+            match step {
+                Some(step) if step > 0.0 && step < end - start => {
+                    Message::new("sheet-per-pass").arg("step", len(step))
+                }
+                _ => Message::new("sheet-one-pass"),
+            },
+        ],
     };
-    let mut text = format!("{} to {}{passes}", len(u, start), len(u, end));
     if let Operation::Profile(p) = op {
         // docs/specs/finish-and-skin.md §6: "finish 0.3 mm, skin 0.2 mm".
         if let Some(finish) = p.finish {
-            let _ = write!(text, ", finish {}", len_u(u, finish.stock));
+            parts.push(Message::new("sheet-finish").arg("stock", len_u(finish.stock)));
         }
         if let Some(skin) = p.skin {
-            let _ = write!(text, ", skin {}", len_u(u, skin.thickness));
+            parts.push(Message::new("sheet-skin").arg("thickness", len_u(skin.thickness)));
         }
     }
-    text
+    listed(w, &parts)
 }
 
-fn entry_text(op: &Operation, u: Units) -> String {
+fn entry_text(op: &Operation, w: Words) -> String {
+    let degrees = |angle: f64| num(angle.to_degrees());
     if let Operation::Surface(_) = op {
-        return "down beside the stock".to_string();
+        return w.say(&Message::new("sheet-entry-beside"));
     }
     if let Operation::Holes(h) = op {
-        return match h.method {
-            HoleMethod::Drill { .. } => "straight down".to_string(),
+        return w.say(&match h.method {
+            HoleMethod::Drill { .. } => Message::new("sheet-entry-straight"),
             HoleMethod::Bore { ramp_angle, .. } => {
-                format!("helix {}\u{b0}", num(ramp_angle.to_degrees()))
+                Message::new("sheet-entry-helix").arg("degrees", degrees(ramp_angle))
             }
-        };
+        });
     }
-    let mut text = match op.entry() {
-        Entry::Plunge {} => "plunge".to_string(),
-        Entry::Ramp { ramp_angle } => format!("ramp {}\u{b0}", num(ramp_angle.to_degrees())),
-        Entry::Helix { radius, ramp_angle } => format!(
-            "helix r {}, {}\u{b0}",
-            len(u, radius),
-            num(ramp_angle.to_degrees())
-        ),
-    };
+    let mut parts = vec![match op.entry() {
+        Entry::Plunge {} => Message::new("sheet-entry-plunge"),
+        Entry::Ramp { ramp_angle } => {
+            Message::new("sheet-entry-ramp").arg("degrees", degrees(ramp_angle))
+        }
+        Entry::Helix { radius, ramp_angle } => Message::new("sheet-entry-helix-radius")
+            .arg("radius", len(radius))
+            .arg("degrees", degrees(ramp_angle)),
+    }];
     if let Some(lead) = op.lead() {
-        let _ = write!(text, ", lead r {}", len(u, lead.radius));
+        parts.push(Message::new("sheet-lead").arg("radius", len(lead.radius)));
     }
-    text
+    listed(w, &parts)
 }
 
-fn tabs_text(op: &Operation, u: Units) -> String {
+fn tabs_text(op: &Operation, w: Words) -> String {
     match op {
         Operation::Profile(p) => match &p.tabs {
             Some(t) if t.count > 0 => {
-                let mut text = format!(
-                    "{} \u{d7} {} wide, {} high",
-                    t.count,
-                    len(u, t.width),
-                    len(u, t.height)
-                );
+                let mut parts = vec![
+                    Message::new("sheet-tabs")
+                        .arg("count", t.count)
+                        .arg("width", len(t.width))
+                        .arg("height", len(t.height)),
+                ];
                 if !t.is_straight() {
-                    let degrees = trimmed(t.flank_angle.to_degrees(), 1);
-                    let _ = write!(text, ", flanks {degrees}\u{b0}");
+                    let degrees = Value::Number(t.flank_angle.to_degrees(), Digits::Trim(1));
+                    parts.push(Message::new("sheet-flanks").arg("degrees", degrees));
                 }
-                text
+                listed(w, &parts)
             }
-            _ => "none".into(),
+            _ => w.say(&Message::new("sheet-tabs-none")),
         },
         _ => "-".into(),
     }
 }
 
 /// "Cuts down to Z-12.3: 12.3 mm below the stock top, 0.3 mm into the spoilboard."
-fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, u: Units) -> Option<String> {
+fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, w: Words) -> Option<String> {
     let moves = program.moves.get(group.moves.clone())?;
     let lowest = moves
         .iter()
@@ -653,39 +778,53 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, u: Units) -
         })?;
     let top = job.stock.top_z();
     let depth = top - lowest;
-    let mut text = format!(
-        "Cuts down to Z{}: {} below the stock top",
-        len(u, lowest),
-        len_u(u, depth)
-    );
+    let mut parts = vec![
+        Message::new("sheet-cuts-down")
+            .arg("z", len(lowest))
+            .arg("depth", len_u(depth)),
+    ];
     let into = depth - job.stock.thickness;
     if into > CHAIN_TOL_MM {
-        let _ = write!(text, ", {} into the spoilboard", len_u(u, into));
+        parts.push(Message::new("sheet-into-spoilboard").arg("depth", len_u(into)));
     } else if into.abs() <= CHAIN_TOL_MM {
-        text.push_str(", through the stock");
+        parts.push(Message::new("sheet-through"));
     }
-    text.push_str(". Check that the tool sticks out far enough.");
-    Some(text)
+    let cut = listed(w, &parts);
+    Some(w.say(&Message::new("sheet-sticks-out").arg("cut", cut)))
 }
 
-/// The notes and checker warnings, their lengths in the sheet's units
+/// The notes and checker warnings, in the sheet's language and units
 /// (docs/specs/inch-units.md §5.1).
-fn watch_out(html: &mut String, result: &RunResult, u: Units) {
+fn watch_out(html: &mut String, result: &RunResult, w: Words) {
     let mut items: Vec<String> = Vec::new();
     if let Some(note) = &result.post.note {
-        items.push(format!("Post {}: {note}", result.post.name));
+        // The post's note is its own words, as its config file writes them.
+        items.push(
+            w.say(
+                &Message::new("sheet-post-note")
+                    .arg("post", result.post.name.as_str())
+                    .arg("note", note.as_str()),
+            ),
+        );
     }
-    let say = |m: &chipload_i18n::Message| m.render(chipload_i18n::Language::En, u.into());
-    items.extend(result.notes.iter().map(|n| say(&n.message)));
+    items.extend(result.notes.iter().map(|n| w.say(&n.message)));
     items.extend(
         result
             .check_warnings
             .iter()
-            .map(|w| format!("Check: {}", say(&w.text_message))),
+            .map(|c| w.say(&Message::new("sheet-check").arg("finding", c.text_message.clone()))),
     );
-    html.push_str("<section class=\"warn\">\n<h2>Watch out</h2>\n");
+    let _ = writeln!(
+        html,
+        "<section class=\"warn\">\n<h2>{}</h2>",
+        w.text(&Message::new("sheet-watch-out"))
+    );
     if items.is_empty() {
-        html.push_str("<p>Nothing was reported.</p>\n");
+        let _ = writeln!(
+            html,
+            "<p>{}</p>",
+            w.text(&Message::new("sheet-nothing-reported"))
+        );
     } else {
         html.push_str("<ul>\n");
         for item in items {
@@ -704,7 +843,7 @@ const COLOURS: [&str; 6] = [
 const DASHES: [&str; 4] = ["", "6 3", "2 2", "9 3 2 3"];
 
 /// The top view: stock, parts, each file's cutting moves, tabs and the X0 Y0 mark (§2.4).
-fn picture(html: &mut String, job: &Job, result: &RunResult) {
+fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
     let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
     let mut bounds = Bounds::new((sx0, sy0));
     bounds.add((sx1, sy1));
@@ -782,7 +921,11 @@ fn picture(html: &mut String, job: &Job, result: &RunResult) {
     let several = result.files.len() > 1;
     for (i, group) in result.groups.iter().enumerate() {
         let label = if several {
-            format!("File {} (T{})", i + 1, group.tool.id)
+            w.text(
+                &Message::new("sheet-legend-file")
+                    .arg("number", i + 1)
+                    .arg("tool", group.tool.id),
+            )
         } else {
             format!("T{}", group.tool.id)
         };
@@ -798,13 +941,17 @@ fn picture(html: &mut String, job: &Job, result: &RunResult) {
         );
     }
     if !result.tabs.is_empty() {
-        html.push_str(
+        let _ = write!(
+            html,
             "<span><svg width=\"36\" height=\"10\"><line x1=\"4\" y1=\"5\" x2=\"32\" y2=\"5\" \
-             stroke=\"#e67e22\" stroke-width=\"5\" stroke-linecap=\"round\"/></svg> tabs</span>",
+             stroke=\"#e67e22\" stroke-width=\"5\" stroke-linecap=\"round\"/></svg> {}</span>",
+            w.text(&Message::new("sheet-legend-tabs"))
         );
     }
-    html.push_str(
-        "<span>Grey: the parts. Cutting moves only, no rapids.</span></figcaption>\n</figure>\n",
+    let _ = writeln!(
+        html,
+        "<span>{}</span></figcaption>\n</figure>",
+        w.text(&Message::new("sheet-legend-grey"))
     );
 }
 
@@ -970,19 +1117,19 @@ impl Bounds {
     }
 }
 
-/// A length for reading: at most 3 decimals, no trailing zeros, never `-0`.
-fn num(value: f64) -> String {
-    trimmed(value, 3)
+/// A number for reading: at most 3 decimals, no trailing zeros, never `-0`.
+fn num(value: f64) -> Value {
+    Value::Number(value, Digits::Trim(3))
 }
 
-/// A length (or feed) in `u`, the number only.
-fn len(u: Units, mm: f64) -> String {
-    crate::units::length_number(mm, u)
+/// A length (or feed) in the sheet's units, the number only.
+fn len(mm: f64) -> Value {
+    Value::LengthNumber(mm, Digits::Trim(3))
 }
 
-/// A length in `u` with its unit: `6 mm`, `0.25 in`.
-fn len_u(u: Units, mm: f64) -> String {
-    crate::units::length_text(mm, u)
+/// A length in the sheet's units, with its unit: `6 mm`, `0.25 in`.
+fn len_u(mm: f64) -> Value {
+    Value::mm(mm)
 }
 
 /// A coordinate in the picture: 2 decimals are plenty on paper.
@@ -1011,18 +1158,42 @@ pub fn escape(text: &str) -> String {
     out
 }
 
+/// HTML with everything outside ASCII as character references: a translated text that
+/// holds HTML itself.
+fn ascii(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    for c in html.chars() {
+        if c.is_ascii() {
+            out.push(c);
+        } else {
+            let _ = write!(out, "&#x{:x};", c as u32);
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn numbers_read_naturally() {
-        assert_eq!(num(6.0), "6");
-        assert_eq!(num(0.5), "0.5");
-        assert_eq!(num(-0.0001), "0");
-        assert_eq!(num(12.3456), "12.346");
-        assert_eq!(num(3.0_f64.to_radians().to_degrees()), "3");
+        let w = Words {
+            lang: Language::En,
+            units: Units::Mm,
+        };
+        let read = |value: Value| w.say(&Message::new("sheet-stepover").arg("percent", value));
+        assert_eq!(read(num(6.0)), "stepover 6 %");
+        assert_eq!(read(num(0.5)), "stepover 0.5 %");
+        assert_eq!(read(num(-0.0001)), "stepover 0 %");
+        assert_eq!(read(num(12.3456)), "stepover 12.346 %");
+        assert_eq!(read(num(3.0_f64.to_radians().to_degrees())), "stepover 3 %");
         assert_eq!(svg_num(-0.001), "0");
+    }
+
+    #[test]
+    fn html_texts_keep_their_markup_and_write_the_rest_as_ascii() {
+        assert_eq!(ascii("6 &times; 4 \u{fc}"), "6 &times; 4 &#xfc;");
     }
 
     #[test]

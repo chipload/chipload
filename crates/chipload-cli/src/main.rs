@@ -17,6 +17,7 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
+use chipload_i18n::Language;
 use chipload_job::edit::Mirror;
 use chipload_job::{
     Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
@@ -146,6 +147,10 @@ enum Command {
         /// the machine's (machine.gcode_units).
         #[arg(long, value_name = "UNITS")]
         sheet_units: Option<UnitsArg>,
+        /// The setup sheet's language (default: English). The command line itself stays
+        /// English.
+        #[arg(long, value_name = "LANG")]
+        sheet_lang: Option<LangArg>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -197,6 +202,9 @@ enum Command {
         /// machine's (machine.gcode_units).
         #[arg(long)]
         units: Option<UnitsArg>,
+        /// Its language (default: English). The command line itself stays English.
+        #[arg(long)]
+        lang: Option<LangArg>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -694,6 +702,30 @@ struct ShapeValues {
     layer: Option<String>,
 }
 
+/// A language the setup sheet can be written in (docs/specs/translations.md step 3).
+#[derive(Clone, Copy, ValueEnum)]
+pub enum LangArg {
+    En,
+    De,
+    Fr,
+    Es,
+    It,
+    Sv,
+}
+
+impl LangArg {
+    pub fn value(self) -> Language {
+        match self {
+            LangArg::En => Language::En,
+            LangArg::De => Language::De,
+            LangArg::Fr => Language::Fr,
+            LangArg::Es => Language::Es,
+            LangArg::It => Language::It,
+            LangArg::Sv => Language::Sv,
+        }
+    }
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 pub enum UnitsArg {
     Mm,
@@ -779,9 +811,15 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             tool_change,
             no_sheet,
             sheet_units,
+            sheet_lang,
             sets,
         } => {
-            let sheet = (!no_sheet).then(|| units(sheet_units).unwrap_or(Units::Mm));
+            let sheet = (!no_sheet).then(|| {
+                (
+                    units(sheet_units).unwrap_or(Units::Mm),
+                    sheet_lang.map_or(Language::En, LangArg::value),
+                )
+            });
             run(out, &project, &output, tool_change, sheet, &sets)
         }
         Command::Sheet {
@@ -790,6 +828,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             gcode,
             tool_change,
             units: sheet_units,
+            lang,
             sets,
         } => sheet(
             out,
@@ -797,7 +836,10 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             &output,
             gcode.as_deref(),
             tool_change,
-            units(sheet_units).unwrap_or(Units::Mm),
+            (
+                units(sheet_units).unwrap_or(Units::Mm),
+                lang.map_or(Language::En, LangArg::value),
+            ),
             &sets,
         ),
         Command::Simulate {
@@ -1688,8 +1730,8 @@ fn load_and_run(
 }
 
 /// What the sheet says it was made from: the project's file name and this version; its
-/// lengths in `units`.
-fn sheet_info(project: &Path, units: Units) -> SheetInfo {
+/// lengths in `units`, its words in `language`.
+fn sheet_info(project: &Path, (units, language): (Units, Language)) -> SheetInfo {
     SheetInfo {
         project: project.file_name().map_or_else(
             || project.display().to_string(),
@@ -1697,6 +1739,7 @@ fn sheet_info(project: &Path, units: Units) -> SheetInfo {
         ),
         written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
         units,
+        language,
     }
 }
 
@@ -1706,7 +1749,7 @@ fn sheet(
     output: &Path,
     gcode: Option<&Path>,
     tool_change: Option<library::ToolChangeArg>,
-    units: Units,
+    words: (Units, Language),
     sets: &[String],
 ) -> ExitCode {
     let (job, result) = match load_and_run(out, project, tool_change, sets) {
@@ -1717,7 +1760,7 @@ fn sheet(
         || project.with_extension(result.post.file_extension.trim_start_matches('.')),
         Path::to_path_buf,
     );
-    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project, units));
+    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project, words));
     if let Err(err) = write_atomically(output, &html) {
         out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
@@ -1829,7 +1872,7 @@ fn run(
     project: &Path,
     output: &Path,
     tool_change: Option<library::ToolChangeArg>,
-    sheet: Option<Units>,
+    sheet: Option<(Units, Language)>,
     sets: &[String],
 ) -> ExitCode {
     let (job, result) = match load_and_run(out, project, tool_change, sets) {
@@ -1888,8 +1931,8 @@ fn run(
             result.post.name
         ));
     }
-    if let Some(units) = sheet {
-        match write_setup_sheet(&job, &result, output, &sheet_info(project, units)) {
+    if let Some(words) = sheet {
+        match write_setup_sheet(&job, &result, output, &sheet_info(project, words)) {
             Ok(path) => {
                 out.wrote(&path, " (setup sheet)");
                 let shown = std::path::absolute(&path).unwrap_or(path);

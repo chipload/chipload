@@ -133,3 +133,15 @@ dependency. Numbers are formatted explicitly (as in the G-code: fixed decimals, 
 - GUI: export writes the sheet unless Settings → *Write a setup sheet with the G-code* is
   off (`setup_sheet` in the app settings, optional, on when missing); the status line and,
   for several files, the report name it.
+
+**As built, the language (2026-10-24, docs/specs/translations.md step 3):** every word of
+the sheet is a text of `sheet.ftl` (ids `sheet-…`), and `SheetInfo::language` picks the
+language, as `units` picks the units; `<html lang="…">` follows it. Notes and checker
+findings are written from their messages. Names (project, tools, parts, operations,
+layers, files), numbers and G-code are not translated, and the sheet stays ASCII (a
+translated word is written with character references). A few texts are HTML themselves
+(`&times;`, `&ldquo;…&rdquo;`, as the English sheet always wrote them): their arguments
+are escaped before. The app writes the sheet in its language; the command line in English
+unless `chipload sheet --lang` or `chipload run --sheet-lang` says otherwise. The time
+lines keep mm in an inch sheet, as before. A German golden sheet
+(`tests/corpus/expected/sheets/de/`) freezes the German output.
