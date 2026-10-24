@@ -7,9 +7,9 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-i18n = { version = "0.23.0", path = "../chipload-i18n" }
-chipload-job = { version = "0.23.0", path = "../chipload-job" }
-chipload-toolpath = { version = "0.23.0", path = "../chipload-toolpath" }
+chipload-i18n = { version = "0.24.0", path = "../chipload-i18n" }
+chipload-job = { version = "0.24.0", path = "../chipload-job" }
+chipload-toolpath = { version = "0.24.0", path = "../chipload-toolpath" }
 minijinja = { version = "3.0.0", features = ["serde", "fuel"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1"
