@@ -118,12 +118,20 @@ pub enum Value {
     Number(f64, Digits),
     /// A message inside this one, in the same language and units.
     Message(Box<Message>),
+    /// A value padded with spaces on the right to at least so many characters, for the
+    /// columns of a table.
+    Padded(Box<Value>, usize),
 }
 
 impl Value {
     /// A length written as `chipload_core::text::mm` writes it: at most 3 decimals.
     pub fn mm(mm: f64) -> Value {
         Value::Length(mm, Digits::Trim(3))
+    }
+
+    /// `value` padded with spaces to at least `width` characters.
+    pub fn padded(value: impl Into<Value>, width: usize) -> Value {
+        Value::Padded(Box::new(value.into()), width)
     }
 
     fn render(&self, lang: Language, units: Units) -> Arg {
@@ -153,6 +161,13 @@ impl Value {
             )),
             Value::Number(value, digits) => Arg::Text(digits.write(*value)),
             Value::Message(message) => Arg::Text(message.render(lang, units)),
+            Value::Padded(value, width) => {
+                let text = match value.render(lang, units) {
+                    Arg::Text(text) => text,
+                    Arg::Count(n) => n.to_string(),
+                };
+                Arg::Text(format!("{text:<width$}"))
+            }
         }
     }
 }
@@ -173,6 +188,7 @@ impl PartialEq for Value {
                 bits(ax) == bits(bx) && bits(ay) == bits(by) && da == db
             }
             (Value::Message(a), Value::Message(b)) => a == b,
+            (Value::Padded(a, wa), Value::Padded(b, wb)) => a == b && wa == wb,
             _ => false,
         }
     }

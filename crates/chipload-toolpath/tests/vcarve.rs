@@ -329,8 +329,16 @@ fn a_stroke_wider_than_the_cap_is_carved_to_it_and_reported() {
     assert!((deepest(&plan) - 2.0).abs() < 1e-9);
     assert_no_gouge(&shape, &plan, &bit);
     assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
-    assert!(plan.notes[0].contains("contours #7"), "{}", plan.notes[0]);
-    assert!(plan.notes[0].contains("need 5.000 mm"), "{}", plan.notes[0]);
+    assert!(
+        plan.notes[0].english().contains("contours #7"),
+        "{:?}",
+        plan.notes[0]
+    );
+    assert!(
+        plan.notes[0].english().contains("need 5.000 mm"),
+        "{:?}",
+        plan.notes[0]
+    );
 }
 
 #[test]
@@ -344,7 +352,9 @@ fn the_bit_limits_the_depth_too() {
     let plan = carve(&shape, &small, 10.0);
     assert!((deepest(&plan) - 3.0).abs() < 1e-9);
     assert!(
-        plan.notes[0].contains("carves at most 3.000 mm deep"),
+        plan.notes[0]
+            .english()
+            .contains("carves at most 3.000 mm deep"),
         "{:?}",
         plan.notes
     );
@@ -373,7 +383,7 @@ fn a_neck_narrower_than_the_tip_is_reported() {
     assert!(
         plan.notes
             .iter()
-            .any(|n| n.contains("narrower than the tip")),
+            .any(|n| n.english().contains("narrower than the tip")),
         "{:?}",
         plan.notes
     );

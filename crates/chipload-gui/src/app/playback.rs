@@ -3,8 +3,13 @@
 //! by time, see the moves done, the tool, and with the simulation on the stock as cut so
 //! far.
 
-use chipload_pipeline::estimate::{duration_text, move_seconds};
+use chipload_pipeline::estimate::{duration_message, move_seconds};
 use chipload_toolpath::model::MoveKind;
+
+/// A duration in the language of `lang`: "12 min 30 s".
+fn duration(lang: &impl crate::i18n::Lang, units: chipload_job::Units, seconds: f64) -> String {
+    duration_message(seconds).render(lang.lang(), units.into())
+}
 
 use super::*;
 use crate::view::{Point3, Progress, ToolLook};
@@ -244,8 +249,8 @@ impl Playback {
         let mut parts = vec![t!(
             lang,
             "playback-time-of",
-            time = duration_text(self.time),
-            total = duration_text(self.total())
+            time = duration(lang, units, self.time),
+            total = duration(lang, units, self.total())
         )];
         let k = self.current();
         if let Some((_, op, copy)) = self.spans.iter().find(|(moves, _, _)| moves.contains(&k)) {

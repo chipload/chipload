@@ -3,6 +3,7 @@
 //! moves at their feed, rapids at the rapid rate, spindle waits at every spindle start.
 //! No acceleration: a real machine takes longer.
 
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Note};
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::{OpSpan, ToolGroup};
@@ -125,17 +126,26 @@ pub fn estimate(
 
 /// `45 s`, `12 min 30 s`, `1 h 05 min` (§5).
 pub fn duration_text(seconds: f64) -> String {
+    duration_message(seconds).english()
+}
+
+/// [`duration_text`] as a message.
+pub fn duration_message(seconds: f64) -> Message {
     let whole = if seconds.is_finite() && seconds > 0.0 {
         seconds.round() as u64
     } else {
         0
     };
     match whole {
-        0..60 => format!("{whole} s"),
-        60..3600 => format!("{} min {} s", whole / 60, whole % 60),
+        0..60 => Message::new("pipeline-duration-seconds").arg("seconds", whole),
+        60..3600 => Message::new("pipeline-duration-minutes")
+            .arg("minutes", whole / 60)
+            .arg("seconds", whole % 60),
         _ => {
             let minutes = (whole + 30) / 60;
-            format!("{} h {:02} min", minutes / 60, minutes % 60)
+            Message::new("pipeline-duration-hours")
+                .arg("hours", minutes / 60)
+                .arg("minutes", format!("{:02}", minutes % 60))
         }
     }
 }
@@ -143,18 +153,14 @@ pub fn duration_text(seconds: f64) -> String {
 /// The report's lines: the total and its parts, each operation, each file of a job
 /// written one file per tool, and what the estimate leaves out.
 pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<Note> {
-    let changes = match estimate.tool_changes {
-        0 => String::new(),
-        1 => ", plus 1 tool change".into(),
-        n => format!(", plus {n} tool changes"),
-    };
-    let mut lines = vec![Note::job(format!(
-        "Estimated time: {} (cutting {}, rapids {}, spindle {}){changes}",
-        duration_text(estimate.total),
-        duration_text(estimate.cutting),
-        duration_text(estimate.rapid),
-        duration_text(estimate.spindle)
-    ))];
+    let mut lines = vec![Note::job(
+        Message::new("pipeline-estimate")
+            .arg("total", duration_message(estimate.total))
+            .arg("cutting", duration_message(estimate.cutting))
+            .arg("rapids", duration_message(estimate.rapid))
+            .arg("spindle", duration_message(estimate.spindle))
+            .arg("changes", estimate.tool_changes),
+    )];
     // With two parts or more, each part's time over its operations' (docs/specs/parts.md
     // §6); one part reads as before parts.
     let several_parts = job.parts.len() > 1;
@@ -182,45 +188,42 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                     })
                     .map(|(_, s)| s)
                     .sum();
-                lines.push(Note::job(format!(
-                    "  Part {} ({}): {}",
-                    number + 1,
-                    part.name,
-                    duration_text(total)
-                )));
+                lines.push(Note::job(
+                    Message::new("pipeline-estimate-part")
+                        .arg("number", number + 1)
+                        .arg("name", part.name.as_str())
+                        .arg("time", duration_message(total)),
+                ));
             }
         }
-        let label = job.label(at);
-        let indent = if several_parts { "    " } else { "  " };
+        let id = if several_parts {
+            Message::new("pipeline-estimate-part-operation")
+        } else {
+            Message::new("pipeline-estimate-operation")
+        };
         lines.push(Note::at(
             index,
-            format!("{indent}{label}: {}", duration_text(seconds)),
+            id.arg("label", job.label_message(at))
+                .arg("time", duration_message(seconds)),
         ));
     }
     if several_files {
         for (i, seconds) in estimate.groups.iter().enumerate() {
-            lines.push(Note::job(format!(
-                "  File {}: {}",
-                i + 1,
-                duration_text(*seconds)
-            )));
+            lines.push(Note::job(
+                Message::new("pipeline-estimate-file")
+                    .arg("number", i + 1)
+                    .arg("time", duration_message(*seconds)),
+            ));
         }
     }
     let rapids = if estimate.rapid_assumed {
-        format!(
-            "rapids at {ASSUMED_RAPID_MM_MIN} mm/min, assumed: set the machine's max feed for \
-             a better estimate"
-        )
+        Message::new("pipeline-estimate-rapids-assumed")
     } else {
-        format!(
-            "rapids at the machine's max feed, {} mm/min",
-            estimate.rapid_rate
-        )
+        Message::new("pipeline-estimate-rapids")
     };
-    lines.push(Note::job(format!(
-        "  At the programmed feeds ({rapids}); acceleration and corners make the real time \
-         longer."
-    )));
+    lines.push(Note::job(
+        rapids.arg("rate", Value::Feed(estimate.rapid_rate, Digits::Shortest)),
+    ));
     lines
 }
 

@@ -206,6 +206,15 @@ fn wrapped_cell<R>(
     })
 }
 
+/// An operation's chip load beside its feed, with where typical values lie on hover, in
+/// the app's language and display units.
+fn chip_load_label(ui: &mut egui::Ui, load: chipload_pipeline::chip_load::ChipLoad, units: Units) {
+    let (lang, units) = (ui.lang(), units.into());
+    let hint = chipload_pipeline::chip_load::chip_load_hint().render(lang, units);
+    ui.label(RichText::new(load.message().render(lang, units)).weak())
+        .on_hover_text(hint);
+}
+
 /// The tabs' flank angle in degrees, and how far the feet reach (docs/specs/
 /// profile-spiral.md §4).
 fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
@@ -768,8 +777,7 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
                 flag(ui.add(feed(cut)), ui, "feed");
                 if let Some(tool) = tool {
                     let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
-                    ui.label(RichText::new(load.text_in(units)).weak())
-                        .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+                    chip_load_label(ui, load, units);
                 }
             });
             ui.end_row();
@@ -1094,8 +1102,7 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
                     flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
                     if let Some(tool) = tool {
                         let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
-                        ui.label(RichText::new(load.text_in(units)).weak())
-                            .on_hover_text(chipload_pipeline::chip_load::CHIP_LOAD_HINT);
+                        chip_load_label(ui, load, units);
                     }
                 });
                 ui.end_row();

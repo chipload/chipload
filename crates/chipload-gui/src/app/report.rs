@@ -4,11 +4,12 @@
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity};
-use chipload_pipeline::report::{format_contours, format_import_report};
+use chipload_i18n::Message;
+use chipload_pipeline::report::{contour_messages, import_report_messages};
 use eframe::egui::{self, Color32, RichText, ScrollArea, Sense};
 
 use super::{ChiploadApp, Focus, Panel};
-use crate::i18n::t;
+use crate::i18n::{Lang, t};
 use chipload_job::Problem;
 
 /// Height the open report starts with.
@@ -46,9 +47,24 @@ impl Tone {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReportLine {
     pub tone: Tone,
+    /// The line as built; for a message from the library crates, in English and mm.
     pub text: String,
+    /// A message from the library crates, shown in the app's language and display units
+    /// (docs/specs/translations.md §7).
+    pub message: Option<Message>,
     /// The operation the line is about (index), if it names one.
     pub op: Option<usize>,
+}
+
+impl ReportLine {
+    /// The line as shown: a message in the language of `ui` and the display units, other
+    /// text with its lengths in the display units.
+    fn shown(&self, ui: &egui::Ui) -> String {
+        match &self.message {
+            Some(message) => message.render(ui.lang(), crate::units::display(ui.ctx()).into()),
+            None => crate::units::message(ui.ctx(), &self.text),
+        }
+    }
 }
 
 /// What the last action had to say. The first line is the headline.
@@ -92,7 +108,23 @@ impl Report {
 
     /// A line about operation `op` (an index), or about the project with None.
     pub fn push_at(&mut self, tone: Tone, text: String, op: Option<usize>) {
-        self.lines.push(ReportLine { tone, text, op });
+        self.lines.push(ReportLine {
+            tone,
+            text,
+            message: None,
+            op,
+        });
+    }
+
+    /// A message from the library crates (a note, a line of the time estimate), about
+    /// operation `op` or the project.
+    pub fn push_message(&mut self, tone: Tone, message: Message, op: Option<usize>) {
+        self.lines.push(ReportLine {
+            tone,
+            text: message.english(),
+            message: Some(message),
+            op,
+        });
     }
 
     /// The lines' text, in order.
@@ -121,7 +153,10 @@ impl std::ops::Index<usize> for Report {
 /// The current drawing's facts: units, extents, issues, the contour table.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct DrawingFacts {
-    pub lines: Vec<String>,
+    /// Shown in the app's language and display units.
+    pub lines: Vec<Message>,
+    /// Why the drawing could not be read, instead of the lines.
+    pub error: Option<String>,
     pub contours: usize,
     /// Import issues; errors among them make the section red.
     pub issues: usize,
@@ -130,10 +165,11 @@ pub struct DrawingFacts {
 
 impl DrawingFacts {
     pub fn new(report: &ImportReport, contours: &[Contour]) -> Self {
-        let mut lines = format_import_report(report);
-        lines.extend(format_contours(contours));
+        let mut lines = import_report_messages(report);
+        lines.extend(contour_messages(contours));
         DrawingFacts {
             lines,
+            error: None,
             contours: contours.len(),
             issues: report.issues.len(),
             errors: report.issues.iter().any(|i| i.severity == Severity::Error),
@@ -143,11 +179,27 @@ impl DrawingFacts {
     /// The drawing could not be read.
     pub fn failed(message: String) -> Self {
         DrawingFacts {
-            lines: vec![message],
+            lines: Vec::new(),
+            error: Some(message),
             contours: 0,
             issues: 1,
             errors: true,
         }
+    }
+
+    /// The facts as shown: in the language of `ui` and the display units.
+    fn text(&self, ui: &egui::Ui) -> String {
+        if let Some(error) = &self.error {
+            // An error isn't a message yet (docs/specs/translations.md §7.3, step 5).
+            return crate::units::message(ui.ctx(), error);
+        }
+        let units = crate::units::display(ui.ctx()).into();
+        let lines: Vec<String> = self
+            .lines
+            .iter()
+            .map(|line| line.render(ui.lang(), units))
+            .collect();
+        lines.join("\n")
     }
 
     fn title(&self, src: &impl crate::i18n::Lang) -> String {
@@ -251,14 +303,8 @@ impl ChiploadApp {
                                 .id_salt("drawing-facts-scroll")
                                 .show(ui, |ui| {
                                     ui.add(
-                                        egui::Label::new(
-                                            RichText::new(crate::units::message(
-                                                ui.ctx(),
-                                                &facts.lines.join("\n"),
-                                            ))
-                                            .monospace(),
-                                        )
-                                        .extend(),
+                                        egui::Label::new(RichText::new(facts.text(ui)).monospace())
+                                            .extend(),
                                     );
                                 });
                         });
@@ -269,7 +315,7 @@ impl ChiploadApp {
     /// One line: its mark and text in its tone; a line about an operation selects it.
     fn report_line(&mut self, ui: &mut egui::Ui, line: &ReportLine, headline: bool) {
         let color = line.tone.color(ui.visuals());
-        let mut text = RichText::new(crate::units::message(ui.ctx(), &line.text)).color(color);
+        let mut text = RichText::new(line.shown(ui)).color(color);
         if headline {
             text = text.strong();
         }

@@ -29,6 +29,7 @@ flowchart TB
     gui --> i18n
     job --> i18n
     toolpath --> i18n
+    dxf --> i18n
     pipeline --> i18n
 
     check["chipload-check<br/>independent G-code checker"] --> job
@@ -81,7 +82,7 @@ error.
 |---|---|---|
 | `chipload-core` | Lines and arcs, chaining into contours, which contour is inside which, fitting arcs to points, every tolerance (`tolerances`). No I/O. | no workspace crate; cavalier_contours |
 | `chipload-job` | The project file and everything else saved to disk: versioned loading with one migration per schema step, saving with a `.bak`, the tool library and machine profiles, settings, recovery notes. | core |
-| `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job; dxf |
+| `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job, i18n; dxf |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core; ttf-parser |
 | `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |

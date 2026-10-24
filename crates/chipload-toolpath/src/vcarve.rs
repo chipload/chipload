@@ -11,6 +11,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, VCARVE_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 use crate::cavalier::{Area, geometry};
@@ -63,7 +64,7 @@ pub struct VcarvePlan {
     /// In cut order.
     pub paths: Vec<CarvePath>,
     /// Warnings: strokes wider than the depth allows, strokes narrower than the tip.
-    pub notes: Vec<String>,
+    pub notes: Vec<Message>,
     /// The deepest any path goes, mm below the carved surface.
     pub deepest: f64,
 }
@@ -96,29 +97,26 @@ pub fn plan_vcarve(
         axis.set_cut(&outline, cap_radius, VCARVE_TOL_MM);
         axis.verify(&region.area, &outline, &ids)?;
         if widest > cap_radius + VCARVE_TOL_MM {
-            let limit = if bit.deepest() < max_depth {
-                format!(
-                    "the V-bit ({:.3} mm across), which carves at most {cap:.3} mm deep",
-                    bit.diameter
-                )
+            let note = if bit.deepest() < max_depth {
+                Message::new("toolpath-vcarve-too-wide-bit").arg("across", fixed3(bit.diameter))
             } else {
-                format!("a carve at most {cap:.3} mm deep")
+                Message::new("toolpath-vcarve-too-wide")
             };
-            notes.push(format!(
-                "contours {ids}: too wide for {limit} ({:.3} mm wide at the surface); the \
-                 edges of the widest parts aren't reached (they need {:.3} mm). Allow deeper, \
-                 use a wider angle, or clear the floor",
-                2.0 * cap_radius,
-                bit.depth_for(widest)
-            ));
+            notes.push(
+                note.arg("contours", ids.as_str())
+                    .arg("cap", fixed3(cap))
+                    .arg("wide", fixed3(2.0 * cap_radius))
+                    .arg("need", fixed3(bit.depth_for(widest))),
+            );
         }
         let narrow = axis.narrow_length(bit.tip_diameter / 2.0);
         if narrow > VCARVE_TOL_MM {
-            notes.push(format!(
-                "contours {ids}: {narrow:.3} mm of centre line is narrower than the tip \
-                 ({:.3} mm) and isn't carved",
-                bit.tip_diameter
-            ));
+            notes.push(
+                Message::new("toolpath-vcarve-narrow")
+                    .arg("contours", ids.as_str())
+                    .arg("narrow", fixed3(narrow))
+                    .arg("tip", fixed3(bit.tip_diameter)),
+            );
         }
         graph.append(axis);
     }
@@ -254,6 +252,11 @@ fn carve_pieces(walked: &[(Point, f64)], bit: &VBit) -> Vec<CarvePath> {
         })
         .filter(|piece| piece.depths.iter().any(|&d| d > DEPTH_TOL_MM))
         .collect()
+}
+
+/// A length with 3 decimals, for notes.
+fn fixed3(mm: f64) -> Value {
+    Value::Length(mm, Digits::Fixed(3))
 }
 
 fn ids_text(ids: &[usize]) -> String {

@@ -25,6 +25,7 @@ use chipload_core::chain::{Contour, Segment, ShapeFrom, chain_segments};
 use chipload_core::fold::fold_point;
 use chipload_core::nesting;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{DrawingSource, Geometry, PathSegment, Placement, Shape, SourceIssue, Units};
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
@@ -57,20 +58,24 @@ pub enum ImportError {
     },
 }
 
+/// `message` is `text_message` in English and mm, for the command line and `--json`; the
+/// app shows `text_message` in its language and units (docs/specs/translations.md §7).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Issue {
     pub severity: Severity,
     pub code: String,
     pub message: String,
+    pub text_message: Message,
     pub location: Option<Point>,
 }
 
 impl Issue {
-    pub fn new(severity: Severity, code: &str, message: String) -> Self {
+    pub fn new(severity: Severity, code: &str, message: Message) -> Self {
         Issue {
             severity,
             code: code.to_string(),
-            message,
+            message: message.english(),
+            text_message: message,
             location: None,
         }
     }
@@ -229,20 +234,16 @@ pub fn shapes_from_drawing_scaled(
         issues.push(Issue::new(
             Severity::Warning,
             "units_chosen",
-            format!(
-                "DXF has no units; using {} as chosen",
-                units_name(file_units)
-            ),
+            units_chosen(file_units),
         ));
     }
     if converter.nonzero_z > 0 {
         issues.push(Issue::new(
             Severity::Warning,
             "nonzero_z",
-            format!(
-                "{} entities have nonzero Z (max |Z| {:.3} mm); Z was dropped",
-                converter.nonzero_z, converter.max_abs_z
-            ),
+            Message::new("dxf-nonzero-z")
+                .arg("count", converter.nonzero_z)
+                .arg("max", Value::Length(converter.max_abs_z, Digits::Fixed(3))),
         ));
     }
 
@@ -335,10 +336,13 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
         .iter()
         .flat_map(|s| {
             s.issues.iter().map(move |i| {
+                let message = stored_issue(i, s.units);
                 let message = if several {
-                    format!("{}: {}", s.name, i.message)
+                    Message::new("dxf-source-issue")
+                        .arg("source", s.name.as_str())
+                        .arg("issue", message)
                 } else {
-                    i.message.clone()
+                    message
                 };
                 Issue::new(i.severity, &i.code, message)
             })
@@ -351,7 +355,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
             Issue::new(
                 Severity::Warning,
                 "zero_length",
-                format!("Removed zero-length {}", describe(seg)),
+                describe(Message::new("dxf-zero-length"), seg),
             )
             .at(seg.prim.start()),
         );
@@ -361,7 +365,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
             Issue::new(
                 Severity::Warning,
                 "duplicate",
-                format!("Removed duplicate {}", describe(seg)),
+                describe(Message::new("dxf-duplicate"), seg),
             )
             .at(seg.prim.start()),
         );
@@ -371,7 +375,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
             Issue::new(
                 Severity::Warning,
                 "branch_point",
-                "More than two segments meet at one point".into(),
+                Message::new("dxf-branch-point"),
             )
             .at(*point),
         );
@@ -431,15 +435,11 @@ fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour>
                 Issue::new(
                     Severity::Warning,
                     "open_contour",
-                    format!(
-                        "Contour {} on {} is open: ends at ({:.3}, {:.3}) mm and ({:.3}, {:.3}) mm",
-                        contour.id,
-                        contour.layers().join(", "),
-                        s.0,
-                        s.1,
-                        e.0,
-                        e.1
-                    ),
+                    Message::new("dxf-open-contour")
+                        .arg("contour", contour.id)
+                        .arg("layers", contour.layers().join(", "))
+                        .arg("start", Value::Point(s.0, s.1, Digits::Fixed(3)))
+                        .arg("end", Value::Point(e.0, e.1, Digits::Fixed(3))),
                 )
                 .at(s),
             );
@@ -449,15 +449,17 @@ fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour>
         match ring(&points) {
             Ok(pline) => rings.push((index, nesting::Ring { points, pline })),
             Err(reason) => {
+                contour.invalid_reason = Some(reason.english());
                 issues.push(
                     Issue::new(
                         Severity::Error,
                         "invalid_contour",
-                        format!("Contour {}: {reason}", contour.id),
+                        Message::new("dxf-invalid-contour")
+                            .arg("contour", contour.id)
+                            .arg("reason", reason),
                     )
                     .at(contour.start()),
                 );
-                contour.invalid_reason = Some(reason);
             }
         }
     }
@@ -472,34 +474,51 @@ fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour>
 }
 
 /// A closed polyline through the points, or why it can't be machined.
-fn ring(points: &[Point]) -> Result<Polyline<f64>, String> {
+fn ring(points: &[Point]) -> Result<Polyline<f64>, Message> {
     if points.len() < 3 {
-        return Err("fewer than 3 distinct points".into());
+        return Err(Message::new("dxf-ring-few-points"));
     }
     let mut pline = Polyline::new_closed();
     for &(x, y) in points {
         pline.add(x, y, 0.0);
     }
     if pline.scan_for_self_intersect() {
-        return Err("self-intersecting".into());
+        return Err(Message::new("dxf-ring-self-intersecting"));
     }
     if let Some((x, y)) = fold_point(points) {
-        return Err(format!(
-            "folds back on itself: its edges come within {ARC_APPROX_TOL_MM:.3} mm of each \
-             other near ({x:.3}, {y:.3})"
-        ));
+        return Err(Message::new("dxf-ring-folds")
+            .arg("within", Value::Length(ARC_APPROX_TOL_MM, Digits::Fixed(3)))
+            .arg("x", Value::LengthNumber(x, Digits::Fixed(3)))
+            .arg("y", Value::LengthNumber(y, Digits::Fixed(3))));
     }
     if pline.area().abs() < CHAIN_TOL_MM * CHAIN_TOL_MM {
-        return Err("encloses no area".into());
+        return Err(Message::new("dxf-ring-no-area"));
     }
     Ok(pline)
 }
 
-fn describe(segment: &Segment) -> String {
-    format!(
-        "{} on layer {} ({})",
-        segment.source_type, segment.layer, segment.handle
-    )
+/// A message about one segment: its DXF type, layer and handle.
+fn describe(message: Message, segment: &Segment) -> Message {
+    message
+        .arg("type", segment.source_type.as_str())
+        .arg("layer", segment.layer.as_str())
+        .arg("handle", segment.handle.as_str())
+}
+
+/// The issue a DXF's units were chosen for it.
+fn units_chosen(units: Units) -> Message {
+    Message::new("dxf-units-chosen").arg("units", units_name(units))
+}
+
+/// A message for an issue the project file keeps from the DXF's import. The file keeps its
+/// words, in English, not the message: those words are shown as they are, except where
+/// they are a message's English exactly.
+fn stored_issue(issue: &SourceIssue, units: Units) -> Message {
+    let chosen = units_chosen(units);
+    if issue.code == "units_chosen" && chosen.english() == issue.message {
+        return chosen;
+    }
+    Message::new("dxf-stored-issue").arg("text", issue.message.as_str())
 }
 
 fn bbox(segments: &[Segment]) -> Option<(Point, Point)> {

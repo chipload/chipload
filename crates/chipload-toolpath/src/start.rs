@@ -125,8 +125,8 @@ fn rotated(ring: &[Point], start: usize) -> Vec<Point> {
 }
 
 /// "(12.000, 3.500) mm", for notes.
-pub fn point_text(p: Point) -> String {
-    format!("({:.3}, {:.3}) mm", p.0, p.1)
+pub fn point_value(p: Point) -> chipload_i18n::Value {
+    chipload_i18n::Value::Point(p.0, p.1, chipload_i18n::Digits::Fixed(3))
 }
 
 #[cfg(test)]

@@ -52,7 +52,10 @@ fn sharpest_turn(ring: &PocketRing) -> f64 {
 }
 
 fn no_uncut(plan: &PocketPlan) -> bool {
-    !plan.notes.iter().any(|n| n.contains("uncut material"))
+    !plan
+        .notes
+        .iter()
+        .any(|n| n.english().contains("uncut material"))
 }
 
 #[test]

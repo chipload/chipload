@@ -3,6 +3,7 @@
 //! (docs/specs/small-items.md §5). Shown, not judged: a good value depends on the material,
 //! the tool and the machine (decision 6, option A).
 
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{HoleMethod, Job, Operation, Tool};
 
 /// An operation's chip load, or what is missing to know it.
@@ -19,11 +20,16 @@ pub enum ChipLoad {
 }
 
 /// Where typical values lie, for the hover text next to the number.
-pub const CHIP_LOAD_HINT: &str = "Chip load: how thick a chip each cutting edge takes, \
-    feed / (spindle speed × flutes). Too thin and the tool rubs and heats up; too thick and \
-    it may break. It depends on the material, the tool and the machine; as a rough guide, \
-    wood and plastics with 3–12 mm tools often take 0.05–0.25 mm/tooth, aluminium \
-    0.02–0.08. Check the tool maker's figures.";
+pub fn chip_load_hint() -> Message {
+    let number = |mm: f64| Value::LengthNumber(mm, Digits::Trim(2));
+    Message::new("pipeline-chip-load-hint")
+        .arg("small_tool", number(3.0))
+        .arg("large_tool", Value::Length(12.0, Digits::Trim(2)))
+        .arg("wood_low", number(0.05))
+        .arg("wood_high", Value::ChipLoad(0.25, Digits::Fixed(2)))
+        .arg("aluminium_low", number(0.02))
+        .arg("aluminium_high", number(0.08))
+}
 
 /// The feeds without a tool to go by (no tool chosen yet).
 pub const DEFAULT_FEED: f64 = 500.0;
@@ -97,6 +103,17 @@ impl ChipLoad {
         self.text_in(chipload_job::Units::Mm)
     }
 
+    /// [`ChipLoad::text`] as a message.
+    pub fn message(self) -> Message {
+        match self {
+            ChipLoad::Mm(mm) => Message::new("pipeline-chip-load")
+                .arg("load", Value::ChipLoad(mm, Digits::Fixed(3))),
+            ChipLoad::NoFlutes => Message::new("pipeline-chip-load-no-flutes"),
+            ChipLoad::NoRpm => Message::new("pipeline-chip-load-no-rpm"),
+            ChipLoad::NoTool => Message::new("pipeline-chip-load-no-tool"),
+        }
+    }
+
     /// As [`ChipLoad::text`], in `units`: `0.0017 in/tooth` (docs/specs/inch-units.md §5.1).
     pub fn text_in(self, units: chipload_job::Units) -> String {
         match self {
@@ -106,24 +123,35 @@ impl ChipLoad {
                     format!("{:.4} in/tooth", mm / chipload_core::MM_PER_INCH)
                 }
             },
-            ChipLoad::NoFlutes => "set the tool's flutes to see the chip load".into(),
-            ChipLoad::NoRpm => "set the tool's spindle speed to see the chip load".into(),
-            ChipLoad::NoTool => "no tool".into(),
+            other => other
+                .message()
+                .render(chipload_i18n::Language::En, units.into()),
         }
     }
 }
 
 /// One line per enabled operation, for `chipload plan`.
 pub fn chip_load_lines(job: &Job) -> Vec<String> {
-    let mut lines = vec!["Chip load (at the cutting feed):".to_string()];
+    chip_load_messages(job)
+        .iter()
+        .map(Message::english)
+        .collect()
+}
+
+/// [`chip_load_lines`] as messages.
+pub fn chip_load_messages(job: &Job) -> Vec<Message> {
+    let mut lines = vec![Message::new("pipeline-chip-load-title")];
     for (i, op) in job
         .operations
         .iter()
         .enumerate()
         .filter(|(_, op)| op.enabled())
     {
-        let label = op.label(i);
-        lines.push(format!("  {label}: {}", chip_load(job, op).text()));
+        lines.push(
+            Message::new("pipeline-chip-load-line")
+                .arg("label", op.label_message(i))
+                .arg("load", chip_load(job, op).message()),
+        );
     }
     lines
 }

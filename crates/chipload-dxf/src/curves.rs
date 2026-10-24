@@ -3,6 +3,8 @@
 
 use std::f64::consts::{FRAC_PI_2, TAU};
 
+use chipload_i18n::Message;
+
 /// A 3D point or vector in drawing units. Z is carried only to report nonzero Z.
 pub type Vec3 = [f64; 3];
 
@@ -90,30 +92,32 @@ pub struct Spline<'a> {
 
 impl Spline<'_> {
     /// Problems that make the data unusable, or None.
-    pub fn invalid_reason(&self) -> Option<String> {
+    pub fn invalid_reason(&self) -> Option<Message> {
         let n = self.control.len();
         if self.degree < 1 {
-            return Some("degree must be at least 1".into());
+            return Some(Message::new("dxf-spline-degree"));
         }
         if n <= self.degree {
-            return Some(format!(
-                "{n} control points is too few for degree {}",
-                self.degree
-            ));
+            return Some(
+                Message::new("dxf-spline-few-points")
+                    .arg("count", n)
+                    .arg("degree", self.degree),
+            );
         }
         if self.knots.len() != n + self.degree + 1 {
-            return Some(format!(
-                "{} knots, expected {} for {n} control points of degree {}",
-                self.knots.len(),
-                n + self.degree + 1,
-                self.degree
-            ));
+            return Some(
+                Message::new("dxf-spline-knots")
+                    .arg("knots", self.knots.len())
+                    .arg("expected", n + self.degree + 1)
+                    .arg("count", n)
+                    .arg("degree", self.degree),
+            );
         }
         if self.knots.windows(2).any(|w| w[1] < w[0]) {
-            return Some("knots are not ascending".into());
+            return Some(Message::new("dxf-spline-knots-order"));
         }
         if !self.weights.is_empty() && self.weights.len() != n {
-            return Some("weight count differs from control point count".into());
+            return Some(Message::new("dxf-spline-weights"));
         }
         None
     }

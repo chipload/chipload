@@ -30,6 +30,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
 };
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::library::Cutting;
 use chipload_job::{
     CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, RestRefusal, Spindle,
@@ -376,7 +377,7 @@ fn units_problem(job: &Job) -> Option<chipload_job::Problem> {
     (!post.units.contains(&units)).then(|| {
         chipload_job::Problem::at(
             "machine.gcode_units",
-            chipload_i18n::Message::new("pipeline-post-units")
+            Message::new("pipeline-post-units")
                 .arg("post", post.name.as_str())
                 .arg("units", units.name()),
         )
@@ -773,7 +774,7 @@ pub fn drawing_sha256(path: &Path) -> std::io::Result<String> {
 
 /// A note for each part whose copies reach beyond the stock (docs/specs/copies-grid.md §4,
 /// parts.md §5).
-fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<String> {
+fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> {
     let mut notes = Vec::new();
     for part in job.parts.iter().filter(|p| p.count() > 1) {
         let mine: Vec<OpSpan> = spans
@@ -794,29 +795,33 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<String> {
         if fits {
             continue;
         }
-        let whose = if job.parts.len() > 1 {
-            format!("Part {}: the", part.name)
+        let note = if job.parts.len() > 1 {
+            Message::new("pipeline-part-copies-beyond-stock").arg("part", part.name.as_str())
         } else {
-            "The".to_string()
+            Message::new("pipeline-copies-beyond-stock")
         };
-        notes.push(format!(
-            "{whose} {} copies cut X{x0:.3} to {x1:.3} mm, Y{y0:.3} to {y1:.3} mm, beyond the stock \
-             ({:.3} × {:.3} mm); check the stock or the part's copies.",
-            part.count(),
-            job.stock.x,
-            job.stock.y
-        ));
+        let number = |mm: f64| Value::LengthNumber(mm, Digits::Fixed(3));
+        let length = |mm: f64| Value::Length(mm, Digits::Fixed(3));
+        notes.push(
+            note.arg("count", part.count())
+                .arg("x0", number(x0))
+                .arg("x1", length(x1))
+                .arg("y0", number(y0))
+                .arg("y1", length(y1))
+                .arg("stock_x", number(job.stock.x))
+                .arg("stock_y", length(job.stock.y)),
+        );
     }
     notes
 }
 
-fn extent_notes(job: &Job, report: &ImportReport) -> Vec<String> {
+fn extent_notes(job: &Job, report: &ImportReport) -> Vec<Message> {
     let Some(((x0, y0), (x1, y1))) = report.bbox else {
         return Vec::new();
     };
     let (lo, hi) = job.stock.xy_bounds();
     if x0 < lo.0 || y0 < lo.1 || x1 > hi.0 || y1 > hi.1 {
-        vec!["The drawing extends outside the stock".to_string()]
+        vec![Message::new("pipeline-drawing-outside-stock")]
     } else {
         Vec::new()
     }

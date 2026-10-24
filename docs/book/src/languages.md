@@ -10,7 +10,8 @@ these. To choose another, use *View > Language* or *This computer > Preferences*
 Browser. The change is immediate, and the app keeps it for next time.
 
 What stays in English, whatever the language:
-- Problems, report lines and checker messages (they come in a later version).
+- Checker messages, error messages, and the issues found when a DXF was first read (they
+  come in a later version).
 - The setup sheet, the G-code and its comments.
 - The command line, `--json` output and the [AI assistant tools](assistants.md).
 - This guide.

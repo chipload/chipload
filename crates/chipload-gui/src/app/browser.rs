@@ -7,6 +7,7 @@ use eframe::egui::{Color32, Id, Rect, Response, Stroke, WidgetInfo, WidgetType, 
 
 use super::shortcuts::with_keys;
 use super::*;
+use crate::i18n::Lang;
 use crate::icons::{self, Icon};
 
 /// A row's height, points.
@@ -1023,7 +1024,8 @@ impl ChiploadApp {
             .as_ref()
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
             .map_or(String::new(), |(_, s)| {
-                format!("{} · ", chipload_pipeline::estimate::duration_text(*s))
+                let time = chipload_pipeline::estimate::duration_message(*s);
+                format!("{} · ", time.render(ui.lang(), self.units.into()))
             });
         let row = Row::new(
             Id::new(("browser-pass", i, k)),
@@ -1092,7 +1094,8 @@ impl ChiploadApp {
                     .find(|(o, _)| *o == chipload_job::OpRef::op(i))
             })
             .map_or(String::new(), |(_, s)| {
-                format!(" · {}", chipload_pipeline::estimate::duration_text(*s))
+                let time = chipload_pipeline::estimate::duration_message(*s);
+                format!(" · {}", time.render(self.lang(), self.units.into()))
             });
         let first = format!(
             "{kind} · T{}{rest} · {summary} · {start}–{end} mm{time}",

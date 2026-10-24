@@ -180,6 +180,18 @@ its language and display units. Numbers written with Rust's `{}` keep that form 
 skin's "at most … got …": their numbers follow the display units, still without one.
 An area (a picture's smallest speck, in mm²) isn't converted to square inches.
 
+**As built, 7.3.3 (2026-10-24):** planning notes (`toolpath.ftl` 47 more texts, the notes
+of `pipeline.ftl`), the time estimate and chip loads, and the drawing's facts with the
+DXF import's issues (`dxf.ftl`, 25 texts; `Issue` keeps `message` in English and gains
+`text_message`). Functions that wrote English lines for both front ends gain a form that
+returns messages (`import_report_messages`, `contour_messages`, `chip_load_messages`,
+`duration_message`, `ChipLoad::message`); the English forms are now thin wrappers, so the
+command line is unchanged. A list is built one item at a time from small texts ("1, 2 and
+3"); the contour table pads its columns with `Value::Padded`. Issues found while reading a
+DXF are kept in the project file as English words, so they stay English, except "DXF has
+no units", which is rebuilt from the units. Still English text (through `text_in`): the
+lines of a DXF update and of library imports, checker findings and errors (7.3.4, 7.3.5).
+
 ### 7.1 What there is
 
 The library crates write about 450 messages as finished English sentences (`format!`),

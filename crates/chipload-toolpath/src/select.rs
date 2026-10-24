@@ -2,6 +2,7 @@
 //! Match job selectors against imported contours. See docs/specs/v0-profile-pipeline.md §3.
 
 use chipload_core::chain::{Contour, Segment, ShapeFrom};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::Selector;
 
 use crate::ToolpathError;
@@ -9,8 +10,8 @@ use crate::ToolpathError;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Selection<'a> {
     pub contours: Vec<&'a Contour>,
-    /// Open contours that matched and were skipped.
-    pub notes: Vec<String>,
+    /// Open contours that matched and were skipped, without the operation's label.
+    pub notes: Vec<Message>,
 }
 
 /// Closed, valid contours whose every segment matches.
@@ -128,15 +129,11 @@ fn select<'a>(
         .iter()
         .map(|c| {
             let (s, e) = (c.start(), c.end());
-            format!(
-                "{op}: skipped open contour #{} on {} ({:.3}, {:.3}) mm to ({:.3}, {:.3}) mm",
-                c.id,
-                c.layers().join(", "),
-                s.0,
-                s.1,
-                e.0,
-                e.1
-            )
+            Message::new("toolpath-skipped-open")
+                .arg("contour", c.id)
+                .arg("layers", c.layers().join(", "))
+                .arg("from", Value::Point(s.0, s.1, Digits::Fixed(3)))
+                .arg("to", Value::Point(e.0, e.1, Digits::Fixed(3)))
         })
         .collect();
     Ok(Selection {

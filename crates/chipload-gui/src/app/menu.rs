@@ -4,6 +4,7 @@
 
 use super::shortcuts::{self, Action, with_keys};
 use super::*;
+use crate::i18n::Lang;
 use chipload_job::edit::Mirror;
 
 impl ChiploadApp {
@@ -526,7 +527,8 @@ impl ChiploadApp {
                 })
             });
             let time = self.result.as_ref().map(|r| {
-                let time = chipload_pipeline::estimate::duration_text(r.estimate.total);
+                let time = chipload_pipeline::estimate::duration_message(r.estimate.total)
+                    .render(ui.lang(), self.units.into());
                 let cycle = t!(ui, "menu-status-cycle", time = time);
                 match &scope {
                     Some(scope) => format!("{scope} · {cycle}"),

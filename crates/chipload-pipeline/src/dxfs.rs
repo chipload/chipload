@@ -8,6 +8,7 @@ use std::path::Path;
 
 use chipload_dxf::shapes_from_dxf;
 use chipload_dxf::shapes_from_dxf_scaled;
+use chipload_i18n::Message;
 use chipload_job::{Geometry, Job, Note, Placement, Shape, Units};
 
 use crate::{PipelineError, UpdateReport, ids_text, op_label, placement, stock_fit_note};
@@ -192,22 +193,31 @@ pub fn layer_clash_notes(job: &Job) -> Vec<Note> {
         {
             continue;
         }
-        let mut sources: BTreeSet<String> = BTreeSet::new();
+        // In the order of their English names, as always listed.
+        let mut sources: BTreeMap<String, Message> = BTreeMap::new();
         for shape in &job.drawing.shapes {
             if shape.layer.to_lowercase() != layer.to_lowercase() {
                 continue;
             }
-            sources.insert(source_name(job, shape));
+            let name = source_name(job, shape);
+            sources.insert(name.english(), name);
         }
         if sources.len() > 1 {
+            let mut names = sources.into_values();
+            let Some(first) = names.next() else {
+                continue;
+            };
+            let listed = names.fold(first, |list, name| {
+                Message::new("pipeline-and")
+                    .arg("list", list)
+                    .arg("last", name)
+            });
             notes.push(Note::at(
                 i,
-                format!(
-                    "{}: layer \"{layer}\" is in {}; it cuts all of them. Limit it to one \
-                     (select the layer under that DXF in the Browser)",
-                    op_label(i, op),
-                    sources.into_iter().collect::<Vec<_>>().join(" and ")
-                ),
+                Message::new("pipeline-layer-clash")
+                    .arg("label", op.label_message(i))
+                    .arg("layer", layer.as_str())
+                    .arg("sources", listed),
             ));
         }
     }
@@ -215,24 +225,21 @@ pub fn layer_clash_notes(job: &Job) -> Vec<Note> {
 }
 
 /// Where a shape comes from, for messages: a DXF's or image's name, or "drawn shapes".
-fn source_name(job: &Job, shape: &Shape) -> String {
+fn source_name(job: &Job, shape: &Shape) -> Message {
+    let named = |name: &str| Message::new("pipeline-source-named").arg("name", name);
     if let Some(id) = shape.dxf() {
-        return job
-            .drawing
-            .dxfs
-            .iter()
-            .find(|d| d.id == id)
-            .map_or_else(|| format!("DXF {id}"), |d| d.name.clone());
+        return job.drawing.dxfs.iter().find(|d| d.id == id).map_or_else(
+            || Message::new("pipeline-source-dxf").arg("id", id),
+            |d| named(&d.name),
+        );
     }
     if let Some(id) = shape.image() {
-        return job
-            .drawing
-            .images
-            .iter()
-            .find(|i| i.id == id)
-            .map_or_else(|| format!("image {id}"), |i| i.file.clone());
+        return job.drawing.images.iter().find(|i| i.id == id).map_or_else(
+            || Message::new("pipeline-source-image").arg("id", id),
+            |i| named(&i.file),
+        );
     }
-    "drawn shapes".into()
+    Message::new("pipeline-source-drawn")
 }
 
 /// `name`, or with " 2", " 3", … when another DXF has it.

@@ -20,6 +20,7 @@ use chipload_core::primitives::{Line, Primitive, distance, signed_area};
 use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Direction, Entry, Side, Spindle};
 
 use crate::ToolpathError;
@@ -36,7 +37,7 @@ use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged_or_tight};
-use crate::start::{assign, onto, point_text, restart};
+use crate::start::{assign, onto, point_value, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
@@ -114,9 +115,14 @@ pub struct PocketPiece {
 pub struct PocketPlan {
     pub pieces: Vec<PocketPiece>,
     /// Warnings: narrow parts, uncut material.
-    pub notes: Vec<String>,
+    pub notes: Vec<Message>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
+}
+
+/// A length with 3 decimals, for notes.
+fn fixed3(mm: f64) -> Value {
+    Value::Length(mm, Digits::Fixed(3))
 }
 
 fn ids_text(ids: &[usize]) -> String {
@@ -478,7 +484,7 @@ struct Attempt {
     rings: Vec<PocketRing>,
     level0: Vec<Area>,
     arcs: ArcTable,
-    notes: Vec<String>,
+    notes: Vec<Message>,
 }
 
 /// What a piece is cleared with, and where the tool comes from.
@@ -550,7 +556,7 @@ fn rounded_rings(
     stepover: f64,
     ids: &[usize],
     c: &Clearing,
-    notes: &mut Vec<String>,
+    notes: &mut Vec<Message>,
 ) -> Result<(), ToolpathError> {
     let level0: Vec<Area> = roots.iter().map(|&r| nodes[r].area.clone()).collect();
     let missed = |nodes: &[Node]| {
@@ -610,10 +616,7 @@ fn rounded_rings(
         node.area = area.clone();
     }
     if missed(nodes).is_none() {
-        notes.push(format!(
-            "contours {}: ring corners not rounded; rounding would leave material",
-            ids_text(ids)
-        ));
+        notes.push(Message::new("toolpath-corners-not-rounded").arg("contours", ids_text(ids)));
     }
     Ok(())
 }
@@ -1095,7 +1098,7 @@ fn uncut_material(
     links: &[bool],
     radius: f64,
     ids: &[usize],
-) -> (Option<String>, Vec<Missed>) {
+) -> (Option<Message>, Vec<Missed>) {
     let eps = REST_TOL_MM;
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
@@ -1210,17 +1213,15 @@ fn uncut_material(
     let Some(inside) = inside else {
         return (None, missed);
     };
-    let count = spots.len();
-    let places = format!("{count} place{}", if count > 1 { "s" } else { "" });
-    let note = format!(
-        "contours {}: uncut material in {places}, largest about {:.2} x {:.2} mm near \
-         ({:.1}, {:.1}) mm; reduce the stepover to clear it",
-        ids_text(ids),
-        x1 - x0,
-        y1 - y0,
-        inside.centre.0,
-        inside.centre.1
-    );
+    let note = Message::new("toolpath-uncut")
+        .arg("contours", ids_text(ids))
+        .arg("count", spots.len())
+        .arg("width", Value::LengthNumber(x1 - x0, Digits::Fixed(2)))
+        .arg("height", Value::Length(y1 - y0, Digits::Fixed(2)))
+        .arg(
+            "near",
+            Value::Point(inside.centre.0, inside.centre.1, Digits::Fixed(1)),
+        );
     (Some(note), missed)
 }
 
@@ -1433,12 +1434,11 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
         arcs.extend(used_arcs);
         notes.extend(used_notes);
         if level0.len() > 1 {
-            notes.push(format!(
-                "contours {}: the tool does not fit through a narrow part; cleared as {} \
-                 areas and material remains in between",
-                ids_text(&ids),
-                level0.len()
-            ));
+            notes.push(
+                Message::new("toolpath-pocket-narrow")
+                    .arg("contours", ids_text(&ids))
+                    .arg("areas", level0.len()),
+            );
         }
         position = rings[0].points[0]; // every depth starts again at the first ring
         drafts.push(Draft {
@@ -1480,11 +1480,12 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 match fitted_leads(&ring.points, radius, min_radius, waste_left, fits) {
                     Some((l, used)) => {
                         if used < radius {
-                            notes.push(format!(
-                                "contours {}: lead radius reduced to {used:.3} mm (no room \
-                                 for {radius:.3} mm)",
-                                ids_text(&ids)
-                            ));
+                            notes.push(
+                                Message::new("toolpath-lead-reduced")
+                                    .arg("contours", ids_text(&ids))
+                                    .arg("used", fixed3(used))
+                                    .arg("radius", fixed3(radius)),
+                            );
                         }
                         l.tag(&mut arcs);
                         let plain = std::mem::take(&mut ring.points);
@@ -1496,11 +1497,11 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                         ring.points = path;
                         ring.open = true;
                     }
-                    None => notes.push(format!(
-                        "contours {}: no room for a lead (not even {min_radius:.3} mm); the \
-                         wall is cut without one",
-                        ids_text(&ids)
-                    )),
+                    None => notes.push(
+                        Message::new("toolpath-no-lead")
+                            .arg("contours", ids_text(&ids))
+                            .arg("least", fixed3(min_radius)),
+                    ),
                 }
             }
         }
@@ -1518,7 +1519,7 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 &walls,
                 offset,
             );
-        let linked = |rings: &[PocketRing]| -> Result<(Vec<bool>, Option<String>), ToolpathError> {
+        let linked = |rings: &[PocketRing]| -> Result<(Vec<bool>, Option<Message>), ToolpathError> {
             // Between rings the tool stays down wherever the link is safe (docs/specs/pocket.md
             // as built 2026-10-15): verified with the rings.
             let links: Vec<bool> = rings
@@ -1598,24 +1599,21 @@ fn fit_helix(
     radius: f64,
     rings: &[PocketRing],
     ids: &[usize],
-    notes: &mut Vec<String>,
+    notes: &mut Vec<Message>,
 ) -> Result<Option<Helix>, ToolpathError> {
     let Some(&first) = rings.first().and_then(|r| r.points.first()) else {
         return Ok(None);
     };
     let min_radius = 0.2 * fit.tool_radius; // a tenth of the diameter
-    let without = |why: &str| {
-        format!(
-            "contours {}: no room for a helix ({why}); ramping in instead",
-            ids_text(ids)
-        )
-    };
+    let without = |why: Message| why.arg("contours", ids_text(ids));
     // The areas a helix centre of radius r may lie in.
     let room = |r: f64| fit.region.shrunk(fit.offset + r);
     let mut used = radius;
     if room(radius)?.is_empty() {
         if room(min_radius)?.is_empty() {
-            notes.push(without(&format!("not even {min_radius:.3} mm")));
+            notes.push(without(
+                Message::new("toolpath-no-helix-room").arg("least", fixed3(min_radius)),
+            ));
             return Ok(None);
         }
         // The largest radius that fits, to within a thousandth of the range.
@@ -1629,14 +1627,16 @@ fn fit_helix(
             }
         }
         used = lo;
-        notes.push(format!(
-            "contours {}: helix radius reduced to {used:.3} mm (no room for {radius:.3} mm)",
-            ids_text(ids)
-        ));
+        notes.push(
+            Message::new("toolpath-helix-reduced")
+                .arg("contours", ids_text(ids))
+                .arg("used", fixed3(used))
+                .arg("radius", fixed3(radius)),
+        );
     }
     let areas = room(used)?;
     let Some(nearest) = areas.iter().min_by_key(|a| Ordered(a.distance(first))) else {
-        notes.push(without("the pocket is too narrow"));
+        notes.push(without(Message::new("toolpath-no-helix-narrow")));
         return Ok(None);
     };
     // Deepest: the last non-empty shrink of that area, a tool radius at a time.
@@ -1669,7 +1669,7 @@ fn fit_helix(
             .all(|w| clear_of(fit.walls, w[0], w[1], clearance))
         && clear_of(fit.walls, helix.start, first, clearance);
     if !clear {
-        notes.push(without("its way to the first path passes a wall or island"));
+        notes.push(without(Message::new("toolpath-no-helix-way")));
         return Ok(None);
     }
     Ok(Some(helix))
@@ -1683,7 +1683,7 @@ fn choose_starts(
     starts: &[Point],
     far: f64,
     arcs: &mut ArcTable,
-    notes: &mut Vec<String>,
+    notes: &mut Vec<Message>,
 ) {
     if starts.is_empty() {
         return;
@@ -1707,22 +1707,21 @@ fn choose_starts(
         ring.points = restart(&ring.points, choice.stored, arcs);
         ring.chosen = Some(choice.index);
         if choice.distance > far {
-            notes.push(format!(
-                "contours {}: start point {} is {:.3} mm from the wall; the nearest point is \
-                 used",
-                ids_text(&drafts[d].ids),
-                point_text(choice.stored),
-                choice.distance
-            ));
+            notes.push(
+                Message::new("toolpath-start-far-wall")
+                    .arg("contours", ids_text(&drafts[d].ids))
+                    .arg("point", point_value(choice.stored))
+                    .arg("distance", fixed3(choice.distance)),
+            );
         }
     }
     for (index, r) in duplicates {
         let (d, _) = at[r];
-        notes.push(format!(
-            "contours {}: start point {} is on a wall that already has one; it is ignored",
-            ids_text(&drafts[d].ids),
-            point_text(starts[index])
-        ));
+        notes.push(
+            Message::new("toolpath-start-twice-wall")
+                .arg("contours", ids_text(&drafts[d].ids))
+                .arg("point", point_value(starts[index])),
+        );
     }
 }
 
@@ -1732,7 +1731,7 @@ struct RestPieces {
     pieces: Vec<PocketArea>,
     /// The larger tool's leftovers in every region.
     left: Vec<Area>,
-    notes: Vec<String>,
+    notes: Vec<Message>,
 }
 
 /// The areas a rest pocket clears in each region: within a diameter of what a tool of
@@ -1777,21 +1776,15 @@ fn rest_pieces(
         found.left.extend(material);
     }
     if found.left.is_empty() {
-        found.notes.push(
-            "the larger tool reaches the whole pocket; nothing is left to rest machine".into(),
-        );
+        found.notes.push(Message::new("toolpath-rest-nothing-left"));
     }
     if let Some(&(w, h)) = skipped.iter().max_by_key(|&&(w, h)| Ordered(w * h)) {
-        found.notes.push(format!(
-            "rest machining: material in {} {} is too small for this tool too (largest about \
-             {w:.2} × {h:.2} mm)",
-            skipped.len(),
-            if skipped.len() == 1 {
-                "place"
-            } else {
-                "places"
-            }
-        ));
+        found.notes.push(
+            Message::new("toolpath-rest-too-small")
+                .arg("count", skipped.len())
+                .arg("width", Value::LengthNumber(w, Digits::Fixed(2)))
+                .arg("height", Value::Length(h, Digits::Fixed(2))),
+        );
     }
     Ok(found)
 }

@@ -30,7 +30,7 @@ use crate::path::{PathCut, order_paths, path_moves};
 use crate::pocket::{
     Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
 };
-use crate::profile::{PathRing, pass_depths, plan_profile};
+use crate::profile::{PathRing, contour_note, labelled_note, pass_depths, plan_profile};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::surface::{SurfaceCut, surface_moves};
 use crate::tabs::{TabLayout, place_tabs, tab_polylines};
@@ -129,7 +129,11 @@ pub fn plan_job_cancellable(
     for step in &steps {
         cancel.check()?;
         let Chosen {
-            at, op, selection, ..
+            at,
+            op,
+            selection,
+            label_message: label,
+            ..
         } = &chosen[step.chosen];
         let group = &mut groups[step.group];
         if group.moves.is_empty() {
@@ -142,7 +146,7 @@ pub fn plan_job_cancellable(
                 selection
                     .notes
                     .iter()
-                    .map(|n| Note::at(at.operation, n.clone())),
+                    .map(|n| Note::at(at.operation, labelled_note(label, n.clone()))),
             );
         }
         let planned = plan_step(job, contours, cancel, &chosen[step.chosen], step, position)?;
@@ -192,6 +196,7 @@ struct Chosen<'a> {
     /// The operation; for a rest pass, the pocket it is (Job::resolve).
     op: Operation,
     label: String,
+    label_message: Message,
     selection: Selection<'a>,
 }
 
@@ -221,6 +226,7 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
             at,
             op,
             label,
+            label_message: job.label_message(at),
             selection,
         });
     }
@@ -364,6 +370,7 @@ fn plan_step(
     };
     let context = Context {
         label: &chosen.label,
+        label_message: &chosen.label_message,
         tool,
         job,
         pass_z: &pass_z,
@@ -453,7 +460,8 @@ struct Gathered {
     part_started: Option<u64>,
     /// Operations planned at least once: their selection's notes are listed once.
     started: Vec<OpRef>,
-    /// Every copy repeats the original's notes: each is listed once per operation.
+    /// Every copy repeats the original's notes: each is listed once per operation, by its
+    /// English words.
     seen: Vec<(OpRef, String)>,
 }
 
@@ -483,9 +491,10 @@ impl Gathered {
             tool_radius,
         });
         for note in planned.notes {
-            let key = (at, note);
+            // By its words: a copy's numbers can differ in the last bits.
+            let key = (at, note.english());
             if !self.seen.contains(&key) {
-                notes.push(Note::at(index, key.1.clone()));
+                notes.push(Note::at(index, note));
                 self.seen.push(key);
             }
         }
@@ -528,6 +537,7 @@ impl Gathered {
 /// What every operation needs from the job.
 struct Context<'a> {
     label: &'a str,
+    label_message: &'a Message,
     tool: &'a Tool,
     job: &'a Job,
     pass_z: &'a [f64],
@@ -541,7 +551,7 @@ struct Context<'a> {
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
 struct Planned {
     moves: Vec<Move>,
-    notes: Vec<String>,
+    notes: Vec<Message>,
     tabs: Vec<Vec<Point>>,
     pockets: Vec<PocketPiece>,
     arcs: ArcTable,
@@ -610,7 +620,11 @@ fn plan_pocket_op(
         };
         for piece in &mut plan.pieces {
             let unreached = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
-            corner_notes.extend(unreached.iter().map(|c| unreached_note(label, c, style)));
+            corner_notes.extend(
+                unreached
+                    .iter()
+                    .map(|c| unreached_note(ctx.label_message, c, style)),
+            );
         }
     }
     let mut out = Planned {
@@ -618,7 +632,7 @@ fn plan_pocket_op(
         notes: plan
             .notes
             .iter()
-            .map(|n| format!("{label}: {n}"))
+            .map(|n| labelled_note(ctx.label_message, n.clone()))
             .chain(corner_notes)
             .collect(),
         tabs: Vec::new(),
@@ -767,9 +781,12 @@ fn plan_path_op(
         &mut arcs,
         &mut notes,
     );
-    let mut notes: Vec<String> = notes.iter().map(|n| format!("{label}: {n}")).collect();
+    let mut notes: Vec<Message> = notes
+        .into_iter()
+        .map(|n| labelled_note(ctx.label_message, n))
+        .collect();
     if let Some(note) = groove_note(ctx.tool, op.end_depth - op.start_depth) {
-        notes.push(format!("{label}: {note}"));
+        notes.push(labelled_note(ctx.label_message, note));
     }
     let cut = PathCut {
         pass_z: ctx.pass_z,
@@ -812,16 +829,14 @@ fn plan_holes_op(
     let (found, others) = find_holes(&selection.contours);
     let mut notes = Vec::new();
     if others > 0 {
-        let what = if others == 1 {
-            "1 shape that isn't a circle".to_string()
-        } else {
-            format!("{others} shapes that aren't circles")
-        };
-        notes.push(format!("{label}: skipped {what}"));
+        notes.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-holes-not-circles").arg("count", others),
+        ));
     }
     let tool_radius = tool.diameter / 2.0;
-    // Holes this tool can't cut, by diameter: (diameter text, count).
-    let mut unfit: std::collections::BTreeMap<String, usize> = Default::default();
+    // Holes this tool can't cut, by diameter: diameter text -> (diameter, count).
+    let mut unfit: std::collections::BTreeMap<String, (f64, usize)> = Default::default();
     let mut cores = 0;
     let mut holes = Vec::new();
     for hole in found {
@@ -835,7 +850,7 @@ fn plan_holes_op(
             }
         };
         if !fits {
-            *unfit.entry(diameter).or_default() += 1;
+            unfit.entry(diameter).or_insert((2.0 * hole.radius, 0)).1 += 1;
             continue;
         }
         if let HoleMethod::Bore { .. } = op.method
@@ -853,33 +868,24 @@ fn plan_holes_op(
         }
         holes.push(hole);
     }
-    for (diameter, count) in &unfit {
-        let holes_text = if *count == 1 {
-            format!("hole {diameter} mm")
-        } else {
-            format!("{count} holes of {diameter} mm")
+    for &(diameter, count) in unfit.values() {
+        let note = match op.method {
+            HoleMethod::Drill { .. } => {
+                Message::new("toolpath-holes-not-drill-size").arg("within", Value::mm(DRILL_FIT_MM))
+            }
+            HoleMethod::Bore { .. } => Message::new("toolpath-holes-too-small-to-bore"),
         };
-        notes.push(match op.method {
-            HoleMethod::Drill { .. } => format!(
-                "{label}: {holes_text}: not the {} mm drill's size (within {} mm); not drilled",
-                mm(tool.diameter),
-                mm(DRILL_FIT_MM)
-            ),
-            HoleMethod::Bore { .. } => format!(
-                "{label}: {holes_text}: too small for the {} mm tool to bore; not cut",
-                mm(tool.diameter)
-            ),
-        });
+        notes.push(labelled_note(
+            ctx.label_message,
+            note.arg("count", count)
+                .arg("diameter", Value::mm(diameter))
+                .arg("tool", Value::mm(tool.diameter)),
+        ));
     }
     if cores > 0 {
-        let holes_text = if cores == 1 {
-            "1 hole leaves".to_string()
-        } else {
-            format!("{cores} holes leave")
-        };
-        notes.push(format!(
-            "{label}: {holes_text} a loose core (hole more than twice the tool); hold it down \
-             or use a pocket"
+        notes.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-holes-core").arg("count", cores),
         ));
     }
     if holes.is_empty() {
@@ -962,26 +968,19 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
 }
 
 /// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5).
-fn groove_note(tool: &Tool, depth: f64) -> Option<String> {
+fn groove_note(tool: &Tool, depth: f64) -> Option<Message> {
     if tool.kind != ToolType::Vbit {
         return None;
     }
     let Some(angle) = tool.angle else {
-        return Some(format!(
-            "tool {} is a V-bit without an angle: the groove's width is unknown",
-            tool.id
-        ));
+        return Some(Message::new("toolpath-groove-no-angle").arg("tool", tool.id));
     };
     let tip = tool.tip_diameter.unwrap_or(0.0);
     let width = tip + 2.0 * depth * (angle / 2.0).tan();
     Some(if width > tool.diameter {
-        format!(
-            "the V-groove is deeper than the V-bit's cone: {} mm wide at the top, with \
-             straight walls above the cone",
-            mm(tool.diameter)
-        )
+        Message::new("toolpath-groove-past-cone").arg("width", Value::mm(tool.diameter))
     } else {
-        format!("the V-groove is {} mm wide at the top", mm(width))
+        Message::new("toolpath-groove-width").arg("width", Value::mm(width))
     })
 }
 
@@ -1025,7 +1024,11 @@ fn plan_vcarve_op(
         .unwrap_or(start);
     Ok(Planned {
         moves,
-        notes: plan.notes.iter().map(|n| format!("{label}: {n}")).collect(),
+        notes: plan
+            .notes
+            .into_iter()
+            .map(|n| labelled_note(ctx.label_message, n))
+            .collect(),
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs: ArcTable::default(),
@@ -1048,7 +1051,7 @@ fn plan_profile_op(
     // out (docs/specs/finish-and-skin.md §2).
     let mut plan = plan_profile(
         op,
-        label,
+        ctx.label_message,
         &selection.contours,
         radius,
         machine.spindle,
@@ -1062,7 +1065,7 @@ fn plan_profile_op(
     let rough = match &rough_op {
         Some(rough_op) => Some(plan_profile(
             rough_op,
-            label,
+            ctx.label_message,
             &selection.contours,
             radius,
             machine.spindle,
@@ -1083,8 +1086,11 @@ fn plan_profile_op(
             label,
         };
         let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
-        plan.notes
-            .extend(unreached.iter().map(|c| unreached_note(label, c, style)));
+        plan.notes.extend(
+            unreached
+                .iter()
+                .map(|c| unreached_note(ctx.label_message, c, style)),
+        );
         if let (Some(rough), Some(rough_op)) = (&mut rough, &rough_op) {
             let rough_cut = CornerCut {
                 clearance: rough_op.clearance,
@@ -1111,8 +1117,11 @@ fn plan_profile_op(
         out.arcs.extend(rough.arcs.clone());
         // The roughing may add a narrow part the wall doesn't have; its notes on start
         // points say the same as the wall's.
+        let mut words: Vec<String> = out.notes.iter().map(Message::english).collect();
         for note in &rough.notes {
-            if !out.notes.contains(note) {
+            let english = note.english();
+            if !words.contains(&english) {
+                words.push(english);
                 out.notes.push(note.clone());
             }
         }
@@ -1178,7 +1187,8 @@ fn plan_profile_op(
             if let Some(finish) = op.finish
                 && z == rough_bottom
             {
-                slot_note(ring, &slot, radius, finish.stock, label, &mut out.notes)?;
+                let labels = (label, ctx.label_message);
+                slot_note(ring, &slot, radius, finish.stock, labels, &mut out.notes)?;
             }
             let tabs = surface(layout);
             let lap = WallLap {
@@ -1200,10 +1210,9 @@ fn plan_profile_op(
     }
     if !curved.is_empty() {
         let ids: Vec<String> = curved.iter().map(|c| format!("#{c}")).collect();
-        out.notes.push(format!(
-            "{label}: some tabs on contours {} sit on a corner or curve (no straight stretch \
-             nearby)",
-            ids.join(", ")
+        out.notes.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-tabs-on-curves").arg("contours", ids.join(", ")),
         ));
     }
     Ok(out)
@@ -1223,8 +1232,9 @@ fn profile_tabs(
         return Ok((vec![None; rings.len()], Vec::new()));
     };
     if op.side == Side::Inside {
-        out.notes.push(format!(
-            "{label}: tabs on an inside profile will hold the cut-out slug"
+        out.notes.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-tabs-inside"),
         ));
     }
     let mut layouts: Vec<Option<TabLayout>> = Vec::with_capacity(rings.len());
@@ -1240,7 +1250,7 @@ fn profile_tabs(
         out.tabs.extend(tab_polylines(&ring.points, &placed));
         if let Some(note) = joined_feet(&placed, tabs) {
             out.notes
-                .push(format!("{label}, contour #{}: {note}", ring.contour_id));
+                .push(contour_note(ctx.label_message, ring.contour_id, note));
         }
         layouts.push(Some(placed));
     }
@@ -1307,8 +1317,8 @@ fn slot_note(
     slot: &[&[Point]],
     radius: f64,
     stock: f64,
-    label: &str,
-    notes: &mut Vec<String>,
+    (label, label_message): (&str, &Message),
+    notes: &mut Vec<Message>,
 ) -> Result<(), ToolpathError> {
     let farthest = farthest_from(&ring.points, slot, radius / 2.0);
     let id = ring.contour_id;
@@ -1321,11 +1331,12 @@ fn slot_note(
         )));
     }
     if farthest > 2.0 * stock + CHAIN_TOL_MM {
-        notes.push(format!(
-            "{label}, contour #{id}: the finishing lap cuts up to {} mm in corners or narrow \
-             parts (finishing stock {} mm)",
-            mm(farthest),
-            mm(stock)
+        notes.push(contour_note(
+            label_message,
+            id,
+            Message::new("toolpath-finish-lap-cuts")
+                .arg("most", Value::mm(farthest))
+                .arg("stock", Value::mm(stock)),
         ));
     }
     Ok(())
@@ -1334,7 +1345,7 @@ fn slot_note(
 /// A note when neighbouring sloped tabs meet below their top: their feet, each
 /// `height / tan(flank)` long, together are longer than the gap between them
 /// (docs/specs/profile-spiral.md §4).
-fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<String> {
+fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<Message> {
     if tabs.is_straight() || layout.spans.len() < 2 {
         return None;
     }
@@ -1349,16 +1360,22 @@ fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<String> {
             gap += layout.length;
         }
         if gap < feet {
-            pairs.push(format!("{} and {}", k + 1, next + 1));
+            pairs.push(
+                Message::new("toolpath-and")
+                    .arg("list", k + 1)
+                    .arg("last", next + 1),
+            );
         }
     }
-    (!pairs.is_empty()).then(|| {
-        format!(
-            "tabs {} meet below their top (flanks at {:.1}°): they hold as one longer tab",
-            pairs.join(", "),
-            tabs.flank_angle.to_degrees()
-        )
-    })
+    let pairs = comma_list(pairs)?;
+    Some(
+        Message::new("toolpath-tabs-joined")
+            .arg("pairs", pairs)
+            .arg(
+                "flank",
+                Value::Number(tabs.flank_angle.to_degrees(), Digits::Fixed(1)),
+            ),
+    )
 }
 
 /// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
@@ -1664,7 +1681,6 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         };
         let tool = &job.tools[k];
         let number = index + 1;
-        let label = op.label(index);
         let label_message = op.label_message(index);
         let numbered = Message::new("job-operation-label").arg("number", number);
         let at = |field: &str| format!("operations.{index}.{field}");
@@ -1694,7 +1710,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         } else if below > DEPTH_TOL_MM {
             notes.push(Note::at(
                 index,
-                format!("{label}: cuts {below:.3} mm below the stock (into the spoilboard)"),
+                labelled_note(
+                    &label_message,
+                    Message::new("toolpath-into-spoilboard")
+                        .arg("below", Value::Length(below, Digits::Fixed(3))),
+                ),
             ));
         }
         if op.clearance() >= tool.diameter / 2.0 {
@@ -1741,7 +1761,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             rest: Some(rest), ..
         }) = op
         {
-            match rest_check(job, index, rest.after_tool, tool, &label) {
+            match rest_check(job, index, rest.after_tool, tool, &label_message) {
                 Ok(more) => notes.extend(more.into_iter().map(|n| Note::at(index, n))),
                 Err(short) => problems.push(labelled(at("rest"), &label_message, short)),
             }
@@ -1797,7 +1817,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         }
         // The tool's rules: a problem at its field, or whether the operation plunges
         // straight down with a tool of unknown centre-cutting, and any other notes.
-        let (plunges, more): (ToolRule, Vec<String>) = match op {
+        let (plunges, more): (ToolRule, Vec<Message>) = match op {
             Operation::Pocket(p) => (
                 pocket_tool_notes(tool, p.entry).map_err(|e| {
                     let field = if tool.kind == ToolType::Endmill {
@@ -1830,9 +1850,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             // It goes down beside the stock: no plunge into material.
             Operation::Surface(_) => (
                 surface_tool_rule(tool).map_err(|e| (at("tool"), numbered.clone(), e)),
-                surface_order_note(job, index, &label).into_iter().collect(),
+                surface_order_note(job, index, &label_message)
+                    .into_iter()
+                    .collect(),
             ),
-            Operation::Vcarve(_) => match vcarve_tool_notes(&label, tool) {
+            Operation::Vcarve(_) => match vcarve_tool_notes(&label_message, tool) {
                 Ok(found) => (Ok(false), found),
                 Err(e) => {
                     let path = if tool.kind == ToolType::Vbit {
@@ -1858,24 +1880,24 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         let Some(&(first, _)) = ops.first() else {
             continue;
         };
-        let listed: Vec<String> = ops
+        let listed: Vec<Message> = ops
             .iter()
-            .map(|(index, what)| format!("{} ({what})", index + 1))
+            .map(|(index, kind)| {
+                Message::new("toolpath-operation-kind")
+                    .arg("number", index + 1)
+                    .arg("kind", *kind)
+            })
             .collect();
-        let which = match listed.len() {
-            1 => format!("operation {} plunges", listed[0]),
-            n => format!(
-                "operations {} and {} plunge",
-                listed[..n - 1].join(", "),
-                listed[n - 1]
-            ),
+        let count = listed.len();
+        let Some(listed) = and_list(listed) else {
+            continue;
         };
         notes.push(Note::at(
             first,
-            format!(
-                "Tool {tool} isn't marked center_cutting and {which} straight down: make sure \
-                 it is a centre-cutting tool, or ramp in (entry: ramp)"
-            ),
+            Message::new("toolpath-plunge-unknown")
+                .arg("tool", tool)
+                .arg("count", count)
+                .arg("operations", listed),
         ));
     }
     (problems, notes)
@@ -1885,16 +1907,38 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
 /// centre-cutting, or the problem's (path, label, short text).
 type ToolRule = Result<bool, (String, Message, Message)>;
 
-/// The kind of an operation in a note: "pocket", "profile", "follow path".
+/// The kind of an operation in a note, as `toolpath-operation-kind` selects it.
 fn op_kind_name(op: &Operation) -> &'static str {
     match op {
         Operation::Profile(_) => "profile",
         Operation::Pocket(_) => "pocket",
-        Operation::Vcarve(_) => "V-carve",
-        Operation::Path(_) => "follow path",
+        Operation::Vcarve(_) => "vcarve",
+        Operation::Path(_) => "path",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
     }
+}
+
+/// Items joined with commas: "1, 2, 3".
+fn comma_list(items: Vec<Message>) -> Option<Message> {
+    let mut items = items.into_iter();
+    let first = items.next()?;
+    Some(items.fold(first, |list, item| {
+        Message::new("toolpath-comma")
+            .arg("list", list)
+            .arg("item", item)
+    }))
+}
+
+/// Items joined with commas and "and" before the last: "1, 2 and 3".
+fn and_list(mut items: Vec<Message>) -> Option<Message> {
+    let last = items.pop()?;
+    Some(match comma_list(items) {
+        Some(list) => Message::new("toolpath-and")
+            .arg("list", list)
+            .arg("last", last),
+        None => last,
+    })
 }
 
 /// A surface needs an endmill (docs/specs/surfacing.md §4). It never plunges into
@@ -1910,21 +1954,21 @@ fn surface_tool_rule(tool: &Tool) -> Result<bool, Message> {
 
 /// A surface after other operations of its part faces what they already cut
 /// (docs/specs/surfacing.md §6): a warning, as it is usually put first.
-fn surface_order_note(job: &Job, index: usize, label: &str) -> Option<String> {
+fn surface_order_note(job: &Job, index: usize, label: &Message) -> Option<Message> {
     let part = job.operations.get(index)?.part();
-    let before: Vec<String> = (0..index)
+    let before: Vec<Message> = (0..index)
         .filter(|&i| job.cuts(i) && job.operations[i].part() == part)
         .filter(|&i| !matches!(job.operations[i], Operation::Surface(_)))
-        .map(|i| (i + 1).to_string())
+        .map(|i| Message::new("toolpath-number").arg("number", i + 1))
         .collect();
-    let listed = match before.as_slice() {
-        [] => return None,
-        [one] => format!("operation {one} has"),
-        [rest @ .., last] => format!("operations {} and {last} have", rest.join(", ")),
-    };
-    Some(format!(
-        "{label} faces the stock after {listed} cut it: surfacing usually comes first"
-    ))
+    let count = before.len();
+    let listed = and_list(before)?;
+    Some(
+        Message::new("toolpath-surface-after")
+            .arg("label", label.clone())
+            .arg("count", count)
+            .arg("operations", listed),
+    )
 }
 
 /// Rest machining's rules (docs/specs/rest-machining.md §5) for the pocket at `index`,
@@ -1934,8 +1978,8 @@ fn rest_check(
     index: usize,
     after_tool: i64,
     tool: &Tool,
-    label: &str,
-) -> Result<Vec<String>, Message> {
+    label: &Message,
+) -> Result<Vec<Message>, Message> {
     // The warnings carry the label; a problem's text gets it from `labelled`.
     let Some(Operation::Pocket(pocket)) = job.operations.get(index) else {
         return Ok(Vec::new());
@@ -1971,9 +2015,9 @@ fn rest_check(
     if earlier {
         Ok(Vec::new())
     } else {
-        Ok(vec![format!(
-            "{label}: rests after tool {after_tool}, but no earlier pocket cuts these shapes \
-             with it as deep; the rest of the pocket will be left uncut"
+        Ok(vec![labelled_note(
+            label,
+            Message::new("toolpath-rest-no-earlier").arg("tool", after_tool),
         )])
     }
 }
@@ -1994,7 +2038,6 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
         ));
     }
     for (k, pass) in pocket.rest_passes.iter().enumerate() {
-        let label = job.label(OpRef::pass(index, k));
         let label_message = job.label_message(OpRef::pass(index, k));
         let at = |field: &str| format!("operations.{index}.rest_passes.{k}.{field}");
         let Some(tool) = job.tool(pass.tool) else {
@@ -2042,10 +2085,9 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
         if let Ok(true) = pocket_tool_notes(tool, pass.entry) {
             notes.push(Note::at(
                 index,
-                format!(
-                    "{label}: plunges straight down with tool {}, which isn't marked \
-                     centre-cutting; use a helix or a ramp if it isn't",
-                    tool.id
+                labelled_note(
+                    &label_message,
+                    Message::new("toolpath-rest-pass-plunge").arg("tool", tool.id),
                 ),
             ));
         }
@@ -2107,12 +2149,12 @@ fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<Note> {
             .iter()
             .flat_map(|ops| ops.iter().map(|i| (i + 1).to_string()))
             .collect();
-        notes.push(Note::job(format!(
-            "Tool {tool} is used in {} groups (operations {}); moving them next to each other \
-             saves a tool change",
-            used.len(),
-            numbers.join(", ")
-        )));
+        notes.push(Note::job(
+            Message::new("toolpath-tool-returns")
+                .arg("tool", tool)
+                .arg("groups", used.len())
+                .arg("operations", numbers.join(", ")),
+        ));
     }
     notes
 }
@@ -2120,7 +2162,7 @@ fn returning_tool_notes(groups: &[(i64, Vec<usize>)]) -> Vec<Note> {
 /// V-carving needs a V-bit with a known angle; a tip that isn't set is taken as pointed and
 /// said so (docs/specs/v-carve.md §2, decision 11). The notes carry the label; a problem's
 /// text gets it from `labelled`, as for the other tool rules below.
-fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, Message> {
+fn vcarve_tool_notes(label: &Message, tool: &Tool) -> Result<Vec<Message>, Message> {
     if tool.kind != ToolType::Vbit {
         return Err(Message::new("toolpath-vcarve-vbit")
             .arg("tool", tool.id)
@@ -2130,9 +2172,9 @@ fn vcarve_tool_notes(label: &str, tool: &Tool) -> Result<Vec<String>, Message> {
         return Err(Message::new("toolpath-vbit-no-angle").arg("tool", tool.id));
     }
     if tool.tip_diameter.is_none() {
-        return Ok(vec![format!(
-            "{label}: tool {} has no tip diameter set; V-carving takes it as pointed",
-            tool.id
+        return Ok(vec![labelled_note(
+            label,
+            Message::new("toolpath-vbit-no-tip").arg("tool", tool.id),
         )]);
     }
     Ok(Vec::new())
@@ -2182,7 +2224,7 @@ fn holes_tool_notes(tool: &Tool, method: HoleMethod) -> Result<(), Message> {
 /// Going down a tab's flank is a ramp (docs/specs/profile-spiral.md §4): flanks steeper
 /// than the ramp angle are refused for a tool marked not centre-cutting, and a note when
 /// it's unknown.
-fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>, Message> {
+fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<Message>, Message> {
     let Some(tabs) = &op.tabs else {
         return Ok(Vec::new());
     };
@@ -2196,11 +2238,12 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<String>
             .arg("tool", tool.id)
             .arg("flank", Value::Number(flank, Digits::Fixed(1)))
             .arg("ramp", Value::Number(ramp, Digits::Fixed(1)))),
-        None => Ok(vec![format!(
-            "Operation {number}: the tabs' flanks ({flank:.1}°) are steeper than the ramp \
-             angle ({ramp:.1}°); tool {} isn't marked center_cutting, make sure it is a \
-             centre-cutting tool",
-            tool.id
+        None => Ok(vec![labelled_note(
+            &Message::new("job-operation-label").arg("number", number),
+            Message::new("toolpath-flank-unknown-centre-cutting")
+                .arg("flank", Value::Number(flank, Digits::Fixed(1)))
+                .arg("ramp", Value::Number(ramp, Digits::Fixed(1)))
+                .arg("tool", tool.id),
         )]),
         Some(true) => Ok(Vec::new()),
     }

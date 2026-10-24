@@ -789,6 +789,7 @@ version = "0.23.0"
 dependencies = [
  "cavalier_contours",
  "chipload-core",
+ "chipload-i18n",
  "chipload-job",
  "dxf",
  "serde_json",

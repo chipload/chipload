@@ -49,7 +49,7 @@ pub fn order_paths(
     start: Point,
     spindle: Spindle,
     arcs: &mut ArcTable,
-    notes: &mut Vec<String>,
+    notes: &mut Vec<chipload_i18n::Message>,
 ) -> Vec<FollowedPath> {
     let mut remaining: Vec<FollowedPath> = Vec::new();
     for contour in contours {
@@ -66,10 +66,14 @@ pub fn order_paths(
             polyline_length(&points)
         };
         if points.len() < 2 || length <= CHAIN_TOL_MM {
-            notes.push(format!(
-                "contour #{} is too short to follow ({length:.4} mm); skipped",
-                contour.id
-            ));
+            notes.push(
+                chipload_i18n::Message::new("toolpath-path-too-short")
+                    .arg("contour", contour.id)
+                    .arg(
+                        "length",
+                        chipload_i18n::Value::Length(length, chipload_i18n::Digits::Fixed(4)),
+                    ),
+            );
             continue;
         }
         remaining.push(FollowedPath {

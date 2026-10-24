@@ -384,13 +384,20 @@ pub fn encloses(contour: &Contour, p: Point) -> bool {
 }
 
 /// The note for a corner no ring reaches (docs/specs/dogbones.md §5).
-pub fn unreached_note(label: &str, corner: &Corner, style: Corners) -> String {
+pub fn unreached_note(
+    label: &chipload_i18n::Message,
+    corner: &Corner,
+    style: Corners,
+) -> chipload_i18n::Message {
     let style = match style {
-        Corners::Dogbone { .. } => "no dogbone",
-        Corners::Tbone { .. } => "no T-bone",
+        Corners::Dogbone { .. } => "dogbone",
+        Corners::Tbone { .. } => "tbone",
     };
-    format!(
-        "{label}: corner at ({:.3}, {:.3}) mm: the tool can't reach into it; {style}",
-        corner.at.0, corner.at.1
-    )
+    let note = chipload_i18n::Message::new("toolpath-corner-unreached")
+        .arg(
+            "point",
+            chipload_i18n::Value::Point(corner.at.0, corner.at.1, chipload_i18n::Digits::Fixed(3)),
+        )
+        .arg("style", style);
+    crate::profile::labelled_note(label, note)
 }

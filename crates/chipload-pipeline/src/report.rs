@@ -3,6 +3,7 @@
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity, UnitsFrom, units_name};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Shape};
 
 pub fn severity_name(severity: Severity) -> &'static str {
@@ -13,49 +14,78 @@ pub fn severity_name(severity: Severity) -> &'static str {
 }
 
 pub fn format_import_report(report: &ImportReport) -> Vec<String> {
+    import_report_messages(report)
+        .iter()
+        .map(Message::english)
+        .collect()
+}
+
+/// A number of the drawing's extents or contour table: 3 decimals, no unit.
+fn coordinate(mm: f64) -> Value {
+    Value::LengthNumber(mm, Digits::Fixed(3))
+}
+
+/// [`format_import_report`] as messages, for the app (docs/specs/translations.md §7).
+pub fn import_report_messages(report: &ImportReport) -> Vec<Message> {
     let from = match report.units_from {
         UnitsFrom::Dxf => "dxf",
         UnitsFrom::User => "user",
     };
-    let mut lines = vec![format!("Units: {} (from {from})", units_name(report.units))];
+    let mut lines = vec![
+        Message::new("pipeline-report-units")
+            .arg("units", units_name(report.units))
+            .arg("from", from),
+    ];
     if let Some(((x0, y0), (x1, y1))) = report.bbox {
-        lines.push(format!(
-            "Extents: X {x0:.3} .. {x1:.3}, Y {y0:.3} .. {y1:.3} ({:.3} x {:.3} mm)",
-            x1 - x0,
-            y1 - y0
-        ));
+        lines.push(
+            Message::new("pipeline-report-extents")
+                .arg("x0", coordinate(x0))
+                .arg("x1", coordinate(x1))
+                .arg("y0", coordinate(y0))
+                .arg("y1", coordinate(y1))
+                .arg("width", coordinate(x1 - x0))
+                .arg("height", Value::Length(y1 - y0, Digits::Fixed(3))),
+        );
     }
     for (title, counts) in [
-        ("Imported", &report.imported),
-        ("Flattened", &report.flattened),
-        ("Ignored", &report.ignored),
+        (Message::new("pipeline-report-imported"), &report.imported),
+        (Message::new("pipeline-report-flattened"), &report.flattened),
+        (Message::new("pipeline-report-ignored"), &report.ignored),
     ] {
         if !counts.is_empty() {
+            // DXF entity names and counts: never translated.
             let items: Vec<String> = counts.iter().map(|(k, n)| format!("{k} {n}")).collect();
-            lines.push(format!("{title}: {}", items.join(", ")));
+            lines.push(title.arg("items", items.join(", ")));
         }
     }
     if report.issues.is_empty() {
-        lines.push("Issues: none".into());
+        lines.push(Message::new("pipeline-report-no-issues"));
     } else {
-        lines.push(format!("Issues ({}):", report.issues.len()));
-        lines.extend(
-            report
-                .issues
-                .iter()
-                .map(|i| format!("  [{}] {}", severity_name(i.severity), i.message)),
-        );
+        lines.push(Message::new("pipeline-report-issues").arg("count", report.issues.len()));
+        lines.extend(report.issues.iter().map(|i| {
+            Message::new("pipeline-report-issue")
+                .arg("severity", severity_name(i.severity))
+                .arg("issue", i.text_message.clone())
+        }));
     }
     lines
 }
 
 pub fn format_contours(contours: &[Contour]) -> Vec<String> {
-    let mut lines = vec![format!("Contours ({}):", contours.len())];
+    contour_messages(contours)
+        .iter()
+        .map(Message::english)
+        .collect()
+}
+
+/// [`format_contours`] as messages: a title and a table, one contour a line.
+pub fn contour_messages(contours: &[Contour]) -> Vec<Message> {
+    let mut lines = vec![Message::new("pipeline-report-contours").arg("count", contours.len())];
     for c in contours {
         let state = if !c.closed {
             "open"
         } else if c.invalid_reason.is_some() {
-            "INVALID"
+            "invalid"
         } else if c.nesting_depth.unwrap_or(0) % 2 == 0 {
             "outer"
         } else {
@@ -73,11 +103,17 @@ pub fn format_contours(contours: &[Contour]) -> Vec<String> {
             fold(f64::min, f64::INFINITY, |p| p.1),
             fold(f64::max, f64::NEG_INFINITY, |p| p.1),
         );
-        lines.push(format!(
-            "  #{:<4} {state:<8} layer {:<16} X {x0:.3} .. {x1:.3}  Y {y0:.3} .. {y1:.3}",
-            c.id,
-            c.layers().join(", ")
-        ));
+        let state = Message::new("pipeline-report-contour-state").arg("state", state);
+        lines.push(
+            Message::new("pipeline-report-contour")
+                .arg("id", Value::padded(c.id.to_string(), 4))
+                .arg("state", Value::padded(state, 8))
+                .arg("layers", Value::padded(c.layers().join(", "), 16))
+                .arg("x0", coordinate(x0))
+                .arg("x1", coordinate(x1))
+                .arg("y0", coordinate(y0))
+                .arg("y1", coordinate(y1)),
+        );
     }
     lines
 }

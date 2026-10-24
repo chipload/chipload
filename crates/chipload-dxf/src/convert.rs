@@ -18,6 +18,7 @@ use dxf::{Drawing, Point as DxfPoint, Vector};
 
 use crate::curves::{Ellipse, Spline, Vec3};
 use crate::{Issue, Severity};
+use chipload_i18n::{Digits, Message, Value};
 
 /// Guards against hostile, self-referencing or absurdly deep block nesting.
 pub const MAX_BLOCK_DEPTH: usize = 32;
@@ -218,7 +219,8 @@ impl<'a> Converter<'a> {
             self.skip(
                 entity,
                 &kind,
-                &format!("a coordinate is not a number or beyond {MAX_COORDINATE_MM} mm"),
+                Message::new("dxf-skip-coordinate")
+                    .arg("most", Value::Length(MAX_COORDINATE_MM, Digits::Shortest)),
             );
             return;
         }
@@ -301,11 +303,7 @@ impl<'a> Converter<'a> {
                     .map(|p| [p.x, p.y, p.z])
                     .collect();
                 if control.is_empty() {
-                    self.skip(
-                        entity,
-                        kind,
-                        "has fit points only; re-export it with control points",
-                    );
+                    self.skip(entity, kind, Message::new("dxf-skip-fit-points"));
                     return None;
                 }
                 let curve = Spline {
@@ -315,7 +313,7 @@ impl<'a> Converter<'a> {
                     weights: &spline.weight_values,
                 };
                 if let Some(reason) = curve.invalid_reason() {
-                    self.skip(entity, kind, &reason);
+                    self.skip(entity, kind, reason);
                     return None;
                 }
                 out.polyline(
@@ -328,7 +326,7 @@ impl<'a> Converter<'a> {
                 let n = &ellipse.normal;
                 // Major axis and centre are in WCS; the minor axis is normal × major.
                 if extrusion_frame(n).is_none() {
-                    self.skip(entity, kind, "not parallel to the XY plane");
+                    self.skip(entity, kind, Message::new("dxf-skip-not-flat"));
                     return None;
                 }
                 let side = if n.z < 0.0 { -1.0 } else { 1.0 };
@@ -366,7 +364,7 @@ impl<'a> Converter<'a> {
             self.issues.push(Issue::new(
                 Severity::Error,
                 "block_depth",
-                format!("Block nesting deeper than {MAX_BLOCK_DEPTH}"),
+                Message::new("dxf-block-depth").arg("most", MAX_BLOCK_DEPTH),
             ));
             return;
         }
@@ -375,12 +373,12 @@ impl<'a> Converter<'a> {
             self.skip(
                 entity,
                 "INSERT",
-                &format!("block {:?} does not exist", insert.name),
+                Message::new("dxf-skip-no-block").arg("block", format!("{:?}", insert.name)),
             );
             return;
         };
         let Some(ocs) = extrusion_frame(&insert.extrusion_direction) else {
-            self.skip(entity, "INSERT", "not parallel to the XY plane");
+            self.skip(entity, "INSERT", Message::new("dxf-skip-not-flat"));
             return;
         };
         let rotation = Affine::rotation(insert.rotation.to_radians());
@@ -429,7 +427,7 @@ impl<'a> Converter<'a> {
         match extrusion_frame(normal) {
             Some(ocs) => Some(to_mm.then_inner(&ocs)),
             None => {
-                self.skip(entity, kind, "not parallel to the XY plane");
+                self.skip(entity, kind, Message::new("dxf-skip-not-flat"));
                 None
             }
         }
@@ -439,17 +437,24 @@ impl<'a> Converter<'a> {
         if radius > 0.0 {
             return Some(());
         }
-        self.skip(entity, kind, &format!("radius {radius} is not positive"));
+        self.skip(
+            entity,
+            kind,
+            Message::new("dxf-skip-radius").arg("radius", Value::Number(radius, Digits::Shortest)),
+        );
         None
     }
 
-    fn skip(&mut self, entity: &Entity, kind: &str, reason: &str) {
+    fn skip(&mut self, entity: &Entity, kind: &str, reason: Message) {
         *self.ignored.entry(kind.into()).or_default() += 1;
         let handle = entity.common.handle.as_string();
         self.issues.push(Issue::new(
             Severity::Warning,
             "entity_skipped",
-            format!("{kind} ({handle}): {reason}"),
+            Message::new("dxf-entity-skipped")
+                .arg("kind", kind)
+                .arg("handle", handle)
+                .arg("reason", reason),
         ));
     }
 

@@ -229,7 +229,12 @@ fn narrow_neck_warns() {
         ],
     );
     let result = plan(&[dumbbell]);
-    assert!(result.notes.iter().any(|n| n.contains("narrow part")));
+    assert!(
+        result
+            .notes
+            .iter()
+            .any(|n| n.english().contains("narrow part"))
+    );
 }
 
 /// Distance from `p` to the walls and islands of the selected contours.
@@ -309,7 +314,12 @@ fn rings_keep_tool_radius_from_walls_and_islands() {
 fn large_stepover_reports_uncut_material() {
     // stepover = D: corners are missed.
     let result = plan_with(&[outline()], 6.0, Direction::Climb, Spindle::Cw).unwrap();
-    assert!(result.notes.iter().any(|n| n.contains("uncut material")));
+    assert!(
+        result
+            .notes
+            .iter()
+            .any(|n| n.english().contains("uncut material"))
+    );
 }
 
 #[test]
@@ -338,7 +348,12 @@ fn a_slot_narrower_than_the_tool_is_warned() {
         ],
     );
     let result = plan(&[room]);
-    assert!(result.notes.iter().any(|n| n.contains("narrow part")));
+    assert!(
+        result
+            .notes
+            .iter()
+            .any(|n| n.english().contains("narrow part"))
+    );
 }
 
 #[test]
@@ -937,7 +952,7 @@ proptest! {
         };
         assert_clear(&contours, &result, radius);
         prop_assert!(
-            !result.notes.iter().any(|n| n.contains("uncut material")),
+            !result.notes.iter().any(|n| n.english().contains("uncut material")),
             "{:?}", result.notes
         );
     }
@@ -1333,7 +1348,7 @@ proptest! {
         };
         assert_clear(&contours, &result, radius);
         prop_assert!(
-            !result.notes.iter().any(|n| n.contains("uncut material")),
+            !result.notes.iter().any(|n| n.english().contains("uncut material")),
             "{:?}", result.notes
         );
     }

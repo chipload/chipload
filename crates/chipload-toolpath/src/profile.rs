@@ -6,12 +6,13 @@ use chipload_core::chain::Contour;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{distance, signed_area};
 use chipload_core::tolerances::DEPTH_TOL_MM;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Direction, ProfileOp, Side, Spindle};
 
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
 use crate::offset::{offset_rings_tagged, start_index};
-use crate::start::{assign, point_text, restart};
+use crate::start::{assign, point_value, restart};
 
 /// Travel direction around the ring.
 ///
@@ -123,9 +124,9 @@ pub fn order_rings(rings: Vec<PathRing>, start: Point) -> Vec<PathRing> {
 pub struct ProfilePlan {
     pub rings: Vec<PathRing>,
     /// Warnings for the user, e.g. material left in a narrow neck.
-    pub notes: Vec<String>,
+    pub notes: Vec<Message>,
     /// Warnings about the operation's start points: one far from its ring, two on one.
-    pub start_notes: Vec<String>,
+    pub start_notes: Vec<Message>,
     /// Which ring chords lie on arcs (docs/specs/arc-output.md).
     pub arcs: ArcTable,
     /// For each ring, the index in `starts` of the point that set its start.
@@ -136,7 +137,7 @@ pub struct ProfilePlan {
 /// part A).
 pub fn plan_profile(
     op: &ProfileOp,
-    label: &str,
+    label: &Message,
     contours: &[&Contour],
     tool_radius: f64,
     spindle: Spindle,
@@ -144,11 +145,12 @@ pub fn plan_profile(
     starts: &[Point],
 ) -> Result<ProfilePlan, ToolpathError> {
     let clockwise = cut_clockwise(op.side, op.direction, spindle);
+    let label_text = label.english();
     // The tool centre runs this far from the contour (docs/specs/depths-and-clearance.md).
     let offset = tool_radius - op.clearance;
     if op.side != Side::On && (offset <= 0.0 || offset.is_nan()) {
         return Err(ToolpathError::Job(format!(
-            "{label}: clearance {} mm must be less than the tool radius {tool_radius} mm",
+            "{label_text}: clearance {} mm must be less than the tool radius {tool_radius} mm",
             op.clearance
         )));
     }
@@ -157,13 +159,12 @@ pub fn plan_profile(
     let mut arcs = ArcTable::default();
     for contour in contours {
         let paths = offset_rings_tagged(contour, op.side, offset, &mut arcs)
-            .map_err(|err| err.with_context(&format!("{label}, contour #{}", contour.id)))?;
+            .map_err(|err| err.with_context(&format!("{label_text}, contour #{}", contour.id)))?;
         if paths.len() > 1 {
-            notes.push(format!(
-                "{label}, contour #{}: tool does not fit through a narrow part; cut as {} \
-                 separate loops and material remains in between",
+            notes.push(contour_note(
+                label,
                 contour.id,
-                paths.len()
+                Message::new("toolpath-narrow-loops").arg("loops", paths.len()),
             ));
         }
         let depth = contour.nesting_depth.unwrap_or(0);
@@ -193,15 +194,30 @@ pub fn plan_profile(
     })
 }
 
+/// A note about an operation, after its label: "Operation 3 (Outline): …".
+pub fn labelled_note(label: &Message, note: Message) -> Message {
+    Message::new("toolpath-labelled")
+        .arg("label", label.clone())
+        .arg("note", note)
+}
+
+/// A note about one contour of an operation: "Operation 3 (Outline), contour #4: …".
+pub fn contour_note(label: &Message, contour: usize, note: Message) -> Message {
+    Message::new("toolpath-labelled-contour")
+        .arg("label", label.clone())
+        .arg("contour", contour)
+        .arg("note", note)
+}
+
 /// Restart each ring at the stored point nearest to it, with notes for points far from
 /// their ring (more than `far`) and for a second point on one ring.
 fn apply_starts(
     rings: &mut [PathRing],
     starts: &[Point],
-    label: &str,
+    label: &Message,
     far: f64,
     arcs: &mut ArcTable,
-    notes: &mut Vec<String>,
+    notes: &mut Vec<Message>,
 ) -> Vec<Option<usize>> {
     let all: Vec<&[Point]> = rings.iter().map(|r| r.points.as_slice()).collect();
     let (chosen, duplicates) = assign(starts, &all);
@@ -209,20 +225,21 @@ fn apply_starts(
         let Some(choice) = choice else { continue };
         ring.points = restart(&ring.points, choice.stored, arcs);
         if choice.distance > far {
-            notes.push(format!(
-                "{label}: start point {} is {:.3} mm from contour #{}; the nearest point is used",
-                point_text(choice.stored),
-                choice.distance,
-                ring.contour_id
+            notes.push(labelled_note(
+                label,
+                Message::new("toolpath-start-far-contour")
+                    .arg("point", point_value(choice.stored))
+                    .arg("distance", Value::Length(choice.distance, Digits::Fixed(3)))
+                    .arg("contour", ring.contour_id),
             ));
         }
     }
     for (index, r) in duplicates {
-        notes.push(format!(
-            "{label}: start point {} is on contour #{} too, which already has one; it is \
-             ignored",
-            point_text(starts[index]),
-            rings[r].contour_id
+        notes.push(labelled_note(
+            label,
+            Message::new("toolpath-start-twice-contour")
+                .arg("point", point_value(starts[index]))
+                .arg("contour", rings[r].contour_id),
         ));
     }
     chosen.iter().map(|c| c.map(|c| c.index)).collect()
