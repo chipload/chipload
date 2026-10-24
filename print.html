@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.22.2 user guide</title>
+        <title>Chipload 0.23.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2bc6eb8a.js";
+            window.path_to_searchindex_js = "searchindex-ebef116c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-c71e25ca.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.22.2 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.23.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -251,47 +251,54 @@ and every field of the files.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="installing"><a class="header" href="#installing">Installing</a></h1>
-<p>Chipload is two programs:</p>
+<p>Download Chipload from the <a href="https://github.com/chipload/chipload/releases">releases page</a>.
+For the app you need one file: the one named <code>chipload-X.Y.Z-…</code> for your system (below).</p>
+<p>Chipload is two programs that read and write the same project files and make the same
+G-code:</p>
 <ul>
-<li><code>chipload-gui</code>, the desktop app;</li>
-<li><code>chipload</code>, the command line.</li>
+<li>the desktop app, in the files named <code>chipload-X.Y.Z-…</code>;</li>
+<li>the command line <code>chipload</code>, for scripts and automation, in the archives named
+<code>chipload-cli-X.Y.Z-…</code>. You don’t need it to use the app.</li>
 </ul>
-<p>Both read and write the same project files, and both make the same G-code. Download them
-from the <a href="https://github.com/chipload/chipload/releases">releases page</a>: each release has the
-files below, the user guide to read offline, and <code>SHA256SUMS.txt</code> to check them.</p>
+<p>Each release also has the user guide to read offline and <code>SHA256SUMS.txt</code> to check the files.</p>
 <h2 id="linux"><a class="header" href="#linux">Linux</a></h2>
-<p>Download <code>chipload-gui-X.Y.Z-linux-x86_64.AppImage</code>, make it executable and run it:</p>
-<pre><code class="language-sh">chmod +x chipload-gui-*.AppImage
-./chipload-gui-*.AppImage            # the app; add a .chipload or .dxf file to open it
+<p>Download <code>chipload-X.Y.Z-linux-x86_64.AppImage</code>, make it executable and run it:</p>
+<pre><code class="language-sh">chmod +x chipload-*.AppImage
+./chipload-*.AppImage                # the app; add a .chipload or .dxf file to open it
 </code></pre>
 <ul>
 <li><strong>ARM64</strong> (Raspberry Pi 4 or 5 with a 64-bit OS, ARM boards and laptops): take
-<code>chipload-gui-X.Y.Z-linux-aarch64.AppImage</code> instead. The app needs OpenGL 3, which a Pi 4 or 5 has
+<code>chipload-X.Y.Z-linux-aarch64.AppImage</code> instead. The app needs OpenGL 3, which a Pi 4 or 5 has
 with its standard graphics driver. Not yet tried on a Pi: reports welcome.</li>
 <li><strong>Requirements:</strong> glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 or newer,
 Raspberry Pi OS 12 “Bookworm”).</li>
-<li><strong>Command line:</strong> it’s in <code>chipload-X.Y.Z-linux-x86_64.tar.gz</code> (ARM64:
+<li><strong>Command line:</strong> it’s in <code>chipload-cli-X.Y.Z-linux-x86_64.tar.gz</code> (ARM64:
 <code>…-linux-aarch64.tar.gz</code>). Unpack it and put <code>chipload</code> on your <code>PATH</code>.</li>
 <li><strong>File dialogs:</strong> these need an XDG desktop portal or <code>zenity</code>. Without them, use <em>File &gt;
 Open path…</em> (and <em>Import image from path…</em>, <em>Update drawing from path…</em>), or give the files
 on the command line.</li>
 </ul>
 <h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
-<p>Download <code>chipload-gui-X.Y.Z-windows-x86_64.exe</code>, the app as one file with nothing to
-install, and <code>chipload-X.Y.Z-windows-x86_64.exe</code>, the command line. On a Windows laptop with
-an ARM processor (Snapdragon), take the <code>…-windows-aarch64.exe</code> files instead.</p>
-<p>The files aren’t code-signed, so Windows SmartScreen may warn the first time. Choose <em>More
+<p>Download <code>chipload-X.Y.Z-windows-x86_64.exe</code>: the app as one file with nothing to install.
+Double-click it to start. On a Windows laptop with an ARM processor (Snapdragon), take
+<code>chipload-X.Y.Z-windows-aarch64.exe</code> instead.</p>
+<p>The app isn’t code-signed, so Windows SmartScreen may warn the first time. Choose <em>More
 info &gt; Run anyway</em>.</p>
+<ul>
+<li><strong>Command line:</strong> it’s in <code>chipload-cli-X.Y.Z-windows-x86_64.zip</code> (ARM:
+<code>…-windows-aarch64.zip</code>). Unzip it and run <code>chipload.exe</code> from a terminal (PowerShell or
+Command Prompt); it isn’t meant to be double-clicked.</li>
+</ul>
 <h2 id="macos"><a class="header" href="#macos">macOS</a></h2>
 <p>No release has macOS files yet. Until one does, build Chipload from the source (below).
-Once there: download <code>chipload-gui-X.Y.Z-macos-universal.dmg</code>, open it and drag <em>Chipload</em> onto
+Once there: download <code>chipload-X.Y.Z-macos-universal.dmg</code>, open it and drag <em>Chipload</em> onto
 <em>Applications</em>. It runs on Apple silicon and Intel Macs with macOS 11 or newer.</p>
 <p>The app isn’t notarised by Apple, so macOS refuses it the first time. Open *System Settings</p>
 <blockquote>
 <p>Privacy &amp; Security*, scroll down to the message about Chipload and choose <em>Open Anyway</em>.</p>
 </blockquote>
 <ul>
-<li><strong>Command line:</strong> it’s in <code>chipload-X.Y.Z-macos-universal.tar.gz</code>. Unpack it and put
+<li><strong>Command line:</strong> it’s in <code>chipload-cli-X.Y.Z-macos-universal.tar.gz</code>. Unpack it and put
 <code>chipload</code> on your <code>PATH</code>. If macOS stops it, run <code>xattr -d com.apple.quarantine chipload</code>
 once.</li>
 <li><strong>Opening files:</strong> use <em>File &gt; Open</em> in the app; double-clicking a <code>.chipload</code> file in
@@ -2637,7 +2644,8 @@ the argument <code>mcp</code>. In Claude Desktop’s <code>claude_desktop_config
   }
 }
 </code></pre>
-<p>On Windows, the command is the full path to <code>chipload-X.Y.Z-windows-x86_64.exe</code>. Ask
+<p>On Windows, the command is the full path to <code>chipload.exe</code>, from
+<code>chipload-cli-X.Y.Z-windows-x86_64.zip</code>. Ask
 the assistant to use full paths to your files there, as it has no project folder.</p>
 </li>
 </ul>
