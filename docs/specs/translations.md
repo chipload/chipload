@@ -169,8 +169,8 @@ part) may be translated later, once the app's features settle.
 
 ## 7. Step 2 in detail: messages from the library crates
 
-Status: **draft 2026-10-24, for review.** Decisions 11–17 are open, each with a
-recommendation.
+Status: **approved 2026-10-24** with the recommended decisions ("this change will make the
+mm to inch conversion cleaner as well"). Built commit by commit in the order of §7.3.
 
 ### 7.1 What there is
 

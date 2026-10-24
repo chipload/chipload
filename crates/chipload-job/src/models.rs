@@ -206,6 +206,16 @@ impl Units {
     }
 }
 
+/// The units a message is shown in (docs/specs/translations.md §7).
+impl From<Units> for chipload_i18n::Units {
+    fn from(units: Units) -> Self {
+        match units {
+            Units::Mm => chipload_i18n::Units::Mm,
+            Units::Inch => chipload_i18n::Units::Inch,
+        }
+    }
+}
+
 /// The project's drawing: shapes in millimetres, or (only for jobs from before v4) a
 /// reference to a DXF that still has to be embedded.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

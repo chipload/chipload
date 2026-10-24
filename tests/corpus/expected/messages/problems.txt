@@ -1,0 +1,1024 @@
+$ chipload check-project tests/corpus/messages/dogbones_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/dogbones_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Mortise): contours #2: tool (diameter 60.000 mm) does not fit in the pocket
+
+$ chipload check-project tests/corpus/messages/dogbones_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Slot): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.2.end_depth: Operation 3 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 3 problems, the first: Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/dogbones_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"3 problems, the first: Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Slot): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 3 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Slot): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.2.end_depth: Operation 3 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Slot): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 3 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Mortise): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/dogbones_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/dogbones_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/dogbones_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/dogbones_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -101 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -4 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.2.end_depth: must be greater than 0, got -13.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -7 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/dogbones_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/dogbones_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -101 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -4 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.2.end_depth: must be greater than 0, got -13.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -7 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -101 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -4 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.2.end_depth: must be greater than 0, got -13.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -7 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got -157.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/dogbones_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+problem: operations.2.tool: Tool 99 is not defined in the job
+--- stderr
+error: 3 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/dogbones_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"3 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.2.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job","problem: operations.2.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.2.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/dogbones_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/dogbones_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/dogbones_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/dogbones_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/dogbones_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.corners.max_angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/finish_skin_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/finish_skin_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes, finished), contour #2: Tool does not fit inside the contour (its centre would run 30.000 mm inside the line)
+
+$ chipload check-project tests/corpus/messages/finish_skin_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Outline, finish and skin): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 2 problems, the first: Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/finish_skin_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Outline, finish and skin): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Outline, finish and skin): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Outline, finish and skin): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes, finished): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/finish_skin_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees; operations.1.skin.thickness: must be less than the cut (0, end depth minus start depth), got 10000000; operations.1.skin.thickness: must be less than the tab height (10000000), got 10000000
+
+$ chipload check-project tests/corpus/messages/finish_skin_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/finish_skin_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees; operations.1.skin.thickness: must be less than the cut (0, end depth minus start depth), got 10000000; operations.1.skin.thickness: must be less than the tab height (10000000), got 10000000","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees; operations.1.skin.thickness: must be less than the cut (0, end depth minus start depth), got 10000000; operations.1.skin.thickness: must be less than the tab height (10000000), got 10000000
+
+$ chipload check-project tests/corpus/messages/finish_skin_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.finish.stock: must be greater than 0, got -1.2 mm; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; operations.1.finish.stock: must be greater than 0, got -1.3 mm; operations.1.skin.thickness: must be greater than 0, got -1.5 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -87.296 degrees
+
+$ chipload check-project tests/corpus/messages/finish_skin_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/finish_skin_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.finish.stock: must be greater than 0, got -1.2 mm; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; operations.1.finish.stock: must be greater than 0, got -1.3 mm; operations.1.skin.thickness: must be greater than 0, got -1.5 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -87.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.finish.stock: must be greater than 0, got -1.2 mm; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; operations.1.finish.stock: must be greater than 0, got -1.3 mm; operations.1.skin.thickness: must be greater than 0, got -1.5 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -87.296 degrees
+
+$ chipload check-project tests/corpus/messages/finish_skin_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+--- stderr
+error: 2 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/finish_skin_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/finish_skin_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.finish.stock: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.1.finish.stock: must be greater than 0, got 0 mm; operations.1.skin.thickness: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/finish_skin_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/finish_skin_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.finish.stock: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.1.finish.stock: must be greater than 0, got 0 mm; operations.1.skin.thickness: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/finish_skin_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/finish_skin_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.finish.stock: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.1.finish.stock: must be greater than 0, got 0 mm; operations.1.skin.thickness: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/follow_path_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_big_tool.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Engrave): the V-groove is 1.932 mm wide at the top
+Estimated time: 1 min 19 s (cutting 1 min 10 s, rapids 2 s, spindle 6 s), plus 1 tool change
+  Operation 1 (Engrave): 30 s
+  Operation 2 (Groove): 43 s
+  File 1: 33 s
+  File 2: 46 s
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Engrave): 0.033 mm/tooth
+  Operation 2 (Groove): 0.025 mm/tooth
+Tool group 1: tool 2, operations 1
+Tool group 2: tool 3, operations 2
+Planned 362 moves.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/follow_path_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Groove): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 2 problems, the first: Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/follow_path_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Groove): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Groove): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Groove): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Engrave): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/follow_path_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/follow_path_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -4 mm; operations.0.end_depth: must be greater than 0, got -2.5 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.end_depth: must be greater than 0, got -4 mm; operations.1.step_down: must be greater than 0, got -2 mm; operations.1.feed: must be greater than 0, got -1001 mm/min; operations.1.plunge_feed: must be greater than 0, got -301 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -62.296 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/follow_path_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -4 mm; operations.0.end_depth: must be greater than 0, got -2.5 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.end_depth: must be greater than 0, got -4 mm; operations.1.step_down: must be greater than 0, got -2 mm; operations.1.feed: must be greater than 0, got -1001 mm/min; operations.1.plunge_feed: must be greater than 0, got -301 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -62.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -4 mm; operations.0.end_depth: must be greater than 0, got -2.5 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.end_depth: must be greater than 0, got -4 mm; operations.1.step_down: must be greater than 0, got -2 mm; operations.1.feed: must be greater than 0, got -1001 mm/min; operations.1.plunge_feed: must be greater than 0, got -301 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -62.296 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+--- stderr
+error: 2 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/follow_path_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/follow_path_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/follow_path_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/follow_path_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/follow_path_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/follow_path_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/holes_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/holes_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Drilled): no selected circle can be cut with tool 2 (60 mm drill)
+
+$ chipload check-project tests/corpus/messages/holes_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Bored): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 2 problems, the first: Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/holes_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Bored): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Bored): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Bored): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Drilled): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/holes_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/holes_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/holes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/holes_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -121 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -9 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -301 mm/min; operations.0.method.peck: must be greater than 0, got -5 mm; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.method.step_down: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/holes_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/holes_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -121 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -9 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -301 mm/min; operations.0.method.peck: must be greater than 0, got -5 mm; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.method.step_down: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -141 mm; stock.y: must be greater than 0, got -121 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -9 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -301 mm/min; operations.0.method.peck: must be greater than 0, got -5 mm; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.feed: must be greater than 0, got -1201 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.method.step_down: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/holes_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+--- stderr
+error: 2 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/holes_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/holes_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.method.peck: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.method.step_down: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/holes_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/holes_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.method.peck: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.method.step_down: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/holes_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/holes_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.method.peck: must be greater than 0, got 0 mm; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.method.step_down: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.method.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_big_tool.chipload
+exit 1
+--- stdout
+problem: operations.0.rest_passes.0.tool: Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it
+problem: operations.1.rest_passes.0.tool: Operation 2.1 (Square, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it
+--- stderr
+error: 2 problems, the first: Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it
+
+$ chipload check-project tests/corpus/messages/rest_passes_big_tool.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","problems":[{"path":"operations.0.rest_passes.0.tool","short":"tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","text":"Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it"},{"path":"operations.1.rest_passes.0.tool","short":"tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","text":"Operation 2.1 (Square, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it"}]},"notes":["problem: operations.0.rest_passes.0.tool: Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","problem: operations.1.rest_passes.0.tool: Operation 2.1 (Square, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it"],"ok":false,"problems":[{"path":"operations.0.rest_passes.0.tool","short":"tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","text":"Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it"},{"path":"operations.1.rest_passes.0.tool","short":"tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it","text":"Operation 2.1 (Square, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1.1 (Box, rest): tool 2 (60 mm) must be smaller than tool 1 (60 mm) before it
+
+$ chipload check-project tests/corpus/messages/rest_passes_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Square): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.2.end_depth: Operation 3 (Outline): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 3 problems, the first: Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/rest_passes_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"3 problems, the first: Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Square): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 3 (Outline): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Square): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.2.end_depth: Operation 3 (Outline): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Square): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 3 (Outline): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Box): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/rest_passes_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.0.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/rest_passes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.0.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.0.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.rest_passes.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_negative.chipload: stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -201 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13 mm; tools.1.diameter: must be greater than 0, got -5 mm; operations.0.end_depth: must be greater than 0, got -6 mm; operations.0.step_down: must be greater than 0, got -3.5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.0.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.0.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -6 mm; operations.1.step_down: must be greater than 0, got -3.5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.stepover: must be greater than 0, got -1.4; operations.1.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.1.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.2.end_depth: must be greater than 0, got -11.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -9 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/rest_passes_negative.chipload: stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -201 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13 mm; tools.1.diameter: must be greater than 0, got -5 mm; operations.0.end_depth: must be greater than 0, got -6 mm; operations.0.step_down: must be greater than 0, got -3.5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.0.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.0.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -6 mm; operations.1.step_down: must be greater than 0, got -3.5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.stepover: must be greater than 0, got -1.4; operations.1.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.1.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.2.end_depth: must be greater than 0, got -11.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -9 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_negative.chipload: stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -201 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13 mm; tools.1.diameter: must be greater than 0, got -5 mm; operations.0.end_depth: must be greater than 0, got -6 mm; operations.0.step_down: must be greater than 0, got -3.5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.0.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.0.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -6 mm; operations.1.step_down: must be greater than 0, got -3.5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.stepover: must be greater than 0, got -1.4; operations.1.rest_passes.0.step_down: must be greater than 0, got -3.5 mm; operations.1.rest_passes.0.feed: must be greater than 0, got -1501 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got -1.4; operations.2.end_depth: must be greater than 0, got -11.3 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.tabs.width: must be greater than 0, got -9 mm; operations.2.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+problem: operations.2.tool: Tool 99 is not defined in the job
+--- stderr
+error: 3 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/rest_passes_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"3 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.2.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job","problem: operations.2.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.2.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/rest_passes_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.0.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.0.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.stepover: must be greater than 0, got 0; operations.1.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.1.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got 0; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/rest_passes_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/rest_passes_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.0.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.0.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.stepover: must be greater than 0, got 0; operations.1.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.1.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got 0; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/rest_passes_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/rest_passes_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.0.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.0.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.rest_passes.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.stepover: must be greater than 0, got 0; operations.1.rest_passes.0.step_down: must be greater than 0, got 0 mm; operations.1.rest_passes.0.feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.rest_passes.0.stepover: must be greater than 0, got 0; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.tabs.width: must be greater than 0, got 0 mm; operations.2.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/straight_tabs_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes): contours #2: tool (diameter 60.000 mm, clearance 0.200 mm) does not fit in the pocket
+
+$ chipload check-project tests/corpus/messages/straight_tabs_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Outline, straight tabs): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 2 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/straight_tabs_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Outline, straight tabs): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Outline, straight tabs): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 2 (Outline, straight tabs): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/straight_tabs_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/straight_tabs_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_huge.chipload: operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.0.stepover: must be at most 1 (a fraction of the tool diameter), got 10000000; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -3 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.entry.radius: must be more than 0, got -2.5 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.0.lead.radius: must be more than 0, got -3 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/straight_tabs_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -3 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.entry.radius: must be more than 0, got -2.5 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.0.lead.radius: must be more than 0, got -3 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -301 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; operations.0.end_depth: must be greater than 0, got -7 mm; operations.0.step_down: must be greater than 0, got -3 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; operations.0.stepover: must be greater than 0, got -1.4; operations.1.end_depth: must be greater than 0, got -13.3 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.1.tabs.width: must be greater than 0, got -7 mm; operations.1.tabs.height: must be greater than 0, got -3 mm; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -3 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.0.entry.radius: must be more than 0, got -2.5 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.0.lead.radius: must be more than 0, got -3 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got -147.296 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_refs.chipload
+exit 1
+--- stdout
+problem: operations.0.tool: Tool 99 is not defined in the job
+problem: operations.1.tool: Tool 99 is not defined in the job
+--- stderr
+error: 2 problems, the first: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/straight_tabs_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"2 problems, the first: Tool 99 is not defined in the job","problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}]},"notes":["problem: operations.0.tool: Tool 99 is not defined in the job","problem: operations.1.tool: Tool 99 is not defined in the job"],"ok":false,"problems":[{"path":"operations.0.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"},{"path":"operations.1.tool","short":"Tool 99 is not defined in the job","text":"Tool 99 is not defined in the job"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Tool 99 is not defined in the job
+
+$ chipload check-project tests/corpus/messages/straight_tabs_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.entry.radius: must be more than 0, got 0 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.0.lead.radius: must be more than 0, got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/straight_tabs_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/straight_tabs_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.entry.radius: must be more than 0, got 0 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.0.lead.radius: must be more than 0, got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/straight_tabs_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/straight_tabs_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.stepover: must be greater than 0, got 0; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.tabs.width: must be greater than 0, got 0 mm; operations.1.tabs.height: must be greater than 0, got 0 mm; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.entry.radius: must be more than 0, got 0 mm; operations.0.entry.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.0.lead.radius: must be more than 0, got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.tabs.flank_angle: must be more than 0 and at most 90 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/surface_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/surface_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 2 (Holes), contour #2: Tool does not fit inside the contour (its centre would run 30.000 mm inside the line)
+
+$ chipload check-project tests/corpus/messages/surface_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_deep.chipload: operations.0.end_depth: a surface can't go below the stock bottom (12 mm thick), got 17 mm
+
+$ chipload check-project tests/corpus/messages/surface_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/surface_deep.chipload: operations.0.end_depth: a surface can't go below the stock bottom (12 mm thick), got 17 mm","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_deep.chipload: operations.0.end_depth: a surface can't go below the stock bottom (12 mm thick), got 17 mm
+
+$ chipload check-project tests/corpus/messages/surface_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 10000000; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.4.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/surface_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/surface_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 10000000; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.4.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 10000000; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.4.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/surface_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -26 mm; operations.0.end_depth: must be greater than 0, got -2 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -3001 mm/min; operations.0.plunge_feed: must be greater than 0, got -1001 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -501 mm/min; operations.2.end_depth: must be greater than 0, got -13 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.3.end_depth: must be greater than 0, got -4 mm; operations.3.feed: must be greater than 0, got -1201 mm/min; operations.3.plunge_feed: must be greater than 0, got -401 mm/min; operations.4.end_depth: must be greater than 0, got -13 mm; operations.4.step_down: must be greater than 0, got -5 mm; operations.4.feed: must be greater than 0, got -1801 mm/min; operations.4.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got -1.75; operations.0.end_depth: a surface can't go below the stock bottom (-13 mm thick), got -2 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.4.start_depth: must be 0 or more, got -1 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/surface_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/surface_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -26 mm; operations.0.end_depth: must be greater than 0, got -2 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -3001 mm/min; operations.0.plunge_feed: must be greater than 0, got -1001 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -501 mm/min; operations.2.end_depth: must be greater than 0, got -13 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.3.end_depth: must be greater than 0, got -4 mm; operations.3.feed: must be greater than 0, got -1201 mm/min; operations.3.plunge_feed: must be greater than 0, got -401 mm/min; operations.4.end_depth: must be greater than 0, got -13 mm; operations.4.step_down: must be greater than 0, got -5 mm; operations.4.feed: must be greater than 0, got -1801 mm/min; operations.4.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got -1.75; operations.0.end_depth: a surface can't go below the stock bottom (-13 mm thick), got -2 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.4.start_depth: must be 0 or more, got -1 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; tools.2.diameter: must be greater than 0, got -26 mm; operations.0.end_depth: must be greater than 0, got -2 mm; operations.0.step_down: must be greater than 0, got -1.5 mm; operations.0.feed: must be greater than 0, got -3001 mm/min; operations.0.plunge_feed: must be greater than 0, got -1001 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1501 mm/min; operations.1.plunge_feed: must be greater than 0, got -501 mm/min; operations.2.end_depth: must be greater than 0, got -13 mm; operations.2.step_down: must be greater than 0, got -5 mm; operations.2.feed: must be greater than 0, got -1801 mm/min; operations.2.plunge_feed: must be greater than 0, got -601 mm/min; operations.3.end_depth: must be greater than 0, got -4 mm; operations.3.feed: must be greater than 0, got -1201 mm/min; operations.3.plunge_feed: must be greater than 0, got -401 mm/min; operations.4.end_depth: must be greater than 0, got -13 mm; operations.4.step_down: must be greater than 0, got -5 mm; operations.4.feed: must be greater than 0, got -1801 mm/min; operations.4.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got -1.75; operations.0.end_depth: a surface can't go below the stock bottom (-13 mm thick), got -2 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.4.start_depth: must be 0 or more, got -1 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/surface_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.2.select.dxf: no DXF 99 in drawing.dxfs; operations.4.select.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/surface_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/surface_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.2.select.dxf: no DXF 99 in drawing.dxfs; operations.4.select.dxf: no DXF 99 in drawing.dxfs","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.2.select.dxf: no DXF 99 in drawing.dxfs; operations.4.select.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/surface_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; operations.4.end_depth: must be greater than 0, got 0 mm; operations.4.step_down: must be greater than 0, got 0 mm; operations.4.feed: must be greater than 0, got 0 mm/min; operations.4.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 0; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.4.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/surface_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/surface_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; operations.4.end_depth: must be greater than 0, got 0 mm; operations.4.step_down: must be greater than 0, got 0 mm; operations.4.feed: must be greater than 0, got 0 mm/min; operations.4.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 0; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.4.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/surface_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/surface_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; tools.2.diameter: must be greater than 0, got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.step_down: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; operations.4.end_depth: must be greater than 0, got 0 mm; operations.4.step_down: must be greater than 0, got 0 mm; operations.4.feed: must be greater than 0, got 0 mm/min; operations.4.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.stepover: must be from 0.1 to 0.9 of the tool diameter, got 0; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.4.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.2.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.4.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/two_parts_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_big_tool.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes), contour #2: Tool does not fit inside the contour (its centre would run 30.000 mm inside the line)
+
+$ chipload check-project tests/corpus/messages/two_parts_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+problem: operations.1.end_depth: Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+problem: operations.2.end_depth: Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+problem: operations.3.end_depth: Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+--- stderr
+error: 4 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/two_parts_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"4 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.2.end_depth: Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.3.end_depth: Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/two_parts_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/two_parts_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_huge.chipload: tools.1.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.1.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.2.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.3.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 572957795.131 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.step_down: must be greater than 0, got -5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -501 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.end_depth: must be greater than 0, got -4 mm; operations.2.feed: must be greater than 0, got -1201 mm/min; operations.2.plunge_feed: must be greater than 0, got -401 mm/min; operations.3.end_depth: must be greater than 0, got -13 mm; operations.3.step_down: must be greater than 0, got -5 mm; operations.3.feed: must be greater than 0, got -1801 mm/min; operations.3.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/two_parts_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.step_down: must be greater than 0, got -5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -501 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.end_depth: must be greater than 0, got -4 mm; operations.2.feed: must be greater than 0, got -1201 mm/min; operations.2.plunge_feed: must be greater than 0, got -401 mm/min; operations.3.end_depth: must be greater than 0, got -13 mm; operations.3.step_down: must be greater than 0, got -5 mm; operations.3.feed: must be greater than 0, got -1801 mm/min; operations.3.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_negative.chipload: machine.travel.x: must be greater than 0, got -801 mm; machine.travel.y: must be greater than 0, got -601 mm; machine.travel.z: must be greater than 0, got -101 mm; stock.x: must be greater than 0, got -481 mm; stock.y: must be greater than 0, got -221 mm; stock.thickness: must be greater than 0, got -13 mm; tools.0.diameter: must be greater than 0, got -7 mm; tools.1.diameter: must be greater than 0, got -13.7 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -13 mm; operations.0.step_down: must be greater than 0, got -5 mm; operations.0.feed: must be greater than 0, got -1501 mm/min; operations.0.plunge_feed: must be greater than 0, got -501 mm/min; operations.1.end_depth: must be greater than 0, got -13 mm; operations.1.step_down: must be greater than 0, got -5 mm; operations.1.feed: must be greater than 0, got -1801 mm/min; operations.1.plunge_feed: must be greater than 0, got -601 mm/min; operations.2.end_depth: must be greater than 0, got -4 mm; operations.2.feed: must be greater than 0, got -1201 mm/min; operations.2.plunge_feed: must be greater than 0, got -401 mm/min; operations.3.end_depth: must be greater than 0, got -13 mm; operations.3.step_down: must be greater than 0, got -5 mm; operations.3.feed: must be greater than 0, got -1801 mm/min; operations.3.plunge_feed: must be greater than 0, got -601 mm/min; stock.max_overcut: must be 0 or more, got -1 mm; operations.0.start_depth: must be 0 or more, got -1 mm; operations.1.start_depth: must be 0 or more, got -1 mm; operations.2.start_depth: must be 0 or more, got -1 mm; operations.3.start_depth: must be 0 or more, got -1 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got -60.296 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.0.select.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.3.select.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/two_parts_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/two_parts_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.0.select.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.3.select.dxf: no DXF 99 in drawing.dxfs","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.4.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.5.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.6.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.7.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.8.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.9.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.10.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.11.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.12.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.13.dxf: no DXF 99 in drawing.dxfs; operations.0.select.dxf: no DXF 99 in drawing.dxfs; operations.1.select.dxf: no DXF 99 in drawing.dxfs; operations.3.select.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/two_parts_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.step_down: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/two_parts_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/two_parts_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.step_down: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/two_parts_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/two_parts_zero.chipload: machine.travel.x: must be greater than 0, got 0 mm; machine.travel.y: must be greater than 0, got 0 mm; machine.travel.z: must be greater than 0, got 0 mm; stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.1.diameter: must be greater than 0, got 0 mm; tools.1.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.1.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.1.end_depth: must be greater than 0, got 0 mm; operations.1.step_down: must be greater than 0, got 0 mm; operations.1.feed: must be greater than 0, got 0 mm/min; operations.1.plunge_feed: must be greater than 0, got 0 mm/min; operations.2.end_depth: must be greater than 0, got 0 mm; operations.2.feed: must be greater than 0, got 0 mm/min; operations.2.plunge_feed: must be greater than 0, got 0 mm/min; operations.3.end_depth: must be greater than 0, got 0 mm; operations.3.step_down: must be greater than 0, got 0 mm; operations.3.feed: must be greater than 0, got 0 mm/min; operations.3.plunge_feed: must be greater than 0, got 0 mm/min; parts.1.copies.dy: must not be 0 with more than one copy that way; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.1.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.2.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.3.start_depth: must be less than end_depth (0 mm), got 0 mm; operations.0.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.1.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees; operations.3.ramp_angle: must be more than 0 and at most 30 degrees, got 0.000 degrees
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_big_tool.chipload
+exit 0
+--- stdout
+No problems.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_big_tool.chipload --json
+exit 0
+--- stdout
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_big_tool.chipload
+exit 0
+--- stdout
+Estimated time: 54 s (cutting 38 s, rapids 13 s, spindle 3 s)
+  Operation 1 (Letters): 51 s
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Letters): 0.033 mm/tooth
+Planned 1712 moves.
+--- stderr
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_deep.chipload
+exit 1
+--- stdout
+problem: operations.0.end_depth: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+--- stderr
+error: 1 problem: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_deep.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"1 problem: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_deep.chipload
+exit 1
+--- stdout
+--- stderr
+error: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_huge.chipload: tools.0.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_huge.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/vcarve_letters_huge.chipload: tools.0.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_huge.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_huge.chipload: tools.0.angle: must be more than 0 and less than 180 degrees, got 572957795.131 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (10000000 mm), got 10000000 mm; operations.0.start_depth: must be less than end_depth (10000000 mm), got 10000000 mm
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_negative.chipload: stock.x: must be greater than 0, got -66 mm; stock.y: must be greater than 0, got -31 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13.7 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -4.5 mm; operations.0.step_down: must be greater than 0, got -2.6 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_negative.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/vcarve_letters_negative.chipload: stock.x: must be greater than 0, got -66 mm; stock.y: must be greater than 0, got -31 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13.7 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -4.5 mm; operations.0.step_down: must be greater than 0, got -2.6 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_negative.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_negative.chipload: stock.x: must be greater than 0, got -66 mm; stock.y: must be greater than 0, got -31 mm; stock.thickness: must be greater than 0, got -11 mm; tools.0.diameter: must be greater than 0, got -13.7 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got -117.296 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (-13.7 mm), got -1.2 mm; operations.0.end_depth: must be greater than 0, got -4.5 mm; operations.0.step_down: must be greater than 0, got -2.6 mm; operations.0.feed: must be greater than 0, got -1201 mm/min; operations.0.plunge_feed: must be greater than 0, got -401 mm/min; stock.max_overcut: must be 0 or more, got -1.5 mm; operations.0.start_depth: must be 0 or more, got -1 mm
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_refs.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/vcarve_letters_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_refs.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_refs.chipload: drawing.shapes.0.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.1.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.2.dxf: no DXF 99 in drawing.dxfs; drawing.shapes.3.dxf: no DXF 99 in drawing.dxfs
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm
+
+$ chipload check-project tests/corpus/messages/vcarve_letters_zero.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"Invalid job file tests/corpus/messages/vcarve_letters_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm","problems":[]},"notes":[],"ok":false,"written":[]}
+--- stderr
+
+$ chipload plan tests/corpus/messages/vcarve_letters_zero.chipload
+exit 1
+--- stdout
+--- stderr
+error: Invalid job file tests/corpus/messages/vcarve_letters_zero.chipload: stock.x: must be greater than 0, got 0 mm; stock.y: must be greater than 0, got 0 mm; stock.thickness: must be greater than 0, got 0 mm; tools.0.diameter: must be greater than 0, got 0 mm; tools.0.angle: must be more than 0 and less than 180 degrees, got 0.000 degrees; tools.0.tip_diameter: must be 0 or more and less than the diameter (0 mm), got 0 mm; operations.0.end_depth: must be greater than 0, got 0 mm; operations.0.step_down: must be greater than 0, got 0 mm; operations.0.feed: must be greater than 0, got 0 mm/min; operations.0.plunge_feed: must be greater than 0, got 0 mm/min; operations.0.start_depth: must be less than end_depth (0 mm), got 0 mm
+

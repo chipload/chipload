@@ -1,0 +1,1068 @@
+{
+ "schema_version": 29,
+ "written_by": "chipload 0.23.0",
+ "drawing": {
+  "shapes": [
+   {
+    "id": 1,
+    "layer": "CUT_OUTSIDE",
+    "kind": "path",
+    "dxf_handle": "2F",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 1,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        118.0,
+        19.0
+       ],
+       "end": [
+        118.0,
+        181.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        109.0,
+        181.0
+       ],
+       "radius": 9.000000000000002,
+       "start_angle": 0.0,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        109.0,
+        190.0
+       ],
+       "end": [
+        19.0,
+        190.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        19.0,
+        181.0
+       ],
+       "radius": 9.000000000000002,
+       "start_angle": 1.5707963267948966,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        10.0,
+        181.0
+       ],
+       "end": [
+        10.0,
+        19.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        19.0,
+        19.0
+       ],
+       "radius": 9.000000000000002,
+       "start_angle": 3.141592653589793,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        19.0,
+        10.0
+       ],
+       "end": [
+        109.0,
+        10.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        109.0,
+        19.0
+       ],
+       "radius": 9.000000000000002,
+       "start_angle": 4.71238898038469,
+       "sweep": 1.5707963267948966
+      }
+     }
+    ]
+   },
+   {
+    "id": 2,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "30",
+    "dxf_type": "CIRCLE",
+    "dxf": 1,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        64.0,
+        46.0
+       ],
+       "radius": 13.5,
+       "start_angle": 1.5707963267948966,
+       "sweep": 6.283185307179586
+      }
+     }
+    ]
+   },
+   {
+    "id": 3,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "31",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 1,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        91.0,
+        91.0
+       ],
+       "end": [
+        91.0,
+        145.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        82.0,
+        145.0
+       ],
+       "radius": 9.0,
+       "start_angle": 0.0,
+       "sweep": 3.141592653589793
+      }
+     },
+     {
+      "line": {
+       "start": [
+        73.0,
+        145.0
+       ],
+       "end": [
+        73.0,
+        91.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        82.0,
+        91.0
+       ],
+       "radius": 9.0,
+       "start_angle": 3.141592653589793,
+       "sweep": 3.141592653589793
+      }
+     }
+    ]
+   },
+   {
+    "id": 4,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "32",
+    "dxf_type": "LINE",
+    "dxf": 1,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        55.0,
+        100.0
+       ],
+       "end": [
+        55.0,
+        154.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 5,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "33",
+    "dxf_type": "LINE",
+    "dxf": 1,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        55.0,
+        154.0
+       ],
+       "end": [
+        28.0,
+        154.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 6,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "34",
+    "dxf_type": "LINE",
+    "dxf": 1,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        28.0,
+        154.0
+       ],
+       "end": [
+        28.0,
+        100.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 7,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "35",
+    "dxf_type": "LINE",
+    "dxf": 1,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        28.0,
+        100.0
+       ],
+       "end": [
+        55.0,
+        100.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 8,
+    "layer": "CUT_OUTSIDE",
+    "kind": "path",
+    "dxf_handle": "2F",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 2,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        320.0,
+        15.0
+       ],
+       "end": [
+        410.0,
+        15.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        410.0,
+        20.0
+       ],
+       "radius": 5.000000000000001,
+       "start_angle": -1.5707963267948966,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        415.0,
+        20.0
+       ],
+       "end": [
+        415.0,
+        70.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        410.0,
+        70.0
+       ],
+       "radius": 5.000000000000001,
+       "start_angle": 0.0,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        410.0,
+        75.0
+       ],
+       "end": [
+        320.0,
+        75.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        320.0,
+        70.0
+       ],
+       "radius": 5.000000000000001,
+       "start_angle": 1.5707963267948966,
+       "sweep": 1.5707963267948966
+      }
+     },
+     {
+      "line": {
+       "start": [
+        315.0,
+        70.0
+       ],
+       "end": [
+        315.0,
+        20.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        320.0,
+        20.0
+       ],
+       "radius": 5.000000000000001,
+       "start_angle": 3.141592653589793,
+       "sweep": 1.5707963267948966
+      }
+     }
+    ]
+   },
+   {
+    "id": 9,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "30",
+    "dxf_type": "CIRCLE",
+    "dxf": 2,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        335.0,
+        45.0
+       ],
+       "radius": 7.5,
+       "start_angle": 0.0,
+       "sweep": 6.283185307179586
+      }
+     }
+    ]
+   },
+   {
+    "id": 10,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "31",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 2,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        360.0,
+        30.0
+       ],
+       "end": [
+        390.0,
+        30.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        390.0,
+        35.0
+       ],
+       "radius": 5.0,
+       "start_angle": -1.5707963267948966,
+       "sweep": 3.141592653589793
+      }
+     },
+     {
+      "line": {
+       "start": [
+        390.0,
+        40.0
+       ],
+       "end": [
+        360.0,
+        40.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        360.0,
+        35.0
+       ],
+       "radius": 5.0,
+       "start_angle": 1.5707963267948966,
+       "sweep": 3.141592653589793
+      }
+     }
+    ]
+   },
+   {
+    "id": 11,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "32",
+    "dxf_type": "LINE",
+    "dxf": 2,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        365.0,
+        50.0
+       ],
+       "end": [
+        395.0,
+        50.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 12,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "33",
+    "dxf_type": "LINE",
+    "dxf": 2,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        395.0,
+        50.0
+       ],
+       "end": [
+        395.0,
+        65.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 13,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "34",
+    "dxf_type": "LINE",
+    "dxf": 2,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        395.0,
+        65.0
+       ],
+       "end": [
+        365.0,
+        65.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 14,
+    "layer": "HOLES",
+    "kind": "path",
+    "dxf_handle": "35",
+    "dxf_type": "LINE",
+    "dxf": 2,
+    "closed": false,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        365.0,
+        65.0
+       ],
+       "end": [
+        365.0,
+        50.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 19,
+    "layer": "logo",
+    "kind": "path",
+    "dxf_handle": null,
+    "dxf_type": null,
+    "image": 1,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        85.0,
+        185.0
+       ],
+       "radius": 11.28325304073087,
+       "start_angle": -1.6040375444392638,
+       "sweep": 3.141592653589793
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        85.0,
+        185.0
+       ],
+       "radius": 11.28325304073087,
+       "start_angle": 1.5375551091505295,
+       "sweep": 3.1415926535897927
+      }
+     }
+    ]
+   },
+   {
+    "id": 20,
+    "layer": "logo",
+    "kind": "path",
+    "dxf_handle": null,
+    "dxf_type": null,
+    "image": 1,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        105.98134994418011,
+        190.84476790765694
+       ],
+       "radius": 2.274822464864934,
+       "start_angle": 2.543843550234324,
+       "sweep": 0.6945088345053776
+      }
+     },
+     {
+      "line": {
+       "start": [
+        103.71716812431266,
+        190.625
+       ],
+       "end": [
+        103.76918557982928,
+        178.625
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        103.76918557982928,
+        178.625
+       ],
+       "end": [
+        104.125,
+        177.85097151514273
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        105.40523209234303,
+        179.73134994418004
+       ],
+       "radius": 2.274822464864866,
+       "start_angle": -2.168545430150382,
+       "sweep": 0.6945088345054005
+      }
+     },
+     {
+      "line": {
+       "start": [
+        105.625,
+        177.46716812431265
+       ],
+       "end": [
+        124.375,
+        177.46716812431265
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        124.59794574080621,
+        179.68553119279642
+       ],
+       "radius": 2.2295379581779544,
+       "start_angle": -1.6709601168948072,
+       "sweep": 0.7232769663706227
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        124.01865005582005,
+        179.155232092343
+       ],
+       "radius": 2.274822464864775,
+       "start_angle": -0.5977491033554995,
+       "sweep": 0.6945088345054296
+      }
+     },
+     {
+      "line": {
+       "start": [
+        126.28283187568734,
+        179.375
+       ],
+       "end": [
+        126.23081442017073,
+        191.375
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        126.23081442017073,
+        191.375
+       ],
+       "end": [
+        125.875,
+        192.14902848485727
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        124.59476790765697,
+        190.26865005581996
+       ],
+       "radius": 2.274822464864856,
+       "start_angle": 0.9730472234394117,
+       "sweep": 0.6945088345054037
+      }
+     },
+     {
+      "line": {
+       "start": [
+        124.375,
+        192.53283187568735
+       ],
+       "end": [
+        105.625,
+        192.53283187568735
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        105.40205425919379,
+        190.31446880720355
+       ],
+       "radius": 2.2295379581779704,
+       "start_angle": 1.4706325366949868,
+       "sweep": 0.7232769663706198
+      }
+     }
+    ]
+   },
+   {
+    "id": 21,
+    "layer": "logo",
+    "kind": "path",
+    "dxf_handle": null,
+    "dxf_type": null,
+    "image": 1,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        85.0,
+        185.0
+       ],
+       "radius": 5.935312918078366,
+       "start_angle": -1.6340196051061497,
+       "sweep": -3.141592653589793
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        85.0,
+        185.0
+       ],
+       "radius": 5.935312918078364,
+       "start_angle": 1.5075730484836434,
+       "sweep": -3.1415926535897927
+      }
+     }
+    ]
+   },
+   {
+    "id": 22,
+    "layer": "logo",
+    "kind": "path",
+    "dxf_handle": null,
+    "dxf_type": null,
+    "image": 1,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        115.0,
+        185.0
+       ],
+       "radius": 3.65494107580001,
+       "start_angle": -1.6735780301860812,
+       "sweep": -3.141592653589793
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        115.0,
+        185.0
+       ],
+       "radius": 3.65494107580001,
+       "start_angle": 1.4680146234037121,
+       "sweep": -3.141592653589793
+      }
+     }
+    ]
+   }
+  ],
+  "next_shape_id": 23,
+  "dxfs": [
+   {
+    "id": 1,
+    "name": "simple_part",
+    "file": "simple_part.dxf",
+    "sha256": "5b0b3d849372f209295f4558b257ca1f151943404a290f36660a775407a73429",
+    "units": "mm",
+    "units_from": "dxf",
+    "imported": {
+     "CIRCLE": 1,
+     "LINE": 4,
+     "LWPOLYLINE": 2
+    },
+    "flattened": {},
+    "ignored": {},
+    "issues": [],
+    "placement": {
+     "scale": 0.9,
+     "rotation": 90.0,
+     "dx": 163.0,
+     "dy": -35.0
+    }
+   },
+   {
+    "id": 2,
+    "name": "part B",
+    "file": "simple_part.dxf",
+    "sha256": "5b0b3d849372f209295f4558b257ca1f151943404a290f36660a775407a73429",
+    "units": "mm",
+    "units_from": "dxf",
+    "imported": {
+     "CIRCLE": 1,
+     "LINE": 4,
+     "LWPOLYLINE": 2
+    },
+    "flattened": {},
+    "ignored": {},
+    "issues": [],
+    "placement": {
+     "scale": 0.5,
+     "rotation": 0.0,
+     "dx": 290.0,
+     "dy": -10.0
+    }
+   }
+  ],
+  "images": [
+   {
+    "id": 1,
+    "file": "logo.png",
+    "sha256": "2335e79453a2524a92ce3680bdcbcaa360de8b36fcd830e06110ab13dc9f6f68",
+    "data": "iVBORw0KGgoAAAANSUhEUgAAAFAAAAAoCAAAAABMCyLdAAAA7ElEQVR42u3WURHDIAwG4EiolEpAAhIqAQk4QAISkICESkACEthuIx200Af6924PzWOOfLsFSqAEDnpAOOiUoHcI5RBg1BNtMel4FXQF9yHdNXChQyxXwIY3ItKptxfpNCrQ9Va5MTBu+zHbkFKw87YzcQjUXG641vBP6CEwV0/rr3jl3AjIHTRlw8yxi2W59Cl52QFV7l99AnIfVRO034xtg6JaxJEXixYoOSWbYM6EGgzlwh3oOeXPwMOp74Pd3L0g7i/DNwV+bOAHG/7p4S8H+PUFv2DxIwA/pPBjFD/o8U8R/GPpecH+B/gCsEt2PZYGl1AAAAAASUVORK5CYII=",
+    "layer": "logo",
+    "x": 70.0,
+    "y": 170.0,
+    "width": 60.0,
+    "rotation": 0.0,
+    "threshold": "auto",
+    "invert": false,
+    "blur": 1.0,
+    "min_area": 0.5,
+    "smoothing": 0.05,
+    "trace": "outline",
+    "arcs": true
+   }
+  ],
+  "hidden": []
+ },
+ "stock": {
+  "x": 480.0,
+  "y": 220.0,
+  "thickness": 12.0,
+  "origin": "bottom_left",
+  "z_zero": "top",
+  "max_overcut": 0.0
+ },
+ "machine": {
+  "name": null,
+  "library_uid": null,
+  "post": "grbl",
+  "gcode_units": "mm",
+  "safe_z": 0.5,
+  "spindle": "cw",
+  "max_feed": 5000.0,
+  "travel": {
+   "x": 800.0,
+   "y": 600.0,
+   "z": 100.0
+  },
+  "work_zero": {
+   "at": "drawing_origin"
+  },
+  "tool_change": "files",
+  "custom_post": null
+ },
+ "tools": [
+  {
+   "id": 1,
+   "name": null,
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 6.0,
+   "flutes": 2,
+   "center_cutting": null,
+   "rpm": 18000.0,
+   "angle": null,
+   "tip_diameter": null
+  },
+  {
+   "id": 2,
+   "name": "60° V-bit",
+   "library_uid": "1eba33348dc5aa11",
+   "type": "vbit",
+   "diameter": 12.7,
+   "flutes": 2,
+   "center_cutting": null,
+   "rpm": 18000.0,
+   "angle": 1.0471975511965976,
+   "tip_diameter": 0.2
+  },
+  {
+   "id": 3,
+   "name": "Surfacing bit 25 mm",
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 25.0,
+   "flutes": 2,
+   "center_cutting": null,
+   "rpm": 18000.0,
+   "angle": null,
+   "tip_diameter": null
+  }
+ ],
+ "parts": [
+  {
+   "id": 1,
+   "name": "simple part",
+   "enabled": true,
+   "copies": null
+  },
+  {
+   "id": 2,
+   "name": "part B",
+   "enabled": true,
+   "copies": {
+    "columns": 1,
+    "rows": 2,
+    "dx": 122.0,
+    "dy": 82.0,
+    "order": "by_operation"
+   }
+  }
+ ],
+ "active_part": 2,
+ "operations": [
+  {
+   "type": "surface",
+   "name": "Face the stock",
+   "enabled": true,
+   "part": 1,
+   "tool": 3,
+   "start_depth": 0.0,
+   "end_depth": 17.0,
+   "step_down": 100.0,
+   "stepover": 0.75,
+   "feed": 3000.0,
+   "plunge_feed": 1000.0
+  },
+  {
+   "type": "profile",
+   "name": "Holes",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": "HOLES",
+    "shapes": null,
+    "dxf": 1
+   },
+   "side": "inside",
+   "direction": "climb",
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 17.0,
+   "clearance": 0.0,
+   "step_down": 100.0,
+   "feed": 1500.0,
+   "plunge_feed": 500.0,
+   "tabs": null,
+   "ramp_angle": 0.05235987755982988,
+   "starts": [],
+   "finish": null,
+   "skin": null,
+   "corners": null
+  },
+  {
+   "type": "profile",
+   "name": "Outline",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": "CUT_OUTSIDE",
+    "shapes": null,
+    "dxf": 1
+   },
+   "side": "outside",
+   "direction": "climb",
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 17.0,
+   "clearance": 0.0,
+   "step_down": 100.0,
+   "feed": 1800.0,
+   "plunge_feed": 600.0,
+   "tabs": null,
+   "ramp_angle": 0.05235987755982988,
+   "starts": [],
+   "finish": null,
+   "skin": null,
+   "corners": null
+  },
+  {
+   "type": "vcarve",
+   "name": "Logo",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": "logo",
+    "shapes": null,
+    "image": 1
+   },
+   "tool": 2,
+   "start_depth": 0.0,
+   "end_depth": 17.0,
+   "step_down": 100.0,
+   "feed": 1200.0,
+   "plunge_feed": 400.0
+  },
+  {
+   "type": "profile",
+   "name": "Outline B",
+   "enabled": true,
+   "part": 2,
+   "select": {
+    "layer": "CUT_OUTSIDE",
+    "shapes": null,
+    "dxf": 2
+   },
+   "side": "outside",
+   "direction": "climb",
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 17.0,
+   "clearance": 0.0,
+   "step_down": 100.0,
+   "feed": 1800.0,
+   "plunge_feed": 600.0,
+   "tabs": null,
+   "ramp_angle": 0.05235987755982988,
+   "starts": [],
+   "finish": null,
+   "skin": null,
+   "corners": null
+  }
+ ]
+}

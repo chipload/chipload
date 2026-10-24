@@ -1,0 +1,661 @@
+{
+ "schema_version": 29,
+ "written_by": "chipload 0.23.0",
+ "drawing": {
+  "shapes": [
+   {
+    "id": 1,
+    "layer": "NO_SUCH_LAYER",
+    "kind": "path",
+    "dxf_handle": "A1",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 99,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        5.0,
+        5.0
+       ],
+       "end": [
+        10.0,
+        5.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        10.0,
+        5.0
+       ],
+       "end": [
+        10.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        10.0,
+        6.0
+       ],
+       "end": [
+        9.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        9.0,
+        6.0
+       ],
+       "end": [
+        9.0,
+        14.5
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        9.0,
+        14.5
+       ],
+       "end": [
+        14.0,
+        14.5
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        14.0,
+        14.5
+       ],
+       "end": [
+        14.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        14.0,
+        6.0
+       ],
+       "end": [
+        13.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        13.0,
+        6.0
+       ],
+       "end": [
+        13.0,
+        5.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        13.0,
+        5.0
+       ],
+       "end": [
+        18.0,
+        5.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        18.0,
+        5.0
+       ],
+       "end": [
+        18.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        18.0,
+        6.0
+       ],
+       "end": [
+        17.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        17.0,
+        6.0
+       ],
+       "end": [
+        17.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        17.0,
+        24.0
+       ],
+       "end": [
+        18.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        18.0,
+        24.0
+       ],
+       "end": [
+        18.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        18.0,
+        25.0
+       ],
+       "end": [
+        13.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        13.0,
+        25.0
+       ],
+       "end": [
+        13.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        13.0,
+        24.0
+       ],
+       "end": [
+        14.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        14.0,
+        24.0
+       ],
+       "end": [
+        14.0,
+        15.5
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        14.0,
+        15.5
+       ],
+       "end": [
+        9.0,
+        15.5
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        9.0,
+        15.5
+       ],
+       "end": [
+        9.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        9.0,
+        24.0
+       ],
+       "end": [
+        10.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        10.0,
+        24.0
+       ],
+       "end": [
+        10.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        10.0,
+        25.0
+       ],
+       "end": [
+        5.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        5.0,
+        25.0
+       ],
+       "end": [
+        5.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        5.0,
+        24.0
+       ],
+       "end": [
+        6.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        6.0,
+        24.0
+       ],
+       "end": [
+        6.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        6.0,
+        6.0
+       ],
+       "end": [
+        5.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        5.0,
+        6.0
+       ],
+       "end": [
+        5.0,
+        5.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 2,
+    "layer": "NO_SUCH_LAYER",
+    "kind": "path",
+    "dxf_handle": "A2",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 99,
+    "closed": true,
+    "segments": [
+     {
+      "line": {
+       "start": [
+        22.0,
+        5.0
+       ],
+       "end": [
+        32.0,
+        5.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        32.0,
+        5.0
+       ],
+       "end": [
+        32.0,
+        6.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        31.766666666666666,
+        9.654166666666667
+       ],
+       "radius": 3.6616087273522577,
+       "start_angle": -1.5070288520856852,
+       "sweep": -1.1658271779114684
+      }
+     },
+     {
+      "line": {
+       "start": [
+        28.5,
+        8.0
+       ],
+       "end": [
+        28.5,
+        22.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        31.766666666666666,
+        20.34583333333333
+       ],
+       "radius": 3.6616087273522577,
+       "start_angle": 2.672856029997153,
+       "sweep": -1.1658271779114684
+      }
+     },
+     {
+      "line": {
+       "start": [
+        32.0,
+        24.0
+       ],
+       "end": [
+        32.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        32.0,
+        25.0
+       ],
+       "end": [
+        22.0,
+        25.0
+       ]
+      }
+     },
+     {
+      "line": {
+       "start": [
+        22.0,
+        25.0
+       ],
+       "end": [
+        22.0,
+        24.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        22.233333333333334,
+        20.34583333333333
+       ],
+       "radius": 3.6616087273522577,
+       "start_angle": 1.6345638015041082,
+       "sweep": -1.1658271779114684
+      }
+     },
+     {
+      "line": {
+       "start": [
+        25.5,
+        22.0
+       ],
+       "end": [
+        25.5,
+        8.0
+       ]
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        22.233333333333334,
+        9.654166666666667
+       ],
+       "radius": 3.6616087273522577,
+       "start_angle": -0.4687366235926396,
+       "sweep": -1.1658271779114684
+      }
+     },
+     {
+      "line": {
+       "start": [
+        22.0,
+        6.0
+       ],
+       "end": [
+        22.0,
+        5.0
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": 3,
+    "layer": "NO_SUCH_LAYER",
+    "kind": "path",
+    "dxf_handle": "A3",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 99,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        50.0,
+        15.0
+       ],
+       "radius": 10.0,
+       "start_angle": 3.141592653589793,
+       "sweep": 3.141592653589793
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        50.0,
+        15.0
+       ],
+       "radius": 10.0,
+       "start_angle": 0.0,
+       "sweep": 3.141592653589793
+      }
+     }
+    ]
+   },
+   {
+    "id": 4,
+    "layer": "NO_SUCH_LAYER",
+    "kind": "path",
+    "dxf_handle": "A4",
+    "dxf_type": "LWPOLYLINE",
+    "dxf": 99,
+    "closed": true,
+    "segments": [
+     {
+      "arc": {
+       "center": [
+        50.6,
+        15.4
+       ],
+       "radius": 6.5,
+       "start_angle": 3.141592653589793,
+       "sweep": 3.141592653589793
+      }
+     },
+     {
+      "arc": {
+       "center": [
+        50.6,
+        15.4
+       ],
+       "radius": 6.5,
+       "start_angle": 0.0,
+       "sweep": 3.141592653589793
+      }
+     }
+    ]
+   }
+  ],
+  "next_shape_id": 5,
+  "dxfs": [
+   {
+    "id": 1,
+    "name": "vcarve_letters",
+    "file": "vcarve_letters.dxf",
+    "sha256": "fb9b27550362ef06a40345dd846d33b2ea7ffb07715002cb1b45761eb17071ac",
+    "units": "mm",
+    "units_from": "dxf",
+    "imported": {
+     "LWPOLYLINE": 4
+    },
+    "flattened": {},
+    "ignored": {},
+    "issues": [],
+    "placement": {
+     "scale": 1.0,
+     "rotation": 0.0,
+     "dx": 0.0,
+     "dy": 0.0
+    }
+   }
+  ],
+  "images": [],
+  "hidden": []
+ },
+ "stock": {
+  "x": 65.0,
+  "y": 30.0,
+  "thickness": 10.0,
+  "origin": "bottom_left",
+  "z_zero": "top",
+  "max_overcut": 0.5
+ },
+ "machine": {
+  "name": null,
+  "library_uid": null,
+  "post": "grbl",
+  "gcode_units": "mm",
+  "safe_z": 5.0,
+  "spindle": "cw",
+  "max_feed": null,
+  "travel": null,
+  "work_zero": {
+   "at": "drawing_origin"
+  },
+  "tool_change": "files",
+  "custom_post": null
+ },
+ "tools": [
+  {
+   "id": 1,
+   "name": "60° V-bit",
+   "library_uid": "1eba33348dc5aa11",
+   "type": "vbit",
+   "diameter": 12.7,
+   "flutes": 2,
+   "center_cutting": null,
+   "rpm": 18000.0,
+   "angle": 1.0471975511965976,
+   "tip_diameter": 0.2
+  }
+ ],
+ "parts": [
+  {
+   "id": 1,
+   "name": "Part 1",
+   "enabled": true,
+   "copies": null
+  }
+ ],
+ "active_part": null,
+ "operations": [
+  {
+   "type": "vcarve",
+   "name": "Letters",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": "NO_SUCH_LAYER",
+    "shapes": null
+   },
+   "tool": 99,
+   "start_depth": 0.0,
+   "end_depth": 3.5,
+   "step_down": 1.6,
+   "feed": 1200.0,
+   "plunge_feed": 400.0
+  }
+ ]
+}

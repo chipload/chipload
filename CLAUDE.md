@@ -20,7 +20,7 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text, the material-removal simulation (height map) |
 | `chipload-cli` | the `chipload` command line (`--json` on every command through `out::Out`; no printing elsewhere) |
-| `chipload-i18n` | the app's texts in en, de, fr, es, it, sv: Fluent files in `locales/<lang>/`, compiled in, `tr(lang, id, args)` (docs/specs/translations.md, ADR 0022); no I/O, no other workspace crate |
+| `chipload-i18n` | the app's texts in en, de, fr, es, it, sv: Fluent files in `locales/<lang>/`, compiled in, `tr(lang, id, args)`; `Message` (an id and typed arguments: lengths travel in mm and render in mm or inches) for the library crates' messages, and the number rules for lengths and feeds (docs/specs/translations.md, ADR 0022); no I/O, no other workspace crate |
 | `chipload-gui` | the egui desktop app (`chipload-gui`); every text it shows is `t!(ui, "id", …)` from `chipload-i18n`, never an English literal |
 
 ## Architecture rules (non-negotiable)
@@ -108,6 +108,7 @@ cargo test -p chipload-toolpath                           # one crate, fast loop
 cargo test -p chipload-cli --test golden                  # G-code regression
 CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test golden   # ONLY when a change is intended; review the diff
 cargo test -p chipload-pipeline --test sheet               # golden setup sheets (same CHIPLOAD_UPDATE_GOLDEN rule)
+cargo test -p chipload-cli --test messages                # the English messages, frozen (same rule)
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate

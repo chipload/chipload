@@ -3,6 +3,7 @@
 //! are always mm inside; these only turn them into text and back.
 
 use chipload_core::text::trimmed;
+use chipload_i18n::Digits;
 use chipload_job::Units;
 
 /// Decimals a length is shown with: 3 in mm, 4 in inches.
@@ -41,7 +42,7 @@ pub fn to_mm(value: f64, units: Units) -> f64 {
 
 /// A length for reading, without its unit: `12.5`, `0.4921`.
 pub fn length_number(mm: f64, units: Units) -> String {
-    trimmed(from_mm(mm, units), decimals(units))
+    chipload_i18n::message::length_number(mm, Digits::Trim(3), units.into())
 }
 
 /// A length for reading, with its unit: `12.5 mm`, `0.4921 in`.
@@ -51,22 +52,14 @@ pub fn length_text(mm: f64, units: Units) -> String {
 
 /// A feed for reading, without its unit: up to 3 decimals in mm/min, 2 in in/min.
 pub fn feed_number(mm_per_min: f64, units: Units) -> String {
-    let places = match units {
-        Units::Mm => 3,
-        Units::Inch => 2,
-    };
-    trimmed(from_mm(mm_per_min, units), places)
+    chipload_i18n::message::feed_number(mm_per_min, Digits::Trim(3), units.into())
 }
 
 /// A feed for reading: `1200 mm/min`, `47.24 in/min` (two decimals in inches, whole mm).
 pub fn feed_text(mm_per_min: f64, units: Units) -> String {
-    let places = match units {
-        Units::Mm => 0,
-        Units::Inch => 2,
-    };
     format!(
         "{} {}",
-        trimmed(from_mm(mm_per_min, units), places),
+        chipload_i18n::message::feed_number(mm_per_min, Digits::Trim(0), units.into()),
         feed_unit(units)
     )
 }

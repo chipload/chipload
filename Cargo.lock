@@ -840,6 +840,7 @@ name = "chipload-job"
 version = "0.23.0"
 dependencies = [
  "chipload-core",
+ "chipload-i18n",
  "schemars",
  "serde",
  "serde_json",
@@ -854,6 +855,7 @@ dependencies = [
  "chipload-check",
  "chipload-core",
  "chipload-dxf",
+ "chipload-i18n",
  "chipload-image",
  "chipload-job",
  "chipload-post",

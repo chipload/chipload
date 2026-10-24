@@ -1,0 +1,225 @@
+{
+ "schema_version": 29,
+ "written_by": "chipload 0.23.0",
+ "drawing": {
+  "shapes": [
+   {
+    "id": 1,
+    "layer": "pocket",
+    "kind": "rectangle",
+    "center": [
+     70.0,
+     90.0
+    ],
+    "length": 70.0,
+    "width": 50.0,
+    "angle": 0.0,
+    "corner_radius": 0.0
+   },
+   {
+    "id": 2,
+    "layer": "pocket",
+    "kind": "rectangle",
+    "center": [
+     170.0,
+     90.0
+    ],
+    "length": 60.0,
+    "width": 60.0,
+    "angle": 0.0,
+    "corner_radius": 0.0
+   },
+   {
+    "id": 3,
+    "layer": "outline",
+    "kind": "rectangle",
+    "center": [
+     120.0,
+     90.0
+    ],
+    "length": 220.0,
+    "width": 120.0,
+    "angle": 0.0,
+    "corner_radius": 0.0
+   }
+  ],
+  "next_shape_id": 4,
+  "dxfs": [],
+  "images": [],
+  "hidden": []
+ },
+ "stock": {
+  "x": 0.0,
+  "y": 0.0,
+  "thickness": 0.0,
+  "origin": "bottom_left",
+  "z_zero": "top",
+  "max_overcut": 0.0
+ },
+ "machine": {
+  "name": null,
+  "library_uid": null,
+  "post": "grbl",
+  "gcode_units": "mm",
+  "safe_z": 0.0,
+  "spindle": "cw",
+  "max_feed": null,
+  "travel": null,
+  "work_zero": {
+   "at": "drawing_origin"
+  },
+  "tool_change": "files",
+  "custom_post": null
+ },
+ "tools": [
+  {
+   "id": 1,
+   "name": null,
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 0.0,
+   "flutes": 2,
+   "center_cutting": true,
+   "rpm": 0.0,
+   "angle": null,
+   "tip_diameter": null
+  },
+  {
+   "id": 2,
+   "name": null,
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 0.0,
+   "flutes": 2,
+   "center_cutting": true,
+   "rpm": 0.0,
+   "angle": null,
+   "tip_diameter": null
+  }
+ ],
+ "parts": [
+  {
+   "id": 1,
+   "name": "Part 1",
+   "enabled": true,
+   "copies": null
+  }
+ ],
+ "active_part": 1,
+ "operations": [
+  {
+   "type": "pocket",
+   "name": "Box",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": null,
+    "shapes": [
+     1
+    ]
+   },
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 0.0,
+   "clearance": 0.0,
+   "step_down": 0.0,
+   "stepover": 0.0,
+   "direction": "climb",
+   "feed": 0.0,
+   "plunge_feed": 0.0,
+   "entry": {
+    "type": "plunge"
+   },
+   "starts": [],
+   "lead": null,
+   "corners": null,
+   "rest": null,
+   "rest_passes": [
+    {
+     "tool": 2,
+     "feed": 0.0,
+     "plunge_feed": 0.0,
+     "step_down": 0.0,
+     "stepover": 0.0,
+     "entry": {
+      "type": "plunge"
+     },
+     "enabled": true
+    }
+   ]
+  },
+  {
+   "type": "pocket",
+   "name": "Square",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": null,
+    "shapes": [
+     2
+    ]
+   },
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 0.0,
+   "clearance": 0.0,
+   "step_down": 0.0,
+   "stepover": 0.0,
+   "direction": "climb",
+   "feed": 0.0,
+   "plunge_feed": 0.0,
+   "entry": {
+    "type": "plunge"
+   },
+   "starts": [],
+   "lead": null,
+   "corners": null,
+   "rest": null,
+   "rest_passes": [
+    {
+     "tool": 2,
+     "feed": 0.0,
+     "plunge_feed": 0.0,
+     "step_down": 0.0,
+     "stepover": 0.0,
+     "entry": {
+      "type": "plunge"
+     },
+     "enabled": true
+    }
+   ]
+  },
+  {
+   "type": "profile",
+   "name": "Outline",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": null,
+    "shapes": [
+     3
+    ]
+   },
+   "side": "outside",
+   "direction": "climb",
+   "tool": 1,
+   "start_depth": 0.0,
+   "end_depth": 0.0,
+   "clearance": 0.0,
+   "step_down": 0.0,
+   "feed": 0.0,
+   "plunge_feed": 0.0,
+   "tabs": {
+    "count": 4,
+    "width": 0.0,
+    "height": 0.0,
+    "flank_angle": 0.0
+   },
+   "ramp_angle": 0.0,
+   "starts": [],
+   "finish": null,
+   "skin": null,
+   "corners": null
+  }
+ ]
+}

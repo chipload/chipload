@@ -1,0 +1,229 @@
+{
+ "schema_version": 29,
+ "written_by": "chipload 0.23.0",
+ "drawing": {
+  "shapes": [
+   {
+    "id": 1,
+    "layer": "drawn",
+    "kind": "rectangle",
+    "center": [
+     100.0,
+     80.0
+    ],
+    "length": 120.0,
+    "width": 80.0,
+    "angle": 0.17453292519943295,
+    "corner_radius": 0.0
+   },
+   {
+    "id": 2,
+    "layer": "drawn",
+    "kind": "circle",
+    "center": [
+     75.0,
+     80.0
+    ],
+    "radius": 12.0
+   },
+   {
+    "id": 3,
+    "layer": "drawn",
+    "kind": "polyline",
+    "closed": true,
+    "points": [
+     [
+      110.0,
+      65.0
+     ],
+     [
+      140.0,
+      65.0
+     ],
+     [
+      125.0,
+      95.0
+     ]
+    ],
+    "bulges": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "id": 4,
+    "layer": "drawn",
+    "kind": "polyline",
+    "closed": false,
+    "points": [
+     [
+      50.0,
+      40.0
+     ],
+     [
+      90.0,
+      40.0
+     ],
+     [
+      110.0,
+      60.0
+     ],
+     [
+      150.0,
+      60.0
+     ]
+    ],
+    "bulges": [
+     0.0,
+     0.4142135623730951,
+     0.0
+    ]
+   },
+   {
+    "id": 5,
+    "layer": "drawn",
+    "kind": "polyline",
+    "closed": false,
+    "points": [
+     [
+      60.0,
+      110.0
+     ],
+     [
+      140.0,
+      110.0
+     ]
+    ],
+    "bulges": [
+     0.0
+    ]
+   }
+  ],
+  "next_shape_id": 6,
+  "dxfs": [],
+  "images": [],
+  "hidden": []
+ },
+ "stock": {
+  "x": 10000000.0,
+  "y": 10000000.0,
+  "thickness": 10000000.0,
+  "origin": "bottom_left",
+  "z_zero": "top",
+  "max_overcut": 10000000.0
+ },
+ "machine": {
+  "name": null,
+  "library_uid": null,
+  "post": "grbl",
+  "gcode_units": "mm",
+  "safe_z": 10000000.0,
+  "spindle": "cw",
+  "max_feed": 10000000.0,
+  "travel": {
+   "x": 10000000.0,
+   "y": 10000000.0,
+   "z": 10000000.0
+  },
+  "work_zero": {
+   "at": "drawing_origin"
+  },
+  "tool_change": "program",
+  "custom_post": null
+ },
+ "tools": [
+  {
+   "id": 1,
+   "name": null,
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 10000000.0,
+   "flutes": 2,
+   "center_cutting": true,
+   "rpm": 10000000.0,
+   "angle": null,
+   "tip_diameter": null
+  },
+  {
+   "id": 2,
+   "name": "V 60",
+   "library_uid": "21305bffb84db0b5",
+   "type": "vbit",
+   "diameter": 10000000.0,
+   "flutes": 2,
+   "center_cutting": null,
+   "rpm": 10000000.0,
+   "angle": 10000000.0,
+   "tip_diameter": 10000000.0
+  },
+  {
+   "id": 3,
+   "name": null,
+   "library_uid": null,
+   "type": "endmill",
+   "diameter": 10000000.0,
+   "flutes": 2,
+   "center_cutting": false,
+   "rpm": 10000000.0,
+   "angle": null,
+   "tip_diameter": null
+  }
+ ],
+ "parts": [
+  {
+   "id": 1,
+   "name": "Part 1",
+   "enabled": true,
+   "copies": null
+  }
+ ],
+ "active_part": null,
+ "operations": [
+  {
+   "type": "path",
+   "name": "Engrave",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": null,
+    "shapes": [
+     4,
+     2
+    ]
+   },
+   "tool": 2,
+   "start_depth": 10000000.0,
+   "end_depth": 10000000.0,
+   "step_down": 10000000.0,
+   "feed": 10000000.0,
+   "plunge_feed": 10000000.0,
+   "entry": {
+    "type": "plunge"
+   }
+  },
+  {
+   "type": "path",
+   "name": "Groove",
+   "enabled": true,
+   "part": 1,
+   "select": {
+    "layer": null,
+    "shapes": [
+     5,
+     3
+    ]
+   },
+   "tool": 3,
+   "start_depth": 10000000.0,
+   "end_depth": 10000000.0,
+   "step_down": 10000000.0,
+   "feed": 10000000.0,
+   "plunge_feed": 10000000.0,
+   "entry": {
+    "type": "ramp",
+    "ramp_angle": 10000000.0
+   }
+  }
+ ]
+}

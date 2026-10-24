@@ -1,0 +1,63 @@
+$ chipload check tests/corpus/messages/bad.nc --job tests/corpus/messages/holes_big_tool.chipload
+exit 1
+--- stdout
+error (line 4): Motion before G21 (mm) or G20 (inch)
+error (line 4): Rapid XY move while Z is below safe height (retract first)
+error (line 5): Feed F0 must be positive
+error (line 5): Motion before G21 (mm) or G20 (inch)
+error (line 6): Motion before G21 (mm) or G20 (inch)
+error (line 6): Rapid XY move while Z is below safe height (retract first)
+error (line 6): Rapid to Z-3.000 mm, below the stock top (rapid into material)
+error (line 7): Motion before G21 (mm) or G20 (inch)
+error (line 8): Motion before G21 (mm) or G20 (inch)
+error (line 8): Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm
+error (line 9): Motion before G21 (mm) or G20 (inch)
+error (line 9): Arc radius mismatch: start 3.0000 mm vs end 883.0000 mm
+error (line 9): Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm
+error (line 10): Unsupported word R
+error (line 11): Unsupported word Q
+error (line 12): Motion before G21 (mm) or G20 (inch)
+error (line 12): Rapid to Z-2.000 mm, below the stock top (rapid into material)
+error (line 13): Motion before G21 (mm) or G20 (inch)
+error (line 13): Rapid XY move while Z is below safe height (retract first)
+error (line 13): Rapid to Z-2.000 mm, below the stock top (rapid into material)
+error (line 14): G20 (inch) but the machine's G-code units are mm
+error (line 0): X span 900.000 mm exceeds machine travel 800.000 mm
+warning: 2 cutting moves end outside the stock (expanded by the tool radius)
+Check FAILED.
+--- stderr
+
+$ chipload check tests/corpus/messages/bad.nc --job tests/corpus/messages/holes_big_tool.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"the command failed","problems":[]},"errors":[{"line":4,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":4,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":5,"message":"Feed F0 must be positive"},{"line":5,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":6,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":6,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":6,"message":"Rapid to Z-3.000 mm, below the stock top (rapid into material)"},{"line":7,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":8,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":8,"message":"Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm"},{"line":9,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":9,"message":"Arc radius mismatch: start 3.0000 mm vs end 883.0000 mm"},{"line":9,"message":"Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm"},{"line":10,"message":"Unsupported word R"},{"line":11,"message":"Unsupported word Q"},{"line":12,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":12,"message":"Rapid to Z-2.000 mm, below the stock top (rapid into material)"},{"line":13,"message":"Motion before G21 (mm) or G20 (inch)"},{"line":13,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":13,"message":"Rapid to Z-2.000 mm, below the stock top (rapid into material)"},{"line":14,"message":"G20 (inch) but the machine's G-code units are mm"},{"line":0,"message":"X span 900.000 mm exceeds machine travel 800.000 mm"}],"notes":[],"ok":false,"warnings":[{"line":0,"message":"2 cutting moves end outside the stock (expanded by the tool radius)"}],"written":[]}
+--- stderr
+
+$ chipload check tests/corpus/messages/bad_mm.nc --job tests/corpus/messages/holes_big_tool.chipload
+exit 1
+--- stdout
+error (line 4): Rapid XY move while Z is below safe height (retract first)
+error (line 5): Feed F0 must be positive
+error (line 6): Rapid XY move while Z is below safe height (retract first)
+error (line 6): Rapid to Z-3.000 mm, below the stock top (rapid into material)
+error (line 8): Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm
+error (line 9): Arc radius mismatch: start 3.0000 mm vs end 883.0000 mm
+error (line 9): Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm
+error (line 10): Unsupported word R
+error (line 11): Unsupported word Q
+error (line 12): Rapid to Z-2.000 mm, below the stock top (rapid into material)
+error (line 13): Rapid XY move while Z is below safe height (retract first)
+error (line 13): Rapid to Z-2.000 mm, below the stock top (rapid into material)
+error (line 14): G20 changes the units to inch within the program
+error (line 14): G20 (inch) but the machine's G-code units are mm
+error (line 0): X span 900.000 mm exceeds machine travel 800.000 mm
+warning: 2 cutting moves end outside the stock (expanded by the tool radius)
+Check FAILED.
+--- stderr
+
+$ chipload check tests/corpus/messages/bad_mm.nc --job tests/corpus/messages/holes_big_tool.chipload --json
+exit 1
+--- stdout
+{"chipload_json":1,"error":{"message":"the command failed","problems":[]},"errors":[{"line":4,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":5,"message":"Feed F0 must be positive"},{"line":6,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":6,"message":"Rapid to Z-3.000 mm, below the stock top (rapid into material)"},{"line":8,"message":"Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm"},{"line":9,"message":"Arc radius mismatch: start 3.0000 mm vs end 883.0000 mm"},{"line":9,"message":"Z-50.000 mm is below the stock bottom (-12.000 mm) by more than the allowed 0.500 mm"},{"line":10,"message":"Unsupported word R"},{"line":11,"message":"Unsupported word Q"},{"line":12,"message":"Rapid to Z-2.000 mm, below the stock top (rapid into material)"},{"line":13,"message":"Rapid XY move while Z is below safe height (retract first)"},{"line":13,"message":"Rapid to Z-2.000 mm, below the stock top (rapid into material)"},{"line":14,"message":"G20 changes the units to inch within the program"},{"line":14,"message":"G20 (inch) but the machine's G-code units are mm"},{"line":0,"message":"X span 900.000 mm exceeds machine travel 800.000 mm"}],"notes":[],"ok":false,"warnings":[{"line":0,"message":"2 cutting moves end outside the stock (expanded by the tool radius)"}],"written":[]}
+--- stderr
+

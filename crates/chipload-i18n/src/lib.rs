@@ -202,3 +202,6 @@ fn format(lang: Language, id: &str, args: &FluentArgs) -> Option<String> {
 }
 
 pub mod check;
+pub mod message;
+
+pub use message::{Digits, Message, Units, Value};
