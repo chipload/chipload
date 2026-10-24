@@ -30,7 +30,8 @@ listens on the network.
   }
   ```
 
-  On Windows, the command is the full path to `chipload-X.Y.Z-windows-x86_64.exe`. Ask
+  On Windows, the command is the full path to `chipload.exe`, from
+  `chipload-cli-X.Y.Z-windows-x86_64.zip`. Ask
   the assistant to use full paths to your files there, as it has no project folder.
 
 ## What the assistant can do

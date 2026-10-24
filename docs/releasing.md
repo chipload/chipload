@@ -45,16 +45,22 @@ publish it.
 
 ## Files
 
+The app takes the plain name `chipload-…`: it sorts first on the release page, so whoever
+downloads "Chipload" gets the app. The command line is `chipload-cli-…` and always comes in an
+archive, never as a bare program someone might double-click (a console window that flashes
+and closes looks like a broken app). The programs inside keep their names, `chipload-gui`
+and `chipload`.
+
 | File | What |
 |---|---|
-| `chipload-gui-X.Y.Z-linux-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
-| `chipload-gui-X.Y.Z-linux-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
-| `chipload-gui-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
-| `chipload-gui-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
-| `chipload-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
-| `chipload-X.Y.Z-windows-x86_64.exe`, `…-windows-aarch64.exe` | Windows command line |
-| `chipload-gui-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
-| `chipload-X.Y.Z-macos-universal.tar.gz` | macOS command line, with LICENSE and the third-party notices |
+| `chipload-X.Y.Z-linux-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
+| `chipload-X.Y.Z-linux-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
+| `chipload-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
+| `chipload-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
+| `chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
+| `chipload-cli-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
+| `chipload-cli-X.Y.Z-windows-x86_64.zip`, `…-windows-aarch64.zip` | Windows command line, the same |
+| `chipload-cli-X.Y.Z-macos-universal.tar.gz` | macOS command line, the same |
 | `SHA256SUMS.txt` | checksums of the above |
 | `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`) |
 
@@ -77,8 +83,8 @@ Ubuntu 22.04 container, with the same steps and the same glibc:
 
     packaging/linux/build-release-local.sh 0.13.0 dist/local
 
-Then create the draft with `gh release create v0.13.0 dist/local/chipload-gui-*.AppImage
-dist/local/chipload-*.tar.gz dist/local/SHA256SUMS.txt --draft --verify-tag --title
+Then create the draft with `gh release create v0.13.0 dist/local/chipload-*.AppImage
+dist/local/chipload-cli-*.tar.gz dist/local/SHA256SUMS.txt --draft --verify-tag --title
 "Chipload 0.13.0" --notes-file notes.md` (the `gh` token needs Contents read/write).
 
 The Windows files are built on the Windows side of the same machine: Rust (rustup, the
@@ -90,14 +96,15 @@ From WSL, in `/mnt/c/code/chipload`:
 
 `rust-toolchain.toml` makes rustup install the pinned Rust on the first run. Then:
 
-1. Copy `target/release/chipload-gui.exe` to `chipload-gui-0.13.0-windows-x86_64.exe` and
-   `target/release/chipload.exe` to `chipload-0.13.0-windows-x86_64.exe`.
+1. Copy `target/release/chipload-gui.exe` to `chipload-0.13.0-windows-x86_64.exe`, and zip
+   a folder `chipload-cli-0.13.0-windows-x86_64` holding `target/release/chipload.exe`,
+   `LICENSE` and `THIRD-PARTY-LICENSES.txt` into `chipload-cli-0.13.0-windows-x86_64.zip`.
 2. Check that neither needs the VC++ runtime: `strings -a FILE | grep -iE
    '^(vcruntime|msvcp|api-ms-win-crt)'` prints nothing.
 3. Add their checksums to the release's `SHA256SUMS.txt` (`gh release download v0.13.0 -p
-   SHA256SUMS.txt`, then `sha256sum *.exe >> SHA256SUMS.txt`).
-4. `gh release upload v0.13.0 chipload-gui-0.13.0-windows-x86_64.exe
-   chipload-0.13.0-windows-x86_64.exe SHA256SUMS.txt --clobber`, and list the Windows files
+   SHA256SUMS.txt`, then `sha256sum *.exe *.zip >> SHA256SUMS.txt`).
+4. `gh release upload v0.13.0 chipload-0.13.0-windows-x86_64.exe
+   chipload-cli-0.13.0-windows-x86_64.zip SHA256SUMS.txt --clobber`, and list the Windows files
    in the release notes.
 5. `git switch main` in the Windows checkout, so it isn't left on the tag.
 

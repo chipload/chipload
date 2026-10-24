@@ -57,9 +57,10 @@ Problems found this way become test cases.
 
 ## Download
 
-[Releases](https://github.com/chipload/chipload/releases) have the app and the command line
-for Linux (AppImage) and Windows (`.exe`), x86_64 and ARM64, and macOS (universal `.dmg`),
-plus the user guide to read offline.
+[Releases](https://github.com/chipload/chipload/releases) have the app as one file,
+`chipload-X.Y.Z-…`, for Linux (AppImage) and Windows (`.exe`), x86_64 and ARM64, and macOS
+(universal `.dmg`). The command line for scripts is in the `chipload-cli-X.Y.Z-…` archives,
+and the user guide to read offline in `chipload-guide-X.Y.Z.zip`.
 
 ## Build from source
 

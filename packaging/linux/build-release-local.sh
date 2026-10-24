@@ -8,7 +8,7 @@
 #   e.g. packaging/linux/build-release-local.sh 0.13.0 /tmp/release
 # Needs podman (or CONTAINER=docker) and the tag v<version>. Writes the AppImage, the CLI
 # archive, SHA256SUMS.txt and tests.log to the output dir. Then, to make the draft:
-#   gh release create v<version> <out>/chipload-gui-*.AppImage <out>/chipload-*.tar.gz \
+#   gh release create v<version> <out>/chipload-*.AppImage <out>/chipload-cli-*.tar.gz \
 #     <out>/SHA256SUMS.txt --draft --verify-tag --title "Chipload <version>" --notes-file notes.md
 set -eu
 
@@ -40,7 +40,7 @@ if ! packaging/test-release.sh > /out/tests.log 2>&1; then
 fi
 cargo build --release --locked -p chipload-gui -p chipload-cli
 REQUIRE_BUNDLED_LIBS=1 packaging/linux/build-appimage.sh "$VERSION" dist
-stage="chipload-$VERSION-linux-x86_64"
+stage="chipload-cli-$VERSION-linux-x86_64"
 mkdir -p "\$stage"
 cp target/release/chipload LICENSE THIRD-PARTY-LICENSES.txt "\$stage/"
 tar -czf "dist/\$stage.tar.gz" "\$stage"

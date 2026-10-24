@@ -8,6 +8,15 @@ Status: accepted (2026-10-09)
 - A pushed `vX.Y.Z` tag builds everything and creates a **draft** GitHub Release; publishing
   is a manual step. Steps: `docs/releasing.md`.
 
+## Decisions (2026-10-24): file names
+- The app takes the plain name, `chipload-X.Y.Z-<system>-<arch>.{AppImage,exe,dmg}`; the
+  command line is `chipload-cli-X.Y.Z-…`, always in an archive (`.zip` on Windows, `.tar.gz`
+  elsewhere) with LICENSE and the notices. Before, the command line was `chipload-X.Y.Z-…`
+  (a bare `.exe` on Windows) and the app `chipload-gui-X.Y.Z-…`: the command line sorted
+  first on the release page, and double-clicking it showed a console window that closed at
+  once, which looks like an app that won't start. The programs inside keep their names
+  (`chipload`, `chipload-gui`). The release notes start with the app downloads.
+
 ## Decisions (2026-10-16): macOS
 - **macOS:** the GUI ships as `Chipload.app` in a disk image, the command line as a
   `.tar.gz`, both **universal** (Apple silicon and Intel), for macOS 11 or newer. Built by

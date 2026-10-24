@@ -1,8 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Build the macOS release files from the two per-architecture release builds:
-#   chipload-gui-<version>-macos-universal.dmg       the GUI as Chipload.app (Apple silicon + Intel)
-#   chipload-<version>-macos-universal.tar.gz     the command line, LICENSE, notices
+#   chipload-<version>-macos-universal.dmg           the GUI as Chipload.app (Apple silicon + Intel)
+#   chipload-cli-<version>-macos-universal.tar.gz    the command line, LICENSE, notices
 #
 # Usage: packaging/macos/build-macos.sh <version> [output dir]
 #
@@ -81,16 +81,16 @@ mkdir -p "$OUT"
 
 # The disk image: the app and a link to Applications to drag it onto.
 ln -s /Applications "$WORK/dmg/Applications"
-DMG="$OUT/chipload-gui-$VERSION-macos-universal.dmg"
+DMG="$OUT/chipload-$VERSION-macos-universal.dmg"
 rm -f "$DMG"
 hdiutil create -volname "Chipload $VERSION" -srcfolder "$WORK/dmg" -fs HFS+ -format UDZO \
     -ov "$DMG"
 echo "Built $DMG"
 
 # The command line, signed ad hoc as well.
-STAGE="$WORK/chipload-$VERSION-macos-universal"
+STAGE="$WORK/chipload-cli-$VERSION-macos-universal"
 mkdir -p "$STAGE"
 cp "$WORK/chipload" "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-LICENSES.txt" "$STAGE/"
 codesign --force --sign - "$STAGE/chipload"
-tar -czf "$OUT/chipload-$VERSION-macos-universal.tar.gz" -C "$WORK" "$(basename "$STAGE")"
-echo "Built $OUT/chipload-$VERSION-macos-universal.tar.gz"
+tar -czf "$OUT/chipload-cli-$VERSION-macos-universal.tar.gz" -C "$WORK" "$(basename "$STAGE")"
+echo "Built $OUT/chipload-cli-$VERSION-macos-universal.tar.gz"

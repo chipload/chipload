@@ -5,8 +5,9 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- Nothing unreleased: 0.22.2 is published. Pushed since: the smaller debug builds (see Done),
-  which change no program.
+- Nothing unreleased in the programs: 0.22.2 is published. Since: the smaller debug builds
+  (pushed) and the new release file names (not pushed; see Done), which change no program.
+  The next release is the first with the new names: check the draft's file list and notes.
 
 ## State to remember (2026-10-19)
 
@@ -56,6 +57,13 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Release file names** (2026-10-24, ADR 0010): the app is `chipload-X.Y.Z-…` (AppImage,
+  `.exe`, `.dmg`) and sorts first on the release page; the command line is
+  `chipload-cli-X.Y.Z-…`, always an archive (Windows now a `.zip` with LICENSE and the
+  notices, not a bare `.exe` that flashes a console when double-clicked). The release notes
+  start with "Download the app"; the install page, README and docs/releasing.md follow.
+  Not done: a message when the CLI starts with no arguments on Windows (optional; it would
+  wait for Enter in a terminal too).
 - **Smaller debug builds** (2026-10-19): `[profile.dev]` keeps line tables for
   our crates and no debug info for dependencies; after a full test build `target/` is
   3.1 GB. A debugger no longer shows local variables.
