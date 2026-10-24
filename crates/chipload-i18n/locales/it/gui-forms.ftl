@@ -8,7 +8,6 @@ forms-end-depth-hover = Dove finisce il taglio, in giù dalla superficie del gre
 forms-through = Passante
 forms-through-hover = Taglia attraverso il grezzo: { $depth }, il suo spessore più la profondità consentita sotto di esso (Impostazioni lavoro > Grezzo)
 forms-oversize = Maggiorazione
-forms-oversize-hover = Quanto si taglia in più rispetto al disegno, mm (clearance nel file): un valore positivo allarga una tasca o rimpicciolisce un pezzo, uno negativo lascia materiale per un taglio successivo. Minore del raggio dell'utensile. Altri programmi CAM chiamano l'opposto "sovrametallo".
 forms-oversize-disabled = Una contornatura sulla linea non ha un lato su cui tagliare di più
 forms-step-down = Prof. di passata
 # Indented under "Passes": the depth of each pass.
@@ -199,7 +198,6 @@ forms-traced-as = Vettorizzata come
 forms-traced-outlines = contorni
 forms-traced-centre-lines = linee mediane
 forms-position = Posizione
-forms-picture-position-hover = L'angolo in basso a sinistra del riquadro dell'immagine, mm
 forms-picture-reset-position = L'angolo del riquadro in X0 Y0
 forms-rotation = Rotazione
 forms-picture-rotation-hover = Gradi in senso antiorario, qualsiasi angolo, attorno al centro dell'immagine. L'immagine viene vettorizzata così com'è, poi le sue forme vengono ruotate.
@@ -226,8 +224,6 @@ forms-anchor = Ancoraggio
 forms-anchor-hover = Cosa indica Posizione: l'angolo in basso a sinistra del riquadro del testo, o il suo centro. Un testo centrato resta centrato quando cambiano parole, font o dimensione
 forms-anchor-corner = angolo in basso a sinistra
 forms-anchor-centre = centro
-forms-text-position-corner-hover = L'angolo in basso a sinistra del riquadro del testo, mm
-forms-text-position-centre-hover = Il centro del riquadro del testo, mm
 forms-text-reset-position = In X0 Y0
 forms-text-rotation-hover = Gradi in senso antiorario, qualsiasi angolo, attorno al centro del testo
 forms-text-reset-rotation = Orizzontale (0°)
@@ -271,7 +267,6 @@ forms-safe-z-hover = La quota per i movimenti rapidi laterali, sopra il grezzo e
 forms-tools = Utensili
 forms-add-from-library = Aggiungi da libreria…
 forms-new-tool = Nuovo utensile
-forms-new-tool-hover = Una fresa da 6 mm da modificare; le lavorazioni la scelgono nella loro riga Utensile
 forms-tool-not-used = non usato
 # $operations: a list of operation numbers, "1, 3".
 forms-tool-used-by = lavorazioni { $operations }
@@ -283,7 +278,6 @@ forms-remove-tool-disabled = Usato dalle lavorazioni { $operations }; assegna pr
 forms-reset = Ripristina
 
 # A DXF's position, rotation and scale.
-forms-dxf-position-hover = L'angolo in basso a sinistra del riquadro del disegno, mm. Le forme disegnate in Chipload e gli altri DXF non si spostano.
 forms-dxf-reset-position = Torna dove lo pone il DXF (rotazione e scala restano)
 forms-bottom-left = In basso a sinistra
 forms-bottom-left-hover = L'angolo del disegno a { $margin } dall'angolo in basso a sinistra del grezzo
@@ -316,7 +310,6 @@ forms-copies-grid = più, in griglia
 forms-columns-rows = colonne × righe
 # Copy to copy distance, in X and Y.
 forms-pitch = passo X Y
-forms-pitch-hover = Da copia a copia, mm. Un valore negativo cresce verso sinistra o verso il basso.
 forms-gap = distanza
 forms-gap-hover = Imposta il passo una volta in modo che resti questa distanza tra i tagli di copie vicine. Il progetto conserva il passo.
 forms-set-pitch = Imposta passo

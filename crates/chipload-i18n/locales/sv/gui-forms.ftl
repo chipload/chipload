@@ -8,7 +8,6 @@ forms-end-depth-hover = Där fräsningen slutar, nedåt från ämnets ovansida
 forms-through = Igenom
 forms-through-hover = Fräs igenom ämnet: { $depth }, dess tjocklek plus tillåtet djup under det (Jobbinställningar > Ämne)
 forms-oversize = Förskjutning
-forms-oversize-hover = Hur mycket mer än ritat som fräses bort, mm (clearance i filen): positivt gör en ficka större eller en detalj mindre, negativt lämnar material kvar för en senare bearbetning. Mindre än verktygsradien. Andra CAM-program kallar motsatsen "bearbetningsmån".
 forms-oversize-disabled = En konturfräsning på linjen har ingen sida att fräsa mer på
 forms-step-down = Skärdjup
 # Indented under "Passes": the depth of each pass.
@@ -199,7 +198,6 @@ forms-traced-as = Spårad som
 forms-traced-outlines = konturer
 forms-traced-centre-lines = mittlinjer
 forms-position = Läge
-forms-picture-position-hover = Nedre vänstra hörnet av bildens ram, mm
 forms-picture-reset-position = Ramens hörn i X0 Y0
 forms-rotation = Rotation
 forms-picture-rotation-hover = Grader moturs, valfri vinkel, kring bildens centrum. Bilden spåras som den är, sedan vrids dess former.
@@ -226,8 +224,6 @@ forms-anchor = Ankare
 forms-anchor-hover = Vad Läge avser: nedre vänstra hörnet av textens ram, eller dess centrum. En centrerad text förblir centrerad när orden, typsnittet eller storleken ändras
 forms-anchor-corner = nedre vänstra hörnet
 forms-anchor-centre = centrum
-forms-text-position-corner-hover = Nedre vänstra hörnet av textens ram, mm
-forms-text-position-centre-hover = Centrum av textens ram, mm
 forms-text-reset-position = I X0 Y0
 forms-text-rotation-hover = Grader moturs, valfri vinkel, kring textens centrum
 forms-text-reset-rotation = Vågrät (0°)
@@ -271,7 +267,6 @@ forms-safe-z-hover = Höjden för snabbförflyttningar i sidled, ovanför ämnet
 forms-tools = Verktyg
 forms-add-from-library = Lägg till från bibliotek…
 forms-new-tool = Nytt verktyg
-forms-new-tool-hover = En 6 mm pinnfräs att redigera; operationer väljer den i sin rad Verktyg
 forms-tool-not-used = används inte
 # $operations: a list of operation numbers, "1, 3".
 forms-tool-used-by = operationer { $operations }
@@ -283,7 +278,6 @@ forms-remove-tool-disabled = Används av operationer { $operations }; ge dem ett
 forms-reset = Återställ
 
 # A DXF's position, rotation and scale.
-forms-dxf-position-hover = Nedre vänstra hörnet av ritningens ram, mm. Former ritade i Chipload och andra DXF:er flyttas inte.
 forms-dxf-reset-position = Tillbaka dit DXF:en har den (vridning och skala kvarstår)
 forms-bottom-left = Nere till vänster
 forms-bottom-left-hover = Ritningens hörn { $margin } in från ämnets nedre vänstra hörn
@@ -316,7 +310,6 @@ forms-copies-grid = flera, i ett rutnät
 forms-columns-rows = kolumner × rader
 # Copy to copy distance, in X and Y.
 forms-pitch = delning X Y
-forms-pitch-hover = Från kopia till kopia, mm. Negativt växer åt vänster eller nedåt.
 forms-gap = mellanrum
 forms-gap-hover = Sätter delningen en gång så att så här mycket blir kvar mellan spåren hos intilliggande kopior. Projektet behåller delningen.
 forms-set-pitch = Sätt delning

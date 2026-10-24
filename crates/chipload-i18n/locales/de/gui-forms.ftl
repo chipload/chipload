@@ -8,7 +8,6 @@ forms-end-depth-hover = Wo der Schnitt endet, gemessen von der Rohteiloberkante 
 forms-through = Durch
 forms-through-hover = Durch das Rohteil fräsen: { $depth }, seine Dicke plus die zulässige Tiefe darunter (Jobeinstellungen > Rohteil)
 forms-oversize = Übermaß
-forms-oversize-hover = Wie viel mehr als gezeichnet gefräst wird, mm (clearance in der Datei): positiv macht eine Tasche größer oder ein Teil kleiner, negativ lässt Material für einen späteren Schnitt stehen. Kleiner als der Werkzeugradius. Andere CAM-Programme nennen das Gegenteil „Aufmaß“.
 forms-oversize-disabled = Eine Kontur auf der Linie hat keine Seite, auf der mehr gefräst werden könnte
 forms-step-down = Zustellung
 # Indented under "Passes": the depth of each pass.
@@ -200,7 +199,6 @@ forms-traced-outlines = Umrisse
 forms-traced-centre-lines = Mittellinien
 
 forms-position = Position
-forms-picture-position-hover = Die untere linke Ecke des Bildrahmens, mm
 forms-picture-reset-position = Ecke des Rahmens auf X0 Y0
 forms-rotation = Drehung
 forms-picture-rotation-hover = Grad gegen den Uhrzeigersinn, beliebiger Winkel, um die Bildmitte. Das Bild wird nachgezeichnet, wie es ist, dann werden seine Formen gedreht.
@@ -227,8 +225,6 @@ forms-anchor = Anker
 forms-anchor-hover = Was die Position ist: die untere linke Ecke des Textrahmens oder seine Mitte. Ein zentrierter Text bleibt zentriert, wenn sich Wörter, Schrift oder Größe ändern
 forms-anchor-corner = untere linke Ecke
 forms-anchor-centre = Mitte
-forms-text-position-corner-hover = Die untere linke Ecke des Textrahmens, mm
-forms-text-position-centre-hover = Die Mitte des Textrahmens, mm
 forms-text-reset-position = Auf X0 Y0
 forms-text-rotation-hover = Grad gegen den Uhrzeigersinn, beliebiger Winkel, um die Textmitte
 forms-text-reset-rotation = Waagerecht (0°)
@@ -272,7 +268,6 @@ forms-safe-z-hover = Die Höhe für seitliche Eilgänge, über dem Rohteil und s
 forms-tools = Werkzeuge
 forms-add-from-library = Aus Bibliothek hinzufügen…
 forms-new-tool = Neues Werkzeug
-forms-new-tool-hover = Ein 6 mm Schaftfräser zum Bearbeiten; Bearbeitungen wählen ihn in ihrer Zeile Werkzeug
 forms-tool-not-used = nicht verwendet
 # $operations: a list of operation numbers, "1, 3".
 forms-tool-used-by = Bearbeitungen { $operations }
@@ -284,7 +279,6 @@ forms-remove-tool-disabled = Verwendet von Bearbeitungen { $operations }; geben 
 forms-reset = Zurücksetzen
 
 # A DXF's position, rotation and scale.
-forms-dxf-position-hover = Die untere linke Ecke des Zeichnungsrahmens, mm. In Chipload gezeichnete Formen und andere DXFs bewegen sich nicht.
 forms-dxf-reset-position = Zurück an die Stelle aus der DXF (Drehung und Maßstab bleiben)
 forms-bottom-left = Unten links
 forms-bottom-left-hover = Die Ecke der Zeichnung { $margin } innerhalb der unteren linken Rohteilecke
@@ -317,7 +311,6 @@ forms-copies-grid = mehrere, im Raster
 forms-columns-rows = Spalten × Zeilen
 # Copy to copy distance, in X and Y.
 forms-pitch = Teilung X Y
-forms-pitch-hover = Von Kopie zu Kopie, mm. Negativ wächst nach links oder unten.
 forms-gap = Abstand
 forms-gap-hover = Setzt die Teilung einmalig so, dass so viel zwischen den Schnitten benachbarter Kopien bleibt. Das Projekt behält die Teilung.
 forms-set-pitch = Teilung setzen

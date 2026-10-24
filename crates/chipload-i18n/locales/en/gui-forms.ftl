@@ -8,7 +8,6 @@ forms-end-depth-hover = Where the cut ends, down from the stock top
 forms-through = Through
 forms-through-hover = Cut through the stock: { $depth }, its thickness plus the allowed depth below it (Job settings > Stock)
 forms-oversize = Oversize
-forms-oversize-hover = How much more than drawn is cut, mm (clearance in the file): positive makes a pocket larger or a part smaller, negative leaves stock on for a later cut. Less than the tool radius. Other CAM programs call the opposite "stock to leave".
 forms-oversize-disabled = A profile on the line has no side to cut more on
 forms-step-down = Step down
 # Indented under "Passes": the depth of each pass.
@@ -199,7 +198,6 @@ forms-traced-as = Traced as
 forms-traced-outlines = outlines
 forms-traced-centre-lines = centre lines
 forms-position = Position
-forms-picture-position-hover = The lower-left corner of the picture's box, mm
 forms-picture-reset-position = The box's corner at X0 Y0
 forms-rotation = Rotation
 forms-picture-rotation-hover = Degrees counter-clockwise, any angle, about the picture's centre. The picture is traced as it is, then its shapes are turned.
@@ -226,8 +224,6 @@ forms-anchor = Anchor
 forms-anchor-hover = What Position is: the lower-left corner of the text's box, or its centre. A centred text stays centred when its words, font or size change
 forms-anchor-corner = lower-left corner
 forms-anchor-centre = centre
-forms-text-position-corner-hover = The lower-left corner of the text's box, mm
-forms-text-position-centre-hover = The centre of the text's box, mm
 forms-text-reset-position = At X0 Y0
 forms-text-rotation-hover = Degrees counter-clockwise, any angle, about the text's centre
 forms-text-reset-rotation = Level (0°)
@@ -271,7 +267,6 @@ forms-safe-z-hover = The height for rapid moves sideways, above the stock and it
 forms-tools = Tools
 forms-add-from-library = Add from library…
 forms-new-tool = New tool
-forms-new-tool-hover = A 6 mm endmill to edit; operations pick it in their Tool row
 forms-tool-not-used = not used
 # $operations: a list of operation numbers, "1, 3".
 forms-tool-used-by = operations { $operations }
@@ -283,7 +278,6 @@ forms-remove-tool-disabled = Used by operations { $operations }; give them anoth
 forms-reset = Reset
 
 # A DXF's position, rotation and scale.
-forms-dxf-position-hover = The lower-left corner of the drawing's box, mm. Shapes drawn in Chipload and other DXFs don't move.
 forms-dxf-reset-position = Back to where the DXF has it (turn and scale stay)
 forms-bottom-left = Bottom left
 forms-bottom-left-hover = The drawing's corner { $margin } in from the stock's lower-left corner
@@ -316,7 +310,6 @@ forms-copies-grid = several, in a grid
 forms-columns-rows = columns × rows
 # Copy to copy distance, in X and Y.
 forms-pitch = pitch X Y
-forms-pitch-hover = Copy to copy, mm. Negative grows to the left or down.
 forms-gap = gap
 forms-gap-hover = Sets the pitch once so this much is left between the cuts of neighbouring copies. The project keeps the pitch.
 forms-set-pitch = Set pitch

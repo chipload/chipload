@@ -34,7 +34,6 @@ menu-redo = Ripeti
 menu-only-drawn = Solo forme disegnate; quelle importate cambiano solo con il DXF
 menu-copy = Copia
 menu-paste = Incolla
-menu-paste-hover = 10 mm a destra e in alto rispetto alle forme copiate; Ctrl+V sull'area di disegno incolla nel punto del cursore
 menu-mirror-left-right = Specchia sinistra–destra
 menu-mirror-up-down = Specchia alto–basso
 menu-mirror-hover = Ribalta le forme disegnate selezionate attorno al centro del loro riquadro

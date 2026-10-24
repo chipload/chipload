@@ -115,26 +115,11 @@ fn every_message_the_app_makes_exists() {
     );
 }
 
-/// Texts replaced by ones that follow the display units (`gui-units-text.ftl`, step 2.6 of
-/// docs/specs/translations.md), still in the .ftl files until those are next edited in
-/// every language; then they go, and so does this list.
-const REPLACED: [&str; 8] = [
-    "menu-paste-hover",
-    "forms-new-tool-hover",
-    "forms-oversize-hover",
-    "forms-picture-position-hover",
-    "forms-text-position-corner-hover",
-    "forms-text-position-centre-hover",
-    "forms-dxf-position-hover",
-    "forms-pitch-hover",
-];
-
 #[test]
 fn every_text_of_the_app_is_used() {
     let code: String = code().into_iter().map(|(_, c)| c).collect();
     let unused: Vec<String> = english()
         .into_iter()
-        .filter(|id| !REPLACED.contains(&id.as_str()))
         .filter(|id| !code.contains(&format!("\"{id}\"")))
         .collect();
     assert!(unused.is_empty(), "never used:\n{}", unused.join("\n"));

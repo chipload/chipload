@@ -8,7 +8,6 @@ forms-end-depth-hover = Où la coupe s'arrête, vers le bas depuis le dessus du 
 forms-through = Traversant
 forms-through-hover = Traverser le brut : { $depth }, son épaisseur plus la profondeur permise en dessous (Paramètres d'usinage > Brut)
 forms-oversize = Surcote
-forms-oversize-hover = De combien on usine plus que le dessin, en mm (clearance dans le fichier) : positif agrandit une poche ou réduit une pièce, négatif laisse de la matière pour une coupe ultérieure. Inférieure au rayon de l'outil. D'autres programmes de FAO appellent l'inverse « surépaisseur ».
 forms-oversize-disabled = Un contournage sur la ligne n'a pas de côté où usiner plus
 forms-step-down = Prof. de passe
 # Indented under "Passes": the depth of each pass.
@@ -199,7 +198,6 @@ forms-traced-as = Vectorisée en
 forms-traced-outlines = contours
 forms-traced-centre-lines = lignes médianes
 forms-position = Position
-forms-picture-position-hover = Le coin inférieur gauche de la boîte de l'image, en mm
 forms-picture-reset-position = Le coin de la boîte en X0 Y0
 forms-rotation = Rotation
 forms-picture-rotation-hover = En degrés, sens anti-horaire, tout angle, autour du centre de l'image. L'image est vectorisée telle quelle, puis ses formes sont tournées.
@@ -226,8 +224,6 @@ forms-anchor = Ancrage
 forms-anchor-hover = Ce que désigne Position : le coin inférieur gauche de la boîte du texte, ou son centre. Un texte centré reste centré quand ses mots, sa police ou sa taille changent
 forms-anchor-corner = coin inférieur gauche
 forms-anchor-centre = centre
-forms-text-position-corner-hover = Le coin inférieur gauche de la boîte du texte, en mm
-forms-text-position-centre-hover = Le centre de la boîte du texte, en mm
 forms-text-reset-position = En X0 Y0
 forms-text-rotation-hover = En degrés, sens anti-horaire, tout angle, autour du centre du texte
 forms-text-reset-rotation = Horizontal (0°)
@@ -271,7 +267,6 @@ forms-safe-z-hover = La hauteur des déplacements rapides latéraux, au-dessus d
 forms-tools = Outils
 forms-add-from-library = Ajouter depuis la bibliothèque…
 forms-new-tool = Nouvel outil
-forms-new-tool-hover = Une fraise de 6 mm à modifier ; les opérations la choisissent dans leur ligne Outil
 forms-tool-not-used = inutilisé
 # $operations: a list of operation numbers, "1, 3".
 forms-tool-used-by = opérations { $operations }
@@ -283,7 +278,6 @@ forms-remove-tool-disabled = Utilisé par les opérations { $operations } ; donn
 forms-reset = Réinitialiser
 
 # A DXF's position, rotation and scale.
-forms-dxf-position-hover = Le coin inférieur gauche de la boîte du dessin, en mm. Les formes dessinées dans Chipload et les autres DXF ne bougent pas.
 forms-dxf-reset-position = Revenir à la position du DXF (rotation et échelle restent)
 forms-bottom-left = En bas à gauche
 forms-bottom-left-hover = Le coin du dessin à { $margin } du coin inférieur gauche du brut
@@ -316,7 +310,6 @@ forms-copies-grid = plusieurs, en grille
 forms-columns-rows = colonnes × rangées
 # Copy to copy distance, in X and Y.
 forms-pitch = pas X Y
-forms-pitch-hover = D'une copie à l'autre, en mm. Négatif s'étend vers la gauche ou le bas.
 forms-gap = écart
 forms-gap-hover = Règle le pas une fois pour laisser cet écart entre les coupes des copies voisines. Le projet garde le pas.
 forms-set-pitch = Régler le pas

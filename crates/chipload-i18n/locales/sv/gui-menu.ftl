@@ -34,7 +34,6 @@ menu-redo = Gör om
 menu-only-drawn = Bara ritade former; importerade ändras bara med DXF:en
 menu-copy = Kopiera
 menu-paste = Klistra in
-menu-paste-hover = 10 mm till höger och uppåt från de kopierade formerna; Ctrl+V över ritytan klistrar in vid markören
 menu-mirror-left-right = Spegla vänster–höger
 menu-mirror-up-down = Spegla upp–ner
 menu-mirror-hover = Vänd de markerade ritade formerna kring mitten av deras ram

@@ -111,10 +111,9 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
         "<section class=\"total\">\n<h2>{}</h2>",
         w.text(&Message::new("sheet-time"))
     );
-    // The estimate's lines keep mm in an inch sheet, as they always have (the rapid rate;
-    // docs/specs/inch-units.md §5.4).
+    // The estimate's lines in the sheet's units, as everything else on it.
     for line in estimate_lines(job, &result.estimate, several) {
-        let text = line.message.render(w.lang, chipload_i18n::Units::Mm);
+        let text = line.message.render(w.lang, w.units.into());
         let _ = writeln!(html, "<p>{}</p>", escape(text.trim_start()));
     }
     html.push_str("</section>\n</body>\n</html>\n");

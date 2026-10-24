@@ -34,7 +34,6 @@ menu-redo = Wiederholen
 menu-only-drawn = Nur gezeichnete Formen; importierte ändern sich nur mit der DXF
 menu-copy = Kopieren
 menu-paste = Einfügen
-menu-paste-hover = 10 mm rechts und oberhalb der kopierten Formen; Ctrl+V über der Zeichenfläche fügt am Cursor ein
 menu-mirror-left-right = Links–rechts spiegeln
 menu-mirror-up-down = Oben–unten spiegeln
 menu-mirror-hover = Die ausgewählten gezeichneten Formen um die Mitte ihres Rahmens spiegeln

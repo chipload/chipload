@@ -34,7 +34,6 @@ menu-redo = Redo
 menu-only-drawn = Only drawn shapes; imported ones change only with the DXF
 menu-copy = Copy
 menu-paste = Paste
-menu-paste-hover = 10 mm right and up from the copied shapes; Ctrl+V over the canvas pastes at the cursor
 menu-mirror-left-right = Mirror left–right
 menu-mirror-up-down = Mirror up–down
 menu-mirror-hover = Flip the selected drawn shapes about the middle of their box

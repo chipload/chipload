@@ -284,13 +284,8 @@ fn inch_sheets_match_their_golden_files() {
             gcode_in_inches,
             "{name}"
         );
-        // Messages (Watch out, the estimate's note) keep mm, with the unit written
-        // (docs/specs/inch-units.md, as built).
-        let left: Vec<&str> = sheet
-            .lines()
-            .filter(|l| l.contains(" mm"))
-            .filter(|l| !l.starts_with("<li>") && !l.contains("At the programmed feeds"))
-            .collect();
+        // Every length on it in inches, messages included (docs/specs/translations.md §7).
+        let left: Vec<&str> = sheet.lines().filter(|l| l.contains(" mm")).collect();
         assert!(left.is_empty(), "{name}: lengths left in mm: {left:?}");
         let golden = corpus(&format!("expected/sheets/inch/{name}.html"));
         if update {

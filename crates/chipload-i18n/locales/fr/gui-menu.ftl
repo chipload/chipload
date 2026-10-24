@@ -34,7 +34,6 @@ menu-redo = Rétablir
 menu-only-drawn = Formes dessinées seulement ; les formes importées ne changent qu'avec le DXF
 menu-copy = Copier
 menu-paste = Coller
-menu-paste-hover = 10 mm à droite et en haut des formes copiées ; Ctrl+V sur le canevas colle au curseur
 menu-mirror-left-right = Miroir gauche–droite
 menu-mirror-up-down = Miroir haut–bas
 menu-mirror-hover = Retourner les formes dessinées sélectionnées autour du milieu de leur boîte

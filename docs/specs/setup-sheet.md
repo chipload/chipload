@@ -143,5 +143,6 @@ translated word is written with character references). A few texts are HTML them
 (`&times;`, `&ldquo;…&rdquo;`, as the English sheet always wrote them): their arguments
 are escaped before. The app writes the sheet in its language; the command line in English
 unless `chipload sheet --lang` or `chipload run --sheet-lang` says otherwise. The time
-lines keep mm in an inch sheet, as before. A German golden sheet
+lines follow the sheet's units too (the rapid rate in in/min on an inch sheet, since
+2026-10-24). A German golden sheet
 (`tests/corpus/expected/sheets/de/`) freezes the German output.

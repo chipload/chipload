@@ -34,7 +34,6 @@ menu-redo = Rehacer
 menu-only-drawn = Solo formas dibujadas; las importadas solo cambian con el DXF
 menu-copy = Copiar
 menu-paste = Pegar
-menu-paste-hover = 10 mm a la derecha y arriba de las formas copiadas; Ctrl+V sobre el lienzo pega en el cursor
 menu-mirror-left-right = Simetría izquierda–derecha
 menu-mirror-up-down = Simetría arriba–abajo
 menu-mirror-hover = Voltear las formas dibujadas seleccionadas respecto al centro de su recuadro
