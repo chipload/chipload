@@ -992,12 +992,16 @@ impl ChiploadApp {
                     copies.dy = dy;
                 }
                 self.commit();
+                let (units, unit) = (
+                    self.units,
+                    chipload_pipeline::units::length_unit(self.units),
+                );
                 let text = t!(
                     self,
                     "app-pitch-set",
-                    dx = format!("{dx:.3}"),
-                    dy = format!("{dy:.3} mm"),
-                    gap = format!("{gap:.3} mm")
+                    dx = crate::draw::fixed(dx, units),
+                    dy = format!("{} {unit}", crate::draw::fixed(dy, units)),
+                    gap = format!("{} {unit}", crate::draw::fixed(gap, units))
                 );
                 self.set_status(text, STATUS_SECONDS);
             }

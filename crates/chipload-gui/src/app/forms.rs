@@ -15,7 +15,6 @@ use chipload_job::{
     Finish, HoleMethod, HolesOp, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
 use chipload_job::{ImageTrace, Placement, Units};
-use chipload_pipeline::copies::order_name;
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::Move as PlaceMove;
 
@@ -58,8 +57,11 @@ fn depth_rows(
         }
     });
     ui.end_row();
-    ui.label(t!(ui, "forms-oversize"))
-        .on_hover_text(t!(ui, "forms-oversize-hover"));
+    ui.label(t!(ui, "forms-oversize")).on_hover_text(t!(
+        ui,
+        "units-text-oversize-hover",
+        unit = crate::units::unit(ui.ctx())
+    ));
     let response = ui
         .add_enabled(
             can_clear,
@@ -1556,8 +1558,11 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 )
             };
             let ((x0, y0), _) = turned(&draft);
-            ui.label(t!(ui, "forms-position"))
-                .on_hover_text(t!(ui, "forms-picture-position-hover"));
+            ui.label(t!(ui, "forms-position")).on_hover_text(t!(
+                ui,
+                "units-text-picture-position-hover",
+                unit = crate::units::unit(ui.ctx())
+            ));
             ui.horizontal(|ui| {
                 let (mut cx, mut cy) = (x0, y0);
                 for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
@@ -1770,8 +1775,16 @@ pub(super) fn text_form(
             let (x0, y0) = shown(&draft);
             ui.label(t!(ui, "forms-position"))
                 .on_hover_text(match draft.anchor {
-                    TextAnchor::Corner => t!(ui, "forms-text-position-corner-hover"),
-                    TextAnchor::Center => t!(ui, "forms-text-position-centre-hover"),
+                    TextAnchor::Corner => t!(
+                        ui,
+                        "units-text-text-position-corner-hover",
+                        unit = crate::units::unit(ui.ctx())
+                    ),
+                    TextAnchor::Center => t!(
+                        ui,
+                        "units-text-text-position-centre-hover",
+                        unit = crate::units::unit(ui.ctx())
+                    ),
                 });
             ui.horizontal(|ui| {
                 let (mut cx, mut cy) = (x0, y0);
@@ -2090,7 +2103,11 @@ pub(super) fn tools_form(
         });
         if ui
             .button(t!(ui, "forms-new-tool"))
-            .on_hover_text(t!(ui, "forms-new-tool-hover"))
+            .on_hover_text(t!(
+                ui,
+                "units-text-new-tool-hover",
+                diameter = crate::units::text(ui.ctx(), chipload_pipeline::DEFAULT_TOOL_DIAMETER)
+            ))
             .clicked()
         {
             let job = &mut edit.settings;
@@ -2275,8 +2292,11 @@ pub(super) fn placement_rows(
     let mut place = |how: PlaceMove| *request = Some(JobRequest::Place(dxf, how));
     let salt = |what: &str| egui::Id::new(("dxf-place", dxf, what.to_string()));
     if let Some(((x0, y0), _)) = bbox {
-        ui.label(t!(ui, "forms-position"))
-            .on_hover_text(t!(ui, "forms-dxf-position-hover"));
+        ui.label(t!(ui, "forms-position")).on_hover_text(t!(
+            ui,
+            "units-text-dxf-position-hover",
+            unit = crate::units::unit(ui.ctx())
+        ));
         ui.horizontal(|ui| {
             if let Some(x) =
                 finished_number(ui, salt("x"), x0, |ui, v| ui.add(mm_field(v).prefix("X ")))
@@ -2496,7 +2516,11 @@ fn copies_rows(
     });
     ui.end_row();
     ui.label(format!("  {}", t!(ui, "forms-pitch")))
-        .on_hover_text(t!(ui, "forms-pitch-hover"));
+        .on_hover_text(t!(
+            ui,
+            "units-text-pitch-hover",
+            unit = crate::units::unit(ui.ctx())
+        ));
     ui.horizontal(|ui| {
         for (name, value) in [("dx", &mut grid.dx), ("dy", &mut grid.dy)] {
             let response = ui.add(
@@ -2522,13 +2546,31 @@ fn copies_rows(
     ui.end_row();
     ui.label(format!("  {}", t!(ui, "forms-order")));
     ComboBox::from_id_salt("copies-order")
-        .selected_text(order_name(grid.order))
+        .selected_text(order_name(ui, grid.order))
         .show_ui(ui, |ui| {
             for order in [CopyOrder::ByOperation, CopyOrder::ByCopy] {
-                ui.selectable_value(&mut grid.order, order, order_name(order));
+                let name = order_name(ui, order);
+                ui.selectable_value(&mut grid.order, order, name);
             }
         });
     ui.end_row();
+}
+
+/// A tool's type, in the app's language: `endmill`, `drill`, `V-bit`.
+pub(super) fn tool_kind_name(lang: &impl crate::i18n::Lang, kind: ToolType) -> String {
+    match kind {
+        ToolType::Endmill => t!(lang, "names-tool-endmill"),
+        ToolType::Drill => t!(lang, "names-tool-drill"),
+        ToolType::Vbit => t!(lang, "names-tool-vbit"),
+    }
+}
+
+/// How the copies of a part are cut, in the app's language.
+fn order_name(ui: &egui::Ui, order: CopyOrder) -> String {
+    match order {
+        CopyOrder::ByOperation => t!(ui, "names-order-by-operation"),
+        CopyOrder::ByCopy => t!(ui, "names-order-by-copy"),
+    }
 }
 
 /// The machine values: post, spindle, max feed, tool changes and travel (safe Z and the
@@ -2824,10 +2866,11 @@ fn tool_change_name(ui: &egui::Ui, change: ToolChange) -> String {
 pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool) {
     ui.label(t!(ui, "forms-tool-type"));
     ComboBox::from_id_salt((salt, "tool-type"))
-        .selected_text(tool.kind.name())
+        .selected_text(tool_kind_name(ui, tool.kind))
         .show_ui(ui, |ui| {
             for kind in [ToolType::Endmill, ToolType::Drill, ToolType::Vbit] {
-                ui.selectable_value(&mut tool.kind, kind, kind.name());
+                let name = tool_kind_name(ui, kind);
+                ui.selectable_value(&mut tool.kind, kind, name);
             }
         });
     ui.end_row();

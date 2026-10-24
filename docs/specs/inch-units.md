@@ -21,6 +21,9 @@ setup sheet applies it to its *Watch out* list. Text without a unit after it is 
 so a number that isn't a length can't be converted by mistake. The command line keeps mm
 (decision 5). The work zero line in the G-code header and the DXF placement text still
 write coordinates without a unit.
+*Replaced 2026-10-24* (translations.md §7, step 2.6): messages carry their lengths as
+numbers in mm and are written in the display units where they are shown; `text_in` is
+gone. The app's own texts format their lengths in the display units where they are made.
 
 **As built, step 3:** length options take a unit (`0.25in`, `1/4in`, `6mm`) and feed
 options `in/min`; X,Y pairs and the travel too. Since the command line's messages are those

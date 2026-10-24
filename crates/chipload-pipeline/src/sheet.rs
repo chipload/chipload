@@ -675,12 +675,13 @@ fn watch_out(html: &mut String, result: &RunResult, u: Units) {
     if let Some(note) = &result.post.note {
         items.push(format!("Post {}: {note}", result.post.name));
     }
-    items.extend(result.notes.iter().map(|n| n.text.clone()));
+    let say = |m: &chipload_i18n::Message| m.render(chipload_i18n::Language::En, u.into());
+    items.extend(result.notes.iter().map(|n| say(&n.message)));
     items.extend(
         result
             .check_warnings
             .iter()
-            .map(|w| format!("Check: {}", w.message)),
+            .map(|w| format!("Check: {}", say(&w.text_message))),
     );
     html.push_str("<section class=\"warn\">\n<h2>Watch out</h2>\n");
     if items.is_empty() {
@@ -688,8 +689,7 @@ fn watch_out(html: &mut String, result: &RunResult, u: Units) {
     } else {
         html.push_str("<ul>\n");
         for item in items {
-            let item = crate::units::text_in(item.trim(), u);
-            let _ = writeln!(html, "<li>{}</li>", escape(&item));
+            let _ = writeln!(html, "<li>{}</li>", escape(item.trim()));
         }
         html.push_str("</ul>\n");
     }

@@ -225,6 +225,21 @@ core for pictures and texts. The app shows these errors and reports in its langu
 display units. Still English on purpose: migration reasons and a library file's rule
 violations (they name the file's fields), and the setup sheet's own words (step 3).
 
+**As built, 7.3.6 (2026-10-24):** `text_in` is deleted, and with it the app's search for
+"… mm" in a sentence. The setup sheet writes its *Watch out* notes and findings from their
+messages, in its units. The simulation's report lines are messages
+(`pipeline-simulation.ftl`; `Simulation::lines` stays as their English). The app's own
+texts that show a length format it in the display units where they are made (the
+operation hover's depths, a pitch set from a gap, a picture's stroke widths), the report's
+work zero line is a message (in the language, the point in the display units), and the
+hovers that said "mm" or "10 mm" take the unit or the length as an argument
+(`gui-units-text.ftl`, which replaces eight texts of `gui-menu.ftl` and `gui-forms.ftl`,
+to be removed from those files). The copy order and the tool types in lists are words of
+the app now (`gui-names.ftl`). Still English in the app: what another library writes
+(the file system, the readers of JSON, TOML and pictures), migration reasons, a library
+file's rule violations, the issues a DXF had when it was read (kept in the project as
+words), and startup errors.
+
 ### 7.1 What there is
 
 The library crates write about 450 messages as finished English sentences (`format!`),

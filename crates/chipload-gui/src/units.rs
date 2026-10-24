@@ -23,13 +23,14 @@ pub fn display(ctx: &egui::Context) -> Units {
     ctx.data(|d| d.get_temp(key())).unwrap_or(Units::Mm)
 }
 
-/// A plain line of the report (the app's own words, or another library's, such as the
-/// file system's) in the display units: its `… mm` lengths and `… mm/min` feeds as inches
-/// when inches are shown (docs/specs/inch-units.md §5.1). Everything from the library
-/// crates is a message, rendered in the language and units instead
-/// (docs/specs/translations.md §7); this goes with `text_in` in step 7.3.6.
-pub fn message(ctx: &egui::Context, text: &str) -> String {
-    chipload_pipeline::units::text_in(text, display(ctx))
+/// The display units' length unit, for a text that names it: `mm` or `in`.
+pub fn unit(ctx: &egui::Context) -> &'static str {
+    length_unit(display(ctx))
+}
+
+/// A length in the display units, with its unit: `10 mm`, `0.3937 in`.
+pub fn text(ctx: &egui::Context, mm: f64) -> String {
+    chipload_pipeline::units::length_text(mm, display(ctx))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

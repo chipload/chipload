@@ -57,12 +57,12 @@ pub struct ReportLine {
 }
 
 impl ReportLine {
-    /// The line as shown: a message in the language of `ui` and the display units, other
-    /// text with its lengths in the display units.
+    /// The line as shown: a message in the language of `ui` and the display units; other
+    /// text, the app's own, as it was made (its lengths already in the display units).
     fn shown(&self, ui: &egui::Ui) -> String {
         match &self.message {
             Some(message) => message.render(ui.lang(), crate::units::display(ui.ctx()).into()),
-            None => crate::units::message(ui.ctx(), &self.text),
+            None => self.text.clone(),
         }
     }
 }

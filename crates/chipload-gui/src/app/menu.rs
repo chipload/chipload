@@ -230,7 +230,11 @@ impl ChiploadApp {
                 !self.shape_clipboard.is_empty() && has_job,
                 egui::Button::new(with_keys(&t!(ui, "menu-paste"), Action::Paste)),
             )
-            .on_hover_text(t!(ui, "menu-paste-hover"))
+            .on_hover_text(t!(
+                ui,
+                "units-text-paste-hover",
+                shift = crate::units::text(ui.ctx(), chipload_pipeline::shapes::PASTE_SHIFT_MM)
+            ))
             .clicked()
         {
             self.paste(None);

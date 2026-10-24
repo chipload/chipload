@@ -1100,11 +1100,22 @@ impl ChiploadApp {
                 let time = chipload_pipeline::estimate::duration_message(*s);
                 format!(" · {}", time.render(self.lang(), self.units.into()))
             });
+        // The depths as Rust writes them in mm, 4 decimals in inches.
+        let depth = |mm: f64| {
+            chipload_i18n::message::length_number(
+                mm,
+                chipload_i18n::Digits::Shortest,
+                self.units.into(),
+            )
+        };
         let first = format!(
-            "{kind} · T{}{rest} · {summary} · {start}–{end} mm{time}",
-            op.tool()
+            "{kind} · T{}{rest} · {summary} · {}–{} {}{time}",
+            op.tool(),
+            depth(start),
+            depth(end),
+            chipload_pipeline::units::length_unit(self.units)
         );
-        let mut lines = vec![chipload_pipeline::units::text_in(&first, self.units)];
+        let mut lines = vec![first];
         if !op.enabled() {
             lines.push(t!(self, "browser-op-not-cut"));
         }

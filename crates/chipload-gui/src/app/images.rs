@@ -787,7 +787,14 @@ fn summary(ui: &mut egui::Ui, dialog: &ImageDialog) {
             };
             ui.label(found);
             if let Some((narrow, wide)) = t.widths {
-                let (narrow, wide) = (format!("{narrow:.2}"), format!("{wide:.2} mm"));
+                // Two decimals in mm, four in inches.
+                let units = crate::units::display(ui.ctx());
+                let width = |mm: f64| match units {
+                    chipload_job::Units::Mm => format!("{mm:.2}"),
+                    chipload_job::Units::Inch => crate::draw::fixed(mm, units),
+                };
+                let unit = chipload_pipeline::units::length_unit(units);
+                let (narrow, wide) = (width(narrow), format!("{} {unit}", width(wide)));
                 ui.label(t!(ui, "images-stroke-widths", narrow = narrow, wide = wide));
             }
             if t.dots > 0 {

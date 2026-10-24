@@ -3,7 +3,6 @@
 //! the planned moves with each tool's shape. Display and report only: it never changes or
 //! checks a program.
 
-use chipload_core::text::mm;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Tool, ToolType};
@@ -775,32 +774,42 @@ impl Simulation {
         Ok(bytes)
     }
 
-    /// The report's lines (§5).
+    /// The report's lines (§5), in English and mm.
     pub fn lines(&self) -> Vec<String> {
-        let mut lines = vec![format!(
-            "Simulation: {:.1} cm³ removed, cells {} mm ({} × {})",
-            self.numbers.removed_cm3,
-            mm(self.cell),
-            self.columns,
-            self.rows
-        )];
+        self.messages().iter().map(Message::english).collect()
+    }
+
+    /// [`Self::lines`] as messages, for the app's language and display units.
+    pub fn messages(&self) -> Vec<Message> {
+        let mut lines = vec![
+            Message::new("pipeline-simulation-removed")
+                .arg(
+                    "volume",
+                    Value::Number(self.numbers.removed_cm3, Digits::Fixed(1)),
+                )
+                .arg("cell", Value::mm(self.cell))
+                .arg("columns", self.columns)
+                .arg("rows", self.rows),
+        ];
         match self.numbers.deepest {
-            Some(z) => lines.push(format!(
-                "  Deepest cut: Z{z:.3} mm ({:.3} mm below the stock top)",
-                self.top - z
-            )),
-            None => lines.push("  Nothing cut".to_string()),
+            Some(z) => lines.push(
+                Message::new("pipeline-simulation-deepest")
+                    .arg("z", Value::Length(z, Digits::Fixed(3)))
+                    .arg("depth", Value::Length(self.top - z, Digits::Fixed(3))),
+            ),
+            None => lines.push(Message::new("pipeline-simulation-nothing-cut")),
         }
         if let Some(below) = self.numbers.below_bottom {
-            lines.push(format!(
-                "  Cuts {below:.3} mm below the stock bottom (into the spoilboard)"
-            ));
+            lines.push(
+                Message::new("pipeline-simulation-below-bottom")
+                    .arg("depth", Value::Length(below, Digits::Fixed(3))),
+            );
         }
         if self.numbers.drill_point_assumed {
-            lines.push("  Drills simulated with a 118° point".to_string());
+            lines.push(Message::new("pipeline-simulation-drill-point"));
         }
         if self.numbers.vbit_angle_assumed {
-            lines.push("  A V-bit without an angle simulated as 90°".to_string());
+            lines.push(Message::new("pipeline-simulation-vbit-angle"));
         }
         lines
     }

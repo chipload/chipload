@@ -179,8 +179,8 @@ impl ChiploadApp {
         };
         self.scene.sim = Some(layer.clone());
         self.sim.full_layer = Some(layer);
-        for line in sim.lines() {
-            self.report.push(Tone::Info, line);
+        for line in sim.messages() {
+            self.report.push_message(Tone::Info, line, None);
         }
         if history.is_none() {
             self.report.push(

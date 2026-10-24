@@ -292,8 +292,8 @@ impl ChiploadApp {
                 .arg("message", warning.text_message.clone());
             report.push_message(Tone::Warning, message, None);
         }
-        let zero = t!(self, "generation-work-zero", zero = job.work_zero_text());
-        report.push(Tone::Info, zero);
+        let zero = Self::work_zero_message(job);
+        report.push_message(Tone::Info, zero, None);
         if let Some(part) = self.result_part.and_then(|id| job.part(id)) {
             let text = t!(self, "generation-one-part-shown", part = part.name.as_str());
             report.push(Tone::Info, text);
@@ -306,6 +306,34 @@ impl ChiploadApp {
         self.drop_simulation();
         self.reset_playback();
         self.start_simulation();
+    }
+
+    /// Where X, Y and Z zero are, shown in the app's language and display units: "Work zero:
+    /// stock bottom left = drawing (0.000, 0.000) mm, Z0 = stock top".
+    fn work_zero_message(job: &chipload_job::Job) -> Message {
+        use chipload_i18n::{Digits, Value};
+        use chipload_job::{StockCorner, WorkZero, ZZero};
+        let at = match job.machine.work_zero {
+            WorkZero::DrawingOrigin {} => "forms-zero-drawing-origin",
+            WorkZero::Stock { corner } => match corner {
+                StockCorner::Center => "forms-zero-stock-centre",
+                StockCorner::BottomLeft => "forms-zero-stock-bottom-left",
+                StockCorner::BottomRight => "forms-zero-stock-bottom-right",
+                StockCorner::TopLeft => "forms-zero-stock-top-left",
+                StockCorner::TopRight => "forms-zero-stock-top-right",
+            },
+            WorkZero::Point { .. } => "forms-zero-point",
+        };
+        let z = match job.stock.z_zero {
+            ZZero::Top => "units-text-zero-stock-top",
+            ZZero::Bottom => "units-text-zero-stock-bottom",
+        };
+        let (x, y) = job.work_zero_xy();
+        let zero = Message::new("units-text-work-zero")
+            .arg("at", Message::new(at))
+            .arg("point", Value::Point(x, y, Digits::Fixed(3)))
+            .arg("z", Message::new(z));
+        Message::new("generation-work-zero").arg("zero", zero)
     }
 
     /// The toolpath and everything shown with it, gone.

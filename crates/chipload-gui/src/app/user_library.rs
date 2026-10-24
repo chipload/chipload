@@ -404,10 +404,14 @@ pub(super) fn library_message(
     }
 }
 
-pub(super) fn tool_summary(t: &LibraryTool, units: chipload_job::Units) -> String {
+pub(super) fn tool_summary(
+    lang: &impl crate::i18n::Lang,
+    t: &LibraryTool,
+    units: chipload_job::Units,
+) -> String {
     format!(
         "{} {}",
-        t.kind.name(),
+        super::forms::tool_kind_name(lang, t.kind),
         chipload_pipeline::units::length_text(t.diameter, units)
     )
 }
