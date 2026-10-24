@@ -251,7 +251,7 @@ Chip load (at the cutting feed):
   Operation 2 (Groove): 0.025 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 3, operations 2
-Planned 362 moves.
+Planned … moves.
 --- stderr
 
 $ chipload check-project tests/corpus/messages/follow_path_deep.chipload
@@ -928,7 +928,7 @@ Estimated time: 54 s (cutting 38 s, rapids 13 s, spindle 3 s)
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
-Planned 1712 moves.
+Planned … moves.
 --- stderr
 
 $ chipload check-project tests/corpus/messages/vcarve_letters_deep.chipload

@@ -77,6 +77,12 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
+  tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
+  5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
+  zero-length move, from a last-digit difference in the platform's maths library. Find
+  which move and whether the planner should drop it everywhere.
+
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan

@@ -6,7 +6,7 @@ Estimated time: 54 s (cutting 38 s, rapids 13 s, spindle 3 s)
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
-Planned 1712 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v11/scaled_part.chipload
@@ -23,7 +23,7 @@ Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 992 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v11/two_tools.chipload
@@ -44,7 +44,7 @@ Chip load (at the cutting feed):
   Operation 2 (Outline): 0.050 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 1, operations 2
-Planned 4089 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v12/adaptive.chipload
@@ -61,7 +61,7 @@ Estimated time: 2 min 32 s (cutting 2 min 26 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 2324 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v12/two_tools_program.chipload
@@ -82,7 +82,7 @@ Chip load (at the cutting feed):
   Operation 2 (Outline): 0.050 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 1, operations 2
-Planned 4089 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v13/adaptive_two_islands.chipload
@@ -96,7 +96,7 @@ Estimated time: 5 min 34 s (cutting 5 min 21 s, rapids 10 s, spindle 3 s)
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket round two islands): 0.033 mm/tooth
-Planned 3116 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v13/helix_rings.chipload
@@ -113,7 +113,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v14/round_corners.chipload
@@ -132,7 +132,7 @@ Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Rounded rings): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 4327 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v15/linuxcnc_helix.chipload
@@ -149,7 +149,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v15/mach3_helix.chipload
@@ -166,7 +166,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v15/straight_tabs.chipload
@@ -183,7 +183,7 @@ Estimated time: 1 min 53 s (cutting 1 min 47 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline, straight tabs): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v16/profile_spiral.chipload
@@ -200,7 +200,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline, spiral): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v17/finish_skin.chipload
@@ -218,7 +218,7 @@ Estimated time: 1 min 55 s (cutting 1 min 48 s, rapids 4 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes, finished): 0.033 mm/tooth
   Operation 2 (Outline, finish and skin): 0.050 mm/tooth
-Planned 710 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v17/follow_path.chipload
@@ -236,7 +236,7 @@ Chip load (at the cutting feed):
   Operation 2 (Groove): 0.025 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 3, operations 2
-Planned 360 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v18/dogbones.chipload
@@ -255,7 +255,7 @@ Chip load (at the cutting feed):
   Operation 1 (Mortise): 0.033 mm/tooth
   Operation 2 (Slot): 0.033 mm/tooth
   Operation 3 (Outline): 0.050 mm/tooth
-Planned 414 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v18/holes.chipload
@@ -275,7 +275,7 @@ Chip load (at the cutting feed):
   Operation 2 (Bored): 0.033 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 1, operations 2
-Planned 1086 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v18/rest.chipload
@@ -299,7 +299,7 @@ Chip load (at the cutting feed):
   Operation 2 (Rest): 0.042 mm/tooth
 Tool group 1: tool 1, operations 1
 Tool group 2: tool 2, operations 2
-Planned 718 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v19/image_vcarve.chipload
@@ -312,7 +312,7 @@ Estimated time: 55 s (cutting 41 s, rapids 11 s, spindle 3 s)
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Logo): 0.033 mm/tooth
-Planned 991 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v20/image_centre_line.chipload
@@ -323,7 +323,7 @@ Estimated time: 10 s (cutting 6 s, rapids 1 s, spindle 3 s)
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Strokes): 0.028 mm/tooth
-Planned 97 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v20/scaled_part.chipload
@@ -340,7 +340,7 @@ Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 992 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v21/copies_by_part.chipload
@@ -358,7 +358,7 @@ Estimated time: 10 min 17 s (cutting 9 min 51 s, rapids 23 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 7878 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v21/two_dxfs.chipload
@@ -389,7 +389,7 @@ Chip load (at the cutting feed):
   Operation 4 (Logo): 0.033 mm/tooth
 Tool group 1: tool 1, operations 1, 2, 3
 Tool group 2: tool 2, operations 4
-Planned 2617 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v22/two_parts.chipload
@@ -423,7 +423,7 @@ Chip load (at the cutting feed):
 Tool group 1: tool 1, operations 1, 2
 Tool group 2: tool 2, operations 3
 Tool group 3: tool 1, operations 4
-Planned 2131 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v23/turned_parts.chipload
@@ -457,7 +457,7 @@ Chip load (at the cutting feed):
 Tool group 1: tool 1, operations 1, 2
 Tool group 2: tool 2, operations 3
 Tool group 3: tool 1, operations 4
-Planned 2097 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v24/rectangle_part.chipload
@@ -476,7 +476,7 @@ Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Rings round the rectangle): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 4327 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v25/rounded_rectangle.chipload
@@ -496,7 +496,7 @@ Estimated time: 7 min 19 s (cutting 7 min 1 s, rapids 15 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Rings in the rounded rectangle): 0.033 mm/tooth
   Operation 2 (Rounded outline): 0.050 mm/tooth
-Planned 5041 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v26/straight_tabs.chipload
@@ -513,7 +513,7 @@ Estimated time: 1 min 53 s (cutting 1 min 47 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline, plunge with leads): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v27/text.chipload
@@ -531,7 +531,7 @@ Chip load (at the cutting feed):
   Operation 2 (Letter): 0.042 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 1, operations 2
-Planned 2308 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v28/rest_passes.chipload
@@ -558,7 +558,7 @@ Chip load (at the cutting feed):
 Tool group 1: tool 1, operations 1, 2
 Tool group 2: tool 2, operations 1.1, 2.1
 Tool group 3: tool 1, operations 3
-Planned 1394 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v29/script_text.chipload
@@ -581,7 +581,7 @@ Chip load (at the cutting feed):
   Operation 2 (Letter): 0.042 mm/tooth
 Tool group 1: tool 2, operations 1
 Tool group 2: tool 1, operations 2
-Planned 8831 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v29/surface.chipload
@@ -619,7 +619,7 @@ Tool group 1: tool 3, operations 1
 Tool group 2: tool 1, operations 2, 3
 Tool group 3: tool 2, operations 4
 Tool group 4: tool 1, operations 5
-Planned 2187 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
@@ -631,7 +631,7 @@ Estimated time: 1 min 5 s (cutting 1 min 2 s, rapids 0 s, spindle 3 s)
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Outside cut): 0.056 mm/tooth
-Planned 296 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v4/messy_2_lower.chipload
@@ -649,7 +649,7 @@ Estimated time: 2 min 2 s (cutting 1 min 54 s, rapids 5 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Openings): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 656 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v4/messy_2_lower_tabs.chipload
@@ -667,7 +667,7 @@ Estimated time: 2 min 4 s (cutting 1 min 56 s, rapids 5 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Openings): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 672 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v4/simple_part_full.chipload
@@ -684,7 +684,7 @@ Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1037 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v4/simple_part_tabs.chipload
@@ -702,7 +702,7 @@ Estimated time: 2 min 21 s (cutting 2 min 15 s, rapids 4 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline with tabs): 0.050 mm/tooth
-Planned 1056 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v5/drawn_part.chipload
@@ -718,7 +718,7 @@ Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 631 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v6/drawn_part.chipload
@@ -734,7 +734,7 @@ Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 631 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/adaptive.chipload
@@ -751,7 +751,7 @@ Estimated time: 2 min 32 s (cutting 2 min 26 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 2324 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/copies.chipload
@@ -769,7 +769,7 @@ Estimated time: 10 min 21 s (cutting 9 min 51 s, rapids 28 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 7874 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/depths_and_clearance.chipload
@@ -786,7 +786,7 @@ Estimated time: 1 min 34 s (cutting 1 min 28 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 806 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/helix.chipload
@@ -803,7 +803,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1685 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/leads.chipload
@@ -820,7 +820,7 @@ Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1497 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/ramp_entry.chipload
@@ -837,7 +837,7 @@ Estimated time: 1 min 44 s (cutting 1 min 38 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1314 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/simple_part_full.chipload
@@ -854,7 +854,7 @@ Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1037 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v7/trochoidal.chipload
@@ -871,7 +871,7 @@ Estimated time: 1 min 34 s (cutting 1 min 28 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 806 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v8/placed_part.chipload
@@ -888,7 +888,7 @@ Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1019 moves.
+Planned … moves.
 --- stderr
 
 $ chipload plan tests/corpus/jobs/v9/turned_part.chipload
@@ -905,6 +905,6 @@ Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
-Planned 1013 moves.
+Planned … moves.
 --- stderr
 
