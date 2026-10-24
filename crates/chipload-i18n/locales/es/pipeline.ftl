@@ -101,8 +101,8 @@ pipeline-report-contour-state = { $state ->
 ## The G-code checker's findings (check-… texts), placed in the program
 
 # A finding on a line of the program; $message is the finding.
-pipeline-check-line = line { $line }: { $message }
+pipeline-check-line = línea { $line }: { $message }
 # A finding in one of several G-code files: $file is the file's number.
-pipeline-check-file = file { $file }: { $message }
+pipeline-check-file = archivo { $file }: { $message }
 # A finding on a line of one of several G-code files.
-pipeline-check-file-line = file { $file }, line { $line }: { $message }
+pipeline-check-file-line = archivo { $file }, línea { $line }: { $message }

@@ -114,3 +114,19 @@ fn every_message_the_library_crates_name_exists_and_every_one_is_used() {
         .collect();
     assert!(unused.is_empty(), "never used: {unused:?}");
 }
+
+#[test]
+fn one_move_is_one_move() {
+    let below = |n: i64| {
+        Message::new("check-below-stock")
+            .arg("count", n)
+            .arg("deepest", Value::mm(-12.3))
+            .arg("bottom", Value::mm(-12.0))
+            .arg("allowed", Value::mm(0.5))
+            .english()
+    };
+    assert!(below(1).starts_with("1 move goes below"), "{}", below(1));
+    assert!(below(3).starts_with("3 moves go below"), "{}", below(3));
+    let outside = Message::new("check-outside-stock").arg("count", 1);
+    assert!(outside.english().starts_with("1 cutting move ends outside"));
+}

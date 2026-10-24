@@ -78,8 +78,14 @@ check-arc-radius-mismatch = Arc radius mismatch: start { $start } vs end { $end 
 
 # $deepest is the lowest height, written after Z; $bottom the stock bottom's height and
 # $allowed how far below it moves may go.
-check-below-stock = { $count } moves go below the stock bottom (deepest Z{ $deepest }, bottom { $bottom }), within the allowed { $allowed }
-check-outside-stock = { $count } cutting moves end outside the stock (expanded by the tool radius)
+check-below-stock = { $count ->
+    [one] { $count } move goes
+   *[other] { $count } moves go
+} below the stock bottom (deepest Z{ $deepest }, bottom { $bottom }), within the allowed { $allowed }
+check-outside-stock = { $count ->
+    [one] { $count } cutting move ends
+   *[other] { $count } cutting moves end
+} outside the stock (expanded by the tool radius)
 check-no-travel = Machine travel not set; travel limits were not checked
 # $axis is X, Y or Z; $span how far the program moves along it, $travel how far the
 # machine can.
