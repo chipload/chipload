@@ -662,6 +662,6 @@ impl ChiploadApp {
             .and_then(|e| e.ops.get(index))
             .map(|e| e.op.name().to_string())
             .unwrap_or_default();
-        operation_label(index, &name)
+        chipload_job::operation_label_message(index, &name).render(self.language, self.units.into())
     }
 }

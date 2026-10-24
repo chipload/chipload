@@ -38,7 +38,7 @@ header-group-hover = Alles unter { $group }
 header-new = Neu
 header-new-hover = Neues Projekt
 header-open = Öffnen
-header-import = Importieren
+header-import = Import
 header-import-hover = Neues Projekt aus einer DXF
 header-save = Speichern
 
@@ -56,7 +56,7 @@ header-image-hover = Ein Bild in Formen nachzeichnen, für V-Gravur oder Pfad fo
 header-add-dxf = DXF hinzu
 header-add-dxf-hover = Ein weiteres Teil: eine DXF, eigenständig platziert und aktualisiert
 # "FILE > Import": the ribbon group FILE and its Import button.
-header-add-dxf-first-hover = Zuerst eine DXF importieren (DATEI > Importieren)
+header-add-dxf-first-hover = Zuerst eine DXF importieren (DATEI > Import)
 header-import-image-menu = Bild importieren…
 header-add-dxf-menu = DXF zum Projekt hinzufügen…
 
@@ -84,7 +84,7 @@ header-measure = Messen
 header-measure-hover = Zwei Klicks ergeben Abstand, ΔX, ΔY und Winkel. Was gezeigt wird, steht in der Leiste der Zeichenfläche.
 
 # Generate and Export at the ribbon's right end.
-header-export = Exportieren
+header-export = Export
 header-cancel = Abbrechen
 header-cancel-hover = Berechnung stoppen
 header-generate = Berechnen

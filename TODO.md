@@ -34,15 +34,17 @@ it's built (see `CLAUDE.md`).
     **Done.**
   - **Step 3 done 2026-10-24:** the setup sheet in the app's language (`sheet.ftl`;
     `chipload sheet --lang`, `run --sheet-lang`; a German golden sheet).
-  - Left: the new files of 7.3.5–step 3 translated into the five languages
-    (`sheet.ftl`, `pipeline-copies.ftl`, `pipeline-simulation.ftl`, `gui-units-text.ftl`,
-    `gui-names.ftl`, `gui-export.ftl` are English there for now; the German golden sheet is
-    regenerated once `sheet.ftl` is), and the eight texts `gui-units-text.ftl` replaces
-    removed from `gui-menu.ftl` and `gui-forms.ftl` (listed in `crates/chipload-gui/tests/
-    texts.rs`). Native review of all five. Still English on purpose: the issues a DXF had
-    when it was read (stored in the project as words), migration reasons and a library
-    file's rule violations, what other libraries write (file system, JSON, TOML, pictures),
-    a new text's starting word "Text", startup errors before the window opens.
+  - **Everything translated** 2026-10-24, the five languages complete; the ribbon fits
+    in every language at the default window size (German ribbon buttons *Import* and
+    *Export*, the French VIEW caption *Vue*).
+  - **Left:** native review of all five (the user reviews Swedish; the others are marked
+    *review wanted*; open suggestions at the end of the glossary). Still English on
+    purpose: the issues a DXF had when it was read (stored in the project as words: a
+    schema change would be needed), migration reasons and a library file's rule
+    violations, what other libraries write (file system, JSON, TOML, pictures), a new
+    text's starting word "Text", startup errors before the window opens. A rare English
+    slip kept word for word: "the centre line centre line" in
+    `toolpath-error-medial-name` for a traced centre line.
 
 ## State to remember (2026-10-19)
 

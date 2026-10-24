@@ -656,7 +656,7 @@ fn tool_row(
         .iter()
         .find(|t| t.id == current)
         .map_or(t!(ui, "forms-tool-not-in-project", tool = current), |t| {
-            tool_label(t, units)
+            tool_label(ui, t, units)
         });
     ui.label(t!(ui, "forms-tool"));
     let combo = ComboBox::from_id_salt(("op-tool", index))
@@ -666,7 +666,7 @@ fn tool_row(
         .show_ui(ui, |ui| {
             for tool in choice.tools {
                 if ui
-                    .selectable_label(tool.id == current, tool_label(tool, units))
+                    .selectable_label(tool.id == current, tool_label(ui, tool, units))
                     .clicked()
                 {
                     op.set_tool(tool.id);
@@ -2051,7 +2051,7 @@ pub(super) fn job_form(
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
-pub(super) fn tool_label(tool: &Tool, units: Units) -> String {
+pub(super) fn tool_label(lang: &impl crate::i18n::Lang, tool: &Tool, units: Units) -> String {
     let len_unit = chipload_pipeline::units::length_unit(units);
     let name = tool
         .name
@@ -2060,7 +2060,7 @@ pub(super) fn tool_label(tool: &Tool, units: Units) -> String {
     format!(
         "T{} {} Ø{} {len_unit}{name}",
         tool.id,
-        tool.kind.name(),
+        tool_kind_name(lang, tool.kind),
         len_in(units, tool.diameter)
     )
 }
@@ -2135,7 +2135,11 @@ pub(super) fn tools_form(
             0 => t!(ui, "forms-tool-not-used"),
             _ => t!(ui, "forms-tool-used-by", operations = users.join(", ")),
         };
-        let title = tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx()));
+        let title = tool_label(
+            ui,
+            &edit.settings.tools[index],
+            crate::units::display(ui.ctx()),
+        );
         let at = format!("tools.{index}");
         let marked = problems::has_problem_under(ui, &at);
         let tool = &mut edit.settings.tools[index];
@@ -2177,7 +2181,11 @@ pub(super) fn tool_form(
         ui,
         icon,
         None,
-        &tool_label(&edit.settings.tools[index], crate::units::display(ui.ctx())),
+        &tool_label(
+            ui,
+            &edit.settings.tools[index],
+            crate::units::display(ui.ctx()),
+        ),
     );
     ui.weak(match users.len() {
         0 => t!(ui, "forms-tool-not-used-long"),
@@ -3035,7 +3043,7 @@ pub(super) fn rest_pass_form(
                     .iter()
                     .find(|t| t.id == id)
                     .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
-                        tool_label(t, units)
+                        tool_label(ui, t, units)
                     })
             };
             let combo = ComboBox::from_id_salt(("rest-pass-tool", i, k))
@@ -3045,7 +3053,7 @@ pub(super) fn rest_pass_form(
                         t.kind == ToolType::Endmill
                             && before_diameter.is_some_and(|d| t.diameter < d)
                     }) {
-                        ui.selectable_value(&mut pass.tool, t.id, tool_label(t, units));
+                        ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
                     }
                 });
             flag(combo.response, ui, "tool");

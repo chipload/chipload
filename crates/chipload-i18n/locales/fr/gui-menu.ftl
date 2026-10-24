@@ -105,7 +105,7 @@ menu-status-cycle = cycle { $time }
 menu-status-time-hover = Temps de cycle estimé (le rapport donne le détail)
 menu-status-active-part = pièce active : { $name }
 menu-status-active-part-hover = Les nouvelles opérations vont dans la pièce active (Navigateur, clic droit sur une pièce)
-menu-status-units-hover = Les longueurs sont affichées dans ces unités (Affichage > Unités)
+menu-status-units-hover = Les longueurs sont affichées dans ces unités (Vue > Unités)
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = grille { $step }
 menu-status-grid-hover = Le pas de la grille : les clics en dessinant s'y accrochent (G la masque)

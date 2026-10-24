@@ -546,7 +546,7 @@ impl ChiploadApp {
                 let row = Row::new(
                     Id::new(("browser-tool", tool.id)),
                     2,
-                    forms::tool_label(tool, crate::units::display(ui.ctx())),
+                    forms::tool_label(ui, tool, crate::units::display(ui.ctx())),
                 )
                 .icon(tool_icon(tool.kind))
                 .trailing(link.as_ref().map(|l| link_note(ui, l)).unwrap_or_default())

@@ -88,7 +88,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | traced picture | nachgezeichnetes Bild | image vectorisée | imagen vectorizada | immagine vettorizzata | spårad bild |
 | centre line | Mittellinie | ligne médiane | línea central | linea mediana | mittlinje |
 | job settings | Jobeinstellungen | paramètres d'usinage | ajustes del trabajo | impostazioni lavoro | jobbinställningar |
-| ribbon groups (FILE, DRAW, OPERATION, LIBRARY, VIEW) | Datei, Zeichnen, Bearbeitung, Bibliothek, Ansicht | Fichier, Dessiner, Opération, Bibliothèque, Affichage | Archivo, Dibujar, Operación, Biblioteca, Vista | File, Disegna, Lavorazione, Libreria, Vista | Arkiv, Rita, Operation, Bibliotek, Visa |
+| ribbon groups (FILE, DRAW, OPERATION, LIBRARY, VIEW) | Datei, Zeichnen, Bearbeitung, Bibliothek, Ansicht | Fichier, Dessiner, Opération, Bibliothèque, Vue | Archivo, Dibujar, Operación, Biblioteca, Vista | File, Disegna, Lavorazione, Libreria, Vista | Arkiv, Rita, Operation, Bibliotek, Visa |
 | oversize (cuts more, past the line) | Übermaß | surcote | holgura | maggiorazione | förskjutning |
 | rest pass | Restdurchgang | passe de reprise | pasada de restos | passata di ripresa | restbearbetning |
 | lead (in/out) | Anfahrt | approche | aproximación | raccordo | inkörning |

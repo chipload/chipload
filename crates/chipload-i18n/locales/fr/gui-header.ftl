@@ -31,7 +31,7 @@ header-group-file = Fichier
 header-group-draw = Dessiner
 header-group-operation = Opération
 header-group-library = Bibliothèque
-header-group-view = Affichage
+header-group-view = Vue
 header-group-hover = Tout dans { $group }
 
 # FILE: short words under icons.

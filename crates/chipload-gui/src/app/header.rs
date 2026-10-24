@@ -189,15 +189,30 @@ impl ChiploadApp {
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             let row = ui.horizontal(|ui| buttons(self, ui)).response;
+            let text = RichText::new(format!("{} ▾", caption.to_uppercase()))
+                .small()
+                .color(ui.visuals().weak_text_color());
+            // A caption wider than its buttons (a one-button group in a longer language)
+            // widens the group rather than wrapping.
+            let caption_width = egui::WidgetText::from(text.clone())
+                .into_galley(
+                    ui,
+                    Some(egui::TextWrapMode::Extend),
+                    f32::INFINITY,
+                    egui::TextStyle::Small,
+                )
+                .size()
+                .x;
             ui.allocate_ui_with_layout(
-                vec2(row.rect.width(), 18.0),
+                vec2(row.rect.width().max(caption_width + 8.0), 18.0),
                 Layout::top_down(Align::Center),
                 |ui| {
-                    let text = RichText::new(format!("{} ▾", caption.to_uppercase()))
-                        .small()
-                        .color(ui.visuals().weak_text_color());
                     let response = ui
-                        .add(egui::Button::new(text).frame(false))
+                        .add(
+                            egui::Button::new(text)
+                                .frame(false)
+                                .wrap_mode(egui::TextWrapMode::Extend),
+                        )
                         .on_hover_text(t!(ui, "header-group-hover", group = caption));
                     egui::Popup::menu(&response).show(|ui| menu(self, ui));
                 },
@@ -562,7 +577,7 @@ fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
 
 /// Room around Export and Generate: the gap to the groups, between the two buttons and at
 /// the window's edge.
-const RIBBON_ACTIONS_SPACING: f32 = 16.0;
+const RIBBON_ACTIONS_SPACING: f32 = 12.0;
 
 /// A ribbon button's label, laid out once for its width and again to paint.
 fn ribbon_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
@@ -575,7 +590,7 @@ fn ribbon_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
 }
 
 fn ribbon_button_width(ui: &egui::Ui, label: &str) -> f32 {
-    (ribbon_label(ui, label).size().x + 10.0).max(RIBBON_BUTTON.1)
+    (ribbon_label(ui, label).size().x + 6.0).max(RIBBON_BUTTON.1)
 }
 
 fn generate_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
@@ -588,7 +603,7 @@ fn generate_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
 }
 
 fn generate_button_width(ui: &egui::Ui, label: &str) -> f32 {
-    generate_label(ui, label).size().x + 44.0
+    generate_label(ui, label).size().x + 38.0
 }
 
 /// A ribbon button: an icon over a short word. Disabled ones are dimmed and don't click.
@@ -666,11 +681,11 @@ fn generate_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) ->
     };
     painter.rect_filled(rect, corner, fill);
     let icon_rect = Rect::from_center_size(
-        egui::pos2(rect.left() + 20.0, rect.center().y),
+        egui::pos2(rect.left() + 17.0, rect.center().y),
         vec2(16.0, 16.0),
     );
     icons::paint(painter, icon_rect, icon, color);
-    let at = egui::pos2(rect.left() + 34.0, rect.center().y - galley.size().y / 2.0);
+    let at = egui::pos2(rect.left() + 30.0, rect.center().y - galley.size().y / 2.0);
     painter.galley(at, galley, color);
     response
 }

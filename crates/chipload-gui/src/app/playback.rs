@@ -257,7 +257,8 @@ impl Playback {
             let name = job
                 .and_then(|j| j.operations.get(*op))
                 .map_or("", |o| o.name());
-            let label = operation_label(*op, name);
+            let label =
+                chipload_job::operation_label_message(*op, name).render(lang.lang(), units.into());
             parts.push(if *copy > 1 {
                 t!(
                     lang,
