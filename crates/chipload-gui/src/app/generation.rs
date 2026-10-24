@@ -7,6 +7,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
 
+use chipload_i18n::Message;
 use chipload_job::Problem;
 use chipload_pipeline::{Cancel, run_job_cancellable};
 use chipload_toolpath::ToolpathError;
@@ -202,12 +203,16 @@ impl ChiploadApp {
                 true
             }
             Ok(Err(PipelineError::Toolpath(ToolpathError::Cancelled))) => false,
-            Ok(Err(PipelineError::CheckFailed { errors, program })) => {
+            Ok(Err(PipelineError::CheckFailed {
+                messages, program, ..
+            })) => {
                 self.clear_toolpath();
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
-                let mut lines = vec![t!(self, "generation-check-failed")];
-                lines.extend(errors);
-                self.fail(lines, loud);
+                let mut report = Report::error([t!(self, "generation-check-failed")]);
+                for message in messages {
+                    report.push_message(Tone::Error, message, None);
+                }
+                self.fail_with(report, loud);
                 false
             }
             Ok(Err(err)) => {
@@ -283,12 +288,9 @@ impl ChiploadApp {
             report.push_message(Tone::Warning, note.message.clone(), note.operation);
         }
         for warning in &result.check_warnings {
-            let text = t!(
-                self,
-                "generation-check-warning",
-                message = warning.message.as_str()
-            );
-            report.push(Tone::Warning, text);
+            let message = Message::new("generation-check-warning")
+                .arg("message", warning.text_message.clone());
+            report.push_message(Tone::Warning, message, None);
         }
         let zero = t!(self, "generation-work-zero", zero = job.work_zero_text());
         report.push(Tone::Info, zero);

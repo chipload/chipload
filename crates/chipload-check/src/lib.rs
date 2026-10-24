@@ -12,6 +12,7 @@ mod parse;
 use std::collections::BTreeMap;
 
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Units};
 
 /// Positional slack for comparisons against heights and bounds.
@@ -109,11 +110,25 @@ fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
     }
 }
 
+/// A finding. `message` is `text_message` in English and mm, for the command line and
+/// `--json`; the app shows `text_message` in its language and units
+/// (docs/specs/translations.md §7).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckIssue {
     /// 1-based; 0 for whole-program issues.
     pub line: usize,
     pub message: String,
+    pub text_message: Message,
+}
+
+impl CheckIssue {
+    pub fn new(line: usize, message: Message) -> Self {
+        CheckIssue {
+            line,
+            message: message.english(),
+            text_message: message,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -201,10 +216,7 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
         let words = match parse::parse_line(raw) {
             Ok(words) => words,
             Err(problem) => {
-                report.errors.push(CheckIssue {
-                    line,
-                    message: problem,
-                });
+                report.errors.push(CheckIssue::new(line, problem));
                 continue;
             }
         };
@@ -212,66 +224,61 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
             continue;
         }
         if state.ended {
-            report.errors.push(CheckIssue {
-                line,
-                message: "Code after program end (M30)".into(),
-            });
+            report
+                .errors
+                .push(CheckIssue::new(line, Message::new("check-after-end")));
         }
         for message in execute(&words, &mut state, limits) {
-            report.errors.push(CheckIssue { line, message });
+            report.errors.push(CheckIssue::new(line, message));
         }
     }
 
     if state.below_stock > 0 {
-        report.warnings.push(CheckIssue {
-            line: 0,
-            message: format!(
-                "{} moves go below the stock bottom (deepest Z{:.3} mm, bottom {:.3} mm), within the \
-                 allowed {:.3} mm",
-                state.below_stock, state.deepest, limits.stock_bottom_z, limits.max_overcut
-            ),
-        });
+        let message = Message::new("check-below-stock")
+            .arg("count", state.below_stock)
+            .arg("deepest", Value::Length(state.deepest, Digits::Fixed(3)))
+            .arg(
+                "bottom",
+                Value::Length(limits.stock_bottom_z, Digits::Fixed(3)),
+            )
+            .arg(
+                "allowed",
+                Value::Length(limits.max_overcut, Digits::Fixed(3)),
+            );
+        report.warnings.push(CheckIssue::new(0, message));
     }
     if state.outside_stock > 0 {
-        report.warnings.push(CheckIssue {
-            line: 0,
-            message: format!(
-                "{} cutting moves end outside the stock (expanded by the tool radius)",
-                state.outside_stock
-            ),
-        });
+        let message = Message::new("check-outside-stock").arg("count", state.outside_stock);
+        report.warnings.push(CheckIssue::new(0, message));
     }
     match limits.travel {
-        None => report.warnings.push(CheckIssue {
-            line: 0,
-            message: "Machine travel not set; travel limits were not checked".into(),
-        }),
+        None => report
+            .warnings
+            .push(CheckIssue::new(0, Message::new("check-no-travel"))),
         Some((tx, ty, tz)) => {
             for (axis, span_limit) in AXES.into_iter().zip([tx, ty, tz]) {
                 if let (Some(lo), Some(hi)) = (state.lo.get(&axis), state.hi.get(&axis)) {
                     let span = hi - lo;
                     if span > span_limit + state.tol {
-                        report.errors.push(CheckIssue {
-                            line: 0,
-                            message: format!(
-                                "{axis} span {span:.3} mm exceeds machine travel {span_limit:.3} mm"
-                            ),
-                        });
+                        let message = Message::new("check-travel-exceeded")
+                            .arg("axis", axis.to_string())
+                            .arg("span", Value::Length(span, Digits::Fixed(3)))
+                            .arg("travel", Value::Length(span_limit, Digits::Fixed(3)));
+                        report.errors.push(CheckIssue::new(0, message));
                     }
                 }
             }
         }
     }
     if !state.ended {
-        report.warnings.push(CheckIssue {
-            line: 0,
-            message: "No program end (M30)".into(),
-        });
+        report
+            .warnings
+            .push(CheckIssue::new(0, Message::new("check-no-end")));
     }
     report
 }
 
-fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Vec<String> {
+fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Vec<Message> {
     let mut g_codes: Vec<i64> = Vec::new();
     let mut m_codes: Vec<i64> = Vec::new();
     let mut values: BTreeMap<char, f64> = BTreeMap::new();
@@ -281,11 +288,11 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
             continue;
         }
         if letter == 'G' && value == 90.1 {
-            return vec!["G90.1 (absolute arc centres) is not supported".into()];
+            return vec![Message::new("check-absolute-arc-centres")];
         }
         if letter == 'G' || letter == 'M' {
             if value != value.trunc() {
-                return vec![format!("{letter}{} is not supported", value)];
+                return vec![not_supported(format!("{letter}{value}"))];
             }
             // `as` saturates for absurd values, which then fail the whitelist anyway.
             let code = value as i64;
@@ -296,23 +303,23 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
             }
         } else if VALUE_LETTERS.contains(letter) {
             if values.contains_key(&letter) {
-                return vec![format!("{letter} appears twice on one line")];
+                return vec![Message::new("check-word-twice").arg("letter", letter.to_string())];
             }
             values.insert(letter, value);
         } else {
-            return vec![format!("Unsupported word {letter}")];
+            return vec![Message::new("check-unsupported-word").arg("letter", letter.to_string())];
         }
     }
 
-    let mut problems: Vec<String> = Vec::new();
+    let mut problems: Vec<Message> = Vec::new();
     for g in &g_codes {
         if !ALLOWED_G.contains(g) {
-            problems.push(format!("G{g} is not supported"));
+            problems.push(not_supported(format!("G{g}")));
         }
     }
     for m in &m_codes {
         if !ALLOWED_M.contains(m) {
-            problems.push(format!("M{m} is not supported"));
+            problems.push(not_supported(format!("M{m}")));
         }
     }
     let motions: Vec<i64> = g_codes
@@ -321,7 +328,7 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
         .filter(|g| MOTION_G.contains(g))
         .collect();
     if motions.len() > 1 {
-        problems.push("More than one motion command on one line".into());
+        problems.push(Message::new("check-several-motions"));
     }
     if !problems.is_empty() {
         return problems;
@@ -333,17 +340,19 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
             continue;
         }
         if state.units.is_some_and(|before| before != units) {
-            problems.push(format!(
-                "G{code} changes the units to {} within the program",
-                units.name()
-            ));
+            problems.push(
+                Message::new("check-units-changed")
+                    .arg("code", format!("G{code}"))
+                    .arg("units", units.name()),
+            );
         }
         if units != limits.units {
-            problems.push(format!(
-                "G{code} ({}) but the machine's G-code units are {}",
-                units.name(),
-                limits.units.name()
-            ));
+            problems.push(
+                Message::new("check-units-differ")
+                    .arg("code", format!("G{code}"))
+                    .arg("units", units.name())
+                    .arg("machine", limits.units.name()),
+            );
         }
         state.units = Some(units);
         state.tol = match units {
@@ -363,12 +372,17 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     // Modal settings first, in the order a controller applies them.
     if let Some(&feed) = values.get(&'F') {
         if feed <= 0.0 {
-            problems.push(format!("Feed F{feed} must be positive"));
+            // The F word as the checker read it, after any inch conversion: not a feed
+            // with a unit.
+            problems.push(
+                Message::new("check-feed-not-positive")
+                    .arg("feed", Value::Number(feed, Digits::Shortest)),
+            );
         }
         state.feed = Some(feed);
     }
     if g_codes.contains(&91) {
-        problems.push("G91 (relative) is not supported".into());
+        problems.push(Message::new("check-relative"));
         state.absolute = Some(false);
     }
     if g_codes.contains(&90) {
@@ -376,7 +390,10 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     }
     if let Some(&t) = values.get(&'T') {
         if t < 0.0 || t != t.trunc() {
-            problems.push(format!("T{t} must be a whole tool number"));
+            problems.push(
+                Message::new("check-tool-not-whole")
+                    .arg("tool", Value::Number(t, Digits::Shortest)),
+            );
         } else {
             // `as` saturates for absurd values, which no project has as a tool.
             state.tool = Some(t as i64);
@@ -392,7 +409,7 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     }
     if (m_codes.contains(&3) || m_codes.contains(&4)) && state.needs_speed {
         if !values.contains_key(&'S') {
-            problems.push("Spindle started after a tool change without a speed (S)".into());
+            problems.push(Message::new("check-start-without-speed"));
         }
         state.needs_speed = false;
     }
@@ -403,21 +420,24 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
         state.spindle = SpindleState::Ccw;
     }
     if g_codes.contains(&4) && !values.contains_key(&'P') {
-        problems.push("G4 dwell without P".into());
+        problems.push(Message::new("check-dwell-without-p"));
     }
     if g_codes.contains(&64) {
         match values.get(&'P') {
             _ if g_codes.contains(&4) => {
-                problems.push("G64 and G4 on one line: P is ambiguous".into());
+                problems.push(Message::new("check-blend-and-dwell"));
             }
             Some(&p) if (0.0..=MAX_BLEND_MM).contains(&p) => {}
-            Some(&p) => problems.push(format!(
-                "G64 P{p} lets the controller leave the path by more than {MAX_BLEND_MM} mm"
-            )),
-            None => problems.push(format!(
-                "G64 without P lets the controller round corners without limit (use P at \
-                 most {MAX_BLEND_MM})"
-            )),
+            // P is the program's own number, unconverted, as the check compares it.
+            Some(&p) => problems.push(
+                Message::new("check-blend-too-far")
+                    .arg("p", Value::Number(p, Digits::Shortest))
+                    .arg("most", Value::Length(MAX_BLEND_MM, Digits::Shortest)),
+            ),
+            None => problems.push(
+                Message::new("check-blend-without-p")
+                    .arg("most", Value::Number(MAX_BLEND_MM, Digits::Shortest)),
+            ),
         }
     }
     if let Some(&first) = motions.first() {
@@ -431,7 +451,7 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
     let arc_command = matches!(motions.first(), Some(2 | 3));
     if !axes.is_empty() || arc_command {
         match state.motion {
-            None => problems.push("Axis words without a motion mode".into()),
+            None => problems.push(Message::new("check-no-motion-mode")),
             Some(motion) => problems.extend(move_to(motion, &axes, &values, state, limits)),
         }
     }
@@ -447,19 +467,17 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
 
 /// M6: a known tool, the spindle stopped, the tool at safe height. From here on the stock
 /// margin is the new tool's radius.
-fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<String> {
+fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<Message> {
     let mut problems = Vec::new();
     match state.tool {
-        None => problems.push("Tool change (M6) without a tool number (T)".into()),
+        None => problems.push(Message::new("check-change-without-tool")),
         Some(t) => match limits.tool_radii.get(&t) {
             Some(&radius) => state.radius = Some(radius),
-            None => problems.push(format!(
-                "Tool change (M6) to T{t}, not a tool of the project"
-            )),
+            None => problems.push(Message::new("check-change-unknown-tool").arg("tool", t)),
         },
     }
     if state.spindle != SpindleState::Off {
-        problems.push("Tool change (M6) with the spindle on (stop it with M5 first)".into());
+        problems.push(Message::new("check-change-spindle-on"));
     }
     if state
         .pos
@@ -468,7 +486,7 @@ fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<String> {
         .flatten()
         .is_none_or(|z| z < limits.safe_z - state.tol)
     {
-        problems.push("Tool change (M6) below safe height (retract first)".into());
+        problems.push(Message::new("check-change-below-safe"));
     }
     state.needs_speed = true;
     problems
@@ -480,13 +498,13 @@ fn move_to(
     values: &BTreeMap<char, f64>,
     state: &mut State,
     limits: &CheckLimits,
-) -> Vec<String> {
+) -> Vec<Message> {
     let mut problems = Vec::new();
     if state.units.is_none() {
-        problems.push("Motion before G21 (mm) or G20 (inch)".into());
+        problems.push(Message::new("check-motion-before-units"));
     }
     if state.absolute != Some(true) {
-        problems.push("Motion before G90 (absolute)".into());
+        problems.push(Message::new("check-motion-before-absolute"));
     }
     let start = state.pos.clone();
     let current = |a: char| start.get(&a).copied().flatten();
@@ -502,25 +520,26 @@ fn move_to(
     if motion == 0 {
         let z_now = current('Z');
         if xy_changes && z_now.is_none_or(|z| z < limits.safe_z - state.tol) {
-            problems.push("Rapid XY move while Z is below safe height (retract first)".into());
+            problems.push(Message::new("check-rapid-below-safe"));
         }
         if let Some(z) = at('Z')
             && z < limits.stock_top_z - state.tol
             && !(!xy_changes && back_into_hole(state, current('X'), current('Y'), z))
         {
-            problems.push(format!(
-                "Rapid to Z{z:.3} mm, below the stock top (rapid into material)"
-            ));
+            problems.push(
+                Message::new("check-rapid-into-material")
+                    .arg("z", Value::Length(z, Digits::Fixed(3))),
+            );
         }
     } else {
         if state.feed.is_none() {
-            problems.push("Cutting move with no feed set".into());
+            problems.push(Message::new("check-cut-without-feed"));
         }
         if state.spindle == SpindleState::Off {
-            problems.push("Cutting move with the spindle off".into());
+            problems.push(Message::new("check-cut-spindle-off"));
         }
         if AXES.iter().any(|a| at(*a).is_none()) {
-            problems.push("Cutting move from an unknown position".into());
+            problems.push(Message::new("check-cut-unknown-position"));
         }
         // An arc's own extremes count too: it can bulge past both its ends.
         let mut extremes: Vec<(f64, f64)> = Vec::new();
@@ -552,10 +571,18 @@ fn move_to(
     {
         let floor = limits.stock_bottom_z - limits.max_overcut;
         if z < floor - state.tol {
-            problems.push(format!(
-                "Z{z:.3} mm is below the stock bottom ({:.3} mm) by more than the allowed {:.3} mm",
-                limits.stock_bottom_z, limits.max_overcut
-            ));
+            problems.push(
+                Message::new("check-below-stock-too-far")
+                    .arg("z", Value::Length(z, Digits::Fixed(3)))
+                    .arg(
+                        "bottom",
+                        Value::Length(limits.stock_bottom_z, Digits::Fixed(3)),
+                    )
+                    .arg(
+                        "allowed",
+                        Value::Length(limits.max_overcut, Digits::Fixed(3)),
+                    ),
+            );
         } else {
             state.below_stock += 1;
             state.deepest = state.deepest.min(z);
@@ -616,9 +643,9 @@ fn check_arc(
     target: &BTreeMap<char, Option<f64>>,
     values: &BTreeMap<char, f64>,
     clockwise: bool,
-) -> (Vec<String>, Vec<(f64, f64)>) {
+) -> (Vec<Message>, Vec<(f64, f64)>) {
     if !values.contains_key(&'I') && !values.contains_key(&'J') {
-        return (vec!["Arc without I/J centre offsets".into()], Vec::new());
+        return (vec![Message::new("check-arc-without-centre")], Vec::new());
     }
     let get = |m: &BTreeMap<char, Option<f64>>, a: char| m.get(&a).copied().flatten();
     let (Some(sx), Some(sy), Some(ex), Some(ey)) = (
@@ -627,23 +654,25 @@ fn check_arc(
         get(target, 'X'),
         get(target, 'Y'),
     ) else {
-        return (vec!["Arc from an unknown position".into()], Vec::new());
+        return (vec![Message::new("check-arc-unknown-position")], Vec::new());
     };
     let mut problems = Vec::new();
     // A helical arc (one that changes Z) goes linearly from its start Z to its end Z, so its
     // lowest point is one of its ends: the depth and stock checks on the end (and on the
     // previous move's end, its start) cover it (docs/specs/helix-and-leads.md part C).
     if (sx - ex).hypot(sy - ey) <= POSITION_TOL_MM {
-        problems.push("Arc ending where it starts (a full circle in one move)".into());
+        problems.push(Message::new("check-arc-full-circle"));
     }
     let cx = sx + values.get(&'I').copied().unwrap_or(0.0);
     let cy = sy + values.get(&'J').copied().unwrap_or(0.0);
     let r_start = (sx - cx).hypot(sy - cy);
     let r_end = (ex - cx).hypot(ey - cy);
     if (r_start - r_end).abs() > ARC_APPROX_TOL_MM {
-        problems.push(format!(
-            "Arc radius mismatch: start {r_start:.4} mm vs end {r_end:.4} mm"
-        ));
+        problems.push(
+            Message::new("check-arc-radius-mismatch")
+                .arg("start", Value::Length(r_start, Digits::Fixed(4)))
+                .arg("end", Value::Length(r_end, Digits::Fixed(4))),
+        );
     }
     // Angles from the start going the arc's way; an axis extreme is on the arc if it comes
     // before the end.
@@ -664,6 +693,11 @@ fn check_arc(
         .map(|(dx, dy)| (cx + dx, cy + dy))
         .collect();
     (problems, extremes)
+}
+
+/// `word` (a G or M code: `G43`, `M7.5`) is not one the checker reads.
+fn not_supported(word: String) -> Message {
+    Message::new("check-not-supported").arg("word", word)
 }
 
 fn outside_stock(x: f64, y: f64, limits: &CheckLimits, radius: Option<f64>) -> bool {

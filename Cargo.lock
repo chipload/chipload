@@ -752,6 +752,7 @@ name = "chipload-check"
 version = "0.23.0"
 dependencies = [
  "chipload-core",
+ "chipload-i18n",
  "chipload-job",
  "thiserror 2.0.21",
 ]

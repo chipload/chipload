@@ -546,7 +546,13 @@ fn checker_rejection_returns_no_gcode_but_the_toolpath() {
     // The part is 206 mm wide.
     let small = job(json!({"machine": {"travel": {"x": 100, "y": 600, "z": 100}}}));
     match error(&small) {
-        PipelineError::CheckFailed { errors, program } => {
+        PipelineError::CheckFailed {
+            errors,
+            messages,
+            program,
+        } => {
+            let english: Vec<String> = messages.iter().map(|m| m.english()).collect();
+            assert_eq!(english, errors);
             assert!(
                 errors.iter().any(|e| e.contains("exceeds machine travel")),
                 "{errors:?}"

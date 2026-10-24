@@ -65,9 +65,11 @@ pub enum PipelineError {
     Post(#[from] PostError),
     /// The independent checker rejected the program. No G-code is returned; `program` is
     /// the rejected toolpath, for display only, and must never be posted or written out.
+    /// `messages` are `errors` as messages, for the app (docs/specs/translations.md §7).
     #[error("G-code check failed:\n{}", errors.iter().map(|e| format!("  {e}")).collect::<Vec<_>>().join("\n"))]
     CheckFailed {
         errors: Vec<String>,
+        messages: Vec<Message>,
         program: Box<Program>,
     },
 }
@@ -476,26 +478,20 @@ pub fn post_and_check(
         };
         let limits = tool_limits(job, group.tool.id)?;
         let report = check_gcode(&gcode, &limits);
-        let label = |issue: &CheckIssue| {
-            if several {
-                format!("file {}, line {}: {}", i + 1, issue.line, issue.message)
-            } else {
-                format!("line {}: {}", issue.line, issue.message)
-            }
-        };
+        let file = several.then_some(i + 1);
         if !report.ok() {
-            return Err(PipelineError::CheckFailed {
-                errors: report.errors.iter().map(label).collect(),
-                program: Box::new(program.clone()),
-            });
+            return Err(check_failed(&report.errors, file, program));
         }
-        warnings.extend(report.warnings.iter().map(|w| CheckIssue {
-            line: w.line,
-            message: if several {
-                format!("file {}: {}", i + 1, w.message)
-            } else {
-                w.message.clone()
-            },
+        warnings.extend(report.warnings.iter().map(|w| {
+            match file {
+                Some(file) => CheckIssue::new(
+                    w.line,
+                    Message::new("pipeline-check-file")
+                        .arg("file", file)
+                        .arg("message", w.text_message.clone()),
+                ),
+                None => w.clone(),
+            }
         }));
         files.push(GcodeFile {
             suffix: several.then(|| format!("-{}-T{}", i + 1, group.tool.id)),
@@ -531,14 +527,7 @@ fn one_file_with_tool_changes(
     )?;
     let report = check_gcode(&gcode, &limits_from_job(job));
     if !report.ok() {
-        return Err(PipelineError::CheckFailed {
-            errors: report
-                .errors
-                .iter()
-                .map(|e| format!("line {}: {}", e.line, e.message))
-                .collect(),
-            program: Box::new(program.clone()),
-        });
+        return Err(check_failed(&report.errors, None, program));
     }
     let first = &groups[0];
     let file = GcodeFile {
@@ -548,6 +537,28 @@ fn one_file_with_tool_changes(
         gcode,
     };
     Ok((vec![file], report.warnings))
+}
+
+/// The checker's `errors` as the refusal: each with its line, and its file's number when
+/// the run makes several files.
+fn check_failed(errors: &[CheckIssue], file: Option<usize>, program: &Program) -> PipelineError {
+    let messages: Vec<Message> = errors
+        .iter()
+        .map(|e| match file {
+            Some(file) => Message::new("pipeline-check-file-line")
+                .arg("file", file)
+                .arg("line", e.line)
+                .arg("message", e.text_message.clone()),
+            None => Message::new("pipeline-check-line")
+                .arg("line", e.line)
+                .arg("message", e.text_message.clone()),
+        })
+        .collect();
+    PipelineError::CheckFailed {
+        errors: messages.iter().map(Message::english).collect(),
+        messages,
+        program: Box::new(program.clone()),
+    }
 }
 
 fn tool_limits(job: &Job, tool: i64) -> Result<CheckLimits, PipelineError> {

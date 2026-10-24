@@ -192,6 +192,16 @@ DXF are kept in the project file as English words, so they stay English, except 
 no units", which is rebuilt from the units. Still English text (through `text_in`): the
 lines of a DXF update and of library imports, checker findings and errors (7.3.4, 7.3.5).
 
+**As built, 7.3.4 (2026-10-24):** the checker's findings (`check.ftl`, 40 texts;
+`CheckIssue` keeps `message` in English and gains `text_message`; `chipload-check` depends
+on `chipload-i18n`). The pipeline places them with three texts of `pipeline.ftl` ("line 4:
+…", "file 2, line 4: …") and carries them in `CheckFailed::messages` beside the English
+`errors`; the app shows them in its language and display units. The checker turns an
+inch program's numbers into mm before it judges them, so its heights, radii and spans are
+lengths. The numbers it writes after a G-code letter without a unit (the F of "Feed F0
+must be positive", G64's P and its limit, a T word) stay plain numbers, never converted.
+The setup sheet still writes the findings through `text_in` (step 3).
+
 ### 7.1 What there is
 
 The library crates write about 450 messages as finished English sentences (`format!`),

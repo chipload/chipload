@@ -573,3 +573,25 @@ fn units_that_differ_from_the_machine_or_change_are_errors() {
         report.errors
     );
 }
+
+#[test]
+fn findings_are_messages_in_any_language_and_units() {
+    use chipload_i18n::{Language, Units};
+    let program = format!("{HEADER}G0 X10 Y10\nG0 Z-3\n{FOOTER}");
+    let report = check_gcode(&program, &limits());
+    let issue = report
+        .errors
+        .iter()
+        .find(|e| e.message.starts_with("Rapid to"))
+        .expect("a rapid into material");
+    assert_eq!(issue.text_message.english(), issue.message);
+    assert_eq!(
+        issue.message,
+        "Rapid to Z-3.000 mm, below the stock top (rapid into material)"
+    );
+    // Lengths travel in mm: shown in inches, the number is converted with its unit.
+    assert_eq!(
+        issue.text_message.render(Language::En, Units::Inch),
+        "Rapid to Z-0.1181 in, below the stock top (rapid into material)"
+    );
+}

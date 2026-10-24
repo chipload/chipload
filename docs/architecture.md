@@ -33,6 +33,7 @@ flowchart TB
     pipeline --> i18n
 
     check["chipload-check<br/>independent G-code checker"] --> job
+    check --> i18n
     pipeline -.-> check
     post -.-> check
     cli -.-> check
@@ -46,7 +47,7 @@ flowchart TB
 | Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-image`, `chipload-text` |
 | Model | `chipload-job` |
 | Geometry | `chipload-core` |
-| Beside the rest | `chipload-check`: uses only `core` and `job`; `chipload-i18n`: the app's texts, no workspace crate |
+| Beside the rest | `chipload-check`: uses only `core`, `job` and `i18n`; `chipload-i18n`: the app's texts, no workspace crate |
 
 `chipload-check` reads the finished G-code text and checks it on its own terms. It shares no
 code with the generator, so it can disagree with it.
@@ -87,7 +88,7 @@ error.
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core; ttf-parser |
 | `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, check; minijinja |
-| `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job |
+| `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job, i18n |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices. | every library crate |
 | `chipload-cli` | The `chipload` command: every feature, `--json` on every command, `get`/`set` by path, JSON schemas, an MCP server. | pipeline and below; clap |
 | `chipload-i18n` | The app's texts in English, German, French, Spanish, Italian and Swedish: Fluent files compiled in, looked up by id; messages from the library crates as an id with typed arguments, shown in any language and units; the number rules for lengths and feeds (docs/specs/translations.md). No I/O. | no workspace crate; fluent-bundle |

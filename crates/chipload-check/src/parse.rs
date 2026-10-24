@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Tokenizer for G-code lines.
 
+use chipload_i18n::Message;
+
 /// Lines separated by \n, \r\n or a lone \r (controllers end a line at either).
 pub fn split_lines(text: &str) -> Vec<&str> {
     if text.is_empty() {
@@ -43,11 +45,11 @@ fn strip_comments(line: &str) -> String {
 }
 
 /// Words of one line as (upper-case letter, value), or the parse problem.
-pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, String> {
+pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, Message> {
     let before_semicolon = raw.split(';').next().unwrap_or("");
     let line = strip_comments(before_semicolon);
     if line.contains('(') || line.contains(')') {
-        return Err("Unbalanced or nested comment".into());
+        return Err(Message::new("check-unbalanced-comment"));
     }
     let chars: Vec<char> = line.chars().collect();
     let mut words = Vec::new();
@@ -64,7 +66,9 @@ pub fn parse_line(raw: &str) -> Result<Vec<(char, f64)>, String> {
             }
             None => {
                 let rest: String = chars[pos..].iter().collect();
-                return Err(format!("Cannot parse {:?}", rest.trim()));
+                // The text as Rust quotes it, escapes and all.
+                let quoted = format!("{:?}", rest.trim());
+                return Err(Message::new("check-cannot-parse").arg("text", quoted));
             }
         }
     }
@@ -135,7 +139,7 @@ mod tests {
     #[test]
     fn unparseable_text_is_quoted_in_the_message() {
         assert_eq!(
-            parse_line("G1 X1 ?Y2").unwrap_err(),
+            parse_line("G1 X1 ?Y2").unwrap_err().english(),
             r#"Cannot parse "?Y2""#
         );
     }
