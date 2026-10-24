@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.23.0 user guide</title>
+        <title>Chipload 0.24.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ebef116c.js";
+            window.path_to_searchindex_js = "searchindex-14782ce2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c71e25ca.js"></script>
+        <script src="toc-7c75c466.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.23.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.24.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -2464,6 +2464,9 @@ in the Browser is on (the default; it applies to every project);</li>
 <p>Its lengths and feeds are in the app’s <a href="#mm-or-inches-on-screen">units</a>
 (the command line writes mm). When the machine’s G-code is in inches, the top of the
 sheet says so: <em>G-code in inches (G20)</em>.</p>
+<p>Its words are in the app’s <a href="#languages">language</a>; the command line writes English
+unless you add <code>--lang de</code> to <code>chipload sheet</code> (or <code>--sheet-lang de</code> to <code>chipload run</code>;
+also <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>). Names, numbers and the G-code are never translated.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="scripting-chipload"><a class="header" href="#scripting-chipload">Scripting Chipload</a></h1>
 <p>Everything Chipload does can be driven from scripts: the command line takes every action,
@@ -2791,6 +2794,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this run only: one file per tool, or one file with M6 tool changes (default: the project’s machine setting) One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--no-sheet</code></td><td>Don’t write the setup sheet (by default <code>part-sheet.html</code> next to <code>part.nc</code>)</td></tr>
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
+<tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
 </table>
@@ -2829,6 +2833,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--gcode &lt;GCODE&gt;</code></td><td>The G-code the sheet is for, as given to <code>run -o</code>, for its file names (default: the project’s name with the post’s extension)</td></tr>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this sheet only: one file per tool, or one file with M6 tool changes. One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--units &lt;UNITS&gt;</code></td><td>Its lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
+<tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
 </table>
@@ -4898,6 +4903,39 @@ larger. See <a href="#oversize">Depths and oversize</a>.</li>
 Check each profile’s side.</li>
 <li><strong>Tool diameter:</strong> Chipload offsets by the diameter you set. Measure the real tool.</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="languages"><a class="header" href="#languages">Languages</a></h1>
+<p>The app speaks English, German (Deutsch), French (Français), Spanish (Español), Italian
+(Italiano) and Swedish (Svenska).</p>
+<h2 id="choosing-the-language"><a class="header" href="#choosing-the-language">Choosing the language</a></h2>
+<p>At the start the app follows your computer’s language, and English when it isn’t one of
+these. To choose another, use <em>View &gt; Language</em> or <em>This computer &gt; Preferences</em> in the
+Browser. The change is immediate, and the app keeps it for next time.</p>
+<p>Problems, the report, the checker’s findings, error messages and the
+<a href="#setup-sheet">setup sheet</a> follow the language too. What stays in English, whatever
+the language:</p>
+<ul>
+<li>The G-code and its comments.</li>
+<li>The command line, <code>--json</code> output and the <a href="#ai-assistants-mcp">AI assistant tools</a> (a setup
+sheet written by <code>chipload sheet --lang</code> or <code>chipload run --sheet-lang</code> excepted).</li>
+<li>The issues found when a DXF was first read, which the project keeps as they were
+written, and what other programs say (the file system, a picture that can’t be read).</li>
+<li>This guide.</li>
+</ul>
+<p>Names you give things (parts, operations, tools, machines, layers) are yours and are never
+translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian
+and Swedish a field also takes a decimal comma (<code>6,5</code>); in English a comma isn’t read, since
+<code>1,000</code> would mean a thousand.</p>
+<h2 id="helping-with-a-translation"><a class="header" href="#helping-with-a-translation">Helping with a translation</a></h2>
+<p>German, French, Spanish and Italian are marked <em>(review wanted)</em> in the language menu: they
+haven’t yet been read by someone who speaks the language and runs a CNC machine. A wrong
+word in a CAM program can mislead (climb or conventional, inside or outside), so your
+corrections matter.</p>
+<p>The texts are plain files in the source, one folder per language:
+<code>crates/chipload-i18n/locales/&lt;language&gt;/*.ftl</code>. The machining terms used all through
+them are in <code>crates/chipload-i18n/GLOSSARY.md</code>. <a href="https://github.com/chipload/chipload/issues">Open an
+issue</a> with the wrong text and a better one,
+or send a pull request that changes the file.</p>
 
                     </main>
 
