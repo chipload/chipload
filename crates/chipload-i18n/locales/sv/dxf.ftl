@@ -6,44 +6,47 @@
 ## Reading the DXF
 
 # $units is "mm" or "inch".
-dxf-units-chosen = DXF has no units; using { $units } as chosen
+dxf-units-chosen = DXF:en har inga enheter; använder { $units } enligt ditt val
 # $max is the largest height found.
-dxf-nonzero-z = { $count } entities have nonzero Z (max |Z| { $max }); Z was dropped
+dxf-nonzero-z = { $count ->
+    [one] { $count } entitet har
+   *[other] { $count } entiteter har
+} Z skilt från noll (max |Z| { $max }); Z togs bort
 # An issue found when the DXF was read, as the project file keeps it: its words, in
 # English.
 dxf-stored-issue = { $text }
 # An issue of one of several DXFs, after the DXF's name.
 dxf-source-issue = { $source }: { $issue }
 # $most is the deepest blocks may be nested.
-dxf-block-depth = Block nesting deeper than { $most }
+dxf-block-depth = Block nästlade djupare än { $most }
 # An entity that is skipped: its type, its handle, and why ($reason, one of the
 # dxf-skip-… and dxf-spline-… texts).
 dxf-entity-skipped = { $kind } ({ $handle }): { $reason }
-dxf-skip-coordinate = a coordinate is not a number or beyond { $most }
-dxf-skip-fit-points = has fit points only; re-export it with control points
-dxf-skip-not-flat = not parallel to the XY plane
+dxf-skip-coordinate = en koordinat är inte ett tal eller ligger bortom { $most }
+dxf-skip-fit-points = har bara anpassningspunkter (fit points); exportera om den med kontrollpunkter
+dxf-skip-not-flat = inte parallell med XY-planet
 # $block is the block's name, in quotes.
-dxf-skip-no-block = block { $block } does not exist
+dxf-skip-no-block = blocket { $block } finns inte
 # $radius is in the drawing's units, without one.
-dxf-skip-radius = radius { $radius } is not positive
-dxf-spline-degree = degree must be at least 1
-dxf-spline-few-points = { $count } control points is too few for degree { $degree }
-dxf-spline-knots = { $knots } knots, expected { $expected } for { $count } control points of degree { $degree }
-dxf-spline-knots-order = knots are not ascending
-dxf-spline-weights = weight count differs from control point count
+dxf-skip-radius = radien { $radius } är inte positiv
+dxf-spline-degree = graden måste vara minst 1
+dxf-spline-few-points = { $count } kontrollpunkter är för få för grad { $degree }
+dxf-spline-knots = { $knots } knutar, { $expected } väntades för { $count } kontrollpunkter av grad { $degree }
+dxf-spline-knots-order = knutarna är inte stigande
+dxf-spline-weights = antalet vikter skiljer sig från antalet kontrollpunkter
 
 ## Joining the drawing into contours
 
 # $type is the DXF entity type, $handle its handle.
-dxf-zero-length = Removed zero-length { $type } on layer { $layer } ({ $handle })
-dxf-duplicate = Removed duplicate { $type } on layer { $layer } ({ $handle })
-dxf-branch-point = More than two segments meet at one point
+dxf-zero-length = Tog bort { $type } med längden noll på lager { $layer } ({ $handle })
+dxf-duplicate = Tog bort dubblett av { $type } på lager { $layer } ({ $handle })
+dxf-branch-point = Fler än två segment möts i en punkt
 # $layers is the contour's layer names; $start and $end its ends ("(10.000, 5.000) mm").
-dxf-open-contour = Contour { $contour } on { $layers } is open: ends at { $start } and { $end }
+dxf-open-contour = Kontur { $contour } på lager { $layers } är öppen: slutar i { $start } och { $end }
 # A closed contour that can't be machined; $reason is one of the dxf-ring-… texts.
-dxf-invalid-contour = Contour { $contour }: { $reason }
-dxf-ring-few-points = fewer than 3 distinct points
-dxf-ring-self-intersecting = self-intersecting
+dxf-invalid-contour = Kontur { $contour }: { $reason }
+dxf-ring-few-points = färre än 3 skilda punkter
+dxf-ring-self-intersecting = korsar sig själv
 # $x and $y are a point's coordinates, without their unit.
-dxf-ring-folds = folds back on itself: its edges come within { $within } of each other near ({ $x }, { $y })
-dxf-ring-no-area = encloses no area
+dxf-ring-folds = viker tillbaka över sig själv: dess kanter kommer inom { $within } från varandra nära ({ $x }, { $y })
+dxf-ring-no-area = omsluter ingen yta

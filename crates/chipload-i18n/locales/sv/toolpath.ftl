@@ -73,114 +73,114 @@ toolpath-rest-pass-no-rpm = verktyg { $tool } har inget spindelvarvtal (rpm)
 # of the notes below.
 toolpath-labelled = { $label }: { $note }
 # A note about one contour of an operation: "Operation 3 (Outline), contour #4: …".
-toolpath-labelled-contour = { $label }, contour #{ $contour }: { $note }
+toolpath-labelled-contour = { $label }, kontur #{ $contour }: { $note }
 # Lists built one item at a time: "1, 2, 3" and "1, 2 and 3". $list is the items so far.
 toolpath-comma = { $list }, { $item }
-toolpath-and = { $list } and { $last }
+toolpath-and = { $list } och { $last }
 # An operation's number in a list of operations.
 toolpath-number = { $number }
 # An operation's number and its kind in a list: "3 (pocket)".
 toolpath-operation-kind = { $number } ({ $kind ->
-    [profile] profile
-    [pocket] pocket
-    [vcarve] V-carve
-    [path] follow path
-    [holes] holes
-   *[surface] surface
+    [profile] konturfräsning
+    [pocket] ficka
+    [vcarve] V-gravyr
+    [path] följ bana
+    [holes] hål
+   *[surface] planfräsning
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
-toolpath-skipped-open = skipped open contour #{ $contour } on { $layers } { $from } to { $to }
-toolpath-into-spoilboard = cuts { $below } below the stock (into the spoilboard)
+toolpath-skipped-open = hoppade över öppen kontur #{ $contour } på lager { $layers } från { $from } till { $to }
+toolpath-into-spoilboard = fräser { $below } under ämnet (ned i offerskivan)
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
-toolpath-plunge-unknown = Tool { $tool } isn't marked center_cutting and { $count ->
-    [one] operation { $operations } plunges
-   *[other] operations { $operations } plunge
-} straight down: make sure it is a centre-cutting tool, or ramp in (entry: ramp)
+toolpath-plunge-unknown = Verktyg { $tool } är inte markerat center_cutting och { $count ->
+    [one] operation { $operations } matar
+   *[other] operationerna { $operations } matar
+} rakt ned: kontrollera att det är ett centrumskärande verktyg, eller rampa ned (entry: ramp)
 # $operations is a list of operation numbers ("1, 2 and 4"); $label the surface's label.
-toolpath-surface-after = { $label } faces the stock after { $count ->
-    [one] operation { $operations } has
-   *[other] operations { $operations } have
-} cut it: surfacing usually comes first
+toolpath-surface-after = { $label } planfräser ämnet efter att { $count ->
+    [one] operation { $operations } har
+   *[other] operationerna { $operations } har
+} fräst i det: planfräsning kommer oftast först
 # $tool is the number of the larger tool the pocket rests after.
-toolpath-rest-no-earlier = rests after tool { $tool }, but no earlier pocket cuts these shapes with it as deep; the rest of the pocket will be left uncut
-toolpath-rest-pass-plunge = plunges straight down with tool { $tool }, which isn't marked centre-cutting; use a helix or a ramp if it isn't
+toolpath-rest-no-earlier = rest efter verktyg { $tool }, men ingen tidigare ficka fräser dessa former lika djupt med det; resten av fickan lämnas ofräst
+toolpath-rest-pass-plunge = matar rakt ned med verktyg { $tool }, som inte är markerat som centrumskärande; använd en helix eller en ramp om det inte är det
 # $groups is how many separate runs of operations use the tool; $operations their numbers
 # ("1, 2, 5").
-toolpath-tool-returns = Tool { $tool } is used in { $groups } groups (operations { $operations }); moving them next to each other saves a tool change
-toolpath-vbit-no-tip = tool { $tool } has no tip diameter set; V-carving takes it as pointed
+toolpath-tool-returns = Verktyg { $tool } används i { $groups } grupper (operationerna { $operations }); läggs de efter varandra sparas ett verktygsbyte
+toolpath-vbit-no-tip = verktyg { $tool } har ingen spetsdiameter angiven; V-gravyren räknar med att det är spetsigt
 # Angles in degrees.
-toolpath-flank-unknown-centre-cutting = the tabs' flanks ({ $flank }°) are steeper than the ramp angle ({ $ramp }°); tool { $tool } isn't marked center_cutting, make sure it is a centre-cutting tool
+toolpath-flank-unknown-centre-cutting = bryggornas flanker ({ $flank }°) är brantare än rampvinkeln ({ $ramp }°); verktyg { $tool } är inte markerat center_cutting, kontrollera att det är ett centrumskärande verktyg
 
 ## Planning notes: profiles
 
 # $loops is how many separate loops the contour is cut as.
-toolpath-narrow-loops = tool does not fit through a narrow part; cut as { $loops } separate loops and material remains in between
+toolpath-narrow-loops = verktyget får inte plats genom en smal del; fräses som { $loops } separata slingor och material blir kvar emellan
 # $point is a start point the user set ("(10.000, 5.000) mm").
-toolpath-start-far-contour = start point { $point } is { $distance } from contour #{ $contour }; the nearest point is used
-toolpath-start-twice-contour = start point { $point } is on contour #{ $contour } too, which already has one; it is ignored
-toolpath-tabs-inside = tabs on an inside profile will hold the cut-out slug
+toolpath-start-far-contour = startpunkten { $point } ligger { $distance } från kontur #{ $contour }; närmaste punkten används
+toolpath-start-twice-contour = startpunkten { $point } ligger också på kontur #{ $contour }, som redan har en; den ignoreras
+toolpath-tabs-inside = bryggor på en konturfräsning inuti håller kvar den utfrästa biten
 # $contours is a list of contour numbers ("#3, #4").
-toolpath-tabs-on-curves = some tabs on contours { $contours } sit on a corner or curve (no straight stretch nearby)
+toolpath-tabs-on-curves = några bryggor på konturerna { $contours } sitter på ett hörn eller en kurva (ingen rak sträcka i närheten)
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
-toolpath-tabs-joined = tabs { $pairs } meet below their top (flanks at { $flank }°): they hold as one longer tab
-toolpath-finish-lap-cuts = the finishing lap cuts up to { $most } in corners or narrow parts (finishing stock { $stock })
+toolpath-tabs-joined = bryggorna { $pairs } möts under sin topp (flanker på { $flank }°): de håller som en längre brygga
+toolpath-finish-lap-cuts = finskärsvarvet fräser upp till { $most } i hörn eller smala delar (kvar för finskär { $stock })
 # $style is the operation's corner style.
-toolpath-corner-unreached = corner at { $point }: the tool can't reach into it; { $style ->
-    [dogbone] no dogbone
-   *[tbone] no T-bone
+toolpath-corner-unreached = hörn vid { $point }: verktyget når inte in i det; { $style ->
+    [dogbone] ingen dogbone
+   *[tbone] ingen T-bone
 }
 
 ## Planning notes: pockets
 ## $contours is a list of contour numbers ("#3, #4"): the pocket's boundary and its islands.
 
-toolpath-corners-not-rounded = contours { $contours }: ring corners not rounded; rounding would leave material
-toolpath-pocket-narrow = contours { $contours }: the tool does not fit through a narrow part; cleared as { $areas } areas and material remains in between
+toolpath-corners-not-rounded = konturerna { $contours }: slingornas hörn är inte rundade; att runda dem skulle lämna material kvar
+toolpath-pocket-narrow = konturerna { $contours }: verktyget får inte plats genom en smal del; fräses ur som { $areas } områden och material blir kvar emellan
 # $width is a number without its unit; $height brings the unit; $near is a point.
-toolpath-uncut = contours { $contours }: uncut material in { $count ->
-    [one] { $count } place
-   *[other] { $count } places
-}, largest about { $width } x { $height } near { $near }; reduce the stepover to clear it
-toolpath-lead-reduced = contours { $contours }: lead radius reduced to { $used } (no room for { $radius })
-toolpath-no-lead = contours { $contours }: no room for a lead (not even { $least }); the wall is cut without one
-toolpath-helix-reduced = contours { $contours }: helix radius reduced to { $used } (no room for { $radius })
-toolpath-no-helix-room = contours { $contours }: no room for a helix (not even { $least }); ramping in instead
-toolpath-no-helix-narrow = contours { $contours }: no room for a helix (the pocket is too narrow); ramping in instead
-toolpath-no-helix-way = contours { $contours }: no room for a helix (its way to the first path passes a wall or island); ramping in instead
-toolpath-start-far-wall = contours { $contours }: start point { $point } is { $distance } from the wall; the nearest point is used
-toolpath-start-twice-wall = contours { $contours }: start point { $point } is on a wall that already has one; it is ignored
-toolpath-rest-nothing-left = the larger tool reaches the whole pocket; nothing is left to rest machine
+toolpath-uncut = konturerna { $contours }: ofräst material på { $count ->
+    [one] { $count } ställe
+   *[other] { $count } ställen
+}, största ungefär { $width } x { $height } nära { $near }; minska sidosteget för att få bort det
+toolpath-lead-reduced = konturerna { $contours }: inkörningsradien minskad till { $used } (inte plats för { $radius })
+toolpath-no-lead = konturerna { $contours }: inte plats för en inkörning (inte ens { $least }); väggen fräses utan inkörning
+toolpath-helix-reduced = konturerna { $contours }: helixradien minskad till { $used } (inte plats för { $radius })
+toolpath-no-helix-room = konturerna { $contours }: inte plats för en helix (inte ens { $least }); rampar ned i stället
+toolpath-no-helix-narrow = konturerna { $contours }: inte plats för en helix (fickan är för smal); rampar ned i stället
+toolpath-no-helix-way = konturerna { $contours }: inte plats för en helix (dess väg till första banan passerar en vägg eller en ö); rampar ned i stället
+toolpath-start-far-wall = konturerna { $contours }: startpunkten { $point } ligger { $distance } från väggen; närmaste punkten används
+toolpath-start-twice-wall = konturerna { $contours }: startpunkten { $point } ligger på en vägg som redan har en; den ignoreras
+toolpath-rest-nothing-left = det större verktyget når hela fickan; inget är kvar att restbearbeta
 # $width is a number without its unit; $height brings the unit.
-toolpath-rest-too-small = rest machining: material in { $count ->
-    [one] { $count } place
-   *[other] { $count } places
-} is too small for this tool too (largest about { $width } × { $height })
+toolpath-rest-too-small = restbearbetning: materialet på { $count ->
+    [one] { $count } ställe
+   *[other] { $count } ställen
+} är för litet även för detta verktyg (största ungefär { $width } × { $height })
 
 ## Planning notes: V-carving, follow paths and holes
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = contours { $contours }: too wide for the V-bit ({ $across } across), which carves at most { $cap } deep ({ $wide } wide at the surface); the edges of the widest parts aren't reached (they need { $need }). Allow deeper, use a wider angle, or clear the floor
-toolpath-vcarve-too-wide = contours { $contours }: too wide for a carve at most { $cap } deep ({ $wide } wide at the surface); the edges of the widest parts aren't reached (they need { $need }). Allow deeper, use a wider angle, or clear the floor
+toolpath-vcarve-too-wide-bit = konturerna { $contours }: för breda för V-fräsen ({ $across } i diameter), som graverar högst { $cap } djupt ({ $wide } brett vid ytan); kanterna på de bredaste delarna nås inte (de kräver { $need }). Tillåt större djup, använd en bredare vinkel eller fräs ur botten
+toolpath-vcarve-too-wide = konturerna { $contours }: för breda för en gravyr som är högst { $cap } djup ({ $wide } bred vid ytan); kanterna på de bredaste delarna nås inte (de kräver { $need }). Tillåt större djup, använd en bredare vinkel eller fräs ur botten
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
-toolpath-vcarve-narrow = contours { $contours }: { $narrow } of centre line is narrower than the tip ({ $tip }) and isn't carved
-toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $length }); skipped
-toolpath-groove-no-angle = tool { $tool } is a V-bit without an angle: the groove's width is unknown
-toolpath-groove-past-cone = the V-groove is deeper than the V-bit's cone: { $width } wide at the top, with straight walls above the cone
-toolpath-groove-width = the V-groove is { $width } wide at the top
-toolpath-holes-not-circles = skipped { $count ->
-    [one] { $count } shape that isn't a circle
-   *[other] { $count } shapes that aren't circles
+toolpath-vcarve-narrow = konturerna { $contours }: { $narrow } av mittlinjen är smalare än spetsen ({ $tip }) och graveras inte
+toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $length }); hoppas över
+toolpath-groove-no-angle = verktyg { $tool } är en V-fräs utan vinkel: spårets bredd är okänd
+toolpath-groove-past-cone = V-spåret är djupare än V-fräsens kon: { $width } brett upptill, med raka väggar ovanför konen
+toolpath-groove-width = V-spåret är { $width } brett upptill
+toolpath-holes-not-circles = hoppade över { $count ->
+    [one] { $count } form som inte är en cirkel
+   *[other] { $count } former som inte är cirklar
 }
 # $diameter is the holes' diameter, $tool the tool's, $within how far they may differ.
 toolpath-holes-not-drill-size = { $count ->
-    [one] hole { $diameter }
-   *[other] { $count } holes of { $diameter }
-}: not the { $tool } drill's size (within { $within }); not drilled
+    [one] hål { $diameter }
+   *[other] { $count } hål på { $diameter }
+}: inte samma storlek som borret på { $tool } (inom { $within }); borras inte
 toolpath-holes-too-small-to-bore = { $count ->
-    [one] hole { $diameter }
-   *[other] { $count } holes of { $diameter }
-}: too small for the { $tool } tool to bore; not cut
+    [one] hål { $diameter }: för litet
+   *[other] { $count } hål på { $diameter }: för små
+} för att helixborra med verktyget på { $tool }; fräses inte
 toolpath-holes-core = { $count ->
-    [one] { $count } hole leaves
-   *[other] { $count } holes leave
-} a loose core (hole more than twice the tool); hold it down or use a pocket
+    [one] { $count } hål lämnar
+   *[other] { $count } hål lämnar
+} en lös kärna (hålet är mer än dubbelt så stort som verktyget); håll fast den eller använd en ficka

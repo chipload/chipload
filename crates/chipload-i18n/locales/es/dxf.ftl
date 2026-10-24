@@ -6,44 +6,47 @@
 ## Reading the DXF
 
 # $units is "mm" or "inch".
-dxf-units-chosen = DXF has no units; using { $units } as chosen
+dxf-units-chosen = El DXF no tiene unidades; se usan { $units }, como elegiste
 # $max is the largest height found.
-dxf-nonzero-z = { $count } entities have nonzero Z (max |Z| { $max }); Z was dropped
+dxf-nonzero-z = { $count ->
+    [one] { $count } entidad tiene Z distinta de cero
+   *[other] { $count } entidades tienen Z distinta de cero
+} (|Z| máx. { $max }); se descartó la Z
 # An issue found when the DXF was read, as the project file keeps it: its words, in
 # English.
 dxf-stored-issue = { $text }
 # An issue of one of several DXFs, after the DXF's name.
 dxf-source-issue = { $source }: { $issue }
 # $most is the deepest blocks may be nested.
-dxf-block-depth = Block nesting deeper than { $most }
+dxf-block-depth = Bloques anidados a más de { $most } niveles
 # An entity that is skipped: its type, its handle, and why ($reason, one of the
 # dxf-skip-… and dxf-spline-… texts).
 dxf-entity-skipped = { $kind } ({ $handle }): { $reason }
-dxf-skip-coordinate = a coordinate is not a number or beyond { $most }
-dxf-skip-fit-points = has fit points only; re-export it with control points
-dxf-skip-not-flat = not parallel to the XY plane
+dxf-skip-coordinate = una coordenada no es un número o supera { $most }
+dxf-skip-fit-points = solo tiene puntos de ajuste; vuelve a exportar con puntos de control
+dxf-skip-not-flat = no es paralela al plano XY
 # $block is the block's name, in quotes.
-dxf-skip-no-block = block { $block } does not exist
+dxf-skip-no-block = el bloque { $block } no existe
 # $radius is in the drawing's units, without one.
-dxf-skip-radius = radius { $radius } is not positive
-dxf-spline-degree = degree must be at least 1
-dxf-spline-few-points = { $count } control points is too few for degree { $degree }
-dxf-spline-knots = { $knots } knots, expected { $expected } for { $count } control points of degree { $degree }
-dxf-spline-knots-order = knots are not ascending
-dxf-spline-weights = weight count differs from control point count
+dxf-skip-radius = el radio { $radius } no es positivo
+dxf-spline-degree = el grado debe ser al menos 1
+dxf-spline-few-points = { $count } puntos de control son muy pocos para el grado { $degree }
+dxf-spline-knots = { $knots } nodos; se esperaban { $expected } para { $count } puntos de control de grado { $degree }
+dxf-spline-knots-order = los nodos no están en orden ascendente
+dxf-spline-weights = el número de pesos no coincide con el de puntos de control
 
 ## Joining the drawing into contours
 
 # $type is the DXF entity type, $handle its handle.
-dxf-zero-length = Removed zero-length { $type } on layer { $layer } ({ $handle })
-dxf-duplicate = Removed duplicate { $type } on layer { $layer } ({ $handle })
-dxf-branch-point = More than two segments meet at one point
+dxf-zero-length = Se eliminó una entidad { $type } de longitud cero en la capa { $layer } ({ $handle })
+dxf-duplicate = Se eliminó una entidad { $type } duplicada en la capa { $layer } ({ $handle })
+dxf-branch-point = Más de dos segmentos se juntan en un punto
 # $layers is the contour's layer names; $start and $end its ends ("(10.000, 5.000) mm").
-dxf-open-contour = Contour { $contour } on { $layers } is open: ends at { $start } and { $end }
+dxf-open-contour = El contorno { $contour } en { $layers } está abierto: termina en { $start } y { $end }
 # A closed contour that can't be machined; $reason is one of the dxf-ring-… texts.
-dxf-invalid-contour = Contour { $contour }: { $reason }
-dxf-ring-few-points = fewer than 3 distinct points
-dxf-ring-self-intersecting = self-intersecting
+dxf-invalid-contour = Contorno { $contour }: { $reason }
+dxf-ring-few-points = menos de 3 puntos distintos
+dxf-ring-self-intersecting = se corta a sí mismo
 # $x and $y are a point's coordinates, without their unit.
-dxf-ring-folds = folds back on itself: its edges come within { $within } of each other near ({ $x }, { $y })
-dxf-ring-no-area = encloses no area
+dxf-ring-folds = se pliega sobre sí mismo: sus bordes se acercan a menos de { $within } entre sí cerca de ({ $x }, { $y })
+dxf-ring-no-area = no encierra ningún área

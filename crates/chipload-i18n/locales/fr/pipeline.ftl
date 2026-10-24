@@ -1,5 +1,7 @@
 # Messages of the app services (crates/chipload-pipeline): problems found with the
-# post-processor a project uses.
+# post-processor a project uses, planning notes, the time estimate, chip loads and the
+# drawing's facts. A length or feed argument brings its own unit ("12.5 mm",
+# "1200 mm/min").
 
 # $post is the post-processor's name, $units the G-code units the machine is set to, as
 # written in the project file ("inch"). "units" is a key of the post's config file.
@@ -7,22 +9,22 @@ pipeline-post-units = le post-processeur { $post } n'écrit que du G-code en mm 
 
 ## Planning notes
 
-pipeline-drawing-outside-stock = The drawing extends outside the stock
+pipeline-drawing-outside-stock = Le dessin dépasse du brut
 # $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = The { $count } copies cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's copies.
+pipeline-copies-beyond-stock = Les { $count } copies usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les copies de la pièce.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Part { $part }: the { $count } copies cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's copies.
+pipeline-part-copies-beyond-stock = Pièce { $part } : les { $count } copies usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les copies de la pièce.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
-pipeline-layer-clash = { $label }: layer "{ $layer }" is in { $sources }; it cuts all of them. Limit it to one (select the layer under that DXF in the Browser)
+pipeline-layer-clash = { $label } : le calque "{ $layer }" est dans { $sources } ; l'opération les usine tous. Limitez-la à un seul (sélectionnez le calque sous ce DXF dans le Navigateur)
 # Names joined: "a.dxf and b.dxf".
-pipeline-and = { $list } and { $last }
+pipeline-and = { $list } et { $last }
 # Where shapes come from: a DXF's or picture's name, or one without a name.
 pipeline-source-named = { $name }
 pipeline-source-dxf = DXF { $id }
 pipeline-source-image = image { $id }
-pipeline-source-drawn = drawn shapes
+pipeline-source-drawn = formes dessinées
 
 ## The time estimate (after planning and generating)
 
@@ -31,67 +33,67 @@ pipeline-duration-seconds = { $seconds } s
 pipeline-duration-minutes = { $minutes } min { $seconds } s
 pipeline-duration-hours = { $hours } h { $minutes } min
 # The durations are pipeline-duration-… texts; $changes is the number of tool changes.
-pipeline-estimate = Estimated time: { $total } (cutting { $cutting }, rapids { $rapids }, spindle { $spindle }){ $changes ->
+pipeline-estimate = Temps estimé : { $total } (coupe { $cutting }, rapides { $rapids }, broche { $spindle }){ $changes ->
     [0] {""}
-    [one] , plus { $changes } tool change
-   *[other] , plus { $changes } tool changes
+    [one] , plus { $changes } changement d'outil
+   *[other] , plus { $changes } changements d'outil
 }
 # The lines under it start with spaces, written {"  "}: keep them, they indent the line.
 # $name is the part's name.
-pipeline-estimate-part = {"  "}Part { $number } ({ $name }): { $time }
+pipeline-estimate-part = {"  "}Pièce { $number } ({ $name }) : { $time }
 # $label is an operation's label.
-pipeline-estimate-operation = {"  "}{ $label }: { $time }
+pipeline-estimate-operation = {"  "}{ $label } : { $time }
 # An operation under its part: indented deeper.
-pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
+pipeline-estimate-part-operation = {"    "}{ $label } : { $time }
 # One G-code file of a project written one file per tool.
-pipeline-estimate-file = {"  "}File { $number }: { $time }
+pipeline-estimate-file = {"  "}Fichier { $number } : { $time }
 # $rate is a feed ("5000 mm/min").
-pipeline-estimate-rapids-assumed = {"  "}At the programmed feeds (rapids at { $rate }, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
-pipeline-estimate-rapids = {"  "}At the programmed feeds (rapids at the machine's max feed, { $rate }); acceleration and corners make the real time longer.
+pipeline-estimate-rapids-assumed = {"  "}Aux avances programmées (rapides à { $rate }, supposé : réglez l'avance max de la machine pour une meilleure estimation) ; l'accélération et les coins rallongent le temps réel.
+pipeline-estimate-rapids = {"  "}Aux avances programmées (rapides à l'avance max de la machine, { $rate }) ; l'accélération et les coins rallongent le temps réel.
 
 ## Chip load
 
-pipeline-chip-load-title = Chip load (at the cutting feed):
+pipeline-chip-load-title = Avance par dent (à l'avance de coupe) :
 # $label is an operation's label, $load a pipeline-chip-load… text.
-pipeline-chip-load-line = {"  "}{ $label }: { $load }
+pipeline-chip-load-line = {"  "}{ $label } : { $load }
 # $load brings its unit ("0.042 mm/tooth").
 pipeline-chip-load = { $load }
-pipeline-chip-load-no-flutes = set the tool's flutes to see the chip load
-pipeline-chip-load-no-rpm = set the tool's spindle speed to see the chip load
-pipeline-chip-load-no-tool = no tool
+pipeline-chip-load-no-flutes = réglez le nombre de dents de l'outil pour voir l'avance par dent
+pipeline-chip-load-no-rpm = réglez la vitesse de broche de l'outil pour voir l'avance par dent
+pipeline-chip-load-no-tool = aucun outil
 # The hover text next to an operation's chip load. Tool diameters $small_tool (a number)
 # and $large_tool (with its unit); chip loads $wood_low, $aluminium_low and
 # $aluminium_high (numbers) and $wood_high (with its unit).
-pipeline-chip-load-hint = Chip load: how thick a chip each cutting edge takes, feed / (spindle speed × flutes). Too thin and the tool rubs and heats up; too thick and it may break. It depends on the material, the tool and the machine; as a rough guide, wood and plastics with { $small_tool }–{ $large_tool } tools often take { $wood_low }–{ $wood_high }, aluminium { $aluminium_low }–{ $aluminium_high }. Check the tool maker's figures.
+pipeline-chip-load-hint = Avance par dent : l'épaisseur du copeau que prend chaque arête de coupe, avance / (vitesse de broche × dents). Trop fin, l'outil frotte et chauffe ; trop épais, il peut casser. Elle dépend de la matière, de l'outil et de la machine ; à titre indicatif, le bois et les plastiques avec des outils de { $small_tool }–{ $large_tool } prennent souvent { $wood_low }–{ $wood_high }, l'aluminium { $aluminium_low }–{ $aluminium_high }. Vérifiez les valeurs du fabricant de l'outil.
 
 ## The drawing's facts (after importing)
 
 # $units is "mm" or "inch", as the DXF gives them or the user chose them.
-pipeline-report-units = Units: { $units } (from { $from ->
-    [dxf] dxf
-   *[user] user
+pipeline-report-units = Unités : { $units } ({ $from ->
+    [dxf] du dxf
+   *[user] choix de l'utilisateur
 })
 # Numbers without their unit, except $height, which brings it.
-pipeline-report-extents = Extents: X { $x0 } .. { $x1 }, Y { $y0 } .. { $y1 } ({ $width } x { $height })
+pipeline-report-extents = Étendue : X { $x0 } .. { $x1 }, Y { $y0 } .. { $y1 } ({ $width } x { $height })
 # $items lists DXF entity types with their counts ("LINE 4, ARC 2").
-pipeline-report-imported = Imported: { $items }
-pipeline-report-flattened = Flattened: { $items }
-pipeline-report-ignored = Ignored: { $items }
-pipeline-report-no-issues = Issues: none
-pipeline-report-issues = Issues ({ $count }):
+pipeline-report-imported = Importé : { $items }
+pipeline-report-flattened = Aplati : { $items }
+pipeline-report-ignored = Ignoré : { $items }
+pipeline-report-no-issues = Problèmes : aucun
+pipeline-report-issues = Problèmes ({ $count }) :
 # One issue of the import (a dxf-… text), indented.
 pipeline-report-issue = {"  "}[{ $severity ->
-    [warning] warning
-   *[error] error
+    [warning] avertissement
+   *[error] erreur
 }] { $issue }
-pipeline-report-contours = Contours ({ $count }):
+pipeline-report-contours = Contours ({ $count }) :
 # A row of the contour table, in a fixed-width font: $id, $state and $layers are padded
 # with spaces to line up. The coordinates are numbers without their unit.
-pipeline-report-contour = {"  "}#{ $id } { $state } layer { $layers } X { $x0 } .. { $x1 }  Y { $y0 } .. { $y1 }
+pipeline-report-contour = {"  "}#{ $id } { $state } calque { $layers } X { $x0 } .. { $x1 }  Y { $y0 } .. { $y1 }
 # A contour's state in the table: keep it short.
 pipeline-report-contour-state = { $state ->
-    [open] open
-    [invalid] INVALID
-    [hole] hole
-   *[outer] outer
+    [open] ouvert
+    [invalid] INVALIDE
+    [hole] trou
+   *[outer] extérieur
 }
