@@ -6,7 +6,7 @@ it's built (see `CLAUDE.md`).
 ## In progress
 
 - Nothing unreleased in the programs: 0.22.2 is published. Since: the smaller debug builds
-  (pushed) and the new release file names (not pushed; see Done), which change no program.
+  (pushed) and the new release file names (pushed; see Done), which change no program.
   The next release is the first with the new names: check the draft's file list and notes.
 
 ## State to remember (2026-10-19)
