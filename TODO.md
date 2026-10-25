@@ -33,8 +33,8 @@ it's built (see `CLAUDE.md`).
     *Export*, the French VIEW caption *Vue*).
   - **Left:** native review of all five (the user reviews Swedish; the others are marked
     *review wanted*; open suggestions at the end of the glossary). Still English on
-    purpose: the issues a DXF had when it was read (stored in the project as words: a
-    schema change would be needed), migration reasons and a library file's rule
+    purpose: the issues a DXF had when it was read (stored in the project as words;
+    a schema change would be needed: the user chose 2026-10-25 to leave it unless users ask), migration reasons and a library file's rule
     violations, what other libraries write (file system, JSON, TOML, pictures), a new
     text's starting word "Text", startup errors before the window opens. A rare English
     slip kept word for word: "the centre line centre line" in
