@@ -44,3 +44,10 @@ shape-form-imported = Forme S{ $id } (importée, lecture seule)
 shape-form-imported-from = Calque { $layer }, DXF { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = entité
+shape-form-position = Position
+shape-form-position-hover = Le coin inférieur gauche du cadre qui l'entoure ; une valeur saisie l'y déplace
+shape-form-turn = Tourner
+shape-form-turn-ccw-hover = Un quart de tour dans le sens anti-horaire autour du milieu de son cadre
+shape-form-turn-cw-hover = Un quart de tour dans le sens horaire autour du milieu de son cadre
+shape-form-turn-by = de{" "}
+shape-form-turn-by-hover = Saisissez un angle et appuyez sur Entrée pour la tourner d'autant (sens anti-horaire ; négatif : sens horaire)

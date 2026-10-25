@@ -50,6 +50,32 @@ impl ChiploadApp {
         self.shape_draft = Some(draft);
     }
 
+    /// Position and Turn for several selected drawn shapes together, about the box round
+    /// them (docs/specs/drawn-shapes-box.md §3); one shape has them in its own form.
+    pub(super) fn selected_shapes_place_ui(&mut self, ui: &mut egui::Ui) {
+        let (ids, imported) = self.deletable_shapes();
+        if imported || ids.len() < 2 || !self.can_draw() {
+            return;
+        }
+        let Some(bounds) = self
+            .edit
+            .as_ref()
+            .and_then(|e| chipload_pipeline::shapes::drawn_box(&e.settings, &ids))
+        else {
+            return;
+        };
+        let edit = egui::Grid::new("selection-place")
+            .num_columns(2)
+            .show(ui, |ui| {
+                crate::shape_form::place_rows(ui, egui::Id::new("selection-place"), bounds)
+            })
+            .inner;
+        if let Some(edit) = edit {
+            let (from, to, scale, degrees) = edit.transform(bounds);
+            self.transform_shapes(&ids, from, to, scale, degrees);
+        }
+    }
+
     /// Right: the selected operation's fields, or the project settings.
     pub(super) fn properties_panel(&mut self, ui: &mut egui::Ui) {
         if self.focus.is_library() {

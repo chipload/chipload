@@ -44,3 +44,10 @@ shape-form-imported = Form S{ $id } (importerad, skrivskyddad)
 shape-form-imported-from = Lager { $layer }, DXF { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = objekt
+shape-form-position = Position
+shape-form-position-hover = Nedre vänstra hörnet av rutan runt den; ett inskrivet värde flyttar den dit
+shape-form-turn = Vrid
+shape-form-turn-ccw-hover = Vrid ett kvarts varv moturs kring mitten av rutan
+shape-form-turn-cw-hover = Vrid ett kvarts varv medurs kring mitten av rutan
+shape-form-turn-by = med{" "}
+shape-form-turn-by-hover = Skriv en vinkel och tryck Enter för att vrida den så mycket (moturs; negativt vrider medurs)

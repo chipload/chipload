@@ -44,3 +44,10 @@ shape-form-imported = Forma S{ $id } (importada, solo lectura)
 shape-form-imported-from = Capa { $layer }, DXF { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = entidad
+shape-form-position = Posición
+shape-form-position-hover = La esquina inferior izquierda del cuadro que la rodea; un valor escrito la mueve ahí
+shape-form-turn = Girar
+shape-form-turn-ccw-hover = Un cuarto de vuelta en sentido antihorario alrededor del centro de su cuadro
+shape-form-turn-cw-hover = Un cuarto de vuelta en sentido horario alrededor del centro de su cuadro
+shape-form-turn-by = {" "}
+shape-form-turn-by-hover = Escribe un ángulo y pulsa Intro para girarla eso (sentido antihorario; negativo: horario)

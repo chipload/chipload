@@ -109,6 +109,15 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     }
                 }
             }
+            // A polyline has no position or angle of its own: these move and turn its
+            // points (docs/specs/drawn-shapes-box.md §3).
+            if matches!(draft.geometry, Geometry::Polyline { .. })
+                && let Some(bounds) = geometry_box(&draft.geometry)
+                && let Some(edit) = place_rows(ui, egui::Id::new(("polyline-place", id)), bounds)
+                && let Some(moved) = edit.apply(&draft.geometry, bounds)
+            {
+                draft.geometry = moved;
+            }
         });
     if matches!(draft.geometry, Geometry::Polyline { .. }) {
         ui.label(egui::RichText::new(polyline_help(ui)).weak());
@@ -125,6 +134,112 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         action = ShapeAction::Delete;
     }
     action
+}
+
+/// A change asked for in the Position and Turn rows.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PlaceEdit {
+    /// Move so that the box's lower-left corner is here, mm.
+    CornerTo(f64, f64),
+    /// Turn about the middle of the box, degrees counter-clockwise.
+    TurnBy(f64),
+}
+
+impl PlaceEdit {
+    /// What it does to the shapes in box `bounds`: from, to, scale, degrees.
+    pub fn transform(self, bounds: ((f64, f64), (f64, f64))) -> ((f64, f64), (f64, f64), f64, f64) {
+        let ((x0, y0), (x1, y1)) = bounds;
+        match self {
+            PlaceEdit::CornerTo(x, y) => ((x0, y0), (x, y), 1.0, 0.0),
+            PlaceEdit::TurnBy(degrees) => {
+                let middle = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+                (middle, middle, 1.0, degrees)
+            }
+        }
+    }
+
+    /// `geometry`, in box `bounds`, changed by it.
+    fn apply(self, geometry: &Geometry, bounds: ((f64, f64), (f64, f64))) -> Option<Geometry> {
+        let (from, to, scale, degrees) = self.transform(bounds);
+        chipload_job::edit::transformed(geometry, [from.0, from.1], [to.0, to.1], scale, degrees)
+    }
+}
+
+/// The exact box round a shape, mm.
+pub fn geometry_box(geometry: &Geometry) -> Option<((f64, f64), (f64, f64))> {
+    let shape = Shape {
+        id: 0,
+        layer: String::new(),
+        geometry: geometry.clone(),
+    };
+    shape
+        .segments()
+        .iter()
+        .map(|s| s.to_primitive().bounds())
+        .reduce(|(lo, hi), (a, b)| {
+            (
+                (lo.0.min(a.0), lo.1.min(a.1)),
+                (hi.0.max(b.0), hi.1.max(b.1)),
+            )
+        })
+}
+
+/// Two grid rows: *Position* (the lower-left corner of box `bounds`) and *Turn* (⟲ 90,
+/// ⟳ 90 and a field that turns by its value when the edit is finished, then shows 0 again).
+pub fn place_rows(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    bounds: ((f64, f64), (f64, f64)),
+) -> Option<PlaceEdit> {
+    let mut edit = None;
+    let ((x0, y0), _) = bounds;
+    ui.label(t!(ui, "shape-form-position"))
+        .on_hover_text(t!(ui, "shape-form-position-hover"));
+    ui.horizontal(|ui| {
+        let (mut x, mut y) = (x0, y0);
+        let moved_x = ui.add(mm(&mut x).prefix("X ")).changed();
+        let moved_y = ui.add(mm(&mut y).prefix("Y ")).changed();
+        if moved_x || moved_y {
+            edit = Some(PlaceEdit::CornerTo(x, y));
+        }
+    });
+    ui.end_row();
+    ui.label(t!(ui, "shape-form-turn"));
+    ui.horizontal(|ui| {
+        if ui
+            .small_button("⟲ 90")
+            .on_hover_text(t!(ui, "shape-form-turn-ccw-hover"))
+            .clicked()
+        {
+            edit = Some(PlaceEdit::TurnBy(90.0));
+        }
+        if ui
+            .small_button("⟳ 90")
+            .on_hover_text(t!(ui, "shape-form-turn-cw-hover"))
+            .clicked()
+        {
+            edit = Some(PlaceEdit::TurnBy(-90.0));
+        }
+        let key = id.with("turn-by");
+        let mut degrees: f64 = ui.data(|d| d.get_temp(key)).unwrap_or(0.0);
+        let response = ui
+            .add(
+                crate::units::number(ui, &mut degrees)
+                    .speed(1.0)
+                    .max_decimals(3)
+                    .prefix(t!(ui, "shape-form-turn-by"))
+                    .suffix("°"),
+            )
+            .on_hover_text(t!(ui, "shape-form-turn-by-hover"));
+        let finished = response.lost_focus() || response.drag_stopped();
+        if finished && degrees != 0.0 {
+            edit = Some(PlaceEdit::TurnBy(degrees));
+            degrees = 0.0;
+        }
+        ui.data_mut(|d| d.insert_temp(key, degrees));
+    });
+    ui.end_row();
+    edit
 }
 
 /// How to edit a selected polyline on the canvas: shown under its form and in the status bar.

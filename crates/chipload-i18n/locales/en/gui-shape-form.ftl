@@ -44,3 +44,10 @@ shape-form-imported = Shape S{ $id } (imported, read-only)
 shape-form-imported-from = Layer { $layer }, DXF { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = entity
+shape-form-position = Position
+shape-form-position-hover = The lower-left corner of the box round it; typing a value moves it there
+shape-form-turn = Turn
+shape-form-turn-ccw-hover = Turn a quarter counter-clockwise about the middle of its box
+shape-form-turn-cw-hover = Turn a quarter clockwise about the middle of its box
+shape-form-turn-by = by{" "}
+shape-form-turn-by-hover = Type an angle and press Enter to turn it by that much (counter-clockwise; negative turns clockwise)

@@ -44,3 +44,10 @@ shape-form-imported = Form S{ $id } (importiert, schreibgeschützt)
 shape-form-imported-from = Layer { $layer }, DXF { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = Element
+shape-form-position = Position
+shape-form-position-hover = Die linke untere Ecke des Rahmens darum; ein eingegebener Wert verschiebt sie dorthin
+shape-form-turn = Drehen
+shape-form-turn-ccw-hover = Eine Vierteldrehung gegen den Uhrzeigersinn um die Mitte des Rahmens
+shape-form-turn-cw-hover = Eine Vierteldrehung im Uhrzeigersinn um die Mitte des Rahmens
+shape-form-turn-by = um{" "}
+shape-form-turn-by-hover = Winkel eingeben und Enter drücken, um sie um so viel zu drehen (gegen den Uhrzeigersinn; negativ im Uhrzeigersinn)

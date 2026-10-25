@@ -29,6 +29,10 @@ is CAD's job: draw it there and import the DXF.
   beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
   scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
   handles instead. The shapes keep their ids, so the operations that cut them follow.
+- **Position and Turn:** a selected polyline's form, and the *Selection* section when several
+  drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
+  type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
+  Enter. A polyline keeps no angle of its own; turning moves its points.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle

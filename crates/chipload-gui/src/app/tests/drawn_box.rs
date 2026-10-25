@@ -91,3 +91,36 @@ fn imported_shapes_get_no_box() {
     app.selection = CanvasSelection::Shapes(BTreeSet::from([first]));
     assert!(app.box_handle_points().is_empty());
 }
+
+/// Position and Turn in Properties (docs/specs/drawn-shapes-box.md §3).
+#[test]
+fn position_and_turn_move_and_turn_the_box() {
+    use crate::shape_form::{PlaceEdit, geometry_box};
+    let mut app = drawn_part();
+    // The triangle's box is (110, 65) to (140, 95).
+    let triangle = app.shape(3).unwrap().geometry.clone();
+    let bounds = geometry_box(&triangle).unwrap();
+    assert_eq!(bounds, ((110.0, 65.0), (140.0, 95.0)));
+    let (from, to, scale, degrees) = PlaceEdit::CornerTo(0.0, 0.0).transform(bounds);
+    assert!(app.transform_shapes(&[3], from, to, scale, degrees));
+    assert_eq!(
+        polyline_points(&app, 3),
+        vec![[0.0, 0.0], [30.0, 0.0], [15.0, 30.0]]
+    );
+    // A quarter turn about the middle of its box (15, 15).
+    let bounds = geometry_box(&app.shape(3).unwrap().geometry).unwrap();
+    let (from, to, scale, degrees) = PlaceEdit::TurnBy(90.0).transform(bounds);
+    assert!(app.transform_shapes(&[3], from, to, scale, degrees));
+    assert_eq!(
+        polyline_points(&app, 3),
+        vec![[30.0, 0.0], [30.0, 30.0], [0.0, 15.0]]
+    );
+    // Several shapes turn together about the box round them all.
+    let (from, to, scale, degrees) =
+        PlaceEdit::TurnBy(180.0).transform(((0.0, 0.0), (100.0, 100.0)));
+    assert!(app.transform_shapes(&[2, 3], from, to, scale, degrees));
+    let Geometry::Circle { center, .. } = app.shape(2).unwrap().geometry else {
+        panic!("circle");
+    };
+    assert_eq!(center, [25.0, 20.0]);
+}

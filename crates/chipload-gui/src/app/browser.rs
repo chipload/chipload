@@ -1172,6 +1172,7 @@ impl ChiploadApp {
                     ui.label(line);
                 }
                 self.selected_shape_ui(ui);
+                self.selected_shapes_place_ui(ui);
                 if ui
                     .add_enabled(
                         self.selector_json().is_some(),
