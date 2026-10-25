@@ -100,7 +100,7 @@ browser-op-drag-hover = Glisser pour réordonner ; clic droit pour plus
 
 # Properties: what is selected on the canvas.
 browser-selection = Sélection
-browser-copy-as-selector = Copier comme sélecteur
+browser-copy-as-selector = Copier la sélection
 browser-copy-as-selector-hover = La sélection en JSON, pour une opération dans un fichier projet
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.

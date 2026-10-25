@@ -65,7 +65,7 @@ header-follow = Suivi
 # $operation is what the operation does (a hover text of its own).
 header-needs-selection-hover = { $operation }. Sélectionnez d'abord des formes.
 header-select-shapes-first = Sélectionnez d'abord des formes
-header-new-profile = Nouveau contournage
+header-new-profile = Nouveau contour
 header-new-pocket = Nouvelle poche
 header-new-vcarve = Nouvelle gravure en V
 header-new-follow-path = Nouveau suivi de tracé

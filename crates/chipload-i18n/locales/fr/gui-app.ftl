@@ -20,7 +20,7 @@ app-new-project-next = Dessinez des formes depuis le menu Dessiner, ou ajoutez u
 app-units-missing = { $file } n'indique pas ses unités ; choisissez mm ou pouce.
 app-cannot-import = Impossible d'importer { $file } :
 app-new-project-from = Nouveau projet à partir de { $file } ({ $shapes } formes).
-app-import-next = Sélectionnez des contours, puis Nouveau contournage ou Nouvelle poche. Vérifiez le brut, la machine et l'outil dans Paramètres d'usinage.
+app-import-next = Sélectionnez des contours, puis Nouveau contour ou Nouvelle poche. Vérifiez le brut, la machine et l'outil dans Paramètres d'usinage.
 
 # Followed by the list of problems.
 app-project-incomplete = Le projet n'est pas complet :

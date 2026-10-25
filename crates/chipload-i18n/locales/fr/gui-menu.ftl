@@ -40,7 +40,7 @@ menu-mirror-hover = Retourner les formes dessinées sélectionnées autour du mi
 menu-delete-shapes = Supprimer les formes
 menu-delete-shapes-hover = Supprime les formes dessinées sélectionnées ; les formes importées ne changent qu'avec le DXF
 # A selector: the selection written as JSON, for scripts.
-menu-copy-selector = Copier comme sélecteur
+menu-copy-selector = Copier la sélection
 
 # Job menu.
 menu-cancel-generation = Annuler le calcul
