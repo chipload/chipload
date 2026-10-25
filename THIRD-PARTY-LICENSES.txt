@@ -7801,18 +7801,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 GNU General Public License v3.0 or later (GPL-3.0-or-later)
 
 Used by:
-  chipload-check 0.24.0
-  chipload-cli 0.24.0
-  chipload-core 0.24.0
-  chipload-dxf 0.24.0
-  chipload-gui 0.24.0
-  chipload-i18n 0.24.0
-  chipload-image 0.24.0
-  chipload-job 0.24.0
-  chipload-pipeline 0.24.0
-  chipload-post 0.24.0
-  chipload-text 0.24.0
-  chipload-toolpath 0.24.0
+  chipload-check 0.25.0
+  chipload-cli 0.25.0
+  chipload-core 0.25.0
+  chipload-dxf 0.25.0
+  chipload-gui 0.25.0
+  chipload-i18n 0.25.0
+  chipload-image 0.25.0
+  chipload-job 0.25.0
+  chipload-pipeline 0.25.0
+  chipload-post 0.25.0
+  chipload-text 0.25.0
+  chipload-toolpath 0.25.0
 
 GNU GENERAL PUBLIC LICENSE
 Version 3, 29 June 2007

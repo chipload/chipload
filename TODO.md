@@ -46,7 +46,9 @@ it's built (see `CLAUDE.md`).
   built by Actions: Linux and Windows x86_64 and ARM64, macOS universal, the guide zip,
   `SHA256SUMS.txt`; the guide is online from `v0.24.0`. The first v0.24.0 tag failed on the
   message snapshot (platform digits); the tag was moved to the fix, 5b647c2, before any
-  release. 0.22.0 was tagged but withdrawn unpublished. No drafts are left.
+  release. 0.22.0 was tagged but withdrawn unpublished. **0.25.0** (explode a DXF, join
+  ends) tagged 2026-10-25: Actions builds its draft; publishing it and the guide is the
+  user's.
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
   `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
