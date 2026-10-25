@@ -2,3 +2,4 @@
 
 # In the status bar when the box can't be dragged to that size; $error says why.
 box-drag-not-that-size = Nicht in dieser Größe: { $error }
+box-drag-cannot-move-shapes = Die Formen konnten nicht verschoben werden:

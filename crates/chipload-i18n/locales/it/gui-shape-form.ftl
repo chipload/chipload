@@ -22,7 +22,7 @@ shape-form-delete-hover = Le lavorazioni che la usano vengono segnalate finché 
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = Nell'area di disegno: trascina un quadrato per spostare un punto · trascina una maniglia tonda centrale per inserirvi un nuovo punto · Shift+trascina una maniglia centrale per curvare il segmento in un arco (bulge) · Alt: niente aggancio
+shape-form-polyline-help = Nell'area di disegno: trascina un quadrato per spostare un punto · trascina una maniglia tonda centrale per inserirvi un nuovo punto · Shift+trascina una maniglia centrale per curvare il segmento in un arco (bulge) · il riquadro tratteggiato la sposta, la ruota e la scala · Alt: niente aggancio
 
 shape-form-corner-radius = Raggio angoli
 shape-form-corner-radius-hover = Arrotonda tutti e quattro gli angoli; al massimo metà del lato più corto

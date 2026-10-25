@@ -22,7 +22,7 @@ shape-form-delete-hover = Operationer som använder den flaggas tills deras geom
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = På ritytan: dra en fyrkant för att flytta en punkt · dra ett runt mitthandtag för att infoga en ny punkt där · Shift+dra ett mitthandtag för att böja segmentet till en båge (bukt) · Alt: ingen fästning
+shape-form-polyline-help = På ritytan: dra en fyrkant för att flytta en punkt · dra ett runt mitthandtag för att infoga en ny punkt där · Shift+dra ett mitthandtag för att böja segmentet till en båge (bukt) · den streckade rutan flyttar, vrider och skalar den · Alt: ingen fästning
 
 shape-form-corner-radius = Hörnradie
 shape-form-corner-radius-hover = Rundar alla fyra hörnen; högst halva den kortare sidan

@@ -24,6 +24,11 @@ is CAD's job: draw it there and import the DXF.
   short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
   handle won't drag the rectangle smaller than its corners allow; lower the radius first.
   The reset button makes the corners sharp again.
+- **Move, turn and size:** select a polyline, or several drawn shapes (Ctrl+click), and a
+  dashed box shows round them: drag the square in the middle to move them, the round handle
+  beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
+  scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
+  handles instead. The shapes keep their ids, so the operations that cut them follow.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
@@ -45,6 +50,9 @@ chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
+chipload shape move part.chipload 8 9 --dx 10 --dy -5
+chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
+chipload shape scale part.chipload 8 --factor 1.5
 chipload shape remove part.chipload 8
 chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 ```

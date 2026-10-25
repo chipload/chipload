@@ -34,7 +34,9 @@ use chipload_pipeline::placement::{
 use chipload_pipeline::report::{
     format_contours, format_import_report, format_shapes, severity_name,
 };
-use chipload_pipeline::shapes::{add_shape, copy_shapes, delete_shape, mirror_shapes, set_shape};
+use chipload_pipeline::shapes::{
+    add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, set_shape, transform_shapes,
+};
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, add_rest_pass, empty_project, foreign_text, load_drawing,
@@ -646,6 +648,59 @@ enum ShapeAction {
         /// x: flip the X coordinates (left becomes right); y: flip Y (up becomes down).
         #[arg(long)]
         axis: AxisArg,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Move drawn shapes by --dx and --dy; they keep their ids, so the operations that cut
+    /// them follow (docs/specs/drawn-shapes-box.md).
+    Move {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// How far to move them right, mm.
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
+        dx: f64,
+        /// How far to move them up, mm.
+        #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true)]
+        dy: f64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Turn drawn shapes counter-clockwise about the middle of the box round them, or a
+    /// point.
+    Turn {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// The angle, degrees, counter-clockwise; negative turns clockwise.
+        #[arg(long, allow_hyphen_values = true)]
+        angle_deg: f64,
+        /// Turn about this point "X,Y" instead.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        about: Option<[f64; 2]>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Scale drawn shapes evenly about the middle of the box round them, or a point.
+    Scale {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// The factor, greater than 0: 2 doubles them.
+        #[arg(long)]
+        factor: f64,
+        /// Scale about this point "X,Y" instead.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        about: Option<[f64; 2]>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1437,6 +1492,26 @@ fn update(
     }
 }
 
+/// "S2, S3".
+fn shape_names(ids: &[u64]) -> String {
+    ids.iter()
+        .map(|id| format!("S{id}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// `about`, or the middle of the box round shapes `ids`.
+fn about_point(
+    job: &Job,
+    ids: &[u64],
+    about: Option<[f64; 2]>,
+) -> Result<(f64, f64), PipelineError> {
+    match about {
+        Some([x, y]) => Ok((x, y)),
+        None => drawn_middle(job, ids),
+    }
+}
+
 fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     let (project, output) = match &action {
         ShapeAction::Add {
@@ -1455,6 +1530,15 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             project, output, ..
         }
         | ShapeAction::Join {
+            project, output, ..
+        }
+        | ShapeAction::Move {
+            project, output, ..
+        }
+        | ShapeAction::Turn {
+            project, output, ..
+        }
+        | ShapeAction::Scale {
             project, output, ..
         } => (project.clone(), output.clone()),
     };
@@ -1514,6 +1598,31 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 (job, vec![format!("Mirrored shapes {}.", names.join(", "))])
             })
         }
+        ShapeAction::Move { ids, dx, dy, .. } => {
+            transform_shapes(&job, &ids, (0.0, 0.0), (dx, dy), 1.0, 0.0).map(|job| {
+                let text = format!("Moved shapes {}.", shape_names(&ids));
+                (job, vec![text])
+            })
+        }
+        ShapeAction::Turn {
+            ids,
+            angle_deg,
+            about,
+            ..
+        } => about_point(&job, &ids, about).and_then(|c| {
+            transform_shapes(&job, &ids, c, c, 1.0, angle_deg).map(|job| {
+                let text = format!("Turned shapes {} by {angle_deg}°.", shape_names(&ids));
+                (job, vec![text])
+            })
+        }),
+        ShapeAction::Scale {
+            ids, factor, about, ..
+        } => about_point(&job, &ids, about).and_then(|c| {
+            transform_shapes(&job, &ids, c, c, factor, 0.0).map(|job| {
+                let text = format!("Scaled shapes {} ×{factor}.", shape_names(&ids));
+                (job, vec![text])
+            })
+        }),
         ShapeAction::Join { ids, gap, .. } => join_shapes(&job, &ids, gap).map(|(job, report)| {
             joined = Some((report.shapes, report.removed));
             (job, report.lines)

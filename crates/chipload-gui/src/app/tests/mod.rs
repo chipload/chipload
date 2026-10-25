@@ -9,6 +9,7 @@ mod chip_load;
 mod cycle_time;
 mod disk_changes;
 mod drawing;
+mod drawn_box;
 mod generating;
 mod handles;
 mod header;

@@ -369,6 +369,54 @@ chipload shape mirror <PROJECT> <IDS>... [OPTIONS]
 | `--axis <AXIS>` | x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: `x`, `y`. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape move`
+
+Move drawn shapes by --dx and --dy; they keep their ids, so the operations that cut them follow (docs/specs/drawn-shapes-box.md)
+
+```text
+chipload shape move <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--dx <DX>` | How far to move them right, mm. Required. |
+| `--dy <DY>` | How far to move them up, mm. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape turn`
+
+Turn drawn shapes counter-clockwise about the middle of the box round them, or a point
+
+```text
+chipload shape turn <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--angle-deg <ANGLE_DEG>` | The angle, degrees, counter-clockwise; negative turns clockwise. Required. |
+| `--about <ABOUT>` | Turn about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape scale`
+
+Scale drawn shapes evenly about the middle of the box round them, or a point
+
+```text
+chipload shape scale <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--factor <FACTOR>` | The factor, greater than 0: 2 doubles them. Required. |
+| `--about <ABOUT>` | Scale about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape join`
 
 Join open drawn polylines whose ends are closer than --gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)

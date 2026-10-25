@@ -3,7 +3,7 @@
 //! The CLI and the GUI both go through these, so they follow the same rules.
 
 use chipload_i18n::Message;
-use chipload_job::edit::{Mirror, mirrored, translated};
+use chipload_job::edit::{Mirror, mirrored, transformed, translated};
 use chipload_job::{Geometry, Job, Operation, Shape};
 
 use crate::{PipelineError, ids_text, load_drawing, op_label};
@@ -249,6 +249,86 @@ pub fn mirror_shapes(job: &Job, ids: &[u64], mirror: Mirror) -> Result<Job, Pipe
         .filter(|s| ids.contains(&s.id))
     {
         if let Some(geometry) = mirrored(&shape.geometry, mirror, about) {
+            shape.geometry = geometry;
+        }
+    }
+    checked(out)
+}
+
+/// The exact box round shapes `ids` (arcs included), from their own segments, mm:
+/// ((x0, y0), (x1, y1)). Quick enough for every frame: no chaining.
+pub fn drawn_box(job: &Job, ids: &[u64]) -> Option<((f64, f64), (f64, f64))> {
+    job.drawing
+        .shapes
+        .iter()
+        .filter(|s| ids.contains(&s.id))
+        .flat_map(Shape::segments)
+        .map(|s| s.to_primitive().bounds())
+        .reduce(|(lo, hi), (a, b)| {
+            (
+                (lo.0.min(a.0), lo.1.min(a.1)),
+                (hi.0.max(b.0), hi.1.max(b.1)),
+            )
+        })
+}
+
+/// The middle of the box round shapes `ids`, mm.
+pub fn drawn_middle(job: &Job, ids: &[u64]) -> Result<(f64, f64), PipelineError> {
+    let ((x0, y0), (x1, y1)) =
+        drawn_box(job, ids).ok_or_else(|| refused(Message::new("pipeline-shapes-no-extent")))?;
+    Ok(((x0 + x1) / 2.0, (y0 + y1) / 2.0))
+}
+
+/// Drawn shapes `ids` moved, turned and scaled: each point p goes to
+/// `to + scale · turn(p − from)`, turned `degrees` counter-clockwise
+/// (docs/specs/drawn-shapes-box.md §2). They keep their ids, so the operations that cut
+/// them follow.
+pub fn transform_shapes(
+    job: &Job,
+    ids: &[u64],
+    from: (f64, f64),
+    to: (f64, f64),
+    scale: f64,
+    degrees: f64,
+) -> Result<Job, PipelineError> {
+    if !(scale.is_finite() && scale > 0.0) {
+        return Err(refused(Message::new("pipeline-place-scale").arg(
+            "got",
+            chipload_i18n::Value::Number(scale, chipload_i18n::Digits::Shortest),
+        )));
+    }
+    if !(degrees.is_finite() && from.0.is_finite() && from.1.is_finite())
+        || !(to.0.is_finite() && to.1.is_finite())
+    {
+        return Err(refused(Message::new("pipeline-transform-not-numbers")));
+    }
+    for id in ids {
+        if job
+            .drawing
+            .shapes
+            .iter()
+            .any(|s| s.id == *id && !s.is_drawn())
+        {
+            return Err(refused(
+                Message::new("pipeline-shape-imported-transform").arg("id", *id),
+            ));
+        }
+    }
+    drawn_shapes(job, ids)?;
+    let mut out = job.clone();
+    for shape in out
+        .drawing
+        .shapes
+        .iter_mut()
+        .filter(|s| ids.contains(&s.id))
+    {
+        if let Some(geometry) = transformed(
+            &shape.geometry,
+            [from.0, from.1],
+            [to.0, to.1],
+            scale,
+            degrees,
+        ) {
             shape.geometry = geometry;
         }
     }

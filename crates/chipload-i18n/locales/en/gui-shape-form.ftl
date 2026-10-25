@@ -22,7 +22,7 @@ shape-form-delete-hover = Operations that use it are flagged until their geometr
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = On the canvas: drag a square to move a point · drag a round middle handle to insert a new point there · Shift+drag a middle handle to bend the segment into an arc (bulge) · Alt: no snapping
+shape-form-polyline-help = On the canvas: drag a square to move a point · drag a round middle handle to insert a new point there · Shift+drag a middle handle to bend the segment into an arc (bulge) · the dashed box round it moves, turns and scales it · Alt: no snapping
 
 shape-form-corner-radius = Corner radius
 shape-form-corner-radius-hover = Rounds all four corners; at most half the shorter side

@@ -3,9 +3,11 @@
 //! does, and inserting or removing polyline points (docs/specs/drawing-follow-ups.md
 //! sections 1 and 3). Plain values in, plain values out, so every rule is tested here.
 
+use std::f64::consts::{PI, TAU};
+
 use chipload_core::primitives::Arc;
 
-use crate::models::{Geometry, polyline_segment_count, shape_problems};
+use crate::models::{Geometry, polyline_segment_count, rotated, shape_problems};
 
 /// A draggable point of a drawn shape.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -306,6 +308,67 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
     }
 }
 
+/// A drawn shape moved, turned and scaled: each point p goes to
+/// `to + scale · turn(p − from)`, `degrees` counter-clockwise (docs/specs/drawn-shapes-box.md
+/// §2). A circle's radius and a rectangle's sides and corner radius scale; a rectangle's
+/// angle turns; a polyline's bulges stay, since an even scale and a turn keep every arc's
+/// sweep. Turns by multiples of 90° are exact. None for an imported path or a scale that
+/// isn't a positive number.
+pub fn transformed(
+    geometry: &Geometry,
+    from: [f64; 2],
+    to: [f64; 2],
+    scale: f64,
+    degrees: f64,
+) -> Option<Geometry> {
+    if !(scale.is_finite() && scale > 0.0 && degrees.is_finite()) {
+        return None;
+    }
+    let map = |p: &[f64; 2]| {
+        let turned = rotated([p[0] - from[0], p[1] - from[1]], degrees);
+        [to[0] + scale * turned[0], to[1] + scale * turned[1]]
+    };
+    match geometry {
+        Geometry::Path { .. } => None,
+        Geometry::Circle { center, radius } => Some(Geometry::Circle {
+            center: map(center),
+            radius: radius * scale,
+        }),
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius,
+        } => Some(Geometry::Rectangle {
+            center: map(center),
+            length: length * scale,
+            width: width * scale,
+            angle: turned_angle(*angle, degrees),
+            corner_radius: corner_radius * scale,
+        }),
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => Some(Geometry::Polyline {
+            closed: *closed,
+            points: points.iter().map(map).collect(),
+            bulges: bulges.clone(),
+        }),
+    }
+}
+
+/// A rectangle's angle (radians) turned by `degrees`, in (−π, π]: a rectangle turned half
+/// a turn is the same rectangle, but keeping the angle small keeps the file readable.
+fn turned_angle(angle: f64, degrees: f64) -> f64 {
+    if degrees == 0.0 {
+        return angle;
+    }
+    let turned = (angle + degrees.to_radians()).rem_euclid(TAU);
+    if turned > PI { turned - TAU } else { turned }
+}
+
 /// Which way a mirror flips.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mirror {
@@ -594,5 +657,91 @@ mod tests {
         assert!(remove_point(&mut open, 0));
         assert!(matches!(&open, Geometry::Polyline { bulges, .. } if *bulges == [0.2]));
         assert!(!remove_point(&mut open, 5));
+    }
+
+    #[test]
+    fn transformed_moves_turns_and_scales_every_kind() {
+        let circle = Geometry::Circle {
+            center: [10.0, 0.0],
+            radius: 2.0,
+        };
+        assert_eq!(
+            transformed(&circle, [0.0, 0.0], [5.0, 5.0], 2.0, 90.0),
+            Some(Geometry::Circle {
+                center: [5.0, 25.0],
+                radius: 4.0
+            })
+        );
+        let rectangle = Geometry::Rectangle {
+            center: [1.0, 1.0],
+            length: 4.0,
+            width: 2.0,
+            angle: 0.0,
+            corner_radius: 0.5,
+        };
+        let Some(Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius,
+        }) = transformed(&rectangle, [1.0, 1.0], [1.0, 1.0], 1.5, 30.0)
+        else {
+            panic!();
+        };
+        assert_eq!(
+            (center, length, width, corner_radius),
+            ([1.0, 1.0], 6.0, 3.0, 0.75)
+        );
+        assert!((angle - 30f64.to_radians()).abs() < 1e-12);
+        let polyline = Geometry::Polyline {
+            closed: false,
+            points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]],
+            bulges: vec![0.0, 0.4],
+        };
+        // A quarter turn about (10, 0) is exact; bulges stay.
+        assert_eq!(
+            transformed(&polyline, [10.0, 0.0], [10.0, 0.0], 1.0, 90.0),
+            Some(Geometry::Polyline {
+                closed: false,
+                points: vec![[10.0, -10.0], [10.0, 0.0], [5.0, 0.0]],
+                bulges: vec![0.0, 0.4],
+            })
+        );
+        // A whole turn gives the shape back, within rounding.
+        let Some(Geometry::Polyline { points, .. }) =
+            transformed(&polyline, [3.0, 4.0], [3.0, 4.0], 1.0, 360.0)
+        else {
+            panic!();
+        };
+        assert_eq!(points, vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]]);
+        let Some(Geometry::Polyline { points, .. }) =
+            transformed(&polyline, [3.0, 4.0], [3.0, 4.0], 1.0, 33.0)
+                .and_then(|g| transformed(&g, [3.0, 4.0], [3.0, 4.0], 1.0, -33.0))
+        else {
+            panic!();
+        };
+        for (p, q) in points.iter().zip([[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]]) {
+            assert!((p[0] - q[0]).hypot(p[1] - q[1]) < 1e-12);
+        }
+        assert_eq!(transformed(&polyline, [0.0; 2], [0.0; 2], 0.0, 0.0), None);
+        assert_eq!(transformed(&polyline, [0.0; 2], [0.0; 2], -1.0, 0.0), None);
+    }
+
+    #[test]
+    fn a_rectangle_turned_keeps_a_small_angle() {
+        let rectangle = Geometry::Rectangle {
+            center: [0.0, 0.0],
+            length: 4.0,
+            width: 2.0,
+            angle: 3.0,
+            corner_radius: 0.0,
+        };
+        let Some(Geometry::Rectangle { angle, .. }) =
+            transformed(&rectangle, [0.0; 2], [0.0; 2], 1.0, 90.0)
+        else {
+            panic!();
+        };
+        assert!((angle - (3.0 + std::f64::consts::FRAC_PI_2 - TAU)).abs() < 1e-12);
     }
 }

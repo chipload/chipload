@@ -315,6 +315,8 @@ pipeline-shape-twice = Form { $id } ist zweimal angegeben
 pipeline-no-shape = es gibt keine Form { $id }
 pipeline-shape-imported-copy = Form { $id } wurde aus der DXF importiert; nur gezeichnete Formen können kopiert oder gespiegelt werden
 pipeline-shapes-no-extent = die Formen haben keine Ausdehnung
+pipeline-shape-imported-transform = Form { $id } ist keine gezeichnete Form: nur gezeichnete Formen lassen sich verschieben, drehen oder skalieren (lösen Sie zuerst ihre DXF auf)
+pipeline-transform-not-numbers = Verschiebung, Drehung und Mittelpunkt müssen Zahlen sein
 pipeline-shapes-copy-imported = nur gezeichnete Formen können kopiert werden, keine importierten
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = Form { $id } wurde aus der DXF importiert und kann hier nicht geändert werden; ändern Sie die Zeichnung und verwenden Sie Zeichnung aus DXF aktualisieren

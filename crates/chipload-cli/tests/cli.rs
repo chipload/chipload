@@ -1453,3 +1453,79 @@ fn explode_a_dxf_and_join_its_lines() {
     let after = chipload(&["run", p, "-o", path(&dir.join("after.nc")), "--no-sheet"]);
     assert!(after.status.success(), "{}", text(&after.stderr));
 }
+
+/// `shape move`, `shape turn` and `shape scale` (docs/specs/drawn-shapes-box.md §2).
+#[test]
+fn move_turn_and_scale_drawn_shapes() {
+    let dir = temp_dir("transform");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let ok = |args: &[&str]| {
+        let out = chipload(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    // S3 is the triangle (110, 65) (140, 65) (125, 95); S2 the circle at (75, 80), r 12.
+    ok(&["shape", "move", p, "2", "3", "--dx", "1in", "--dy", "-5"]);
+    let listed = ok(&["inspect", p]);
+    assert!(
+        listed.contains("(135.400, 60.000) (165.400, 60.000) (150.400, 90.000)"),
+        "{listed}"
+    );
+    assert!(
+        listed.contains("centre (100.400, 75.000) radius 12.000"),
+        "{listed}"
+    );
+    ok(&[
+        "shape",
+        "turn",
+        p,
+        "3",
+        "--angle-deg",
+        "90",
+        "--about",
+        "135.4,60",
+    ]);
+    let listed = ok(&["inspect", p]);
+    assert!(
+        listed.contains("(135.400, 60.000) (135.400, 90.000) (105.400, 75.000)"),
+        "{listed}"
+    );
+    ok(&["shape", "scale", p, "2", "--factor", "2"]);
+    let listed = ok(&["inspect", p]);
+    assert!(
+        listed.contains("centre (100.400, 75.000) radius 24.000"),
+        "{listed}"
+    );
+    let refused = chipload(&["shape", "scale", p, "2", "--factor", "0"]);
+    assert_eq!(refused.status.code(), Some(1));
+    assert!(
+        text(&refused.stderr).contains("greater than 0"),
+        "{}",
+        text(&refused.stderr)
+    );
+    // The operations still run on the moved shapes.
+    let run = chipload(&["run", p, "-o", path(&dir.join("moved.nc")), "--no-sheet"]);
+    assert!(run.status.success(), "{}", text(&run.stderr));
+
+    // Imported shapes are refused.
+    let imported = dir.join("imported.chipload");
+    std::fs::copy(corpus("jobs/v11/two_tools.chipload"), &imported).unwrap();
+    let refused = chipload(&[
+        "shape",
+        "move",
+        path(&imported),
+        "1",
+        "--dx",
+        "1",
+        "--dy",
+        "0",
+    ]);
+    assert_eq!(refused.status.code(), Some(1));
+    assert!(
+        text(&refused.stderr).contains("explode its DXF first"),
+        "{}",
+        text(&refused.stderr)
+    );
+}

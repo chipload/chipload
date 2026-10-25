@@ -311,6 +311,8 @@ pipeline-shape-twice = shape { $id } is given twice
 pipeline-no-shape = there is no shape { $id }
 pipeline-shape-imported-copy = shape { $id } was imported from the DXF; only drawn shapes can be copied or mirrored
 pipeline-shapes-no-extent = the shapes have no extent
+pipeline-shape-imported-transform = shape { $id } isn't a drawn shape: only drawn shapes can be moved, turned or scaled (explode its DXF first)
+pipeline-transform-not-numbers = the move, turn and centre must be numbers
 pipeline-shapes-copy-imported = only drawn shapes can be copied, not imported ones
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = shape { $id } was imported from the DXF and can't be changed here; change the drawing and use Update drawing from DXF

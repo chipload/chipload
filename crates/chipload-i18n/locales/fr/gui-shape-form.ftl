@@ -22,7 +22,7 @@ shape-form-delete-hover = Les opérations qui l'utilisent sont signalées jusqu'
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = Sur le canevas : glisser un carré déplace un point · glisser une poignée ronde au milieu y insère un point · Shift+glisser une poignée du milieu courbe le segment en arc (bombé) · Alt : sans accrochage
+shape-form-polyline-help = Sur le canevas : glisser un carré déplace un point · glisser une poignée ronde au milieu y insère un point · Shift+glisser une poignée du milieu courbe le segment en arc (bombé) · le cadre en pointillés la déplace, la tourne et la met à l'échelle · Alt : sans accrochage
 
 shape-form-corner-radius = Rayon des coins
 shape-form-corner-radius-hover = Arrondit les quatre coins ; au plus la moitié du petit côté

@@ -315,6 +315,8 @@ pipeline-shape-twice = formen { $id } är angiven två gånger
 pipeline-no-shape = det finns ingen form { $id }
 pipeline-shape-imported-copy = formen { $id } importerades från DXF:en; bara ritade former kan kopieras eller speglas
 pipeline-shapes-no-extent = formerna har ingen utsträckning
+pipeline-shape-imported-transform = form { $id } är inte en ritad form: bara ritade former kan flyttas, vridas eller skalas (bryt upp dess DXF först)
+pipeline-transform-not-numbers = flytten, vridningen och mittpunkten måste vara tal
 pipeline-shapes-copy-imported = bara ritade former kan kopieras, inte importerade
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = formen { $id } importerades från DXF:en och kan inte ändras här; ändra ritningen och använd Uppdatera ritning från DXF
