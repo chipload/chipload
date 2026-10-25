@@ -38,7 +38,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | join (ends) | verbinden | joindre | unir | unisci / unire | foga ihop |
 | gap (between ends) | Abstand | écart | separación | distanza | glapp |
 | contour | Kontur | contour | contorno | contorno | kontur |
-| profile (operation) | Konturfräsen | contournage | contorneado | contornatura | konturfräsning |
+| profile (operation) | Konturfräsen | Contour | contorneado | contornatura | konturfräsning |
 | pocket | Tasche | poche | cajera | tasca | ficka |
 | island (in a pocket) | Insel | îlot | isla | isola | ö |
 | V-carve | V-Gravur | gravure en V | tallado en V | incisione a V | V-gravyr |

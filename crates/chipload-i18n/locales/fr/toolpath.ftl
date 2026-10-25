@@ -81,7 +81,7 @@ toolpath-and = { $list } et { $last }
 toolpath-number = { $number }
 # An operation's number and its kind in a list: "3 (pocket)".
 toolpath-operation-kind = { $number } ({ $kind ->
-    [profile] contournage
+    [profile] contour
     [pocket] poche
     [vcarve] gravure en V
     [path] suivi de tracé
@@ -118,7 +118,7 @@ toolpath-narrow-loops = l'outil ne passe pas par une partie étroite ; usiné en
 # $point is a start point the user set ("(10.000, 5.000) mm").
 toolpath-start-far-contour = le point de départ { $point } est à { $distance } du contour #{ $contour } ; le point le plus proche est utilisé
 toolpath-start-twice-contour = le point de départ { $point } est aussi sur le contour #{ $contour }, qui en a déjà un ; il est ignoré
-toolpath-tabs-inside = des attaches sur un contournage intérieur retiendront la chute découpée
+toolpath-tabs-inside = des attaches sur un contour intérieur retiendront la chute découpée
 # $contours is a list of contour numbers ("#3, #4").
 toolpath-tabs-on-curves = certaines attaches des contours { $contours } sont sur un coin ou une courbe (aucune partie droite à proximité)
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
@@ -241,7 +241,7 @@ toolpath-error-stepover = le pas latéral doit être positif, reçu { $got }
 
 ## Errors: profiles, ramps and tabs
 
-toolpath-error-ring-no-length = un tour de contournage n'a pas de longueur
+toolpath-error-ring-no-length = un tour de contour n'a pas de longueur
 toolpath-error-lap-no-course = un tour de paroi n'a pas de trajet
 # $angle is in degrees, without its unit; $length is how far the ring goes around.
 toolpath-error-ring-ramp = Le tour est trop court pour descendre de { $drop } en rampe à { $angle }° ({ $length } de tour) ; utilisez un angle de rampe plus raide, ou une plongée verticale avec un outil qui coupe au centre

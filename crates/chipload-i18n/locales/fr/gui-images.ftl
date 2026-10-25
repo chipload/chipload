@@ -44,7 +44,7 @@ images-trace-hover = Contours autour des parties noires, pour une gravure en V ;
 images-trace-outlines = Contours (gravure en V)
 images-trace-centre-lines = Lignes médianes (suivi de tracé)
 images-arcs = Arcs
-images-arcs-hover = Ajuster des arcs en plus des lignes : programmes plus courts et mouvements plus fluides pour les contournages, poches et suivis de tracé.
+images-arcs-hover = Ajuster des arcs en plus des lignes : programmes plus courts et mouvements plus fluides pour les contours, poches et suivis de tracé.
 images-arcs-check = ajuster des arcs
 
 # What the preview traced.

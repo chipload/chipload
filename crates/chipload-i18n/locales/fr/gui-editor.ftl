@@ -5,7 +5,7 @@
 # along a contour, a pocket clears the area inside it, a V-carve cuts with a V-shaped bit,
 # a follow path runs the tool along the line itself, holes are drilled or bored, a
 # surface faces the whole stock flat.
-editor-name-profile = Contournage { $number }
+editor-name-profile = Contour { $number }
 editor-name-pocket = Poche { $number }
 editor-name-vcarve = Gravure en V { $number }
 editor-name-path = Suivi de tracé { $number }
@@ -31,5 +31,5 @@ editor-summary-no-geometry = aucune géométrie
 
 # What an operation still lacks, under its field and in the list of problems. "Use
 # selection" is the button that gives the operation the selected shapes.
-editor-choose-side = choisissez le côté du contournage (intérieur, extérieur ou sur la ligne)
+editor-choose-side = choisissez le côté du contour (intérieur, extérieur ou sur la ligne)
 editor-no-geometry = aucune géométrie : sélectionnez des contours, puis Prendre la sélection

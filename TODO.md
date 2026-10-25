@@ -99,6 +99,8 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **French: *Contour* for the profile operation everywhere** (2026-10-25, the user):
+  *contournage* became *contour* in every French text (21 lines) and the glossary.
 - **Move, turn and size drawn shapes; drawn shapes in the Browser, with names**
   (2026-10-25, docs/specs/drawn-shapes-box.md), the user's request: a box with move, turn
   and size handles round a selected polyline or several drawn shapes (`shape move/turn/

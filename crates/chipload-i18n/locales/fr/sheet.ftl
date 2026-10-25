@@ -88,7 +88,7 @@ sheet-operation = Opération { $number }
 # A drill's one feed: $feed is a number alone.
 sheet-feed-down = { $feed } en descente
 # The kind column, its parts joined with ", ": "Profile, outside, climb, leaves 0.2 mm".
-sheet-kind-profile = Contournage
+sheet-kind-profile = Contour
 sheet-side-outside = extérieur
 sheet-side-inside = intérieur
 sheet-side-on = sur la ligne

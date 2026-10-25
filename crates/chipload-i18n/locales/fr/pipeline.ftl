@@ -252,8 +252,8 @@ pipeline-image-nothing-black = Rien n'est noir : changez le seuil, ou inversez s
 # $narrow is a length without its unit, $wide with it.
 pipeline-image-strokes = Traits de { $narrow } à { $wide } de large : usinez-les avec un suivi de tracé.
 pipeline-image-closed-lines = { $count ->
-    [one] { $count } ligne fermée : un contournage ou une poche peut l'usiner, comme tout contour.
-   *[other] { $count } lignes fermées : un contournage ou une poche peut les usiner, comme tout contour.
+    [one] { $count } ligne fermée : une opération Contour ou une poche peut l'usiner, comme tout autre contour.
+   *[other] { $count } lignes fermées : une opération Contour ou une poche peut les usiner, comme tout autre contour.
 }
 pipeline-image-dots = { $count ->
     [one] { $count } point trop petit pour une ligne médiane exclu.

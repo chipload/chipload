@@ -126,7 +126,7 @@ job-part-order = les opérations de la pièce { $part } doivent toutes venir ava
 job-scale-range = doit aller de { $low } à { $high }, reçu { $got }
 # end_depth is a field of the project file.
 job-start-below-end = doit être inférieure à end_depth ({ $end }), reçu { $got }
-job-on-line-clearance = un contournage sur la ligne n'a pas de côté vers lequel usiner plus ; doit être 0, reçu { $got }
+job-on-line-clearance = un contour sur la ligne n'a pas de côté vers lequel usiner plus ; doit être 0, reçu { $got }
 
 ## Surfacing
 
@@ -152,10 +152,10 @@ job-select-centre-lines = l'image { $image } est vectorisée en lignes médianes
 
 ## Operations
 
-job-on-line-corners = un contournage sur la ligne n'a pas de coins intérieurs à dégager
+job-on-line-corners = un contour sur la ligne n'a pas de coins intérieurs à dégager
 job-starts-not-finite = chaque point de départ a besoin de x et y finis
 job-stepover-at-most-1 = doit être au plus 1 (une fraction du diamètre de l'outil), reçu { $got }
-job-on-line-finish = un contournage sur la ligne n'a pas de paroi à finir ; utilisez intérieur ou extérieur
+job-on-line-finish = un contour sur la ligne n'a pas de paroi à finir ; utilisez intérieur ou extérieur
 # Lengths without their unit.
 job-skin-above-step-down = doit être au plus la profondeur de passe ({ $step_down }), reçu { $got }
 job-skin-above-cut = doit être inférieure à la coupe ({ $cut }, profondeur finale moins profondeur de départ), reçu { $got }

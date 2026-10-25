@@ -17,8 +17,8 @@ browser-link-changed = { $name } (modifié)
 browser-link-missing = (pas dans la bibliothèque)
 
 # The kinds of operation, and what a new one of each does.
-browser-profile = Contournage
-browser-profile-hover = Une opération de contournage pour les contours sélectionnés
+browser-profile = Contour
+browser-profile-hover = Une opération de contour pour les contours sélectionnés
 browser-pocket = Poche
 browser-pocket-hover = Une opération de poche pour les contours sélectionnés
 browser-vcarve = Gravure en V

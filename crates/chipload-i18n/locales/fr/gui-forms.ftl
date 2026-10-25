@@ -8,7 +8,7 @@ forms-end-depth-hover = Où la coupe s'arrête, vers le bas depuis le dessus du 
 forms-through = Traversant
 forms-through-hover = Traverser le brut : { $depth }, son épaisseur plus la profondeur permise en dessous (Paramètres d'usinage > Brut)
 forms-oversize = Surcote
-forms-oversize-disabled = Un contournage sur la ligne n'a pas de côté où usiner plus
+forms-oversize-disabled = Un contour sur la ligne n'a pas de côté où usiner plus
 forms-step-down = Prof. de passe
 # Indented under "Passes": the depth of each pass.
 forms-step-down-sub = prof. de passe
@@ -26,7 +26,7 @@ forms-flank-feet = pieds de { $length } de chaque côté
 
 # How the tool goes down into the material.
 forms-entry = Entrée
-forms-entry-hover = Comment l'outil descend dans la matière. Une rampe descend le long du parcours (un contournage descend en spirale sur son tour, un suivi de tracé descend en allers-retours, une poche descend en rampe aller-retour), une hélice (poches) sur un petit cercle, l'outil n'a donc pas besoin de couper au centre ; les deux utilisent l'avance de coupe.
+forms-entry-hover = Comment l'outil descend dans la matière. Une rampe descend le long du parcours (un contour descend en spirale sur son tour, un suivi de tracé descend en allers-retours, une poche descend en rampe aller-retour), une hélice (poches) sur un petit cercle, l'outil n'a donc pas besoin de couper au centre ; les deux utilisent l'avance de coupe.
 forms-entry-plunge = plongée droite
 forms-entry-ramp = rampe
 forms-entry-helix = hélice
@@ -40,7 +40,7 @@ forms-ramp-angle = Angle de rampe
 forms-ramp-angle-hover = L'outil descend en spirale le long du contour, jamais plus raide que cet angle et jamais plus d'une profondeur de passe par tour : aucune plongée dans la pièce. Chaque passe descend à cet angle, puis continue à plat ; un angle plus raide raccourcit la rampe.
 
 # The operation kinds, in the form's title.
-forms-kind-profile = Contournage
+forms-kind-profile = Contour
 forms-kind-pocket = Poche
 forms-kind-vcarve = Gravure en V
 forms-kind-path = Suivi de tracé
@@ -113,7 +113,7 @@ forms-corners-hover = Les coins intérieurs qu'un outil rond laisse arrondis : u
 forms-corners-round = arrondis
 forms-corners-dogbones = dogbones
 forms-corners-tbones = T-bones
-forms-corners-disabled = Un contournage sur la ligne n'a pas de coins intérieurs
+forms-corners-disabled = Un contour sur la ligne n'a pas de coins intérieurs
 forms-corners-up-to = jusqu'à
 forms-corners-up-to-hover = Seulement les coins aussi aigus ou plus (les coins de 90° dessinés légèrement faux comptent quand même)
 
@@ -158,7 +158,7 @@ forms-finish-summary = { $stock } laissé, puis un tour
 forms-finishing-pass = Passe de finition
 forms-finishing-pass-hover = Ébaucher en laissant cette épaisseur sur la paroi, puis l'enlever en un tour léger à pleine profondeur : une paroi plus propre sans marques de passes. Le tour descend dans la rainure de l'ébauche, jamais sur la paroi finie.
 forms-finishing-lap = tour de finition
-forms-finishing-disabled = Un contournage sur la ligne n'a pas de paroi à finir
+forms-finishing-disabled = Un contour sur la ligne n'a pas de paroi à finir
 # The material left on the wall for the finishing lap.
 forms-finish-stock = surépaisseur
 
