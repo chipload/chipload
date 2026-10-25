@@ -74,6 +74,10 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Explode a DXF, join close ends** (docs/specs/explode-and-join.md), a user's request
+  2026-10-25: turn a DXF's shapes into editable drawn shapes (the link to the DXF goes),
+  and join open polylines whose ends are within a small gap. Spec drafted, decisions
+  waiting for review.
 - **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
   tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
   5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
