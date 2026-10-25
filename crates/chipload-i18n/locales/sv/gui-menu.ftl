@@ -127,3 +127,6 @@ menu-generating = Beräknar…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Drar till ({ $x }, { $y }){ $snapped } (Alt: ingen fästning; Shift på en mittpunkt böjer segmentet)
 menu-status-hint = Klicka på en kontur för att markera den · Ctrl+klick lägger till eller tar bort · högerklick markerar dess lager · Esc rensar
+menu-join-ends = Foga ihop ändar…
+menu-join-ends-hover = Foga ihop öppna ritade polylinjer vars ändar nästan möts till en: de markerade, eller alla om ingen är markerad
+menu-join-ends-disabled-hover = Det finns inga ritade former. En DXF:s former kan fogas ihop när den har brutits upp (högerklicka på den i bläddraren).

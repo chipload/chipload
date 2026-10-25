@@ -202,6 +202,19 @@ enum Prompt {
     /// The project's file changed on disk while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4); the file's version is in `disk`.
     ChangedOnDisk,
+    /// Explode DXF `dxf` into drawn shapes, then join ends closer than `gap` mm if `join`
+    /// (docs/specs/explode-and-join.md §5).
+    Explode {
+        dxf: u64,
+        join: bool,
+        gap: f64,
+    },
+    /// Join the drawn shapes `ids` (none: every drawn shape) whose ends are closer than
+    /// `gap` mm.
+    Join {
+        ids: Vec<u64>,
+        gap: f64,
+    },
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

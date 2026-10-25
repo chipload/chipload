@@ -319,7 +319,8 @@ impl ChiploadApp {
     /// `half` (the playback half way), `notoolpath` (View > Show toolpath off), `image` (the
     /// first image's window, traced) and `drawing` (the last DXF hidden, the first one's
     /// placement window open), `select` (the first drawn shape selected, with operation 1
-    /// open), `part` (the last part's properties). Only in builds made for screenshots.
+    /// open), `part` (the last part's properties), `explode` (the first DXF's explode dialog,
+    /// joining ticked). Only in builds made for screenshots.
     #[cfg(feature = "screenshots")]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
@@ -359,6 +360,15 @@ impl ChiploadApp {
                 self.toggle_hidden(&format!("dxf:{last}"));
             }
             self.focus = Focus::Dxf(first);
+        }
+        if steps.contains(&"explode")
+            && let Some(&first) = dxfs.first()
+        {
+            self.dialogs.prompt = Some(super::Prompt::Explode {
+                dxf: first,
+                join: true,
+                gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
+            });
         }
         let first_drawn = self.edit.as_ref().and_then(|e| {
             e.settings

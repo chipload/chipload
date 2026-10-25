@@ -6,6 +6,7 @@ pub mod chip_load;
 pub mod copies;
 pub mod dxfs;
 pub mod estimate;
+pub mod explode;
 pub mod images;
 pub mod library;
 pub mod notices;

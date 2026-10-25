@@ -377,3 +377,5 @@ forms-remove-rest-pass = Rimuovi passata di ripresa
 forms-font-plain = Normali
 forms-font-script = Corsivi
 forms-font-display = Decorativi
+forms-explode-dxf = Esplodi…
+forms-explode-dxf-hover = Trasforma le forme di questo DXF in forme disegnate modificabili; il legame con il file DXF si perde

@@ -49,3 +49,7 @@ sources-remove-text-hover = Den Text und seine Buchstaben entfernen
 sources-project-incomplete = Das Projekt ist nicht vollständig:
 # Followed by the error on its own line.
 sources-remove-dxf-failed = Die DXF konnte nicht entfernt werden:
+sources-explode = In Formen auflösen…
+sources-explode-hover = Die Formen dieser DXF in gezeichnete Formen umwandeln, die Sie bearbeiten können; die Verknüpfung zur DXF-Datei geht verloren
+sources-explode-failed = Die DXF konnte nicht aufgelöst werden:
+sources-join-failed = Die Formen konnten nicht verbunden werden:

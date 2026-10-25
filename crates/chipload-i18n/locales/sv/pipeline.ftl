@@ -402,3 +402,40 @@ pipeline-box-no-corner = en ram har inget hörn { $corner }
 # One of several G-code files: $name is its file name, $operations the numbers of the
 # operations it cuts ("1, 3").
 pipeline-gcode-file = { $name } (verktyg { $tool }, operationerna { $operations })
+
+## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
+
+pipeline-dxf-exploded = Bröt upp DXF { $id } "{ $name }" i { $count } ritade { $count ->
+    [one] form
+   *[other] former
+}. Projektet känner inte längre till DXF-filen.
+# $shapes shape numbers ("S3, S4"); $tolerance a length.
+pipeline-explode-split = { $count ->
+    [one] Form { $shapes } bestod av delar som inte möts: varje del är nu en egen form.
+   *[other] Formerna { $shapes } bestod av delar som inte möts: varje del är nu en egen form.
+}
+pipeline-explode-circle-start = { $count ->
+    [one] Cirkel { $shapes } börjar nu i sin högra punkt, moturs, som ritade cirklar gör: fräsningen kan börja på ett annat ställe på den.
+   *[other] Cirklarna { $shapes } börjar nu i sina högra punkter, moturs, som ritade cirklar gör: fräsningen kan börja på ett annat ställe på dem.
+}
+pipeline-explode-dropped = { $count ->
+    [one] Form { $shapes } hade bara segment kortare än { $tolerance } och är borta.
+   *[other] Formerna { $shapes } hade bara segment kortare än { $tolerance } och är borta.
+}
+# $label is an operation's label.
+pipeline-explode-selects = { $label } markerar nu formerna { $shapes }.
+pipeline-explode-no-dxf = projektet har ingen DXF att bryta upp
+pipeline-explode-which-dxf = projektet har { $count } DXF:er ({ $dxfs }): ange vilken som ska brytas upp
+pipeline-join-gap-range = Glappet måste vara { $least } till { $most }, fick { $got }.
+pipeline-join-imported = Form S{ $id } kommer från en DXF: bryt upp DXF:en först.
+pipeline-join-none = Inga ändar fogades ihop (glapp { $gap }).
+pipeline-joined = Fogade ihop { $pieces } former till { $count }, varav { $closed } slutna; största glappet som slöts var { $widest }.
+pipeline-joined-touching = Fogade ihop { $pieces } former till { $count }, varav { $closed } slutna; deras ändar möttes.
+pipeline-join-open = { $count } { $count ->
+    [one] ände förblir öppen
+   *[other] ändar förblir öppna
+}.
+# $at a point, $nearest a length.
+pipeline-join-open-end = Änden vid { $at }: närmaste andra ände ligger { $nearest } bort.
+pipeline-join-open-alone = Änden vid { $at }: ingen annan ände på dess lager.
+pipeline-join-branch = Tre eller fler ändar möts vid { $at }: inte ihopfogade där.

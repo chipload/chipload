@@ -377,3 +377,5 @@ forms-remove-rest-pass = Quitar pasada de restos
 forms-font-plain = Normal
 forms-font-script = Manuscrita
 forms-font-display = Decorativa
+forms-explode-dxf = Descomponer…
+forms-explode-dxf-hover = Convertir las formas de este DXF en formas dibujadas que puedes editar; se pierde el vínculo con el archivo DXF

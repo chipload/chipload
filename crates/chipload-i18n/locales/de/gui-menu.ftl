@@ -127,3 +127,6 @@ menu-generating = Berechnung läuft…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Ziehen nach ({ $x }, { $y }){ $snapped } (Alt: ohne Fang; Shift auf einer Mitte biegt das Segment)
 menu-status-hint = Kontur anklicken zum Auswählen · Ctrl+Klick fügt hinzu oder entfernt · Rechtsklick wählt ihren Layer · Esc hebt auf
+menu-join-ends = Enden verbinden…
+menu-join-ends-hover = Offene gezeichnete Polylinien, deren Enden sich fast treffen, zu einer verbinden: die ausgewählten, oder alle, wenn keine ausgewählt ist
+menu-join-ends-disabled-hover = Es gibt keine gezeichneten Formen. Die Formen einer DXF lassen sich verbinden, sobald sie aufgelöst ist (Rechtsklick auf sie im Browser).

@@ -369,6 +369,21 @@ chipload shape mirror <PROJECT> <IDS>... [OPTIONS]
 | `--axis <AXIS>` | x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: `x`, `y`. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape join`
+
+Join open drawn polylines whose ends are closer than --gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)
+
+```text
+chipload shape join <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); none: every drawn shape. |
+| `--gap <GAP>` | Join ends closer than this, 0.001 to 1 mm. Default: `0.01`. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload image`
 
 Pictures traced into shapes for V-carving: add, change, list, preview, remove
@@ -578,6 +593,21 @@ chipload dxf list <PROJECT>
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
+
+### `chipload dxf explode`
+
+Turn a DXF's shapes into drawn shapes you can edit; the project no longer knows the DXF (docs/specs/explode-and-join.md). Operations keep cutting the same shapes
+
+```text
+chipload dxf explode <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The DXF's id (as `dxf list` shows it); not needed when the project has one. |
+| `--join <JOIN>` | Then join ends closer than this (as `shape join --gap`), e.g. 0.01 or 0.05mm. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload dxf remove`
 

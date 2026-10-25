@@ -1418,3 +1418,38 @@ fn a_tool_named_outside_ascii_is_written_in_ascii() {
     assert!(second.contains("\"60deg V-bit\""), "{second}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// `dxf explode` and `shape join` (docs/specs/explode-and-join.md §4).
+#[test]
+fn explode_a_dxf_and_join_its_lines() {
+    let dir = temp_dir("explode");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v11/two_tools.chipload"), &project).unwrap();
+    let p = path(&project);
+    let before = chipload(&["run", p, "-o", path(&dir.join("before.nc")), "--no-sheet"]);
+    assert!(before.status.success());
+
+    let out = chipload(&["dxf", "explode", p, "--json"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["shapes"].as_array().unwrap().len(), 7, "{json}");
+    let listed = text(&chipload(&["dxf", "list", p]).stdout);
+    assert!(listed.contains("No DXFs."), "{listed}");
+    let again = chipload(&["dxf", "explode", p]);
+    assert_eq!(again.status.code(), Some(1));
+    assert!(text(&again.stderr).contains("no DXF to explode"));
+
+    // The outline was drawn as four lines: they join into one closed polyline.
+    let out = chipload(&["shape", "join", p, "--gap", "0.05mm"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout).contains("Joined 4 shapes into 1, 1 of them closed; their ends met."),
+        "{}",
+        text(&out.stdout)
+    );
+    let refused = chipload(&["shape", "join", p, "--gap", "2"]);
+    assert_eq!(refused.status.code(), Some(1));
+    assert!(text(&refused.stderr).contains("The gap must be 0.001 mm to 1 mm, got 2 mm."));
+    let after = chipload(&["run", p, "-o", path(&dir.join("after.nc")), "--no-sheet"]);
+    assert!(after.status.success(), "{}", text(&after.stderr));
+}

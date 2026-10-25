@@ -7,6 +7,7 @@ use std::process::ExitCode;
 
 use chipload_job::{Job, Units, save_job};
 use chipload_pipeline::dxfs::{add_named_dxf, remove_dxf};
+use chipload_pipeline::explode::{explode_dxf, which_dxf};
 use chipload_pipeline::placement::{dxf_size, placement_text};
 use clap::Subcommand;
 use serde_json::{Value, json};
@@ -36,6 +37,20 @@ pub enum DxfAction {
     List {
         /// The project (.chipload).
         project: PathBuf,
+    },
+    /// Turn a DXF's shapes into drawn shapes you can edit; the project no longer knows the
+    /// DXF (docs/specs/explode-and-join.md). Operations keep cutting the same shapes.
+    Explode {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The DXF's id (as `dxf list` shows it); not needed when the project has one.
+        id: Option<u64>,
+        /// Then join ends closer than this (as `shape join --gap`), e.g. 0.01 or 0.05mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        join: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
     /// Remove a DXF and its shapes.
     Remove {
@@ -83,6 +98,28 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             write(out, &job, output.as_deref().unwrap_or(&project))
         }
         DxfAction::List { project } => list(out, &project),
+        DxfAction::Explode {
+            project,
+            id,
+            join,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let done = which_dxf(&job, id).and_then(|id| explode_dxf(&job, id, join));
+            let (job, report) = match done {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            for line in &report.lines {
+                out.line(line.clone());
+            }
+            out.set("shapes", json!(report.shapes));
+            out.set("removed", json!(report.removed));
+            write(out, &job, output.as_deref().unwrap_or(&project))
+        }
         DxfAction::Remove {
             project,
             id,

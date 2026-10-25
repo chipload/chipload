@@ -377,3 +377,5 @@ forms-remove-rest-pass = Retirer la passe de reprise
 forms-font-plain = Simple
 forms-font-script = Manuscrite
 forms-font-display = Fantaisie
+forms-explode-dxf = Décomposer…
+forms-explode-dxf-hover = Transformer les formes de ce DXF en formes dessinées modifiables ; le lien avec le fichier DXF disparaît

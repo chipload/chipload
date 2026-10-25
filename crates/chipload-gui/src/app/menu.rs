@@ -255,6 +255,18 @@ impl ChiploadApp {
         {
             self.mirror_selected(Mirror::UpDown);
         }
+        let any_drawn = self
+            .edit
+            .as_ref()
+            .is_some_and(|e| e.settings.drawing.shapes.iter().any(|s| s.is_drawn()));
+        if ui
+            .add_enabled(any_drawn, egui::Button::new(t!(ui, "menu-join-ends")))
+            .on_hover_text(t!(ui, "menu-join-ends-hover"))
+            .on_disabled_hover_text(t!(ui, "menu-join-ends-disabled-hover"))
+            .clicked()
+        {
+            self.ask_join();
+        }
         ui.separator();
         if ui
             .add_enabled(

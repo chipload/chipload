@@ -1408,6 +1408,8 @@ pub(super) enum JobRequest {
     /// dxfs.md §3).
     UpdateDxf(u64),
     RemoveDxf(u64),
+    /// Explode DXF `id` into drawn shapes (docs/specs/explode-and-join.md §5).
+    ExplodeDxf(u64),
     /// Picture `id`: its window, a new size, place and layer, or removed (§3b).
     TraceSettings(u64),
     ImagePlace(u64, ImagePlace),
@@ -1481,6 +1483,13 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
             .clicked()
         {
             request = Some(JobRequest::UpdateDxf(id));
+        }
+        if ui
+            .button(t!(ui, "forms-explode-dxf"))
+            .on_hover_text(t!(ui, "forms-explode-dxf-hover"))
+            .clicked()
+        {
+            request = Some(JobRequest::ExplodeDxf(id));
         }
         if ui
             .button(t!(ui, "forms-remove"))

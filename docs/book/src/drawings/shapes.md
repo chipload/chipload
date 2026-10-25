@@ -31,7 +31,9 @@ is CAD's job: draw it there and import the DXF.
 - **Delete:** Del. Operations that cut the shape are flagged.
 - **Undo:** Ctrl+Z.
 
-Imported shapes can't be edited: they change only with the DXF.
+Imported shapes can't be edited: they change only with the DXF, unless you
+[explode it](explode.md). Lines whose ends almost meet can be joined into one shape with
+*Draw > Join ends…* (same page).
 
 ## On the command line
 
@@ -44,6 +46,7 @@ chipload shape set part.chipload 8 --radius 6         # change a value or the la
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape remove part.chipload 8
+chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 ```
 
 Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1

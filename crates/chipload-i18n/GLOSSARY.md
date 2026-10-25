@@ -34,6 +34,9 @@ correction here is a correction everywhere: change the term, then every text usi
 | drawing | Zeichnung | dessin | dibujo | disegno | ritning |
 | layer | Layer | calque | capa | layer | lager |
 | shape | Form | forme | forma | forma | form |
+| explode (a DXF into shapes) | auflösen | décomposer | descomponer | esplodi / esplodere | bryt upp |
+| join (ends) | verbinden | joindre | unir | unisci / unire | foga ihop |
+| gap (between ends) | Abstand | écart | separación | distanza | glapp |
 | contour | Kontur | contour | contorno | contorno | kontur |
 | profile (operation) | Konturfräsen | contournage | contorneado | contornatura | konturfräsning |
 | pocket | Tasche | poche | cajera | tasca | ficka |

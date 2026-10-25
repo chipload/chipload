@@ -1,6 +1,7 @@
 # Spec: explode a DXF into drawn shapes, join close ends
 
-Status: **draft** (2026-10-25), decisions in §8 waiting for review.
+Status: **approved** 2026-10-25 (decisions in §8 as recommended, except the default gap:
+0.01 mm).
 
 The user's request (2026-10-25, from a user): explode a DXF into drawing elements that can
 be reworked in the app, losing the connection to the DXF; and an option to join line
@@ -57,7 +58,7 @@ ordinary drawn shapes.
 *Join* merges open drawn polylines whose ends lie within a **gap** of each other into one
 polyline, and closes a polyline whose own ends lie within the gap. Available:
 
-- as an option of *Explode* ("Join ends closer than [0.05 mm]"), and
+- as an option of *Explode* ("Join ends closer than [0.01 mm]"), and
 - on its own, on the selected drawn shapes (or all drawn shapes when nothing is selected),
   so a drawing exploded earlier, or drawn by hand, can be joined later.
 
@@ -78,7 +79,7 @@ Rules:
 6. **Operations** that selected a removed piece select the kept id instead (once).
 7. **Deterministic:** the same shapes and gap always give the same result.
 
-The gap is at least `CHAIN_TOL_MM` and at most 1 mm; the default is 0.05 mm (it's shown in
+The gap is at least `CHAIN_TOL_MM` and at most 1 mm; the default is 0.01 mm (it's shown in
 the display units).
 
 **The report** says what happened, in the app's status line and the command's output:
@@ -126,7 +127,7 @@ new and removed ids, the rewritten selectors and the join report. MCP gets both 
   original.
 - Selectors: `{"layer", "dxf"}` and `exclude` rewritten to ids; layer-only selectors
   unchanged; the DXF and its hidden keys gone.
-- Join: two pieces 0.03 mm apart join with gap 0.05 and not with 0.01; a chain that closes;
+- Join: two pieces 0.03 mm apart join with gap 0.05 and not with the default 0.01; a chain that closes;
   reversed pieces; a T of three ends stays open and is reported; different layers don't
   join; an arc piece keeps its bulge; operations follow the kept id; same input, same output
   (a `proptest`: joining never moves a point by more than half the gap, and never changes the
@@ -151,7 +152,32 @@ new and removed ids, the rewritten selectors and the join report. MCP gets both 
    usually mean different operations; at a branch any choice would be a guess.
 6. **Close a gap by moving both ends to the midpoint**, not by a bridging segment.
    *Recommended:* no tiny segments for the toolpath; the change is at most half the gap.
-7. **Gap default 0.05 mm, at most 1 mm.** *Recommended:* catches CAD rounding and sloppy
-   snaps; above 1 mm a "gap" is usually meant.
+7. **Gap default 0.01 mm, at most 1 mm.** *Decided: 0.01 mm* (the user, 2026-10-25;
+   0.05 mm was recommended): catches CAD rounding; a wider gap is typed when wanted. Above
+   1 mm a "gap" is usually meant.
 8. **No undo of an explode beyond the app's undo** (a saved project can't get its DXF link
    back, short of *DXF > Add* again). *Recommended*, and the dialog says so.
+
+## 9. As built (2026-10-25)
+
+- `chipload_job::explode`: `path_to_drawn` (a path's segments as drawn shapes) and `join`
+  (pure, with `JoinOutcome`: what joined, the widest gap, open ends, branches);
+  `DEFAULT_JOIN_GAP_MM`, `MAX_JOIN_GAP_MM`. `chipload_pipeline::explode`: `explode_dxf`,
+  `join_shapes`, `which_dxf`, with a `ShapesReport` (shapes, removed, messages).
+- **A closed polyline of two points** is allowed when a segment bends: a DXF polyline
+  drawn as two half circles (a common CAD export of a circle) stays two segments, so its
+  toolpath is unchanged. Splitting one arc to reach three points moved V-carves and
+  profiles by a few µm. Only the validation was loosened (an older version refuses such a
+  project rather than misreading it), so no schema bump.
+- **Every full circle becomes a circle,** also one the placement turned, or one running
+  clockwise. Its start moves to angle 0, so its cut may start elsewhere on it; the report
+  names these circles ("starts at its right-hand point"), and the corpus test allows them a
+  different program. All other corpus projects give byte-identical G-code after exploding,
+  and also after joining ends that already met (`--join 0.001`).
+- Selectors: a layer selector limited to the DXF becomes `{"shapes": [...]}` with the shapes
+  it matched (`exclude` and the contours it left out applied). One that matched nothing is
+  left as it was (its missing DXF is then a problem to fix).
+- The report also names paths split into several shapes, and shapes left with no segment.
+- Join's report names at most five open ends, the nearest first, and counts the rest.
+- App: *Explode into shapes…* in a DXF's Browser menu and *Explode…* in its properties;
+  *Draw > Join ends…*; both as a dialog with the gap in the display units.

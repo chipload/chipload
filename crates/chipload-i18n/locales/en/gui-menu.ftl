@@ -127,3 +127,6 @@ menu-generating = Generating…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; Shift on a middle bends the segment)
 menu-status-hint = Click a contour to select it · Ctrl+click adds or removes · right-click selects its layer · Esc clears
+menu-join-ends = Join ends…
+menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one: the selected ones, or all when none is selected
+menu-join-ends-disabled-hover = There are no drawn shapes. A DXF's shapes can be joined once it is exploded (right-click it in the Browser).

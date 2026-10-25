@@ -2917,7 +2917,14 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             points,
             bulges,
         } => {
-            let least = if *closed { 3 } else { 2 };
+            // Two points close a loop when a segment bends: a DXF polyline circle of two
+            // half circles (docs/specs/explode-and-join.md §2).
+            let bends = bulges.iter().any(|b| *b != 0.0);
+            let least = if *closed && !(bends && points.len() == 2) {
+                3
+            } else {
+                2
+            };
             if points.len() < least {
                 problems.push(Problem::at(
                     "points",

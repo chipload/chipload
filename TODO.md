@@ -74,10 +74,6 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Explode a DXF, join close ends** (docs/specs/explode-and-join.md), a user's request
-  2026-10-25: turn a DXF's shapes into editable drawn shapes (the link to the DXF goes),
-  and join open polylines whose ends are within a small gap. Spec drafted, decisions
-  waiting for review.
 - **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
   tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
   5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
@@ -100,6 +96,14 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Explode a DXF, join close ends** (2026-10-25, docs/specs/explode-and-join.md), a
+  user's request: `chipload dxf explode` and *Explode into shapes…* turn a DXF's shapes
+  into drawn circles and polylines (the project forgets the DXF; operations keep their
+  shapes, with the same G-code on the corpus); `chipload shape join` and *Draw > Join
+  ends…* join open polylines whose ends are within a gap (default 0.01 mm, at most 1 mm),
+  same layer, clear pairs only. A closed polyline may now have two points when a segment
+  bends (a DXF circle of two half circles). Texts in all six languages (the user reviews
+  Swedish), guide page *Exploding a DXF, joining ends*.
 - **Release file names** (2026-10-24, ADR 0010): the app is `chipload-X.Y.Z-…` (AppImage,
   `.exe`, `.dmg`) and sorts first on the release page; the command line is
   `chipload-cli-X.Y.Z-…`, always an archive (Windows now a `.zip` with LICENSE and the

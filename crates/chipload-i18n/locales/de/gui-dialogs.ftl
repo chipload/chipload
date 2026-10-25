@@ -54,3 +54,19 @@ dialogs-path-update-dxf = Die neue Version der DXF:
 
 # In the window's title bar, for a project never saved.
 dialogs-title-new-project = neues Projekt
+
+## Explode a DXF, join close ends (docs/specs/explode-and-join.md §5)
+
+# $name is the DXF's name in the Browser.
+dialogs-explode-title = { $name } in Formen auflösen
+dialogs-explode-body = Ihre Formen werden zu gezeichneten Formen, die Sie bearbeiten, verschieben und löschen können. Die Bearbeitungen fräsen weiter dieselben Formen. Das Projekt kennt die DXF-Datei nicht mehr: Aktualisieren aus der DXF ist dann nicht möglich.
+dialogs-explode-join = Enden verbinden, die näher liegen als
+dialogs-explode = Auflösen
+dialogs-join-title = Enden verbinden
+dialogs-join-body = Offene Polylinien unter { $count ->
+    [one] der ausgewählten Form
+   *[other] den { $count } ausgewählten Formen
+}, deren Enden näher als der Abstand liegen, werden zu einer, auf demselben Layer. Eine Kette, die zu ihrem Anfang zurückkehrt, wird geschlossen.
+dialogs-join-body-all = Offene gezeichnete Polylinien, deren Enden näher als der Abstand liegen, werden zu einer, auf demselben Layer. Eine Kette, die zu ihrem Anfang zurückkehrt, wird geschlossen.
+dialogs-join-gap = Enden verbinden, die näher liegen als
+dialogs-join = Verbinden

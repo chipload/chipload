@@ -38,7 +38,8 @@ are derived from them on every load, as contours already are.
   is the identity: v4 files only hold `path` shapes. Frozen v4 samples exist already
   (`tests/corpus/jobs/v4/`); they must migrate and give their golden G-code unchanged.
 - **Validation on load** (latest format only): radius, length and width finite and > 0;
-  angle finite; centre and points finite; a closed polyline has ≥ 3 points, an open one
+  angle finite; centre and points finite; a closed polyline has ≥ 3 points (2 when a
+  segment bends, since 2026-10-25: explode-and-join.md §9), an open one
   ≥ 2; consecutive points must be more than `CHAIN_TOL_MM` apart. Anything else is a
   `JobError` naming the shape id. Self-intersecting or folded polylines are not refused
   here: they become invalid contours like an imported drawing would (red, can't be cut).

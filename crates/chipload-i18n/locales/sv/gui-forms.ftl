@@ -377,3 +377,5 @@ forms-remove-rest-pass = Ta bort restbearbetning
 forms-font-plain = Vanliga
 forms-font-script = Skrivstil
 forms-font-display = Dekorativa
+forms-explode-dxf = Bryt upp…
+forms-explode-dxf-hover = Gör om denna DXF:s former till ritade former som du kan ändra; kopplingen till DXF-filen försvinner

@@ -24,6 +24,7 @@
 - [Updating from a new DXF](drawings/update.md)
 - [Several drawings](drawings/several.md)
 - [Drawing shapes](drawings/shapes.md)
+- [Exploding a DXF, joining ends](drawings/explode.md)
 - [Images](drawings/images.md)
 - [Text](drawings/text.md)
 - [Copies](drawings/copies.md)

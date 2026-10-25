@@ -252,6 +252,91 @@ impl ChiploadApp {
             Prompt::ChangedOnDisk => self.changed_on_disk_prompt(ctx),
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
             Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
+            Prompt::Explode { dxf, join, gap } => self.explode_prompt(ctx, dxf, join, gap),
+            Prompt::Join { ids, gap } => self.join_prompt(ctx, ids, gap),
+        }
+    }
+
+    /// Explode a DXF into drawn shapes (docs/specs/explode-and-join.md §5): what it does,
+    /// and whether to join close ends too.
+    fn explode_prompt(&mut self, ctx: &egui::Context, dxf: u64, mut join: bool, mut gap: f64) {
+        let name = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.drawing.dxfs.iter().find(|d| d.id == dxf))
+            .map(|d| d.name.clone())
+            .unwrap_or_default();
+        let mut answer: Option<bool> = None;
+        let modal = egui::Modal::new(egui::Id::new("explode-dxf")).show(ctx, |ui| {
+            ui.set_width(380.0);
+            ui.heading(t!(ui, "dialogs-explode-title", name = name.as_str()));
+            ui.add_space(4.0);
+            ui.label(t!(ui, "dialogs-explode-body"));
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut join, t!(ui, "dialogs-explode-join"));
+                ui.add_enabled(join, gap_field(&mut gap));
+            });
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if accent_button(ui, &t!(ui, "dialogs-explode")).clicked() {
+                    answer = Some(true);
+                }
+                if ui.button(t!(ui, "common-cancel")).clicked() {
+                    answer = Some(false);
+                }
+            });
+        });
+        if modal.should_close() && answer.is_none() {
+            answer = Some(false);
+        }
+        match answer {
+            Some(true) => {
+                self.dialogs.prompt = None;
+                self.explode_dxf(dxf, join.then_some(gap));
+            }
+            Some(false) => self.dialogs.prompt = None,
+            None => self.dialogs.prompt = Some(Prompt::Explode { dxf, join, gap }),
+        }
+    }
+
+    /// Join close ends of drawn shapes (§5): the gap, then *Join*.
+    fn join_prompt(&mut self, ctx: &egui::Context, ids: Vec<u64>, mut gap: f64) {
+        let mut answer: Option<bool> = None;
+        let modal = egui::Modal::new(egui::Id::new("join-ends")).show(ctx, |ui| {
+            ui.set_width(380.0);
+            ui.heading(t!(ui, "dialogs-join-title"));
+            ui.add_space(4.0);
+            ui.label(if ids.is_empty() {
+                t!(ui, "dialogs-join-body-all")
+            } else {
+                t!(ui, "dialogs-join-body", count = ids.len())
+            });
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                ui.label(t!(ui, "dialogs-join-gap"));
+                ui.add(gap_field(&mut gap));
+            });
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if accent_button(ui, &t!(ui, "dialogs-join")).clicked() {
+                    answer = Some(true);
+                }
+                if ui.button(t!(ui, "common-cancel")).clicked() {
+                    answer = Some(false);
+                }
+            });
+        });
+        if modal.should_close() && answer.is_none() {
+            answer = Some(false);
+        }
+        match answer {
+            Some(true) => {
+                self.dialogs.prompt = None;
+                self.join_shapes(&ids, gap);
+            }
+            Some(false) => self.dialogs.prompt = None,
+            None => self.dialogs.prompt = Some(Prompt::Join { ids, gap }),
         }
     }
 
@@ -415,4 +500,18 @@ pub(super) fn save_dialog(suggested: &Path, filter: &str, ext: &str) -> Option<P
         dialog = dialog.set_directory(dir);
     }
     dialog.save_file()
+}
+
+/// The gap a join closes, in the display units, 0.001 to 1 mm.
+fn gap_field(gap: &mut f64) -> crate::units::Field<'_> {
+    crate::units::length(gap)
+        .range(chipload_core::tolerances::CHAIN_TOL_MM..=chipload_job::explode::MAX_JOIN_GAP_MM)
+        .speed(0.001)
+}
+
+/// The dialog's main button, in the accent colour.
+fn accent_button(ui: &mut egui::Ui, text: &str) -> egui::Response {
+    let accent = ui.visuals().selection.bg_fill;
+    let on_accent = ui.visuals().selection.stroke.color;
+    ui.add(egui::Button::new(RichText::new(text).color(on_accent)).fill(accent))
 }

@@ -54,3 +54,19 @@ dialogs-path-update-dxf = Den nya versionen av DXF-filen:
 
 # In the window's title bar, for a project never saved.
 dialogs-title-new-project = nytt projekt
+
+## Explode a DXF, join close ends (docs/specs/explode-and-join.md §5)
+
+# $name is the DXF's name in the Browser.
+dialogs-explode-title = Bryt upp { $name } i former
+dialogs-explode-body = Dess former blir ritade former som du kan ändra, flytta och radera. Operationerna fräser samma former som förut. Projektet känner inte längre till DXF-filen: det går inte att uppdatera den från DXF:en.
+dialogs-explode-join = Foga ihop ändar närmare än
+dialogs-explode = Bryt upp
+dialogs-join-title = Foga ihop ändar
+dialogs-join-body = Öppna polylinjer bland { $count } { $count ->
+    [one] markerad form
+   *[other] markerade former
+} vars ändar ligger närmare än glappet blir en, på samma lager. En kedja som kommer tillbaka till sin början blir sluten.
+dialogs-join-body-all = Öppna ritade polylinjer vars ändar ligger närmare än glappet blir en, på samma lager. En kedja som kommer tillbaka till sin början blir sluten.
+dialogs-join-gap = Foga ihop ändar närmare än
+dialogs-join = Foga ihop

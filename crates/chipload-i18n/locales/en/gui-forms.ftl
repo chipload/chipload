@@ -377,3 +377,5 @@ forms-remove-rest-pass = Remove rest pass
 forms-font-plain = Plain
 forms-font-script = Script
 forms-font-display = Display
+forms-explode-dxf = Explode…
+forms-explode-dxf-hover = Turn this DXF's shapes into drawn shapes you can edit; the link to the DXF file goes

@@ -407,3 +407,40 @@ pipeline-box-no-corner = un recuadro no tiene esquina { $corner }
 # One of several G-code files: $name is its file name, $operations the numbers of the
 # operations it cuts ("1, 3").
 pipeline-gcode-file = { $name } (herramienta { $tool }, operaciones { $operations })
+
+## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
+
+pipeline-dxf-exploded = DXF { $id } "{ $name }" descompuesto en { $count } { $count ->
+    [one] forma dibujada
+   *[other] formas dibujadas
+}. El proyecto ya no conoce el archivo DXF.
+# $shapes shape numbers ("S3, S4"); $tolerance a length.
+pipeline-explode-split = { $count ->
+    [one] La forma { $shapes } estaba en trozos que no se tocan: ahora cada trozo es una forma.
+   *[other] Las formas { $shapes } estaban en trozos que no se tocan: ahora cada trozo es una forma.
+}
+pipeline-explode-circle-start = { $count ->
+    [one] El círculo { $shapes } ahora empieza en su punto derecho, en sentido antihorario, como los círculos dibujados: su corte puede empezar en otro punto.
+   *[other] Los círculos { $shapes } ahora empiezan en sus puntos derechos, en sentido antihorario, como los círculos dibujados: sus cortes pueden empezar en otro punto.
+}
+pipeline-explode-dropped = { $count ->
+    [one] La forma { $shapes } solo tenía segmentos de menos de { $tolerance } y se ha eliminado.
+   *[other] Las formas { $shapes } solo tenían segmentos de menos de { $tolerance } y se han eliminado.
+}
+# $label is an operation's label.
+pipeline-explode-selects = { $label } ahora selecciona las formas { $shapes }.
+pipeline-explode-no-dxf = el proyecto no tiene ningún DXF que descomponer
+pipeline-explode-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál descomponer
+pipeline-join-gap-range = La separación debe estar entre { $least } y { $most }, es { $got }.
+pipeline-join-imported = La forma S{ $id } viene de un DXF: descompón primero el DXF.
+pipeline-join-none = No se unió ningún extremo (separación { $gap }).
+pipeline-joined = { $pieces } formas unidas en { $count }, { $closed } de ellas cerradas; mayor separación cerrada { $widest }.
+pipeline-joined-touching = { $pieces } formas unidas en { $count }, { $closed } de ellas cerradas; sus extremos se tocaban.
+pipeline-join-open = { $count } { $count ->
+    [one] extremo queda abierto
+   *[other] extremos quedan abiertos
+}.
+# $at a point, $nearest a length.
+pipeline-join-open-end = El extremo en { $at }: el otro extremo más cercano está a { $nearest }.
+pipeline-join-open-alone = El extremo en { $at }: no hay otro extremo en su capa.
+pipeline-join-branch = Tres o más extremos se encuentran en { $at }: ahí no se unen.

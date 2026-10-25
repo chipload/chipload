@@ -127,3 +127,6 @@ menu-generating = Calcolo…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Trascinamento a ({ $x }, { $y }){ $snapped } (Alt: niente aggancio; Shift su un punto medio curva il segmento)
 menu-status-hint = Clic su un contorno per selezionarlo · Ctrl+clic aggiunge o toglie · clic destro seleziona il suo layer · Esc annulla la selezione
+menu-join-ends = Unisci estremi…
+menu-join-ends-hover = Unisci in una sola le polilinee disegnate aperte i cui estremi quasi si toccano: quelle selezionate, o tutte se nessuna è selezionata
+menu-join-ends-disabled-hover = Non ci sono forme disegnate. Le forme di un DXF si possono unire dopo averlo esploso (clic destro su di esso nel Browser).

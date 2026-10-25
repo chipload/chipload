@@ -26,6 +26,7 @@ use chipload_job::{
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
+use chipload_pipeline::explode::join_shapes;
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::placement::{
     Move as PlaceMove, dxf_list, dxf_size, place_drawing, place_dxf, placement_text,
@@ -645,6 +646,20 @@ enum ShapeAction {
         /// x: flip the X coordinates (left becomes right); y: flip Y (up becomes down).
         #[arg(long)]
         axis: AxisArg,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Join open drawn polylines whose ends are closer than --gap into one, on the same
+    /// layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md).
+    Join {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S); none: every drawn shape.
+        ids: Vec<u64>,
+        /// Join ends closer than this, 0.001 to 1 mm.
+        #[arg(long, value_parser = crate::lengths::length, default_value = "0.01")]
+        gap: f64,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1438,6 +1453,9 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         }
         | ShapeAction::Mirror {
             project, output, ..
+        }
+        | ShapeAction::Join {
+            project, output, ..
         } => (project.clone(), output.clone()),
     };
     let job = match load(out, &project) {
@@ -1447,6 +1465,8 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     let mut flagged_ops = 0;
     // The new shapes' ids (`shape add`, `shape copy`).
     let mut new_ids: Option<Vec<u64>> = None;
+    // What `shape join` joined and removed.
+    let mut joined: Option<(Vec<u64>, Vec<u64>)> = None;
     let changed = match action {
         ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
             .map_err(|e| PipelineError::Job(foreign_text(e)))
@@ -1494,6 +1514,10 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 (job, vec![format!("Mirrored shapes {}.", names.join(", "))])
             })
         }
+        ShapeAction::Join { ids, gap, .. } => join_shapes(&job, &ids, gap).map(|(job, report)| {
+            joined = Some((report.shapes, report.removed));
+            (job, report.lines)
+        }),
     };
     let (job, lines) = match changed {
         Ok(done) => done,
@@ -1509,6 +1533,10 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     out.wrote(target, "");
     if let Some(ids) = new_ids {
         out.set("ids", json!(ids));
+    }
+    if let Some((shapes, removed)) = joined {
+        out.set("shapes", json!(shapes));
+        out.set("removed", json!(removed));
     }
     if flagged_ops == 0 {
         ExitCode::SUCCESS

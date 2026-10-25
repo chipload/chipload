@@ -32,6 +32,12 @@ pub(super) enum GroupKind {
     Drawn,
 }
 
+/// A project changed by exploding or joining, with its report, or why not.
+type ShapesChange = Result<
+    (chipload_job::Job, chipload_pipeline::explode::ShapesReport),
+    chipload_pipeline::PipelineError,
+>;
+
 /// What a click in the panel asks for, done after drawing it.
 enum PanelAction {
     Toggle(String),
@@ -41,6 +47,7 @@ enum PanelAction {
     Update(u64),
     UpdatePath(u64),
     RemoveDxf(u64),
+    ExplodeDxf(u64),
     EditImage(u64),
     RemoveImage(u64),
     RemoveText(u64),
@@ -188,6 +195,91 @@ impl ChiploadApp {
         }
     }
 
+    /// Ask how to explode DXF `id` (docs/specs/explode-and-join.md §5).
+    pub(super) fn ask_explode(&mut self, dxf: u64) {
+        self.dialogs.prompt = Some(Prompt::Explode {
+            dxf,
+            join: false,
+            gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
+        });
+    }
+
+    /// Ask for the gap to join the selected drawn shapes, or every drawn shape when none
+    /// is selected.
+    pub(super) fn ask_join(&mut self) {
+        let (ids, _) = self.deletable_shapes();
+        self.dialogs.prompt = Some(Prompt::Join {
+            ids,
+            gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
+        });
+    }
+
+    /// Explode DXF `id` into drawn shapes, then join ends closer than `join` mm if given
+    /// (docs/specs/explode-and-join.md), as one undo step. The new shapes are selected.
+    pub fn explode_dxf(&mut self, id: u64, join: Option<f64>) -> bool {
+        let done = self.changed_job(|job| chipload_pipeline::explode::explode_dxf(job, id, join));
+        let failed = t!(self, "sources-explode-failed");
+        let exploded = self.after_shapes_change(done, failed);
+        if exploded && self.focus == Focus::Dxf(id) {
+            self.focus = Focus::Job;
+        }
+        exploded
+    }
+
+    /// Join drawn shapes `ids` (none: every drawn shape) whose ends are closer than `gap` mm,
+    /// as one undo step. The joined shapes are selected.
+    pub fn join_shapes(&mut self, ids: &[u64], gap: f64) -> bool {
+        let done = self.changed_job(|job| chipload_pipeline::explode::join_shapes(job, ids, gap));
+        let failed = t!(self, "sources-join-failed");
+        self.after_shapes_change(done, failed)
+    }
+
+    /// The project as `change` leaves it, or why not; None without a complete project (the
+    /// report says why).
+    fn changed_job(
+        &mut self,
+        change: impl FnOnce(&chipload_job::Job) -> ShapesChange,
+    ) -> Option<ShapesChange> {
+        self.commit();
+        let edit = self.edit.as_ref()?;
+        match edit.to_job() {
+            Ok(job) => Some(change(&job)),
+            Err(problems) => {
+                self.error_report(Report::of_problems(
+                    &t!(self, "sources-project-incomplete"),
+                    &problems,
+                ));
+                None
+            }
+        }
+    }
+
+    /// Take the changed project as one undo step and show its report, or the error under
+    /// `failed` (a text id).
+    fn after_shapes_change(&mut self, done: Option<ShapesChange>, failed: String) -> bool {
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        match done {
+            Some(Ok((job, report))) => {
+                let mut next = EditJob::from_job(&job);
+                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
+                    entry.side_chosen = old.side_chosen;
+                }
+                self.edit = Some(next);
+                self.commit();
+                self.drawing_changed(&report.shapes);
+                self.set_report(Report::of_messages(report.messages));
+                true
+            }
+            Some(Err(err)) => {
+                self.error_report(Report::failed(failed, err.message()));
+                false
+            }
+            None => false,
+        }
+    }
+
     /// The selection a group's row makes: a DXF or image as a whole (so an operation made
     /// from it follows its updates and retracing), drawn shapes by their ids.
     pub(super) fn group_selection(&self, key: &str) -> CanvasSelection {
@@ -320,6 +412,7 @@ impl ChiploadApp {
             Some(PanelAction::RemoveDxf(dxf)) => {
                 self.remove_dxf(dxf);
             }
+            Some(PanelAction::ExplodeDxf(dxf)) => self.ask_explode(dxf),
             Some(PanelAction::EditImage(image)) => {
                 self.focus = Focus::Image(image);
                 self.edit_image(image);
@@ -418,6 +511,13 @@ impl ChiploadApp {
                     }
                     if ui.button(t!(ui, "sources-update-from-path")).clicked() {
                         *action = Some(PanelAction::UpdatePath(dxf));
+                    }
+                    if ui
+                        .button(t!(ui, "sources-explode"))
+                        .on_hover_text(t!(ui, "sources-explode-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::ExplodeDxf(dxf));
                     }
                     ui.separator();
                     if ui

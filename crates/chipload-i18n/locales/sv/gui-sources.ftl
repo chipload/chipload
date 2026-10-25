@@ -49,3 +49,7 @@ sources-remove-text-hover = Ta bort texten och dess bokstäver
 sources-project-incomplete = Projektet är inte komplett:
 # Followed by the error on its own line.
 sources-remove-dxf-failed = Kunde inte ta bort DXF:en:
+sources-explode = Bryt upp i former…
+sources-explode-hover = Gör om denna DXF:s former till ritade former som du kan ändra; kopplingen till DXF-filen försvinner
+sources-explode-failed = Kunde inte bryta upp DXF:en:
+sources-join-failed = Kunde inte foga ihop formerna:

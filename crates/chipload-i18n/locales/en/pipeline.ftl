@@ -398,3 +398,40 @@ pipeline-box-no-corner = a box has no corner { $corner }
 # One of several G-code files: $name is its file name, $operations the numbers of the
 # operations it cuts ("1, 3").
 pipeline-gcode-file = { $name } (tool { $tool }, operations { $operations })
+
+## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
+
+pipeline-dxf-exploded = Exploded DXF { $id } "{ $name }" into { $count } drawn { $count ->
+    [one] shape
+   *[other] shapes
+}. The project no longer knows the DXF file.
+# $shapes shape numbers ("S3, S4"); $tolerance a length.
+pipeline-explode-split = { $count ->
+    [one] Shape { $shapes } was in pieces that don't meet: each piece is a shape now.
+   *[other] Shapes { $shapes } were in pieces that don't meet: each piece is a shape now.
+}
+pipeline-explode-circle-start = { $count ->
+    [one] Circle { $shapes } now starts at its right-hand point, counter-clockwise, as drawn circles do: its cut may start elsewhere on it.
+   *[other] Circles { $shapes } now start at their right-hand points, counter-clockwise, as drawn circles do: their cuts may start elsewhere on them.
+}
+pipeline-explode-dropped = { $count ->
+    [one] Shape { $shapes } had only segments shorter than { $tolerance } and is gone.
+   *[other] Shapes { $shapes } had only segments shorter than { $tolerance } and are gone.
+}
+# $label is an operation's label.
+pipeline-explode-selects = { $label } now selects shapes { $shapes }.
+pipeline-explode-no-dxf = the project has no DXF to explode
+pipeline-explode-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to explode
+pipeline-join-gap-range = The gap must be { $least } to { $most }, got { $got }.
+pipeline-join-imported = Shape S{ $id } comes from a DXF: explode the DXF first.
+pipeline-join-none = No ends were joined (gap { $gap }).
+pipeline-joined = Joined { $pieces } shapes into { $count }, { $closed } of them closed; widest gap closed { $widest }.
+pipeline-joined-touching = Joined { $pieces } shapes into { $count }, { $closed } of them closed; their ends met.
+pipeline-join-open = { $count } { $count ->
+    [one] end stays
+   *[other] ends stay
+} open.
+# $at a point, $nearest a length.
+pipeline-join-open-end = The end at { $at }: the nearest other end is { $nearest } away.
+pipeline-join-open-alone = The end at { $at }: no other end on its layer.
+pipeline-join-branch = Three or more ends meet at { $at }: not joined there.
