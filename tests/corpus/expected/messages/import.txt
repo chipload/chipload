@@ -38,6 +38,72 @@ Contours (22):
   #22   open     layer upper            X 64.750 .. 64.750  Y 20.000 .. 50.000
 --- stderr
 
+$ chipload inspect tests/corpus/dxf/shared_edges.dxf
+exit 0
+--- stdout
+Units: mm (from dxf)
+Extents: X -0.078 .. 1208.714, Y -0.000 .. 802.500 (1208.792 x 802.500 mm)
+Imported: ARC 4, CIRCLE 27, LWPOLYLINE 28
+Issues (9):
+  [warning] Removed duplicate CIRCLE on layer 8mm (DC)
+  [warning] Removed duplicate CIRCLE on layer 8mm (DD)
+  [warning] Removed duplicate CIRCLE on layer 8mm (FA)
+  [warning] Removed duplicate CIRCLE on layer 15mm (103)
+  [warning] Removed duplicate CIRCLE on layer 15mm (104)
+  [warning] Removed duplicate CIRCLE on layer 15mm (105)
+  [warning] Removed duplicate CIRCLE on layer 15mm (106)
+  [warning] Removed duplicate CIRCLE on layer 15mm (107)
+  [warning] Removed duplicate CIRCLE on layer 15mm (108)
+Contours (47):
+  #1    outer    layer 15mm             X 258.714 .. 263.714  Y 487.090 .. 492.090
+  #2    outer    layer 15mm             X 249.714 .. 252.714  Y 288.500 .. 291.500
+  #3    outer    layer 15mm             X 269.714 .. 272.714  Y 288.500 .. 291.500
+  #4    outer    layer 15mm             X 258.714 .. 263.714  Y 757.090 .. 762.090
+  #5    outer    layer 15mm             X 249.714 .. 252.714  Y 558.500 .. 561.500
+  #6    outer    layer 15mm             X 269.714 .. 272.714  Y 558.500 .. 561.500
+  #7    hole     layer 8mm              X 703.578 .. 706.578  Y 353.500 .. 356.500
+  #8    outer    layer 8mm              X 853.578 .. 856.578  Y 353.500 .. 356.500
+  #9    hole     layer 8mm              X 1003.578 .. 1006.578  Y 353.500 .. 356.500
+  #10   hole     layer poche 3mm        X 1108.006 .. 1125.423  Y 612.905 .. 676.892
+  #11   hole     layer poche 7.5mm      X -0.078 .. 14.922  Y 24.167 .. 84.167
+  #12   hole     layer poche 7.5mm      X -0.078 .. 14.922  Y 168.333 .. 228.333
+  #13   hole     layer poche 7.5mm      X 314.922 .. 329.922  Y 24.167 .. 84.167
+  #14   hole     layer poche 7.5mm      X 314.922 .. 329.922  Y 168.333 .. 228.333
+  #15   hole     layer poche 7.5mm      X 224.922 .. 284.922  Y 230.000 .. 240.000
+  #16   hole     layer poche 7.5mm      X 44.922 .. 104.922  Y 230.000 .. 240.000
+  #17   hole     layer poche 7.5mm      X 655.078 .. 670.078  Y 168.333 .. 228.333
+  #18   hole     layer poche 7.5mm      X 565.078 .. 625.078  Y 230.000 .. 240.000
+  #19   hole     layer poche 7.5mm      X 385.078 .. 445.078  Y 230.000 .. 240.000
+  #20   hole     layer poche 7.5mm      X 340.078 .. 670.078  Y 21.000 .. 84.167
+  #21   hole     layer poche 7.5mm      X 340.078 .. 355.078  Y 168.333 .. 228.333
+  #22   hole     layer poche 7.5mm      X 211.214 .. 311.214  Y 510.000 .. 520.000
+  #23   hole     layer poche 7.5mm      X 255.224 .. 267.214  Y 483.592 .. 495.588
+  #24   hole     layer poche 7.5mm      X 246.214 .. 256.214  Y 285.010 .. 294.990
+  #25   hole     layer poche 7.5mm      X 266.214 .. 276.214  Y 285.010 .. 294.990
+  #26   hole     layer poche 7.5mm      X 211.214 .. 311.214  Y 780.000 .. 790.000
+  #27   hole     layer poche 7.5mm      X 255.224 .. 267.214  Y 753.592 .. 765.588
+  #28   hole     layer poche 7.5mm      X 246.214 .. 256.214  Y 555.010 .. 564.990
+  #29   hole     layer poche 7.5mm      X 266.214 .. 276.214  Y 555.010 .. 564.990
+  #30   hole     layer poche 7.5mm      X 3.714 .. 518.714  Y 301.000 .. 310.000
+  #31   hole     layer poche 7.5mm      X 3.714 .. 518.714  Y 571.000 .. 580.000
+  #32   hole     layer 8mm              X 703.422 .. 706.422  Y 423.500 .. 426.500
+  #33   outer    layer 8mm              X 853.422 .. 856.422  Y 423.500 .. 426.500
+  #34   hole     layer 8mm              X 1003.422 .. 1006.422  Y 423.500 .. 426.500
+  #35   outer    layer 8mm              X 690.078 .. 1020.078  Y 340.000 .. 400.000
+  #36   hole     layer 8mm              X 697.578 .. 1012.625  Y 361.000 .. 370.000
+  #37   outer    layer 8mm              X 689.922 .. 1019.922  Y 410.000 .. 470.000
+  #38   outer    layer 8mm              X 687.506 .. 1208.006  Y 488.375 .. 801.422
+  #39   hole     layer poche 3mm        X 840.078 .. 870.078  Y 340.000 .. 361.000
+  #40   hole     layer poche 3mm        X 840.078 .. 870.078  Y 370.000 .. 385.000
+  #41   hole     layer poche 3mm        X 839.922 .. 869.922  Y 410.000 .. 455.000
+  #42   outer    layer 10mm             X 693.714 .. 1208.714  Y 7.422 .. 322.422
+  #43   hole     layer 15mm             X 7.375 .. 322.422  Y 21.000 .. 30.000
+  #44   outer    layer 15mm             X -0.078 .. 329.922  Y -0.000 .. 260.000
+  #45   outer    layer 15mm             X 340.078 .. 670.078  Y -0.000 .. 260.000
+  #46   outer    layer 15mm             X 3.714 .. 518.714  Y 280.000 .. 532.500
+  #47   outer    layer 15mm             X 3.714 .. 518.714  Y 550.000 .. 802.500
+--- stderr
+
 $ chipload inspect tests/corpus/dxf/simple_part.dxf
 exit 0
 --- stdout

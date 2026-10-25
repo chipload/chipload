@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Chain primitives into contours.
 //!
-//! Endpoints within the chaining tolerance snap to shared nodes. Nodes with exactly two
-//! connections are joined; any other node ends a chain. A contour is closed only when it
-//! returns to its start and every node on it has exactly two connections.
+//! A shape whose segments follow each other and return to their start is a closed contour as
+//! drawn. Other segments chain per layer: endpoints within the chaining tolerance snap to
+//! shared nodes, nodes with exactly two connections are joined, and any other node ends a
+//! chain. Such a chain is closed only when it returns to its start and every node on it has
+//! exactly two connections (docs/specs/chaining-per-layer.md).
 
 use std::collections::BTreeMap;
 
@@ -162,6 +164,8 @@ struct Edge {
     segment: Segment,
     a: usize,
     b: usize,
+    /// The segment's index in the input, for drawing order.
+    index: usize,
 }
 
 struct Chain {
@@ -175,23 +179,222 @@ pub fn chain_segments(segments: &[Segment]) -> ChainResult {
 }
 
 /// Chain segments (in drawing order) into contours. Deterministic for a given input order.
+///
+/// A shape's segments (consecutive segments with the same `shape`) that follow each other
+/// and return to their start are a closed contour as drawn: never cut where other lines touch
+/// them, never joined to others. Everything else chains with the segments of its own layer
+/// only (docs/specs/chaining-per-layer.md).
 pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
     let zero_length: Vec<Segment> = segments
         .iter()
         .filter(|s| s.prim.length() < tol)
         .cloned()
         .collect();
-    let mut nodes = NodeIndex {
-        tol,
-        grid: BTreeMap::new(),
-        positions: Vec::new(),
-    };
-    let (edges, duplicates) = build_edges(
-        segments.iter().filter(|s| s.prim.length() >= tol),
-        &mut nodes,
-        tol,
-    );
+    let kept: Vec<(usize, &Segment)> = segments
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.prim.length() >= tol)
+        .collect();
+    let (closed, loose): (Vec<Run>, Vec<Run>) = shape_runs(&kept)
+        .into_iter()
+        .partition(|run| closes_as_drawn(run, tol));
 
+    let mut layers: BTreeMap<String, LayerGraph> = BTreeMap::new();
+    let mut duplicates: Vec<(usize, Segment)> = Vec::new();
+    // (first segment's index in the input, parts, closed)
+    let mut found: Vec<(usize, Vec<OrientedSegment>, bool)> = Vec::new();
+    for run in closed {
+        let Some(&(first, segment)) = run.first() else {
+            continue;
+        };
+        let graph = layer_graph(&mut layers, &segment.layer, tol);
+        let keys: Vec<EdgeKey> = run.iter().map(|(_, s)| graph.key(s)).collect();
+        if keys.iter().all(|k| graph.known(k)) {
+            duplicates.extend(run.iter().map(|&(i, s)| (i, s.clone())));
+            continue;
+        }
+        for key in keys {
+            graph.remember(key);
+        }
+        let parts = run
+            .iter()
+            .map(|(_, s)| OrientedSegment {
+                segment: (*s).clone(),
+                reversed: false,
+            })
+            .collect();
+        found.push((first, parts, true));
+    }
+    for &(index, segment) in loose.iter().flat_map(|run| run.iter()) {
+        let graph = layer_graph(&mut layers, &segment.layer, tol);
+        let key = graph.key(segment);
+        if graph.known(&key) {
+            duplicates.push((index, segment.clone()));
+            continue;
+        }
+        let (a, b) = (key.a, key.b);
+        graph.remember(key);
+        graph.edges.push(Edge {
+            segment: segment.clone(),
+            a,
+            b,
+            index,
+        });
+    }
+
+    let mut branch_points = Vec::new();
+    for graph in layers.values() {
+        let (chains, branches) = chain_edges(&graph.edges);
+        branch_points.extend(branches.into_iter().map(|n| graph.nodes.positions[n]));
+        for chain in chains {
+            let first = chain
+                .edges
+                .iter()
+                .map(|&e| graph.edges[e].index)
+                .min()
+                .unwrap_or(usize::MAX);
+            let parts = chain
+                .edges
+                .iter()
+                .zip(&chain.reversed)
+                .map(|(&e, &rev)| OrientedSegment {
+                    segment: graph.edges[e].segment.clone(),
+                    reversed: rev,
+                })
+                .collect();
+            found.push((first, parts, chain.closed));
+        }
+    }
+    found.sort_by_key(|(first, _, _)| *first);
+    duplicates.sort_by_key(|(index, _)| *index);
+
+    let contours = found
+        .into_iter()
+        .enumerate()
+        .map(|(i, (_, parts, closed))| Contour {
+            id: i + 1,
+            parts,
+            closed,
+            invalid_reason: None,
+            nesting_depth: None,
+        })
+        .collect();
+    ChainResult {
+        contours,
+        zero_length,
+        duplicates: duplicates.into_iter().map(|(_, s)| s).collect(),
+        branch_points,
+    }
+}
+
+/// Segments with their index in the input.
+type Run<'a, 's> = &'a [(usize, &'s Segment)];
+
+/// The segments in runs: a shape's consecutive segments together, a segment without a shape
+/// alone.
+fn shape_runs<'a, 's>(kept: Run<'a, 's>) -> Vec<Run<'a, 's>> {
+    let mut runs = Vec::new();
+    let mut start = 0;
+    for i in 1..=kept.len() {
+        let same =
+            i < kept.len() && kept[i].1.shape.is_some() && kept[i].1.shape == kept[start].1.shape;
+        if !same {
+            runs.push(&kept[start..i]);
+            start = i;
+        }
+    }
+    runs
+}
+
+/// Whether a shape's segments follow each other and end where they start, with no segment
+/// drawn twice: a closed contour as drawn.
+fn closes_as_drawn(run: &[(usize, &Segment)], tol: f64) -> bool {
+    let (Some(first), Some(last)) = (run.first(), run.last()) else {
+        return false;
+    };
+    if first.1.shape.is_none() || distance(last.1.prim.end(), first.1.prim.start()) > tol {
+        return false;
+    }
+    let follows = run
+        .windows(2)
+        .all(|w| distance(w[0].1.prim.end(), w[1].1.prim.start()) <= tol);
+    let mut seen = LayerGraph::new(tol);
+    let twice = run.iter().any(|(_, s)| {
+        let key = seen.key(s);
+        let known = seen.known(&key);
+        seen.remember(key);
+        known
+    });
+    follows && !twice
+}
+
+/// One layer's nodes and edges.
+struct LayerGraph {
+    nodes: NodeIndex,
+    /// The midpoints of the segments between two nodes, to find duplicates.
+    between: BTreeMap<(usize, usize), Vec<Point>>,
+    /// Loose segments, to chain.
+    edges: Vec<Edge>,
+}
+
+/// A segment's two nodes and its midpoint.
+struct EdgeKey {
+    a: usize,
+    b: usize,
+    mid: Point,
+}
+
+impl LayerGraph {
+    fn new(tol: f64) -> Self {
+        LayerGraph {
+            nodes: NodeIndex {
+                tol,
+                grid: BTreeMap::new(),
+                positions: Vec::new(),
+            },
+            between: BTreeMap::new(),
+            edges: Vec::new(),
+        }
+    }
+
+    fn key(&mut self, segment: &Segment) -> EdgeKey {
+        EdgeKey {
+            a: self.nodes.node_for(segment.prim.start()),
+            b: self.nodes.node_for(segment.prim.end()),
+            mid: segment.prim.midpoint(),
+        }
+    }
+
+    /// The same nodes and the same midpoint as a segment already here.
+    fn known(&self, key: &EdgeKey) -> bool {
+        self.between
+            .get(&(key.a.min(key.b), key.a.max(key.b)))
+            .into_iter()
+            .flatten()
+            .any(|&mid| distance(mid, key.mid) <= self.nodes.tol)
+    }
+
+    fn remember(&mut self, key: EdgeKey) {
+        self.between
+            .entry((key.a.min(key.b), key.a.max(key.b)))
+            .or_default()
+            .push(key.mid);
+    }
+}
+
+/// The graph of a layer; layers are compared ignoring case, as selectors compare them.
+fn layer_graph<'a>(
+    layers: &'a mut BTreeMap<String, LayerGraph>,
+    layer: &str,
+    tol: f64,
+) -> &'a mut LayerGraph {
+    layers
+        .entry(layer.to_lowercase())
+        .or_insert_with(|| LayerGraph::new(tol))
+}
+
+/// Chain one layer's loose edges; also the nodes where more than two meet.
+fn chain_edges(edges: &[Edge]) -> (Vec<Chain>, Vec<usize>) {
     let mut adjacency: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for (i, edge) in edges.iter().enumerate() {
         adjacency.entry(edge.a).or_default().push(i);
@@ -207,81 +410,22 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
         }
         for &edge in incident {
             if !visited[edge] {
-                chains.push(walk(&edges, &adjacency, &mut visited, edge, node));
+                chains.push(walk(edges, &adjacency, &mut visited, edge, node));
             }
         }
     }
     // Whatever is left only touches degree-2 nodes, so it forms closed loops.
     for edge in 0..edges.len() {
         if !visited[edge] {
-            chains.push(walk(&edges, &adjacency, &mut visited, edge, edges[edge].a));
+            chains.push(walk(edges, &adjacency, &mut visited, edge, edges[edge].a));
         }
     }
-    chains.sort_by_key(|c| c.edges.iter().copied().min().unwrap_or(usize::MAX));
-
-    let contours = chains
-        .into_iter()
-        .enumerate()
-        .map(|(i, chain)| Contour {
-            id: i + 1,
-            parts: chain
-                .edges
-                .iter()
-                .zip(&chain.reversed)
-                .map(|(&e, &rev)| OrientedSegment {
-                    segment: edges[e].segment.clone(),
-                    reversed: rev,
-                })
-                .collect(),
-            closed: chain.closed,
-            invalid_reason: None,
-            nesting_depth: None,
-        })
-        .collect();
-    let branch_points = adjacency
+    let branches = adjacency
         .iter()
         .filter(|(_, incident)| incident.len() > 2)
-        .map(|(&n, _)| nodes.positions[n])
+        .map(|(&n, _)| n)
         .collect();
-    ChainResult {
-        contours,
-        zero_length,
-        duplicates,
-        branch_points,
-    }
-}
-
-/// Snap endpoints to nodes and drop duplicates (same nodes and same midpoint).
-fn build_edges<'a>(
-    segments: impl Iterator<Item = &'a Segment>,
-    nodes: &mut NodeIndex,
-    tol: f64,
-) -> (Vec<Edge>, Vec<Segment>) {
-    let mut edges: Vec<Edge> = Vec::new();
-    let mut duplicates = Vec::new();
-    let mut by_nodes: BTreeMap<(usize, usize), Vec<usize>> = BTreeMap::new();
-    for segment in segments {
-        let a = nodes.node_for(segment.prim.start());
-        let b = nodes.node_for(segment.prim.end());
-        let key = (a.min(b), a.max(b));
-        let mid = segment.prim.midpoint();
-        let same = by_nodes
-            .get(&key)
-            .into_iter()
-            .flatten()
-            .any(|&other| distance(edges[other].segment.prim.midpoint(), mid) <= tol);
-        if same {
-            duplicates.push(segment.clone());
-            continue;
-        }
-        by_nodes.entry(key).or_default().push(edges.len());
-        edges.push(Edge {
-            segment: segment.clone(),
-            a,
-            b,
-        });
-    }
-    (edges, duplicates)
+    (chains, branches)
 }
 
 fn walk(

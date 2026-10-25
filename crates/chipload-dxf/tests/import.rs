@@ -121,3 +121,20 @@ fn a_coordinate_too_large_skips_its_entity_with_a_warning() {
     // The other two polylines import as usual.
     assert_eq!(result.contours.len(), 2);
 }
+
+#[test]
+fn pockets_drawn_against_the_outline_on_another_layer_stay_closed() {
+    // A user's drawing (2026-10-25): pockets on "poche 7.5mm" share edges and corners with
+    // the outline on "15mm"; every one is a closed polyline (docs/specs/chaining-per-layer.md).
+    let result = import_dxf(&corpus("shared_edges.dxf"), None).unwrap();
+    assert!(result.contours.iter().all(|c| c.closed));
+    assert_eq!(result.contours.len(), 47);
+    // Only the circles that really are drawn twice on one layer.
+    assert_eq!(codes(&result), ["duplicate"; 9]);
+    let slot = result
+        .contours
+        .iter()
+        .find(|c| c.layers() == ["poche 3mm"] && c.parts.len() == 4)
+        .unwrap();
+    assert!(slot.closed);
+}

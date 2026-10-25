@@ -18,7 +18,11 @@ shows what Chipload sees in a DXF without making a project.
 - **Not supported:** DWG files. Save as DXF in your CAD program.
 - **Layers** are kept, and you can select by them: right-click a shape on the canvas
   selects its whole layer. In DXF, layer names don't care about upper or lower case.
-- **Joining:** pieces whose ends meet (within 0.001 mm) are joined into **contours**:
+- **Closed shapes are read as drawn:** a closed polyline, a circle or a closed spline is one
+  closed contour, even where other shapes touch it or share its edges. A pocket drawn
+  against the part's outline leaves both whole.
+- **Joining:** loose lines and arcs whose ends meet (within 0.001 mm) are joined into
+  **contours**, only with others on the same layer:
   - **closed**, for profiles, pockets and V-carving;
   - **open**, for follow path; profiles and pockets skip them with a note.
 - **Outer and hole:** each closed contour is an *outer* (outline) or a *hole* (inside
@@ -33,13 +37,13 @@ without saying so. The report under the canvas (and from `inspect`) lists:
 
 | Issue | Meaning |
 |---|---|
-| `duplicate` | a line or arc drawn twice on top of itself; one is kept |
+| `duplicate` | a line, arc or shape drawn twice on top of itself on the same layer; one is kept. On different layers both are kept |
 | `zero_length` | a line or arc of no length; left out |
 | `nonzero_z` | the drawing has Z values (3D); they are ignored, the drawing is read flat |
 | `entity_skipped` | an entity Chipload doesn't read (text, dimensions, hatches, …), or one with a coordinate beyond 1 km or not a number, which only a broken file has |
 | `block_depth` | blocks nested too deep; the inner ones are skipped |
 | `open_contour` | a contour that doesn't close: profiles and pockets skip it |
-| `branch_point` | three or more lines meet at a point, so the contour's path is ambiguous |
+| `branch_point` | three or more loose lines on one layer meet at a point, so the contour's path is ambiguous |
 | `invalid_contour` | a closed contour that crosses or folds back on itself: it can't be cut until fixed |
 | `units_chosen` | the DXF didn't say its units; this records your choice |
 

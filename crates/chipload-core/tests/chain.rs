@@ -155,3 +155,130 @@ fn coordinates_at_the_edge_of_the_grid_dont_overflow() {
     let result = chain_segments(&[line((far, far), (far, 0.0)), line((0.0, 0.0), (1.0, 0.0))]);
     assert_eq!(result.contours.len(), 2);
 }
+
+/// A square drawn as one shape (a closed polyline) on `layer`, its lower-left corner at
+/// (x, 0).
+fn shape_square(id: u64, layer: &str, x: f64, size: f64) -> Vec<Segment> {
+    let p = [(x, 0.0), (x + size, 0.0), (x + size, size), (x, size)];
+    (0..4)
+        .map(|i| Segment {
+            layer: layer.into(),
+            shape: Some(id),
+            ..line(p[i], p[(i + 1) % 4])
+        })
+        .collect()
+}
+
+fn on(layer: &str, segment: Segment) -> Segment {
+    Segment {
+        layer: layer.into(),
+        ..segment
+    }
+}
+
+#[test]
+fn closed_shapes_sharing_an_edge_stay_closed_on_any_layers() {
+    // The user's drawing (2026-10-25): a pocket drawn against the outline.
+    for second in ["outline", "pocket"] {
+        let mut s = shape_square(1, "outline", 0.0, 10.0);
+        s.extend(shape_square(2, second, 10.0, 5.0));
+        let result = chain_segments(&s);
+        assert_eq!(closed_flags(&s), [true, true], "{second}");
+        assert!(result.duplicates.is_empty(), "{second}");
+        assert!(result.branch_points.is_empty(), "{second}");
+    }
+}
+
+#[test]
+fn a_closed_shape_on_top_of_another_on_the_same_layer_is_a_duplicate() {
+    let mut s = shape_square(1, "a", 0.0, 10.0);
+    s.extend(shape_square(2, "a", 0.0, 10.0));
+    let result = chain_segments(&s);
+    assert_eq!(result.contours.len(), 1);
+    assert_eq!(result.duplicates.len(), 4);
+
+    let mut s = shape_square(1, "a", 0.0, 10.0);
+    s.extend(shape_square(2, "b", 0.0, 10.0));
+    let result = chain_segments(&s);
+    assert_eq!(result.contours.len(), 2);
+    assert!(result.duplicates.is_empty());
+}
+
+#[test]
+fn a_line_touching_a_closed_shape_is_its_own_contour() {
+    let mut s = vec![on("a", line((20.0, 20.0), (10.0, 10.0)))];
+    s.extend(shape_square(1, "a", 0.0, 10.0));
+    let result = chain_segments(&s);
+    assert!(result.branch_points.is_empty());
+    assert_eq!(
+        result.contours.iter().map(|c| c.closed).collect::<Vec<_>>(),
+        [false, true]
+    );
+    // A loose line on the square's edge is the duplicate; the square stays whole.
+    let mut s = vec![on("a", line((10.0, 0.0), (0.0, 0.0)))];
+    s.extend(shape_square(1, "a", 0.0, 10.0));
+    let result = chain_segments(&s);
+    assert_eq!(result.duplicates.len(), 1);
+    assert_eq!(closed_flags(&s), [true]);
+}
+
+#[test]
+fn loose_lines_chain_only_within_their_layer() {
+    let s = [
+        on("a", line((0.0, 0.0), (10.0, 0.0))),
+        on("b", line((10.0, 0.0), (10.0, 10.0))),
+        on("A", line((10.0, 0.0), (20.0, 5.0))),
+    ];
+    let result = chain_segments(&s);
+    // Layers compare ignoring case: "a" and "A" chain, "b" stays apart.
+    assert_eq!(result.contours.len(), 2);
+    assert_eq!(result.contours[0].parts.len(), 2);
+    assert_eq!(result.contours[1].layers(), ["b"]);
+    assert!(result.duplicates.is_empty() && result.branch_points.is_empty());
+}
+
+#[test]
+fn a_shape_that_goes_back_on_itself_chains_as_loose_lines() {
+    let there = Segment {
+        shape: Some(1),
+        ..line((0.0, 0.0), (10.0, 0.0))
+    };
+    let back = Segment {
+        shape: Some(1),
+        ..line((10.0, 0.0), (0.0, 0.0))
+    };
+    let result = chain_segments(&[there, back.clone()]);
+    assert_eq!(result.duplicates, [back]);
+    assert_eq!(result.contours.len(), 1);
+    assert!(!result.contours[0].closed);
+}
+
+mod properties {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// Closed shapes stay closed contours, in drawing order, whatever touches them and in
+        /// whatever order they come.
+        #[test]
+        fn closed_shapes_stay_closed(
+            squares in prop::collection::vec((0..6i32, 1..4i32, 0..2usize), 1..8),
+        ) {
+            let mut s = Vec::new();
+            for (i, (x, size, layer)) in squares.iter().enumerate() {
+                s.extend(shape_square(
+                    i as u64 + 1,
+                    ["a", "b"][*layer],
+                    f64::from(*x) * 2.0,
+                    f64::from(*size) * 2.0,
+                ));
+            }
+            let result = chain_segments(&s);
+            prop_assert!(result.contours.iter().all(|c| c.closed));
+            prop_assert_eq!(
+                result.contours.len() + result.duplicates.len() / 4,
+                squares.len()
+            );
+        }
+    }
+}

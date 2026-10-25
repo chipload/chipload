@@ -99,6 +99,13 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Closed shapes as drawn, chaining per layer** (2026-10-25,
+  docs/specs/chaining-per-layer.md), a user's DXF with pockets drawn against the outline
+  on another layer: closed polylines and circles are contours as drawn, loose lines chain
+  and are de-duplicated only within their layer. The user's file is in the corpus
+  (`tests/corpus/dxf/shared_edges.dxf`, with their consent).
+- **Explode kept a half circle a hair over π** (2026-10-25, found with the same file): its
+  bulge came out just over 1 and the shape was dropped as "too short"; clamped to ±1.
 - **French: *Contour* for the profile operation everywhere** (2026-10-25, the user):
   *contournage* became *contour* in every French text (21 lines) and the glossary.
 - **Move, turn and size drawn shapes; drawn shapes in the Browser, with names**

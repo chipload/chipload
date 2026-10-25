@@ -7,7 +7,7 @@
 | Asked for mm or inch | The DXF doesn't record its units. Choose the ones it was drawn in. In CAD, set the drawing units (`$INSUNITS`) before exporting. |
 | `invalid_contour`: a contour crosses or folds back on itself | Fix it in CAD: a closed contour must not cross itself. Often a line drawn twice with a tiny offset, or a polyline that doubles back. |
 | `open_contour` on a shape that should be closed | Its ends don't meet within 0.001 mm. Join them in CAD (snap the end points), or use [Follow path](operations/path.md) if it really is a line. |
-| `branch_point` | Three or more lines meet at one point, so Chipload can't tell which way a contour goes. Remove the extra line in CAD. |
+| `branch_point` | Three or more loose lines on one layer meet at one point, so Chipload can't tell which way a contour goes. Remove the extra line in CAD, or draw the shape as one closed polyline. |
 | Text is missing | TEXT entities aren't read. Convert text to outlines (curves) in CAD. |
 | A DWG file | Not supported. Save it as DXF. |
 
