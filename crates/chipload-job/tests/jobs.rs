@@ -2063,3 +2063,36 @@ fn a_surface_is_saved_and_loaded_without_a_selector() {
     let err = parse_job(data, "p").unwrap_err().to_string();
     assert!(err.contains("select"), "{err}");
 }
+
+/// A drawn shape's name is kept, and left out of the file when there is none; an empty
+/// one, or one on an imported shape, is refused (docs/specs/drawn-shapes-box.md §4).
+#[test]
+fn a_drawn_shapes_name_round_trips() {
+    let dir = temp_dir("shape-name");
+    let mut job = load_job(&corpus().join("v5/drawn_part.chipload")).unwrap();
+    job.drawing.shapes[2].name = Some("Lid".into());
+    let path = dir.join("named.chipload");
+    chipload_job::save_job(&job, &path).unwrap();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert_eq!(text.matches("\"name\": \"Lid\"").count(), 1, "{text}");
+    let back = load_job(&path).unwrap();
+    assert_eq!(back.drawing.shapes[2].name.as_deref(), Some("Lid"));
+    assert_eq!(back.drawing.shapes[0].name, None);
+
+    job.drawing.shapes[2].name = Some("  ".into());
+    let problems = job.drawing.validate();
+    assert!(
+        problems.iter().any(|p| p.path == "drawing.shapes.2.name"),
+        "{problems:?}"
+    );
+
+    let mut raw = raw("v5/drawn_part.chipload");
+    raw["drawing"]["shapes"][0]["name"] = "box".into();
+    let mut imported = raw.clone();
+    imported["drawing"]["shapes"][0]["kind"] = "path".into();
+    let path = dir.join("raw.chipload");
+    std::fs::write(&path, raw.to_string()).unwrap();
+    assert!(load_job(&path).is_ok());
+    std::fs::write(&path, imported.to_string()).unwrap();
+    assert!(load_job(&path).is_err());
+}

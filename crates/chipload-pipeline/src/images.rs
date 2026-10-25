@@ -200,6 +200,7 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
         out.drawing.shapes.push(Shape {
             id: shape_id,
             layer: image.layer.clone(),
+            name: None,
             geometry: Geometry::Path {
                 dxf_handle: None,
                 dxf_type: None,

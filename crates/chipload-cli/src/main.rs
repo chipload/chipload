@@ -35,7 +35,8 @@ use chipload_pipeline::report::{
     format_contours, format_import_report, format_shapes, severity_name,
 };
 use chipload_pipeline::shapes::{
-    add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, set_shape, transform_shapes,
+    add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, name_shape, set_shape,
+    transform_shapes,
 };
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
@@ -770,6 +771,9 @@ struct ShapeValues {
     closed: bool,
     #[arg(long)]
     layer: Option<String>,
+    /// Its name in the Browser; "" takes the name away.
+    #[arg(long)]
+    name: Option<String>,
 }
 
 /// A language the setup sheet can be written in (docs/specs/translations.md step 3).
@@ -1556,7 +1560,11 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             .map_err(|e| PipelineError::Job(foreign_text(e)))
             .and_then(|geometry| {
                 let layer = values.layer.as_deref().unwrap_or("0");
-                add_shape(&job, layer, geometry)
+                let (job, id) = add_shape(&job, layer, geometry)?;
+                match &values.name {
+                    Some(name) => name_shape(&job, id, name).map(|job| (job, id)),
+                    None => Ok((job, id)),
+                }
             })
             .map(|(job, id)| {
                 new_ids = Some(vec![id]);
@@ -1572,7 +1580,11 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 let geometry = changed_geometry(&shape.geometry, &values)
                     .map_err(|e| PipelineError::Job(foreign_text(e)))?;
                 let layer = values.layer.clone().unwrap_or_else(|| shape.layer.clone());
-                set_shape(&job, id, &layer, geometry)
+                let job = set_shape(&job, id, &layer, geometry)?;
+                match &values.name {
+                    Some(name) => name_shape(&job, id, name),
+                    None => Ok(job),
+                }
             })
             .map(|job| (job, vec![format!("Changed shape S{id}.")])),
         ShapeAction::Remove { id, .. } => delete_shape(&job, id).map(|(job, flagged)| {

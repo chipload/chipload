@@ -51,3 +51,5 @@ shape-form-turn-ccw-hover = Un quart de tour dans le sens anti-horaire autour du
 shape-form-turn-cw-hover = Un quart de tour dans le sens horaire autour du milieu de son cadre
 shape-form-turn-by = de{" "}
 shape-form-turn-by-hover = Saisissez un angle et appuyez sur Entrée pour la tourner d'autant (sens anti-horaire ; négatif : sens horaire)
+shape-form-name = Nom
+shape-form-name-hover = Son nom dans le Navigateur ; vide : affichée par son numéro

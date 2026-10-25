@@ -564,6 +564,7 @@ mod tests {
         let shape = Shape {
             id: 1,
             layer: String::new(),
+            name: None,
             geometry: start.clone(),
         };
         let PathSegment::Arc(arc) = shape.segments()[1] else {
@@ -603,6 +604,7 @@ mod tests {
         let before = Shape {
             id: 1,
             layer: String::new(),
+            name: None,
             geometry: g.clone(),
         }
         .segments();
@@ -610,6 +612,7 @@ mod tests {
         let after = Shape {
             id: 1,
             layer: String::new(),
+            name: None,
             geometry: g.clone(),
         }
         .segments();

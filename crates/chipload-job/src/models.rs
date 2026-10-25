@@ -586,6 +586,9 @@ impl Text {
 pub struct Shape {
     pub id: u64,
     pub layer: String,
+    /// A drawn shape's name in the Browser; None: shown by its id
+    /// (docs/specs/drawn-shapes-box.md §4).
+    pub name: Option<String>,
     pub geometry: Geometry,
 }
 
@@ -862,6 +865,9 @@ struct RawShape {
     id: u64,
     /// Its layer.
     layer: String,
+    /// circle, rectangle, polyline: its name in the Browser; left out when it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
     /// `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`,
     /// `polyline`.
     kind: ShapeKind,
@@ -919,6 +925,7 @@ impl RawShape {
         RawShape {
             id,
             layer,
+            name: None,
             kind,
             dxf_handle: None,
             dxf_type: None,
@@ -941,6 +948,7 @@ impl RawShape {
     /// Names of the fields that are set, for "not allowed for this kind" messages.
     fn present(&self) -> Vec<&'static str> {
         [
+            ("name", self.name.is_some()),
             ("dxf_handle", self.dxf_handle.is_some()),
             ("dxf_type", self.dxf_type.is_some()),
             ("image", self.image.is_some()),
@@ -972,6 +980,7 @@ impl From<Shape> for RawShape {
             Geometry::Polyline { .. } => ShapeKind::Polyline,
         };
         let mut raw = RawShape::empty(shape.id, shape.layer, kind);
+        raw.name = shape.name;
         match shape.geometry {
             Geometry::Path {
                 dxf_handle,
@@ -1036,9 +1045,16 @@ impl TryFrom<RawShape> for Shape {
                 "closed",
                 "segments",
             ],
-            ShapeKind::Circle => &["center", "radius"],
-            ShapeKind::Rectangle => &["center", "length", "width", "angle", "corner_radius"],
-            ShapeKind::Polyline => &["closed", "points", "bulges"],
+            ShapeKind::Circle => &["name", "center", "radius"],
+            ShapeKind::Rectangle => &[
+                "name",
+                "center",
+                "length",
+                "width",
+                "angle",
+                "corner_radius",
+            ],
+            ShapeKind::Polyline => &["name", "closed", "points", "bulges"],
         };
         let name = RawShape::from_kind_name(kind);
         if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
@@ -1085,6 +1101,7 @@ impl TryFrom<RawShape> for Shape {
         Ok(Shape {
             id: raw.id,
             layer: raw.layer,
+            name: raw.name,
             geometry,
         })
     }
@@ -2755,6 +2772,13 @@ impl Drawing {
                     .arg("problem", p.text_message);
                 Problem::new(format!("{at}.{}", p.path), p.short_message, text)
             }));
+            // No name is None, never "" (docs/specs/drawn-shapes-box.md §4).
+            if shape.name.as_ref().is_some_and(|n| n.trim().is_empty()) {
+                problems.push(Problem::at(
+                    format!("{at}.name"),
+                    Message::new("job-must-not-be-empty"),
+                ));
+            }
             if let Some(image) = shape.image()
                 && !self.images.iter().any(|i| i.id == image)
             {
@@ -3628,6 +3652,7 @@ mod tests {
         Shape {
             id: 1,
             layer: "0".into(),
+            name: None,
             geometry,
         }
     }

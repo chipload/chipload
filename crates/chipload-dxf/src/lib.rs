@@ -293,6 +293,7 @@ pub fn shapes_from_drawing_scaled(
         .map(|(i, (layer, handle, dxf_type, segments))| Shape {
             id: i as u64 + 1,
             layer,
+            name: None,
             geometry: Geometry::Path {
                 dxf_handle: Some(handle),
                 dxf_type: Some(dxf_type),

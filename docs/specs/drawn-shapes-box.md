@@ -69,7 +69,8 @@ Nothing new is stored: a polyline is its points (decision 2).
   (`--name ""` clears it). Trimmed; an empty name is no name. Not unique: two shapes may share
   one. Imported shapes have none (a DXF can be exploded first). Shown in the Browser, the
   Selection section and `inspect`; not on the canvas.
-- Copies get the original's name; exploding gives none.
+- Copies start without a name (as built: the copy and paste clipboard carries layer and
+  geometry only, and two shapes with one name would only confuse); exploding gives none.
 
 ## 5. Decisions (approved as recommended)
 
@@ -96,3 +97,18 @@ Nothing new is stored: a polyline is its points (decision 2).
   circle; a move drag moves the shapes by the drag, one undo step; Position and Turn by.
 - Step 3: names round-trip through save and load; `--name ""` clears; the Browser rows
   select their shape.
+
+## 7. As built (2026-10-25)
+
+- Step 1: `chipload_job::edit::transformed`, `chipload_pipeline::shapes::{transform_shapes,
+  drawn_box, drawn_middle}`; the GUI's box (`box_drag.rs`, `BoxOf::Shapes`). A size drag
+  scales about the shapes' own opposite corner: the handle's stand-off is taken off the
+  cursor first, so the shapes' corner stays exactly where it was. The box is checked to
+  keep at least 1 mm along the shapes' longer side, so a straight line can be scaled.
+- Step 2: `shape_form::place_rows` (Position, Turn) in a polyline's form and, for several
+  drawn shapes, in the Selection section.
+- Step 3: `Shape::name` (optional, `name` in the file for circles, rectangles and
+  polylines; refused on a path; an empty or blank one is a problem), `shapes::name_shape`,
+  `shape add/set --name`, `inspect` ends a named shape's line with `name "…"`. The Browser
+  lists drawn shapes per layer (`Group::members`); the name field keeps what is typed while
+  it has the keyboard and stores it trimmed.

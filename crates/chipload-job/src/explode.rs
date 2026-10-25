@@ -581,6 +581,7 @@ mod tests {
         let shape = crate::models::Shape {
             id: 1,
             layer: "0".into(),
+            name: None,
             geometry: drawn[0].clone(),
         };
         same_path(&shape.segments(), &path, 1e-9);
@@ -598,6 +599,7 @@ mod tests {
         let shape = crate::models::Shape {
             id: 1,
             layer: "0".into(),
+            name: None,
             geometry: drawn[0].clone(),
         };
         let segments = shape.segments();

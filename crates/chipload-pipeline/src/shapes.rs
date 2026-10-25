@@ -29,6 +29,7 @@ pub fn add_shape(job: &Job, layer: &str, geometry: Geometry) -> Result<(Job, u64
     out.drawing.shapes.push(Shape {
         id,
         layer: layer.to_string(),
+        name: None,
         geometry,
     });
     checked(out).map(|job| (job, id))
@@ -53,6 +54,16 @@ pub fn set_shape(
     }
     shape.layer = layer.to_string();
     shape.geometry = geometry;
+    checked(out)
+}
+
+/// Name drawn shape `id` (docs/specs/drawn-shapes-box.md §4): trimmed; an empty name
+/// takes its name away.
+pub fn name_shape(job: &Job, id: u64, name: &str) -> Result<Job, PipelineError> {
+    let mut out = job.clone();
+    let shape = drawn_mut(&mut out, id)?;
+    let name = name.trim();
+    shape.name = (!name.is_empty()).then(|| name.to_string());
     checked(out)
 }
 
@@ -185,6 +196,7 @@ pub fn clipboard_text(shapes: &[(String, Geometry)]) -> String {
         .map(|((layer, geometry), id)| Shape {
             id,
             layer: layer.clone(),
+            name: None,
             geometry: geometry.clone(),
         })
         .collect();
@@ -224,6 +236,7 @@ fn add_moved(
         out.drawing.shapes.push(Shape {
             id,
             layer: layer.clone(),
+            name: None,
             geometry,
         });
         new_ids.push(id);

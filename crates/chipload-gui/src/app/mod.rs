@@ -327,6 +327,8 @@ pub struct ChiploadApp {
     shape_clipboard: Vec<(String, Geometry)>,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
+    /// The shape's name field takes the keyboard next frame (Browser: Rename…).
+    grab_shape_name: bool,
     /// What the pointer is dragging on the canvas, and where it snaps.
     drag: Drag,
     /// The selected picture's or text's box size, worked out once (box handles).
@@ -447,6 +449,7 @@ impl Default for ChiploadApp {
             measure: None,
             shape_clipboard: Vec::new(),
             shape_draft: None,
+            grab_shape_name: false,
             drag: Drag::default(),
             box_size: box_drag::BoxSize::default(),
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),

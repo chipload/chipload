@@ -162,6 +162,7 @@ fn polyline(id: u64, layer: &str, points: Vec<[f64; 2]>) -> Shape {
     Shape {
         id,
         layer: layer.into(),
+        name: None,
         geometry: Geometry::straight_polyline(false, points),
     }
 }

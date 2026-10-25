@@ -158,6 +158,7 @@ fn a_drawn_polyline_with_bulges_gives_the_segments_of_the_same_lwpolyline() {
     let drawn = chipload_job::Shape {
         id: 1,
         layer: "CUT".into(),
+        name: None,
         geometry: chipload_job::Geometry::Polyline {
             closed: true,
             points: vertices.iter().map(|&(x, y, _)| [x, y]).collect(),
@@ -615,6 +616,7 @@ fn a_drawn_circle_is_exactly_an_imported_circle() {
     let drawn = chipload_job::Shape {
         id: 2,
         layer: "0".into(),
+        name: None,
         geometry: chipload_job::Geometry::Circle {
             center: [12.5, -3.25],
             radius: 7.75,

@@ -22,7 +22,16 @@ pub(super) struct Group {
     pub shapes: usize,
     /// Its layers with their shape counts (DXFs only; an image has one layer).
     pub layers: Vec<(String, usize)>,
+    /// Drawn shapes only: per layer, each shape's id and name, in the drawing's order
+    /// (docs/specs/drawn-shapes-box.md §4).
+    pub members: Vec<(String, Vec<Member>)>,
 }
+
+/// A drawn shape in a group: its id and name.
+pub(super) type Member = (u64, Option<String>);
+
+/// Groups with more shapes than this start closed.
+const OPEN_GROUP_MOST: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum GroupKind {
@@ -51,6 +60,11 @@ enum PanelAction {
     EditImage(u64),
     RemoveImage(u64),
     RemoveText(u64),
+    /// A drawn shape's row: select it (or the shapes of a layer), rename, copy, delete it.
+    SelectShapes(Vec<u64>),
+    RenameShape(u64),
+    CopyShape(u64),
+    DeleteShape(u64),
     AddDxf,
     AddImage,
     AddText,
@@ -79,12 +93,28 @@ impl ChiploadApp {
                 GroupKind::Dxf(_) => layers.into_iter().collect(),
                 _ => Vec::new(),
             };
+            let mut members: Vec<(String, Vec<Member>)> = Vec::new();
+            if kind == GroupKind::Drawn && key.starts_with("drawn:") {
+                let mut by_layer: BTreeMap<String, Vec<Member>> = BTreeMap::new();
+                for shape in drawing
+                    .shapes
+                    .iter()
+                    .filter(|s| Drawing::group_key(s) == key)
+                {
+                    by_layer
+                        .entry(shape.layer.clone())
+                        .or_default()
+                        .push((shape.id, shape.name.clone()));
+                }
+                members = by_layer.into_iter().collect();
+            }
             groups.push(Group {
                 key,
                 title,
                 kind,
                 shapes,
                 layers,
+                members,
             });
         };
         for dxf in &drawing.dxfs {
@@ -423,6 +453,23 @@ impl ChiploadApp {
             Some(PanelAction::RemoveText(text)) => {
                 self.remove_text(text);
             }
+            Some(PanelAction::SelectShapes(ids)) => {
+                self.select_row(CanvasSelection::Shapes(ids.into_iter().collect()), add);
+            }
+            Some(PanelAction::RenameShape(id)) => {
+                self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
+                self.grab_shape_name = true;
+            }
+            Some(PanelAction::CopyShape(id)) => {
+                self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
+                if let Some(text) = self.copy_selected_shapes() {
+                    ui.ctx().copy_text(text);
+                }
+            }
+            Some(PanelAction::DeleteShape(id)) => {
+                self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
+                self.delete_selected_shapes();
+            }
             Some(PanelAction::AddDxf) => self.ask_add_dxf(),
             Some(PanelAction::AddImage) => self.import_image_dialog(),
             Some(PanelAction::AddText) => self.start_text(),
@@ -444,8 +491,9 @@ impl ChiploadApp {
         };
         let id = egui::Id::new(("browser-group", &group.key));
         let open_id = id.with("folder-open");
-        let has_layers = !group.layers.is_empty();
-        let open = has_layers && super::browser::folder_open(ui, open_id, true);
+        let has_layers = !group.layers.is_empty() || !group.members.is_empty();
+        let open_first = group.members.is_empty() || group.shapes <= OPEN_GROUP_MOST;
+        let open = has_layers && super::browser::folder_open(ui, open_id, open_first);
         let mut row = Row::new(id, 2, &group.title)
             .eye(!hidden)
             .icon(icon)
@@ -463,7 +511,7 @@ impl ChiploadApp {
         }
         let out = row.show(ui);
         if out.toggled {
-            super::browser::toggle_folder(ui, open_id, true);
+            super::browser::toggle_folder(ui, open_id, open_first);
         }
         if out.eye {
             *action = Some(PanelAction::Toggle(group.key.clone()));
@@ -562,6 +610,10 @@ impl ChiploadApp {
         if !open {
             return;
         }
+        if !group.members.is_empty() {
+            self.drawn_member_rows(ui, group, icon, hidden, action);
+            return;
+        }
         let from = match group.kind {
             GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
             GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
@@ -602,6 +654,123 @@ impl ChiploadApp {
                     }
                 });
         }
+    }
+}
+
+impl ChiploadApp {
+    /// A drawn group's shapes: a row each, under a folder per layer when it has several
+    /// (docs/specs/drawn-shapes-box.md §4).
+    fn drawn_member_rows(
+        &self,
+        ui: &mut egui::Ui,
+        group: &Group,
+        icon: Icon,
+        hidden: bool,
+        action: &mut Option<PanelAction>,
+    ) {
+        if let [(_, shapes)] = &group.members[..] {
+            for (id, name) in shapes {
+                self.shape_row(ui, 3, *id, name.as_deref(), icon, hidden, action);
+            }
+            return;
+        }
+        for (layer, shapes) in &group.members {
+            let key = Drawing::layer_key(&group.key, layer);
+            let layer_hidden = self.is_hidden_key(&key);
+            let ids: Vec<u64> = shapes.iter().map(|(id, _)| *id).collect();
+            let id = egui::Id::new(("browser-drawn-layer", &key));
+            let open_id = id.with("folder-open");
+            let open_first = shapes.len() <= OPEN_GROUP_MOST;
+            let open = super::browser::folder_open(ui, open_id, open_first);
+            let selected = matches!(&self.selection, CanvasSelection::Shapes(s)
+                if s.len() == ids.len() && ids.iter().all(|i| s.contains(i)));
+            let out = Row::new(id, 3, layer)
+                .eye(!layer_hidden)
+                .icon(Icon::Layer)
+                .trailing(shapes.len().to_string())
+                .dim(hidden || layer_hidden)
+                .selected(selected)
+                .folder(open)
+                .show(ui);
+            if out.toggled {
+                super::browser::toggle_folder(ui, open_id, open_first);
+            }
+            if out.eye {
+                *action = Some(PanelAction::Toggle(key.clone()));
+            } else if out.response.clicked() {
+                *action = Some(PanelAction::SelectShapes(ids.clone()));
+            }
+            out.response
+                .on_hover_text(t!(ui, "sources-drawn-layer-hover"))
+                .context_menu(|ui| {
+                    if ui.button(t!(ui, "sources-select")).clicked() {
+                        *action = Some(PanelAction::SelectShapes(ids.clone()));
+                    }
+                    if ui
+                        .button(if layer_hidden {
+                            t!(ui, "sources-show")
+                        } else {
+                            t!(ui, "sources-hide")
+                        })
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Toggle(key.clone()));
+                    }
+                });
+            if open {
+                for (id, name) in shapes {
+                    let dim = hidden || layer_hidden;
+                    self.shape_row(ui, 4, *id, name.as_deref(), icon, dim, action);
+                }
+            }
+        }
+    }
+
+    /// One drawn shape's row: its name (its id beside it), or its id.
+    #[allow(clippy::too_many_arguments)]
+    fn shape_row(
+        &self,
+        ui: &mut egui::Ui,
+        depth: usize,
+        id: u64,
+        name: Option<&str>,
+        icon: Icon,
+        dim: bool,
+        action: &mut Option<PanelAction>,
+    ) {
+        let label = format!("S{id}");
+        let mut row = Row::new(
+            egui::Id::new(("browser-shape", id)),
+            depth,
+            name.unwrap_or(&label),
+        )
+        .icon(icon)
+        .dim(dim)
+        .selected(matches!(&self.selection, CanvasSelection::Shapes(s) if s.contains(&id)));
+        if name.is_some() {
+            row = row.trailing(label);
+        }
+        let out = row.show(ui);
+        if out.response.clicked() {
+            *action = Some(PanelAction::SelectShapes(vec![id]));
+        }
+        out.response
+            .on_hover_text(t!(ui, "sources-shape-hover"))
+            .context_menu(|ui| {
+                if ui.button(t!(ui, "sources-select")).clicked() {
+                    *action = Some(PanelAction::SelectShapes(vec![id]));
+                }
+                if ui.button(t!(ui, "sources-rename")).clicked() {
+                    *action = Some(PanelAction::RenameShape(id));
+                }
+                if ui.button(t!(ui, "sources-copy-shape")).clicked() {
+                    *action = Some(PanelAction::CopyShape(id));
+                }
+                ui.separator();
+                if ui.button(t!(ui, "sources-delete-shape")).clicked() {
+                    *action = Some(PanelAction::DeleteShape(id));
+                }
+            });
     }
 }
 

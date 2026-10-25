@@ -98,6 +98,12 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Move, turn and size drawn shapes; drawn shapes in the Browser, with names**
+  (2026-10-25, docs/specs/drawn-shapes-box.md), the user's request: a box with move, turn
+  and size handles round a selected polyline or several drawn shapes (`shape move/turn/
+  scale`); Position and Turn in Properties; the Browser lists drawn shapes per layer, and a
+  drawn shape can have a name (optional field, no schema bump; `shape set --name`). Texts
+  in six languages (machine-made; the user reviews Swedish), guide.
 - **Explode a DXF, join close ends** (2026-10-25, docs/specs/explode-and-join.md), a
   user's request: `chipload dxf explode` and *Explode into shapes…* turn a DXF's shapes
   into drawn circles and polylines (the project forgets the DXF; operations keep their

@@ -117,6 +117,7 @@ pub fn explode_dxf(
             shapes.push(Shape {
                 id: new_id,
                 layer: shape.layer.clone(),
+                name: None,
                 geometry,
             });
         }

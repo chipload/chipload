@@ -51,3 +51,5 @@ shape-form-turn-ccw-hover = Turn a quarter counter-clockwise about the middle of
 shape-form-turn-cw-hover = Turn a quarter clockwise about the middle of its box
 shape-form-turn-by = by{" "}
 shape-form-turn-by-hover = Type an angle and press Enter to turn it by that much (counter-clockwise; negative turns clockwise)
+shape-form-name = Name
+shape-form-name-hover = Its name in the Browser; empty: shown by its number

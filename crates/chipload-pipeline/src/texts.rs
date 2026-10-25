@@ -140,6 +140,7 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
         out.drawing.shapes.push(Shape {
             id: shape_id,
             layer: text.layer.clone(),
+            name: None,
             geometry: Geometry::Path {
                 dxf_handle: None,
                 dxf_type: None,

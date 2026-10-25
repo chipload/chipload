@@ -33,6 +33,13 @@ is CAD's job: draw it there and import the DXF.
   drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
   type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
   Enter. A polyline keeps no angle of its own; turning moves its points.
+- **In the Browser:** under *Drawing*, the *Circles*, *Rectangles* and *Polylines* groups list
+  their shapes, in a folder per layer when there are several. Click a row to select the
+  shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
+  with more than 20 shapes starts closed.
+- **Names:** give a drawn shape a *Name* in its form (or *Rename…* in the Browser); the
+  Browser shows it, with its number beside it. Empty: it's shown by its number. Copies
+  start without a name.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
@@ -52,6 +59,7 @@ chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10
 chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
 chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
+chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5

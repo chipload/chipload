@@ -45,6 +45,7 @@ fn drawn_then_imported(name: &str) -> (Job, PathBuf, PathBuf) {
     job.drawing.shapes.push(Shape {
         id: 1,
         layer: "DRAWN".into(),
+        name: None,
         geometry: Geometry::Circle {
             center: [100.0, 100.0],
             radius: 20.0,

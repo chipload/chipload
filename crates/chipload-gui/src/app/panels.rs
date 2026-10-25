@@ -35,6 +35,7 @@ impl ChiploadApp {
         let Some(mut draft) = self.shape_draft.take() else {
             return;
         };
+        draft.grab_name |= std::mem::take(&mut self.grab_shape_name);
         let action = ui
             .add_enabled_ui(self.can_draw(), |ui| shape_form(ui, &mut draft))
             .inner;
@@ -46,6 +47,9 @@ impl ChiploadApp {
             draft.error = self
                 .set_selected_shape(&draft.layer.clone(), draft.geometry.clone())
                 .err();
+        }
+        if draft.error.is_none() && draft.name_differs_from(&shape) {
+            draft.error = self.name_shape(id, &draft.name.clone()).err();
         }
         self.shape_draft = Some(draft);
     }

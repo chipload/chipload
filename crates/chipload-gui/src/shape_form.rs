@@ -14,8 +14,12 @@ use crate::i18n::{Lang, t};
 pub struct ShapeDraft {
     pub id: u64,
     pub layer: String,
+    /// Its name as typed; empty: no name (docs/specs/drawn-shapes-box.md §4).
+    pub name: String,
     pub geometry: Geometry,
     pub error: Option<String>,
+    /// The name field takes the keyboard (Browser: Rename…).
+    pub grab_name: bool,
 }
 
 impl ShapeDraft {
@@ -23,9 +27,16 @@ impl ShapeDraft {
         ShapeDraft {
             id: shape.id,
             layer: shape.layer.clone(),
+            name: shape.name.clone().unwrap_or_default(),
             geometry: shape.geometry.clone(),
             error: None,
+            grab_name: false,
         }
+    }
+
+    /// Whether the name as typed differs from `shape`'s (spaces around it don't count).
+    pub fn name_differs_from(&self, shape: &Shape) -> bool {
+        self.name.trim() != shape.name.as_deref().unwrap_or("")
     }
 
     /// Whether the draft says something different from `shape`.
@@ -58,6 +69,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
     Grid::new(("shape-form", draft.id))
         .num_columns(2)
         .show(ui, |ui| {
+            name_row(ui, draft);
             ui.label(t!(ui, "shape-form-layer"));
             ui.add(TextEdit::singleline(&mut draft.layer).desired_width(140.0));
             ui.end_row();
@@ -136,6 +148,32 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
     action
 }
 
+/// The name row. While the field has the keyboard it shows what was typed, spaces
+/// included; the stored name is trimmed.
+fn name_row(ui: &mut egui::Ui, draft: &mut ShapeDraft) {
+    ui.label(t!(ui, "shape-form-name"));
+    let field = egui::Id::new(("shape-name", draft.id));
+    let buffer = field.with("typed");
+    if ui.memory(|m| m.has_focus(field))
+        && let Some(typed) = ui.data(|d| d.get_temp::<String>(buffer))
+    {
+        draft.name = typed;
+    }
+    let response = ui
+        .add(
+            TextEdit::singleline(&mut draft.name)
+                .id(field)
+                .desired_width(140.0)
+                .hint_text(format!("S{}", draft.id)),
+        )
+        .on_hover_text(t!(ui, "shape-form-name-hover"));
+    if std::mem::take(&mut draft.grab_name) {
+        response.request_focus();
+    }
+    ui.data_mut(|d| d.insert_temp(buffer, draft.name.clone()));
+    ui.end_row();
+}
+
 /// A change asked for in the Position and Turn rows.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PlaceEdit {
@@ -170,6 +208,7 @@ pub fn geometry_box(geometry: &Geometry) -> Option<((f64, f64), (f64, f64))> {
     let shape = Shape {
         id: 0,
         layer: String::new(),
+        name: None,
         geometry: geometry.clone(),
     };
     shape

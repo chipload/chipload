@@ -343,6 +343,7 @@ pub fn outline(geometry: &Geometry) -> Vec<Vec<Point>> {
     let shape = Shape {
         id: 0,
         layer: String::new(),
+        name: None,
         geometry: geometry.clone(),
     };
     let mut points: Vec<Point> = Vec::new();

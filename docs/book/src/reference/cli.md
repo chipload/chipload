@@ -297,6 +297,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--open` | The polyline doesn't return to its first point. |
 | `--closed` | The polyline returns to its first point (the default for new ones) |
 | `--layer <LAYER>` |  |
+| `--name <NAME>` | Its name in the Browser; "" takes the name away. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape set`
@@ -322,6 +323,7 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--open` | The polyline doesn't return to its first point. |
 | `--closed` | The polyline returns to its first point (the default for new ones) |
 | `--layer <LAYER>` |  |
+| `--name <NAME>` | Its name in the Browser; "" takes the name away. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape remove`

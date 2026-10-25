@@ -154,6 +154,20 @@ impl ChiploadApp {
         Ok(())
     }
 
+    /// Name drawn shape `id` (trimmed; empty: no name). On failure the reason is returned.
+    pub fn name_shape(&mut self, id: u64, name: &str) -> Result<(), String> {
+        let lang = crate::i18n::Lang::lang(self);
+        let units = self.units.into();
+        let edit = self
+            .edit
+            .as_mut()
+            .ok_or_else(|| t!(lang, "drawing-no-project"))?;
+        let job = chipload_pipeline::shapes::name_shape(&edit.settings, id, name)
+            .map_err(|e| e.message().render(lang, units))?;
+        edit.settings.drawing = job.drawing;
+        Ok(())
+    }
+
     /// The drawn shapes in the selection (the ones Delete removes), and whether imported
     /// ones are selected too.
     pub fn deletable_shapes(&self) -> (Vec<u64>, bool) {

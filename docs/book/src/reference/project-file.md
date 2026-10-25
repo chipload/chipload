@@ -449,6 +449,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`. |
 | `layer` | string | yes | Its layer. |
 | `length` | number or null | no | rectangle: its size along its own X axis, mm. |
+| `name` | string or null | no | circle, rectangle, polyline: its name in the Browser; left out when it has none. |
 | `points` | list of 2 × number or null | no | polyline: its points, mm. |
 | `radius` | number or null | no | circle: the radius, mm. |
 | `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |

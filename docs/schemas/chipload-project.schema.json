@@ -1659,6 +1659,13 @@
             "null"
           ]
         },
+        "name": {
+          "description": "circle, rectangle, polyline: its name in the Browser; left out when it has none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "points": {
           "description": "polyline: its points, mm.",
           "items": {

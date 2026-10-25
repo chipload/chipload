@@ -51,3 +51,5 @@ shape-form-turn-ccw-hover = Ruota di un quarto in senso antiorario attorno al ce
 shape-form-turn-cw-hover = Ruota di un quarto in senso orario attorno al centro del suo riquadro
 shape-form-turn-by = di{" "}
 shape-form-turn-by-hover = Digita un angolo e premi Invio per ruotarla di tanto (senso antiorario; negativo: orario)
+shape-form-name = Nome
+shape-form-name-hover = Il suo nome nel Browser; vuoto: mostrata col suo numero

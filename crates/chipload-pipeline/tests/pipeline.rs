@@ -804,6 +804,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
     let drawn = chipload_job::Shape {
         id: job.drawing.next_shape_id,
         layer: "CUT".into(),
+        name: None,
         geometry: chipload_job::Geometry::Rectangle {
             center: [110.0, 120.0],
             length: 20.0,

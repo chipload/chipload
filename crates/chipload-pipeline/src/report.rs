@@ -132,8 +132,14 @@ pub fn format_shapes(shapes: &[Shape]) -> Vec<String> {
         shapes.len() - drawn.len()
     )];
     for shape in drawn {
+        // The name last, so lines without one read as they always did.
+        let name = shape
+            .name
+            .as_ref()
+            .map(|n| format!(" name {n:?}"))
+            .unwrap_or_default();
         lines.push(format!(
-            "  S{:<4} {:<9} layer {:<12} {}",
+            "  S{:<4} {:<9} layer {:<12} {}{name}",
             shape.id,
             shape.kind_name(),
             shape.layer,

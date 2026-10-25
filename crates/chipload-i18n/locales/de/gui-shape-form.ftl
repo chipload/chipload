@@ -51,3 +51,5 @@ shape-form-turn-ccw-hover = Eine Vierteldrehung gegen den Uhrzeigersinn um die M
 shape-form-turn-cw-hover = Eine Vierteldrehung im Uhrzeigersinn um die Mitte des Rahmens
 shape-form-turn-by = um{" "}
 shape-form-turn-by-hover = Winkel eingeben und Enter drücken, um sie um so viel zu drehen (gegen den Uhrzeigersinn; negativ im Uhrzeigersinn)
+shape-form-name = Name
+shape-form-name-hover = Ihr Name im Browser; leer: nach ihrer Nummer angezeigt

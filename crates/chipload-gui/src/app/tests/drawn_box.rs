@@ -124,3 +124,26 @@ fn position_and_turn_move_and_turn_the_box() {
     };
     assert_eq!(center, [25.0, 20.0]);
 }
+
+/// Drawn shapes in the Browser, by layer, with names (docs/specs/drawn-shapes-box.md §4).
+#[test]
+fn drawn_groups_list_their_shapes_by_layer_with_names() {
+    let mut app = drawn_part();
+    app.name_shape(3, "  Lid ").unwrap();
+    assert_eq!(app.shape(3).unwrap().name.as_deref(), Some("Lid"));
+    let groups = app.drawing_groups();
+    let polylines = groups.iter().find(|g| g.key == "drawn:polyline").unwrap();
+    assert_eq!(
+        polylines.members,
+        vec![("drawn".to_string(), vec![(3, Some("Lid".to_string()))])]
+    );
+    // An empty name takes it away.
+    app.name_shape(3, "").unwrap();
+    assert_eq!(app.shape(3).unwrap().name, None);
+    // DXFs keep their layer rows, without shape rows.
+    let app = two_parts();
+    assert!(app.drawing_groups().iter().all(|g| match g.kind {
+        super::super::sources::GroupKind::Dxf(_) => g.members.is_empty(),
+        _ => true,
+    }));
+}

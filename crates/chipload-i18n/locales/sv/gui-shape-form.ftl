@@ -51,3 +51,5 @@ shape-form-turn-ccw-hover = Vrid ett kvarts varv moturs kring mitten av rutan
 shape-form-turn-cw-hover = Vrid ett kvarts varv medurs kring mitten av rutan
 shape-form-turn-by = med{" "}
 shape-form-turn-by-hover = Skriv en vinkel och tryck Enter för att vrida den så mycket (moturs; negativt vrider medurs)
+shape-form-name = Namn
+shape-form-name-hover = Dess namn i bläddraren; tomt: visas med sitt nummer
