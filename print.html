@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.24.0 user guide</title>
+        <title>Chipload 0.25.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-14782ce2.js";
+            window.path_to_searchindex_js = "searchindex-f7f57eb7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-7c75c466.js"></script>
+        <script src="toc-f602bac1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.24.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -1148,6 +1148,22 @@ selected shape has its exact numbers and its layer.</li>
 short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
 handle won’t drag the rectangle smaller than its corners allow; lower the radius first.
 The reset button makes the corners sharp again.</li>
+<li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
+dashed box shows round them: drag the square in the middle to move them, the round handle
+beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
+scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
+handles instead. The shapes keep their ids, so the operations that cut them follow.</li>
+<li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
+drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
+type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
+Enter. A polyline keeps no angle of its own; turning moves its points.</li>
+<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em> and <em>Polylines</em> groups list
+their shapes, in a folder per layer when there are several. Click a row to select the
+shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
+with more than 20 shapes starts closed.</li>
+<li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
+Browser shows it, with its number beside it. Empty: it’s shown by its number. Copies
+start without a name.</li>
 <li><strong>Copy and paste:</strong> Ctrl+C and Ctrl+V. <em>Draw &gt; Paste</em> puts the copy 10 mm right and up;
 Ctrl+V over the canvas pastes at the cursor.</li>
 <li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
@@ -1155,19 +1171,72 @@ of their box.</li>
 <li><strong>Delete:</strong> Del. Operations that cut the shape are flagged.</li>
 <li><strong>Undo:</strong> Ctrl+Z.</li>
 </ul>
-<p>Imported shapes can’t be edited: they change only with the DXF.</p>
+<p>Imported shapes can’t be edited: they change only with the DXF, unless you
+<a href="#exploding-a-dxf-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
+<em>Draw &gt; Join ends…</em> (same page).</p>
 <h2 id="on-the-command-line-1"><a class="header" href="#on-the-command-line-1">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
 chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
 chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
+chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
+chipload shape move part.chipload 8 9 --dx 10 --dy -5
+chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
+chipload shape scale part.chipload 8 --factor 1.5
 chipload shape remove part.chipload 8
+chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 </code></pre>
 <p>Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1
 clockwise.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="exploding-a-dxf-joining-ends"><a class="header" href="#exploding-a-dxf-joining-ends">Exploding a DXF, joining ends</a></h1>
+<p>A DXF’s shapes are read-only: they change only when the DXF is
+<a href="#updating-from-a-new-dxf">updated</a>. To rework them in Chipload, <strong>explode</strong> the DXF: its shapes become
+drawn shapes, with handles, values you can type, copy, mirror and delete, like the ones you
+<a href="#drawing-shapes">draw</a>.</p>
+<h2 id="explode"><a class="header" href="#explode">Explode</a></h2>
+<p>Right-click the DXF in the Browser, <em>Explode into shapes…</em>, or <em>Explode…</em> in its
+properties.</p>
+<ul>
+<li><strong>The project forgets the DXF file.</strong> It leaves the Browser, and <em>Update from DXF</em> is
+no longer possible for these shapes. Ctrl+Z undoes it until the project is saved;
+after that, the only way back is adding the DXF again.</li>
+<li><strong>Circles stay circles;</strong> everything else becomes a polyline of straight and arc
+segments. An arc of more than half a circle becomes two segments.</li>
+<li><strong>Operations keep cutting the same shapes,</strong> with the same G-code. The shapes keep their
+ids and layers. An operation that selected a layer <em>of that DXF</em> now selects its shapes
+by number, so a layer of the same name elsewhere doesn’t join in; the report lists these.</li>
+<li><strong>Circles that the placement turned</strong> start at their right-hand point afterwards, as
+every drawn circle does, so the cut may start elsewhere on them. The report names them.</li>
+</ul>
+<p>Tick <em>Join ends closer than</em> to join the exploded lines straight away (below).</p>
+<h2 id="join-ends"><a class="header" href="#join-ends">Join ends</a></h2>
+<p>A drawing made of separate lines and arcs whose ends almost meet can’t be pocketed: each
+piece is an open contour. <em>Draw &gt; Join ends…</em> joins open drawn polylines whose ends lie
+closer than the gap into one, and closes a chain that comes back to its start.</p>
+<ul>
+<li><strong>The selected shapes,</strong> or every drawn shape when none is selected.</li>
+<li><strong>Gap:</strong> 0.01 mm unless you type another, at most 1 mm. Both ends move to the point
+between them; a shape moves by at most half the gap.</li>
+<li><strong>Same layer only.</strong> Pieces on different layers stay apart.</li>
+<li><strong>Only clear pairs.</strong> Where three or more ends meet within the gap, nothing joins there:
+which way the outline goes would be a guess. The report gives the point.</li>
+<li><strong>The joined shape keeps the lowest id</strong> of its pieces; operations that selected any of
+them select it.</li>
+<li><strong>The report</strong> says how many shapes became how many, the widest gap closed, and the ends
+still open with the distance to the nearest other end: the gap that would close them.</li>
+</ul>
+<h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
+<pre><code class="language-sh">chipload dxf explode part.chipload                  # the project's only DXF
+chipload dxf explode part.chipload 2 --join 0.05mm  # DXF 2, then join ends closer than 0.05 mm
+chipload shape join part.chipload                   # every drawn shape, gap 0.01 mm
+chipload shape join part.chipload 12 13 14 --gap 0.1
+</code></pre>
+<p>With <code>--json</code>, <code>shapes</code> lists the shapes that came of it and <code>removed</code> those joined into
+others.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="images"><a class="header" href="#images">Images</a></h1>
 <p>A picture, such as a logo, a scanned sketch or lettering, can be traced into shapes and then
@@ -1295,7 +1364,7 @@ the operation (<a href="#what-an-operation-selects">What an operation selects</a
 <li><strong>Operations:</strong> clicking traced shapes on the canvas and adding an operation selects the
 whole image, not the shapes.</li>
 </ul>
-<h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
+<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
 <pre><code>chipload image add part.chipload logo.png --width 120 --at 10,10 --threshold auto
 chipload image add part.chipload signature.png --width 80 --trace centre-line
 chipload image set part.chipload 1 --threshold 140 --blur 2 --invert true --arcs false
@@ -2109,7 +2178,7 @@ them, a new operation copies the operation above it, or starts from the tool’s
 diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
 step down. Check the <a href="#chip-load">chip load</a> before cutting.</li>
 </ul>
-<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
+<h2 id="on-the-command-line-4"><a class="header" href="#on-the-command-line-4">On the command line</a></h2>
 <pre><code class="language-sh">chipload tool list                                     # the tools, and where the file is
 chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
   --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
@@ -2172,7 +2241,7 @@ and <em>Show in library</em>.</li>
 </ul>
 <p>A profile whose post is one of your own <a href="#your-own-post">post-processors</a> copies
 that post into the project.</p>
-<h2 id="on-the-command-line-4"><a class="header" href="#on-the-command-line-4">On the command line</a></h2>
+<h2 id="on-the-command-line-5"><a class="header" href="#on-the-command-line-5">On the command line</a></h2>
 <pre><code class="language-sh">chipload machine list
 chipload machine add "Shapeoko" --post grbl --safe-z 10 --travel 838,838,95 --max-feed 5000
 chipload machine set "Shapeoko" --safe-z 15        # or --rename
@@ -3022,6 +3091,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
 <tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3049,6 +3119,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
 <tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3100,6 +3171,77 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
 <tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: <code>x</code>, <code>y</code>. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-move"><a class="header" href="#chipload-shape-move"><code>chipload shape move</code></a></h3>
+<p>Move drawn shapes by –dx and –dy; they keep their ids, so the operations that cut them follow (docs/specs/drawn-shapes-box.md)</p>
+<pre><code class="language-text">chipload shape move &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--dx &lt;DX&gt;</code></td><td>How far to move them right, mm. Required.</td></tr>
+<tr><td><code>--dy &lt;DY&gt;</code></td><td>How far to move them up, mm. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-turn"><a class="header" href="#chipload-shape-turn"><code>chipload shape turn</code></a></h3>
+<p>Turn drawn shapes counter-clockwise about the middle of the box round them, or a point</p>
+<pre><code class="language-text">chipload shape turn &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>The angle, degrees, counter-clockwise; negative turns clockwise. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Turn about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-scale"><a class="header" href="#chipload-shape-scale"><code>chipload shape scale</code></a></h3>
+<p>Scale drawn shapes evenly about the middle of the box round them, or a point</p>
+<pre><code class="language-text">chipload shape scale &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-join"><a class="header" href="#chipload-shape-join"><code>chipload shape join</code></a></h3>
+<p>Join open drawn polylines whose ends are closer than –gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)</p>
+<pre><code class="language-text">chipload shape join &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); none: every drawn shape.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>Join ends closer than this, 0.001 to 1 mm. Default: <code>0.01</code>.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3323,6 +3465,23 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-dxf-explode"><a class="header" href="#chipload-dxf-explode"><code>chipload dxf explode</code></a></h3>
+<p>Turn a DXF’s shapes into drawn shapes you can edit; the project no longer knows the DXF (docs/specs/explode-and-join.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload dxf explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The DXF’s id (as <code>dxf list</code> shows it); not needed when the project has one.</td></tr>
+<tr><td><code>--join &lt;JOIN&gt;</code></td><td>Then join ends closer than this (as <code>shape join --gap</code>), e.g. 0.01 or 0.05mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4460,6 +4619,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>kind</code></td><td><a href="#shapekind">ShapeKind</a></td><td>yes</td><td><code>path</code> (imported from a DXF), or a shape drawn in Chipload: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>.</td></tr>
 <tr><td><code>layer</code></td><td>string</td><td>yes</td><td>Its layer.</td></tr>
 <tr><td><code>length</code></td><td>number or null</td><td>no</td><td>rectangle: its size along its own X axis, mm.</td></tr>
+<tr><td><code>name</code></td><td>string or null</td><td>no</td><td>circle, rectangle, polyline: its name in the Browser; left out when it has none.</td></tr>
 <tr><td><code>points</code></td><td>list of 2 × number or null</td><td>no</td><td>polyline: its points, mm.</td></tr>
 <tr><td><code>radius</code></td><td>number or null</td><td>no</td><td>circle: the radius, mm.</td></tr>
 <tr><td><code>segments</code></td><td>list of <a href="#pathsegment">PathSegment</a> or null</td><td>no</td><td>path: its lines and arcs, mm.</td></tr>

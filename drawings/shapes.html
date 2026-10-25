@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Drawing shapes - Chipload 0.24.0 user guide</title>
+        <title>Drawing shapes - Chipload 0.25.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14782ce2.js";
+            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-7c75c466.js"></script>
+        <script src="../toc-f602bac1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.24.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -201,6 +201,22 @@ selected shape has its exact numbers and its layer.</li>
 short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
 handle won’t drag the rectangle smaller than its corners allow; lower the radius first.
 The reset button makes the corners sharp again.</li>
+<li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
+dashed box shows round them: drag the square in the middle to move them, the round handle
+beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
+scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
+handles instead. The shapes keep their ids, so the operations that cut them follow.</li>
+<li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
+drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
+type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
+Enter. A polyline keeps no angle of its own; turning moves its points.</li>
+<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em> and <em>Polylines</em> groups list
+their shapes, in a folder per layer when there are several. Click a row to select the
+shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
+with more than 20 shapes starts closed.</li>
+<li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
+Browser shows it, with its number beside it. Empty: it’s shown by its number. Copies
+start without a name.</li>
 <li><strong>Copy and paste:</strong> Ctrl+C and Ctrl+V. <em>Draw &gt; Paste</em> puts the copy 10 mm right and up;
 Ctrl+V over the canvas pastes at the cursor.</li>
 <li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
@@ -208,16 +224,23 @@ of their box.</li>
 <li><strong>Delete:</strong> Del. Operations that cut the shape are flagged.</li>
 <li><strong>Undo:</strong> Ctrl+Z.</li>
 </ul>
-<p>Imported shapes can’t be edited: they change only with the DXF.</p>
+<p>Imported shapes can’t be edited: they change only with the DXF, unless you
+<a href="explode.html">explode it</a>. Lines whose ends almost meet can be joined into one shape with
+<em>Draw &gt; Join ends…</em> (same page).</p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
 chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
 chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
+chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
+chipload shape move part.chipload 8 9 --dx 10 --dy -5
+chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
+chipload shape scale part.chipload 8 --factor 1.5
 chipload shape remove part.chipload 8
+chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 </code></pre>
 <p>Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1
 clockwise.</p>
@@ -230,7 +253,7 @@ clockwise.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../drawings/images.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../drawings/explode.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -244,7 +267,7 @@ clockwise.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../drawings/images.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../drawings/explode.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

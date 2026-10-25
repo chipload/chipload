@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.24.0 user guide</title>
+        <title>Command line - Chipload 0.25.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14782ce2.js";
+            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-7c75c466.js"></script>
+        <script src="../toc-f602bac1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.24.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -503,6 +503,7 @@
 <tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
 <tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -530,6 +531,7 @@
 <tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
 <tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -581,6 +583,77 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
 <tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: <code>x</code>, <code>y</code>. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-move"><a class="header" href="#chipload-shape-move"><code>chipload shape move</code></a></h3>
+<p>Move drawn shapes by –dx and –dy; they keep their ids, so the operations that cut them follow (docs/specs/drawn-shapes-box.md)</p>
+<pre><code class="language-text">chipload shape move &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--dx &lt;DX&gt;</code></td><td>How far to move them right, mm. Required.</td></tr>
+<tr><td><code>--dy &lt;DY&gt;</code></td><td>How far to move them up, mm. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-turn"><a class="header" href="#chipload-shape-turn"><code>chipload shape turn</code></a></h3>
+<p>Turn drawn shapes counter-clockwise about the middle of the box round them, or a point</p>
+<pre><code class="language-text">chipload shape turn &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>The angle, degrees, counter-clockwise; negative turns clockwise. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Turn about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-scale"><a class="header" href="#chipload-shape-scale"><code>chipload shape scale</code></a></h3>
+<p>Scale drawn shapes evenly about the middle of the box round them, or a point</p>
+<pre><code class="language-text">chipload shape scale &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-join"><a class="header" href="#chipload-shape-join"><code>chipload shape join</code></a></h3>
+<p>Join open drawn polylines whose ends are closer than –gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)</p>
+<pre><code class="language-text">chipload shape join &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); none: every drawn shape.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>Join ends closer than this, 0.001 to 1 mm. Default: <code>0.01</code>.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -804,6 +877,23 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-dxf-explode"><a class="header" href="#chipload-dxf-explode"><code>chipload dxf explode</code></a></h3>
+<p>Turn a DXF’s shapes into drawn shapes you can edit; the project no longer knows the DXF (docs/specs/explode-and-join.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload dxf explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The DXF’s id (as <code>dxf list</code> shows it); not needed when the project has one.</td></tr>
+<tr><td><code>--join &lt;JOIN&gt;</code></td><td>Then join ends closer than this (as <code>shape join --gap</code>), e.g. 0.01 or 0.05mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
