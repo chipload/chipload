@@ -285,3 +285,26 @@ mod join_properties {
         }
     }
 }
+
+#[test]
+fn a_slot_whose_end_is_a_hair_over_a_half_circle_explodes_whole() {
+    // The user's drawing (2026-10-25): a bent slot's end arc, 195.59° to 15.59°, was dropped.
+    let shapes = chipload_dxf::shapes_from_dxf(&corpus("dxf/shared_edges.dxf"), None).unwrap();
+    let job = chipload_pipeline::new_project(shapes);
+    let closed = |job: &Job| {
+        chipload_pipeline::load_drawing(job)
+            .unwrap()
+            .contours
+            .iter()
+            .filter(|c| c.closed)
+            .count()
+    };
+    let before = closed(&job);
+    let (out, report) = explode_dxf(&job, 1, None).unwrap();
+    assert!(
+        !report.lines.iter().any(|l| l.contains("is gone")),
+        "{:?}",
+        report.lines
+    );
+    assert_eq!(closed(&out), before);
+}

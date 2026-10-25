@@ -126,8 +126,11 @@ fn pieces(prim: &Primitive) -> Vec<((f64, f64), f64)> {
     }
 }
 
+/// The bulge of a part of at most a half circle. A half circle whose sweep came out a hair
+/// over π (a DXF arc from 195.59° to 15.59°) would give a bulge just over 1, which a polyline
+/// refuses: it is 1.
 fn part_bulge(arc: &Arc, sweep: f64) -> f64 {
-    Arc { sweep, ..*arc }.bulge()
+    Arc { sweep, ..*arc }.bulge().clamp(-1.0, 1.0)
 }
 
 /// A closed polyline needs three points, or two with a bent segment: split its most bent
@@ -611,6 +614,19 @@ mod tests {
             })
             .sum();
         assert!((sweep + 1.5 * PI).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_half_circle_a_hair_over_pi_stays() {
+        // A user's DXF (2026-10-25): a slot's end arc from 195.59° to 15.59° was dropped.
+        for sweep in [PI + 1e-12, -PI - 1e-12] {
+            let drawn = path_to_drawn(&[arc([1118.43, 619.9], 7.0, 3.4137, sweep)]);
+            let [Geometry::Polyline { points, bulges, .. }] = &drawn[..] else {
+                panic!("{drawn:?}");
+            };
+            assert_eq!(points.len(), 2);
+            assert_eq!(bulges, &[sweep.signum()]);
+        }
     }
 
     #[test]
