@@ -8,9 +8,9 @@ rust-version.workspace = true
 
 [dependencies]
 cavalier_contours = "0.9.0"
-chipload-core = { version = "0.26.0", path = "../chipload-core" }
-chipload-i18n = { version = "0.26.0", path = "../chipload-i18n" }
-chipload-job = { version = "0.26.0", path = "../chipload-job" }
+chipload-core = { version = "0.26.1", path = "../chipload-core" }
+chipload-i18n = { version = "0.26.1", path = "../chipload-i18n" }
+chipload-job = { version = "0.26.1", path = "../chipload-job" }
 dxf = "0.6.2"
 sha2 = "0.10"
 
