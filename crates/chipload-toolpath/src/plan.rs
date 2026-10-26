@@ -659,7 +659,8 @@ fn plan_pocket_op(
             everything: ctx.everything,
             // Another boundary of the pocket has waste on both sides near a corner.
             exempt: &boundaries,
-            cleared: &selection.contours,
+            walls: &selection.contours,
+            clears_inside: true,
             label: ctx.label_message,
         };
         for piece in &mut plan.pieces {
@@ -1103,7 +1104,8 @@ fn plan_profile_op(
             clearance: op.clearance,
             everything: ctx.everything,
             exempt: &[],
-            cleared: &[],
+            walls: &selection.contours,
+            clears_inside: false,
             label: ctx.label_message,
         };
         let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;

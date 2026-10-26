@@ -105,7 +105,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 - **Bones beside a contour that runs through the pocket** (2026-10-26, the user, in 0.26.0):
   a pocket that the part's outline crossed near a corner got no dogbone or T-bone there
   ("would cut into contour #2"), though the pocket clears that line anyway. In a pocket,
-  another contour now counts only outside the pocket's area (docs/specs/dogbones.md §6).
+  another contour now counts only outside the pocket's area, and for any operation not
+  where it lies on the operation's own line (a shared edge) (docs/specs/dogbones.md §6).
+  On `shared_edges.dxf` every rectangle sharing a wall now generates.
 - **Dogbones chosen per corner** (2026-10-26, docs/specs/dogbone-per-corner.md), after a
   user's slot with a short step at each end couldn't get dogbones or T-bones with a 6 mm
   tool: any corner of a profile or pocket can have its own bone (round, dogbone, T-bone

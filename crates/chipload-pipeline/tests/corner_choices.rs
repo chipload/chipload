@@ -17,6 +17,60 @@ fn corpus(rel: &str) -> PathBuf {
         .join(rel)
 }
 
+/// The user's drawing with a 6 mm pocket with `corners` (dogbone or tbone) on contour
+/// `contour`.
+fn pocket_on(contour: usize, corners: &str) -> Job {
+    let shapes = chipload_dxf::shapes_from_dxf(&corpus("dxf/shared_edges.dxf"), None).unwrap();
+    let mut job = chipload_pipeline::new_project(shapes);
+    let drawing = chipload_pipeline::load_drawing(&job).unwrap();
+    let shape = drawing
+        .contours
+        .iter()
+        .find(|c| c.id == contour)
+        .and_then(|c| c.parts[0].segment.shape)
+        .unwrap();
+    let pocket: Operation = serde_json::from_value(json!({
+        "type": "pocket", "name": "", "enabled": true, "part": job.parts[0].id,
+        "select": {"layer": null, "shapes": [shape], "text": null},
+        "tool": job.tools[0].id, "start_depth": 0.0, "end_depth": 1.0, "clearance": 0.0,
+        "step_down": 1.0, "stepover": 0.4, "direction": "climb", "feed": 1500.0,
+        "plunge_feed": 500.0, "entry": {"type": "plunge"}, "starts": [], "lead": null,
+        "corners": {"type": corners, "max_angle": 100.0_f64.to_radians()}, "rest": null
+    }))
+    .unwrap();
+    job.operations.push(pocket);
+    job
+}
+
+#[test]
+fn rectangles_that_share_a_wall_with_another_contour_get_their_bones() {
+    // The user (2026-10-26): "even for a simple rectangle, T-bone and dogbone don't work".
+    // #39 and #40 share a wall with the slot #36; #41 and #12 with the part's outline. A bone
+    // cuts past its wall anyway, so a line on the wall is no thin web.
+    for contour in [12, 17, 39, 40, 41] {
+        for corners in ["dogbone", "tbone"] {
+            let job = pocket_on(contour, corners);
+            assert!(run_job(&job).is_ok(), "#{contour} {corners}");
+        }
+    }
+}
+
+#[test]
+fn where_a_bone_reaches_a_line_off_its_wall_a_choice_gets_it_through() {
+    // #43 is a slot whose end the pocket #11 overlaps: #11's edge leaves the slot's wall
+    // 3.2 mm from the corner, and a dogbone there would cut it outside the slot.
+    let mut job = pocket_on(43, "dogbone");
+    let err = run_job(&job).unwrap_err().message().english();
+    assert!(
+        err.contains("at corner (7.375, 21.000) mm would cut into contour #11"),
+        "{err}"
+    );
+    for at in [[7.375, 21.0], [322.422, 21.0]] {
+        choose_corner(&mut job, 0, at, Some((Bone::Tbone, Some(Wall::Shorter)))).unwrap();
+    }
+    run_job(&job).unwrap();
+}
+
 /// The user's drawing (2026-10-26) with a 6 mm dogbone pocket on contour #30: a 9 mm slot
 /// with a 3.167 mm step at each end.
 fn slot_job() -> Job {

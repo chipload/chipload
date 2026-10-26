@@ -92,8 +92,9 @@ go into the mortise. **Corners** reaches into them:
 drawn slightly off count). A corner the tool can't reach at all (a notch narrower than the
 tool) is left round, with a note. A bone that would cut into another contour, or into
 another wall of its own (a short step next to the corner), stops generation with an error
-that names the corner. In a pocket, a line that runs through the pocket doesn't count where
-the pocket clears it anyway.
+that names the corner. A line drawn on the operation's own wall (a shared edge)
+doesn't count, nor, in a pocket, a line that runs through the pocket where the pocket clears
+it anyway.
 
 ### Corner by corner
 

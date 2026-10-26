@@ -129,6 +129,12 @@ descend as the spiral does.
     pocket's area: inside it, the pocket clears it anyway (2026-10-26, a user's pocket that
     the part's outline ran across near a corner). The pocket's own contours still count
     everywhere.
+  - A contour that lies on the operation's own line (a shared edge, within the arc
+    tolerance) doesn't count there: every bone cuts past its wall, and a line on the wall is
+    no thin web. The same day, on the user's `shared_edges.dxf`: every rectangle sharing a wall
+    with a slot or the outline generates; what is still refused (a step of the pocket's
+    own, a line leaving the wall 3.2 mm from the corner) goes through with a corner choice
+    (docs/specs/dogbone-per-corner.md).
 - The material-left display uses the moves. It shows the corners cleared.
 - `chipload-check` is unchanged: the legs are ordinary feed moves.
 
