@@ -55,6 +55,8 @@ it's built (see `CLAUDE.md`).
   drawn shapes) tagged 2026-10-26, draft release from CI; to publish.
   **0.26.1** (bones beside a contour that runs through a pocket or lies on its wall)
   tagged 2026-10-26, draft release from CI; to publish.
+  **0.27.0** (tabs placed by hand; dogbones follow a dragged shape; bones beside
+  contours the operation cuts through) tagged 2026-10-26, draft release from CI; to publish.
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
   `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
