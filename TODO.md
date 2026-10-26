@@ -5,9 +5,6 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Tabs placed by hand** (docs/specs/tabs-by-hand.md), asked 2026-10-26 (drag tabs as a
-  ring's start is dragged), approved the same day. Step 1 (format, planning, `op tabs`,
-  `op tab`) **done 2026-10-26**; step 2, the canvas (drag, add, remove), next.
 - **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
   German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
   `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`
@@ -107,6 +104,16 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Dogbones follow a dragged shape; bones beside contours the operation cuts through**
+  (2026-10-26, the user): corner choices, start points and tabs placed by hand now follow a
+  drawn shape changed by its own handles or form (a corner keeps its choice when a rectangle
+  is moved, turned or resized); a contour that meets the operation's cut within the bone's
+  reach no longer stops the bone (docs/specs/dogbones.md §6).
+- **Tabs placed by hand** (2026-10-26, docs/specs/tabs-by-hand.md), the user's question
+  whether tabs drag like a ring's start: `tabs.at` (optional, no bump); a contour with
+  points gets exactly those tabs, no sliding, refused when too close, on the start or off
+  every contour; `chipload op tabs` and `op tab`; on the canvas, tabs drag along their ring,
+  right-click removes, spaces evenly or adds; they follow `place` and moved drawn shapes.
 - **Bones beside a contour that runs through the pocket** (2026-10-26, the user, in 0.26.0):
   a pocket that the part's outline crossed near a corner got no dogbone or T-bone there
   ("would cut into contour #2"), though the pocket clears that line anyway. In a pocket,

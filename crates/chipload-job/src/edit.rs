@@ -430,6 +430,87 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
     }
 }
 
+/// Where a point on a drawn shape goes when the shape changes from `old` to `new` through
+/// its own handles or form (docs/specs/dogbone-per-corner.md §4): a rectangle's point keeps
+/// its place in the rectangle (a corner stays that corner), a circle's its angle and share
+/// of the radius, and a polyline's its vertex or its place along the same segment, if the
+/// polyline keeps its number of points. None when there is no such place (another kind, or
+/// points added or removed): the point stays.
+pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f64; 2]> {
+    match (old, new) {
+        (
+            Geometry::Rectangle {
+                center: c0,
+                length: l0,
+                width: w0,
+                angle: a0,
+                ..
+            },
+            Geometry::Rectangle {
+                center: c1,
+                length: l1,
+                width: w1,
+                angle: a1,
+                ..
+            },
+        ) => {
+            if *l0 <= 0.0 || *w0 <= 0.0 {
+                return None;
+            }
+            // In the old rectangle's frame, as shares of its half sides.
+            let (s0, k0) = a0.sin_cos();
+            let (dx, dy) = (p[0] - c0[0], p[1] - c0[1]);
+            let u = (dx * k0 + dy * s0) / (l0 / 2.0);
+            let v = (-dx * s0 + dy * k0) / (w0 / 2.0);
+            let (x, y) = (u * l1 / 2.0, v * w1 / 2.0);
+            let (s1, k1) = a1.sin_cos();
+            Some([c1[0] + x * k1 - y * s1, c1[1] + x * s1 + y * k1])
+        }
+        (
+            Geometry::Circle {
+                center: c0,
+                radius: r0,
+            },
+            Geometry::Circle {
+                center: c1,
+                radius: r1,
+            },
+        ) => {
+            if *r0 <= 0.0 {
+                return None;
+            }
+            let k = r1 / r0;
+            Some([c1[0] + (p[0] - c0[0]) * k, c1[1] + (p[1] - c0[1]) * k])
+        }
+        (Geometry::Polyline { points: p0, .. }, Geometry::Polyline { points: p1, .. })
+            if p0.len() == p1.len() && !p0.is_empty() =>
+        {
+            let n = p0.len();
+            // Its vertex, else the nearest chord and the share along it.
+            let mut best: Option<(f64, usize, f64)> = None;
+            for i in 0..n {
+                let (a, b) = (p0[i], p0[(i + 1) % n]);
+                let (ex, ey) = (b[0] - a[0], b[1] - a[1]);
+                let len2 = ex * ex + ey * ey;
+                let t = if len2 > 0.0 {
+                    (((p[0] - a[0]) * ex + (p[1] - a[1]) * ey) / len2).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let q = [a[0] + ex * t, a[1] + ey * t];
+                let d = (p[0] - q[0]).hypot(p[1] - q[1]);
+                if best.is_none_or(|(bd, _, _)| d < bd) {
+                    best = Some((d, i, t));
+                }
+            }
+            let (_, i, t) = best?;
+            let (a, b) = (p1[i], p1[(i + 1) % n]);
+            Some([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])
+        }
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

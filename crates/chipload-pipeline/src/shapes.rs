@@ -53,8 +53,46 @@ pub fn set_shape(
         ));
     }
     shape.layer = layer.to_string();
-    shape.geometry = geometry;
+    let old = std::mem::replace(&mut shape.geometry, geometry.clone());
+    // The operations' points on it follow it (docs/specs/dogbone-per-corner.md §4).
+    follow_points(&mut out, job, &[id], |p| {
+        chipload_job::edit::followed_point(p, &old, &geometry)
+    });
     checked(out)
+}
+
+/// Every start point, corner choice and tab placed by hand whose nearest shape (among
+/// those its operation selects, in `before`) is one of `ids`, moved by `map` (None: it
+/// stays).
+fn follow_points(
+    out: &mut Job,
+    before: &Job,
+    ids: &[u64],
+    map: impl Fn([f64; 2]) -> Option<[f64; 2]>,
+) {
+    for op in &mut out.operations {
+        let select = op.select().clone();
+        let on_moved = |p: [f64; 2]| {
+            crate::placement::nearest_is(&before.drawing.shapes, &select, (p[0], p[1]), |s| {
+                ids.contains(&s.id)
+            })
+        };
+        let mut follow = |p: &mut [f64; 2]| {
+            if on_moved(*p)
+                && let Some(q) = map(*p)
+            {
+                *p = q;
+            }
+        };
+        op.starts_mut().into_iter().flatten().for_each(&mut follow);
+        for choice in op.corner_choices_mut().into_iter().flatten() {
+            follow(&mut choice.at);
+        }
+        op.tab_points_mut()
+            .into_iter()
+            .flatten()
+            .for_each(&mut follow);
+    }
 }
 
 /// Name drawn shape `id` (docs/specs/drawn-shapes-box.md §4): trimmed; an empty name
@@ -346,32 +384,15 @@ pub fn transform_shapes(
             shape.geometry = geometry;
         }
     }
-    let map = |p: [f64; 2]| {
-        chipload_job::edit::transformed_point(p, [from.0, from.1], [to.0, to.1], scale, degrees)
-    };
-    for op in &mut out.operations {
-        let select = op.select().clone();
-        let on_moved = |p: [f64; 2]| {
-            crate::placement::nearest_is(&job.drawing.shapes, &select, (p[0], p[1]), |s| {
-                ids.contains(&s.id)
-            })
-        };
-        for start in op.starts_mut().into_iter().flatten() {
-            if on_moved(*start) {
-                *start = map(*start);
-            }
-        }
-        for choice in op.corner_choices_mut().into_iter().flatten() {
-            if on_moved(choice.at) {
-                choice.at = map(choice.at);
-            }
-        }
-        for tab in op.tab_points_mut().into_iter().flatten() {
-            if on_moved(*tab) {
-                *tab = map(*tab);
-            }
-        }
-    }
+    follow_points(&mut out, job, ids, |p| {
+        Some(chipload_job::edit::transformed_point(
+            p,
+            [from.0, from.1],
+            [to.0, to.1],
+            scale,
+            degrees,
+        ))
+    });
     checked(out)
 }
 

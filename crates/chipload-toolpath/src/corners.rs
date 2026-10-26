@@ -532,6 +532,8 @@ pub fn add_legs(
 fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
     let offset = cut.tool_radius - cut.clearance;
     for contour in cut.everything {
+        // Worked out once per contour, when a part of it is near the leg.
+        let mut opens: Option<bool> = None;
         for (i, part) in contour.parts.iter().enumerate() {
             let own = contour.id == leg.corner.contour_id
                 && (i == leg.corner.parts.0 || i == leg.corner.parts.1);
@@ -539,10 +541,12 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
             if own || exempt {
                 continue;
             }
-            if segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM
+            let near =
+                segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM;
+            let counts = near
                 && (cut.walls.iter().any(|c| c.id == contour.id)
-                    || reaches_uncut(leg, &part.segment.prim, offset, cut))
-            {
+                    || !*opens.get_or_insert_with(|| opens_into_cut(contour, leg, offset, cut)));
+            if counts {
                 // Its own contour's other walls: the user picks another bone for the corner
                 // (docs/specs/dogbone-per-corner.md §5).
                 let id = if contour.id == leg.corner.contour_id {
@@ -566,17 +570,22 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
     Ok(())
 }
 
-/// Whether the leg's tool reaches `prim`, part of a contour the operation doesn't cut,
-/// anywhere but on the operation's own lines and, for a pocket, inside the area it clears
-/// (docs/specs/dogbones.md §6). A shared edge is the wall every bone cuts past anyway; a
-/// contour that runs through a pocket is cut by the pocket itself. A line near the wall but
-/// not on it (a thin web) still counts.
-fn reaches_uncut(leg: &Leg, prim: &Primitive, offset: f64, cut: &CornerCut) -> bool {
-    let steps = (prim.length() / NEAR_STEP_MM).ceil().max(1.0) as usize;
-    (0..=steps).any(|k| {
-        let p = point_along(prim, k as f64 / steps as f64);
-        let near = distance(p, closest_on_segment(p, leg.from, leg.tip)) < offset - CHAIN_TOL_MM;
-        near && !on_walls(p, cut.walls) && !(cut.clears_inside && in_cleared(p, cut.walls))
+/// Whether `contour`, one the operation doesn't cut, meets what the operation cuts within
+/// the leg tool's reach: it touches or crosses one of the operation's lines, or, for a
+/// pocket, runs into the area it clears (docs/specs/dogbones.md §6). Then nothing stands
+/// between the bone and that contour there, so the bone cuts no web: the operation has cut
+/// through the contour already. A line near the wall that never meets it (a thin web) still
+/// counts.
+fn opens_into_cut(contour: &Contour, leg: &Leg, offset: f64, cut: &CornerCut) -> bool {
+    contour.parts.iter().any(|part| {
+        let prim = &part.segment.prim;
+        let steps = (prim.length() / NEAR_STEP_MM).ceil().max(1.0) as usize;
+        (0..=steps).any(|k| {
+            let p = point_along(prim, k as f64 / steps as f64);
+            let near =
+                distance(p, closest_on_segment(p, leg.from, leg.tip)) < offset - CHAIN_TOL_MM;
+            near && (on_walls(p, cut.walls) || (cut.clears_inside && in_cleared(p, cut.walls)))
+        })
     })
 }
 

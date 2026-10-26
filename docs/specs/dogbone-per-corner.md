@@ -178,3 +178,11 @@ Step 3, 2026-10-26: points that follow drawn shapes (decision 6).
   The app now passes its operations in, so they follow there too.
 - Not moved: points on a shape changed through its own form or point handles (a circle's
   centre, a polyline's *Position*); those edit the shape, as dragging a point does.
+
+Later, 2026-10-26 (the user: dogbones added to a rectangle are lost when the rectangle is
+dragged): a single rectangle's or circle's own handles, and a shape's form, change it through
+`set_shape`, which didn't move the points. Now every start point, corner choice and tab placed
+by hand on the shape follows it (`chipload_job::edit::followed_point`): a rectangle's point
+keeps its place in the rectangle (a corner stays that corner, also when resized or turned), a
+circle's its angle and share of the radius, a polyline's its vertex or place along the same
+segment while the polyline keeps its number of points. This replaces "Not moved" above.

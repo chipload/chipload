@@ -29,9 +29,10 @@ is CAD's job: draw it there and import the DXF.
   beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
   scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
   handles instead. The shapes keep their ids, so the operations that cut them follow, and so
-  do the operations' start points and [corner choices](../operations/profile.md#corner-by-corner)
-  on them (as with `shape move`, `turn` and `scale`; editing a shape's own fields or points
-  leaves them where they are).
+  do the operations' start points, [corner choices](../operations/profile.md#corner-by-corner)
+  and tabs placed by hand on them (also with `shape move`, `turn` and `scale`, and when you
+  change one shape through its own handles or form: a corner's choice stays with that
+  corner of a rectangle you move or resize).
 - **Position and Turn:** a selected polyline's form, and the *Selection* section when several
   drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
   type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press

@@ -57,8 +57,17 @@ loose on the last pass.
 
 ### Tabs placed by hand
 
-You can put a contour's tabs where you want them instead. On the command line, list them
-and add or remove one at a point on (or near) the contour:
+You can put a contour's tabs where you want them instead. Select the profile after
+generating: each tab has a small square on the canvas, hollow where Chipload spaced it and
+filled where you placed it.
+
+- **Drag** a tab along its contour; it generates again when you let go.
+- **Right-click a tab** to remove it, or to space that contour's tabs evenly again.
+- **Right-click the contour's toolpath** for *Add a tab here*.
+- Under **Tabs** in Properties, *5 tabs placed by hand* counts them, and *Reset* spaces every
+  contour's tabs evenly again. Each change is one undo step.
+
+On the command line, list them and add or remove one at a point on (or near) the contour:
 
 ```
 chipload op tabs part.chipload --op 2
@@ -119,9 +128,10 @@ go into the mortise. **Corners** reaches into them:
 drawn slightly off count). A corner the tool can't reach at all (a notch narrower than the
 tool) is left round, with a note. A bone that would cut into another contour, or into
 another wall of its own (a short step next to the corner), stops generation with an error
-that names the corner. A line drawn on the operation's own wall (a shared edge)
-doesn't count, nor, in a pocket, a line that runs through the pocket where the pocket clears
-it anyway.
+that names the corner. A line that meets what the operation cuts near the bone
+doesn't count: a line on the operation's own wall (a shared edge), one that crosses it, or,
+in a pocket, one that runs into the pocket. The operation has cut through it there already,
+so the bone breaks no thin web.
 
 ### Corner by corner
 

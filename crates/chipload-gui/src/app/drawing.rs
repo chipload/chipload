@@ -147,9 +147,18 @@ impl ChiploadApp {
             .edit
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
-        let job = set_shape(&edit.settings, id, layer, geometry)
-            .map_err(|e| e.message().render(lang, units))?;
-        edit.settings = job;
+        // With the operations, so their points on the shape follow it.
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job =
+            set_shape(&job, id, layer, geometry).map_err(|e| e.message().render(lang, units))?;
+        for (entry, op) in edit.ops.iter_mut().zip(&job.operations) {
+            entry.op = op.clone();
+        }
+        edit.settings = Job {
+            operations: std::mem::take(&mut edit.settings.operations),
+            ..job
+        };
         self.drawing_changed(&[id]);
         Ok(())
     }

@@ -56,19 +56,13 @@ fn rectangles_that_share_a_wall_with_another_contour_get_their_bones() {
 }
 
 #[test]
-fn where_a_bone_reaches_a_line_off_its_wall_a_choice_gets_it_through() {
+fn a_slot_that_another_pocket_overlaps_gets_its_bones() {
     // #43 is a slot whose end the pocket #11 overlaps: #11's edge leaves the slot's wall
-    // 3.2 mm from the corner, and a dogbone there would cut it outside the slot.
-    let mut job = pocket_on(43, "dogbone");
-    let err = run_job(&job).unwrap_err().message().english();
-    assert!(
-        err.contains("at corner (7.375, 21.000) mm would cut into contour #11"),
-        "{err}"
-    );
-    for at in [[7.375, 21.0], [322.422, 21.0]] {
-        choose_corner(&mut job, 0, at, Some((Bone::Tbone, Some(Wall::Shorter)))).unwrap();
+    // 3.2 mm from the corner. The slot already opens into #11 along their shared wall, so
+    // the bone cuts no web.
+    for corners in ["dogbone", "tbone"] {
+        run_job(&pocket_on(43, corners)).unwrap();
     }
-    run_job(&job).unwrap();
 }
 
 /// The user's drawing (2026-10-26) with a 6 mm dogbone pocket on contour #30: a 9 mm slot
@@ -168,4 +162,34 @@ fn placing_the_drawing_moves_the_choices() {
     let rows = corners_of(&moved, 0).unwrap();
     assert_eq!(rows.iter().filter(|r| r.chosen).count(), 2);
     run_job(&moved).unwrap();
+}
+
+#[test]
+fn choices_and_tabs_follow_a_rectangle_moved_or_resized_by_its_handles() {
+    // The user (2026-10-26): dogbones added to a rectangle, then the rectangle dragged.
+    // A drawn 120 × 80 mm rectangle turned 10° about (100, 80), cut inside here, with tabs.
+    let mut job = chipload_job::load_job(&corpus("jobs/v26/straight_tabs.chipload")).unwrap();
+    if let Operation::Profile(p) = &mut job.operations[1] {
+        p.side = chipload_job::Side::Inside;
+    }
+    let corner = corners_of(&job, 1).unwrap()[0].at;
+    choose_corner(&mut job, 1, corner, Some((Bone::Dogbone, None))).unwrap();
+    // A tab placed by hand too, at a spaced tab's place.
+    let tab = chipload_pipeline::tabs::tabs_of(&job, 1).unwrap()[0].at;
+    chipload_pipeline::tabs::remove_tab(&mut job, 1, [tab.0, tab.1]).unwrap();
+    let moved = chipload_job::Geometry::Rectangle {
+        center: [140.0, 90.0],
+        length: 150.0,
+        width: 70.0,
+        angle: 25f64.to_radians(),
+        corner_radius: 0.0,
+    };
+    let job = chipload_pipeline::shapes::set_shape(&job, 1, "drawn", moved).unwrap();
+    // The same corner of the rectangle, wherever it went, still has its choice.
+    let rows = corners_of(&job, 1).unwrap();
+    assert_eq!(rows.iter().filter(|r| r.chosen).count(), 1, "{rows:?}");
+    assert!(rows[0].chosen);
+    // The three tabs left are still on the moved rectangle's ring.
+    assert_eq!(chipload_pipeline::tabs::tabs_of(&job, 1).unwrap().len(), 3);
+    run_job(&job).unwrap();
 }

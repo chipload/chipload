@@ -349,22 +349,15 @@ fn a_contour_running_through_the_pocket_doesnt_stop_its_bones() {
         let plan = plan(pocket(corners(kind, 100.0)), &contours);
         assert_eq!(tips(&plan.program.moves).len(), 4, "{kind}");
     }
-    // Where that contour also runs on below the pocket, 0.3 mm inside its left wall, the
-    // bottom-left corner's notch would cut it outside the pocket: still refused.
+    // Where that contour also runs 0.3 mm inside the pocket's left wall and on below the
+    // pocket, the bottom-left corner's notch cuts it outside the pocket too; but the pocket
+    // has cut through it right there, so no web is left to keep (the user, 2026-10-26).
     let contours = vec![
         rect(1, 0.0, 0.0, 15.0, 90.0),
         other(rect(2, 0.3, -40.0, 200.0, 5.0)),
     ];
-    let err = plan_job(
-        &job(pocket(corners("dogbone", 100.0)), Value::Null),
-        &contours,
-    )
-    .unwrap_err()
-    .to_string();
-    assert!(
-        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
-        "{err}"
-    );
+    let plan = plan(pocket(corners("dogbone", 100.0)), &contours);
+    assert_eq!(tips(&plan.program.moves).len(), 4);
 }
 
 #[test]
@@ -381,6 +374,22 @@ fn a_contour_just_outside_the_pockets_wall_still_stops_a_bone() {
         err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
         "{err}"
     );
+}
+
+#[test]
+fn a_pocket_on_the_parts_edge_gets_its_bones() {
+    // The user (2026-10-26): a rectangle pocket drawn on top of the profiles' outlines. Its
+    // bottom wall lies on the part's outline, which runs on past both corners; another part
+    // beside it ends on the pocket's side.
+    let contours = vec![
+        rect(1, 20.0, 0.0, 60.0, 30.0),
+        other(rect(2, 0.0, 0.0, 100.0, 80.0)),
+        other(rect(3, 60.0, 10.0, 90.0, 20.0)),
+    ];
+    for kind in ["dogbone", "tbone"] {
+        let plan = plan(pocket(corners(kind, 100.0)), &contours);
+        assert_eq!(tips(&plan.program.moves).len(), 4, "{kind}");
+    }
 }
 
 // -- with the rest (§4)
