@@ -135,7 +135,10 @@ descend as the spiral does.
     beneath it"), per contour: a contour that touches or crosses the operation's lines, or
     runs into a pocket's area, anywhere within the leg tool's reach doesn't count for that
     leg at all, since the operation has cut through it there and no web is left. A contour
-    near the wall that never meets it still counts (the thin-web tests). The same day, on the user's `shared_edges.dxf`: every rectangle sharing a wall
+    near the wall that never meets it still counts (the thin-web tests).
+  - Later still (decision 6 as changed): only contours that some enabled operation cuts
+    count, and a leg that comes too close to one is cut all the same, with a warning
+    (`toolpath-corner-cuts`, `-own`), not an error. The same day, on the user's `shared_edges.dxf`: every rectangle sharing a wall
     with a slot or the outline generates; what is still refused (a step of the pocket's
     own, a line leaving the wall 3.2 mm from the corner) goes through with a corner choice
     (docs/specs/dogbone-per-corner.md).
@@ -191,6 +194,9 @@ descend as the spiral does.
    corner as on the walls. **Recommended**.
 6. **A leg that would cut into another contour is an error, not a skip.** **Recommended**: a
    missing dogbone makes a part that doesn't fit, so it shouldn't pass quietly. The user can
-   lower `max_angle` or change the drawing.
+   lower `max_angle` or change the drawing. **Changed 2026-10-26 by the user** ("it would be
+   enough with a warning, we should still be allowed to make that cut"): the bone is cut,
+   with a warning naming the corner and the contour; and only contours some enabled
+   operation cuts count (a line nothing cuts leaves no web to break).
 7. **No version bump:** one optional field that defaults to today's behaviour.
    **Recommended**, as for finish and skin.

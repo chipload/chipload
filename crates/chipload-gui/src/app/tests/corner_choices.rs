@@ -74,7 +74,8 @@ fn a_round_pockets_corners_show_and_can_each_get_a_bone() {
 fn the_users_pocket_generates_with_its_steps_chosen() {
     let mut app = slot_pocket();
     set_dogbones(&mut app);
-    assert!(!app.generate_and_wait());
+    // Generated, with a warning at each step's foot.
+    assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(
         app.report
             .iter()
@@ -83,12 +84,33 @@ fn the_users_pocket_generates_with_its_steps_chosen() {
         app.report
     );
     app.update_corner_markers();
-    assert!(app.scene.corner_markers.iter().all(|m| m.notch.is_some()));
+    // Every corner gets a bone, but the slot's end tabs are narrower than the tool.
+    assert!(
+        app.scene
+            .corner_markers
+            .iter()
+            .all(|m| m.notch.is_some() != m.unreached)
+    );
+    assert_eq!(
+        app.scene
+            .corner_markers
+            .iter()
+            .filter(|m| m.unreached)
+            .count(),
+        4
+    );
     for at in step_corners(&app) {
         app.choose_corner(0, at, Some((Bone::None, None)));
     }
     assert!(app.wait_for_generation(), "{:?}", app.report);
     assert!(app.result.is_some(), "{:?}", app.report);
+    assert!(
+        !app.report
+            .iter()
+            .any(|l| l.contains("another wall of its own contour #30")),
+        "{:?}",
+        app.report
+    );
 }
 
 #[test]

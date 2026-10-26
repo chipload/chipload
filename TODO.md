@@ -106,6 +106,10 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **A bone near another contour: a warning, and only cut contours count** (2026-10-26, the
+  user): a dogbone or T-bone that also cuts into another contour, or another wall of its
+  own, is cut with a warning instead of stopping generation; contours no enabled operation
+  cuts don't count at all (dogbones.md decision 6 as changed).
 - **Dogbones follow a dragged shape; bones beside contours the operation cuts through**
   (2026-10-26, the user): corner choices, start points and tabs placed by hand now follow a
   drawn shape changed by its own handles or form (a corner keeps its choice when a rectangle

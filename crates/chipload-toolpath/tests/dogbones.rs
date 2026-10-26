@@ -304,28 +304,44 @@ fn a_notch_narrower_than_the_tool_is_skipped_with_a_note() {
 }
 
 #[test]
-fn a_leg_that_would_cut_into_another_contour_is_refused() {
-    // A small circle (not selected) in the part, 0.3 mm beside the hole's wall near its
-    // corner: the dogbone's notch reaches it.
-    let circle = bulged(2, &[(-0.3, 1.5, 1.0), (-0.9, 1.5, 1.0)]);
-    let mut contours = vec![rect(1, 0.0, 0.0, 40.0, 20.0), circle];
-    contours[1]
-        .parts
-        .iter_mut()
-        .for_each(|p| p.segment.layer = "other".into());
-    let err = plan_job(
-        &job(
-            profile("inside", corners("dogbone", 100.0), json!({})),
-            Value::Null,
-        ),
-        &contours,
-    )
-    .unwrap_err()
-    .to_string();
+fn a_leg_that_would_cut_into_another_contour_is_cut_with_a_warning() {
+    // A small circle in the part, 0.3 mm beside the hole's wall near its corner: the
+    // dogbone's notch reaches it. Drawn only, it doesn't matter; cut by another operation,
+    // the bone is still cut, with a warning (docs/specs/dogbones.md §6).
+    let contours = vec![rect(1, 0.0, 0.0, 40.0, 20.0), other(small_circle())];
+    let ops = profile("inside", corners("dogbone", 100.0), json!({}));
+    let drawn_only = plan(ops.clone(), &contours);
+    assert_eq!(tips(&drawn_only.program.moves).len(), 4);
+    assert!(!notes_of(&drawn_only).contains("cuts into contour"));
+
+    let cut = plan(with_circle_cut(ops), &contours);
+    assert_eq!(tips(&cut.program.moves).len(), 4);
+    let notes = notes_of(&cut);
     assert!(
-        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
-        "{err}"
+        notes.contains("the dogbone at corner (0.000, 0.000) mm cuts into contour #2"),
+        "{notes}"
     );
+}
+
+/// A circle 0.6 mm across, 0.3 mm left of (0, 1.5): beside a wall at x = 0.
+fn small_circle() -> Contour {
+    bulged(2, &[(-0.3, 1.5, 1.0), (-0.9, 1.5, 1.0)])
+}
+
+/// `ops` and a profile on the line of layer "other": the small circle is cut too.
+fn with_circle_cut(mut ops: Value) -> Value {
+    let mut on = profile("on", Value::Null, json!({}))[0].clone();
+    on["select"] = json!({"layer": "other"});
+    ops.as_array_mut().unwrap().push(on);
+    ops
+}
+
+fn notes_of(plan: &Plan) -> String {
+    plan.notes
+        .iter()
+        .map(|n| n.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// A contour on another layer, not cut by the operation.
@@ -361,18 +377,19 @@ fn a_contour_running_through_the_pocket_doesnt_stop_its_bones() {
 }
 
 #[test]
-fn a_contour_just_outside_the_pockets_wall_still_stops_a_bone() {
-    // A small circle 0.3 mm outside the pocket's wall next to its corner.
-    let circle = other(bulged(2, &[(-0.3, 1.5, 1.0), (-0.9, 1.5, 1.0)]));
-    let err = plan_job(
-        &job(pocket(corners("dogbone", 100.0)), Value::Null),
-        &[rect(1, 0.0, 0.0, 40.0, 20.0), circle],
-    )
-    .unwrap_err()
-    .to_string();
+fn a_contour_just_outside_the_pockets_wall_gives_a_warning() {
+    // A small circle 0.3 mm outside the pocket's wall next to its corner, cut by another
+    // operation: the bone is cut, with a warning.
+    let contours = vec![rect(1, 0.0, 0.0, 40.0, 20.0), other(small_circle())];
+    let plan = plan(
+        with_circle_cut(pocket(corners("dogbone", 100.0))),
+        &contours,
+    );
+    assert_eq!(tips(&plan.program.moves).len(), 4);
+    let notes = notes_of(&plan);
     assert!(
-        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
-        "{err}"
+        notes.contains("the dogbone at corner (0.000, 0.000) mm cuts into contour #2"),
+        "{notes}"
     );
 }
 
@@ -630,19 +647,23 @@ fn pocket_with(corners: Value, choices: Value) -> Value {
 #[test]
 fn a_bone_that_reaches_its_own_contour_says_so() {
     for kind in ["dogbone", "tbone"] {
-        let err = plan_job(
-            &job(pocket(corners(kind, 100.0)), Value::Null),
-            &[stepped_slot()],
-        )
-        .unwrap_err()
-        .to_string();
-        assert!(
-            err.contains(
-                "at corner (7.500, 0.000) mm would cut into another wall of its own contour #1"
-            ),
-            "{err}"
+        let plan = plan(pocket(corners(kind, 100.0)), &[stepped_slot()]);
+        assert_eq!(
+            tips(&plan.program.moves).len(),
+            2,
+            "{kind}: the steps' feet"
         );
-        assert!(err.contains("choose another bone for this corner"), "{err}");
+        let notes = notes_of(&plan);
+        assert!(
+            notes.contains(
+                "at corner (7.500, 0.000) mm cuts into another wall of its own contour #1"
+            ),
+            "{notes}"
+        );
+        assert!(
+            notes.contains("choose another bone for this corner"),
+            "{notes}"
+        );
     }
 }
 

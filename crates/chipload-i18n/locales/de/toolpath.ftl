@@ -277,14 +277,14 @@ toolpath-error-tab-back = das Werkzeug fährt bei { $at } entlang des Rings zur�
 toolpath-error-tab-end-below = Z{ $z } am Ende des Haltestegs bei { $end } entlang des Rings liegt unter der Oberkante des Haltestegs Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label }: der Abstecher an Ecke { $at } ging nicht als Hin- und Rückweg in den Ring
-toolpath-error-corner-cuts = { $label }: { $style ->
+toolpath-corner-cuts = { $label }: { $style ->
     [dogbone] der Dogbone
    *[tbone] der T-Bone
-} an Ecke { $at } würde in Kontur #{ $contour } schneiden; wählen Sie für diese Ecke etwas anderes, verringern Sie den max. Winkel der Ecken oder ändern Sie die Zeichnung
-toolpath-error-corner-cuts-own = { $label }: { $style ->
+} an Ecke { $at } schneidet auch in Kontur #{ $contour }: prüfen Sie das Teil dort, oder wählen Sie für diese Ecke etwas anderes
+toolpath-corner-cuts-own = { $label }: { $style ->
     [dogbone] der Dogbone
    *[tbone] der T-Bone
-} an Ecke { $at } würde in eine andere Wand ihrer eigenen Kontur #{ $contour } schneiden; wählen Sie für diese Ecke etwas anderes (einen T-Bone entlang der anderen Wand, oder rund) oder ändern Sie die Zeichnung
+} an Ecke { $at } schneidet auch in eine andere Wand ihrer eigenen Kontur #{ $contour }: prüfen Sie das Teil dort, oder wählen Sie für diese Ecke etwas anderes (einen T-Bone entlang der anderen Wand, oder rund)
 toolpath-corner-choice-unmatched = { $label }: die bei { $at } gewählte Ecke ist keine Ecke seiner Formen mehr (hat sich die Zeichnung geändert?); entfernen Sie die Einstellung oder wählen Sie neu
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = Bogenausgabe: ({ $x }, { $y }) liegt nicht auf dem Kreis, dem der Punkt zugeordnet wurde

@@ -126,12 +126,17 @@ go into the mortise. **Corners** reaches into them:
 
 *up to* sets the sharpest corner angle that gets one (100° by default, so 90° corners
 drawn slightly off count). A corner the tool can't reach at all (a notch narrower than the
-tool) is left round, with a note. A bone that would cut into another contour, or into
-another wall of its own (a short step next to the corner), stops generation with an error
-that names the corner. A line that meets what the operation cuts near the bone
-doesn't count: a line on the operation's own wall (a shared edge), one that crosses it, or,
-in a pocket, one that runs into the pocket. The operation has cut through it there already,
-so the bone breaks no thin web.
+tool) is left round, with a note.
+
+A bone that also cuts into another contour that is cut (a thin wall between this cut and
+another), or into another wall of its own (a short step next to the corner), is cut all the
+same, with a warning that names the corner: check the part there, or choose another bone for
+that corner. Lines that don't count:
+- lines no enabled operation cuts (construction lines, a layer nothing cuts, a disabled
+  operation's shapes);
+- a line that meets what the operation cuts near the bone: on its own wall (a shared edge),
+  crossing it, or, in a pocket, running into the pocket. It has been cut through there
+  already.
 
 ### Corner by corner
 

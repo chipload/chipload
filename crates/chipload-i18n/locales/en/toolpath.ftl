@@ -273,14 +273,14 @@ toolpath-error-tab-back = the tool goes back along the ring at { $at }
 toolpath-error-tab-end-below = Z{ $z } at the tab end { $end } along the ring is below the tab top Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label }: the leg at corner { $at } did not go into the ring as out and back
-toolpath-error-corner-cuts = { $label }: the { $style ->
+toolpath-corner-cuts = { $label }: the { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} at corner { $at } would cut into contour #{ $contour }; choose another bone for this corner, lower the corners' max angle or change the drawing
-toolpath-error-corner-cuts-own = { $label }: the { $style ->
+} at corner { $at } cuts into contour #{ $contour } as well: check the part there, or choose another bone for this corner
+toolpath-corner-cuts-own = { $label }: the { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} at corner { $at } would cut into another wall of its own contour #{ $contour }; choose another bone for this corner (a T-bone along the other wall, or round) or change the drawing
+} at corner { $at } cuts into another wall of its own contour #{ $contour } as well: check the part there, or choose another bone for this corner (a T-bone along the other wall, or round)
 toolpath-corner-choice-unmatched = { $label }: the corner chosen at { $at } is no corner of its shapes any more (did the drawing change?); remove the choice or choose again
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = arc output: ({ $x }, { $y }) is not on the circle it was tagged with

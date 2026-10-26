@@ -273,14 +273,14 @@ toolpath-error-tab-back = verktyget går bakåt längs slingan vid { $at }
 toolpath-error-tab-end-below = Z{ $z } vid bryggans slut { $end } längs slingan är under bryggans topp Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label }: utstickaren vid hörnet { $at } gick inte in i slingan som ut och tillbaka
-toolpath-error-corner-cuts = { $label }: { $style ->
+toolpath-corner-cuts = { $label }: { $style ->
     [dogbone] dogbonen
    *[tbone] T-bonen
-} vid hörnet { $at } skulle fräsa in i kontur #{ $contour }; välj något annat för hörnet, sänk hörnens maxvinkel eller ändra ritningen
-toolpath-error-corner-cuts-own = { $label }: { $style ->
+} vid hörnet { $at } fräser också in i kontur #{ $contour }: kontrollera detaljen där, eller välj något annat för hörnet
+toolpath-corner-cuts-own = { $label }: { $style ->
     [dogbone] dogbonen
    *[tbone] T-bonen
-} vid hörnet { $at } skulle fräsa in i en annan vägg av sin egen kontur #{ $contour }; välj något annat för hörnet (en T-bone längs den andra väggen, eller runt) eller ändra ritningen
+} vid hörnet { $at } fräser också in i en annan vägg av sin egen kontur #{ $contour }: kontrollera detaljen där, eller välj något annat för hörnet (en T-bone längs den andra väggen, eller runt)
 toolpath-corner-choice-unmatched = { $label }: hörnet som valts vid { $at } är inte längre något hörn av dess former (har ritningen ändrats?); ta bort valet eller välj igen
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = bågutdata: ({ $x }, { $y }) ligger inte på cirkeln den märktes med

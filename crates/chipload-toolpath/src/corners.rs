@@ -446,6 +446,9 @@ pub struct Added {
     pub unreached: Vec<(Corner, CornerBone)>,
     /// Points added to each slot (two per leg), to move ranges by.
     pub points: Vec<usize>,
+    /// Legs that come too close to another contour, or another wall of their own: cut all
+    /// the same, with a warning (docs/specs/dogbones.md §6, decision 6 as changed).
+    pub warnings: Vec<Message>,
 }
 
 /// Add a leg for every corner that gets a bone ([`CornerCut::bone`]) to the ring that stops in it (docs/specs/dogbones.md §3),
@@ -458,6 +461,7 @@ pub fn add_legs(
 ) -> Result<Added, ToolpathError> {
     let mut legs = Vec::new();
     let mut unreached = Vec::new();
+    let mut warnings = Vec::new();
     let mut added = vec![0; slots.len()];
     let offset = cut.tool_radius - cut.clearance;
     for corner in corners {
@@ -480,7 +484,9 @@ pub fn add_legs(
             corner: *corner,
             bone,
         };
-        check_leg(&leg, cut)?;
+        if let Some(warning) = check_leg(&leg, cut) {
+            warnings.push(warning);
+        }
         // At the ring's start, the leg goes at its end, so the ring still leaves its start
         // along the wall (leads and spirals start there).
         let repeats = slot.repeats_start();
@@ -524,12 +530,13 @@ pub fn add_legs(
         legs,
         unreached,
         points: added,
+        warnings,
     })
 }
 
-/// The leg may cut into the two walls of its corner, nothing else (docs/specs/dogbones.md
-/// §6).
-fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
+/// The leg should cut into the two walls of its corner, nothing else (docs/specs/dogbones.md
+/// §6): the warning when it comes too close to another contour, or another wall of its own.
+fn check_leg(leg: &Leg, cut: &CornerCut) -> Option<Message> {
     let offset = cut.tool_radius - cut.clearance;
     for contour in cut.everything {
         // Worked out once per contour, when a part of it is near the leg.
@@ -550,11 +557,11 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
                 // Its own contour's other walls: the user picks another bone for the corner
                 // (docs/specs/dogbone-per-corner.md §5).
                 let id = if contour.id == leg.corner.contour_id {
-                    "toolpath-error-corner-cuts-own"
+                    "toolpath-corner-cuts-own"
                 } else {
-                    "toolpath-error-corner-cuts"
+                    "toolpath-corner-cuts"
                 };
-                return Err(ToolpathError::Geometry(
+                return Some(
                     Message::new(id)
                         .arg("label", cut.label.clone())
                         .arg("style", leg.bone.style())
@@ -563,11 +570,11 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
                             Value::Point(leg.corner.at.0, leg.corner.at.1, Digits::Fixed(3)),
                         )
                         .arg("contour", contour.id),
-                ));
+                );
             }
         }
     }
-    Ok(())
+    None
 }
 
 /// Whether `contour`, one the operation doesn't cut, meets what the operation cuts within

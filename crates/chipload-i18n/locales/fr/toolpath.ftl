@@ -276,14 +276,14 @@ toolpath-error-tab-back = l'outil revient en arrière le long du tour à { $at }
 toolpath-error-tab-end-below = Z{ $z } à la fin de l'attache, { $end } le long du tour, est sous le dessus de l'attache Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label } : le trajet au coin { $at } n'est pas entré dans le tour en aller-retour
-toolpath-error-corner-cuts = { $label } : le { $style ->
+toolpath-corner-cuts = { $label } : le { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} au coin { $at } entamerait le contour #{ $contour } ; choisissez autre chose pour ce coin, réduisez l'angle max des coins ou modifiez le dessin
-toolpath-error-corner-cuts-own = { $label } : le { $style ->
+} au coin { $at } entame aussi le contour #{ $contour } : vérifiez la pièce à cet endroit, ou choisissez autre chose pour ce coin
+toolpath-corner-cuts-own = { $label } : le { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} au coin { $at } entamerait une autre paroi de son propre contour #{ $contour } ; choisissez autre chose pour ce coin (un T-bone le long de l'autre paroi, ou arrondi) ou modifiez le dessin
+} au coin { $at } entame aussi une autre paroi de son propre contour #{ $contour } : vérifiez la pièce à cet endroit, ou choisissez autre chose pour ce coin (un T-bone le long de l'autre paroi, ou arrondi)
 toolpath-corner-choice-unmatched = { $label } : le coin choisi en { $at } n'est plus un coin de ses formes (le dessin a changé ?) ; retirez le choix ou choisissez à nouveau
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = sortie en arcs : ({ $x }, { $y }) n'est pas sur le cercle auquel il est rattaché

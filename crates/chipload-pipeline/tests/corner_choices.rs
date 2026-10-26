@@ -95,8 +95,8 @@ const STEPS: [[f64; 2]; 2] = [[11.214, 301.0], [511.214, 301.0]];
 #[test]
 fn the_slots_steps_get_t_bones_along_their_short_walls() {
     let mut job = slot_job();
-    let err = run_job(&job).unwrap_err().message().english();
-    assert!(err.contains("another wall of its own contour #30"), "{err}");
+    // Cut as drawn, with a warning at each step's foot (docs/specs/dogbones.md §6).
+    assert_eq!(own_wall_warnings(&job), 2);
 
     for at in STEPS {
         choose_corner(&mut job, 0, at, Some((Bone::Tbone, Some(Wall::Shorter)))).unwrap();
@@ -116,9 +116,19 @@ fn the_slots_steps_get_t_bones_along_their_short_walls() {
     for at in STEPS {
         choose_corner(&mut job, 0, at, Some((Bone::None, None))).unwrap();
     }
-    run_job(&job).unwrap();
+    assert_eq!(own_wall_warnings(&job), 0);
     assert_eq!(reset_corners(&mut job, 0).unwrap(), 2);
-    assert!(run_job(&job).is_err());
+    assert_eq!(own_wall_warnings(&job), 2);
+}
+
+/// How many bones `job` cuts into another wall of their own contour: its warnings.
+fn own_wall_warnings(job: &Job) -> usize {
+    run_job(job)
+        .unwrap()
+        .notes
+        .iter()
+        .filter(|n| n.text.contains("another wall of its own contour #30"))
+        .count()
 }
 
 #[test]

@@ -276,14 +276,14 @@ toolpath-error-tab-back = la herramienta retrocede a lo largo del anillo en { $a
 toolpath-error-tab-end-below = Z{ $z } en el extremo del puente, a { $end } a lo largo del anillo, está por debajo de la cara superior del puente, Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label }: el tramo de la esquina { $at } no entró en el anillo como ida y vuelta
-toolpath-error-corner-cuts = { $label }: el { $style ->
+toolpath-corner-cuts = { $label }: el { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} de la esquina { $at } cortaría el contorno #{ $contour }; elige otra cosa para esta esquina, baja el ángulo máximo de las esquinas o cambia el dibujo
-toolpath-error-corner-cuts-own = { $label }: el { $style ->
+} de la esquina { $at } corta también el contorno #{ $contour }: revisa la pieza ahí, o elige otra cosa para esta esquina
+toolpath-corner-cuts-own = { $label }: el { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} de la esquina { $at } cortaría otra pared de su propio contorno #{ $contour }; elige otra cosa para esta esquina (un T-bone a lo largo de la otra pared, o redonda) o cambia el dibujo
+} de la esquina { $at } corta también otra pared de su propio contorno #{ $contour }: revisa la pieza ahí, o elige otra cosa para esta esquina (un T-bone a lo largo de la otra pared, o redonda)
 toolpath-corner-choice-unmatched = { $label }: la esquina elegida en { $at } ya no es una esquina de sus formas (¿cambió el dibujo?); quita la elección o elige de nuevo
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = salida de arcos: ({ $x }, { $y }) no está en el círculo con el que se marcó

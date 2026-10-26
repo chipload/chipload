@@ -273,14 +273,14 @@ toolpath-error-tab-back = l'utensile torna indietro lungo l'anello a { $at }
 toolpath-error-tab-end-below = Z{ $z } alla fine del ponticello, { $end } lungo l'anello, è sotto la sommità del ponticello Z{ $top }
 # $label is the operation's label; $at the corner's point.
 toolpath-error-corner-leg = { $label }: il tratto all'angolo { $at } non è entrato nell'anello come andata e ritorno
-toolpath-error-corner-cuts = { $label }: { $style ->
+toolpath-corner-cuts = { $label }: { $style ->
     [dogbone] il dogbone
    *[tbone] il T-bone
-} all'angolo { $at } taglierebbe nel contorno #{ $contour }; scegli altro per questo angolo, abbassa l'angolo max degli angoli o cambia il disegno
-toolpath-error-corner-cuts-own = { $label }: { $style ->
+} all'angolo { $at } taglia anche nel contorno #{ $contour }: controlla il pezzo lì, o scegli altro per questo angolo
+toolpath-corner-cuts-own = { $label }: { $style ->
     [dogbone] il dogbone
    *[tbone] il T-bone
-} all'angolo { $at } taglierebbe in un'altra parete del suo stesso contorno #{ $contour }; scegli altro per questo angolo (un T-bone lungo l'altra parete, o arrotondato) o cambia il disegno
+} all'angolo { $at } taglia anche in un'altra parete del suo stesso contorno #{ $contour }: controlla il pezzo lì, o scegli altro per questo angolo (un T-bone lungo l'altra parete, o arrotondato)
 toolpath-corner-choice-unmatched = { $label }: l'angolo scelto in { $at } non è più un angolo delle sue forme (il disegno è cambiato?); rimuovi la scelta o scegli di nuovo
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = uscita ad archi: ({ $x }, { $y }) non è sul cerchio a cui era associato

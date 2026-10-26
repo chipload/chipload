@@ -2,6 +2,8 @@
 //! Job + imported contours -> Program: the toolpath half of `chipload_pipeline::run_job`,
 //! which then posts and independently checks it.
 
+use std::collections::BTreeSet;
+
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::{Line, Primitive};
@@ -147,6 +149,11 @@ pub fn plan_job_cancellable(
 ) -> Result<Plan, ToolpathError> {
     let mut notes = validate_job(job)?;
     let chosen = select_all(job, contours)?;
+    // Every contour some operation cuts (docs/specs/dogbones.md §6).
+    let cut_ids: BTreeSet<usize> = chosen
+        .iter()
+        .flat_map(|c| c.selection.contours.iter().map(|k| k.id))
+        .collect();
     let (steps, mut groups) = cut_order(job, &chosen)?;
     let mut gathered = Gathered::default();
     let mut position: Point = (0.0, 0.0);
@@ -173,7 +180,15 @@ pub fn plan_job_cancellable(
                     .map(|n| Note::at(at.operation, labelled_note(label, n.clone()))),
             );
         }
-        let planned = plan_step(job, contours, cancel, &chosen[step.chosen], step, position)?;
+        let planned = plan_step(
+            job,
+            contours,
+            cancel,
+            &chosen[step.chosen],
+            step,
+            position,
+            &cut_ids,
+        )?;
         position = planned.end;
         gathered.add(job, step, *at, tool.diameter / 2.0, planned, &mut notes);
         groups[step.group].moves.end = gathered.moves.len();
@@ -394,6 +409,7 @@ fn plan_step(
     chosen: &Chosen,
     step: &Step,
     position: Point,
+    cut_ids: &BTreeSet<usize>,
 ) -> Result<Planned, ToolpathError> {
     let index = chosen.at.operation;
     let op = &chosen.op;
@@ -402,10 +418,14 @@ fn plan_step(
     let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
     let (start_depth, _) = op.depths();
     let shift = step.shift;
-    // Leads keep clear of every contour of the drawing (moved with the copy).
-    // Dogbone legs keep clear of them too (docs/specs/dogbones.md §6).
-    let everything: Vec<Contour> = if op.lead().is_some() || op.has_bones() {
-        contours.iter().map(|c| c.translated(shift)).collect()
+    // A bone's leg minds only what is cut (docs/specs/dogbones.md §6): a line no operation
+    // cuts leaves no web to break.
+    let cut_contours: Vec<Contour> = if op.has_bones() {
+        contours
+            .iter()
+            .filter(|c| cut_ids.contains(&c.id))
+            .map(|c| c.translated(shift))
+            .collect()
     } else {
         Vec::new()
     };
@@ -433,9 +453,9 @@ fn plan_step(
         job,
         pass_z: &pass_z,
         top_z: top_z - start_depth,
-        everything: &everything,
         choices: &choices,
         tab_points: &tab_points,
+        cut_contours: &cut_contours,
         cancel,
     };
     let moved: Vec<Contour> = chosen
@@ -622,12 +642,13 @@ struct Context<'a> {
     pass_z: &'a [f64],
     /// Z of the operation's start depth: cut already, where a ramp begins.
     top_z: f64,
-    /// Every contour of the drawing, moved with the copy; only filled for leads and bones.
-    everything: &'a [Contour],
     /// The operation's corner choices, moved with the copy.
     choices: &'a [chipload_job::CornerChoice],
     /// Its tabs placed by hand, moved with the copy.
     tab_points: &'a [Point],
+    /// The contours some operation cuts, moved with the copy: a bone's leg is checked
+    /// against these (docs/specs/dogbones.md §6).
+    cut_contours: &'a [Contour],
     cancel: &'a Cancel,
 }
 
@@ -701,7 +722,7 @@ fn plan_pocket_op(
             choices: ctx.choices,
             tool_radius: ctx.tool.diameter / 2.0,
             clearance: op.clearance,
-            everything: ctx.everything,
+            everything: ctx.cut_contours,
             // Another boundary of the pocket has waste on both sides near a corner.
             exempt: &boundaries,
             walls: &selection.contours,
@@ -709,7 +730,8 @@ fn plan_pocket_op(
             label: ctx.label_message,
         };
         for piece in &mut plan.pieces {
-            let unreached = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
+            let (unreached, warnings) = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
+            corner_notes.extend(warnings);
             unreached_at.extend(unreached.iter().map(|(c, _)| c.at));
             corner_notes.extend(
                 unreached
@@ -759,6 +781,12 @@ fn plan_pocket_op(
     Ok(out)
 }
 
+/// What adding the legs left: the corners no ring reaches, and the legs' warnings.
+type Legs = (
+    Vec<(crate::corners::Corner, crate::corners::CornerBone)>,
+    Vec<Message>,
+);
+
 /// Dogbones in a pocket piece's wall rings (docs/specs/dogbones.md §4): the corners of the
 /// piece's boundaries (cut inside) and islands (cut outside); the leads' ranges move with
 /// the added points. Returns the corners no wall ring reaches.
@@ -767,7 +795,7 @@ fn pocket_legs(
     contours: &[&Contour],
     boundaries: &[usize],
     cut: &CornerCut,
-) -> Result<Vec<(crate::corners::Corner, crate::corners::CornerBone)>, ToolpathError> {
+) -> Result<Legs, ToolpathError> {
     let of: Vec<&Contour> = contours
         .iter()
         .copied()
@@ -790,7 +818,7 @@ fn pocket_legs(
             range.end += count;
         }
     }
-    Ok(added.unreached)
+    Ok((added.unreached, added.warnings))
 }
 
 /// Dogbones in a profile's rings (docs/specs/dogbones.md §4), each contour's corners in its
@@ -800,8 +828,9 @@ fn profile_legs(
     contours: &[&Contour],
     side: Side,
     cut: &CornerCut,
-) -> Result<Vec<(crate::corners::Corner, crate::corners::CornerBone)>, ToolpathError> {
+) -> Result<Legs, ToolpathError> {
     let mut unreached = Vec::new();
+    let mut warnings = Vec::new();
     for contour in contours {
         let corners = find_corners(contour, side == Side::Inside);
         if corners.is_empty() {
@@ -820,8 +849,9 @@ fn profile_legs(
             .collect();
         let added = add_legs(&corners, &mut slots, cut)?;
         unreached.extend(added.unreached);
+        warnings.extend(added.warnings);
     }
-    Ok(unreached)
+    Ok((unreached, warnings))
 }
 
 fn plan_path_op(
@@ -1152,13 +1182,15 @@ fn plan_profile_op(
             choices: ctx.choices,
             tool_radius: radius,
             clearance: op.clearance,
-            everything: ctx.everything,
+            everything: ctx.cut_contours,
             exempt: &[],
             walls: &selection.contours,
             clears_inside: false,
             label: ctx.label_message,
         };
-        let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
+        let (unreached, warnings) =
+            profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
+        plan.notes.extend(warnings);
         unreached_at.extend(unreached.iter().map(|(c, _)| c.at));
         plan.notes.extend(
             unreached
@@ -1170,6 +1202,7 @@ fn plan_profile_op(
                 clearance: rough_op.clearance,
                 ..cut
             };
+            // The roughing's legs are the wall's, a little short: the same warnings.
             profile_legs(&mut rough.rings, &selection.contours, op.side, &rough_cut)?;
         }
     }
