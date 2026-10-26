@@ -13,7 +13,11 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Bone, CornerChoice, Corners, Operation, Side, Wall};
 
 use crate::ToolpathError;
-use crate::geom::segment_distance;
+use crate::geom::{closest_on_segment, segment_distance};
+
+/// How finely a contour near a leg is followed to see whether it lies in the area a pocket
+/// clears.
+const NEAR_STEP_MM: f64 = 5.0 * ARC_APPROX_TOL_MM;
 
 /// An inside corner of a drawn contour, seen from the tool's side.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -239,6 +243,9 @@ pub struct CornerCut<'a> {
     pub everything: &'a [Contour],
     /// Contours a leg may cross besides its own walls (a pocket's other boundaries).
     pub exempt: &'a [usize],
+    /// The area the operation clears anyway (a pocket's contours, even-odd), where another
+    /// contour may lie near a leg; empty for a profile.
+    pub cleared: &'a [&'a Contour],
     pub label: &'a Message,
 }
 
@@ -529,7 +536,10 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
             if own || exempt {
                 continue;
             }
-            if segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM {
+            if segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM
+                && (cut.cleared.iter().any(|c| c.id == contour.id)
+                    || reaches_uncleared(leg, &part.segment.prim, offset, cut.cleared))
+            {
                 // Its own contour's other walls: the user picks another bone for the corner
                 // (docs/specs/dogbone-per-corner.md §5).
                 let id = if contour.id == leg.corner.contour_id {
@@ -551,6 +561,36 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
         }
     }
     Ok(())
+}
+
+/// Whether the leg's tool reaches `prim`, part of a contour the operation doesn't cut,
+/// anywhere outside the area the operation clears anyway (docs/specs/dogbones.md §6): a
+/// contour that runs through a pocket is cut by the pocket itself, so a leg near it there
+/// cuts nothing more. Without such an area, anywhere.
+fn reaches_uncleared(leg: &Leg, prim: &Primitive, offset: f64, cleared: &[&Contour]) -> bool {
+    if cleared.is_empty() {
+        return true;
+    }
+    let steps = (prim.length() / NEAR_STEP_MM).ceil().max(1.0) as usize;
+    (0..=steps).any(|k| {
+        let p = point_along(prim, k as f64 / steps as f64);
+        let near = distance(p, closest_on_segment(p, leg.from, leg.tip)) < offset - CHAIN_TOL_MM;
+        near && !in_cleared(p, cleared)
+    })
+}
+
+/// The point a fraction `t` (0 to 1) along a line or arc.
+fn point_along(prim: &Primitive, t: f64) -> Point {
+    match prim {
+        Primitive::Line(line) => add(line.start, scale(sub(line.end, line.start), t)),
+        Primitive::Arc(arc) => arc.point_at(arc.start_angle + arc.sweep * t),
+    }
+}
+
+/// Whether `p` lies in the area `cleared` encloses: inside an odd number of them, as a
+/// pocket builds its area.
+fn in_cleared(p: Point, cleared: &[&Contour]) -> bool {
+    cleared.iter().filter(|c| encloses(c, p)).count() % 2 == 1
 }
 
 /// Whether `p` lies inside the closed contour (ray casting on its flattened points).

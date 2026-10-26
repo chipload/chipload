@@ -328,6 +328,61 @@ fn a_leg_that_would_cut_into_another_contour_is_refused() {
     );
 }
 
+/// A contour on another layer, not cut by the operation.
+fn other(mut contour: Contour) -> Contour {
+    contour
+        .parts
+        .iter_mut()
+        .for_each(|p| p.segment.layer = "other".into());
+    contour
+}
+
+#[test]
+fn a_contour_running_through_the_pocket_doesnt_stop_its_bones() {
+    // A user's drawing (2026-10-26): a 15 × 90 mm pocket that another contour runs across,
+    // 5 mm above its bottom. The pocket clears it there anyway.
+    let contours = vec![
+        rect(1, 0.0, 0.0, 15.0, 90.0),
+        other(rect(2, -30.0, -40.0, 200.0, 5.0)),
+    ];
+    for kind in ["dogbone", "tbone"] {
+        let plan = plan(pocket(corners(kind, 100.0)), &contours);
+        assert_eq!(tips(&plan.program.moves).len(), 4, "{kind}");
+    }
+    // Where that contour also runs on below the pocket, 0.3 mm inside its left wall, the
+    // bottom-left corner's notch would cut it outside the pocket: still refused.
+    let contours = vec![
+        rect(1, 0.0, 0.0, 15.0, 90.0),
+        other(rect(2, 0.3, -40.0, 200.0, 5.0)),
+    ];
+    let err = plan_job(
+        &job(pocket(corners("dogbone", 100.0)), Value::Null),
+        &contours,
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_contour_just_outside_the_pockets_wall_still_stops_a_bone() {
+    // A small circle 0.3 mm outside the pocket's wall next to its corner.
+    let circle = other(bulged(2, &[(-0.3, 1.5, 1.0), (-0.9, 1.5, 1.0)]));
+    let err = plan_job(
+        &job(pocket(corners("dogbone", 100.0)), Value::Null),
+        &[rect(1, 0.0, 0.0, 40.0, 20.0), circle],
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("the dogbone at corner (0.000, 0.000) mm would cut into contour #2"),
+        "{err}"
+    );
+}
+
 // -- with the rest (§4)
 
 #[test]

@@ -125,6 +125,10 @@ descend as the spiral does.
     drawing, except the two walls that meet at `C`. A leg that would cut into another
     contour (a thin wall next to the corner) is refused with an error, which names the
     corner.
+  - In a pocket, a contour the pocket doesn't cut counts only where it lies outside the
+    pocket's area: inside it, the pocket clears it anyway (2026-10-26, a user's pocket that
+    the part's outline ran across near a corner). The pocket's own contours still count
+    everywhere.
 - The material-left display uses the moves. It shows the corners cleared.
 - `chipload-check` is unchanged: the legs are ordinary feed moves.
 
