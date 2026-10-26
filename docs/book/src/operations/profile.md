@@ -55,11 +55,38 @@ loose on the last pass.
 - **Spacing:** they keep a tool diameter from each other and from the start of the contour.
 - **Shown** highlighted on the canvas.
 
+### Tabs placed by hand
+
+You can put a contour's tabs where you want them instead. On the command line, list them
+and add or remove one at a point on (or near) the contour:
+
+```
+chipload op tabs part.chipload --op 2
+ring 1  (146.551, 132.176)  spaced
+…
+chipload op tab part.chipload --op 2 --at 162,91            # add one
+chipload op tab part.chipload --op 2 --at 146.5,132 --remove
+chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour spaced evenly again
+chipload op tab part.chipload --op 2 --reset                # every contour
+```
+
+- The first tab you add or remove on a contour keeps its other tabs where Chipload had put
+  them; from then on that contour has exactly the tabs you placed, and **count** is for the
+  contours you haven't touched.
+- A tab placed by hand stays where you put it, also on a corner (the report notes it).
+- Generating stops, naming the tab, if two tabs come closer than their width plus two tool
+  diameters, if a tab covers the contour's start (move the tab or the start), or if a tab
+  is no longer on any contour of the operation (the drawing changed).
+- The points move with the drawing when you [place](../drawings/placement.md) it or move,
+  turn or scale the drawn shape, and every copy gets them. In the file they are
+  `tabs.at`, points in drawing coordinates.
+
 ## Start point
 
 Each contour's cut starts at a point Chipload picks. To move it, select the operation, then
 **drag the start marker** along the contour on the canvas; right-click the marker to reset
-it. The tabs move with the start. In the file, `starts` holds the points.
+it. Tabs Chipload spaces move with the start; tabs placed by hand stay. In the file,
+`starts` holds the points.
 
 ## Finishing pass
 
@@ -151,7 +178,7 @@ in mm, feeds in mm/min, angles in radians.
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
 | `ramp_angle` | Ramp angle, radians |
-| `tabs` | Tabs: `count`, `width`, `height`, `flank_angle`, or null |
+| `tabs` | Tabs: `count`, `width`, `height`, `flank_angle`, and `at` (tabs placed by hand, `[[x, y], …]`; left out when there are none), or null |
 | `starts` | start points, `[[x, y], …]` in drawing coordinates |
 | `finish` | Finishing pass: `{"stock": …}` or null |
 | `skin` | Onion skin: `{"thickness": …}` or null |

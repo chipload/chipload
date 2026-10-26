@@ -1880,6 +1880,11 @@ pub struct Tabs {
     /// ramped profile follows.
     // Spec: docs/specs/profile-spiral.md §4.
     pub flank_angle: f64,
+    /// Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets
+    /// exactly those tabs, one without gets `count`, evenly spaced. Left out when empty.
+    // Spec: docs/specs/tabs-by-hand.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub at: Vec<[f64; 2]>,
 }
 
 /// Straight tabs: up and down vertically.
@@ -2156,6 +2161,16 @@ impl Operation {
             | Operation::Path(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => None,
+        }
+    }
+
+    /// A profile's tabs placed by hand (docs/specs/tabs-by-hand.md); None without tabs.
+    pub fn tab_points_mut(&mut self) -> Option<&mut Vec<[f64; 2]>> {
+        match self {
+            Operation::Profile(ProfileOp {
+                tabs: Some(tabs), ..
+            }) => Some(&mut tabs.at),
+            _ => None,
         }
     }
 

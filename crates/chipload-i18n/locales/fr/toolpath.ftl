@@ -263,6 +263,9 @@ toolpath-error-tabs-fit = { $count ->
     [0] pas même une ne tient
    *[other] il en tient au plus { $fits }
 })
+toolpath-tab-on-start = l'attache en { $at } recouvre le départ du tour ou s'en approche à moins d'un demi-diamètre d'outil, là où chaque passe plonge ; déplacez l'attache ou le départ du tour
+toolpath-tabs-too-close = les attaches en { $at } et { $other } sont trop proches : il faut leur largeur plus deux diamètres d'outil entre leurs centres
+toolpath-tab-no-ring = { $label } : l'attache placée en { $at } n'est plus sur aucun de ses contours (le dessin a changé ?) ; déplacez-la ou retirez-la
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = impossible de reporter une attache ({ $from } à { $to } le long du tour) sur le tour d'ébauche
 # $what is one of the three texts after it.

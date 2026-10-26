@@ -38,7 +38,7 @@ use crate::profile::{
 };
 use crate::select::{Selection, select_contours, select_paths};
 use crate::surface::{SurfaceCut, surface_moves};
-use crate::tabs::{TabLayout, place_tabs, tab_polylines};
+use crate::tabs::{TabLayout, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +59,9 @@ pub struct Plan {
     /// operation's index and the corner, for the corner markers
     /// (docs/specs/dogbone-per-corner.md §6).
     pub unreached_corners: Vec<(usize, Point)>,
+    /// Every profile tab's centre on its ring (on the part, copy 1), for the tab markers
+    /// and `op tabs` (docs/specs/tabs-by-hand.md).
+    pub tab_centres: Vec<TabCentre>,
     /// The tool groups in cut order (docs/specs/tool-per-operation.md §2): one per tool
     /// change, each a program of its own or a part of one. A one-tool job has one.
     pub groups: Vec<ToolGroup>,
@@ -98,6 +101,18 @@ pub struct RingStart {
     pub ring: Vec<Point>,
     /// Index in the operation's `starts` of the point that set it; None: the planner's.
     pub stored: Option<usize>,
+}
+
+/// A profile tab's centre on its ring.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TabCentre {
+    /// Index in `job.operations`.
+    pub operation: usize,
+    /// Which of the operation's rings, in the order of its ring starts.
+    pub ring: usize,
+    pub at: Point,
+    /// Placed by hand (`tabs.at`), not spaced by Chipload.
+    pub by_hand: bool,
 }
 
 /// The moves one operation contributed to the program.
@@ -170,6 +185,7 @@ pub fn plan_job_cancellable(
         op_spans,
         ring_starts,
         unreached_corners,
+        tab_centres,
         arcs,
         comments,
         ..
@@ -196,6 +212,7 @@ pub fn plan_job_cancellable(
         op_spans,
         ring_starts,
         unreached_corners,
+        tab_centres,
         groups,
     })
 }
@@ -400,6 +417,16 @@ fn plan_step(
             ..*c
         })
         .collect();
+    let tab_points: Vec<Point> = match op {
+        Operation::Profile(ProfileOp {
+            tabs: Some(tabs), ..
+        }) => tabs
+            .at
+            .iter()
+            .map(|p| (p[0] + shift.0, p[1] + shift.1))
+            .collect(),
+        _ => Vec::new(),
+    };
     let context = Context {
         label_message: &chosen.label_message,
         tool,
@@ -408,6 +435,7 @@ fn plan_step(
         top_z: top_z - start_depth,
         everything: &everything,
         choices: &choices,
+        tab_points: &tab_points,
         cancel,
     };
     let moved: Vec<Contour> = chosen
@@ -491,6 +519,7 @@ struct Gathered {
     op_spans: Vec<OpSpan>,
     ring_starts: Vec<RingStart>,
     unreached_corners: Vec<(usize, Point)>,
+    tab_centres: Vec<TabCentre>,
     arcs: ArcTable,
     /// With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
     comments: Vec<String>,
@@ -542,6 +571,18 @@ impl Gathered {
         if step.copy == 1 && at.pass.is_none() {
             self.unreached_corners
                 .extend(planned.unreached.iter().map(|&p| (index, p)));
+            self.tab_centres
+                .extend(
+                    planned
+                        .tab_centres
+                        .iter()
+                        .map(|&(ring, at, by_hand)| TabCentre {
+                            operation: index,
+                            ring,
+                            at,
+                            by_hand,
+                        }),
+                );
             self.ring_starts
                 .extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
                     operation: index,
@@ -585,6 +626,8 @@ struct Context<'a> {
     everything: &'a [Contour],
     /// The operation's corner choices, moved with the copy.
     choices: &'a [chipload_job::CornerChoice],
+    /// Its tabs placed by hand, moved with the copy.
+    tab_points: &'a [Point],
     cancel: &'a Cancel,
 }
 
@@ -600,6 +643,8 @@ struct Planned {
     starts: Vec<(Vec<Point>, Option<usize>)>,
     /// Corners that would get a bone but the tool can't reach.
     unreached: Vec<Point>,
+    /// Each tab's ring (index in the rings), centre and whether it was placed by hand.
+    tab_centres: Vec<(usize, Point, bool)>,
 }
 
 fn plan_pocket_op(
@@ -687,6 +732,7 @@ fn plan_pocket_op(
         end: start,
         starts: Vec::new(),
         unreached: unreached_at,
+        tab_centres: Vec::new(),
     };
     let cut = PocketCut {
         pass_z: ctx.pass_z,
@@ -828,6 +874,7 @@ fn plan_path_op(
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
+        tab_centres: Vec::new(),
     })
 }
 
@@ -957,6 +1004,7 @@ fn plan_holes_op(
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
+        tab_centres: Vec::new(),
     })
 }
 
@@ -981,6 +1029,7 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
+        tab_centres: Vec::new(),
     }
 }
 
@@ -1054,6 +1103,7 @@ fn plan_vcarve_op(
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
+        tab_centres: Vec::new(),
     })
 }
 
@@ -1137,6 +1187,7 @@ fn plan_profile_op(
             .map(|(ring, &stored)| (ring.points.clone(), stored))
             .collect(),
         unreached: unreached_at,
+        tab_centres: Vec::new(),
     };
     if let Some(rough) = &rough {
         out.arcs.extend(rough.arcs.clone());
@@ -1267,13 +1318,43 @@ fn profile_tabs(
             Message::new("toolpath-tabs-inside"),
         ));
     }
+    // Tabs placed by hand go to their nearest ring (docs/specs/tabs-by-hand.md §2).
+    let mut by_ring: Vec<Vec<Point>> = vec![Vec::new(); rings.len()];
+    for &p in ctx.tab_points {
+        let nearest = rings
+            .iter()
+            .enumerate()
+            .filter_map(|(k, r)| arc_position(&r.points, p).map(|(_, d)| (k, d)))
+            .min_by(|a, b| a.1.total_cmp(&b.1));
+        match nearest {
+            Some((k, d)) if d <= ctx.tool.diameter => by_ring[k].push(p),
+            _ => {
+                return Err(ToolpathError::Geometry(
+                    Message::new("toolpath-tab-no-ring")
+                        .arg("label", ctx.label_message.clone())
+                        .arg("at", Value::Point(p.0, p.1, Digits::Fixed(3))),
+                ));
+            }
+        }
+    }
     let mut layouts: Vec<Option<TabLayout>> = Vec::with_capacity(rings.len());
     let mut curved: Vec<usize> = Vec::new();
-    for ring in rings {
+    for (k, (ring, points)) in rings.iter().zip(&by_ring).enumerate() {
         // Validated: count >= 1.
         let count = usize::try_from(tabs.count).unwrap_or(0);
-        let placed = place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
-            .map_err(|err| err.with_context(contour_context(ctx.label_message, ring.contour_id)))?;
+        let placed = if points.is_empty() {
+            place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
+        } else {
+            tabs_at(&ring.points, points, tabs.width, ctx.tool.diameter)
+        }
+        .map_err(|err| err.with_context(contour_context(ctx.label_message, ring.contour_id)))?;
+        out.tab_centres.extend(placed.spans.iter().map(|&(s0, s1)| {
+            (
+                k,
+                point_at_arc(&ring.points, (s0 + s1) / 2.0),
+                !points.is_empty(),
+            )
+        }));
         if placed.on_curves > 0 {
             curved.push(ring.contour_id);
         }

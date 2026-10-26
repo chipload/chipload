@@ -20,6 +20,7 @@ pub mod shapes;
 pub mod sheet;
 pub mod simulate;
 pub mod surface;
+pub mod tabs;
 pub mod texts;
 pub mod units;
 
@@ -157,6 +158,8 @@ pub struct RunResult {
     pub ring_starts: Vec<RingStart>,
     /// Corners a bone can't reach, by operation, for the corner markers.
     pub unreached_corners: Vec<(usize, chipload_core::Point)>,
+    /// Every profile tab's centre, for the tab markers.
+    pub tab_centres: Vec<chipload_toolpath::plan::TabCentre>,
     /// Toolpath warnings, each with the operation it is about.
     pub notes: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
@@ -519,6 +522,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         groups: plan.groups,
         ring_starts: plan.ring_starts,
         unreached_corners: plan.unreached_corners,
+        tab_centres: plan.tab_centres,
         notes,
         check_warnings,
     })

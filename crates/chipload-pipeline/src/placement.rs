@@ -164,6 +164,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     let mut out = job.clone();
     let mut moved_starts = 0;
     let mut moved_corners = 0;
+    let mut moved_tabs = 0;
     for op in &mut out.operations {
         let select = op.select().clone();
         for start in op.starts_mut().into_iter().flatten() {
@@ -182,6 +183,13 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
             ) {
                 choice.at = step.apply(choice.at);
                 moved_corners += 1;
+            }
+        }
+        // And so are tabs placed by hand (docs/specs/tabs-by-hand.md §4).
+        for tab in op.tab_points_mut().into_iter().flatten() {
+            if nearest_is_from(&job.drawing.shapes, &select, (tab[0], tab[1]), id) {
+                *tab = step.apply(*tab);
+                moved_tabs += 1;
             }
         }
     }
@@ -240,6 +248,9 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     }
     if moved_corners > 0 {
         lines.push(Message::new("pipeline-place-moved-corners").arg("count", moved_corners));
+    }
+    if moved_tabs > 0 {
+        lines.push(Message::new("pipeline-place-moved-tabs").arg("count", moved_tabs));
     }
     if job.drawing.shapes.iter().any(Shape::is_drawn) {
         lines.push(Message::new("pipeline-place-drawn-stay"));

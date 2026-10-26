@@ -1193,6 +1193,7 @@ impl Holding {
                 width: 8.0,
                 height: 3.0,
                 flank_angle: Tabs::default_flank(p.ramp_angle, center_cutting),
+                at: Vec::new(),
             });
         }
         if !self.has_skin() {

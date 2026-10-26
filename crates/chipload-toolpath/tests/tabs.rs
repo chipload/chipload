@@ -15,7 +15,7 @@ use chipload_toolpath::model::Move;
 use chipload_toolpath::offset::offset_rings;
 use chipload_toolpath::profile::orient;
 use chipload_toolpath::tabs::{
-    TAB_MAX_TURN_RAD, TabLayout, place_tabs, ring_length, split_ring, tab_polylines,
+    TAB_MAX_TURN_RAD, TabLayout, place_tabs, ring_length, split_ring, tab_polylines, tabs_at,
 };
 use common::polygon;
 use proptest::prelude::*;
@@ -237,6 +237,58 @@ fn convex_ring() -> impl Strategy<Value = Vec<Point>> {
     })
 }
 
+// -- placed by hand (docs/specs/tabs-by-hand.md §3)
+
+/// A 200 × 100 mm square path from (0, 0), counter-clockwise: 600 mm round. With D = 6 and
+/// width 8 a tab's gap is 14 mm: centres at least 20 mm apart, and from 10 to 590 along.
+fn square() -> Vec<Point> {
+    vec![(0.0, 0.0), (200.0, 0.0), (200.0, 100.0), (0.0, 100.0)]
+}
+
+#[test]
+fn tabs_by_hand_stay_where_they_are_put_even_on_a_corner() {
+    let layout = tabs_at(
+        &square(),
+        &[(100.0, 0.0), (200.0, 0.0), (50.0, 100.0)],
+        8.0,
+        D,
+    )
+    .unwrap();
+    let centres: Vec<f64> = layout.spans.iter().map(|(a, b)| (a + b) / 2.0).collect();
+    assert_eq!(centres, vec![100.0, 200.0, 450.0]);
+    assert_eq!(layout.on_curves, 1, "the one on the corner is noted");
+    assert!(straight_tabbed(&square(), &layout, &[-3.0, -6.0], -4.0).is_ok());
+}
+
+#[test]
+fn tabs_by_hand_are_moved_onto_the_ring() {
+    let layout = tabs_at(&square(), &[(100.0, -2.5)], 8.0, D).unwrap();
+    assert!(near(layout.spans[0].0, 93.0) && near(layout.spans[0].1, 107.0));
+}
+
+#[test]
+fn tabs_by_hand_closer_than_their_width_and_two_tools_are_refused() {
+    assert!(tabs_at(&square(), &[(100.0, 0.0), (120.0, 0.0)], 8.0, D).is_ok());
+    let err = message(tabs_at(&square(), &[(100.0, 0.0), (119.99, 0.0)], 8.0, D).unwrap_err());
+    assert!(
+        err.contains("the tabs at (100.000, 0.000) mm and (119.990, 0.000) mm are too close"),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_tab_by_hand_may_not_cover_the_rings_start() {
+    assert!(tabs_at(&square(), &[(10.0, 0.0)], 8.0, D).is_ok());
+    assert!(
+        tabs_at(&square(), &[(0.0, 10.0)], 8.0, D).is_ok(),
+        "590 along, coming back"
+    );
+    for p in [(9.99, 0.0), (0.0, 9.99), (0.0, 0.0)] {
+        let err = message(tabs_at(&square(), &[p], 8.0, D).unwrap_err());
+        assert!(err.contains("covers the ring's start"), "{p:?}: {err}");
+    }
+}
+
 proptest! {
     #![proptest_config(common::proptest_config(150))]
 
@@ -263,6 +315,31 @@ proptest! {
             prop_assert!((s1 - s0 - (width + tool)).abs() < 1e-9);
         }
         // The move builder verifies its own result (never below a tab).
+        prop_assert!(straight_tabbed(&ring, &layout, &[-3.0, -6.0], -4.0).is_ok());
+    }
+
+    /// Tabs placed by hand anywhere on the square, kept apart and off the start: the gaps are
+    /// exact and the moves never cut below a tab.
+    #[test]
+    fn tabs_by_hand_cut_as_placed(
+        along in proptest::collection::vec(10.0f64..590.0, 1..12),
+    ) {
+        let mut along = along;
+        along.sort_by(f64::total_cmp);
+        along.dedup_by(|b, a| *b - *a < 20.0);
+        let ring = square();
+        let at = |s: f64| match s {
+            s if s <= 200.0 => (s, 0.0),
+            s if s <= 300.0 => (200.0, s - 200.0),
+            s if s <= 500.0 => (500.0 - s, 100.0),
+            s => (0.0, 600.0 - s),
+        };
+        let points: Vec<Point> = along.iter().map(|&s| at(s)).collect();
+        let layout = tabs_at(&ring, &points, 8.0, D).unwrap();
+        prop_assert_eq!(layout.spans.len(), points.len());
+        for (s0, s1) in &layout.spans {
+            prop_assert!((s1 - s0 - 14.0).abs() < 1e-9);
+        }
         prop_assert!(straight_tabbed(&ring, &layout, &[-3.0, -6.0], -4.0).is_ok());
     }
 }

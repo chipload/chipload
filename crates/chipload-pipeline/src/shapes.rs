@@ -366,6 +366,11 @@ pub fn transform_shapes(
                 choice.at = map(choice.at);
             }
         }
+        for tab in op.tab_points_mut().into_iter().flatten() {
+            if on_moved(*tab) {
+                *tab = map(*tab);
+            }
+        }
     }
     checked(out)
 }

@@ -260,6 +260,9 @@ toolpath-error-tabs-fit = { $count } tabs of { $width } don't fit on a { $length
     [0] not even one fits
    *[other] at most { $fits } fit
 })
+toolpath-tab-on-start = the tab at { $at } covers the ring's start or comes within half a tool diameter of it, where every pass goes down; move the tab or the ring's start
+toolpath-tabs-too-close = the tabs at { $at } and { $other } are too close: they need their width plus two tool diameters between their centres
+toolpath-tab-no-ring = { $label }: the tab placed at { $at } is on none of its contours any more (did the drawing change?); move or remove it
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = could not carry a tab ({ $from } to { $to } along the ring) onto the roughing ring
 # $what is one of the three texts after it.

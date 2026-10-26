@@ -264,6 +264,9 @@ toolpath-error-tabs-fit = { $count ->
     [one] höchstens { $fits } passt
    *[other] höchstens { $fits } passen
 })
+toolpath-tab-on-start = der Haltesteg bei { $at } liegt auf dem Start des Rings oder näher als einen halben Werkzeugdurchmesser daran, wo jeder Durchgang eintaucht; verschieben Sie den Haltesteg oder den Start des Rings
+toolpath-tabs-too-close = die Haltestege bei { $at } und { $other } liegen zu nah beieinander: zwischen ihren Mitten braucht es ihre Breite plus zwei Werkzeugdurchmesser
+toolpath-tab-no-ring = { $label }: der bei { $at } gesetzte Haltesteg liegt auf keiner ihrer Konturen mehr (hat sich die Zeichnung geändert?); verschieben oder entfernen Sie ihn
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = ein Haltesteg ({ $from } bis { $to } entlang des Rings) ließ sich nicht auf den Schrupp-Ring übertragen
 # $what is one of the three texts after it.

@@ -6,7 +6,8 @@ it's built (see `CLAUDE.md`).
 ## In progress
 
 - **Tabs placed by hand** (docs/specs/tabs-by-hand.md), asked 2026-10-26 (drag tabs as a
-  ring's start is dragged): spec drafted, decisions waiting for the user's review.
+  ring's start is dragged), approved the same day. Step 1 (format, planning, `op tabs`,
+  `op tab`) **done 2026-10-26**; step 2, the canvas (drag, add, remove), next.
 - **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
   German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
   `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`

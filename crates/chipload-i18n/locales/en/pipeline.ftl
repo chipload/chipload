@@ -151,6 +151,7 @@ pipeline-place-moved = Moved { $what } by X{ $dx } Y{ $dy }
 pipeline-place-done = { $done }; it is now { $placement }.
 pipeline-place-moved-starts = Moved { $count } start point(s) with it.
 pipeline-place-moved-corners = Moved { $count } corner choice(s) with it.
+pipeline-place-moved-tabs = Moved { $count } tab(s) placed by hand with it.
 pipeline-place-drawn-stay = Shapes drawn in Chipload stay where they are.
 pipeline-place-other-dxfs-stay = The other DXFs stay where they are.
 pipeline-place-work-zero-stays = The work zero stays at the point X{ $x }, Y{ $y }; check that it's still where you want it.
@@ -288,6 +289,9 @@ pipeline-no-tool-use = the project has no tool { $tool }; copy one in from your 
 pipeline-no-tool = the project has no tool { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = there is no operation { $number }; the project has { $count }
+pipeline-tab-no-ring = operation { $number } has no contour within a tool diameter of { $at }; `chipload op tabs` lists its tabs
+pipeline-tab-none-there = operation { $number } has no tab within a tool diameter of { $at }; `chipload op tabs` lists its tabs
+pipeline-tab-no-tabs = operation { $number } has no tabs: only a profile with tabs has them to place
 pipeline-corner-none-there = operation { $number } has no corner at { $at }; `chipload op corners` lists its corners
 pipeline-corner-not-profile-or-pocket = operation { $number } has no corners to choose: only profiles and pockets have dogbones
 pipeline-not-a-pocket = operation { $number } is not a pocket; only pockets rest machine

@@ -152,6 +152,10 @@ pipeline-place-moved-starts = { $count ->
    *[other] Flyttade { $count } startpunkter med den.
 }
 pipeline-place-moved-corners = Flyttade { $count } hörnval med den.
+pipeline-place-moved-tabs = { $count ->
+    [one] Flyttade { $count } handplacerad brygga med den.
+   *[other] Flyttade { $count } handplacerade bryggor med den.
+}
 pipeline-place-drawn-stay = Former ritade i Chipload ligger kvar där de är.
 pipeline-place-other-dxfs-stay = De andra DXF:erna ligger kvar där de är.
 pipeline-place-work-zero-stays = Arbetsnollpunkten ligger kvar i punkten X{ $x }, Y{ $y }; kontrollera att den fortfarande är där du vill ha den.
@@ -292,6 +296,9 @@ pipeline-no-tool-use = projektet har inget verktyg { $tool }; kopiera in ett fr�
 pipeline-no-tool = projektet har inget verktyg { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = det finns ingen operation { $number }; projektet har { $count }
+pipeline-tab-no-ring = operation { $number } har ingen kontur inom en verktygsdiameter från { $at }; `chipload op tabs` listar dess bryggor
+pipeline-tab-none-there = operation { $number } har ingen brygga inom en verktygsdiameter från { $at }; `chipload op tabs` listar dess bryggor
+pipeline-tab-no-tabs = operation { $number } har inga bryggor: bara en konturfräsning med bryggor har några att placera
 pipeline-corner-none-there = operation { $number } har inget hörn vid { $at }; `chipload op corners` listar dess hörn
 pipeline-corner-not-profile-or-pocket = operation { $number } har inga hörn att välja: bara konturfräsningar och fickor har dogbones
 pipeline-not-a-pocket = operation { $number } är inte en ficka; bara fickor kan restbearbetas

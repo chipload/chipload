@@ -1917,6 +1917,19 @@
     "Tabs": {
       "additionalProperties": false,
       "properties": {
+        "at": {
+          "description": "Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets\nexactly those tabs, one without gets `count`, evenly spaced. Left out when empty.",
+          "items": {
+            "items": {
+              "format": "double",
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "type": "array"
+        },
         "count": {
           "description": "Tabs per contour, at least 1.",
           "format": "int64",

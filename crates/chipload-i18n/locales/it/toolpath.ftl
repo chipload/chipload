@@ -260,6 +260,9 @@ toolpath-error-tabs-fit = { $count } ponticelli da { $width } non entrano in un 
     [0] non ne entra nemmeno uno
    *[other] ne entrano al massimo { $fits }
 })
+toolpath-tab-on-start = il ponticello in { $at } copre l'inizio dell'anello o ci arriva a meno di mezzo diametro utensile, dove ogni passata scende; sposta il ponticello o l'inizio dell'anello
+toolpath-tabs-too-close = i ponticelli in { $at } e { $other } sono troppo vicini: tra i loro centri serve la loro larghezza più due diametri utensile
+toolpath-tab-no-ring = { $label }: il ponticello posto in { $at } non è più su nessuno dei suoi contorni (il disegno è cambiato?); spostalo o rimuovilo
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = impossibile riportare un ponticello (da { $from } a { $to } lungo l'anello) sull'anello di sgrossatura
 # $what is one of the three texts after it.

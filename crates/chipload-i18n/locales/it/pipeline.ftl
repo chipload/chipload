@@ -157,6 +157,10 @@ pipeline-place-moved-corners = { $count ->
     [one] Spostata con esso anche { $count } scelta d'angolo.
    *[other] Spostate con esso anche { $count } scelte d'angolo.
 }
+pipeline-place-moved-tabs = { $count ->
+    [one] Spostato con esso anche { $count } ponticello posto a mano.
+   *[other] Spostati con esso anche { $count } ponticelli posti a mano.
+}
 pipeline-place-drawn-stay = Le forme disegnate in Chipload restano dove sono.
 pipeline-place-other-dxfs-stay = Gli altri DXF restano dove sono.
 pipeline-place-work-zero-stays = Lo zero pezzo resta nel punto X{ $x }, Y{ $y }; controlla che sia ancora dove lo vuoi.
@@ -297,6 +301,9 @@ pipeline-no-tool-use = il progetto non ha l'utensile { $tool }; copiane uno dall
 pipeline-no-tool = il progetto non ha l'utensile { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = non esiste la lavorazione { $number }; il progetto ne ha { $count }
+pipeline-tab-no-ring = la lavorazione { $number } non ha contorni entro un diametro utensile da { $at }; `chipload op tabs` elenca i suoi ponticelli
+pipeline-tab-none-there = la lavorazione { $number } non ha ponticelli entro un diametro utensile da { $at }; `chipload op tabs` elenca i suoi ponticelli
+pipeline-tab-no-tabs = la lavorazione { $number } non ha ponticelli: solo una contornatura con ponticelli ne ha da posizionare
 pipeline-corner-none-there = la lavorazione { $number } non ha un angolo in { $at }; `chipload op corners` elenca i suoi angoli
 pipeline-corner-not-profile-or-pocket = la lavorazione { $number } non ha angoli da scegliere: solo contornature e tasche hanno dogbone
 pipeline-not-a-pocket = la lavorazione { $number } non è una tasca; solo le tasche fanno ripresa dei residui

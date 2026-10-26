@@ -75,6 +75,96 @@ pub fn place_tabs(
     })
 }
 
+/// How far along `ring` (from ring[0], arc length) its point nearest to `p` lies, and how
+/// far `p` is from it.
+pub fn arc_position(ring: &[Point], p: Point) -> Option<(f64, f64)> {
+    let (i, q, d) = crate::start::nearest_on_ring(ring, p)?;
+    let before: f64 = (0..i).map(|k| distance(ring[k], ring[k + 1])).sum();
+    Some((before + distance(ring[i], q), d))
+}
+
+/// The point `s` along `ring` (arc length from ring[0], wrapping round).
+pub fn point_at_arc(ring: &[Point], s: f64) -> Point {
+    let n = ring.len();
+    let length = ring_length(ring);
+    let mut left = if length > 0.0 {
+        s.rem_euclid(length)
+    } else {
+        0.0
+    };
+    for i in 0..n {
+        let (a, b) = (ring[i], ring[(i + 1) % n]);
+        let seg = distance(a, b);
+        if left <= seg && seg > 0.0 {
+            let t = left / seg;
+            return (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
+        }
+        left -= seg;
+    }
+    ring.first().copied().unwrap_or((0.0, 0.0))
+}
+
+/// Tabs placed by hand (docs/specs/tabs-by-hand.md §3): each of `points` (drawing
+/// coordinates, already on or near this ring) is a tab's centre on the ring, with no
+/// sliding. Refused, naming the tab, when two come closer than `width + 2·D` along the
+/// ring, or a tab's gap reaches within D/2 of the ring's start (where every pass plunges).
+pub fn tabs_at(
+    ring: &[Point],
+    points: &[Point],
+    width: f64,
+    tool_diameter: f64,
+) -> Result<TabLayout, ToolpathError> {
+    let length = ring_length(ring);
+    let gap = width + tool_diameter;
+    let mut centres: Vec<(f64, Point)> = points
+        .iter()
+        .filter_map(|&p| arc_position(ring, p).map(|(s, _)| (s, p)))
+        .collect();
+    centres.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let at = |p: Point| Value::Point(p.0, p.1, Digits::Fixed(3));
+    for (k, &(s, p)) in centres.iter().enumerate() {
+        if s - gap / 2.0 < tool_diameter / 2.0 - CHAIN_TOL_MM
+            || s + gap / 2.0 > length - tool_diameter / 2.0 + CHAIN_TOL_MM
+        {
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-tab-on-start").arg("at", at(p)),
+            ));
+        }
+        if let Some(&(next, q)) = centres.get(k + 1)
+            && next - s < gap + tool_diameter - CHAIN_TOL_MM
+        {
+            return Err(ToolpathError::Geometry(
+                Message::new("toolpath-tabs-too-close")
+                    .arg("at", at(p))
+                    .arg("other", at(q)),
+            ));
+        }
+    }
+    let (positions, turns) = vertex_turns(ring);
+    let mut on_curves = 0;
+    let spans: Vec<(f64, f64)> = centres
+        .iter()
+        .map(|&(s, _)| {
+            let (s0, s1) = (s - gap / 2.0, s + gap / 2.0);
+            let turning: f64 = positions
+                .iter()
+                .zip(&turns)
+                .filter(|&(&v, _)| s0 < v && v < s1)
+                .map(|(_, &t)| t)
+                .sum();
+            if turning >= TAB_MAX_TURN_RAD {
+                on_curves += 1;
+            }
+            (s0, s1)
+        })
+        .collect();
+    Ok(TabLayout {
+        spans,
+        length,
+        on_curves,
+    })
+}
+
 /// The closed ring from ring[0] back to ring[0], with points inserted at every span
 /// boundary. Each entry is (end point of a segment, whether that segment lies in a tab).
 pub fn split_ring(ring: &[Point], spans: &[(f64, f64)]) -> Vec<(Point, bool)> {

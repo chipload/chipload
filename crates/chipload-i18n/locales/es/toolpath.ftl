@@ -263,6 +263,9 @@ toolpath-error-tabs-fit = { $count ->
     [0] no cabe ni uno
    *[other] caben como máximo { $fits }
 })
+toolpath-tab-on-start = el puente en { $at } cubre el inicio del anillo o queda a menos de medio diámetro de herramienta de él, donde baja cada pasada; mueve el puente o el inicio del anillo
+toolpath-tabs-too-close = los puentes en { $at } y { $other } están demasiado cerca: necesitan su anchura más dos diámetros de herramienta entre sus centros
+toolpath-tab-no-ring = { $label }: el puente colocado en { $at } ya no está en ninguno de sus contornos (¿cambió el dibujo?); muévelo o quítalo
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = no se pudo trasladar un puente (de { $from } a { $to } a lo largo del anillo) al anillo de desbaste
 # $what is one of the three texts after it.

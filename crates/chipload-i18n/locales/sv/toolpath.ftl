@@ -260,6 +260,9 @@ toolpath-error-tabs-fit = { $count } bryggor på { $width } får inte plats på 
     [0] inte ens en får plats
    *[other] högst { $fits } får plats
 })
+toolpath-tab-on-start = bryggan vid { $at } täcker slingans start eller kommer närmare den än en halv verktygsdiameter, där varje pass går ner; flytta bryggan eller slingans start
+toolpath-tabs-too-close = bryggorna vid { $at } och { $other } ligger för nära varandra: de behöver sin bredd plus två verktygsdiametrar mellan mittpunkterna
+toolpath-tab-no-ring = { $label }: bryggan som placerats vid { $at } ligger inte längre på någon av dess konturer (har ritningen ändrats?); flytta eller ta bort den
 # $from is a distance along the ring without its unit, $to one with it.
 toolpath-error-tab-carry = kunde inte föra över en brygga ({ $from } till { $to } längs slingan) till grovbearbetningens slinga
 # $what is one of the three texts after it.

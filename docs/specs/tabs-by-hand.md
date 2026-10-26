@@ -1,6 +1,6 @@
 # Spec: tabs placed by hand
 
-Status: **draft** 2026-10-26, for review.
+Status: **approved** 2026-10-26, decisions as recommended (the user: "approve").
 
 The user's question (2026-10-26): does click and drag, as for a ring's start, also work for
 tabs? It doesn't: a profile's tabs are a count, width, height and flank angle, and Chipload
@@ -112,3 +112,19 @@ tabs of copy 1 (the drawing).
 6. **No version bump:** one optional field, left out when empty. *Recommended*.
 7. **Order of work:** the format, planning and CLI; then the canvas. Each its own commit
    with tests, guide and texts in six languages.
+
+## 9. As built
+
+Step 1, 2026-10-26: the format, planning and CLI.
+
+- `chipload_job::Tabs::at` (left out when empty), `Operation::tab_points_mut`.
+- `chipload_toolpath::tabs::{tabs_at, arc_position, point_at_arc}`: a ring's tabs at the
+  points, no sliding, refused when closer than `width + 2·D` or within D/2 of the start;
+  `plan::profile_tabs` gives each point to its nearest ring (refused beyond a tool
+  diameter). `Plan::tab_centres` lists every tab (copy 1), with its ring and whether it
+  was placed by hand.
+- `chipload_pipeline::tabs::{tabs_of, add_tab, remove_tab, even_ring, reset_tabs}`; adding
+  or removing on an evenly spaced ring first stores its tabs where they are (decision 3).
+  `place` and `transform_shapes` move the points ("Moved 1 tab(s) placed by hand with it").
+- `chipload op tabs`, `chipload op tab` (`--remove`, `--even`, `--reset`). The canvas is
+  step 2.

@@ -529,6 +529,7 @@ One of: `"bottom_left"`, `"center"`.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `at` | list of 2 × number | no | Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets exactly those tabs, one without gets `count`, evenly spaced. Left out when empty. |
 | `count` | integer | yes | Tabs per contour, at least 1. |
 | `flank_angle` | number | yes | The slope of the tab's sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows. |
 | `height` | number | yes | The bridge's thickness, up from the bottom of the cut, mm. |

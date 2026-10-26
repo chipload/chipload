@@ -606,6 +606,42 @@ enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// List a profile's tabs: each contour's, with their centres on the tool path and
+    /// whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned.
+    Tabs {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+    },
+    /// Place a profile's tabs by hand (docs/specs/tabs-by-hand.md): add a tab at a point, or
+    /// remove the one there. The first on a contour keeps that contour's other tabs where
+    /// Chipload put them. `--even` spaces one contour's tabs evenly again, `--reset` all.
+    Tab {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+        /// The point, X,Y in drawing coordinates (a plain number is mm): on or near the
+        /// contour, within a tool diameter.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true,
+              required_unless_present = "reset")]
+        at: Option<[f64; 2]>,
+        /// Remove the tab nearest to --at.
+        #[arg(long, conflicts_with_all = ["even", "reset"])]
+        remove: bool,
+        /// Space the tabs of the contour nearest to --at evenly again.
+        #[arg(long, conflicts_with = "reset")]
+        even: bool,
+        /// Space every contour's tabs evenly again.
+        #[arg(long)]
+        reset: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md).
     Rest {
         /// The project (.chipload).
@@ -2465,6 +2501,91 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 at + 1
             ));
             out.set("operation", json!(at));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::Tabs { project, op } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let rows = match chipload_pipeline::tabs::tabs_of(&job, index) {
+                Ok(rows) => rows,
+                Err(err) => return out.fail(err),
+            };
+            let mut list = Vec::new();
+            for row in &rows {
+                let how = if row.by_hand {
+                    "placed by hand"
+                } else {
+                    "spaced"
+                };
+                out.line(format!(
+                    "ring {}  ({}, {})  {how}",
+                    row.ring + 1,
+                    chipload_core::text::mm(row.at.0),
+                    chipload_core::text::mm(row.at.1)
+                ));
+                list.push(json!({
+                    "ring": row.ring + 1,
+                    "at": [row.at.0, row.at.1],
+                    "by_hand": row.by_hand,
+                }));
+            }
+            out.set("tabs", Value::Array(list));
+            ExitCode::SUCCESS
+        }
+        OpAction::Tab {
+            project,
+            op,
+            at,
+            remove,
+            even,
+            reset,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let at = at.unwrap_or_default();
+            let (x, y) = (
+                chipload_core::text::mm(at[0]),
+                chipload_core::text::mm(at[1]),
+            );
+            use chipload_pipeline::tabs::{add_tab, even_ring, remove_tab, reset_tabs};
+            let done = if reset {
+                reset_tabs(&mut job, index).map(|count| {
+                    format!("Operation {op}'s tabs are spaced evenly again ({count} were placed by hand).")
+                })
+            } else if even {
+                even_ring(&mut job, index, at).map(|count| {
+                    format!(
+                        "The tabs of the contour at ({x}, {y}) are spaced evenly again ({count} were placed by hand)."
+                    )
+                })
+            } else if remove {
+                remove_tab(&mut job, index, at)
+                    .map(|()| format!("Removed operation {op}'s tab nearest to ({x}, {y})."))
+            } else {
+                add_tab(&mut job, index, at)
+                    .map(|()| format!("Added a tab to operation {op} at ({x}, {y})."))
+            };
+            let line = match done {
+                Ok(line) => line,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            out.line(line);
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

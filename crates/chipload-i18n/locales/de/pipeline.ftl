@@ -155,6 +155,10 @@ pipeline-place-moved-corners = { $count ->
     [one] { $count } Eckeneinstellung mitverschoben.
    *[other] { $count } Eckeneinstellungen mitverschoben.
 }
+pipeline-place-moved-tabs = { $count ->
+    [one] { $count } von Hand gesetzter Haltesteg mitverschoben.
+   *[other] { $count } von Hand gesetzte Haltestege mitverschoben.
+}
 pipeline-place-drawn-stay = In Chipload gezeichnete Formen bleiben, wo sie sind.
 pipeline-place-other-dxfs-stay = Die anderen DXFs bleiben, wo sie sind.
 pipeline-place-work-zero-stays = Der Werkstücknullpunkt bleibt am Punkt X{ $x }, Y{ $y }; prüfen Sie, ob er noch dort liegt, wo Sie ihn haben wollen.
@@ -295,6 +299,9 @@ pipeline-no-tool-use = das Projekt hat kein Werkzeug { $tool }; kopieren Sie ein
 pipeline-no-tool = das Projekt hat kein Werkzeug { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = es gibt keine Bearbeitung { $number }; das Projekt hat { $count }
+pipeline-tab-no-ring = Bearbeitung { $number } hat keine Kontur innerhalb eines Werkzeugdurchmessers von { $at }; `chipload op tabs` listet ihre Haltestege
+pipeline-tab-none-there = Bearbeitung { $number } hat keinen Haltesteg innerhalb eines Werkzeugdurchmessers von { $at }; `chipload op tabs` listet ihre Haltestege
+pipeline-tab-no-tabs = Bearbeitung { $number } hat keine Haltestege: nur Konturfräsen mit Haltestegen haben welche zu setzen
 pipeline-corner-none-there = Bearbeitung { $number } hat keine Ecke bei { $at }; `chipload op corners` listet ihre Ecken
 pipeline-corner-not-profile-or-pocket = Bearbeitung { $number } hat keine Ecken zum Wählen: nur Konturfräsen und Taschen haben Dogbones
 pipeline-not-a-pocket = Bearbeitung { $number } ist keine Tasche; nur Taschen haben eine Restbearbeitung
