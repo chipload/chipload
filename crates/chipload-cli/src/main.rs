@@ -566,6 +566,46 @@ enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// List a profile's or pocket's corners on the tool's side, with what each gets (round,
+    /// dogbone, T-bone along the longer or shorter wall) and whether that is the corner's
+    /// own choice (docs/specs/dogbone-per-corner.md).
+    Corners {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+    },
+    /// Give one corner of a profile or pocket its own bone, whatever the operation's corners
+    /// say (docs/specs/dogbone-per-corner.md): `--bone none` keeps it round. `op corners`
+    /// lists the corners.
+    Corner {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The operation's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+        /// The corner, X,Y in drawing coordinates (a plain number is mm).
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true,
+              required_unless_present = "reset")]
+        at: Option<[f64; 2]>,
+        /// What the corner gets.
+        #[arg(long, value_enum, conflicts_with_all = ["as_operation", "reset"],
+              required_unless_present_any = ["as_operation", "reset"])]
+        bone: Option<BoneArg>,
+        /// With a T-bone: the wall it runs along (the notch is in the other); default longer.
+        #[arg(long, value_enum)]
+        along: Option<WallArg>,
+        /// Remove the corner's own choice: it gets what the operation gives every corner.
+        #[arg(long, conflicts_with = "reset")]
+        as_operation: bool,
+        /// Remove every corner's own choice.
+        #[arg(long)]
+        reset: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md).
     Rest {
         /// The project (.chipload).
@@ -584,6 +624,19 @@ enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum BoneArg {
+    None,
+    Dogbone,
+    Tbone,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum WallArg {
+    Longer,
+    Shorter,
 }
 
 #[derive(Subcommand)]
@@ -2415,6 +2468,117 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
+        OpAction::Corners { project, op } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let rows = match chipload_pipeline::corners::corners_of(&job, index) {
+                Ok(rows) => rows,
+                Err(err) => return out.fail(err),
+            };
+            if rows.is_empty() {
+                out.line(format!("Operation {op} has no corners on the tool's side."));
+            }
+            let mut list = Vec::new();
+            for row in &rows {
+                let gets = gets_name(row.gets);
+                let own = if row.chosen { " (its own choice)" } else { "" };
+                out.line(format!(
+                    "({}, {})  {:.1}°  {gets}{own}",
+                    chipload_core::text::mm(row.at[0]),
+                    chipload_core::text::mm(row.at[1]),
+                    row.angle.to_degrees()
+                ));
+                list.push(json!({
+                    "at": row.at,
+                    "angle_deg": row.angle.to_degrees(),
+                    "gets": gets,
+                    "chosen": row.chosen,
+                }));
+            }
+            out.set("corners", Value::Array(list));
+            ExitCode::SUCCESS
+        }
+        OpAction::Corner {
+            project,
+            op,
+            at,
+            bone,
+            along,
+            as_operation: _,
+            reset,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(index) = op.checked_sub(1) else {
+                return out.fail("operations are numbered from 1");
+            };
+            let done = if reset {
+                chipload_pipeline::corners::reset_corners(&mut job, index).map(|count| {
+                    format!("Removed the choices of {count} corners of operation {op}.")
+                })
+            } else {
+                let at = at.unwrap_or_default();
+                let choice = bone.map(|bone| {
+                    let bone = match bone {
+                        BoneArg::None => chipload_job::Bone::None,
+                        BoneArg::Dogbone => chipload_job::Bone::Dogbone,
+                        BoneArg::Tbone => chipload_job::Bone::Tbone,
+                    };
+                    let along = along.map(|wall| match wall {
+                        WallArg::Longer => chipload_job::Wall::Longer,
+                        WallArg::Shorter => chipload_job::Wall::Shorter,
+                    });
+                    (bone, along)
+                });
+                if along.is_some() && !matches!(bone, Some(BoneArg::Tbone)) {
+                    return out.fail("--along goes with --bone tbone");
+                }
+                chipload_pipeline::corners::choose_corner(&mut job, index, at, choice).map(
+                    |corner| {
+                        let (x, y) = (
+                            chipload_core::text::mm(corner[0]),
+                            chipload_core::text::mm(corner[1]),
+                        );
+                        match choice {
+                            None => format!(
+                                "The corner at ({x}, {y}) of operation {op} gets what the \
+                                 operation gives every corner."
+                            ),
+                            Some(_) => {
+                                let gets = match bone {
+                                    Some(BoneArg::None) => "round",
+                                    Some(BoneArg::Dogbone) => "a dogbone",
+                                    _ => match along {
+                                        Some(WallArg::Shorter) => "a T-bone along the shorter wall",
+                                        _ => "a T-bone along the longer wall",
+                                    },
+                                };
+                                format!("The corner at ({x}, {y}) of operation {op} is now {gets}.")
+                            }
+                        }
+                    },
+                )
+            };
+            let line = match done {
+                Ok(line) => line,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            out.line(line);
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
         OpAction::Rest {
             project,
             op,
@@ -2442,6 +2606,18 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
+    }
+}
+
+/// What a corner gets, as `op corners` names it.
+fn gets_name(gets: Option<chipload_toolpath::corners::Gets>) -> &'static str {
+    use chipload_job::Wall;
+    use chipload_toolpath::corners::Gets;
+    match gets {
+        None => "round",
+        Some(Gets::Dogbone) => "dogbone",
+        Some(Gets::Tbone(Wall::Longer)) => "T-bone along the longer wall",
+        Some(Gets::Tbone(Wall::Shorter)) => "T-bone along the shorter wall",
     }
 }
 

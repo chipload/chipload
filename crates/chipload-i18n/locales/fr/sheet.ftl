@@ -111,6 +111,10 @@ sheet-rest-after-size = reprise après T{ $tool } ({ $diameter })
 # $degrees: the sharpest corner angle that gets one.
 sheet-dogbones = dogbones aux coins jusqu'à { $degrees }°
 sheet-tbones = T-bones aux coins jusqu'à { $degrees }°
+sheet-corner-choices = { $count ->
+    [one] { $count } coin choisi à part
+   *[other] { $count } coins choisis un par un
+}
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } à { $end }
 sheet-depths-drill = { $start } à { $end } (pointe du foret)

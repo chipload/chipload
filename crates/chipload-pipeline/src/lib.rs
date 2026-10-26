@@ -4,6 +4,7 @@
 pub mod box_handles;
 pub mod chip_load;
 pub mod copies;
+pub mod corners;
 pub mod dxfs;
 pub mod estimate;
 pub mod explode;
@@ -272,7 +273,7 @@ pub fn rest_pass_of(
     tool: i64,
     cutting: Option<&Cutting>,
 ) -> Result<chipload_job::RestPass, Message> {
-    if pocket.corners.is_some() {
+    if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
         return Err(Message::new("pipeline-rest-dogbones"));
     }
     let before = pocket.rest_passes.last().map_or(pocket.tool, |p| p.tool);
@@ -378,7 +379,7 @@ pub fn rest_pocket_parent(job: &Job, index: usize) -> Option<usize> {
             && p.end_depth == rest.end_depth
             && p.clearance == rest.clearance
             && p.direction == rest.direction
-            && p.corners.is_none()
+            && !chipload_job::has_bones(p.corners, &p.corner_choices)
             && last == after
     })
 }

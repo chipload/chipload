@@ -153,6 +153,10 @@ pipeline-place-moved-starts = { $count ->
     [one] { $count } point de départ déplacé avec lui.
    *[other] { $count } points de départ déplacés avec lui.
 }
+pipeline-place-moved-corners = { $count ->
+    [one] { $count } choix de coin déplacé avec lui.
+   *[other] { $count } choix de coin déplacés avec lui.
+}
 pipeline-place-drawn-stay = Les formes dessinées dans Chipload restent où elles sont.
 pipeline-place-other-dxfs-stay = Les autres DXF restent où ils sont.
 pipeline-place-work-zero-stays = L'origine pièce reste au point X{ $x }, Y{ $y } ; vérifiez qu'elle est toujours là où vous la voulez.
@@ -296,6 +300,8 @@ pipeline-no-tool-use = le projet n'a pas d'outil { $tool } ; copiez-en un depuis
 pipeline-no-tool = le projet n'a pas d'outil { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = il n'y a pas d'opération { $number } ; le projet en a { $count }
+pipeline-corner-none-there = l'opération { $number } n'a pas de coin en { $at } ; `chipload op corners` liste ses coins
+pipeline-corner-not-profile-or-pocket = l'opération { $number } n'a pas de coins à choisir : seuls les contours et les poches ont des dogbones
 pipeline-not-a-pocket = l'opération { $number } n'est pas une poche ; seules les poches font de la reprise des restes
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = opération { $number } : { $reason }

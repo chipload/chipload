@@ -254,6 +254,38 @@ chipload op part <PROJECT> [OPTIONS]
 | `--part <PART>` | The part's id (as `part list` shows it) Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op corners`
+
+List a profile's or pocket's corners on the tool's side, with what each gets (round, dogbone, T-bone along the longer or shorter wall) and whether that is the corner's own choice (docs/specs/dogbone-per-corner.md)
+
+```text
+chipload op corners <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation's number as the app lists it (1 = first) Required. |
+
+### `chipload op corner`
+
+Give one corner of a profile or pocket its own bone, whatever the operation's corners say (docs/specs/dogbone-per-corner.md): `--bone none` keeps it round. `op corners` lists the corners
+
+```text
+chipload op corner <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation's number as the app lists it (1 = first) Required. |
+| `--at <AT>` | The corner, X,Y in drawing coordinates (a plain number is mm) |
+| `--bone <BONE>` | What the corner gets. One of: `none`, `dogbone`, `tbone`. |
+| `--along <ALONG>` | With a T-bone: the wall it runs along (the notch is in the other); default longer. One of: `longer`, `shorter`. |
+| `--as-operation` | Remove the corner's own choice: it gets what the operation gives every corner. |
+| `--reset` | Remove every corner's own choice. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op rest`
 
 Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md)

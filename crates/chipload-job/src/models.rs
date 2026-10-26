@@ -11,7 +11,9 @@
 use std::collections::BTreeMap;
 
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM};
+use chipload_core::tolerances::{
+    ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM,
+};
 
 use crate::Problem;
 use chipload_i18n::{Digits, Message, Value};
@@ -2135,6 +2137,34 @@ impl Operation {
         }
     }
 
+    /// Corners with their own bone (docs/specs/dogbone-per-corner.md): profiles and
+    /// pockets only.
+    pub fn corner_choices(&self) -> &[CornerChoice] {
+        match self {
+            Operation::Profile(p) => &p.corner_choices,
+            Operation::Pocket(p) => &p.corner_choices,
+            _ => &[],
+        }
+    }
+
+    /// None for an operation without corners (anything but a profile or a pocket).
+    pub fn corner_choices_mut(&mut self) -> Option<&mut Vec<CornerChoice>> {
+        match self {
+            Operation::Profile(p) => Some(&mut p.corner_choices),
+            Operation::Pocket(p) => Some(&mut p.corner_choices),
+            Operation::Vcarve(_)
+            | Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_) => None,
+        }
+    }
+
+    /// Whether any corner gets a dogbone or T-bone: from `corners`, or a corner's own
+    /// choice.
+    pub fn has_bones(&self) -> bool {
+        has_bones(self.corners(), self.corner_choices())
+    }
+
     pub fn lead(&self) -> Option<Lead> {
         match self {
             Operation::Pocket(p) => p.lead,
@@ -2258,6 +2288,11 @@ pub struct ProfileOp {
     // Spec: docs/specs/dogbones.md.
     #[serde(default)]
     pub corners: Option<Corners>,
+    /// Corners with their own bone, whatever `corners` says. Missing or empty: none. Left
+    /// out when empty.
+    // Spec: docs/specs/dogbone-per-corner.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub corner_choices: Vec<CornerChoice>,
 }
 
 /// How the tool reaches into the inside corners it would leave round, so a square part
@@ -2285,6 +2320,92 @@ impl Corners {
             Corners::Dogbone { max_angle } | Corners::Tbone { max_angle } => max_angle,
         }
     }
+}
+
+/// A corner with its own bone, chosen by the user.
+// Spec: docs/specs/dogbone-per-corner.md.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct CornerChoice {
+    /// The corner, in drawing coordinates (mm).
+    pub at: [f64; 2],
+    /// `none` (the corner stays round), `dogbone` or `tbone`.
+    pub bone: Bone,
+    /// The wall a T-bone runs along, `longer` or `shorter`: the notch is in the other.
+    /// Required with a T-bone; null otherwise.
+    #[serde(default)]
+    pub along: Option<Wall>,
+}
+
+/// What a chosen corner gets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum Bone {
+    None,
+    Dogbone,
+    Tbone,
+}
+
+/// One of a corner's two walls, by length.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum Wall {
+    Longer,
+    Shorter,
+}
+
+/// What is wrong with an operation's corner choices (docs/specs/dogbone-per-corner.md
+/// §3): a T-bone without its wall, a wall without a T-bone, two choices at one corner, or
+/// choices on a profile on the line. Whether each matches a corner is known only with the
+/// drawing (`chipload_toolpath`).
+fn corner_choice_problems(i: usize, op: &Operation) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    let choices = op.corner_choices();
+    if let Operation::Profile(p) = op
+        && p.side == Side::On
+        && !choices.is_empty()
+    {
+        problems.push(Problem::at(
+            format!("operations.{i}.corner_choices"),
+            Message::new("job-on-line-corners"),
+        ));
+    }
+    for (k, choice) in choices.iter().enumerate() {
+        let at = |field: &str| format!("operations.{i}.corner_choices.{k}.{field}");
+        match (choice.bone, choice.along) {
+            (Bone::Tbone, None) => {
+                problems.push(Problem::at(at("along"), Message::new("job-tbone-wall")));
+            }
+            (Bone::None | Bone::Dogbone, Some(_)) => {
+                problems.push(Problem::at(
+                    at("along"),
+                    Message::new("job-wall-only-tbone"),
+                ));
+            }
+            _ => {}
+        }
+        let twice = choices[..k].iter().any(|c| {
+            distance((c.at[0], c.at[1]), (choice.at[0], choice.at[1])) <= ARC_APPROX_TOL_MM
+        });
+        if twice {
+            problems.push(Problem::at(
+                at("at"),
+                Message::new("job-corner-chosen-twice").arg(
+                    "at",
+                    Value::Point(choice.at[0], choice.at[1], Digits::Fixed(3)),
+                ),
+            ));
+        }
+    }
+    problems
+}
+
+/// Whether any corner gets a dogbone or T-bone: from `corners`, or a corner's own choice.
+pub fn has_bones(corners: Option<Corners>, choices: &[CornerChoice]) -> bool {
+    corners.is_some() || choices.iter().any(|c| c.bone != Bone::None)
 }
 
 /// The largest corner angle new dogbones get: 100°, so 90° corners drawn slightly off count.
@@ -2370,6 +2491,11 @@ pub struct PocketOp {
     // Spec: docs/specs/dogbones.md.
     #[serde(default)]
     pub corners: Option<Corners>,
+    /// Corners with their own bone, whatever `corners` says. Missing or empty: none. Left
+    /// out when empty.
+    // Spec: docs/specs/dogbone-per-corner.md.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub corner_choices: Vec<CornerChoice>,
     /// Rest machining: clear only what a larger tool leaves in these shapes. Null: the
     /// whole pocket.
     // Spec: docs/specs/rest-machining.md.
@@ -3506,6 +3632,7 @@ impl Job {
                     ));
                 }
             }
+            problems.extend(corner_choice_problems(i, op));
             if let Operation::Holes(HolesOp {
                 method: HoleMethod::Bore { ramp_angle, .. },
                 ..

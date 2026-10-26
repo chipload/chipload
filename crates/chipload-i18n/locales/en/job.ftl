@@ -153,6 +153,9 @@ job-select-centre-lines = image { $image } is traced as open centre lines: cut t
 ## Operations
 
 job-on-line-corners = a profile on the line has no inside corners to clear
+job-tbone-wall = a T-bone needs the wall it runs along: longer or shorter
+job-wall-only-tbone = only a T-bone has a wall to run along
+job-corner-chosen-twice = two choices for the corner at { $at }
 job-starts-not-finite = every start point needs finite x and y
 job-stepover-at-most-1 = must be at most 1 (a fraction of the tool diameter), got { $got }
 job-on-line-finish = a profile on the line has no wall to finish; use inside or outside

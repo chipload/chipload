@@ -8,8 +8,8 @@ it's built (see `CLAUDE.md`).
 - **Dogbones chosen per corner** (docs/specs/dogbone-per-corner.md), approved 2026-10-26
   after a user's pocket (contour #30 of `shared_edges.dxf`, a slot with a short step at each
   end) couldn't get dogbones or T-bones at all. Steps: the format, planning and CLI (`op
-  corners`, `op corner`); the canvas markers and menu; start points following drawn-shape
-  transforms (decision 6).
+  corners`, `op corner`), **done 2026-10-26**; the canvas markers and menu; start points
+  and corner choices following drawn-shape transforms (decision 6).
 
 - **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
   German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the

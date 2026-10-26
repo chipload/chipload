@@ -153,6 +153,9 @@ job-select-centre-lines = l'image { $image } est vectorisée en lignes médianes
 ## Operations
 
 job-on-line-corners = un contour sur la ligne n'a pas de coins intérieurs à dégager
+job-tbone-wall = un T-bone a besoin du mur qu'il longe : le plus long ou le plus court
+job-wall-only-tbone = seul un T-bone a un mur à longer
+job-corner-chosen-twice = deux choix pour le coin en { $at }
 job-starts-not-finite = chaque point de départ a besoin de x et y finis
 job-stepover-at-most-1 = doit être au plus 1 (une fraction du diamètre de l'outil), reçu { $got }
 job-on-line-finish = un contour sur la ligne n'a pas de paroi à finir ; utilisez intérieur ou extérieur

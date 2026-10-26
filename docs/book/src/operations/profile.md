@@ -89,8 +89,35 @@ go into the mortise. **Corners** reaches into them:
   out of sight.
 
 *up to* sets the sharpest corner angle that gets one (100° by default, so 90° corners
-drawn slightly off count). A corner the tool can't reach without touching another contour
-is left, with a note.
+drawn slightly off count). A corner the tool can't reach at all (a notch narrower than the
+tool) is left round, with a note. A bone that would cut into another contour, or into
+another wall of its own (a short step next to the corner), stops generation with an error
+that names the corner.
+
+### Corner by corner
+
+Any corner can have its own choice, whatever **Corners** says: *round*, *dogbone*, *T-bone
+along the longer wall* or *T-bone along the shorter wall*. It goes past *up to* too. So you
+can turn one T-bone the other way, leave out the one corner where a bone doesn't fit, or
+leave **Corners** on *round* and give bones only to the corners that need them.
+
+On the command line, list an operation's corners and what each gets, then choose:
+
+```
+chipload op corners part.chipload --op 2
+(11.214, 301)  90.0°  dogbone
+(511.214, 301)  90.0°  dogbone
+…
+chipload op corner part.chipload --op 2 --at 11.214,301 --bone tbone --along shorter
+chipload op corner part.chipload --op 2 --at 511.214,301 --bone none
+chipload op corner part.chipload --op 2 --at 511.214,301 --as-operation   # its choice removed
+chipload op corner part.chipload --op 2 --reset                           # every choice removed
+```
+
+A choice is kept as the corner's point on the drawing, as start points are, and moves with
+the DXF when you [place](../drawings/placement.md) it. Every copy gets it. If the drawing
+changes so a chosen corner is gone, generating stops and says which choice to remove. The
+setup sheet says how many corners were chosen one by one.
 
 ## In the file
 
@@ -118,3 +145,4 @@ in mm, feeds in mm/min, angles in radians.
 | `finish` | Finishing pass: `{"stock": …}` or null |
 | `skin` | Onion skin: `{"thickness": …}` or null |
 | `corners` | Corners: `{"type": "dogbone"` or `"tbone", "max_angle": …}`, or null |
+| `corner_choices` | corners with their own choice, each `{"at": [x, y], "bone": "none"` or `"dogbone"` or `"tbone", "along": "longer"` or `"shorter"` (T-bones only, else null)`}`; left out when there are none |

@@ -276,7 +276,12 @@ toolpath-error-corner-leg = { $label }: el tramo de la esquina { $at } no entró
 toolpath-error-corner-cuts = { $label }: el { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} de la esquina { $at } cortaría el contorno #{ $contour }; baja el ángulo máximo de las esquinas o cambia el dibujo
+} de la esquina { $at } cortaría el contorno #{ $contour }; elige otra cosa para esta esquina, baja el ángulo máximo de las esquinas o cambia el dibujo
+toolpath-error-corner-cuts-own = { $label }: el { $style ->
+    [dogbone] dogbone
+   *[tbone] T-bone
+} de la esquina { $at } cortaría otra pared de su propio contorno #{ $contour }; elige otra cosa para esta esquina (un T-bone a lo largo de la otra pared, o redonda) o cambia el dibujo
+toolpath-corner-choice-unmatched = { $label }: la esquina elegida en { $at } ya no es una esquina de sus formas (¿cambió el dibujo?); quita la elección o elige de nuevo
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = salida de arcos: ({ $x }, { $y }) no está en el círculo con el que se marcó
 

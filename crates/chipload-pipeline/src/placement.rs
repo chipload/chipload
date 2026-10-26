@@ -163,12 +163,25 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
 
     let mut out = job.clone();
     let mut moved_starts = 0;
+    let mut moved_corners = 0;
     for op in &mut out.operations {
         let select = op.select().clone();
         for start in op.starts_mut().into_iter().flatten() {
             if nearest_is_from(&job.drawing.shapes, &select, (start[0], start[1]), id) {
                 *start = step.apply(*start);
                 moved_starts += 1;
+            }
+        }
+        // Corner choices are points on the drawing too (docs/specs/dogbone-per-corner.md §4).
+        for choice in op.corner_choices_mut().into_iter().flatten() {
+            if nearest_is_from(
+                &job.drawing.shapes,
+                &select,
+                (choice.at[0], choice.at[1]),
+                id,
+            ) {
+                choice.at = step.apply(choice.at);
+                moved_corners += 1;
             }
         }
     }
@@ -224,6 +237,9 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     }
     if moved_starts > 0 {
         lines.push(Message::new("pipeline-place-moved-starts").arg("count", moved_starts));
+    }
+    if moved_corners > 0 {
+        lines.push(Message::new("pipeline-place-moved-corners").arg("count", moved_corners));
     }
     if job.drawing.shapes.iter().any(Shape::is_drawn) {
         lines.push(Message::new("pipeline-place-drawn-stay"));

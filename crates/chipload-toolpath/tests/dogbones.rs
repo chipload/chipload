@@ -533,6 +533,214 @@ fn without_corners_nothing_changes() {
     assert!(tips(&with_null.program.moves).is_empty());
 }
 
+// -- chosen per corner (docs/specs/dogbone-per-corner.md)
+
+fn choice(x: f64, y: f64, bone: &str, along: Option<&str>) -> Value {
+    json!({"at": [x, y], "bone": bone, "along": along})
+}
+
+/// A user's slot (shared_edges.dxf, contour #30), shortened: 9 mm wide, with a step 3.167 mm
+/// deep at each end, so a 6 mm tool's bone at the step's foot reaches the step's top.
+fn stepped_slot() -> Contour {
+    polygon(
+        1,
+        &[
+            (0.0, 9.0),
+            (0.0, 3.167),
+            (7.5, 3.167),
+            (7.5, 0.0),
+            (107.5, 0.0),
+            (107.5, 3.167),
+            (115.0, 3.167),
+            (115.0, 9.0),
+        ],
+    )
+}
+
+fn pocket_with(corners: Value, choices: Value) -> Value {
+    let mut ops = pocket(corners);
+    ops[0]["corner_choices"] = choices;
+    ops
+}
+
+#[test]
+fn a_bone_that_reaches_its_own_contour_says_so() {
+    for kind in ["dogbone", "tbone"] {
+        let err = plan_job(
+            &job(pocket(corners(kind, 100.0)), Value::Null),
+            &[stepped_slot()],
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            err.contains(
+                "at corner (7.500, 0.000) mm would cut into another wall of its own contour #1"
+            ),
+            "{err}"
+        );
+        assert!(err.contains("choose another bone for this corner"), "{err}");
+    }
+}
+
+#[test]
+fn a_t_bone_along_the_shorter_wall_fits_the_step() {
+    for kind in ["dogbone", "tbone"] {
+        let plan = plan(
+            pocket_with(
+                corners(kind, 100.0),
+                json!([
+                    choice(7.5, 0.0, "tbone", Some("shorter")),
+                    choice(107.5, 0.0, "tbone", Some("shorter")),
+                ]),
+            ),
+            &[stepped_slot()],
+        );
+        let found = tips(&plan.program.moves);
+        // Along the step's wall, down to the long edge's line.
+        for want in [(10.5, 0.0), (104.5, 0.0)] {
+            assert!(
+                found.iter().any(|&t| near(t, want)),
+                "{want:?} in {found:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_corner_chosen_round_stays_round() {
+    let plan = plan(
+        pocket_with(
+            corners("dogbone", 100.0),
+            json!([
+                choice(7.5, 0.0, "none", None),
+                choice(107.5, 0.0, "none", None)
+            ]),
+        ),
+        &[stepped_slot()],
+    );
+    let found = tips(&plan.program.moves);
+    assert!(
+        found.iter().all(|&t| t.1 > 1.0),
+        "no bone at the steps' feet: {found:?}"
+    );
+}
+
+#[test]
+fn round_corners_with_one_chosen_get_one_bone() {
+    let plan = plan(
+        profile(
+            "inside",
+            Value::Null,
+            json!({"corner_choices": [choice(40.0, 20.0, "dogbone", None)]}),
+        ),
+        &[rect(1, 0.0, 0.0, 40.0, 20.0)],
+    );
+    let found = tips(&plan.program.moves);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(near(found[0], dogbone_tip((40.0, 20.0), (-1.0, -1.0), 0.0)));
+}
+
+#[test]
+fn a_choice_goes_past_the_max_angle_and_turns_a_t_bone() {
+    // 60°: no 90° corner from the operation; the two chosen get theirs.
+    let plan = plan(
+        profile(
+            "inside",
+            corners("dogbone", 60.0),
+            json!({"corner_choices": [
+                choice(0.0, 0.0, "dogbone", None),
+                choice(40.0, 0.0, "tbone", Some("shorter")),
+            ]}),
+        ),
+        &[rect(1, 0.0, 0.0, 40.0, 20.0)],
+    );
+    let found = tips(&plan.program.moves);
+    assert_eq!(found.len(), 2, "{found:?}");
+    assert!(
+        found
+            .iter()
+            .any(|&t| near(t, dogbone_tip((0.0, 0.0), (1.0, 1.0), 0.0)))
+    );
+    // Along the shorter (20 mm) wall, onto the longer wall's line.
+    assert!(found.iter().any(|&t| near(t, (37.0, 0.0))), "{found:?}");
+}
+
+#[test]
+fn a_choice_that_matches_no_corner_is_refused() {
+    let err = plan_job(
+        &job(
+            profile(
+                "inside",
+                corners("dogbone", 100.0),
+                json!({"corner_choices": [choice(41.0, 0.0, "none", None)]}),
+            ),
+            Value::Null,
+        ),
+        &[rect(1, 0.0, 0.0, 40.0, 20.0)],
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("the corner chosen at (41.000, 0.000) mm is no corner of its shapes any more"),
+        "{err}"
+    );
+}
+
+#[test]
+fn every_copy_gets_the_choices() {
+    let job = job(
+        profile(
+            "inside",
+            Value::Null,
+            json!({"corner_choices": [choice(0.0, 0.0, "dogbone", None)]}),
+        ),
+        json!({"columns": 2, "rows": 1, "dx": 100, "dy": 0}),
+    );
+    let plan = plan_job(&job, &[rect(1, 0.0, 0.0, 40.0, 20.0)]).unwrap();
+    let found = tips(&plan.program.moves);
+    assert_eq!(found.len(), 2, "{found:?}");
+    let first = dogbone_tip((0.0, 0.0), (1.0, 1.0), 0.0);
+    assert!(found.iter().any(|&t| near(t, (first.0 + 100.0, first.1))));
+}
+
+#[test]
+fn a_t_bone_without_its_wall_and_a_corner_chosen_twice_are_problems() {
+    let ops = profile(
+        "inside",
+        Value::Null,
+        json!({"corner_choices": [
+            choice(0.0, 0.0, "tbone", None),
+            choice(0.0, 0.001, "dogbone", Some("longer")),
+        ]}),
+    );
+    let err = parse_job(
+        migrate(json!({
+            "schema_version": 21,
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
+            "stock": {"x": 400, "y": 300, "thickness": 18, "origin": "bottom_left",
+                      "max_overcut": 0.5},
+            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
+            "tools": [{"id": 1, "diameter": 2.0 * R, "rpm": 18000, "center_cutting": true}],
+            "operations": ops,
+        }))
+        .unwrap(),
+        "test.json",
+    )
+    .unwrap_err()
+    .to_string();
+    for path in [
+        "operations.0.corner_choices.0.along",
+        "operations.0.corner_choices.1.along",
+        "operations.0.corner_choices.1.at",
+    ] {
+        assert!(err.contains(path), "{path} in {err}");
+    }
+    assert!(
+        err.contains("a T-bone needs the wall it runs along"),
+        "{err}"
+    );
+}
+
 proptest! {
     #![proptest_config(common::proptest_config(48))]
 

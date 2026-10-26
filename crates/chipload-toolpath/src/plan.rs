@@ -18,7 +18,10 @@ use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
 use crate::cancel::Cancel;
-use crate::corners::{CornerCut, RingSlot, add_legs, find_corners, unreached_note};
+use crate::corners::{
+    CornerCut, RingSlot, add_legs, find_corners, pocket_boundaries, pocket_corners,
+    unmatched_choice, unreached_note,
+};
 use crate::geom::PrimIndex;
 use crate::holes::{
     Bore, DRILL_FIT_MM, HoleCut, bore_moves, bore_radius, drill_moves, find_holes, order_holes,
@@ -225,6 +228,19 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
             _ => select_contours(contours, op.select(), &label_message),
         }
         .map_err(|err| err.at(at.operation))?;
+        // Every corner choice must still match a corner (docs/specs/dogbone-per-corner.md
+        // §4): a missing bone makes a part that doesn't fit.
+        if let Some(choice) = unmatched_choice(&op, &selection.contours) {
+            return Err(job_error(
+                Message::new("toolpath-corner-choice-unmatched")
+                    .arg("label", label_message.clone())
+                    .arg(
+                        "at",
+                        Value::Point(choice.at[0], choice.at[1], Digits::Fixed(3)),
+                    ),
+            )
+            .at(at.operation));
+        }
         chosen.push(Chosen {
             at,
             op,
@@ -365,11 +381,19 @@ fn plan_step(
     let shift = step.shift;
     // Leads keep clear of every contour of the drawing (moved with the copy).
     // Dogbone legs keep clear of them too (docs/specs/dogbones.md §6).
-    let everything: Vec<Contour> = if op.lead().is_some() || op.corners().is_some() {
+    let everything: Vec<Contour> = if op.lead().is_some() || op.has_bones() {
         contours.iter().map(|c| c.translated(shift)).collect()
     } else {
         Vec::new()
     };
+    let choices: Vec<chipload_job::CornerChoice> = op
+        .corner_choices()
+        .iter()
+        .map(|c| chipload_job::CornerChoice {
+            at: [c.at[0] + shift.0, c.at[1] + shift.1],
+            ..*c
+        })
+        .collect();
     let context = Context {
         label_message: &chosen.label_message,
         tool,
@@ -377,6 +401,7 @@ fn plan_step(
         pass_z: &pass_z,
         top_z: top_z - start_depth,
         everything: &everything,
+        choices: &choices,
         cancel,
     };
     let moved: Vec<Contour> = chosen
@@ -547,8 +572,10 @@ struct Context<'a> {
     pass_z: &'a [f64],
     /// Z of the operation's start depth: cut already, where a ramp begins.
     top_z: f64,
-    /// Every contour of the drawing, moved with the copy; only filled for leads.
+    /// Every contour of the drawing, moved with the copy; only filled for leads and bones.
     everything: &'a [Contour],
+    /// The operation's corner choices, moved with the copy.
+    choices: &'a [chipload_job::CornerChoice],
     cancel: &'a Cancel,
 }
 
@@ -610,10 +637,11 @@ fn plan_pocket_op(
     let plan = plan_pocket(&request).map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let mut plan = plan;
     let mut corner_notes = Vec::new();
-    if let Some(style) = op.corners {
+    if op.corners.is_some() || !ctx.choices.is_empty() {
         let boundaries = pocket_boundaries(&selection.contours);
         let cut = CornerCut {
-            style,
+            corners: op.corners,
+            choices: ctx.choices,
             tool_radius: ctx.tool.diameter / 2.0,
             clearance: op.clearance,
             everything: ctx.everything,
@@ -626,7 +654,7 @@ fn plan_pocket_op(
             corner_notes.extend(
                 unreached
                     .iter()
-                    .map(|c| unreached_note(ctx.label_message, c, style)),
+                    .map(|(c, bone)| unreached_note(ctx.label_message, c, *bone)),
             );
         }
     }
@@ -677,28 +705,13 @@ fn pocket_legs(
     contours: &[&Contour],
     boundaries: &[usize],
     cut: &CornerCut,
-) -> Result<Vec<crate::corners::Corner>, ToolpathError> {
-    let mut corners = Vec::new();
-    for contour in contours
+) -> Result<Vec<(crate::corners::Corner, crate::corners::CornerBone)>, ToolpathError> {
+    let of: Vec<&Contour> = contours
         .iter()
+        .copied()
         .filter(|c| piece.contour_ids.contains(&c.id))
-    {
-        let is_boundary = boundaries.contains(&contour.id);
-        // A corner inside another of the operation's boundaries is in waste that is cleared
-        // anyway; one inside another island is no corner of the wall.
-        let inside_another = |p: Point| {
-            contours.iter().any(|o| {
-                o.id != contour.id
-                    && boundaries.contains(&o.id) == is_boundary
-                    && crate::corners::encloses(o, p)
-            })
-        };
-        corners.extend(
-            find_corners(contour, is_boundary, cut.style.max_angle())
-                .into_iter()
-                .filter(|c| !inside_another(c.at)),
-        );
-    }
+        .collect();
+    let corners = pocket_corners(&of, contours, boundaries);
     let mut slots: Vec<RingSlot> = piece
         .rings
         .iter_mut()
@@ -718,26 +731,6 @@ fn pocket_legs(
     Ok(added.unreached)
 }
 
-/// The pocket's boundaries among its contours: those wholly inside an even number of the
-/// others (islands are inside an odd number; crossing contours don't count), as the pocket
-/// builds its areas.
-fn pocket_boundaries(contours: &[&Contour]) -> Vec<usize> {
-    contours
-        .iter()
-        .filter(|contour| {
-            let points = contour.points();
-            let around = contours
-                .iter()
-                .filter(|o| {
-                    o.id != contour.id && points.iter().all(|&p| crate::corners::encloses(o, p))
-                })
-                .count();
-            around % 2 == 0
-        })
-        .map(|c| c.id)
-        .collect()
-}
-
 /// Dogbones in a profile's rings (docs/specs/dogbones.md §4), each contour's corners in its
 /// own rings, reaching the corner moved by `cut.clearance`.
 fn profile_legs(
@@ -745,10 +738,10 @@ fn profile_legs(
     contours: &[&Contour],
     side: Side,
     cut: &CornerCut,
-) -> Result<Vec<crate::corners::Corner>, ToolpathError> {
+) -> Result<Vec<(crate::corners::Corner, crate::corners::CornerBone)>, ToolpathError> {
     let mut unreached = Vec::new();
     for contour in contours {
-        let corners = find_corners(contour, side == Side::Inside, cut.style.max_angle());
+        let corners = find_corners(contour, side == Side::Inside);
         if corners.is_empty() {
             continue;
         }
@@ -1082,9 +1075,10 @@ fn plan_profile_op(
     };
     let mut rough = rough;
     // Dogbones go into every ring before the tabs are placed (docs/specs/dogbones.md §4).
-    if let Some(style) = op.corners {
+    if op.corners.is_some() || !ctx.choices.is_empty() {
         let cut = CornerCut {
-            style,
+            corners: op.corners,
+            choices: ctx.choices,
             tool_radius: radius,
             clearance: op.clearance,
             everything: ctx.everything,
@@ -1095,7 +1089,7 @@ fn plan_profile_op(
         plan.notes.extend(
             unreached
                 .iter()
-                .map(|c| unreached_note(ctx.label_message, c, style)),
+                .map(|(c, bone)| unreached_note(ctx.label_message, c, *bone)),
         );
         if let (Some(rough), Some(rough_op)) = (&mut rough, &rough_op) {
             let rough_cut = CornerCut {
@@ -2014,7 +2008,7 @@ fn rest_check(
         // The pocket's own tool is checked with the pocket's tool rules.
         Some(RestRefusal::SmallNotEndmill) | None => {}
     }
-    if pocket.corners.is_some() {
+    if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
         return Err(Message::new("toolpath-rest-dogbones"));
     }
     let earlier = job.operations[..index].iter().any(|op| {
@@ -2042,7 +2036,7 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
     if pocket.rest_passes.is_empty() {
         return (problems, notes);
     }
-    if pocket.corners.is_some() {
+    if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
         problems.push(labelled(
             format!("operations.{index}.rest_passes"),
             &job.label_message(OpRef::op(index)),

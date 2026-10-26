@@ -108,6 +108,10 @@ sheet-rest-after-size = rest efter T{ $tool } ({ $diameter })
 # $degrees: the sharpest corner angle that gets one.
 sheet-dogbones = dogbones i hörn på högst { $degrees }°
 sheet-tbones = T-bones i hörn på högst { $degrees }°
+sheet-corner-choices = { $count ->
+    [one] { $count } hörn valt för sig
+   *[other] { $count } hörn valda ett och ett
+}
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } till { $end }
 sheet-depths-drill = { $start } till { $end } (borrspetsen)

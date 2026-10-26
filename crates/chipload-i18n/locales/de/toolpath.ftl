@@ -277,7 +277,12 @@ toolpath-error-corner-leg = { $label }: der Abstecher an Ecke { $at } ging nicht
 toolpath-error-corner-cuts = { $label }: { $style ->
     [dogbone] der Dogbone
    *[tbone] der T-Bone
-} an Ecke { $at } würde in Kontur #{ $contour } schneiden; verringern Sie den max. Winkel der Ecken oder ändern Sie die Zeichnung
+} an Ecke { $at } würde in Kontur #{ $contour } schneiden; wählen Sie für diese Ecke etwas anderes, verringern Sie den max. Winkel der Ecken oder ändern Sie die Zeichnung
+toolpath-error-corner-cuts-own = { $label }: { $style ->
+    [dogbone] der Dogbone
+   *[tbone] der T-Bone
+} an Ecke { $at } würde in eine andere Wand ihrer eigenen Kontur #{ $contour } schneiden; wählen Sie für diese Ecke etwas anderes (einen T-Bone entlang der anderen Wand, oder rund) oder ändern Sie die Zeichnung
+toolpath-corner-choice-unmatched = { $label }: die bei { $at } gewählte Ecke ist keine Ecke seiner Formen mehr (hat sich die Zeichnung geändert?); entfernen Sie die Einstellung oder wählen Sie neu
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = Bogenausgabe: ({ $x }, { $y }) liegt nicht auf dem Kreis, dem der Punkt zugeordnet wurde
 

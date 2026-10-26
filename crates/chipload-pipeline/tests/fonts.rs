@@ -109,6 +109,7 @@ fn pocket() -> Operation {
         starts: Vec::new(),
         lead: None,
         corners: None,
+        corner_choices: Vec::new(),
         rest: None,
         rest_passes: Vec::new(),
     })

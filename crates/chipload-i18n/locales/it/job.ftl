@@ -153,6 +153,9 @@ job-select-centre-lines = l'immagine { $image } è vettorizzata come linee media
 ## Operations
 
 job-on-line-corners = una contornatura sulla linea non ha angoli interni da liberare
+job-tbone-wall = un T-bone ha bisogno della parete lungo cui va: la più lunga o la più corta
+job-wall-only-tbone = solo un T-bone ha una parete lungo cui andare
+job-corner-chosen-twice = due scelte per l'angolo in { $at }
 job-starts-not-finite = ogni punto di partenza richiede x e y finiti
 job-stepover-at-most-1 = deve essere al massimo 1 (una frazione del diametro dell'utensile), trovato { $got }
 job-on-line-finish = una contornatura sulla linea non ha una parete da rifinire; usa interno o esterno

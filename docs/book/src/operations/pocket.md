@@ -64,7 +64,8 @@ lead from the cleared side onto the wall.
 ## Dogbones
 
 **Corners** puts dogbones or T-bones into the pocket wall's inside corners, as on
-[profiles](profile.md#dogbones-and-t-bones). Not with [rest machining](rest.md).
+[profiles](profile.md#dogbones-and-t-bones), and any corner can have its own choice
+([corner by corner](profile.md#corner-by-corner)). Not with [rest machining](rest.md).
 
 ## Rest machining
 
@@ -95,6 +96,7 @@ in mm, feeds in mm/min, angles in radians.
 | `starts` | start points |
 | `lead` | Lead |
 | `corners` | Corners (dogbones, T-bones) |
+| `corner_choices` | corners with their own choice, as on [profiles](profile.md#in-the-file); left out when there are none |
 | `rest` | Rest after: `{"after_tool": id}` or null |
 | `rest_passes` | Its rest passes, each `{tool, feed, plunge_feed, step_down, stepover, entry, enabled}`; left out when there are none |
 

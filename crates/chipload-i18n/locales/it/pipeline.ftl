@@ -153,6 +153,10 @@ pipeline-place-moved-starts = { $count ->
     [one] Spostato con esso anche { $count } punto iniziale.
    *[other] Spostati con esso anche { $count } punti iniziali.
 }
+pipeline-place-moved-corners = { $count ->
+    [one] Spostata con esso anche { $count } scelta d'angolo.
+   *[other] Spostate con esso anche { $count } scelte d'angolo.
+}
 pipeline-place-drawn-stay = Le forme disegnate in Chipload restano dove sono.
 pipeline-place-other-dxfs-stay = Gli altri DXF restano dove sono.
 pipeline-place-work-zero-stays = Lo zero pezzo resta nel punto X{ $x }, Y{ $y }; controlla che sia ancora dove lo vuoi.
@@ -293,6 +297,8 @@ pipeline-no-tool-use = il progetto non ha l'utensile { $tool }; copiane uno dall
 pipeline-no-tool = il progetto non ha l'utensile { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = non esiste la lavorazione { $number }; il progetto ne ha { $count }
+pipeline-corner-none-there = la lavorazione { $number } non ha un angolo in { $at }; `chipload op corners` elenca i suoi angoli
+pipeline-corner-not-profile-or-pocket = la lavorazione { $number } non ha angoli da scegliere: solo contornature e tasche hanno dogbone
 pipeline-not-a-pocket = la lavorazione { $number } non è una tasca; solo le tasche fanno ripresa dei residui
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = lavorazione { $number }: { $reason }

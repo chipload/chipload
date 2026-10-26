@@ -273,7 +273,12 @@ toolpath-error-corner-leg = { $label }: the leg at corner { $at } did not go int
 toolpath-error-corner-cuts = { $label }: the { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} at corner { $at } would cut into contour #{ $contour }; lower the corners' max angle or change the drawing
+} at corner { $at } would cut into contour #{ $contour }; choose another bone for this corner, lower the corners' max angle or change the drawing
+toolpath-error-corner-cuts-own = { $label }: the { $style ->
+    [dogbone] dogbone
+   *[tbone] T-bone
+} at corner { $at } would cut into another wall of its own contour #{ $contour }; choose another bone for this corner (a T-bone along the other wall, or round) or change the drawing
+toolpath-corner-choice-unmatched = { $label }: the corner chosen at { $at } is no corner of its shapes any more (did the drawing change?); remove the choice or choose again
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = arc output: ({ $x }, { $y }) is not on the circle it was tagged with
 

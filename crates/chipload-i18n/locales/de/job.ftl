@@ -153,6 +153,9 @@ job-select-centre-lines = Bild { $image } ist als offene Mittellinien nachgezeic
 ## Operations
 
 job-on-line-corners = eine Kontur auf der Linie hat keine Innenecken zum Freifräsen
+job-tbone-wall = ein T-Bone braucht die Wand, an der er entlangläuft: längere oder kürzere
+job-wall-only-tbone = nur ein T-Bone hat eine Wand, an der er entlangläuft
+job-corner-chosen-twice = zwei Einstellungen für die Ecke bei { $at }
 job-starts-not-finite = jeder Startpunkt braucht endliche x und y
 job-stepover-at-most-1 = muss höchstens 1 sein (ein Anteil des Werkzeugdurchmessers), ist { $got }
 job-on-line-finish = eine Kontur auf der Linie hat keine Wand zum Schlichten; verwenden Sie innen oder außen

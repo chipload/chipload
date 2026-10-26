@@ -45,6 +45,15 @@
       ],
       "type": "string"
     },
+    "Bone": {
+      "description": "What a chosen corner gets.",
+      "enum": [
+        "none",
+        "dogbone",
+        "tbone"
+      ],
+      "type": "string"
+    },
     "Copies": {
       "additionalProperties": false,
       "description": "A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)\nmm.",
@@ -99,6 +108,43 @@
           "type": "string"
         }
       ]
+    },
+    "CornerChoice": {
+      "additionalProperties": false,
+      "description": "A corner with its own bone, chosen by the user.",
+      "properties": {
+        "along": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Wall"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The wall a T-bone runs along, `longer` or `shorter`: the notch is in the other.\nRequired with a T-bone; null otherwise."
+        },
+        "at": {
+          "description": "The corner, in drawing coordinates (mm).",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "bone": {
+          "$ref": "#/$defs/Bone",
+          "description": "`none` (the corner stays round), `dogbone` or `tbone`."
+        }
+      },
+      "required": [
+        "at",
+        "bone"
+      ],
+      "type": "object"
     },
     "Corners": {
       "description": "How the tool reaches into the inside corners it would leave round, so a square part\nfits: every corner on the tool's side up to `max_angle`.",
@@ -729,6 +775,13 @@
               "format": "double",
               "type": "number"
             },
+            "corner_choices": {
+              "description": "Corners with their own bone, whatever `corners` says. Missing or empty: none. Left\nout when empty.",
+              "items": {
+                "$ref": "#/$defs/CornerChoice"
+              },
+              "type": "array"
+            },
             "corners": {
               "anyOf": [
                 {
@@ -883,6 +936,13 @@
               "description": "How far the cut moves into the material that is kept, mm: positive removes more (a\nlarger pocket, a smaller part), negative leaves material. Less than the tool radius.",
               "format": "double",
               "type": "number"
+            },
+            "corner_choices": {
+              "description": "Corners with their own bone, whatever `corners` says. Missing or empty: none. Left\nout when empty.",
+              "items": {
+                "$ref": "#/$defs/CornerChoice"
+              },
+              "type": "array"
             },
             "corners": {
               "anyOf": [
@@ -2141,6 +2201,14 @@
           "type": "string"
         }
       ]
+    },
+    "Wall": {
+      "description": "One of a corner's two walls, by length.",
+      "enum": [
+        "longer",
+        "shorter"
+      ],
+      "type": "string"
     },
     "WorkZero": {
       "description": "Where the G-code's X0 Y0 is. The geometry never moves; only the output is translated.",

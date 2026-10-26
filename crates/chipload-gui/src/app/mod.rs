@@ -1191,7 +1191,7 @@ impl ChiploadApp {
         let Operation::Pocket(pocket) = &edit.ops.get(i)?.op else {
             return None;
         };
-        if pocket.corners.is_some() {
+        if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
             return Some(RestMenu::Unavailable(t!(self, "app-rest-with-corners")));
         }
         let tools = &edit.settings.tools;

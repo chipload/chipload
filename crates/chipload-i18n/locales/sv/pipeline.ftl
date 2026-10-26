@@ -151,6 +151,7 @@ pipeline-place-moved-starts = { $count ->
     [one] Flyttade { $count } startpunkt med den.
    *[other] Flyttade { $count } startpunkter med den.
 }
+pipeline-place-moved-corners = Flyttade { $count } hörnval med den.
 pipeline-place-drawn-stay = Former ritade i Chipload ligger kvar där de är.
 pipeline-place-other-dxfs-stay = De andra DXF:erna ligger kvar där de är.
 pipeline-place-work-zero-stays = Arbetsnollpunkten ligger kvar i punkten X{ $x }, Y{ $y }; kontrollera att den fortfarande är där du vill ha den.
@@ -291,6 +292,8 @@ pipeline-no-tool-use = projektet har inget verktyg { $tool }; kopiera in ett fr�
 pipeline-no-tool = projektet har inget verktyg { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = det finns ingen operation { $number }; projektet har { $count }
+pipeline-corner-none-there = operation { $number } har inget hörn vid { $at }; `chipload op corners` listar dess hörn
+pipeline-corner-not-profile-or-pocket = operation { $number } har inga hörn att välja: bara konturfräsningar och fickor har dogbones
 pipeline-not-a-pocket = operation { $number } är inte en ficka; bara fickor kan restbearbetas
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = operation { $number }: { $reason }

@@ -37,6 +37,12 @@ The word "auto".
 
 One of: `"auto"`.
 
+## Bone
+
+What a chosen corner gets.
+
+One of: `"none"`, `"dogbone"`, `"tbone"`.
+
 ## Copies
 
 A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.
@@ -56,6 +62,16 @@ In which order the copies are cut.
 - `"by_operation"`: Each operation on every copy, then the next operation.
 
 - `"by_copy"`: Every operation on one copy, then the next copy. Called `by_part` before parts came (schema 22).
+
+## CornerChoice
+
+A corner with its own bone, chosen by the user.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `along` | [Wall](#wall) or null | no | The wall a T-bone runs along, `longer` or `shorter`: the notch is in the other. Required with a T-bone; null otherwise. |
+| `at` | 2 × number | yes | The corner, in drawing coordinates (mm). |
+| `bone` | [Bone](#bone) | yes | `none` (the corner stays round), `dogbone` or `tbone`. |
 
 ## Corners
 
@@ -257,6 +273,7 @@ Quarter-circle lead-in and lead-out.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius. |
+| `corner_choices` | list of [CornerChoice](#cornerchoice) | no | Corners with their own bone, whatever `corners` says. Missing or empty: none. Left out when empty. |
 | `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round. |
 | `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
@@ -281,6 +298,7 @@ Quarter-circle lead-in and lead-out.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `clearance` | number | yes | How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius. |
+| `corner_choices` | list of [CornerChoice](#cornerchoice) | no | Corners with their own bone, whatever `corners` says. Missing or empty: none. Left out when empty. |
 | `corners` | [Corners](#corners) or null | no | Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round. |
 | `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
@@ -593,6 +611,12 @@ One of: `"mm"`, `"inch"`.
 - `"dxf"`: Declared by the DXF ($INSUNITS).
 
 - `"user"`: The DXF declared none; the user chose.
+
+## Wall
+
+One of a corner's two walls, by length.
+
+One of: `"longer"`, `"shorter"`.
 
 ## WorkZero
 

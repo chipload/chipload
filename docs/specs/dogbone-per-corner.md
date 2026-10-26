@@ -50,8 +50,9 @@ choices, today's behaviour.
 - `bone`: `none`, `dogbone` or `tbone`; `along` (`longer` or `shorter`) with `tbone` only,
   and required there.
 - Two choices at the same corner (within the matching tolerance, §4) are a problem.
-- Older versions refuse the unknown field, which is the safe outcome. Saving writes the
-  field always, `[]` when empty.
+- Older versions refuse the unknown field, which is the safe outcome. Saving leaves the
+  field out when it is empty (as `rest_passes`), so a project without choices still opens
+  in older versions.
 
 ## 4. Which corner a choice is for
 
@@ -129,3 +130,26 @@ corner". In the GUI, clicking the message selects the operation and shows the co
 5. **No version bump:** one optional field, safe default. *Recommended*.
 6. **Also make start points follow drawn-shape transforms** (§4), in the same change.
    *Recommended*: the same rule for both kinds of point.
+
+## 10. As built
+
+Step 1, 2026-10-26: the format, planning, the CLI, the guide.
+
+- `chipload_job::{CornerChoice, Bone, Wall}`, `corner_choices` on profiles and pockets
+  (left out when empty); problems for a T-bone without `along`, `along` without a T-bone,
+  two choices within 0.01 mm, and choices on a profile on the line.
+- `chipload_toolpath::corners`: `find_corners` finds every corner below 180° on the tool's
+  side; `gets` decides what each gets (its choice, else the operation's bone up to the max
+  angle); `operation_corners` and `unmatched_choice` check every choice against the
+  operation's corners once, before the copies; copies move the choices with the contours.
+  A bone that reaches its own contour gets `toolpath-error-corner-cuts-own`.
+- `chipload_pipeline::corners::{corners_of, choose_corner, reset_corners}`; `place` moves
+  the choices as it moves start points ("Moved 2 corner choice(s) with it."); the setup
+  sheet says "2 corners chosen one by one". Rest passes and rest pockets are refused with
+  a chosen bone as with `corners`.
+- `chipload op corners`, `chipload op corner` (`--bone`, `--along`, `--as-operation`,
+  `--reset`).
+- The user's file: pocket #30 with a 6 mm tool and dogbones is refused at (11.214, 301)
+  with "another wall of its own contour #30"; with T-bones along the shorter wall (or round)
+  at the two step corners it generates and passes the checker
+  (`crates/chipload-pipeline/tests/corner_choices.rs`).

@@ -653,6 +653,11 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         };
         parts.push(Message::new(style).arg("degrees", num(corners.max_angle().to_degrees())));
     }
+    // docs/specs/dogbone-per-corner.md.
+    let chosen = op.corner_choices().len();
+    if chosen > 0 {
+        parts.push(Message::new("sheet-corner-choices").arg("count", chosen));
+    }
     listed(w, &parts)
 }
 

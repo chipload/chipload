@@ -276,7 +276,12 @@ toolpath-error-corner-leg = { $label } : le trajet au coin { $at } n'est pas ent
 toolpath-error-corner-cuts = { $label } : le { $style ->
     [dogbone] dogbone
    *[tbone] T-bone
-} au coin { $at } entamerait le contour #{ $contour } ; réduisez l'angle max des coins ou modifiez le dessin
+} au coin { $at } entamerait le contour #{ $contour } ; choisissez autre chose pour ce coin, réduisez l'angle max des coins ou modifiez le dessin
+toolpath-error-corner-cuts-own = { $label } : le { $style ->
+    [dogbone] dogbone
+   *[tbone] T-bone
+} au coin { $at } entamerait une autre paroi de son propre contour #{ $contour } ; choisissez autre chose pour ce coin (un T-bone le long de l'autre paroi, ou arrondi) ou modifiez le dessin
+toolpath-corner-choice-unmatched = { $label } : le coin choisi en { $at } n'est plus un coin de ses formes (le dessin a changé ?) ; retirez le choix ou choisissez à nouveau
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = sortie en arcs : ({ $x }, { $y }) n'est pas sur le cercle auquel il est rattaché
 

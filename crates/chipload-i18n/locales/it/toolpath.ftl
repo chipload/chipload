@@ -273,7 +273,12 @@ toolpath-error-corner-leg = { $label }: il tratto all'angolo { $at } non è entr
 toolpath-error-corner-cuts = { $label }: { $style ->
     [dogbone] il dogbone
    *[tbone] il T-bone
-} all'angolo { $at } taglierebbe nel contorno #{ $contour }; abbassa l'angolo max degli angoli o cambia il disegno
+} all'angolo { $at } taglierebbe nel contorno #{ $contour }; scegli altro per questo angolo, abbassa l'angolo max degli angoli o cambia il disegno
+toolpath-error-corner-cuts-own = { $label }: { $style ->
+    [dogbone] il dogbone
+   *[tbone] il T-bone
+} all'angolo { $at } taglierebbe in un'altra parete del suo stesso contorno #{ $contour }; scegli altro per questo angolo (un T-bone lungo l'altra parete, o arrotondato) o cambia il disegno
+toolpath-corner-choice-unmatched = { $label }: l'angolo scelto in { $at } non è più un angolo delle sue forme (il disegno è cambiato?); rimuovi la scelta o scegli di nuovo
 # $x and $y are a point's coordinates, without their unit.
 toolpath-error-arc-off-circle = uscita ad archi: ({ $x }, { $y }) non è sul cerchio a cui era associato
 

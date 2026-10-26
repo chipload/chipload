@@ -441,6 +441,7 @@ impl EditJob {
                         finish: None,
                         skin: None,
                         corners: None,
+                        corner_choices: Vec::new(),
                     }),
                     side.is_some(),
                 )
@@ -464,6 +465,7 @@ impl EditJob {
                     starts: Vec::new(),
                     lead: None,
                     corners: None,
+                    corner_choices: Vec::new(),
                     rest: None,
                     rest_passes: Vec::new(),
                 }),

@@ -10,7 +10,7 @@ use chipload_core::chain::{Contour, OrientedSegment};
 use chipload_core::primitives::{Primitive, distance, signed_area};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::Corners;
+use chipload_job::{Bone, CornerChoice, Corners, Operation, Side, Wall};
 
 use crate::ToolpathError;
 use crate::geom::segment_distance;
@@ -28,6 +28,26 @@ pub struct Corner {
     pub angle: f64,
     /// Unit vector from the corner along the longer wall.
     pub longer: Point,
+    /// Unit vector from the corner along the shorter wall.
+    pub shorter: Point,
+}
+
+/// What a corner gets: the tool in along the bisector, or along a wall (a unit vector from
+/// the corner).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CornerBone {
+    Dogbone,
+    Tbone { along: Point },
+}
+
+impl CornerBone {
+    /// The style as messages name it.
+    fn style(self) -> &'static str {
+        match self {
+            CornerBone::Dogbone => "dogbone",
+            CornerBone::Tbone { .. } => "tbone",
+        }
+    }
 }
 
 /// A dogbone's or T-bone's way out and back: from the ring vertex to the tip.
@@ -36,6 +56,7 @@ pub struct Leg {
     pub from: Point,
     pub tip: Point,
     pub corner: Corner,
+    pub bone: CornerBone,
 }
 
 fn sub(a: Point, b: Point) -> Point {
@@ -86,8 +107,9 @@ fn tangents(part: &OrientedSegment) -> Option<(Point, Point)> {
 }
 
 /// The corners of a closed contour on the tool's side (`waste_inside`: the tool cuts inside
-/// the contour) of at most `max_angle` (docs/specs/dogbones.md §1).
-pub fn find_corners(contour: &Contour, waste_inside: bool, max_angle: f64) -> Vec<Corner> {
+/// the contour), of any angle below 180° (docs/specs/dogbones.md §1); the operation's max
+/// angle is applied by [`CornerCut::bone`].
+pub fn find_corners(contour: &Contour, waste_inside: bool) -> Vec<Corner> {
     let n = contour.parts.len();
     if !contour.closed || n < 2 {
         return Vec::new();
@@ -112,19 +134,16 @@ pub fn find_corners(contour: &Contour, waste_inside: bool, max_angle: f64) -> Ve
             continue;
         }
         let angle = PI - turn.abs();
-        if angle > max_angle + ANGLE_TOL_RAD {
-            continue;
-        }
         let back = scale(incoming, -1.0);
         let Some(bisector) = unit(add(back, outgoing)) else {
             continue;
         };
         let at = contour.parts[j].points()[0];
         let length = |k: usize| contour.parts[k].segment.prim.length();
-        let longer = if length(i) >= length(j) - CHAIN_TOL_MM {
-            back
+        let (longer, shorter) = if length(i) >= length(j) - CHAIN_TOL_MM {
+            (back, outgoing)
         } else {
-            outgoing
+            (outgoing, back)
         };
         corners.push(Corner {
             at,
@@ -133,6 +152,7 @@ pub fn find_corners(contour: &Contour, waste_inside: bool, max_angle: f64) -> Ve
             bisector,
             angle,
             longer,
+            shorter,
         });
     }
     corners
@@ -149,7 +169,7 @@ fn moved_corner(corner: &Corner, clearance: f64) -> Point {
 pub fn tip(
     corner: &Corner,
     v: Point,
-    style: Corners,
+    bone: CornerBone,
     tool_radius: f64,
     clearance: f64,
 ) -> Option<Point> {
@@ -158,11 +178,11 @@ pub fn tip(
     if w.0.hypot(w.1) <= tool_radius + CHAIN_TOL_MM {
         return None;
     }
-    match style {
-        Corners::Dogbone { .. } => Some(add(c, scale(unit(w)?, tool_radius))),
-        Corners::Tbone { .. } => {
-            // Along the longer wall toward the corner: v + t·u at distance r from c.
-            let u = scale(corner.longer, -1.0);
+    match bone {
+        CornerBone::Dogbone => Some(add(c, scale(unit(w)?, tool_radius))),
+        CornerBone::Tbone { along } => {
+            // Along the wall toward the corner: v + t·u at distance r from c.
+            let u = scale(along, -1.0);
             let wu = dot(w, u);
             let disc = (wu * wu - dot(w, w) + tool_radius * tool_radius).max(0.0);
             let t = -wu - disc.sqrt();
@@ -209,7 +229,10 @@ fn corner_vertex(
 /// What the corners need from the operation.
 #[derive(Debug, Clone, Copy)]
 pub struct CornerCut<'a> {
-    pub style: Corners,
+    /// The operation's bones for every corner up to its max angle; None: round.
+    pub corners: Option<Corners>,
+    /// Corners with their own bone, moved with the copy (docs/specs/dogbone-per-corner.md).
+    pub choices: &'a [CornerChoice],
     pub tool_radius: f64,
     pub clearance: f64,
     /// Every contour of the drawing (moved with the copy), for the legs' check.
@@ -217,6 +240,130 @@ pub struct CornerCut<'a> {
     /// Contours a leg may cross besides its own walls (a pocket's other boundaries).
     pub exempt: &'a [usize],
     pub label: &'a Message,
+}
+
+impl CornerCut<'_> {
+    /// The bone `corner` gets ([`gets`]); None: it stays round.
+    pub fn bone(&self, corner: &Corner) -> Option<CornerBone> {
+        Some(match gets(corner, self.corners, self.choices)? {
+            Gets::Dogbone => CornerBone::Dogbone,
+            Gets::Tbone(Wall::Longer) => CornerBone::Tbone {
+                along: corner.longer,
+            },
+            Gets::Tbone(Wall::Shorter) => CornerBone::Tbone {
+                along: corner.shorter,
+            },
+        })
+    }
+}
+
+/// What a corner gets, as the user names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Gets {
+    Dogbone,
+    /// Along this wall; the notch is in the other.
+    Tbone(Wall),
+}
+
+/// What `corner` gets: its own choice, else the operation's bone if the corner is sharp
+/// enough (docs/specs/dogbone-per-corner.md §2); None: it stays round.
+pub fn gets(corner: &Corner, corners: Option<Corners>, choices: &[CornerChoice]) -> Option<Gets> {
+    if let Some(choice) = choice_at(choices, corner) {
+        return match choice.bone {
+            Bone::None => None,
+            Bone::Dogbone => Some(Gets::Dogbone),
+            Bone::Tbone => Some(Gets::Tbone(choice.along.unwrap_or(Wall::Longer))),
+        };
+    }
+    let corners = corners?;
+    if corner.angle > corners.max_angle() + ANGLE_TOL_RAD {
+        return None;
+    }
+    Some(match corners {
+        Corners::Dogbone { .. } => Gets::Dogbone,
+        Corners::Tbone { .. } => Gets::Tbone(Wall::Longer),
+    })
+}
+
+/// The choice for `corner`: the one whose point lies within the arc tolerance of it
+/// (docs/specs/dogbone-per-corner.md §4).
+pub fn choice_at<'a>(choices: &'a [CornerChoice], corner: &Corner) -> Option<&'a CornerChoice> {
+    choices
+        .iter()
+        .find(|c| distance((c.at[0], c.at[1]), corner.at) <= ARC_APPROX_TOL_MM)
+}
+
+/// Every corner of an operation's contours on the tool's side, of any angle, as planning
+/// finds them (docs/specs/dogbone-per-corner.md §4): a profile's on its side (none on the
+/// line), a pocket's at its boundaries and islands.
+pub fn operation_corners(op: &Operation, contours: &[&Contour]) -> Vec<Corner> {
+    match op {
+        Operation::Profile(p) if p.side != Side::On => contours
+            .iter()
+            .flat_map(|c| find_corners(c, p.side == Side::Inside))
+            .collect(),
+        Operation::Pocket(_) => {
+            let boundaries = pocket_boundaries(contours);
+            pocket_corners(contours, contours, &boundaries)
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// The first of the operation's corner choices that matches none of its corners.
+pub fn unmatched_choice(op: &Operation, contours: &[&Contour]) -> Option<CornerChoice> {
+    let choices = op.corner_choices();
+    if choices.is_empty() {
+        return None;
+    }
+    let corners = operation_corners(op, contours);
+    choices
+        .iter()
+        .find(|c| {
+            !corners
+                .iter()
+                .any(|k| choice_at(std::slice::from_ref(c), k).is_some())
+        })
+        .copied()
+}
+
+/// The corners of `of` (some of a pocket's `contours`): boundaries cut inside, islands
+/// outside. A corner inside another of the pocket's boundaries is in waste that is cleared
+/// anyway; one inside another island is no corner of the wall.
+pub fn pocket_corners(of: &[&Contour], contours: &[&Contour], boundaries: &[usize]) -> Vec<Corner> {
+    let mut corners = Vec::new();
+    for contour in of {
+        let is_boundary = boundaries.contains(&contour.id);
+        let inside_another = |p: Point| {
+            contours.iter().any(|o| {
+                o.id != contour.id && boundaries.contains(&o.id) == is_boundary && encloses(o, p)
+            })
+        };
+        corners.extend(
+            find_corners(contour, is_boundary)
+                .into_iter()
+                .filter(|c| !inside_another(c.at)),
+        );
+    }
+    corners
+}
+
+/// The pocket's boundaries among its contours: those wholly inside an even number of the
+/// others (islands are inside an odd number; crossing contours don't count), as the pocket
+/// builds its areas.
+pub fn pocket_boundaries(contours: &[&Contour]) -> Vec<usize> {
+    contours
+        .iter()
+        .filter(|contour| {
+            let points = contour.points();
+            let around = contours
+                .iter()
+                .filter(|o| o.id != contour.id && points.iter().all(|&p| encloses(o, p)))
+                .count();
+            around % 2 == 0
+        })
+        .map(|c| c.id)
+        .collect()
 }
 
 /// One ring the corners may go into: its points, and the part of them that is the ring
@@ -261,13 +408,13 @@ impl RingSlot<'_> {
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Added {
     pub legs: Vec<Leg>,
-    /// Corners no ring reaches.
-    pub unreached: Vec<Corner>,
+    /// Corners no ring reaches, with the bone they would have had.
+    pub unreached: Vec<(Corner, CornerBone)>,
     /// Points added to each slot (two per leg), to move ranges by.
     pub points: Vec<usize>,
 }
 
-/// Add a leg for every corner to the ring that stops in it (docs/specs/dogbones.md §3),
+/// Add a leg for every corner that gets a bone ([`CornerCut::bone`]) to the ring that stops in it (docs/specs/dogbones.md §3),
 /// check each leg (§6), and return the legs, the corners no ring reaches (§5) and, per ring,
 /// how many points were added (two per leg) so ranges can be moved.
 pub fn add_legs(
@@ -280,20 +427,24 @@ pub fn add_legs(
     let mut added = vec![0; slots.len()];
     let offset = cut.tool_radius - cut.clearance;
     for corner in corners {
+        let Some(bone) = cut.bone(corner) else {
+            continue;
+        };
         let found = corner_vertex(corner, slots, offset, cut.clearance);
         let Some((r, k)) = found else {
-            unreached.push(*corner);
+            unreached.push((*corner, bone));
             continue;
         };
         let slot = &mut slots[r];
         let v = slot.points[k];
-        let Some(t) = tip(corner, v, cut.style, cut.tool_radius, cut.clearance) else {
+        let Some(t) = tip(corner, v, bone, cut.tool_radius, cut.clearance) else {
             continue;
         };
         let leg = Leg {
             from: v,
             tip: t,
             corner: *corner,
+            bone,
         };
         check_leg(&leg, cut)?;
         // At the ring's start, the leg goes at its end, so the ring still leaves its start
@@ -355,14 +506,17 @@ fn check_leg(leg: &Leg, cut: &CornerCut) -> Result<(), ToolpathError> {
                 continue;
             }
             if segment_distance(leg.from, leg.tip, &part.segment.prim) < offset - CHAIN_TOL_MM {
-                let style = match cut.style {
-                    Corners::Dogbone { .. } => "dogbone",
-                    Corners::Tbone { .. } => "tbone",
+                // Its own contour's other walls: the user picks another bone for the corner
+                // (docs/specs/dogbone-per-corner.md §5).
+                let id = if contour.id == leg.corner.contour_id {
+                    "toolpath-error-corner-cuts-own"
+                } else {
+                    "toolpath-error-corner-cuts"
                 };
                 return Err(ToolpathError::Geometry(
-                    Message::new("toolpath-error-corner-cuts")
+                    Message::new(id)
                         .arg("label", cut.label.clone())
-                        .arg("style", style)
+                        .arg("style", leg.bone.style())
                         .arg(
                             "at",
                             Value::Point(leg.corner.at.0, leg.corner.at.1, Digits::Fixed(3)),
@@ -396,12 +550,9 @@ pub fn encloses(contour: &Contour, p: Point) -> bool {
 pub fn unreached_note(
     label: &chipload_i18n::Message,
     corner: &Corner,
-    style: Corners,
+    bone: CornerBone,
 ) -> chipload_i18n::Message {
-    let style = match style {
-        Corners::Dogbone { .. } => "dogbone",
-        Corners::Tbone { .. } => "tbone",
-    };
+    let style = bone.style();
     let note = chipload_i18n::Message::new("toolpath-corner-unreached")
         .arg(
             "point",
