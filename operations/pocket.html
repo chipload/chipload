@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Pocket - Chipload 0.25.0 user guide</title>
+        <title>Pocket - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -242,7 +242,8 @@ tool radius. Where there’s no room, it shrinks.</li>
 lead from the cleared side onto the wall.</p>
 <h2 id="dogbones"><a class="header" href="#dogbones">Dogbones</a></h2>
 <p><strong>Corners</strong> puts dogbones or T-bones into the pocket wall’s inside corners, as on
-<a href="profile.html#dogbones-and-t-bones">profiles</a>. Not with <a href="rest.html">rest machining</a>.</p>
+<a href="profile.html#dogbones-and-t-bones">profiles</a>, and any corner can have its own choice
+(<a href="profile.html#corner-by-corner">corner by corner</a>). Not with <a href="rest.html">rest machining</a>.</p>
 <h2 id="rest-machining"><a class="header" href="#rest-machining">Rest machining</a></h2>
 <p>A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
 it in the Browser. See <a href="rest.html">Rest machining</a>.</p>
@@ -272,6 +273,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>starts</code></td><td>start points</td></tr>
 <tr><td><code>lead</code></td><td>Lead</td></tr>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
+<tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="profile.html#in-the-file">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
 <tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>

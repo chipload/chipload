@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Troubleshooting - Chipload 0.25.0 user guide</title>
+        <title>Troubleshooting - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -188,7 +188,7 @@
 <tr><td>Asked for mm or inch</td><td>The DXF doesn’t record its units. Choose the ones it was drawn in. In CAD, set the drawing units (<code>$INSUNITS</code>) before exporting.</td></tr>
 <tr><td><code>invalid_contour</code>: a contour crosses or folds back on itself</td><td>Fix it in CAD: a closed contour must not cross itself. Often a line drawn twice with a tiny offset, or a polyline that doubles back.</td></tr>
 <tr><td><code>open_contour</code> on a shape that should be closed</td><td>Its ends don’t meet within 0.001 mm. Join them in CAD (snap the end points), or use <a href="operations/path.html">Follow path</a> if it really is a line.</td></tr>
-<tr><td><code>branch_point</code></td><td>Three or more lines meet at one point, so Chipload can’t tell which way a contour goes. Remove the extra line in CAD.</td></tr>
+<tr><td><code>branch_point</code></td><td>Three or more loose lines on one layer meet at one point, so Chipload can’t tell which way a contour goes. Remove the extra line in CAD, or draw the shape as one closed polyline.</td></tr>
 <tr><td>Text is missing</td><td>TEXT entities aren’t read. Convert text to outlines (curves) in CAD.</td></tr>
 <tr><td>A DWG file</td><td>Not supported. Save it as DXF.</td></tr>
 </tbody>

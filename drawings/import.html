@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Importing a DXF - Chipload 0.25.0 user guide</title>
+        <title>Importing a DXF - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -196,7 +196,11 @@ after the other. With no project open, the first starts one.</li>
 <li><strong>Not supported:</strong> DWG files. Save as DXF in your CAD program.</li>
 <li><strong>Layers</strong> are kept, and you can select by them: right-click a shape on the canvas
 selects its whole layer. In DXF, layer names don’t care about upper or lower case.</li>
-<li><strong>Joining:</strong> pieces whose ends meet (within 0.001 mm) are joined into <strong>contours</strong>:
+<li><strong>Closed shapes are read as drawn:</strong> a closed polyline, a circle or a closed spline is one
+closed contour, even where other shapes touch it or share its edges. A pocket drawn
+against the part’s outline leaves both whole.</li>
+<li><strong>Joining:</strong> loose lines and arcs whose ends meet (within 0.001 mm) are joined into
+<strong>contours</strong>, only with others on the same layer:
 <ul>
 <li><strong>closed</strong>, for profiles, pockets and V-carving;</li>
 <li><strong>open</strong>, for follow path; profiles and pockets skip them with a note.</li>
@@ -216,13 +220,13 @@ without saying so. The report under the canvas (and from <code>inspect</code>) l
 <tr><th>Issue</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>duplicate</code></td><td>a line or arc drawn twice on top of itself; one is kept</td></tr>
+<tr><td><code>duplicate</code></td><td>a line, arc or shape drawn twice on top of itself on the same layer; one is kept. On different layers both are kept</td></tr>
 <tr><td><code>zero_length</code></td><td>a line or arc of no length; left out</td></tr>
 <tr><td><code>nonzero_z</code></td><td>the drawing has Z values (3D); they are ignored, the drawing is read flat</td></tr>
 <tr><td><code>entity_skipped</code></td><td>an entity Chipload doesn’t read (text, dimensions, hatches, …), or one with a coordinate beyond 1 km or not a number, which only a broken file has</td></tr>
 <tr><td><code>block_depth</code></td><td>blocks nested too deep; the inner ones are skipped</td></tr>
 <tr><td><code>open_contour</code></td><td>a contour that doesn’t close: profiles and pockets skip it</td></tr>
-<tr><td><code>branch_point</code></td><td>three or more lines meet at a point, so the contour’s path is ambiguous</td></tr>
+<tr><td><code>branch_point</code></td><td>three or more loose lines on one layer meet at a point, so the contour’s path is ambiguous</td></tr>
 <tr><td><code>invalid_contour</code></td><td>a closed contour that crosses or folds back on itself: it can’t be cut until fixed</td></tr>
 <tr><td><code>units_chosen</code></td><td>the DXF didn’t say its units; this records your choice</td></tr>
 </tbody>

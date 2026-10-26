@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Profile - Chipload 0.25.0 user guide</title>
+        <title>Profile - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -264,8 +264,37 @@ go into the mortise. <strong>Corners</strong> reaches into them:</p>
 out of sight.</li>
 </ul>
 <p><em>up to</em> sets the sharpest corner angle that gets one (100° by default, so 90° corners
-drawn slightly off count). A corner the tool can’t reach without touching another contour
-is left, with a note.</p>
+drawn slightly off count). A corner the tool can’t reach at all (a notch narrower than the
+tool) is left round, with a note. A bone that would cut into another contour, or into
+another wall of its own (a short step next to the corner), stops generation with an error
+that names the corner.</p>
+<h3 id="corner-by-corner"><a class="header" href="#corner-by-corner">Corner by corner</a></h3>
+<p>Any corner can have its own choice, whatever <strong>Corners</strong> says: <em>round</em>, <em>dogbone</em>, <em>T-bone
+along the longer wall</em> or <em>T-bone along the shorter wall</em>. It goes past <em>up to</em> too. So you
+can turn one T-bone the other way, leave out the one corner where a bone doesn’t fit, or
+leave <strong>Corners</strong> on <em>round</em> and give bones only to the corners that need them.</p>
+<p>With the operation selected, every corner on the tool’s side has a small diamond on the
+canvas: filled, with the tool’s circle where its bone goes, when it gets one; hollow when it
+stays round; amber when the last generation’s tool couldn’t reach into it. A ring round the
+diamond marks a corner with its own choice. Click a diamond (or right-click it) for its
+menu: <em>As the operation</em>, <em>Round</em>, <em>Dogbone</em>, <em>T-bone along the longer wall</em>, <em>T-bone along
+the shorter wall</em>. Hovering an entry draws its bone; clicking it generates again. Each choice
+is one undo step. Under <strong>Corners</strong> in Properties, <em>2 corners chosen one by one</em> counts them,
+and <em>Reset</em> gives every corner the operation’s setting again.</p>
+<p>On the command line, list an operation’s corners and what each gets, then choose:</p>
+<pre><code>chipload op corners part.chipload --op 2
+(11.214, 301)  90.0°  dogbone
+(511.214, 301)  90.0°  dogbone
+…
+chipload op corner part.chipload --op 2 --at 11.214,301 --bone tbone --along shorter
+chipload op corner part.chipload --op 2 --at 511.214,301 --bone none
+chipload op corner part.chipload --op 2 --at 511.214,301 --as-operation   # its choice removed
+chipload op corner part.chipload --op 2 --reset                           # every choice removed
+</code></pre>
+<p>A choice is kept as the corner’s point on the drawing, as start points are, and moves with
+the DXF when you <a href="../drawings/placement.html">place</a> it. Every copy gets it. If the drawing
+changes so a chosen corner is gone, generating stops and says which choice to remove. The
+setup sheet says how many corners were chosen one by one.</p>
 <h2 id="in-the-file"><a class="header" href="#in-the-file">In the file</a></h2>
 <p><code>"type": "profile"</code> in the <a href="../reference/project-file.html#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>
@@ -294,6 +323,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>finish</code></td><td>Finishing pass: <code>{"stock": …}</code> or null</td></tr>
 <tr><td><code>skin</code></td><td>Onion skin: <code>{"thickness": …}</code> or null</td></tr>
 <tr><td><code>corners</code></td><td>Corners: <code>{"type": "dogbone"</code> or <code>"tbone", "max_angle": …}</code>, or null</td></tr>
+<tr><td><code>corner_choices</code></td><td>corners with their own choice, each <code>{"at": [x, y], "bone": "none"</code> or <code>"dogbone"</code> or <code>"tbone", "along": "longer"</code> or <code>"shorter"</code> (T-bones only, else null)<code>}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
 </div>

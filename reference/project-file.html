@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project file - Chipload 0.25.0 user guide</title>
+        <title>Project file - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -218,6 +218,9 @@
 <h2 id="autothreshold"><a class="header" href="#autothreshold">AutoThreshold</a></h2>
 <p>The word “auto”.</p>
 <p>One of: <code>"auto"</code>.</p>
+<h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
+<p>What a chosen corner gets.</p>
+<p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
 <h2 id="copies"><a class="header" href="#copies">Copies</a></h2>
 <p>A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.</p>
 <div class="table-wrapper">
@@ -244,6 +247,20 @@
 <p><code>"by_copy"</code>: Every operation on one copy, then the next copy. Called <code>by_part</code> before parts came (schema 22).</p>
 </li>
 </ul>
+<h2 id="cornerchoice"><a class="header" href="#cornerchoice">CornerChoice</a></h2>
+<p>A corner with its own bone, chosen by the user.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>along</code></td><td><a href="#wall">Wall</a> or null</td><td>no</td><td>The wall a T-bone runs along, <code>longer</code> or <code>shorter</code>: the notch is in the other. Required with a T-bone; null otherwise.</td></tr>
+<tr><td><code>at</code></td><td>2 × number</td><td>yes</td><td>The corner, in drawing coordinates (mm).</td></tr>
+<tr><td><code>bone</code></td><td><a href="#bone">Bone</a></td><td>yes</td><td><code>none</code> (the corner stays round), <code>dogbone</code> or <code>tbone</code>.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="corners"><a class="header" href="#corners">Corners</a></h2>
 <p>How the tool reaches into the inside corners it would leave round, so a square part fits: every corner on the tool’s side up to <code>max_angle</code>.</p>
 <h3 id="type-dogbone"><a class="header" href="#type-dogbone"><code>"type": "dogbone"</code></a></h3>
@@ -496,6 +513,7 @@
 </thead>
 <tbody>
 <tr><td><code>clearance</code></td><td>number</td><td>yes</td><td>How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius.</td></tr>
+<tr><td><code>corner_choices</code></td><td>list of <a href="#cornerchoice">CornerChoice</a></td><td>no</td><td>Corners with their own bone, whatever <code>corners</code> says. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>corners</code></td><td><a href="#corners">Corners</a> or null</td><td>no</td><td>Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round.</td></tr>
 <tr><td><code>direction</code></td><td><a href="#direction">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
@@ -525,6 +543,7 @@
 </thead>
 <tbody>
 <tr><td><code>clearance</code></td><td>number</td><td>yes</td><td>How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius.</td></tr>
+<tr><td><code>corner_choices</code></td><td>list of <a href="#cornerchoice">CornerChoice</a></td><td>no</td><td>Corners with their own bone, whatever <code>corners</code> says. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>corners</code></td><td><a href="#corners">Corners</a> or null</td><td>no</td><td>Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round.</td></tr>
 <tr><td><code>direction</code></td><td><a href="#direction">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
@@ -911,6 +930,9 @@
 <p><code>"user"</code>: The DXF declared none; the user chose.</p>
 </li>
 </ul>
+<h2 id="wall"><a class="header" href="#wall">Wall</a></h2>
+<p>One of a corner’s two walls, by length.</p>
+<p>One of: <code>"longer"</code>, <code>"shorter"</code>.</p>
 <h2 id="workzero"><a class="header" href="#workzero">WorkZero</a></h2>
 <p>Where the G-code’s X0 Y0 is. The geometry never moves; only the output is translated.</p>
 <ul>

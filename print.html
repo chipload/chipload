@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.25.0 user guide</title>
+        <title>Chipload 0.26.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f602bac1.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -909,7 +909,11 @@ after the other. With no project open, the first starts one.</li>
 <li><strong>Not supported:</strong> DWG files. Save as DXF in your CAD program.</li>
 <li><strong>Layers</strong> are kept, and you can select by them: right-click a shape on the canvas
 selects its whole layer. In DXF, layer names don’t care about upper or lower case.</li>
-<li><strong>Joining:</strong> pieces whose ends meet (within 0.001 mm) are joined into <strong>contours</strong>:
+<li><strong>Closed shapes are read as drawn:</strong> a closed polyline, a circle or a closed spline is one
+closed contour, even where other shapes touch it or share its edges. A pocket drawn
+against the part’s outline leaves both whole.</li>
+<li><strong>Joining:</strong> loose lines and arcs whose ends meet (within 0.001 mm) are joined into
+<strong>contours</strong>, only with others on the same layer:
 <ul>
 <li><strong>closed</strong>, for profiles, pockets and V-carving;</li>
 <li><strong>open</strong>, for follow path; profiles and pockets skip them with a note.</li>
@@ -929,13 +933,13 @@ without saying so. The report under the canvas (and from <code>inspect</code>) l
 <tr><th>Issue</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>duplicate</code></td><td>a line or arc drawn twice on top of itself; one is kept</td></tr>
+<tr><td><code>duplicate</code></td><td>a line, arc or shape drawn twice on top of itself on the same layer; one is kept. On different layers both are kept</td></tr>
 <tr><td><code>zero_length</code></td><td>a line or arc of no length; left out</td></tr>
 <tr><td><code>nonzero_z</code></td><td>the drawing has Z values (3D); they are ignored, the drawing is read flat</td></tr>
 <tr><td><code>entity_skipped</code></td><td>an entity Chipload doesn’t read (text, dimensions, hatches, …), or one with a coordinate beyond 1 km or not a number, which only a broken file has</td></tr>
 <tr><td><code>block_depth</code></td><td>blocks nested too deep; the inner ones are skipped</td></tr>
 <tr><td><code>open_contour</code></td><td>a contour that doesn’t close: profiles and pockets skip it</td></tr>
-<tr><td><code>branch_point</code></td><td>three or more lines meet at a point, so the contour’s path is ambiguous</td></tr>
+<tr><td><code>branch_point</code></td><td>three or more loose lines on one layer meet at a point, so the contour’s path is ambiguous</td></tr>
 <tr><td><code>invalid_contour</code></td><td>a closed contour that crosses or folds back on itself: it can’t be cut until fixed</td></tr>
 <tr><td><code>units_chosen</code></td><td>the DXF didn’t say its units; this records your choice</td></tr>
 </tbody>
@@ -1152,7 +1156,10 @@ The reset button makes the corners sharp again.</li>
 dashed box shows round them: drag the square in the middle to move them, the round handle
 beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
 scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
-handles instead. The shapes keep their ids, so the operations that cut them follow.</li>
+handles instead. The shapes keep their ids, so the operations that cut them follow, and so
+do the operations’ start points and <a href="#corner-by-corner">corner choices</a>
+on them (as with <code>shape move</code>, <code>turn</code> and <code>scale</code>; editing a shape’s own fields or points
+leaves them where they are).</li>
 <li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
 drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
 type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
@@ -1655,8 +1662,37 @@ go into the mortise. <strong>Corners</strong> reaches into them:</p>
 out of sight.</li>
 </ul>
 <p><em>up to</em> sets the sharpest corner angle that gets one (100° by default, so 90° corners
-drawn slightly off count). A corner the tool can’t reach without touching another contour
-is left, with a note.</p>
+drawn slightly off count). A corner the tool can’t reach at all (a notch narrower than the
+tool) is left round, with a note. A bone that would cut into another contour, or into
+another wall of its own (a short step next to the corner), stops generation with an error
+that names the corner.</p>
+<h3 id="corner-by-corner"><a class="header" href="#corner-by-corner">Corner by corner</a></h3>
+<p>Any corner can have its own choice, whatever <strong>Corners</strong> says: <em>round</em>, <em>dogbone</em>, <em>T-bone
+along the longer wall</em> or <em>T-bone along the shorter wall</em>. It goes past <em>up to</em> too. So you
+can turn one T-bone the other way, leave out the one corner where a bone doesn’t fit, or
+leave <strong>Corners</strong> on <em>round</em> and give bones only to the corners that need them.</p>
+<p>With the operation selected, every corner on the tool’s side has a small diamond on the
+canvas: filled, with the tool’s circle where its bone goes, when it gets one; hollow when it
+stays round; amber when the last generation’s tool couldn’t reach into it. A ring round the
+diamond marks a corner with its own choice. Click a diamond (or right-click it) for its
+menu: <em>As the operation</em>, <em>Round</em>, <em>Dogbone</em>, <em>T-bone along the longer wall</em>, <em>T-bone along
+the shorter wall</em>. Hovering an entry draws its bone; clicking it generates again. Each choice
+is one undo step. Under <strong>Corners</strong> in Properties, <em>2 corners chosen one by one</em> counts them,
+and <em>Reset</em> gives every corner the operation’s setting again.</p>
+<p>On the command line, list an operation’s corners and what each gets, then choose:</p>
+<pre><code>chipload op corners part.chipload --op 2
+(11.214, 301)  90.0°  dogbone
+(511.214, 301)  90.0°  dogbone
+…
+chipload op corner part.chipload --op 2 --at 11.214,301 --bone tbone --along shorter
+chipload op corner part.chipload --op 2 --at 511.214,301 --bone none
+chipload op corner part.chipload --op 2 --at 511.214,301 --as-operation   # its choice removed
+chipload op corner part.chipload --op 2 --reset                           # every choice removed
+</code></pre>
+<p>A choice is kept as the corner’s point on the drawing, as start points are, and moves with
+the DXF when you <a href="#placing-the-drawing">place</a> it. Every copy gets it. If the drawing
+changes so a chosen corner is gone, generating stops and says which choice to remove. The
+setup sheet says how many corners were chosen one by one.</p>
 <h2 id="in-the-file-1"><a class="header" href="#in-the-file-1">In the file</a></h2>
 <p><code>"type": "profile"</code> in the <a href="#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>
@@ -1685,6 +1721,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>finish</code></td><td>Finishing pass: <code>{"stock": …}</code> or null</td></tr>
 <tr><td><code>skin</code></td><td>Onion skin: <code>{"thickness": …}</code> or null</td></tr>
 <tr><td><code>corners</code></td><td>Corners: <code>{"type": "dogbone"</code> or <code>"tbone", "max_angle": …}</code>, or null</td></tr>
+<tr><td><code>corner_choices</code></td><td>corners with their own choice, each <code>{"at": [x, y], "bone": "none"</code> or <code>"dogbone"</code> or <code>"tbone", "along": "longer"</code> or <code>"shorter"</code> (T-bones only, else null)<code>}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
 </div>
@@ -1754,7 +1791,8 @@ tool radius. Where there’s no room, it shrinks.</li>
 lead from the cleared side onto the wall.</p>
 <h2 id="dogbones"><a class="header" href="#dogbones">Dogbones</a></h2>
 <p><strong>Corners</strong> puts dogbones or T-bones into the pocket wall’s inside corners, as on
-<a href="#dogbones-and-t-bones">profiles</a>. Not with <a href="#rest-machining-1">rest machining</a>.</p>
+<a href="#dogbones-and-t-bones">profiles</a>, and any corner can have its own choice
+(<a href="#corner-by-corner">corner by corner</a>). Not with <a href="#rest-machining-1">rest machining</a>.</p>
 <h2 id="rest-machining"><a class="header" href="#rest-machining">Rest machining</a></h2>
 <p>A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
 it in the Browser. See <a href="#rest-machining-1">Rest machining</a>.</p>
@@ -1784,6 +1822,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>starts</code></td><td>start points</td></tr>
 <tr><td><code>lead</code></td><td>Lead</td></tr>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
+<tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="#in-the-file-1">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
 <tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
@@ -3048,6 +3087,42 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-op-corners"><a class="header" href="#chipload-op-corners"><code>chipload op corners</code></a></h3>
+<p>List a profile’s or pocket’s corners on the tool’s side, with what each gets (round, dogbone, T-bone along the longer or shorter wall) and whether that is the corner’s own choice (docs/specs/dogbone-per-corner.md)</p>
+<pre><code class="language-text">chipload op corners &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-corner"><a class="header" href="#chipload-op-corner"><code>chipload op corner</code></a></h3>
+<p>Give one corner of a profile or pocket its own bone, whatever the operation’s corners say (docs/specs/dogbone-per-corner.md): <code>--bone none</code> keeps it round. <code>op corners</code> lists the corners</p>
+<pre><code class="language-text">chipload op corner &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>The corner, X,Y in drawing coordinates (a plain number is mm)</td></tr>
+<tr><td><code>--bone &lt;BONE&gt;</code></td><td>What the corner gets. One of: <code>none</code>, <code>dogbone</code>, <code>tbone</code>.</td></tr>
+<tr><td><code>--along &lt;ALONG&gt;</code></td><td>With a T-bone: the wall it runs along (the notch is in the other); default longer. One of: <code>longer</code>, <code>shorter</code>.</td></tr>
+<tr><td><code>--as-operation</code></td><td>Remove the corner’s own choice: it gets what the operation gives every corner.</td></tr>
+<tr><td><code>--reset</code></td><td>Remove every corner’s own choice.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-op-rest"><a class="header" href="#chipload-op-rest"><code>chipload op rest</code></a></h3>
 <p>Make a pocket clear only what a larger tool leaves (docs/specs/rest-machining.md)</p>
 <pre><code class="language-text">chipload op rest &lt;PROJECT&gt; [OPTIONS]
@@ -4100,6 +4175,9 @@ reaches the assistant only once you save.</li>
 <h2 id="autothreshold"><a class="header" href="#autothreshold">AutoThreshold</a></h2>
 <p>The word “auto”.</p>
 <p>One of: <code>"auto"</code>.</p>
+<h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
+<p>What a chosen corner gets.</p>
+<p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
 <h2 id="copies-1"><a class="header" href="#copies-1">Copies</a></h2>
 <p>A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.</p>
 <div class="table-wrapper">
@@ -4126,6 +4204,20 @@ reaches the assistant only once you save.</li>
 <p><code>"by_copy"</code>: Every operation on one copy, then the next copy. Called <code>by_part</code> before parts came (schema 22).</p>
 </li>
 </ul>
+<h2 id="cornerchoice"><a class="header" href="#cornerchoice">CornerChoice</a></h2>
+<p>A corner with its own bone, chosen by the user.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>along</code></td><td><a href="#wall">Wall</a> or null</td><td>no</td><td>The wall a T-bone runs along, <code>longer</code> or <code>shorter</code>: the notch is in the other. Required with a T-bone; null otherwise.</td></tr>
+<tr><td><code>at</code></td><td>2 × number</td><td>yes</td><td>The corner, in drawing coordinates (mm).</td></tr>
+<tr><td><code>bone</code></td><td><a href="#bone">Bone</a></td><td>yes</td><td><code>none</code> (the corner stays round), <code>dogbone</code> or <code>tbone</code>.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="corners"><a class="header" href="#corners">Corners</a></h2>
 <p>How the tool reaches into the inside corners it would leave round, so a square part fits: every corner on the tool’s side up to <code>max_angle</code>.</p>
 <h3 id="type-dogbone"><a class="header" href="#type-dogbone"><code>"type": "dogbone"</code></a></h3>
@@ -4378,6 +4470,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>clearance</code></td><td>number</td><td>yes</td><td>How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius.</td></tr>
+<tr><td><code>corner_choices</code></td><td>list of <a href="#cornerchoice">CornerChoice</a></td><td>no</td><td>Corners with their own bone, whatever <code>corners</code> says. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>corners</code></td><td><a href="#corners">Corners</a> or null</td><td>no</td><td>Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round.</td></tr>
 <tr><td><code>direction</code></td><td><a href="#direction-1">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
@@ -4407,6 +4500,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>clearance</code></td><td>number</td><td>yes</td><td>How far the cut moves into the material that is kept, mm: positive removes more (a larger pocket, a smaller part), negative leaves material. Less than the tool radius.</td></tr>
+<tr><td><code>corner_choices</code></td><td>list of <a href="#cornerchoice">CornerChoice</a></td><td>no</td><td>Corners with their own bone, whatever <code>corners</code> says. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>corners</code></td><td><a href="#corners">Corners</a> or null</td><td>no</td><td>Dogbones or T-bones in the inside corners, so square parts fit. Null: the corners stay round.</td></tr>
 <tr><td><code>direction</code></td><td><a href="#direction-1">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
@@ -4793,6 +4887,9 @@ reaches the assistant only once you save.</li>
 <p><code>"user"</code>: The DXF declared none; the user chose.</p>
 </li>
 </ul>
+<h2 id="wall"><a class="header" href="#wall">Wall</a></h2>
+<p>One of a corner’s two walls, by length.</p>
+<p>One of: <code>"longer"</code>, <code>"shorter"</code>.</p>
 <h2 id="workzero"><a class="header" href="#workzero">WorkZero</a></h2>
 <p>Where the G-code’s X0 Y0 is. The geometry never moves; only the output is translated.</p>
 <ul>
@@ -5019,7 +5116,7 @@ reaches the assistant only once you save.</li>
 <tr><td>Asked for mm or inch</td><td>The DXF doesn’t record its units. Choose the ones it was drawn in. In CAD, set the drawing units (<code>$INSUNITS</code>) before exporting.</td></tr>
 <tr><td><code>invalid_contour</code>: a contour crosses or folds back on itself</td><td>Fix it in CAD: a closed contour must not cross itself. Often a line drawn twice with a tiny offset, or a polyline that doubles back.</td></tr>
 <tr><td><code>open_contour</code> on a shape that should be closed</td><td>Its ends don’t meet within 0.001 mm. Join them in CAD (snap the end points), or use <a href="#follow-path">Follow path</a> if it really is a line.</td></tr>
-<tr><td><code>branch_point</code></td><td>Three or more lines meet at one point, so Chipload can’t tell which way a contour goes. Remove the extra line in CAD.</td></tr>
+<tr><td><code>branch_point</code></td><td>Three or more loose lines on one layer meet at one point, so Chipload can’t tell which way a contour goes. Remove the extra line in CAD, or draw the shape as one closed polyline.</td></tr>
 <tr><td>Text is missing</td><td>TEXT entities aren’t read. Convert text to outlines (curves) in CAD.</td></tr>
 <tr><td>A DWG file</td><td>Not supported. Save it as DXF.</td></tr>
 </tbody>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.25.0 user guide</title>
+        <title>Command line - Chipload 0.26.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7f57eb7.js";
+            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.25.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -456,6 +456,42 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--part &lt;PART&gt;</code></td><td>The part’s id (as <code>part list</code> shows it) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-corners"><a class="header" href="#chipload-op-corners"><code>chipload op corners</code></a></h3>
+<p>List a profile’s or pocket’s corners on the tool’s side, with what each gets (round, dogbone, T-bone along the longer or shorter wall) and whether that is the corner’s own choice (docs/specs/dogbone-per-corner.md)</p>
+<pre><code class="language-text">chipload op corners &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-corner"><a class="header" href="#chipload-op-corner"><code>chipload op corner</code></a></h3>
+<p>Give one corner of a profile or pocket its own bone, whatever the operation’s corners say (docs/specs/dogbone-per-corner.md): <code>--bone none</code> keeps it round. <code>op corners</code> lists the corners</p>
+<pre><code class="language-text">chipload op corner &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>The corner, X,Y in drawing coordinates (a plain number is mm)</td></tr>
+<tr><td><code>--bone &lt;BONE&gt;</code></td><td>What the corner gets. One of: <code>none</code>, <code>dogbone</code>, <code>tbone</code>.</td></tr>
+<tr><td><code>--along &lt;ALONG&gt;</code></td><td>With a T-bone: the wall it runs along (the notch is in the other); default longer. One of: <code>longer</code>, <code>shorter</code>.</td></tr>
+<tr><td><code>--as-operation</code></td><td>Remove the corner’s own choice: it gets what the operation gives every corner.</td></tr>
+<tr><td><code>--reset</code></td><td>Remove every corner’s own choice.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
