@@ -1454,6 +1454,65 @@ fn explode_a_dxf_and_join_its_lines() {
     assert!(after.status.success(), "{}", text(&after.stderr));
 }
 
+/// Corner choices (docs/specs/dogbone-per-corner.md): `op corners` lists them, `op corner`
+/// sets them, and they and the start points move with the drawn shape they are on.
+#[test]
+fn corner_choices_and_start_points_follow_a_moved_shape() {
+    let dir = temp_dir("corner-choices");
+    let project = dir.join("part.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let ok = |args: &[&str]| {
+        let out = chipload(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    // Operation 1 cuts S2 (the circle) and S3 (the triangle (110, 65) (140, 65) (125, 95))
+    // inside, with round corners.
+    let listed = ok(&["op", "corners", p, "--op", "1"]);
+    assert!(listed.contains("(125, 95)  53.1°  round"), "{listed}");
+    ok(&[
+        "op", "corner", p, "--op", "1", "--at", "125,95", "--bone", "dogbone",
+    ]);
+    ok(&["set", p, "operations.0.starts=[[125, 66]]"]);
+    let listed = ok(&["op", "corners", p, "--op", "1"]);
+    assert!(
+        listed.contains("(125, 95)  53.1°  dogbone (its own choice)"),
+        "{listed}"
+    );
+    let refused = chipload(&[
+        "op", "corner", p, "--op", "1", "--at", "1,1", "--bone", "none",
+    ]);
+    assert_eq!(refused.status.code(), Some(1));
+    assert!(
+        text(&refused.stderr).contains("operation 1 has no corner at (1.000, 1.000) mm"),
+        "{}",
+        text(&refused.stderr)
+    );
+
+    // The triangle moves: its corner choice and its start point go with it; the circle's
+    // operation keeps the rest.
+    ok(&["shape", "move", p, "3", "--dx", "10", "--dy", "-5"]);
+    let got = |path_: &str| {
+        ok(&["get", p, path_])
+            .split_whitespace()
+            .collect::<String>()
+    };
+    assert_eq!(got("operations.0.corner_choices.0.at"), "[135.0,90.0]");
+    assert_eq!(got("operations.0.starts"), "[[135.0,61.0]]");
+    let listed = ok(&["op", "corners", p, "--op", "1"]);
+    assert!(
+        listed.contains("(135, 90)  53.1°  dogbone (its own choice)"),
+        "{listed}"
+    );
+    let run = chipload(&["run", p, "-o", path(&dir.join("moved.nc")), "--no-sheet"]);
+    assert!(run.status.success(), "{}", text(&run.stderr));
+
+    ok(&["op", "corner", p, "--op", "1", "--reset"]);
+    let listed = ok(&["op", "corners", p, "--op", "1"]);
+    assert!(!listed.contains("its own choice"), "{listed}");
+}
+
 /// `shape move`, `shape turn` and `shape scale` (docs/specs/drawn-shapes-box.md §2).
 #[test]
 fn move_turn_and_scale_drawn_shapes() {

@@ -155,6 +155,8 @@ pub struct RunResult {
     pub groups: Vec<ToolGroup>,
     /// Rings whose start the user can move, for the start markers.
     pub ring_starts: Vec<RingStart>,
+    /// Corners a bone can't reach, by operation, for the corner markers.
+    pub unreached_corners: Vec<(usize, chipload_core::Point)>,
     /// Toolpath warnings, each with the operation it is about.
     pub notes: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
@@ -516,6 +518,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         op_spans: plan.op_spans,
         groups: plan.groups,
         ring_starts: plan.ring_starts,
+        unreached_corners: plan.unreached_corners,
         notes,
         check_warnings,
     })

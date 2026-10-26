@@ -153,3 +153,28 @@ Step 1, 2026-10-26: the format, planning, the CLI, the guide.
   with "another wall of its own contour #30"; with T-bones along the shorter wall (or round)
   at the two step corners it generates and passes the checker
   (`crates/chipload-pipeline/tests/corner_choices.rs`).
+
+Step 2, 2026-10-26: the canvas.
+
+- `chipload-gui` `app/corners.rs`: the focused profile's or pocket's corners
+  (`chipload_pipeline::corners::corners_in`, found again only when the operation or the
+  drawing changes), drawn as diamonds with the tool's circle at the bone's tip
+  (`chipload_toolpath::corners::notch_centre`, tested against the planned tips). A click or
+  right-click opens the menu (an egui `Popup` beside the corner); hovering an entry draws its
+  bone; a click stores it with `set_choice`, commits (one undo step) and generates.
+- Found while looking at the user's file: corners the tool can't reach (the slot's end tabs,
+  5.8 mm wide for a 6 mm tool) looked as if they got a bone. Planning now returns them
+  (`Plan::unreached_corners`, copy 1), and the canvas draws them hollow and amber, with a
+  hover that says so.
+- Properties: "2 corners chosen one by one" and *Reset* under Corners. The legend has the
+  corner diamond. A screenshot step `cornerN` shows a close-up of corner N with its menu.
+
+Step 3, 2026-10-26: points that follow drawn shapes (decision 6).
+
+- `chipload_pipeline::shapes::transform_shapes` (the box, the *Selection* section and
+  `shape move/turn/scale`) moves every start point and corner choice whose nearest shape,
+  among those the operation selects, is one of the moved shapes, by the same transform
+  (`chipload_job::edit::transformed_point`; `placement::nearest_is`, the rule `place` uses).
+  The app now passes its operations in, so they follow there too.
+- Not moved: points on a shape changed through its own form or point handles (a circle's
+  centre, a polyline's *Position*); those edit the shape, as dragging a point does.

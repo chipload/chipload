@@ -288,16 +288,15 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match chipload_pipeline::shapes::transform_shapes(
-            &edit.settings,
-            ids,
-            from,
-            to,
-            scale,
-            degrees,
-        ) {
+        // With the operations, so their start points and corner choices follow.
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        match chipload_pipeline::shapes::transform_shapes(&job, ids, from, to, scale, degrees) {
             Ok(job) => {
                 edit.settings.drawing = job.drawing;
+                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
+                    entry.op = op;
+                }
                 self.shape_draft = None;
                 self.drawing_changed(ids);
                 true

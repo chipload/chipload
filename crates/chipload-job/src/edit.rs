@@ -308,6 +308,19 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
     }
 }
 
+/// `p` moved, turned and scaled as [`transformed`] moves a shape's points:
+/// `to + scale · turn(p − from)`.
+pub fn transformed_point(
+    p: [f64; 2],
+    from: [f64; 2],
+    to: [f64; 2],
+    scale: f64,
+    degrees: f64,
+) -> [f64; 2] {
+    let turned = rotated([p[0] - from[0], p[1] - from[1]], degrees);
+    [to[0] + scale * turned[0], to[1] + scale * turned[1]]
+}
+
 /// A drawn shape moved, turned and scaled: each point p goes to
 /// `to + scale · turn(p − from)`, `degrees` counter-clockwise (docs/specs/drawn-shapes-box.md
 /// §2). A circle's radius and a rectangle's sides and corner radius scale; a rectangle's
@@ -324,10 +337,7 @@ pub fn transformed(
     if !(scale.is_finite() && scale > 0.0 && degrees.is_finite()) {
         return None;
     }
-    let map = |p: &[f64; 2]| {
-        let turned = rotated([p[0] - from[0], p[1] - from[1]], degrees);
-        [to[0] + scale * turned[0], to[1] + scale * turned[1]]
-    };
+    let map = |p: &[f64; 2]| transformed_point(*p, from, to, scale, degrees);
     match geometry {
         Geometry::Path { .. } => None,
         Geometry::Circle { center, radius } => Some(Geometry::Circle {

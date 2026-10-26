@@ -5,12 +5,6 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
-- **Dogbones chosen per corner** (docs/specs/dogbone-per-corner.md), approved 2026-10-26
-  after a user's pocket (contour #30 of `shared_edges.dxf`, a slot with a short step at each
-  end) couldn't get dogbones or T-bones at all. Steps: the format, planning and CLI (`op
-  corners`, `op corner`), **done 2026-10-26**; the canvas markers and menu; start points
-  and corner choices following drawn-shape transforms (decision 6).
-
 - **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
   German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
   `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`
@@ -57,6 +51,7 @@ it's built (see `CLAUDE.md`).
   corrections) published 2026-10-25. **0.25.1** (French *Contour* everywhere, closed
   shapes as drawn and chaining per layer, explode keeping half circles) published
   2026-10-25.
+  Waiting for the next release: dogbones chosen per corner (2026-10-26).
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
   `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
@@ -106,6 +101,14 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Dogbones chosen per corner** (2026-10-26, docs/specs/dogbone-per-corner.md), after a
+  user's slot with a short step at each end couldn't get dogbones or T-bones with a 6 mm
+  tool: any corner of a profile or pocket can have its own bone (round, dogbone, T-bone
+  along either wall), also past the max angle, so an operation can also start round and get
+  bones only where picked. `corner_choices` (optional, no bump); `chipload op corners` and
+  `op corner`; diamonds on the canvas with a menu; corners the tool can't reach shown in
+  amber; the error says when a bone reaches its own contour. Start points and corner
+  choices now follow drawn shapes that are moved, turned or scaled.
 - **Closed shapes as drawn, chaining per layer** (2026-10-25,
   docs/specs/chaining-per-layer.md), a user's DXF with pockets drawn against the outline
   on another layer: closed polylines and circles are contours as drawn, loose lines chain

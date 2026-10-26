@@ -21,3 +21,4 @@ view-legend-plunge = wo das Werkzeug hinunterfährt
 view-legend-tab = Haltesteg
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = Ringstart (ziehen zum Verschieben)
+view-legend-corner = Ecke (klicken, um eigens zu wählen)

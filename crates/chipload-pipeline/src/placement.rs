@@ -635,6 +635,18 @@ fn same_segment(a: &PathSegment, b: &PathSegment) -> bool {
 /// Whether the shape nearest to `p`, among those the selector picks (all shapes when it
 /// picks none), comes from DXF `id`. Ties go to the earlier shape.
 fn nearest_is_from(shapes: &[Shape], select: &Selector, p: Point, id: u64) -> bool {
+    nearest_is(shapes, select, p, |shape| shape.dxf() == Some(id))
+}
+
+/// Whether the shape nearest to `p`, among those the selector picks (all shapes when it
+/// picks none), is one that `moves`. Ties go to the earlier shape. A point an operation keeps
+/// on the drawing (a start point, a corner choice) moves with the shape it lies on.
+pub(crate) fn nearest_is(
+    shapes: &[Shape],
+    select: &Selector,
+    p: Point,
+    moves: impl Fn(&Shape) -> bool,
+) -> bool {
     let picked: Vec<&Shape> = shapes.iter().filter(|s| selects(select, s)).collect();
     let candidates: Vec<&Shape> = if picked.is_empty() {
         shapes.iter().collect()
@@ -646,11 +658,11 @@ fn nearest_is_from(shapes: &[Shape], select: &Selector, p: Point, id: u64) -> bo
         for segment in shape.segments() {
             let d = distance_to_segment(&segment, p);
             if best.is_none_or(|(bd, _)| d < bd) {
-                best = Some((d, shape.dxf() == Some(id)));
+                best = Some((d, moves(shape)));
             }
         }
     }
-    best.is_some_and(|(_, imported)| imported)
+    best.is_some_and(|(_, moving)| moving)
 }
 
 /// As planning matches segments (chipload_toolpath::select): layer names ignore case, and an

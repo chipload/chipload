@@ -21,3 +21,4 @@ view-legend-plunge = där verktyget går ned
 view-legend-tab = brygga
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = slingstart (dra för att flytta)
+view-legend-corner = hörn (klicka för att välja eget)

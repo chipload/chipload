@@ -116,6 +116,13 @@ forms-corners-tbones = T-bones
 forms-corners-disabled = Un contorneado sobre la línea no tiene esquinas interiores
 forms-corners-up-to = hasta
 forms-corners-up-to-hover = Solo las esquinas así de agudas o más (las esquinas de 90° dibujadas con una ligera desviación también cuentan)
+forms-corners-chosen = { $count ->
+    [one] { $count } esquina elegida aparte
+   *[other] { $count } esquinas elegidas una a una
+}
+forms-corners-chosen-hover = Esquinas pulsadas en el lienzo y elegidas aparte, diga lo que diga la fila de arriba
+forms-corners-reset = Restablecer
+forms-corners-reset-hover = Cada esquina vuelve a tener lo que dice la fila de arriba
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = taladrados, picoteo { $peck }

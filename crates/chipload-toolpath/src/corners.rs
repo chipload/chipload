@@ -285,6 +285,30 @@ pub fn gets(corner: &Corner, corners: Option<Corners>, choices: &[CornerChoice])
     })
 }
 
+/// The centre of the tool at the tip of `corner`'s bone, as drawn on the canvas: `r` from
+/// the corner moved by the clearance (docs/specs/dogbones.md §3), along the bisector for a
+/// dogbone, and `r` off the wall it runs along for a T-bone.
+pub fn notch_centre(corner: &Corner, bone: Gets, tool_radius: f64, clearance: f64) -> Point {
+    let c = moved_corner(corner, clearance);
+    let out = match bone {
+        Gets::Dogbone => corner.bisector,
+        Gets::Tbone(wall) => {
+            let along = match wall {
+                Wall::Longer => corner.longer,
+                Wall::Shorter => corner.shorter,
+            };
+            // The normal to that wall on the tool's side.
+            let normal = (-along.1, along.0);
+            if dot(normal, corner.bisector) >= 0.0 {
+                normal
+            } else {
+                scale(normal, -1.0)
+            }
+        }
+    };
+    add(c, scale(out, tool_radius))
+}
+
 /// The choice for `corner`: the one whose point lies within the arc tolerance of it
 /// (docs/specs/dogbone-per-corner.md §4).
 pub fn choice_at<'a>(choices: &'a [CornerChoice], corner: &Corner) -> Option<&'a CornerChoice> {

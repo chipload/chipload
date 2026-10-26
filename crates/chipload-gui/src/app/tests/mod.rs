@@ -6,6 +6,7 @@ use chipload_toolpath::model::MoveKind;
 mod browser;
 mod browser_drawing_folder;
 mod chip_load;
+mod corner_choices;
 mod cycle_time;
 mod disk_changes;
 mod drawing;

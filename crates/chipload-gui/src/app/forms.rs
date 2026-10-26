@@ -461,7 +461,7 @@ pub(super) fn op_form(
                     flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                     ui.end_row();
                     ramp_angle_row(ui, &mut p.ramp_angle);
-                    corner_rows(ui, index, &mut p.corners, can_clear);
+                    corner_rows(ui, index, &mut p.corners, &mut p.corner_choices, can_clear);
                 },
             );
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
@@ -493,7 +493,7 @@ pub(super) fn op_form(
                 ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
-                corner_rows(ui, index, &mut p.corners, true);
+                corner_rows(ui, index, &mut p.corners, &mut p.corner_choices, true);
             });
             let stepover = format!("{:.2}", p.stepover);
             let clearing = match p.rest {
@@ -932,9 +932,16 @@ fn rest_choices<'a>(tools: &'a [Tool], small: Option<&'a Tool>) -> impl Iterator
         .filter(move |t| small.is_some_and(|small| rest_refusal(small, t).is_none()))
 }
 
-/// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7). `allowed`: false
-/// for a profile on the line, which has no inside corners to clear.
-fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, allowed: bool) {
+/// Square inside corners: dogbones or T-bones (docs/specs/dogbones.md §7), and how many
+/// corners have their own choice, with *Reset* (docs/specs/dogbone-per-corner.md §6).
+/// `allowed`: false for a profile on the line, which has no inside corners to clear.
+fn corner_rows(
+    ui: &mut egui::Ui,
+    index: usize,
+    corners: &mut Option<Corners>,
+    chosen: &mut Vec<chipload_job::CornerChoice>,
+    allowed: bool,
+) {
     ui.label(t!(ui, "forms-corners"))
         .on_hover_text(t!(ui, "forms-corners-hover"));
     let angle = corners.map_or(DEFAULT_CORNER_ANGLE_RAD, |c| c.max_angle());
@@ -992,6 +999,23 @@ fn corner_rows(ui: &mut egui::Ui, index: usize, corners: &mut Option<Corners>, a
         if flag(response, ui, "corners.max_angle").changed() {
             *max_angle = degrees.to_radians();
         }
+        ui.end_row();
+    }
+    if !chosen.is_empty() {
+        ui.label("");
+        ui.horizontal(|ui| {
+            let label = ui
+                .label(t!(ui, "forms-corners-chosen", count = chosen.len()))
+                .on_hover_text(t!(ui, "forms-corners-chosen-hover"));
+            flag(label, ui, "corner_choices");
+            if ui
+                .button(t!(ui, "forms-corners-reset"))
+                .on_hover_text(t!(ui, "forms-corners-reset-hover"))
+                .clicked()
+            {
+                chosen.clear();
+            }
+        });
         ui.end_row();
     }
 }

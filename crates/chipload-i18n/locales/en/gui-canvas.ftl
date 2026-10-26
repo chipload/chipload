@@ -11,6 +11,18 @@ canvas-right-click-hint = Right-click a contour to select its layer.
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Start of this ring: drag it along the ring; right-click to reset
 canvas-start-hover = Start of this ring: drag it along the ring to move it
+canvas-corner-hover = Corner at { $at }, { $angle }°: { $gets }. Click to choose its own
+canvas-corner-hover-own = Corner at { $at }, { $angle }°: { $gets }, its own choice. Click to change it
+canvas-corner-hover-unreached = Corner at { $at }, { $angle }°: { $gets }, but the tool can't reach into it, so it stays round. Click to choose
+canvas-corner-as-operation = As the operation ({ $gets })
+canvas-corner-round = Round
+canvas-corner-dogbone = Dogbone
+canvas-corner-tbone-longer = T-bone along the longer wall
+canvas-corner-tbone-shorter = T-bone along the shorter wall
+canvas-corner-gets-round = round
+canvas-corner-gets-dogbone = a dogbone
+canvas-corner-gets-tbone-longer = a T-bone along the longer wall
+canvas-corner-gets-tbone-shorter = a T-bone along the shorter wall
 
 # Hovering plunges: "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30". $operation is the
 # operation's label, $numbers the list of plunge numbers, $total how many it has.

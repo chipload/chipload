@@ -11,6 +11,18 @@ canvas-right-click-hint = Clic destro su un contorno per selezionarne il layer.
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Inizio di questo anello: trascinalo lungo l'anello; clic destro per ripristinarlo
 canvas-start-hover = Inizio di questo anello: trascinalo lungo l'anello per spostarlo
+canvas-corner-hover = Angolo in { $at }, { $angle }°: { $gets }. Clicca per scegliere a parte
+canvas-corner-hover-own = Angolo in { $at }, { $angle }°: { $gets }, scelto a parte. Clicca per cambiarlo
+canvas-corner-hover-unreached = Angolo in { $at }, { $angle }°: { $gets }, ma l'utensile non ci arriva, quindi resta arrotondato. Clicca per scegliere
+canvas-corner-as-operation = Come la lavorazione ({ $gets })
+canvas-corner-round = Arrotondato
+canvas-corner-dogbone = Dogbone
+canvas-corner-tbone-longer = T-bone lungo la parete più lunga
+canvas-corner-tbone-shorter = T-bone lungo la parete più corta
+canvas-corner-gets-round = arrotondato
+canvas-corner-gets-dogbone = un dogbone
+canvas-corner-gets-tbone-longer = un T-bone lungo la parete più lunga
+canvas-corner-gets-tbone-shorter = un T-bone lungo la parete più corta
 
 # Hovering plunges: "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30". $operation is the
 # operation's label, $numbers the list of plunge numbers, $total how many it has.

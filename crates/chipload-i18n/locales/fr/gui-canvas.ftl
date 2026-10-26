@@ -11,6 +11,18 @@ canvas-right-click-hint = Clic droit sur un contour pour sélectionner son calqu
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Départ de ce tour : glisser le long du tour ; clic droit pour réinitialiser
 canvas-start-hover = Départ de ce tour : glisser le long du tour pour le déplacer
+canvas-corner-hover = Coin en { $at }, { $angle }° : { $gets }. Cliquer pour choisir à part
+canvas-corner-hover-own = Coin en { $at }, { $angle }° : { $gets }, choisi à part. Cliquer pour changer
+canvas-corner-hover-unreached = Coin en { $at }, { $angle }° : { $gets }, mais l'outil ne peut pas l'atteindre, il reste arrondi. Cliquer pour choisir
+canvas-corner-as-operation = Comme l'opération ({ $gets })
+canvas-corner-round = Arrondi
+canvas-corner-dogbone = Dogbone
+canvas-corner-tbone-longer = T-bone le long du plus long côté
+canvas-corner-tbone-shorter = T-bone le long du plus court côté
+canvas-corner-gets-round = arrondi
+canvas-corner-gets-dogbone = un dogbone
+canvas-corner-gets-tbone-longer = un T-bone le long du plus long côté
+canvas-corner-gets-tbone-shorter = un T-bone le long du plus court côté
 
 # Hovering plunges: "Operation 2 (Pocket 1): plunges 3, 13, 23 of 30". $operation is the
 # operation's label, $numbers the list of plunge numbers, $total how many it has.

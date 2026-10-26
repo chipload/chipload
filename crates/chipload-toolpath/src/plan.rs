@@ -55,6 +55,10 @@ pub struct Plan {
     /// Every ring whose start the user can move (on the part, copy 1), for the start
     /// markers (docs/specs/helix-and-leads.md part A).
     pub ring_starts: Vec<RingStart>,
+    /// Corners that would get a bone but the tool can't reach (on the part, copy 1): the
+    /// operation's index and the corner, for the corner markers
+    /// (docs/specs/dogbone-per-corner.md §6).
+    pub unreached_corners: Vec<(usize, Point)>,
     /// The tool groups in cut order (docs/specs/tool-per-operation.md §2): one per tool
     /// change, each a program of its own or a part of one. A one-tool job has one.
     pub groups: Vec<ToolGroup>,
@@ -165,6 +169,7 @@ pub fn plan_job_cancellable(
         pockets,
         op_spans,
         ring_starts,
+        unreached_corners,
         arcs,
         comments,
         ..
@@ -190,6 +195,7 @@ pub fn plan_job_cancellable(
         pockets,
         op_spans,
         ring_starts,
+        unreached_corners,
         groups,
     })
 }
@@ -484,6 +490,7 @@ struct Gathered {
     pockets: Vec<PocketPiece>,
     op_spans: Vec<OpSpan>,
     ring_starts: Vec<RingStart>,
+    unreached_corners: Vec<(usize, Point)>,
     arcs: ArcTable,
     /// With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
     comments: Vec<String>,
@@ -533,6 +540,8 @@ impl Gathered {
         // Start markers are drawn on the part: the copies' are the same. A rest pass's rings
         // start where the planner puts them: starts belong to the pocket.
         if step.copy == 1 && at.pass.is_none() {
+            self.unreached_corners
+                .extend(planned.unreached.iter().map(|&p| (index, p)));
             self.ring_starts
                 .extend(planned.starts.into_iter().map(|(ring, stored)| RingStart {
                     operation: index,
@@ -589,6 +598,8 @@ struct Planned {
     end: Point,
     /// Rings whose start can be moved, and the stored point that set it.
     starts: Vec<(Vec<Point>, Option<usize>)>,
+    /// Corners that would get a bone but the tool can't reach.
+    unreached: Vec<Point>,
 }
 
 fn plan_pocket_op(
@@ -637,6 +648,7 @@ fn plan_pocket_op(
     let plan = plan_pocket(&request).map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let mut plan = plan;
     let mut corner_notes = Vec::new();
+    let mut unreached_at = Vec::new();
     if op.corners.is_some() || !ctx.choices.is_empty() {
         let boundaries = pocket_boundaries(&selection.contours);
         let cut = CornerCut {
@@ -651,6 +663,7 @@ fn plan_pocket_op(
         };
         for piece in &mut plan.pieces {
             let unreached = pocket_legs(piece, &selection.contours, &boundaries, &cut)?;
+            unreached_at.extend(unreached.iter().map(|(c, _)| c.at));
             corner_notes.extend(
                 unreached
                     .iter()
@@ -671,6 +684,7 @@ fn plan_pocket_op(
         arcs: plan.arcs,
         end: start,
         starts: Vec::new(),
+        unreached: unreached_at,
     };
     let cut = PocketCut {
         pass_z: ctx.pass_z,
@@ -811,6 +825,7 @@ fn plan_path_op(
         arcs,
         end,
         starts: Vec::new(),
+        unreached: Vec::new(),
     })
 }
 
@@ -939,6 +954,7 @@ fn plan_holes_op(
         arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
+        unreached: Vec::new(),
     })
 }
 
@@ -962,6 +978,7 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
         arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
+        unreached: Vec::new(),
     }
 }
 
@@ -1034,6 +1051,7 @@ fn plan_vcarve_op(
         arcs: ArcTable::default(),
         end,
         starts: Vec::new(),
+        unreached: Vec::new(),
     })
 }
 
@@ -1074,6 +1092,7 @@ fn plan_profile_op(
         None => None,
     };
     let mut rough = rough;
+    let mut unreached_at = Vec::new();
     // Dogbones go into every ring before the tabs are placed (docs/specs/dogbones.md §4).
     if op.corners.is_some() || !ctx.choices.is_empty() {
         let cut = CornerCut {
@@ -1086,6 +1105,7 @@ fn plan_profile_op(
             label: ctx.label_message,
         };
         let unreached = profile_legs(&mut plan.rings, &selection.contours, op.side, &cut)?;
+        unreached_at.extend(unreached.iter().map(|(c, _)| c.at));
         plan.notes.extend(
             unreached
                 .iter()
@@ -1112,6 +1132,7 @@ fn plan_profile_op(
             .zip(&plan.chosen)
             .map(|(ring, &stored)| (ring.points.clone(), stored))
             .collect(),
+        unreached: unreached_at,
     };
     if let Some(rough) = &rough {
         out.arcs.extend(rough.arcs.clone());

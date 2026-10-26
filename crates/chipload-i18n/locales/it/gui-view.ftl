@@ -21,3 +21,4 @@ view-legend-plunge = dove l'utensile scende
 view-legend-tab = ponticello
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = inizio anello (trascina per spostarlo)
+view-legend-corner = angolo (clicca per scegliere a parte)

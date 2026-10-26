@@ -258,6 +258,7 @@ impl ChiploadApp {
             .iter()
             .map(|s| StartMarker::new(s.operation, s.ring.clone(), s.stored))
             .collect();
+        self.corners.unreached.clone_from(&result.unreached_corners);
         let mut report = Report::default();
         let lines: usize = result
             .files
@@ -341,6 +342,7 @@ impl ChiploadApp {
         self.scene.toolpath = None;
         self.scene.tabs.clear();
         self.scene.start_markers.clear();
+        self.corners.unreached.clear();
         self.sim.serial += 1;
         self.drop_simulation();
         self.playback = None;

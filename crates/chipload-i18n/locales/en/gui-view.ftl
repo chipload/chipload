@@ -21,3 +21,4 @@ view-legend-plunge = where the tool goes down
 view-legend-tab = tab
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = ring start (drag to move)
+view-legend-corner = corner (click to choose its own)

@@ -101,6 +101,15 @@ along the longer wall* or *T-bone along the shorter wall*. It goes past *up to* 
 can turn one T-bone the other way, leave out the one corner where a bone doesn't fit, or
 leave **Corners** on *round* and give bones only to the corners that need them.
 
+With the operation selected, every corner on the tool's side has a small diamond on the
+canvas: filled, with the tool's circle where its bone goes, when it gets one; hollow when it
+stays round; amber when the last generation's tool couldn't reach into it. A ring round the
+diamond marks a corner with its own choice. Click a diamond (or right-click it) for its
+menu: *As the operation*, *Round*, *Dogbone*, *T-bone along the longer wall*, *T-bone along
+the shorter wall*. Hovering an entry draws its bone; clicking it generates again. Each choice
+is one undo step. Under **Corners** in Properties, *2 corners chosen one by one* counts them,
+and *Reset* gives every corner the operation's setting again.
+
 On the command line, list an operation's corners and what each gets, then choose:
 
 ```

@@ -79,13 +79,18 @@ impl ChiploadApp {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
         if self.fit_pending {
-            let points = self.scene.fit_points(self.view.top_z);
+            let points = self
+                .fit_only
+                .clone()
+                .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
             if !points.is_empty() {
                 self.view.fit(&points, rect);
                 self.fit_pending = false;
+                self.fit_only = None;
             }
         }
         let (alt, shift) = ui.input(|i| (i.modifiers.alt, i.modifiers.shift));
+        self.update_corner_markers();
         let shape_handles = if self.show_drawing() {
             self.shape_handles()
         } else {
@@ -225,7 +230,16 @@ impl ChiploadApp {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();
             self.scene.measure = None;
-            if response.clicked()
+            // A corner marker opens its menu (docs/specs/dogbone-per-corner.md §6).
+            let corner = response
+                .clicked()
+                .then(|| response.interact_pointer_pos())
+                .flatten()
+                .filter(|&pos| on_handle(pos).is_none() && on_box_handle(pos).is_none())
+                .and_then(|pos| self.corner_marker_at(pos));
+            if let Some(k) = corner {
+                self.open_corner_menu(k);
+            } else if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()
                 && on_box_handle(pos).is_none()
@@ -239,7 +253,15 @@ impl ChiploadApp {
         }
         let outline = self.box_outline();
         self.scene.preview.extend(outline);
-        if response.secondary_clicked() {
+        // Right-clicking a corner marker opens its menu, not the canvas's.
+        let corner_clicked = response
+            .secondary_clicked()
+            .then(|| response.interact_pointer_pos())
+            .flatten()
+            .and_then(|pos| self.corner_marker_at(pos));
+        if let Some(k) = corner_clicked {
+            self.open_corner_menu(k);
+        } else if response.secondary_clicked() {
             let at = response.interact_pointer_pos();
             self.drag.context_start = at.and_then(|pos| self.start_marker_at(pos));
             self.context_pick = at.and_then(|pos| self.scene.pick(&self.view, pos));
@@ -260,44 +282,46 @@ impl ChiploadApp {
                 .flatten()
         });
         let picked_id = picked.map(|c| c.id);
-        response.context_menu(|ui| match (context_start, picked_id) {
-            (Some(marker), _) => {
-                let moved = self
-                    .scene
-                    .start_markers
-                    .get(marker)
-                    .is_some_and(|m| m.stored.is_some());
-                if ui
-                    .add_enabled(moved, egui::Button::new(t!(ui, "canvas-reset-start")))
-                    .on_disabled_hover_text(t!(ui, "canvas-reset-start-disabled-hover"))
-                    .clicked()
-                {
-                    self.reset_start(marker);
-                    ui.close();
-                }
-            }
-            (None, Some(id)) => {
-                if ui
-                    .button(t!(ui, "canvas-select-contour", id = id.to_string()))
-                    .clicked()
-                {
-                    self.click(Some(id), false);
-                    ui.close();
-                }
-                for layer in &layers {
+        if corner_clicked.is_none() {
+            response.context_menu(|ui| match (context_start, picked_id) {
+                (Some(marker), _) => {
+                    let moved = self
+                        .scene
+                        .start_markers
+                        .get(marker)
+                        .is_some_and(|m| m.stored.is_some());
                     if ui
-                        .button(t!(ui, "canvas-select-layer", layer = layer))
+                        .add_enabled(moved, egui::Button::new(t!(ui, "canvas-reset-start")))
+                        .on_disabled_hover_text(t!(ui, "canvas-reset-start-disabled-hover"))
                         .clicked()
                     {
-                        self.selection = CanvasSelection::Layer(layer.clone(), from);
+                        self.reset_start(marker);
                         ui.close();
                     }
                 }
-            }
-            (None, None) => {
-                ui.label(t!(ui, "canvas-right-click-hint"));
-            }
-        });
+                (None, Some(id)) => {
+                    if ui
+                        .button(t!(ui, "canvas-select-contour", id = id.to_string()))
+                        .clicked()
+                    {
+                        self.click(Some(id), false);
+                        ui.close();
+                    }
+                    for layer in &layers {
+                        if ui
+                            .button(t!(ui, "canvas-select-layer", layer = layer))
+                            .clicked()
+                        {
+                            self.selection = CanvasSelection::Layer(layer.clone(), from);
+                            ui.close();
+                        }
+                    }
+                }
+                (None, None) => {
+                    ui.label(t!(ui, "canvas-right-click-hint"));
+                }
+            });
+        }
         let operation = match self.focus {
             Focus::Op(i) | Focus::RestPass(i, _) => Some(i),
             _ => None,
@@ -310,7 +334,14 @@ impl ChiploadApp {
             .hover_pos()
             .and_then(|pos| self.start_marker_at(pos))
             .and_then(|i| self.scene.start_markers.get(i));
-        if let Some(marker) = on_start.filter(|_| !response.dragged()) {
+        let on_corner = response
+            .hover_pos()
+            .and_then(|pos| self.corner_marker_at(pos))
+            .filter(|_| self.corners_menu_closed());
+        if let Some(k) = on_corner.filter(|_| !response.dragged()) {
+            let text = self.corner_hover(k);
+            response.on_hover_text_at_pointer(text);
+        } else if let Some(marker) = on_start.filter(|_| !response.dragged()) {
             let text = match marker.stored {
                 Some(_) => t!(ui, "canvas-start-moved-hover"),
                 None => t!(ui, "canvas-start-hover"),
@@ -327,6 +358,7 @@ impl ChiploadApp {
             followed: self.followed_contours(),
         };
         self.scene.paint(&painter, &self.view, &highlight);
+        self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
         self.navigation_bar(ui, rect);
         self.orientation(ui, rect);

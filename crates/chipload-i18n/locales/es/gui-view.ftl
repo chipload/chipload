@@ -21,3 +21,4 @@ view-legend-plunge = donde baja la herramienta
 view-legend-tab = puente
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = inicio de anillo (arrastra para moverlo)
+view-legend-corner = esquina (haz clic para elegir aparte)

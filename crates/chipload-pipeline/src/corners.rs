@@ -2,11 +2,13 @@
 //! Dogbones chosen per corner (docs/specs/dogbone-per-corner.md): an operation's corners
 //! with what each gets, and a corner's own choice set or removed.
 
+use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::ARC_APPROX_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Bone, CornerChoice, Job, Operation, Wall};
-use chipload_toolpath::corners::{Gets, choice_at, gets, operation_corners};
+use chipload_toolpath::ToolpathError;
+use chipload_toolpath::corners::{Corner, Gets, choice_at, gets, operation_corners};
 use chipload_toolpath::select::select_contours;
 
 use crate::{PipelineError, load_drawing, no_operation};
@@ -22,6 +24,9 @@ pub struct CornerRow {
     pub gets: Option<Gets>,
     /// Whether that is the corner's own choice rather than the operation's.
     pub chosen: bool,
+    /// The corner as planning finds it, for drawing its bone
+    /// (`chipload_toolpath::corners::notch_centre`).
+    pub corner: Corner,
 }
 
 /// Every corner of operation `index` (0-based) on the tool's side, in the order planning
@@ -30,8 +35,20 @@ pub fn corners_of(job: &Job, index: usize) -> Result<Vec<CornerRow>, PipelineErr
     let op = with_corners(job, index)?;
     let drawing = load_drawing(job)?;
     let label = job.label_message(chipload_job::OpRef::op(index));
-    let selection = select_contours(&drawing.contours, op.select(), &label)
-        .map_err(|err| PipelineError::Toolpath(err.at(index)))?;
+    corners_in(op, &drawing.contours, &label).map_err(|err| PipelineError::Toolpath(err.at(index)))
+}
+
+/// [`corners_of`] an operation on contours already read (the app's); `label` names it in
+/// a selection error.
+pub fn corners_in(
+    op: &Operation,
+    contours: &[Contour],
+    label: &Message,
+) -> Result<Vec<CornerRow>, ToolpathError> {
+    if !matches!(op, Operation::Profile(_) | Operation::Pocket(_)) {
+        return Ok(Vec::new());
+    }
+    let selection = select_contours(contours, op.select(), label)?;
     let choices = op.corner_choices();
     Ok(operation_corners(op, &selection.contours)
         .iter()
@@ -40,6 +57,7 @@ pub fn corners_of(job: &Job, index: usize) -> Result<Vec<CornerRow>, PipelineErr
             angle: corner.angle,
             gets: gets(corner, op.corners(), choices),
             chosen: choice_at(choices, corner).is_some(),
+            corner: *corner,
         })
         .collect())
 }
@@ -64,27 +82,29 @@ pub fn choose_corner(
             )
         })?;
     let count = job.operations.len();
-    let choices = job
+    let op = job
         .operations
         .get_mut(index)
-        .and_then(Operation::corner_choices_mut)
         .ok_or_else(|| no_operation(index + 1, count))?;
-    let same = |c: &CornerChoice| {
-        distance((c.at[0], c.at[1]), (corner.at[0], corner.at[1])) <= ARC_APPROX_TOL_MM
+    set_choice(op, corner.at, choice);
+    Ok(corner.at)
+}
+
+/// Store the choice for the corner at `at` (a corner's own point) on a profile or pocket,
+/// replacing the one there; None removes it. A T-bone without a wall runs along the
+/// longer. Nothing happens on other operations.
+pub fn set_choice(op: &mut Operation, at: [f64; 2], choice: Option<(Bone, Option<Wall>)>) {
+    let Some(choices) = op.corner_choices_mut() else {
+        return;
     };
-    choices.retain(|c| !same(c));
+    choices.retain(|c| distance((c.at[0], c.at[1]), (at[0], at[1])) > ARC_APPROX_TOL_MM);
     if let Some((bone, along)) = choice {
         let along = match bone {
             Bone::Tbone => Some(along.unwrap_or(Wall::Longer)),
             Bone::None | Bone::Dogbone => None,
         };
-        choices.push(CornerChoice {
-            at: corner.at,
-            bone,
-            along,
-        });
+        choices.push(CornerChoice { at, bone, along });
     }
-    Ok(corner.at)
 }
 
 /// Remove every corner choice of operation `index` (0-based); returns how many there were.

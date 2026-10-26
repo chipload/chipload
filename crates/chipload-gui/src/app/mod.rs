@@ -42,6 +42,7 @@ mod browser;
 mod canvas;
 mod computer;
 mod copy_paste;
+mod corners;
 mod dialogs;
 mod disk;
 mod drawing;
@@ -301,7 +302,11 @@ pub struct ChiploadApp {
     pub scene: Scene,
     view: View,
     fit_pending: bool,
+    /// What the pending fit shows instead of everything (a screenshot's close-up).
+    fit_only: Option<Vec<crate::view::Point3>>,
     pub selection: CanvasSelection,
+    /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
+    corners: corners::CornerMarkers,
     context_pick: Option<usize>,
     /// View > Show stock (docs/specs/simulation.md §4): the simulation.
     pub show_simulation: bool,
@@ -433,7 +438,9 @@ impl Default for ChiploadApp {
             scene: Scene::default(),
             view: View::default(),
             fit_pending: false,
+            fit_only: None,
             selection: CanvasSelection::Nothing,
+            corners: corners::CornerMarkers::default(),
             context_pick: None,
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
@@ -634,6 +641,7 @@ impl ChiploadApp {
             return;
         }
         self.loaded_drawing = Some(job.drawing.clone());
+        self.corners.forget();
         self.scene.stock = Some(job.stock.xy_bounds());
         match load_drawing(&job) {
             Ok(imported) => {

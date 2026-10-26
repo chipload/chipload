@@ -116,6 +116,13 @@ forms-corners-tbones = T-bones
 forms-corners-disabled = A profile cut on the line has no inside corners
 forms-corners-up-to = up to
 forms-corners-up-to-hover = Only corners this sharp or sharper (90° corners drawn slightly off still count)
+forms-corners-chosen = { $count ->
+    [one] { $count } corner chosen on its own
+   *[other] { $count } corners chosen one by one
+}
+forms-corners-chosen-hover = Corners clicked on the canvas and given their own choice, whatever the row above says
+forms-corners-reset = Reset
+forms-corners-reset-hover = Every corner gets what the row above says again
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = drilled, pecks { $peck }

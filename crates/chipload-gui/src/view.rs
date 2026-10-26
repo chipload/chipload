@@ -771,6 +771,11 @@ pub struct Scene {
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
     /// part A); the focused operation's are shown and can be dragged.
     pub start_markers: Vec<StartMarker>,
+    /// The focused profile's or pocket's corners on the tool's side, to click for a corner's
+    /// own bone (docs/specs/dogbone-per-corner.md §6).
+    pub corner_markers: Vec<CornerMarker>,
+    /// The bone a hovered choice in a corner's menu would cut: the tool's centre and radius.
+    pub corner_preview: Option<(Point, f64)>,
     /// View → Show toolpath off: the toolpath, its plunges, tabs and ring starts aren't drawn;
     /// a playback's tool still is (docs/specs/drawing-sources.md §5).
     pub hide_toolpath: bool,
@@ -784,6 +789,18 @@ pub struct Scene {
     pub grid: bool,
     /// The grid in inch steps (display units inch, docs/specs/inch-units.md §5.1).
     pub inch_grid: bool,
+}
+
+/// A corner of the focused operation (docs/specs/dogbone-per-corner.md §6).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CornerMarker {
+    pub at: Point,
+    /// The tool at the tip of its bone, (centre, radius); None: the corner stays round.
+    pub notch: Option<(Point, f64)>,
+    /// Whether the corner has its own choice.
+    pub chosen: bool,
+    /// It would get a bone, but the last generation's tool couldn't reach into it.
+    pub unreached: bool,
 }
 
 /// A ring's start that can be dragged along the ring.
@@ -1220,6 +1237,14 @@ impl Scene {
             painter.circle_filled(at, 4.0, pal.handle_fill);
             painter.circle_stroke(at, 4.0, Stroke::new(1.5, pal.middle_handle));
         }
+        for marker in self.corner_markers.iter().filter(|_| flat) {
+            paint_corner_marker(painter, view, marker, pal);
+        }
+        if let Some((centre, radius)) = self.corner_preview.filter(|_| flat) {
+            let at = view.to_screen(centre);
+            let r = (radius * view.scale) as f32;
+            painter.circle_stroke(at, r, Stroke::new(2.0, pal.selected));
+        }
         for marker in self.start_markers.iter().filter(|_| !self.hide_toolpath) {
             if flat && highlight.operation == Some(marker.operation) {
                 let at = view.to_screen(marker.at);
@@ -1644,6 +1669,39 @@ mod tests {
     }
 }
 
+/// A corner marker: a small diamond, filled where a bone is cut (with the tool's circle at
+/// the bone's tip), hollow where the corner stays round (amber where the tool can't reach
+/// into it), and a ring round it where the corner has its own choice.
+fn paint_corner_marker(painter: &Painter, view: &View, marker: &CornerMarker, pal: &Palette) {
+    let at = view.to_screen(marker.at);
+    if let Some((centre, radius)) = marker.notch {
+        let r = (radius * view.scale) as f32;
+        painter.circle_stroke(view.to_screen(centre), r, Stroke::new(1.0, pal.operation));
+    }
+    let d = 5.0;
+    let diamond = vec![
+        at + Vec2::new(0.0, -d),
+        at + Vec2::new(d, 0.0),
+        at + Vec2::new(0.0, d),
+        at + Vec2::new(-d, 0.0),
+    ];
+    let fill = if marker.notch.is_some() {
+        pal.operation
+    } else {
+        pal.background
+    };
+    // A corner the tool can't reach: hollow, in the colour of what isn't cut.
+    let edge = if marker.unreached {
+        pal.open
+    } else {
+        pal.operation
+    };
+    painter.add(Shape::convex_polygon(diamond, fill, Stroke::new(1.5, edge)));
+    if marker.chosen {
+        painter.circle_stroke(at, 9.0, Stroke::new(1.5, pal.operation));
+    }
+}
+
 /// What a legend entry looks like: drawn the way the canvas draws that thing.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Swatch {
@@ -1653,6 +1711,8 @@ pub enum Swatch {
     Plunge,
     /// A ring's start marker.
     Start,
+    /// A corner marker with its bone.
+    Corner,
 }
 
 /// What the canvas shows, explained: contours always; the toolpath and what goes with it once
@@ -1678,6 +1738,9 @@ pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
     ];
     if !scene.copies.is_empty() {
         items.push((Swatch::Line(pal.ghost, 1.0), t!(lang, "view-legend-copies")));
+    }
+    if !scene.corner_markers.is_empty() {
+        items.push((Swatch::Corner, t!(lang, "view-legend-corner")));
     }
     if let Some(path) = scene.toolpath.as_ref().filter(|_| !scene.hide_toolpath) {
         let feed = if path.rejected {
@@ -1720,6 +1783,20 @@ pub fn paint_swatch(painter: &Painter, rect: Rect, swatch: Swatch, pal: &Palette
         }
         Swatch::Start => {
             painter.circle_stroke(rect.center(), 5.0, Stroke::new(2.0, pal.operation));
+        }
+        Swatch::Corner => {
+            let c = rect.center();
+            let d = 5.0;
+            painter.add(Shape::convex_polygon(
+                vec![
+                    c + Vec2::new(0.0, -d),
+                    c + Vec2::new(d, 0.0),
+                    c + Vec2::new(0.0, d),
+                    c + Vec2::new(-d, 0.0),
+                ],
+                pal.operation,
+                Stroke::new(1.5, pal.operation),
+            ));
         }
     }
 }

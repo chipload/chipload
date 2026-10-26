@@ -295,7 +295,8 @@ pub fn drawn_middle(job: &Job, ids: &[u64]) -> Result<(f64, f64), PipelineError>
 /// Drawn shapes `ids` moved, turned and scaled: each point p goes to
 /// `to + scale · turn(p − from)`, turned `degrees` counter-clockwise
 /// (docs/specs/drawn-shapes-box.md §2). They keep their ids, so the operations that cut
-/// them follow.
+/// them follow, and so do the operations' start points and corner choices on them
+/// (docs/specs/dogbone-per-corner.md §4).
 pub fn transform_shapes(
     job: &Job,
     ids: &[u64],
@@ -343,6 +344,27 @@ pub fn transform_shapes(
             degrees,
         ) {
             shape.geometry = geometry;
+        }
+    }
+    let map = |p: [f64; 2]| {
+        chipload_job::edit::transformed_point(p, [from.0, from.1], [to.0, to.1], scale, degrees)
+    };
+    for op in &mut out.operations {
+        let select = op.select().clone();
+        let on_moved = |p: [f64; 2]| {
+            crate::placement::nearest_is(&job.drawing.shapes, &select, (p[0], p[1]), |s| {
+                ids.contains(&s.id)
+            })
+        };
+        for start in op.starts_mut().into_iter().flatten() {
+            if on_moved(*start) {
+                *start = map(*start);
+            }
+        }
+        for choice in op.corner_choices_mut().into_iter().flatten() {
+            if on_moved(choice.at) {
+                choice.at = map(choice.at);
+            }
         }
     }
     checked(out)

@@ -21,3 +21,4 @@ view-legend-plunge = où l'outil descend
 view-legend-tab = attache
 # Where a closed toolpath ring starts; the user can drag it.
 view-legend-ring-start = départ du tour (glisser pour déplacer)
+view-legend-corner = coin (cliquer pour choisir à part)

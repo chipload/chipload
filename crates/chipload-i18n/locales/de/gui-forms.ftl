@@ -116,6 +116,13 @@ forms-corners-tbones = T-Bones
 forms-corners-disabled = Eine Kontur auf der Linie hat keine Innenecken
 forms-corners-up-to = bis
 forms-corners-up-to-hover = Nur Ecken, die so spitz oder spitzer sind (leicht schief gezeichnete 90°-Ecken zählen noch)
+forms-corners-chosen = { $count ->
+    [one] { $count } Ecke einzeln gewählt
+   *[other] { $count } Ecken einzeln gewählt
+}
+forms-corners-chosen-hover = Ecken, die auf der Zeichenfläche angeklickt und eigens gewählt wurden, egal was die Zeile darüber sagt
+forms-corners-reset = Zurücksetzen
+forms-corners-reset-hover = Jede Ecke bekommt wieder, was die Zeile darüber sagt
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = gebohrt, Entspanen alle { $peck }

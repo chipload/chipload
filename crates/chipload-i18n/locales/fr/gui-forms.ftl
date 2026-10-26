@@ -116,6 +116,13 @@ forms-corners-tbones = T-bones
 forms-corners-disabled = Un contour sur la ligne n'a pas de coins intérieurs
 forms-corners-up-to = jusqu'à
 forms-corners-up-to-hover = Seulement les coins aussi aigus ou plus (les coins de 90° dessinés légèrement faux comptent quand même)
+forms-corners-chosen = { $count ->
+    [one] { $count } coin choisi à part
+   *[other] { $count } coins choisis un par un
+}
+forms-corners-chosen-hover = Coins cliqués sur le canevas et choisis à part, quoi que dise la ligne au-dessus
+forms-corners-reset = Réinitialiser
+forms-corners-reset-hover = Chaque coin reprend ce que dit la ligne au-dessus
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = percés, débourrages de { $peck }

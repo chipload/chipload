@@ -116,6 +116,13 @@ forms-corners-tbones = T-bones
 forms-corners-disabled = En konturfräsning på linjen har inga innerhörn
 forms-corners-up-to = upp till
 forms-corners-up-to-hover = Bara hörn som är så här spetsiga eller spetsigare (90°-hörn som ritats lite snett räknas ändå)
+forms-corners-chosen = { $count ->
+    [one] { $count } hörn valt för sig
+   *[other] { $count } hörn valda ett och ett
+}
+forms-corners-chosen-hover = Hörn som klickats på i ritytan och fått ett eget val, vad raden ovan än säger
+forms-corners-reset = Återställ
+forms-corners-reset-hover = Alla hörn får igen det raden ovan säger
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = borrade, stegvis { $peck }

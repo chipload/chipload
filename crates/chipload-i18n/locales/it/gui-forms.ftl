@@ -116,6 +116,13 @@ forms-corners-tbones = T-bone
 forms-corners-disabled = Una contornatura sulla linea non ha angoli interni
 forms-corners-up-to = fino a
 forms-corners-up-to-hover = Solo gli angoli acuti così o di più (anche gli angoli di 90° disegnati leggermente storti contano)
+forms-corners-chosen = { $count ->
+    [one] { $count } angolo scelto a parte
+   *[other] { $count } angoli scelti uno per uno
+}
+forms-corners-chosen-hover = Angoli cliccati nell'area di disegno e scelti a parte, qualunque cosa dica la riga sopra
+forms-corners-reset = Ripristina
+forms-corners-reset-hover = Ogni angolo torna ad avere ciò che dice la riga sopra
 
 # Holes: drilled, or bored with an endmill round a helix.
 forms-holes-drilled-pecks = forati a passi di { $peck }

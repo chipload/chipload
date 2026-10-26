@@ -430,6 +430,23 @@ impl ChiploadApp {
         {
             self.focus = Focus::Op(n - 1);
         }
+        // `corner2`: a close-up of the focused operation's second corner, its menu open
+        // (docs/specs/dogbone-per-corner.md §6).
+        if let Some(k) = steps
+            .iter()
+            .find_map(|s| s.strip_prefix("corner"))
+            .and_then(|n| n.parse::<usize>().ok())
+            .filter(|&n| n >= 1)
+        {
+            self.update_corner_markers();
+            if let Some(marker) = self.scene.corner_markers.get(k - 1) {
+                let (x, y) = marker.at;
+                let z = self.view.top_z;
+                self.fit_only = Some(vec![(x - 20.0, y - 12.0, z), (x + 20.0, y + 12.0, z)]);
+                self.fit_pending = true;
+                self.open_corner_menu(k - 1);
+            }
+        }
         // `text1`: text 1's properties (not selected, so its carving shows).
         if let Some(id) = steps
             .iter()

@@ -741,6 +741,39 @@ fn a_t_bone_without_its_wall_and_a_corner_chosen_twice_are_problems() {
     );
 }
 
+#[test]
+fn the_canvas_draws_each_bone_where_planning_cuts_it() {
+    use chipload_job::Wall;
+    use chipload_toolpath::corners::{Gets, find_corners, notch_centre};
+    let contour = rect(1, 0.0, 0.0, 40.0, 20.0);
+    let corners = find_corners(&contour, true);
+    assert_eq!(corners.len(), 4);
+    for (bone, choice) in [
+        (Gets::Dogbone, choice(0.0, 0.0, "dogbone", None)),
+        (
+            Gets::Tbone(Wall::Longer),
+            choice(0.0, 0.0, "tbone", Some("longer")),
+        ),
+        (
+            Gets::Tbone(Wall::Shorter),
+            choice(0.0, 0.0, "tbone", Some("shorter")),
+        ),
+    ] {
+        let plan = plan(
+            profile("inside", Value::Null, json!({"corner_choices": [choice]})),
+            std::slice::from_ref(&contour),
+        );
+        let found = tips(&plan.program.moves);
+        let corner = corners.iter().find(|c| near(c.at, (0.0, 0.0))).unwrap();
+        let drawn = notch_centre(corner, bone, R, 0.0);
+        assert_eq!(found.len(), 1);
+        assert!(
+            near(found[0], drawn),
+            "{bone:?}: {drawn:?} drawn, {found:?} cut"
+        );
+    }
+}
+
 proptest! {
     #![proptest_config(common::proptest_config(48))]
 
