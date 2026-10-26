@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = n.º de puentes
 forms-tab-width = ancho
 forms-tab-height = alto
+forms-tabs-placed = { $count ->
+    [one] { $count } puente colocado a mano
+   *[other] { $count } puentes colocados a mano
+}
+forms-tabs-placed-hover = Puentes arrastrados, añadidos o quitados en el lienzo; los contornos sin ninguno reciben el número de arriba, repartidos por igual
+forms-tabs-reset = Restablecer
+forms-tabs-reset-hover = Los puentes de cada contorno vuelven a repartirse por igual
 forms-skin-thickness = espesor de piel
 forms-skin-thickness-hover = Se deja por encima de la profundidad final hasta la última vuelta: como máximo una profundidad de pasada, y más fina que los puentes
 

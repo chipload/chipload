@@ -11,6 +11,11 @@ canvas-right-click-hint = Haz clic derecho en un contorno para seleccionar su ca
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Inicio de este anillo: arrástralo a lo largo del anillo; clic derecho para restablecerlo
 canvas-start-hover = Inicio de este anillo: arrástralo a lo largo del anillo para moverlo
+canvas-tab-hover = Puente: arrástralo a lo largo del anillo; clic derecho para quitarlo o repartir por igual los puentes del anillo
+canvas-tab-hover-placed = Puente colocado a mano: arrástralo a lo largo del anillo; clic derecho para quitarlo o repartir por igual los puentes del anillo
+canvas-tab-remove = Quitar el puente
+canvas-tab-even = Repartir por igual los puentes de este anillo
+canvas-tab-add = Añadir un puente aquí
 canvas-corner-hover = Esquina en { $at }, { $angle }°: { $gets }. Haz clic para elegir aparte
 canvas-corner-hover-own = Esquina en { $at }, { $angle }°: { $gets }, elegida aparte. Haz clic para cambiarla
 canvas-corner-hover-unreached = Esquina en { $at }, { $angle }°: { $gets }, pero la herramienta no llega a ella, así que queda redondeada. Haz clic para elegir

@@ -11,6 +11,11 @@ canvas-right-click-hint = Högerklicka på en kontur för att markera dess lager
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Slingans start: dra den längs slingan; högerklicka för att återställa
 canvas-start-hover = Slingans start: dra den längs slingan för att flytta den
+canvas-tab-hover = Brygga: dra den längs slingan; högerklicka för att ta bort den eller sprida slingans bryggor jämnt
+canvas-tab-hover-placed = Handplacerad brygga: dra den längs slingan; högerklicka för att ta bort den eller sprida slingans bryggor jämnt
+canvas-tab-remove = Ta bort bryggan
+canvas-tab-even = Sprid slingans bryggor jämnt
+canvas-tab-add = Lägg till en brygga här
 canvas-corner-hover = Hörn vid { $at }, { $angle }°: { $gets }. Klicka för att välja något eget
 canvas-corner-hover-own = Hörn vid { $at }, { $angle }°: { $gets }, eget val. Klicka för att ändra
 canvas-corner-hover-unreached = Hörn vid { $at }, { $angle }°: { $gets }, men verktyget når inte in i det, så det blir runt. Klicka för att välja

@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = tab count
 forms-tab-width = width
 forms-tab-height = height
+forms-tabs-placed = { $count ->
+    [one] { $count } tab placed by hand
+   *[other] { $count } tabs placed by hand
+}
+forms-tabs-placed-hover = Tabs dragged, added or removed on the canvas; contours without any get the count above, spaced evenly
+forms-tabs-reset = Reset
+forms-tabs-reset-hover = Every contour's tabs spaced evenly again
 forms-skin-thickness = skin thickness
 forms-skin-thickness-hover = Left above the end depth until the last lap: at most one step down, and thinner than the tabs
 

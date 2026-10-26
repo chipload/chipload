@@ -11,6 +11,11 @@ canvas-right-click-hint = Right-click a contour to select its layer.
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Start of this ring: drag it along the ring; right-click to reset
 canvas-start-hover = Start of this ring: drag it along the ring to move it
+canvas-tab-hover = Tab: drag it along the ring; right-click to remove it or space the ring's tabs evenly
+canvas-tab-hover-placed = Tab placed by hand: drag it along the ring; right-click to remove it or space the ring's tabs evenly
+canvas-tab-remove = Remove tab
+canvas-tab-even = Space this ring's tabs evenly
+canvas-tab-add = Add a tab here
 canvas-corner-hover = Corner at { $at }, { $angle }°: { $gets }. Click to choose its own
 canvas-corner-hover-own = Corner at { $at }, { $angle }°: { $gets }, its own choice. Click to change it
 canvas-corner-hover-unreached = Corner at { $at }, { $angle }°: { $gets }, but the tool can't reach into it, so it stays round. Click to choose

@@ -16,7 +16,7 @@ use crate::{PipelineError, load_drawing, no_operation};
 pub type TabRow = TabCentre;
 
 /// A tool-centre ring.
-type Ring = Vec<Point>;
+pub type Ring = Vec<Point>;
 
 /// Every operation's rings, each with its operation's index, in ring-start order.
 type Rings = Vec<(usize, Ring)>;
@@ -49,9 +49,7 @@ fn planned(job: &Job) -> Result<(Vec<TabCentre>, Rings), PipelineError> {
 pub fn add_tab(job: &mut Job, index: usize, at: [f64; 2]) -> Result<(), PipelineError> {
     let (tabs, rings) = planned_for(job, index)?;
     let ring = nearest_ring(&rings, at, job, index)?;
-    let mut points = pin_ring(&tabs, ring);
-    points.push(at);
-    tab_points(job, index)?.extend(points);
+    with_tab_added(tab_points(job, index)?, &tabs, ring, at);
     Ok(())
 }
 
@@ -61,22 +59,14 @@ pub fn add_tab(job: &mut Job, index: usize, at: [f64; 2]) -> Result<(), Pipeline
 pub fn remove_tab(job: &mut Job, index: usize, at: [f64; 2]) -> Result<(), PipelineError> {
     let (tabs, _) = planned_for(job, index)?;
     let reach = tool_diameter(job, index);
+    let p = (at[0], at[1]);
     let tab = tabs
         .iter()
-        .filter(|t| distance(t.at, (at[0], at[1])) <= reach)
-        .min_by(|a, b| distance(a.at, (at[0], at[1])).total_cmp(&distance(b.at, (at[0], at[1]))))
+        .filter(|t| distance(t.at, p) <= reach)
+        .min_by(|a, b| distance(a.at, p).total_cmp(&distance(b.at, p)))
         .copied()
         .ok_or_else(|| no_tab(index, at))?;
-    let pinned = pin_ring(&tabs, tab.ring);
-    let points = tab_points(job, index)?;
-    points.extend(pinned);
-    // The stored point nearest the tab's centre is the tab.
-    if let Some(k) = (0..points.len()).min_by(|&a, &b| {
-        let d = |k: usize| distance((points[k][0], points[k][1]), tab.at);
-        d(a).total_cmp(&d(b))
-    }) {
-        points.remove(k);
-    }
+    with_tab_removed(tab_points(job, index)?, &tabs, &tab);
     Ok(())
 }
 
@@ -85,10 +75,55 @@ pub fn remove_tab(job: &mut Job, index: usize, at: [f64; 2]) -> Result<(), Pipel
 pub fn even_ring(job: &mut Job, index: usize, at: [f64; 2]) -> Result<usize, PipelineError> {
     let (_, rings) = planned_for(job, index)?;
     let ring = nearest_ring(&rings, at, job, index)?;
-    let points = tab_points(job, index)?;
+    Ok(with_ring_even(tab_points(job, index)?, &rings, ring))
+}
+
+// The changes themselves, on a profile's tab points (`tabs.at`), given its planned tabs
+// (`tabs`, of this operation) and rings: the app uses these with the last generation's
+// tabs.
+
+/// A tab added at `at` on ring `ring`, its other tabs kept where they are if Chipload had
+/// spaced them.
+pub fn with_tab_added(points: &mut Vec<[f64; 2]>, tabs: &[TabCentre], ring: usize, at: [f64; 2]) {
+    points.extend(pin_ring(tabs, ring));
+    points.push(at);
+}
+
+/// Tab `tab` moved to `to`, its ring's other tabs kept where they are.
+pub fn with_tab_moved(
+    points: &mut Vec<[f64; 2]>,
+    tabs: &[TabCentre],
+    tab: &TabCentre,
+    to: [f64; 2],
+) {
+    points.extend(pin_ring(tabs, tab.ring));
+    if let Some(k) = stored_point(points, tab.at) {
+        points[k] = to;
+    }
+}
+
+/// Tab `tab` removed, its ring's other tabs kept where they are.
+pub fn with_tab_removed(points: &mut Vec<[f64; 2]>, tabs: &[TabCentre], tab: &TabCentre) {
+    points.extend(pin_ring(tabs, tab.ring));
+    if let Some(k) = stored_point(points, tab.at) {
+        points.remove(k);
+    }
+}
+
+/// Ring `ring` (of `rings`, the operation's) spaced evenly again: the points nearest to it
+/// go. Returns how many.
+pub fn with_ring_even(points: &mut Vec<[f64; 2]>, rings: &[Ring], ring: usize) -> usize {
     let before = points.len();
-    points.retain(|p| nearest(&rings, *p).map(|(k, _)| k) != Some(ring));
-    Ok(before - points.len())
+    points.retain(|p| nearest(rings, *p).map(|(k, _)| k) != Some(ring));
+    before - points.len()
+}
+
+/// The stored point nearest a tab's centre: the point that placed it.
+fn stored_point(points: &[[f64; 2]], centre: Point) -> Option<usize> {
+    (0..points.len()).min_by(|&a, &b| {
+        let d = |k: usize| distance((points[k][0], points[k][1]), centre);
+        d(a).total_cmp(&d(b))
+    })
 }
 
 /// Space every tab of profile `index` evenly again; returns how many points were placed by

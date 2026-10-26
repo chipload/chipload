@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = Anzahl Stege
 forms-tab-width = Breite
 forms-tab-height = Höhe
+forms-tabs-placed = { $count ->
+    [one] { $count } Haltesteg von Hand gesetzt
+   *[other] { $count } Haltestege von Hand gesetzt
+}
+forms-tabs-placed-hover = Auf der Zeichenfläche gezogene, hinzugefügte oder entfernte Haltestege; Konturen ohne bekommen die Anzahl oben, gleichmäßig verteilt
+forms-tabs-reset = Zurücksetzen
+forms-tabs-reset-hover = Die Haltestege jeder Kontur werden wieder gleichmäßig verteilt
 forms-skin-thickness = Schichtdicke
 forms-skin-thickness-hover = Bleibt bis zum letzten Umlauf über der Endtiefe stehen: höchstens eine Zustellung, und dünner als die Haltestege
 

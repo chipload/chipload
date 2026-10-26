@@ -128,3 +128,15 @@ Step 1, 2026-10-26: the format, planning and CLI.
   `place` and `transform_shapes` move the points ("Moved 1 tab(s) placed by hand with it").
 - `chipload op tabs`, `chipload op tab` (`--remove`, `--even`, `--reset`). The canvas is
   step 2.
+
+Step 2, 2026-10-26: the canvas.
+
+- `chipload-gui` `app/tab_markers.rs`: markers from the last generation's tab centres,
+  shown for the focused profile in top view; dragged along their ring (the start markers'
+  rings); right-click a tab for *Remove tab* and *Space this ring's tabs evenly*, the ring
+  for *Add a tab here*. Each change is one undo step and generates again, through
+  `chipload_pipeline::tabs::{with_tab_moved, with_tab_removed, with_tab_added,
+  with_ring_even}`, which the CLI's functions use too.
+- Properties: "5 tabs placed by hand" (the points, not the contours as §5 said) and *Reset*.
+- Found on the way: corners a bone couldn't reach stayed marked after an edit until the next
+  generation; they now clear with the toolpath, as tab markers do.

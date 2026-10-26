@@ -130,12 +130,16 @@ impl ChiploadApp {
                 self.start_box_drag(handle);
             } else {
                 self.drag.start = self.start_marker_at(origin);
+                if self.drag.start.is_none() {
+                    self.drag.tab = self.tab_marker_at(origin);
+                }
             }
         }
         if response.drag_stopped() {
             self.end_handle_drag();
             self.end_box_drag();
             self.drop_start();
+            self.drop_tab();
         }
         self.drag.snapped = None;
         self.scene.snap_mark = None;
@@ -144,6 +148,12 @@ impl ChiploadApp {
                 && let Some(pos) = response.interact_pointer_pos()
             {
                 self.drag_start_to(marker, self.view.to_world(pos));
+            }
+        } else if let Some(marker) = self.drag.tab {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                self.drag_tab_to(marker, self.view.to_world(pos));
             }
         } else if self.drag.handle.is_some() {
             if response.dragged()
@@ -244,6 +254,7 @@ impl ChiploadApp {
                 && on_handle(pos).is_none()
                 && on_box_handle(pos).is_none()
                 && self.start_marker_at(pos).is_none()
+                && self.tab_marker_at(pos).is_none()
                 && self.show_drawing()
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
@@ -264,9 +275,12 @@ impl ChiploadApp {
         } else if response.secondary_clicked() {
             let at = response.interact_pointer_pos();
             self.drag.context_start = at.and_then(|pos| self.start_marker_at(pos));
+            self.drag.context_tab = at.and_then(|pos| self.tab_marker_at(pos));
+            self.drag.context_ring = at.and_then(|pos| self.tab_ring_at(pos));
             self.context_pick = at.and_then(|pos| self.scene.pick(&self.view, pos));
         }
         let context_start = self.drag.context_start;
+        let (context_tab, context_ring) = (self.drag.context_tab, self.drag.context_ring);
         let picked = self
             .context_pick
             .and_then(|id| self.contours.iter().find(|c| c.id == id));
@@ -283,42 +297,63 @@ impl ChiploadApp {
         });
         let picked_id = picked.map(|c| c.id);
         if corner_clicked.is_none() {
-            response.context_menu(|ui| match (context_start, picked_id) {
-                (Some(marker), _) => {
-                    let moved = self
-                        .scene
-                        .start_markers
-                        .get(marker)
-                        .is_some_and(|m| m.stored.is_some());
-                    if ui
-                        .add_enabled(moved, egui::Button::new(t!(ui, "canvas-reset-start")))
-                        .on_disabled_hover_text(t!(ui, "canvas-reset-start-disabled-hover"))
-                        .clicked()
-                    {
-                        self.reset_start(marker);
+            response.context_menu(|ui| {
+                // A tab, or the ring a tab can be added to (docs/specs/tabs-by-hand.md §1).
+                if let (None, Some(marker)) = (context_start, context_tab) {
+                    if ui.button(t!(ui, "canvas-tab-remove")).clicked() {
+                        self.remove_tab(marker);
                         ui.close();
                     }
+                    if ui.button(t!(ui, "canvas-tab-even")).clicked() {
+                        self.even_tabs(marker);
+                        ui.close();
+                    }
+                    return;
                 }
-                (None, Some(id)) => {
-                    if ui
-                        .button(t!(ui, "canvas-select-contour", id = id.to_string()))
-                        .clicked()
-                    {
-                        self.click(Some(id), false);
+                if let (None, Some((ring, at))) = (context_start, context_ring) {
+                    if ui.button(t!(ui, "canvas-tab-add")).clicked() {
+                        self.add_tab(ring, at);
                         ui.close();
                     }
-                    for layer in &layers {
+                    ui.separator();
+                }
+                match (context_start, picked_id) {
+                    (Some(marker), _) => {
+                        let moved = self
+                            .scene
+                            .start_markers
+                            .get(marker)
+                            .is_some_and(|m| m.stored.is_some());
                         if ui
-                            .button(t!(ui, "canvas-select-layer", layer = layer))
+                            .add_enabled(moved, egui::Button::new(t!(ui, "canvas-reset-start")))
+                            .on_disabled_hover_text(t!(ui, "canvas-reset-start-disabled-hover"))
                             .clicked()
                         {
-                            self.selection = CanvasSelection::Layer(layer.clone(), from);
+                            self.reset_start(marker);
                             ui.close();
                         }
                     }
-                }
-                (None, None) => {
-                    ui.label(t!(ui, "canvas-right-click-hint"));
+                    (None, Some(id)) => {
+                        if ui
+                            .button(t!(ui, "canvas-select-contour", id = id.to_string()))
+                            .clicked()
+                        {
+                            self.click(Some(id), false);
+                            ui.close();
+                        }
+                        for layer in &layers {
+                            if ui
+                                .button(t!(ui, "canvas-select-layer", layer = layer))
+                                .clicked()
+                            {
+                                self.selection = CanvasSelection::Layer(layer.clone(), from);
+                                ui.close();
+                            }
+                        }
+                    }
+                    (None, None) => {
+                        ui.label(t!(ui, "canvas-right-click-hint"));
+                    }
                 }
             });
         }
@@ -345,6 +380,17 @@ impl ChiploadApp {
             let text = match marker.stored {
                 Some(_) => t!(ui, "canvas-start-moved-hover"),
                 None => t!(ui, "canvas-start-hover"),
+            };
+            response.on_hover_text_at_pointer(text);
+        } else if let Some(k) = response
+            .hover_pos()
+            .and_then(|pos| self.tab_marker_at(pos))
+            .filter(|_| !response.dragged())
+        {
+            let text = if self.scene.tab_markers[k].tab.by_hand {
+                t!(ui, "canvas-tab-hover-placed")
+            } else {
+                t!(ui, "canvas-tab-hover")
             };
             response.on_hover_text_at_pointer(text);
         } else if !plunges.is_empty() && !response.dragged() {

@@ -24,6 +24,7 @@ mod posts;
 mod profile_form;
 mod properties_sources;
 mod recovery_copies;
+mod tab_markers;
 mod texts;
 mod three_d_view;
 mod tool_library;

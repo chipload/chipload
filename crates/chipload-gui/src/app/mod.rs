@@ -64,6 +64,7 @@ mod report;
 mod shortcuts;
 mod simulation;
 mod sources;
+mod tab_markers;
 #[cfg(test)]
 mod tests;
 mod texts;
@@ -259,6 +260,12 @@ struct Drag {
     start: Option<usize>,
     /// The start marker right-clicked, for its context menu.
     context_start: Option<usize>,
+    /// The tab marker being dragged (index in `scene.tab_markers`).
+    tab: Option<usize>,
+    /// The tab marker right-clicked, for its context menu.
+    context_tab: Option<usize>,
+    /// The focused profile's ring right-clicked (its index and the point), to add a tab.
+    context_ring: Option<(usize, Point)>,
 }
 
 /// The small windows over the app.
@@ -1705,8 +1712,13 @@ impl ChiploadApp {
             }
             self.scene.tabs.clear();
             self.scene.start_markers.clear();
+            self.scene.tab_markers.clear();
+            self.corners.unreached.clear();
             self.drag.start = None;
             self.drag.context_start = None;
+            self.drag.tab = None;
+            self.drag.context_tab = None;
+            self.drag.context_ring = None;
             self.toolpath_stale = true;
         }
         self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());

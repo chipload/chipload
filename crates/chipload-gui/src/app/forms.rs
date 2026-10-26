@@ -1267,6 +1267,22 @@ fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Option<&Tool>)
                 flag(ui.add(mm(&mut tabs.height)), ui, "tabs.height");
                 ui.end_row();
                 flank_row(ui, tabs);
+                // docs/specs/tabs-by-hand.md §5.
+                if !tabs.at.is_empty() {
+                    ui.label("");
+                    ui.horizontal(|ui| {
+                        ui.label(t!(ui, "forms-tabs-placed", count = tabs.at.len()))
+                            .on_hover_text(t!(ui, "forms-tabs-placed-hover"));
+                        if ui
+                            .button(t!(ui, "forms-tabs-reset"))
+                            .on_hover_text(t!(ui, "forms-tabs-reset-hover"))
+                            .clicked()
+                        {
+                            tabs.at.clear();
+                        }
+                    });
+                    ui.end_row();
+                }
             }
             if let Some(skin) = &mut p.skin {
                 ui.label(format!("  {}", t!(ui, "forms-skin-thickness")))

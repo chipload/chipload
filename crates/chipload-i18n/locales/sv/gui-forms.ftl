@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = antal bryggor
 forms-tab-width = bredd
 forms-tab-height = höjd
+forms-tabs-placed = { $count ->
+    [one] { $count } brygga placerad för hand
+   *[other] { $count } bryggor placerade för hand
+}
+forms-tabs-placed-hover = Bryggor som dragits, lagts till eller tagits bort i ritytan; konturer utan några får antalet ovan, jämnt spridda
+forms-tabs-reset = Återställ
+forms-tabs-reset-hover = Alla konturers bryggor sprids jämnt igen
 forms-skin-thickness = skikttjocklek
 forms-skin-thickness-hover = Lämnas ovanför slutdjupet till sista varvet: högst ett skärdjup, och tunnare än bryggorna
 

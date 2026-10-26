@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = nombre d'attaches
 forms-tab-width = largeur
 forms-tab-height = hauteur
+forms-tabs-placed = { $count ->
+    [one] { $count } attache placée à la main
+   *[other] { $count } attaches placées à la main
+}
+forms-tabs-placed-hover = Attaches glissées, ajoutées ou retirées sur le canevas ; les contours sans en reçoivent le nombre ci-dessus, réparties régulièrement
+forms-tabs-reset = Réinitialiser
+forms-tabs-reset-hover = Les attaches de chaque contour sont de nouveau réparties régulièrement
 forms-skin-thickness = épaisseur de peau
 forms-skin-thickness-hover = Laissée au-dessus de la profondeur finale jusqu'au dernier tour : au plus une profondeur de passe, et plus fine que les attaches
 

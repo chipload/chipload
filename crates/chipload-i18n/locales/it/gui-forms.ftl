@@ -156,6 +156,13 @@ forms-hold-the-part-hover =
 forms-tab-count = n. ponticelli
 forms-tab-width = larghezza
 forms-tab-height = altezza
+forms-tabs-placed = { $count ->
+    [one] { $count } ponticello posto a mano
+   *[other] { $count } ponticelli posti a mano
+}
+forms-tabs-placed-hover = Ponticelli trascinati, aggiunti o rimossi nell'area di disegno; i contorni senza ricevono il numero sopra, distribuiti uniformemente
+forms-tabs-reset = Ripristina
+forms-tabs-reset-hover = I ponticelli di ogni contorno tornano distribuiti uniformemente
 forms-skin-thickness = spessore strato
 forms-skin-thickness-hover = Lasciato sopra la profondità finale fino all'ultimo giro: al massimo una profondità di passata, e più sottile dei ponticelli
 

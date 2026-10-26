@@ -11,6 +11,11 @@ canvas-right-click-hint = Clic destro su un contorno per selezionarne il layer.
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Inizio di questo anello: trascinalo lungo l'anello; clic destro per ripristinarlo
 canvas-start-hover = Inizio di questo anello: trascinalo lungo l'anello per spostarlo
+canvas-tab-hover = Ponticello: trascinalo lungo l'anello; clic destro per rimuoverlo o distribuire uniformemente i ponticelli dell'anello
+canvas-tab-hover-placed = Ponticello posto a mano: trascinalo lungo l'anello; clic destro per rimuoverlo o distribuire uniformemente i ponticelli dell'anello
+canvas-tab-remove = Rimuovi il ponticello
+canvas-tab-even = Distribuisci uniformemente i ponticelli di questo anello
+canvas-tab-add = Aggiungi un ponticello qui
 canvas-corner-hover = Angolo in { $at }, { $angle }°: { $gets }. Clicca per scegliere a parte
 canvas-corner-hover-own = Angolo in { $at }, { $angle }°: { $gets }, scelto a parte. Clicca per cambiarlo
 canvas-corner-hover-unreached = Angolo in { $at }, { $angle }°: { $gets }, ma l'utensile non ci arriva, quindi resta arrotondato. Clicca per scegliere

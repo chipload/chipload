@@ -771,6 +771,9 @@ pub struct Scene {
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
     /// part A); the focused operation's are shown and can be dragged.
     pub start_markers: Vec<StartMarker>,
+    /// Every profile tab of the last generated toolpath; the focused operation's are shown
+    /// and can be dragged (docs/specs/tabs-by-hand.md §5).
+    pub tab_markers: Vec<TabMarker>,
     /// The focused profile's or pocket's corners on the tool's side, to click for a corner's
     /// own bone (docs/specs/dogbone-per-corner.md §6).
     pub corner_markers: Vec<CornerMarker>,
@@ -789,6 +792,15 @@ pub struct Scene {
     pub grid: bool,
     /// The grid in inch steps (display units inch, docs/specs/inch-units.md §5.1).
     pub inch_grid: bool,
+}
+
+/// A profile's tab on the canvas (docs/specs/tabs-by-hand.md §5).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TabMarker {
+    /// The tab as planned.
+    pub tab: chipload_toolpath::plan::TabCentre,
+    /// Where it is drawn: the tab's centre, or where it is being dragged to.
+    pub at: Point,
 }
 
 /// A corner of the focused operation (docs/specs/dogbone-per-corner.md §6).
@@ -1245,6 +1257,15 @@ impl Scene {
             let r = (radius * view.scale) as f32;
             painter.circle_stroke(at, r, Stroke::new(2.0, pal.selected));
         }
+        for marker in self
+            .tab_markers
+            .iter()
+            .filter(|_| flat && !self.hide_toolpath)
+        {
+            if highlight.operation == Some(marker.tab.operation) {
+                paint_tab_marker(painter, view, marker, pal);
+            }
+        }
         for marker in self.start_markers.iter().filter(|_| !self.hide_toolpath) {
             if flat && highlight.operation == Some(marker.operation) {
                 let at = view.to_screen(marker.at);
@@ -1667,6 +1688,25 @@ mod tests {
         assert_eq!(shape.arrows.len(), 3);
         assert_eq!(shape.arrows[0], ((50.0, 0.0), 0.0));
     }
+}
+
+/// A tab marker: a small square in the tab colour at the tab's centre, filled when the tab
+/// was placed by hand.
+fn paint_tab_marker(painter: &Painter, view: &View, marker: &TabMarker, pal: &Palette) {
+    let at = view.to_screen(marker.at);
+    let square = Rect::from_center_size(at, Vec2::splat(10.0));
+    let fill = if marker.tab.by_hand {
+        pal.tab
+    } else {
+        pal.background
+    };
+    painter.rect_filled(square, 1.0, fill);
+    painter.rect_stroke(
+        square,
+        1.0,
+        Stroke::new(2.0, pal.tab),
+        eframe::egui::StrokeKind::Middle,
+    );
 }
 
 /// A corner marker: a small diamond, filled where a bone is cut (with the tool's circle at

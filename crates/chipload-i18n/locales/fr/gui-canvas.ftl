@@ -11,6 +11,11 @@ canvas-right-click-hint = Clic droit sur un contour pour sélectionner son calqu
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Départ de ce tour : glisser le long du tour ; clic droit pour réinitialiser
 canvas-start-hover = Départ de ce tour : glisser le long du tour pour le déplacer
+canvas-tab-hover = Attache : la glisser le long du tour ; clic droit pour la retirer ou répartir régulièrement les attaches du tour
+canvas-tab-hover-placed = Attache placée à la main : la glisser le long du tour ; clic droit pour la retirer ou répartir régulièrement les attaches du tour
+canvas-tab-remove = Retirer l'attache
+canvas-tab-even = Répartir régulièrement les attaches de ce tour
+canvas-tab-add = Ajouter une attache ici
 canvas-corner-hover = Coin en { $at }, { $angle }° : { $gets }. Cliquer pour choisir à part
 canvas-corner-hover-own = Coin en { $at }, { $angle }° : { $gets }, choisi à part. Cliquer pour changer
 canvas-corner-hover-unreached = Coin en { $at }, { $angle }° : { $gets }, mais l'outil ne peut pas l'atteindre, il reste arrondi. Cliquer pour choisir

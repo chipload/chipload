@@ -11,6 +11,11 @@ canvas-right-click-hint = Rechtsklick auf eine Kontur wählt ihren Layer.
 # Hovering a ring's start marker.
 canvas-start-moved-hover = Start dieses Rings: entlang des Rings ziehen; Rechtsklick setzt zurück
 canvas-start-hover = Start dieses Rings: entlang des Rings ziehen, um ihn zu verschieben
+canvas-tab-hover = Haltesteg: entlang des Rings ziehen; Rechtsklick, um ihn zu entfernen oder die Haltestege des Rings gleichmäßig zu verteilen
+canvas-tab-hover-placed = Von Hand gesetzter Haltesteg: entlang des Rings ziehen; Rechtsklick, um ihn zu entfernen oder die Haltestege des Rings gleichmäßig zu verteilen
+canvas-tab-remove = Haltesteg entfernen
+canvas-tab-even = Haltestege dieses Rings gleichmäßig verteilen
+canvas-tab-add = Hier einen Haltesteg hinzufügen
 canvas-corner-hover = Ecke bei { $at }, { $angle }°: { $gets }. Klicken, um für sie eigens zu wählen
 canvas-corner-hover-own = Ecke bei { $at }, { $angle }°: { $gets }, eigens gewählt. Klicken, um es zu ändern
 canvas-corner-hover-unreached = Ecke bei { $at }, { $angle }°: { $gets }, aber das Werkzeug erreicht sie nicht, also bleibt sie rund. Klicken, um zu wählen
