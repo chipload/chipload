@@ -5,6 +5,12 @@ it's built (see `CLAUDE.md`).
 
 ## In progress
 
+- **Dogbones chosen per corner** (docs/specs/dogbone-per-corner.md), approved 2026-10-26
+  after a user's pocket (contour #30 of `shared_edges.dxf`, a slot with a short step at each
+  end) couldn't get dogbones or T-bones at all. Steps: the format, planning and CLI (`op
+  corners`, `op corner`); the canvas markers and menu; start points following drawn-shape
+  transforms (decision 6).
+
 - **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
   German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
   `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`
@@ -538,7 +544,6 @@ Follow-ups, not planned yet:
 - **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
   hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
   counterbores in one operation.
-- **Dogbones:** a choice per corner on the canvas.
 - **Simulation:** comparing with the design (gouges), holders and flute length; a G-code
   panel with the current line during playback.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
