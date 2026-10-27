@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.26.0 user guide</title>
+        <title>Command line - Chipload 0.27.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a0183fc0.js";
+            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f602bac1.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -492,6 +492,41 @@
 <tr><td><code>--along &lt;ALONG&gt;</code></td><td>With a T-bone: the wall it runs along (the notch is in the other); default longer. One of: <code>longer</code>, <code>shorter</code>.</td></tr>
 <tr><td><code>--as-operation</code></td><td>Remove the corner’s own choice: it gets what the operation gives every corner.</td></tr>
 <tr><td><code>--reset</code></td><td>Remove every corner’s own choice.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-tabs"><a class="header" href="#chipload-op-tabs"><code>chipload op tabs</code></a></h3>
+<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned</p>
+<pre><code class="language-text">chipload op tabs &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-tab"><a class="header" href="#chipload-op-tab"><code>chipload op tab</code></a></h3>
+<p>Place a profile’s tabs by hand (docs/specs/tabs-by-hand.md): add a tab at a point, or remove the one there. The first on a contour keeps that contour’s other tabs where Chipload put them. <code>--even</code> spaces one contour’s tabs evenly again, <code>--reset</code> all</p>
+<pre><code class="language-text">chipload op tab &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>The point, X,Y in drawing coordinates (a plain number is mm): on or near the contour, within a tool diameter.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the tab nearest to –at.</td></tr>
+<tr><td><code>--even</code></td><td>Space the tabs of the contour nearest to –at evenly again.</td></tr>
+<tr><td><code>--reset</code></td><td>Space every contour’s tabs evenly again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>

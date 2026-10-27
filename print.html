@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.26.0 user guide</title>
+        <title>Chipload 0.27.1 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a0183fc0.js";
+            window.path_to_searchindex_js = "searchindex-e24d3434.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f602bac1.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.26.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -1157,9 +1157,10 @@ dashed box shows round them: drag the square in the middle to move them, the rou
 beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
 scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
 handles instead. The shapes keep their ids, so the operations that cut them follow, and so
-do the operations’ start points and <a href="#corner-by-corner">corner choices</a>
-on them (as with <code>shape move</code>, <code>turn</code> and <code>scale</code>; editing a shape’s own fields or points
-leaves them where they are).</li>
+do the operations’ start points, <a href="#corner-by-corner">corner choices</a>
+and tabs placed by hand on them (also with <code>shape move</code>, <code>turn</code> and <code>scale</code>, and when you
+change one shape through its own handles or form: a corner’s choice stays with that
+corner of a rectangle you move or resize).</li>
 <li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
 drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
 type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
@@ -1632,10 +1633,43 @@ spacing.</li>
 <li><strong>Spacing:</strong> they keep a tool diameter from each other and from the start of the contour.</li>
 <li><strong>Shown</strong> highlighted on the canvas.</li>
 </ul>
+<h3 id="tabs-placed-by-hand"><a class="header" href="#tabs-placed-by-hand">Tabs placed by hand</a></h3>
+<p>You can put a contour’s tabs where you want them instead. Select the profile after
+generating: each tab has a small square on the canvas, hollow where Chipload spaced it and
+filled where you placed it.</p>
+<ul>
+<li><strong>Drag</strong> a tab along its contour; it generates again when you let go.</li>
+<li><strong>Right-click a tab</strong> to remove it, or to space that contour’s tabs evenly again.</li>
+<li><strong>Right-click the contour’s toolpath</strong> for <em>Add a tab here</em>.</li>
+<li>Under <strong>Tabs</strong> in Properties, <em>5 tabs placed by hand</em> counts them, and <em>Reset</em> spaces every
+contour’s tabs evenly again. Each change is one undo step.</li>
+</ul>
+<p>On the command line, list them and add or remove one at a point on (or near) the contour:</p>
+<pre><code>chipload op tabs part.chipload --op 2
+ring 1  (146.551, 132.176)  spaced
+…
+chipload op tab part.chipload --op 2 --at 162,91            # add one
+chipload op tab part.chipload --op 2 --at 146.5,132 --remove
+chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour spaced evenly again
+chipload op tab part.chipload --op 2 --reset                # every contour
+</code></pre>
+<ul>
+<li>The first tab you add or remove on a contour keeps its other tabs where Chipload had put
+them; from then on that contour has exactly the tabs you placed, and <strong>count</strong> is for the
+contours you haven’t touched.</li>
+<li>A tab placed by hand stays where you put it, also on a corner (the report notes it).</li>
+<li>Generating stops, naming the tab, if two tabs come closer than their width plus two tool
+diameters, if a tab covers the contour’s start (move the tab or the start), or if a tab
+is no longer on any contour of the operation (the drawing changed).</li>
+<li>The points move with the drawing when you <a href="#placing-the-drawing">place</a> it or move,
+turn or scale the drawn shape, and every copy gets them. In the file they are
+<code>tabs.at</code>, points in drawing coordinates.</li>
+</ul>
 <h2 id="start-point"><a class="header" href="#start-point">Start point</a></h2>
 <p>Each contour’s cut starts at a point Chipload picks. To move it, select the operation, then
 <strong>drag the start marker</strong> along the contour on the canvas; right-click the marker to reset
-it. The tabs move with the start. In the file, <code>starts</code> holds the points.</p>
+it. Tabs Chipload spaces move with the start; tabs placed by hand stay. In the file,
+<code>starts</code> holds the points.</p>
 <h2 id="finishing-pass"><a class="header" href="#finishing-pass">Finishing pass</a></h2>
 <p><strong>Finishing pass</strong> with a <em>stock</em> value:</p>
 <ul>
@@ -1663,9 +1697,18 @@ out of sight.</li>
 </ul>
 <p><em>up to</em> sets the sharpest corner angle that gets one (100° by default, so 90° corners
 drawn slightly off count). A corner the tool can’t reach at all (a notch narrower than the
-tool) is left round, with a note. A bone that would cut into another contour, or into
-another wall of its own (a short step next to the corner), stops generation with an error
-that names the corner.</p>
+tool) is left round, with a note.</p>
+<p>A bone that also cuts into another contour that is cut (a thin wall between this cut and
+another), or into another wall of its own (a short step next to the corner), is cut all the
+same, with a warning that names the corner: check the part there, or choose another bone for
+that corner. Lines that don’t count:</p>
+<ul>
+<li>lines no enabled operation cuts (construction lines, a layer nothing cuts, a disabled
+operation’s shapes);</li>
+<li>a line that meets what the operation cuts near the bone: on its own wall (a shared edge),
+crossing it, or, in a pocket, running into the pocket. It has been cut through there
+already.</li>
+</ul>
 <h3 id="corner-by-corner"><a class="header" href="#corner-by-corner">Corner by corner</a></h3>
 <p>Any corner can have its own choice, whatever <strong>Corners</strong> says: <em>round</em>, <em>dogbone</em>, <em>T-bone
 along the longer wall</em> or <em>T-bone along the shorter wall</em>. It goes past <em>up to</em> too. So you
@@ -1716,7 +1759,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>ramp_angle</code></td><td>Ramp angle, radians</td></tr>
-<tr><td><code>tabs</code></td><td>Tabs: <code>count</code>, <code>width</code>, <code>height</code>, <code>flank_angle</code>, or null</td></tr>
+<tr><td><code>tabs</code></td><td>Tabs: <code>count</code>, <code>width</code>, <code>height</code>, <code>flank_angle</code>, and <code>at</code> (tabs placed by hand, <code>[[x, y], …]</code>; left out when there are none), or null</td></tr>
 <tr><td><code>starts</code></td><td>start points, <code>[[x, y], …]</code> in drawing coordinates</td></tr>
 <tr><td><code>finish</code></td><td>Finishing pass: <code>{"stock": …}</code> or null</td></tr>
 <tr><td><code>skin</code></td><td>Onion skin: <code>{"thickness": …}</code> or null</td></tr>
@@ -3119,6 +3162,41 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--along &lt;ALONG&gt;</code></td><td>With a T-bone: the wall it runs along (the notch is in the other); default longer. One of: <code>longer</code>, <code>shorter</code>.</td></tr>
 <tr><td><code>--as-operation</code></td><td>Remove the corner’s own choice: it gets what the operation gives every corner.</td></tr>
 <tr><td><code>--reset</code></td><td>Remove every corner’s own choice.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-tabs"><a class="header" href="#chipload-op-tabs"><code>chipload op tabs</code></a></h3>
+<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned</p>
+<pre><code class="language-text">chipload op tabs &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-tab"><a class="header" href="#chipload-op-tab"><code>chipload op tab</code></a></h3>
+<p>Place a profile’s tabs by hand (docs/specs/tabs-by-hand.md): add a tab at a point, or remove the one there. The first on a contour keeps that contour’s other tabs where Chipload put them. <code>--even</code> spaces one contour’s tabs evenly again, <code>--reset</code> all</p>
+<pre><code class="language-text">chipload op tab &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>The point, X,Y in drawing coordinates (a plain number is mm): on or near the contour, within a tool diameter.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the tab nearest to –at.</td></tr>
+<tr><td><code>--even</code></td><td>Space the tabs of the contour nearest to –at evenly again.</td></tr>
+<tr><td><code>--reset</code></td><td>Space every contour’s tabs evenly again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -4788,6 +4866,7 @@ reaches the assistant only once you save.</li>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
+<tr><td><code>at</code></td><td>list of 2 × number</td><td>no</td><td>Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets exactly those tabs, one without gets <code>count</code>, evenly spaced. Left out when empty.</td></tr>
 <tr><td><code>count</code></td><td>integer</td><td>yes</td><td>Tabs per contour, at least 1.</td></tr>
 <tr><td><code>flank_angle</code></td><td>number</td><td>yes</td><td>The slope of the tab’s sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows.</td></tr>
 <tr><td><code>height</code></td><td>number</td><td>yes</td><td>The bridge’s thickness, up from the bottom of the cut, mm.</td></tr>
