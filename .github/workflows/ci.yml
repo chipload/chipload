@@ -1,10 +1,10 @@
-# Checks on every push and pull request. The toolchain comes from rust-toolchain.toml.
+# The checks, started by hand (Actions > CI > Run workflow, or `gh workflow run ci.yml`)
+# to save Actions minutes; run the same commands locally before pushing (CLAUDE.md). The
+# toolchain comes from rust-toolchain.toml.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
