@@ -569,10 +569,14 @@ impl ChiploadApp {
                 .unwrap_or_default(),
         };
         let step = grid_step(self.view.scale, self.units);
-        let (p, hit) = snap_cursor(
+        let cursor = Cursor {
             at,
-            &self.drag.snap_points,
-            &skip,
+            from: self.last_point(),
+            skip: &skip,
+        };
+        let (p, hit) = snap_cursor(
+            &cursor,
+            &self.drag.snapper,
             self.view.scale,
             step,
             self.units,
@@ -581,6 +585,16 @@ impl ChiploadApp {
         self.drag.snapped = Some((p, hit));
         self.scene.snap_mark = hit.map(|h| h.at);
         p
+    }
+
+    /// The last point of the tool being used, for perpendicular and tangent snaps: a
+    /// polyline's last click, or a measurement's first point.
+    pub(super) fn last_point(&self) -> Option<Point> {
+        if let Some(sketch) = &self.sketch {
+            return sketch.last_point();
+        }
+        self.measure
+            .and_then(|m| m.start.filter(|_| m.end.is_none()))
     }
 
     pub fn start_handle_drag(&mut self, handle: Handle) {

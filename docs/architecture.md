@@ -23,6 +23,8 @@ flowchart TB
     dxf["chipload-dxf<br/>DXF import"] --> job
     image["chipload-image<br/>picture tracing"] --> core
     text["chipload-text<br/>fonts to outlines"] --> core
+    draw["chipload-draw<br/>drawing geometry, snapping"] --> core
+    gui --> draw
     job["chipload-job<br/>project file, migrations"] --> core
     core["chipload-core<br/>lines, arcs, chaining, tolerances"]
     i18n["chipload-i18n<br/>texts in six languages"]
@@ -49,6 +51,7 @@ flowchart TB
 | Services | `chipload-pipeline` |
 | Output | `chipload-post` |
 | Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-image`, `chipload-text` |
+| Drawing | `chipload-draw`: drawing geometry for the shapes drawn in Chipload (ADR 0023) |
 | Model | `chipload-job` |
 | Geometry | `chipload-core` |
 | Beside the rest | `chipload-check`: uses only `core`, `job` and `i18n`; `chipload-i18n`: the app's texts, no workspace crate |
@@ -90,13 +93,14 @@ error.
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job, i18n; dxf |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core, i18n; ttf-parser |
+| `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); later the editing of drawn shapes. No I/O, no project model. | core |
 | `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, i18n, check; minijinja |
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job, i18n |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices. | every library crate |
 | `chipload-cli` | The `chipload` command: every feature, `--json` on every command, `get`/`set` by path, JSON schemas, an MCP server. | pipeline and below, i18n; clap |
 | `chipload-i18n` | The app's texts in English, German, French, Spanish, Italian and Swedish: Fluent files compiled in, looked up by id; messages from the library crates as an id with typed arguments, shown in any language and units; the number rules for lengths and feeds (docs/specs/translations.md). No I/O. | no workspace crate; fluent-bundle |
-| `chipload-gui` | The desktop app: ribbon, browser of parts and operations, canvas, forms, simulation playback. It builds a `Job` and calls the pipeline on a background thread. Its texts come from `chipload-i18n`. | pipeline and below, i18n; eframe, rfd, sys-locale |
+| `chipload-gui` | The desktop app: ribbon, browser of parts and operations, canvas, forms, simulation playback. It builds a `Job` and calls the pipeline on a background thread. Its texts come from `chipload-i18n`. | pipeline and below, draw, i18n; eframe, rfd, sys-locale |
 
 ## Rules the code follows
 

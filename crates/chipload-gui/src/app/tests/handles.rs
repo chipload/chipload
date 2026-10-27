@@ -75,9 +75,7 @@ fn drawing_snaps_to_the_drawing_unless_alt_is_held() {
     assert_eq!(p, (110.0, 65.0));
     let (_, hit) = app.drag.snapped.unwrap();
     assert!(
-        hit.unwrap()
-            .name(&crate::i18n::Language::En)
-            .starts_with("end of #")
+        crate::draw::snap_name(&hit.unwrap(), &crate::i18n::Language::En).starts_with("end of #")
     );
     // Alt: exactly the cursor.
     assert_eq!(app.snap_world((110.3, 65.4), true, false), (110.3, 65.4));

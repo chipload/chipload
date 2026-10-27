@@ -30,7 +30,9 @@ use eframe::egui::{
     Sense, TextEdit, ViewportCommand,
 };
 
-use crate::draw::{Sketch, SnapPoint, Step, Tool, grid_step, snap_cursor, snap_points};
+use crate::draw::{
+    Cursor, Sketch, SnapPoint, Snapper, Step, Tool, grid_step, snap_cursor, snapper,
+};
 use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
 use crate::i18n::{Lang, t};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
@@ -248,8 +250,8 @@ pub struct Sim {
 /// What the pointer is dragging on the canvas, and where it snaps.
 #[derive(Default)]
 struct Drag {
-    /// Points of the drawing the cursor snaps to (docs/specs/drawing-follow-ups.md).
-    snap_points: Vec<SnapPoint>,
+    /// The segments the cursor snaps to (docs/specs/drawing-input.md §1).
+    snapper: Snapper,
     /// Where the cursor snapped this frame, while drawing or dragging a handle.
     snapped: Option<(Point, Option<SnapPoint>)>,
     /// The handle being dragged, if any.
@@ -661,14 +663,14 @@ impl ChiploadApp {
                     .filter(|c| !self.hidden_contours.contains(&c.id))
                     .map(ContourShape::new)
                     .collect();
-                self.drag.snap_points = snap_points(&self.contours);
+                self.drag.snapper = snapper(&self.contours);
                 self.drawing_facts = Some(DrawingFacts::new(&imported.report, &self.contours));
             }
             Err(err) => {
                 self.contours.clear();
                 self.hidden_contours.clear();
                 self.scene.contours.clear();
-                self.drag.snap_points.clear();
+                self.drag.snapper = Snapper::default();
                 self.drawing_facts = Some(DrawingFacts::failed(err.message()));
             }
         }

@@ -12,6 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 chipload-core = { version = "0.27.1", path = "../chipload-core" }
+chipload-draw = { version = "0.27.1", path = "../chipload-draw" }
 chipload-dxf = { version = "0.27.1", path = "../chipload-dxf" }
 chipload-i18n = { version = "0.27.1", path = "../chipload-i18n" }
 chipload-job = { version = "0.27.1", path = "../chipload-job" }

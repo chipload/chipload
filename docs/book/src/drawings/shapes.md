@@ -9,14 +9,28 @@ DXF, or a project without one:
 - **Polyline:** points joined by straight or arc segments, open or closed.
 
 **Circle**, **Rectangle** or **Polyline** in the ribbon's DRAW group, then click on the
-canvas. Clicks snap to the drawing's ends, centres and middles, else to the
-[grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm"). Anything more
-is CAD's job: draw it there and import the DXF.
+canvas. Clicks snap to the drawing (below), else to the [grid](../window.md#the-canvas),
+whose step the status bar gives ("grid 1 mm").
+
+## Snapping
+
+Within 8 pixels of the cursor, a click or a drag lands exactly on a point of the drawing,
+marked with a small diamond and named on the status bar ("intersection of #3 and #4"):
+
+- **End** of a line or arc, **intersection** where two cross or touch, **centre** of an arc
+  or circle, **quadrant** (an arc's points at 0°, 90°, 180° and 270°), **middle** of a line
+  or arc.
+- While drawing a polyline or measuring, from the last point: **perpendicular** to a line
+  or arc, and **tangent** to an arc.
+- **On** a line or arc: the nearest point of it, when none of the others is near.
+
+The nearest of them wins; at the same spot, they count in the order above. Hold **Alt** to
+turn snapping off.
 
 ## Editing
 
-- **Handles:** drag a selected shape's handles to change it. A drag snaps to end points,
-  centres and middles; hold Alt to turn snapping off.
+- **Handles:** drag a selected shape's handles to change it. A drag snaps as drawing does;
+  hold Alt to turn snapping off.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
   selected shape has its exact numbers and its layer.
 - **Rounded corners:** a rectangle's *Corner radius* rounds all four corners with true arcs

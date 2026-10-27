@@ -124,6 +124,21 @@ fn text_lettering_sits_beside_image_tracing() {
 }
 
 #[test]
+fn drawing_geometry_sits_on_the_core() {
+    // ADR 0023: drawing geometry on chipload-core alone, so it builds and tests without
+    // the project model or the GUI.
+    let deps = &runtime_closure()["chipload-draw"];
+    let bad: Vec<&String> = deps
+        .iter()
+        .filter(|d| {
+            (d.starts_with("chipload-") && *d != "chipload-core")
+                || GUI_CRATES.contains(&d.as_str())
+        })
+        .collect();
+    assert!(bad.is_empty(), "chipload-draw depends on {bad:?}");
+}
+
+#[test]
 fn texts_sit_beside_the_core() {
     // docs/specs/translations.md decision 3: any crate may use the texts, so they use no
     // workspace crate themselves.

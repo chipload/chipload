@@ -8,8 +8,7 @@ use std::collections::BTreeSet;
 use chipload_core::MM_PER_INCH;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_core::order::Ordered;
-use chipload_core::primitives::{Primitive, distance};
+use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::length_text;
@@ -114,6 +113,15 @@ impl Sketch {
             false,
             self.points.iter().map(|&(x, y)| [x, y]).collect(),
         ))
+    }
+
+    /// The last click that a line goes on from (perpendicular and tangent snaps): a
+    /// polyline's last point. A circle's centre or a rectangle's corner isn't one.
+    pub fn last_point(&self) -> Option<Point> {
+        match self.tool {
+            Tool::Polyline => self.points.last().copied(),
+            Tool::Circle | Tool::Rectangle => None,
+        }
     }
 
     /// Backspace: forget the last click.
@@ -250,91 +258,71 @@ pub fn fixed(mm: f64, units: Units) -> String {
     format!("{:.d$}", chipload_pipeline::units::from_mm(mm, units))
 }
 
-// -- snapping (docs/specs/drawing-follow-ups.md section 2)
+// -- snapping (docs/specs/drawing-input.md §1; the rules are in chipload-draw)
+
+pub use chipload_draw::snap::{SnapKind, SnapPoint, Snapper};
 
 /// How far from the cursor a snap point is taken, in screen pixels.
 pub const SNAP_RADIUS_PX: f64 = 8.0;
 
-/// What a snap point is; the order is the tie-break order.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SnapKind {
-    End,
-    Centre,
-    Middle,
+/// For the status bar: "end of #4".
+pub fn snap_name(point: &SnapPoint, lang: &impl Lang) -> String {
+    let contour = point.contour;
+    match point.kind {
+        SnapKind::End => t!(lang, "draw-snap-end", contour = contour),
+        SnapKind::Intersection => match point.other.filter(|&o| o != contour) {
+            Some(other) => t!(
+                lang,
+                "draw-snap-intersection",
+                contour = contour,
+                other = other
+            ),
+            None => t!(lang, "draw-snap-intersection-self", contour = contour),
+        },
+        SnapKind::Centre => t!(lang, "draw-snap-centre", contour = contour),
+        SnapKind::Quadrant => t!(lang, "draw-snap-quadrant", contour = contour),
+        SnapKind::Middle => t!(lang, "draw-snap-middle", contour = contour),
+        SnapKind::Perpendicular => t!(lang, "draw-snap-perpendicular", contour = contour),
+        SnapKind::Tangent => t!(lang, "draw-snap-tangent", contour = contour),
+        SnapKind::Nearest => t!(lang, "draw-snap-nearest", contour = contour),
+    }
 }
 
-/// A point of the drawing the cursor can snap to.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct SnapPoint {
+/// The segments of `contours`, ready to snap to.
+pub fn snapper(contours: &[Contour]) -> Snapper {
+    Snapper::new(
+        contours
+            .iter()
+            .flat_map(|c| c.parts.iter().map(move |part| (c.id, part.segment.prim))),
+    )
+}
+
+/// The cursor while snapping: where it is, the tool's last point (for perpendicular and
+/// tangent points), and the contours left out (the shape being dragged).
+pub struct Cursor<'a> {
     pub at: Point,
-    pub kind: SnapKind,
-    /// The contour it belongs to.
-    pub contour: usize,
+    pub from: Option<Point>,
+    pub skip: &'a BTreeSet<usize>,
 }
 
-impl SnapPoint {
-    /// For the status bar: "end of #4".
-    pub fn name(&self, lang: &impl Lang) -> String {
-        let contour = self.contour;
-        match self.kind {
-            SnapKind::End => t!(lang, "draw-snap-end", contour = contour),
-            SnapKind::Centre => t!(lang, "draw-snap-centre", contour = contour),
-            SnapKind::Middle => t!(lang, "draw-snap-middle", contour = contour),
-        }
-    }
-}
-
-/// Every snap point of `contours`: the ends and middles of their segments, the centres of
-/// their arcs and circles.
-pub fn snap_points(contours: &[Contour]) -> Vec<SnapPoint> {
-    let mut list = Vec::new();
-    for contour in contours {
-        for part in &contour.parts {
-            let prim = &part.segment.prim;
-            let mut add = |at: Point, kind: SnapKind| {
-                list.push(SnapPoint {
-                    at,
-                    kind,
-                    contour: contour.id,
-                });
-            };
-            add(prim.start(), SnapKind::End);
-            add(prim.end(), SnapKind::End);
-            add(prim.midpoint(), SnapKind::Middle);
-            if let Primitive::Arc(arc) = prim {
-                add(arc.center, SnapKind::Centre);
-            }
-        }
-    }
-    list
-}
-
-/// Where the cursor at `at` lands: the nearest snap point within `SNAP_RADIUS_PX` on screen
-/// (ties: end points, centres, middles, then the lowest contour number), else the grid of
-/// `step`. `free` (Alt held): exactly at the cursor. `scale` is pixels per mm (top view).
-/// Snap points of the contours in `skip` (the shape being dragged) are left out.
+/// Where the cursor lands: the snap point chosen within `SNAP_RADIUS_PX` on screen, else
+/// the grid of `step`. `free` (Alt held): exactly at the cursor. `scale` is pixels per mm
+/// (top view).
 pub fn snap_cursor(
-    at: Point,
-    points: &[SnapPoint],
-    skip: &BTreeSet<usize>,
+    cursor: &Cursor,
+    snapper: &Snapper,
     scale: f64,
     step: f64,
     units: Units,
     free: bool,
 ) -> (Point, Option<SnapPoint>) {
     if free {
-        return (at, None);
+        return (cursor.at, None);
     }
     let reach = SNAP_RADIUS_PX / scale;
-    let best = points
-        .iter()
-        .filter(|p| !skip.contains(&p.contour))
-        .map(|p| (distance(p.at, at), p))
-        .filter(|(d, _)| *d <= reach)
-        .min_by_key(|(d, p)| (Ordered(*d), p.kind, p.contour));
-    match best {
-        Some((_, p)) => (p.at, Some(*p)),
-        None => (snap(at, step, units), None),
+    match snapper.find(cursor.at, reach, cursor.from, cursor.skip) {
+        Some(p) => (p.at, Some(p)),
+        None => (snap(cursor.at, step, units), None),
     }
 }
 
@@ -367,6 +355,7 @@ pub fn outline(geometry: &Geometry) -> Vec<Vec<Point>> {
 mod tests {
     use super::*;
     use crate::i18n::Language::En;
+    use chipload_core::primitives::Primitive;
 
     #[test]
     fn a_circle_is_its_centre_and_a_point_on_it() {
@@ -497,40 +486,59 @@ mod tests {
                 })],
             ),
         ];
-        let points = snap_points(&contours);
-        // Ends, middle; arc ends, middle, centre.
-        assert_eq!(points.len(), 3 + 4);
+        let snapper = snapper(&contours);
         let none = BTreeSet::new();
+        let cursor = |at: Point, skip| Cursor {
+            at,
+            from: None,
+            skip,
+        };
         // 10 px per mm: 8 px is 0.8 mm.
-        let at = |p: Point| snap_cursor(p, &points, &none, 10.0, 1.0, Units::Mm, false);
+        let at = |p: Point| snap_cursor(&cursor(p, &none), &snapper, 10.0, 1.0, Units::Mm, false);
         let (p, hit) = at((9.5, 0.3));
         assert_eq!(p, (10.0, 0.0));
-        let hit = hit.unwrap();
         // Line 1 ends at (10, 0), and so does the arc of #2: the end of #1 wins (lowest id).
-        assert_eq!(hit.name(&En), "end of #1");
+        assert_eq!(snap_name(&hit.unwrap(), &En), "end of #1");
         // The line's middle and the arc's centre are both (5, 0): the centre wins.
-        assert_eq!(at((5.2, 0.1)).1.unwrap().name(&En), "centre of #2");
-        // Nearest wins over kind: the arc's top (middle) when it is closer than anything.
-        assert_eq!(at((5.0, 4.6)).1.unwrap().name(&En), "middle of #2");
+        assert_eq!(snap_name(&at((5.2, 0.1)).1.unwrap(), &En), "centre of #2");
+        // The arc's top is its quadrant (and its middle: the quadrant wins).
+        assert_eq!(snap_name(&at((5.0, 4.6)).1.unwrap(), &En), "quadrant of #2");
+        // Near the line only: on it.
+        assert_eq!(snap_name(&at((2.6, 0.3)).1.unwrap(), &En), "on #1");
         // Nothing within 0.8 mm: the grid.
         assert_eq!(at((2.6, 2.4)), ((3.0, 2.0), None));
         // Alt: exactly where the cursor is.
         assert_eq!(
-            snap_cursor((9.5, 0.3), &points, &none, 10.0, 1.0, Units::Mm, true),
+            snap_cursor(
+                &cursor((9.5, 0.3), &none),
+                &snapper,
+                10.0,
+                1.0,
+                Units::Mm,
+                true
+            ),
             ((9.5, 0.3), None)
         );
         // The dragged shape's own points are skipped.
         let skip: BTreeSet<usize> = [1].into();
-        let (_, hit) = snap_cursor((9.5, 0.3), &points, &skip, 10.0, 1.0, Units::Mm, false);
-        assert_eq!(hit.unwrap().name(&En), "end of #2");
+        let (_, hit) = snap_cursor(
+            &cursor((9.5, 0.3), &skip),
+            &snapper,
+            10.0,
+            1.0,
+            Units::Mm,
+            false,
+        );
+        assert_eq!(snap_name(&hit.unwrap(), &En), "end of #2");
         // Zoomed out, the same distance is within reach of more.
+        let far = cursor((8.0, 2.0), &none);
         assert!(
-            snap_cursor((8.0, 0.0), &points, &none, 1.0, 1.0, Units::Mm, false)
+            snap_cursor(&far, &snapper, 1.0, 1.0, Units::Mm, false)
                 .1
                 .is_some()
         );
         assert!(
-            snap_cursor((8.0, 0.0), &points, &none, 10.0, 1.0, Units::Mm, false)
+            snap_cursor(&far, &snapper, 10.0, 1.0, Units::Mm, false)
                 .1
                 .is_none()
         );

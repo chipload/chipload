@@ -635,7 +635,14 @@ impl ChiploadApp {
     fn status_message(&mut self, ui: &mut egui::Ui) {
         let snapped = self.drag.snapped.map(|(p, hit)| {
             let name = hit.map_or_else(String::new, |h| {
-                format!(" {}", t!(ui, "menu-snapped-to", target = h.name(ui)))
+                format!(
+                    " {}",
+                    t!(
+                        ui,
+                        "menu-snapped-to",
+                        target = crate::draw::snap_name(&h, ui)
+                    )
+                )
             });
             (p, name)
         });
