@@ -87,6 +87,16 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
+  `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)
+  says "down at 0.25, move 2" for x0 = 0, y0 = 0, w = 291.88231113195496,
+  h = 291.8824350298392, radius 0.5, fraction 0.1, depths 1, start (0, 0); proptest seed
+  `cc ba0687aa62cbaf13b2dc560882d4c7eb1cb475775a1334494ebaa69e6f4f5c20`. The stock is square
+  within 0.00012 mm: likely the test and `surface_moves` disagree on which way the passes
+  run when w and h are that close (the test takes `w >= h`), so the test checks the wrong
+  axis. Not checked yet: reproduce with the seed, see which way the code runs, and fix
+  the test or the code (a plunge on the stock would be a real bug), with the seed kept in
+  the regressions file.
 - **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
   tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
   5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
