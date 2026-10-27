@@ -340,6 +340,8 @@ pub struct ChiploadApp {
     pub typed: Option<drawing::Typed>,
     /// The last drawing tool used: Enter with no tool active starts it again.
     pub last_tool: Option<Tool>,
+    /// The number of sides new polygons get, as last chosen.
+    pub polygon_sides: u32,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
@@ -471,6 +473,7 @@ impl Default for ChiploadApp {
             sketch: None,
             typed: None,
             last_tool: None,
+            polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
             placing_text: false,
             focus_text_field: false,
             measure: None,

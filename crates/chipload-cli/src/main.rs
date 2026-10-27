@@ -822,23 +822,33 @@ enum KindArg {
     Circle,
     Rectangle,
     Polyline,
+    Polygon,
 }
 
 /// Defining values, all in mm; the angle in degrees.
 #[derive(clap::Args)]
 struct ShapeValues {
-    /// Centre "X,Y" (circle, rectangle).
+    /// Centre "X,Y" (circle, rectangle, polygon).
     #[arg(long, allow_hyphen_values = true)]
     center: Option<String>,
+    /// A circle's radius; a polygon's, to its corners.
     #[arg(value_parser = crate::lengths::length, long)]
     radius: Option<f64>,
+    /// A polygon's number of sides, 3 to 1000.
+    #[arg(long)]
+    sides: Option<u32>,
+    /// A polygon's size across its flats (twice the radius to the middle of a side), in
+    /// place of --radius.
+    #[arg(value_parser = crate::lengths::length, long, conflicts_with = "radius")]
+    across_flats: Option<f64>,
     /// Along the rectangle's own X axis.
     #[arg(value_parser = crate::lengths::length, long)]
     length: Option<f64>,
     /// Along the rectangle's own Y axis.
     #[arg(value_parser = crate::lengths::length, long)]
     width: Option<f64>,
-    /// Rotation about the centre, degrees, counter-clockwise.
+    /// Rotation about the centre (a polygon: its first corner's angle from +X), degrees,
+    /// counter-clockwise.
     #[arg(long, allow_hyphen_values = true)]
     angle_deg: Option<f64>,
     /// The radius of the rectangle's corners, at most half its shorter side (default 0:
@@ -1783,6 +1793,9 @@ fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
     if v.corner_radius.is_some() && !matches!(kind, KindArg::Rectangle) {
         return Err("--corner-radius is for a rectangle".into());
     }
+    if (v.sides.is_some() || v.across_flats.is_some()) && !matches!(kind, KindArg::Polygon) {
+        return Err("--sides and --across-flats are for a polygon".into());
+    }
     Ok(match kind {
         KindArg::Circle => Geometry::Circle {
             center: need(center, "center", "circle")?,
@@ -1808,7 +1821,25 @@ fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, String> {
                 bulges,
             }
         }
+        KindArg::Polygon => {
+            let sides = need(v.sides, "sides", "polygon")?;
+            let radius = match v.across_flats {
+                Some(flats) => polygon_radius_across_flats(flats, sides),
+                None => need(v.radius, "radius", "polygon")?,
+            };
+            Geometry::Polygon {
+                center: need(center, "center", "polygon")?,
+                radius,
+                sides,
+                angle: v.angle_deg.unwrap_or(0.0).to_radians(),
+            }
+        }
     })
+}
+
+/// A polygon's radius to its corners from its size across the flats.
+fn polygon_radius_across_flats(flats: f64, sides: u32) -> f64 {
+    flats / 2.0 / (std::f64::consts::PI / f64::from(sides.max(3))).cos()
 }
 
 /// The shape's geometry with the given values replaced; values that don't belong to its
@@ -1836,10 +1867,40 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("bulges", v.bulges.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
+                    ("sides", v.sides.is_some()),
+                    ("across-flats", v.across_flats.is_some()),
                 ],
             )?;
             *c = center.unwrap_or(*c);
             *radius = v.radius.unwrap_or(*radius);
+        }
+        Geometry::Polygon {
+            center: c,
+            radius,
+            sides,
+            angle,
+        } => {
+            not_for(
+                "polygon",
+                &[
+                    ("length", v.length.is_some()),
+                    ("width", v.width.is_some()),
+                    ("corner-radius", v.corner_radius.is_some()),
+                    ("points", v.points.is_some()),
+                    ("bulges", v.bulges.is_some()),
+                    ("open", v.open),
+                    ("closed", v.closed),
+                ],
+            )?;
+            *c = center.unwrap_or(*c);
+            *sides = v.sides.unwrap_or(*sides);
+            *radius = match v.across_flats {
+                Some(flats) => polygon_radius_across_flats(flats, *sides),
+                None => v.radius.unwrap_or(*radius),
+            };
+            if let Some(degrees) = v.angle_deg {
+                *angle = degrees.to_radians();
+            }
         }
         Geometry::Rectangle {
             center: c,
@@ -1856,6 +1917,8 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("bulges", v.bulges.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
+                    ("sides", v.sides.is_some()),
+                    ("across-flats", v.across_flats.is_some()),
                 ],
             )?;
             *c = center.unwrap_or(*c);
@@ -1880,6 +1943,8 @@ fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, Str
                     ("width", v.width.is_some()),
                     ("angle-deg", v.angle_deg.is_some()),
                     ("corner-radius", v.corner_radius.is_some()),
+                    ("sides", v.sides.is_some()),
+                    ("across-flats", v.across_flats.is_some()),
                 ],
             )?;
             if let Some(text) = &v.points {

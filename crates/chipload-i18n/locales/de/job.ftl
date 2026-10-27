@@ -298,3 +298,4 @@ job-import-kept = Ihres behalten: { $name } (Datei: { $differences })
 job-import-differs = Weicht von Ihrem ab: { $name } (Datei: { $differences })
 job-import-default = Standard: { $name }
 job-import-becomes-default = Wird Standard: { $name }
+job-polygon-sides = ein Vieleck hat { $least } bis { $most } Seiten, erhalten { $got }

@@ -132,3 +132,5 @@ menu-join-ends-hover = Offene gezeichnete Polylinien, deren Enden sich fast tref
 menu-join-ends-disabled-hover = Es gibt keine gezeichneten Formen. Die Formen einer DXF lassen sich verbinden, sobald sie aufgelöst ist (Rechtsklick auf sie im Browser).
 menu-draw-arc = Bogen
 menu-draw-slot = Langloch
+menu-draw-polygon = Vieleck
+menu-polygon-sides = Seiten

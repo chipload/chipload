@@ -102,7 +102,7 @@ impl ChiploadApp {
     }
 
     /// The box round the selected drawn shapes, standing off them: all drawn, and not a
-    /// single circle or rectangle, which have their own move and turn handles.
+    /// single circle, rectangle or polygon, which have their own move and turn handles.
     fn shapes_box(&self) -> Option<(BoxOf, PlacedBox)> {
         let (ids, imported) = self.deletable_shapes();
         if imported || ids.is_empty() {
@@ -112,7 +112,7 @@ impl ChiploadApp {
             && self.shape(only).is_some_and(|s| {
                 matches!(
                     s.geometry,
-                    Geometry::Circle { .. } | Geometry::Rectangle { .. }
+                    Geometry::Circle { .. } | Geometry::Rectangle { .. } | Geometry::Polygon { .. }
                 )
             })
         {

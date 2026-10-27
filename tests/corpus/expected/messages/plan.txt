@@ -622,6 +622,25 @@ Tool group 4: tool 1, operations 5
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v30/polygon.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Rounded outline): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 2 (Rounded outline), contour #1: tabs 2 and 3, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
+Operation 1: a ring starts at (117.538, 67.075) (default)
+Operation 1: a ring starts at (75.000, 94.800) (start point 1)
+Operation 1: a ring starts at (93.540, 116.635) (default)
+Operation 2: a ring starts at (100.176, 123.999) (start point 1)
+Estimated time: 7 min 20 s (cutting 7 min 4 s, rapids 13 s, spindle 3 s)
+  Operation 1 (Pocket round a hexagon): 6 min 21 s
+  Operation 2 (Rounded outline): 55 s
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Pocket round a hexagon): 0.033 mm/tooth
+  Operation 2 (Rounded outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

@@ -93,3 +93,5 @@ header-arc = Arc
 header-arc-hover = Draw an arc: start, end, then a point it passes through
 header-slot = Slot
 header-slot-hover = Draw a slot: the centres of its ends, then its width
+header-polygon = Polygon
+header-polygon-hover = Draw a regular polygon: the centre, then a corner (the number of sides on the status bar)

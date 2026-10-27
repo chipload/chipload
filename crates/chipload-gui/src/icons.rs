@@ -26,6 +26,7 @@ pub enum Icon {
     Polyline,
     Arc,
     Slot,
+    Polygon,
     Paths,
     Profile,
     Pocket,
@@ -150,6 +151,15 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 pen.dot(first, 0.05);
                 pen.dot(last, 0.05);
             }
+        }
+        Icon::Polygon => {
+            let points: Vec<(f32, f32)> = (0..6)
+                .map(|k| {
+                    let t = k as f32 * TAU / 6.0;
+                    (0.5 + 0.38 * t.cos(), 0.5 + 0.38 * t.sin())
+                })
+                .collect();
+            pen.closed(&points);
         }
         Icon::Slot => {
             let mut points = pen.arc((0.68, 0.5), 0.2, -FRAC_PI_2, FRAC_PI_2);

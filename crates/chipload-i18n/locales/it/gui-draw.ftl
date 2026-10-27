@@ -46,3 +46,5 @@ draw-arc-on-a-line = i tre punti sono allineati: usa lo strumento polilinea
 draw-no-size-slot = l'asola non avrebbe lunghezza o larghezza
 draw-entry-radius-too-small = il raggio deve essere almeno metà della distanza tra le estremità
 draw-entry-no-side = sposta il cursore dal lato verso cui l'arco deve curvare
+draw-status-polygon-start = Disegno di un poligono: clicca il centro (griglia { $grid }, Esc annulla)
+draw-status-polygon = Disegno di un poligono di raggio { $radius }: clicca un vertice (griglia { $grid }, Esc annulla)

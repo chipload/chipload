@@ -132,3 +132,5 @@ menu-join-ends-hover = Unir en una las polilíneas dibujadas abiertas cuyos extr
 menu-join-ends-disabled-hover = No hay formas dibujadas. Las formas de un DXF se pueden unir una vez descompuesto (clic derecho sobre él en el Navegador).
 menu-draw-arc = Arco
 menu-draw-slot = Ranura
+menu-draw-polygon = Polígono
+menu-polygon-sides = Lados

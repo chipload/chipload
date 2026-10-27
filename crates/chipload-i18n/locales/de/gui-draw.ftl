@@ -46,3 +46,5 @@ draw-arc-on-a-line = die drei Punkte liegen auf einer Linie: das Polylinien-Werk
 draw-no-size-slot = das Langloch hätte keine Länge oder keine Breite
 draw-entry-radius-too-small = der Radius muss mindestens halb so groß sein wie der Abstand der Enden
 draw-entry-no-side = den Cursor auf die Seite bewegen, zu der sich der Bogen wölben soll
+draw-status-polygon-start = Vieleck zeichnen: den Mittelpunkt klicken (Raster { $grid }, Esc bricht ab)
+draw-status-polygon = Vieleck zeichnen, Radius { $radius }: eine Ecke klicken (Raster { $grid }, Esc bricht ab)

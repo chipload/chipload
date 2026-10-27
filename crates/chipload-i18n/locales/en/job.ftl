@@ -298,3 +298,4 @@ job-import-kept = Kept yours: { $name } (file: { $differences })
 job-import-differs = Differs from yours: { $name } (file: { $differences })
 job-import-default = Default: { $name }
 job-import-becomes-default = Becomes the default: { $name }
+job-polygon-sides = a polygon has { $least } to { $most } sides, got { $got }

@@ -468,3 +468,30 @@ fn enter_draws_with_the_last_tool_and_shift_holds_the_angle() {
         "no snap while Shift is held"
     );
 }
+
+#[test]
+fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
+    // docs/specs/drawing-input.md §5.
+    let mut app = drawn_part();
+    app.click(None, false);
+    app.polygon_sides = 8;
+    app.start_drawing(Tool::Polygon);
+    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+    app.draw_click((200.0, 50.0), false);
+    app.draw_click((200.0, 60.0), false);
+    let id = app.selected_shape().unwrap();
+    let Geometry::Polygon {
+        center,
+        radius,
+        sides,
+        angle,
+    } = app.shape(id).unwrap().geometry
+    else {
+        panic!()
+    };
+    assert_eq!((center, radius, sides), ([200.0, 50.0], 10.0, 8));
+    assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+    // The next polygon starts with eight sides too.
+    app.start_drawing(Tool::Polygon);
+    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+}

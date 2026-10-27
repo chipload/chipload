@@ -58,3 +58,4 @@ sources-shape-hover = Klicken wählt sie aus; Strg+Klick fügt hinzu oder entfer
 sources-rename = Umbenennen…
 sources-copy-shape = Kopieren
 sources-delete-shape = Löschen
+sources-polygons = Vielecke

@@ -20,7 +20,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 29;
+pub const CURRENT_VERSION: i64 = 30;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -635,6 +635,14 @@ pub enum Geometry {
         points: Vec<[f64; 2]>,
         bulges: Vec<f64>,
     },
+    /// A regular polygon: `sides` corners on the circle of `radius` about `center`, the first
+    /// at `angle` (radians, CCW from +X) (docs/specs/drawing-input.md §5).
+    Polygon {
+        center: [f64; 2],
+        radius: f64,
+        sides: u32,
+        angle: f64,
+    },
 }
 
 impl Shape {
@@ -644,6 +652,7 @@ impl Shape {
             Geometry::Circle { .. } => "circle",
             Geometry::Rectangle { .. } => "rectangle",
             Geometry::Polyline { .. } => "polyline",
+            Geometry::Polygon { .. } => "polygon",
         }
     }
 
@@ -656,7 +665,7 @@ impl Shape {
     pub fn closed(&self) -> bool {
         match &self.geometry {
             Geometry::Path { closed, .. } | Geometry::Polyline { closed, .. } => *closed,
-            Geometry::Circle { .. } | Geometry::Rectangle { .. } => true,
+            Geometry::Circle { .. } | Geometry::Rectangle { .. } | Geometry::Polygon { .. } => true,
         }
     }
 
@@ -750,9 +759,29 @@ impl Shape {
                 points,
                 bulges,
             } => polyline_segments(points, bulges, *closed),
+            Geometry::Polygon {
+                center,
+                radius,
+                sides,
+                angle,
+            } => lines_through(&polygon_corners(*center, *radius, *sides, *angle), true),
         }
     }
 }
+
+/// A regular polygon's corners, counter-clockwise from the one at `angle`.
+pub fn polygon_corners(center: [f64; 2], radius: f64, sides: u32, angle: f64) -> Vec<[f64; 2]> {
+    let n = f64::from(sides.max(1));
+    (0..sides)
+        .map(|k| {
+            let (sin, cos) = (angle + f64::from(k) * std::f64::consts::TAU / n).sin_cos();
+            [center[0] + radius * cos, center[1] + radius * sin]
+        })
+        .collect()
+}
+
+/// The fewest and most sides a polygon may have.
+pub const POLYGON_SIDES: std::ops::RangeInclusive<u32> = 3..=1000;
 
 impl Geometry {
     /// A polyline of straight segments (every bulge 0).
@@ -855,6 +884,7 @@ pub enum ShapeKind {
     Circle,
     Rectangle,
     Polyline,
+    Polygon,
 }
 
 /// A shape as it appears in the file: every field a kind may have. Fields of other kinds are
@@ -895,19 +925,23 @@ struct RawShape {
     /// path: its lines and arcs, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     segments: Option<Vec<PathSegment>>,
-    /// circle, rectangle: the centre, mm.
+    /// circle, rectangle, polygon: the centre, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     center: Option<[f64; 2]>,
-    /// circle: the radius, mm.
+    /// circle: the radius, mm; polygon: the radius to its corners, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     radius: Option<f64>,
+    /// polygon: how many sides (and corners) it has, 3 to 1000.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sides: Option<u32>,
     /// rectangle: its size along its own X axis, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     length: Option<f64>,
     /// rectangle: its size along its own Y axis, mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     width: Option<f64>,
-    /// rectangle: its rotation about the centre, radians, counter-clockwise.
+    /// rectangle: its rotation about the centre; polygon: the angle of its first corner from
+    /// +X; radians, counter-clockwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     angle: Option<f64>,
     /// rectangle: the radius of its corners, mm; 0 for sharp ones.
@@ -938,6 +972,7 @@ impl RawShape {
             segments: None,
             center: None,
             radius: None,
+            sides: None,
             length: None,
             width: None,
             angle: None,
@@ -960,6 +995,7 @@ impl RawShape {
             ("segments", self.segments.is_some()),
             ("center", self.center.is_some()),
             ("radius", self.radius.is_some()),
+            ("sides", self.sides.is_some()),
             ("length", self.length.is_some()),
             ("width", self.width.is_some()),
             ("angle", self.angle.is_some()),
@@ -980,6 +1016,7 @@ impl From<Shape> for RawShape {
             Geometry::Circle { .. } => ShapeKind::Circle,
             Geometry::Rectangle { .. } => ShapeKind::Rectangle,
             Geometry::Polyline { .. } => ShapeKind::Polyline,
+            Geometry::Polygon { .. } => ShapeKind::Polygon,
         };
         let mut raw = RawShape::empty(shape.id, shape.layer, kind);
         raw.name = shape.name;
@@ -1027,6 +1064,17 @@ impl From<Shape> for RawShape {
                 raw.points = Some(points);
                 raw.bulges = Some(bulges);
             }
+            Geometry::Polygon {
+                center,
+                radius,
+                sides,
+                angle,
+            } => {
+                raw.center = Some(center);
+                raw.radius = Some(radius);
+                raw.sides = Some(sides);
+                raw.angle = Some(angle);
+            }
         }
         raw
     }
@@ -1057,6 +1105,7 @@ impl TryFrom<RawShape> for Shape {
                 "corner_radius",
             ],
             ShapeKind::Polyline => &["name", "closed", "points", "bulges"],
+            ShapeKind::Polygon => &["name", "center", "radius", "sides", "angle"],
         };
         let name = RawShape::from_kind_name(kind);
         if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
@@ -1099,6 +1148,12 @@ impl TryFrom<RawShape> for Shape {
                     bulges,
                 }
             }
+            ShapeKind::Polygon => Geometry::Polygon {
+                center: raw.center.ok_or_else(|| missing("center"))?,
+                radius: raw.radius.ok_or_else(|| missing("radius"))?,
+                sides: raw.sides.ok_or_else(|| missing("sides"))?,
+                angle: raw.angle.ok_or_else(|| missing("angle"))?,
+            },
         };
         Ok(Shape {
             id: raw.id,
@@ -1116,6 +1171,7 @@ impl RawShape {
             ShapeKind::Circle => "circle",
             ShapeKind::Rectangle => "rectangle",
             ShapeKind::Polyline => "polyline",
+            ShapeKind::Polygon => "polygon",
         }
     }
 }
@@ -2866,6 +2922,7 @@ impl Drawing {
             Geometry::Circle { .. } => "drawn:circle".into(),
             Geometry::Rectangle { .. } => "drawn:rectangle".into(),
             Geometry::Polyline { .. } => "drawn:polyline".into(),
+            Geometry::Polygon { .. } => "drawn:polygon".into(),
             Geometry::Path { .. } => "paths".into(),
         }
     }
@@ -3064,6 +3121,33 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
                     Message::new("job-corner-radius-too-large")
                         .arg("most", Value::Length(most, Digits::Shortest))
                         .arg("got", Value::Length(*corner_radius, Digits::Shortest)),
+                ));
+            }
+            if !finite(center) {
+                problems.push(Problem::at("center", Message::new("job-must-be-finite")));
+            }
+            if !angle.is_finite() {
+                problems.push(Problem::at(
+                    "angle",
+                    Message::new("job-must-be-finite-got")
+                        .arg("got", Value::Number(*angle, Digits::Shortest)),
+                ));
+            }
+        }
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => {
+            positive("radius", *radius);
+            if !POLYGON_SIDES.contains(sides) {
+                problems.push(Problem::at(
+                    "sides",
+                    Message::new("job-polygon-sides")
+                        .arg("least", *POLYGON_SIDES.start())
+                        .arg("most", *POLYGON_SIDES.end())
+                        .arg("got", *sides),
                 ));
             }
             if !finite(center) {

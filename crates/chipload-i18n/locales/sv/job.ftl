@@ -298,3 +298,4 @@ job-import-kept = Behöll din: { $name } (filen: { $differences })
 job-import-differs = Skiljer sig från din: { $name } (filen: { $differences })
 job-import-default = Standard: { $name }
 job-import-becomes-default = Blir standard: { $name }
+job-polygon-sides = en polygon har { $least } till { $most } sidor, fick { $got }

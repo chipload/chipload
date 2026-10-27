@@ -46,3 +46,5 @@ draw-arc-on-a-line = les trois points sont alignés : utilisez l'outil polyligne
 draw-no-size-slot = la rainure n'aurait ni longueur ni largeur
 draw-entry-radius-too-small = le rayon doit valoir au moins la moitié de la distance entre les extrémités
 draw-entry-no-side = placez le curseur du côté où l'arc doit se bomber
+draw-status-polygon-start = Dessin d'un polygone : cliquez le centre (grille { $grid }, Échap annule)
+draw-status-polygon = Dessin d'un polygone de rayon { $radius } : cliquez un sommet (grille { $grid }, Échap annule)

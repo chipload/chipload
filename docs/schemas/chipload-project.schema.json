@@ -1619,7 +1619,7 @@
       "description": "One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF\nentity), or drawn in Chipload (`circle`, `rectangle`, `polyline`). One flat object:\n`id`, `layer`, `kind`, then the fields of that kind.",
       "properties": {
         "angle": {
-          "description": "rectangle: its rotation about the centre, radians, counter-clockwise.",
+          "description": "rectangle: its rotation about the centre; polygon: the angle of its first corner from\n+X; radians, counter-clockwise.",
           "format": "double",
           "type": [
             "number",
@@ -1638,7 +1638,7 @@
           ]
         },
         "center": {
-          "description": "circle, rectangle: the centre, mm.",
+          "description": "circle, rectangle, polygon: the centre, mm.",
           "items": {
             "format": "double",
             "type": "number"
@@ -1743,7 +1743,7 @@
           ]
         },
         "radius": {
-          "description": "circle: the radius, mm.",
+          "description": "circle: the radius, mm; polygon: the radius to its corners, mm.",
           "format": "double",
           "type": [
             "number",
@@ -1757,6 +1757,15 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "sides": {
+          "description": "polygon: how many sides (and corners) it has, 3 to 1000.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -1790,7 +1799,8 @@
         "path",
         "circle",
         "rectangle",
-        "polyline"
+        "polyline",
+        "polygon"
       ],
       "type": "string"
     },
@@ -2297,7 +2307,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 29. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 30. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2332,7 +2342,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 29,
+      "const": 30,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {

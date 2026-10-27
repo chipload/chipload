@@ -162,6 +162,12 @@ A new drawn kind, so the number of sides stays editable:
 - **CLI:** `chipload shape add P polygon --center 50,30 --radius 20 --sides 6
   [--angle-deg 0]` (or `--across-flats 34.64` in place of `--radius`); `shape set` the
   same values.
+- *Implemented:* the drag handles are the centre and the first corner (`Handle::Center`,
+  `Handle::Radius`); a single selected polygon has no dashed box, as a circle and a
+  rectangle have none. Mirroring left-right gives its first corner the angle π − angle.
+  The golden `v30_polygon` (a hexagon island in the rounded rectangle) is new; no other
+  G-code changed. The shape tools sit in the ribbon as small icon buttons, three to a row
+  (the ribbon had no room for three more large ones).
 
 ## 6. Step 6: lengths on the canvas
 

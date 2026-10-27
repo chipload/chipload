@@ -85,3 +85,4 @@ shortcuts-orbit-drag = Glisser dans la vue 3D
 shortcuts-orbit-drag-what = Orbiter ; Maj+glisser déplace la vue
 shortcuts-draw-arc = Dessiner un arc
 shortcuts-draw-slot = Dessiner une rainure
+shortcuts-draw-polygon = Dessiner un polygone

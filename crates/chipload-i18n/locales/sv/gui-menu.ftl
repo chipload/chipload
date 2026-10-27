@@ -132,3 +132,5 @@ menu-join-ends-hover = Foga ihop öppna ritade polylinjer vars ändar nästan m�
 menu-join-ends-disabled-hover = Det finns inga ritade former. En DXF:s former kan fogas ihop när den har brutits upp (högerklicka på den i bläddraren).
 menu-draw-arc = Båge
 menu-draw-slot = Spår
+menu-draw-polygon = Polygon
+menu-polygon-sides = Sidor

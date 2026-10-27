@@ -85,3 +85,4 @@ shortcuts-orbit-drag = Dra i 3D-vyn
 shortcuts-orbit-drag-what = Rotera; Skift+dra panorerar
 shortcuts-draw-arc = Rita en båge
 shortcuts-draw-slot = Rita ett spår
+shortcuts-draw-polygon = Rita en polygon

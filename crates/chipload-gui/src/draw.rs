@@ -25,13 +25,20 @@ pub enum Tool {
     Arc,
     /// The centres of its two ends, then its width: a rectangle with round ends.
     Slot,
+    /// The centre, then a corner: a regular polygon of `Sketch::sides` sides.
+    Polygon,
 }
+
+/// A new polygon's sides until the user picks another number.
+pub const POLYGON_SIDES_DEFAULT: u32 = 6;
 
 /// A shape being drawn: the tool and the points clicked so far (already on the grid).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sketch {
     pub tool: Tool,
     pub points: Vec<Point>,
+    /// A polygon's number of sides.
+    pub sides: u32,
 }
 
 /// What a click or Enter did.
@@ -59,7 +66,7 @@ impl Why {
     /// For the status bar.
     pub fn text(self, lang: &impl Lang) -> String {
         match self {
-            Why::NoSize(Tool::Circle) => t!(lang, "draw-no-size-circle"),
+            Why::NoSize(Tool::Circle | Tool::Polygon) => t!(lang, "draw-no-size-circle"),
             Why::NoSize(Tool::Rectangle | Tool::Polyline) => t!(lang, "draw-no-size-rectangle"),
             Why::NoSize(Tool::Arc) => t!(lang, "draw-arc-on-a-line"),
             Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
@@ -73,6 +80,7 @@ impl Sketch {
         Sketch {
             tool,
             points: Vec::new(),
+            sides: POLYGON_SIDES_DEFAULT,
         }
     }
 
@@ -111,7 +119,7 @@ impl Sketch {
     /// How many clicks make the shape (a polyline: as many as it takes).
     fn clicks(&self) -> usize {
         match self.tool {
-            Tool::Circle | Tool::Rectangle => 2,
+            Tool::Circle | Tool::Rectangle | Tool::Polygon => 2,
             Tool::Arc | Tool::Slot => 3,
             Tool::Polyline => usize::MAX,
         }
@@ -137,7 +145,7 @@ impl Sketch {
     pub fn last_point(&self) -> Option<Point> {
         match self.tool {
             Tool::Polyline | Tool::Arc | Tool::Slot => self.points.last().copied(),
-            Tool::Circle | Tool::Rectangle => None,
+            Tool::Circle | Tool::Rectangle | Tool::Polygon => None,
         }
     }
 
@@ -177,6 +185,15 @@ impl Sketch {
                 })
             }
             (Tool::Slot, &[a, b]) => slot(a, b, p),
+            (Tool::Polygon, _) => {
+                let radius = distance(first, p);
+                (radius >= CHAIN_TOL_MM).then_some(Geometry::Polygon {
+                    center: [first.0, first.1],
+                    radius,
+                    sides: self.sides,
+                    angle: (p.1 - first.1).atan2(p.0 - first.0),
+                })
+            }
             _ => None,
         }
     }
@@ -187,7 +204,7 @@ impl Sketch {
             return Vec::new();
         }
         match self.tool {
-            Tool::Circle | Tool::Rectangle => {
+            Tool::Circle | Tool::Rectangle | Tool::Polygon => {
                 self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default()
             }
             Tool::Arc | Tool::Slot if self.points.len() + 1 == self.clicks() => {
@@ -248,6 +265,13 @@ impl Sketch {
                 radius = arc_through(s, p, e).map_or_else(String::new, |a| n(a.radius)),
                 grid = grid
             ),
+            (Tool::Polygon, &[c, ..]) => t!(
+                lang,
+                "draw-status-polygon",
+                radius = n(distance(c, p)),
+                grid = grid
+            ),
+            (Tool::Polygon, _) => t!(lang, "draw-status-polygon-start", grid = grid),
             (Tool::Slot, []) => t!(lang, "draw-status-slot-start", grid = grid),
             (Tool::Slot, &[a]) => t!(
                 lang,
@@ -498,7 +522,7 @@ impl Sketch {
                 let angle = if angle.abs() < 0.05 { 0.0 } else { angle };
                 format!("L {}  {angle:.1}°", n(dx.hypot(dy)))
             }
-            (Tool::Circle, _) => format!("R {}", n(distance(first, p))),
+            (Tool::Circle | Tool::Polygon, _) => format!("R {}", n(distance(first, p))),
             (Tool::Rectangle, _) => format!(
                 "{} × {}",
                 n((p.0 - first.0).abs()),

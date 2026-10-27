@@ -348,12 +348,14 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | One of: `circle`, `rectangle`, `polyline`. |
-| `--center <CENTER>` | Centre "X,Y" (circle, rectangle) |
-| `--radius <RADIUS>` |  |
+| `<KIND>` | One of: `circle`, `rectangle`, `polyline`, `polygon`. |
+| `--center <CENTER>` | Centre "X,Y" (circle, rectangle, polygon) |
+| `--radius <RADIUS>` | A circle's radius; a polygon's, to its corners. |
+| `--sides <SIDES>` | A polygon's number of sides, 3 to 1000. |
+| `--across-flats <ACROSS_FLATS>` | A polygon's size across its flats (twice the radius to the middle of a side), in place of --radius. |
 | `--length <LENGTH>` | Along the rectangle's own X axis. |
 | `--width <WIDTH>` | Along the rectangle's own Y axis. |
-| `--angle-deg <ANGLE_DEG>` | Rotation about the centre, degrees, counter-clockwise. |
+| `--angle-deg <ANGLE_DEG>` | Rotation about the centre (a polygon: its first corner's angle from +X), degrees, counter-clockwise. |
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
@@ -375,11 +377,13 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The shape id (as `inspect` lists it, without the S) |
-| `--center <CENTER>` | Centre "X,Y" (circle, rectangle) |
-| `--radius <RADIUS>` |  |
+| `--center <CENTER>` | Centre "X,Y" (circle, rectangle, polygon) |
+| `--radius <RADIUS>` | A circle's radius; a polygon's, to its corners. |
+| `--sides <SIDES>` | A polygon's number of sides, 3 to 1000. |
+| `--across-flats <ACROSS_FLATS>` | A polygon's size across its flats (twice the radius to the middle of a side), in place of --radius. |
 | `--length <LENGTH>` | Along the rectangle's own X axis. |
 | `--width <WIDTH>` | Along the rectangle's own Y axis. |
-| `--angle-deg <ANGLE_DEG>` | Rotation about the centre, degrees, counter-clockwise. |
+| `--angle-deg <ANGLE_DEG>` | Rotation about the centre (a polygon: its first corner's angle from +X), degrees, counter-clockwise. |
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |

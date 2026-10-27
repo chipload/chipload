@@ -93,3 +93,5 @@ header-arc = Bogen
 header-arc-hover = Einen Bogen zeichnen: Anfang, Ende, dann ein Punkt, durch den er geht
 header-slot = Langloch
 header-slot-hover = Ein Langloch zeichnen: die Mittelpunkte der Enden, dann die Breite
+header-polygon = Vieleck
+header-polygon-hover = Ein regelmäßiges Vieleck zeichnen: Mittelpunkt, dann eine Ecke (die Seitenzahl in der Statusleiste)

@@ -46,3 +46,5 @@ draw-arc-on-a-line = los tres puntos están en una línea: use la herramienta po
 draw-no-size-slot = la ranura no tendría longitud o ancho
 draw-entry-radius-too-small = el radio debe ser al menos la mitad de la distancia entre los extremos
 draw-entry-no-side = mueva el cursor hacia el lado al que debe curvarse el arco
+draw-status-polygon-start = Dibujando un polígono: haga clic en el centro (rejilla { $grid }, Esc cancela)
+draw-status-polygon = Dibujando un polígono de radio { $radius }: haga clic en un vértice (rejilla { $grid }, Esc cancela)

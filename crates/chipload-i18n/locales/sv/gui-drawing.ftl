@@ -27,3 +27,4 @@ drawing-deleted-status = Raderade { $count ->
     } { $shapes }
 drawing-imported-kept = Importerade former i markeringen behölls (de ändras bara med DXF:en).
 drawing-kind-slot = spår
+drawing-kind-polygon = polygon

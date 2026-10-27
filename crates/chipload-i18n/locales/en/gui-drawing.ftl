@@ -27,3 +27,4 @@ drawing-deleted-status = Deleted { $count ->
     } { $shapes }
 drawing-imported-kept = Imported shapes in the selection were kept (they change only with the DXF).
 drawing-kind-slot = slot
+drawing-kind-polygon = polygon

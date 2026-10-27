@@ -197,5 +197,16 @@ pub fn shape_values(geometry: &Geometry) -> String {
             }
             text
         }
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => format!(
+            "centre ({:.3}, {:.3}) radius {radius:.3} sides {sides} angle {:.3}°",
+            center[0],
+            center[1],
+            angle.to_degrees()
+        ),
     }
 }

@@ -93,3 +93,5 @@ header-arc = Arco
 header-arc-hover = Dibujar un arco: inicio, fin y un punto por el que pasa
 header-slot = Ranura
 header-slot-hover = Dibujar una ranura: los centros de sus extremos y luego su ancho
+header-polygon = Polígono
+header-polygon-hover = Dibujar un polígono regular: el centro y luego un vértice (el número de lados en la barra de estado)

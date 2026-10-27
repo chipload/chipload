@@ -65,6 +65,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         ref g if chipload_job::edit::is_slot(g) => t!(ui, "shape-form-title-slot", id = id),
         Geometry::Rectangle { .. } => t!(ui, "shape-form-title-rectangle", id = id),
         Geometry::Polyline { .. } => t!(ui, "shape-form-title-polyline", id = id),
+        Geometry::Polygon { .. } => t!(ui, "shape-form-title-polygon", id = id),
     };
     ui.label(RichText::new(title).strong());
     Grid::new(("shape-form", draft.id))
@@ -97,20 +98,42 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     ui.add(mm(width));
                     ui.end_row();
                     ui.label(t!(ui, "shape-form-angle"));
-                    // Shown in degrees; written back only when changed, so an untouched
-                    // angle never drifts through the degree conversion.
-                    let mut degrees = angle.to_degrees();
-                    let response = ui.add(
-                        crate::units::number(ui, &mut degrees)
-                            .speed(0.5)
-                            .max_decimals(3)
-                            .suffix("°"),
-                    );
-                    if response.changed() {
-                        *angle = degrees.to_radians();
-                    }
+                    angle_field(ui, angle);
                     ui.end_row();
                     corner_radius_row(ui, corner_radius, length.min(*width) / 2.0);
+                }
+                Geometry::Polygon {
+                    center,
+                    radius,
+                    sides,
+                    angle,
+                } => {
+                    centre_row(ui, center);
+                    ui.label(t!(ui, "shape-form-sides"));
+                    ui.add(
+                        egui::DragValue::new(sides)
+                            .range(chipload_job::POLYGON_SIDES)
+                            .speed(0.1),
+                    );
+                    ui.end_row();
+                    ui.label(t!(ui, "shape-form-polygon-radius"))
+                        .on_hover_text(t!(ui, "shape-form-polygon-radius-hover"));
+                    ui.add(mm(radius));
+                    ui.end_row();
+                    // Across the flats: twice the distance from the centre to a side's
+                    // middle; changing it changes the radius.
+                    let cos = (std::f64::consts::PI / f64::from((*sides).max(3))).cos();
+                    let mut flats = 2.0 * *radius * cos;
+                    ui.label(t!(ui, "shape-form-across-flats"))
+                        .on_hover_text(t!(ui, "shape-form-across-flats-hover"));
+                    if ui.add(mm(&mut flats)).changed() {
+                        *radius = flats / 2.0 / cos;
+                    }
+                    ui.end_row();
+                    ui.label(t!(ui, "shape-form-polygon-angle"))
+                        .on_hover_text(t!(ui, "shape-form-polygon-angle-hover"));
+                    angle_field(ui, angle);
+                    ui.end_row();
                 }
                 Geometry::Polyline { closed, .. } => {
                     let mut close = *closed;
@@ -147,6 +170,21 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         action = ShapeAction::Delete;
     }
     action
+}
+
+/// An angle field in degrees. Written back only when changed, so an untouched angle never
+/// drifts through the degree conversion.
+fn angle_field(ui: &mut egui::Ui, angle: &mut f64) {
+    let mut degrees = angle.to_degrees();
+    let response = ui.add(
+        crate::units::number(ui, &mut degrees)
+            .speed(0.5)
+            .max_decimals(3)
+            .suffix("°"),
+    );
+    if response.changed() {
+        *angle = degrees.to_radians();
+    }
 }
 
 /// The name row. While the field has the keyboard it shows what was typed, spaces

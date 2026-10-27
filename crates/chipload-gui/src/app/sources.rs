@@ -152,6 +152,7 @@ impl ChiploadApp {
             ("drawn:rectangle", t!(self, "sources-rectangles")),
             ("drawn:circle", t!(self, "sources-circles")),
             ("drawn:polyline", t!(self, "sources-polylines")),
+            ("drawn:polygon", t!(self, "sources-polygons")),
             ("paths", t!(self, "sources-other-paths")),
         ] {
             push(key.into(), title, GroupKind::Drawn);
@@ -487,6 +488,7 @@ impl ChiploadApp {
             (GroupKind::Drawn, "drawn:circle") => Icon::Circle,
             (GroupKind::Drawn, "drawn:rectangle") => Icon::Rectangle,
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
+            (GroupKind::Drawn, "drawn:polygon") => Icon::Polygon,
             (GroupKind::Drawn, _) => Icon::Paths,
         };
         let id = egui::Id::new(("browser-group", &group.key));

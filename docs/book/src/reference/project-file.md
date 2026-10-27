@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 29. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 30. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 29. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `29` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `30` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -454,9 +454,9 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number or null | no | rectangle: its rotation about the centre, radians, counter-clockwise. |
+| `angle` | number or null | no | rectangle: its rotation about the centre; polygon: the angle of its first corner from +X; radians, counter-clockwise. |
 | `bulges` | list of number or null | no | polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise. |
-| `center` | 2 × number or null | no | circle, rectangle: the centre, mm. |
+| `center` | 2 × number or null | no | circle, rectangle, polygon: the centre, mm. |
 | `closed` | boolean or null | no | path, polyline: whether it ends where it starts. |
 | `corner_radius` | number or null | no | rectangle: the radius of its corners, mm; 0 for sharp ones. |
 | `dxf` | integer or null | no | path: the DXF it was imported from (its id in `drawing.dxfs`). |
@@ -469,14 +469,15 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `length` | number or null | no | rectangle: its size along its own X axis, mm. |
 | `name` | string or null | no | circle, rectangle, polyline: its name in the Browser; left out when it has none. |
 | `points` | list of 2 × number or null | no | polyline: its points, mm. |
-| `radius` | number or null | no | circle: the radius, mm. |
+| `radius` | number or null | no | circle: the radius, mm; polygon: the radius to its corners, mm. |
 | `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |
+| `sides` | integer or null | no | polygon: how many sides (and corners) it has, 3 to 1000. |
 | `text` | integer or null | no | path: the text it is a letter of (its id in `drawing.texts`). |
 | `width` | number or null | no | rectangle: its size along its own Y axis, mm. |
 
 ## ShapeKind
 
-One of: `"path"`, `"circle"`, `"rectangle"`, `"polyline"`.
+One of: `"path"`, `"circle"`, `"rectangle"`, `"polyline"`, `"polygon"`.
 
 ## Side
 

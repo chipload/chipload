@@ -46,3 +46,5 @@ draw-arc-on-a-line = the three points lie on a line: use the polyline tool
 draw-no-size-slot = the slot would have no length or no width
 draw-entry-radius-too-small = the radius must be at least half the distance between the ends
 draw-entry-no-side = move the cursor to the side the arc should bow to
+draw-status-polygon-start = Drawing a polygon: click the centre (grid { $grid }, Esc cancels)
+draw-status-polygon = Drawing a polygon radius { $radius }: click a corner (grid { $grid }, Esc cancels)

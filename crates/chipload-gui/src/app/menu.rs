@@ -519,6 +519,11 @@ impl ChiploadApp {
             ),
             (Tool::Arc, t!(ui, "menu-draw-arc"), Action::DrawArc),
             (Tool::Slot, t!(ui, "menu-draw-slot"), Action::DrawSlot),
+            (
+                Tool::Polygon,
+                t!(ui, "menu-draw-polygon"),
+                Action::DrawPolygon,
+            ),
         ] {
             let label = with_keys(&label, action);
             if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
@@ -663,10 +668,31 @@ impl ChiploadApp {
                 // than run under the facts on the right.
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                    self.polygon_sides_field(ui);
                     self.status_message(ui);
                 });
             });
         });
+    }
+
+    /// While drawing a polygon: its number of sides, kept for the next one
+    /// (docs/specs/drawing-input.md §5).
+    fn polygon_sides_field(&mut self, ui: &mut egui::Ui) {
+        let Some(sketch) = self.sketch.as_mut().filter(|s| s.tool == Tool::Polygon) else {
+            return;
+        };
+        ui.label(t!(ui, "menu-polygon-sides"));
+        if ui
+            .add(
+                egui::DragValue::new(&mut self.polygon_sides)
+                    .range(chipload_job::POLYGON_SIDES)
+                    .speed(0.1),
+            )
+            .changed()
+        {
+            sketch.sides = self.polygon_sides;
+        }
+        ui.separator();
     }
 
     /// The status bar's left side: what is going on, a message, or a hint.

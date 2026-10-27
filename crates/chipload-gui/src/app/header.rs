@@ -359,6 +359,13 @@ impl ChiploadApp {
                         t!(ui, "header-slot-hover"),
                         Action::DrawSlot,
                     ),
+                    (
+                        Tool::Polygon,
+                        Icon::Polygon,
+                        t!(ui, "header-polygon"),
+                        t!(ui, "header-polygon-hover"),
+                        Action::DrawPolygon,
+                    ),
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);

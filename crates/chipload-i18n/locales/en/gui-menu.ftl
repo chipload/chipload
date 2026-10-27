@@ -132,3 +132,5 @@ menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one
 menu-join-ends-disabled-hover = There are no drawn shapes. A DXF's shapes can be joined once it is exploded (right-click it in the Browser).
 menu-draw-arc = Arc
 menu-draw-slot = Slot
+menu-draw-polygon = Polygon
+menu-polygon-sides = Sides

@@ -8,7 +8,7 @@ use std::f64::consts::{PI, TAU};
 use chipload_core::primitives::Arc;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
-use crate::models::{Geometry, polyline_segment_count, rotated, shape_problems};
+use crate::models::{Geometry, polygon_corners, polyline_segment_count, rotated, shape_problems};
 
 /// A draggable point of a drawn shape.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,6 +58,19 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
                 Handle::Rotate,
                 [center[0] + reach * cos, center[1] + reach * sin],
             ));
+            list
+        }
+        // The centre, and the first corner (radius and turn).
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => {
+            let mut list = vec![(Handle::Center, *center)];
+            if let Some(&first) = polygon_corners(*center, *radius, *sides, *angle).first() {
+                list.push((Handle::Radius, first));
+            }
             list
         }
         Geometry::Polyline {
@@ -169,7 +182,24 @@ pub fn try_drag(
     let slot = is_slot(start);
     match (&mut geometry, handle) {
         (Geometry::Circle { center, .. }, Handle::Center)
-        | (Geometry::Rectangle { center, .. }, Handle::Center) => *center = to,
+        | (Geometry::Rectangle { center, .. }, Handle::Center)
+        | (Geometry::Polygon { center, .. }, Handle::Center) => *center = to,
+        (
+            Geometry::Polygon {
+                center,
+                radius,
+                angle,
+                ..
+            },
+            Handle::Radius,
+        ) => {
+            let (dx, dy) = (to[0] - center[0], to[1] - center[1]);
+            if dx == 0.0 && dy == 0.0 {
+                return Err("the corner handle is on the centre".into());
+            }
+            *radius = dx.hypot(dy);
+            *angle = dy.atan2(dx);
+        }
         (Geometry::Circle { center, radius }, Handle::Radius) => {
             *radius = (to[0] - center[0]).hypot(to[1] - center[1]);
         }
@@ -361,6 +391,17 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             points: points.iter().map(shift).collect(),
             bulges: bulges.clone(),
         }),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => Some(Geometry::Polygon {
+            center: shift(center),
+            radius: *radius,
+            sides: *sides,
+            angle: *angle,
+        }),
     }
 }
 
@@ -422,6 +463,17 @@ pub fn transformed(
             points: points.iter().map(map).collect(),
             bulges: bulges.clone(),
         }),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => Some(Geometry::Polygon {
+            center: map(center),
+            radius: radius * scale,
+            sides: *sides,
+            angle: turned_angle(*angle, degrees),
+        }),
     }
 }
 
@@ -431,7 +483,12 @@ fn turned_angle(angle: f64, degrees: f64) -> f64 {
     if degrees == 0.0 {
         return angle;
     }
-    let turned = (angle + degrees.to_radians()).rem_euclid(TAU);
+    within_half_turn(angle + degrees.to_radians())
+}
+
+/// An angle (radians) in (−π, π].
+fn within_half_turn(angle: f64) -> f64 {
+    let turned = angle.rem_euclid(TAU);
     if turned > PI { turned - TAU } else { turned }
 }
 
@@ -482,6 +539,21 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
             closed: *closed,
             points: points.iter().map(flip).collect(),
             bulges: bulges.iter().map(|b| negated(*b)).collect(),
+        }),
+        // The first corner is mirrored: its angle reflects about the mirror's direction.
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => Some(Geometry::Polygon {
+            center: flip(center),
+            radius: *radius,
+            sides: *sides,
+            angle: match mirror {
+                Mirror::LeftRight => within_half_turn(PI - angle),
+                Mirror::UpDown => negated(*angle),
+            },
         }),
     }
 }
@@ -538,6 +610,28 @@ pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f6
             let k = r1 / r0;
             Some([c1[0] + (p[0] - c0[0]) * k, c1[1] + (p[1] - c0[1]) * k])
         }
+        // As a circle's, turned with the first corner.
+        (
+            Geometry::Polygon {
+                center: c0,
+                radius: r0,
+                angle: a0,
+                ..
+            },
+            Geometry::Polygon {
+                center: c1,
+                radius: r1,
+                angle: a1,
+                ..
+            },
+        ) => {
+            if *r0 <= 0.0 {
+                return None;
+            }
+            let k = r1 / r0;
+            let turned = rotated([p[0] - c0[0], p[1] - c0[1]], (a1 - a0).to_degrees());
+            Some([c1[0] + turned[0] * k, c1[1] + turned[1] * k])
+        }
         (Geometry::Polyline { points: p0, .. }, Geometry::Polyline { points: p1, .. })
             if p0.len() == p1.len() && !p0.is_empty() =>
         {
@@ -571,6 +665,7 @@ pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f6
 mod tests {
     use super::*;
     use crate::models::{PathSegment, Shape};
+    use std::f64::consts::FRAC_PI_2;
 
     fn close(a: [f64; 2], b: [f64; 2]) -> bool {
         (a[0] - b[0]).abs() < 1e-9 && (a[1] - b[1]).abs() < 1e-9
@@ -663,6 +758,64 @@ mod tests {
         // would refuse to get narrower than its corners).
         let narrower = try_drag(&slot, Handle::Corner(2), [20.0, 2.0], false).unwrap();
         assert!(is_slot(&narrower));
+    }
+
+    #[test]
+    fn a_polygon_has_a_centre_and_a_corner_handle_and_mirrors_and_turns() {
+        let hexagon = Geometry::Polygon {
+            center: [0.0, 0.0],
+            radius: 10.0,
+            sides: 6,
+            angle: 0.0,
+        };
+        let list = handles(&hexagon, 5.0);
+        assert_eq!(
+            list,
+            [(Handle::Center, [0.0, 0.0]), (Handle::Radius, [10.0, 0.0])]
+        );
+        // Dragging the corner sets the radius and the turn.
+        let Ok(Geometry::Polygon { radius, angle, .. }) =
+            try_drag(&hexagon, Handle::Radius, [0.0, 20.0], false)
+        else {
+            panic!()
+        };
+        assert_eq!(radius, 20.0);
+        assert!((angle - FRAC_PI_2).abs() < 1e-12);
+        // Mirrored left to right, its first corner points the other way.
+        let turned = Geometry::Polygon {
+            center: [5.0, 0.0],
+            radius: 10.0,
+            sides: 5,
+            angle: 0.3,
+        };
+        let Some(Geometry::Polygon { center, angle, .. }) =
+            mirrored(&turned, Mirror::LeftRight, 0.0)
+        else {
+            panic!()
+        };
+        assert_eq!(center, [-5.0, 0.0]);
+        assert!((angle - (PI - 0.3)).abs() < 1e-12);
+        // Turned by 90° and scaled by 2 about the origin.
+        let Some(Geometry::Polygon {
+            center,
+            radius,
+            angle,
+            ..
+        }) = transformed(&turned, [0.0, 0.0], [0.0, 0.0], 2.0, 90.0)
+        else {
+            panic!()
+        };
+        assert_eq!((center, radius), ([0.0, 10.0], 20.0));
+        assert!((angle - (0.3 + FRAC_PI_2)).abs() < 1e-12);
+        // A point on its first corner follows the corner.
+        let bigger = Geometry::Polygon {
+            center: [0.0, 0.0],
+            radius: 20.0,
+            sides: 6,
+            angle: FRAC_PI_2,
+        };
+        let moved = followed_point([10.0, 0.0], &hexagon, &bigger).unwrap();
+        assert!((moved[0]).abs() < 1e-9 && (moved[1] - 20.0).abs() < 1e-9);
     }
 
     #[test]

@@ -27,3 +27,4 @@ drawing-deleted-status = { $count ->
     } { $shapes }
 drawing-imported-kept = Se conservaron las formas importadas de la selección (solo cambian con el DXF).
 drawing-kind-slot = ranura
+drawing-kind-polygon = polígono

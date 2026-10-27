@@ -93,3 +93,5 @@ header-arc = Båge
 header-arc-hover = Rita en båge: start, slut, sedan en punkt den går genom
 header-slot = Spår
 header-slot-hover = Rita ett spår: mittpunkterna i ändarna, sedan bredden
+header-polygon = Polygon
+header-polygon-hover = Rita en regelbunden polygon: centrum, sedan ett hörn (antalet sidor i statusraden)

@@ -34,7 +34,9 @@ impl ChiploadApp {
             }
             self.measure = None;
             self.placing_text = false;
-            self.sketch = Some(Sketch::new(tool));
+            let mut sketch = Sketch::new(tool);
+            sketch.sides = self.polygon_sides;
+            self.sketch = Some(sketch);
             self.typed = None;
             self.last_tool = Some(tool);
         }
@@ -140,6 +142,7 @@ impl ChiploadApp {
                     Some(Geometry::Circle { .. }) => t!(self, "drawing-kind-circle"),
                     Some(Geometry::Rectangle { .. }) => t!(self, "drawing-kind-rectangle"),
                     Some(Geometry::Polyline { .. }) => t!(self, "drawing-kind-polyline"),
+                    Some(Geometry::Polygon { .. }) => t!(self, "drawing-kind-polygon"),
                     Some(Geometry::Path { .. }) | None => t!(self, "drawing-shape"),
                 };
                 self.set_status(

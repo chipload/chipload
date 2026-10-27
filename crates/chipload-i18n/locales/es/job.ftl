@@ -299,3 +299,4 @@ job-import-kept = Se conserva la tuya: { $name } (archivo: { $differences })
 job-import-differs = Difiere de la tuya: { $name } (archivo: { $differences })
 job-import-default = Predeterminada: { $name }
 job-import-becomes-default = Pasa a ser la predeterminada: { $name }
+job-polygon-sides = un polígono tiene de { $least } a { $most } lados, se recibió { $got }

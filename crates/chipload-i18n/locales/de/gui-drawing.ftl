@@ -27,3 +27,4 @@ drawing-deleted-status = { $count ->
     } { $shapes } gelöscht
 drawing-imported-kept = Importierte Formen in der Auswahl wurden behalten (sie ändern sich nur mit der DXF).
 drawing-kind-slot = Langloch
+drawing-kind-polygon = Vieleck

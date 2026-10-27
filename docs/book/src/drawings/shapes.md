@@ -13,6 +13,11 @@ Chipload draws the parts it cuts, with or without a DXF:
 - **Slot** (**S**): the centres of its two ends, then its width (a click, or type it). It
   is a rectangle whose corner radius is half its width; it shows as *Slot*, and stays one
   when you change its width.
+- **Polygon** (**N**): the centre, then a corner. Its number of sides is on the status bar
+  while you draw (6 to start with, then the last you chose). Its form has the radius to
+  the corners and the size **across flats**, either of which sets the other (a hexagon
+  nut's spanner size), and the angle of its first corner. `chipload shape add P polygon
+  --center 50,30 --sides 6 --across-flats 13`.
 
 Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no
@@ -88,8 +93,8 @@ multiple of 15° (0° and 90° for straight lines), its length on the grid.
   drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
   type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
   Enter. A polyline keeps no angle of its own; turning moves its points.
-- **In the Browser:** under *Drawing*, the *Circles*, *Rectangles* and *Polylines* groups list
-  their shapes, in a folder per layer when there are several. Click a row to select the
+- **In the Browser:** under *Drawing*, the *Circles*, *Rectangles*, *Polylines* and
+  *Polygons* groups list their shapes, in a folder per layer when there are several. Click a row to select the
   shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
   with more than 20 shapes starts closed.
 - **Names:** give a drawn shape a *Name* in its form (or *Rename…* in the Browser); the

@@ -46,3 +46,5 @@ draw-arc-on-a-line = de tre punkterna ligger på en linje: använd polylinjeverk
 draw-no-size-slot = spåret skulle sakna längd eller bredd
 draw-entry-radius-too-small = radien måste vara minst halva avståndet mellan ändarna
 draw-entry-no-side = flytta markören åt det håll bågen ska bukta
+draw-status-polygon-start = Ritar en polygon: klicka centrum (rutnät { $grid }, Esc avbryter)
+draw-status-polygon = Ritar en polygon med radie { $radius }: klicka ett hörn (rutnät { $grid }, Esc avbryter)

@@ -58,3 +58,4 @@ sources-shape-hover = Fai clic per selezionarla; Ctrl+clic aggiunge o toglie; cl
 sources-rename = Rinomina…
 sources-copy-shape = Copia
 sources-delete-shape = Elimina
+sources-polygons = Poligoni

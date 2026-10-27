@@ -27,3 +27,4 @@ drawing-deleted-status = { $count ->
     } { $shapes }
 drawing-imported-kept = Le forme importate nella selezione sono state mantenute (cambiano solo con il DXF).
 drawing-kind-slot = asola
+drawing-kind-polygon = poligono

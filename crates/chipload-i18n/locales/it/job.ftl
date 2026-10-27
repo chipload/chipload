@@ -298,3 +298,4 @@ job-import-kept = Tenuto il tuo: { $name } (file: { $differences })
 job-import-differs = Diverso dal tuo: { $name } (file: { $differences })
 job-import-default = Predefinito: { $name }
 job-import-becomes-default = Diventa il predefinito: { $name }
+job-polygon-sides = un poligono ha da { $least } a { $most } lati, ricevuto { $got }

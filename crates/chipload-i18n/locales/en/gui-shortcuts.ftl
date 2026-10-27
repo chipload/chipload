@@ -85,3 +85,4 @@ shortcuts-orbit-drag = Drag in the 3D view
 shortcuts-orbit-drag-what = Orbit; Shift+drag pans
 shortcuts-draw-arc = Draw an arc
 shortcuts-draw-slot = Draw a slot
+shortcuts-draw-polygon = Draw a polygon

@@ -58,3 +58,4 @@ sources-shape-hover = Klicka för att markera den; Ctrl+klick lägger till eller
 sources-rename = Byt namn…
 sources-copy-shape = Kopiera
 sources-delete-shape = Radera
+sources-polygons = Polygoner
