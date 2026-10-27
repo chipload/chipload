@@ -7,7 +7,7 @@ go unused because another tool always does the job better. Every proposed featur
 weighed against that. This record says what is in, what is out, and how to decide.
 
 ## What Chipload is
-2.5D CAM for CNC routers and mills: a drawing (DXF, or simple shapes drawn in Chipload) in,
+2.5D CAM for CNC routers and mills: a drawing (DXF, or shapes drawn in Chipload) in,
 checked G-code out, for any machine through data-driven posts. Usable headless (the CLI and
 the project file are first-class) as well as in the GUI.
 
@@ -38,6 +38,15 @@ the project file are first-class) as well as in the GUI.
   - 2026-10-17: the freeze is lifted (user). Rounded rectangle corners, text and the
     picture and text handles came since; drawing additions are judged one by one by the
     rules below, and full CAD stays out.
+  - 2026-10-27: Chipload draws the **2D geometry of the parts it cuts** (the user: the app
+    should be self-sufficient for creating geometry; docs/specs/drawing-roadmap.md):
+    everything an outline, a pocket, a hole pattern or a sign needs, drawn exactly and
+    edited quickly (typed values, snaps, offset, fillet, trim, booleans, arrays,
+    parameters, DXF export). Still out: 3D, assemblies, a geometric constraint solver,
+    drafting for print (dimensions, hatches, title blocks), splines and ellipses as drawing
+    tools (they import fine), and file formats besides DXF. The test for a drawing feature:
+    would a maker drawing a part to cut need it often enough that leaving for a CAD program
+    would be the common case?
 - **Surfacing and facing** (decided 2026-10-13): skipped. A flattening program is a few
   lines of G-code that any sender or a small script makes; reconsider only if users ask.
   - 2026-10-17: taken in at the user's request (docs/specs/surfacing.md). A script gives
