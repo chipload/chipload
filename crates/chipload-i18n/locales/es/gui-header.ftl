@@ -98,3 +98,7 @@ header-polygon-hover = Dibujar un polígono regular: el centro y luego un vérti
 header-group-modify = Modificar
 header-offset = Desfase
 header-offset-hover = Una forma a distancia de las seleccionadas: vaya al lado deseado, haga clic o escriba la distancia
+header-fillet = Redondeo
+header-fillet-hover = Redondear una esquina de la forma seleccionada con un arco: haga clic en la esquina; Mayús+clic redondea todas
+header-chamfer = Chaflán
+header-chamfer-hover = Cortar en recto una esquina de la forma seleccionada: haga clic en la esquina; Mayús+clic corta todas

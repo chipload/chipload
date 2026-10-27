@@ -556,3 +556,39 @@ fn the_offset_tool_offsets_the_selection_to_the_cursor() {
     app.cancel_modify();
     assert!(app.modify.is_none());
 }
+
+#[test]
+fn the_corner_tools_round_or_cut_the_clicked_corner() {
+    // docs/specs/drawing-editing.md §3: the triangle S3 (110, 65), (140, 65), (125, 95).
+    use super::modify::ModifyTool;
+    let mut app = drawn_part();
+    app.view.scale = 10.0;
+    app.start_modify(ModifyTool::Fillet);
+    app.fillet_radius = 2.0;
+    // A click on the triangle selects it; then a click by its first corner rounds it.
+    app.modify_click(
+        Some(contour_of(&app, 3)),
+        (125.0, 65.0),
+        false,
+        (false, false),
+    );
+    assert_eq!(app.selected_drawn(), [3]);
+    assert_eq!(app.corner_at((110.2, 65.1)).map(|c| c.1), Some(0));
+    app.modify_click(None, (110.2, 65.1), false, (false, false));
+    let Geometry::Polyline { points, bulges, .. } = &app.shape(3).unwrap().geometry else {
+        panic!("a triangle with a rounded corner is a polyline")
+    };
+    assert_eq!(
+        (points.len(), bulges.iter().filter(|&&b| b != 0.0).count()),
+        (4, 1)
+    );
+    app.commit();
+    // Chamfer, Shift: the two corners left are cut.
+    app.start_modify(ModifyTool::Chamfer);
+    app.chamfer_distance = 1.0;
+    app.modify_click(None, (0.0, 0.0), false, (false, true));
+    let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
+        panic!()
+    };
+    assert_eq!(points.len(), 6);
+}

@@ -63,6 +63,19 @@ pub fn set_shape(
     checked(out)
 }
 
+/// Replace drawn shape `id`'s values, its kind too (an editing operation that turns a
+/// rectangle into a polyline), keeping its id and layer so operations follow it. Points on
+/// it follow where the kind stays (as [`set_shape`]).
+pub fn reshape(job: &Job, id: u64, geometry: Geometry) -> Result<Job, PipelineError> {
+    let mut out = job.clone();
+    let shape = drawn_mut(&mut out, id)?;
+    let old = std::mem::replace(&mut shape.geometry, geometry.clone());
+    follow_points(&mut out, job, &[id], |p| {
+        chipload_job::edit::followed_point(p, &old, &geometry)
+    });
+    checked(out)
+}
+
 /// Every start point, corner choice and tab placed by hand whose nearest shape (among
 /// those its operation selects, in `before`) is one of `ids`, moved by `map` (None: it
 /// stays).

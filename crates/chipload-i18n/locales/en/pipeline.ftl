@@ -459,3 +459,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] operation { $operations } cuts
    *[other] operations { $operations } cut
 }.
+pipeline-corner-none = S{ $id } has no corners to round or cut
+pipeline-corner-not = corner { $corner } of S{ $id } isn't between two straight sides
+pipeline-corner-straight = S{ $id } runs straight on at { $corner }: there is no corner
+pipeline-corner-too-large = that is too large for the sides of S{ $id }: at most { $most }
+pipeline-corner-size = the radius or distance must be more than 0

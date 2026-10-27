@@ -348,6 +348,9 @@ pub struct ChiploadApp {
     /// The offset tool's corners and count, kept for the session.
     pub offset_corners: chipload_pipeline::drawing_edit::Corners,
     pub offset_count: u32,
+    /// The fillet tool's radius and the chamfer tool's distance, mm, kept for the session.
+    pub fillet_radius: f64,
+    pub chamfer_distance: f64,
     offset_preview: modify::OffsetPreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
@@ -484,6 +487,8 @@ impl Default for ChiploadApp {
             modify: None,
             offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
             offset_count: 1,
+            fillet_radius: 3.0,
+            chamfer_distance: 1.0,
             offset_preview: modify::OffsetPreview::default(),
             placing_text: false,
             focus_text_field: false,

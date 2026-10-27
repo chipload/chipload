@@ -474,3 +474,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] l'opération { $operations } usine
    *[other] les opérations { $operations } usinent
 }.
+pipeline-corner-none = S{ $id } n'a pas de coins à arrondir ou chanfreiner
+pipeline-corner-not = le coin { $corner } de S{ $id } n'est pas entre deux côtés droits
+pipeline-corner-straight = S{ $id } continue tout droit en { $corner } : il n'y a pas de coin
+pipeline-corner-too-large = c'est trop grand pour les côtés de S{ $id } : au plus { $most }
+pipeline-corner-size = le rayon ou la distance doit être supérieur à 0

@@ -28,6 +28,8 @@ pub enum Icon {
     Slot,
     Polygon,
     Offset,
+    Fillet,
+    Chamfer,
     Paths,
     Profile,
     Pocket,
@@ -157,6 +159,13 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.closed(&[(0.35, 0.35), (0.65, 0.35), (0.65, 0.65), (0.35, 0.65)]);
             pen.rounded((0.5, 0.5), 0.38, 0.12);
         }
+        Icon::Fillet => {
+            let mut points = vec![(0.15, 0.85), (0.15, 0.45)];
+            points.extend(pen.arc((0.55, 0.45), 0.4, PI, PI + FRAC_PI_2));
+            points.push((0.85, 0.05));
+            pen.poly(&points);
+        }
+        Icon::Chamfer => pen.poly(&[(0.15, 0.85), (0.15, 0.4), (0.4, 0.15), (0.85, 0.15)]),
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)
                 .map(|k| {

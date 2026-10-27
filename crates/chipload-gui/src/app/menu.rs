@@ -556,6 +556,27 @@ impl ChiploadApp {
             self.start_modify(super::modify::ModifyTool::Offset);
             ui.close();
         }
+        for (tool, label, hover) in [
+            (
+                super::modify::ModifyTool::Fillet,
+                t!(ui, "menu-modify-fillet"),
+                t!(ui, "header-fillet-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Chamfer,
+                t!(ui, "menu-modify-chamfer"),
+                t!(ui, "header-chamfer-hover"),
+            ),
+        ] {
+            if ui
+                .add_enabled(can_draw, egui::Button::new(label))
+                .on_hover_text(hover)
+                .clicked()
+            {
+                self.start_modify(tool);
+                ui.close();
+            }
+        }
     }
 
     /// The Help menu's items (a ribbon caption's or the top bar's drop-down).

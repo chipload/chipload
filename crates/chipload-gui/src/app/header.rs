@@ -438,13 +438,29 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let can_draw = app.can_draw();
-                let tools = [(
-                    super::modify::ModifyTool::Offset,
-                    Icon::Offset,
-                    t!(ui, "header-offset"),
-                    t!(ui, "header-offset-hover"),
-                    Action::Offset,
-                )];
+                let tools = [
+                    (
+                        super::modify::ModifyTool::Offset,
+                        Icon::Offset,
+                        t!(ui, "header-offset"),
+                        t!(ui, "header-offset-hover"),
+                        Some(Action::Offset),
+                    ),
+                    (
+                        super::modify::ModifyTool::Fillet,
+                        Icon::Fillet,
+                        t!(ui, "header-fillet"),
+                        t!(ui, "header-fillet-hover"),
+                        None,
+                    ),
+                    (
+                        super::modify::ModifyTool::Chamfer,
+                        Icon::Chamfer,
+                        t!(ui, "header-chamfer"),
+                        t!(ui, "header-chamfer-hover"),
+                        None,
+                    ),
+                ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
                     for row in tools.chunks(tools.len().div_ceil(2)) {
@@ -452,8 +468,12 @@ impl ChiploadApp {
                             for (tool, icon, label, hint, action) in row {
                                 let active = app.modify == Some(*tool);
                                 let hint = format!("{label}: {hint}");
+                                let hint = match action {
+                                    Some(action) => hover_keys(&hint, *action),
+                                    None => hint,
+                                };
                                 if small_ribbon_button(ui, *icon, label, can_draw, active)
-                                    .on_hover_text(hover_keys(&hint, *action))
+                                    .on_hover_text(hint)
                                     .clicked()
                                 {
                                     app.start_modify(*tool);

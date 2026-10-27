@@ -98,3 +98,7 @@ header-polygon-hover = Disegna un poligono regolare: il centro, poi un vertice (
 header-group-modify = Modifica
 header-offset = Offset
 header-offset-hover = Una forma a distanza da quelle selezionate: spostati dal lato voluto, clicca o digita la distanza
+header-fillet = Raccordo
+header-fillet-hover = Arrotonda un angolo della forma selezionata con un arco: clicca l'angolo; Maiusc+clic li arrotonda tutti
+header-chamfer = Smusso
+header-chamfer-hover = Taglia dritto un angolo della forma selezionata: clicca l'angolo; Maiusc+clic li taglia tutti

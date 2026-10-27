@@ -469,3 +469,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] Bearbeitung { $operations } schneidet
    *[other] die Bearbeitungen { $operations } schneiden
 }.
+pipeline-corner-none = S{ $id } hat keine Ecken zum Runden oder Fasen
+pipeline-corner-not = Ecke { $corner } von S{ $id } liegt nicht zwischen zwei geraden Seiten
+pipeline-corner-straight = S{ $id } läuft bei { $corner } gerade weiter: dort ist keine Ecke
+pipeline-corner-too-large = das ist zu groß für die Seiten von S{ $id }: höchstens { $most }
+pipeline-corner-size = Radius oder Abstand müssen größer als 0 sein

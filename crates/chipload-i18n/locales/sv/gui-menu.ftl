@@ -135,3 +135,5 @@ menu-draw-slot = Spår
 menu-draw-polygon = Polygon
 menu-polygon-sides = Sidor
 menu-modify-offset = Förskjut
+menu-modify-fillet = Avrunda
+menu-modify-chamfer = Fasa

@@ -25,7 +25,7 @@ use chipload_job::{
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
-use chipload_pipeline::drawing_edit::{Corners, OffsetSide, offset_shapes};
+use chipload_pipeline::drawing_edit::{Corners, Cut, OffsetSide, cut_shape_corners, offset_shapes};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
@@ -817,6 +817,40 @@ enum ShapeAction {
         /// How many, each the distance further than the last.
         #[arg(long, default_value_t = 1)]
         count: u32,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Round corners of a drawn shape with arcs of a radius; it keeps its id
+    /// (docs/specs/drawing-editing.md §3).
+    Fillet {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        /// The radius, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long)]
+        radius: f64,
+        /// Only this corner: its point's number, from 0 (default: every corner).
+        #[arg(long)]
+        corner: Option<usize>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Cut corners of a drawn shape straight across, a distance back along each side; it
+    /// keeps its id (docs/specs/drawing-editing.md §3).
+    Chamfer {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        /// How far back along each side, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long)]
+        distance: f64,
+        /// Only this corner: its point's number, from 0 (default: every corner).
+        #[arg(long)]
+        corner: Option<usize>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1678,6 +1712,12 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Offset {
             project, output, ..
         }
+        | ShapeAction::Fillet {
+            project, output, ..
+        }
+        | ShapeAction::Chamfer {
+            project, output, ..
+        }
         | ShapeAction::Move {
             project, output, ..
         }
@@ -1777,6 +1817,17 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 (edited.job, lines)
             })
         }
+        ShapeAction::Fillet {
+            id, radius, corner, ..
+        } => cut_shape_corners(&job, id, corner, Cut::Fillet(radius))
+            .map(|job| (job, vec![format!("Rounded the corners of S{id}.")])),
+        ShapeAction::Chamfer {
+            id,
+            distance,
+            corner,
+            ..
+        } => cut_shape_corners(&job, id, corner, Cut::Chamfer(distance))
+            .map(|job| (job, vec![format!("Cut the corners of S{id}.")])),
         ShapeAction::Move { ids, dx, dy, .. } => {
             transform_shapes(&job, &ids, (0.0, 0.0), (dx, dy), 1.0, 0.0).map(|job| {
                 let text = format!("Moved shapes {}.", shape_names(&ids));

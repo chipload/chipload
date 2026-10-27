@@ -135,3 +135,5 @@ menu-draw-slot = Rainure
 menu-draw-polygon = Polygone
 menu-polygon-sides = Côtés
 menu-modify-offset = Décaler
+menu-modify-fillet = Congé
+menu-modify-chamfer = Chanfrein

@@ -2,7 +2,9 @@
 //! Editing tools on drawn shapes (docs/specs/drawing-editing.md): the tool being used, its
 //! preview and its clicks. The geometry is `chipload_pipeline::drawing_edit`.
 
-use chipload_pipeline::drawing_edit::{Corners, OffsetSide, offset_at, offset_shapes};
+use chipload_pipeline::drawing_edit::{
+    Corners, Cut, OffsetSide, cut_shape_corners, offset_at, offset_shapes, shape_corners,
+};
 
 use super::*;
 
@@ -11,6 +13,10 @@ use super::*;
 pub enum ModifyTool {
     /// Offset the selected shapes to the cursor's side (§2).
     Offset,
+    /// Round a corner of the selected shape (Shift: every corner) (§3).
+    Fillet,
+    /// Cut a corner of the selected shape straight across (Shift: every corner) (§3).
+    Chamfer,
 }
 
 /// The offset the cursor asks for, and its preview, kept until either changes.
@@ -176,21 +182,128 @@ impl ChiploadApp {
         }
     }
 
+    /// The selected drawn shape's corner nearest the cursor at `at`, within reach on screen.
+    pub fn corner_at(&self, at: Point) -> Option<(u64, usize, Point)> {
+        let [id] = self.selected_drawn()[..] else {
+            return None;
+        };
+        let shape = self.shape(id)?;
+        let reach = f64::from(crate::view::PICK_TOLERANCE_PX) * 1.5 / self.view.scale;
+        shape_corners(shape)
+            .into_iter()
+            .map(|(k, p)| (k, p, chipload_core::primitives::distance(p, at)))
+            .filter(|&(_, _, d)| d <= reach)
+            .min_by(|a, b| a.2.total_cmp(&b.2))
+            .map(|(k, p, _)| (id, k, p))
+    }
+
+    /// The cut the fillet or chamfer tool makes.
+    fn corner_cut(&self) -> Option<Cut> {
+        match self.modify? {
+            ModifyTool::Fillet => Some(Cut::Fillet(self.fillet_radius)),
+            ModifyTool::Chamfer => Some(Cut::Chamfer(self.chamfer_distance)),
+            ModifyTool::Offset => None,
+        }
+    }
+
+    /// The selected shape as the corner tool would leave it, for the preview: the corner
+    /// at the cursor, or with `all` every corner.
+    pub(super) fn corner_preview(&self, at: Point, all: bool) -> Vec<Vec<Point>> {
+        let (Some(cut), Some(edit)) = (self.corner_cut(), self.edit.as_ref()) else {
+            return Vec::new();
+        };
+        let target = if all {
+            match self.selected_drawn()[..] {
+                [id] => Some((id, None)),
+                _ => None,
+            }
+        } else {
+            self.corner_at(at).map(|(id, k, _)| (id, Some(k)))
+        };
+        let Some((id, corner)) = target else {
+            return Vec::new();
+        };
+        cut_shape_corners(&edit.settings, id, corner, cut)
+            .ok()
+            .and_then(|job| job.drawing.shapes.into_iter().find(|s| s.id == id))
+            .map(|s| crate::draw::outline(&s.geometry))
+            .unwrap_or_default()
+    }
+
+    /// Fillet or chamfer corner `corner` (None: every corner) of shape `id`, as one undo step.
+    pub fn apply_corner_cut(&mut self, id: u64, corner: Option<usize>) -> bool {
+        let Some(cut) = self.corner_cut() else {
+            return false;
+        };
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        match cut_shape_corners(&job, id, corner, cut) {
+            Ok(job) => {
+                edit.settings.drawing = job.drawing;
+                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
+                    entry.op = op;
+                }
+                self.shape_draft = None;
+                self.drawing_changed(&[id]);
+                true
+            }
+            Err(err) => {
+                let text = err.message().render(self.language, self.units.into());
+                self.set_status(text, STATUS_SECONDS);
+                false
+            }
+        }
+    }
+
+    /// A click while an editing tool is active: on a drawn shape that isn't selected it
+    /// selects it (Ctrl: adds it); otherwise the tool works at the cursor. `all` (Shift):
+    /// a corner tool does every corner.
+    pub fn modify_click(
+        &mut self,
+        picked: Option<usize>,
+        at: Point,
+        toggle: bool,
+        keys: (bool, bool),
+    ) {
+        let (free, all) = keys;
+        match self.modify {
+            Some(ModifyTool::Offset) => self.offset_click(picked, at, toggle, free),
+            Some(ModifyTool::Fillet | ModifyTool::Chamfer) => {
+                if self.picks_unselected_drawn(picked) {
+                    self.click(picked, toggle);
+                } else if all && let [id] = self.selected_drawn()[..] {
+                    self.apply_corner_cut(id, None);
+                } else if let Some((id, k, _)) = self.corner_at(at) {
+                    self.apply_corner_cut(id, Some(k));
+                }
+            }
+            None => {}
+        }
+    }
+
+    /// Whether contour `picked` is a drawn shape outside the selection.
+    fn picks_unselected_drawn(&self, picked: Option<usize>) -> bool {
+        let ids = self.selection.ids(&self.contours);
+        picked.is_some_and(|p| !ids.contains(&p))
+            && picked
+                .and_then(|id| self.contours.iter().find(|c| c.id == id))
+                .is_some_and(|c| {
+                    let shapes = shapes_of(c);
+                    !shapes.is_empty()
+                        && shapes
+                            .iter()
+                            .all(|&s| self.shape(s).is_some_and(chipload_job::Shape::is_drawn))
+                })
+    }
+
     /// A click while the offset tool is active: on a drawn shape that isn't selected, it
     /// selects it (Ctrl: adds it); anywhere else, with shapes selected, it offsets them to
     /// the cursor.
     pub fn offset_click(&mut self, picked: Option<usize>, at: Point, toggle: bool, free: bool) {
-        let ids = self.selection.ids(&self.contours);
-        let drawn = picked
-            .and_then(|id| self.contours.iter().find(|c| c.id == id))
-            .is_some_and(|c| {
-                let shapes = shapes_of(c);
-                !shapes.is_empty()
-                    && shapes
-                        .iter()
-                        .all(|&s| self.shape(s).is_some_and(chipload_job::Shape::is_drawn))
-            });
-        if drawn && picked.is_some_and(|p| !ids.contains(&p)) {
+        if self.picks_unselected_drawn(picked) {
             self.click(picked, toggle);
             return;
         }
@@ -215,13 +328,31 @@ impl ChiploadApp {
                 ),
                 None => t!(self, "modify-offset-pick"),
             },
+            ModifyTool::Fillet | ModifyTool::Chamfer if self.selected_drawn().len() != 1 => {
+                t!(self, "modify-corner-pick")
+            }
+            ModifyTool::Fillet => t!(self, "modify-fillet-status"),
+            ModifyTool::Chamfer => t!(self, "modify-chamfer-status"),
         })
     }
 
     /// While the offset tool is active: its corners and how many, on the status bar.
     pub(super) fn offset_fields(&mut self, ui: &mut egui::Ui) {
-        if self.modify != Some(ModifyTool::Offset) {
-            return;
+        match self.modify {
+            Some(ModifyTool::Fillet) => {
+                ui.label(t!(ui, "modify-fillet-radius"));
+                ui.add(crate::units::length(&mut self.fillet_radius).range(0.001..=f64::MAX));
+                ui.separator();
+                return;
+            }
+            Some(ModifyTool::Chamfer) => {
+                ui.label(t!(ui, "modify-chamfer-distance"));
+                ui.add(crate::units::length(&mut self.chamfer_distance).range(0.001..=f64::MAX));
+                ui.separator();
+                return;
+            }
+            Some(ModifyTool::Offset) => {}
+            None => return,
         }
         egui::ComboBox::from_id_salt("offset-corners")
             .selected_text(match self.offset_corners {

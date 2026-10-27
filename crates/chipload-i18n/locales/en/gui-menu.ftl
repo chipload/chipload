@@ -135,3 +135,5 @@ menu-draw-slot = Slot
 menu-draw-polygon = Polygon
 menu-polygon-sides = Sides
 menu-modify-offset = Offset
+menu-modify-fillet = Fillet
+menu-modify-chamfer = Chamfer

@@ -471,3 +471,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] l'operazione { $operations } taglia
    *[other] le operazioni { $operations } tagliano
 }.
+pipeline-corner-none = S{ $id } non ha angoli da raccordare o smussare
+pipeline-corner-not = l'angolo { $corner } di S{ $id } non è tra due lati diritti
+pipeline-corner-straight = S{ $id } prosegue diritta in { $corner }: non c'è un angolo
+pipeline-corner-too-large = è troppo grande per i lati di S{ $id }: al massimo { $most }
+pipeline-corner-size = il raggio o la distanza deve essere maggiore di 0

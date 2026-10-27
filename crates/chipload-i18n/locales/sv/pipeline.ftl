@@ -466,3 +466,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] operation { $operations } skär
    *[other] operationerna { $operations } skär
 }.
+pipeline-corner-none = S{ $id } har inga hörn att runda eller fasa
+pipeline-corner-not = hörn { $corner } på S{ $id } ligger inte mellan två raka sidor
+pipeline-corner-straight = S{ $id } går rakt fram vid { $corner }: där finns inget hörn
+pipeline-corner-too-large = det är för stort för sidorna på S{ $id }: högst { $most }
+pipeline-corner-size = radien eller avståndet måste vara större än 0

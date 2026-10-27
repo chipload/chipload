@@ -270,19 +270,31 @@ impl ChiploadApp {
             self.scene.measure = None;
             self.scene.sketch_points.clear();
             let free = alt;
-            let target = self.cursor.and_then(|c| self.offset_for_cursor(c, free));
-            self.scene.preview = match target {
-                Some((d, side)) => self.offset_outlines(d, side),
-                None => Vec::new(),
-            };
-            if let (Some((d, _)), Some(at)) = (target, self.cursor) {
-                readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
+            if self.modify == Some(super::modify::ModifyTool::Offset) {
+                let target = self.cursor.and_then(|c| self.offset_for_cursor(c, free));
+                self.scene.preview = match target {
+                    Some((d, side)) => self.offset_outlines(d, side),
+                    None => Vec::new(),
+                };
+                if let (Some((d, _)), Some(at)) = (target, self.cursor) {
+                    readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
+                }
+            } else {
+                // A corner tool: the corner under the cursor marked, the result previewed.
+                self.scene.snap_mark = self
+                    .cursor
+                    .and_then(|c| self.corner_at(c))
+                    .map(|(_, _, p)| p);
+                self.scene.preview = self
+                    .cursor
+                    .map(|c| self.corner_preview(c, shift))
+                    .unwrap_or_default();
             }
             if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
             {
                 let picked = self.scene.pick(&self.view, pos);
-                self.offset_click(picked, self.view.to_world(pos), ctrl, free);
+                self.modify_click(picked, self.view.to_world(pos), ctrl, (free, shift));
             }
         } else if self.placing_text() {
             self.scene.preview.clear();

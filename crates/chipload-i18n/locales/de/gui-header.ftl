@@ -98,3 +98,7 @@ header-polygon-hover = Ein regelmäßiges Vieleck zeichnen: Mittelpunkt, dann ei
 header-group-modify = Ändern
 header-offset = Versatz
 header-offset-hover = Eine Form im Abstand zu den ausgewählten: auf die Seite fahren, klicken oder den Abstand eingeben
+header-fillet = Abrunden
+header-fillet-hover = Eine Ecke der ausgewählten Form mit einem Bogen runden: die Ecke klicken; Shift+Klick rundet alle Ecken
+header-chamfer = Fase
+header-chamfer-hover = Eine Ecke der ausgewählten Form gerade abschneiden: die Ecke klicken; Shift+Klick schneidet alle Ecken

@@ -89,6 +89,11 @@ chipload shape chamfer P ID --distance 3 [--corner K]
 - **GUI:** select a shape, then the tool; hover a corner (it highlights), click, type the
   radius (the last one used is the default). Holding Shift while clicking does every
   corner.
+- *Implemented:* the radius (or distance) is a field on the status bar, kept for the
+  session (3 mm and 1 mm to start), rather than typed after the click; the hovered corner
+  shows the result as a preview. A rectangle whose corners are round already has no
+  corners to cut one by one (refused); fillet all sets its corner radius. The geometry is
+  `chipload_draw::corner` (tangent points r / tan(θ / 2) back from the corner).
 
 ## 4. Trim, extend and break
 

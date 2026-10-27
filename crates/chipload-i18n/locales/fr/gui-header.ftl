@@ -98,3 +98,7 @@ header-polygon-hover = Dessiner un polygone régulier : le centre, puis un somme
 header-group-modify = Modifier
 header-offset = Décaler
 header-offset-hover = Une forme à distance des formes sélectionnées : placez-vous du côté voulu, cliquez ou tapez la distance
+header-fillet = Congé
+header-fillet-hover = Arrondir un coin de la forme sélectionnée par un arc : cliquez le coin ; Maj+clic arrondit tous les coins
+header-chamfer = Chanfrein
+header-chamfer-hover = Couper un coin de la forme sélectionnée en droite : cliquez le coin ; Maj+clic coupe tous les coins

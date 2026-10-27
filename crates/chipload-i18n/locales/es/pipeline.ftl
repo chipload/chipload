@@ -474,3 +474,8 @@ pipeline-new-shapes-cut = { $count ->
     [one] corta la operación { $operations }
    *[other] cortan las operaciones { $operations }
 }.
+pipeline-corner-none = S{ $id } no tiene esquinas que redondear o achaflanar
+pipeline-corner-not = la esquina { $corner } de S{ $id } no está entre dos lados rectos
+pipeline-corner-straight = S{ $id } sigue recta en { $corner }: no hay esquina
+pipeline-corner-too-large = es demasiado grande para los lados de S{ $id }: como mucho { $most }
+pipeline-corner-size = el radio o la distancia debe ser mayor que 0

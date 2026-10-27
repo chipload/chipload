@@ -98,3 +98,7 @@ header-polygon-hover = Draw a regular polygon: the centre, then a corner (the nu
 header-group-modify = Modify
 header-offset = Offset
 header-offset-hover = A shape at a distance from the selected ones: move to the side, click or type the distance
+header-fillet = Fillet
+header-fillet-hover = Round a corner of the selected shape with an arc: click the corner; Shift+click rounds every corner
+header-chamfer = Chamfer
+header-chamfer-hover = Cut a corner of the selected shape straight across: click the corner; Shift+click cuts every corner

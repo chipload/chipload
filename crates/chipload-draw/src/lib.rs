@@ -5,6 +5,7 @@
 //! See docs/specs/drawing-roadmap.md and drawing-input.md.
 
 pub mod construct;
+pub mod corner;
 pub mod intersect;
 pub mod offset;
 pub mod select;

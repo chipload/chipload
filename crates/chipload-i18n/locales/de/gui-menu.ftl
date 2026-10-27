@@ -135,3 +135,5 @@ menu-draw-slot = Langloch
 menu-draw-polygon = Vieleck
 menu-polygon-sides = Seiten
 menu-modify-offset = Versatz
+menu-modify-fillet = Abrunden
+menu-modify-chamfer = Fase

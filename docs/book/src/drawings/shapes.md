@@ -79,6 +79,15 @@ DXF first, [Explode](several.md)).
   polygon inward or with sharp corners keep their kind; anything else becomes a polyline
   with true arcs. On the command line: `chipload shape offset P 1 2 --distance 3
   [--side inside] [--corners sharp] [--count 2]`.
+- **Fillet** and **Chamfer**: select one drawn shape (or click it with the tool), then
+  click a corner (it is marked when the cursor is near it) to round it with an arc of the
+  *Radius* on the status bar, or cut it straight across, the *Distance* back along each
+  side. Shift+click does every corner. A corner is a point between two straight sides; a
+  radius too large for the sides is refused with the most that fits (two corners on one
+  side share it). A rectangle rounded all round keeps its kind (its corner radius); any
+  other shape becomes a polyline and keeps its number, so operations still cut it.
+  `chipload shape fillet P 3 --radius 2 [--corner 0]`, `chipload shape chamfer P 3
+  --distance 1`.
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 

@@ -135,3 +135,5 @@ menu-draw-slot = Asola
 menu-draw-polygon = Poligono
 menu-polygon-sides = Lati
 menu-modify-offset = Offset
+menu-modify-fillet = Raccordo
+menu-modify-chamfer = Smusso

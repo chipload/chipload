@@ -504,6 +504,38 @@ chipload shape offset <PROJECT> <IDS>... [OPTIONS]
 | `--count <COUNT>` | How many, each the distance further than the last. Default: `1`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape fillet`
+
+Round corners of a drawn shape with arcs of a radius; it keeps its id (docs/specs/drawing-editing.md §3)
+
+```text
+chipload shape fillet <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+| `--radius <RADIUS>` | The radius, mm (or with a unit) Required. |
+| `--corner <CORNER>` | Only this corner: its point's number, from 0 (default: every corner) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape chamfer`
+
+Cut corners of a drawn shape straight across, a distance back along each side; it keeps its id (docs/specs/drawing-editing.md §3)
+
+```text
+chipload shape chamfer <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+| `--distance <DISTANCE>` | How far back along each side, mm (or with a unit) Required. |
+| `--corner <CORNER>` | Only this corner: its point's number, from 0 (default: every corner) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape join`
 
 Join open drawn polylines whose ends are closer than --gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)

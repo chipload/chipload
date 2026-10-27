@@ -98,3 +98,7 @@ header-polygon-hover = Rita en regelbunden polygon: centrum, sedan ett hörn (an
 header-group-modify = Ändra
 header-offset = Förskjut
 header-offset-hover = En form på avstånd från de markerade: gå till den sida du vill, klicka eller skriv avståndet
+header-fillet = Avrunda
+header-fillet-hover = Runda ett hörn på den markerade formen med en båge: klicka hörnet; Skift+klick rundar alla hörn
+header-chamfer = Fasa
+header-chamfer-hover = Skär av ett hörn på den markerade formen rakt: klicka hörnet; Skift+klick fasar alla hörn

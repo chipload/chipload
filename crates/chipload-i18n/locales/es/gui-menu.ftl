@@ -135,3 +135,5 @@ menu-draw-slot = Ranura
 menu-draw-polygon = Polígono
 menu-polygon-sides = Lados
 menu-modify-offset = Desfase
+menu-modify-fillet = Redondeo
+menu-modify-chamfer = Chaflán
