@@ -42,7 +42,7 @@ it's built (see `CLAUDE.md`).
 
 ## State to remember (2026-10-19)
 
-- **Releases**: the latest published is 0.25.1 (2026-10-25); before it 0.24.0 (2026-10-24, the translations),
+- **Releases**: the latest published is 0.27.1 (2026-10-27); before it 0.25.1 (2026-10-25) and 0.24.0 (2026-10-24, the translations),
   built by Actions: Linux and Windows x86_64 and ARM64, macOS universal, the guide zip,
   `SHA256SUMS.txt`; the guide is online from `v0.24.0`. The first v0.24.0 tag failed on the
   message snapshot (platform digits); the tag was moved to the fix, 5b647c2, before any
@@ -52,11 +52,14 @@ it's built (see `CLAUDE.md`).
   shapes as drawn and chaining per layer, explode keeping half circles) published
   2026-10-25.
   **0.26.0** (dogbones chosen per corner; start points and corner choices follow moved
-  drawn shapes) tagged 2026-10-26, draft release from CI; to publish.
+  drawn shapes) tagged 2026-10-26, draft release from CI.
   **0.26.1** (bones beside a contour that runs through a pocket or lies on its wall)
-  tagged 2026-10-26, draft release from CI; to publish.
+  tagged 2026-10-26, draft release from CI.
   **0.27.0** (tabs placed by hand; dogbones follow a dragged shape; bones beside
-  contours the operation cuts through) tagged 2026-10-26, draft release from CI; to publish.
+  contours the operation cuts through) tagged 2026-10-26, draft release from CI.
+  **0.27.1** (a bone near another contour is a warning, only cut contours count) published
+  2026-10-27, its notes covering 0.26.0 to 0.27.1; the 0.26.0, 0.26.1 and 0.27.0 drafts
+  stay unpublished.
   Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
   `guide-0.22.0-1`).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
