@@ -83,3 +83,5 @@ shortcuts-drag-shape = Eine gezeichnete Form ziehen
 shortcuts-drag-shape-what = Sie verschieben, oder die ausgewählten Formen mit ihr; sie rastet ein, Shift hält 15°-Schritte
 shortcuts-orbit-drag = Ziehen in der 3D-Ansicht
 shortcuts-orbit-drag-what = Umkreisen; Shift+Ziehen verschiebt
+shortcuts-draw-arc = Bogen zeichnen
+shortcuts-draw-slot = Langloch zeichnen

@@ -89,3 +89,7 @@ header-cancel = Abbrechen
 header-cancel-hover = Berechnung stoppen
 header-generate = Berechnen
 header-generate-hover = Werkzeugwege planen, G-Code schreiben und prüfen
+header-arc = Bogen
+header-arc-hover = Einen Bogen zeichnen: Anfang, Ende, dann ein Punkt, durch den er geht
+header-slot = Langloch
+header-slot-hover = Ein Langloch zeichnen: die Mittelpunkte der Enden, dann die Breite

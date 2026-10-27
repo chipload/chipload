@@ -130,3 +130,5 @@ menu-status-hint = Click a contour to select it · Ctrl+click adds or removes ·
 menu-join-ends = Join ends…
 menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one: the selected ones, or all when none is selected
 menu-join-ends-disabled-hover = There are no drawn shapes. A DXF's shapes can be joined once it is exploded (right-click it in the Browser).
+menu-draw-arc = Arc
+menu-draw-slot = Slot

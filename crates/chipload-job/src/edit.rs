@@ -6,6 +6,7 @@
 use std::f64::consts::{PI, TAU};
 
 use chipload_core::primitives::Arc;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 
 use crate::models::{Geometry, polyline_segment_count, rotated, shape_problems};
 
@@ -99,6 +100,56 @@ pub fn segment_middle(a: [f64; 2], b: [f64; 2], bulge: f64) -> [f64; 2] {
     }
 }
 
+/// A slot: a rectangle whose corner radius is half its shorter side, so its ends are half
+/// circles (docs/specs/drawing-input.md §4).
+pub fn is_slot(geometry: &Geometry) -> bool {
+    match geometry {
+        Geometry::Rectangle {
+            length,
+            width,
+            corner_radius,
+            ..
+        } => {
+            *corner_radius > 0.0 && (corner_radius - length.min(*width) / 2.0).abs() <= CHAIN_TOL_MM
+        }
+        _ => false,
+    }
+}
+
+/// `new` with a slot kept a slot: when `old` is a slot and `new` resizes it with the corner
+/// radius left as it was, the radius becomes half the new shorter side.
+pub fn kept_slot(old: &Geometry, new: Geometry) -> Geometry {
+    let (
+        Geometry::Rectangle {
+            length: old_length,
+            width: old_width,
+            corner_radius: old_radius,
+            ..
+        },
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius,
+        },
+    ) = (old, &new)
+    else {
+        return new;
+    };
+    let resized = (length, width) != (old_length, old_width);
+    if !is_slot(old) || !resized || corner_radius != old_radius {
+        return new;
+    }
+    Geometry::Rectangle {
+        center: *center,
+        length: *length,
+        width: *width,
+        angle: *angle,
+        corner_radius: length.min(*width) / 2.0,
+    }
+}
+
 /// The shape after dragging `handle` from where it was in `start` (the shape when the drag
 /// began) to `to`. `bend` is the Shift-drag of a segment middle. Always computed from
 /// `start`, so a long drag doesn't drift. None when the result would be invalid (the caller
@@ -115,6 +166,7 @@ pub fn try_drag(
     bend: bool,
 ) -> Result<Geometry, String> {
     let mut geometry = start.clone();
+    let slot = is_slot(start);
     match (&mut geometry, handle) {
         (Geometry::Circle { center, .. }, Handle::Center)
         | (Geometry::Rectangle { center, .. }, Handle::Center) => *center = to,
@@ -127,7 +179,7 @@ pub fn try_drag(
                 length,
                 width,
                 angle,
-                ..
+                corner_radius,
             },
             Handle::Corner(k),
         ) if k < 4 => {
@@ -138,6 +190,10 @@ pub fn try_drag(
             *length = (d[0] * cos + d[1] * sin).abs();
             *width = (-d[0] * sin + d[1] * cos).abs();
             *center = [(opposite[0] + to[0]) / 2.0, (opposite[1] + to[1]) / 2.0];
+            // A slot stays a slot.
+            if slot {
+                *corner_radius = length.min(*width) / 2.0;
+            }
         }
         (Geometry::Rectangle { center, angle, .. }, Handle::Rotate) => {
             let (dx, dy) = (to[0] - center[0], to[1] - center[1]);
@@ -581,6 +637,32 @@ mod tests {
         assert_eq!(drag(&circle, Handle::Radius, [1.0, 2.0], false), None);
         // Handles of other kinds don't apply.
         assert_eq!(drag(&circle, Handle::Rotate, [0.0, 0.0], false), None);
+    }
+
+    #[test]
+    fn a_slot_stays_a_slot_when_its_size_changes() {
+        let rect = |width: f64, corner_radius: f64| Geometry::Rectangle {
+            center: [0.0, 0.0],
+            length: 40.0,
+            width,
+            angle: 0.0,
+            corner_radius,
+        };
+        let slot = rect(10.0, 5.0);
+        assert!(is_slot(&slot));
+        assert!(!is_slot(&rect(10.0, 2.0)));
+        // Wider through the form: the radius follows.
+        assert_eq!(kept_slot(&slot, rect(16.0, 5.0)), rect(16.0, 8.0));
+        // A radius typed with it wins; a plain rounded rectangle is left alone.
+        assert_eq!(kept_slot(&slot, rect(16.0, 3.0)), rect(16.0, 3.0));
+        assert_eq!(
+            kept_slot(&rect(10.0, 2.0), rect(16.0, 2.0)),
+            rect(16.0, 2.0)
+        );
+        // A corner drag narrows it: still a slot (a plain rectangle with that radius
+        // would refuse to get narrower than its corners).
+        let narrower = try_drag(&slot, Handle::Corner(2), [20.0, 2.0], false).unwrap();
+        assert!(is_slot(&narrower));
     }
 
     #[test]

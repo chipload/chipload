@@ -83,3 +83,5 @@ shortcuts-drag-shape = Drag a drawn shape
 shortcuts-drag-shape-what = Move it, or the selected shapes with it; it snaps, Shift keeps to 15° steps
 shortcuts-orbit-drag = Drag in the 3D view
 shortcuts-orbit-drag-what = Orbit; Shift+drag pans
+shortcuts-draw-arc = Draw an arc
+shortcuts-draw-slot = Draw a slot

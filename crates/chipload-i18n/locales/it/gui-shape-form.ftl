@@ -53,3 +53,4 @@ shape-form-turn-by = di{" "}
 shape-form-turn-by-hover = Digita un angolo e premi Invio per ruotarla di tanto (senso antiorario; negativo: orario)
 shape-form-name = Nome
 shape-form-name-hover = Il suo nome nel Browser; vuoto: mostrata col suo numero
+shape-form-title-slot = Asola S{ $id }

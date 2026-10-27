@@ -89,3 +89,7 @@ header-cancel = Cancel
 header-cancel-hover = Stop generating
 header-generate = Generate
 header-generate-hover = Plan the toolpaths, write and check the G-code
+header-arc = Arc
+header-arc-hover = Draw an arc: start, end, then a point it passes through
+header-slot = Slot
+header-slot-hover = Draw a slot: the centres of its ends, then its width

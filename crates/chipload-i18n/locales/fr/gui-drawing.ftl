@@ -26,3 +26,4 @@ drawing-deleted-status = { $count ->
        *[other] Formes supprimées :
     } { $shapes }
 drawing-imported-kept = Les formes importées de la sélection ont été gardées (elles ne changent qu'avec le DXF).
+drawing-kind-slot = rainure

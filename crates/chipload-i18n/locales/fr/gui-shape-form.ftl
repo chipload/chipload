@@ -53,3 +53,4 @@ shape-form-turn-by = de{" "}
 shape-form-turn-by-hover = Saisissez un angle et appuyez sur Entrée pour la tourner d'autant (sens anti-horaire ; négatif : sens horaire)
 shape-form-name = Nom
 shape-form-name-hover = Son nom dans le Navigateur ; vide : affichée par son numéro
+shape-form-title-slot = Rainure S{ $id }

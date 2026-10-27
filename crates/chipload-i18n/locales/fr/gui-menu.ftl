@@ -130,3 +130,5 @@ menu-status-hint = Cliquer un contour pour le sélectionner · Ctrl+clic ajoute 
 menu-join-ends = Joindre les extrémités…
 menu-join-ends-hover = Joindre en une seule les polylignes dessinées ouvertes dont les extrémités se touchent presque : celles sélectionnées, ou toutes si aucune ne l'est
 menu-join-ends-disabled-hover = Il n'y a aucune forme dessinée. Les formes d'un DXF peuvent être jointes une fois celui-ci décomposé (clic droit dessus dans le Navigateur).
+menu-draw-arc = Arc
+menu-draw-slot = Rainure

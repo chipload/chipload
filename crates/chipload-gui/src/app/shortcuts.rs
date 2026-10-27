@@ -34,6 +34,8 @@ pub(super) enum Action {
     DrawPolyline,
     DrawCircle,
     DrawRectangle,
+    DrawArc,
+    DrawSlot,
 }
 
 /// The shortcut window's groups, in the order it shows them.
@@ -132,6 +134,8 @@ pub(super) const BINDINGS: &[Binding] = &[
         Key::R,
         Group::Drawing,
     ),
+    bind(Action::DrawArc, Modifiers::NONE, Key::A, Group::Drawing),
+    bind(Action::DrawSlot, Modifiers::NONE, Key::S, Group::Drawing),
 ];
 
 /// What a shortcut does, as the shortcut window says it.
@@ -161,6 +165,8 @@ pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
         Action::DrawPolyline => t!(src, "shortcuts-draw-polyline"),
         Action::DrawCircle => t!(src, "shortcuts-draw-circle"),
         Action::DrawRectangle => t!(src, "shortcuts-draw-rectangle"),
+        Action::DrawArc => t!(src, "shortcuts-draw-arc"),
+        Action::DrawSlot => t!(src, "shortcuts-draw-slot"),
     }
 }
 
@@ -357,6 +363,8 @@ impl ChiploadApp {
             Action::DrawPolyline => self.start_drawing(Tool::Polyline),
             Action::DrawCircle => self.start_drawing(Tool::Circle),
             Action::DrawRectangle => self.start_drawing(Tool::Rectangle),
+            Action::DrawArc => self.start_drawing(Tool::Arc),
+            Action::DrawSlot => self.start_drawing(Tool::Slot),
             Action::Shortcuts => self.dialogs.shortcuts_open = true,
         }
     }

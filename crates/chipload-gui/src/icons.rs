@@ -24,6 +24,8 @@ pub enum Icon {
     Circle,
     Rectangle,
     Polyline,
+    Arc,
+    Slot,
     Paths,
     Profile,
     Pocket,
@@ -140,6 +142,20 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::Circle => pen.circle((0.5, 0.5), 0.36),
         Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),
         Icon::Polyline => pen.poly(&[(0.1, 0.8), (0.3, 0.3), (0.55, 0.65), (0.9, 0.2)]),
+        Icon::Arc => {
+            // Screen y grows downwards: angles past PI bow upwards.
+            let points = pen.arc((0.5, 0.78), 0.4, PI + 0.35, TAU - 0.35);
+            pen.poly(&points);
+            if let (Some(&first), Some(&last)) = (points.first(), points.last()) {
+                pen.dot(first, 0.05);
+                pen.dot(last, 0.05);
+            }
+        }
+        Icon::Slot => {
+            let mut points = pen.arc((0.68, 0.5), 0.2, -FRAC_PI_2, FRAC_PI_2);
+            points.extend(pen.arc((0.32, 0.5), 0.2, FRAC_PI_2, PI + FRAC_PI_2));
+            pen.closed(&points);
+        }
         Icon::Paths => pen.poly(&[
             (0.1, 0.6),
             (0.25, 0.35),

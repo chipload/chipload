@@ -130,3 +130,5 @@ menu-status-hint = Clic en un contorno para seleccionarlo · Ctrl+clic añade o 
 menu-join-ends = Unir extremos…
 menu-join-ends-hover = Unir en una las polilíneas dibujadas abiertas cuyos extremos casi se tocan: las seleccionadas, o todas si no hay ninguna seleccionada
 menu-join-ends-disabled-hover = No hay formas dibujadas. Las formas de un DXF se pueden unir una vez descompuesto (clic derecho sobre él en el Navegador).
+menu-draw-arc = Arco
+menu-draw-slot = Ranura

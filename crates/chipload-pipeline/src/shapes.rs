@@ -52,6 +52,8 @@ pub fn set_shape(
                 .arg("kind", shape.kind_name()),
         ));
     }
+    // A slot stays a slot when its size changes (docs/specs/drawing-input.md §4).
+    let geometry = chipload_job::edit::kept_slot(&shape.geometry, geometry);
     shape.layer = layer.to_string();
     let old = std::mem::replace(&mut shape.geometry, geometry.clone());
     // The operations' points on it follow it (docs/specs/dogbone-per-corner.md §4).

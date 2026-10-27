@@ -89,3 +89,7 @@ header-cancel = Avbryt
 header-cancel-hover = Avbryt beräkningen
 header-generate = Beräkna
 header-generate-hover = Planera verktygsbanorna, skriv och kontrollera G-koden
+header-arc = Båge
+header-arc-hover = Rita en båge: start, slut, sedan en punkt den går genom
+header-slot = Spår
+header-slot-hover = Rita ett spår: mittpunkterna i ändarna, sedan bredden

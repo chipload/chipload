@@ -53,3 +53,4 @@ shape-form-turn-by = {" "}
 shape-form-turn-by-hover = Escribe un ángulo y pulsa Intro para girarla eso (sentido antihorario; negativo: horario)
 shape-form-name = Nombre
 shape-form-name-hover = Su nombre en el Navegador; vacío: se muestra por su número
+shape-form-title-slot = Ranura S{ $id }

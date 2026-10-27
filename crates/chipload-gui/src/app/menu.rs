@@ -517,6 +517,8 @@ impl ChiploadApp {
                 t!(ui, "menu-draw-polyline"),
                 Action::DrawPolyline,
             ),
+            (Tool::Arc, t!(ui, "menu-draw-arc"), Action::DrawArc),
+            (Tool::Slot, t!(ui, "menu-draw-slot"), Action::DrawSlot),
         ] {
             let label = with_keys(&label, action);
             if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {

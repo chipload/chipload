@@ -2,7 +2,7 @@
 //! Drawing and editing shapes (docs/specs/drawing-tools.md).
 
 use super::*;
-use crate::draw::{EntryError, parse_entry, typed_point};
+use crate::draw::{EntryError, parse_entry};
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -65,7 +65,7 @@ impl ChiploadApp {
             return Err(EntryError::Unreadable);
         };
         let entry = parse_entry(&typed.text, self.units)?;
-        typed_point(entry, sketch.anchor(), cursor)
+        sketch.typed(entry, cursor)
     }
 
     /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
@@ -136,6 +136,7 @@ impl ChiploadApp {
                 edit.settings = job;
                 self.drawing_changed(&[id]);
                 let kind = match self.shape(id).map(|s| &s.geometry) {
+                    Some(g) if chipload_job::edit::is_slot(g) => t!(self, "drawing-kind-slot"),
                     Some(Geometry::Circle { .. }) => t!(self, "drawing-kind-circle"),
                     Some(Geometry::Rectangle { .. }) => t!(self, "drawing-kind-rectangle"),
                     Some(Geometry::Polyline { .. }) => t!(self, "drawing-kind-polyline"),

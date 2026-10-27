@@ -26,3 +26,4 @@ drawing-deleted-status = { $count ->
        *[other] Formen
     } { $shapes } gelöscht
 drawing-imported-kept = Importierte Formen in der Auswahl wurden behalten (sie ändern sich nur mit der DXF).
+drawing-kind-slot = Langloch

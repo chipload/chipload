@@ -1,16 +1,23 @@
 # Drawing shapes
 
-Chipload draws three kinds of shape, for the odd hole, slot or outline that isn't in the
-DXF, or a project without one:
+Chipload draws the parts it cuts, with or without a DXF:
 
-- **Circle:** centre and radius.
-- **Rectangle:** centre, length and width, a rotation, and a corner radius (0: sharp
-  corners).
-- **Polyline:** points joined by straight or arc segments, open or closed.
+- **Circle** (key **C**): the centre, then a point on it.
+- **Rectangle** (**R**): two opposite corners. It keeps its centre, length and width, a
+  rotation, and a corner radius (0: sharp corners).
+- **Polyline** (**L**): points joined by straight or arc segments, open or closed. Click
+  the first point again to close it; Enter or a double-click finishes it open.
+- **Arc** (**A**): where it starts, where it ends, then a point it passes through (or type
+  its radius: it bows to the cursor's side). It becomes an open polyline of one or two arc
+  segments.
+- **Slot** (**S**): the centres of its two ends, then its width (a click, or type it). It
+  is a rectangle whose corner radius is half its width; it shows as *Slot*, and stays one
+  when you change its width.
 
-**Circle** (key **C**), **Rectangle** (**R**) or **Polyline** (**L**) in the ribbon's DRAW
-group, then click on the canvas. With no tool active, **Enter** starts the last one again. Clicks snap to the drawing (below), else to the [grid](../window.md#the-canvas),
-whose step the status bar gives ("grid 1 mm").
+Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
+and key) or by its key, then click on the canvas. With no
+tool active, **Enter** starts the last one again. Clicks snap to the drawing (below), else
+to the [grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm").
 
 ## Snapping
 

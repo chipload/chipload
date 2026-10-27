@@ -89,3 +89,7 @@ header-cancel = Annulla
 header-cancel-hover = Interrompi il calcolo
 header-generate = Calcola
 header-generate-hover = Pianifica i percorsi utensile, scrivi e verifica il G-code
+header-arc = Arco
+header-arc-hover = Disegna un arco: inizio, fine, poi un punto per cui passa
+header-slot = Asola
+header-slot-hover = Disegna un'asola: i centri delle estremità, poi la larghezza

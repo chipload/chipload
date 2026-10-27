@@ -739,6 +739,15 @@ impl ChiploadApp {
         action: &mut Option<PanelAction>,
     ) {
         let label = format!("S{id}");
+        // A slot is a rectangle with half-circle ends: it shows as one.
+        let icon = if self
+            .shape(id)
+            .is_some_and(|s| chipload_job::edit::is_slot(&s.geometry))
+        {
+            Icon::Slot
+        } else {
+            icon
+        };
         let mut row = Row::new(
             egui::Id::new(("browser-shape", id)),
             depth,

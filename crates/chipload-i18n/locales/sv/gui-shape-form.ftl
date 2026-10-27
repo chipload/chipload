@@ -53,3 +53,4 @@ shape-form-turn-by = med{" "}
 shape-form-turn-by-hover = Skriv en vinkel och tryck Enter för att vrida den så mycket (moturs; negativt vrider medurs)
 shape-form-name = Namn
 shape-form-name-hover = Dess namn i bläddraren; tomt: visas med sitt nummer
+shape-form-title-slot = Spår S{ $id }

@@ -321,34 +321,62 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let can_draw = app.can_draw();
-                for (tool, icon, label, hint) in [
+                // The shape tools as small icon buttons, three to a row, each named with
+                // its key on hover (docs/specs/drawing-input.md §2).
+                let tools = [
                     (
                         Tool::Circle,
                         Icon::Circle,
                         t!(ui, "header-circle"),
                         t!(ui, "header-circle-hover"),
+                        Action::DrawCircle,
                     ),
                     (
                         Tool::Rectangle,
                         Icon::Rectangle,
                         t!(ui, "header-rectangle"),
                         t!(ui, "header-rectangle-hover"),
+                        Action::DrawRectangle,
                     ),
                     (
                         Tool::Polyline,
                         Icon::Polyline,
                         t!(ui, "header-polyline"),
                         t!(ui, "header-polyline-hover"),
+                        Action::DrawPolyline,
                     ),
-                ] {
-                    let active = app.sketch.as_ref().is_some_and(|s| s.tool == tool);
-                    if ribbon_button(ui, icon, &label, can_draw, active)
-                        .on_hover_text(hint)
-                        .clicked()
-                    {
-                        app.start_drawing(tool);
+                    (
+                        Tool::Arc,
+                        Icon::Arc,
+                        t!(ui, "header-arc"),
+                        t!(ui, "header-arc-hover"),
+                        Action::DrawArc,
+                    ),
+                    (
+                        Tool::Slot,
+                        Icon::Slot,
+                        t!(ui, "header-slot"),
+                        t!(ui, "header-slot-hover"),
+                        Action::DrawSlot,
+                    ),
+                ];
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                    for row in tools.chunks(3) {
+                        ui.horizontal(|ui| {
+                            for (tool, icon, label, hint, action) in row {
+                                let active = app.sketch.as_ref().is_some_and(|s| s.tool == *tool);
+                                let hint = format!("{label}: {hint}");
+                                if small_ribbon_button(ui, *icon, label, can_draw, active)
+                                    .on_hover_text(hover_keys(&hint, *action))
+                                    .clicked()
+                                {
+                                    app.start_drawing(*tool);
+                                }
+                            }
+                        });
                     }
-                }
+                });
                 let label = t!(ui, "header-text");
                 if ribbon_button(ui, Icon::Text, &label, can_draw, app.placing_text())
                     .on_hover_text(t!(ui, "header-text-hover"))
@@ -649,6 +677,43 @@ pub(super) fn ribbon_button(
         rect.bottom() - 3.0 - galley.size().y,
     );
     painter.galley(at, galley, color);
+    response
+}
+
+/// A small ribbon button, two to the height of a large one: an icon alone, named on hover.
+fn small_ribbon_button(
+    ui: &mut egui::Ui,
+    icon: Icon,
+    label: &str,
+    enabled: bool,
+    selected: bool,
+) -> Response {
+    let side = (RIBBON_BUTTON.0 - 2.0) / 2.0;
+    let sense = if enabled {
+        Sense::click()
+    } else {
+        Sense::hover()
+    };
+    let (rect, response) = ui.allocate_exact_size(vec2(side + 4.0, side), sense);
+    response.widget_info(|| WidgetInfo::selected(WidgetType::Button, enabled, selected, label));
+    let visuals = ui.visuals();
+    let painter = ui.painter();
+    let corner = visuals.widgets.inactive.corner_radius;
+    let color = if selected {
+        painter.rect_filled(rect, corner, visuals.selection.bg_fill);
+        visuals.selection.stroke.color
+    } else {
+        if enabled && response.hovered() {
+            painter.rect_filled(rect, corner, visuals.widgets.hovered.weak_bg_fill);
+        }
+        if enabled {
+            visuals.text_color()
+        } else {
+            visuals.weak_text_color().gamma_multiply(0.7)
+        }
+    };
+    let icon_rect = Rect::from_center_size(rect.center(), vec2(side - 4.0, side - 4.0));
+    icons::paint(painter, icon_rect, icon, color);
     response
 }
 

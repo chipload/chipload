@@ -83,3 +83,5 @@ shortcuts-drag-shape = Arrastrar una forma dibujada
 shortcuts-drag-shape-what = Moverla, o las formas seleccionadas con ella; se ajusta, Mayús mantiene pasos de 15°
 shortcuts-orbit-drag = Arrastrar en la vista 3D
 shortcuts-orbit-drag-what = Orbitar; Mayús+arrastrar desplaza
+shortcuts-draw-arc = Dibujar un arco
+shortcuts-draw-slot = Dibujar una ranura

@@ -83,3 +83,5 @@ shortcuts-drag-shape = Dra en ritad form
 shortcuts-drag-shape-what = Flytta den, eller de markerade formerna med den; den fäster, Skift håller steg om 15°
 shortcuts-orbit-drag = Dra i 3D-vyn
 shortcuts-orbit-drag-what = Rotera; Skift+dra panorerar
+shortcuts-draw-arc = Rita en båge
+shortcuts-draw-slot = Rita ett spår

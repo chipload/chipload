@@ -26,3 +26,4 @@ drawing-deleted-status = Raderade { $count ->
        *[other] formerna
     } { $shapes }
 drawing-imported-kept = Importerade former i markeringen behölls (de ändras bara med DXF:en).
+drawing-kind-slot = spår

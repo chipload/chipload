@@ -83,3 +83,5 @@ shortcuts-drag-shape = Glisser une forme dessinée
 shortcuts-drag-shape-what = La déplacer, ou les formes sélectionnées avec elle ; elle s'accroche, Maj garde des pas de 15°
 shortcuts-orbit-drag = Glisser dans la vue 3D
 shortcuts-orbit-drag-what = Orbiter ; Maj+glisser déplace la vue
+shortcuts-draw-arc = Dessiner un arc
+shortcuts-draw-slot = Dessiner une rainure

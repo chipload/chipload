@@ -83,3 +83,5 @@ shortcuts-drag-shape = Trascina una forma disegnata
 shortcuts-drag-shape-what = Spostala, o le forme selezionate con essa; si aggancia, Maiusc tiene passi di 15°
 shortcuts-orbit-drag = Trascina nella vista 3D
 shortcuts-orbit-drag-what = Orbita; Maiusc+trascina sposta la vista
+shortcuts-draw-arc = Disegna un arco
+shortcuts-draw-slot = Disegna un'asola

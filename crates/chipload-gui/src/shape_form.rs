@@ -62,6 +62,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
     let title = match draft.geometry {
         Geometry::Path { .. } => t!(ui, "shape-form-title-path", id = id),
         Geometry::Circle { .. } => t!(ui, "shape-form-title-circle", id = id),
+        ref g if chipload_job::edit::is_slot(g) => t!(ui, "shape-form-title-slot", id = id),
         Geometry::Rectangle { .. } => t!(ui, "shape-form-title-rectangle", id = id),
         Geometry::Polyline { .. } => t!(ui, "shape-form-title-polyline", id = id),
     };

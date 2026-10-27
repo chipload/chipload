@@ -10,6 +10,7 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_draw::construct::{arc_as_polyline, arc_middle_for_radius, arc_through};
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::{length_text, parse_length};
 
@@ -20,6 +21,10 @@ pub enum Tool {
     Circle,
     Rectangle,
     Polyline,
+    /// Start, end, then a point it passes through: an open polyline of arcs.
+    Arc,
+    /// The centres of its two ends, then its width: a rectangle with round ends.
+    Slot,
 }
 
 /// A shape being drawn: the tool and the points clicked so far (already on the grid).
@@ -44,7 +49,7 @@ pub enum Step {
 /// Why a click or Enter did nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Why {
-    /// The circle or rectangle would have no size.
+    /// The shape would have no size (an arc: its three points lie on a line).
     NoSize(Tool),
     /// A polyline finished with fewer than 2 points.
     TooFewPoints,
@@ -55,7 +60,9 @@ impl Why {
     pub fn text(self, lang: &impl Lang) -> String {
         match self {
             Why::NoSize(Tool::Circle) => t!(lang, "draw-no-size-circle"),
-            Why::NoSize(_) => t!(lang, "draw-no-size-rectangle"),
+            Why::NoSize(Tool::Rectangle | Tool::Polyline) => t!(lang, "draw-no-size-rectangle"),
+            Why::NoSize(Tool::Arc) => t!(lang, "draw-arc-on-a-line"),
+            Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
             Why::TooFewPoints => t!(lang, "draw-polyline-too-short"),
         }
     }
@@ -80,14 +87,6 @@ impl Sketch {
             return Step::Ignored(None);
         }
         match self.tool {
-            Tool::Circle | Tool::Rectangle if self.points.is_empty() => {
-                self.points.push(p);
-                Step::Continue
-            }
-            Tool::Circle | Tool::Rectangle => match self.geometry_to(p) {
-                Some(geometry) => Step::Done(geometry),
-                None => Step::Ignored(Some(Why::NoSize(self.tool))),
-            },
             Tool::Polyline => {
                 if on_first && self.points.len() >= 3 {
                     return Step::Done(Geometry::straight_polyline(
@@ -98,6 +97,23 @@ impl Sketch {
                 self.points.push(p);
                 Step::Continue
             }
+            _ if self.points.len() + 1 < self.clicks() => {
+                self.points.push(p);
+                Step::Continue
+            }
+            _ => match self.geometry_to(p) {
+                Some(geometry) => Step::Done(geometry),
+                None => Step::Ignored(Some(Why::NoSize(self.tool))),
+            },
+        }
+    }
+
+    /// How many clicks make the shape (a polyline: as many as it takes).
+    fn clicks(&self) -> usize {
+        match self.tool {
+            Tool::Circle | Tool::Rectangle => 2,
+            Tool::Arc | Tool::Slot => 3,
+            Tool::Polyline => usize::MAX,
         }
     }
 
@@ -116,10 +132,11 @@ impl Sketch {
     }
 
     /// The last click that a line goes on from (perpendicular and tangent snaps): a
-    /// polyline's last point. A circle's centre or a rectangle's corner isn't one.
+    /// polyline's, an arc's or a slot's last point. A circle's centre or a rectangle's
+    /// corner isn't one.
     pub fn last_point(&self) -> Option<Point> {
         match self.tool {
-            Tool::Polyline => self.points.last().copied(),
+            Tool::Polyline | Tool::Arc | Tool::Slot => self.points.last().copied(),
             Tool::Circle | Tool::Rectangle => None,
         }
     }
@@ -129,18 +146,18 @@ impl Sketch {
         self.points.pop();
     }
 
-    /// The circle or rectangle from the first click to `p`; None if it would have no size.
+    /// The shape with its last click at `p`; None if it would have no size.
     fn geometry_to(&self, p: Point) -> Option<Geometry> {
         let &first = self.points.first()?;
-        match self.tool {
-            Tool::Circle => {
+        match (self.tool, &self.points[..]) {
+            (Tool::Circle, _) => {
                 let radius = distance(first, p);
                 (radius >= CHAIN_TOL_MM).then_some(Geometry::Circle {
                     center: [first.0, first.1],
                     radius,
                 })
             }
-            Tool::Rectangle => {
+            (Tool::Rectangle, _) => {
                 let (length, width) = ((p.0 - first.0).abs(), (p.1 - first.1).abs());
                 (length >= CHAIN_TOL_MM && width >= CHAIN_TOL_MM).then_some(Geometry::Rectangle {
                     center: [(first.0 + p.0) / 2.0, (first.1 + p.1) / 2.0],
@@ -150,18 +167,36 @@ impl Sketch {
                     corner_radius: 0.0,
                 })
             }
-            Tool::Polyline => None,
+            (Tool::Arc, &[start, end]) => {
+                let arc = arc_through(start, p, end)?;
+                let (points, bulges) = arc_as_polyline(&arc);
+                Some(Geometry::Polyline {
+                    closed: false,
+                    points: points.iter().map(|&(x, y)| [x, y]).collect(),
+                    bulges,
+                })
+            }
+            (Tool::Slot, &[a, b]) => slot(a, b, p),
+            _ => None,
         }
     }
 
     /// The shape as it would be with the cursor at `p`, for the preview.
     pub fn preview(&self, p: Point) -> Vec<Vec<Point>> {
+        if self.points.is_empty() {
+            return Vec::new();
+        }
         match self.tool {
             Tool::Circle | Tool::Rectangle => {
                 self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default()
             }
-            Tool::Polyline if self.points.is_empty() => Vec::new(),
-            Tool::Polyline => {
+            Tool::Arc | Tool::Slot if self.points.len() + 1 == self.clicks() => {
+                match self.geometry_to(p) {
+                    Some(g) => outline(&g),
+                    None => vec![self.points.clone()],
+                }
+            }
+            Tool::Polyline | Tool::Arc | Tool::Slot => {
                 let mut line = self.points.clone();
                 line.push(p);
                 vec![line]
@@ -175,33 +210,86 @@ impl Sketch {
         let n = |mm: f64| fixed(mm, units);
         let grid = length_text(step, units);
         let count = self.points.len();
-        match (self.tool, self.points.first()) {
-            (Tool::Circle, Some(&c)) => t!(
+        match (self.tool, &self.points[..]) {
+            (Tool::Circle, &[c, ..]) => t!(
                 lang,
                 "draw-status-circle",
                 radius = n(distance(c, p)),
                 grid = grid
             ),
-            (Tool::Circle, None) => t!(lang, "draw-status-circle-start", grid = grid),
-            (Tool::Rectangle, Some(&c)) => t!(
+            (Tool::Circle, _) => t!(lang, "draw-status-circle-start", grid = grid),
+            (Tool::Rectangle, &[c, ..]) => t!(
                 lang,
                 "draw-status-rectangle",
                 length = n((p.0 - c.0).abs()),
                 width = n((p.1 - c.1).abs()),
                 grid = grid
             ),
-            (Tool::Rectangle, None) => t!(lang, "draw-status-rectangle-start", grid = grid),
-            (Tool::Polyline, None) => t!(
+            (Tool::Rectangle, _) => t!(lang, "draw-status-rectangle-start", grid = grid),
+            (Tool::Polyline, []) => t!(
                 lang,
                 "draw-status-polyline-start",
                 count = count,
                 grid = grid
             ),
-            (Tool::Polyline, Some(_)) => {
+            (Tool::Polyline, _) => {
                 t!(lang, "draw-status-polyline", count = count, grid = grid)
             }
+            (Tool::Arc, []) => t!(lang, "draw-status-arc-start", grid = grid),
+            (Tool::Arc, &[s]) => t!(
+                lang,
+                "draw-status-arc-end",
+                length = n(distance(s, p)),
+                grid = grid
+            ),
+            (Tool::Arc, &[s, e, ..]) => t!(
+                lang,
+                "draw-status-arc",
+                radius = arc_through(s, p, e).map_or_else(String::new, |a| n(a.radius)),
+                grid = grid
+            ),
+            (Tool::Slot, []) => t!(lang, "draw-status-slot-start", grid = grid),
+            (Tool::Slot, &[a]) => t!(
+                lang,
+                "draw-status-slot-end",
+                length = n(distance(a, p)),
+                grid = grid
+            ),
+            (Tool::Slot, &[a, b, ..]) => t!(
+                lang,
+                "draw-status-slot",
+                width = n(slot_width(a, b, p)),
+                grid = grid
+            ),
         }
     }
+}
+
+/// The slot from the centre of one end `a` to the other `b`, as wide as twice the distance
+/// of `p` from the line between them: a rectangle whose corner radius is half its width.
+fn slot(a: Point, b: Point, p: Point) -> Option<Geometry> {
+    let between = distance(a, b);
+    let width = slot_width(a, b, p);
+    if between < CHAIN_TOL_MM || width < CHAIN_TOL_MM {
+        return None;
+    }
+    Some(Geometry::Rectangle {
+        center: [(a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0],
+        length: between + width,
+        width,
+        angle: (b.1 - a.1).atan2(b.0 - a.0),
+        corner_radius: width / 2.0,
+    })
+}
+
+/// Twice the distance of `p` from the line through `a` and `b` (0 when they coincide).
+fn slot_width(a: Point, b: Point, p: Point) -> f64 {
+    let between = distance(a, b);
+    if between < CHAIN_TOL_MM {
+        return 0.0;
+    }
+    let cross = (b.0 - a.0) * (p.1 - a.1) - (b.1 - a.1) * (p.0 - a.0);
+    2.0 * cross.abs() / between
 }
 
 // -- typed values and angle steps (docs/specs/drawing-input.md §2)
@@ -228,6 +316,10 @@ pub enum EntryError {
     NeedsLastPoint,
     /// A plain distance with the cursor on the last point: no direction.
     NoDirection,
+    /// An arc's radius less than half the distance between its ends.
+    RadiusTooSmall,
+    /// An arc's radius with the cursor on the line between its ends: no side to bow to.
+    NoSide,
 }
 
 impl EntryError {
@@ -237,6 +329,8 @@ impl EntryError {
             EntryError::Unreadable => t!(lang, "draw-entry-unreadable"),
             EntryError::NeedsLastPoint => t!(lang, "draw-entry-needs-point"),
             EntryError::NoDirection => t!(lang, "draw-entry-no-direction"),
+            EntryError::RadiusTooSmall => t!(lang, "draw-entry-radius-too-small"),
+            EntryError::NoSide => t!(lang, "draw-entry-no-side"),
         }
     }
 }
@@ -357,14 +451,44 @@ impl Sketch {
         self.points.last().copied()
     }
 
-    /// Beside the cursor at `p`: the line's length and angle (polyline), the radius
-    /// (circle), length × width (rectangle). None before the first click.
+    /// The point a typed value gives at this step, with the cursor at `cursor`. A plain
+    /// length is an arc's radius at its last step (bowing to the cursor's side) and a
+    /// slot's width; anything else counts from the last click.
+    pub fn typed(&self, entry: Entry, cursor: Point) -> Result<Point, EntryError> {
+        match (self.tool, &self.points[..], entry) {
+            (Tool::Arc, &[start, end], Entry::Distance(radius)) => {
+                if radius < distance(start, end) / 2.0 {
+                    return Err(EntryError::RadiusTooSmall);
+                }
+                arc_middle_for_radius(start, end, radius, cursor).ok_or(EntryError::NoSide)
+            }
+            (Tool::Slot, &[a, b], Entry::Distance(width)) => {
+                let between = distance(a, b);
+                if between < CHAIN_TOL_MM {
+                    return Err(EntryError::NoDirection);
+                }
+                // Half the width off the line, to its left (the width is the same either
+                // side).
+                let (nx, ny) = (-(b.1 - a.1) / between, (b.0 - a.0) / between);
+                Ok((b.0 + nx * width / 2.0, b.1 + ny * width / 2.0))
+            }
+            _ => typed_point(entry, self.anchor(), cursor),
+        }
+    }
+
+    /// Beside the cursor at `p`: the line's length and angle (polyline, an arc's or slot's
+    /// first line), the radius (circle, arc), the width (slot), length × width
+    /// (rectangle). None before the first click.
     pub fn readout(&self, p: Point, units: Units) -> Option<String> {
         let n = |mm: f64| fixed(mm, units);
         let from = self.anchor()?;
         let first = self.points.first().copied().unwrap_or(from);
-        Some(match self.tool {
-            Tool::Polyline => {
+        Some(match (self.tool, &self.points[..]) {
+            (Tool::Arc, &[start, end]) => {
+                format!("R {}", n(arc_through(start, p, end)?.radius))
+            }
+            (Tool::Slot, &[a, b]) => format!("W {}", n(slot_width(a, b, p))),
+            (Tool::Polyline | Tool::Arc | Tool::Slot, _) => {
                 let (dx, dy) = (p.0 - from.0, p.1 - from.1);
                 let angle = if dx == 0.0 && dy == 0.0 {
                     0.0
@@ -374,8 +498,8 @@ impl Sketch {
                 let angle = if angle.abs() < 0.05 { 0.0 } else { angle };
                 format!("L {}  {angle:.1}°", n(dx.hypot(dy)))
             }
-            Tool::Circle => format!("R {}", n(distance(first, p))),
-            Tool::Rectangle => format!(
+            (Tool::Circle, _) => format!("R {}", n(distance(first, p))),
+            (Tool::Rectangle, _) => format!(
                 "{} × {}",
                 n((p.0 - first.0).abs()),
                 n((p.1 - first.1).abs())
@@ -830,6 +954,81 @@ mod tests {
         assert_eq!(
             circle.readout((0.0, 25.4), Units::Inch).unwrap(),
             "R 1.0000"
+        );
+    }
+
+    #[test]
+    fn an_arc_is_start_end_and_a_point_on_it() {
+        let mut arc = Sketch::new(Tool::Arc);
+        assert_eq!(arc.click((0.0, 0.0), false), Step::Continue);
+        assert_eq!(arc.click((10.0, 0.0), false), Step::Continue);
+        // On the line between them: refused, drawing goes on.
+        assert_eq!(
+            arc.click((5.0, 0.0), false),
+            Step::Ignored(Some(Why::NoSize(Tool::Arc)))
+        );
+        // Through (5, -5): the lower half circle, clockwise from (0, 0), one segment.
+        let Step::Done(Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        }) = arc.click((5.0, -5.0), false)
+        else {
+            panic!()
+        };
+        assert!(!closed);
+        assert_eq!(points.len(), 2);
+        assert!((bulges[0] - 1.0).abs() < 1e-9);
+        // A typed radius bows to the cursor's side; too small is refused.
+        let mut typed = Sketch::new(Tool::Arc);
+        typed.click((0.0, 0.0), false);
+        typed.click((10.0, 0.0), false);
+        let p = typed.typed(Entry::Distance(5.0), (3.0, 2.0)).unwrap();
+        assert!(distance(p, (5.0, 5.0)) < 1e-9);
+        assert_eq!(
+            typed.typed(Entry::Distance(4.0), (3.0, 2.0)),
+            Err(EntryError::RadiusTooSmall)
+        );
+        assert_eq!(
+            typed.typed(Entry::Distance(6.0), (3.0, 0.0)),
+            Err(EntryError::NoSide)
+        );
+        assert_eq!(typed.readout((5.0, 5.0), Units::Mm).unwrap(), "R 5.000");
+    }
+
+    #[test]
+    fn a_slot_is_a_rectangle_with_half_circle_ends() {
+        let mut slot = Sketch::new(Tool::Slot);
+        slot.click((0.0, 0.0), false);
+        slot.click((0.0, 30.0), false);
+        assert_eq!(slot.readout((4.0, 10.0), Units::Mm).unwrap(), "W 8.000");
+        // Its width typed: 8 mm.
+        let p = slot.typed(Entry::Distance(8.0), (100.0, 100.0)).unwrap();
+        let Step::Done(geometry) = slot.click(p, false) else {
+            panic!()
+        };
+        let Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius,
+        } = geometry
+        else {
+            panic!()
+        };
+        assert_eq!(center, [0.0, 15.0]);
+        assert!((length - 38.0).abs() < 1e-9 && (width - 8.0).abs() < 1e-9);
+        assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+        assert!((corner_radius - 4.0).abs() < 1e-9);
+        assert!(chipload_job::edit::is_slot(&geometry));
+        // No width: refused.
+        let mut flat = Sketch::new(Tool::Slot);
+        flat.click((0.0, 0.0), false);
+        flat.click((10.0, 0.0), false);
+        assert_eq!(
+            flat.click((20.0, 0.0), false),
+            Step::Ignored(Some(Why::NoSize(Tool::Slot)))
         );
     }
 
