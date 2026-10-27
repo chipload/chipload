@@ -44,9 +44,14 @@ the project file are first-class) as well as in the GUI.
     edited quickly (typed values, snaps, offset, fillet, trim, booleans, arrays,
     parameters, DXF export). Still out: 3D, assemblies, a geometric constraint solver,
     drafting for print (dimensions, hatches, title blocks), splines and ellipses as drawing
-    tools (they import fine), and file formats besides DXF. The test for a drawing feature:
+    tools (they import fine), and file formats besides DXF (and SVG, below). The test for a
+    drawing feature:
     would a maker drawing a part to cut need it often enough that leaving for a CAD program
     would be the common case?
+  - 2026-10-27: **SVG import** taken in (the user, after a review of dependencies): logos
+    and artwork come as SVG from Inkscape and Illustrator, and converting them to DXF
+    elsewhere is the step a self-sufficient drawing program should save. Planned as phase 3
+    of docs/specs/drawing-roadmap.md, through `usvg`.
 - **Surfacing and facing** (decided 2026-10-13): skipped. A flattening program is a few
   lines of G-code that any sender or a small script makes; reconsider only if users ask.
   - 2026-10-17: taken in at the user's request (docs/specs/surfacing.md). A script gives

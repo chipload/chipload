@@ -101,8 +101,9 @@ it's built (see `CLAUDE.md`).
   on the canvas. Not tried by hand in the running app beyond screenshots; the guide's
   screenshots show the old ribbon until `packaging/docs/screenshots.sh` runs again.
   Next: phase 2 (offset, fillet, trim, booleans, arrays, align; spec drafted
-  2026-10-27, docs/specs/drawing-editing.md, decisions not reviewed), then 3
-  (parameters), 4 (DXF export, construction lines), each with its own spec.
+  2026-10-27, docs/specs/drawing-editing.md, approved: offset in progress), then 3
+  (SVG import through `usvg`, added 2026-10-27), 4 (parameters), 5 (DXF export,
+  construction lines), each with its own spec.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

@@ -2,7 +2,9 @@
 
 Status: **approved 2026-10-27** (the user: "sounds good, go ahead"; every decision in §9 as
 recommended). Each phase gets its own spec before it is built: phase 1 is
-docs/specs/drawing-input.md.
+docs/specs/drawing-input.md, phase 2 docs/specs/drawing-editing.md. SVG import added as
+phase 3 on 2026-10-27 (the user, after a review of dependencies); parameters and export
+moved to phases 4 and 5.
 
 The user (2026-10-27): Chipload was meant to cut premade DXFs from a CAD program, but users
 ask for more and more drawing. The app should be self-sufficient for creating geometry, in a
@@ -36,7 +38,7 @@ What's missing is mostly **precise input** and **editing operations**, not more 
 > hole pattern or a sign needs, drawn exactly and edited quickly. Out stay what CAD does
 > for other purposes: 3D, assemblies, a geometric constraint solver, drafting for print
 > (dimensions, hatches, title blocks), splines and ellipses as drawing tools (they import
-> fine), and any file format besides DXF.
+> fine), and any file format besides DXF and SVG (SVG import added 2026-10-27, §6).
 
 The test for each new drawing feature: *does a maker drawing a part to cut need it often
 enough that leaving for a CAD program would be the common case?* Fillets, offsets and
@@ -118,7 +120,23 @@ tool. Results are drawn shapes with new ids; what happens to the inputs is per o
 - **Arrays** of drawn shapes are geometry; the job's grid of copies (`copies`) stays what
   it is: copies of a whole part with its operations.
 
-## 6. Phase 3: parameters
+## 6. Phase 3: SVG import
+
+Logos and artwork come from Inkscape, Illustrator and the like as SVG, which many laser and
+sign shops work in. SVG becomes a drawing source like a DXF or a picture: its paths become
+shapes on layers (by group or colour), placed, turned and scaled like a DXF, updated when
+the file changes, explodable into drawn shapes.
+
+- **Reading through `usvg`** (Apache-2.0 OR MIT, the resvg project; an ADR when it comes):
+  it resolves transforms, units, styles and shapes into plain paths. Its Bézier curves are
+  fitted with lines and arcs as fonts' are (`chipload_core::fit`), within the arc
+  tolerance.
+- **Units:** SVG's own (px at 96 per inch, mm, in) where the file gives them; a file in
+  plain px asks for the scale once, as a DXF without units asks for its units.
+- Its own spec (what becomes a shape, fills versus strokes, text in SVGs, hostile input as
+  for DXF), with a schema change for the new source.
+
+## 7. Phase 4: parameters
 
 Project values with names, used in any length field of a shape or an operation:
 
@@ -134,7 +152,7 @@ cycles refused. It needs a schema bump (a field holds a number or an expression)
 its own spec and decision. It also fits the CLI (`chipload set part.chipload
 params.thickness=19`) and scripting.
 
-## 7. Phase 4: getting the drawing out, and construction lines
+## 8. Phase 5: getting the drawing out, and construction lines
 
 - **Export DXF** (`chipload dxf export`, *File > Export drawing…*): drawn shapes as
   LWPOLYLINE (with bulges) and CIRCLE, on their layers; texts as their outlines. Once the
@@ -143,7 +161,7 @@ params.thickness=19`) and scripting.
 - **Construction geometry:** a per-shape flag (or a layer setting) for lines that help
   drawing, snap like any shape, are drawn dashed, and are never contours or cut.
 
-## 8. Where the code goes
+## 9. Where the code goes
 
 - A new crate **`chipload-draw`** (core only, like `chipload-text`): snapping candidates
   (including intersections, tangents), trim, extend, break, fillet, chamfer, offset and
@@ -160,7 +178,7 @@ params.thickness=19`) and scripting.
   Chipload.
 - The user guide gets a *Drawing* chapter rewritten around the command pattern (§3).
 
-## 9. Decisions
+## 10. Decisions
 
 1. **Scope:** amend ADR 0017 as in §2 (2D geometry of parts, no solver, no drafting, no
    splines/ellipses as tools). *Recommended: yes.*
@@ -168,6 +186,8 @@ params.thickness=19`) and scripting.
    *Recommended: yes; it's the base for everything after.*
 3. **Order:** phase 1 (input), 2 (editing), 3 (parameters), 4 (export, construction).
    *Recommended: yes. Phase 4's DXF export is small and could come earlier if users ask.*
+   2026-10-27: SVG import inserted as phase 3; parameters are phase 4, export and
+   construction lines phase 5.
 4. **Polygon:** a new kind with its values (centre, radius, sides, angle; schema bump), or a
    polyline once drawn. *Recommended: a new kind, so the number of sides stays editable,
    as the rectangle's size does.*
