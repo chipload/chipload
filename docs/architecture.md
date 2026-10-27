@@ -25,6 +25,7 @@ flowchart TB
     text["chipload-text<br/>fonts to outlines"] --> core
     draw["chipload-draw<br/>drawing geometry, snapping"] --> core
     gui --> draw
+    pipeline --> draw
     job["chipload-job<br/>project file, migrations"] --> core
     core["chipload-core<br/>lines, arcs, chaining, tolerances"]
     i18n["chipload-i18n<br/>texts in six languages"]
@@ -93,7 +94,7 @@ error.
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job, i18n; dxf |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core, i18n; ttf-parser |
-| `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); later the editing of drawn shapes. No I/O, no project model. | core |
+| `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); offsets of drawn shapes, and the other editing operations to come (docs/specs/drawing-editing.md). No I/O, no project model. | core; cavalier_contours |
 | `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, i18n, check; minijinja |
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job, i18n |
