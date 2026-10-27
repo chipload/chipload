@@ -695,7 +695,10 @@ impl ChiploadApp {
                 "{}{name}",
                 sketch.status(*at, step, self.units, ui)
             ));
-        } else if let (Some(_), Some((at, name))) = (&self.drag.handle, &snapped) {
+        } else if let (true, Some((at, name))) = (
+            self.drag.handle.is_some() || self.drag.moving.is_some(),
+            &snapped,
+        ) {
             ui.label(t!(
                 ui,
                 "menu-dragging",

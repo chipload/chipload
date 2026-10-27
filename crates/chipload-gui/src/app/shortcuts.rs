@@ -195,8 +195,18 @@ pub(super) fn others(src: &impl crate::i18n::Lang) -> Vec<(Group, String, String
         ),
         (
             Canvas,
+            t!(src, "shortcuts-drag-shape"),
+            t!(src, "shortcuts-drag-shape-what"),
+        ),
+        (
+            Canvas,
             t!(src, "shortcuts-pan-drag"),
             t!(src, "shortcuts-pan-drag-what"),
+        ),
+        (
+            Canvas,
+            t!(src, "shortcuts-orbit-drag"),
+            t!(src, "shortcuts-orbit-drag-what"),
         ),
         (
             Canvas,

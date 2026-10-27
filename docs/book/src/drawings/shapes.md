@@ -53,6 +53,12 @@ multiple of 15° (0° and 90° for straight lines), its length on the grid.
 
 ## Editing
 
+- **Moving with the mouse:** drag a drawn shape to move it; if it is selected, the whole
+  selection moves with it. The point you grab snaps as drawing does, so a corner can be
+  dropped exactly on another shape's corner or a crossing; Shift keeps the move to 15°
+  steps, Alt turns snapping off. Select several with a box first (drag on empty canvas,
+  [the canvas](../window.md#the-canvas)). Shapes from a DXF, a picture or a text move as a
+  whole with their own handles.
 - **Handles:** drag a selected shape's handles to change it. A drag snaps as drawing does;
   hold Alt to turn snapping off.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a

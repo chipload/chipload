@@ -88,6 +88,10 @@ handle, marker or contour) draws a selection box:
 - Without keys it replaces the selection; with **Shift** it adds; with **Ctrl** it toggles
   each contour, as Ctrl+click does.
 - Only contours shown on the canvas (hidden groups and a hidden drawing are out).
+- *Implemented:* a picture's or text's contours count only when the box catches nothing
+  else and replaces the selection: it then selects the whole picture or text, as a click
+  does (their shapes get new ids when traced or lettered again, so operations take them
+  whole).
 - The test (inside, crossing) is a pure function in `chipload-draw` on the segments, arcs
   exact (by their bounds and their crossings with the box's sides).
 
@@ -98,8 +102,9 @@ mouse"): a left drag that **starts on a drawn shape** moves shapes instead of dr
 - On a drawn shape that isn't selected: it becomes the selection (Shift: is added to it),
   then moves.
 - The point grabbed follows the cursor and **snaps** like a handle (snap points of the
-  moved shapes left out; Alt free; Shift holds the move to 15° steps); typing a value
-  during the drag (§2, `@dx,dy` or `d<a`) moves by exactly that.
+  moved shapes left out; Alt free; Shift holds the move to 15° steps). *Implemented:*
+  typing a value during the drag was left out: the mouse button is held down meanwhile,
+  which makes typing awkward. An exact move is *Position* in Properties or `shape move`.
 - While dragging, the outlines follow; on release the shapes are moved as one undo step,
   keeping their ids (`shape move`, drawn-shapes-box.md §2), so operations follow.
 - A drag starting on an imported contour (a DXF's, a picture's, a text's letters) draws a

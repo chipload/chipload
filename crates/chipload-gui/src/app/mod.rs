@@ -63,6 +63,7 @@ mod playback;
 mod problems;
 mod recovery;
 mod report;
+mod select_drag;
 mod shortcuts;
 mod simulation;
 mod sources;
@@ -256,6 +257,10 @@ struct Drag {
     snapped: Option<(Point, Option<SnapPoint>)>,
     /// The handle being dragged, if any.
     handle: Option<HandleDrag>,
+    /// Drawn shapes being moved with the mouse (docs/specs/drawing-input.md §3).
+    moving: Option<select_drag::MoveDrag>,
+    /// A selection box being dragged: where it started and its far corner.
+    select_box: Option<(Point, Point)>,
     /// The picture's or text's box handle being dragged, if any.
     boxed: Option<box_drag::BoxDrag>,
     /// The start marker being dragged (index in `scene.start_markers`).

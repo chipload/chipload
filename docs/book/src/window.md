@@ -131,6 +131,11 @@ colour theme: dark, or light grey.
     FRONT, RIGHT, BACK, LEFT) to look straight at it.
   - In top view, the corner has an X–Y sign instead.
 - **The legend** (bottom left) explains the colours.
+- **The mouse:** the wheel zooms. In top view, a left drag on empty canvas selects with a
+  box: from left to right it takes what lies wholly inside, from right to left also what
+  it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
+  shape [moves it](drawings/shapes.md#editing). To pan, drag with the right or middle
+  button, or hold Space and drag. In 3D, a left drag orbits.
 
 ![The canvas in 3D: the simulated stock on the grid, the cube in the corner and the
 navigation bar](images/simulation-3d.png)

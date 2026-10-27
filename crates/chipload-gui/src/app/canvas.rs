@@ -89,7 +89,14 @@ impl ChiploadApp {
                 self.fit_only = None;
             }
         }
-        let (alt, shift) = ui.input(|i| (i.modifiers.alt, i.modifiers.shift));
+        let (alt, shift, ctrl, space) = ui.input(|i| {
+            (
+                i.modifiers.alt,
+                i.modifiers.shift,
+                i.modifiers.command || i.modifiers.ctrl,
+                i.key_down(egui::Key::Space),
+            )
+        });
         self.update_corner_markers();
         let shape_handles = if self.show_drawing() {
             self.shape_handles()
@@ -133,11 +140,23 @@ impl ChiploadApp {
                 if self.drag.start.is_none() {
                     self.drag.tab = self.tab_marker_at(origin);
                 }
+                // Space + drag pans; otherwise a drag selects with a box or moves drawn
+                // shapes (docs/specs/drawing-input.md §3).
+                if self.drag.start.is_none()
+                    && self.drag.tab.is_none()
+                    && !space
+                    && self.drag_selects()
+                {
+                    let picked = self.scene.pick(&self.view, origin);
+                    self.start_select_drag(picked, self.view.to_world(origin), shift, alt);
+                }
             }
         }
         if response.drag_stopped() {
             self.end_handle_drag();
             self.end_box_drag();
+            self.end_move_drag();
+            self.end_select_drag(shift, ctrl);
             self.drop_start();
             self.drop_tab();
         }
@@ -169,12 +188,27 @@ impl ChiploadApp {
                 let to = self.snap_world(self.view.to_world(pos), alt, true);
                 self.drag_box_to(to, alt);
             }
+        } else if self.drag.moving.is_some() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                self.drag_move_to(self.view.to_world(pos), alt, shift);
+            }
+        } else if self.drag.select_box.is_some() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                self.drag_select_to(self.view.to_world(pos));
+            }
         } else if response.dragged() {
-            // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view any drag pans.
+            // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view a drag
+            // that doesn't select or move pans: right, middle, Space + left, or any drag
+            // while a tool is active.
             let pan = !self.three_d
                 || response.dragged_by(egui::PointerButton::Secondary)
                 || response.dragged_by(egui::PointerButton::Middle)
-                || ui.input(|i| i.modifiers.shift);
+                || shift
+                || space;
             if pan {
                 self.view.pan(response.drag_delta());
             } else {
@@ -276,6 +310,8 @@ impl ChiploadApp {
         }
         let outline = self.box_outline();
         self.scene.preview.extend(outline);
+        let moved = self.move_outlines();
+        self.scene.preview.extend(moved);
         // Right-clicking a corner marker opens its menu, not the canvas's.
         let corner_clicked = response
             .secondary_clicked()
@@ -419,6 +455,7 @@ impl ChiploadApp {
         if let Some((at, text)) = readout {
             self.paint_readout(ui, &painter, at, text);
         }
+        self.paint_select_box(ui, &painter);
         self.typed_entry(ui);
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
@@ -573,7 +610,23 @@ impl ChiploadApp {
     pub(super) fn snap_world(&mut self, at: Point, free: bool, dragging: bool) -> Point {
         // A dragged box doesn't snap to its own letters or traced shapes.
         let own_box = (dragging && self.dragging_box()).then(|| self.selection.ids(&self.contours));
+        let moving: Option<BTreeSet<u64>> = self
+            .drag
+            .moving
+            .as_ref()
+            .filter(|_| dragging)
+            .map(|m| m.ids.iter().copied().collect());
         let skip: BTreeSet<usize> = match self.selected_shape().filter(|_| dragging) {
+            _ if moving.is_some() => self
+                .contours
+                .iter()
+                .filter(|c| {
+                    moving
+                        .as_ref()
+                        .is_some_and(|ids| !shapes_of(c).is_disjoint(ids))
+                })
+                .map(|c| c.id)
+                .collect(),
             Some(id) => self
                 .contours
                 .iter()
@@ -616,6 +669,33 @@ impl ChiploadApp {
                 p
             }
             None => self.snap_world(raw, alt, false),
+        }
+    }
+
+    /// The selection box being dragged: solid when it takes what lies inside it, dashed
+    /// when it takes what it touches.
+    fn paint_select_box(&self, ui: &egui::Ui, painter: &egui::Painter) {
+        let Some((from, to, mode)) = self.select_box() else {
+            return;
+        };
+        let rect = egui::Rect::from_two_pos(self.view.to_screen(from), self.view.to_screen(to));
+        let colour = ui.visuals().selection.stroke.color;
+        painter.rect_filled(rect, 0.0, colour.gamma_multiply(0.08));
+        let stroke = egui::Stroke::new(1.0, colour);
+        match mode {
+            chipload_draw::select::BoxMode::Inside => {
+                painter.rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Inside);
+            }
+            chipload_draw::select::BoxMode::Touching => {
+                let c = [
+                    rect.left_top(),
+                    rect.right_top(),
+                    rect.right_bottom(),
+                    rect.left_bottom(),
+                    rect.left_top(),
+                ];
+                painter.extend(egui::Shape::dashed_line(&c, stroke, 6.0, 4.0));
+            }
         }
     }
 
