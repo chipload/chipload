@@ -2,6 +2,22 @@
 //! Drawing and editing shapes (docs/specs/drawing-tools.md).
 
 use super::*;
+use crate::draw::{EntryError, parse_entry, typed_point};
+use chipload_core::primitives::distance;
+use chipload_core::tolerances::CHAIN_TOL_MM;
+
+/// A value being typed while drawing, in a small entry beside the cursor
+/// (docs/specs/drawing-input.md §2).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Typed {
+    pub text: String,
+    /// Where the entry shows, on screen.
+    pub at: egui::Pos2,
+    /// The last Enter was refused: the text shows in red until it changes.
+    pub refused: bool,
+    /// The entry should take the keyboard (just opened, or refused).
+    pub focus: bool,
+}
 
 impl ChiploadApp {
     // -- drawing (docs/specs/drawing-tools.md)
@@ -19,11 +35,61 @@ impl ChiploadApp {
             self.measure = None;
             self.placing_text = false;
             self.sketch = Some(Sketch::new(tool));
+            self.typed = None;
+            self.last_tool = Some(tool);
         }
     }
 
     pub fn cancel_drawing(&mut self) {
         self.sketch = None;
+        self.typed = None;
+    }
+
+    /// Start typing a value while drawing, with its first character; the entry shows at
+    /// `at` on screen.
+    pub fn start_typing(&mut self, first: &str, at: egui::Pos2) {
+        if self.sketch.is_some() {
+            self.typed = Some(Typed {
+                text: first.to_string(),
+                at,
+                refused: false,
+                focus: true,
+            });
+        }
+    }
+
+    /// The point the typed value gives, with the cursor at `cursor` (for a plain
+    /// distance's direction).
+    pub(super) fn typed_target(&self, cursor: Point) -> Result<Point, EntryError> {
+        let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch) else {
+            return Err(EntryError::Unreadable);
+        };
+        let entry = parse_entry(&typed.text, self.units)?;
+        typed_point(entry, sketch.anchor(), cursor)
+    }
+
+    /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
+    /// the entry open, in red, with the reason on the status bar.
+    pub fn apply_typed(&mut self, cursor: Point) {
+        match self.typed_target(cursor) {
+            Ok(p) => {
+                self.typed = None;
+                // A typed point on a polyline's first point closes it, as a click there does.
+                let on_first = self
+                    .sketch
+                    .as_ref()
+                    .and_then(|s| s.points.first())
+                    .is_some_and(|&first| distance(first, p) < CHAIN_TOL_MM);
+                self.draw_click(p, on_first);
+            }
+            Err(why) => {
+                if let Some(typed) = self.typed.as_mut() {
+                    typed.refused = true;
+                    typed.focus = true;
+                }
+                self.set_status(why.text(self), STATUS_SECONDS);
+            }
+        }
     }
 
     /// A click while drawing, at `p` (already on the grid). `on_first`: the click hit the
@@ -55,6 +121,7 @@ impl ChiploadApp {
             }
             Step::Done(geometry) => {
                 self.sketch = None;
+                self.typed = None;
                 self.add_drawn(geometry);
             }
         }

@@ -38,6 +38,8 @@ CHIPLOAD_SCREENSHOT_SIZE=1600x950 shot showcase packaging/docs/showcase.chipload
     simulation,3d,noreport,noimages,op4
 # The Text page: a text and its properties.
 shot text tests/corpus/jobs/v27/text.chipload generate,select,text1
+# Drawing: a value typed while drawing a polyline (docs/specs/drawing-input.md §2).
+shot typing tests/corpus/jobs/v5/drawn_part.chipload typing
 # The library: a settings folder of its own with two tools and a machine.
 cargo build -q --release -p chipload-cli
 library=$(mktemp -d)

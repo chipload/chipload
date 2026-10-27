@@ -8,8 +8,8 @@ DXF, or a project without one:
   corners).
 - **Polyline:** points joined by straight or arc segments, open or closed.
 
-**Circle**, **Rectangle** or **Polyline** in the ribbon's DRAW group, then click on the
-canvas. Clicks snap to the drawing (below), else to the [grid](../window.md#the-canvas),
+**Circle** (key **C**), **Rectangle** (**R**) or **Polyline** (**L**) in the ribbon's DRAW
+group, then click on the canvas. With no tool active, **Enter** starts the last one again. Clicks snap to the drawing (below), else to the [grid](../window.md#the-canvas),
 whose step the status bar gives ("grid 1 mm").
 
 ## Snapping
@@ -26,6 +26,30 @@ marked with a small diamond and named on the status bar ("intersection of #3 and
 
 The nearest of them wins; at the same spot, they count in the order above. Hold **Alt** to
 turn snapping off.
+
+## Exact values
+
+While a tool waits for a point, type a number: an entry opens beside the cursor. **Enter**
+uses it, **Esc** closes it.
+
+| Type | For |
+|---|---|
+| `120,40` | the point X 120, Y 40 |
+| `@30,-10` | 30 to the right of the last point and 10 down |
+| `30` | 30 from the last point, towards the cursor |
+| `30<45` | 30 from the last point at 45° (counter-clockwise from the X axis) |
+
+Lengths are in the units the app shows, unless you name them: `1/2in`, `12mm`. Where the
+decimal point is a comma, separate X and Y with a semicolon: `12,5;30`. For a circle, a
+plain length after the centre is its radius. The preview shows where the value lands before
+you press Enter; a value that can't be used turns red and the status bar says why.
+
+![Drawing a polyline: 40<120 typed, the preview at 120° and the length and angle beside the
+cursor](../images/typing.png)
+
+Beside the cursor, the size being drawn: the line's length and angle, a circle's radius, a
+rectangle's length × width. Hold **Shift** to keep the line from the last point at a
+multiple of 15° (0° and 90° for straight lines), its length on the grid.
 
 ## Editing
 

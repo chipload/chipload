@@ -31,3 +31,8 @@ draw-snap-quadrant = quadrante di #{ $contour }
 draw-snap-perpendicular = perpendicolare a #{ $contour }
 draw-snap-tangent = tangente a #{ $contour }
 draw-snap-nearest = su #{ $contour }
+
+# A value typed while drawing that can't be used.
+draw-entry-unreadable = illeggibile: digita x,y  @dx,dy  una lunghezza, o lunghezza<angolo
+draw-entry-needs-point = il primo punto: digita x,y
+draw-entry-no-direction = allontana il cursore dall'ultimo punto per dare la direzione

@@ -11,7 +11,7 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::{Geometry, Shape, Units};
-use chipload_pipeline::units::length_text;
+use chipload_pipeline::units::{length_text, parse_length};
 
 use crate::i18n::{Lang, t};
 
@@ -201,6 +201,186 @@ impl Sketch {
                 t!(lang, "draw-status-polyline", count = count, grid = grid)
             }
         }
+    }
+}
+
+// -- typed values and angle steps (docs/specs/drawing-input.md §2)
+
+/// A value typed while drawing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Entry {
+    /// `x,y`: this point.
+    At(Point),
+    /// `@dx,dy`: this far from the last point.
+    By(Point),
+    /// `d`: this far from the last point, towards the cursor.
+    Distance(f64),
+    /// `d<a`: this far from the last point at this angle (radians, CCW from +X).
+    Polar(f64, f64),
+}
+
+/// Why a typed value can't be used.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryError {
+    /// It doesn't read as any form of value.
+    Unreadable,
+    /// It counts from a last point and there is none yet.
+    NeedsLastPoint,
+    /// A plain distance with the cursor on the last point: no direction.
+    NoDirection,
+}
+
+impl EntryError {
+    /// For the status bar.
+    pub fn text(self, lang: &impl Lang) -> String {
+        match self {
+            EntryError::Unreadable => t!(lang, "draw-entry-unreadable"),
+            EntryError::NeedsLastPoint => t!(lang, "draw-entry-needs-point"),
+            EntryError::NoDirection => t!(lang, "draw-entry-no-direction"),
+        }
+    }
+}
+
+/// Reads a typed value: `x,y`, `@dx,dy`, `d` or `d<a` (a in degrees), lengths in `units`
+/// unless they name theirs. With a semicolon (`12,5;30`) the semicolon separates and a
+/// comma is a decimal point; in `d<a` a comma is always a decimal point.
+pub fn parse_entry(text: &str, units: Units) -> Result<Entry, EntryError> {
+    let text = text.trim();
+    let (relative, body) = match text.strip_prefix('@') {
+        Some(rest) => (true, rest.trim()),
+        None => (false, text),
+    };
+    let length = |t: &str| parse_length(t, units).ok_or(EntryError::Unreadable);
+    if let Some((d, a)) = body.split_once('<') {
+        let degrees: f64 = a
+            .trim()
+            .replace(',', ".")
+            .parse()
+            .map_err(|_| EntryError::Unreadable)?;
+        if !degrees.is_finite() {
+            return Err(EntryError::Unreadable);
+        }
+        return Ok(Entry::Polar(
+            length(&d.replace(',', "."))?,
+            degrees.to_radians(),
+        ));
+    }
+    let pair = if body.contains(';') {
+        body.split_once(';')
+            .map(|(x, y)| (x.replace(',', "."), y.replace(',', ".")))
+    } else {
+        body.split_once(',')
+            .map(|(x, y)| (x.to_string(), y.to_string()))
+    };
+    match pair {
+        Some((x, y)) => {
+            let point = (length(&x)?, length(&y)?);
+            Ok(if relative {
+                Entry::By(point)
+            } else {
+                Entry::At(point)
+            })
+        }
+        None => Ok(Entry::Distance(length(body)?)),
+    }
+}
+
+/// The point a typed value gives, counting from `anchor` (the last click), with the cursor
+/// at `cursor` for a plain distance's direction.
+pub fn typed_point(
+    entry: Entry,
+    anchor: Option<Point>,
+    cursor: Point,
+) -> Result<Point, EntryError> {
+    let from = match (entry, anchor) {
+        (Entry::At(p), _) => return Ok(p),
+        (_, Some(from)) => from,
+        (_, None) => return Err(EntryError::NeedsLastPoint),
+    };
+    match entry {
+        Entry::At(p) => Ok(p),
+        Entry::By((dx, dy)) => Ok((from.0 + dx, from.1 + dy)),
+        Entry::Distance(d) => {
+            let length = distance(from, cursor);
+            if length < CHAIN_TOL_MM {
+                return Err(EntryError::NoDirection);
+            }
+            let (ux, uy) = ((cursor.0 - from.0) / length, (cursor.1 - from.1) / length);
+            Ok((from.0 + ux * d, from.1 + uy * d))
+        }
+        Entry::Polar(d, angle) => {
+            let (sin, cos) = exact_sin_cos(angle);
+            Ok((from.0 + d * cos, from.1 + d * sin))
+        }
+    }
+}
+
+/// Shift's angle steps while drawing.
+pub const ANGLE_STEP_DEG: f64 = 15.0;
+
+/// The cursor at `at` held to a multiple of 15° from `anchor`: projected onto that
+/// direction, its length rounded to the grid of `step` (None: not rounded, Alt).
+pub fn angle_step(anchor: Point, at: Point, step: Option<f64>, units: Units) -> Point {
+    let (dx, dy) = (at.0 - anchor.0, at.1 - anchor.1);
+    if dx == 0.0 && dy == 0.0 {
+        return anchor;
+    }
+    let step_rad = ANGLE_STEP_DEG.to_radians();
+    let angle = (dy.atan2(dx) / step_rad).round() * step_rad;
+    let (sin, cos) = exact_sin_cos(angle);
+    let along = dx * cos + dy * sin;
+    let along = match step {
+        Some(step) => snap((along, 0.0), step, units).0,
+        None => along,
+    };
+    (anchor.0 + along * cos, anchor.1 + along * sin)
+}
+
+/// sin and cos, exact at multiples of 90° (so a line held to 90° is exactly vertical).
+fn exact_sin_cos(angle: f64) -> (f64, f64) {
+    let quarters = angle / std::f64::consts::FRAC_PI_2;
+    if (quarters - quarters.round()).abs() < chipload_core::tolerances::ANGLE_TOL_RAD {
+        match (quarters.round() as i64).rem_euclid(4) {
+            0 => (0.0, 1.0),
+            1 => (1.0, 0.0),
+            2 => (0.0, -1.0),
+            _ => (-1.0, 0.0),
+        }
+    } else {
+        angle.sin_cos()
+    }
+}
+
+impl Sketch {
+    /// Where typed values count from: the last click.
+    pub fn anchor(&self) -> Option<Point> {
+        self.points.last().copied()
+    }
+
+    /// Beside the cursor at `p`: the line's length and angle (polyline), the radius
+    /// (circle), length × width (rectangle). None before the first click.
+    pub fn readout(&self, p: Point, units: Units) -> Option<String> {
+        let n = |mm: f64| fixed(mm, units);
+        let from = self.anchor()?;
+        let first = self.points.first().copied().unwrap_or(from);
+        Some(match self.tool {
+            Tool::Polyline => {
+                let (dx, dy) = (p.0 - from.0, p.1 - from.1);
+                let angle = if dx == 0.0 && dy == 0.0 {
+                    0.0
+                } else {
+                    dy.atan2(dx).to_degrees()
+                };
+                let angle = if angle.abs() < 0.05 { 0.0 } else { angle };
+                format!("L {}  {angle:.1}°", n(dx.hypot(dy)))
+            }
+            Tool::Circle => format!("R {}", n(distance(first, p))),
+            Tool::Rectangle => format!(
+                "{} × {}",
+                n((p.0 - first.0).abs()),
+                n((p.1 - first.1).abs())
+            ),
+        })
     }
 }
 
@@ -541,6 +721,115 @@ mod tests {
             snap_cursor(&far, &snapper, 10.0, 1.0, Units::Mm, false)
                 .1
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn typed_values_read_in_every_form() {
+        let mm = |t: &str| parse_entry(t, Units::Mm);
+        assert_eq!(mm("20,10"), Ok(Entry::At((20.0, 10.0))));
+        assert_eq!(mm(" @-5, 2.5 "), Ok(Entry::By((-5.0, 2.5))));
+        assert_eq!(mm("40"), Ok(Entry::Distance(40.0)));
+        assert_eq!(mm("40<90"), Ok(Entry::Polar(40.0, 90f64.to_radians())));
+        assert_eq!(mm("@40<90"), mm("40<90"));
+        // The decimal comma: with a semicolon, and always in d<a.
+        assert_eq!(mm("12,5;30"), Ok(Entry::At((12.5, 30.0))));
+        assert_eq!(
+            mm("12,5<22,5"),
+            Ok(Entry::Polar(12.5, 22.5f64.to_radians()))
+        );
+        // Units: a plain number is in the display units; any value can name its own.
+        assert_eq!(parse_entry("1", Units::Inch), Ok(Entry::Distance(25.4)));
+        assert_eq!(parse_entry("10mm", Units::Inch), Ok(Entry::Distance(10.0)));
+        assert_eq!(mm("1/2in,1in"), Ok(Entry::At((12.7, 25.4))));
+        for bad in ["", "abc", "1,2,3", "4<", "<30", "4<x", "1;"] {
+            assert_eq!(mm(bad), Err(EntryError::Unreadable), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn typed_values_count_from_the_last_click() {
+        let last = Some((10.0, 10.0));
+        let cursor = (10.0, 30.0); // straight up
+        assert_eq!(
+            typed_point(Entry::At((1.0, 2.0)), None, cursor),
+            Ok((1.0, 2.0))
+        );
+        assert_eq!(
+            typed_point(Entry::By((5.0, -1.0)), last, cursor),
+            Ok((15.0, 9.0))
+        );
+        assert_eq!(
+            typed_point(Entry::Distance(4.0), last, cursor),
+            Ok((10.0, 14.0))
+        );
+        // Exactly at 90° and 180°: no rounding error.
+        let up = typed_point(Entry::Polar(4.0, 90f64.to_radians()), last, cursor);
+        assert_eq!(up, Ok((10.0, 14.0)));
+        let left = typed_point(Entry::Polar(4.0, 180f64.to_radians()), last, cursor);
+        assert_eq!(left, Ok((6.0, 10.0)));
+        // A first point must be absolute; a distance needs a direction.
+        assert_eq!(
+            typed_point(Entry::Distance(4.0), None, cursor),
+            Err(EntryError::NeedsLastPoint)
+        );
+        assert_eq!(
+            typed_point(Entry::Distance(4.0), last, (10.0, 10.0)),
+            Err(EntryError::NoDirection)
+        );
+        // A circle's typed distance is its radius.
+        let mut circle = Sketch::new(Tool::Circle);
+        circle.click((0.0, 0.0), false);
+        let p = typed_point(Entry::Distance(7.5), circle.anchor(), (1.0, 0.0)).unwrap();
+        assert!(matches!(
+            circle.click(p, false),
+            Step::Done(Geometry::Circle { radius, .. }) if radius == 7.5
+        ));
+    }
+
+    #[test]
+    fn shift_holds_the_line_to_fifteen_degree_steps() {
+        let o = (10.0, 10.0);
+        // Nearly flat: exactly flat, the length on the 1 mm grid.
+        assert_eq!(
+            angle_step(o, (22.3, 10.4), Some(1.0), Units::Mm),
+            (22.0, 10.0)
+        );
+        // Nearly vertical, downwards.
+        assert_eq!(
+            angle_step(o, (10.2, -5.6), Some(1.0), Units::Mm),
+            (10.0, -6.0)
+        );
+        // 15°: on that line, 10 mm long.
+        let p = angle_step(o, (19.7, 12.6), Some(1.0), Units::Mm);
+        assert!((distance(o, p) - 10.0).abs() < 1e-9);
+        assert!(((p.1 - o.1).atan2(p.0 - o.0).to_degrees() - 15.0).abs() < 1e-9);
+        // 345° is -15°.
+        let q = angle_step(o, (19.7, 7.4), None, Units::Mm);
+        assert!(((q.1 - o.1).atan2(q.0 - o.0).to_degrees() + 15.0).abs() < 1e-9);
+        assert_eq!(angle_step(o, o, Some(1.0), Units::Mm), o);
+    }
+
+    #[test]
+    fn the_readout_gives_the_size_being_drawn() {
+        let mut line = Sketch::new(Tool::Polyline);
+        assert_eq!(line.readout((1.0, 1.0), Units::Mm), None);
+        line.click((0.0, 0.0), false);
+        assert_eq!(
+            line.readout((0.0, 20.0), Units::Mm).unwrap(),
+            "L 20.000  90.0°"
+        );
+        let mut rect = Sketch::new(Tool::Rectangle);
+        rect.click((0.0, 0.0), false);
+        assert_eq!(
+            rect.readout((-40.0, 20.0), Units::Mm).unwrap(),
+            "40.000 × 20.000"
+        );
+        let mut circle = Sketch::new(Tool::Circle);
+        circle.click((0.0, 0.0), false);
+        assert_eq!(
+            circle.readout((0.0, 25.4), Units::Inch).unwrap(),
+            "R 1.0000"
         );
     }
 

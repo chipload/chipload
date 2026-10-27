@@ -31,6 +31,9 @@ pub(super) enum Action {
     Measure,
     Panels,
     Shortcuts,
+    DrawPolyline,
+    DrawCircle,
+    DrawRectangle,
 }
 
 /// The shortcut window's groups, in the order it shows them.
@@ -116,6 +119,19 @@ pub(super) const BINDINGS: &[Binding] = &[
     bind(Action::Measure, Modifiers::NONE, Key::M, Group::View),
     bind(Action::Panels, Modifiers::NONE, Key::P, Group::View),
     bind(Action::Shortcuts, Modifiers::NONE, Key::F1, Group::Help),
+    bind(
+        Action::DrawPolyline,
+        Modifiers::NONE,
+        Key::L,
+        Group::Drawing,
+    ),
+    bind(Action::DrawCircle, Modifiers::NONE, Key::C, Group::Drawing),
+    bind(
+        Action::DrawRectangle,
+        Modifiers::NONE,
+        Key::R,
+        Group::Drawing,
+    ),
 ];
 
 /// What a shortcut does, as the shortcut window says it.
@@ -142,6 +158,9 @@ pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
         Action::Measure => t!(src, "shortcuts-measure"),
         Action::Panels => t!(src, "shortcuts-panels"),
         Action::Shortcuts => t!(src, "shortcuts-this-list"),
+        Action::DrawPolyline => t!(src, "shortcuts-draw-polyline"),
+        Action::DrawCircle => t!(src, "shortcuts-draw-circle"),
+        Action::DrawRectangle => t!(src, "shortcuts-draw-rectangle"),
     }
 }
 
@@ -203,6 +222,16 @@ pub(super) fn others(src: &impl crate::i18n::Lang) -> Vec<(Group, String, String
             Drawing,
             t!(src, "shortcuts-click"),
             t!(src, "shortcuts-click-point"),
+        ),
+        (
+            Drawing,
+            t!(src, "shortcuts-type-value"),
+            t!(src, "shortcuts-type-value-what"),
+        ),
+        (
+            Drawing,
+            t!(src, "shortcuts-shift"),
+            t!(src, "shortcuts-shift-what"),
         ),
         (
             Drawing,
@@ -315,6 +344,9 @@ impl ChiploadApp {
             Action::Grid => self.set_show_grid(!self.show_grid),
             Action::Measure => self.toggle_measure(),
             Action::Panels => self.toggle_panels(),
+            Action::DrawPolyline => self.start_drawing(Tool::Polyline),
+            Action::DrawCircle => self.start_drawing(Tool::Circle),
+            Action::DrawRectangle => self.start_drawing(Tool::Rectangle),
             Action::Shortcuts => self.dialogs.shortcuts_open = true,
         }
     }

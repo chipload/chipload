@@ -191,9 +191,17 @@ impl ChiploadApp {
         } else {
             self.cursor = None;
         }
+        let mut readout = None;
         if self.sketch.is_some() {
             self.scene.measure = None;
-            let at = self.cursor.map(|c| self.snap_world(c, alt, false));
+            let at = self.cursor.map(|c| self.drawing_point(c, alt, shift));
+            // A value being typed shows where it would land (also with the pointer off the
+            // canvas: then a plain distance has no direction).
+            let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+            let at = match at.or(anchor) {
+                Some(c) if self.typed.is_some() => Some(self.typed_target(c).unwrap_or(c)),
+                _ => at,
+            };
             if response.double_clicked() {
                 self.finish_drawing();
             } else if response.clicked()
@@ -203,12 +211,16 @@ impl ChiploadApp {
                 let on_first = first.is_some_and(|f| {
                     self.view.to_screen(f).distance(pos) <= crate::view::PICK_TOLERANCE_PX
                 });
-                let p = self.snap_world(self.view.to_world(pos), alt, false);
+                let p = self.drawing_point(self.view.to_world(pos), alt, shift);
                 self.draw_click(p, on_first);
             }
             self.scene.preview = match (&self.sketch, at) {
                 (Some(sketch), Some(at)) => sketch.preview(at),
                 _ => Vec::new(),
+            };
+            readout = match (&self.sketch, at) {
+                (Some(sketch), Some(at)) => sketch.readout(at, self.units).map(|text| (at, text)),
+                _ => None,
             };
             self.scene.sketch_points = self
                 .sketch
@@ -404,6 +416,10 @@ impl ChiploadApp {
             followed: self.followed_contours(),
         };
         self.scene.paint(&painter, &self.view, &highlight);
+        if let Some((at, text)) = readout {
+            self.paint_readout(ui, &painter, at, text);
+        }
+        self.typed_entry(ui);
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
         self.navigation_bar(ui, rect);
@@ -585,6 +601,93 @@ impl ChiploadApp {
         self.drag.snapped = Some((p, hit));
         self.scene.snap_mark = hit.map(|h| h.at);
         p
+    }
+
+    /// Where a drawing click or the cursor lands: snapped (else the grid), or with Shift
+    /// held to 15° steps from the last click (docs/specs/drawing-input.md §2).
+    pub(super) fn drawing_point(&mut self, raw: Point, alt: bool, shift: bool) -> Point {
+        let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+        match anchor.filter(|_| shift) {
+            Some(anchor) => {
+                let step = (!alt).then(|| grid_step(self.view.scale, self.units));
+                let p = crate::draw::angle_step(anchor, raw, step, self.units);
+                self.drag.snapped = Some((p, None));
+                self.scene.snap_mark = None;
+                p
+            }
+            None => self.snap_world(raw, alt, false),
+        }
+    }
+
+    /// The size being drawn, beside the cursor at `at`.
+    fn paint_readout(&self, ui: &egui::Ui, painter: &egui::Painter, at: Point, text: String) {
+        let visuals = ui.visuals();
+        let galley = painter.layout_no_wrap(
+            text,
+            egui::FontId::proportional(12.0),
+            visuals.strong_text_color(),
+        );
+        let corner = self.view.to_screen(at) + egui::vec2(14.0, -14.0);
+        let rect = egui::Align2::LEFT_BOTTOM
+            .anchor_size(corner, galley.size())
+            .expand(3.0);
+        painter.rect_filled(rect, 3.0, visuals.extreme_bg_color.gamma_multiply(0.9));
+        painter.galley(
+            rect.min + egui::vec2(3.0, 3.0),
+            galley,
+            visuals.text_color(),
+        );
+    }
+
+    /// The entry of a value being typed while drawing: Enter applies it, Esc or a click
+    /// elsewhere closes it.
+    fn typed_entry(&mut self, ui: &egui::Ui) {
+        let Some(mut typed) = self.typed.clone() else {
+            return;
+        };
+        let id = egui::Id::new("draw-typed-entry");
+        let error = ui.visuals().error_fg_color;
+        let shown = egui::Area::new(id.with("area"))
+            .fixed_pos(typed.at)
+            .order(egui::Order::Foreground)
+            .show(ui.ctx(), |ui| {
+                egui::Frame::popup(ui.style())
+                    .show(ui, |ui| {
+                        let mut edit = egui::TextEdit::singleline(&mut typed.text)
+                            .id(id)
+                            .desired_width(130.0);
+                        if typed.refused {
+                            edit = edit.text_color(error);
+                        }
+                        ui.add(edit)
+                    })
+                    .inner
+            })
+            .inner;
+        if shown.changed() {
+            typed.refused = false;
+        }
+        if typed.focus {
+            shown.request_focus();
+            // The cursor after the first character, not before it.
+            if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), id) {
+                let end = egui::text::CCursor::new(typed.text.chars().count());
+                state
+                    .cursor
+                    .set_char_range(Some(egui::text::CCursorRange::one(end)));
+                state.store(ui.ctx(), id);
+            }
+            typed.focus = false;
+        }
+        let entered = shown.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+        let closed = shown.lost_focus() && !entered;
+        self.typed = (!closed).then_some(typed);
+        if entered {
+            let cursor = self.drag.snapped.map(|(p, _)| p).or(self.cursor);
+            if let Some(cursor) = cursor {
+                self.apply_typed(cursor);
+            }
+        }
     }
 
     /// The last point of the tool being used, for perpendicular and tangent snaps: a

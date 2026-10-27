@@ -337,6 +337,17 @@ impl ChiploadApp {
         if steps.contains(&"3d") {
             self.view_3d();
         }
+        // Drawing a polyline with a value being typed (docs/specs/drawing-input.md §2).
+        if steps.contains(&"typing") {
+            self.start_drawing(Tool::Polyline);
+            for p in [(20.0, 20.0), (80.0, 20.0)] {
+                self.draw_click(p, false);
+            }
+            self.start_typing("40<120", egui::pos2(560.0, 300.0));
+            if let Some(typed) = self.typed.as_mut() {
+                typed.focus = false;
+            }
+        }
         if steps.contains(&"notoolpath") {
             self.show_toolpath = false;
         }

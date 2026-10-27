@@ -331,6 +331,10 @@ pub struct ChiploadApp {
     pub three_d: bool,
     /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
     pub sketch: Option<Sketch>,
+    /// A value being typed while drawing (docs/specs/drawing-input.md §2).
+    pub typed: Option<drawing::Typed>,
+    /// The last drawing tool used: Enter with no tool active starts it again.
+    pub last_tool: Option<Tool>,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
@@ -460,6 +464,8 @@ impl Default for ChiploadApp {
             playback: None,
             three_d: false,
             sketch: None,
+            typed: None,
+            last_tool: None,
             placing_text: false,
             focus_text_field: false,
             measure: None,

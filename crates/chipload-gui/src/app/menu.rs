@@ -21,6 +21,33 @@ impl ChiploadApp {
                 self.act(binding.action, ctx);
             }
         }
+        // Typing a value while drawing opens the entry at the cursor (drawing-input.md §2).
+        if self.sketch.is_some() && self.typed.is_none() {
+            let first = ctx.input(|i| {
+                i.events.iter().find_map(|e| match e {
+                    egui::Event::Text(t)
+                        if t.starts_with(|c: char| {
+                            c.is_ascii_digit() || matches!(c, '-' | '.' | '@')
+                        }) =>
+                    {
+                        Some(t.clone())
+                    }
+                    _ => None,
+                })
+            });
+            let pointer = ctx.input(|i| i.pointer.latest_pos());
+            if let (Some(first), Some(pointer)) = (first, pointer) {
+                self.start_typing(&first, pointer + egui::vec2(16.0, 16.0));
+            }
+        }
+        if self.sketch.is_none()
+            && self.measure.is_none()
+            && !self.placing_text
+            && let Some(tool) = self.last_tool
+            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
+        {
+            self.start_drawing(tool);
+        }
         if self.sketch.is_some() {
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
                 self.finish_drawing();
@@ -478,11 +505,20 @@ impl ChiploadApp {
     /// The Draw menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn draw_menu(&mut self, ui: &mut egui::Ui) {
         let can_draw = self.can_draw();
-        for (tool, label) in [
-            (Tool::Circle, t!(ui, "menu-draw-circle")),
-            (Tool::Rectangle, t!(ui, "menu-draw-rectangle")),
-            (Tool::Polyline, t!(ui, "menu-draw-polyline")),
+        for (tool, label, action) in [
+            (Tool::Circle, t!(ui, "menu-draw-circle"), Action::DrawCircle),
+            (
+                Tool::Rectangle,
+                t!(ui, "menu-draw-rectangle"),
+                Action::DrawRectangle,
+            ),
+            (
+                Tool::Polyline,
+                t!(ui, "menu-draw-polyline"),
+                Action::DrawPolyline,
+            ),
         ] {
+            let label = with_keys(&label, action);
             if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
                 self.start_drawing(tool);
             }

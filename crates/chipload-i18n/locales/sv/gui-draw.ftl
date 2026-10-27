@@ -31,3 +31,8 @@ draw-snap-quadrant = kvadrantpunkt på #{ $contour }
 draw-snap-perpendicular = vinkelrätt mot #{ $contour }
 draw-snap-tangent = tangent till #{ $contour }
 draw-snap-nearest = på #{ $contour }
+
+# A value typed while drawing that can't be used.
+draw-entry-unreadable = kan inte läsas: skriv x,y  @dx,dy  en längd, eller längd<vinkel
+draw-entry-needs-point = första punkten: skriv x,y
+draw-entry-no-direction = flytta markören från den senaste punkten för att ange riktningen

@@ -393,3 +393,78 @@ fn clicks_select_and_toggle() {
     app.click(None, false);
     assert_eq!(app.selection, CanvasSelection::Nothing);
 }
+
+#[test]
+fn typed_values_draw_exact_shapes() {
+    // docs/specs/drawing-input.md §2.
+    let mut app = drawn_part();
+    app.click(None, false);
+    app.start_drawing(Tool::Polyline);
+    let at = egui::pos2(0.0, 0.0);
+    // The first point must be absolute.
+    app.start_typing("@", at);
+    app.typed.as_mut().unwrap().text = "@5,5".into();
+    app.apply_typed((0.0, 0.0));
+    assert!(app.typed.as_ref().unwrap().refused, "no last point yet");
+    assert!(app.sketch.as_ref().unwrap().points.is_empty());
+    // x,y, then a length towards the cursor, then length<angle, then back to the start.
+    for (text, cursor) in [
+        ("200,100", (0.0, 0.0)),
+        ("30", (300.0, 100.0)),
+        ("20<90", (0.0, 0.0)),
+        ("200,100", (0.0, 0.0)),
+    ] {
+        app.start_typing(text, at);
+        app.apply_typed(cursor);
+    }
+    assert!(app.sketch.is_none(), "typing the first point closes it");
+    let id = app.selected_shape().unwrap();
+    assert_eq!(
+        app.shape(id).unwrap().geometry,
+        Geometry::Polyline {
+            closed: true,
+            points: vec![[200.0, 100.0], [230.0, 100.0], [230.0, 120.0]],
+            bulges: vec![0.0; 3],
+        }
+    );
+    app.commit();
+    // A circle: its typed distance is the radius.
+    app.start_drawing(Tool::Circle);
+    app.start_typing("50,50", at);
+    app.apply_typed((0.0, 0.0));
+    app.start_typing("12.5", at);
+    app.apply_typed((60.0, 50.0));
+    let id = app.selected_shape().unwrap();
+    assert_eq!(
+        app.shape(id).unwrap().geometry,
+        Geometry::Circle {
+            center: [50.0, 50.0],
+            radius: 12.5
+        }
+    );
+}
+
+#[test]
+fn enter_draws_with_the_last_tool_and_shift_holds_the_angle() {
+    let mut app = drawn_part();
+    app.view.scale = 10.0;
+    assert_eq!(app.last_tool, None);
+    app.start_drawing(Tool::Rectangle);
+    app.cancel_drawing();
+    assert_eq!(app.last_tool, Some(Tool::Rectangle));
+    app.start_drawing(Tool::Polyline);
+    app.draw_click((300.0, 300.0), false);
+    // Shift: 15° steps from the last click, the length on the grid (1 mm at 10 px/mm).
+    assert_eq!(
+        app.drawing_point((310.4, 300.3), false, true),
+        (310.0, 300.0)
+    );
+    assert_eq!(
+        app.drawing_point((300.3, 287.6), false, true),
+        (300.0, 288.0)
+    );
+    assert!(
+        app.drag.snapped.unwrap().1.is_none(),
+        "no snap while Shift is held"
+    );
+}
