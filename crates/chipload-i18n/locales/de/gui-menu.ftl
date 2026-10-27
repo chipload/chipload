@@ -134,3 +134,4 @@ menu-draw-arc = Bogen
 menu-draw-slot = Langloch
 menu-draw-polygon = Vieleck
 menu-polygon-sides = Seiten
+menu-modify-offset = Versatz

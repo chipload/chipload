@@ -517,3 +517,42 @@ fn a_length_label_takes_a_typed_length() {
     app.apply_typed((0.0, 0.0));
     assert!(app.typed.as_ref().unwrap().refused);
 }
+
+#[test]
+fn the_offset_tool_offsets_the_selection_to_the_cursor() {
+    // docs/specs/drawing-editing.md §2: the circle S2 (r 12 at (75, 80)).
+    use super::modify::ModifyTool;
+    use chipload_pipeline::drawing_edit::OffsetSide;
+    let mut app = drawn_part();
+    app.view.scale = 10.0; // the grid is 1 mm
+    app.start_modify(ModifyTool::Offset);
+    // Nothing selected: a click on the circle selects it.
+    let circle = contour_of(&app, 2);
+    app.offset_click(Some(circle), (87.0, 80.0), false, false);
+    assert_eq!(app.selected_drawn(), [2]);
+    // 3.2 mm outside the circle: 3 mm on the grid.
+    assert_eq!(
+        app.offset_for_cursor((90.2, 80.0), false),
+        Some((3.0, OffsetSide::Outside))
+    );
+    app.offset_click(None, (90.2, 80.0), false, false);
+    assert_eq!(
+        app.shape(4).unwrap().geometry,
+        Geometry::Circle {
+            center: [75.0, 80.0],
+            radius: 15.0
+        }
+    );
+    assert_eq!(app.selected_drawn(), [4], "the new shape is selected");
+    app.commit();
+    // Typed: 2 mm, inside (the cursor is inside the circle).
+    app.start_typing("2", egui::pos2(0.0, 0.0));
+    app.apply_typed((75.0, 80.0));
+    assert!(app.typed.is_none());
+    assert!(matches!(
+        app.shape(5).unwrap().geometry,
+        Geometry::Circle { radius, .. } if radius == 13.0
+    ));
+    app.cancel_modify();
+    assert!(app.modify.is_none());
+}

@@ -24,6 +24,7 @@ impl ChiploadApp {
         !self.three_d
             && self.sketch.is_none()
             && self.measure.is_none()
+            && self.modify.is_none()
             && !self.placing_text()
             && self.can_draw()
             && self.show_drawing()

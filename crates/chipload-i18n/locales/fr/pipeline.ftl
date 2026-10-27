@@ -459,3 +459,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = L'extrémité en { $at } : l'autre extrémité la plus proche est à { $nearest }.
 pipeline-join-open-alone = L'extrémité en { $at } : aucune autre extrémité sur son calque.
 pipeline-join-branch = Trois extrémités ou plus se rejoignent en { $at } : pas de jonction à cet endroit.
+pipeline-edit-imported = S{ $id } vient d'un DXF, d'une image ou d'un texte : éclatez le DXF, ou dessinez la forme, pour la modifier
+pipeline-offset-distance = le décalage doit être supérieur à 0, reçu { $got }
+pipeline-offset-vanishes = il ne reste rien de S{ $id } à { $distance } à l'intérieur
+pipeline-offset-side = S{ $id } est { $closed ->
+    [closed] fermée : décalez-la à l'extérieur ou à l'intérieur
+   *[open] ouverte : décalez-la à gauche ou à droite
+}
+pipeline-offset-failed = S{ $id } n'a pas pu être décalée : { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] La nouvelle forme est
+   *[other] Les { $count } nouvelles formes sont
+} sur le calque { $layer }, que { $ops ->
+    [one] l'opération { $operations } usine
+   *[other] les opérations { $operations } usinent
+}.

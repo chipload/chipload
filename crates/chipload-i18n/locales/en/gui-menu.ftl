@@ -134,3 +134,4 @@ menu-draw-arc = Arc
 menu-draw-slot = Slot
 menu-draw-polygon = Polygon
 menu-polygon-sides = Sides
+menu-modify-offset = Offset

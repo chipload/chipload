@@ -48,3 +48,17 @@ draw-entry-radius-too-small = der Radius muss mindestens halb so groß sein wie 
 draw-entry-no-side = den Cursor auf die Seite bewegen, zu der sich der Bogen wölben soll
 draw-status-polygon-start = Vieleck zeichnen: den Mittelpunkt klicken (Raster { $grid }, Esc bricht ab)
 draw-status-polygon = Vieleck zeichnen, Radius { $radius }: eine Ecke klicken (Raster { $grid }, Esc bricht ab)
+modify-offset-pick = Versatz: die Formen auswählen (eine anklicken; Strg fügt hinzu), Esc beendet
+modify-offset-status = Versatz { $distance } { $side }: klicken oder den Abstand eingeben (Alt: ohne Raster, Esc beendet)
+modify-offset-done = { $count ->
+    [one] Ein Versatz
+   *[other] { $count } Versätze
+} im Abstand { $distance } hinzugefügt.
+modify-side-outside = außen
+modify-side-inside = innen
+modify-side-left = nach links
+modify-side-right = nach rechts
+modify-corners-round = Runde Ecken
+modify-corners-sharp = Spitze Ecken
+modify-corners-hover = Rund: der genaue Versatz, Bögen um die Ecken. Spitz: die Seiten verlängert, bis sie sich treffen, wie ein Rahmen.
+modify-offset-count = Anzahl

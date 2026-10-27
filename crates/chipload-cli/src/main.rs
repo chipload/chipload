@@ -17,7 +17,7 @@ use std::process::ExitCode;
 use chipload_check::{CheckIssue, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
-use chipload_i18n::Language;
+use chipload_i18n::{Language, Message};
 use chipload_job::edit::Mirror;
 use chipload_job::{
     Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
@@ -25,6 +25,7 @@ use chipload_job::{
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
+use chipload_pipeline::drawing_edit::{Corners, OffsetSide, offset_shapes};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
@@ -795,6 +796,31 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Add the curve at a distance from drawn shapes, on their layers; the shapes stay
+    /// (docs/specs/drawing-editing.md §2). Prints the new ids.
+    Offset {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// How far, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long)]
+        distance: f64,
+        /// Which side: outside or inside of a closed shape, left or right of an open one
+        /// (default: outside, or left).
+        #[arg(long, value_enum)]
+        side: Option<OffsetSideArg>,
+        /// Round corners (the exact offset) or sharp ones (the sides extended to meet).
+        #[arg(long, value_enum, default_value = "round")]
+        corners: CornersArg,
+        /// How many, each the distance further than the last.
+        #[arg(long, default_value_t = 1)]
+        count: u32,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Join open drawn polylines whose ends are closer than --gap into one, on the same
     /// layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md).
     Join {
@@ -815,6 +841,20 @@ enum ShapeAction {
 enum AxisArg {
     X,
     Y,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum OffsetSideArg {
+    Outside,
+    Inside,
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum CornersArg {
+    Round,
+    Sharp,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -1635,6 +1675,9 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Join {
             project, output, ..
         }
+        | ShapeAction::Offset {
+            project, output, ..
+        }
         | ShapeAction::Move {
             project, output, ..
         }
@@ -1707,6 +1750,31 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             mirror_shapes(&job, &ids, mirror).map(|job| {
                 let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
                 (job, vec![format!("Mirrored shapes {}.", names.join(", "))])
+            })
+        }
+        ShapeAction::Offset {
+            ids,
+            distance,
+            side,
+            corners,
+            count,
+            ..
+        } => {
+            let side = side.map(|s| match s {
+                OffsetSideArg::Outside => OffsetSide::Outside,
+                OffsetSideArg::Inside => OffsetSide::Inside,
+                OffsetSideArg::Left => OffsetSide::Left,
+                OffsetSideArg::Right => OffsetSide::Right,
+            });
+            let corners = match corners {
+                CornersArg::Round => Corners::Round,
+                CornersArg::Sharp => Corners::Sharp,
+            };
+            offset_shapes(&job, &ids, distance, side, corners, count).map(|edited| {
+                new_ids = Some(edited.new_ids.clone());
+                let mut lines = vec![format!("Added shapes {}.", shape_names(&edited.new_ids))];
+                lines.extend(edited.notes.iter().map(Message::english));
+                (edited.job, lines)
             })
         }
         ShapeAction::Move { ids, dx, dy, .. } => {

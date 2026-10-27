@@ -1,6 +1,7 @@
 # Spec: drawing phase 2, editing operations
 
-Status: **draft 2026-10-27**, for review (decisions in §10).
+Status: **approved 2026-10-27** (the user: "yes to all recommendations"; §10 as
+recommended, decision 1 (a)). Details settled while building are marked *Implemented:*.
 
 Guide: docs/book/src/drawings/shapes.md (a new *Editing operations* section).
 
@@ -57,6 +58,14 @@ chipload shape offset P IDS --distance 3 [--inside] [--corners round|sharp] [--c
   preview follows at the cursor's distance on the grid; click, or type the distance. The
   corners choice and the count are fields on the status bar while the tool is active, as
   the polygon's sides are.
+- *Implemented:* `--side outside|inside|left|right` (default outside, or left for an open
+  shape) in place of `--inside`. The kind is kept by exact formulas: a rectangle's corner
+  radius + d outward (0 stays 0 with sharp corners, becomes d with round ones), max(r − d,
+  0) inward; a polygon's corner radius ± d / cos(π / n). Sharp corners replace the round
+  joins `cavalier_contours` gives (arcs of radius d about one of the shape's corners,
+  between two lines) by the point where the lines meet. The check samples every result
+  segment exactly and allows `CHAIN_TOL_MM`. The MODIFY group lays its buttons out in two
+  rows.
 
 ## 3. Fillet and chamfer
 

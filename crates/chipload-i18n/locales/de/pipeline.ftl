@@ -454,3 +454,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = Das Ende bei { $at }: Das nächste andere Ende ist { $nearest } entfernt.
 pipeline-join-open-alone = Das Ende bei { $at }: kein anderes Ende auf seinem Layer.
 pipeline-join-branch = Drei oder mehr Enden treffen sich bei { $at }: dort nicht verbunden.
+pipeline-edit-imported = S{ $id } stammt aus einer DXF, einem Bild oder einem Text: die DXF auflösen oder die Form zeichnen, um sie zu ändern
+pipeline-offset-distance = der Versatz muss größer als 0 sein, erhalten { $got }
+pipeline-offset-vanishes = von S{ $id } bleibt { $distance } innen nichts übrig
+pipeline-offset-side = S{ $id } ist { $closed ->
+    [closed] geschlossen: nach außen oder innen versetzen
+   *[open] offen: nach links oder rechts versetzen
+}
+pipeline-offset-failed = S{ $id } ließ sich nicht versetzen: { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] Die neue Form liegt
+   *[other] Die { $count } neuen Formen liegen
+} auf dem Layer { $layer }, den { $ops ->
+    [one] Bearbeitung { $operations } schneidet
+   *[other] die Bearbeitungen { $operations } schneiden
+}.

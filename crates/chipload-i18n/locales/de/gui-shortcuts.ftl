@@ -86,3 +86,4 @@ shortcuts-orbit-drag-what = Umkreisen; Shift+Ziehen verschiebt
 shortcuts-draw-arc = Bogen zeichnen
 shortcuts-draw-slot = Langloch zeichnen
 shortcuts-draw-polygon = Vieleck zeichnen
+shortcuts-offset = Die ausgewählten Formen versetzen

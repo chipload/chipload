@@ -57,6 +57,7 @@ mod library_transfer;
 mod library_view;
 mod measure;
 mod menu;
+mod modify;
 mod navigation;
 mod panels;
 mod playback;
@@ -342,6 +343,12 @@ pub struct ChiploadApp {
     pub last_tool: Option<Tool>,
     /// The number of sides new polygons get, as last chosen.
     pub polygon_sides: u32,
+    /// The editing tool being used, if any (docs/specs/drawing-editing.md).
+    pub modify: Option<modify::ModifyTool>,
+    /// The offset tool's corners and count, kept for the session.
+    pub offset_corners: chipload_pipeline::drawing_edit::Corners,
+    pub offset_count: u32,
+    offset_preview: modify::OffsetPreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
@@ -474,6 +481,10 @@ impl Default for ChiploadApp {
             typed: None,
             last_tool: None,
             polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
+            modify: None,
+            offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
+            offset_count: 1,
+            offset_preview: modify::OffsetPreview::default(),
             placing_text: false,
             focus_text_field: false,
             measure: None,

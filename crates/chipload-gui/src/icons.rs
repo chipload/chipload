@@ -27,6 +27,7 @@ pub enum Icon {
     Arc,
     Slot,
     Polygon,
+    Offset,
     Paths,
     Profile,
     Pocket,
@@ -151,6 +152,10 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 pen.dot(first, 0.05);
                 pen.dot(last, 0.05);
             }
+        }
+        Icon::Offset => {
+            pen.closed(&[(0.35, 0.35), (0.65, 0.35), (0.65, 0.65), (0.35, 0.65)]);
+            pen.rounded((0.5, 0.5), 0.38, 0.12);
         }
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)

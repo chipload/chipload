@@ -48,3 +48,17 @@ draw-entry-radius-too-small = el radio debe ser al menos la mitad de la distanci
 draw-entry-no-side = mueva el cursor hacia el lado al que debe curvarse el arco
 draw-status-polygon-start = Dibujando un polígono: haga clic en el centro (rejilla { $grid }, Esc cancela)
 draw-status-polygon = Dibujando un polígono de radio { $radius }: haga clic en un vértice (rejilla { $grid }, Esc cancela)
+modify-offset-pick = Desfase: seleccione las formas (haga clic en una; Ctrl añade), Esc termina
+modify-offset-status = Desfase { $distance } { $side }: haga clic, o escriba la distancia (Alt: fuera de la rejilla, Esc termina)
+modify-offset-done = { $count ->
+    [one] Se añadió un desfase
+   *[other] Se añadieron { $count } desfases
+} a { $distance }.
+modify-side-outside = por fuera
+modify-side-inside = por dentro
+modify-side-left = a la izquierda
+modify-side-right = a la derecha
+modify-corners-round = Esquinas redondeadas
+modify-corners-sharp = Esquinas vivas
+modify-corners-hover = Redondeadas: el desfase exacto, arcos en las esquinas. Vivas: los lados prolongados hasta encontrarse, como un marco.
+modify-offset-count = Cantidad

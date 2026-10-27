@@ -86,3 +86,4 @@ shortcuts-orbit-drag-what = Orbitar; Mayús+arrastrar desplaza
 shortcuts-draw-arc = Dibujar un arco
 shortcuts-draw-slot = Dibujar una ranura
 shortcuts-draw-polygon = Dibujar un polígono
+shortcuts-offset = Desfasar las formas seleccionadas

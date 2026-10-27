@@ -48,3 +48,17 @@ draw-entry-radius-too-small = radien måste vara minst halva avståndet mellan �
 draw-entry-no-side = flytta markören åt det håll bågen ska bukta
 draw-status-polygon-start = Ritar en polygon: klicka centrum (rutnät { $grid }, Esc avbryter)
 draw-status-polygon = Ritar en polygon med radie { $radius }: klicka ett hörn (rutnät { $grid }, Esc avbryter)
+modify-offset-pick = Förskjut: markera formerna (klicka på en; Ctrl lägger till), Esc avslutar
+modify-offset-status = Förskjutning { $distance } { $side }: klicka, eller skriv avståndet (Alt: utanför rutnätet, Esc avslutar)
+modify-offset-done = { $count ->
+    [one] La till en förskjutning
+   *[other] La till { $count } förskjutningar
+} på { $distance }.
+modify-side-outside = utåt
+modify-side-inside = inåt
+modify-side-left = åt vänster
+modify-side-right = åt höger
+modify-corners-round = Runda hörn
+modify-corners-sharp = Skarpa hörn
+modify-corners-hover = Runda: den exakta förskjutningen, bågar runt hörnen. Skarpa: sidorna förlängda tills de möts, som en ram.
+modify-offset-count = Antal

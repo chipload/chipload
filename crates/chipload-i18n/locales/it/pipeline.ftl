@@ -456,3 +456,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = L'estremo in { $at }: l'altro estremo più vicino è a { $nearest }.
 pipeline-join-open-alone = L'estremo in { $at }: nessun altro estremo sul suo layer.
 pipeline-join-branch = Tre o più estremi si incontrano in { $at }: lì non sono stati uniti.
+pipeline-edit-imported = S{ $id } viene da un DXF, un'immagine o un testo: esplodi il DXF, o disegna la forma, per modificarla
+pipeline-offset-distance = l'offset deve essere maggiore di 0, ricevuto { $got }
+pipeline-offset-vanishes = di S{ $id } non resta nulla a { $distance } verso l'interno
+pipeline-offset-side = S{ $id } è { $closed ->
+    [closed] chiusa: fai l'offset all'esterno o all'interno
+   *[open] aperta: fai l'offset a sinistra o a destra
+}
+pipeline-offset-failed = non è stato possibile fare l'offset di S{ $id }: { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] La nuova forma è
+   *[other] Le { $count } nuove forme sono
+} sul layer { $layer }, che { $ops ->
+    [one] l'operazione { $operations } taglia
+   *[other] le operazioni { $operations } tagliano
+}.

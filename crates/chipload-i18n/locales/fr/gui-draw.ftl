@@ -48,3 +48,17 @@ draw-entry-radius-too-small = le rayon doit valoir au moins la moitié de la dis
 draw-entry-no-side = placez le curseur du côté où l'arc doit se bomber
 draw-status-polygon-start = Dessin d'un polygone : cliquez le centre (grille { $grid }, Échap annule)
 draw-status-polygon = Dessin d'un polygone de rayon { $radius } : cliquez un sommet (grille { $grid }, Échap annule)
+modify-offset-pick = Décaler : sélectionnez les formes (cliquez-en une ; Ctrl ajoute), Échap termine
+modify-offset-status = Décalage { $distance } { $side } : cliquez, ou tapez la distance (Alt : hors grille, Échap termine)
+modify-offset-done = { $count ->
+    [one] Un décalage ajouté
+   *[other] { $count } décalages ajoutés
+} à { $distance }.
+modify-side-outside = à l'extérieur
+modify-side-inside = à l'intérieur
+modify-side-left = à gauche
+modify-side-right = à droite
+modify-corners-round = Coins arrondis
+modify-corners-sharp = Coins vifs
+modify-corners-hover = Arrondis : le décalage exact, des arcs autour des coins. Vifs : les côtés prolongés jusqu'à se rejoindre, comme un cadre.
+modify-offset-count = Nombre

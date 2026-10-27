@@ -444,3 +444,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = The end at { $at }: the nearest other end is { $nearest } away.
 pipeline-join-open-alone = The end at { $at }: no other end on its layer.
 pipeline-join-branch = Three or more ends meet at { $at }: not joined there.
+pipeline-edit-imported = S{ $id } comes from a DXF, a picture or a text: explode the DXF, or draw the shape, to change it
+pipeline-offset-distance = the offset distance must be more than 0, got { $got }
+pipeline-offset-vanishes = nothing of S{ $id } is left { $distance } inside it
+pipeline-offset-side = S{ $id } is { $closed ->
+    [closed] closed: offset it outside or inside
+   *[open] open: offset it left or right
+}
+pipeline-offset-failed = S{ $id } couldn't be offset: { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] The new shape is
+   *[other] The { $count } new shapes are
+} on layer { $layer }, which { $ops ->
+    [one] operation { $operations } cuts
+   *[other] operations { $operations } cut
+}.

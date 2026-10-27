@@ -21,8 +21,11 @@ impl ChiploadApp {
                 self.act(binding.action, ctx);
             }
         }
-        // Typing a value while drawing opens the entry at the cursor (drawing-input.md §2).
-        if self.sketch.is_some() && self.typed.is_none() {
+        // Typing a value while drawing, or offsetting, opens the entry at the cursor
+        // (drawing-input.md §2, drawing-editing.md §2).
+        let typing_tool =
+            self.sketch.is_some() || self.modify == Some(super::modify::ModifyTool::Offset);
+        if typing_tool && self.typed.is_none() {
             let first = ctx.input(|i| {
                 i.events.iter().find_map(|e| match e {
                     egui::Event::Text(t)
@@ -64,6 +67,8 @@ impl ChiploadApp {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.measure.is_some() {
                 self.measure = None;
+            } else if self.modify.is_some() {
+                self.cancel_modify();
             } else if self.placing_text {
                 self.placing_text = false;
             } else if self.sketch.is_some() {
@@ -539,6 +544,20 @@ impl ChiploadApp {
         }
     }
 
+    /// The Modify menu's items: the editing tools (docs/specs/drawing-editing.md §8).
+    pub(super) fn modify_menu(&mut self, ui: &mut egui::Ui) {
+        let can_draw = self.can_draw();
+        let label = with_keys(&t!(ui, "menu-modify-offset"), Action::Offset);
+        if ui
+            .add_enabled(can_draw, egui::Button::new(label))
+            .on_hover_text(t!(ui, "header-offset-hover"))
+            .clicked()
+        {
+            self.start_modify(super::modify::ModifyTool::Offset);
+            ui.close();
+        }
+    }
+
     /// The Help menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn help_menu(&mut self, ui: &mut egui::Ui) {
         if ui.button(t!(ui, "menu-user-guide")).clicked() {
@@ -669,6 +688,7 @@ impl ChiploadApp {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
                     self.polygon_sides_field(ui);
+                    self.offset_fields(ui);
                     self.status_message(ui);
                 });
             });
@@ -716,6 +736,8 @@ impl ChiploadApp {
         } else if let Some(text) =
             self.measure_status(snapped.as_ref().map_or("", |(_, name)| name.as_str()))
         {
+            ui.label(text);
+        } else if let Some(text) = self.modify_status(self.cursor, ui.input(|i| i.modifiers.alt)) {
             ui.label(text);
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
             let step = grid_step(self.view.scale, self.units);

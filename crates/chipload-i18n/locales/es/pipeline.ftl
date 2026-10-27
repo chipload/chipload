@@ -459,3 +459,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = El extremo en { $at }: el otro extremo más cercano está a { $nearest }.
 pipeline-join-open-alone = El extremo en { $at }: no hay otro extremo en su capa.
 pipeline-join-branch = Tres o más extremos se encuentran en { $at }: ahí no se unen.
+pipeline-edit-imported = S{ $id } viene de un DXF, una imagen o un texto: descomponga el DXF, o dibuje la forma, para cambiarla
+pipeline-offset-distance = el desfase debe ser mayor que 0, se recibió { $got }
+pipeline-offset-vanishes = no queda nada de S{ $id } a { $distance } hacia dentro
+pipeline-offset-side = S{ $id } está { $closed ->
+    [closed] cerrada: desfásela por fuera o por dentro
+   *[open] abierta: desfásela a la izquierda o a la derecha
+}
+pipeline-offset-failed = S{ $id } no se pudo desfasar: { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] La forma nueva está
+   *[other] Las { $count } formas nuevas están
+} en la capa { $layer }, que { $ops ->
+    [one] corta la operación { $operations }
+   *[other] cortan las operaciones { $operations }
+}.

@@ -48,3 +48,18 @@ draw-entry-radius-too-small = the radius must be at least half the distance betw
 draw-entry-no-side = move the cursor to the side the arc should bow to
 draw-status-polygon-start = Drawing a polygon: click the centre (grid { $grid }, Esc cancels)
 draw-status-polygon = Drawing a polygon radius { $radius }: click a corner (grid { $grid }, Esc cancels)
+# Editing drawn shapes (docs/specs/drawing-editing.md).
+modify-offset-pick = Offset: select the shapes to offset (click one; Ctrl adds), Esc ends
+modify-offset-status = Offset { $distance } { $side }: click, or type the distance (Alt: off the grid, Esc ends)
+modify-offset-done = Added { $count ->
+    [one] an offset
+   *[other] { $count } offsets
+} at { $distance }.
+modify-side-outside = outside
+modify-side-inside = inside
+modify-side-left = to the left
+modify-side-right = to the right
+modify-corners-round = Round corners
+modify-corners-sharp = Sharp corners
+modify-corners-hover = Round: the exact offset, arcs round the corners. Sharp: the sides extended until they meet, as a frame.
+modify-offset-count = Count

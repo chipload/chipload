@@ -431,6 +431,41 @@ impl ChiploadApp {
             },
         );
         ui.separator();
+        // Editing drawn shapes (docs/specs/drawing-editing.md §8): small buttons in two rows.
+        let caption = t!(ui, "header-group-modify");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                let can_draw = app.can_draw();
+                let tools = [(
+                    super::modify::ModifyTool::Offset,
+                    Icon::Offset,
+                    t!(ui, "header-offset"),
+                    t!(ui, "header-offset-hover"),
+                    Action::Offset,
+                )];
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                    for row in tools.chunks(tools.len().div_ceil(2)) {
+                        ui.horizontal(|ui| {
+                            for (tool, icon, label, hint, action) in row {
+                                let active = app.modify == Some(*tool);
+                                let hint = format!("{label}: {hint}");
+                                if small_ribbon_button(ui, *icon, label, can_draw, active)
+                                    .on_hover_text(hover_keys(&hint, *action))
+                                    .clicked()
+                                {
+                                    app.start_modify(*tool);
+                                }
+                            }
+                        });
+                    }
+                });
+            },
+            |app, ui| app.modify_menu(ui),
+        );
+        ui.separator();
         let caption = t!(ui, "header-group-operation");
         self.group(
             ui,

@@ -134,3 +134,4 @@ menu-draw-arc = Arco
 menu-draw-slot = Asola
 menu-draw-polygon = Poligono
 menu-polygon-sides = Lati
+menu-modify-offset = Offset

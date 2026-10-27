@@ -134,3 +134,4 @@ menu-draw-arc = Arco
 menu-draw-slot = Ranura
 menu-draw-polygon = Polígono
 menu-polygon-sides = Lados
+menu-modify-offset = Desfase

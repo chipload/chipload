@@ -134,3 +134,4 @@ menu-draw-arc = Båge
 menu-draw-slot = Spår
 menu-draw-polygon = Polygon
 menu-polygon-sides = Sidor
+menu-modify-offset = Förskjut

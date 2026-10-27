@@ -486,6 +486,24 @@ chipload shape scale <PROJECT> <IDS>... [OPTIONS]
 | `--about <ABOUT>` | Scale about this point "X,Y" instead. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape offset`
+
+Add the curve at a distance from drawn shapes, on their layers; the shapes stay (docs/specs/drawing-editing.md §2). Prints the new ids
+
+```text
+chipload shape offset <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--distance <DISTANCE>` | How far, mm (or with a unit) Required. |
+| `--side <SIDE>` | Which side: outside or inside of a closed shape, left or right of an open one (default: outside, or left) One of: `outside`, `inside`, `left`, `right`. |
+| `--corners <CORNERS>` | Round corners (the exact offset) or sharp ones (the sides extended to meet) One of: `round`, `sharp`. Default: `round`. |
+| `--count <COUNT>` | How many, each the distance further than the last. Default: `1`. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape join`
 
 Join open drawn polylines whose ends are closer than --gap into one, on the same layer; a chain that comes back to its start closes (docs/specs/explode-and-join.md)

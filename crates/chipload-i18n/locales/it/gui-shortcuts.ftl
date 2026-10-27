@@ -86,3 +86,4 @@ shortcuts-orbit-drag-what = Orbita; Maiusc+trascina sposta la vista
 shortcuts-draw-arc = Disegna un arco
 shortcuts-draw-slot = Disegna un'asola
 shortcuts-draw-polygon = Disegna un poligono
+shortcuts-offset = Offset delle forme selezionate

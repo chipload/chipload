@@ -6,5 +6,6 @@
 
 pub mod construct;
 pub mod intersect;
+pub mod offset;
 pub mod select;
 pub mod snap;

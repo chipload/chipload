@@ -789,6 +789,7 @@ dependencies = [
 name = "chipload-draw"
 version = "0.27.1"
 dependencies = [
+ "cavalier_contours",
  "chipload-core",
  "proptest",
 ]
@@ -864,6 +865,7 @@ dependencies = [
  "base64",
  "chipload-check",
  "chipload-core",
+ "chipload-draw",
  "chipload-dxf",
  "chipload-i18n",
  "chipload-image",

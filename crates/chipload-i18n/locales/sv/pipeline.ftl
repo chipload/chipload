@@ -451,3 +451,18 @@ pipeline-join-open = { $count } { $count ->
 pipeline-join-open-end = Änden vid { $at }: närmaste andra ände ligger { $nearest } bort.
 pipeline-join-open-alone = Änden vid { $at }: ingen annan ände på dess lager.
 pipeline-join-branch = Tre eller fler ändar möts vid { $at }: inte ihopfogade där.
+pipeline-edit-imported = S{ $id } kommer från en DXF, en bild eller en text: lös upp DXF:en, eller rita formen, för att ändra den
+pipeline-offset-distance = förskjutningen måste vara större än 0, fick { $got }
+pipeline-offset-vanishes = ingenting av S{ $id } finns kvar { $distance } innanför
+pipeline-offset-side = S{ $id } är { $closed ->
+    [closed] sluten: förskjut den utåt eller inåt
+   *[open] öppen: förskjut den åt vänster eller höger
+}
+pipeline-offset-failed = S{ $id } kunde inte förskjutas: { $why }
+pipeline-new-shapes-cut = { $count ->
+    [one] Den nya formen ligger
+   *[other] De { $count } nya formerna ligger
+} på lagret { $layer }, som { $ops ->
+    [one] operation { $operations } skär
+   *[other] operationerna { $operations } skär
+}.

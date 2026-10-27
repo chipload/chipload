@@ -48,3 +48,17 @@ draw-entry-radius-too-small = il raggio deve essere almeno metà della distanza 
 draw-entry-no-side = sposta il cursore dal lato verso cui l'arco deve curvare
 draw-status-polygon-start = Disegno di un poligono: clicca il centro (griglia { $grid }, Esc annulla)
 draw-status-polygon = Disegno di un poligono di raggio { $radius }: clicca un vertice (griglia { $grid }, Esc annulla)
+modify-offset-pick = Offset: seleziona le forme (clicca su una; Ctrl aggiunge), Esc termina
+modify-offset-status = Offset { $distance } { $side }: clicca, o digita la distanza (Alt: fuori griglia, Esc termina)
+modify-offset-done = { $count ->
+    [one] Aggiunto un offset
+   *[other] Aggiunti { $count } offset
+} a { $distance }.
+modify-side-outside = all'esterno
+modify-side-inside = all'interno
+modify-side-left = a sinistra
+modify-side-right = a destra
+modify-corners-round = Angoli arrotondati
+modify-corners-sharp = Angoli vivi
+modify-corners-hover = Arrotondati: l'offset esatto, archi attorno agli angoli. Vivi: i lati prolungati fino a incontrarsi, come una cornice.
+modify-offset-count = Numero

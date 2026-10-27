@@ -63,6 +63,25 @@ Beside the cursor, the size being drawn: the line's length and angle, a circle's
 rectangle's length × width. Hold **Shift** to keep the line from the last point at a
 multiple of 15° (0° and 90° for straight lines), its length on the grid.
 
+## Editing operations
+
+The ribbon's MODIFY group (and the *Modify* menu) holds tools that make new shapes from
+drawn ones. Shapes from a DXF, a picture or a text can't be changed by them (explode a
+DXF first, [Explode](several.md)).
+
+- **Offset** (**O**): select the shapes (or click one with the tool), then move the cursor
+  to the side you want, outside or inside a closed shape, left or right of an open one:
+  the preview follows at the cursor's distance on the grid (Alt: off the grid). Click, or
+  type the distance and press Enter. The status bar has the corners, *round* (the exact
+  offset, arcs round the corners) or *sharp* (the sides extended until they meet, as a
+  frame), and a *Count* for several rings, each the distance further. The shapes stay; the
+  new ones go on the same layer and are selected. A circle, a rectangle or slot, and a
+  polygon inward or with sharp corners keep their kind; anything else becomes a polyline
+  with true arcs. On the command line: `chipload shape offset P 1 2 --distance 3
+  [--side inside] [--corners sharp] [--count 2]`.
+- New shapes on a layer that an operation selects by its name are cut by that operation
+  too, as a shape drawn there is; the status bar names those operations.
+
 ## Editing
 
 - **Moving with the mouse:** drag a drawn shape to move it; if it is selected, the whole

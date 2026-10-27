@@ -264,6 +264,26 @@ impl ChiploadApp {
                 .as_ref()
                 .map(|s| s.points.clone())
                 .unwrap_or_default();
+        } else if self.modify.is_some() {
+            // An editing tool (docs/specs/drawing-editing.md): the preview at the cursor;
+            // a click selects a shape, or applies the tool.
+            self.scene.measure = None;
+            self.scene.sketch_points.clear();
+            let free = alt;
+            let target = self.cursor.and_then(|c| self.offset_for_cursor(c, free));
+            self.scene.preview = match target {
+                Some((d, side)) => self.offset_outlines(d, side),
+                None => Vec::new(),
+            };
+            if let (Some((d, _)), Some(at)) = (target, self.cursor) {
+                readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
+            }
+            if response.clicked()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let picked = self.scene.pick(&self.view, pos);
+                self.offset_click(picked, self.view.to_world(pos), ctrl, free);
+            }
         } else if self.placing_text() {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();
@@ -692,7 +712,11 @@ impl ChiploadApp {
             || self.sketch.is_some()
             || self.measure.is_some()
             || !self.show_drawing()
-            || self.typed.as_ref().is_some_and(|t| t.dimension.is_some())
+            || self.modify.is_some()
+            || self
+                .typed
+                .as_ref()
+                .is_some_and(|t| matches!(t.target, super::drawing::TypedTarget::Dimension(_)))
         {
             return Vec::new();
         }

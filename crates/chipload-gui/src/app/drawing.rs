@@ -17,9 +17,19 @@ pub struct Typed {
     pub refused: bool,
     /// The entry should take the keyboard (just opened, or refused).
     pub focus: bool,
-    /// A length of the selected shape being typed (a label clicked on the canvas,
-    /// docs/specs/drawing-input.md §6), rather than a point for the tool.
-    pub dimension: Option<chipload_job::edit::Dimension>,
+    /// What the value is for.
+    pub target: TypedTarget,
+}
+
+/// What a typed value is for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TypedTarget {
+    /// A point for the drawing tool (docs/specs/drawing-input.md §2).
+    Point,
+    /// A length of the selected shape, its label clicked on the canvas (§6).
+    Dimension(chipload_job::edit::Dimension),
+    /// The offset tool's distance, to the cursor's side (drawing-editing.md §2).
+    Offset,
 }
 
 impl ChiploadApp {
@@ -37,6 +47,7 @@ impl ChiploadApp {
             }
             self.measure = None;
             self.placing_text = false;
+            self.modify = None;
             let mut sketch = Sketch::new(tool);
             sketch.sides = self.polygon_sides;
             self.sketch = Some(sketch);
@@ -53,15 +64,20 @@ impl ChiploadApp {
     /// Start typing a value while drawing, with its first character; the entry shows at
     /// `at` on screen.
     pub fn start_typing(&mut self, first: &str, at: egui::Pos2) {
-        if self.sketch.is_some() {
-            self.typed = Some(Typed {
-                text: first.to_string(),
-                at,
-                refused: false,
-                focus: true,
-                dimension: None,
-            });
-        }
+        let target = if self.sketch.is_some() {
+            TypedTarget::Point
+        } else if self.modify == Some(super::modify::ModifyTool::Offset) {
+            TypedTarget::Offset
+        } else {
+            return;
+        };
+        self.typed = Some(Typed {
+            text: first.to_string(),
+            at,
+            refused: false,
+            focus: true,
+            target,
+        });
     }
 
     /// A length label of the selected shape was clicked: the entry opens there with its
@@ -78,7 +94,7 @@ impl ChiploadApp {
             at,
             refused: false,
             focus: true,
-            dimension: Some(dimension),
+            target: TypedTarget::Dimension(dimension),
         });
     }
 
@@ -88,7 +104,7 @@ impl ChiploadApp {
         let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch) else {
             return Err(EntryError::Unreadable);
         };
-        if typed.dimension.is_some() {
+        if typed.target != TypedTarget::Point {
             return Err(EntryError::Unreadable);
         }
         let entry = parse_entry(&typed.text, self.units)?;
@@ -98,9 +114,16 @@ impl ChiploadApp {
     /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
     /// the entry open, in red, with the reason on the status bar.
     pub fn apply_typed(&mut self, cursor: Point) {
-        if let Some(dimension) = self.typed.as_ref().and_then(|t| t.dimension) {
-            self.apply_typed_dimension(dimension);
-            return;
+        match self.typed.as_ref().map(|t| t.target) {
+            Some(TypedTarget::Dimension(dimension)) => {
+                self.apply_typed_dimension(dimension);
+                return;
+            }
+            Some(TypedTarget::Offset) => {
+                self.apply_typed_offset(cursor);
+                return;
+            }
+            _ => {}
         }
         match self.typed_target(cursor) {
             Ok(p) => {
