@@ -10,3 +10,4 @@ pub mod intersect;
 pub mod offset;
 pub mod select;
 pub mod snap;
+pub mod trim;

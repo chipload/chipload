@@ -15,6 +15,8 @@ use crate::PipelineError;
 use crate::shapes::{add_shape, no_shape, reshape};
 pub use chipload_draw::corner::Cut;
 use chipload_draw::corner::{self, CornerError, Poly};
+pub use chipload_draw::trim::End;
+use chipload_draw::trim::{self, TrimError};
 
 fn refused(message: Message) -> PipelineError {
     PipelineError::Job(message)
@@ -431,6 +433,112 @@ pub fn cut_shape_corners(
     )
 }
 
+// -- trim, extend, break (§4)
+
+/// The cutting edges: the segments of every shape the drawing shows, drawn and imported.
+pub fn shown_cutters(job: &Job) -> Vec<chipload_core::primitives::Primitive> {
+    job.drawing
+        .shapes
+        .iter()
+        .filter(|s| !job.drawing.is_hidden(s))
+        .flat_map(|s| s.segments().into_iter().map(|seg| seg.to_primitive()))
+        .collect()
+}
+
+fn trim_refusal(id: u64, why: TrimError) -> PipelineError {
+    let key = match why {
+        TrimError::NothingCrosses => "pipeline-trim-nothing-crosses",
+        TrimError::EndNotStraight => "pipeline-extend-not-straight",
+        TrimError::NothingAhead => "pipeline-extend-nothing-ahead",
+        TrimError::AtAnEnd => "pipeline-break-at-end",
+        TrimError::Closed => "pipeline-extend-closed",
+    };
+    refused(Message::new(key).arg("id", id))
+}
+
+/// Shape `id` replaced by `pieces`: the first keeps its id (operations follow it), the
+/// others are new shapes on its layer.
+fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edited, PipelineError> {
+    let Some((first, rest)) = pieces.split_first() else {
+        return Err(refused(
+            Message::new("pipeline-trim-everything").arg("id", shape.id),
+        ));
+    };
+    let out = reshape(job, shape.id, polyline_of(first))?;
+    let mut new_ids = Vec::new();
+    let mut notes = Vec::new();
+    let out = if rest.is_empty() {
+        out
+    } else {
+        add_all(
+            out,
+            &shape.layer,
+            rest.iter().map(polyline_of).collect(),
+            &mut new_ids,
+            &mut notes,
+        )?
+    };
+    Ok(Edited {
+        job: out,
+        new_ids,
+        notes,
+    })
+}
+
+/// Trim drawn shape `id` at `at`: the piece under it, between the nearest crossings with
+/// the shown shapes, goes. An open shape cut in its middle becomes two (the first keeps
+/// the id); a closed one becomes one open polyline.
+pub fn trim_shape(job: &Job, id: u64, at: (f64, f64)) -> Result<Edited, PipelineError> {
+    let shape = drawn(job, id)?.clone();
+    let pieces = trim::trim(&chain_of(&shape), &shown_cutters(job), at)
+        .map_err(|why| trim_refusal(id, why))?;
+    replace_by_pieces(job, &shape, &pieces)
+}
+
+/// The piece a trim of drawn shape `id` at `at` would remove, for a preview.
+pub fn trim_preview(job: &Job, id: u64, at: (f64, f64)) -> Option<Geometry> {
+    let shape = drawn(job, id).ok()?;
+    trim::trimmed_piece(&chain_of(shape), &shown_cutters(job), at).map(|c| polyline_of(&c))
+}
+
+/// Break drawn shape `id` at the point of it nearest `at`: an open shape becomes two, a
+/// closed one opens there.
+pub fn break_shape(job: &Job, id: u64, at: (f64, f64)) -> Result<Edited, PipelineError> {
+    let shape = drawn(job, id)?.clone();
+    let pieces = trim::break_at(&chain_of(&shape), at).map_err(|why| trim_refusal(id, why))?;
+    replace_by_pieces(job, &shape, &pieces)
+}
+
+/// Extend drawn open shape `id`'s straight `end` along itself to the nearest shown shape
+/// ahead.
+pub fn extend_shape(job: &Job, id: u64, end: End) -> Result<Edited, PipelineError> {
+    let shape = drawn(job, id)?.clone();
+    let longer = trim::extend(&chain_of(&shape), &shown_cutters(job), end)
+        .map_err(|why| trim_refusal(id, why))?;
+    Ok(Edited {
+        job: reshape(job, id, polyline_of(&longer))?,
+        new_ids: Vec::new(),
+        notes: Vec::new(),
+    })
+}
+
+/// The end of open drawn shape `id` nearer `at`.
+pub fn nearer_end(job: &Job, id: u64, at: (f64, f64)) -> Option<End> {
+    let shape = drawn(job, id).ok()?;
+    let chain = chain_of(shape);
+    if chain.closed {
+        return None;
+    }
+    let start = chain.prims.first()?.start();
+    let end = chain.prims.last()?.end();
+    let d = chipload_core::primitives::distance;
+    Some(if d(at, start) <= d(at, end) {
+        End::Start
+    } else {
+        End::End
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -531,5 +639,41 @@ mod tests {
         assert_eq!(edited.notes.len(), 1);
         let text = edited.notes[0].render(chipload_i18n::Language::En, Default::default());
         assert!(text.contains("operation 1"), "{text}");
+    }
+
+    #[test]
+    fn trimming_a_shape_keeps_its_id_for_the_first_piece() {
+        // A polyline across the circle S2 (r 12 at (75, 80)): trimmed inside the circle,
+        // it becomes two, and the second is a new shape on its layer.
+        let job = drawn_part();
+        let (job, id) = add_shape(
+            &job,
+            "drawn",
+            Geometry::straight_polyline(false, vec![[50.0, 80.0], [100.0, 80.0]]),
+        )
+        .unwrap();
+        let edited = trim_shape(&job, id, (75.0, 80.0)).unwrap();
+        assert_eq!(edited.new_ids.len(), 1);
+        let Geometry::Polyline { points, .. } = geometry(&edited.job, id) else {
+            panic!()
+        };
+        assert_eq!(points.len(), 2);
+        assert!((points[1][0] - 63.0).abs() < 1e-9);
+        // The circle trimmed by the line: an open arc, same id.
+        let arc = trim_shape(&job, 2, (75.0, 92.0)).unwrap();
+        assert!(matches!(
+            geometry(&arc.job, 2),
+            Geometry::Polyline { closed: false, .. }
+        ));
+        // Nothing crosses the triangle S3 (the line ends at x 100, before it): refused.
+        assert!(trim_shape(&job, 3, (125.0, 95.0)).is_err());
+        // Extend the line's end to the triangle, and break it.
+        let longer = extend_shape(&job, id, End::End).unwrap();
+        let Geometry::Polyline { points, .. } = geometry(&longer.job, id) else {
+            panic!()
+        };
+        assert!(points[1][0] > 100.0 && points[1][0] < 125.0);
+        let broken = break_shape(&job, id, (60.0, 80.0)).unwrap();
+        assert_eq!(broken.new_ids.len(), 1);
     }
 }

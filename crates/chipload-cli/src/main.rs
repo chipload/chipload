@@ -25,7 +25,10 @@ use chipload_job::{
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
-use chipload_pipeline::drawing_edit::{Corners, Cut, OffsetSide, cut_shape_corners, offset_shapes};
+use chipload_pipeline::drawing_edit::{
+    Corners, Cut, End, OffsetSide, break_shape, cut_shape_corners, extend_shape, offset_shapes,
+    trim_shape,
+};
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
@@ -838,6 +841,49 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Trim a drawn shape: the piece of it at --at, between the nearest crossings with the
+    /// shapes shown, goes; the rest keeps the id, a second piece is a new shape
+    /// (docs/specs/drawing-editing.md §4).
+    Trim {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        /// A point on (or near) the piece to remove, "X,Y".
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        at: [f64; 2],
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Extend an open drawn shape's straight end along itself to the nearest shape shown
+    /// ahead (docs/specs/drawing-editing.md §4).
+    Extend {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        /// Which end.
+        #[arg(long, value_enum)]
+        end: EndArg,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Break a drawn shape at the point of it nearest --at: an open one becomes two, a
+    /// closed one opens there (docs/specs/drawing-editing.md §4).
+    Break {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+        /// The point, "X,Y".
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        at: [f64; 2],
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Cut corners of a drawn shape straight across, a distance back along each side; it
     /// keeps its id (docs/specs/drawing-editing.md §3).
     Chamfer {
@@ -883,6 +929,12 @@ enum OffsetSideArg {
     Inside,
     Left,
     Right,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum EndArg {
+    Start,
+    End,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -1718,6 +1770,15 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Chamfer {
             project, output, ..
         }
+        | ShapeAction::Trim {
+            project, output, ..
+        }
+        | ShapeAction::Extend {
+            project, output, ..
+        }
+        | ShapeAction::Break {
+            project, output, ..
+        }
         | ShapeAction::Move {
             project, output, ..
         }
@@ -1828,6 +1889,31 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             ..
         } => cut_shape_corners(&job, id, corner, Cut::Chamfer(distance))
             .map(|job| (job, vec![format!("Cut the corners of S{id}.")])),
+        ShapeAction::Trim { id, at, .. } => trim_shape(&job, id, (at[0], at[1])).map(|edited| {
+            new_ids = Some(edited.new_ids.clone());
+            let mut lines = vec![format!("Trimmed S{id}.")];
+            if !edited.new_ids.is_empty() {
+                lines.push(format!("Added shapes {}.", shape_names(&edited.new_ids)));
+            }
+            lines.extend(edited.notes.iter().map(Message::english));
+            (edited.job, lines)
+        }),
+        ShapeAction::Extend { id, end, .. } => {
+            let end = match end {
+                EndArg::Start => End::Start,
+                EndArg::End => End::End,
+            };
+            extend_shape(&job, id, end).map(|edited| (edited.job, vec![format!("Extended S{id}.")]))
+        }
+        ShapeAction::Break { id, at, .. } => break_shape(&job, id, (at[0], at[1])).map(|edited| {
+            new_ids = Some(edited.new_ids.clone());
+            let mut lines = vec![format!("Broke S{id}.")];
+            if !edited.new_ids.is_empty() {
+                lines.push(format!("Added shapes {}.", shape_names(&edited.new_ids)));
+            }
+            lines.extend(edited.notes.iter().map(Message::english));
+            (edited.job, lines)
+        }),
         ShapeAction::Move { ids, dx, dy, .. } => {
             transform_shapes(&job, &ids, (0.0, 0.0), (dx, dy), 1.0, 0.0).map(|job| {
                 let text = format!("Moved shapes {}.", shape_names(&ids));

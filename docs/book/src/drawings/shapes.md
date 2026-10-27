@@ -88,6 +88,15 @@ DXF first, [Explode](several.md)).
   other shape becomes a polyline and keeps its number, so operations still cut it.
   `chipload shape fillet P 3 --radius 2 [--corner 0]`, `chipload shape chamfer P 3
   --distance 1`.
+- **Trim, extend, break** (on the command line for now; the canvas tools come next):
+  - `chipload shape trim P ID --at X,Y` removes the piece of a drawn shape at that point,
+    between the nearest places where shown shapes cross it: an open shape cut in its
+    middle becomes two, a closed one opens, a circle becomes an arc.
+  - `chipload shape extend P ID --end start|end` lengthens a straight end along itself
+    to the next shape ahead.
+  - `chipload shape break P ID --at X,Y` splits an open shape there, or opens a closed
+    one.
+  - The shape keeps its id for the first piece, so operations follow it.
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 

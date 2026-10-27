@@ -520,6 +520,51 @@ chipload shape fillet <PROJECT> <ID> [OPTIONS]
 | `--corner <CORNER>` | Only this corner: its point's number, from 0 (default: every corner) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape trim`
+
+Trim a drawn shape: the piece of it at --at, between the nearest crossings with the shapes shown, goes; the rest keeps the id, a second piece is a new shape (docs/specs/drawing-editing.md §4)
+
+```text
+chipload shape trim <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+| `--at <AT>` | A point on (or near) the piece to remove, "X,Y". Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape extend`
+
+Extend an open drawn shape's straight end along itself to the nearest shape shown ahead (docs/specs/drawing-editing.md §4)
+
+```text
+chipload shape extend <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+| `--end <END>` | Which end. One of: `start`, `end`. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape break`
+
+Break a drawn shape at the point of it nearest --at: an open one becomes two, a closed one opens there (docs/specs/drawing-editing.md §4)
+
+```text
+chipload shape break <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+| `--at <AT>` | The point, "X,Y". Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape chamfer`
 
 Cut corners of a drawn shape straight across, a distance back along each side; it keeps its id (docs/specs/drawing-editing.md §3)
