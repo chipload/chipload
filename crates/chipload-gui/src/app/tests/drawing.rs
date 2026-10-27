@@ -495,3 +495,25 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     app.start_drawing(Tool::Polygon);
     assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
 }
+
+#[test]
+fn a_length_label_takes_a_typed_length() {
+    // docs/specs/drawing-input.md §6: the triangle S3's first side, 30 mm, made 40.
+    use chipload_job::edit::Dimension;
+    let mut app = drawn_part();
+    app.selection = CanvasSelection::Shapes([3].into());
+    app.start_typing_dimension(Dimension::Segment(0), 30.0, egui::pos2(0.0, 0.0));
+    assert_eq!(app.typed.as_ref().unwrap().text, "30");
+    app.typed.as_mut().unwrap().text = "40".into();
+    app.apply_typed((0.0, 0.0));
+    assert!(app.typed.is_none());
+    let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
+        panic!()
+    };
+    assert_eq!(points[..2], [[110.0, 65.0], [150.0, 65.0]]);
+    // A length that can't be: the entry stays, refused.
+    app.start_typing_dimension(Dimension::Segment(0), 40.0, egui::pos2(0.0, 0.0));
+    app.typed.as_mut().unwrap().text = "0".into();
+    app.apply_typed((0.0, 0.0));
+    assert!(app.typed.as_ref().unwrap().refused);
+}

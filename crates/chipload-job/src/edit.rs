@@ -93,6 +93,185 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
     }
 }
 
+/// A length of a drawn shape shown on the canvas, which can be typed
+/// (docs/specs/drawing-input.md §6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Dimension {
+    /// A straight polyline segment's length.
+    Segment(usize),
+    /// A rectangle's length, along its own X axis.
+    Length,
+    /// A rectangle's width, along its own Y axis.
+    Width,
+    /// A circle's radius, or a polygon's to its corners.
+    Radius,
+}
+
+/// A length of a drawn shape as it shows: what it is, its value (mm), and where.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Shown {
+    pub dimension: Dimension,
+    pub value: f64,
+    /// The middle of the side it measures (a radius: halfway out).
+    pub at: [f64; 2],
+    /// The side's outward direction, a unit vector, to stand the label off it; zero for a
+    /// radius, whose label sits inside.
+    pub outward: [f64; 2],
+    /// How long the side is, mm (a radius: the radius), so a label that wouldn't fit
+    /// beside it can be left out.
+    pub span: f64,
+}
+
+/// The lengths of a drawn shape to show (docs/specs/drawing-input.md §6): each straight
+/// polyline segment, a rectangle's length and width on its first two sides, a circle's or
+/// polygon's radius halfway out to the first corner (a circle: at 45°). Arcs of a
+/// polyline have none.
+pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
+    let mid = |a: [f64; 2], b: [f64; 2]| [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+    // The right-hand normal of a → b: outward for a counter-clockwise loop.
+    let right = |a: [f64; 2], b: [f64; 2]| {
+        let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+        let len = dx.hypot(dy);
+        if len > 0.0 {
+            [dy / len, -dx / len]
+        } else {
+            [0.0, 0.0]
+        }
+    };
+    let radius_at = |center: &[f64; 2], radius: f64, angle: f64| {
+        let (sin, cos) = angle.sin_cos();
+        [
+            center[0] + radius * cos / 2.0,
+            center[1] + radius * sin / 2.0,
+        ]
+    };
+    match geometry {
+        Geometry::Path { .. } => Vec::new(),
+        Geometry::Circle { center, radius } => vec![Shown {
+            dimension: Dimension::Radius,
+            value: *radius,
+            at: radius_at(center, *radius, std::f64::consts::FRAC_PI_4),
+            outward: [0.0, 0.0],
+            span: *radius,
+        }],
+        Geometry::Polygon {
+            center,
+            radius,
+            angle,
+            ..
+        } => vec![Shown {
+            dimension: Dimension::Radius,
+            value: *radius,
+            at: radius_at(center, *radius, *angle),
+            outward: [0.0, 0.0],
+            span: *radius,
+        }],
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            ..
+        } => {
+            let c = rectangle_corners(*center, *length, *width, *angle);
+            vec![
+                Shown {
+                    dimension: Dimension::Length,
+                    value: *length,
+                    at: mid(c[0], c[1]),
+                    outward: right(c[0], c[1]),
+                    span: *length,
+                },
+                Shown {
+                    dimension: Dimension::Width,
+                    value: *width,
+                    at: mid(c[1], c[2]),
+                    outward: right(c[1], c[2]),
+                    span: *width,
+                },
+            ]
+        }
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => {
+            // Outward is to the right going counter-clockwise, to the left going clockwise;
+            // an open polyline's labels stand to the left.
+            let area: f64 = (0..points.len())
+                .map(|i| {
+                    let (a, b) = (points[i], points[(i + 1) % points.len()]);
+                    a[0] * b[1] - b[0] * a[1]
+                })
+                .sum();
+            let flip = if *closed && area > 0.0 { 1.0 } else { -1.0 };
+            (0..polyline_segment_count(points.len(), *closed))
+                .filter(|&i| bulges.get(i).copied().unwrap_or(0.0) == 0.0)
+                .map(|i| {
+                    let (a, b) = (points[i], points[(i + 1) % points.len()]);
+                    let n = right(a, b);
+                    let length = (b[0] - a[0]).hypot(b[1] - a[1]);
+                    Shown {
+                        dimension: Dimension::Segment(i),
+                        value: length,
+                        at: mid(a, b),
+                        outward: [n[0] * flip, n[1] * flip],
+                        span: length,
+                    }
+                })
+                .collect()
+        }
+    }
+}
+
+/// The shape with one of its lengths set to `value` (mm): a polyline segment's end point
+/// moves along the segment (its start and the other points stay); a rectangle keeps its
+/// centre; a circle or polygon its centre and turn. An error when the dimension isn't the
+/// shape's, or the result is invalid (the reason, as for a drag).
+pub fn with_dimension(
+    geometry: &Geometry,
+    dimension: Dimension,
+    value: f64,
+) -> Result<Geometry, String> {
+    let mut out = geometry.clone();
+    match (&mut out, dimension) {
+        (Geometry::Circle { radius, .. }, Dimension::Radius)
+        | (Geometry::Polygon { radius, .. }, Dimension::Radius) => *radius = value,
+        (Geometry::Rectangle { length, .. }, Dimension::Length) => *length = value,
+        (Geometry::Rectangle { width, .. }, Dimension::Width) => *width = value,
+        (
+            Geometry::Polyline {
+                closed,
+                points,
+                bulges,
+            },
+            Dimension::Segment(i),
+        ) if i < polyline_segment_count(points.len(), *closed)
+            && bulges.get(i).copied().unwrap_or(0.0) == 0.0 =>
+        {
+            let n = points.len();
+            let (a, b) = (points[i], points[(i + 1) % n]);
+            let now = (b[0] - a[0]).hypot(b[1] - a[1]);
+            if now <= 0.0 {
+                return Err("the segment has no direction".into());
+            }
+            let k = value / now;
+            points[(i + 1) % n] = [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+        }
+        _ => return Err(format!("{dimension:?} isn't a length of this shape")),
+    }
+    let problems = shape_problems(&out);
+    if problems.is_empty() {
+        Ok(out)
+    } else {
+        Err(problems
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("; "))
+    }
+}
+
 /// Corners of a rectangle, counter-clockwise from local (−length/2, −width/2), as its
 /// segments go.
 pub fn rectangle_corners(center: [f64; 2], length: f64, width: f64, angle: f64) -> [[f64; 2]; 4] {
@@ -816,6 +995,66 @@ mod tests {
         };
         let moved = followed_point([10.0, 0.0], &hexagon, &bigger).unwrap();
         assert!((moved[0]).abs() < 1e-9 && (moved[1] - 20.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn lengths_show_and_can_be_typed() {
+        let l_shape = Geometry::Polyline {
+            closed: false,
+            points: vec![[0.0, 0.0], [30.0, 0.0], [30.0, 10.0], [40.0, 10.0]],
+            bulges: vec![0.0, 0.0, 0.5],
+        };
+        // The arc segment has no label; an open polyline's stand to the left.
+        let shown = dimensions(&l_shape);
+        let brief: Vec<_> = shown
+            .iter()
+            .map(|s| (s.dimension, s.at, s.value, s.outward))
+            .collect();
+        assert_eq!(
+            brief,
+            [
+                (Dimension::Segment(0), [15.0, 0.0], 30.0, [0.0, 1.0]),
+                (Dimension::Segment(1), [30.0, 5.0], 10.0, [-1.0, 0.0])
+            ]
+        );
+        // Segment 0 made 50 long: its end moves along it, the rest stays.
+        let Ok(Geometry::Polyline { points, .. }) =
+            with_dimension(&l_shape, Dimension::Segment(0), 50.0)
+        else {
+            panic!()
+        };
+        assert_eq!(
+            points,
+            [[0.0, 0.0], [50.0, 0.0], [30.0, 10.0], [40.0, 10.0]]
+        );
+        assert!(with_dimension(&l_shape, Dimension::Segment(2), 5.0).is_err());
+        assert!(with_dimension(&l_shape, Dimension::Segment(0), 0.0).is_err());
+        let rect = Geometry::Rectangle {
+            center: [0.0, 0.0],
+            length: 40.0,
+            width: 20.0,
+            angle: 0.0,
+            corner_radius: 0.0,
+        };
+        // On the bottom and the right side, standing outward.
+        let brief: Vec<_> = dimensions(&rect)
+            .iter()
+            .map(|s| (s.dimension, s.at, s.value, s.outward))
+            .collect();
+        assert_eq!(
+            brief,
+            [
+                (Dimension::Length, [0.0, -10.0], 40.0, [0.0, -1.0]),
+                (Dimension::Width, [20.0, 0.0], 20.0, [1.0, 0.0])
+            ]
+        );
+        let Ok(Geometry::Rectangle { width, center, .. }) =
+            with_dimension(&rect, Dimension::Width, 30.0)
+        else {
+            panic!()
+        };
+        assert_eq!((width, center), (30.0, [0.0, 0.0]));
+        assert!(with_dimension(&rect, Dimension::Radius, 3.0).is_err());
     }
 
     #[test]

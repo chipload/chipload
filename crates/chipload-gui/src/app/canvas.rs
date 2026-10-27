@@ -78,6 +78,9 @@ impl ChiploadApp {
         }
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
+        // The selected shape's lengths, laid out before clicks are handled so a click on one
+        // opens its entry (docs/specs/drawing-input.md §6).
+        let labels = self.dimension_labels(ui, &painter);
         if self.fit_pending {
             let points = self
                 .fit_only
@@ -293,7 +296,14 @@ impl ChiploadApp {
                 .flatten()
                 .filter(|&pos| on_handle(pos).is_none() && on_box_handle(pos).is_none())
                 .and_then(|pos| self.corner_marker_at(pos));
-            if let Some(k) = corner {
+            let label = response
+                .clicked()
+                .then(|| response.interact_pointer_pos())
+                .flatten()
+                .and_then(|pos| labels.iter().find(|l| l.rect.contains(pos)));
+            if let Some(label) = label {
+                self.start_typing_dimension(label.dimension, label.value, label.rect.left_top());
+            } else if let Some(k) = corner {
                 self.open_corner_menu(k);
             } else if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
@@ -456,6 +466,9 @@ impl ChiploadApp {
             self.paint_readout(ui, &painter, at, text);
         }
         self.paint_select_box(ui, &painter);
+        for label in &labels {
+            paint_label(ui, &painter, label);
+        }
         self.typed_entry(ui);
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
@@ -670,6 +683,59 @@ impl ChiploadApp {
             }
             None => self.snap_world(raw, alt, false),
         }
+    }
+
+    /// The lengths of the selected drawn shape, laid out where they show: in top view, with
+    /// nothing being drawn or measured. None while its length is being typed.
+    fn dimension_labels(&self, ui: &egui::Ui, painter: &egui::Painter) -> Vec<DimensionLabel> {
+        if self.three_d
+            || self.sketch.is_some()
+            || self.measure.is_some()
+            || !self.show_drawing()
+            || self.typed.as_ref().is_some_and(|t| t.dimension.is_some())
+        {
+            return Vec::new();
+        }
+        let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
+            return Vec::new();
+        };
+        let radius = matches!(
+            shape.geometry,
+            Geometry::Circle { .. } | Geometry::Polygon { .. }
+        );
+        chipload_job::edit::dimensions(&shape.geometry)
+            .into_iter()
+            .filter_map(|shown| {
+                let number = crate::draw::fixed(shown.value, self.units);
+                let text = if radius {
+                    format!("R {number}")
+                } else {
+                    number
+                };
+                let galley = painter.layout_no_wrap(
+                    text,
+                    egui::FontId::proportional(11.0),
+                    ui.visuals().text_color(),
+                );
+                let size = galley.size() + egui::vec2(6.0, 6.0);
+                // Left out where its side is too short on screen to hold it.
+                let span = shown.span * self.view.scale;
+                if span < f64::from(size.x.max(size.y)) + 12.0 {
+                    return None;
+                }
+                // Off the side, outward, clear of the side's middle handle (screen y down).
+                let (nx, ny) = (shown.outward[0] as f32, -(shown.outward[1] as f32));
+                let reach = 10.0 + (size.x * nx.abs() + size.y * ny.abs()) / 2.0;
+                let centre =
+                    self.view.to_screen((shown.at[0], shown.at[1])) + egui::vec2(nx, ny) * reach;
+                Some(DimensionLabel {
+                    dimension: shown.dimension,
+                    value: shown.value,
+                    rect: egui::Rect::from_center_size(centre, size),
+                    galley,
+                })
+            })
+            .collect()
     }
 
     /// The selection box being dragged: solid when it takes what lies inside it, dashed
@@ -939,4 +1005,34 @@ impl ChiploadApp {
             .unwrap_or_default();
         chipload_job::operation_label_message(index, &name).render(self.language, self.units.into())
     }
+}
+
+/// A length of the selected shape, as it shows on the canvas.
+struct DimensionLabel {
+    dimension: chipload_job::edit::Dimension,
+    value: f64,
+    /// Where it is on screen, its frame included.
+    rect: egui::Rect,
+    galley: std::sync::Arc<egui::Galley>,
+}
+
+/// A length label: its number on a small framed patch, which a click opens for typing.
+fn paint_label(ui: &egui::Ui, painter: &egui::Painter, label: &DimensionLabel) {
+    let visuals = ui.visuals();
+    painter.rect_filled(
+        label.rect,
+        3.0,
+        visuals.extreme_bg_color.gamma_multiply(0.9),
+    );
+    painter.rect_stroke(
+        label.rect,
+        3.0,
+        egui::Stroke::new(1.0, visuals.weak_text_color()),
+        egui::StrokeKind::Inside,
+    );
+    painter.galley(
+        label.rect.min + egui::vec2(3.0, 3.0),
+        label.galley.clone(),
+        visuals.text_color(),
+    );
 }

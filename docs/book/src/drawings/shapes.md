@@ -75,6 +75,11 @@ multiple of 15° (0° and 90° for straight lines), its length on the grid.
   hold Alt to turn snapping off.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
   selected shape has its exact numbers and its layer.
+- **Lengths on the canvas:** a selected drawn shape shows its lengths beside it: each
+  straight side of a polyline, a rectangle's length and width, a circle's or polygon's
+  radius (a side too short on screen to hold its label shows none until you zoom in).
+  Click one, type the new length and press Enter: a polyline side keeps its start and its
+  end moves along it, a rectangle keeps its centre.
 - **Rounded corners:** a rectangle's *Corner radius* rounds all four corners with true arcs
   (G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
   short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner

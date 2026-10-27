@@ -182,6 +182,11 @@ polyline segments: length; rectangles: length and width; circles and polygons: r
 
 Same validation as the form; one undo step.
 
+*Implemented:* the labels stand off their side, outward (to the right of a
+counter-clockwise loop, to the left of an open polyline), clear of the side's middle
+handle, and a side too short on screen for its label shows none. The rules are
+`chipload_job::edit::dimensions` and `with_dimension`, beside the handles.
+
 ## 7. Tests
 
 - **Snaps** (`chipload-draw`): line × line, line × arc (two, one tangent, none), arc × arc;

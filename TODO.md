@@ -95,11 +95,13 @@ it's built (see `CLAUDE.md`).
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and
-  the basic tools (docs/specs/drawing-input.md), in six steps: the `chipload-draw` crate
-  with more snaps; keys, typed values and angle steps; box selection and moving with the
-  mouse; arc and slot tools; polygons (schema 30); lengths on the canvas. Then phase 2
-  (offset, fillet, trim, booleans, arrays, align), 3 (parameters), 4 (DXF export,
-  construction lines), each with its own spec.
+  the basic tools (docs/specs/drawing-input.md), **done 2026-10-27, not pushed**: the
+  `chipload-draw` crate with more snaps; keys, typed values and angle steps; box
+  selection and moving with the mouse; arc and slot tools; polygons (schema 30); lengths
+  on the canvas. Not tried by hand in the running app beyond screenshots; the guide's
+  screenshots show the old ribbon until `packaging/docs/screenshots.sh` runs again.
+  Next: phase 2 (offset, fillet, trim, booleans, arrays, align), then 3 (parameters),
+  4 (DXF export, construction lines), each with its own spec.
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 

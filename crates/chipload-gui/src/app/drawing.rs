@@ -17,6 +17,9 @@ pub struct Typed {
     pub refused: bool,
     /// The entry should take the keyboard (just opened, or refused).
     pub focus: bool,
+    /// A length of the selected shape being typed (a label clicked on the canvas,
+    /// docs/specs/drawing-input.md §6), rather than a point for the tool.
+    pub dimension: Option<chipload_job::edit::Dimension>,
 }
 
 impl ChiploadApp {
@@ -56,8 +59,27 @@ impl ChiploadApp {
                 at,
                 refused: false,
                 focus: true,
+                dimension: None,
             });
         }
+    }
+
+    /// A length label of the selected shape was clicked: the entry opens there with its
+    /// value.
+    pub fn start_typing_dimension(
+        &mut self,
+        dimension: chipload_job::edit::Dimension,
+        value: f64,
+        at: egui::Pos2,
+    ) {
+        let text = chipload_pipeline::units::length_number(value, self.units);
+        self.typed = Some(Typed {
+            text,
+            at,
+            refused: false,
+            focus: true,
+            dimension: Some(dimension),
+        });
     }
 
     /// The point the typed value gives, with the cursor at `cursor` (for a plain
@@ -66,6 +88,9 @@ impl ChiploadApp {
         let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch) else {
             return Err(EntryError::Unreadable);
         };
+        if typed.dimension.is_some() {
+            return Err(EntryError::Unreadable);
+        }
         let entry = parse_entry(&typed.text, self.units)?;
         sketch.typed(entry, cursor)
     }
@@ -73,6 +98,10 @@ impl ChiploadApp {
     /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
     /// the entry open, in red, with the reason on the status bar.
     pub fn apply_typed(&mut self, cursor: Point) {
+        if let Some(dimension) = self.typed.as_ref().and_then(|t| t.dimension) {
+            self.apply_typed_dimension(dimension);
+            return;
+        }
         match self.typed_target(cursor) {
             Ok(p) => {
                 self.typed = None;
@@ -125,6 +154,37 @@ impl ChiploadApp {
                 self.sketch = None;
                 self.typed = None;
                 self.add_drawn(geometry);
+            }
+        }
+    }
+
+    /// Enter on a typed length: the selected shape gets it, as one undo step; a value that
+    /// can't be used leaves the entry open, in red, with the reason.
+    fn apply_typed_dimension(&mut self, dimension: chipload_job::edit::Dimension) {
+        let text = self
+            .typed
+            .as_ref()
+            .map(|t| t.text.clone())
+            .unwrap_or_default();
+        let shape = self.selected_shape().and_then(|id| self.shape(id)).cloned();
+        let result = match (
+            chipload_pipeline::units::parse_length(&text, self.units),
+            shape,
+        ) {
+            (Some(value), Some(shape)) => {
+                chipload_job::edit::with_dimension(&shape.geometry, dimension, value)
+                    .and_then(|g| self.set_selected_shape(&shape.layer, g))
+            }
+            _ => Err(EntryError::Unreadable.text(self)),
+        };
+        match result {
+            Ok(()) => self.typed = None,
+            Err(why) => {
+                if let Some(typed) = self.typed.as_mut() {
+                    typed.refused = true;
+                    typed.focus = true;
+                }
+                self.set_status(why, STATUS_SECONDS);
             }
         }
     }
