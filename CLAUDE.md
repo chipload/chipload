@@ -154,6 +154,7 @@ cargo run -p chipload-cli -- tool export tools-backup.json   # (also machine exp
 cargo run -p chipload-cli -- post list                   # built-in post-processors (grbl, linuxcnc, mach3) and yours (settings folder posts/); post show NAME
 cargo run -p chipload-cli -- post use part.chipload --post linuxcnc   # a user post is copied into the project
 cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .dxf)
+CHIPLOAD_PICTURES=$TMPDIR/pictures cargo test -p chipload-gui pictures -- --ignored   # the window rendered headless (egui_kittest, wgpu): each language, a narrow window
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)
 ```

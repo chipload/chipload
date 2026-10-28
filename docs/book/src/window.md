@@ -21,11 +21,14 @@ Under it, the **ribbon** groups the buttons:
 |---|---|---|
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
+| MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme |
 
-**Generate** (F5) and **Export** sit at the right end.
+**Generate** (F5) and **Export** sit at the right end. When the buttons with their names
+don't fit, in a longer language or a narrow window, the large buttons show their icons
+alone; hover over one for its name. Narrower still, the groups scroll sideways.
 
 Each group's caption (**FILE ▾** …) opens its whole menu. This guide writes those menus as
 *File > …*, *Draw > …* and *View > …*. *Help > …* is the question mark in the top bar.

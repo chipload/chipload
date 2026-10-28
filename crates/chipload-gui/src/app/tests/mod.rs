@@ -16,6 +16,7 @@ mod handles;
 mod header;
 mod holding;
 mod images;
+mod layout;
 mod leave_out_shapes;
 mod live_problems;
 mod narrow_panel;

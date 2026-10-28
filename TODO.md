@@ -97,6 +97,12 @@ it's built (see `CLAUDE.md`).
   axis. Not checked yet: reproduce with the seed, see which way the code runs, and fix
   the test or the code (a plunge on the stock would be a real bug), with the seed kept in
   the regressions file.
+- **The legend runs under the navigation bar in a narrow canvas** (seen 2026-10-28 in the
+  kittest pictures, `pictures` in crates/chipload-gui/src/app/tests/layout.rs): in German at
+  the default 1200 × 800 the canvas is about 420 px wide, the open legend about 190, and the
+  bar can't keep to its right, so it covers the legend's fifth row. Older than the drawing
+  work. Ideas: the bar above the legend when there's no room beside it, or the legend
+  folded by default in a narrow canvas; a layout test like the ribbon's.
 - **Traced loops cross on a tiny picture with arcs** (found 2026-10-28 by a local
   workspace run): `traced_loops_separate_black_from_white`
   (crates/chipload-image/tests/trace.rs) fails `no_crossings` for w = 4, h = 5, smoothing

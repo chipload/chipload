@@ -13,6 +13,11 @@ use crate::icons::{self, Icon};
 pub(super) const TOP_BAR_HEIGHT: f32 = 30.0;
 /// A ribbon button's height, and its narrowest width, points.
 const RIBBON_BUTTON: (f32, f32) = (44.0, 46.0);
+/// Where the ribbon keeps whether its large buttons show their icons alone (they don't fit
+/// with their names).
+const RIBBON_COMPACT: &str = "ribbon-compact";
+/// A large button's width with its icon alone, points.
+pub(super) const RIBBON_COMPACT_WIDTH: f32 = 32.0;
 /// A ribbon button's icon, points.
 const RIBBON_ICON: f32 = 20.0;
 /// A top bar icon button, points.
@@ -221,22 +226,47 @@ impl ChiploadApp {
     }
 
     /// The ribbon: FILE, DRAW, OPERATION, LIBRARY and VIEW groups, Generate and Export at the
-    /// right. The groups get the width Generate and Export leave, and scroll when they don't
-    /// fit, as they may in a longer language or a narrow window.
+    /// right. The groups get the width Generate and Export leave. When their buttons with
+    /// names don't fit, as in a longer language or a narrow window, the large buttons show
+    /// their icons alone, named on hover; narrower still, the groups scroll.
     pub(super) fn ribbon(&mut self, ui: &mut egui::Ui) {
         ui.add_space(2.0);
         let actions = self.ribbon_actions(ui);
         let mut clicked = None;
+        let compact_id = egui::Id::new(RIBBON_COMPACT);
+        let full_id = egui::Id::new("ribbon-full-width");
+        let compact = ui.data(|d| d.get_temp::<bool>(compact_id)).unwrap_or(false);
+        let language = self.language;
         ui.horizontal(|ui| {
             let groups = vec2(
                 (ui.available_width() - actions.width(ui)).max(0.0),
                 RIBBON_BUTTON.0 + 20.0,
             );
-            ui.allocate_ui_with_layout(groups, Layout::left_to_right(Align::Min), |ui| {
-                egui::ScrollArea::horizontal()
-                    .id_salt("ribbon")
-                    .show(ui, |ui| ui.horizontal(|ui| self.ribbon_groups(ui)));
-            });
+            let used = ui
+                .allocate_ui_with_layout(groups, Layout::left_to_right(Align::Min), |ui| {
+                    egui::ScrollArea::horizontal()
+                        .id_salt("ribbon")
+                        .show(ui, |ui| ui.horizontal(|ui| self.ribbon_groups(ui)))
+                        .content_size
+                        .x
+                })
+                .inner;
+            // With names, the width they took is what the groups need; with icons alone, the
+            // width last measured with names (in this language) says when names fit again.
+            let next = if compact {
+                let full = ui.data(|d| d.get_temp::<(crate::i18n::Language, f32)>(full_id));
+                match full {
+                    Some((measured_in, width)) if measured_in == language => width > groups.x,
+                    _ => false,
+                }
+            } else {
+                ui.data_mut(|d| d.insert_temp(full_id, (language, used)));
+                used > groups.x + 0.5
+            };
+            if next != compact {
+                ui.data_mut(|d| d.insert_temp(compact_id, next));
+                ui.ctx().request_repaint();
+            }
             ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
                 clicked = actions.show(ui);
             });
@@ -717,7 +747,9 @@ fn generate_button_width(ui: &egui::Ui, label: &str) -> f32 {
     generate_label(ui, label).size().x + 38.0
 }
 
-/// A ribbon button: an icon over a short word. Disabled ones are dimmed and don't click.
+/// A ribbon button: an icon over a short word; when the ribbon is compact, the icon alone,
+/// named in bold on hover above whatever else its hover says. Disabled ones are dimmed and
+/// don't click.
 pub(super) fn ribbon_button(
     ui: &mut egui::Ui,
     icon: Icon,
@@ -725,8 +757,16 @@ pub(super) fn ribbon_button(
     enabled: bool,
     selected: bool,
 ) -> Response {
+    let compact = ui
+        .data(|d| d.get_temp::<bool>(egui::Id::new(RIBBON_COMPACT)))
+        .unwrap_or(false);
     let galley = ribbon_label(ui, label);
-    let size = vec2(ribbon_button_width(ui, label), RIBBON_BUTTON.0);
+    let width = if compact {
+        RIBBON_COMPACT_WIDTH
+    } else {
+        ribbon_button_width(ui, label)
+    };
+    let size = vec2(width, RIBBON_BUTTON.0);
     let sense = if enabled {
         Sense::click()
     } else {
@@ -750,6 +790,14 @@ pub(super) fn ribbon_button(
             visuals.weak_text_color().gamma_multiply(0.7)
         }
     };
+    if compact {
+        let icon_rect = Rect::from_center_size(rect.center(), vec2(RIBBON_ICON, RIBBON_ICON));
+        icons::paint(painter, icon_rect, icon, color);
+        let name = |ui: &mut egui::Ui| {
+            ui.strong(label);
+        };
+        return response.on_hover_ui(name).on_disabled_hover_ui(name);
+    }
     let icon_rect = Rect::from_center_size(
         egui::pos2(rect.center().x, rect.top() + 4.0 + RIBBON_ICON / 2.0),
         vec2(RIBBON_ICON, RIBBON_ICON),

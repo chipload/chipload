@@ -33,6 +33,11 @@ sys-locale = "0.3.2"
 # (winit's own default) is fine. See ADR 0008.
 winit = { version = "0.30.13", default-features = false, features = ["wayland-csd-adwaita"] }
 
+[dev-dependencies]
+# Runs the app headless in tests: layout checks through AccessKit, and pictures of it
+# rendered with wgpu (snapshot). MIT OR Apache-2.0, egui's own test library; tests only.
+egui_kittest = { version = "0.36.2", features = ["eframe", "wgpu", "snapshot"] }
+
 [features]
 # Screenshots for the user guide (packaging/docs/screenshots.sh): eframe saves the first
 # frame, and CHIPLOAD_SCREENSHOT_SETUP sets up what it shows. Never in release builds.
