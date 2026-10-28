@@ -1721,3 +1721,86 @@ fn drawn_shapes_are_aligned_and_distributed_from_the_command_line() {
     assert!(out.status.success(), "{}", text(&out.stderr));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn the_golden_edited_part_is_drawn_with_the_editing_commands_alone() {
+    // docs/specs/drawing-editing.md §9: tests/corpus/jobs/v30/drawn_edited.chipload (golden
+    // v30_drawn_edited) drawn again from v30/polygon.chipload with these commands; the
+    // drawing must come out the same.
+    let dir = temp_dir("drawn-edited");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let steps: [&[&str]; 9] = [
+        &["shape", "delete", p, "1"],
+        &["shape", "delete", p, "2"],
+        &["shape", "delete", p, "3"],
+        &[
+            "shape",
+            "add",
+            p,
+            "polygon",
+            "--center",
+            "150,110",
+            "--radius",
+            "50",
+            "--sides",
+            "5",
+            "--angle-deg",
+            "90",
+        ],
+        &[
+            "shape",
+            "offset",
+            p,
+            "4",
+            "--distance",
+            "8",
+            "--corners",
+            "sharp",
+        ],
+        &["shape", "fillet", p, "5", "--radius", "6"],
+        &[
+            "shape",
+            "add",
+            p,
+            "circle",
+            "--center",
+            "121.52,149.2",
+            "--radius",
+            "7",
+        ],
+        &[
+            "shape",
+            "array-polar",
+            p,
+            "6",
+            "--count",
+            "5",
+            "--center",
+            "150,110",
+        ],
+        &["shape", "subtract", p, "5", "6", "7", "8", "9", "10"],
+    ];
+    for (i, step) in steps.iter().enumerate() {
+        let out = chipload(step);
+        // Deleting the shapes the operations use flags them (exit code 1).
+        let expected = if i < 3 { Some(1) } else { Some(0) };
+        assert_eq!(
+            out.status.code(),
+            expected,
+            "{step:?}: {}",
+            text(&out.stderr)
+        );
+    }
+    let drawing = |path: &Path| {
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        json["drawing"].clone()
+    };
+    assert_eq!(
+        drawing(&project),
+        drawing(&corpus("jobs/v30/drawn_edited.chipload"))
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}

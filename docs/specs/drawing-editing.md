@@ -237,6 +237,12 @@ trim; the rest have none.
   commands (an outline offset with sharp corners, filleted, with a polar array of holes
   subtracted), pocketed and profiled.
 
+- *Implemented:* the golden part is `tests/corpus/jobs/v30/drawn_edited.chipload`
+  (golden `v30_drawn_edited`): a regular pentagon, pocketed; its offset with sharp
+  corners, filleted at 6 mm, with five circles from a polar array subtracted across the
+  middles of its sides, cut round. `cli.rs` draws it again from `v30/polygon.chipload`
+  with the commands alone and compares the drawing. Every other golden is unchanged.
+
 ## 10. Decisions
 
 1. **New shapes' layer and layer-selecting operations.** An operation that selects a

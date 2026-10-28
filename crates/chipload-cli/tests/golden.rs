@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 49] = [
+const GOLDEN: [(&str, &str); 50] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -138,6 +138,10 @@ const GOLDEN: [(&str, &str); 49] = [
     // (part B with two copies): two depths back and forth, the second coming back the
     // other way, and the stock faced once (docs/specs/surfacing.md).
     ("v29_surface", "jobs/v29/surface.chipload"),
+    // A part drawn and edited only with the editing commands (docs/specs/drawing-editing.md
+    // §9): a pentagon pocketed, its sharp offset filleted and scalloped by a polar array
+    // of circles subtracted, cut round. `cli.rs` draws it again from the commands.
+    ("v30_drawn_edited", "jobs/v30/drawn_edited.chipload"),
     // Built-in fonts beyond FreeFont (docs/specs/more-fonts.md): two lines of joined
     // Satisfy script, merged where the letters overlap, V-carved; an Ultra B pocketed.
     ("v29_script_text", "jobs/v29/script_text.chipload"),

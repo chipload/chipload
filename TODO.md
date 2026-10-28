@@ -126,13 +126,10 @@ it's built (see `CLAUDE.md`).
   selection and moving with the mouse; arc and slot tools; polygons (schema 30); lengths
   on the canvas. Not tried by hand in the running app beyond screenshots; the guide's
   screenshots show the old ribbon until `packaging/docs/screenshots.sh` runs again.
-  Next: phase 2 (offset, fillet, trim, booleans, arrays, align; spec drafted
-  2026-10-27, docs/specs/drawing-editing.md, approved: offset (671408d) and fillet and
-  chamfer (64acaef) done; trim, extend and break done (75fd978 command line, canvas
-  tools 2026-10-28); union, subtract and intersect (2026-10-28, command line
-  and GUI); arrays, align and distribute (2026-10-28,
-  command line and GUI); next the
-  spec's golden part drawn with these commands alone), then 3
+  Phase 2, editing (docs/specs/drawing-editing.md), **done 2026-10-28, not pushed**:
+  offset, fillet and chamfer, trim, extend and break, union, subtract and intersect,
+  grid and polar arrays, align and distribute, each on the command line and in the
+  window; golden v30_drawn_edited drawn with these commands alone. Next: phase 3
   (SVG import through `usvg`, added 2026-10-27), 4 (parameters), 5 (DXF export,
   construction lines), each with its own spec.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).

@@ -622,6 +622,22 @@ Tool group 4: tool 1, operations 5
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v30/drawn_edited.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Scalloped outline): cuts 0.300 mm below the stock (into the spoilboard)
+Operation 1: a ring starts at (185.808, 98.365) (default)
+Operation 2: a ring starts at (119.158, 58.249) (default)
+Estimated time: 4 min 59 s (cutting 4 min 52 s, rapids 4 s, spindle 3 s)
+  Operation 1 (Pocket in the pentagon): 3 min 58 s
+  Operation 2 (Scalloped outline): 58 s
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Pocket in the pentagon): 0.033 mm/tooth
+  Operation 2 (Scalloped outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v30/polygon.chipload
 exit 0
 --- stdout

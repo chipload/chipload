@@ -1,0 +1,250 @@
+{
+  "schema_version": 30,
+  "written_by": "chipload 0.27.1",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 4,
+        "layer": "0",
+        "kind": "polygon",
+        "center": [
+          150.0,
+          110.0
+        ],
+        "radius": 50.0,
+        "sides": 5,
+        "angle": 1.5707963267948966
+      },
+      {
+        "id": 5,
+        "layer": "0",
+        "kind": "polyline",
+        "closed": true,
+        "points": [
+          [
+            115.85849226712492,
+            145.08328648184067
+          ],
+          [
+            96.56932166231758,
+            131.06888370749726
+          ],
+          [
+            94.3896940783015,
+            124.36067977499789
+          ],
+          [
+            101.75726808563746,
+            101.68561854369969
+          ],
+          [
+            106.08350567535365,
+            88.3708283359214
+          ],
+          [
+            113.45131323159468,
+            65.69504831500295
+          ],
+          [
+            119.1576523293656,
+            61.549150281252636
+          ],
+          [
+            142.99962264636534,
+            61.54915028125263
+          ],
+          [
+            156.9996215735018,
+            61.54915028125263
+          ],
+          [
+            180.84234767063435,
+            61.54915028125262
+          ],
+          [
+            186.54868676840528,
+            65.69504831500294
+          ],
+          [
+            193.91626077574125,
+            88.37010954630114
+          ],
+          [
+            198.24249836545746,
+            101.68489975407942
+          ],
+          [
+            205.6103059216985,
+            124.36067977499789
+          ],
+          [
+            203.43067833768242,
+            131.06888370749726
+          ],
+          [
+            184.14211917184662,
+            145.0828422454246
+          ],
+          [
+            172.81588211856217,
+            153.31183514690585
+          ],
+          [
+            153.52671151375483,
+            167.32623792124926
+          ],
+          [
+            146.47328848624517,
+            167.32623792124926
+          ],
+          [
+            127.18472932040933,
+            153.31227938332194
+          ]
+        ],
+        "bulges": [
+          0.0,
+          0.3249196962329063,
+          0.0,
+          -0.9996085843116621,
+          0.0,
+          0.3249196962329063,
+          0.0,
+          -0.9996085843116574,
+          0.0,
+          0.3249196962329063,
+          0.0,
+          -0.9996085843116639,
+          0.0,
+          0.3249196962329063,
+          0.0,
+          -0.9996085843116561,
+          0.0,
+          0.3249196962329063,
+          0.0,
+          -0.9996085843116586
+        ]
+      }
+    ],
+    "next_shape_id": 11,
+    "dxfs": [],
+    "images": [],
+    "hidden": []
+  },
+  "stock": {
+    "x": 300.0,
+    "y": 220.0,
+    "thickness": 12.0,
+    "origin": "bottom_left",
+    "z_zero": "top",
+    "max_overcut": 0.5
+  },
+  "machine": {
+    "name": null,
+    "library_uid": null,
+    "post": "grbl",
+    "gcode_units": "mm",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": 5000.0,
+    "travel": {
+      "x": 800.0,
+      "y": 600.0,
+      "z": 100.0
+    },
+    "work_zero": {
+      "at": "drawing_origin"
+    },
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "library_uid": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": false,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "parts": [
+    {
+      "id": 1,
+      "name": "Part 1",
+      "enabled": true,
+      "copies": null
+    }
+  ],
+  "active_part": null,
+  "operations": [
+    {
+      "type": "pocket",
+      "name": "Pocket in the pentagon",
+      "enabled": true,
+      "part": 1,
+      "select": {
+        "layer": null,
+        "shapes": [
+          4
+        ]
+      },
+      "tool": 1,
+      "start_depth": 2.0,
+      "end_depth": 6.0,
+      "clearance": 0.2,
+      "step_down": 2.0,
+      "stepover": 0.4,
+      "direction": "climb",
+      "feed": 1200.0,
+      "plunge_feed": 400.0,
+      "entry": {
+        "type": "helix",
+        "radius": 1.5,
+        "ramp_angle": 0.05235987755982988
+      },
+      "starts": [],
+      "lead": {
+        "radius": 2.0
+      },
+      "corners": null,
+      "rest": null
+    },
+    {
+      "type": "profile",
+      "name": "Scalloped outline",
+      "enabled": true,
+      "part": 1,
+      "select": {
+        "layer": null,
+        "shapes": [
+          5
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.3,
+      "clearance": -0.3,
+      "step_down": 4.0,
+      "feed": 1800.0,
+      "plunge_feed": 600.0,
+      "tabs": {
+        "count": 4,
+        "width": 6.0,
+        "height": 2.0,
+        "flank_angle": 0.05235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    }
+  ]
+}
