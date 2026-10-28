@@ -97,6 +97,16 @@ it's built (see `CLAUDE.md`).
   axis. Not checked yet: reproduce with the seed, see which way the code runs, and fix
   the test or the code (a plunge on the stock would be a real bug), with the seed kept in
   the regressions file.
+- **Traced loops cross on a tiny picture with arcs** (found 2026-10-28 by a local
+  workspace run): `traced_loops_separate_black_from_white`
+  (crates/chipload-image/tests/trace.rs) fails `no_crossings` for w = 4, h = 5, smoothing
+  0.135, arcs on, the black pixels (row by row from the top) at indices 15, 26, 27, 37, 38,
+  39 and 48 of `bits`; proptest seed
+  `cc 2c938f78133a9767c000bb3dba47553796243e75bc66d9f341e2809614ebb474`. A diagonal
+  staircase of a few pixels: likely two arcs fitted to neighbouring loops bulge into each
+  other where they pass a shared corner. Not checked yet: reproduce, see whether the
+  crossing is in the fitted arcs or already in the loops, fix, and add the seed to
+  `trace.proptest-regressions` with the fix (left out until then so main stays green).
 - **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
   tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
   5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
