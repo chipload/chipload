@@ -2,8 +2,11 @@
 //! Editing tools on drawn shapes (docs/specs/drawing-editing.md): the tool being used, its
 //! preview and its clicks. The geometry is `chipload_pipeline::drawing_edit`.
 
+use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
-    Corners, Cut, OffsetSide, cut_shape_corners, offset_at, offset_shapes, shape_corners,
+    Corners, Cut, Edited, OffsetSide, break_shape, cut_shape_corners, extend_shape, nearer_end,
+    nearest_drawn, nearest_point, offset_at, offset_shapes, shape_corners, trim_preview,
+    trim_shape,
 };
 
 use super::*;
@@ -17,6 +20,22 @@ pub enum ModifyTool {
     Fillet,
     /// Cut a corner of the selected shape straight across (Shift: every corner) (§3).
     Chamfer,
+    /// Remove the piece of a shape under the cursor, between crossings (§4).
+    Trim,
+    /// Grow an open shape's straight end to the next shape ahead (§4).
+    Extend,
+    /// Split a shape at the point under the cursor (§4).
+    Break,
+}
+
+impl ModifyTool {
+    /// The tools that work on the shape under the cursor, with no selection first.
+    pub fn on_shape_under_cursor(self) -> bool {
+        matches!(
+            self,
+            ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break
+        )
+    }
 }
 
 /// The offset the cursor asks for, and its preview, kept until either changes.
@@ -202,7 +221,7 @@ impl ChiploadApp {
         match self.modify? {
             ModifyTool::Fillet => Some(Cut::Fillet(self.fillet_radius)),
             ModifyTool::Chamfer => Some(Cut::Chamfer(self.chamfer_distance)),
-            ModifyTool::Offset => None,
+            _ => None,
         }
     }
 
@@ -280,7 +299,119 @@ impl ChiploadApp {
                     self.apply_corner_cut(id, Some(k));
                 }
             }
+            Some(tool @ (ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break)) => {
+                if let Some(id) = self.drawn_under(picked, at) {
+                    self.apply_on_shape(tool, id, at);
+                }
+            }
             None => {}
+        }
+    }
+
+    /// The drawn shape of contour `picked` nearest `at` (a contour may join several).
+    pub fn drawn_under(&self, picked: Option<usize>, at: Point) -> Option<u64> {
+        let contour = self.contours.iter().find(|c| Some(c.id) == picked)?;
+        let ids: Vec<u64> = shapes_of(contour).into_iter().collect();
+        nearest_drawn(&self.edit.as_ref()?.settings, &ids, at)
+    }
+
+    /// The project with the operations, as the editing operations take it (so points on a
+    /// shape follow it).
+    fn job_with_operations(&self) -> Option<chipload_job::Job> {
+        let edit = self.edit.as_ref()?;
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        Some(job)
+    }
+
+    /// Take an editing operation's result into the project, as one undo step: the drawing,
+    /// the operations' points that followed, the changed and new shapes. Refused: the
+    /// reason on the status bar.
+    fn take_edit(&mut self, result: Result<Edited, PipelineError>, changed: &[u64]) -> bool {
+        match result {
+            Ok(edited) => {
+                let Some(edit) = self.edit.as_mut() else {
+                    return false;
+                };
+                edit.settings.drawing = edited.job.drawing;
+                for (entry, op) in edit.ops.iter_mut().zip(edited.job.operations) {
+                    entry.op = op;
+                }
+                let mut ids = changed.to_vec();
+                ids.extend(&edited.new_ids);
+                self.shape_draft = None;
+                self.drawing_changed(&ids);
+                let units = self.units.into();
+                let notes: Vec<String> = edited
+                    .notes
+                    .iter()
+                    .map(|n| n.render(self.language, units))
+                    .collect();
+                if !notes.is_empty() {
+                    self.set_status(notes.join(" "), STATUS_SECONDS);
+                }
+                true
+            }
+            Err(err) => {
+                let text = err.message().render(self.language, self.units.into());
+                self.set_status(text, STATUS_SECONDS);
+                false
+            }
+        }
+    }
+
+    /// Trim, extend or break drawn shape `id` at `at`, as one undo step.
+    pub fn apply_on_shape(&mut self, tool: ModifyTool, id: u64, at: Point) -> bool {
+        let Some(job) = self.job_with_operations() else {
+            return false;
+        };
+        let result = match tool {
+            ModifyTool::Trim => trim_shape(&job, id, at),
+            ModifyTool::Break => break_shape(&job, id, at),
+            ModifyTool::Extend => match nearer_end(&job, id, at) {
+                Some(end) => extend_shape(&job, id, end),
+                None => {
+                    self.set_status(t!(self, "modify-extend-closed"), STATUS_SECONDS);
+                    return false;
+                }
+            },
+            _ => return false,
+        };
+        self.take_edit(result, &[id])
+    }
+
+    /// What trim, extend or break would do at `at` on the shape of contour `picked`: the
+    /// trimmed piece, the extended shape, or the break point marked.
+    pub(super) fn on_shape_preview(
+        &self,
+        picked: Option<usize>,
+        at: Point,
+    ) -> (Vec<Vec<Point>>, Option<Point>) {
+        let (Some(tool), Some(id), Some(job)) = (
+            self.modify,
+            self.drawn_under(picked, at),
+            self.edit.as_ref(),
+        ) else {
+            return (Vec::new(), None);
+        };
+        let job = &job.settings;
+        match tool {
+            ModifyTool::Trim => (
+                trim_preview(job, id, at)
+                    .map(|g| crate::draw::outline(&g))
+                    .unwrap_or_default(),
+                None,
+            ),
+            ModifyTool::Extend => {
+                let lines = nearer_end(job, id, at)
+                    .and_then(|end| extend_shape(job, id, end).ok())
+                    .and_then(|edited| edited.job.drawing.shapes.into_iter().find(|s| s.id == id))
+                    .map(|s| crate::draw::outline(&s.geometry))
+                    .unwrap_or_default();
+                (lines, None)
+            }
+            ModifyTool::Break => (Vec::new(), nearest_point(job, id, at)),
+            _ => (Vec::new(), None),
         }
     }
 
@@ -333,6 +464,9 @@ impl ChiploadApp {
             }
             ModifyTool::Fillet => t!(self, "modify-fillet-status"),
             ModifyTool::Chamfer => t!(self, "modify-chamfer-status"),
+            ModifyTool::Trim => t!(self, "modify-trim-status"),
+            ModifyTool::Extend => t!(self, "modify-extend-status"),
+            ModifyTool::Break => t!(self, "modify-break-status"),
         })
     }
 
@@ -352,7 +486,7 @@ impl ChiploadApp {
                 return;
             }
             Some(ModifyTool::Offset) => {}
-            None => return,
+            _ => return,
         }
         egui::ComboBox::from_id_salt("offset-corners")
             .selected_text(match self.offset_corners {

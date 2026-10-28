@@ -522,6 +522,29 @@ pub fn extend_shape(job: &Job, id: u64, end: End) -> Result<Edited, PipelineErro
     })
 }
 
+/// Of shapes `ids`, the drawn one nearest `at` (a contour can join several drawn
+/// polylines end to end; a canvas tool works on the one under the cursor).
+pub fn nearest_drawn(job: &Job, ids: &[u64], at: (f64, f64)) -> Option<u64> {
+    ids.iter()
+        .filter_map(|&id| drawn(job, id).ok())
+        .map(|shape| (offset::nearest_distance(&chain_of(shape), at), shape.id))
+        .min_by(|a, b| a.0.total_cmp(&b.0))
+        .map(|(_, id)| id)
+}
+
+/// The point of drawn shape `id` nearest `at`: where a break there falls.
+pub fn nearest_point(job: &Job, id: u64, at: (f64, f64)) -> Option<(f64, f64)> {
+    let shape = drawn(job, id).ok()?;
+    chain_of(shape)
+        .prims
+        .iter()
+        .map(|prim| chipload_draw::intersect::nearest_on(prim, at))
+        .min_by(|a, b| {
+            let d = chipload_core::primitives::distance;
+            d(*a, at).total_cmp(&d(*b, at))
+        })
+}
+
 /// The end of open drawn shape `id` nearer `at`.
 pub fn nearer_end(job: &Job, id: u64, at: (f64, f64)) -> Option<End> {
     let shape = drawn(job, id).ok()?;

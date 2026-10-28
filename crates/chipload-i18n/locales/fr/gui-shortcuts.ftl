@@ -87,3 +87,4 @@ shortcuts-draw-arc = Dessiner un arc
 shortcuts-draw-slot = Dessiner une rainure
 shortcuts-draw-polygon = Dessiner un polygone
 shortcuts-offset = Décaler les formes sélectionnées
+shortcuts-trim = Ajuster des formes dessinées

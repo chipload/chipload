@@ -137,3 +137,6 @@ menu-polygon-sides = Sides
 menu-modify-offset = Offset
 menu-modify-fillet = Fillet
 menu-modify-chamfer = Chamfer
+menu-modify-trim = Trim
+menu-modify-extend = Extend
+menu-modify-break = Break

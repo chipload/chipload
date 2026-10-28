@@ -592,3 +592,56 @@ fn the_corner_tools_round_or_cut_the_clicked_corner() {
     };
     assert_eq!(points.len(), 6);
 }
+
+#[test]
+fn trim_extend_and_break_work_on_the_shape_clicked() {
+    // docs/specs/drawing-editing.md §4, on lines drawn away from the sample's shapes.
+    use super::modify::ModifyTool;
+    let mut app = drawn_part();
+    let line = |app: &mut ChiploadApp, a: [f64; 2], b: [f64; 2]| {
+        let id = app
+            .add_drawn(Geometry::straight_polyline(false, vec![a, b]))
+            .unwrap();
+        app.commit();
+        id
+    };
+    let a = line(&mut app, [200.0, 150.0], [240.0, 150.0]);
+    let _wall = line(&mut app, [220.0, 140.0], [220.0, 160.0]);
+    let short = line(&mut app, [200.0, 170.0], [210.0, 170.0]);
+    let _far = line(&mut app, [230.0, 165.0], [230.0, 175.0]);
+    let points = |app: &ChiploadApp, id: u64| match &app.shape(id).unwrap().geometry {
+        Geometry::Polyline { points, .. } => points.clone(),
+        other => panic!("{other:?}"),
+    };
+    // Trim: the part of A beyond the wall goes.
+    app.start_modify(ModifyTool::Trim);
+    let picked = Some(contour_of(&app, a));
+    assert!(!app.on_shape_preview(picked, (230.0, 150.0)).0.is_empty());
+    app.modify_click(picked, (230.0, 150.0), false, (false, false));
+    assert_eq!(points(&app, a), [[200.0, 150.0], [220.0, 150.0]]);
+    app.commit();
+    // Extend: the short line's right end grows to the far line.
+    app.start_modify(ModifyTool::Extend);
+    app.modify_click(
+        Some(contour_of(&app, short)),
+        (209.0, 170.0),
+        false,
+        (false, false),
+    );
+    assert_eq!(points(&app, short), [[200.0, 170.0], [230.0, 170.0]]);
+    app.commit();
+    // Break: A splits in two at the point clicked; the first part keeps its id.
+    app.start_modify(ModifyTool::Break);
+    let before = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    app.modify_click(
+        Some(contour_of(&app, a)),
+        (210.0, 150.3),
+        false,
+        (false, false),
+    );
+    assert_eq!(points(&app, a), [[200.0, 150.0], [210.0, 150.0]]);
+    assert_eq!(
+        app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+        before + 1
+    );
+}

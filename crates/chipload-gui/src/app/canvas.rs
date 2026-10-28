@@ -279,6 +279,19 @@ impl ChiploadApp {
                 if let (Some((d, _)), Some(at)) = (target, self.cursor) {
                     readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
                 }
+            } else if self
+                .modify
+                .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)
+            {
+                // Trim, extend, break: on the shape under the cursor.
+                let hover = response.hover_pos();
+                let picked = hover.and_then(|pos| self.scene.pick(&self.view, pos));
+                let (lines, mark) = match (picked, self.cursor) {
+                    (Some(_), Some(at)) => self.on_shape_preview(picked, at),
+                    _ => (Vec::new(), None),
+                };
+                self.scene.preview = lines;
+                self.scene.snap_mark = mark;
             } else {
                 // A corner tool: the corner under the cursor marked, the result previewed.
                 self.scene.snap_mark = self

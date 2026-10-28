@@ -137,3 +137,6 @@ menu-polygon-sides = Lati
 menu-modify-offset = Offset
 menu-modify-fillet = Raccordo
 menu-modify-chamfer = Smusso
+menu-modify-trim = Taglia
+menu-modify-extend = Estendi
+menu-modify-break = Spezza

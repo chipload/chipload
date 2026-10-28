@@ -30,6 +30,9 @@ pub enum Icon {
     Offset,
     Fillet,
     Chamfer,
+    Trim,
+    Extend,
+    Break,
     Paths,
     Profile,
     Pocket,
@@ -166,6 +169,25 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.poly(&points);
         }
         Icon::Chamfer => pen.poly(&[(0.15, 0.85), (0.15, 0.4), (0.4, 0.15), (0.85, 0.15)]),
+        // A line crossing another, the piece beyond it cut away (dotted).
+        Icon::Trim => {
+            pen.line([(0.6, 0.1), (0.6, 0.9)]);
+            pen.line([(0.1, 0.5), (0.6, 0.5)]);
+            pen.dot((0.72, 0.5), 0.03);
+            pen.dot((0.84, 0.5), 0.03);
+        }
+        // A line grown up to a wall.
+        Icon::Extend => {
+            pen.line([(0.85, 0.1), (0.85, 0.9)]);
+            pen.line([(0.1, 0.5), (0.45, 0.5)]);
+            pen.poly(&[(0.5, 0.5), (0.85, 0.5)]);
+            pen.poly(&[(0.7, 0.4), (0.82, 0.5), (0.7, 0.6)]);
+        }
+        // A line with a gap in it.
+        Icon::Break => {
+            pen.line([(0.1, 0.6), (0.42, 0.4)]);
+            pen.line([(0.58, 0.6), (0.9, 0.4)]);
+        }
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)
                 .map(|k| {

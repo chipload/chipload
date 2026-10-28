@@ -137,3 +137,6 @@ menu-polygon-sides = Côtés
 menu-modify-offset = Décaler
 menu-modify-fillet = Congé
 menu-modify-chamfer = Chanfrein
+menu-modify-trim = Ajuster
+menu-modify-extend = Prolonger
+menu-modify-break = Couper

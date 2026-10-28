@@ -67,3 +67,7 @@ modify-fillet-status = Abrunden: eine Ecke klicken; Shift+Klick rundet alle Ecke
 modify-chamfer-status = Fase: eine Ecke klicken; Shift+Klick schneidet alle Ecken (Esc beendet)
 modify-fillet-radius = Radius
 modify-chamfer-distance = Abstand
+modify-trim-status = Stutzen: das Stück einer gezeichneten Form anklicken, das wegfällt; es wird vor dem Klick gezeigt (Esc beendet)
+modify-extend-status = Verlängern: nahe dem Ende einer offenen gezeichneten Form klicken, um sie bis zur nächsten Form zu verlängern (Esc beendet)
+modify-break-status = Teilen: eine gezeichnete Form dort klicken, wo sie geteilt werden soll (Esc beendet)
+modify-extend-closed = eine geschlossene Form hat kein Ende zum Verlängern

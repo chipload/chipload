@@ -137,3 +137,6 @@ menu-polygon-sides = Lados
 menu-modify-offset = Desfase
 menu-modify-fillet = Redondeo
 menu-modify-chamfer = Chaflán
+menu-modify-trim = Recortar
+menu-modify-extend = Alargar
+menu-modify-break = Partir

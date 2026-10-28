@@ -87,3 +87,4 @@ shortcuts-draw-arc = Rita en båge
 shortcuts-draw-slot = Rita ett spår
 shortcuts-draw-polygon = Rita en polygon
 shortcuts-offset = Förskjut de markerade formerna
+shortcuts-trim = Trimma ritade former

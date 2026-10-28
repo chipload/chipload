@@ -67,3 +67,7 @@ modify-fillet-status = Congé : cliquez un coin ; Maj+clic arrondit tous les coi
 modify-chamfer-status = Chanfrein : cliquez un coin ; Maj+clic coupe tous les coins (Échap termine)
 modify-fillet-radius = Rayon
 modify-chamfer-distance = Distance
+modify-trim-status = Ajuster : cliquez le morceau d'une forme dessinée à enlever ; il s'affiche avant le clic (Échap termine)
+modify-extend-status = Prolonger : cliquez près de l'extrémité d'une forme ouverte pour la prolonger jusqu'à la forme suivante (Échap termine)
+modify-break-status = Couper : cliquez une forme dessinée là où elle doit être coupée (Échap termine)
+modify-extend-closed = une forme fermée n'a pas d'extrémité à prolonger

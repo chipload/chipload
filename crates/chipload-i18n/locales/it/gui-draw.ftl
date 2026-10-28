@@ -67,3 +67,7 @@ modify-fillet-status = Raccordo: clicca un angolo; Maiusc+clic li arrotonda tutt
 modify-chamfer-status = Smusso: clicca un angolo; Maiusc+clic li taglia tutti (Esc termina)
 modify-fillet-radius = Raggio
 modify-chamfer-distance = Distanza
+modify-trim-status = Taglia: clicca il pezzo di una forma disegnata da togliere; si vede prima del clic (Esc termina)
+modify-extend-status = Estendi: clicca vicino all'estremità di una forma aperta per allungarla fino alla forma successiva (Esc termina)
+modify-break-status = Spezza: clicca una forma disegnata dove deve dividersi (Esc termina)
+modify-extend-closed = una forma chiusa non ha estremità da estendere

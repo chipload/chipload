@@ -116,6 +116,10 @@ chipload shape break P ID --at X,Y      # split at the point
   point is the nearest on the shape to `--at`.
 - **GUI:** Trim (X): click the pieces to remove, one after the other, each a step; Esc
   ends. Extend: click near the end to extend. Break: click the point.
+- *Implemented:* the tools work on the drawn shape under the cursor (of a contour that
+  joins several, the nearest: `drawing_edit::nearest_drawn`), with no selection first.
+  The preview shows the piece a trim removes, the extended shape, or the break point
+  (`nearest_point`) marked.
 
 ## 5. Union, subtract, intersect
 

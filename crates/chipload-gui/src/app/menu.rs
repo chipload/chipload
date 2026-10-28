@@ -567,6 +567,21 @@ impl ChiploadApp {
                 t!(ui, "menu-modify-chamfer"),
                 t!(ui, "header-chamfer-hover"),
             ),
+            (
+                super::modify::ModifyTool::Trim,
+                with_keys(&t!(ui, "menu-modify-trim"), Action::Trim),
+                t!(ui, "header-trim-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Extend,
+                t!(ui, "menu-modify-extend"),
+                t!(ui, "header-extend-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Break,
+                t!(ui, "menu-modify-break"),
+                t!(ui, "header-break-hover"),
+            ),
         ] {
             if ui
                 .add_enabled(can_draw, egui::Button::new(label))

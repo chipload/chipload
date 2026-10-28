@@ -87,3 +87,4 @@ shortcuts-draw-arc = Draw an arc
 shortcuts-draw-slot = Draw a slot
 shortcuts-draw-polygon = Draw a polygon
 shortcuts-offset = Offset the selected shapes
+shortcuts-trim = Trim drawn shapes

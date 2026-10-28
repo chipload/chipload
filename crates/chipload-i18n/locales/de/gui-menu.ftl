@@ -137,3 +137,6 @@ menu-polygon-sides = Seiten
 menu-modify-offset = Versatz
 menu-modify-fillet = Abrunden
 menu-modify-chamfer = Fase
+menu-modify-trim = Stutzen
+menu-modify-extend = Verlängern
+menu-modify-break = Teilen

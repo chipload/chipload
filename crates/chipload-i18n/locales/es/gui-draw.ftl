@@ -67,3 +67,7 @@ modify-fillet-status = Redondeo: haga clic en una esquina; Mayús+clic redondea 
 modify-chamfer-status = Chaflán: haga clic en una esquina; Mayús+clic corta todas (Esc termina)
 modify-fillet-radius = Radio
 modify-chamfer-distance = Distancia
+modify-trim-status = Recortar: haga clic en el trozo de una forma dibujada que se quita; se muestra antes del clic (Esc termina)
+modify-extend-status = Alargar: haga clic cerca del extremo de una forma abierta para alargarla hasta la forma siguiente (Esc termina)
+modify-break-status = Partir: haga clic en una forma dibujada donde deba partirse (Esc termina)
+modify-extend-closed = una forma cerrada no tiene extremo que alargar

@@ -67,3 +67,7 @@ modify-fillet-status = Avrunda: klicka ett hörn; Skift+klick rundar alla hörn 
 modify-chamfer-status = Fasa: klicka ett hörn; Skift+klick fasar alla hörn (Esc avslutar)
 modify-fillet-radius = Radie
 modify-chamfer-distance = Avstånd
+modify-trim-status = Trimma: klicka den bit av en ritad form som ska bort; den visas innan du klickar (Esc avslutar)
+modify-extend-status = Förläng: klicka nära änden av en öppen ritad form för att förlänga den till nästa form (Esc avslutar)
+modify-break-status = Bryt: klicka en ritad form där den ska delas (Esc avslutar)
+modify-extend-closed = en sluten form har ingen ände att förlänga

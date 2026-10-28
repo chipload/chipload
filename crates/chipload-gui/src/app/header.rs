@@ -460,6 +460,27 @@ impl ChiploadApp {
                         t!(ui, "header-chamfer-hover"),
                         None,
                     ),
+                    (
+                        super::modify::ModifyTool::Trim,
+                        Icon::Trim,
+                        t!(ui, "header-trim"),
+                        t!(ui, "header-trim-hover"),
+                        Some(Action::Trim),
+                    ),
+                    (
+                        super::modify::ModifyTool::Extend,
+                        Icon::Extend,
+                        t!(ui, "header-extend"),
+                        t!(ui, "header-extend-hover"),
+                        None,
+                    ),
+                    (
+                        super::modify::ModifyTool::Break,
+                        Icon::Break,
+                        t!(ui, "header-break"),
+                        t!(ui, "header-break-hover"),
+                        None,
+                    ),
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);

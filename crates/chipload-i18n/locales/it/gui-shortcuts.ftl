@@ -87,3 +87,4 @@ shortcuts-draw-arc = Disegna un arco
 shortcuts-draw-slot = Disegna un'asola
 shortcuts-draw-polygon = Disegna un poligono
 shortcuts-offset = Offset delle forme selezionate
+shortcuts-trim = Taglia forme disegnate

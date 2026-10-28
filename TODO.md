@@ -112,9 +112,8 @@ it's built (see `CLAUDE.md`).
   screenshots show the old ribbon until `packaging/docs/screenshots.sh` runs again.
   Next: phase 2 (offset, fillet, trim, booleans, arrays, align; spec drafted
   2026-10-27, docs/specs/drawing-editing.md, approved: offset (671408d) and fillet and
-  chamfer (64acaef) done; trim, extend and break on the command line done, their canvas
-  tools (X trim, extend, break in ModifyTool, a preview of the piece trimmed through
-  `drawing_edit::trim_preview`) next, then booleans, arrays, align, and the
+  chamfer (64acaef) done; trim, extend and break done (75fd978 command line, canvas
+  tools 2026-10-28); next booleans, arrays, align, and the
   spec's golden part drawn with these commands alone), then 3
   (SVG import through `usvg`, added 2026-10-27), 4 (parameters), 5 (DXF export,
   construction lines), each with its own spec.

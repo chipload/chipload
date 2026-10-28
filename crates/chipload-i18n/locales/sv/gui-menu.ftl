@@ -137,3 +137,6 @@ menu-polygon-sides = Sidor
 menu-modify-offset = Förskjut
 menu-modify-fillet = Avrunda
 menu-modify-chamfer = Fasa
+menu-modify-trim = Trimma
+menu-modify-extend = Förläng
+menu-modify-break = Bryt

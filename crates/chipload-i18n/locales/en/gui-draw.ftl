@@ -68,3 +68,7 @@ modify-fillet-status = Fillet: click a corner; Shift+click rounds every corner (
 modify-chamfer-status = Chamfer: click a corner; Shift+click cuts every corner (Esc ends)
 modify-fillet-radius = Radius
 modify-chamfer-distance = Distance
+modify-trim-status = Trim: click the piece of a drawn shape to remove; it shows before you click (Esc ends)
+modify-extend-status = Extend: click near the end of an open drawn shape to grow it to the next shape (Esc ends)
+modify-break-status = Break: click a drawn shape where it should split (Esc ends)
+modify-extend-closed = a closed shape has no end to extend
