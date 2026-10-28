@@ -231,7 +231,8 @@ impl ChiploadApp {
             | Focus::LibraryMachine(_)
             | Focus::Preferences
             | Focus::Posts
-            | Focus::Post(_) => Box::new(std::iter::empty()),
+            | Focus::Post(_)
+            | Focus::Selection => Box::new(std::iter::empty()),
             Focus::Part(id) => {
                 let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
                 Box::new(self.problems_under(index_of(k, "parts")))

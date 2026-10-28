@@ -140,6 +140,8 @@ impl ChiploadApp {
     /// a picture or text count only when the box catches nothing else and replaces the
     /// selection: then it selects the whole picture or text, as a click does.
     pub fn end_select_drag(&mut self, add: bool, toggle: bool) {
+        // What the box picks is what Properties shows (one thing at a time).
+        self.focus = Focus::Selection;
         let Some((from, to, mode)) = self.select_box() else {
             return;
         };

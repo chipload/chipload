@@ -98,6 +98,9 @@ it's built (see `CLAUDE.md`).
      selection stays for its *Use selection*.
   3. A new project showed the problem "Job has no operations" straight away. Fixed
      2026-10-28: the window leaves it out; Generate still says so if pressed.
+  4. Properties showed two things (the selection above Job settings), which confused.
+     Fixed 2026-10-28: one thing at a time, the Browser's item or the canvas pick
+     (`Focus::Selection`); no Browser row is highlighted while the pick is shown.
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)

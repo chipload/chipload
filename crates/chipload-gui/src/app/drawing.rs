@@ -443,6 +443,8 @@ impl ChiploadApp {
         self.refresh_drawing();
         if !shapes.is_empty() {
             self.selection = CanvasSelection::Shapes(shapes.iter().copied().collect());
+            // The new or changed shapes are what Properties shows (one thing at a time).
+            self.focus = Focus::Selection;
         }
     }
 }

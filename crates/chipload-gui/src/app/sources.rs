@@ -417,15 +417,11 @@ impl ChiploadApp {
                 self.select_row(selection, add);
                 // A DXF or picture shows its properties too
                 // (docs/specs/properties-for-tools-and-dxfs.md §3, §3b).
-                if let Some(focus) = source_focus(&key) {
-                    self.focus = focus;
-                }
+                self.focus = source_focus(&key).unwrap_or(Focus::Selection);
             }
             Some(PanelAction::SelectLayer(layer, from)) => {
                 self.select_row(CanvasSelection::Layer(layer, from), add);
-                if let Some(ShapeFrom::Dxf(dxf)) = from {
-                    self.focus = Focus::Dxf(dxf);
-                }
+                self.focus = Focus::Selection;
             }
             Some(PanelAction::Place(dxf)) => self.focus = Focus::Dxf(dxf),
             Some(PanelAction::Update(dxf)) => {

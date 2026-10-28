@@ -118,6 +118,9 @@ pub enum RestMenu {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
     Job,
+    /// What is picked on the canvas, alone (the user, 2026-10-28: one thing at a time in
+    /// Properties): its values, or how to pick something.
+    Selection,
     Op(usize),
     /// Pocket `0`'s rest pass `1` (docs/specs/rest-passes.md §6).
     RestPass(usize, usize),
@@ -1588,11 +1591,10 @@ impl ChiploadApp {
     /// A click on the canvas: `picked` is the contour hit (if any); `toggle` (Ctrl) adds or
     /// removes it instead of replacing the selection. Selections are kept as shape ids.
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
-        // Picking shapes is about the shapes, not the open operation: close it so Properties
-        // shows them (user, 2026-10-28). The selection stays when the operation is opened
-        // again, for its Use selection.
-        if picked.is_some() && matches!(self.focus, Focus::Op(_) | Focus::RestPass(..)) {
-            self.focus = Focus::Job;
+        // Picking on the canvas shows what is picked, and only that (the user, 2026-10-28).
+        // The selection stays when something else is opened, for an operation's Use selection.
+        if picked.is_some() {
+            self.focus = Focus::Selection;
         }
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so

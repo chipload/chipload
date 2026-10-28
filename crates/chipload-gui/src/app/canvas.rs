@@ -458,6 +458,7 @@ impl ChiploadApp {
                                 .clicked()
                             {
                                 self.selection = CanvasSelection::Layer(layer.clone(), from);
+                                self.focus = Focus::Selection;
                                 ui.close();
                             }
                         }

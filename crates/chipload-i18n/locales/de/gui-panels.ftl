@@ -1,6 +1,7 @@
 # The Properties panel and the start screen (crates/chipload-gui/src/app/panels.rs).
 
 panels-no-project = Kein Projekt geöffnet.
+panels-nothing-selected = Nichts gewählt. Klicken Sie eine Form auf der Zeichenfläche oder einen Eintrag im Browser.
 # The file dialog's filter name for .dxf and .svg files.
 panels-dxf-filter = Zeichnungen (DXF, SVG)
 

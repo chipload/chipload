@@ -92,11 +92,15 @@ impl ChiploadApp {
         }
         forms::set_form_width(ui);
         self.problems_strip(ui);
-        if self.selection_shown() {
-            self.selection_section(ui);
-            ui.add_space(4.0);
-            ui.separator();
-            ui.add_space(4.0);
+        // One thing at a time (the user, 2026-10-28): what is picked on the canvas, or the
+        // Browser's item.
+        if self.focus == Focus::Selection {
+            if self.selection.ids(&self.contours).is_empty() {
+                ui.weak(t!(ui, "panels-nothing-selected"));
+            } else {
+                self.selection_section(ui);
+            }
+            return;
         }
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
         let selected = self.selection.ids(&self.contours).len();
@@ -119,6 +123,8 @@ impl ChiploadApp {
             _ => None,
         };
         ui.scope(|ui| match focus {
+            // Shown above, alone.
+            Focus::Selection => {}
             Focus::Job => request = job_form(ui, edit, library),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
             Focus::Tools => request = forms::tools_form(ui, edit, library),

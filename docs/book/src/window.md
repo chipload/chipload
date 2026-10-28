@@ -162,17 +162,19 @@ The **Properties** panel on the right shows what is open, under a title:
 - **A part:** its name, on or off, and its [copies](drawings/copies.md).
 - **An operation:** its settings, under its kind and number ("Pocket · Operation 1").
 
-While shapes are selected, a **Selection** section comes first. It holds:
+**Properties shows one thing at a time:** the item you clicked in the Browser (Job settings,
+an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
+both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+Browser, a shape just drawn) shows the **Selection**:
 - what is selected, by contour number;
-- a drawn shape's exact values, to edit;
+- a drawn shape's exact values, to edit, and the tools for the selection (align, arrays,
+  construction);
 - *Copy as selector*, which copies the selection as JSON for a project file (also under
   DRAW ▾, and Ctrl+Shift+C).
 
-Its triangle folds it away. **Clicking a shape on the canvas closes the open operation,**
-so Properties shows the shape, with its values to edit. The selection stays: open the
-operation again in the Browser and its *Use selection* button counts what is selected
-("Use selection (3)") and takes it as the operation's geometry. There is no Selection
-section when the open DXF, picture or text is itself what is selected.
+The selection stays on the canvas when you open something else. An operation's *Use
+selection* button counts it ("Use selection (3)") and takes it as the operation's geometry.
+With nothing picked, Properties says how to pick something.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
 

@@ -823,8 +823,7 @@ fn clicking_a_shape_shows_the_shape_not_the_open_operation() {
     let op = app.add_operation(OpKind::Profile).unwrap();
     assert_eq!(app.focus, Focus::Op(op));
     app.click(Some(contour_of(&app, 2)), false);
-    assert_eq!(app.focus, Focus::Job);
-    assert!(app.selection_shown());
+    assert_eq!(app.focus, Focus::Selection);
     assert_eq!(app.selected_shape(), Some(2));
     // Opened again, the operation can take the picked shape with Use selection.
     app.focus = Focus::Op(op);
