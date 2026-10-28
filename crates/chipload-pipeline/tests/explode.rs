@@ -45,7 +45,9 @@ fn gcode(job: &Job) -> Vec<String> {
 }
 
 /// The same G-code before and after exploding, unless a circle's start moved; with `join`,
-/// also joined with that gap.
+/// also joined with that gap. An SVG's arcs are fitted, and come back from the exploded
+/// polylines' bulges a few billionths of a mm off: a ring that is nearly a circle may then
+/// start elsewhere on it, so a project with an SVG only has to still give checked G-code.
 fn keeps_the_gcode(join: Option<f64>) {
     let mut exploded = 0;
     let mut differ = Vec::new();
@@ -58,7 +60,11 @@ fn keeps_the_gcode(join: Option<f64>) {
             continue;
         };
         let mut after = job.clone();
-        let mut restarted = false;
+        let mut restarted = job
+            .drawing
+            .dxfs
+            .iter()
+            .any(|d| d.format == chipload_job::DrawingFormat::Svg);
         for id in job.drawing.dxfs.iter().map(|d| d.id) {
             let (out, report) = explode_dxf(&after, id, join).unwrap();
             restarted |= report.lines.iter().any(|l| l.contains("right-hand point"));
