@@ -502,3 +502,20 @@ pipeline-shape-gone = S{ $id } n'existe plus : { $ops ->
     [one] l'opération { $operations } l'utilisait ; choisissez de nouveau sa géométrie
    *[other] les opérations { $operations } l'utilisaient ; choisissez de nouveau leur géométrie
 }.
+
+## DXF export (docs/specs/dxf-export.md)
+
+pipeline-export-nothing = il n'y a rien à exporter : aucune forme n'est affichée là
+pipeline-export-no-layer = le dessin n'a pas de calque { $layer }
+pipeline-export-unverified = le DXF n'a pas été écrit : S{ $id } ne s'est pas relue à l'identique ({ $why })
+pipeline-export-summary = { $count ->
+    [one] 1 entité
+   *[other] { $count } entités
+} sur { $layers ->
+    [one] 1 calque
+   *[other] { $layers } calques
+}, en { $units ->
+    [inch] pouces
+   *[mm] mm
+}.
+pipeline-export-renamed = Le calque { $from } s'appelle { $to } dans le DXF : un nom de calque DXF ne peut pas contenir certains de ses caractères.

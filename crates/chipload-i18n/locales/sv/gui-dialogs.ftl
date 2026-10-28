@@ -29,6 +29,14 @@ dialogs-px-72 = 72 (äldre Illustrator)
 dialogs-px-other = Annat:
 dialogs-px-use = Använd
 dialogs-px-cancelled = Ritningen importerades inte: dess storlek är okänd.
+dialogs-export-dxf-title = Exportera ritningen som DXF
+dialogs-export-dxf-inch = I tum (annars mm)
+dialogs-export-dxf-hidden = Även dolda lager och grupper
+dialogs-export-dxf-selection = Bara de valda formerna
+dialogs-export-dxf-save = Exportera…
+dialogs-export-dxf-path = Exportera till sökväg…
+dialogs-path-export-dxf = DXF-filen att skriva:
+dialogs-filter-dxf-file = DXF-ritning
 
 dialogs-unsaved-title = Osparade ändringar
 dialogs-unsaved-body = Projektet har ändringar som inte är sparade. Spara dem först?

@@ -14,6 +14,7 @@
 
 mod convert;
 mod curves;
+mod export;
 mod sanitize;
 mod svg;
 
@@ -36,6 +37,7 @@ use sha2::{Digest, Sha256};
 
 pub use chipload_job::{IssueSeverity as Severity, UnitsFrom};
 pub use convert::{Affine, MAX_BLOCK_DEPTH};
+pub use export::{ExportError, Exported, export_shapes};
 pub use svg::{is_svg, shapes_from_svg_bytes};
 
 /// Millimetres per inch.

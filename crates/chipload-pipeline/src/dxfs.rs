@@ -435,3 +435,69 @@ pub fn update_drawing_file(
 fn english(messages: &[Message]) -> Vec<String> {
     messages.iter().map(Message::english).collect()
 }
+
+/// What `export_drawing` writes (docs/specs/dxf-export.md §A2, §A6).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExportOptions {
+    /// Inches instead of mm.
+    pub inch: bool,
+    /// Hidden groups and layers too.
+    pub hidden: bool,
+    /// Only these layers (none: every layer).
+    pub layers: Vec<String>,
+    /// Only these shapes (none: every shape).
+    pub shapes: Vec<u64>,
+}
+
+/// The drawing as a DXF: the shapes the canvas shows (with `options`), where it shows them,
+/// on their layers, read back before it is handed on. Returns the file and its report.
+pub fn export_drawing(
+    job: &Job,
+    options: &ExportOptions,
+) -> Result<(chipload_dxf::Exported, Vec<Message>), PipelineError> {
+    for id in &options.shapes {
+        if !job.drawing.shapes.iter().any(|s| s.id == *id) {
+            return Err(crate::shapes::no_shape(*id));
+        }
+    }
+    for layer in &options.layers {
+        if !job.drawing.shapes.iter().any(|s| s.layer == *layer) {
+            return Err(PipelineError::Job(
+                Message::new("pipeline-export-no-layer").arg("layer", layer.as_str()),
+            ));
+        }
+    }
+    let shapes: Vec<Shape> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| options.hidden || !job.drawing.is_hidden(s))
+        .filter(|s| options.layers.is_empty() || options.layers.contains(&s.layer))
+        .filter(|s| options.shapes.is_empty() || options.shapes.contains(&s.id))
+        .cloned()
+        .collect();
+    let units = if options.inch { Units::Inch } else { Units::Mm };
+    let exported = chipload_dxf::export_shapes(&shapes, units).map_err(|e| match e {
+        chipload_dxf::ExportError::Nothing => {
+            PipelineError::Job(Message::new("pipeline-export-nothing"))
+        }
+        chipload_dxf::ExportError::Unverified { shape, why } => PipelineError::Job(
+            Message::new("pipeline-export-unverified")
+                .arg("id", shape)
+                .arg("why", why),
+        ),
+    })?;
+    let count: usize = exported.entities.values().sum();
+    let mut notes = vec![
+        Message::new("pipeline-export-summary")
+            .arg("count", count)
+            .arg("layers", exported.layers.len())
+            .arg("units", if options.inch { "inch" } else { "mm" }),
+    ];
+    notes.extend(exported.renamed.iter().map(|(from, to)| {
+        Message::new("pipeline-export-renamed")
+            .arg("from", from.as_str())
+            .arg("to", to.as_str())
+    }));
+    Ok((exported, notes))
+}

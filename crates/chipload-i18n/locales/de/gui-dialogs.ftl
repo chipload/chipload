@@ -29,6 +29,14 @@ dialogs-px-72 = 72 (älteres Illustrator)
 dialogs-px-other = Andere:
 dialogs-px-use = Verwenden
 dialogs-px-cancelled = Zeichnung nicht importiert: ihre Größe ist unbekannt.
+dialogs-export-dxf-title = Zeichnung als DXF exportieren
+dialogs-export-dxf-inch = In Zoll (sonst mm)
+dialogs-export-dxf-hidden = Auch ausgeblendete Layer und Gruppen
+dialogs-export-dxf-selection = Nur die gewählten Formen
+dialogs-export-dxf-save = Exportieren…
+dialogs-export-dxf-path = In Pfad exportieren…
+dialogs-path-export-dxf = Die zu schreibende DXF:
+dialogs-filter-dxf-file = DXF-Zeichnung
 
 dialogs-unsaved-title = Ungespeicherte Änderungen
 dialogs-unsaved-body = Das Projekt hat ungespeicherte Änderungen. Zuerst speichern?

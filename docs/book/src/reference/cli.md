@@ -936,6 +936,23 @@ chipload dxf explode <PROJECT> <ID> [OPTIONS]
 | `--join <JOIN>` | Then join ends closer than this (as `shape join --gap`), e.g. 0.01 or 0.05mm. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload dxf export`
+
+Write the drawing as a DXF: every shape the canvas shows, where it shows it, on its layers, in mm (docs/specs/dxf-export.md). The file is read back before it is written
+
+```text
+chipload dxf export <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `-o, --output <OUTPUT>` | The DXF to write. Required. |
+| `--inch` | In inches instead of mm. |
+| `--hidden` | Hidden groups and layers too. |
+| `--layer <LAYERS>` | Only this layer (repeat for more) Repeatable. |
+| `--shape <SHAPES>` | Only these shapes, by id (as `inspect` lists them, without the S) Repeatable. |
+
 ### `chipload dxf remove`
 
 Remove a DXF and its shapes

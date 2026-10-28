@@ -502,3 +502,20 @@ pipeline-shape-gone = S{ $id } ya no existe: { $ops ->
     [one] la operación { $operations } la usaba; vuelve a elegir su geometría
    *[other] las operaciones { $operations } la usaban; vuelve a elegir su geometría
 }.
+
+## DXF export (docs/specs/dxf-export.md)
+
+pipeline-export-nothing = no hay nada que exportar: ahí no se muestra ninguna forma
+pipeline-export-no-layer = el dibujo no tiene la capa { $layer }
+pipeline-export-unverified = no se escribió el DXF: S{ $id } no se volvió a leer igual ({ $why })
+pipeline-export-summary = { $count ->
+    [one] 1 entidad
+   *[other] { $count } entidades
+} en { $layers ->
+    [one] 1 capa
+   *[other] { $layers } capas
+}, en { $units ->
+    [inch] pulgadas
+   *[mm] mm
+}.
+pipeline-export-renamed = La capa { $from } se llama { $to } en el DXF: un nombre de capa DXF no admite algunos de sus caracteres.

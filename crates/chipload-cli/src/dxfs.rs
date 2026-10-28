@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{Job, Units, save_job};
-use chipload_pipeline::dxfs::{add_drawing_file, remove_dxf};
+use chipload_pipeline::dxfs::{ExportOptions, add_drawing_file, export_drawing, remove_dxf};
 use chipload_pipeline::explode::{explode_dxf, which_dxf};
 use chipload_pipeline::placement::{dxf_size, placement_text};
 use clap::Subcommand;
@@ -57,6 +57,27 @@ pub enum DxfAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Write the drawing as a DXF: every shape the canvas shows, where it shows it, on its
+    /// layers, in mm (docs/specs/dxf-export.md). The file is read back before it is written.
+    Export {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The DXF to write.
+        #[arg(short, long)]
+        output: PathBuf,
+        /// In inches instead of mm.
+        #[arg(long)]
+        inch: bool,
+        /// Hidden groups and layers too.
+        #[arg(long)]
+        hidden: bool,
+        /// Only this layer (repeat for more).
+        #[arg(long = "layer")]
+        layers: Vec<String>,
+        /// Only these shapes, by id (as `inspect` lists them, without the S).
+        #[arg(long = "shape", num_args = 1..)]
+        shapes: Vec<u64>,
+    },
     /// Remove a DXF and its shapes.
     Remove {
         /// The project (.chipload).
@@ -105,6 +126,41 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             write(out, &job, output.as_deref().unwrap_or(&project))
         }
         DxfAction::List { project } => list(out, &project),
+        DxfAction::Export {
+            project,
+            output,
+            inch,
+            hidden,
+            layers,
+            shapes,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let options = ExportOptions {
+                inch,
+                hidden,
+                layers,
+                shapes,
+            };
+            let (exported, notes) = match export_drawing(&job, &options) {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            let text = String::from_utf8_lossy(&exported.bytes);
+            if let Err(err) = chipload_pipeline::write_atomically(&output, &text) {
+                return out.fail(format!("Cannot write {}: {err}", output.display()));
+            }
+            for note in &notes {
+                out.line(note.english());
+            }
+            out.wrote(&output, "");
+            out.set("entities", json!(exported.entities));
+            out.set("layers", json!(exported.layers));
+            out.set("renamed", json!(exported.renamed));
+            ExitCode::SUCCESS
+        }
         DxfAction::Explode {
             project,
             id,

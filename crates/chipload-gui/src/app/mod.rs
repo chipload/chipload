@@ -48,6 +48,7 @@ mod dialogs;
 mod disk;
 mod drawing;
 mod dropping;
+mod dxf_export;
 mod forms;
 mod generation;
 pub(crate) mod header;
@@ -182,6 +183,8 @@ enum PathPurpose {
     AddDxf,
     /// A new version of the project's DXF with this id (the Browser's Update…).
     UpdateDxf(u64),
+    /// The drawing as a DXF (File > Export drawing as DXF).
+    ExportDxf,
 }
 
 /// What a DXF without units was being brought in for.
@@ -200,6 +203,8 @@ pub(super) enum UnitsFor {
 enum Prompt {
     /// The DXF declares no units: for what it was being brought in.
     Units(PathBuf, UnitsFor),
+    /// File > Export drawing as DXF: its choices (docs/specs/dxf-export.md §A6).
+    ExportDxf,
     /// The SVG gives no real size: its pixels per inch, as typed so far
     /// (docs/specs/svg-import.md §7).
     PxPerInch(PathBuf, UnitsFor, String),
@@ -358,6 +363,8 @@ pub struct ChiploadApp {
     pub array: modify::ArraySettings,
     /// Align lines the selection up with the stock instead of its own box.
     pub align_to_stock: bool,
+    /// File > Export drawing as DXF's choices, kept for the session.
+    pub dxf_export: dxf_export::DxfExportChoice,
     array_preview: modify::ArrayPreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
@@ -499,6 +506,7 @@ impl Default for ChiploadApp {
             offset_preview: modify::OffsetPreview::default(),
             array: modify::ArraySettings::default(),
             align_to_stock: false,
+            dxf_export: dxf_export::DxfExportChoice::default(),
             array_preview: modify::ArrayPreview::default(),
             placing_text: false,
             focus_text_field: false,

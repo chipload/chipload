@@ -494,3 +494,20 @@ pipeline-shape-gone = S{ $id } finns inte längre: { $ops ->
     [one] operation { $operations } använde den; välj dess geometri igen
    *[other] operationerna { $operations } använde den; välj deras geometri igen
 }.
+
+## DXF export (docs/specs/dxf-export.md)
+
+pipeline-export-nothing = det finns inget att exportera: inga former visas där
+pipeline-export-no-layer = ritningen har inget lager { $layer }
+pipeline-export-unverified = DXF-filen skrevs inte: S{ $id } lästes inte tillbaka likadan ({ $why })
+pipeline-export-summary = { $count ->
+    [one] 1 objekt
+   *[other] { $count } objekt
+} på { $layers ->
+    [one] 1 lager
+   *[other] { $layers } lager
+}, i { $units ->
+    [inch] tum
+   *[mm] mm
+}.
+pipeline-export-renamed = Lagret { $from } heter { $to } i DXF-filen: ett DXF-lagernamn kan inte innehålla vissa av dess tecken.

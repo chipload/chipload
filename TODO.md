@@ -138,8 +138,10 @@ it's built (see `CLAUDE.md`).
   Inkscape and Illustrator files), 4 (designs, a box maker with finger
   joints first, extensible to more designs, docs/specs/designs.md, and parameters,
   docs/specs/parameters.md: both drafted 2026-10-28 and **on hold** by the user the same
-  day), 5 (DXF export and construction geometry: spec drafted 2026-10-28,
-  docs/specs/dxf-export.md, awaiting review).
+  day), 5 (DXF export and construction geometry: spec approved 2026-10-28,
+  docs/specs/dxf-export.md; DXF export done 2026-10-28 (command line and window; not yet
+  tried in other programs: LibreCAD, Inkscape, LightBurn, Fusion), construction geometry
+  next).
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

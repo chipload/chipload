@@ -26,6 +26,7 @@
 - [Several drawings](drawings/several.md)
 - [Drawing shapes](drawings/shapes.md)
 - [Exploding a DXF, joining ends](drawings/explode.md)
+- [Exporting the drawing](drawings/export.md)
 - [Images](drawings/images.md)
 - [Text](drawings/text.md)
 - [Copies](drawings/copies.md)

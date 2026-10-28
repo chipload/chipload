@@ -210,6 +210,18 @@ impl ChiploadApp {
                 self.default_export_path().display().to_string(),
             ));
         }
+        let has_shapes = self
+            .edit
+            .as_ref()
+            .is_some_and(|e| !e.settings.drawing.shapes.is_empty());
+        if ui
+            .add_enabled(has_shapes, egui::Button::new(t!(ui, "menu-export-dxf")))
+            .on_hover_text(t!(ui, "menu-export-dxf-hover"))
+            .clicked()
+        {
+            self.ask_export_dxf();
+            ui.close();
+        }
         ui.separator();
         if ui
             .button(with_keys(&t!(ui, "menu-quit"), Action::Quit))

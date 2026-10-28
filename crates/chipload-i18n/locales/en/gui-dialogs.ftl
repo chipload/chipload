@@ -29,6 +29,14 @@ dialogs-px-72 = 72 (older Illustrator)
 dialogs-px-other = Other:
 dialogs-px-use = Use
 dialogs-px-cancelled = Drawing not imported: its size is unknown.
+dialogs-export-dxf-title = Export drawing as DXF
+dialogs-export-dxf-inch = In inches (otherwise mm)
+dialogs-export-dxf-hidden = Hidden layers and groups too
+dialogs-export-dxf-selection = Only the selected shapes
+dialogs-export-dxf-save = Export…
+dialogs-export-dxf-path = Export to path…
+dialogs-path-export-dxf = The DXF to write:
+dialogs-filter-dxf-file = DXF drawing
 
 dialogs-unsaved-title = Unsaved changes
 dialogs-unsaved-body = The project has changes that aren't saved. Save them first?

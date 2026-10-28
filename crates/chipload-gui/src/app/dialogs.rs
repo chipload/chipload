@@ -193,6 +193,7 @@ impl ChiploadApp {
                         });
                     });
             }
+            Prompt::ExportDxf => self.export_dxf_prompt(ctx),
             Prompt::PxPerInch(path, purpose, mut typed) => {
                 let mut chosen = None;
                 egui::Window::new(t!(ctx, "dialogs-px-title"))
@@ -460,6 +461,10 @@ impl ChiploadApp {
                 t!(ctx, "dialogs-path-export-title"),
                 t!(ctx, "dialogs-path-export"),
             ),
+            PathPurpose::ExportDxf => (
+                t!(ctx, "dialogs-export-dxf-title"),
+                t!(ctx, "dialogs-path-export-dxf"),
+            ),
             PathPurpose::Update => (
                 t!(ctx, "dialogs-path-update-title"),
                 t!(ctx, "dialogs-path-update"),
@@ -507,6 +512,9 @@ impl ChiploadApp {
             }
             PathPurpose::Export => {
                 self.export_gcode(&path);
+            }
+            PathPurpose::ExportDxf => {
+                self.export_dxf(&path);
             }
             PathPurpose::Update => {
                 self.update_from(&path, None);

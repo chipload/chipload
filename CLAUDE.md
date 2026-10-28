@@ -136,6 +136,7 @@ cargo run -p chipload-cli -- shape mirror part.chipload 2 3 --axis x   # also sh
 cargo run -p chipload-cli -- shape set part.chipload 1 --corner-radius 5   # round a rectangle's corners (at most half its shorter side)
 cargo run -p chipload-cli -- update part.chipload --from part.dxf  # new version of the drawing (--dxf ID with several)
 cargo run -p chipload-cli -- dxf add part.chipload lid.dxf --name lid   # another DXF in the project (also dxf list/remove; place --dxf ID)
+cargo run -p chipload-cli -- dxf export part.chipload -o part.dxf   # the drawing out as a DXF (mm; --inch, --hidden, --layer, --shape)
 cargo run -p chipload-cli -- import logo.svg -o logo.chipload   # an SVG works as a DXF does (also dxf add, update, inspect; --px-per-inch 96 for a file in plain pixels)
 cargo run -p chipload-cli -- dxf explode part.chipload --join 0.05mm   # its shapes become drawn shapes, the DXF goes (also shape join --gap)
 cargo run -p chipload-cli -- image add part.chipload logo.png --width 120   # trace a picture into shapes on layer "logo" (also image set/list/preview/remove; --trace centre-line, --arcs false)

@@ -497,3 +497,20 @@ pipeline-shape-gone = S{ $id } gibt es nicht mehr: { $ops ->
     [one] Operation { $operations } hat sie verwendet; wählen Sie ihre Geometrie neu
    *[other] die Operationen { $operations } haben sie verwendet; wählen Sie ihre Geometrie neu
 }.
+
+## DXF export (docs/specs/dxf-export.md)
+
+pipeline-export-nothing = es gibt nichts zu exportieren: dort werden keine Formen gezeigt
+pipeline-export-no-layer = die Zeichnung hat keinen Layer { $layer }
+pipeline-export-unverified = die DXF wurde nicht geschrieben: S{ $id } kam beim Zurücklesen nicht gleich zurück ({ $why })
+pipeline-export-summary = { $count ->
+    [one] 1 Objekt
+   *[other] { $count } Objekte
+} auf { $layers ->
+    [one] 1 Layer
+   *[other] { $layers } Layern
+}, in { $units ->
+    [inch] Zoll
+   *[mm] mm
+}.
+pipeline-export-renamed = Layer { $from } heißt in der DXF { $to }: ein DXF-Layername kann einige seiner Zeichen nicht enthalten.

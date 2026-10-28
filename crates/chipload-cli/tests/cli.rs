@@ -1845,3 +1845,33 @@ fn svgs_are_imported_inspected_and_added_from_the_command_line() {
     assert!(text(&out.stdout).contains("\"format\":\"svg\""));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn the_drawing_is_exported_as_a_dxf_the_same_everywhere() {
+    // docs/specs/dxf-export.md §A4, §A6.
+    let dir = temp_dir("export");
+    let project = corpus("jobs/v31/svg_badge.chipload");
+    let p = path(&project);
+    let a = dir.join("a.dxf");
+    let out = chipload(&["dxf", "export", p, "-o", path(&a)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("3 entities on 2 layers, in mm."));
+    // Another time zone, the same bytes.
+    let b = dir.join("b.dxf");
+    let bin = env!("CARGO_BIN_EXE_chipload");
+    let other = std::process::Command::new(bin)
+        .args(["dxf", "export", p, "-o", path(&b)])
+        .env("TZ", "Pacific/Chatham")
+        .output()
+        .unwrap();
+    assert!(other.status.success());
+    assert_eq!(std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap());
+    // It imports as it was drawn, units and all.
+    let shown = text(&chipload(&["inspect", path(&a)]).stdout);
+    assert!(shown.contains("Units: mm (from dxf)"), "{shown}");
+    assert!(shown.contains("layer Pocket"), "{shown}");
+    let out = chipload(&["dxf", "export", p, "-o", path(&a), "--layer", "Nope"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("has no layer Nope"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

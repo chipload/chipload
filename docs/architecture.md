@@ -93,7 +93,7 @@ error.
 |---|---|---|
 | `chipload-core` | Lines and arcs, chaining into contours, which contour is inside which, fitting arcs to points, every tolerance (`tolerances`). No I/O. | no workspace crate; cavalier_contours |
 | `chipload-job` | The project file and everything else saved to disk: versioned loading with one migration per schema step, saving with a `.bak`, the tool library and machine profiles, settings, recovery notes. | core, i18n |
-| `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. SVGs too, read by `chipload-svg`, as drawing files of their own format. | core, job, i18n, svg; dxf |
+| `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. SVGs too, read by `chipload-svg`, as drawing files of their own format. Also the way out: shapes written as a DXF (R12 layout, its own writer) and read back. | core, job, i18n, svg; dxf |
 | `chipload-svg` | SVG into shapes of lines and arcs in mm: usvg resolves styles, `use`, transforms and units into paths; curves fitted with lines and arcs; layers from Inkscape layers or stroke colours; text, pictures and clips counted, not imported (ADR 0024). `chipload-dxf` makes its shapes a drawing file (docs/specs/svg-import.md). | core, i18n; usvg, flate2 |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core, i18n; ttf-parser |

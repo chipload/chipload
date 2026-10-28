@@ -764,3 +764,28 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
         .collect();
     assert_eq!(layers, BTreeSet::from(["#0000ff", "#ff0000"]));
 }
+
+#[test]
+fn the_drawing_is_exported_as_a_dxf_with_its_choices() {
+    // docs/specs/dxf-export.md §A6. S1 rectangle, S2 circle, S3 triangle.
+    let mut app = drawn_part();
+    app.ask_export_dxf();
+    assert_eq!(app.dialogs.prompt, Some(Prompt::ExportDxf));
+    let dir = std::env::temp_dir().join("chipload-gui-export-dxf");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("part.dxf");
+    let read_back = |path: &Path| {
+        chipload_dxf::shapes_from_dxf_bytes(&std::fs::read(path).unwrap(), "x", None, 1.0)
+            .unwrap()
+            .shapes
+            .len()
+    };
+    assert!(app.export_dxf(&path));
+    assert_eq!(read_back(&path), 3);
+    // Only the selection.
+    app.selection = CanvasSelection::Shapes([2].into());
+    app.dxf_export.selection = true;
+    assert!(app.export_dxf(&path));
+    assert_eq!(read_back(&path), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
+}

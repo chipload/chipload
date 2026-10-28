@@ -1,6 +1,7 @@
 # Spec: DXF export and construction geometry (drawing phase 5)
 
-Status: **draft 2026-10-28, for review** (decisions in §9).
+Status: **approved 2026-10-28** (the user: "Approve"; every recommendation in §9). Details
+settled while building are marked *Implemented:*.
 
 Phase 5 of docs/specs/drawing-roadmap.md (§8), brought forward on 2026-10-28: the user put
 designs (docs/specs/designs.md) and parameters (docs/specs/parameters.md) on hold and asked
@@ -56,6 +57,19 @@ only way out is G-code.
   same subset (header with `$INSUNITS`, layer table, the two entities), written from the
   DXF reference.
 
+- *Implemented:* the `dxf` crate's writer can't be used: it panics while writing its
+  header's local-time dates in time zones where 1900-01-01 00:00 is ambiguous (this
+  machine's, Europe/Stockholm), whatever values are set. So the fallback was taken: a
+  writer of our own in `chipload_dxf::export`. Writing a valid R2000 file by hand needs
+  handles, owners and an objects section that strict readers check; the writer uses the
+  classic **R12 layout** (`AC1009`) instead, with `POLYLINE`/`VERTEX`/`SEQEND` and bulges
+  in place of `LWPOLYLINE`, `CIRCLE`, an `LTYPE` and a `LAYER` table, and `$INSUNITS` in
+  the header (readers of R12 that don't know it ignore it; Chipload's importer and current
+  programs read it). No dates, no GUIDs, no handles: deterministic by construction.
+  Numbers in Rust's shortest exact form; letters outside ASCII as `\U+XXXX`, as AutoCAD
+  writes them in this layout, which our importer reads back. Not yet tried in other
+  programs (none installed here): TODO.
+
 ## A5. Checked (as G-code is)
 
 Before the file is written, it is read back with Chipload's own importer. Every exported
@@ -63,6 +77,9 @@ shape must come back as the same geometry (each point within the chaining tolera
 arc's centre and radius within the arc tolerance) on the same layer, or nothing is written
 and the error says which shape didn't. A round trip is the export's definition of
 correct.
+
+- *Implemented:* the round trip is checked entity by entity (pieces and layers); a sweep
+  test exports every corpus project and reads it back.
 
 ## A6. Command line and window
 
@@ -76,6 +93,11 @@ chipload dxf export P -o part.dxf [--units inch] [--hidden] [--construction]
 - **Window:** *File > Export drawing as DXF…* (and the Export button's menu): the file
   name, then the options (inch, hidden, construction, only the selection when there is
   one). The status bar says what was written.
+- *Implemented:* `--shape ID …` is the command line's `--selection`. The window asks the
+  choices first (inches, preset from the display; hidden; only the selection, when shapes
+  are selected), then *Export…* (the file dialog) or *Export to path…*; it is in the File
+  menu, not on the Export button, which stays the G-code's. The construction choice comes
+  with part B.
 
 # Part B: construction geometry
 
