@@ -11,11 +11,12 @@ fn book() -> PathBuf {
 }
 
 /// (argument of `chipload reference`, page under src/reference/)
-const PAGES: [(&str, &str); 5] = [
+const PAGES: [(&str, &str); 6] = [
     ("cli", "cli.md"),
     ("project", "project-file.md"),
     ("tools", "tools-file.md"),
     ("machines", "machines-file.md"),
+    ("materials", "materials-file.md"),
     ("posts", "posts.md"),
 ];
 

@@ -117,6 +117,23 @@ impl ChiploadApp {
         let library = self.settings_dir.as_ref().map(|_| &self.library);
         let mut op_request = OpFormRequest::default();
         let mut request = None;
+        // The project's material, and its values for the open operation's tool.
+        let material = match (focus, library) {
+            (Focus::Op(i), Some(library)) => {
+                chipload_pipeline::materials::project_material(&edit.settings, &library.materials)
+                    .map(|m| {
+                        let values = edit.ops.get(i).and_then(|e| {
+                            chipload_pipeline::materials::material_values(
+                                &edit.settings,
+                                &library.materials,
+                                e.op.tool(),
+                            )
+                        });
+                        (m.name.clone(), values)
+                    })
+            }
+            _ => None,
+        };
         let cutting = match focus {
             Focus::Op(i) => edit
                 .ops
@@ -140,6 +157,8 @@ impl ChiploadApp {
             | Focus::LibraryTool(_)
             | Focus::LibraryMachines
             | Focus::LibraryMachine(_)
+            | Focus::LibraryMaterials
+            | Focus::LibraryMaterial(_)
             | Focus::Preferences
             | Focus::Posts
             | Focus::Post(_) => {}
@@ -151,6 +170,7 @@ impl ChiploadApp {
                     library: library
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
+                    material,
                 };
                 let through = edit.settings.stock.thickness + edit.settings.stock.max_overcut;
                 if let Some(entry) = edit.ops.get_mut(i) {
@@ -166,8 +186,14 @@ impl ChiploadApp {
         if let (Some(name), Focus::Op(i)) = (op_request.tool_from_library, focus) {
             self.tool_from_library(i, &name);
         }
+        if let (true, Focus::Op(i)) = (op_request.save_to_material, focus) {
+            self.save_op_to_material(i);
+        }
         match request {
             Some(JobRequest::Library(request)) => self.library_request(request),
+            Some(JobRequest::UseMaterial(uid)) => {
+                self.use_material(uid.as_deref());
+            }
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),

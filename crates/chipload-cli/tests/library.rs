@@ -742,3 +742,92 @@ fn post_show_says_what_a_post_writes() {
     let err = refused(&dir, &["post", "show", "nope"]);
     assert!(!err.is_empty());
 }
+
+/// Materials: your own values per tool, chosen for a project, saved back from an operation,
+/// exported and imported, and dropped with their tool (docs/specs/materials.md).
+#[test]
+fn materials_fill_a_project_and_learn_from_it() {
+    let dir = temp_dir("materials");
+    let settings = dir.join("settings");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v31/svg_badge.chipload"), &project).unwrap();
+    let p = path(&project);
+    let s = settings.as_path();
+    ok(
+        s,
+        &["tool", "save", p, "--tool", "1", "--name", "6 mm 2-flute"],
+    );
+    ok(s, &["material", "add", "Plywood", "--thickness", "18"]);
+    assert!(refused(s, &["material", "add", "plywood"]).contains("already exists"));
+    // A tool's first values come as a set.
+    let err = refused(
+        s,
+        &[
+            "material",
+            "set",
+            "Plywood",
+            "--tool",
+            "6 mm 2-flute",
+            "--feed",
+            "1500",
+        ],
+    );
+    assert!(err.contains("missing --plunge-feed"), "{err}");
+    ok(
+        s,
+        &[
+            "material",
+            "set",
+            "Plywood",
+            "--tool",
+            "6 mm 2-flute",
+            "--feed",
+            "1500",
+            "--plunge-feed",
+            "500",
+            "--step-down",
+            "2.5",
+            "--stepover",
+            "0.4",
+        ],
+    );
+
+    let out = ok(s, &["material", "use", p, "plywood"]);
+    assert!(out.contains("Stock thickness: 18 mm"), "{out}");
+    let job = json(&project);
+    assert_eq!(job["stock"]["thickness"], 18.0);
+    assert_eq!(job["stock"]["material"]["name"], "Plywood");
+    for op in job["operations"].as_array().unwrap() {
+        assert_eq!(
+            (op["feed"].as_f64(), op["step_down"].as_f64()),
+            (Some(1500.0), Some(2.5))
+        );
+    }
+
+    // Tuned on the machine, saved back.
+    ok(s, &["set", p, "operations.1.feed=1300"]);
+    ok(s, &["material", "save", p, "--op", "2"]);
+    let shown: Value =
+        serde_json::from_str(&ok(s, &["--json", "material", "show", "Plywood"])).unwrap();
+    assert_eq!(shown["material"]["tools"][0]["feed"], 1300.0);
+
+    // Export, remove, import back.
+    let file = dir.join("materials-backup.json");
+    ok(s, &["material", "export", path(&file)]);
+    ok(s, &["material", "remove", "Plywood"]);
+    assert!(ok(s, &["material", "list"]).contains("(no materials)"));
+    ok(s, &["material", "import", path(&file)]);
+    assert!(ok(s, &["material", "list"]).contains("Plywood, 18 mm"));
+
+    // Removing the tool removes its values.
+    let out = ok(s, &["tool", "remove", "6 mm 2-flute"]);
+    assert!(out.contains("removed from: Plywood"), "{out}");
+    assert!(ok(s, &["material", "show", "Plywood"]).contains("(no tool values yet)"));
+
+    // No material: the feeds stay.
+    ok(s, &["material", "use", p, "--none"]);
+    let job = json(&project);
+    assert!(job["stock"]["material"].is_null());
+    assert_eq!(job["operations"][1]["feed"], 1300.0);
+    std::fs::remove_dir_all(dir).unwrap();
+}

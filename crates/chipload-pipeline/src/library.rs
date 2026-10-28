@@ -10,8 +10,9 @@ use chipload_i18n::Message;
 use chipload_job::Job;
 use chipload_job::library::{
     LibraryError, MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary,
-    load_machines, load_tools,
+    load_library, load_machines, load_tools, update_library,
 };
+use chipload_job::materials::{MATERIALS_FILE, MaterialLibrary};
 
 /// Overrides the settings folder (tests, a portable install, a shared workshop folder).
 pub const CONFIG_DIR_VAR: &str = "CHIPLOAD_CONFIG_DIR";
@@ -47,6 +48,24 @@ pub fn machines_path(dir: &Path) -> PathBuf {
     dir.join(MACHINES_FILE)
 }
 
+pub fn materials_path(dir: &Path) -> PathBuf {
+    dir.join(MATERIALS_FILE)
+}
+
+/// A library tool that was removed: its values go from every material in settings folder
+/// `dir` (docs/specs/materials.md §4). Returns the names of those that had some; the file
+/// is only written when one had.
+pub fn forget_tool_in_materials(dir: &Path, uid: &str) -> Result<Vec<String>, LibraryError> {
+    let path = materials_path(dir);
+    let library: MaterialLibrary = load_library(&path)?;
+    if library.materials.iter().all(|m| m.values(uid).is_none()) {
+        return Ok(Vec::new());
+    }
+    update_library(&path, |library: &mut MaterialLibrary| {
+        Ok(library.forget_tool(uid))
+    })
+}
+
 pub fn settings_path(dir: &Path) -> PathBuf {
     dir.join(SETTINGS_FILE)
 }
@@ -57,6 +76,8 @@ pub fn settings_path(dir: &Path) -> PathBuf {
 pub struct Library {
     pub tools: ToolLibrary,
     pub machines: MachineLibrary,
+    /// The user's materials (docs/specs/materials.md).
+    pub materials: MaterialLibrary,
     /// Why a file couldn't be read, as messages.
     pub problems: Vec<Message>,
     /// Where the user's post-processors are (docs/specs/user-posts.md); None: no settings
@@ -80,6 +101,10 @@ impl Library {
             problems.push(defaults(err));
             MachineLibrary::default()
         });
+        let materials = load_library(&materials_path(dir)).unwrap_or_else(|err| {
+            problems.push(defaults(err));
+            MaterialLibrary::default()
+        });
         let posts = crate::posts::posts_dir(dir);
         let user_posts = chipload_post::list_user_posts(&posts)
             .into_iter()
@@ -88,6 +113,7 @@ impl Library {
         Library {
             tools,
             machines,
+            materials,
             problems,
             posts: Some(posts),
             user_posts,

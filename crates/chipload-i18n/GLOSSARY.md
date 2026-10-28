@@ -49,6 +49,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | surfacing | Planfräsen | surfaçage | planeado | spianatura | planfräsning |
 | spoilboard | Opferplatte | martyr | tablero de sacrificio | piano di sacrificio | offerskiva |
 | stock | Rohteil | brut | material en bruto | grezzo | ämne |
+| material (library: your feeds per tool) | Material | matériau | material | materiale | material |
 | work zero | Werkstücknullpunkt | origine pièce | cero pieza | zero pezzo | arbetsnollpunkt |
 | safe height | Sicherheitshöhe | hauteur de sécurité | altura de seguridad | quota di sicurezza | säker höjd |
 | tool | Werkzeug | outil | herramienta | utensile | verktyg |

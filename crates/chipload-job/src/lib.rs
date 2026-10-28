@@ -9,6 +9,7 @@ pub mod cut_list;
 pub mod edit;
 pub mod explode;
 pub mod library;
+pub mod materials;
 pub mod migrations;
 pub mod models;
 pub mod note;

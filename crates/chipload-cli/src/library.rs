@@ -262,13 +262,13 @@ enum SpindleArg {
 }
 
 /// The settings folder, or an error naming the variable that sets it.
-fn dir() -> Result<PathBuf, String> {
+pub(crate) fn dir() -> Result<PathBuf, String> {
     settings_dir().ok_or_else(|| {
         format!("can't find your settings folder (no home folder); set {CONFIG_DIR_VAR}")
     })
 }
 
-fn refused(text: String) -> LibraryError {
+pub(crate) fn refused(text: String) -> LibraryError {
     LibraryError::Refused(chipload_i18n::Value::Text(text))
 }
 
@@ -327,10 +327,19 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
             }
             Ok(format!("Changed tool \"{}\".", library.tools[i].name))
         }),
-        ToolAction::Remove { name } => update_tools(&path, |library| {
-            let removed = library.remove(&name)?;
-            Ok(format!("Removed tool \"{}\".", removed.name))
-        }),
+        ToolAction::Remove { name } => update_tools(&path, |library| library.remove(&name))
+            .and_then(|removed| {
+                let mut line = format!("Removed tool \"{}\".", removed.name);
+                let names =
+                    chipload_pipeline::library::forget_tool_in_materials(&dir, &removed.uid)?;
+                if !names.is_empty() {
+                    line.push_str(&format!(
+                        " Its values were removed from: {}.",
+                        names.join(", ")
+                    ));
+                }
+                Ok(line)
+            }),
         ToolAction::Default { name } => update_tools(&path, |library| {
             let entry = library
                 .find(&name)

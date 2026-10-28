@@ -21,7 +21,7 @@ use crate::view::Kind;
 /// 2026-10-09): a shallow, slow test cut.
 pub use chipload_pipeline::chip_load::{default_feed, default_plunge_feed};
 pub const DEFAULT_DEPTH: f64 = 1.0;
-pub const DEFAULT_STEP_DOWN: f64 = 1.0;
+pub const DEFAULT_STEP_DOWN: f64 = chipload_pipeline::DEFAULT_STEP_DOWN;
 pub const DEFAULT_STEPOVER: f64 = 0.4;
 
 /// What is selected on the canvas. Clicked geometry is kept as shape ids, which never

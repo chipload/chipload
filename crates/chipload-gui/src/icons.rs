@@ -80,6 +80,8 @@ pub enum Icon {
     ThemeSystem,
     /// Books on a shelf: the user's library.
     Library,
+    /// A board with its grain: a material.
+    Material,
 }
 
 /// Line width of the icons, points.
@@ -296,6 +298,11 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.circle((0.5, 0.5), 0.34);
             pen.line([(0.5, 0.28), (0.5, 0.72)]);
             pen.line([(0.28, 0.5), (0.72, 0.5)]);
+        }
+        Icon::Material => {
+            pen.closed(&[(0.1, 0.3), (0.9, 0.3), (0.9, 0.7), (0.1, 0.7)]);
+            pen.poly(&[(0.18, 0.43), (0.4, 0.39), (0.6, 0.46), (0.82, 0.42)]);
+            pen.poly(&[(0.18, 0.58), (0.45, 0.54), (0.65, 0.6), (0.82, 0.56)]);
         }
         Icon::Surface => {
             pen.poly(&[

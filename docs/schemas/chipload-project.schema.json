@@ -787,6 +787,25 @@
       ],
       "type": "object"
     },
+    "MaterialRef": {
+      "additionalProperties": false,
+      "description": "A library material, as a project names it.",
+      "properties": {
+        "library_uid": {
+          "description": "The library material's uid.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Its name when chosen, shown when the library no longer has it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "library_uid"
+      ],
+      "type": "object"
+    },
     "Operation": {
       "oneOf": [
         {
@@ -1902,6 +1921,18 @@
             "number",
             "null"
           ]
+        },
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The material chosen from the library: its operations' feeds came from it, and new\noperations take its values. Null: none."
         },
         "max_overcut": {
           "description": "How far a cut may go below the stock bottom, into the spoilboard, mm.",

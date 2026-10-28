@@ -392,6 +392,13 @@ pipeline-library-tool = tool { $tool }: { $name } (default tool)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = post-processor "{ $name }": { $error }
 pipeline-library-unknown-post = Machine "{ $name }": this Chipload has no post-processor "{ $post }"; projects using it can't make G-code until it has
+pipeline-material-chosen = Material: { $name }
+pipeline-material-none = Material { $name } no longer chosen; the feeds stay as they are
+pipeline-material-thickness = Stock thickness: { $thickness }, the material's
+pipeline-material-op-through = Operation { $op } ({ $name }): cut through the old stock, so it still does: end depth { $depth }
+pipeline-material-op-set = Operation { $op } ({ $name }): feeds from { $material }
+pipeline-material-op-kept = Operation { $op } ({ $name }): tool { $tool } has no values for { $material }; its feeds are unchanged
+pipeline-material-tool-not-in-library = Tool { $tool } isn't in your tool library: save it there first (tool save), then its values can be kept in a material
 
 ## Recovery copies
 

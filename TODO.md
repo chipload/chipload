@@ -177,8 +177,10 @@ it's built (see `CLAUDE.md`).
   styles/presets, materials with feeds, defaults that know the job, first-run setup). Waiting
   for the user's answers and choice.
   **Materials first, then styles** (the user, 2026-10-28: simple, your own numbers, no
-  manufacturers' charts): spec drafted, docs/specs/materials.md, decisions §9 waiting for
-  review.
+  manufacturers' charts): built 2026-10-28 with the recommended decisions for the user to
+  try (docs/specs/materials.md §10). Open: the user's verdict, and whether through cuts
+  should follow a material's thickness (built so); import/export of materials in the
+  window. Then styles (docs/specs/presets.md).
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

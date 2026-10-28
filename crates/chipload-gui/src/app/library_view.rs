@@ -122,6 +122,7 @@ impl ChiploadApp {
         } else {
             self.library_tool_rows(ui, &mut act);
             self.library_machine_rows(ui, &mut act);
+            self.library_material_rows(ui);
         }
         if let Some(focus) = self.post_rows(ui) {
             act = Some(Act::Focus(focus));
@@ -297,6 +298,7 @@ impl ChiploadApp {
             Focus::LibraryMachine(key) => {
                 self.library_machine_form(ui, &key_uid(key), &mut act);
             }
+            Focus::LibraryMaterials | Focus::LibraryMaterial(_) => self.material_properties(ui),
             Focus::Preferences => self.preferences_form(ui),
             Focus::Posts => self.posts_form(ui),
             Focus::Post(k) => self.post_form(ui, k as usize),

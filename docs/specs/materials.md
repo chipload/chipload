@@ -1,6 +1,8 @@
 # Spec: materials, with your own feeds
 
-Status: **draft 2026-10-28**, decisions in §9 not yet reviewed.
+Status: **built 2026-10-28 with the recommended decisions**, for the user to try ("It
+sounds reasonable, I must really try it out to know"). See §10 for where it differs from
+the draft.
 
 ## Why
 
@@ -195,3 +197,27 @@ not as a default.
 8. **Saving from an operation is the main way to make values** (*Save to Plywood*), with the
    Library form for typing them. **Recommended**: the numbers you trust are the ones that
    just cut well. Alternative: the Library form only.
+
+## 10. As built (2026-10-28)
+
+- **Files:** `chipload_job::materials` (`MaterialLibrary`, `Material`, `MaterialTool`;
+  export and import through the tool library's `Collection`), `chipload_pipeline::materials`
+  (`use_material`, `material_values`, `material_state`, `values_to_save`),
+  `chipload material …` on the command line, `app/materials.rs` in the window. The JSON
+  Schema is `chipload schema materials`, the reference page `materials-file.md`.
+- **Differences from the draft above:**
+  - **Through cuts stay through.** When the material changes the stock thickness, an
+    operation whose end depth was at or below the old stock bottom gets the same depth
+    below the new one, with a report line. Found trying it: the badge's outline, through a
+    12 mm board, would have stopped 6 mm short in 18 mm plywood. A decision for the user
+    to confirm.
+  - **Changing an operation's tool keeps its feeds** (as docs/specs/tool-per-operation.md
+    decision 6 already says), and the Material row then offers *Use Plywood's*. The draft
+    said the new tool's values would be taken.
+  - **A bad value refuses the whole file**, as for the tool library, not only that
+    material.
+  - **Import and export are on the command line only** for now; the window's Materials
+    folder has *New material*, the form, *Use in project* and *Delete*.
+  - The tool's own *Use the tool's values* button shows only when the material has no
+    values for the tool.
+

@@ -123,6 +123,30 @@ pub struct Cutting {
     pub stepover: f64,
 }
 
+impl Cutting {
+    /// Every rule violation as "path: message", `at` naming these values.
+    pub fn problems(&self, at: &str) -> Vec<String> {
+        let mut problems = Vec::new();
+        for (field, value) in [
+            ("feed", self.feed),
+            ("plunge_feed", self.plunge_feed),
+            ("step_down", self.step_down),
+            ("stepover", self.stepover),
+        ] {
+            if value <= 0.0 || value.is_nan() {
+                problems.push(format!("{at}.{field}: must be greater than 0, got {value}"));
+            }
+        }
+        if self.stepover > 1.0 {
+            problems.push(format!(
+                "{at}.stepover: must be at most 1 (a fraction of the tool diameter), got {}",
+                self.stepover
+            ));
+        }
+        problems
+    }
+}
+
 /// One tool of the library: a project tool with a name and optional cutting values.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -333,24 +357,7 @@ impl ToolLibrary {
                     .map(ToString::to_string),
             );
             if let Some(c) = &entry.cutting {
-                let at = format!("{at}.cutting");
-                for (field, value) in [
-                    ("feed", c.feed),
-                    ("plunge_feed", c.plunge_feed),
-                    ("step_down", c.step_down),
-                    ("stepover", c.stepover),
-                ] {
-                    if value <= 0.0 || value.is_nan() {
-                        problems.push(format!("{at}.{field}: must be greater than 0, got {value}"));
-                    }
-                }
-                if c.stepover > 1.0 {
-                    problems.push(format!(
-                        "{at}.stepover: must be at most 1 (a fraction of the tool diameter), \
-                         got {}",
-                        c.stepover
-                    ));
-                }
+                problems.extend(c.problems(&format!("{at}.cutting")));
             }
         }
         problems
@@ -515,11 +522,11 @@ impl MachineProfile {
 
 /// What differs between two entries, one message per value: "diameter 6 mm -> 8 mm".
 #[derive(Default)]
-struct Changes(Vec<Message>);
+pub(crate) struct Changes(pub(crate) Vec<Message>);
 
 impl Changes {
     /// A change of the value `field` (a key of `job-library-field`), if `from` isn't `to`.
-    fn differs(&mut self, field: &str, from: I18nValue, to: I18nValue) {
+    pub(crate) fn differs(&mut self, field: &str, from: I18nValue, to: I18nValue) {
         if from != to {
             self.0.push(
                 Message::new("job-library-change")
@@ -535,7 +542,7 @@ impl Changes {
 }
 
 /// A length as Rust writes it, with its unit.
-fn mm(value: f64) -> I18nValue {
+pub(crate) fn mm(value: f64) -> I18nValue {
     I18nValue::Length(value, Digits::Shortest)
 }
 
@@ -553,7 +560,7 @@ fn degrees(radians: f64) -> I18nValue {
         .into()
 }
 
-fn optional(value: Option<I18nValue>) -> I18nValue {
+pub(crate) fn optional(value: Option<I18nValue>) -> I18nValue {
     value.unwrap_or_else(|| Message::new("job-library-none").into())
 }
 
@@ -853,7 +860,7 @@ fn is_uid(uid: &str) -> bool {
 }
 
 /// Every uid is well formed and unique in its list.
-fn uid_problems<'a>(list: &str, uids: impl Iterator<Item = &'a str>) -> Vec<String> {
+pub(crate) fn uid_problems<'a>(list: &str, uids: impl Iterator<Item = &'a str>) -> Vec<String> {
     let mut problems = Vec::new();
     let uids: Vec<&str> = uids.collect();
     for (i, uid) in uids.iter().enumerate() {
@@ -888,12 +895,12 @@ pub fn same_name(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
-fn position<'a>(mut names: impl Iterator<Item = &'a str>, name: &str) -> Option<usize> {
+pub(crate) fn position<'a>(mut names: impl Iterator<Item = &'a str>, name: &str) -> Option<usize> {
     names.position(|n| same_name(n, name))
 }
 
 /// Names are not empty, trimmed and unique ignoring case; the default names an entry.
-fn name_problems<'a>(
+pub(crate) fn name_problems<'a>(
     list: &str,
     names: impl Iterator<Item = &'a str>,
     default: Option<&str>,
@@ -1272,7 +1279,7 @@ pub fn settings_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
     data.insert("schema_version".into(), Value::from(3));
 }
 
-fn written_by() -> String {
+pub(crate) fn written_by() -> String {
     format!("chipload {}", env!("CARGO_PKG_VERSION"))
 }
 
@@ -1555,7 +1562,7 @@ impl Entry for MachineProfile {
     }
 }
 
-fn cutting_text(cutting: Option<&Cutting>) -> I18nValue {
+pub(crate) fn cutting_text(cutting: Option<&Cutting>) -> I18nValue {
     optional(cutting.map(|c| {
         Message::new("job-library-cutting")
             .arg("feed", feed(c.feed))
@@ -1790,7 +1797,7 @@ fn other_values() -> Message {
 }
 
 /// A library's refusal, as a message.
-fn refused(message: Message) -> LibraryError {
+pub(crate) fn refused(message: Message) -> LibraryError {
     LibraryError::Refused(message.into())
 }
 

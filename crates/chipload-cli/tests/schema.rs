@@ -23,7 +23,12 @@ fn committed(format: Format) -> PathBuf {
     ))
 }
 
-const FORMATS: [Format; 3] = [Format::Project, Format::Tools, Format::Machines];
+const FORMATS: [Format; 4] = [
+    Format::Project,
+    Format::Tools,
+    Format::Machines,
+    Format::Materials,
+];
 
 #[test]
 fn the_committed_schemas_are_the_generated_ones() {

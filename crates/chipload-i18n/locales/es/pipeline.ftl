@@ -407,6 +407,13 @@ pipeline-library-tool = herramienta { $tool }: { $name } (herramienta predetermi
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocesador "{ $name }": { $error }
 pipeline-library-unknown-post = Máquina "{ $name }": este Chipload no tiene el postprocesador "{ $post }"; los proyectos que la usan no pueden generar código G hasta que lo tenga
+pipeline-material-chosen = Material: { $name }
+pipeline-material-none = El material { $name } ya no está elegido; los avances quedan como están
+pipeline-material-thickness = Espesor del material en bruto: { $thickness }, el del material
+pipeline-material-op-through = Operación { $op } ({ $name }): atravesaba el material en bruto anterior, así que lo sigue haciendo: profundidad final { $depth }
+pipeline-material-op-set = Operación { $op } ({ $name }): avances de { $material }
+pipeline-material-op-kept = Operación { $op } ({ $name }): la herramienta { $tool } no tiene valores para { $material }; sus avances no cambian
+pipeline-material-tool-not-in-library = La herramienta { $tool } no está en tu biblioteca de herramientas: guárdala allí primero (tool save) y luego sus valores podrán ir en un material
 
 ## Recovery copies
 

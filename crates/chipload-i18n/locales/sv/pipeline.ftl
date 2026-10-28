@@ -399,6 +399,13 @@ pipeline-library-tool = verktyg { $tool }: { $name } (standardverktyg)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocessor "{ $name }": { $error }
 pipeline-library-unknown-post = Maskinen "{ $name }": den här Chipload har ingen postprocessor "{ $post }"; projekt som använder den kan inte göra G-kod förrän den har det
+pipeline-material-chosen = Material: { $name }
+pipeline-material-none = Materialet { $name } är inte längre valt; matningarna förblir som de är
+pipeline-material-thickness = Ämnets tjocklek: { $thickness }, materialets
+pipeline-material-op-through = Operation { $op } ({ $name }): gick genom det gamla ämnet, så den gör det fortfarande: slutdjup { $depth }
+pipeline-material-op-set = Operation { $op } ({ $name }): matningar från { $material }
+pipeline-material-op-kept = Operation { $op } ({ $name }): verktyg { $tool } har inga värden för { $material }; dess matningar ändras inte
+pipeline-material-tool-not-in-library = Verktyg { $tool } finns inte i ditt verktygsbibliotek: spara det där först (tool save), sedan kan dess värden sparas i ett material
 
 ## Recovery copies
 

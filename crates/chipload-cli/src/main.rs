@@ -9,6 +9,7 @@ mod dxfs;
 mod images;
 mod lengths;
 mod library;
+mod materials;
 mod parts;
 
 use std::path::{Path, PathBuf};
@@ -285,6 +286,12 @@ enum Command {
         #[command(subcommand)]
         action: library::ToolAction,
     },
+    /// Your materials: your own feeds, step down and stepover per tool, and choosing one
+    /// for a project (docs/specs/materials.md).
+    Material {
+        #[command(subcommand)]
+        action: materials::MaterialAction,
+    },
     /// Your machine profiles: machine values a new project starts with.
     Machine {
         #[command(subcommand)]
@@ -432,6 +439,7 @@ enum ReferencePage {
     Project,
     Tools,
     Machines,
+    Materials,
     Posts,
 }
 
@@ -443,6 +451,8 @@ enum SchemaArg {
     Tools,
     /// The machine profiles (machines.json, and `machine export` files).
     Machines,
+    /// The materials (materials.json, and `material export` files).
+    Materials,
 }
 
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
@@ -1346,6 +1356,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Text { action } => texts::text(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),
+        Command::Material { action } => materials::material(out, action),
         Command::Machine { action } => library::machine(out, action),
         Command::Post { action } => library::post(out, action),
         Command::Part { action } => parts::part(out, action),
@@ -1416,6 +1427,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 SchemaArg::Project => chipload_job::schema::Format::Project,
                 SchemaArg::Tools => chipload_job::schema::Format::Tools,
                 SchemaArg::Machines => chipload_job::schema::Format::Machines,
+                SchemaArg::Materials => chipload_job::schema::Format::Materials,
             };
             out.document(chipload_job::schema::schema(format));
             ExitCode::SUCCESS
@@ -1463,6 +1475,12 @@ fn reference_page(page: ReferencePage) -> String {
             "Your machine profiles (`machines.json` in the settings folder) and the files \
              `machine export` writes. Lengths in mm, feeds in mm/min.",
             &schema(Format::Machines),
+        ),
+        ReferencePage::Materials => reference::schema_page(
+            "Materials file",
+            "Your materials (`materials.json` in the settings folder) and the files `material \
+             export` writes: your own values per library tool. Lengths in mm, feeds in mm/min.",
+            &schema(Format::Materials),
         ),
         ReferencePage::Posts => posts_page(),
     }

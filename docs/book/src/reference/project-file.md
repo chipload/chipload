@@ -274,6 +274,15 @@ Quarter-circle lead-in and lead-out.
 | `travel` | [Travel](#travel) or null | no | The machine's travel, mm. When set, a program that moves farther is refused. Null: not checked. |
 | `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's origin. |
 
+## MaterialRef
+
+A library material, as a project names it.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `library_uid` | string | yes | The library material's uid. |
+| `name` | string | yes | Its name when chosen, shown when the library no longer has it. |
+
 ## Operation
 
 ### `"type": "profile"`
@@ -521,6 +530,7 @@ An import-time issue that can't be recomputed from the shapes.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `fit` | number or null | no | Centred on the drawing only: its size is the drawing's outline plus this margin each side, mm, following the drawing; `x` and `y` are then used only while the drawing is empty. Null: the size is `x` × `y`. |
+| `material` | [MaterialRef](#materialref) or null | no | The material chosen from the library: its operations' feeds came from it, and new operations take its values. Null: none. |
 | `max_overcut` | number | yes | How far a cut may go below the stock bottom, into the spoilboard, mm. |
 | `origin` | [StockOrigin](#stockorigin) | no | Where the stock lies: its `bottom_left` corner or its `center` at the drawing's origin, or centred on the drawing itself (`drawing`), following it. |
 | `thickness` | number | yes | Thickness, mm. Depths count down from the top. |

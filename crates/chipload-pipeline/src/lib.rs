@@ -11,6 +11,7 @@ pub mod estimate;
 pub mod explode;
 pub mod images;
 pub mod library;
+pub mod materials;
 pub mod notices;
 pub mod parts;
 pub mod placement;
@@ -218,7 +219,7 @@ impl GcodeFile {
 }
 
 /// "there is no operation 7; the project has 6".
-fn no_operation(number: usize, count: usize) -> PipelineError {
+pub(crate) fn no_operation(number: usize, count: usize) -> PipelineError {
     PipelineError::Job(
         Message::new("pipeline-no-operation")
             .arg("number", number)
@@ -692,6 +693,9 @@ pub const DEFAULT_SAFE_Z: f64 = 5.0;
 pub const DEFAULT_TOOL_DIAMETER: f64 = 6.0;
 pub const DEFAULT_RPM: f64 = 18000.0;
 
+/// Step down of a new operation with nothing to copy from, mm.
+pub const DEFAULT_STEP_DOWN: f64 = 1.0;
+
 /// Stock of a project started without a drawing, mm (docs/specs/new-project.md decision 1).
 pub const DEFAULT_EMPTY_STOCK: (f64, f64) = (300.0, 200.0);
 
@@ -718,6 +722,7 @@ pub fn empty_project() -> Job {
             // Fitting the drawing is the default (the user, 2026-10-28).
             origin: StockOrigin::Drawing,
             fit: Some(DEFAULT_STOCK_MARGIN),
+            material: None,
             z_zero: ZZero::Top,
         },
         machine: Machine {

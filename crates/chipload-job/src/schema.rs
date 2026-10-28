@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! JSON Schemas of the persisted formats people write or share (docs/specs/scripting.md §2):
-//! the project file, the tool library and the machine profiles. Generated from the models,
+//! the project file, the tool library, the machine profiles and the materials. Generated from the models,
 //! so they say what loads at the current version: types, required fields and the allowed
 //! values. Ranges and rules between fields stay in validation and the problem list.
 
@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use crate::CURRENT_VERSION;
 use crate::Job;
 use crate::library::{MACHINES_VERSION, MachineLibrary, TOOLS_VERSION, ToolLibrary};
+use crate::materials::{MATERIALS_VERSION, MaterialLibrary};
 
 /// The formats with a schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +18,7 @@ pub enum Format {
     Project,
     Tools,
     Machines,
+    Materials,
 }
 
 impl Format {
@@ -25,6 +27,7 @@ impl Format {
             Format::Project => "project",
             Format::Tools => "tools",
             Format::Machines => "machines",
+            Format::Materials => "materials",
         }
     }
 }
@@ -42,6 +45,11 @@ pub fn schema(format: Format) -> Value {
             root::<MachineLibrary>(),
             MACHINES_VERSION,
             "Chipload machine profiles",
+        ),
+        Format::Materials => (
+            root::<MaterialLibrary>(),
+            MATERIALS_VERSION,
+            "Chipload materials",
         ),
     };
     let mut value = root;

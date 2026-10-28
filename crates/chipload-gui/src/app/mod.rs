@@ -55,6 +55,7 @@ pub(crate) mod header;
 mod images;
 mod library_transfer;
 mod library_view;
+mod materials;
 mod measure;
 mod menu;
 mod modify;
@@ -140,6 +141,9 @@ pub enum Focus {
     LibraryTool(u64),
     LibraryMachines,
     LibraryMachine(u64),
+    /// The user's materials, and one by its uid as a number (docs/specs/materials.md §4).
+    LibraryMaterials,
+    LibraryMaterial(u64),
     /// The app's preferences, the post-processors, and one post by its place in the list
     /// (docs/specs/this-computer.md).
     Preferences,
@@ -156,6 +160,8 @@ impl Focus {
                 | Focus::LibraryTool(_)
                 | Focus::LibraryMachines
                 | Focus::LibraryMachine(_)
+                | Focus::LibraryMaterials
+                | Focus::LibraryMaterial(_)
                 | Focus::Preferences
                 | Focus::Posts
                 | Focus::Post(_)
@@ -1026,6 +1032,9 @@ impl ChiploadApp {
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.tool_for(kind);
         let cutting = self.tool_cutting(tool);
+        // The project's material has the user's own values for the tool: they come first
+        // (docs/specs/materials.md §2).
+        let material = self.material_cutting(tool);
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(
@@ -1035,6 +1044,9 @@ impl ChiploadApp {
             cutting.as_ref(),
             &self.language,
         );
+        if let (Some(values), Some(entry)) = (material, edit.ops.get_mut(index)) {
+            entry.op.apply_cutting(&values);
+        }
         self.focus = Focus::Op(index);
         self.commit();
         Some(index)

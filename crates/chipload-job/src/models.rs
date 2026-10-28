@@ -1559,6 +1559,22 @@ pub struct Stock {
     pub z_zero: ZZero,
     /// How far a cut may go below the stock bottom, into the spoilboard, mm.
     pub max_overcut: f64,
+    /// The material chosen from the library: its operations' feeds came from it, and new
+    /// operations take its values. Null: none.
+    // Spec: docs/specs/materials.md §6 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+}
+
+/// A library material, as a project names it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct MaterialRef {
+    /// Its name when chosen, shown when the library no longer has it.
+    pub name: String,
+    /// The library material's uid.
+    pub library_uid: String,
 }
 
 impl Stock {
@@ -2123,6 +2139,82 @@ pub fn operation_label_message(index: usize, name: &str) -> Message {
 }
 
 impl Operation {
+    /// Whether the operation already cuts with these feeds, step down and (pockets)
+    /// stepover. A hole has only feeds; a surface keeps its own wide stepover.
+    pub fn has_cutting(&self, c: &crate::library::Cutting) -> bool {
+        match self {
+            Operation::Profile(p) => {
+                (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
+            }
+            Operation::Pocket(p) => {
+                (p.feed, p.plunge_feed, p.step_down, p.stepover)
+                    == (c.feed, c.plunge_feed, c.step_down, c.stepover)
+            }
+            Operation::Vcarve(v) => {
+                (v.feed, v.plunge_feed, v.step_down) == (c.feed, c.plunge_feed, Some(c.step_down))
+            }
+            Operation::Path(p) => {
+                (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
+            }
+            Operation::Holes(h) => (h.feed, h.plunge_feed) == (c.feed, c.plunge_feed),
+            Operation::Surface(f) => {
+                (f.feed, f.plunge_feed, f.step_down) == (c.feed, c.plunge_feed, c.step_down)
+            }
+        }
+    }
+
+    /// Cut with these values: the ones the operation has (as `has_cutting`).
+    pub fn apply_cutting(&mut self, c: &crate::library::Cutting) {
+        match self {
+            Operation::Profile(p) => {
+                (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+            }
+            Operation::Pocket(p) => {
+                (p.feed, p.plunge_feed, p.step_down, p.stepover) =
+                    (c.feed, c.plunge_feed, c.step_down, c.stepover);
+            }
+            Operation::Vcarve(v) => {
+                (v.feed, v.plunge_feed, v.step_down) = (c.feed, c.plunge_feed, Some(c.step_down));
+            }
+            Operation::Path(p) => {
+                (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+            }
+            Operation::Holes(h) => (h.feed, h.plunge_feed) = (c.feed, c.plunge_feed),
+            Operation::Surface(f) => {
+                (f.feed, f.plunge_feed, f.step_down) = (c.feed, c.plunge_feed, c.step_down);
+            }
+        }
+    }
+
+    /// `base` with the operation's own values in place of its (as `has_cutting`): what
+    /// saving the operation's values keeps.
+    pub fn cutting_over(&self, base: crate::library::Cutting) -> crate::library::Cutting {
+        let mut c = base;
+        match self {
+            Operation::Profile(p) => {
+                (c.feed, c.plunge_feed, c.step_down) = (p.feed, p.plunge_feed, p.step_down);
+            }
+            Operation::Pocket(p) => {
+                (c.feed, c.plunge_feed, c.step_down, c.stepover) =
+                    (p.feed, p.plunge_feed, p.step_down, p.stepover);
+            }
+            Operation::Vcarve(v) => {
+                (c.feed, c.plunge_feed) = (v.feed, v.plunge_feed);
+                if let Some(step_down) = v.step_down {
+                    c.step_down = step_down;
+                }
+            }
+            Operation::Path(p) => {
+                (c.feed, c.plunge_feed, c.step_down) = (p.feed, p.plunge_feed, p.step_down);
+            }
+            Operation::Holes(h) => (c.feed, c.plunge_feed) = (h.feed, h.plunge_feed),
+            Operation::Surface(f) => {
+                (c.feed, c.plunge_feed, c.step_down) = (f.feed, f.plunge_feed, f.step_down);
+            }
+        }
+        c
+    }
+
     /// "Operation 3" or "Operation 3 (lid)", for the operation at `index`.
     pub fn label(&self, index: usize) -> String {
         operation_label(index, self.name())
@@ -2231,6 +2323,18 @@ impl Operation {
             Operation::Path(op) => (op.start_depth, op.end_depth),
             Operation::Holes(op) => (op.start_depth, op.end_depth),
             Operation::Surface(op) => (op.start_depth, op.end_depth),
+        }
+    }
+
+    /// Set the end depth, mm down from the stock top.
+    pub fn set_end_depth(&mut self, depth: f64) {
+        match self {
+            Operation::Profile(op) => op.end_depth = depth,
+            Operation::Pocket(op) => op.end_depth = depth,
+            Operation::Vcarve(op) => op.end_depth = depth,
+            Operation::Path(op) => op.end_depth = depth,
+            Operation::Holes(op) => op.end_depth = depth,
+            Operation::Surface(op) => op.end_depth = depth,
         }
     }
 

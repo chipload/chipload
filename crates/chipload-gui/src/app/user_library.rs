@@ -239,6 +239,8 @@ pub(super) struct LibraryState {
     pub(super) tool_drafts: BTreeMap<String, LibraryTool>,
     /// Machine profiles being edited and not saved yet, by uid.
     pub(super) machine_drafts: BTreeMap<String, MachineProfile>,
+    /// Materials being edited and not saved yet, by uid (docs/specs/materials.md §4).
+    pub(super) material_drafts: BTreeMap<String, chipload_job::materials::Material>,
     pub(super) error: Option<String>,
     /// What the last import or export did, shown in that folder's properties.
     pub(super) message: Option<(LibraryKind, String)>,
@@ -558,6 +560,15 @@ impl ChiploadApp {
             .iter()
             .find(|t| t.id == id)?;
         linked_cutting(&self.library()?.tools, tool)
+    }
+
+    /// The project material's values for project tool `id` (docs/specs/materials.md §2).
+    pub(super) fn material_cutting(&self, id: i64) -> Option<Cutting> {
+        chipload_pipeline::materials::material_values(
+            &self.edit.as_ref()?.settings,
+            &self.library()?.materials,
+            id,
+        )
     }
 
     pub(super) fn library_request(&mut self, request: LibraryRequest) {
@@ -1100,9 +1111,12 @@ impl ChiploadApp {
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
         let result = match kind {
-            LibraryKind::Tools => update_tools(&tools_path(&dir), |library| {
-                library.remove(name).map(|_| ())
-            }),
+            // A tool's values go from the materials with it (docs/specs/materials.md §4).
+            LibraryKind::Tools => update_tools(&tools_path(&dir), |library| library.remove(name))
+                .and_then(|removed| {
+                    chipload_pipeline::library::forget_tool_in_materials(&dir, &removed.uid)
+                        .map(|_| ())
+                }),
             LibraryKind::Machines => update_machines(&machines_path(&dir), |library| {
                 library.remove(name).map(|_| ())
             }),

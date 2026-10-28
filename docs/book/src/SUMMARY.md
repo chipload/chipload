@@ -46,6 +46,7 @@
 
 - [Tool library](library/tools.md)
 - [Machine profiles](library/machines.md)
+- [Materials](library/materials.md)
 - [Post-processors](posts.md)
 
 # Before cutting
@@ -66,6 +67,7 @@
 - [Project file](reference/project-file.md)
 - [Tool library file](reference/tools-file.md)
 - [Machine profiles file](reference/machines-file.md)
+- [Materials file](reference/materials-file.md)
 - [Post-processors](reference/posts.md)
 
 # Help

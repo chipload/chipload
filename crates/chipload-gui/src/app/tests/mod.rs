@@ -19,6 +19,7 @@ mod images;
 mod layout;
 mod leave_out_shapes;
 mod live_problems;
+mod materials;
 mod narrow_panel;
 mod parts;
 mod posts;

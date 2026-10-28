@@ -202,6 +202,8 @@ job-library-error-unwritable = { $path } kann nicht geschrieben werden: { $reaso
 job-library-error-refused = { $reason }
 job-library-no-tool = kein Werkzeug namens „{ $name }“
 job-library-no-machine = keine Maschine namens „{ $name }“
+job-library-no-material = kein Material namens „{ $name }“
+job-library-material-exists = ein Material namens „{ $name }“ gibt es schon
 # $entry is "tool" or "machine".
 job-library-no-entry = { $entry ->
     [machine] keine Maschine
@@ -235,6 +237,8 @@ job-library-field = { $field ->
     [travel] Verfahrweg
     [work-zero] Werkstücknullpunkt
     [max-overcut] max. Tiefe unter Rohteil
+    [thickness] Dicke
+    [tool-values] Werte eines Werkzeugs
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.

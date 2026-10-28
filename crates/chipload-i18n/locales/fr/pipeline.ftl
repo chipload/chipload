@@ -407,6 +407,13 @@ pipeline-library-tool = outil { $tool } : { $name } (outil par défaut)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = post-processeur « { $name } » : { $error }
 pipeline-library-unknown-post = Machine « { $name } » : ce Chipload n'a pas de post-processeur « { $post } » ; les projets qui l'utilisent ne peuvent pas produire de G-code tant qu'il ne l'a pas
+pipeline-material-chosen = Matériau : { $name }
+pipeline-material-none = Matériau { $name } plus choisi ; les avances restent telles quelles
+pipeline-material-thickness = Épaisseur du brut : { $thickness }, celle du matériau
+pipeline-material-op-through = Opération { $op } ({ $name }) : traversait l'ancien brut, elle le fait toujours : profondeur finale { $depth }
+pipeline-material-op-set = Opération { $op } ({ $name }) : avances de { $material }
+pipeline-material-op-kept = Opération { $op } ({ $name }) : l'outil { $tool } n'a pas de valeurs pour { $material } ; ses avances ne changent pas
+pipeline-material-tool-not-in-library = L'outil { $tool } n'est pas dans votre bibliothèque d'outils : enregistrez-le d'abord (tool save), ensuite ses valeurs pourront aller dans un matériau
 
 ## Recovery copies
 

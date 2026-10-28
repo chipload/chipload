@@ -1122,6 +1122,131 @@ chipload tool save <PROJECT> [OPTIONS]
 | `--name <NAME>` | Its name in the library. Required. |
 | `--replace` | Overwrite a library tool of that name. |
 
+## `chipload material`
+
+Your materials: your own feeds, step down and stepover per tool, and choosing one for a project (docs/specs/materials.md)
+
+### `chipload material list`
+
+List the materials and where the file is
+
+```text
+chipload material list
+```
+
+### `chipload material show`
+
+A material's thickness and its values per tool
+
+```text
+chipload material show <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload material add`
+
+Add a material, with no values yet
+
+```text
+chipload material add <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `--thickness <THICKNESS>` | The board it usually comes as (any length unit; a plain number is mm) |
+
+### `chipload material set`
+
+Change a material: its name, thickness, or one library tool's values
+
+```text
+chipload material set <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `--rename <RENAME>` |  |
+| `--thickness <THICKNESS>` |  |
+| `--no-thickness` | No thickness: choosing the material keeps the project's. |
+| `--tool <TOOL>` | The library tool whose values these are. |
+| `--feed <FEED>` | mm/min. The four values come as a set the first time for a tool. |
+| `--plunge-feed <PLUNGE_FEED>` |  |
+| `--step-down <STEP_DOWN>` |  |
+| `--stepover <STEPOVER>` | Fraction of the tool diameter (pockets) |
+
+### `chipload material remove`
+
+Remove a material, or with --tool only that tool's values
+
+```text
+chipload material remove <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `--tool <TOOL>` |  |
+
+### `chipload material use`
+
+Choose the project's material: the stock takes its thickness, the operations its values for their tools
+
+```text
+chipload material use <PROJECT> <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<NAME>` | The material; omit with --none. |
+| `--none` | No material (the feeds stay as they are) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload material save`
+
+Save an operation's feeds, step down and stepover as its tool's values in a material
+
+```text
+chipload material save <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation, 1-based as listed. Required. |
+| `--material <MATERIAL>` | The material; default: the project's. |
+
+### `chipload material export`
+
+Write the materials to a file: a backup, or for another computer
+
+```text
+chipload material export <FILE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FILE>` |  |
+| `--name <NAMES>` | Only these (repeatable); default: all. Repeatable. |
+
+### `chipload material import`
+
+Add the materials of an exported file
+
+```text
+chipload material import <FILE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FILE>` |  |
+| `--replace` | Overwrite yours where the file has other values under the same name. |
+
 ## `chipload machine`
 
 Your machine profiles: machine values a new project starts with
@@ -1483,7 +1608,7 @@ chipload schema <FORMAT>
 
 | Argument | Meaning |
 |---|---|
-| `<FORMAT>` | One of: `project` (A project file (.chipload)), `tools` (The tool library (tools.json, and `tool export` files)), `machines` (The machine profiles (machines.json, and `machine export` files)). |
+| `<FORMAT>` | One of: `project` (A project file (.chipload)), `tools` (The tool library (tools.json, and `tool export` files)), `machines` (The machine profiles (machines.json, and `machine export` files)), `materials` (The materials (materials.json, and `material export` files)). |
 
 ## `chipload mcp`
 

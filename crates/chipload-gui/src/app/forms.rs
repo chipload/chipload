@@ -294,6 +294,8 @@ pub(super) struct OpFormRequest {
     pub use_selection: bool,
     /// Copy this library tool into the project and cut this operation with it.
     pub tool_from_library: Option<String>,
+    /// Save the operation's values for its tool in the project's material.
+    pub save_to_material: bool,
 }
 
 /// What the operation form needs to know about tools: the project's, the library's names
@@ -305,6 +307,9 @@ pub(super) struct ToolChoice<'a> {
     pub tools: &'a [Tool],
     pub library: Option<Vec<String>>,
     pub cutting: Option<Cutting>,
+    /// The project's material, by name, and its values for the operation's tool
+    /// (docs/specs/materials.md §3). None: no material from the library.
+    pub material: Option<(String, Option<Cutting>)>,
 }
 
 /// The selected operation's fields, in sections.
@@ -687,8 +692,13 @@ fn tool_row(
         });
     flag(combo.response, ui, "tool");
     ui.end_row();
+    if let Some((name, values)) = &choice.material {
+        material_rows(ui, op, name, values.as_ref(), request);
+    }
+    // The tool's own values, when the material has none for it.
     if let Some(cutting) = choice.cutting
-        && !has_cutting_values(op, &cutting)
+        && choice.material.as_ref().is_none_or(|(_, v)| v.is_none())
+        && !op.has_cutting(&cutting)
     {
         ui.label("");
         if ui
@@ -704,57 +714,61 @@ fn tool_row(
             ))
             .clicked()
         {
-            apply_cutting(op, &cutting);
+            op.apply_cutting(&cutting);
         }
         ui.end_row();
     }
 }
 
-/// Whether the operation already cuts with these feeds, step-down and (pockets) stepover.
-fn has_cutting_values(op: &Operation, c: &Cutting) -> bool {
-    match op {
-        Operation::Profile(p) => {
-            (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
+/// Where the operation's feeds stand against the project's material: from it, changed
+/// (with *Use* and *Save*), or not in it yet (with *Save*). The buttons have a row of their
+/// own, so a narrow panel doesn't wrap them over the next row.
+fn material_rows(
+    ui: &mut egui::Ui,
+    op: &mut Operation,
+    name: &str,
+    values: Option<&Cutting>,
+    request: &mut OpFormRequest,
+) {
+    ui.label(t!(ui, "forms-material"));
+    let (use_values, save) = match values {
+        Some(c) if op.has_cutting(c) => {
+            ui.weak(t!(ui, "forms-material-from", name = name))
+                .on_hover_text(t!(ui, "forms-material-from-hover"));
+            (None, false)
         }
-        Operation::Pocket(p) => {
-            (p.feed, p.plunge_feed, p.step_down, p.stepover)
-                == (c.feed, c.plunge_feed, c.step_down, c.stepover)
+        Some(c) => {
+            ui.label(t!(ui, "forms-material-changed", name = name));
+            (Some(*c), true)
         }
-        Operation::Vcarve(v) => {
-            (v.feed, v.plunge_feed, v.step_down) == (c.feed, c.plunge_feed, Some(c.step_down))
+        None => {
+            ui.weak(t!(ui, "forms-material-not-in", name = name));
+            (None, true)
         }
-        Operation::Path(p) => {
-            (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
-        }
-        // A hole has no step down in the library's sense: only the feeds.
-        Operation::Holes(h) => (h.feed, h.plunge_feed) == (c.feed, c.plunge_feed),
-        // A surface keeps its own stepover: the library's is a pocket's.
-        Operation::Surface(f) => {
-            (f.feed, f.plunge_feed, f.step_down) == (c.feed, c.plunge_feed, c.step_down)
-        }
+    };
+    ui.end_row();
+    if !save {
+        return;
     }
-}
-
-fn apply_cutting(op: &mut Operation, c: &Cutting) {
-    match op {
-        Operation::Profile(p) => {
-            (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+    ui.label("");
+    ui.horizontal_wrapped(|ui| {
+        if let Some(c) = use_values
+            && ui
+                .button(t!(ui, "forms-material-use", name = name))
+                .on_hover_text(t!(ui, "forms-material-use-hover"))
+                .clicked()
+        {
+            op.apply_cutting(&c);
         }
-        Operation::Pocket(p) => {
-            (p.feed, p.plunge_feed, p.step_down, p.stepover) =
-                (c.feed, c.plunge_feed, c.step_down, c.stepover);
+        if ui
+            .button(t!(ui, "forms-material-save", name = name))
+            .on_hover_text(t!(ui, "forms-material-save-hover"))
+            .clicked()
+        {
+            request.save_to_material = true;
         }
-        Operation::Vcarve(v) => {
-            (v.feed, v.plunge_feed, v.step_down) = (c.feed, c.plunge_feed, Some(c.step_down));
-        }
-        Operation::Path(p) => {
-            (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
-        }
-        Operation::Holes(h) => (h.feed, h.plunge_feed) = (c.feed, c.plunge_feed),
-        Operation::Surface(f) => {
-            (f.feed, f.plunge_feed, f.step_down) = (c.feed, c.plunge_feed, c.step_down);
-        }
-    }
+    });
+    ui.end_row();
 }
 
 /// The feeds, and the chip load next to the feed (docs/specs/small-items.md §5) when the
@@ -1431,6 +1445,8 @@ pub(super) fn work_zero_rows(
 
 /// What the job form asks of the app beyond editing values.
 pub(super) enum JobRequest {
+    /// Choose the project's material by uid, or none (docs/specs/materials.md §2).
+    UseMaterial(Option<String>),
     /// docs/specs/tool-library-and-machines.md §8.
     Library(LibraryRequest),
     /// Open operation i (a rest pass's pocket).
@@ -1974,6 +1990,7 @@ pub(super) fn job_form(
     let len_unit = chipload_pipeline::units::length_unit(units);
     let mut request = None;
     let mut copies_request = None;
+    let mut material_request = None;
     let job = &mut edit.settings;
     let title = t!(ui, "forms-job-settings");
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
@@ -2042,6 +2059,43 @@ pub(super) fn job_form(
                     len_in(units, x1 - x0),
                     len_in(units, y1 - y0)
                 ));
+                ui.end_row();
+            }
+            // The material: its thickness and the user's own feeds per tool
+            // (docs/specs/materials.md §2).
+            if let Some(materials) = library.map(|l| &l.materials) {
+                ui.label(t!(ui, "forms-material"))
+                    .on_hover_text(t!(ui, "forms-material-hover"));
+                let chosen = job.stock.material.clone();
+                let known = chosen
+                    .as_ref()
+                    .and_then(|m| materials.find_uid(&m.library_uid));
+                let shown = match (&chosen, known) {
+                    (None, _) => t!(ui, "forms-material-none"),
+                    (Some(_), Some(m)) => m.name.clone(),
+                    (Some(m), None) => {
+                        t!(ui, "forms-material-not-in-library", name = m.name.as_str())
+                    }
+                };
+                ComboBox::from_id_salt("material")
+                    .selected_text(shown)
+                    .width(field_width(ui, 160.0))
+                    .show_ui(ui, |ui| {
+                        if ui
+                            .selectable_label(chosen.is_none(), t!(ui, "forms-material-none"))
+                            .clicked()
+                            && chosen.is_some()
+                        {
+                            material_request = Some(JobRequest::UseMaterial(None));
+                        }
+                        for m in &materials.materials {
+                            let on = chosen.as_ref().is_some_and(|c| c.library_uid == m.uid);
+                            if ui.selectable_label(on, &m.name).clicked() && !on {
+                                material_request =
+                                    Some(JobRequest::UseMaterial(Some(m.uid.clone())));
+                            }
+                        }
+                    });
                 ui.end_row();
             }
             ui.label(t!(ui, "forms-thickness"));
@@ -2162,7 +2216,9 @@ pub(super) fn job_form(
         },
     );
 
-    copies_request.or(request.map(JobRequest::Library))
+    material_request
+        .or(copies_request)
+        .or(request.map(JobRequest::Library))
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.

@@ -229,6 +229,8 @@ impl ChiploadApp {
             | Focus::LibraryTool(_)
             | Focus::LibraryMachines
             | Focus::LibraryMachine(_)
+            | Focus::LibraryMaterials
+            | Focus::LibraryMaterial(_)
             | Focus::Preferences
             | Focus::Posts
             | Focus::Post(_)
