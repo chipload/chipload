@@ -44,6 +44,7 @@ fn text_select() -> Selector {
 
 fn vcarve() -> Operation {
     Operation::Vcarve(VcarveOp {
+        material: None,
         name: "Carve".into(),
         enabled: true,
         part: 1,
@@ -92,6 +93,7 @@ fn every_font_pockets_a_sentence_on_lines_that_overlap() {
 
 fn pocket() -> Operation {
     Operation::Pocket(PocketOp {
+        material: None,
         name: "Letters".into(),
         enabled: true,
         part: 1,

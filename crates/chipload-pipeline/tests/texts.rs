@@ -163,6 +163,7 @@ fn a_v_carved_text_passes_the_checker() {
 
 fn vcarve(select: Selector) -> Operation {
     Operation::Vcarve(VcarveOp {
+        material: None,
         name: "Text".into(),
         enabled: true,
         part: 1,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Materials in the window (docs/specs/materials.md): choosing the project's material,
-//! saving an operation's values into it, and the Library's Materials folder with a form
+//! Materials in the window (docs/specs/materials.md): choosing the material for every
+//! operation, following it when an operation's tool changes, saving an operation's values
+//! into its material, and the Library's Materials folder with a form
 //! per material. Edits to a material stay a draft until *Save*, as for tools.
 
 use chipload_job::library::{Cutting, LibraryError, update_library};
@@ -28,8 +29,9 @@ enum MaterialAct {
 }
 
 impl ChiploadApp {
-    /// Choose the project's material (None: none), as one undo step: the stock takes its
-    /// thickness, the operations its values for their tools; the report says what changed.
+    /// Choose the material for every operation and those added later (None: none), as one
+    /// undo step: the operations take its values for their tools, the stock stays; the
+    /// report says what changed.
     pub fn use_material(&mut self, uid: Option<&str>) -> bool {
         self.commit();
         self.reload_library();
@@ -64,7 +66,8 @@ impl ChiploadApp {
         true
     }
 
-    /// Save operation `i`'s values (0-based) for its tool in the project's material.
+    /// Save operation `i`'s values (0-based) for its tool in its material (else the
+    /// project's).
     pub fn save_op_to_material(&mut self, i: usize) -> bool {
         self.commit();
         self.reload_library();
@@ -84,7 +87,13 @@ impl ChiploadApp {
                 return false;
             }
         };
-        let Some(uid) = job.stock.material.as_ref().map(|m| m.library_uid.clone()) else {
+        let Some(uid) = job
+            .operations
+            .get(i)
+            .and_then(|op| op.material())
+            .or(job.stock.material.as_ref())
+            .map(|m| m.library_uid.clone())
+        else {
             return false;
         };
         let tools = self.library.tools.clone();
@@ -245,18 +254,6 @@ impl ChiploadApp {
             .show(ui, |ui| {
                 ui.label(t!(ui, "materials-name"));
                 ui.text_edit_singleline(&mut draft.name);
-                ui.end_row();
-                ui.label(t!(ui, "forms-thickness"))
-                    .on_hover_text(t!(ui, "materials-thickness-hover"));
-                ui.horizontal(|ui| {
-                    let mut has = draft.thickness.is_some();
-                    if ui.checkbox(&mut has, "").changed() {
-                        draft.thickness = has.then_some(chipload_pipeline::DEFAULT_THICKNESS);
-                    }
-                    if let Some(t) = draft.thickness.as_mut() {
-                        ui.add(crate::units::length(t).range(0.01..=10_000.0));
-                    }
-                });
                 ui.end_row();
             });
         ui.add_space(4.0);
@@ -423,15 +420,31 @@ impl ChiploadApp {
         }
     }
 
-    /// A new material, "New material" (or "New material 2" …), with the project's stock
-    /// thickness; its uid.
+    /// A new material, "New material" (or "New material 2" …); its uid.
     pub fn new_material(&mut self) -> Option<String> {
         self.reload_library();
         let base = t!(self, "materials-new-name");
         let name = unique_name(&base, |n| self.library.materials.find(n).is_some());
-        let thickness = self.edit.as_ref().map(|e| e.settings.stock.thickness);
-        self.change_materials(|library| library.add(&name, thickness).map(|m| m.uid.clone()))
+        self.change_materials(|library| library.add(&name).map(|m| m.uid.clone()))
             .ok()
+    }
+
+    /// After operation `i`'s tool changed: it takes its material's values for the new
+    /// tool, if the material has them (docs/specs/materials.md §2).
+    pub fn follow_op_material(&mut self, i: usize) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let values = edit.ops.get(i).and_then(|e| {
+            let material = self
+                .library
+                .materials
+                .find_uid(&e.op.material()?.library_uid)?;
+            chipload_pipeline::materials::tool_values(&edit.settings, material, e.op.tool())
+        });
+        if let (Some(values), Some(entry)) = (values, edit.ops.get_mut(i)) {
+            entry.op.apply_cutting(&values);
+        }
     }
 
     /// Write the draft of material `uid` into the library file.

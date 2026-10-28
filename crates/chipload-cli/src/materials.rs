@@ -12,7 +12,7 @@ use chipload_job::library::{
 use chipload_job::materials::{Material, MaterialLibrary};
 use chipload_job::save_job;
 use chipload_pipeline::library::{materials_path, tools_path};
-use chipload_pipeline::materials::{use_material, values_to_save};
+use chipload_pipeline::materials::{use_material, use_material_for_op, values_to_save};
 use clap::Subcommand;
 
 use crate::library::{dir, refused};
@@ -23,25 +23,15 @@ use crate::out::Out;
 pub enum MaterialAction {
     /// List the materials and where the file is.
     List,
-    /// A material's thickness and its values per tool.
+    /// A material's values per tool.
     Show { name: String },
     /// Add a material, with no values yet.
-    Add {
-        name: String,
-        /// The board it usually comes as (any length unit; a plain number is mm).
-        #[arg(value_parser = crate::lengths::length, long)]
-        thickness: Option<f64>,
-    },
-    /// Change a material: its name, thickness, or one library tool's values.
+    Add { name: String },
+    /// Change a material: its name, or one library tool's values.
     Set {
         name: String,
         #[arg(long)]
         rename: Option<String>,
-        #[arg(value_parser = crate::lengths::length, long)]
-        thickness: Option<f64>,
-        /// No thickness: choosing the material keeps the project's.
-        #[arg(long, conflicts_with = "thickness")]
-        no_thickness: bool,
         /// The library tool whose values these are.
         #[arg(long)]
         tool: Option<String>,
@@ -62,8 +52,8 @@ pub enum MaterialAction {
         #[arg(long)]
         tool: Option<String>,
     },
-    /// Choose the project's material: the stock takes its thickness, the operations its
-    /// values for their tools.
+    /// Choose the material for every operation and those added later: they take its values
+    /// for their tools. The stock stays as it is.
     Use {
         /// The project (.chipload).
         project: PathBuf,
@@ -73,6 +63,9 @@ pub enum MaterialAction {
         /// No material (the feeds stay as they are).
         #[arg(long, conflicts_with = "name")]
         none: bool,
+        /// Only this operation, 1-based as listed; the project's material stays.
+        #[arg(long)]
+        op: Option<usize>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -84,7 +77,7 @@ pub enum MaterialAction {
         /// The operation, 1-based as listed.
         #[arg(long)]
         op: usize,
-        /// The material; default: the project's.
+        /// The material; default: the operation's, else the project's.
         #[arg(long)]
         material: Option<String>,
     },
@@ -117,17 +110,13 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
     let result = match action {
         MaterialAction::List => return list(out, &path, &tools),
         MaterialAction::Show { name } => return show(out, &path, &tools, &name),
-        MaterialAction::Add { name, thickness } => {
-            update_library(&path, |library: &mut MaterialLibrary| {
-                let added = library.add(&name, thickness)?;
-                Ok(format!("Added material \"{}\".", added.name))
-            })
-        }
+        MaterialAction::Add { name } => update_library(&path, |library: &mut MaterialLibrary| {
+            let added = library.add(&name)?;
+            Ok(format!("Added material \"{}\".", added.name))
+        }),
         MaterialAction::Set {
             name,
             rename,
-            thickness,
-            no_thickness,
             tool,
             feed,
             plunge_feed,
@@ -146,12 +135,6 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             let material = library.find_mut(&name)?;
             if let Some(new) = rename {
                 material.name = new.trim().to_string();
-            }
-            if let Some(t) = thickness {
-                material.thickness = Some(t);
-            }
-            if no_thickness {
-                material.thickness = None;
             }
             if let Some(tool) = tool {
                 let entry = tools
@@ -204,8 +187,9 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             project,
             name,
             none: _,
+            op,
             output,
-        } => return use_in_project(out, &path, &project, name.as_deref(), output),
+        } => return use_in_project(out, &path, &project, name.as_deref(), op, output),
         MaterialAction::Save {
             project,
             op,
@@ -255,11 +239,8 @@ fn values_text(c: &Cutting) -> String {
 }
 
 fn heading(material: &Material) -> String {
-    let thickness = material
-        .thickness
-        .map_or_else(String::new, |t| format!(", {t} mm"));
     format!(
-        "{}{thickness}: {} tool(s) (uid {})",
+        "{}: {} tool(s) (uid {})",
         material.name,
         material.tools.len(),
         material.uid
@@ -318,6 +299,7 @@ fn use_in_project(
     path: &Path,
     project: &Path,
     name: Option<&str>,
+    op: Option<usize>,
     output: Option<PathBuf>,
 ) -> ExitCode {
     let library = match load_library::<MaterialLibrary>(path) {
@@ -335,7 +317,14 @@ fn use_in_project(
         Ok(job) => job,
         Err(code) => return code,
     };
-    let (job, messages) = use_material(&job, material);
+    let (job, messages) = match op {
+        None => use_material(&job, material),
+        Some(0) => return out.fail("operations are numbered from 1"),
+        Some(number) => match use_material_for_op(&job, number - 1, material) {
+            Ok(changed) => changed,
+            Err(err) => return out.fail(err),
+        },
+    };
     let target = output.unwrap_or_else(|| project.to_path_buf());
     if let Err(err) = save_job(&job, &target) {
         return out.fail(err);
@@ -364,15 +353,17 @@ fn save_from_op(
     let saved = update_library(path, |library: &mut MaterialLibrary| {
         let name = match material {
             Some(name) => name.to_string(),
-            None => job
-                .stock
-                .material
-                .as_ref()
+            None => op
+                .checked_sub(1)
+                .and_then(|i| job.operations.get(i))
+                .and_then(|o| o.material())
+                .or(job.stock.material.as_ref())
                 .and_then(|m| library.find_uid(&m.library_uid))
                 .map(|m| m.name.clone())
                 .ok_or_else(|| {
                     refused(
-                        "the project has no material from your library: give --material NAME"
+                        "neither the operation nor the project has a material from your \
+                         library: give --material NAME"
                             .into(),
                     )
                 })?,
@@ -438,4 +429,16 @@ fn import(out: &mut Out, path: &Path, tools: &ToolLibrary, file: &Path, replace:
         }
         Err(err) => out.fail(err),
     }
+}
+
+/// After operation `index`'s tool changed: it takes its material's values for the new
+/// tool. The material's name when the feeds changed. Without a materials file to read,
+/// the feeds stay.
+pub fn follow_op_material(job: &mut chipload_job::Job, index: usize) -> Option<String> {
+    job.operations.get(index)?.material()?;
+    let library = load_library::<MaterialLibrary>(&materials_path(&dir().ok()?)).ok()?;
+    let name = chipload_pipeline::materials::op_material(job, &library, index)?
+        .name
+        .clone();
+    chipload_pipeline::materials::follow_material(job, &library, index).then_some(name)
 }

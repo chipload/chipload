@@ -422,6 +422,7 @@ impl EditJob {
                 let side = default_side(&selection.ids(contours), contours);
                 (
                     Operation::Profile(ProfileOp {
+                        material: None,
                         name: t!(lang, "editor-name-profile", number = number),
                         enabled: true,
                         part,
@@ -448,6 +449,7 @@ impl EditJob {
             }
             OpKind::Pocket => (
                 Operation::Pocket(PocketOp {
+                    material: None,
                     name: t!(lang, "editor-name-pocket", number = number),
                     enabled: true,
                     part,
@@ -473,6 +475,7 @@ impl EditJob {
             ),
             OpKind::Vcarve => (
                 Operation::Vcarve(VcarveOp {
+                    material: None,
                     name: t!(lang, "editor-name-vcarve", number = number),
                     enabled: true,
                     part,
@@ -488,6 +491,7 @@ impl EditJob {
             ),
             OpKind::Path => (
                 Operation::Path(PathOp {
+                    material: None,
                     name: t!(lang, "editor-name-path", number = number),
                     enabled: true,
                     part,
@@ -514,6 +518,7 @@ impl EditJob {
                     });
                 (
                     Operation::Holes(HolesOp {
+                        material: None,
                         name: t!(lang, "editor-name-holes", number = number),
                         enabled: true,
                         part,
@@ -532,6 +537,7 @@ impl EditJob {
                 let (lo, hi) = SURFACE_STEPOVER;
                 (
                     Operation::Surface(SurfaceOp {
+                        material: None,
                         name: t!(lang, "editor-name-surface", number = number),
                         enabled: true,
                         part,

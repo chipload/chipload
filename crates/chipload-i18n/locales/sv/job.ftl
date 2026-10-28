@@ -237,7 +237,6 @@ job-library-field = { $field ->
     [travel] slaglängd
     [work-zero] arbetsnollpunkt
     [max-overcut] max djup under ämnet
-    [thickness] tjocklek
     [tool-values] ett verktygs värden
    *[other] { $field }
 }

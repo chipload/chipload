@@ -1032,9 +1032,10 @@ impl ChiploadApp {
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.tool_for(kind);
         let cutting = self.tool_cutting(tool);
-        // The project's material has the user's own values for the tool: they come first
-        // (docs/specs/materials.md §2).
+        // The project's material: the new operation names it, and its values for the tool
+        // come first (docs/specs/materials.md §2).
         let material = self.material_cutting(tool);
+        let material_ref = self.edit.as_ref()?.settings.stock.material.clone();
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(
@@ -1044,8 +1045,11 @@ impl ChiploadApp {
             cutting.as_ref(),
             &self.language,
         );
-        if let (Some(values), Some(entry)) = (material, edit.ops.get_mut(index)) {
-            entry.op.apply_cutting(&values);
+        if let Some(entry) = edit.ops.get_mut(index) {
+            entry.op.set_material(material_ref);
+            if let Some(values) = material {
+                entry.op.apply_cutting(&values);
+            }
         }
         self.focus = Focus::Op(index);
         self.commit();

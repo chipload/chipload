@@ -178,9 +178,9 @@ it's built (see `CLAUDE.md`).
   for the user's answers and choice.
   **Materials first, then styles** (the user, 2026-10-28: simple, your own numbers, no
   manufacturers' charts): built 2026-10-28 with the recommended decisions for the user to
-  try (docs/specs/materials.md §10). Open: the user's verdict, and whether through cuts
-  should follow a material's thickness (built so); import/export of materials in the
-  window. Then styles (docs/specs/presets.md).
+  try (docs/specs/materials.md §10); then the same day a material per operation (a list
+  under the tool) and no thickness, as the user asked. Open: the user's verdict;
+  import/export of materials in the window. Then styles (docs/specs/presets.md).
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

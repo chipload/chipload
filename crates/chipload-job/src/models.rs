@@ -1559,8 +1559,8 @@ pub struct Stock {
     pub z_zero: ZZero,
     /// How far a cut may go below the stock bottom, into the spoilboard, mm.
     pub max_overcut: f64,
-    /// The material chosen from the library: its operations' feeds came from it, and new
-    /// operations take its values. Null: none.
+    /// The project's material: new operations take it, with its values. Each operation
+    /// names its own (`material` on the operation). Null: none.
     // Spec: docs/specs/materials.md §6 (optional, no schema bump).
     #[serde(default)]
     pub material: Option<MaterialRef>,
@@ -2292,6 +2292,29 @@ impl Operation {
         }
     }
 
+    /// The library material its feeds come from.
+    pub fn material(&self) -> Option<&MaterialRef> {
+        match self {
+            Operation::Profile(op) => op.material.as_ref(),
+            Operation::Pocket(op) => op.material.as_ref(),
+            Operation::Vcarve(op) => op.material.as_ref(),
+            Operation::Path(op) => op.material.as_ref(),
+            Operation::Holes(op) => op.material.as_ref(),
+            Operation::Surface(op) => op.material.as_ref(),
+        }
+    }
+
+    pub fn set_material(&mut self, material: Option<MaterialRef>) {
+        match self {
+            Operation::Profile(op) => op.material = material,
+            Operation::Pocket(op) => op.material = material,
+            Operation::Vcarve(op) => op.material = material,
+            Operation::Path(op) => op.material = material,
+            Operation::Holes(op) => op.material = material,
+            Operation::Surface(op) => op.material = material,
+        }
+    }
+
     pub fn tool(&self) -> i64 {
         match self {
             Operation::Profile(op) => op.tool,
@@ -2323,18 +2346,6 @@ impl Operation {
             Operation::Path(op) => (op.start_depth, op.end_depth),
             Operation::Holes(op) => (op.start_depth, op.end_depth),
             Operation::Surface(op) => (op.start_depth, op.end_depth),
-        }
-    }
-
-    /// Set the end depth, mm down from the stock top.
-    pub fn set_end_depth(&mut self, depth: f64) {
-        match self {
-            Operation::Profile(op) => op.end_depth = depth,
-            Operation::Pocket(op) => op.end_depth = depth,
-            Operation::Vcarve(op) => op.end_depth = depth,
-            Operation::Path(op) => op.end_depth = depth,
-            Operation::Holes(op) => op.end_depth = depth,
-            Operation::Surface(op) => op.end_depth = depth,
         }
     }
 
@@ -2493,6 +2504,10 @@ pub struct ProfileOp {
     /// The id of the part it belongs to (`parts`).
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// Which side of the line the tool cuts: `outside` (cutting a part out), `inside` (a
@@ -2703,6 +2718,10 @@ pub struct PocketOp {
     /// The id of the part it belongs to (`parts`).
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -2818,6 +2837,10 @@ pub struct VcarveOp {
     /// The id of the part it belongs to (`parts`).
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -2852,6 +2875,10 @@ pub struct PathOp {
     /// The id of the part it belongs to (`parts`).
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// What the operation cuts: the shapes on a layer, or shapes by id.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`).
@@ -2889,6 +2916,10 @@ pub struct HolesOp {
     /// The id of the part it belongs to (`parts`).
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// What the operation cuts: the circles among the shapes on a layer, or shapes by id.
     /// Other shapes are skipped with a note.
     pub select: Selector,
@@ -2925,6 +2956,10 @@ pub struct SurfaceOp {
     /// the part has.
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    // Spec: docs/specs/materials.md §2 (optional, no schema bump).
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
     /// The id of the project tool it cuts with (`tools`): an endmill.
     pub tool: i64,
     /// Where the cut starts, mm down from the stock top: 0 for the top.

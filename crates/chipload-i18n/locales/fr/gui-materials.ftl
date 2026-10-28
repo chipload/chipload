@@ -8,17 +8,16 @@ materials-tool-count = { $count ->
    *[other] { $count } outils
 }
 materials-note-in-project = ce projet
-materials-use-in-project = Utiliser dans le projet
-materials-use-in-project-hover = En faire le matériau du projet : le brut prend son épaisseur, les opérations ses valeurs pour leurs outils
+materials-use-in-project = Utiliser pour toutes les opérations
+materials-use-in-project-hover = Chaque opération, et celles ajoutées ensuite, prend ce matériau et ses valeurs pour son outil. Le brut reste tel quel
 materials-count = { $count ->
     [one] { $count } matériau
    *[other] { $count } matériaux
 } dans votre bibliothèque.
-materials-about = Chaque matériau garde vos propres valeurs pour les outils que vous utilisez avec lui. Saisissez-les ici, ou avec Enregistrer dans … sous une opération qui a bien usiné. Paramètres d'usinage > Matériau en choisit un pour un projet.
+materials-about = Chaque matériau garde vos propres valeurs pour les outils que vous utilisez avec lui. Saisissez-les ici, ou avec Enregistrer dans … sous une opération qui a bien usiné. Choisissez-en un par opération, sous son outil, ou pour tout le projet dans les Paramètres d'usinage.
 materials-gone = Ce matériau n'est plus dans votre bibliothèque.
-materials-entry-about = Vos valeurs pour ce matériau, par outil de la bibliothèque. Choisir le matériau dans un projet les donne à ses opérations.
+materials-entry-about = Vos valeurs pour ce matériau, par outil de la bibliothèque. Une opération avec ce matériau usine avec elles.
 materials-name = Nom
-materials-thickness-hover = Le panneau sous lequel il vient d'habitude : choisir le matériau y règle le brut. Désactivé : le brut garde son épaisseur
 materials-values = Valeurs par outil
 materials-tool-not-in-library = (un outil qui n'est plus dans votre bibliothèque)
 materials-remove-tool-hover = Retirer les valeurs de cet outil

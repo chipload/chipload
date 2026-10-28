@@ -1,8 +1,11 @@
 # Spec: materials, with your own feeds
 
 Status: **built 2026-10-28 with the recommended decisions**, for the user to try ("It
-sounds reasonable, I must really try it out to know"). See §10 for where it differs from
-the draft.
+sounds reasonable, I must really try it out to know"); the same day changed to **a material
+per operation** (§2, the user: "material preset should be available as a dropdown after
+geometry and tool, so I can choose material preset per operation freely") and **no
+thickness** ("changing material shouldn't change stock thickness"). See §10 for where it
+differs from the first draft.
 
 ## Why
 
@@ -27,7 +30,6 @@ A library entry with:
 - a **name** ("Plywood", "Oak", "MDF"), unique in the library (case doesn't matter);
 - a **uid** (16 hex digits, never changed), as tools and machines have
   (docs/specs/library-in-browser.md §2);
-- a **thickness**, mm, optional: the board you usually buy;
 - **values per tool**: for each library tool (by its uid), the same four values a tool
   carries today (`Cutting`):
   - feed, mm/min;
@@ -40,13 +42,21 @@ A material doesn't need values for every tool, only for the tools you use with i
 There is no link to a machine (decision 2). With a second machine you'd make "Plywood (big
 router)" beside "Plywood".
 
-## 2. Choosing a material for a project
+## 2. Choosing a material
 
-**Job settings > Stock > Material:** a list of *None* and the library's materials, above
-*Thickness*. CLI: `chipload material use part.chipload Plywood` (`--none` to clear it).
+A material is about feeds only: choosing one never changes the stock thickness or any
+depth (the user, 2026-10-28).
 
-Choosing one, as one undo step:
-- **Thickness:** if the material has one, the stock takes it.
+**Per operation:** the operation form has a **Material** list under *Tool*: *None* and the
+library's materials. A material without values for the operation's tool is listed as
+"Plywood (no values for this tool)" and can still be chosen (then filled with *Save to …*).
+Choosing one sets the operation's `material` and takes its values for the tool. *None*
+clears it and keeps the feeds. CLI: `chipload material use part.chipload Plywood --op 2`.
+
+**For every operation:** *Job settings > Stock > Material*, or *Use for all operations* on a
+library material. CLI: `chipload material use part.chipload Plywood` (`--none` to clear
+it). It sets the project's material (what new operations take) and every operation's, as
+one undo step:
 - **Existing operations:** each operation whose tool has values in the material takes them
   (decision 3). The values an operation has are:
   - feed and plunge feed, for every operation;
@@ -58,9 +68,13 @@ Choosing one, as one undo step:
 - **The report** lists what changed, one line per operation, as other bulk edits do.
 
 The project remembers the material (§6), so:
-- **New operations:** an operation added later takes the material's values for its tool.
-  It falls back to the tool's own values (`Cutting`), then to today's defaults.
-- **Changing an operation's tool** takes the new tool's values the same way.
+- **New operations:** an operation added later takes the project's material and its values
+  for its tool. It falls back to the tool's own values (`Cutting`), then to today's
+  defaults.
+- **Changing an operation's tool** takes its own material's values for the new tool, when
+  the material has some; otherwise the feeds stay.
+- **Editing a feed by hand** keeps the operation's material; its row then says *Changed
+  from Plywood*.
 
 ## 3. Saving values from an operation
 
@@ -70,8 +84,8 @@ back:
   - *From Plywood* when they match the material's values for its tool;
   - otherwise *Changed from Plywood* (or *Not in Plywood* when the tool has none there),
     with a **Save to Plywood** button.
-- **CLI:** `chipload material save part.chipload --op 2` saves to the project's material;
-  `--material NAME` saves to another one.
+- **CLI:** `chipload material save part.chipload --op 2` saves to the operation's material
+  (else the project's); `--material NAME` saves to another one.
 
 Saving:
 - writes that tool's four values in the material, replacing any it had;
@@ -88,7 +102,7 @@ Saving:
 - **CLI:**
   - `chipload material list [--json]`;
   - `chipload material show NAME`;
-  - `chipload material add NAME [--thickness 18]`;
+  - `chipload material add NAME`;
   - `chipload material set NAME --tool "6 mm 2-flute" --feed 1500 --plunge 500
     --step-down 2.5 --stepover 0.4`;
   - `chipload material remove NAME [--tool NAME]` (the material, or one tool's values);
@@ -115,12 +129,11 @@ not as a default.
 
   ```json
   {
-    "schema_version": 1,
+    "schema_version": 2,
     "written_by": "chipload 0.28.0",
     "materials": [{
       "name": "Plywood",
       "uid": "3f9c0a1b2d4e5f60",
-      "thickness": 18.0,
       "tools": [{
         "tool_uid": "a1b2c3d4e5f60718",
         "feed": 1500.0, "plunge_feed": 500.0, "step_down": 2.5, "stepover": 0.4
@@ -135,8 +148,8 @@ not as a default.
   - Values are checked as an operation's are: feeds above 0, step down above 0, stepover
     more than 0 and at most 1. A material with a bad value is refused by name; the others
     load.
-- **The project:** `stock.material`, optional: `{ "name": "Plywood", "library_uid": "…" }`,
-  or null.
+- **The project:** `material` on each operation and on the stock (what new operations
+  take), optional: `{ "name": "Plywood", "library_uid": "…" }`, or null.
   - It is an optional field with a safe default (none), so there is no schema bump (CLAUDE.md,
     persisted formats).
   - Only the name and uid are kept, not the values: the values that matter are already in
@@ -205,19 +218,19 @@ not as a default.
   (`use_material`, `material_values`, `material_state`, `values_to_save`),
   `chipload material …` on the command line, `app/materials.rs` in the window. The JSON
   Schema is `chipload schema materials`, the reference page `materials-file.md`.
-- **Differences from the draft above:**
-  - **Through cuts stay through.** When the material changes the stock thickness, an
-    operation whose end depth was at or below the old stock bottom gets the same depth
-    below the new one, with a report line. Found trying it: the badge's outline, through a
-    12 mm board, would have stopped 6 mm short in 18 mm plywood. A decision for the user
-    to confirm.
-  - **Changing an operation's tool keeps its feeds** (as docs/specs/tool-per-operation.md
-    decision 6 already says), and the Material row then offers *Use Plywood's*. The draft
-    said the new tool's values would be taken.
+- **Differences from the first draft:**
+  - **A material per operation** (the user, 2026-10-28): `material` on each operation, a
+    list under the tool, `material use --op N`; the project's material is what new
+    operations take and what *Use for all operations* sets.
+  - **No thickness:** a material holds feeds only, and choosing one never changes the stock
+    or a depth (the user, 2026-10-28). `materials.json` version 2 drops the thickness
+    (`materials_v1_to_v2`, frozen sample `tests/corpus/materials/v1/`). The first build's
+    "through cuts stay through" went with it.
+  - **Changing an operation's tool** takes its material's values for the new tool; without
+    a material the feeds stay (docs/specs/tool-per-operation.md decision 6).
   - **A bad value refuses the whole file**, as for the tool library, not only that
     material.
   - **Import and export are on the command line only** for now; the window's Materials
-    folder has *New material*, the form, *Use in project* and *Delete*.
-  - The tool's own *Use the tool's values* button shows only when the material has no
-    values for the tool.
-
+    folder has *New material*, the form, *Use for all operations* and *Delete*.
+  - The tool's own *Use the tool's values* button shows only when the operation's material
+    has no values for the tool.

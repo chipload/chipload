@@ -237,7 +237,6 @@ job-library-field = { $field ->
     [travel] Verfahrweg
     [work-zero] Werkstücknullpunkt
     [max-overcut] max. Tiefe unter Rohteil
-    [thickness] Dicke
     [tool-values] Werte eines Werkzeugs
    *[other] { $field }
 }

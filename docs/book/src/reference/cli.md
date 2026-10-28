@@ -1136,7 +1136,7 @@ chipload material list
 
 ### `chipload material show`
 
-A material's thickness and its values per tool
+A material's values per tool
 
 ```text
 chipload material show <NAME>
@@ -1151,17 +1151,16 @@ chipload material show <NAME>
 Add a material, with no values yet
 
 ```text
-chipload material add <NAME> [OPTIONS]
+chipload material add <NAME>
 ```
 
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--thickness <THICKNESS>` | The board it usually comes as (any length unit; a plain number is mm) |
 
 ### `chipload material set`
 
-Change a material: its name, thickness, or one library tool's values
+Change a material: its name, or one library tool's values
 
 ```text
 chipload material set <NAME> [OPTIONS]
@@ -1171,8 +1170,6 @@ chipload material set <NAME> [OPTIONS]
 |---|---|
 | `<NAME>` |  |
 | `--rename <RENAME>` |  |
-| `--thickness <THICKNESS>` |  |
-| `--no-thickness` | No thickness: choosing the material keeps the project's. |
 | `--tool <TOOL>` | The library tool whose values these are. |
 | `--feed <FEED>` | mm/min. The four values come as a set the first time for a tool. |
 | `--plunge-feed <PLUNGE_FEED>` |  |
@@ -1194,7 +1191,7 @@ chipload material remove <NAME> [OPTIONS]
 
 ### `chipload material use`
 
-Choose the project's material: the stock takes its thickness, the operations its values for their tools
+Choose the material for every operation and those added later: they take its values for their tools. The stock stays as it is
 
 ```text
 chipload material use <PROJECT> <NAME> [OPTIONS]
@@ -1205,6 +1202,7 @@ chipload material use <PROJECT> <NAME> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `<NAME>` | The material; omit with --none. |
 | `--none` | No material (the feeds stay as they are) |
+| `--op <OP>` | Only this operation, 1-based as listed; the project's material stays. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload material save`
@@ -1219,7 +1217,7 @@ chipload material save <PROJECT> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--op <OP>` | The operation, 1-based as listed. Required. |
-| `--material <MATERIAL>` | The material; default: the project's. |
+| `--material <MATERIAL>` | The material; default: the operation's, else the project's. |
 
 ### `chipload material export`
 

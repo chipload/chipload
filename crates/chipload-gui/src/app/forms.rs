@@ -14,7 +14,7 @@ use chipload_job::{
 use chipload_job::{
     Finish, HoleMethod, HolesOp, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
-use chipload_job::{ImageTrace, Placement, Units};
+use chipload_job::{ImageTrace, MaterialRef, Placement, Units};
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::Move as PlaceMove;
 
@@ -294,8 +294,10 @@ pub(super) struct OpFormRequest {
     pub use_selection: bool,
     /// Copy this library tool into the project and cut this operation with it.
     pub tool_from_library: Option<String>,
-    /// Save the operation's values for its tool in the project's material.
+    /// Save the operation's values for its tool in its material.
     pub save_to_material: bool,
+    /// The tool was changed: the operation takes its material's values for the new one.
+    pub tool_changed: bool,
 }
 
 /// What the operation form needs to know about tools: the project's, the library's names
@@ -307,9 +309,9 @@ pub(super) struct ToolChoice<'a> {
     pub tools: &'a [Tool],
     pub library: Option<Vec<String>>,
     pub cutting: Option<Cutting>,
-    /// The project's material, by name, and its values for the operation's tool
-    /// (docs/specs/materials.md §3). None: no material from the library.
-    pub material: Option<(String, Option<Cutting>)>,
+    /// The library's materials, each with its values for the operation's tool
+    /// (docs/specs/materials.md §2). None: no library.
+    pub materials: Option<Vec<(MaterialRef, Option<Cutting>)>>,
 }
 
 /// The selected operation's fields, in sections.
@@ -674,6 +676,9 @@ fn tool_row(
                     .selectable_label(tool.id == current, tool_label(ui, tool, units))
                     .clicked()
                 {
+                    if tool.id != current {
+                        request.tool_changed = true;
+                    }
                     op.set_tool(tool.id);
                     crate::editor::fit_hole_method(op, choice.tools);
                 }
@@ -692,12 +697,15 @@ fn tool_row(
         });
     flag(combo.response, ui, "tool");
     ui.end_row();
-    if let Some((name, values)) = &choice.material {
-        material_rows(ui, op, name, values.as_ref(), request);
+    let mut material_values = None;
+    if let Some(materials) = &choice.materials
+        && (!materials.is_empty() || op.material().is_some())
+    {
+        material_values = material_rows(ui, index, op, materials, request);
     }
-    // The tool's own values, when the material has none for it.
+    // The tool's own values, when the operation's material has none for it.
     if let Some(cutting) = choice.cutting
-        && choice.material.as_ref().is_none_or(|(_, v)| v.is_none())
+        && material_values.is_none()
         && !op.has_cutting(&cutting)
     {
         ui.label("");
@@ -720,17 +728,61 @@ fn tool_row(
     }
 }
 
-/// Where the operation's feeds stand against the project's material: from it, changed
-/// (with *Use* and *Save*), or not in it yet (with *Save*). The buttons have a row of their
-/// own, so a narrow panel doesn't wrap them over the next row.
+/// The operation's material: a list of the library's (docs/specs/materials.md §2), then
+/// where its feeds stand against it: from it, changed (with *Use* and *Save*), or not in it
+/// yet (with *Save*). The buttons have a row of their own, so a narrow panel doesn't wrap
+/// them over the next row. The material's values for the tool, if it has some.
 fn material_rows(
     ui: &mut egui::Ui,
+    index: usize,
     op: &mut Operation,
-    name: &str,
-    values: Option<&Cutting>,
+    materials: &[(MaterialRef, Option<Cutting>)],
     request: &mut OpFormRequest,
-) {
-    ui.label(t!(ui, "forms-material"));
+) -> Option<Cutting> {
+    let current = op.material().cloned();
+    let known = current.as_ref().and_then(|c| {
+        materials
+            .iter()
+            .find(|(m, _)| m.library_uid == c.library_uid)
+    });
+    let shown = match (&current, known) {
+        (None, _) => t!(ui, "forms-material-none"),
+        (Some(_), Some((m, _))) => m.name.clone(),
+        (Some(m), None) => t!(ui, "forms-material-not-in-library", name = m.name.as_str()),
+    };
+    ui.label(t!(ui, "forms-material"))
+        .on_hover_text(t!(ui, "forms-op-material-hover"));
+    ComboBox::from_id_salt(("op-material", index))
+        .selected_text(shown)
+        .width(field_width(ui, 240.0))
+        .truncate()
+        .show_ui(ui, |ui| {
+            if ui
+                .selectable_label(current.is_none(), t!(ui, "forms-material-none"))
+                .clicked()
+            {
+                op.set_material(None);
+            }
+            for (m, values) in materials {
+                let on = current
+                    .as_ref()
+                    .is_some_and(|c| c.library_uid == m.library_uid);
+                let label = match values {
+                    Some(_) => m.name.clone(),
+                    None => t!(ui, "forms-material-no-values", name = m.name.as_str()),
+                };
+                if ui.selectable_label(on, label).clicked() {
+                    op.set_material(Some(m.clone()));
+                    if let Some(c) = values {
+                        op.apply_cutting(c);
+                    }
+                }
+            }
+        });
+    ui.end_row();
+    let (m, values) = known?;
+    let name = m.name.as_str();
+    ui.label("");
     let (use_values, save) = match values {
         Some(c) if op.has_cutting(c) => {
             ui.weak(t!(ui, "forms-material-from", name = name))
@@ -747,28 +799,28 @@ fn material_rows(
         }
     };
     ui.end_row();
-    if !save {
-        return;
-    }
-    ui.label("");
-    ui.horizontal_wrapped(|ui| {
-        if let Some(c) = use_values
-            && ui
-                .button(t!(ui, "forms-material-use", name = name))
-                .on_hover_text(t!(ui, "forms-material-use-hover"))
+    if save {
+        ui.label("");
+        ui.horizontal_wrapped(|ui| {
+            if let Some(c) = use_values
+                && ui
+                    .button(t!(ui, "forms-material-use", name = name))
+                    .on_hover_text(t!(ui, "forms-material-use-hover"))
+                    .clicked()
+            {
+                op.apply_cutting(&c);
+            }
+            if ui
+                .button(t!(ui, "forms-material-save", name = name))
+                .on_hover_text(t!(ui, "forms-material-save-hover"))
                 .clicked()
-        {
-            op.apply_cutting(&c);
-        }
-        if ui
-            .button(t!(ui, "forms-material-save", name = name))
-            .on_hover_text(t!(ui, "forms-material-save-hover"))
-            .clicked()
-        {
-            request.save_to_material = true;
-        }
-    });
-    ui.end_row();
+            {
+                request.save_to_material = true;
+            }
+        });
+        ui.end_row();
+    }
+    *values
 }
 
 /// The feeds, and the chip load next to the feed (docs/specs/small-items.md §5) when the

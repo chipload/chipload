@@ -5,15 +5,16 @@
 
 use chipload_i18n::Message;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::library::{
-    Changes, Collection, Cutting, Entry, LibraryError, LibraryFile, cutting_text, fresh_uid, mm,
-    name_problems, optional, position, refused, uid_problems, written_by,
+    Changes, Collection, Cutting, Entry, LibraryError, LibraryFile, cutting_text, fresh_uid,
+    name_problems, position, refused, uid_problems, written_by,
 };
 
 pub const MATERIALS_FILE: &str = "materials.json";
 /// Current `schema_version` of `materials.json`.
-pub const MATERIALS_VERSION: i64 = 1;
+pub const MATERIALS_VERSION: i64 = 2;
 
 /// One tool's values in a material.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -43,7 +44,7 @@ impl MaterialTool {
     }
 }
 
-/// A material: a name, the board it usually comes as, and the user's values per tool.
+/// A material: a name and the user's values per tool.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -52,10 +53,6 @@ pub struct Material {
     pub name: String,
     /// What projects name the material by: 16 lowercase hex digits, never changed.
     pub uid: String,
-    /// The usual board's thickness, mm. Null: none; choosing the material keeps the
-    /// stock's.
-    #[serde(default)]
-    pub thickness: Option<f64>,
     /// Values for the tools used with this material, one entry per library tool.
     pub tools: Vec<MaterialTool>,
 }
@@ -137,7 +134,7 @@ impl MaterialLibrary {
     }
 
     /// Add a new material with no values; refused when the name is taken.
-    pub fn add(&mut self, name: &str, thickness: Option<f64>) -> Result<&Material, LibraryError> {
+    pub fn add(&mut self, name: &str) -> Result<&Material, LibraryError> {
         let name = name.trim();
         if self.position(name).is_some() {
             return Err(refused(
@@ -148,7 +145,6 @@ impl MaterialLibrary {
         self.materials.push(Material {
             name: name.to_string(),
             uid,
-            thickness,
             tools: Vec::new(),
         });
         Ok(&self.materials[self.materials.len() - 1])
@@ -183,11 +179,6 @@ impl MaterialLibrary {
         ));
         for (i, material) in self.materials.iter().enumerate() {
             let at = format!("materials.{i}");
-            if let Some(t) = material.thickness
-                && !(t > 0.0 && t.is_finite())
-            {
-                problems.push(format!("{at}.thickness: must be greater than 0, got {t}"));
-            }
             for (k, tool) in material.tools.iter().enumerate() {
                 let at = format!("{at}.tools.{k}");
                 problems.extend(tool.cutting().problems(&at));
@@ -212,6 +203,7 @@ fn no_material(name: &str) -> LibraryError {
 
 impl LibraryFile for MaterialLibrary {
     const VERSION: i64 = MATERIALS_VERSION;
+    const OLDEST: i64 = 1;
     fn validate(&self) -> Vec<String> {
         MaterialLibrary::validate(self)
     }
@@ -219,6 +211,24 @@ impl LibraryFile for MaterialLibrary {
         self.schema_version = MATERIALS_VERSION;
         self.written_by = Some(written_by());
     }
+    fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
+        if from == 1 {
+            materials_v1_to_v2(data);
+        }
+    }
+}
+
+/// Materials 1 -> 2: a material no longer has a thickness. Choosing a material never
+/// changes the stock (the user, 2026-10-28), so the value had no use; it changed no cut.
+pub fn materials_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
+    if let Some(Value::Array(materials)) = data.get_mut("materials") {
+        for material in materials {
+            if let Value::Object(material) = material {
+                material.remove("thickness");
+            }
+        }
+    }
+    data.insert("schema_version".into(), Value::from(2));
 }
 
 /// Export and import as for tools (docs/specs/library-import-export.md).
@@ -261,11 +271,6 @@ impl Entry for Material {
     }
     fn differences(&self, other: &Self) -> Vec<Message> {
         let mut changes = Changes(Vec::new());
-        changes.differs(
-            "thickness",
-            optional(self.thickness.map(mm)),
-            optional(other.thickness.map(mm)),
-        );
         // One line per tool whose values differ, in the order they are listed.
         let uids = self
             .tools
@@ -314,7 +319,7 @@ mod tests {
         let empty: MaterialLibrary = load_library(&path).unwrap();
         assert!(empty.materials.is_empty());
         update_library(&path, |lib: &mut MaterialLibrary| {
-            lib.add("Plywood", Some(18.0))?;
+            lib.add("Plywood")?;
             lib.find_mut("plywood")?
                 .set_values("a1b2c3d4e5f60718", values(1500.0));
             Ok(())
@@ -322,12 +327,11 @@ mod tests {
         .unwrap();
         let lib: MaterialLibrary = load_library(&path).unwrap();
         let ply = lib.find("PLYWOOD").unwrap();
-        assert_eq!(ply.thickness, Some(18.0));
         assert_eq!(ply.values("a1b2c3d4e5f60718"), Some(values(1500.0)));
         assert_eq!(lib.find_uid(&ply.uid), Some(ply));
         // Same name again: refused, nothing written.
         let again = update_library(&path, |lib: &mut MaterialLibrary| {
-            lib.add("plywood", None).map(|_| ())
+            lib.add("plywood").map(|_| ())
         });
         assert!(again.is_err());
         std::fs::remove_dir_all(dir).unwrap();
@@ -336,7 +340,7 @@ mod tests {
     #[test]
     fn values_are_replaced_removed_and_checked() {
         let mut lib = MaterialLibrary::default();
-        lib.add("Oak", None).unwrap();
+        lib.add("Oak").unwrap();
         let oak = lib.find_mut("Oak").unwrap();
         oak.set_values("a1b2c3d4e5f60718", values(1500.0));
         oak.set_values("a1b2c3d4e5f60718", values(1200.0));
@@ -344,19 +348,27 @@ mod tests {
         assert_eq!(oak.values("a1b2c3d4e5f60718").unwrap().feed, 1200.0);
         assert!(lib.validate().is_empty());
         lib.materials[0].tools[0].stepover = 1.5;
-        lib.materials[0].thickness = Some(0.0);
         let problems = lib.validate().join("\n");
         assert!(
             problems.contains("materials.0.tools.0.stepover"),
             "{problems}"
         );
-        assert!(problems.contains("materials.0.thickness"), "{problems}");
         lib.materials[0].tools[0].stepover = 0.4;
-        lib.materials[0].thickness = None;
         assert_eq!(lib.forget_tool("a1b2c3d4e5f60718"), vec!["Oak".to_string()]);
         assert!(lib.materials[0].tools.is_empty());
         assert!(lib.remove("oak").is_ok());
         assert!(lib.remove("oak").is_err());
+    }
+
+    #[test]
+    fn a_version_1_file_loses_its_thicknesses() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/corpus/materials/v1/materials.json");
+        let lib: MaterialLibrary = load_library(&path).unwrap();
+        assert_eq!(lib.schema_version, MATERIALS_VERSION);
+        let ply = lib.find("Plywood").unwrap();
+        assert_eq!(ply.values("a1b2c3d4e5f60718"), Some(values(1500.0)));
+        assert!(lib.find("Oak").unwrap().tools.is_empty());
     }
 
     #[test]
@@ -365,7 +377,7 @@ mod tests {
             std::env::temp_dir().join(format!("chipload-materials-new-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join(MATERIALS_FILE);
-        std::fs::write(&path, r#"{"schema_version": 2, "materials": []}"#).unwrap();
+        std::fs::write(&path, r#"{"schema_version": 3, "materials": []}"#).unwrap();
         let read: Result<MaterialLibrary, _> = load_library(&path);
         assert!(matches!(read, Err(LibraryError::UnsupportedVersion { .. })));
         std::fs::remove_dir_all(dir).unwrap();

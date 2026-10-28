@@ -117,21 +117,25 @@ impl ChiploadApp {
         let library = self.settings_dir.as_ref().map(|_| &self.library);
         let mut op_request = OpFormRequest::default();
         let mut request = None;
-        // The project's material, and its values for the open operation's tool.
-        let material = match (focus, library) {
-            (Focus::Op(i), Some(library)) => {
-                chipload_pipeline::materials::project_material(&edit.settings, &library.materials)
+        // The library's materials, each with its values for the open operation's tool.
+        let materials = match (focus, library) {
+            (Focus::Op(i), Some(library)) => edit.ops.get(i).map(|e| {
+                library
+                    .materials
+                    .materials
+                    .iter()
                     .map(|m| {
-                        let values = edit.ops.get(i).and_then(|e| {
-                            chipload_pipeline::materials::material_values(
+                        (
+                            chipload_pipeline::materials::material_ref(m),
+                            chipload_pipeline::materials::tool_values(
                                 &edit.settings,
-                                &library.materials,
+                                m,
                                 e.op.tool(),
-                            )
-                        });
-                        (m.name.clone(), values)
+                            ),
+                        )
                     })
-            }
+                    .collect()
+            }),
             _ => None,
         };
         let cutting = match focus {
@@ -170,7 +174,7 @@ impl ChiploadApp {
                     library: library
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
-                    material,
+                    materials,
                 };
                 let through = edit.settings.stock.thickness + edit.settings.stock.max_overcut;
                 if let Some(entry) = edit.ops.get_mut(i) {
@@ -185,6 +189,10 @@ impl ChiploadApp {
         }
         if let (Some(name), Focus::Op(i)) = (op_request.tool_from_library, focus) {
             self.tool_from_library(i, &name);
+            self.follow_op_material(i);
+        }
+        if let (true, Focus::Op(i)) = (op_request.tool_changed, focus) {
+            self.follow_op_material(i);
         }
         if let (true, Focus::Op(i)) = (op_request.save_to_material, focus) {
             self.save_op_to_material(i);

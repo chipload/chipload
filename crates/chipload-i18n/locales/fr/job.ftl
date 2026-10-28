@@ -237,7 +237,6 @@ job-library-field = { $field ->
     [travel] course
     [work-zero] origine pièce
     [max-overcut] prof. max sous le brut
-    [thickness] épaisseur
     [tool-values] valeurs d'un outil
    *[other] { $field }
 }

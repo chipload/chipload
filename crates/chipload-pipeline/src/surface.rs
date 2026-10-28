@@ -82,6 +82,7 @@ pub fn add_surface(
             name: format!("Surface {number}"),
             enabled: true,
             part,
+            material: None,
             tool: id,
             start_depth: 0.0,
             end_depth: depth,

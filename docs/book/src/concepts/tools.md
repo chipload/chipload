@@ -16,7 +16,10 @@ which is the tool number in the G-code, and:
 
 Each operation names its tool: pick it in the operation's form, or on the command line
 `chipload op tool part.chipload --op 2 --tool 3` (the tool must be in the project). Changing
-the tool keeps the feeds; check them. Tools usually come from your [tool
+the tool keeps the feeds, unless the operation has a [material](../library/materials.md)
+with values for the new tool; otherwise check them. Under the tool, each operation's
+**Material** list (`material` in the project file) chooses where its feeds come from.
+Tools usually come from your [tool
 library](../library/tools.md):
 the project keeps its own copy, so it cuts the same later.
 

@@ -38,12 +38,11 @@ fn plywood() -> Cutting {
     }
 }
 
-/// A material "Plywood" 18 mm with values for the library tool; its uid.
+/// A material "Plywood" with values for the library tool; its uid.
 fn add_plywood(app: &mut ChiploadApp) -> String {
     let uid = app.new_material().expect("a new material");
     let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
     draft.name = "Plywood".into();
-    draft.thickness = Some(18.0);
     draft.set_values(&uid_for_name(TOOL), plywood());
     app.library_state.material_drafts.insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
@@ -57,21 +56,22 @@ fn choosing_a_material_fills_the_operations_in_one_undo_step() {
     let before = app.edit.as_ref().unwrap().settings.stock.thickness;
     assert!(app.use_material(Some(&uid)));
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock.thickness, 18.0);
+    assert_eq!(edit.settings.stock.thickness, before, "the stock stays");
     assert_eq!(
         edit.settings.stock.material.as_ref().unwrap().name,
         "Plywood"
     );
     assert!(edit.ops.iter().all(|e| e.op.has_cutting(&plywood())));
+    assert!(edit.ops.iter().all(|e| e.op.material().is_some()));
     assert!(
         app.report.lines.len() >= 3,
-        "chosen, thickness, operations: {:?}",
+        "chosen, operations: {:?}",
         app.report
     );
     app.undo();
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock.thickness, before);
     assert_eq!(edit.settings.stock.material, None);
+    assert!(edit.ops.iter().all(|e| e.op.material().is_none()));
 }
 
 #[test]
@@ -82,7 +82,70 @@ fn a_new_operation_takes_the_materials_values() {
     let outline = app.contours.first().unwrap().id;
     select(&mut app, &[outline]);
     let i = app.add_operation(OpKind::Profile).unwrap();
-    assert!(app.edit.as_ref().unwrap().ops[i].op.has_cutting(&plywood()));
+    let op = &app.edit.as_ref().unwrap().ops[i].op;
+    assert!(op.has_cutting(&plywood()));
+    assert_eq!(op.material().unwrap().name, "Plywood");
+}
+
+#[test]
+fn an_operation_chooses_its_own_material_in_its_form() {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = app_with_library("op-form");
+            add_plywood(&mut app);
+            app.focus = Focus::Op(1);
+            app
+        });
+    harness.run_steps(4);
+    let op = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().ops[1].op.clone();
+    assert_eq!(op(&harness).material(), None);
+    // The material's list, showing None.
+    harness
+        .query_all_by_role(egui::accesskit::Role::ComboBox)
+        .find(|n| n.accesskit_node().value().as_deref() == Some("None"))
+        .expect("the material's list")
+        .click();
+    harness.run_steps(3);
+    harness.get_by_label("Plywood").click();
+    harness.run_steps(4);
+    let chosen = op(&harness);
+    assert_eq!(chosen.material().unwrap().name, "Plywood");
+    assert!(chosen.has_cutting(&plywood()));
+    let edit = harness.state().edit.as_ref().unwrap();
+    assert_eq!(edit.settings.stock.material, None, "the project's stays");
+    assert_eq!(edit.ops[0].op.material(), None, "the other operation's too");
+    assert!(harness.query_by_label("From Plywood").is_some());
+}
+
+#[test]
+fn a_new_tool_takes_the_operations_materials_values() {
+    let mut app = app_with_library("tool-change");
+    let uid = add_plywood(&mut app);
+    assert!(app.use_material(Some(&uid)));
+    // A second tool, from the library too, with its own values in Plywood.
+    let second = Cutting {
+        feed: 900.0,
+        ..plywood()
+    };
+    let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
+    draft.set_values("b000000000000002", second);
+    app.library_state.material_drafts.insert(uid.clone(), draft);
+    assert!(app.save_material_draft(&uid));
+    let edit = app.edit.as_mut().unwrap();
+    let mut tool = edit.settings.tools[0].clone();
+    tool.id = 2;
+    tool.library_uid = Some("b000000000000002".into());
+    edit.settings.tools.push(tool);
+    edit.ops[1].op.set_tool(2);
+    app.follow_op_material(1);
+    assert!(app.edit.as_ref().unwrap().ops[1].op.has_cutting(&second));
+    // Back to tool 1: Plywood's values for it.
+    app.edit.as_mut().unwrap().ops[1].op.set_tool(1);
+    app.follow_op_material(1);
+    assert!(app.edit.as_ref().unwrap().ops[1].op.has_cutting(&plywood()));
 }
 
 #[test]

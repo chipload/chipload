@@ -757,7 +757,7 @@ fn materials_fill_a_project_and_learn_from_it() {
         s,
         &["tool", "save", p, "--tool", "1", "--name", "6 mm 2-flute"],
     );
-    ok(s, &["material", "add", "Plywood", "--thickness", "18"]);
+    ok(s, &["material", "add", "Plywood"]);
     assert!(refused(s, &["material", "add", "plywood"]).contains("already exists"));
     // A tool's first values come as a set.
     let err = refused(
@@ -792,12 +792,21 @@ fn materials_fill_a_project_and_learn_from_it() {
         ],
     );
 
-    let out = ok(s, &["material", "use", p, "plywood"]);
-    assert!(out.contains("Stock thickness: 18 mm"), "{out}");
+    // One operation first: only it takes Plywood.
+    ok(s, &["material", "use", p, "plywood", "--op", "2"]);
     let job = json(&project);
-    assert_eq!(job["stock"]["thickness"], 18.0);
+    assert_eq!(job["stock"]["material"], Value::Null);
+    assert_eq!(job["operations"][0]["material"], Value::Null);
+    assert_eq!(job["operations"][1]["material"]["name"], "Plywood");
+    assert_eq!(job["operations"][1]["feed"], 1500.0);
+
+    // Every operation; the stock stays.
+    ok(s, &["material", "use", p, "plywood"]);
+    let job = json(&project);
+    assert_eq!(job["stock"]["thickness"], 12.0);
     assert_eq!(job["stock"]["material"]["name"], "Plywood");
     for op in job["operations"].as_array().unwrap() {
+        assert_eq!(op["material"]["name"], "Plywood");
         assert_eq!(
             (op["feed"].as_f64(), op["step_down"].as_f64()),
             (Some(1500.0), Some(2.5))
@@ -817,7 +826,7 @@ fn materials_fill_a_project_and_learn_from_it() {
     ok(s, &["material", "remove", "Plywood"]);
     assert!(ok(s, &["material", "list"]).contains("(no materials)"));
     ok(s, &["material", "import", path(&file)]);
-    assert!(ok(s, &["material", "list"]).contains("Plywood, 18 mm"));
+    assert!(ok(s, &["material", "list"]).contains("Plywood: 1 tool(s)"));
 
     // Removing the tool removes its values.
     let out = ok(s, &["tool", "remove", "6 mm 2-flute"]);

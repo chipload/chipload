@@ -297,6 +297,7 @@ A library material, as a project names it.
 | `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `finish` | [Finish](#finish) or null | no | A finishing pass: the roughing passes leave `stock` mm on the wall, and one last lap at full depth takes it off. Null: none. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
@@ -323,6 +324,7 @@ A library material, as a project names it.
 | `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
@@ -344,6 +346,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
 | `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
@@ -362,6 +365,7 @@ Follow path: the tool centre on the selected shapes, open or closed.
 | `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
 | `entry` | [Entry](#entry) | yes | How the tool goes down at the start of each pass: `plunge` or `ramp` along the path. |
 | `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
@@ -379,6 +383,7 @@ Holes: drilled with a drill, bored with a helix with an endmill.
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | Where the hole ends, mm down from the stock top. For a drill, the depth of its point. |
 | `feed` | number | yes | A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `method` | [HoleMethod](#holemethod) | yes | How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
@@ -396,6 +401,7 @@ Surface: the whole stock top taken down flat, in straight passes back and forth.
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | How far down the stock top is taken, mm. At most the stock thickness. |
 | `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). The stock is faced once, whatever copies the part has. |
 | `plunge_feed` | number | yes | The feed going down beside the stock to each depth, mm/min. |
@@ -530,7 +536,7 @@ An import-time issue that can't be recomputed from the shapes.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `fit` | number or null | no | Centred on the drawing only: its size is the drawing's outline plus this margin each side, mm, following the drawing; `x` and `y` are then used only while the drawing is empty. Null: the size is `x` × `y`. |
-| `material` | [MaterialRef](#materialref) or null | no | The material chosen from the library: its operations' feeds came from it, and new operations take its values. Null: none. |
+| `material` | [MaterialRef](#materialref) or null | no | The project's material: new operations take it, with its values. Each operation names its own (`material` on the operation). Null: none. |
 | `max_overcut` | number | yes | How far a cut may go below the stock bottom, into the spoilboard, mm. |
 | `origin` | [StockOrigin](#stockorigin) | no | Where the stock lies: its `bottom_left` corner or its `center` at the drawing's origin, or centred on the drawing itself (`drawing`), following it. |
 | `thickness` | number | yes | Thickness, mm. Depths count down from the top. |

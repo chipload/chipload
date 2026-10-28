@@ -4,24 +4,23 @@
 
 Your materials (`materials.json` in the settings folder) and the files `material export` writes: your own values per library tool. Lengths in mm, feeds in mm/min.
 
-Schema version 1. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `materials` | list of [Material](#material) | yes | The materials. |
-| `schema_version` | `1` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## Material
 
-A material: a name, the board it usually comes as, and the user's values per tool.
+A material: a name and the user's values per tool.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `name` | string | yes | The material's name, unique in the library (upper or lower case don't matter). |
-| `thickness` | number or null | no | The usual board's thickness, mm. Null: none; choosing the material keeps the stock's. |
 | `tools` | list of [MaterialTool](#materialtool) | yes | Values for the tools used with this material, one entry per library tool. |
 | `uid` | string | yes | What projects name the material by: 16 lowercase hex digits, never changed. |
 

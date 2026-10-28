@@ -2931,11 +2931,17 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             if let Err(err) = set_op_tool(&mut job, op, tool) {
                 return out.fail(err);
             }
+            // An operation with a material takes its values for the new tool
+            // (docs/specs/materials.md §2).
+            let followed = materials::follow_op_material(&mut job, op - 1);
             let target = output.as_deref().unwrap_or(&project);
             if let Err(err) = save_job(&job, target) {
                 return out.fail(err);
             }
             out.line(format!("Operation {op} now cuts with tool {tool}."));
+            if let Some(name) = followed {
+                out.line(format!("Its feeds are {name}'s values for tool {tool}."));
+            }
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
