@@ -176,6 +176,9 @@ it's built (see `CLAUDE.md`).
   router, powerful but easy; recommends A, the daily driver: a shakedown on the router,
   styles/presets, materials with feeds, defaults that know the job, first-run setup). Waiting
   for the user's answers and choice.
+  **Materials first, then styles** (the user, 2026-10-28: simple, your own numbers, no
+  manufacturers' charts): spec drafted, docs/specs/materials.md, decisions §9 waiting for
+  review.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
