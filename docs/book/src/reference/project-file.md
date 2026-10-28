@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 30. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 31. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 30. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `30` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `31` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -119,6 +119,12 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
 | `texts` | list of [Text](#text) | no | Texts written into shapes, for V-carving, pocketing or profiling. Left out of the file when there are none, so projects without text open in older versions. |
 
+## DrawingFormat
+
+A drawing file's format.
+
+One of: `"dxf"`, `"svg"`.
+
 ## DrawingSource
 
 Provenance of the imported shapes.
@@ -127,12 +133,14 @@ Provenance of the imported shapes.
 |---|---|---|---|
 | `file` | string | yes | The DXF's file name. |
 | `flattened` | object | no | How many curves of each type (splines, ellipses) were turned into arcs. |
+| `format` | [DrawingFormat](#drawingformat) | yes | What kind of file it is: a DXF or an SVG. |
 | `id` | integer | yes | The DXF's id, which its shapes and selectors name. |
 | `ignored` | object | no | How many entities of each type were left out (text, dimensions, …). |
 | `imported` | object | no | How many entities of each type were imported. |
 | `issues` | list of [SourceIssue](#sourceissue) | no | What the import found: the import report. |
 | `name` | string | yes | Its name in the Browser and messages; the file's name without its extension at first. |
 | `placement` | [Placement](#placement) | yes | How the imported drawing was moved, turned and scaled on the stock. |
+| `px_per_inch` | number or null | no | An SVG without a real size: the pixels per inch chosen for it, used again on update. None for a DXF and an SVG with real units. |
 | `sha256` | string | yes | The DXF's SHA-256, to tell whether it changed. |
 | `units` | [Units](#units) | yes | The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import. |
 | `units_from` | [UnitsFrom](#unitsfrom) | yes | Where the units came from: the DXF itself, or the user's choice. |

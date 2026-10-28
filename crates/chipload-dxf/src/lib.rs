@@ -26,7 +26,9 @@ use chipload_core::fold::fold_point;
 use chipload_core::nesting;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{DrawingSource, Geometry, PathSegment, Placement, Shape, SourceIssue, Units};
+use chipload_job::{
+    DrawingFormat, DrawingSource, Geometry, PathSegment, Placement, Shape, SourceIssue, Units,
+};
 use dxf::Drawing;
 use dxf::enums::Units as DxfUnits;
 use sha2::{Digest, Sha256};
@@ -307,6 +309,7 @@ pub fn shapes_from_drawing_scaled(
         .collect();
     let source = DrawingSource {
         id: 1,
+        format: DrawingFormat::Dxf,
         name: String::new(),
         file: String::new(),
         sha256: String::new(),
@@ -323,6 +326,7 @@ pub fn shapes_from_drawing_scaled(
                 message: i.message,
             })
             .collect(),
+        px_per_inch: None,
         placement: Placement::default(),
     };
     Ok(ImportedShapes { shapes, source })

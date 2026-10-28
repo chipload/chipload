@@ -20,7 +20,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 30;
+pub const CURRENT_VERSION: i64 = 31;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1366,6 +1366,9 @@ pub struct SourceIssue {
 pub struct DrawingSource {
     /// The DXF's id, which its shapes and selectors name.
     pub id: u64,
+    /// What kind of file it is: a DXF or an SVG.
+    // Spec: docs/specs/svg-import.md §2 (schema 31).
+    pub format: DrawingFormat,
     /// Its name in the Browser and messages; the file's name without its extension
     /// at first.
     pub name: String,
@@ -1389,9 +1392,23 @@ pub struct DrawingSource {
     /// What the import found: the import report.
     #[serde(default)]
     pub issues: Vec<SourceIssue>,
+    /// An SVG without a real size: the pixels per inch chosen for it, used again on update.
+    /// None for a DXF and an SVG with real units.
+    // Spec: docs/specs/svg-import.md §7.
+    #[serde(default)]
+    pub px_per_inch: Option<f64>,
     /// How the imported drawing was moved, turned and scaled on the stock.
     // Spec: docs/specs/drawing-placement.md.
     pub placement: Placement,
+}
+
+/// A drawing file's format.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum DrawingFormat {
+    Dxf,
+    Svg,
 }
 
 /// Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (dx, dy),
@@ -3038,6 +3055,15 @@ impl Drawing {
                 problems.push(Problem::at(
                     format!("drawing.dxfs.{i}.name"),
                     Message::new("job-must-not-be-empty"),
+                ));
+            }
+            if let Some(px) = dxf.px_per_inch
+                && !(px.is_finite() && px > 0.0)
+            {
+                problems.push(Problem::at(
+                    format!("drawing.dxfs.{i}.px_per_inch"),
+                    Message::new("job-must-be-positive-number")
+                        .arg("got", Value::Number(px, Digits::Shortest)),
                 ));
             }
         }

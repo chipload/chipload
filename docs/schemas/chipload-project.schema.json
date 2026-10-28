@@ -272,6 +272,14 @@
       ],
       "type": "object"
     },
+    "DrawingFormat": {
+      "description": "A drawing file's format.",
+      "enum": [
+        "dxf",
+        "svg"
+      ],
+      "type": "string"
+    },
     "DrawingSource": {
       "additionalProperties": false,
       "description": "Provenance of the imported shapes.",
@@ -289,6 +297,10 @@
           "default": {},
           "description": "How many curves of each type (splines, ellipses) were turned into arcs.",
           "type": "object"
+        },
+        "format": {
+          "$ref": "#/$defs/DrawingFormat",
+          "description": "What kind of file it is: a DXF or an SVG."
         },
         "id": {
           "description": "The DXF's id, which its shapes and selectors name.",
@@ -332,6 +344,15 @@
           "$ref": "#/$defs/Placement",
           "description": "How the imported drawing was moved, turned and scaled on the stock."
         },
+        "px_per_inch": {
+          "default": null,
+          "description": "An SVG without a real size: the pixels per inch chosen for it, used again on update.\nNone for a DXF and an SVG with real units.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "sha256": {
           "description": "The DXF's SHA-256, to tell whether it changed.",
           "type": "string"
@@ -347,6 +368,7 @@
       },
       "required": [
         "id",
+        "format",
         "name",
         "file",
         "sha256",
@@ -2307,7 +2329,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 30. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 31. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2342,7 +2364,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 30,
+      "const": 31,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "stock": {
