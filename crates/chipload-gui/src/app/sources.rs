@@ -452,9 +452,12 @@ impl ChiploadApp {
             }
             Some(PanelAction::SelectShapes(ids)) => {
                 self.select_row(CanvasSelection::Shapes(ids.into_iter().collect()), add);
+                // The shapes are what Properties shows, alone (one thing at a time).
+                self.focus = Focus::Selection;
             }
             Some(PanelAction::RenameShape(id)) => {
                 self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
+                self.focus = Focus::Selection;
                 self.grab_shape_name = true;
             }
             Some(PanelAction::CopyShape(id)) => {

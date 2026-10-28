@@ -119,3 +119,16 @@ fn pictures() {
     let image = harness.render().unwrap();
     image.save(dir.join("window-en-selection.png")).unwrap();
 }
+
+/// One thing at a time (the user, 2026-10-28): a drawn shape's row in the Browser shows the
+/// shape, not the form that was open.
+#[test]
+fn a_shape_row_in_the_browser_shows_the_shape_alone() {
+    let mut harness = harness("en", WINDOW);
+    harness.state_mut().focus = Focus::Job;
+    harness.run_steps(2);
+    harness.get_by_label("S2").click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().focus, Focus::Selection);
+    assert_eq!(harness.state().selected_shape(), Some(2));
+}
