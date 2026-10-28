@@ -21,7 +21,7 @@ Under it, the **ribbon** groups the buttons:
 |---|---|---|
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, Add DXF | copy, paste, mirror and delete drawn shapes; copy as selector |
-| MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
+| MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme |

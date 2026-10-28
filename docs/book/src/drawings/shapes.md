@@ -121,7 +121,10 @@ DXF first, [Explode](several.md)).
   smaller angle the first and last sit at its ends; each copy turns with its place unless
   you say not to. This adds shapes to the drawing; the project's
   [grid of copies](copies.md) is different, it repeats the whole part with
-  its operations. On the command line: `chipload shape array P 2 3 --columns 4 --rows 2
+  its operations. In the window: select the shapes, choose *Array* or *Polar array*,
+  and set the copies under *Selection*; for a polar array click the centre on the canvas
+  (it snaps as drawing does). The preview shows the copies; *Create* adds them. On the
+  command line: `chipload shape array P 2 3 --columns 4 --rows 2
   --dx 30 --dy 20`, `chipload shape array-polar P 5 --count 6 --center 100,80
   [--angle-deg 180] [--no-rotate]`.
 - New shapes on a layer that an operation selects by its name are cut by that operation

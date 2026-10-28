@@ -143,3 +143,5 @@ menu-modify-break = Partir
 menu-modify-union = Unir
 menu-modify-subtract = Restar
 menu-modify-intersect = Intersecar
+menu-modify-array = Matriz
+menu-modify-polar-array = Matriz polar

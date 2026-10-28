@@ -352,6 +352,9 @@ pub struct ChiploadApp {
     pub fillet_radius: f64,
     pub chamfer_distance: f64,
     offset_preview: modify::OffsetPreview,
+    /// The array tools' values, kept for the session, and their preview.
+    pub array: modify::ArraySettings,
+    array_preview: modify::ArrayPreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
@@ -490,6 +493,8 @@ impl Default for ChiploadApp {
             fillet_radius: 3.0,
             chamfer_distance: 1.0,
             offset_preview: modify::OffsetPreview::default(),
+            array: modify::ArraySettings::default(),
+            array_preview: modify::ArrayPreview::default(),
             placing_text: false,
             focus_text_field: false,
             measure: None,

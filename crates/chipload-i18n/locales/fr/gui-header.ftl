@@ -114,3 +114,7 @@ header-subtract = Soustraire
 header-subtract-hover = Découper les formes fermées sélectionnées dans la forme que vous cliquez ensuite
 header-intersect = Intersection
 header-intersect-hover = Garder ce que toutes les formes fermées sélectionnées couvrent
+header-array = Réseau
+header-array-hover = Copies des formes dessinées sélectionnées en grille : colonnes, rangées et espacement sous Sélection
+header-polar-array = Réseau circulaire
+header-polar-array-hover = Copies des formes dessinées sélectionnées autour d'un centre que vous cliquez : nombre et angle sous Sélection

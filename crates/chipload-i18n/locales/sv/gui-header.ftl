@@ -114,3 +114,7 @@ header-subtract = Subtrahera
 header-subtract-hover = Skär ut de valda slutna formerna ur formen du klickar på sedan
 header-intersect = Snitt
 header-intersect-hover = Behåll det som alla valda slutna former täcker
+header-array = Matris
+header-array-hover = Kopior av de valda ritade formerna i ett rutnät: kolumner, rader och avstånd under Markering
+header-polar-array = Polär matris
+header-polar-array-hover = Kopior av de valda ritade formerna runt en mittpunkt du klickar: antal och vinkel under Markering

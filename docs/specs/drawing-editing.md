@@ -184,6 +184,13 @@ chipload shape array-polar P IDS --count 6 --center X,Y [--angle-deg 360] [--no-
   refused (copies on each other); a negative angle goes clockwise. Without `--no-rotate`
   each copy turns about the centre; with it, the selection's middle goes round and the
   copy moves without turning.
+- *Implemented (GUI):* *Array* and *Polar array* are tools: with drawn shapes selected,
+  the values sit under *Selection* with *Create*; a canvas click sets a polar array's
+  centre (snapped, marked); the copies are previewed, and after *Create* the originals and
+  copies are selected and the tool ends. Eleven tools in the MODIFY group's two rows made
+  the ribbon wider: the small buttons are now square (they were 4 px wider than tall),
+  so English still shows its names at 1200 px; French now shows icons alone there, as
+  German, Spanish, Italian and Swedish do.
 
 ## 7. Align and distribute
 

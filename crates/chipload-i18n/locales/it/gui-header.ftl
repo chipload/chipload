@@ -114,3 +114,7 @@ header-subtract = Sottrai
 header-subtract-hover = Ritaglia le forme chiuse selezionate dalla forma che clicchi dopo
 header-intersect = Interseca
 header-intersect-hover = Tieni ciò che tutte le forme chiuse selezionate coprono
+header-array = Serie
+header-array-hover = Copie delle forme disegnate selezionate in una griglia: colonne, righe e spaziatura sotto Selezione
+header-polar-array = Serie polare
+header-polar-array-hover = Copie delle forme disegnate selezionate attorno a un centro che clicchi: numero e angolo sotto Selezione

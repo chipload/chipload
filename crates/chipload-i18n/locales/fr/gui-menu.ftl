@@ -143,3 +143,5 @@ menu-modify-break = Couper
 menu-modify-union = Union
 menu-modify-subtract = Soustraire
 menu-modify-intersect = Intersection
+menu-modify-array = Réseau
+menu-modify-polar-array = Réseau circulaire

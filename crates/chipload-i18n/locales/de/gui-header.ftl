@@ -114,3 +114,7 @@ header-subtract = Abziehen
 header-subtract-hover = Die gewählten geschlossenen Formen aus der Form ausschneiden, die Sie danach klicken
 header-intersect = Schneiden
 header-intersect-hover = Behalten, was alle gewählten geschlossenen Formen bedecken
+header-array = Anordnung
+header-array-hover = Kopien der gewählten gezeichneten Formen in einem Raster: Spalten, Reihen und Abstand unter Auswahl
+header-polar-array = Kreisanordnung
+header-polar-array-hover = Kopien der gewählten gezeichneten Formen um einen Mittelpunkt, den Sie klicken: Anzahl und Winkel unter Auswahl

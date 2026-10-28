@@ -143,3 +143,5 @@ menu-modify-break = Bryt
 menu-modify-union = Förena
 menu-modify-subtract = Subtrahera
 menu-modify-intersect = Snitt
+menu-modify-array = Matris
+menu-modify-polar-array = Polär matris

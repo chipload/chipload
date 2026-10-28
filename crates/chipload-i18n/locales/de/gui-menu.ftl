@@ -143,3 +143,5 @@ menu-modify-break = Teilen
 menu-modify-union = Vereinigen
 menu-modify-subtract = Abziehen
 menu-modify-intersect = Schneiden
+menu-modify-array = Anordnung
+menu-modify-polar-array = Kreisanordnung

@@ -143,3 +143,5 @@ menu-modify-break = Break
 menu-modify-union = Union
 menu-modify-subtract = Subtract
 menu-modify-intersect = Intersect
+menu-modify-array = Array
+menu-modify-polar-array = Polar array

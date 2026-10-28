@@ -532,6 +532,20 @@ impl ChiploadApp {
                         t!(ui, "header-intersect-hover"),
                         None,
                     ),
+                    (
+                        super::modify::ModifyTool::Array,
+                        Icon::Array,
+                        t!(ui, "header-array"),
+                        t!(ui, "header-array-hover"),
+                        None,
+                    ),
+                    (
+                        super::modify::ModifyTool::PolarArray,
+                        Icon::PolarArray,
+                        t!(ui, "header-polar-array"),
+                        t!(ui, "header-polar-array-hover"),
+                        None,
+                    ),
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
@@ -847,7 +861,7 @@ fn small_ribbon_button(
     } else {
         Sense::hover()
     };
-    let (rect, response) = ui.allocate_exact_size(vec2(side + 4.0, side), sense);
+    let (rect, response) = ui.allocate_exact_size(vec2(side, side), sense);
     response.widget_info(|| WidgetInfo::selected(WidgetType::Button, enabled, selected, label));
     let visuals = ui.visuals();
     let painter = ui.painter();

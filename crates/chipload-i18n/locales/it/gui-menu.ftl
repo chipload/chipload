@@ -143,3 +143,5 @@ menu-modify-break = Spezza
 menu-modify-union = Unisci
 menu-modify-subtract = Sottrai
 menu-modify-intersect = Interseca
+menu-modify-array = Serie
+menu-modify-polar-array = Serie polare

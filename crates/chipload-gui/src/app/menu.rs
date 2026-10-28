@@ -597,6 +597,16 @@ impl ChiploadApp {
                 t!(ui, "menu-modify-intersect"),
                 t!(ui, "header-intersect-hover"),
             ),
+            (
+                super::modify::ModifyTool::Array,
+                t!(ui, "menu-modify-array"),
+                t!(ui, "header-array-hover"),
+            ),
+            (
+                super::modify::ModifyTool::PolarArray,
+                t!(ui, "menu-modify-polar-array"),
+                t!(ui, "header-polar-array-hover"),
+            ),
         ] {
             if ui
                 .add_enabled(

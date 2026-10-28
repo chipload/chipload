@@ -1171,6 +1171,7 @@ impl ChiploadApp {
                 for line in self.selection_lines() {
                     ui.label(line);
                 }
+                self.array_form(ui);
                 self.selected_shape_ui(ui);
                 self.selected_shapes_place_ui(ui);
                 if ui

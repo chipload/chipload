@@ -114,3 +114,7 @@ header-subtract = Subtract
 header-subtract-hover = Cut the selected closed shapes out of the shape you click next
 header-intersect = Intersect
 header-intersect-hover = Keep what the selected closed shapes all cover
+header-array = Array
+header-array-hover = Copies of the selected drawn shapes in a grid: columns, rows and spacing under Selection
+header-polar-array = Polar array
+header-polar-array-hover = Copies of the selected drawn shapes round a centre you click: count and angle under Selection

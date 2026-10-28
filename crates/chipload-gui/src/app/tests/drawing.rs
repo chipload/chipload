@@ -684,3 +684,30 @@ fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() 
     assert!(app.shape(notch).is_none());
     assert_eq!(app.modify, None);
 }
+
+#[test]
+fn the_array_tools_preview_their_copies_and_create_them() {
+    // docs/specs/drawing-editing.md §6: S2 a circle at 75,80.
+    use super::modify::ModifyTool;
+    let mut app = drawn_part();
+    app.selection = CanvasSelection::Shapes([2].into());
+    let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    // A grid: three columns, the preview shows the two copies.
+    app.start_modify(ModifyTool::Array);
+    app.array.columns = 3;
+    app.array.dx = 30.0;
+    assert_eq!(app.array_outlines().len(), 2);
+    assert!(app.create_array());
+    assert_eq!(count(&app), 5);
+    assert_eq!(app.modify, None);
+    app.commit();
+    // Polar: a click sets the centre (snapped to the grid), four round it.
+    app.selection = CanvasSelection::Shapes([2].into());
+    app.start_modify(ModifyTool::PolarArray);
+    app.modify_click(None, (100.0, 80.0), false, (false, false));
+    assert_eq!(app.array.center, (100.0, 80.0));
+    app.array.count = 4;
+    assert_eq!(app.array_outlines().len(), 3);
+    assert!(app.create_array());
+    assert_eq!(count(&app), 8);
+}

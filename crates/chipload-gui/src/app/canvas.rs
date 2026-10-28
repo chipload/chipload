@@ -279,6 +279,14 @@ impl ChiploadApp {
                 if let (Some((d, _)), Some(at)) = (target, self.cursor) {
                     readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
                 }
+            } else if matches!(
+                self.modify,
+                Some(super::modify::ModifyTool::Array | super::modify::ModifyTool::PolarArray)
+            ) {
+                // An array: its copies, and a polar array's centre marked.
+                self.scene.preview = self.array_outlines();
+                self.scene.snap_mark = (self.modify == Some(super::modify::ModifyTool::PolarArray))
+                    .then_some(self.array.center);
             } else if self
                 .modify
                 .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)

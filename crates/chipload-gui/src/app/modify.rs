@@ -4,9 +4,9 @@
 
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
-    Combine, Corners, Cut, Edited, OffsetSide, break_shape, combine_shapes, cut_shape_corners,
-    extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at, offset_shapes,
-    shape_corners, trim_preview, trim_shape,
+    ARRAY_MOST, Combine, Corners, Cut, Edited, OffsetSide, Polar, array_grid, array_polar,
+    break_shape, combine_shapes, cut_shape_corners, extend_shape, nearer_end, nearest_drawn,
+    nearest_point, offset_at, offset_shapes, shape_corners, trim_preview, trim_shape,
 };
 
 use super::*;
@@ -32,6 +32,47 @@ pub enum ModifyTool {
     Subtract,
     /// Keep what the selected shapes share, at once (§5).
     Intersect,
+    /// Copies of the selection in a grid, set under Selection (§6).
+    Array,
+    /// Copies of the selection round a centre clicked on the canvas (§6).
+    PolarArray,
+}
+
+/// The array tools' values, kept for the session (§6).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArraySettings {
+    pub columns: u32,
+    pub rows: u32,
+    /// Spacing, mm.
+    pub dx: f64,
+    pub dy: f64,
+    /// A polar array's count, centre (mm), sweep (degrees) and whether copies turn.
+    pub count: u32,
+    pub center: Point,
+    pub angle_deg: f64,
+    pub rotate: bool,
+}
+
+impl Default for ArraySettings {
+    fn default() -> Self {
+        Self {
+            columns: 3,
+            rows: 1,
+            dx: 20.0,
+            dy: 20.0,
+            count: 6,
+            center: (0.0, 0.0),
+            angle_deg: 360.0,
+            rotate: true,
+        }
+    }
+}
+
+/// The array the preview shows, kept until the settings, the tool or the shapes change.
+#[derive(Debug, Clone, Default)]
+pub(super) struct ArrayPreview {
+    key: String,
+    pub lines: Vec<Vec<Point>>,
 }
 
 impl ModifyTool {
@@ -329,7 +370,8 @@ impl ChiploadApp {
                     self.cancel_modify();
                 }
             }
-            Some(ModifyTool::Union | ModifyTool::Intersect) | None => {}
+            Some(ModifyTool::PolarArray) => self.array.center = self.snap_world(at, free, false),
+            Some(ModifyTool::Union | ModifyTool::Intersect | ModifyTool::Array) | None => {}
         }
     }
 
@@ -461,7 +503,9 @@ impl ChiploadApp {
     pub fn modify_ready(&self, tool: ModifyTool) -> bool {
         match tool {
             ModifyTool::Union | ModifyTool::Intersect => self.selected_drawn().len() >= 2,
-            ModifyTool::Subtract => !self.selected_drawn().is_empty(),
+            ModifyTool::Subtract | ModifyTool::Array | ModifyTool::PolarArray => {
+                !self.selected_drawn().is_empty()
+            }
             _ => true,
         }
     }
@@ -504,6 +548,124 @@ impl ChiploadApp {
             Err(_) => Vec::new(),
         };
         self.take_edit(result, &left)
+    }
+
+    /// The array the tool would make of the selection now.
+    fn array_result(&self, job: &chipload_job::Job) -> Option<Result<Edited, PipelineError>> {
+        let ids = self.selected_drawn();
+        if ids.is_empty() {
+            return None;
+        }
+        let a = &self.array;
+        Some(match self.modify? {
+            ModifyTool::Array => array_grid(job, &ids, a.columns, a.rows, (a.dx, a.dy)),
+            ModifyTool::PolarArray => array_polar(
+                job,
+                &ids,
+                Polar {
+                    count: a.count,
+                    center: a.center,
+                    angle_deg: a.angle_deg,
+                    rotate: a.rotate,
+                },
+            ),
+            _ => return None,
+        })
+    }
+
+    /// The copies the array tool would add, for the preview.
+    pub(super) fn array_outlines(&mut self) -> Vec<Vec<Point>> {
+        let ids = self.selected_drawn();
+        let shapes: Vec<_> = ids.iter().map(|&id| self.shape(id)).collect();
+        let key = format!("{:?}{:?}{shapes:?}", self.modify, self.array);
+        if self.array_preview.key != key {
+            let lines = self
+                .edit
+                .as_ref()
+                .and_then(|edit| self.array_result(&edit.settings))
+                .and_then(Result::ok)
+                .map(|edited| {
+                    edited
+                        .job
+                        .drawing
+                        .shapes
+                        .iter()
+                        .filter(|s| edited.new_ids.contains(&s.id))
+                        .flat_map(|s| crate::draw::outline(&s.geometry))
+                        .collect()
+                })
+                .unwrap_or_default();
+            self.array_preview = ArrayPreview { key, lines };
+        }
+        self.array_preview.lines.clone()
+    }
+
+    /// Add the array's copies, as one undo step; the originals and the copies are
+    /// selected and the tool ends.
+    pub fn create_array(&mut self) -> bool {
+        let ids = self.selected_drawn();
+        let Some(job) = self.job_with_operations() else {
+            return false;
+        };
+        let Some(result) = self.array_result(&job) else {
+            self.set_status(t!(self, "modify-array-pick"), STATUS_SECONDS);
+            return false;
+        };
+        let done = self.take_edit(result, &ids);
+        if done {
+            self.cancel_modify();
+        }
+        done
+    }
+
+    /// Under Selection while an array tool is active: its values and Create.
+    pub(super) fn array_form(&mut self, ui: &mut egui::Ui) {
+        let polar = match self.modify {
+            Some(ModifyTool::Array) => false,
+            Some(ModifyTool::PolarArray) => true,
+            _ => return,
+        };
+        let a = &mut self.array;
+        egui::Grid::new("array-form").num_columns(2).show(ui, |ui| {
+            if polar {
+                ui.label(t!(ui, "array-count"));
+                ui.add(egui::DragValue::new(&mut a.count).range(2..=ARRAY_MOST));
+                ui.end_row();
+                ui.label(t!(ui, "array-center"));
+                ui.horizontal(|ui| {
+                    ui.add(crate::units::length(&mut a.center.0));
+                    ui.add(crate::units::length(&mut a.center.1));
+                });
+                ui.end_row();
+                ui.label(t!(ui, "array-angle"));
+                ui.add(
+                    egui::DragValue::new(&mut a.angle_deg)
+                        .range(-360.0..=360.0)
+                        .suffix("°"),
+                )
+                .on_hover_text(t!(ui, "array-angle-hover"));
+                ui.end_row();
+                ui.label("");
+                ui.checkbox(&mut a.rotate, t!(ui, "array-rotate"));
+                ui.end_row();
+            } else {
+                ui.label(t!(ui, "array-columns"));
+                ui.add(egui::DragValue::new(&mut a.columns).range(1..=ARRAY_MOST));
+                ui.end_row();
+                ui.label(t!(ui, "array-rows"));
+                ui.add(egui::DragValue::new(&mut a.rows).range(1..=ARRAY_MOST));
+                ui.end_row();
+                ui.label(t!(ui, "array-dx"));
+                ui.add(crate::units::length(&mut a.dx));
+                ui.end_row();
+                ui.label(t!(ui, "array-dy"));
+                ui.add(crate::units::length(&mut a.dy));
+                ui.end_row();
+            }
+        });
+        if ui.button(t!(ui, "array-create")).clicked() {
+            self.create_array();
+        }
     }
 
     /// Whether contour `picked` is a drawn shape outside the selection.
@@ -562,6 +724,11 @@ impl ChiploadApp {
                 t!(self, "modify-combine-pick")
             }
             ModifyTool::Subtract => t!(self, "modify-subtract-status"),
+            ModifyTool::Array | ModifyTool::PolarArray if self.selected_drawn().is_empty() => {
+                t!(self, "modify-array-pick")
+            }
+            ModifyTool::Array => t!(self, "modify-array-status"),
+            ModifyTool::PolarArray => t!(self, "modify-polar-status"),
             ModifyTool::Union | ModifyTool::Intersect => return None,
         })
     }

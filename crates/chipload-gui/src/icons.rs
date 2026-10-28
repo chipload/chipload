@@ -36,6 +36,8 @@ pub enum Icon {
     Union,
     Subtract,
     Intersect,
+    Array,
+    PolarArray,
     Paths,
     Profile,
     Pocket,
@@ -213,6 +215,24 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.closed(&points);
             dotted_arc(&pen, LEFT, PI - 2.0 * third, PI + 2.0 * third);
             dotted_arc(&pen, RIGHT, -2.0 * third, 2.0 * third);
+        }
+        // Copies in a grid, and round a centre.
+        Icon::Array => {
+            for (x, y) in [(0.3, 0.3), (0.7, 0.3), (0.3, 0.7), (0.7, 0.7)] {
+                pen.closed(&[
+                    (x - 0.13, y - 0.13),
+                    (x + 0.13, y - 0.13),
+                    (x + 0.13, y + 0.13),
+                    (x - 0.13, y + 0.13),
+                ]);
+            }
+        }
+        Icon::PolarArray => {
+            pen.dot((0.5, 0.5), 0.04);
+            for k in 0..6 {
+                let t = k as f32 * TAU / 6.0;
+                pen.circle((0.5 + 0.32 * t.cos(), 0.5 + 0.32 * t.sin()), 0.09);
+            }
         }
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)

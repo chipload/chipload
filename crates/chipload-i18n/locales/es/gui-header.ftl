@@ -114,3 +114,7 @@ header-subtract = Restar
 header-subtract-hover = Recortar las formas cerradas seleccionadas de la forma que pulse a continuación
 header-intersect = Intersecar
 header-intersect-hover = Conservar lo que cubren todas las formas cerradas seleccionadas
+header-array = Matriz
+header-array-hover = Copias de las formas dibujadas seleccionadas en cuadrícula: columnas, filas y separación en Selección
+header-polar-array = Matriz polar
+header-polar-array-hover = Copias de las formas dibujadas seleccionadas alrededor de un centro que pulse: número y ángulo en Selección
