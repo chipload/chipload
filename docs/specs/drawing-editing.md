@@ -144,6 +144,14 @@ chipload shape intersect P IDS
   smallest input's; a subtraction's at most the base's).
 - **GUI:** select the shapes, then *Union*, *Subtract* (the shape selected first is the
   base, as in *the first selected shape keeps its id*) or *Intersect*.
+- *Implemented:* shapes are combined one at a time into a region of outlines and holes
+  (`chipload_draw::boolean`, cavalier's boolean of two polylines); a subtraction joins the
+  cutters first, so a ring of them cuts a ring and the base inside it stays. A result that
+  is one of the inputs unchanged keeps that shape as drawn, with its id (a hole cut where
+  a circle lies, an intersection that is the inner shape); the first input's id goes to
+  the first other result only when the first input isn't kept so. Flat outlines the
+  library returns along a side two shapes share are left out. On the command line the
+  flagged operations make the exit code 1, as deleting does.
 
 ## 6. Arrays
 

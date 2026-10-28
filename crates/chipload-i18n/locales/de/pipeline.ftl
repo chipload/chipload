@@ -480,3 +480,14 @@ pipeline-extend-not-straight = nur ein gerades Ende von S{ $id } lässt sich ver
 pipeline-extend-nothing-ahead = vor diesem Ende von S{ $id } liegt nichts
 pipeline-extend-closed = S{ $id } ist geschlossen: es hat kein Ende zum Verlängern
 pipeline-break-at-end = das ist ein Ende von S{ $id }: dort gibt es nichts zu brechen
+pipeline-combine-two = zum Kombinieren braucht es zwei Formen oder mehr
+pipeline-combine-open = S{ $id } ist offen: nur geschlossene Formen lassen sich kombinieren
+pipeline-combine-empty = { $op ->
+    [subtract] von S{ $id } bleibt nichts übrig: die anderen Formen decken sie ganz ab
+   *[other] die Formen haben keinen gemeinsamen Teil: es bleibt nichts übrig
+}
+pipeline-combine-failed = die Formen ließen sich nicht kombinieren: { $why }
+pipeline-shape-gone = S{ $id } gibt es nicht mehr: { $ops ->
+    [one] Operation { $operations } hat sie verwendet; wählen Sie ihre Geometrie neu
+   *[other] die Operationen { $operations } haben sie verwendet; wählen Sie ihre Geometrie neu
+}.

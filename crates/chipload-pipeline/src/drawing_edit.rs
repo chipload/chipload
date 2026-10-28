@@ -12,7 +12,9 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, Shape};
 
 use crate::PipelineError;
-use crate::shapes::{add_shape, no_shape, reshape};
+use crate::shapes::{add_shape, delete_shape, no_shape, reshape};
+pub use chipload_draw::boolean::Combine;
+use chipload_draw::boolean::{self, BooleanError};
 pub use chipload_draw::corner::Cut;
 use chipload_draw::corner::{self, CornerError, Poly};
 pub use chipload_draw::trim::End;
@@ -562,6 +564,98 @@ pub fn nearer_end(job: &Job, id: u64, at: (f64, f64)) -> Option<End> {
     })
 }
 
+// -- union, subtract, intersect (§5)
+
+/// Combine closed drawn shapes `ids` (two or more; for a subtraction the first is cut by the
+/// others). A result that is one of the shapes unchanged keeps it as drawn, with its id;
+/// the first other result takes the first shape's id (when that shape isn't kept as it
+/// was), the rest are new shapes on its layer. The shapes not kept are removed, and the
+/// operations that used them are flagged.
+pub fn combine_shapes(job: &Job, op: Combine, ids: &[u64]) -> Result<Edited, PipelineError> {
+    for (i, id) in ids.iter().enumerate() {
+        if ids[..i].contains(id) {
+            return Err(refused(Message::new("pipeline-shape-twice").arg("id", *id)));
+        }
+    }
+    let shapes: Vec<Shape> = ids
+        .iter()
+        .map(|&id| drawn(job, id).cloned())
+        .collect::<Result<_, _>>()?;
+    let chains: Vec<Chain> = shapes.iter().map(chain_of).collect();
+    let first = shapes.first().map(|s| s.id).unwrap_or_default();
+    let pieces = boolean::combine(op, &chains).map_err(|e| match e {
+        BooleanError::TooFew => refused(Message::new("pipeline-combine-two")),
+        BooleanError::Open(i) => refused(Message::new("pipeline-combine-open").arg("id", ids[i])),
+        BooleanError::Empty => refused(
+            Message::new("pipeline-combine-empty")
+                .arg("id", first)
+                .arg("op", combine_word(op)),
+        ),
+        BooleanError::Library => refused(
+            Message::new("pipeline-combine-failed").arg("why", "the boolean library failed"),
+        ),
+        BooleanError::Unverified(why) => {
+            refused(Message::new("pipeline-combine-failed").arg("why", why))
+        }
+    })?;
+    let kept: Vec<u64> = pieces
+        .iter()
+        .filter_map(|p| p.from)
+        .map(|i| ids[i])
+        .collect();
+    let mut changed = pieces.iter().filter(|p| p.from.is_none()).map(|p| &p.chain);
+    let mut out = job.clone();
+    let mut survivors = kept.clone();
+    if !kept.contains(&first)
+        && let Some(chain) = changed.next()
+    {
+        out = reshape(&out, first, polyline_of(chain))?;
+        survivors.push(first);
+    }
+    let mut new_ids = Vec::new();
+    let mut notes = Vec::new();
+    let rest: Vec<Geometry> = changed.map(polyline_of).collect();
+    if !rest.is_empty() {
+        out = add_all(out, &shapes[0].layer, rest, &mut new_ids, &mut notes)?;
+    }
+    for &id in ids.iter().filter(|id| !survivors.contains(id)) {
+        let (next, _) = delete_shape(&out, id)?;
+        out = next;
+        notes.extend(gone_note(job, id));
+    }
+    Ok(Edited {
+        job: out,
+        new_ids,
+        notes,
+    })
+}
+
+fn combine_word(op: Combine) -> &'static str {
+    match op {
+        Combine::Union => "union",
+        Combine::Subtract => "subtract",
+        Combine::Intersect => "intersect",
+    }
+}
+
+/// A note naming the operations that selected shape `id`, which is gone: they are flagged
+/// until their geometry is chosen again.
+fn gone_note(job: &Job, id: u64) -> Option<Message> {
+    let ops: Vec<String> = job
+        .operations
+        .iter()
+        .enumerate()
+        .filter(|(_, op)| op.select().shapes.as_ref().is_some_and(|s| s.contains(&id)))
+        .map(|(i, _)| (i + 1).to_string())
+        .collect();
+    (!ops.is_empty()).then(|| {
+        Message::new("pipeline-shape-gone")
+            .arg("id", id)
+            .arg("operations", ops.join(", "))
+            .arg("ops", ops.len())
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -698,5 +792,87 @@ mod tests {
         assert!(points[1][0] > 100.0 && points[1][0] < 125.0);
         let broken = break_shape(&job, id, (60.0, 80.0)).unwrap();
         assert_eq!(broken.new_ids.len(), 1);
+    }
+
+    fn ids(job: &Job) -> Vec<u64> {
+        job.drawing.shapes.iter().map(|s| s.id).collect()
+    }
+
+    #[test]
+    fn holes_cut_where_they_lie_leave_every_shape_as_drawn() {
+        // S2 and S3 lie inside S1: cut out of it they are its holes, as they were.
+        let job = drawn_part();
+        let edited = combine_shapes(&job, Combine::Subtract, &[1, 2, 3]).unwrap();
+        assert_eq!(edited.job.drawing.shapes, job.drawing.shapes);
+        assert!(edited.new_ids.is_empty() && edited.notes.is_empty());
+    }
+
+    #[test]
+    fn a_union_keeps_the_first_shapes_id_and_flags_the_others_operations() {
+        let job = drawn_part();
+        let (job, s4) = add_shape(
+            &job,
+            "drawn",
+            Geometry::Circle {
+                center: [87.0, 80.0],
+                radius: 5.0,
+            },
+        )
+        .unwrap();
+        let edited = combine_shapes(&job, Combine::Union, &[s4, 2]).unwrap();
+        assert_eq!(ids(&edited.job), [1, 3, s4]);
+        assert!(matches!(
+            geometry(&edited.job, s4),
+            Geometry::Polyline { closed: true, .. }
+        ));
+        // Operation 1 profiled S2 (and S3).
+        assert_eq!(edited.notes.len(), 1);
+        assert_eq!(edited.notes[0].id, "pipeline-shape-gone");
+    }
+
+    #[test]
+    fn an_intersection_that_is_one_of_the_shapes_keeps_that_shape() {
+        // S2 lies inside S1: their intersection is S2, unchanged; S1 goes, and operation 2
+        // that profiled it is flagged.
+        let job = drawn_part();
+        let edited = combine_shapes(&job, Combine::Intersect, &[1, 2]).unwrap();
+        assert_eq!(ids(&edited.job), [2, 3]);
+        assert_eq!(geometry(&edited.job, 2), geometry(&job, 2));
+        assert_eq!(edited.notes.len(), 1);
+    }
+
+    #[test]
+    fn combining_refuses_open_and_twice_given_shapes() {
+        let job = drawn_part();
+        let (job, open) = add_shape(
+            &job,
+            "drawn",
+            Geometry::Polyline {
+                closed: false,
+                points: vec![[0.0, 0.0], [10.0, 0.0]],
+                bulges: vec![0.0],
+            },
+        )
+        .unwrap();
+        let key = |r: Result<Edited, PipelineError>| match r {
+            Err(PipelineError::Job(m)) => m.id,
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(
+            key(combine_shapes(&job, Combine::Union, &[1, open])),
+            "pipeline-combine-open"
+        );
+        assert_eq!(
+            key(combine_shapes(&job, Combine::Union, &[1, 1])),
+            "pipeline-shape-twice"
+        );
+        assert_eq!(
+            key(combine_shapes(&job, Combine::Union, &[1])),
+            "pipeline-combine-two"
+        );
+        assert_eq!(
+            key(combine_shapes(&job, Combine::Subtract, &[2, 1])),
+            "pipeline-combine-empty"
+        );
     }
 }

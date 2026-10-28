@@ -1588,3 +1588,55 @@ fn move_turn_and_scale_drawn_shapes() {
         text(&refused.stderr)
     );
 }
+
+#[test]
+fn drawn_shapes_are_united_subtracted_and_intersected_from_the_command_line() {
+    // docs/specs/drawing-editing.md §5. S1 a rectangle with S2 (circle) and S3 (triangle)
+    // inside; operation 1 profiles S2 and S3, operation 2 S1.
+    let dir = temp_dir("combine");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+
+    // A circle overlapping S2: united, S4 takes the result and S2 goes, so operation 1 is
+    // flagged (written, exit code 1).
+    let (code, ..) = run(&[
+        "shape", "add", p, "circle", "--center", "87,80", "--radius", "5",
+    ]);
+    assert_eq!(code, Some(0));
+    let (code, out, _) = run(&["shape", "union", p, "4", "2"]);
+    assert_eq!(code, Some(1), "{out}");
+    assert!(out.contains("Removed shapes S2."), "{out}");
+    assert!(out.contains("S2 is gone: operation 1 used it"), "{out}");
+    let (_, listed, _) = run(&["inspect", p]);
+    assert!(listed.contains("Shapes: 3 drawn"), "{listed}");
+
+    // A notch out of S1 by a circle on its edge: S1 keeps its id, the cutter goes.
+    run(&[
+        "shape", "add", p, "circle", "--center", "160,80", "--radius", "10",
+    ]);
+    let (code, out, err) = run(&["shape", "subtract", p, "1", "5", "--json"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("\"ids\":[]"), "{out}");
+
+    // Refusals: one shape, an open one, nothing in common, nothing left.
+    let (code, ..) = run(&["shape", "intersect", p, "1"]);
+    assert_eq!(code, Some(2));
+    run(&[
+        "shape", "add", p, "polyline", "--points", "0,0 10,0", "--open",
+    ]);
+    let (code, _, err) = run(&["shape", "union", p, "1", "6"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("S6 is open"), "{err}");
+    let (code, _, err) = run(&["shape", "intersect", p, "3", "4"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no part in common"), "{err}");
+    let (code, _, err) = run(&["shape", "subtract", p, "3", "1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("nothing of S3 is left"), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -470,3 +470,14 @@ pipeline-extend-not-straight = only a straight end of S{ $id } can be extended
 pipeline-extend-nothing-ahead = nothing lies ahead of that end of S{ $id }
 pipeline-extend-closed = S{ $id } is closed: it has no end to extend
 pipeline-break-at-end = that is an end of S{ $id }: there is nothing to break
+pipeline-combine-two = combining needs two shapes or more
+pipeline-combine-open = S{ $id } is open: only closed shapes can be combined
+pipeline-combine-empty = { $op ->
+    [subtract] nothing of S{ $id } is left: the other shapes cover all of it
+   *[other] the shapes have no part in common: nothing is left
+}
+pipeline-combine-failed = the shapes couldn't be combined: { $why }
+pipeline-shape-gone = S{ $id } is gone: { $ops ->
+    [one] operation { $operations } used it; choose its geometry again
+   *[other] operations { $operations } used it; choose their geometry again
+}.

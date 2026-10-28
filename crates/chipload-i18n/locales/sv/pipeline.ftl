@@ -477,3 +477,14 @@ pipeline-extend-not-straight = bara en rak ände av S{ $id } kan förlängas
 pipeline-extend-nothing-ahead = ingenting ligger framför den änden av S{ $id }
 pipeline-extend-closed = S{ $id } är sluten: den har ingen ände att förlänga
 pipeline-break-at-end = det är en ände av S{ $id }: det finns inget att bryta
+pipeline-combine-two = det behövs två former eller fler för att kombinera
+pipeline-combine-open = S{ $id } är öppen: bara slutna former kan kombineras
+pipeline-combine-empty = { $op ->
+    [subtract] ingenting av S{ $id } blir kvar: de andra formerna täcker hela den
+   *[other] formerna har ingen del gemensam: ingenting blir kvar
+}
+pipeline-combine-failed = formerna kunde inte kombineras: { $why }
+pipeline-shape-gone = S{ $id } finns inte längre: { $ops ->
+    [one] operation { $operations } använde den; välj dess geometri igen
+   *[other] operationerna { $operations } använde den; välj deras geometri igen
+}.

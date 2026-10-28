@@ -100,6 +100,17 @@ DXF first, [Explode](several.md)).
   - `chipload shape break P ID --at X,Y` splits an open shape there, or opens a closed
     one.
   - The shape keeps its id for the first piece, so operations follow it.
+- **Union**, **Subtract** and **Intersect** combine closed drawn shapes, with true arcs
+  where they have arcs: a union is everything any of them covers, a subtraction the first
+  shape with the others cut out of it, an intersection what they all cover. The result
+  takes the first shape's number, so operations that cut it follow; the other shapes go,
+  and operations that cut those are flagged until you choose their geometry again. A
+  result that is one of the shapes unchanged (a hole cut where a circle already lies, a
+  shape a union swallows whole) stays as drawn, a circle still a circle; anything else
+  becomes a polyline. A ring of shapes united gives the outline and the hole inside as
+  two shapes. Open shapes are refused, and so is a result with nothing left. On the
+  command line: `chipload shape union P 1 2 3`, `chipload shape subtract P 1 4 5` (4
+  and 5 cut out of 1), `chipload shape intersect P 1 2`.
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 

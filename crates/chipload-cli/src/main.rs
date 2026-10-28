@@ -26,8 +26,8 @@ use chipload_job::{
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::drawing_edit::{
-    Corners, Cut, End, OffsetSide, break_shape, cut_shape_corners, extend_shape, offset_shapes,
-    trim_shape,
+    Combine, Corners, Cut, End, OffsetSide, break_shape, combine_shapes, cut_shape_corners,
+    extend_shape, offset_shapes, trim_shape,
 };
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
@@ -884,6 +884,44 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Join closed drawn shapes into one: everything any of them covers. The result takes
+    /// the first shape's id; the others go (docs/specs/drawing-editing.md §5).
+    Union {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids, two or more (as `inspect` lists them, without the S).
+        #[arg(required = true, num_args = 2..)]
+        ids: Vec<u64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Cut closed drawn shapes out of another: BASE keeps its id, the cutters go
+    /// (docs/specs/drawing-editing.md §5).
+    Subtract {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape cut (as `inspect` lists it, without the S).
+        base: u64,
+        /// The shapes cut out of it.
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// What closed drawn shapes have in common: the result takes the first shape's id; the
+    /// others go (docs/specs/drawing-editing.md §5).
+    Intersect {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids, two or more (as `inspect` lists them, without the S).
+        #[arg(required = true, num_args = 2..)]
+        ids: Vec<u64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Cut corners of a drawn shape straight across, a distance back along each side; it
     /// keeps its id (docs/specs/drawing-editing.md §3).
     Chamfer {
@@ -1729,6 +1767,43 @@ fn shape_names(ids: &[u64]) -> String {
         .join(", ")
 }
 
+/// `shape union`, `subtract` or `intersect`: the project and what to print; the new shapes'
+/// ids and the number of operations flagged (they used a shape that is gone).
+fn combined(
+    job: &Job,
+    op: Combine,
+    ids: &[u64],
+    new_ids: &mut Option<Vec<u64>>,
+    flagged: &mut usize,
+) -> Result<(Job, Vec<String>), PipelineError> {
+    let edited = combine_shapes(job, op, ids)?;
+    let gone: Vec<u64> = ids
+        .iter()
+        .copied()
+        .filter(|id| !edited.job.drawing.shapes.iter().any(|s| s.id == *id))
+        .collect();
+    let mut lines = Vec::new();
+    if !gone.is_empty() {
+        lines.push(format!("Removed shapes {}.", shape_names(&gone)));
+    }
+    if !edited.new_ids.is_empty() {
+        lines.push(format!("Added shapes {}.", shape_names(&edited.new_ids)));
+    }
+    *flagged = job
+        .operations
+        .iter()
+        .filter(|op| {
+            op.select()
+                .shapes
+                .as_ref()
+                .is_some_and(|s| s.iter().any(|id| gone.contains(id)))
+        })
+        .count();
+    lines.extend(edited.notes.iter().map(Message::english));
+    *new_ids = Some(edited.new_ids);
+    Ok((edited.job, lines))
+}
+
 /// `about`, or the middle of the box round shapes `ids`.
 fn about_point(
     job: &Job,
@@ -1777,6 +1852,15 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             project, output, ..
         }
         | ShapeAction::Break {
+            project, output, ..
+        }
+        | ShapeAction::Union {
+            project, output, ..
+        }
+        | ShapeAction::Subtract {
+            project, output, ..
+        }
+        | ShapeAction::Intersect {
             project, output, ..
         }
         | ShapeAction::Move {
@@ -1914,6 +1998,26 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             lines.extend(edited.notes.iter().map(Message::english));
             (edited.job, lines)
         }),
+        ShapeAction::Union { ids, .. } => {
+            combined(&job, Combine::Union, &ids, &mut new_ids, &mut flagged_ops)
+        }
+        ShapeAction::Subtract { base, ids, .. } => {
+            let all: Vec<u64> = std::iter::once(base).chain(ids).collect();
+            combined(
+                &job,
+                Combine::Subtract,
+                &all,
+                &mut new_ids,
+                &mut flagged_ops,
+            )
+        }
+        ShapeAction::Intersect { ids, .. } => combined(
+            &job,
+            Combine::Intersect,
+            &ids,
+            &mut new_ids,
+            &mut flagged_ops,
+        ),
         ShapeAction::Move { ids, dx, dy, .. } => {
             transform_shapes(&job, &ids, (0.0, 0.0), (dx, dy), 1.0, 0.0).map(|job| {
                 let text = format!("Moved shapes {}.", shape_names(&ids));

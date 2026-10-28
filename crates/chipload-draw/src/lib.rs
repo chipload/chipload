@@ -4,6 +4,7 @@
 //! no project model; `chipload-pipeline` applies results to a project.
 //! See docs/specs/drawing-roadmap.md and drawing-input.md.
 
+pub mod boolean;
 pub mod construct;
 pub mod corner;
 pub mod intersect;

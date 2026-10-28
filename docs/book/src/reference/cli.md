@@ -565,6 +565,49 @@ chipload shape break <PROJECT> <ID> [OPTIONS]
 | `--at <AT>` | The point, "X,Y". Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape union`
+
+Join closed drawn shapes into one: everything any of them covers. The result takes the first shape's id; the others go (docs/specs/drawing-editing.md §5)
+
+```text
+chipload shape union <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids, two or more (as `inspect` lists them, without the S) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape subtract`
+
+Cut closed drawn shapes out of another: BASE keeps its id, the cutters go (docs/specs/drawing-editing.md §5)
+
+```text
+chipload shape subtract <PROJECT> <BASE> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<BASE>` | The shape cut (as `inspect` lists it, without the S) |
+| `<IDS>` | The shapes cut out of it. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape intersect`
+
+What closed drawn shapes have in common: the result takes the first shape's id; the others go (docs/specs/drawing-editing.md §5)
+
+```text
+chipload shape intersect <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids, two or more (as `inspect` lists them, without the S) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape chamfer`
 
 Cut corners of a drawn shape straight across, a distance back along each side; it keeps its id (docs/specs/drawing-editing.md §3)

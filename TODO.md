@@ -129,7 +129,8 @@ it's built (see `CLAUDE.md`).
   Next: phase 2 (offset, fillet, trim, booleans, arrays, align; spec drafted
   2026-10-27, docs/specs/drawing-editing.md, approved: offset (671408d) and fillet and
   chamfer (64acaef) done; trim, extend and break done (75fd978 command line, canvas
-  tools 2026-10-28); next booleans, arrays, align, and the
+  tools 2026-10-28); union, subtract and intersect on the command line (2026-10-28),
+  the GUI next; then arrays, align, and the
   spec's golden part drawn with these commands alone), then 3
   (SVG import through `usvg`, added 2026-10-27), 4 (parameters), 5 (DXF export,
   construction lines), each with its own spec.
