@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportError, shapes_from_file};
-use chipload_job::edit::{Handle, handles, try_drag};
+use chipload_job::edit::{Handle, SegmentDrag, handles, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
@@ -240,6 +240,9 @@ struct HandleDrag {
     handle: Handle,
     layer: String,
     start: Geometry,
+    /// From the point grabbed to the handle, mm: zero on a handle, the way to the
+    /// segment's middle when a polyline's line is grabbed elsewhere.
+    grab: Point,
 }
 
 /// The material-removal simulation of the last result, and what playback made of it.

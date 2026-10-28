@@ -130,7 +130,7 @@ menu-status-work = (coord. pièce X { $x }  Y { $y })
 menu-snapped-to = — accroché à { $target }
 menu-generating = Calcul…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; Shift sur un milieu courbe le segment)
+menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; sur un segment, Ctrl insère un point, Shift le courbe)
 menu-status-hint = Cliquer un contour pour le sélectionner · Ctrl+clic ajoute ou retire · clic droit sélectionne son calque · Esc désélectionne
 menu-join-ends = Joindre les extrémités…
 menu-join-ends-hover = Joindre en une seule les polylignes dessinées ouvertes dont les extrémités se touchent presque : celles sélectionnées, ou toutes si aucune ne l'est

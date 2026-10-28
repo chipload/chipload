@@ -130,7 +130,7 @@ menu-status-work = (work X { $x }  Y { $y })
 menu-snapped-to = — snapped to { $target }
 menu-generating = Generating…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; Shift on a middle bends the segment)
+menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; on a segment Ctrl inserts a point, Shift bends it)
 menu-status-hint = Click a contour to select it · Ctrl+click adds or removes · right-click selects its layer · Esc clears
 menu-join-ends = Join ends…
 menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one: the selected ones, or all when none is selected

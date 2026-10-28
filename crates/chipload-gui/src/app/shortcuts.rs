@@ -298,6 +298,11 @@ pub(super) fn others(src: &impl crate::i18n::Lang) -> Vec<(Group, String, String
         ),
         (
             Drawing,
+            t!(src, "shortcuts-ctrl-drag-middle"),
+            t!(src, "shortcuts-ctrl-drag-middle-what"),
+        ),
+        (
+            Drawing,
             t!(src, "shortcuts-shift-drag-middle"),
             t!(src, "shortcuts-shift-drag-middle-what"),
         ),

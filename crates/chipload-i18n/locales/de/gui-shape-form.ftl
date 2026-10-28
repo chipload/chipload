@@ -22,7 +22,7 @@ shape-form-delete-hover = Bearbeitungen, die sie verwenden, werden markiert, bis
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = Auf der Zeichenfläche: ein Quadrat ziehen verschiebt einen Punkt · einen runden Mittelgriff ziehen fügt dort einen neuen Punkt ein · Shift+Ziehen an einem Mittelgriff biegt das Segment zu einem Bogen (Wölbung) · der gestrichelte Rahmen verschiebt, dreht und skaliert sie · Alt: ohne Fang
+shape-form-polyline-help = Auf der Zeichenfläche: ein Quadrat ziehen verschiebt einen Punkt · eine Linie (oder ihren runden Mittelgriff) ziehen verschiebt dieses Segment · Strg+Ziehen fügt dort einen neuen Punkt ein · Shift+Ziehen biegt das Segment zu einem Bogen (Wölbung) · der gestrichelte Rahmen verschiebt, dreht und skaliert sie · Alt: ohne Fang
 
 shape-form-corner-radius = Eckenradius
 shape-form-corner-radius-hover = Rundet alle vier Ecken; höchstens die Hälfte der kürzeren Seite

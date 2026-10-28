@@ -82,8 +82,8 @@ fn a_rectangle_gets_rounded_corners_from_its_form() {
             opposite.1 + (far.1 - opposite.1) * t,
         )
     };
-    app.drag_handle_to(toward(0.9), false);
-    app.drag_handle_to(toward(0.1), false);
+    app.drag_handle_to(toward(0.9), SegmentDrag::Move);
+    app.drag_handle_to(toward(0.1), SegmentDrag::Move);
     let why = app.shape_draft.as_ref().unwrap().error.clone().unwrap();
     assert!(why.contains("corner_radius"), "{why}");
     app.end_handle_drag();

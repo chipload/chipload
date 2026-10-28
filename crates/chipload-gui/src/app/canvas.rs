@@ -138,6 +138,9 @@ impl ChiploadApp {
                 self.start_handle_drag(handle);
             } else if let Some(handle) = on_box_handle(origin) {
                 self.start_box_drag(handle);
+            } else if let Some((i, at)) = self.polyline_segment_at(origin) {
+                // A selected polyline's line: that segment moves (the user, 2026-10-28).
+                self.start_segment_drag(i, at);
             } else {
                 self.drag.start = self.start_marker_at(origin);
                 if self.drag.start.is_none() {
@@ -182,7 +185,15 @@ impl ChiploadApp {
                 && let Some(pos) = response.interact_pointer_pos()
             {
                 let to = self.snap_world(self.view.to_world(pos), alt, true);
-                self.drag_handle_to(to, shift);
+                // Ctrl: a new point; Shift: bend; plain: move the segment.
+                let segment = if ctrl {
+                    SegmentDrag::Insert
+                } else if shift {
+                    SegmentDrag::Bend
+                } else {
+                    SegmentDrag::Move
+                };
+                self.drag_handle_to(to, segment);
             }
         } else if self.dragging_box() {
             if response.dragged()
@@ -919,6 +930,25 @@ impl ChiploadApp {
     }
 
     pub fn start_handle_drag(&mut self, handle: Handle) {
+        self.start_grab(handle, (0.0, 0.0));
+    }
+
+    /// Drag the selected polyline's segment `i`, grabbed at `at` (drawing coordinates)
+    /// anywhere along it.
+    pub fn start_segment_drag(&mut self, i: usize, at: Point) {
+        let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
+            return;
+        };
+        let Some(&(_, middle)) = handles(&shape.geometry, 0.0)
+            .iter()
+            .find(|(h, _)| *h == Handle::Middle(i))
+        else {
+            return;
+        };
+        self.start_grab(Handle::Middle(i), (middle[0] - at.0, middle[1] - at.1));
+    }
+
+    fn start_grab(&mut self, handle: Handle, grab: Point) {
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
             return;
         };
@@ -926,16 +956,60 @@ impl ChiploadApp {
             handle,
             layer: shape.layer.clone(),
             start: shape.geometry.clone(),
+            grab,
         });
     }
 
-    /// Move the dragged handle to `to`. A position that would make the shape invalid
-    /// leaves it as it was last valid; the form says why.
-    pub fn drag_handle_to(&mut self, to: Point, bend: bool) {
+    /// The segment of the selected polyline (with its handles showing) under screen point
+    /// `pos`, and where on it in drawing coordinates.
+    pub(super) fn polyline_segment_at(&self, pos: egui::Pos2) -> Option<(usize, Point)> {
+        if !self.polyline_selected() {
+            return None;
+        }
+        let shape = self.selected_shape().and_then(|id| self.shape(id))?;
+        let chipload_job::Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } = &shape.geometry
+        else {
+            return None;
+        };
+        let n = points.len();
+        let at = self.view.to_world(pos);
+        (0..chipload_job::polyline_segment_count(n, *closed))
+            .filter_map(|i| {
+                let (a, b) = (points[i], points[(i + 1) % n]);
+                let (a, b) = ((a[0], a[1]), (b[0], b[1]));
+                let bulge = bulges.get(i).copied().unwrap_or(0.0);
+                let segment = match chipload_core::primitives::Arc::from_bulge(a, b, bulge) {
+                    Some(arc) => chipload_core::primitives::Primitive::Arc(arc),
+                    None => chipload_core::primitives::Primitive::Line(
+                        chipload_core::primitives::Line { start: a, end: b },
+                    ),
+                };
+                let near = chipload_draw::intersect::nearest_on(&segment, at);
+                let d = self.view.to_screen(near).distance(pos);
+                (d <= crate::view::PICK_TOLERANCE_PX).then_some((d, i))
+            })
+            .min_by_key(|&(d, i)| (Ordered(f64::from(d)), i))
+            .map(|(_, i)| (i, at))
+    }
+
+    /// Move the dragged handle with the pointer at `to`. For a polyline segment, `segment`
+    /// says whether it moves, gets a new point or bends. A position that would make the
+    /// shape invalid leaves it as it was last valid; the form says why.
+    pub fn drag_handle_to(&mut self, to: Point, segment: SegmentDrag) {
         let Some(drag) = self.drag.handle.clone() else {
             return;
         };
-        let refused = match try_drag(&drag.start, drag.handle, [to.0, to.1], bend) {
+        // A new point or a bend goes through the pointer; a moved segment keeps where it
+        // was grabbed under the pointer.
+        let to = match segment {
+            SegmentDrag::Move => (to.0 + drag.grab.0, to.1 + drag.grab.1),
+            SegmentDrag::Insert | SegmentDrag::Bend => to,
+        };
+        let refused = match try_drag(&drag.start, drag.handle, [to.0, to.1], segment) {
             Ok(geometry) => self.set_selected_shape(&drag.layer, geometry).err(),
             Err(why) => Some(why),
         };

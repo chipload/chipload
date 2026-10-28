@@ -17,7 +17,7 @@ changes the shape's defining values, through the same validation as the form:
 |---|---|
 | Circle | centre (moves it), a point on the circle (changes the radius) |
 | Rectangle | centre (moves it), each corner (resizes, the opposite corner stays put; keeps the angle), a rotation handle beyond one end (turns it about the centre) |
-| Polyline | each point (moves it), the middle of each segment (drag to insert a point there; drag sideways with Shift to bend it into an arc, §3) |
+| Polyline | each point (moves it), the middle of each segment, or the segment's line anywhere: a plain drag moves the segment, its neighbours stretch to stay joined; Ctrl+drag inserts a point there; Shift+drag bends it into an arc (§3) |
 
 - One drag is one undo step (the existing commit after the pointer is released).
 - A drag that would make the shape invalid (radius 0, point on top of its neighbour) stops at
@@ -26,8 +26,13 @@ changes the shape's defining values, through the same validation as the form:
 - Imported shapes have no handles (read-only, as before).
 - *Implemented:* the drag rules are plain functions on shape values (`chipload_job::edit`).
   Every frame of a drag starts from the shape as it was when the drag began, so values don't
-  drift. Dragging a segment's middle without Shift inserts a point there with both halves
-  straight. The form's "+" splits a segment in the middle instead, into two halves of the
+  drift. A plain drag of a segment moves both its ends by as much as its middle moved (a
+  segment grabbed away from its middle keeps the grabbed point under the pointer); the
+  segments either side keep their bulges and follow, and a result that is invalid (a
+  neighbour of no length) is refused like any drag (the user, 2026-10-28, replacing the
+  plain drag that inserted a point: that is Ctrl+drag now, both halves straight). The
+  line of a selected polyline is grabbed instead of moving the whole shape; its dashed
+  box still moves it whole. The form's "+" splits a segment in the middle instead, into two halves of the
   same arc; its "−" joins the two segments at that point into one straight segment.
 
 ## 2. Snapping

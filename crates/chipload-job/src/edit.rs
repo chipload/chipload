@@ -24,8 +24,23 @@ pub enum Handle {
     Rotate,
     /// Polyline point: moves it.
     Point(usize),
-    /// Middle of polyline segment i: inserts a point there, or with `bend` sets its bulge.
+    /// Middle of polyline segment i: moves the segment, inserts a point there or bends it,
+    /// as [`SegmentDrag`] says.
     Middle(usize),
+}
+
+/// What dragging a polyline segment does (the user, 2026-10-28): a plain drag moves it,
+/// Ctrl inserts a point, Shift bends it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SegmentDrag {
+    /// Both its ends move with the pointer; the segments either side stretch to stay
+    /// joined.
+    #[default]
+    Move,
+    /// A new point where the pointer is, both halves straight.
+    Insert,
+    /// Its bulge: the arc bows out through the pointer.
+    Bend,
 }
 
 /// Every handle of `geometry` and where it is. The rotation handle sits `rotate_reach` mm
@@ -343,11 +358,17 @@ pub fn kept_slot(old: &Geometry, new: Geometry) -> Geometry {
 }
 
 /// The shape after dragging `handle` from where it was in `start` (the shape when the drag
-/// began) to `to`. `bend` is the Shift-drag of a segment middle. Always computed from
-/// `start`, so a long drag doesn't drift. None when the result would be invalid (the caller
-/// keeps the last valid shape) or the handle doesn't belong to the shape.
-pub fn drag(start: &Geometry, handle: Handle, to: [f64; 2], bend: bool) -> Option<Geometry> {
-    try_drag(start, handle, to, bend).ok()
+/// began) to `to`. `segment` says what a segment middle's drag does (other handles ignore
+/// it). Always computed from `start`, so a long drag doesn't drift. None when the result
+/// would be invalid (the caller keeps the last valid shape) or the handle doesn't belong to
+/// the shape.
+pub fn drag(
+    start: &Geometry,
+    handle: Handle,
+    to: [f64; 2],
+    segment: SegmentDrag,
+) -> Option<Geometry> {
+    try_drag(start, handle, to, segment).ok()
 }
 
 /// As [`drag`], with the reason when the result would be invalid.
@@ -355,7 +376,7 @@ pub fn try_drag(
     start: &Geometry,
     handle: Handle,
     to: [f64; 2],
-    bend: bool,
+    segment: SegmentDrag,
 ) -> Result<Geometry, String> {
     let mut geometry = start.clone();
     let slot = is_slot(start);
@@ -422,14 +443,24 @@ pub fn try_drag(
             },
             Handle::Middle(i),
         ) if i < polyline_segment_count(points.len(), *closed) && i < bulges.len() => {
-            let (a, b) = (points[i], points[(i + 1) % points.len()]);
-            if bend {
-                bulges[i] = bulge_through(a, b, to);
-            } else {
-                // A new point at `to`; both halves straight.
-                points.insert(i + 1, to);
-                bulges[i] = 0.0;
-                bulges.insert(i + 1, 0.0);
+            let j = (i + 1) % points.len();
+            let (a, b) = (points[i], points[j]);
+            match segment {
+                SegmentDrag::Move => {
+                    // The segment's middle goes to `to`: both ends move by as much, the
+                    // neighbours (straight or arcs, their bulges kept) follow its ends.
+                    let middle = segment_middle(a, b, bulges[i]);
+                    let d = [to[0] - middle[0], to[1] - middle[1]];
+                    points[i] = [a[0] + d[0], a[1] + d[1]];
+                    points[j] = [b[0] + d[0], b[1] + d[1]];
+                }
+                SegmentDrag::Insert => {
+                    // A new point at `to`; both halves straight.
+                    points.insert(i + 1, to);
+                    bulges[i] = 0.0;
+                    bulges.insert(i + 1, 0.0);
+                }
+                SegmentDrag::Bend => bulges[i] = bulge_through(a, b, to),
             }
         }
         _ => return Err(format!("{handle:?} isn't a handle of this shape")),
@@ -894,23 +925,29 @@ mod tests {
             [(Handle::Center, [1.0, 2.0]), (Handle::Radius, [6.0, 2.0])]
         );
         assert_eq!(
-            drag(&circle, Handle::Center, [7.0, 8.0], false),
+            drag(&circle, Handle::Center, [7.0, 8.0], SegmentDrag::Move),
             Some(Geometry::Circle {
                 center: [7.0, 8.0],
                 radius: 5.0
             })
         );
         assert_eq!(
-            drag(&circle, Handle::Radius, [1.0, 5.0], false),
+            drag(&circle, Handle::Radius, [1.0, 5.0], SegmentDrag::Move),
             Some(Geometry::Circle {
                 center: [1.0, 2.0],
                 radius: 3.0
             })
         );
         // Radius 0 is invalid: the drag stops (the caller keeps the last valid shape).
-        assert_eq!(drag(&circle, Handle::Radius, [1.0, 2.0], false), None);
+        assert_eq!(
+            drag(&circle, Handle::Radius, [1.0, 2.0], SegmentDrag::Move),
+            None
+        );
         // Handles of other kinds don't apply.
-        assert_eq!(drag(&circle, Handle::Rotate, [0.0, 0.0], false), None);
+        assert_eq!(
+            drag(&circle, Handle::Rotate, [0.0, 0.0], SegmentDrag::Move),
+            None
+        );
     }
 
     #[test]
@@ -935,7 +972,7 @@ mod tests {
         );
         // A corner drag narrows it: still a slot (a plain rectangle with that radius
         // would refuse to get narrower than its corners).
-        let narrower = try_drag(&slot, Handle::Corner(2), [20.0, 2.0], false).unwrap();
+        let narrower = try_drag(&slot, Handle::Corner(2), [20.0, 2.0], SegmentDrag::Move).unwrap();
         assert!(is_slot(&narrower));
     }
 
@@ -954,7 +991,7 @@ mod tests {
         );
         // Dragging the corner sets the radius and the turn.
         let Ok(Geometry::Polygon { radius, angle, .. }) =
-            try_drag(&hexagon, Handle::Radius, [0.0, 20.0], false)
+            try_drag(&hexagon, Handle::Radius, [0.0, 20.0], SegmentDrag::Move)
         else {
             panic!()
         };
@@ -1069,7 +1106,7 @@ mod tests {
                     before[k][0] + 3.0 * cos - 1.0 * sin,
                     before[k][1] + 3.0 * sin + 1.0 * cos,
                 ];
-                let moved = drag(&start, Handle::Corner(k), to, false).unwrap();
+                let moved = drag(&start, Handle::Corner(k), to, SegmentDrag::Move).unwrap();
                 let after = corners(&moved);
                 let Geometry::Rectangle { angle: a, .. } = moved else {
                     panic!()
@@ -1085,7 +1122,12 @@ mod tests {
         let start = rect(0.0);
         let opposite = corners(&start)[2];
         assert_eq!(
-            drag(&start, Handle::Corner(0), [0.0, opposite[1]], false),
+            drag(
+                &start,
+                Handle::Corner(0),
+                [0.0, opposite[1]],
+                SegmentDrag::Move
+            ),
             None
         );
     }
@@ -1098,7 +1140,7 @@ mod tests {
             .find(|(h, _)| *h == Handle::Rotate)
             .unwrap();
         assert!(close(rotate.1, [10.0 + 4.0 + 5.0, 20.0]));
-        let turned = drag(&start, Handle::Rotate, [10.0, 30.0], false).unwrap();
+        let turned = drag(&start, Handle::Rotate, [10.0, 30.0], SegmentDrag::Move).unwrap();
         assert_eq!(
             turned,
             Geometry::Rectangle {
@@ -1109,7 +1151,7 @@ mod tests {
                 corner_radius: 0.0,
             }
         );
-        let moved = drag(&start, Handle::Center, [0.0, 0.0], false).unwrap();
+        let moved = drag(&start, Handle::Center, [0.0, 0.0], SegmentDrag::Move).unwrap();
         assert!(matches!(
             moved,
             Geometry::Rectangle {
@@ -1140,12 +1182,15 @@ mod tests {
         let r = (mid[0] - arc.center[0]).hypot(mid[1] - arc.center[1]);
         assert!((r - arc.radius).abs() < 1e-9);
 
-        let moved = drag(&start, Handle::Point(2), [20.0, 40.0], false).unwrap();
+        let moved = drag(&start, Handle::Point(2), [20.0, 40.0], SegmentDrag::Move).unwrap();
         assert!(matches!(&moved, Geometry::Polyline { points, .. } if points[2] == [20.0, 40.0]));
         // On top of its neighbour: refused.
-        assert_eq!(drag(&start, Handle::Point(2), [40.0, 0.0], false), None);
+        assert_eq!(
+            drag(&start, Handle::Point(2), [40.0, 0.0], SegmentDrag::Move),
+            None
+        );
 
-        let inserted = drag(&start, Handle::Middle(0), [20.0, -5.0], false).unwrap();
+        let inserted = drag(&start, Handle::Middle(0), [20.0, -5.0], SegmentDrag::Insert).unwrap();
         assert_eq!(
             inserted,
             Geometry::Polyline {
@@ -1155,13 +1200,33 @@ mod tests {
             }
         );
         // Shift: bend the first segment 10 mm below its chord: bulge 10 / 20.
-        let bent = drag(&start, Handle::Middle(0), [20.0, -10.0], true).unwrap();
+        let bent = drag(&start, Handle::Middle(0), [20.0, -10.0], SegmentDrag::Bend).unwrap();
         assert!(matches!(&bent, Geometry::Polyline { bulges, .. } if bulges[0] == 0.5));
         // Further than a half circle: held at one.
-        let full = drag(&start, Handle::Middle(0), [20.0, -50.0], true).unwrap();
+        let full = drag(&start, Handle::Middle(0), [20.0, -50.0], SegmentDrag::Bend).unwrap();
         assert!(matches!(&full, Geometry::Polyline { bulges, .. } if bulges[0] == 1.0));
-        let other = drag(&start, Handle::Middle(0), [20.0, 50.0], true).unwrap();
+        let other = drag(&start, Handle::Middle(0), [20.0, 50.0], SegmentDrag::Bend).unwrap();
         assert!(matches!(&other, Geometry::Polyline { bulges, .. } if bulges[0] == -1.0));
+    }
+
+    #[test]
+    fn a_plain_segment_drag_moves_the_segment_and_its_neighbours_follow() {
+        let start = triangle();
+        // Segment 0 (0,0)-(40,0), its middle (20,0) dragged 10 mm down.
+        let moved = drag(&start, Handle::Middle(0), [20.0, -10.0], SegmentDrag::Move).unwrap();
+        assert_eq!(
+            moved,
+            Geometry::Polyline {
+                closed: true,
+                points: vec![[0.0, -10.0], [40.0, -10.0], [20.0, 30.0]],
+                bulges: vec![0.0, 0.4, 0.0],
+            }
+        );
+        // Its end onto the far point: a neighbour of no length, refused.
+        assert_eq!(
+            drag(&start, Handle::Middle(0), [0.0, 30.0], SegmentDrag::Move),
+            None
+        );
     }
 
     #[test]

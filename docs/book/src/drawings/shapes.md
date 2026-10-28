@@ -169,6 +169,10 @@ holes on, a guide at 45°) and are **never cut**.
   whole with their own handles.
 - **Handles:** drag a selected shape's handles to change it. A drag snaps as drawing does;
   hold Alt to turn snapping off.
+- **Polyline segments:** on a selected polyline, drag one of its lines (anywhere, or its
+  round middle handle) to move that segment; the segments either side stretch to stay
+  joined. **Ctrl+drag** inserts a new point there instead, and **Shift+drag** bends the
+  segment into an arc. The dashed box round the polyline moves it whole.
 - **Exact values:** under *Selection* in the [Properties](../window.md#properties) panel, a
   selected shape has its exact numbers and its layer.
 - **Lengths on the canvas:** a selected drawn shape shows its lengths beside it: each

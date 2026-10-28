@@ -22,7 +22,7 @@ shape-form-delete-hover = Las operaciones que la usan quedan marcadas hasta que 
 
 # How to edit a selected polyline on the canvas. A bulge bends a segment into an arc;
 # Alt and Shift are keyboard keys.
-shape-form-polyline-help = En el lienzo: arrastra un cuadrado para mover un punto · arrastra un tirador redondo central para insertar ahí un punto nuevo · Shift+arrastrar un tirador central curva el segmento en un arco (curvatura) · el cuadro discontinuo la mueve, la gira y la escala · Alt: sin ajuste
+shape-form-polyline-help = En el lienzo: arrastra un cuadrado para mover un punto · arrastra una línea (o su tirador redondo central) para mover ese segmento · Ctrl+arrastrar inserta ahí un punto nuevo · Shift+arrastrar curva el segmento en un arco (curvatura) · el cuadro discontinuo la mueve, la gira y la escala · Alt: sin ajuste
 
 shape-form-corner-radius = Radio de esquina
 shape-form-corner-radius-hover = Redondea las cuatro esquinas; como máximo la mitad del lado más corto

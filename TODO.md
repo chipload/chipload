@@ -111,6 +111,9 @@ it's built (see `CLAUDE.md`).
      *Cancel*, and the ribbon button ends the active tool.
   8. A DXF or SVG couldn't be added to a project without a drawing file yet: *Add DXF*
      was off. Fixed 2026-10-28: any open project takes one.
+  9. Dragging a polyline's line should move that segment; a new point and a bulge should
+     need modifier keys. Done 2026-10-28: plain drag moves the segment, Ctrl inserts a
+     point, Shift bends (`SegmentDrag`).
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)
