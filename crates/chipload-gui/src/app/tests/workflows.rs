@@ -332,6 +332,10 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     // docs/specs/drawing-placement.md §5: the user's case, drawn first, DXF later.
     let mut app = ChiploadApp::default();
     app.ask_new();
+    // A fixed board with its corner at the origin: the drawing is placed onto it.
+    let stock = &mut app.edit.as_mut().unwrap().settings.stock;
+    stock.origin = chipload_job::StockOrigin::BottomLeft;
+    stock.fit = None;
     app.start_drawing(Tool::Circle);
     app.draw_click((250.0, 150.0), false);
     app.draw_click((250.0, 160.0), false);

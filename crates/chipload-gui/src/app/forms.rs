@@ -1992,43 +1992,47 @@ pub(super) fn job_form(
         &t!(ui, "forms-section-stock"),
         &stock,
         |ui| {
-            // The size fits the drawing (its outline plus a margin), or is typed
-            // (docs/specs/stock-around-drawing.md).
-            ui.label(t!(ui, "forms-stock-size"));
-            ui.horizontal(|ui| match job.stock.fit {
-                Some(mut margin) => {
-                    ui.label(format!(
-                        "{} × {} {len_unit}",
-                        len_in(units, size_x),
-                        len_in(units, size_y)
-                    ))
-                    .on_hover_text(t!(ui, "forms-stock-fits-hover"));
+            // The stock fits the drawing (its outline plus a margin), or has a typed size
+            // (docs/specs/stock-around-drawing.md). First, on its own row: it is the
+            // usual choice (the user, 2026-10-28).
+            let mut fits = job.stock.fit.is_some();
+            if ui
+                .checkbox(&mut fits, t!(ui, "forms-stock-fit"))
+                .on_hover_text(t!(ui, "forms-stock-fit-hover"))
+                .changed()
+            {
+                if fits {
+                    job.stock.origin = StockOrigin::Drawing;
+                    job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
+                } else {
+                    // Keep the size it had, now fixed: for a board you want to use.
+                    (job.stock.x, job.stock.y) = (size_x, size_y);
+                    job.stock.fit = None;
+                }
+            }
+            ui.horizontal(|ui| {
+                if let Some(mut margin) = job.stock.fit {
                     ui.label(t!(ui, "forms-stock-margin"));
                     if ui.add(mm(&mut margin)).changed() {
                         job.stock.fit = Some(margin);
                     }
-                    if ui
-                        .button(t!(ui, "forms-stock-fixed"))
-                        .on_hover_text(t!(ui, "forms-stock-fixed-hover"))
-                        .clicked()
-                    {
-                        (job.stock.x, job.stock.y) = (size_x, size_y);
-                        job.stock.fit = None;
-                    }
-                }
-                None => {
-                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
-                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
-                    if ui
-                        .button(t!(ui, "forms-stock-fit"))
-                        .on_hover_text(t!(ui, "forms-stock-fit-hover"))
-                        .clicked()
-                    {
-                        job.stock.origin = StockOrigin::Drawing;
-                        job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
-                    }
                 }
             });
+            ui.end_row();
+            ui.label(t!(ui, "forms-stock-size"));
+            if job.stock.fit.is_some() {
+                ui.label(format!(
+                    "{} × {} {len_unit}",
+                    len_in(units, size_x),
+                    len_in(units, size_y)
+                ))
+                .on_hover_text(t!(ui, "forms-stock-fits-hover"));
+            } else {
+                ui.horizontal(|ui| {
+                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
+                });
+            }
             ui.end_row();
             if let Some(((x0, y0), (x1, y1))) = drawing {
                 ui.label(t!(ui, "forms-drawing-size"))

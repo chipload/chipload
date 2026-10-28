@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use chipload_dxf::contours_from_shapes;
-use chipload_job::{Geometry, Job, Placement, Shape, WorkZero, parse_job};
+use chipload_job::{Geometry, Job, Placement, Shape, StockOrigin, WorkZero, parse_job};
 use chipload_pipeline::placement::{Move, place_drawing};
 use chipload_pipeline::{PipelineError, empty_project, run_job, update_drawing};
 use serde_json::json;
@@ -42,6 +42,9 @@ fn drawn_then_imported(name: &str) -> (Job, PathBuf, PathBuf) {
     let dxf = dir.join("part.dxf");
     square_dxf(&dxf, &[("A1", "CUT", 500.0, 400.0, 50.0)]);
     let mut job = empty_project();
+    // A fixed board with its corner at the origin: the drawing is placed onto it.
+    job.stock.origin = StockOrigin::BottomLeft;
+    job.stock.fit = None;
     job.drawing.shapes.push(Shape {
         construction: false,
         id: 1,

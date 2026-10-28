@@ -101,6 +101,11 @@ it's built (see `CLAUDE.md`).
   4. Properties showed two things (the selection above Job settings), which confused.
      Fixed 2026-10-28: one thing at a time, the Browser's item or the canvas pick
      (`Focus::Selection`); no Browser row is highlighted while the pick is shown.
+  5. An operation should open by clicking its number (and circle) on the toolpath. Done
+     2026-10-28 (`Scene::op_label_at`).
+  6. *Fit the drawing* was a button pushed off a narrow panel, and should be the default.
+     Done 2026-10-28: a box at the top of Stock with the margin beside it; projects
+     started empty fit the drawing too.
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)

@@ -354,10 +354,24 @@ impl ChiploadApp {
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .and_then(|pos| labels.iter().find(|l| l.rect.contains(pos)));
+            // An operation's number on the toolpath opens the operation.
+            let op_label = response
+                .clicked()
+                .then(|| response.interact_pointer_pos())
+                .flatten()
+                .filter(|&pos| {
+                    on_handle(pos).is_none()
+                        && on_box_handle(pos).is_none()
+                        && self.start_marker_at(pos).is_none()
+                        && self.tab_marker_at(pos).is_none()
+                })
+                .and_then(|pos| self.scene.op_label_at(&self.view, pos));
             if let Some(label) = label {
                 self.start_typing_dimension(label.dimension, label.value, label.rect.left_top());
             } else if let Some(k) = corner {
                 self.open_corner_menu(k);
+            } else if let Some(op) = op_label {
+                self.focus = Focus::Op(op);
             } else if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()

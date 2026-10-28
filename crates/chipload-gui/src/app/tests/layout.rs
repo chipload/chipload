@@ -132,3 +132,69 @@ fn a_shape_row_in_the_browser_shows_the_shape_alone() {
     assert_eq!(harness.state().focus, Focus::Selection);
     assert_eq!(harness.state().selected_shape(), Some(2));
 }
+
+/// Clicking an operation's number on the toolpath opens that operation (the user,
+/// 2026-10-28), even with the drawing under it.
+#[test]
+fn clicking_an_operations_number_on_the_toolpath_opens_it() {
+    let mut harness = harness("en", WINDOW);
+    assert!(harness.state_mut().generate_and_wait());
+    harness.state_mut().focus = Focus::Job;
+    harness.run_steps(3);
+    let labels = harness
+        .state()
+        .scene
+        .toolpath
+        .as_ref()
+        .expect("generated")
+        .op_labels();
+    let &(at, op) = labels.last().expect("an operation is numbered");
+    // On the number, up and right of the circle.
+    let pos = harness.state().view.to_screen(at) + egui::vec2(11.0, -11.0);
+    harness.hover_at(pos);
+    harness.run_steps(1);
+    harness.event(egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(1);
+    harness.event(egui::Event::PointerButton {
+        pos,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(3);
+    assert_eq!(harness.state().focus, Focus::Op(op));
+}
+
+/// *Fit the drawing* is a box at the top of Stock (the user, 2026-10-28): on fits the
+/// drawing; off again keeps the size it had, fixed.
+#[test]
+fn the_fit_the_drawing_box_switches_between_fitting_and_a_fixed_size() {
+    let mut harness = harness("en", WINDOW);
+    harness.state_mut().focus = Focus::Job;
+    harness.run_steps(3);
+    let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
+    assert_eq!(
+        settings(&harness).stock.fit,
+        None,
+        "the sample's stock is fixed"
+    );
+    harness.get_by_label("Fit the drawing").click();
+    harness.run_steps(3);
+    let fitted = settings(&harness);
+    assert_eq!(
+        fitted.stock.fit,
+        Some(chipload_pipeline::DEFAULT_STOCK_MARGIN)
+    );
+    assert_eq!(fitted.stock.origin, chipload_job::StockOrigin::Drawing);
+    harness.get_by_label("Fit the drawing").click();
+    harness.run_steps(3);
+    let fixed = settings(&harness);
+    assert_eq!(fixed.stock.fit, None);
+    assert_eq!(fixed.stock_size(), fitted.stock_size());
+    assert_eq!(fixed.stock_bounds(), fitted.stock_bounds());
+}

@@ -144,6 +144,10 @@ const GRID_MARGIN_MM: f64 = 50.0;
 const AXIS_LINE_FADE: f32 = 0.55;
 /// How close (on screen) a click must be to a contour line.
 pub const PICK_TOLERANCE_PX: f32 = 6.0;
+
+/// The circle at an operation's first plunge, screen pixels; its number sits up and right.
+const OP_LABEL_RADIUS: f32 = 5.0;
+const OP_LABEL_TEXT_OFFSET: Vec2 = Vec2::new(7.0, -19.0);
 const DASH_PX: f32 = 6.0;
 const GAP_PX: f32 = 4.0;
 /// Construction geometry's dots, screen pixels (docs/specs/dxf-export.md §B3).
@@ -463,6 +467,17 @@ impl ToolpathShape {
         shape.flush(&mut run, ghost);
         (shape.lines3, shape.line_moves) = lines_3d(program);
         shape
+    }
+
+    /// Each operation's first plunge, where its number is shown: (position, index in
+    /// `job.operations`), in cut order.
+    pub fn op_labels(&self) -> Vec<(Point, usize)> {
+        let mut labelled: BTreeSet<usize> = BTreeSet::new();
+        self.starts
+            .iter()
+            .filter_map(|p| p.operation.map(|op| (p.at, op)))
+            .filter(|&(_, op)| labelled.insert(op))
+            .collect()
     }
 
     /// End a run of feed moves: kept if it draws anything, then started afresh.
@@ -935,6 +950,24 @@ impl Scene {
             .collect()
     }
 
+    /// The operation whose number (or the circle by it) is at a screen point: the numbers
+    /// say which operation cuts there, so clicking one opens it (the user, 2026-10-28).
+    pub fn op_label_at(&self, view: &View, at: Pos2) -> Option<usize> {
+        let path = self.toolpath.as_ref().filter(|_| !self.hide_toolpath)?;
+        path.op_labels()
+            .into_iter()
+            .map(|(p, op)| (view.to_screen(p), op))
+            .filter(|&(dot, op)| {
+                let digits = (op + 1).to_string().len() as f32;
+                let text =
+                    Rect::from_min_size(dot + OP_LABEL_TEXT_OFFSET, Vec2::new(9.0 * digits, 17.0));
+                dot.distance(at) <= OP_LABEL_RADIUS + PICK_TOLERANCE_PX
+                    || text.expand(2.0).contains(at)
+            })
+            .min_by_key(|&(dot, _)| Ordered(f64::from(dot.distance(at))))
+            .map(|(_, op)| op)
+    }
+
     /// Where the grid goes: what is on screen; in 3D, where the plane runs off to the
     /// horizon, no further than around the stock (or the drawing).
     fn grid_area(&self, painter: &Painter, view: &View) -> (Point, Point) {
@@ -1209,23 +1242,25 @@ impl Scene {
             }
             // Each operation is numbered once, at its first plunge (its number in the
             // operations list); other plunges get a small marker, once per position.
-            let mut labelled: BTreeSet<Option<usize>> = BTreeSet::new();
-            let mut marked: Vec<Point> = Vec::new();
+            let labels = path.op_labels();
+            for &(at, op) in &labels {
+                let dot = view.to_screen(at);
+                painter.circle_stroke(dot, OP_LABEL_RADIUS, Stroke::new(2.0, pal.label));
+                painter.text(
+                    dot + OP_LABEL_TEXT_OFFSET,
+                    Align2::LEFT_TOP,
+                    (op + 1).to_string(),
+                    FontId::proportional(14.0),
+                    pal.label,
+                );
+            }
+            let mut marked: Vec<Point> = labels.iter().map(|&(at, _)| at).collect();
             for plunge in &path.starts {
-                let dot = view.to_screen(plunge.at);
-                if plunge.operation.is_some() && labelled.insert(plunge.operation) {
-                    painter.circle_stroke(dot, 5.0, Stroke::new(2.0, pal.label));
-                    painter.text(
-                        dot + Vec2::new(7.0, -19.0),
-                        Align2::LEFT_TOP,
-                        plunge.operation.map_or(0, |op| op + 1).to_string(),
-                        FontId::proportional(14.0),
-                        pal.label,
-                    );
-                } else if !marked.contains(&plunge.at) {
+                if !marked.contains(&plunge.at) {
+                    let dot = view.to_screen(plunge.at);
                     painter.circle_stroke(dot, 3.0, Stroke::new(1.0, pal.label));
+                    marked.push(plunge.at);
                 }
-                marked.push(plunge.at);
             }
         }
         match (&self.progress, shown_path) {

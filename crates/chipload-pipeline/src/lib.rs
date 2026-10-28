@@ -695,8 +695,9 @@ pub const DEFAULT_RPM: f64 = 18000.0;
 /// Stock of a project started without a drawing, mm (docs/specs/new-project.md decision 1).
 pub const DEFAULT_EMPTY_STOCK: (f64, f64) = (300.0, 200.0);
 
-/// A new project with no drawing yet (docs/specs/new-project.md): 300 × 200 mm stock, origin
-/// bottom left, GRBL, one 6 mm endmill, no operations.
+/// A new project with no drawing yet (docs/specs/new-project.md): stock fitting the drawing
+/// with a 10 mm margin once there is one (300 × 200 mm centred on the origin until then),
+/// GRBL, one 6 mm endmill, no operations.
 pub fn empty_project() -> Job {
     Job {
         schema_version: CURRENT_VERSION,
@@ -714,8 +715,9 @@ pub fn empty_project() -> Job {
             y: DEFAULT_EMPTY_STOCK.1,
             thickness: DEFAULT_THICKNESS,
             max_overcut: DEFAULT_MAX_OVERCUT,
-            origin: StockOrigin::BottomLeft,
-            fit: None,
+            // Fitting the drawing is the default (the user, 2026-10-28).
+            origin: StockOrigin::Drawing,
+            fit: Some(DEFAULT_STOCK_MARGIN),
             z_zero: ZZero::Top,
         },
         machine: Machine {
@@ -756,12 +758,15 @@ pub fn empty_project() -> Job {
 
 /// A new project's starting values when lengths are shown in inches
 /// (docs/specs/inch-units.md §5.2): tidy inch numbers, not converted mm ones. Stock 3/4"
-/// thick (24" × 12" without a drawing), 0.02" below it allowed, safe Z 0.2", a 1/4" endmill.
+/// thick (24" × 12" without a drawing) with a 1/2" margin round the drawing, 0.02" below it allowed, safe Z 0.2", a 1/4" endmill.
 /// Only values that are still the mm defaults change; the project stays in mm.
 pub fn with_inch_defaults(mut job: Job) -> Job {
     let inch = chipload_core::MM_PER_INCH;
     if job.drawing.shapes.is_empty() && (job.stock.x, job.stock.y) == DEFAULT_EMPTY_STOCK {
         (job.stock.x, job.stock.y) = (24.0 * inch, 12.0 * inch);
+    }
+    if job.stock.fit == Some(DEFAULT_STOCK_MARGIN) {
+        job.stock.fit = Some(0.5 * inch);
     }
     if job.stock.thickness == DEFAULT_THICKNESS {
         job.stock.thickness = 0.75 * inch;

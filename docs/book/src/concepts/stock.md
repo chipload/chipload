@@ -7,7 +7,8 @@ Job settings > **Stock** describes the material on the machine, and Job settings
 
 | Setting | |
 |---|---|
-| **Size X × Y** | the board's size: either **fits the drawing** (the drawing's outline plus a margin on every side, 10 mm in a new project, following the drawing as it changes), or a **fixed size** you type, for a board you want to use. *Fixed size* and *Fit the drawing* switch between them. |
+| **Fit the drawing** | on (new projects): the stock is the drawing's outline plus the **margin** on every side, centred on it, and follows the drawing as it changes. Off: a **fixed size** you type, for a board you want to use; it starts at the size the stock had. |
+| **Size X × Y** | the board's size: worked out while it fits the drawing, typed otherwise |
 | **Drawing** | the size of the drawing's outline (what is cut; construction geometry left out) |
 | **Thickness** | mm. Depths count down from the stock top, so set this to the real board. |
 | **Max depth below stock** | how far a cut may go below the stock bottom, into the spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm. |

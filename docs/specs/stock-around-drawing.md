@@ -35,11 +35,15 @@ so that option should still be there."
   uses: the checker (rapids through the stock, travel), planning, the simulation, the setup
   sheet, the canvas, work zero at a stock corner.
 - **New projects** from a DXF or SVG: centred on the drawing, fitting it with 10 mm. A
-  project started empty keeps a fixed 300 × 200 mm at the origin (a stock that jumped about
-  while the first shapes are drawn would be no help).
-- **Window:** Job settings > Stock shows the size (fitted, with its margin, and *Fixed
-  size*; or typed, with *Fit the drawing*), the drawing's size, and the new position in the
-  list. Choosing a position at the origin keeps the size and makes it fixed.
+  project started empty fits too (the user after the first cuts, 2026-10-28: fitting should
+  be the default): 300 × 200 mm centred on the origin until the first shape, then the
+  drawing plus 10 mm (1/2" when lengths are shown in inches). Saved projects keep what
+  they have.
+- **Window:** Job settings > Stock starts with a **Fit the drawing** box and the margin
+  beside it (the user, 2026-10-28: a button at the end of the size row was pushed off a
+  narrow panel). Off, the size it had stays, fixed, and the size row takes typed X and Y.
+  Then the drawing's size, and the new position in the list. Choosing a position at the
+  origin keeps the size and makes it fixed.
 - **Align to the stock** (`place --align`, the window's *Align*) is refused for a stock
   centred on the drawing: it would follow the drawing.
 - **The cut's outline** is part of the estimate (`Estimate::outline`, from the planned

@@ -442,7 +442,8 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     assert_eq!(job["drawing"]["dxfs"], serde_json::json!([]));
     assert_eq!(job["stock"]["x"], 300.0);
     assert_eq!(job["stock"]["y"], 200.0);
-    assert_eq!(job["stock"]["origin"], "bottom_left");
+    assert_eq!(job["stock"]["origin"], "drawing");
+    assert_eq!(job["stock"]["fit"], 10.0);
     assert!(ok(&["inspect", p]).contains("Contours (0)"));
 
     // Draw, cut it out, run: the program passes the checker.
@@ -476,9 +477,11 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     assert_eq!(job["stock"]["x"], 300.0, "the stock is left as it is");
     ok(&["run", p, "-o", path(&dir.join("disc2.nc"))]);
 
-    // A drawing that doesn't fit the stock is pointed out.
+    // A drawing that doesn't fit a fixed stock is pointed out.
     let mut job = job;
     job["stock"]["x"] = 100.0.into();
+    job["stock"]["origin"] = "bottom_left".into();
+    job["stock"]["fit"] = serde_json::Value::Null;
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
     let out = ok(&["update", p, "--from", path(&dxf)]);
     assert!(

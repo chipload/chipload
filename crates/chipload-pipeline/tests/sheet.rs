@@ -141,7 +141,10 @@ fn the_sheet_warns_of_the_spoilboard_and_untested_posts() {
 
 #[test]
 fn the_zero_is_said_in_words_on_the_stock() {
-    let mut job = empty_project(); // 300 x 200, bottom left at the drawing origin
+    let mut job = empty_project();
+    // 300 x 200, bottom left at the drawing origin
+    job.stock.origin = StockOrigin::BottomLeft;
+    job.stock.fit = None;
     assert_eq!(xy_zero_text(&job), "the stock's bottom left corner");
     job.machine.work_zero = WorkZero::Stock {
         corner: StockCorner::Center,

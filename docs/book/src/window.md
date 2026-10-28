@@ -133,6 +133,8 @@ colour theme: dark, or light grey.
   - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
     FRONT, RIGHT, BACK, LEFT) to look straight at it.
   - In top view, the corner has an X–Y sign instead.
+- **The toolpath's numbers:** each operation's first plunge has a circle and the
+  operation's number. Click it to open that operation.
 - **The legend** (bottom left) explains the colours.
 - **The mouse:** the wheel zooms. In top view, a left drag on empty canvas selects with a
   box: from left to right it takes what lies wholly inside, from right to left also what
