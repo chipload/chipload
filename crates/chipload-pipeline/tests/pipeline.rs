@@ -802,6 +802,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
     let mut job = project_with_profile(&v1);
     // A shape drawn in Chipload must survive updates.
     let drawn = chipload_job::Shape {
+        construction: false,
         id: job.drawing.next_shape_id,
         layer: "CUT".into(),
         name: None,

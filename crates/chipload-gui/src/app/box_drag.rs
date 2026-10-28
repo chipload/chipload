@@ -402,6 +402,7 @@ fn size_shapes_box(start: &PlacedBox, pad: f64, k: usize, to: Point) -> Result<P
 /// A drawn shape's outline as points, its arcs in short straight pieces, for the preview.
 fn outline(geometry: &Geometry) -> Vec<Point> {
     let shape = chipload_job::Shape {
+        construction: false,
         id: 0,
         layer: String::new(),
         name: None,

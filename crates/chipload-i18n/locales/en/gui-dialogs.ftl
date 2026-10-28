@@ -32,6 +32,7 @@ dialogs-px-cancelled = Drawing not imported: its size is unknown.
 dialogs-export-dxf-title = Export drawing as DXF
 dialogs-export-dxf-inch = In inches (otherwise mm)
 dialogs-export-dxf-hidden = Hidden layers and groups too
+dialogs-export-dxf-construction = Construction geometry too (on layers of their own)
 dialogs-export-dxf-selection = Only the selected shapes
 dialogs-export-dxf-save = Export…
 dialogs-export-dxf-path = Export to path…

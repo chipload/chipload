@@ -217,7 +217,12 @@ impl ChiploadApp {
         let layer = self.default_layer();
         let edit = self.edit.as_mut()?;
         match add_shape(&edit.settings, &layer, geometry) {
-            Ok((job, id)) => {
+            Ok((mut job, id)) => {
+                if self.construction_mode
+                    && let Some(shape) = job.drawing.shapes.iter_mut().find(|s| s.id == id)
+                {
+                    shape.construction = true;
+                }
                 edit.settings = job;
                 self.drawing_changed(&[id]);
                 let kind = match self.shape(id).map(|s| &s.geometry) {

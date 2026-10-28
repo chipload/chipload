@@ -789,3 +789,28 @@ fn the_drawing_is_exported_as_a_dxf_with_its_choices() {
     assert_eq!(read_back(&path), 1);
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn k_draws_construction_geometry_and_toggles_the_selection() {
+    // docs/specs/dxf-export.md §B2.
+    let mut app = drawn_part();
+    app.start_drawing(Tool::Circle);
+    app.toggle_construction();
+    assert!(app.construction_mode);
+    let id = app
+        .add_drawn(Geometry::Circle {
+            center: [10.0, 10.0],
+            radius: 3.0,
+        })
+        .unwrap();
+    assert!(app.shape(id).unwrap().construction);
+    app.commit();
+    // No tool, a shape selected: K makes it construction, and again ordinary.
+    app.sketch = None;
+    app.selection = CanvasSelection::Shapes([3].into());
+    app.toggle_construction();
+    assert!(app.shape(3).unwrap().construction);
+    app.commit();
+    app.toggle_construction();
+    assert!(!app.shape(3).unwrap().construction);
+}

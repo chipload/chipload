@@ -28,6 +28,9 @@ menu-export = Exportar código G…
 menu-export-path = Exportar código G a ruta…
 menu-export-dxf = Exportar dibujo como DXF…
 menu-export-dxf-hover = Las formas que muestra el lienzo, en sus capas, para un láser, un programa CAD o un presupuesto
+menu-construction = Auxiliar
+menu-construction-hover = Geometría auxiliar: se muestra punteada y sirve para forzar el cursor, pero nunca se corta. Para líneas y círculos guía
+menu-toggle-construction = Geometría auxiliar sí o no
 menu-quit = Salir
 
 # Edit: undo, and the selected drawn shapes.

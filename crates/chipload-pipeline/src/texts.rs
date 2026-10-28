@@ -138,6 +138,7 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, TextReport), PipelineError> {
         out.drawing.next_shape_id += 1;
         ids.push(shape_id);
         out.drawing.shapes.push(Shape {
+            construction: false,
             id: shape_id,
             layer: text.layer.clone(),
             name: None,

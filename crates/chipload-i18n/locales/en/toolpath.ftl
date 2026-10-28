@@ -202,6 +202,7 @@ toolpath-error-no-operation = No operation { $at } in the job
 
 # $shapes are shape numbers ("S4, S7").
 toolpath-error-shape-missing = shape { $shapes } is not part of any contour (deleted, or a duplicate or zero-length segment the import removed)
+toolpath-error-construction = { $shapes } is construction geometry: it is never cut. Make it an ordinary shape, or choose other shapes
 # $layers are layer names, separated by commas.
 toolpath-error-partly-selected = contour #{ $contour } is only partly selected (layers { $layers }); fix the drawing or the selector
 # $reason is why the drawing's contour can't be machined, as the DXF import found it (in English).

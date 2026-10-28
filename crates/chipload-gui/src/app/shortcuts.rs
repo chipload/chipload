@@ -39,6 +39,7 @@ pub(super) enum Action {
     DrawPolygon,
     Offset,
     Trim,
+    Construction,
 }
 
 /// The shortcut window's groups, in the order it shows them.
@@ -142,6 +143,12 @@ pub(super) const BINDINGS: &[Binding] = &[
     bind(Action::DrawPolygon, Modifiers::NONE, Key::N, Group::Drawing),
     bind(Action::Offset, Modifiers::NONE, Key::O, Group::Drawing),
     bind(Action::Trim, Modifiers::NONE, Key::X, Group::Drawing),
+    bind(
+        Action::Construction,
+        Modifiers::NONE,
+        Key::K,
+        Group::Drawing,
+    ),
 ];
 
 /// What a shortcut does, as the shortcut window says it.
@@ -176,6 +183,7 @@ pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
         Action::DrawPolygon => t!(src, "shortcuts-draw-polygon"),
         Action::Offset => t!(src, "shortcuts-offset"),
         Action::Trim => t!(src, "shortcuts-trim"),
+        Action::Construction => t!(src, "shortcuts-construction"),
     }
 }
 
@@ -377,6 +385,7 @@ impl ChiploadApp {
             Action::DrawPolygon => self.start_drawing(Tool::Polygon),
             Action::Offset => self.start_modify(super::modify::ModifyTool::Offset),
             Action::Trim => self.start_modify(super::modify::ModifyTool::Trim),
+            Action::Construction => self.toggle_construction(),
             Action::Shortcuts => self.dialogs.shortcuts_open = true,
         }
     }

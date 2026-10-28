@@ -28,6 +28,9 @@ menu-export = G-Code exportieren…
 menu-export-path = G-Code in Pfad exportieren…
 menu-export-dxf = Zeichnung als DXF exportieren…
 menu-export-dxf-hover = Die Formen, die die Zeichenfläche zeigt, auf ihren Layern, für einen Laser, ein CAD-Programm oder ein Angebot
+menu-construction = Hilfsgeometrie
+menu-construction-hover = Hilfsgeometrie: gepunktet gezeigt und zum Fangen da, aber nie gefräst. Für Hilfslinien und -kreise beim Zeichnen
+menu-toggle-construction = Hilfsgeometrie ein oder aus
 menu-quit = Beenden
 
 # Edit: undo, and the selected drawn shapes.

@@ -12,6 +12,7 @@ use chipload_pipeline::drawing_edit::{
 
 use super::*;
 use crate::icons::Icon;
+use chipload_pipeline::shapes::set_construction;
 
 /// An editing tool.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -750,6 +751,63 @@ impl ChiploadApp {
             });
         if let Some(arrange) = clicked {
             self.arrange_selected(arrange);
+        }
+    }
+
+    /// Key K: with a drawing tool, whether it draws construction geometry next; otherwise the
+    /// selected drawn shapes become construction geometry, or ordinary shapes again
+    /// (docs/specs/dxf-export.md §B2).
+    pub fn toggle_construction(&mut self) {
+        if self.sketch.is_some() || self.selected_drawn().is_empty() {
+            self.construction_mode = !self.construction_mode;
+            let text = if self.construction_mode {
+                t!(self, "modify-construction-on")
+            } else {
+                t!(self, "modify-construction-off")
+            };
+            self.set_status(text, STATUS_SECONDS);
+        } else {
+            self.toggle_selected_construction();
+        }
+    }
+
+    /// The selected drawn shapes as construction geometry (when any isn't yet) or as ordinary
+    /// shapes, as one undo step; operations that name them are listed.
+    pub fn toggle_selected_construction(&mut self) -> bool {
+        let ids = self.selected_drawn();
+        let make = !ids
+            .iter()
+            .all(|&id| self.shape(id).is_some_and(|s| s.construction));
+        self.set_selected_construction(&ids, make)
+    }
+
+    fn set_selected_construction(&mut self, ids: &[u64], on: bool) -> bool {
+        let Some(job) = self.job_with_operations() else {
+            return false;
+        };
+        let result = set_construction(&job, ids, on).map(|(job, notes)| Edited {
+            job,
+            new_ids: Vec::new(),
+            notes,
+        });
+        self.take_edit(result, ids)
+    }
+
+    /// Under Selection, with drawn shapes selected: whether they are construction geometry.
+    pub(super) fn construction_ui(&mut self, ui: &mut egui::Ui) {
+        let ids = self.selected_drawn();
+        if ids.is_empty() || !self.can_draw() {
+            return;
+        }
+        let mut on = ids
+            .iter()
+            .all(|&id| self.shape(id).is_some_and(|s| s.construction));
+        if ui
+            .checkbox(&mut on, t!(ui, "menu-construction"))
+            .on_hover_text(t!(ui, "menu-construction-hover"))
+            .changed()
+        {
+            self.set_selected_construction(&ids, on);
         }
     }
 

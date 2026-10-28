@@ -326,6 +326,7 @@ pub fn shapes_from_drawing_scaled(
         .into_iter()
         .enumerate()
         .map(|(i, (layer, handle, dxf_type, segments))| Shape {
+            construction: false,
             id: i as u64 + 1,
             layer,
             name: None,
@@ -385,6 +386,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
                 (None, None, None) => None,
             };
             shape.segments().into_iter().map(move |seg| Segment {
+                construction: shape.construction,
                 prim: seg.to_primitive(),
                 layer: shape.layer.clone(),
                 handle: handle.clone(),
@@ -495,6 +497,11 @@ fn resolve_units(
 fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour> {
     let mut rings: Vec<(usize, nesting::Ring)> = Vec::new();
     for (index, contour) in contours.iter_mut().enumerate() {
+        // Construction geometry is never cut: no warnings about it, and it is neither an
+        // outline nor a hole of anything (docs/specs/dxf-export.md §B3).
+        if contour.is_construction() {
+            continue;
+        }
         if !contour.closed {
             let (s, e) = (contour.start(), contour.end());
             issues.push(

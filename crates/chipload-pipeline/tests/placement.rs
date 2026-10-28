@@ -43,6 +43,7 @@ fn drawn_then_imported(name: &str) -> (Job, PathBuf, PathBuf) {
     square_dxf(&dxf, &[("A1", "CUT", 500.0, 400.0, 50.0)]);
     let mut job = empty_project();
     job.drawing.shapes.push(Shape {
+        construction: false,
         id: 1,
         layer: "DRAWN".into(),
         name: None,

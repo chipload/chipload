@@ -28,6 +28,9 @@ pub struct Segment {
     /// Which of the project's DXFs, images or texts that shape came from; None for drawn shapes
     /// and while importing.
     pub from: Option<ShapeFrom>,
+    /// Construction geometry (docs/specs/dxf-export.md, part B): shown and snapped to, never
+    /// cut; it chains only with other construction segments.
+    pub construction: bool,
 }
 
 /// Where a project's shape came from (docs/specs/drawing-sources.md §2).
@@ -69,6 +72,11 @@ pub struct Contour {
 }
 
 impl Contour {
+    /// Construction geometry: never cut (docs/specs/dxf-export.md §B3).
+    pub fn is_construction(&self) -> bool {
+        self.parts.iter().any(|p| p.segment.construction)
+    }
+
     /// The same contour moved by `offset` (a copy of the part, docs/specs/copies-grid.md).
     pub fn translated(&self, offset: Point) -> Contour {
         let mut out = self.clone();
@@ -207,7 +215,7 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
         let Some(&(first, segment)) = run.first() else {
             continue;
         };
-        let graph = layer_graph(&mut layers, &segment.layer, tol);
+        let graph = layer_graph(&mut layers, segment, tol);
         let keys: Vec<EdgeKey> = run.iter().map(|(_, s)| graph.key(s)).collect();
         if keys.iter().all(|k| graph.known(k)) {
             duplicates.extend(run.iter().map(|&(i, s)| (i, s.clone())));
@@ -226,7 +234,7 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
         found.push((first, parts, true));
     }
     for &(index, segment) in loose.iter().flat_map(|run| run.iter()) {
-        let graph = layer_graph(&mut layers, &segment.layer, tol);
+        let graph = layer_graph(&mut layers, segment, tol);
         let key = graph.key(segment);
         if graph.known(&key) {
             duplicates.push((index, segment.clone()));
@@ -383,14 +391,18 @@ impl LayerGraph {
 }
 
 /// The graph of a layer; layers are compared ignoring case, as selectors compare them.
+/// The graph `segment` chains in: its layer's (DXF layer names ignore case), construction
+/// geometry apart from the rest so the two never join.
 fn layer_graph<'a>(
     layers: &'a mut BTreeMap<String, LayerGraph>,
-    layer: &str,
+    segment: &Segment,
     tol: f64,
 ) -> &'a mut LayerGraph {
-    layers
-        .entry(layer.to_lowercase())
-        .or_insert_with(|| LayerGraph::new(tol))
+    let mut key = segment.layer.to_lowercase();
+    if segment.construction {
+        key.push_str("\u{0}construction");
+    }
+    layers.entry(key).or_insert_with(|| LayerGraph::new(tol))
 }
 
 /// Chain one layer's loose edges; also the nodes where more than two meet.

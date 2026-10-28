@@ -27,6 +27,7 @@ pub fn add_shape(job: &Job, layer: &str, geometry: Geometry) -> Result<(Job, u64
     let id = out.drawing.next_shape_id;
     out.drawing.next_shape_id += 1;
     out.drawing.shapes.push(Shape {
+        construction: false,
         id,
         layer: layer.to_string(),
         name: None,
@@ -108,6 +109,53 @@ fn follow_points(
             .flatten()
             .for_each(&mut follow);
     }
+}
+
+/// Make drawn shapes `ids` construction geometry (shown and snapped to, never cut) or
+/// ordinary shapes again (docs/specs/dxf-export.md §B2). Returns the project and a note per
+/// operation that names one of them by id: it can't run while they are construction.
+pub fn set_construction(
+    job: &Job,
+    ids: &[u64],
+    construction: bool,
+) -> Result<(Job, Vec<Message>), PipelineError> {
+    for id in ids {
+        if job
+            .drawing
+            .shapes
+            .iter()
+            .any(|s| s.id == *id && !s.is_drawn())
+        {
+            return Err(refused(
+                Message::new("pipeline-construction-imported").arg("id", *id),
+            ));
+        }
+    }
+    drawn_shapes(job, ids)?;
+    let mut out = job.clone();
+    for shape in out
+        .drawing
+        .shapes
+        .iter_mut()
+        .filter(|s| ids.contains(&s.id))
+    {
+        shape.construction = construction;
+    }
+    let notes = if construction {
+        out.operations
+            .iter()
+            .enumerate()
+            .filter(|(_, op)| {
+                selected_ids(op).is_some_and(|sel| sel.iter().any(|i| ids.contains(i)))
+            })
+            .map(|(i, op)| {
+                Message::new("pipeline-construction-used").arg("label", op.label_message(i))
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    checked(out).map(|job| (job, notes))
 }
 
 /// Name drawn shape `id` (docs/specs/drawn-shapes-box.md §4): trimmed; an empty name
@@ -198,11 +246,19 @@ pub fn copy_shapes(
     ids: &[u64],
     by: (f64, f64),
 ) -> Result<(Job, Vec<u64>), PipelineError> {
-    let copies: Vec<(String, Geometry)> = drawn_shapes(job, ids)?
-        .into_iter()
+    let originals = drawn_shapes(job, ids)?;
+    let copies: Vec<(String, Geometry)> = originals
+        .iter()
         .map(|s| (s.layer.clone(), s.geometry.clone()))
         .collect();
-    add_moved(job, &copies, by)
+    let (mut out, new_ids) = add_moved(job, &copies, by)?;
+    // A copy of construction geometry is construction too.
+    for (original, id) in originals.iter().zip(&new_ids) {
+        if let Some(copy) = out.drawing.shapes.iter_mut().find(|s| s.id == *id) {
+            copy.construction = original.construction;
+        }
+    }
+    Ok((out, new_ids))
 }
 
 /// The drawn shapes a copy keeps (the GUI's clipboard): layer and geometry of each.
@@ -247,6 +303,7 @@ pub fn clipboard_text(shapes: &[(String, Geometry)]) -> String {
         .iter()
         .zip(1..)
         .map(|((layer, geometry), id)| Shape {
+            construction: false,
             id,
             layer: layer.clone(),
             name: None,
@@ -287,6 +344,7 @@ fn add_moved(
         let id = out.drawing.next_shape_id;
         out.drawing.next_shape_id += 1;
         out.drawing.shapes.push(Shape {
+            construction: false,
             id,
             layer: layer.clone(),
             name: None,

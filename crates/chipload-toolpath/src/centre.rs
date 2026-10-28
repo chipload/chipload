@@ -187,6 +187,7 @@ fn contour(id: usize, ring: &[Point]) -> Contour {
     let parts = (0..n)
         .map(|k| OrientedSegment {
             segment: Segment {
+                construction: false,
                 prim: Primitive::Line(Line {
                     start: ring[k],
                     end: ring[(k + 1) % n],

@@ -582,6 +582,7 @@ mod tests {
         assert_eq!(drawn.len(), 1);
         assert!(matches!(drawn[0], Geometry::Polyline { closed: true, .. }));
         let shape = crate::models::Shape {
+            construction: false,
             id: 1,
             layer: "0".into(),
             name: None,
@@ -600,6 +601,7 @@ mod tests {
         assert_eq!(points.len(), 3);
         assert!(bulges.iter().all(|b| *b < 0.0 && b.abs() <= 1.0));
         let shape = crate::models::Shape {
+            construction: false,
             id: 1,
             layer: "0".into(),
             name: None,

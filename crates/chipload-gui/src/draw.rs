@@ -657,6 +657,7 @@ pub fn snap_cursor(
 /// A drawn geometry as display polylines (arcs flattened), for the preview.
 pub fn outline(geometry: &Geometry) -> Vec<Vec<Point>> {
     let shape = Shape {
+        construction: false,
         id: 0,
         layer: String::new(),
         name: None,
@@ -782,6 +783,7 @@ mod tests {
                 .into_iter()
                 .map(|prim| OrientedSegment {
                     segment: Segment {
+                        construction: false,
                         prim,
                         layer: "0".into(),
                         handle: String::new(),

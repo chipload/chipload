@@ -138,6 +138,26 @@ DXF first, [Explode](several.md)).
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 
+## Construction geometry
+
+Lines and circles that help you draw (a centre line to mirror about, a circle to place
+holes on, a guide at 45°) and are **never cut**.
+
+- **Draw one:** with a drawing tool active, press **K** (or tick *Construction* on the
+  status bar): the shapes you draw next are construction geometry, until you press K again.
+- **Make a shape one,** or an ordinary shape again: select drawn shapes and press K, tick
+  *Construction* under *Selection*, or right-click.
+- **It shows** finely dotted and faint, and the cursor snaps to it like any shape: its
+  ends, middles, centres and where it crosses other shapes.
+- **It is never cut:** it never joins other shapes into a contour, an operation never picks
+  it up from a layer, and an operation that names it by its number is refused until it
+  cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
+  copies and arrays of it are construction geometry too.
+- **Exported** only when you ask (`chipload dxf export … --construction`, or the
+  checkbox), on a layer of its own named after its layer with `_construction`.
+- On the command line: `chipload shape add P polyline --points "0,0 100,0" --open
+  --construction`, `chipload shape set P 4 --construction false`.
+
 ## Editing
 
 - **Moving with the mouse:** drag a drawn shape to move it; if it is selected, the whole

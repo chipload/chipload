@@ -45,6 +45,23 @@ fn select<'a>(
     paths: bool,
 ) -> Result<Selection<'a>, ToolpathError> {
     let refused = |message: Message| ToolpathError::Selector(message).with_context(op.clone());
+    // Construction geometry is never cut (docs/specs/dxf-export.md §B3): naming it is refused,
+    // and a layer or a whole drawing never picks it up.
+    if let Some(ids) = &selector.shapes {
+        let guides: std::collections::BTreeSet<u64> = contours
+            .iter()
+            .filter(|c| c.is_construction())
+            .flat_map(|c| c.parts.iter().filter_map(|p| p.segment.shape))
+            .filter(|s| ids.contains(s))
+            .collect();
+        if !guides.is_empty() {
+            let names: Vec<String> = guides.iter().map(|id| format!("S{id}")).collect();
+            return Err(refused(
+                Message::new("toolpath-error-construction").arg("shapes", names.join(", ")),
+            ));
+        }
+    }
+    let contours: Vec<&Contour> = contours.iter().filter(|c| !c.is_construction()).collect();
     // Every selected shape must be part of some contour; otherwise it was deleted, or chaining
     // dropped it (a duplicate or zero-length segment). Never skip it silently.
     if let Some(ids) = &selector.shapes {

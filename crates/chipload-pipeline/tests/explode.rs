@@ -166,6 +166,7 @@ fn an_unknown_dxf_and_a_wrong_gap_are_refused() {
 
 fn polyline(id: u64, layer: &str, points: Vec<[f64; 2]>) -> Shape {
     Shape {
+        construction: false,
         id,
         layer: layer.into(),
         name: None,

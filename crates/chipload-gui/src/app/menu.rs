@@ -261,6 +261,21 @@ impl ChiploadApp {
         if ui
             .add_enabled(
                 drawn,
+                egui::Button::new(with_keys(
+                    &t!(ui, "menu-toggle-construction"),
+                    Action::Construction,
+                )),
+            )
+            .on_hover_text(t!(ui, "menu-construction-hover"))
+            .on_disabled_hover_text(&only_drawn)
+            .clicked()
+        {
+            self.toggle_selected_construction();
+            ui.close();
+        }
+        if ui
+            .add_enabled(
+                drawn,
                 egui::Button::new(with_keys(&t!(ui, "menu-copy"), Action::Copy)),
             )
             .on_disabled_hover_text(&only_drawn)
@@ -764,6 +779,7 @@ impl ChiploadApp {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
                     self.polygon_sides_field(ui);
+                    self.construction_field(ui);
                     self.offset_fields(ui);
                     self.status_message(ui);
                 });
@@ -788,6 +804,17 @@ impl ChiploadApp {
         {
             sketch.sides = self.polygon_sides;
         }
+        ui.separator();
+    }
+
+    /// While a drawing tool is active: whether it draws construction geometry (key K).
+    fn construction_field(&mut self, ui: &mut egui::Ui) {
+        if self.sketch.is_none() {
+            return;
+        }
+        let label = with_keys(&t!(ui, "menu-construction"), Action::Construction);
+        ui.checkbox(&mut self.construction_mode, label)
+            .on_hover_text(t!(ui, "menu-construction-hover"));
         ui.separator();
     }
 

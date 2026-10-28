@@ -28,6 +28,9 @@ menu-export = Export G-code…
 menu-export-path = Export G-code to path…
 menu-export-dxf = Export drawing as DXF…
 menu-export-dxf-hover = The shapes the canvas shows, on their layers, for a laser cutter, a CAD program or a quote
+menu-construction = Construction
+menu-construction-hover = Construction geometry: shown dotted and snapped to, but never cut. For guide lines and circles to draw against
+menu-toggle-construction = Construction geometry on or off
 menu-quit = Quit
 
 # Edit: undo, and the selected drawn shapes.

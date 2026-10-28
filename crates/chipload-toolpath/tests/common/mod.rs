@@ -8,6 +8,7 @@ use chipload_core::primitives::{Arc, Line, Primitive};
 pub fn segment(prim: Primitive) -> OrientedSegment {
     OrientedSegment {
         segment: Segment {
+            construction: false,
             prim,
             layer: "L".into(),
             handle: "1".into(),

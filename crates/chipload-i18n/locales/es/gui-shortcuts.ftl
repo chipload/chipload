@@ -88,3 +88,4 @@ shortcuts-draw-slot = Dibujar una ranura
 shortcuts-draw-polygon = Dibujar un polígono
 shortcuts-offset = Desfasar las formas seleccionadas
 shortcuts-trim = Recortar formas dibujadas
+shortcuts-construction = Geometría auxiliar: para las próximas formas dibujadas, o la selección

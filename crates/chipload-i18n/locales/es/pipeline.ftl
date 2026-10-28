@@ -335,6 +335,8 @@ pipeline-no-shape = no hay forma { $id }
 pipeline-shape-imported-copy = la forma { $id } se importó del DXF; solo las formas dibujadas se pueden copiar o reflejar
 pipeline-shapes-no-extent = las formas no tienen extensión
 pipeline-shape-imported-transform = la forma { $id } no es una forma dibujada: solo las formas dibujadas se pueden mover, girar o escalar (descompón primero su DXF)
+pipeline-construction-imported = la forma { $id } no es una forma dibujada: solo las formas dibujadas pueden ser geometría auxiliar (descompón primero su DXF)
+pipeline-construction-used = { $label } nombra geometría auxiliar, que nunca se corta: no puede ejecutarse hasta que corte otras formas.
 pipeline-transform-not-numbers = el desplazamiento, el giro y el centro deben ser números
 pipeline-shapes-copy-imported = solo se pueden copiar las formas dibujadas, no las importadas
 # "Update drawing from DXF" is the command in the app's File menu.

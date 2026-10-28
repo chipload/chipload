@@ -10,6 +10,7 @@ use chipload_job::{Geometry, Shape, Units};
 
 fn shape(id: u64, layer: &str, geometry: Geometry) -> Shape {
     Shape {
+        construction: false,
         id,
         layer: layer.into(),
         name: None,

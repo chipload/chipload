@@ -15,6 +15,8 @@ pub struct DxfExportChoice {
     pub hidden: bool,
     /// Only the selected shapes.
     pub selection: bool,
+    /// Construction geometry too.
+    pub construction: bool,
 }
 
 impl ChiploadApp {
@@ -48,6 +50,7 @@ impl ChiploadApp {
             } else {
                 Vec::new()
             },
+            construction: choice.construction,
         };
         let (out, notes) = match export_drawing(&edit.settings, &options) {
             Ok(done) => done,
@@ -101,6 +104,10 @@ impl ChiploadApp {
                 ui.checkbox(
                     &mut self.dxf_export.hidden,
                     t!(ui, "dialogs-export-dxf-hidden"),
+                );
+                ui.checkbox(
+                    &mut self.dxf_export.construction,
+                    t!(ui, "dialogs-export-dxf-construction"),
                 );
                 ui.add_enabled(
                     has_selection,

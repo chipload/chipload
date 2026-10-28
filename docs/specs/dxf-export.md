@@ -140,6 +140,17 @@ would cut the guide lines, so the schema is bumped (**32**) and the migration fr
 changes nothing (no older file has the flag); the frozen v31 samples and their goldens are
 unchanged.
 
+- *Implemented (part B):* chaining keeps construction segments in a graph of their own
+  per layer (`chipload_core::chain`); a contour of them is construction. The import report
+  doesn't warn about them and doesn't nest them. Selection refuses an operation that names
+  one (`toolpath-error-construction`) and leaves them out of layers and whole drawings;
+  planning drops them before anything else looks at the contours (islands, dogbone
+  walls). `shape copy`, arrays, offsets and the extra pieces of trims and booleans keep the
+  flag; *a paste from the clipboard doesn't yet* (the clipboard carries layer and geometry
+  only): TODO. Key K: with a drawing tool active it toggles construction for what is drawn
+  next; with no tool and drawn shapes selected it toggles them (one undo step). `inspect`
+  marks them `construction`. Drawn finely dotted and fainter than an open line's dashes.
+
 # Tests
 
 - Export: each kind (circle, rectangle with radius, polygon, slot, polyline with arcs, a

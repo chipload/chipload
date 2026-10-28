@@ -320,6 +320,8 @@ pipeline-no-shape = there is no shape { $id }
 pipeline-shape-imported-copy = shape { $id } was imported from the DXF; only drawn shapes can be copied or mirrored
 pipeline-shapes-no-extent = the shapes have no extent
 pipeline-shape-imported-transform = shape { $id } isn't a drawn shape: only drawn shapes can be moved, turned or scaled (explode its DXF first)
+pipeline-construction-imported = shape { $id } isn't a drawn shape: only drawn shapes can be construction geometry (explode its DXF first)
+pipeline-construction-used = { $label } names construction geometry, which is never cut: it can't run until it cuts other shapes.
 pipeline-transform-not-numbers = the move, turn and centre must be numbers
 pipeline-shapes-copy-imported = only drawn shapes can be copied, not imported ones
 # "Update drawing from DXF" is the command in the app's File menu.

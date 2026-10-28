@@ -202,6 +202,7 @@ toolpath-error-no-operation = Aucune opération { $at } dans le projet
 
 # $shapes are shape numbers ("S4, S7").
 toolpath-error-shape-missing = la forme { $shapes } ne fait partie d'aucun contour (supprimée, ou segment en double ou de longueur nulle supprimé à l'import)
+toolpath-error-construction = { $shapes } est une géométrie de construction : elle n'est jamais usinée. Faites-en une forme ordinaire, ou choisissez d'autres formes
 # $layers are layer names, separated by commas.
 toolpath-error-partly-selected = le contour #{ $contour } n'est que partiellement sélectionné (calques { $layers }) ; corrigez le dessin ou la sélection
 # $reason is why the drawing's contour can't be machined, as the DXF import found it (in English).

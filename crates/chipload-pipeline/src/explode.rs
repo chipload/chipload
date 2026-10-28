@@ -115,6 +115,7 @@ pub fn explode_dxf(
             ids.push(new_id);
             report.shapes.push(new_id);
             shapes.push(Shape {
+                construction: false,
                 id: new_id,
                 layer: shape.layer.clone(),
                 name: None,

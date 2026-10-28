@@ -146,6 +146,9 @@ const AXIS_LINE_FADE: f32 = 0.55;
 pub const PICK_TOLERANCE_PX: f32 = 6.0;
 const DASH_PX: f32 = 6.0;
 const GAP_PX: f32 = 4.0;
+/// Construction geometry's dots, screen pixels (docs/specs/dxf-export.md §B3).
+const CONSTRUCTION_DASH_PX: f32 = 2.0;
+const CONSTRUCTION_GAP_PX: f32 = 4.0;
 
 /// A point in 3D, mm (X, Y as drawn, Z as the program uses it).
 pub type Point3 = (f64, f64, f64);
@@ -307,11 +310,15 @@ pub enum Kind {
     Hole,
     Open,
     Invalid,
+    /// Construction geometry: shown and snapped to, never cut.
+    Construction,
 }
 
 impl Kind {
     pub fn of(contour: &Contour) -> Kind {
-        if !contour.closed {
+        if contour.is_construction() {
+            Kind::Construction
+        } else if !contour.closed {
             Kind::Open
         } else if contour.invalid_reason.is_some() {
             Kind::Invalid
@@ -328,6 +335,7 @@ impl Kind {
             Kind::Hole => "hole",
             Kind::Open => "open",
             Kind::Invalid => "INVALID",
+            Kind::Construction => "construction",
         }
     }
 }
@@ -1138,8 +1146,17 @@ impl Scene {
                 (false, Kind::Hole) => (pal.hole, 1.5),
                 (false, Kind::Open) => (pal.open, 1.5),
                 (false, Kind::Invalid) => (pal.invalid, 2.5),
+                (false, Kind::Construction) => (pal.open.gamma_multiply(0.7), 1.0),
             };
-            if c.kind == Kind::Open && !is_selected && !highlight.followed.contains(&c.id) {
+            if c.kind == Kind::Construction {
+                // Fine dots: a guide, told apart from an open (uncut) line's dashes.
+                painter.extend(Shape::dashed_line(
+                    &pts,
+                    Stroke::new(width, color),
+                    CONSTRUCTION_DASH_PX,
+                    CONSTRUCTION_GAP_PX,
+                ));
+            } else if c.kind == Kind::Open && !is_selected && !highlight.followed.contains(&c.id) {
                 dashed(pts, Stroke::new(width, color));
             } else {
                 painter.add(Shape::line(pts, Stroke::new(width, color)));

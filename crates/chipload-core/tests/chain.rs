@@ -11,6 +11,7 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 
 fn seg(prim: Primitive) -> Segment {
     Segment {
+        construction: false,
         prim,
         layer: "L".into(),
         handle: "H".into(),
@@ -281,4 +282,27 @@ mod properties {
             );
         }
     }
+}
+
+/// docs/specs/dxf-export.md §B3: a guide line whose end meets an ordinary line's end on the
+/// same layer stays a contour of its own, and so does the line.
+#[test]
+fn construction_segments_chain_only_with_each_other() {
+    let mut guide = line((10.0, 0.0), (20.0, 0.0));
+    guide.construction = true;
+    let segments = vec![line((0.0, 0.0), (10.0, 0.0)), guide];
+    let result = chain_segments(&segments);
+    assert_eq!(result.contours.len(), 2);
+    let flags: Vec<bool> = result
+        .contours
+        .iter()
+        .map(|c| c.is_construction())
+        .collect();
+    assert_eq!(flags.iter().filter(|&&f| f).count(), 1);
+    // Two ordinary lines meeting there would chain into one.
+    let joined = chain_segments(&[
+        line((0.0, 0.0), (10.0, 0.0)),
+        line((10.0, 0.0), (20.0, 0.0)),
+    ]);
+    assert_eq!(joined.contours.len(), 1);
 }

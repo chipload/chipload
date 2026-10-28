@@ -230,6 +230,7 @@ impl<'a> Converter<'a> {
         self.entities += 1;
         for prim in pieces.prims {
             self.segments.push(Segment {
+                construction: false,
                 prim,
                 layer: layer.clone(),
                 handle: place.root_handle.clone(),

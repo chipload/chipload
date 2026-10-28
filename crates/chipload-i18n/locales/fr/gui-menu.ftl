@@ -28,6 +28,9 @@ menu-export = Exporter le G-code…
 menu-export-path = Exporter le G-code vers un chemin…
 menu-export-dxf = Exporter le dessin en DXF…
 menu-export-dxf-hover = Les formes affichées sur le canevas, sur leurs calques, pour une découpe laser, un logiciel de CAO ou un devis
+menu-construction = Construction
+menu-construction-hover = Géométrie de construction : affichée en pointillés et accrochable, mais jamais usinée. Pour des lignes et cercles guides
+menu-toggle-construction = Géométrie de construction oui ou non
 menu-quit = Quitter
 
 # Edit: undo, and the selected drawn shapes.

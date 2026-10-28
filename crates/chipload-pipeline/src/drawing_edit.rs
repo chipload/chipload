@@ -94,22 +94,28 @@ fn layer_cutters(job: &Job, layer: &str, count: usize) -> Option<Message> {
     })
 }
 
-/// Add `geometries` on `layer`, returning their ids, with the note on the operations that
-/// cut that layer.
+/// Add `geometries` on `source`'s layer, construction geometry when it is, returning their
+/// ids, with the note on the operations that cut that layer (none for construction).
 fn add_all(
     mut job: Job,
-    layer: &str,
+    source: &Shape,
     geometries: Vec<Geometry>,
     new_ids: &mut Vec<u64>,
     notes: &mut Vec<Message>,
 ) -> Result<Job, PipelineError> {
+    let layer = source.layer.as_str();
     let count = geometries.len();
     for geometry in geometries {
-        let (next, id) = add_shape(&job, layer, geometry)?;
+        let (mut next, id) = add_shape(&job, layer, geometry)?;
+        if let Some(added) = next.drawing.shapes.iter_mut().find(|s| s.id == id) {
+            added.construction = source.construction;
+        }
         job = next;
         new_ids.push(id);
     }
-    if let Some(note) = layer_cutters(&job, layer, count) {
+    if !source.construction
+        && let Some(note) = layer_cutters(&job, layer, count)
+    {
         notes.push(note);
     }
     Ok(job)
@@ -160,7 +166,7 @@ pub fn offset_shapes(
             let d = distance * f64::from(k);
             geometries.extend(offset_geometry(&shape, d, side, corners)?);
         }
-        out = add_all(out, &shape.layer, geometries, &mut new_ids, &mut notes)?;
+        out = add_all(out, &shape, geometries, &mut new_ids, &mut notes)?;
     }
     notes.dedup();
     Ok(Edited {
@@ -474,7 +480,7 @@ fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edite
     } else {
         add_all(
             out,
-            &shape.layer,
+            shape,
             rest.iter().map(polyline_of).collect(),
             &mut new_ids,
             &mut notes,
@@ -616,7 +622,7 @@ pub fn combine_shapes(job: &Job, op: Combine, ids: &[u64]) -> Result<Edited, Pip
     let mut notes = Vec::new();
     let rest: Vec<Geometry> = changed.map(polyline_of).collect();
     if !rest.is_empty() {
-        out = add_all(out, &shapes[0].layer, rest, &mut new_ids, &mut notes)?;
+        out = add_all(out, &shapes[0], rest, &mut new_ids, &mut notes)?;
     }
     for &id in ids.iter().filter(|id| !survivors.contains(id)) {
         let (next, _) = delete_shape(&out, id)?;

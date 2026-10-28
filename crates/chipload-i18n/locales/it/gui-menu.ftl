@@ -28,6 +28,9 @@ menu-export = Esporta G-code…
 menu-export-path = Esporta G-code in percorso…
 menu-export-dxf = Esporta disegno come DXF…
 menu-export-dxf-hover = Le forme mostrate nell'area di disegno, sui loro layer, per un laser, un programma CAD o un preventivo
+menu-construction = Costruzione
+menu-construction-hover = Geometria di costruzione: mostrata a puntini e agganciabile, ma mai lavorata. Per linee e cerchi guida
+menu-toggle-construction = Geometria di costruzione sì o no
 menu-quit = Esci
 
 # Edit: undo, and the selected drawn shapes.

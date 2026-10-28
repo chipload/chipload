@@ -88,3 +88,4 @@ shortcuts-draw-slot = Langloch zeichnen
 shortcuts-draw-polygon = Vieleck zeichnen
 shortcuts-offset = Die ausgewählten Formen versetzen
 shortcuts-trim = Gezeichnete Formen stutzen
+shortcuts-construction = Hilfsgeometrie: für die nächsten gezeichneten Formen oder die Auswahl

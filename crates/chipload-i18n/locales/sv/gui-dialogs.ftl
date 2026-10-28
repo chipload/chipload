@@ -32,6 +32,7 @@ dialogs-px-cancelled = Ritningen importerades inte: dess storlek är okänd.
 dialogs-export-dxf-title = Exportera ritningen som DXF
 dialogs-export-dxf-inch = I tum (annars mm)
 dialogs-export-dxf-hidden = Även dolda lager och grupper
+dialogs-export-dxf-construction = Även hjälpgeometri (på egna lager)
 dialogs-export-dxf-selection = Bara de valda formerna
 dialogs-export-dxf-save = Exportera…
 dialogs-export-dxf-path = Exportera till sökväg…

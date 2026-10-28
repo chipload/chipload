@@ -32,6 +32,7 @@ dialogs-px-cancelled = Dessin non importé : sa taille est inconnue.
 dialogs-export-dxf-title = Exporter le dessin en DXF
 dialogs-export-dxf-inch = En pouces (sinon mm)
 dialogs-export-dxf-hidden = Les calques et groupes masqués aussi
+dialogs-export-dxf-construction = La géométrie de construction aussi (sur ses propres calques)
 dialogs-export-dxf-selection = Seulement les formes sélectionnées
 dialogs-export-dxf-save = Exporter…
 dialogs-export-dxf-path = Exporter vers un chemin…

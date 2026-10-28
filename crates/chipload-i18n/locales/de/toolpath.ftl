@@ -202,6 +202,7 @@ toolpath-error-no-operation = Keine Bearbeitung { $at } im Job
 
 # $shapes are shape numbers ("S4, S7").
 toolpath-error-shape-missing = Form { $shapes } gehört zu keiner Kontur (gelöscht, oder ein doppeltes Segment oder eines der Länge null, das der Import entfernt hat)
+toolpath-error-construction = { $shapes } ist Hilfsgeometrie: sie wird nie gefräst. Machen Sie daraus eine gewöhnliche Form oder wählen Sie andere Formen
 # $layers are layer names, separated by commas.
 toolpath-error-partly-selected = Kontur #{ $contour } ist nur teilweise ausgewählt (Layer { $layers }); korrigieren Sie die Zeichnung oder die Auswahl
 # $reason is why the drawing's contour can't be machined, as the DXF import found it (in English).

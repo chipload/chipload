@@ -19,6 +19,7 @@ const DEG: f64 = std::f64::consts::PI / 180.0;
 fn segment(prim: Primitive) -> OrientedSegment {
     OrientedSegment {
         segment: Segment {
+            construction: false,
             prim,
             layer: "L".into(),
             handle: "1".into(),

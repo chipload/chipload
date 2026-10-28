@@ -28,6 +28,9 @@ menu-export = Exportera G-kod…
 menu-export-path = Exportera G-kod till sökväg…
 menu-export-dxf = Exportera ritningen som DXF…
 menu-export-dxf-hover = Formerna som ritytan visar, på sina lager, för en laserskärare, ett CAD-program eller en offert
+menu-construction = Hjälpgeometri
+menu-construction-hover = Hjälpgeometri: visas prickad och går att fästa mot, men fräses aldrig. För hjälplinjer och -cirklar att rita mot
+menu-toggle-construction = Hjälpgeometri på eller av
 menu-quit = Avsluta
 
 # Edit: undo, and the selected drawn shapes.

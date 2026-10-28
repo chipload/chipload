@@ -42,8 +42,8 @@ use chipload_pipeline::report::{
     format_contours, format_import_report, format_shapes, severity_name,
 };
 use chipload_pipeline::shapes::{
-    add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, name_shape, set_shape,
-    transform_shapes,
+    add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, name_shape,
+    set_construction, set_shape, transform_shapes,
 };
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
@@ -1153,6 +1153,10 @@ struct ShapeValues {
     /// Its name in the Browser; "" takes the name away.
     #[arg(long)]
     name: Option<String>,
+    /// Construction geometry: shown and snapped to, never cut (`--construction false`
+    /// makes it an ordinary shape again).
+    #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+    construction: Option<bool>,
 }
 
 /// A language the setup sheet can be written in (docs/specs/translations.md step 3).
@@ -2040,9 +2044,13 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             .and_then(|geometry| {
                 let layer = values.layer.as_deref().unwrap_or("0");
                 let (job, id) = add_shape(&job, layer, geometry)?;
-                match &values.name {
-                    Some(name) => name_shape(&job, id, name).map(|job| (job, id)),
-                    None => Ok((job, id)),
+                let job = match &values.name {
+                    Some(name) => name_shape(&job, id, name)?,
+                    None => job,
+                };
+                match values.construction {
+                    Some(true) => set_construction(&job, &[id], true).map(|(job, _)| (job, id)),
+                    _ => Ok((job, id)),
                 }
             })
             .map(|(job, id)| {
@@ -2065,7 +2073,16 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                     None => Ok(job),
                 }
             })
-            .map(|job| (job, vec![format!("Changed shape S{id}.")])),
+            .and_then(|job| match values.construction {
+                Some(on) => set_construction(&job, &[id], on),
+                None => Ok((job, Vec::new())),
+            })
+            .map(|(job, notes)| {
+                flagged_ops = notes.len();
+                let mut lines = vec![format!("Changed shape S{id}.")];
+                lines.extend(notes.iter().map(|n| format!("warning: {}", n.english())));
+                (job, lines)
+            }),
         ShapeAction::Remove { id, .. } => delete_shape(&job, id).map(|(job, flagged)| {
             flagged_ops = flagged.len();
             let mut lines = vec![format!("Deleted shape S{id}.")];

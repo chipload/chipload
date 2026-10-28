@@ -21,6 +21,8 @@ In the window: *File > Export drawing as DXF…*, then the choices and the file 
   so round corners and holes are cut as arcs by whatever reads the file.
 - **Only some of it:** `--layer NAME` (repeatable) or `--shape ID …` on the command line;
   *Only the selected shapes* in the window.
+- **Construction geometry** only when you ask (`--construction`, or the checkbox), each on
+  a layer named after its own with `_construction`.
 - **Not written:** toolpaths (that's the G-code), the stock, the job's copies, operations.
 
 ## Units

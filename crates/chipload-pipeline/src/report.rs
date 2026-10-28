@@ -139,8 +139,13 @@ pub fn format_shapes(shapes: &[Shape]) -> Vec<String> {
             .as_ref()
             .map(|n| format!(" name {n:?}"))
             .unwrap_or_default();
+        let guide = if shape.construction {
+            " construction"
+        } else {
+            ""
+        };
         lines.push(format!(
-            "  S{:<4} {:<9} layer {:<12} {}{name}",
+            "  S{:<4} {:<9} layer {:<12} {}{name}{guide}",
             shape.id,
             shape.kind_name(),
             shape.layer,

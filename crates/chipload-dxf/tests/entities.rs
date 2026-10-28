@@ -156,6 +156,7 @@ fn a_drawn_polyline_with_bulges_gives_the_segments_of_the_same_lwpolyline() {
         .unwrap()
         .shapes;
     let drawn = chipload_job::Shape {
+        construction: false,
         id: 1,
         layer: "CUT".into(),
         name: None,
@@ -614,6 +615,7 @@ fn a_drawn_circle_is_exactly_an_imported_circle() {
     );
     let imported = shapes_from_drawing(&d, Some(Units::Mm)).unwrap();
     let drawn = chipload_job::Shape {
+        construction: false,
         id: 2,
         layer: "0".into(),
         name: None,

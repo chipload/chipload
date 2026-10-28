@@ -88,3 +88,4 @@ shortcuts-draw-slot = Rita ett spår
 shortcuts-draw-polygon = Rita en polygon
 shortcuts-offset = Förskjut de markerade formerna
 shortcuts-trim = Trimma ritade former
+shortcuts-construction = Hjälpgeometri: för nästa ritade former, eller markeringen

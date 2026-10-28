@@ -57,6 +57,7 @@ pub fn shapes_from_svg_bytes(
                 .map(PathSegment::from_primitive)
                 .collect();
             Shape {
+                construction: false,
                 id: i as u64 + 1,
                 layer: shape.layer,
                 name: None,

@@ -447,6 +447,8 @@ pub struct ExportOptions {
     pub layers: Vec<String>,
     /// Only these shapes (none: every shape).
     pub shapes: Vec<u64>,
+    /// Construction geometry too, each on a layer of its own (`<layer>_construction`).
+    pub construction: bool,
 }
 
 /// The drawing as a DXF: the shapes the canvas shows (with `options`), where it shows them,
@@ -474,7 +476,14 @@ pub fn export_drawing(
         .filter(|s| options.hidden || !job.drawing.is_hidden(s))
         .filter(|s| options.layers.is_empty() || options.layers.contains(&s.layer))
         .filter(|s| options.shapes.is_empty() || options.shapes.contains(&s.id))
-        .cloned()
+        .filter(|s| options.construction || !s.construction)
+        .map(|s| {
+            let mut s = s.clone();
+            if s.construction {
+                s.layer = format!("{}_construction", s.layer);
+            }
+            s
+        })
         .collect();
     let units = if options.inch { Units::Inch } else { Units::Mm };
     let exported = chipload_dxf::export_shapes(&shapes, units).map_err(|e| match e {

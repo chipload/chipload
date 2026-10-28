@@ -198,6 +198,7 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
         out.drawing.next_shape_id += 1;
         ids.push(shape_id);
         out.drawing.shapes.push(Shape {
+            construction: false,
             id: shape_id,
             layer: image.layer.clone(),
             name: None,

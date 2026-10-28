@@ -245,6 +245,7 @@ impl PlaceEdit {
 /// The exact box round a shape, mm.
 pub fn geometry_box(geometry: &Geometry) -> Option<((f64, f64), (f64, f64))> {
     let shape = Shape {
+        construction: false,
         id: 0,
         layer: String::new(),
         name: None,

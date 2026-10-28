@@ -366,6 +366,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--closed` | The polyline returns to its first point (the default for new ones) |
 | `--layer <LAYER>` |  |
 | `--name <NAME>` | Its name in the Browser; "" takes the name away. |
+| `--construction <CONSTRUCTION>` | Construction geometry: shown and snapped to, never cut (`--construction false` makes it an ordinary shape again) One of: `true`, `false`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape set`
@@ -394,6 +395,7 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--closed` | The polyline returns to its first point (the default for new ones) |
 | `--layer <LAYER>` |  |
 | `--name <NAME>` | Its name in the Browser; "" takes the name away. |
+| `--construction <CONSTRUCTION>` | Construction geometry: shown and snapped to, never cut (`--construction false` makes it an ordinary shape again) One of: `true`, `false`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape remove`
@@ -952,6 +954,7 @@ chipload dxf export <PROJECT> [OPTIONS]
 | `--hidden` | Hidden groups and layers too. |
 | `--layer <LAYERS>` | Only this layer (repeat for more) Repeatable. |
 | `--shape <SHAPES>` | Only these shapes, by id (as `inspect` lists them, without the S) Repeatable. |
+| `--construction` | Construction geometry too, each on a layer of its own (LAYER_construction) |
 
 ### `chipload dxf remove`
 

@@ -1127,6 +1127,7 @@ mod tests {
         assert_eq!(list.len(), 6);
         // The middle of the bulged segment is on its arc.
         let shape = Shape {
+            construction: false,
             id: 1,
             layer: String::new(),
             name: None,
@@ -1167,6 +1168,7 @@ mod tests {
     fn inserting_splits_an_arc_into_two_halves_of_it() {
         let mut g = triangle();
         let before = Shape {
+            construction: false,
             id: 1,
             layer: String::new(),
             name: None,
@@ -1175,6 +1177,7 @@ mod tests {
         .segments();
         assert!(insert_point_after(&mut g, 1));
         let after = Shape {
+            construction: false,
             id: 1,
             layer: String::new(),
             name: None,

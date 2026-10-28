@@ -20,7 +20,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 31;
+pub const CURRENT_VERSION: i64 = 32;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -592,6 +592,9 @@ pub struct Shape {
     /// (docs/specs/drawn-shapes-box.md §4).
     pub name: Option<String>,
     pub geometry: Geometry,
+    /// Construction geometry: shown and snapped to, never cut (drawn shapes only).
+    // Spec: docs/specs/dxf-export.md, part B (schema 32).
+    pub construction: bool,
 }
 
 /// What a shape is. Drawn kinds store their defining values; their segments are derived.
@@ -900,6 +903,10 @@ struct RawShape {
     /// circle, rectangle, polyline: its name in the Browser; left out when it has none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     name: Option<String>,
+    /// circle, rectangle, polygon, polyline: construction geometry, shown and snapped to but
+    /// never cut; left out when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    construction: bool,
     /// `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`,
     /// `polyline`.
     kind: ShapeKind,
@@ -962,6 +969,7 @@ impl RawShape {
             id,
             layer,
             name: None,
+            construction: false,
             kind,
             dxf_handle: None,
             dxf_type: None,
@@ -986,6 +994,7 @@ impl RawShape {
     fn present(&self) -> Vec<&'static str> {
         [
             ("name", self.name.is_some()),
+            ("construction", self.construction),
             ("dxf_handle", self.dxf_handle.is_some()),
             ("dxf_type", self.dxf_type.is_some()),
             ("image", self.image.is_some()),
@@ -1020,6 +1029,7 @@ impl From<Shape> for RawShape {
         };
         let mut raw = RawShape::empty(shape.id, shape.layer, kind);
         raw.name = shape.name;
+        raw.construction = shape.construction;
         match shape.geometry {
             Geometry::Path {
                 dxf_handle,
@@ -1095,17 +1105,18 @@ impl TryFrom<RawShape> for Shape {
                 "closed",
                 "segments",
             ],
-            ShapeKind::Circle => &["name", "center", "radius"],
+            ShapeKind::Circle => &["name", "construction", "center", "radius"],
             ShapeKind::Rectangle => &[
                 "name",
+                "construction",
                 "center",
                 "length",
                 "width",
                 "angle",
                 "corner_radius",
             ],
-            ShapeKind::Polyline => &["name", "closed", "points", "bulges"],
-            ShapeKind::Polygon => &["name", "center", "radius", "sides", "angle"],
+            ShapeKind::Polyline => &["name", "construction", "closed", "points", "bulges"],
+            ShapeKind::Polygon => &["name", "construction", "center", "radius", "sides", "angle"],
         };
         let name = RawShape::from_kind_name(kind);
         if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
@@ -1160,6 +1171,7 @@ impl TryFrom<RawShape> for Shape {
             layer: raw.layer,
             name: raw.name,
             geometry,
+            construction: raw.construction,
         })
     }
 }
@@ -3912,6 +3924,7 @@ mod tests {
 
     fn shape(geometry: Geometry) -> Shape {
         Shape {
+            construction: false,
             id: 1,
             layer: "0".into(),
             name: None,

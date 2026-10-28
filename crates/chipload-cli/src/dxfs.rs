@@ -77,6 +77,9 @@ pub enum DxfAction {
         /// Only these shapes, by id (as `inspect` lists them, without the S).
         #[arg(long = "shape", num_args = 1..)]
         shapes: Vec<u64>,
+        /// Construction geometry too, each on a layer of its own (LAYER_construction).
+        #[arg(long)]
+        construction: bool,
     },
     /// Remove a DXF and its shapes.
     Remove {
@@ -133,6 +136,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             hidden,
             layers,
             shapes,
+            construction,
         } => {
             let job = match load(out, &project) {
                 Ok(job) => job,
@@ -143,6 +147,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
                 hidden,
                 layers,
                 shapes,
+                construction,
             };
             let (exported, notes) = match export_drawing(&job, &options) {
                 Ok(done) => done,

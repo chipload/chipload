@@ -350,6 +350,8 @@ pub struct ChiploadApp {
     pub last_tool: Option<Tool>,
     /// The number of sides new polygons get, as last chosen.
     pub polygon_sides: u32,
+    /// The drawing tools draw construction geometry (key K; docs/specs/dxf-export.md §B2).
+    pub construction_mode: bool,
     /// The editing tool being used, if any (docs/specs/drawing-editing.md).
     pub modify: Option<modify::ModifyTool>,
     /// The offset tool's corners and count, kept for the session.
@@ -498,6 +500,7 @@ impl Default for ChiploadApp {
             typed: None,
             last_tool: None,
             polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
+            construction_mode: false,
             modify: None,
             offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
             offset_count: 1,

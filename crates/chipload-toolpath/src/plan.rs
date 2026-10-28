@@ -149,6 +149,13 @@ pub fn plan_job_cancellable(
 ) -> Result<Plan, ToolpathError> {
     let mut notes = validate_job(job)?;
     let chosen = select_all(job, contours)?;
+    // Construction geometry is never cut and never counts (as an island, a wall a dogbone
+    // must keep clear of, …); selection above already refused naming it.
+    let cutting: Vec<Contour> = contours
+        .iter()
+        .filter(|c| !c.is_construction())
+        .cloned()
+        .collect();
     // Every contour some operation cuts (docs/specs/dogbones.md §6).
     let cut_ids: BTreeSet<usize> = chosen
         .iter()
@@ -182,7 +189,7 @@ pub fn plan_job_cancellable(
         }
         let planned = plan_step(
             job,
-            contours,
+            &cutting,
             cancel,
             &chosen[step.chosen],
             step,
