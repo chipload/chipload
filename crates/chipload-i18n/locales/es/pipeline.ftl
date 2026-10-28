@@ -492,6 +492,9 @@ pipeline-combine-empty = { $op ->
    *[other] las formas no tienen ninguna parte en común: no queda nada
 }
 pipeline-combine-failed = no se pudieron combinar las formas: { $why }
+pipeline-array-count = una matriz tiene de 2 a { $most } formas contando el original, es { $got }
+pipeline-array-spacing = las copias quedarían unas sobre otras: da una separación distinta de 0 donde haya más de una columna o fila
+pipeline-array-angle = el ángulo debe ser mayor que 0 y de 360 grados como mucho, es { $got }
 pipeline-shape-gone = S{ $id } ya no existe: { $ops ->
     [one] la operación { $operations } la usaba; vuelve a elegir su geometría
    *[other] las operaciones { $operations } la usaban; vuelve a elegir su geometría

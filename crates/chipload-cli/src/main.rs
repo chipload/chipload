@@ -26,8 +26,8 @@ use chipload_job::{
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::drawing_edit::{
-    Combine, Corners, Cut, End, OffsetSide, break_shape, combine_shapes, cut_shape_corners,
-    extend_shape, offset_shapes, trim_shape,
+    Combine, Corners, Cut, End, OffsetSide, Polar, array_grid, array_polar, break_shape,
+    combine_shapes, cut_shape_corners, extend_shape, offset_shapes, trim_shape,
 };
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
@@ -918,6 +918,55 @@ enum ShapeAction {
         /// The shape ids, two or more (as `inspect` lists them, without the S).
         #[arg(required = true, num_args = 2..)]
         ids: Vec<u64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Copies of drawn shapes in a grid, on their layers; the originals stay
+    /// (docs/specs/drawing-editing.md §6). Prints the new ids.
+    Array {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// Columns, the originals' included.
+        #[arg(long, default_value_t = 1)]
+        columns: u32,
+        /// Rows, the originals' included.
+        #[arg(long, default_value_t = 1)]
+        rows: u32,
+        /// From one column to the next, mm (or with a unit); negative goes left.
+        #[arg(value_parser = crate::lengths::length, long, default_value = "0", allow_hyphen_values = true)]
+        dx: f64,
+        /// From one row to the next, mm (or with a unit); negative goes down.
+        #[arg(value_parser = crate::lengths::length, long, default_value = "0", allow_hyphen_values = true)]
+        dy: f64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Copies of drawn shapes round a centre, on their layers; the originals stay
+    /// (docs/specs/drawing-editing.md §6). Prints the new ids.
+    ArrayPolar {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// How many, the originals included.
+        #[arg(long)]
+        count: u32,
+        /// The centre, "X,Y".
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        center: [f64; 2],
+        /// The sweep, degrees: 360 spreads them evenly round, less puts the first and last
+        /// at its ends; negative goes clockwise.
+        #[arg(long, default_value_t = 360.0, allow_hyphen_values = true)]
+        angle_deg: f64,
+        /// Move the copies round without turning them.
+        #[arg(long)]
+        no_rotate: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -1857,6 +1906,12 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Union {
             project, output, ..
         }
+        | ShapeAction::Array {
+            project, output, ..
+        }
+        | ShapeAction::ArrayPolar {
+            project, output, ..
+        }
         | ShapeAction::Subtract {
             project, output, ..
         }
@@ -1998,6 +2053,40 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             lines.extend(edited.notes.iter().map(Message::english));
             (edited.job, lines)
         }),
+        ShapeAction::Array {
+            ids,
+            columns,
+            rows,
+            dx,
+            dy,
+            ..
+        } => array_grid(&job, &ids, columns, rows, (dx, dy)).map(|edited| {
+            new_ids = Some(edited.new_ids.clone());
+            let mut lines = vec![format!("Added shapes {}.", shape_names(&edited.new_ids))];
+            lines.extend(edited.notes.iter().map(Message::english));
+            (edited.job, lines)
+        }),
+        ShapeAction::ArrayPolar {
+            ids,
+            count,
+            center,
+            angle_deg,
+            no_rotate,
+            ..
+        } => {
+            let polar = Polar {
+                count,
+                center: (center[0], center[1]),
+                angle_deg,
+                rotate: !no_rotate,
+            };
+            array_polar(&job, &ids, polar).map(|edited| {
+                new_ids = Some(edited.new_ids.clone());
+                let mut lines = vec![format!("Added shapes {}.", shape_names(&edited.new_ids))];
+                lines.extend(edited.notes.iter().map(Message::english));
+                (edited.job, lines)
+            })
+        }
         ShapeAction::Union { ids, .. } => {
             combined(&job, Combine::Union, &ids, &mut new_ids, &mut flagged_ops)
         }

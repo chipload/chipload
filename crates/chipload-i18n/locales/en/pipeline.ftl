@@ -477,6 +477,9 @@ pipeline-combine-empty = { $op ->
    *[other] the shapes have no part in common: nothing is left
 }
 pipeline-combine-failed = the shapes couldn't be combined: { $why }
+pipeline-array-count = an array has 2 to { $most } shapes including the original, got { $got }
+pipeline-array-spacing = the copies would lie on each other: give a spacing other than 0 where there is more than one column or row
+pipeline-array-angle = the angle must be more than 0 and at most 360 degrees, got { $got }
 pipeline-shape-gone = S{ $id } is gone: { $ops ->
     [one] operation { $operations } used it; choose its geometry again
    *[other] operations { $operations } used it; choose their geometry again

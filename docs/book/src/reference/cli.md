@@ -608,6 +608,42 @@ chipload shape intersect <PROJECT> <IDS>... [OPTIONS]
 | `<IDS>` | The shape ids, two or more (as `inspect` lists them, without the S) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape array`
+
+Copies of drawn shapes in a grid, on their layers; the originals stay (docs/specs/drawing-editing.md §6). Prints the new ids
+
+```text
+chipload shape array <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--columns <COLUMNS>` | Columns, the originals' included. Default: `1`. |
+| `--rows <ROWS>` | Rows, the originals' included. Default: `1`. |
+| `--dx <DX>` | From one column to the next, mm (or with a unit); negative goes left. Default: `0`. |
+| `--dy <DY>` | From one row to the next, mm (or with a unit); negative goes down. Default: `0`. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape array-polar`
+
+Copies of drawn shapes round a centre, on their layers; the originals stay (docs/specs/drawing-editing.md §6). Prints the new ids
+
+```text
+chipload shape array-polar <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--count <COUNT>` | How many, the originals included. Required. |
+| `--center <CENTER>` | The centre, "X,Y". Required. |
+| `--angle-deg <ANGLE_DEG>` | The sweep, degrees: 360 spreads them evenly round, less puts the first and last at its ends; negative goes clockwise. Default: `360`. |
+| `--no-rotate` | Move the copies round without turning them. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape chamfer`
 
 Cut corners of a drawn shape straight across, a distance back along each side; it keeps its id (docs/specs/drawing-editing.md §3)

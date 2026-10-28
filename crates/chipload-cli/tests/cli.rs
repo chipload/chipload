@@ -1640,3 +1640,57 @@ fn drawn_shapes_are_united_subtracted_and_intersected_from_the_command_line() {
     assert!(err.contains("nothing of S3 is left"), "{err}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn drawn_shapes_are_arrayed_from_the_command_line() {
+    // docs/specs/drawing-editing.md §6: S2 a circle at 75,80.
+    let dir = temp_dir("array");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "shape",
+        "array",
+        p,
+        "2",
+        "--columns",
+        "3",
+        "--rows",
+        "2",
+        "--dx",
+        "20",
+        "--dy",
+        "-1in",
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("\"ids\":[4,5,6,7,8]"));
+    let out = chipload(&[
+        "shape",
+        "array-polar",
+        p,
+        "2",
+        "--count",
+        "6",
+        "--center",
+        "100,80",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Added shapes S9, S10, S11, S12, S13."));
+    // Copies on top of each other, and a polar array of one, are refused.
+    let out = chipload(&["shape", "array", p, "2", "--columns", "3"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("would lie on each other"));
+    let out = chipload(&[
+        "shape",
+        "array-polar",
+        p,
+        "2",
+        "--count",
+        "1",
+        "--center",
+        "0,0",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

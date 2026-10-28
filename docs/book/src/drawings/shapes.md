@@ -114,6 +114,16 @@ DXF first, [Explode](several.md)).
   *Subtract*, then click the shape to cut them from: the preview shows the result under
   the cursor. On the command line: `chipload shape union P 1 2 3`, `chipload shape subtract P 1 4 5` (4
   and 5 cut out of 1), `chipload shape intersect P 1 2`.
+- **Arrays** add copies of drawn shapes in a grid or round a centre; the originals stay
+  and the copies go on their layers with new numbers. A grid counts the originals in its
+  columns and rows and spaces them centre to centre (negative goes left or down). A polar
+  array counts the originals too: over 360° the copies spread evenly round, over a
+  smaller angle the first and last sit at its ends; each copy turns with its place unless
+  you say not to. This adds shapes to the drawing; the project's
+  [grid of copies](copies.md) is different, it repeats the whole part with
+  its operations. On the command line: `chipload shape array P 2 3 --columns 4 --rows 2
+  --dx 30 --dy 20`, `chipload shape array-polar P 5 --count 6 --center 100,80
+  [--angle-deg 180] [--no-rotate]`.
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 

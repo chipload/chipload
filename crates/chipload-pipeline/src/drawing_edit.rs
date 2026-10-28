@@ -656,6 +656,149 @@ fn gone_note(job: &Job, id: u64) -> Option<Message> {
     })
 }
 
+// -- arrays (§6)
+
+/// The most copies one array makes: more is a typing slip, not a drawing.
+pub const ARRAY_MOST: u32 = 10_000;
+
+/// How a polar array turns its copies.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Polar {
+    /// The copies including the original.
+    pub count: u32,
+    /// The centre they go round, mm.
+    pub center: (f64, f64),
+    /// The sweep, degrees: 360 spreads them evenly round, less puts the first and last at
+    /// its ends; negative goes clockwise.
+    pub angle_deg: f64,
+    /// Each copy turned with its position (false: moved only).
+    pub rotate: bool,
+}
+
+/// A grid of copies of drawn shapes `ids`: `columns` × `rows` including the originals,
+/// `dx`, `dy` apart (mm; negative goes left or down). The copies are new shapes on the
+/// originals' layers.
+pub fn array_grid(
+    job: &Job,
+    ids: &[u64],
+    columns: u32,
+    rows: u32,
+    (dx, dy): (f64, f64),
+) -> Result<Edited, PipelineError> {
+    let total = u64::from(columns) * u64::from(rows);
+    if columns == 0 || rows == 0 || total < 2 || total > u64::from(ARRAY_MOST) {
+        return Err(refused(
+            Message::new("pipeline-array-count")
+                .arg("got", total)
+                .arg("most", ARRAY_MOST),
+        ));
+    }
+    if !(dx.is_finite() && dy.is_finite())
+        || (columns > 1 && dx.abs() < CHAIN_TOL_MM)
+        || (rows > 1 && dy.abs() < CHAIN_TOL_MM)
+    {
+        return Err(refused(Message::new("pipeline-array-spacing")));
+    }
+    let mut moves = Vec::new();
+    for row in 0..rows {
+        for column in 0..columns {
+            if (row, column) != (0, 0) {
+                moves.push((f64::from(column) * dx, f64::from(row) * dy, 0.0));
+            }
+        }
+    }
+    copies(job, ids, &moves, (0.0, 0.0))
+}
+
+/// Copies of drawn shapes `ids` round a centre (`polar`): the copies are new shapes on the
+/// originals' layers.
+pub fn array_polar(job: &Job, ids: &[u64], polar: Polar) -> Result<Edited, PipelineError> {
+    let Polar {
+        count,
+        center,
+        angle_deg,
+        rotate,
+    } = polar;
+    if !(2..=ARRAY_MOST).contains(&count) {
+        return Err(refused(
+            Message::new("pipeline-array-count")
+                .arg("got", count)
+                .arg("most", ARRAY_MOST),
+        ));
+    }
+    if !(angle_deg.is_finite() && angle_deg.abs() > 0.0 && angle_deg.abs() <= 360.0)
+        || !(center.0.is_finite() && center.1.is_finite())
+    {
+        return Err(refused(
+            Message::new("pipeline-array-angle")
+                .arg("got", Value::Number(angle_deg, Digits::Shortest)),
+        ));
+    }
+    // A whole turn: evenly round, the last copy one step short of the original.
+    let step = if angle_deg.abs() == 360.0 {
+        angle_deg / f64::from(count)
+    } else {
+        angle_deg / f64::from(count - 1)
+    };
+    let middle = crate::shapes::drawn_middle(job, ids)?;
+    let moves: Vec<(f64, f64, f64)> = (1..count)
+        .map(|k| {
+            let turn = step * f64::from(k);
+            if rotate {
+                (0.0, 0.0, turn)
+            } else {
+                let (sin, cos) = turn.to_radians().sin_cos();
+                let (x, y) = (middle.0 - center.0, middle.1 - center.1);
+                let to = (center.0 + x * cos - y * sin, center.1 + x * sin + y * cos);
+                (to.0 - middle.0, to.1 - middle.1, 0.0)
+            }
+        })
+        .collect();
+    copies(job, ids, &moves, center)
+}
+
+/// A copy of shapes `ids` for each of `moves`: moved by (dx, dy), then turned by its
+/// degrees about `about`. The notes name the operations that now cut the copies.
+fn copies(
+    job: &Job,
+    ids: &[u64],
+    moves: &[(f64, f64, f64)],
+    about: (f64, f64),
+) -> Result<Edited, PipelineError> {
+    let mut out = job.clone();
+    let mut new_ids = Vec::new();
+    for &(dx, dy, degrees) in moves {
+        let (next, added) = crate::shapes::copy_shapes(&out, ids, (dx, dy))?;
+        out = if degrees == 0.0 {
+            next
+        } else {
+            crate::shapes::transform_shapes(&next, &added, about, about, 1.0, degrees)?
+        };
+        new_ids.extend(added);
+    }
+    let mut layers: Vec<(String, usize)> = Vec::new();
+    for shape in out
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| new_ids.contains(&s.id))
+    {
+        match layers.iter_mut().find(|(l, _)| *l == shape.layer) {
+            Some((_, n)) => *n += 1,
+            None => layers.push((shape.layer.clone(), 1)),
+        }
+    }
+    let notes = layers
+        .iter()
+        .filter_map(|(layer, n)| layer_cutters(&out, layer, *n))
+        .collect();
+    Ok(Edited {
+        job: out,
+        new_ids,
+        notes,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -874,5 +1017,108 @@ mod tests {
             key(combine_shapes(&job, Combine::Subtract, &[2, 1])),
             "pipeline-combine-empty"
         );
+    }
+
+    #[test]
+    fn a_grid_array_copies_on_the_layer_in_columns_and_rows() {
+        let job = drawn_part();
+        let edited = array_grid(&job, &[2], 3, 2, (30.0, -40.0)).unwrap();
+        assert_eq!(edited.new_ids, [4, 5, 6, 7, 8]);
+        let centres: Vec<[f64; 2]> = edited
+            .new_ids
+            .iter()
+            .map(|&id| match geometry(&edited.job, id) {
+                Geometry::Circle { center, .. } => *center,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(
+            centres,
+            [
+                [105.0, 80.0],
+                [135.0, 80.0],
+                [75.0, 40.0],
+                [105.0, 40.0],
+                [135.0, 40.0]
+            ]
+        );
+        assert!(array_grid(&job, &[2], 1, 1, (30.0, 0.0)).is_err());
+        assert!(array_grid(&job, &[2], 3, 1, (0.0, 10.0)).is_err());
+        assert!(array_grid(&job, &[2], 200, 200, (1.0, 1.0)).is_err());
+    }
+
+    #[test]
+    fn a_polar_array_of_a_whole_turn_has_no_copy_on_the_original() {
+        let job = drawn_part();
+        let polar = Polar {
+            count: 4,
+            center: (100.0, 80.0),
+            angle_deg: 360.0,
+            rotate: true,
+        };
+        let edited = array_polar(&job, &[2], polar).unwrap();
+        let centres: Vec<(f64, f64)> = edited
+            .new_ids
+            .iter()
+            .map(|&id| match geometry(&edited.job, id) {
+                Geometry::Circle { center, .. } => (
+                    (center[0] * 1e6).round() / 1e6,
+                    (center[1] * 1e6).round() / 1e6,
+                ),
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(centres, [(100.0, 55.0), (125.0, 80.0), (100.0, 105.0)]);
+        // A sweep: the first and last at its ends.
+        let half = array_polar(
+            &job,
+            &[2],
+            Polar {
+                count: 3,
+                angle_deg: 180.0,
+                ..polar
+            },
+        )
+        .unwrap();
+        assert!(matches!(geometry(&half.job, half.new_ids[1]),
+            Geometry::Circle { center, .. } if (center[0] - 125.0).abs() < 1e-9 && (center[1] - 80.0).abs() < 1e-9));
+        assert!(array_polar(&job, &[2], Polar { count: 1, ..polar }).is_err());
+        assert!(
+            array_polar(
+                &job,
+                &[2],
+                Polar {
+                    angle_deg: 0.0,
+                    ..polar
+                }
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn a_polar_array_turns_its_copies_unless_asked_not_to() {
+        // S1, a rectangle at 10°, copied a quarter turn round its own centre.
+        let job = drawn_part();
+        let polar = Polar {
+            count: 2,
+            center: (100.0, 80.0),
+            angle_deg: 90.0,
+            rotate: true,
+        };
+        let turned = array_polar(&job, &[1], polar).unwrap();
+        assert!(matches!(geometry(&turned.job, 4),
+            Geometry::Rectangle { angle, .. } if (angle.to_degrees() - 100.0).abs() < 1e-9));
+        let moved = array_polar(
+            &job,
+            &[1],
+            Polar {
+                rotate: false,
+                ..polar
+            },
+        )
+        .unwrap();
+        assert!(matches!(geometry(&moved.job, 4),
+            Geometry::Rectangle { angle, .. } if (angle.to_degrees() - 10.0).abs() < 1e-9));
     }
 }

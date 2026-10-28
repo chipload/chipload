@@ -178,6 +178,13 @@ chipload shape array-polar P IDS --count 6 --center X,Y [--angle-deg 360] [--no-
 - **GUI:** select, then the tool: a small form under *Selection* with the values and a
   preview of the copies on the canvas; *Create* adds them.
 
+- *Implemented:* in the pipeline (`array_grid`, `array_polar`): copies are shapes copied
+  and turned as `shape copy` and `turn` do. At most 10 000 shapes in one array (a typing
+  slip, not a drawing); a spacing of 0 where there is more than one column or row is
+  refused (copies on each other); a negative angle goes clockwise. Without `--no-rotate`
+  each copy turns about the centre; with it, the selection's middle goes round and the
+  copy moves without turning.
+
 ## 7. Align and distribute
 
 ```

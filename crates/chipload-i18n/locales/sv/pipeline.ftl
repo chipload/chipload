@@ -484,6 +484,9 @@ pipeline-combine-empty = { $op ->
    *[other] formerna har ingen del gemensam: ingenting blir kvar
 }
 pipeline-combine-failed = formerna kunde inte kombineras: { $why }
+pipeline-array-count = en matris har 2 till { $most } former inklusive originalet, fick { $got }
+pipeline-array-spacing = kopiorna skulle hamna på varandra: ange ett avstånd skilt från 0 där det finns mer än en kolumn eller rad
+pipeline-array-angle = vinkeln måste vara större än 0 och högst 360 grader, fick { $got }
 pipeline-shape-gone = S{ $id } finns inte längre: { $ops ->
     [one] operation { $operations } använde den; välj dess geometri igen
    *[other] operationerna { $operations } använde den; välj deras geometri igen

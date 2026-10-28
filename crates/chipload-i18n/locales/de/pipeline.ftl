@@ -487,6 +487,9 @@ pipeline-combine-empty = { $op ->
    *[other] die Formen haben keinen gemeinsamen Teil: es bleibt nichts übrig
 }
 pipeline-combine-failed = die Formen ließen sich nicht kombinieren: { $why }
+pipeline-array-count = eine Anordnung hat 2 bis { $most } Formen samt dem Original, ist { $got }
+pipeline-array-spacing = die Kopien lägen aufeinander: geben Sie einen Abstand ungleich 0 an, wo es mehr als eine Spalte oder Reihe gibt
+pipeline-array-angle = der Winkel muss größer als 0 und höchstens 360 Grad sein, ist { $got }
 pipeline-shape-gone = S{ $id } gibt es nicht mehr: { $ops ->
     [one] Operation { $operations } hat sie verwendet; wählen Sie ihre Geometrie neu
    *[other] die Operationen { $operations } haben sie verwendet; wählen Sie ihre Geometrie neu
