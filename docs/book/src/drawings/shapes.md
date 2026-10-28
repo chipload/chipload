@@ -127,6 +127,14 @@ DXF first, [Explode](several.md)).
   command line: `chipload shape array P 2 3 --columns 4 --rows 2
   --dx 30 --dy 20`, `chipload shape array-polar P 5 --count 6 --center 100,80
   [--angle-deg 180] [--no-rotate]`.
+- **Align** and **Distribute** sit under *Selection* when drawn shapes are selected.
+  Align lines up each shape's box (its left or right side, top or bottom, or middle) with
+  the box round them all, or, with *To the stock*, with the stock's (then one shape is
+  enough). Distribute, with three shapes or more, evens out the gaps between their boxes
+  across or up and down; the outermost two stay put. Shapes move whole and keep their
+  numbers. On the command line: `chipload shape align P 2 3 --to left|centre|right|top|
+  middle|bottom [--stock]`, `chipload shape distribute P 2 3 4 --horizontal` (or
+  `--vertical`).
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.
 

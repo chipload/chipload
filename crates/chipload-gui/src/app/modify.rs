@@ -4,12 +4,14 @@
 
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
-    ARRAY_MOST, Combine, Corners, Cut, Edited, OffsetSide, Polar, array_grid, array_polar,
-    break_shape, combine_shapes, cut_shape_corners, extend_shape, nearer_end, nearest_drawn,
-    nearest_point, offset_at, offset_shapes, shape_corners, trim_preview, trim_shape,
+    ARRAY_MOST, AlignTo, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
+    array_grid, array_polar, break_shape, combine_shapes, cut_shape_corners, distribute_shapes,
+    extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at, offset_shapes,
+    shape_corners, trim_preview, trim_shape,
 };
 
 use super::*;
+use crate::icons::Icon;
 
 /// An editing tool.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +38,14 @@ pub enum ModifyTool {
     Array,
     /// Copies of the selection round a centre clicked on the canvas (§6).
     PolarArray,
+}
+
+/// An align or distribute button (§7).
+#[derive(Debug, Clone, Copy)]
+pub(super) enum Arrange {
+    Align(AlignTo),
+    /// Along X (true) or Y.
+    Distribute(bool),
 }
 
 /// The array tools' values, kept for the session (§6).
@@ -665,6 +675,81 @@ impl ChiploadApp {
         });
         if ui.button(t!(ui, "array-create")).clicked() {
             self.create_array();
+        }
+    }
+
+    /// Align or distribute the selected drawn shapes (§7), as one undo step.
+    pub(super) fn arrange_selected(&mut self, arrange: Arrange) -> bool {
+        let ids = self.selected_drawn();
+        let Some(job) = self.job_with_operations() else {
+            return false;
+        };
+        let result = match arrange {
+            Arrange::Align(to) => align_shapes(&job, &ids, to, self.align_to_stock),
+            Arrange::Distribute(horizontal) => distribute_shapes(&job, &ids, horizontal),
+        }
+        .map(|job| Edited {
+            job,
+            new_ids: Vec::new(),
+            notes: Vec::new(),
+        });
+        self.take_edit(result, &ids)
+    }
+
+    /// Under Selection, with drawn shapes selected: align them to each other or the
+    /// stock, and distribute three or more (§7).
+    pub(super) fn arrange_ui(&mut self, ui: &mut egui::Ui) {
+        let count = self.selected_drawn().len();
+        if count == 0 || !self.can_draw() {
+            return;
+        }
+        let mut clicked = None;
+        let side = 22.0;
+        egui::Grid::new("selection-arrange")
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "arrange-align"));
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 2.0;
+                    let enabled = count >= 2 || self.align_to_stock;
+                    for (icon, to, hover) in [
+                        (Icon::AlignLeft, AlignTo::Left, t!(ui, "arrange-left")),
+                        (Icon::AlignCentre, AlignTo::Centre, t!(ui, "arrange-centre")),
+                        (Icon::AlignRight, AlignTo::Right, t!(ui, "arrange-right")),
+                        (Icon::AlignTop, AlignTo::Top, t!(ui, "arrange-top")),
+                        (Icon::AlignMiddle, AlignTo::Middle, t!(ui, "arrange-middle")),
+                        (Icon::AlignBottom, AlignTo::Bottom, t!(ui, "arrange-bottom")),
+                    ] {
+                        if super::header::icon_button(ui, icon, &hover, enabled, false, side)
+                            .clicked()
+                        {
+                            clicked = Some(Arrange::Align(to));
+                        }
+                    }
+                });
+                ui.end_row();
+                ui.label("");
+                ui.checkbox(&mut self.align_to_stock, t!(ui, "arrange-stock"))
+                    .on_hover_text(t!(ui, "arrange-stock-hover"));
+                ui.end_row();
+                ui.label(t!(ui, "arrange-distribute"));
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 2.0;
+                    for (icon, horizontal, hover) in [
+                        (Icon::DistributeAcross, true, t!(ui, "arrange-across")),
+                        (Icon::DistributeUp, false, t!(ui, "arrange-up")),
+                    ] {
+                        if super::header::icon_button(ui, icon, &hover, count >= 3, false, side)
+                            .clicked()
+                        {
+                            clicked = Some(Arrange::Distribute(horizontal));
+                        }
+                    }
+                });
+                ui.end_row();
+            });
+        if let Some(arrange) = clicked {
+            self.arrange_selected(arrange);
         }
     }
 

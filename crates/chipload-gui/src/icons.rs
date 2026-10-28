@@ -38,6 +38,14 @@ pub enum Icon {
     Intersect,
     Array,
     PolarArray,
+    AlignLeft,
+    AlignCentre,
+    AlignRight,
+    AlignTop,
+    AlignMiddle,
+    AlignBottom,
+    DistributeAcross,
+    DistributeUp,
     Paths,
     Profile,
     Pocket,
@@ -234,6 +242,17 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 pen.circle((0.5 + 0.32 * t.cos(), 0.5 + 0.32 * t.sin()), 0.09);
             }
         }
+        // Two bars lined up on a line (left, centre, right; top, middle, bottom), drawn
+        // across and turned for the vertical ones.
+        Icon::AlignLeft => align_icon(&pen, 0.15, false, false),
+        Icon::AlignCentre => align_icon(&pen, 0.5, false, false),
+        Icon::AlignRight => align_icon(&pen, 0.85, false, false),
+        Icon::AlignTop => align_icon(&pen, 0.15, true, false),
+        Icon::AlignMiddle => align_icon(&pen, 0.5, true, false),
+        Icon::AlignBottom => align_icon(&pen, 0.85, true, false),
+        // Three boxes with even gaps between them.
+        Icon::DistributeAcross => align_icon(&pen, 0.0, false, true),
+        Icon::DistributeUp => align_icon(&pen, 0.0, true, true),
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)
                 .map(|k| {
@@ -573,6 +592,34 @@ fn dotted_arc(pen: &Pen<'_>, centre: (f32, f32), from: f32, to: f32) {
             ),
             0.025,
         );
+    }
+}
+
+/// The align icons: a line at `at` (across the icon) with a long and a short bar lined up
+/// on it; `turned` swaps x and y (top, middle, bottom: y grows down on screen). `spread`:
+/// three boxes with even gaps instead, for distribute.
+fn align_icon(pen: &Pen<'_>, at: f32, turned: bool, spread: bool) {
+    let p = |x: f32, y: f32| if turned { (y, x) } else { (x, y) };
+    let bar = |x0: f32, x1: f32, y0: f32, y1: f32| {
+        pen.closed(&[p(x0, y0), p(x1, y0), p(x1, y1), p(x0, y1)]);
+    };
+    if spread {
+        for x in [0.1, 0.42, 0.74] {
+            bar(x, x + 0.16, 0.25, 0.75);
+        }
+        return;
+    }
+    pen.line([p(at, 0.08), p(at, 0.92)]);
+    for (y, length) in [(0.22, 0.62), (0.58, 0.38)] {
+        // Starting on the line, ending on it, or centred on it.
+        let x0 = if at < 0.5 {
+            at
+        } else if at > 0.5 {
+            at - length
+        } else {
+            at - length / 2.0
+        };
+        bar(x0, x0 + length, y, y + 0.2);
     }
 }
 

@@ -92,8 +92,8 @@ fn the_ribbon_shows_names_where_they_fit_and_icons_alone_where_not() {
     ));
 }
 
-/// The window as pictures, to look at: each language at the default size and English in a
-/// narrow window, written to CHIPLOAD_PICTURES (a folder).
+/// The window as pictures, to look at: each language at the default size, English in a
+/// narrow window and with two shapes selected, written to CHIPLOAD_PICTURES (a folder).
 #[test]
 #[ignore = "writes pictures to look at; run with CHIPLOAD_PICTURES=DIR -- --ignored"]
 fn pictures() {
@@ -112,4 +112,10 @@ fn pictures() {
         let image = harness.render().unwrap();
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }
+    // Two drawn shapes selected: the Selection section with its tools.
+    let mut harness = app_harness(Harness::builder().with_size(WINDOW).wgpu(), "en");
+    harness.state_mut().selection = CanvasSelection::Shapes([2, 3].into());
+    harness.run_steps(4);
+    let image = harness.render().unwrap();
+    image.save(dir.join("window-en-selection.png")).unwrap();
 }

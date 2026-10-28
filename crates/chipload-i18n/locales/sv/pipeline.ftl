@@ -487,6 +487,8 @@ pipeline-combine-failed = formerna kunde inte kombineras: { $why }
 pipeline-array-count = en matris har 2 till { $most } former inklusive originalet, fick { $got }
 pipeline-array-spacing = kopiorna skulle hamna på varandra: ange ett avstånd skilt från 0 där det finns mer än en kolumn eller rad
 pipeline-array-angle = vinkeln måste vara större än 0 och högst 360 grader, fick { $got }
+pipeline-align-two = det behövs två former eller fler för att justera, eller ämnet att justera mot
+pipeline-distribute-three = det behövs tre former eller fler för att fördela
 pipeline-shape-gone = S{ $id } finns inte längre: { $ops ->
     [one] operation { $operations } använde den; välj dess geometri igen
    *[other] operationerna { $operations } använde den; välj deras geometri igen

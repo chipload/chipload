@@ -354,6 +354,8 @@ pub struct ChiploadApp {
     offset_preview: modify::OffsetPreview,
     /// The array tools' values, kept for the session, and their preview.
     pub array: modify::ArraySettings,
+    /// Align lines the selection up with the stock instead of its own box.
+    pub align_to_stock: bool,
     array_preview: modify::ArrayPreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
@@ -494,6 +496,7 @@ impl Default for ChiploadApp {
             chamfer_distance: 1.0,
             offset_preview: modify::OffsetPreview::default(),
             array: modify::ArraySettings::default(),
+            align_to_stock: false,
             array_preview: modify::ArrayPreview::default(),
             placing_text: false,
             focus_text_field: false,

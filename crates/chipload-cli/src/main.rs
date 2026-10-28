@@ -26,8 +26,9 @@ use chipload_job::{
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::drawing_edit::{
-    Combine, Corners, Cut, End, OffsetSide, Polar, array_grid, array_polar, break_shape,
-    combine_shapes, cut_shape_corners, extend_shape, offset_shapes, trim_shape,
+    AlignTo, Combine, Corners, Cut, End, OffsetSide, Polar, align_shapes, array_grid, array_polar,
+    break_shape, combine_shapes, cut_shape_corners, distribute_shapes, extend_shape, offset_shapes,
+    trim_shape,
 };
 use chipload_pipeline::estimate::{estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
@@ -971,6 +972,47 @@ enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Line up drawn shapes: each one's box side or middle with that of the box round
+    /// them all, or the stock's; they move whole and keep their ids
+    /// (docs/specs/drawing-editing.md §7).
+    Align {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// Which side or middle lines up.
+        #[arg(long, value_enum)]
+        to: AlignToArg,
+        /// Line up with the stock instead (then one shape is enough).
+        #[arg(long)]
+        stock: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Even out the gaps between drawn shapes' boxes, the first and last staying put
+    /// (docs/specs/drawing-editing.md §7).
+    Distribute {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids, three or more (as `inspect` lists them, without the S).
+        #[arg(required = true, num_args = 3..)]
+        ids: Vec<u64>,
+        /// Along X.
+        #[arg(
+            long,
+            conflicts_with = "vertical",
+            required_unless_present = "vertical"
+        )]
+        horizontal: bool,
+        /// Along Y.
+        #[arg(long)]
+        vertical: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Cut corners of a drawn shape straight across, a distance back along each side; it
     /// keeps its id (docs/specs/drawing-editing.md §3).
     Chamfer {
@@ -1016,6 +1058,17 @@ enum OffsetSideArg {
     Inside,
     Left,
     Right,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum AlignToArg {
+    Left,
+    #[value(alias = "center")]
+    Centre,
+    Right,
+    Top,
+    Middle,
+    Bottom,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -1906,6 +1959,12 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Union {
             project, output, ..
         }
+        | ShapeAction::Align {
+            project, output, ..
+        }
+        | ShapeAction::Distribute {
+            project, output, ..
+        }
         | ShapeAction::Array {
             project, output, ..
         }
@@ -2087,6 +2146,26 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 (edited.job, lines)
             })
         }
+        ShapeAction::Align { ids, to, stock, .. } => {
+            let to = match to {
+                AlignToArg::Left => AlignTo::Left,
+                AlignToArg::Centre => AlignTo::Centre,
+                AlignToArg::Right => AlignTo::Right,
+                AlignToArg::Top => AlignTo::Top,
+                AlignToArg::Middle => AlignTo::Middle,
+                AlignToArg::Bottom => AlignTo::Bottom,
+            };
+            align_shapes(&job, &ids, to, stock)
+                .map(|job| (job, vec![format!("Aligned shapes {}.", shape_names(&ids))]))
+        }
+        ShapeAction::Distribute {
+            ids, horizontal, ..
+        } => distribute_shapes(&job, &ids, horizontal).map(|job| {
+            (
+                job,
+                vec![format!("Distributed shapes {}.", shape_names(&ids))],
+            )
+        }),
         ShapeAction::Union { ids, .. } => {
             combined(&job, Combine::Union, &ids, &mut new_ids, &mut flagged_ops)
         }

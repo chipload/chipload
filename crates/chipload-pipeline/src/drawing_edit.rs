@@ -799,6 +799,114 @@ fn copies(
     })
 }
 
+// -- align and distribute (§7)
+
+/// Which side or middle of the boxes lines up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlignTo {
+    Left,
+    Centre,
+    Right,
+    Top,
+    Middle,
+    Bottom,
+}
+
+type Bounds = ((f64, f64), (f64, f64));
+
+/// Each drawn shape's box, in `ids`' order; refused when one is given twice.
+fn boxes(job: &Job, ids: &[u64]) -> Result<Vec<(u64, Bounds)>, PipelineError> {
+    ids.iter()
+        .enumerate()
+        .map(|(i, &id)| {
+            if ids[..i].contains(&id) {
+                return Err(refused(Message::new("pipeline-shape-twice").arg("id", id)));
+            }
+            drawn(job, id)?;
+            crate::shapes::shapes_bounds(job, &[id])
+                .map(|b| (id, b))
+                .ok_or_else(|| no_shape(id))
+        })
+        .collect()
+}
+
+/// Move drawn shape `id` by `by`, keeping its id (operations and their points follow).
+fn shift(job: Job, id: u64, by: (f64, f64)) -> Result<Job, PipelineError> {
+    if by == (0.0, 0.0) {
+        return Ok(job);
+    }
+    crate::shapes::transform_shapes(&job, &[id], (0.0, 0.0), by, 1.0, 0.0)
+}
+
+/// Line up drawn shapes `ids`: each box's side or middle `to` that of the box round them
+/// all, or with `stock` the stock's. Shapes move whole and keep their ids. Without the
+/// stock, two shapes or more.
+pub fn align_shapes(
+    job: &Job,
+    ids: &[u64],
+    to: AlignTo,
+    stock: bool,
+) -> Result<Job, PipelineError> {
+    if ids.is_empty() || (ids.len() < 2 && !stock) {
+        return Err(refused(Message::new("pipeline-align-two")));
+    }
+    let boxes = boxes(job, ids)?;
+    let target = if stock {
+        job.stock.xy_bounds()
+    } else {
+        boxes
+            .iter()
+            .map(|(_, b)| *b)
+            .reduce(|(lo, hi), (a, b)| {
+                (
+                    (lo.0.min(a.0), lo.1.min(a.1)),
+                    (hi.0.max(b.0), hi.1.max(b.1)),
+                )
+            })
+            .unwrap_or_default()
+    };
+    let mut out = job.clone();
+    for (id, (lo, hi)) in boxes {
+        let ((tlo, thi), mid) = (target, |a: f64, b: f64| (a + b) / 2.0);
+        let by = match to {
+            AlignTo::Left => (tlo.0 - lo.0, 0.0),
+            AlignTo::Right => (thi.0 - hi.0, 0.0),
+            AlignTo::Centre => (mid(tlo.0, thi.0) - mid(lo.0, hi.0), 0.0),
+            AlignTo::Bottom => (0.0, tlo.1 - lo.1),
+            AlignTo::Top => (0.0, thi.1 - hi.1),
+            AlignTo::Middle => (0.0, mid(tlo.1, thi.1) - mid(lo.1, hi.1)),
+        };
+        out = shift(out, id, by)?;
+    }
+    Ok(out)
+}
+
+/// Even out the gaps between drawn shapes `ids`' boxes, along X (`horizontal`) or Y: the
+/// first and last (by where their boxes start) stay, the others move along that axis only.
+/// Three shapes or more.
+pub fn distribute_shapes(job: &Job, ids: &[u64], horizontal: bool) -> Result<Job, PipelineError> {
+    if ids.len() < 3 {
+        return Err(refused(Message::new("pipeline-distribute-three")));
+    }
+    let axis = |p: (f64, f64)| if horizontal { p.0 } else { p.1 };
+    let mut spans: Vec<(u64, f64, f64)> = boxes(job, ids)?
+        .into_iter()
+        .map(|(id, (lo, hi))| (id, axis(lo), axis(hi)))
+        .collect();
+    spans.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+    let (first, last) = (spans[0], spans[spans.len() - 1]);
+    let sizes: f64 = spans.iter().map(|(_, lo, hi)| hi - lo).sum();
+    let gap = (last.2 - first.1 - sizes) / (spans.len() - 1) as f64;
+    let mut out = job.clone();
+    let mut at = first.2 + gap;
+    for &(id, lo, hi) in &spans[1..spans.len() - 1] {
+        let d = at - lo;
+        out = shift(out, id, if horizontal { (d, 0.0) } else { (0.0, d) })?;
+        at += hi - lo + gap;
+    }
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1120,5 +1228,69 @@ mod tests {
         .unwrap();
         assert!(matches!(geometry(&moved.job, 4),
             Geometry::Rectangle { angle, .. } if (angle.to_degrees() - 10.0).abs() < 1e-9));
+    }
+
+    fn bounds_of(job: &Job, id: u64) -> ((f64, f64), (f64, f64)) {
+        crate::shapes::shapes_bounds(job, &[id]).unwrap()
+    }
+
+    fn near(a: f64, b: f64) -> bool {
+        (a - b).abs() < 1e-9
+    }
+
+    #[test]
+    fn shapes_align_to_their_box_or_the_stock() {
+        // S2 a circle at 75,80 r 12; S3 a triangle from 110,65 to 140,95.
+        let job = drawn_part();
+        let left = align_shapes(&job, &[2, 3], AlignTo::Left, false).unwrap();
+        assert!(near(bounds_of(&left, 3).0.0, 63.0));
+        assert!(near(bounds_of(&left, 2).0.0, 63.0));
+        let top = align_shapes(&job, &[2, 3], AlignTo::Top, false).unwrap();
+        assert!(near(bounds_of(&top, 2).1.1, 95.0));
+        let stock = job.stock.xy_bounds();
+        let middle = align_shapes(&job, &[2], AlignTo::Centre, true).unwrap();
+        assert!(near(
+            (bounds_of(&middle, 2).0.0 + bounds_of(&middle, 2).1.0) / 2.0,
+            (stock.0.0 + stock.1.0) / 2.0
+        ));
+        assert!(align_shapes(&job, &[2], AlignTo::Left, false).is_err());
+    }
+
+    #[test]
+    fn distributing_evens_the_gaps_and_keeps_the_ends() {
+        let job = drawn_part();
+        let (job, a) = add_shape(
+            &job,
+            "drawn",
+            Geometry::Circle {
+                center: [0.0, 0.0],
+                radius: 5.0,
+            },
+        )
+        .unwrap();
+        let (job, b) = add_shape(
+            &job,
+            "drawn",
+            Geometry::Circle {
+                center: [12.0, 0.0],
+                radius: 5.0,
+            },
+        )
+        .unwrap();
+        let (job, c) = add_shape(
+            &job,
+            "drawn",
+            Geometry::Circle {
+                center: [100.0, 0.0],
+                radius: 10.0,
+            },
+        )
+        .unwrap();
+        let out = distribute_shapes(&job, &[c, a, b], true).unwrap();
+        // From -5 to 110, 40 mm of circles: two gaps of 37.5.
+        assert!(near(bounds_of(&out, a).0.0, -5.0));
+        assert!(near(bounds_of(&out, b).0.0, 42.5));
+        assert!(near(bounds_of(&out, c).0.0, 90.0));
+        assert!(distribute_shapes(&job, &[a, b], true).is_err());
     }
 }

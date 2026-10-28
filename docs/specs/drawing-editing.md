@@ -207,6 +207,12 @@ chipload shape distribute P IDS --horizontal|--vertical
 - **GUI:** buttons in the *Selection* section when two or more drawn shapes are selected
   (align to the stock with one shape too).
 
+- *Implemented:* `align_shapes`, `distribute_shapes` in the pipeline, on each shape's
+  exact box (arcs included). Distribute orders the shapes by where their boxes start (the
+  id breaks a tie); a gap may come out negative when the shapes are wider than the span,
+  and is kept. In the window: icon buttons under *Selection* (six to align, a *To the
+  stock* box, two to distribute), each one undo step; `--to centre` also takes `center`.
+
 ## 8. GUI placement
 
 The ribbon gets a **MODIFY** group of small icon buttons, three to a row, as the shape

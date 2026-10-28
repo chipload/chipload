@@ -1174,6 +1174,7 @@ impl ChiploadApp {
                 self.array_form(ui);
                 self.selected_shape_ui(ui);
                 self.selected_shapes_place_ui(ui);
+                self.arrange_ui(ui);
                 if ui
                     .add_enabled(
                         self.selector_json().is_some(),

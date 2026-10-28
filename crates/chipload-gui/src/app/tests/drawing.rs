@@ -711,3 +711,25 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     assert!(app.create_array());
     assert_eq!(count(&app), 8);
 }
+
+#[test]
+fn the_selection_aligns_and_distributes_its_shapes() {
+    // docs/specs/drawing-editing.md §7: S2 a circle at 75,80 r 12, S3 a triangle from
+    // 110,65 to 140,95.
+    use super::modify::Arrange;
+    use chipload_pipeline::drawing_edit::AlignTo;
+    let mut app = drawn_part();
+    app.selection = CanvasSelection::Shapes([2, 3].into());
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Bottom)));
+    assert!(matches!(
+        app.shape(2).unwrap().geometry,
+        Geometry::Circle { center, .. } if center == [75.0, 77.0]
+    ));
+    app.commit();
+    // Distributing needs three; one shape aligns to the stock only.
+    assert!(!app.arrange_selected(Arrange::Distribute(true)));
+    app.selection = CanvasSelection::Shapes([2].into());
+    assert!(!app.arrange_selected(Arrange::Align(AlignTo::Left)));
+    app.align_to_stock = true;
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
+}

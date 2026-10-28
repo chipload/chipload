@@ -1694,3 +1694,30 @@ fn drawn_shapes_are_arrayed_from_the_command_line() {
     assert_eq!(out.status.code(), Some(1));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn drawn_shapes_are_aligned_and_distributed_from_the_command_line() {
+    // docs/specs/drawing-editing.md §7: S2 a circle at 75,80 r 12, S3 a triangle from
+    // 110,65 to 140,95.
+    let dir = temp_dir("align");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&["shape", "align", p, "2", "3", "--to", "bottom"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let circle = chipload(&["get", p, "drawing.shapes.1.center"]);
+    assert!(
+        text(&circle.stdout).contains("77"),
+        "{}",
+        text(&circle.stdout)
+    );
+    // One shape aligns only to the stock; distributing needs three.
+    let out = chipload(&["shape", "align", p, "2", "--to", "left"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(text(&out.stderr).contains("two shapes or more"));
+    let out = chipload(&["shape", "align", p, "2", "--to", "left", "--stock"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["shape", "distribute", p, "1", "2", "3", "--horizontal"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

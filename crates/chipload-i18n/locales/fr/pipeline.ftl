@@ -495,6 +495,8 @@ pipeline-combine-failed = les formes n'ont pas pu être combinées : { $why }
 pipeline-array-count = un réseau compte de 2 à { $most } formes avec l'original, reçu { $got }
 pipeline-array-spacing = les copies seraient les unes sur les autres : donnez un espacement différent de 0 là où il y a plus d'une colonne ou d'une rangée
 pipeline-array-angle = l'angle doit être supérieur à 0 et d'au plus 360 degrés, reçu { $got }
+pipeline-align-two = il faut au moins deux formes pour aligner, ou le brut comme repère
+pipeline-distribute-three = il faut au moins trois formes pour répartir
 pipeline-shape-gone = S{ $id } n'existe plus : { $ops ->
     [one] l'opération { $operations } l'utilisait ; choisissez de nouveau sa géométrie
    *[other] les opérations { $operations } l'utilisaient ; choisissez de nouveau leur géométrie

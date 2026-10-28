@@ -492,6 +492,8 @@ pipeline-combine-failed = non è stato possibile combinare le forme: { $why }
 pipeline-array-count = una serie ha da 2 a { $most } forme compreso l'originale, trovato { $got }
 pipeline-array-spacing = le copie si sovrapporrebbero: dai una spaziatura diversa da 0 dove c'è più di una colonna o riga
 pipeline-array-angle = l'angolo deve essere maggiore di 0 e al massimo 360 gradi, trovato { $got }
+pipeline-align-two = per allineare servono due forme o più, oppure il grezzo come riferimento
+pipeline-distribute-three = per distribuire servono tre forme o più
 pipeline-shape-gone = S{ $id } non esiste più: { $ops ->
     [one] l'operazione { $operations } la usava; scegli di nuovo la sua geometria
    *[other] le operazioni { $operations } la usavano; scegli di nuovo la loro geometria

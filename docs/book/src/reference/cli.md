@@ -644,6 +644,38 @@ chipload shape array-polar <PROJECT> <IDS>... [OPTIONS]
 | `--no-rotate` | Move the copies round without turning them. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape align`
+
+Line up drawn shapes: each one's box side or middle with that of the box round them all, or the stock's; they move whole and keep their ids (docs/specs/drawing-editing.md §7)
+
+```text
+chipload shape align <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--to <TO>` | Which side or middle lines up. One of: `left`, `centre`, `right`, `top`, `middle`, `bottom`. Required. |
+| `--stock` | Line up with the stock instead (then one shape is enough) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape distribute`
+
+Even out the gaps between drawn shapes' boxes, the first and last staying put (docs/specs/drawing-editing.md §7)
+
+```text
+chipload shape distribute <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids, three or more (as `inspect` lists them, without the S) |
+| `--horizontal` | Along X. |
+| `--vertical` | Along Y. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape chamfer`
 
 Cut corners of a drawn shape straight across, a distance back along each side; it keeps its id (docs/specs/drawing-editing.md §3)
