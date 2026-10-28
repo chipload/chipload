@@ -137,6 +137,29 @@ pub(super) fn section<R>(
     section_marked(ui, key, title, summary, marked, rows)
 }
 
+/// How a section opens and how wide its label column is.
+#[derive(Clone, Copy)]
+struct SectionLook {
+    /// Open the first time it is shown.
+    open: bool,
+    /// The least width of the label column.
+    labels: f32,
+}
+
+/// A [`section`] that opens as `look` says, with its label column at least `look.labels`
+/// wide: sections that share one line up their fields.
+fn section_look<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    look: SectionLook,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let marked = problems::section_has_problem(ui, key);
+    section_shown(ui, key, title, summary, marked, look, rows)
+}
+
 /// A section whose header has a red dot when `marked`: a field in it has a problem
 /// (docs/specs/live-problems.md §3).
 fn section_marked<R>(
@@ -145,6 +168,22 @@ fn section_marked<R>(
     title: &str,
     summary: &str,
     marked: bool,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let look = SectionLook {
+        open: true,
+        labels: label_width(ui),
+    };
+    section_shown(ui, key, title, summary, marked, look, rows)
+}
+
+fn section_shown<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    marked: bool,
+    look: SectionLook,
     rows: impl FnOnce(&mut egui::Ui) -> R,
 ) -> Option<R> {
     let mut header = egui::text::LayoutJob::default();
@@ -184,11 +223,11 @@ fn section_marked<R>(
     let header = ui.fonts_mut(|f| f.layout_job(header));
     egui::CollapsingHeader::new(header)
         .id_salt(("section", key))
-        .default_open(true)
+        .default_open(look.open)
         .show(ui, |ui| {
             Grid::new(("section-grid", key))
                 .num_columns(2)
-                .min_col_width(label_width(ui))
+                .min_col_width(look.labels)
                 .show(ui, rows)
                 .inner
         })
@@ -1495,6 +1534,21 @@ pub(super) fn work_zero_rows(
     }
 }
 
+/// Where X0 Y0 is, as the work zero list names it.
+fn work_zero_name(ui: &egui::Ui, work_zero: &WorkZero) -> String {
+    match work_zero {
+        WorkZero::DrawingOrigin {} => t!(ui, "forms-zero-drawing-origin"),
+        WorkZero::Stock { corner } => match corner {
+            StockCorner::Center => t!(ui, "forms-zero-stock-centre"),
+            StockCorner::BottomLeft => t!(ui, "forms-zero-stock-bottom-left"),
+            StockCorner::BottomRight => t!(ui, "forms-zero-stock-bottom-right"),
+            StockCorner::TopLeft => t!(ui, "forms-zero-stock-top-left"),
+            StockCorner::TopRight => t!(ui, "forms-zero-stock-top-right"),
+        },
+        WorkZero::Point { .. } => t!(ui, "forms-zero-point"),
+    }
+}
+
 /// What the job form asks of the app beyond editing values.
 pub(super) enum JobRequest {
     /// Choose the project's material by uid, or none (docs/specs/materials.md §2).
@@ -2038,168 +2092,227 @@ pub(super) fn job_form(
     edit: &mut EditJob,
     library: Option<&Library>,
 ) -> Option<JobRequest> {
-    let units = crate::units::display(ui.ctx());
-    let len_unit = chipload_pipeline::units::length_unit(units);
+    // Four sections in the order a job is set up: stock, zero, material, machine
+    // (docs/specs/job-settings-layout.md §2).
     let mut request = None;
     let mut copies_request = None;
     let mut material_request = None;
-    let job = &mut edit.settings;
     let title = t!(ui, "forms-job-settings");
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
+    let labels = job_label_width(ui);
+    let open = SectionLook { open: true, labels };
+    let job = &mut edit.settings;
+    stock_section(ui, job, open);
+    zero_section(ui, job, open);
+    if let Some(library) = library {
+        material_request = material_section(ui, job, library, open);
+    }
+    machine_section(
+        ui,
+        job,
+        library,
+        SectionLook {
+            open: false,
+            labels,
+        },
+        &mut request,
+        &mut copies_request,
+    );
+    material_request
+        .or(copies_request)
+        .or(request.map(JobRequest::Library))
+}
 
+/// One label column for every Job settings section: as wide as the widest label, within
+/// the panel's share for labels, so the fields line up down the panel.
+fn job_label_width(ui: &egui::Ui) -> f32 {
+    let keys = [
+        "forms-thickness",
+        "forms-stock-size",
+        "forms-work-zero",
+        "forms-z-zero",
+        "forms-material",
+        "user-library-library",
+        "forms-from-machine",
+        "forms-safe-z-job",
+        "forms-max-overcut",
+        "forms-post",
+        "forms-gcode-units",
+        "forms-spindle",
+        "forms-max-feed",
+        "forms-tool-changes",
+        "forms-travel",
+    ];
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let widest = keys
+        .iter()
+        .map(|key| {
+            let text = crate::i18n::text(ui, key, &[]);
+            ui.fonts_mut(|f| {
+                f.layout_no_wrap(text, font.clone(), egui::Color32::WHITE)
+                    .size()
+                    .x
+            })
+        })
+        .fold(0.0_f32, f32::max);
+    let most = (0.45 * form_width(ui)).max(NARROW_WIDTH);
+    widest.ceil().clamp(label_width(ui), most)
+}
+
+/// The stock: its thickness first, then its size, fitting the drawing or fixed
+/// (docs/specs/stock-around-drawing.md).
+fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLook) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
     let (size_x, size_y) = job.stock_size();
-    let stock = format!(
+    let summary = format!(
         "{} × {} × {} {len_unit}",
         len_in(units, size_x),
         len_in(units, size_y),
         len_in(units, job.stock.thickness)
     );
-    let drawing = job.drawing.extents();
-    section(
+    let drawing = job.drawing.extents().map(|((x0, y0), (x1, y1))| {
+        format!(
+            "{} × {} {len_unit}",
+            len_in(units, x1 - x0),
+            len_in(units, y1 - y0)
+        )
+    });
+    section_look(
         ui,
         "job-stock",
         &t!(ui, "forms-section-stock"),
-        &stock,
+        &summary,
+        look,
         |ui| {
-            // The stock fits the drawing (its outline plus a margin), or has a typed size
-            // (docs/specs/stock-around-drawing.md). First, on its own row: it is the
-            // usual choice (the user, 2026-10-28).
-            let mut fits = job.stock.fit.is_some();
-            if ui
-                .checkbox(&mut fits, t!(ui, "forms-stock-fit"))
-                .on_hover_text(t!(ui, "forms-stock-fit-hover"))
-                .changed()
-            {
-                if fits {
-                    job.stock.origin = StockOrigin::Drawing;
-                    job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
-                } else {
-                    // Keep the size it had, now fixed: for a board you want to use.
-                    (job.stock.x, job.stock.y) = (size_x, size_y);
-                    job.stock.fit = None;
-                }
-            }
-            ui.horizontal(|ui| {
-                if let Some(mut margin) = job.stock.fit {
-                    ui.label(t!(ui, "forms-stock-margin"));
-                    if ui.add(mm(&mut margin)).changed() {
-                        job.stock.fit = Some(margin);
-                    }
-                }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-stock-size"));
-            if job.stock.fit.is_some() {
-                ui.label(format!(
-                    "{} × {} {len_unit}",
-                    len_in(units, size_x),
-                    len_in(units, size_y)
-                ))
-                .on_hover_text(t!(ui, "forms-stock-fits-hover"));
-            } else {
-                ui.horizontal(|ui| {
-                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
-                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
-                });
-            }
-            ui.end_row();
-            if let Some(((x0, y0), (x1, y1))) = drawing {
-                ui.label(t!(ui, "forms-drawing-size"))
-                    .on_hover_text(t!(ui, "forms-drawing-size-hover"));
-                ui.label(format!(
-                    "{} × {} {len_unit}",
-                    len_in(units, x1 - x0),
-                    len_in(units, y1 - y0)
-                ));
-                ui.end_row();
-            }
-            // The material: its thickness and the user's own feeds per tool
-            // (docs/specs/materials.md §2).
-            if let Some(materials) = library.map(|l| &l.materials) {
-                ui.label(t!(ui, "forms-material"))
-                    .on_hover_text(t!(ui, "forms-material-hover"));
-                let chosen = job.stock.material.clone();
-                let known = chosen
-                    .as_ref()
-                    .and_then(|m| materials.find_uid(&m.library_uid));
-                let shown = match (&chosen, known) {
-                    (None, _) => t!(ui, "forms-material-none"),
-                    (Some(_), Some(m)) => m.name.clone(),
-                    (Some(m), None) => {
-                        t!(ui, "forms-material-not-in-library", name = m.name.as_str())
-                    }
-                };
-                ComboBox::from_id_salt("material")
-                    .selected_text(shown)
-                    .width(field_width(ui, 160.0))
-                    .show_ui(ui, |ui| {
-                        if ui
-                            .selectable_label(chosen.is_none(), t!(ui, "forms-material-none"))
-                            .clicked()
-                            && chosen.is_some()
-                        {
-                            material_request = Some(JobRequest::UseMaterial(None));
-                        }
-                        for m in &materials.materials {
-                            let on = chosen.as_ref().is_some_and(|c| c.library_uid == m.uid);
-                            if ui.selectable_label(on, &m.name).clicked() && !on {
-                                material_request =
-                                    Some(JobRequest::UseMaterial(Some(m.uid.clone())));
-                            }
-                        }
-                    });
-                ui.end_row();
-            }
             ui.label(t!(ui, "forms-thickness"));
             flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
             ui.end_row();
-            ui.label(t!(ui, "forms-max-overcut"))
-                .on_hover_text(t!(ui, "forms-max-overcut-hover"));
-            flag(
-                ui.add(mm(&mut job.stock.max_overcut)),
-                ui,
-                "stock.max_overcut",
-            );
+            // One choice of two: fit the drawing (the usual one, the user 2026-10-28), or
+            // a fixed size for a board you want to use.
+            let fits = job.stock.fit.is_some();
+            ui.label(t!(ui, "forms-stock-size"));
+            ui.horizontal_wrapped(|ui| {
+                if ui
+                    .radio(fits, t!(ui, "forms-stock-fit"))
+                    .on_hover_text(t!(ui, "forms-stock-fit-hover"))
+                    .clicked()
+                    && !fits
+                {
+                    job.stock.origin = StockOrigin::Drawing;
+                    job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
+                }
+                if let Some(size) = &drawing {
+                    ui.weak(format!("({size})"))
+                        .on_hover_text(t!(ui, "forms-drawing-size-hover"));
+                }
+            });
             ui.end_row();
-            // Where the stock lies relative to the drawing (file: stock.origin). Not the G-code
-            // zero: that's the work zero below (docs/specs/work-zero.md).
-            ui.label(t!(ui, "forms-stock-position"));
-            let origin_name = |ui: &egui::Ui, origin: StockOrigin| match origin {
-                StockOrigin::BottomLeft => t!(ui, "forms-stock-corner-at-origin"),
-                StockOrigin::Center => t!(ui, "forms-stock-centred-on-origin"),
-                StockOrigin::Drawing => t!(ui, "forms-stock-centred-on-drawing"),
-            };
-            ComboBox::from_id_salt("origin")
-                .selected_text(origin_name(ui, job.stock.origin))
-                .show_ui(ui, |ui| {
-                    for origin in [
-                        StockOrigin::Drawing,
-                        StockOrigin::BottomLeft,
-                        StockOrigin::Center,
-                    ] {
-                        if ui
-                            .selectable_value(
-                                &mut job.stock.origin,
-                                origin,
-                                origin_name(ui, origin),
-                            )
-                            .changed()
-                            && origin != StockOrigin::Drawing
-                            && job.stock.fit.take().is_some()
-                        {
-                            // Only a stock centred on the drawing can fit it: keep its size.
-                            (job.stock.x, job.stock.y) = (size_x, size_y);
-                        }
+            if let Some(mut margin) = job.stock.fit {
+                ui.label("");
+                ui.horizontal(|ui| {
+                    ui.add_space(ui.spacing().indent);
+                    ui.label(t!(ui, "forms-stock-margin"))
+                        .on_hover_text(t!(ui, "forms-stock-fits-hover"));
+                    if ui.add(mm(&mut margin)).changed() {
+                        job.stock.fit = Some(margin);
                     }
                 });
+                ui.end_row();
+            }
+            ui.label("");
+            if ui
+                .radio(!fits, t!(ui, "forms-stock-fixed-size"))
+                .on_hover_text(t!(ui, "forms-stock-fixed-size-hover"))
+                .clicked()
+                && fits
+            {
+                // Keep the size it had, now fixed, still centred on the outline.
+                (job.stock.x, job.stock.y) = (size_x, size_y);
+                job.stock.fit = None;
+                job.stock.origin = StockOrigin::Drawing;
+            }
             ui.end_row();
-            let here = job.work_zero_xy();
+            if job.stock.fit.is_none() {
+                ui.label("");
+                ui.horizontal(|ui| {
+                    ui.add_space(ui.spacing().indent);
+                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+                    ui.label("×");
+                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
+                });
+                ui.end_row();
+                // A stock is centred on the outline (the user, 2026-10-28). An older
+                // project's stock at the drawing's origin keeps its place until changed
+                // here, so its stock and a work zero on it never move unseen.
+                if job.stock.origin != StockOrigin::Drawing {
+                    ui.label("");
+                    ui.horizontal(|ui| {
+                        ui.add_space(ui.spacing().indent);
+                        stock_position_combo(ui, &mut job.stock.origin);
+                    });
+                    ui.end_row();
+                }
+                if let Some(size) = &drawing {
+                    ui.label("");
+                    ui.horizontal(|ui| {
+                        ui.add_space(ui.spacing().indent);
+                        ui.weak(t!(ui, "forms-drawing-size-note", size = size.as_str()))
+                            .on_hover_text(t!(ui, "forms-drawing-size-hover"));
+                    });
+                    ui.end_row();
+                }
+            }
+        },
+    );
+}
+
+/// Where an older project's fixed-size stock lies relative to the drawing (file:
+/// stock.origin). Not the G-code zero: that's the Zero section (docs/specs/work-zero.md).
+fn stock_position_combo(ui: &mut egui::Ui, origin: &mut StockOrigin) {
+    let name = |ui: &egui::Ui, origin: StockOrigin| match origin {
+        StockOrigin::BottomLeft => t!(ui, "forms-stock-corner-at-origin"),
+        StockOrigin::Center => t!(ui, "forms-stock-centred-on-origin"),
+        StockOrigin::Drawing => t!(ui, "forms-stock-centred-on-drawing"),
+    };
+    ComboBox::from_id_salt("origin")
+        .selected_text(name(ui, *origin))
+        .show_ui(ui, |ui| {
+            for choice in [
+                StockOrigin::BottomLeft,
+                StockOrigin::Center,
+                StockOrigin::Drawing,
+            ] {
+                ui.selectable_value(origin, choice, name(ui, choice));
+            }
+        })
+        .response
+        .on_hover_text(t!(ui, "forms-stock-position"));
+}
+
+/// The work zero: X0 Y0 and Z0, with where they are in the summary line, so it reads with
+/// the section closed.
+fn zero_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLook) {
+    let z_name = |ui: &egui::Ui, z: ZZero| match z {
+        ZZero::Top => t!(ui, "forms-z-zero-top"),
+        ZZero::Bottom => t!(ui, "forms-z-zero-bottom"),
+    };
+    let summary = t!(
+        ui,
+        "forms-zero-summary",
+        xy = work_zero_name(ui, &job.machine.work_zero),
+        z = z_name(ui, job.stock.z_zero)
+    );
+    let here = job.work_zero_xy();
+    section_look(
+        ui,
+        "job-zero",
+        &t!(ui, "forms-section-zero"),
+        &summary,
+        look,
+        |ui| {
             work_zero_rows(ui, "job", &mut job.machine.work_zero, here);
             ui.label(t!(ui, "forms-z-zero"));
-            let z_name = |ui: &egui::Ui, z: ZZero| match z {
-                ZZero::Top => t!(ui, "forms-z-zero-top"),
-                ZZero::Bottom => t!(ui, "forms-z-zero-bottom"),
-            };
             ComboBox::from_id_salt("z_zero")
                 .selected_text(z_name(ui, job.stock.z_zero))
                 .show_ui(ui, |ui| {
@@ -2210,8 +2323,90 @@ pub(super) fn job_form(
             ui.end_row();
         },
     );
+}
 
-    let machine = t!(
+/// The project's material: every operation and those added later take it
+/// (docs/specs/materials.md §2). Each operation can choose its own under its tool.
+fn material_section(
+    ui: &mut egui::Ui,
+    job: &chipload_job::Job,
+    library: &Library,
+    look: SectionLook,
+) -> Option<JobRequest> {
+    let materials = &library.materials;
+    let chosen = job.stock.material.clone();
+    let known = chosen
+        .as_ref()
+        .and_then(|m| materials.find_uid(&m.library_uid));
+    let shown = match (&chosen, known) {
+        (None, _) => t!(ui, "forms-material-none"),
+        (Some(_), Some(m)) => m.name.clone(),
+        (Some(m), None) => t!(ui, "forms-material-not-in-library", name = m.name.as_str()),
+    };
+    let mut request = None;
+    section_look(
+        ui,
+        "job-material",
+        &t!(ui, "forms-material"),
+        &shown,
+        look,
+        |ui| {
+            ui.label(t!(ui, "forms-material"))
+                .on_hover_text(t!(ui, "forms-material-hover"));
+            ComboBox::from_id_salt("material")
+                .selected_text(shown.clone())
+                .width(field_width(ui, 160.0))
+                .show_ui(ui, |ui| {
+                    if ui
+                        .selectable_label(chosen.is_none(), t!(ui, "forms-material-none"))
+                        .clicked()
+                        && chosen.is_some()
+                    {
+                        request = Some(JobRequest::UseMaterial(None));
+                    }
+                    for m in &materials.materials {
+                        let on = chosen.as_ref().is_some_and(|c| c.library_uid == m.uid);
+                        if ui.selectable_label(on, &m.name).clicked() && !on {
+                            request = Some(JobRequest::UseMaterial(Some(m.uid.clone())));
+                        }
+                    }
+                });
+            ui.end_row();
+            ui.label("");
+            // What the label column, wider than a plain form's, leaves of the panel.
+            let spacing = ui.spacing();
+            let width =
+                form_width(ui) - look.labels - spacing.indent - 2.0 * spacing.item_spacing.x;
+            ui.scope(|ui| {
+                ui.set_max_width(width.max(NARROW_WIDTH));
+                ui.add(
+                    egui::Label::new(RichText::new(t!(ui, "forms-material-each-op")).weak()).wrap(),
+                );
+            });
+            ui.end_row();
+        },
+    );
+    request
+}
+
+/// The machine: closed by default, as it is set once. The library rows come first, then
+/// safe Z and the depth allowed below the stock, then the machine's values
+/// (docs/specs/linked-machine.md §3).
+fn machine_section(
+    ui: &mut egui::Ui,
+    job: &mut chipload_job::Job,
+    library: Option<&Library>,
+    look: SectionLook,
+    request: &mut Option<LibraryRequest>,
+    copies_request: &mut Option<JobRequest>,
+) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let profile = library.and_then(|l| {
+        let uid = job.machine.library_uid.as_deref()?;
+        l.machines.find_uid(uid).cloned()
+    });
+    let mut summary = t!(
         ui,
         "forms-machine-summary",
         post = job.machine.post.as_str(),
@@ -2221,56 +2416,56 @@ pub(super) fn job_form(
             Spindle::Ccw => "M4",
         }
     );
-    // A machine linked to a profile in the library, and whether it is the same
-    // (docs/specs/linked-machine.md §3).
-    let profile = library.and_then(|l| {
-        let uid = job.machine.library_uid.as_deref()?;
-        l.machines.find_uid(uid).cloned()
-    });
+    if let Some(p) = &profile {
+        summary = format!("{} · {summary}", p.name);
+    }
     let same = profile
         .as_ref()
         .is_some_and(|p| p.machine_changes(&job.machine).is_empty());
     let edit_here = egui::Id::new("job-machine-edit-here");
     let editing = ui.data(|d| d.get_temp::<bool>(edit_here).unwrap_or(false));
-    section(
+    section_look(
         ui,
         "job-machine",
         &t!(ui, "forms-section-machine"),
-        &machine,
+        &summary,
+        look,
         |ui| {
-            match &profile {
-                Some(p) if same && !editing => {
-                    ui.label(t!(ui, "forms-from-machine"));
-                    ui.horizontal(|ui| {
-                        ui.strong(&p.name);
-                        if ui
-                            .button(t!(ui, "forms-edit-here"))
-                            .on_hover_text(t!(ui, "forms-edit-here-hover"))
-                            .clicked()
-                        {
-                            ui.data_mut(|d| d.insert_temp(edit_here, true));
-                        }
-                    });
-                    ui.end_row();
-                    machine_text_rows(ui, &job.machine);
-                }
-                _ => {
-                    if let Some(post) =
-                        machine_rows(ui, "job", &mut job.machine, library, profile.as_ref())
+            library_rows(ui, request, LibraryRows::machine(job, library));
+            let linked = profile.is_some() && same && !editing;
+            if let (true, Some(p)) = (linked, &profile) {
+                ui.label(t!(ui, "forms-from-machine"));
+                ui.horizontal(|ui| {
+                    ui.strong(&p.name);
+                    if ui
+                        .button(t!(ui, "forms-edit-here"))
+                        .on_hover_text(t!(ui, "forms-edit-here-hover"))
+                        .clicked()
                     {
-                        copies_request = Some(JobRequest::Post(post));
+                        ui.data_mut(|d| d.insert_temp(edit_here, true));
                     }
-                }
+                });
+                ui.end_row();
             }
             safe_z_row(ui, &t!(ui, "forms-safe-z-job"), &mut job.machine);
-            post_copy_row(ui, &job.machine, library, &mut copies_request);
-            library_rows(ui, &mut request, LibraryRows::machine(job, library));
+            ui.label(t!(ui, "forms-max-overcut"))
+                .on_hover_text(t!(ui, "forms-max-overcut-hover"));
+            flag(
+                ui.add(mm(&mut job.stock.max_overcut)),
+                ui,
+                "stock.max_overcut",
+            );
+            ui.end_row();
+            if linked {
+                machine_text_rows(ui, &job.machine);
+            } else if let Some(post) =
+                machine_rows(ui, "job", &mut job.machine, library, profile.as_ref())
+            {
+                *copies_request = Some(JobRequest::Post(post));
+            }
+            post_copy_row(ui, &job.machine, library, copies_request);
         },
     );
-
-    material_request
-        .or(copies_request)
-        .or(request.map(JobRequest::Library))
 }
 
 /// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.

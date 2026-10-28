@@ -1,20 +1,26 @@
 # Stock and work zero
 
-Job settings > **Stock** describes the material on the machine, and Job settings >
-**Machine** says where the G-code's zero is.
+Job settings has four sections, in the order a job is set up: **Stock** (the board),
+**Zero** (where the G-code's zero is), **Material** (the feeds new operations take) and
+**Machine** (set once, so it starts closed; its summary line gives the profile, post, safe
+Z and spindle).
 
 ## Stock
 
 | Setting | |
 |---|---|
-| **Fit the drawing** | on (new projects): the stock is the drawing's outline plus the **margin** on every side, centred on it, and follows the drawing as it changes. Off: a **fixed size** you type, for a board you want to use; it starts at the size the stock had. |
-| **Size X × Y** | the board's size: worked out while it fits the drawing, typed otherwise |
-| **Drawing** | the size of the drawing's outline (what is cut; construction geometry left out) |
-| **Material** | your own feeds per tool for what you cut ([Materials](../library/materials.md)): every operation, and those added later, takes it and its values. The thickness stays as it is |
-| **Thickness** | mm. Depths count down from the stock top, so set this to the real board. |
-| **Max depth below stock** | how far a cut may go below the stock bottom, into the spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm. |
-| **Stock position** | where the stock lies: **centred on the drawing** (sticking out equally all round, following the drawing; new projects), or its bottom-left corner or its centre at the drawing's origin |
-| **Z zero** | where Z0 is: the stock **top** (depths are negative Z) or its **bottom**, the spoilboard (the top is at Z = thickness) |
+| **Thickness** | first, as every job needs it. Depths count down from the stock top, so set this to the real board. |
+| **Size: Outline + margin** | new projects: the stock is the drawing's outline (its size in brackets) plus the **margin** on every side, centred on it, and follows the drawing as it changes. |
+| **Size: Fixed size, centred** | a size you type, for a board you want to use, centred on the drawing's outline; it starts at the size the stock had. The drawing's size is shown under it, to check the board against. |
+
+A project from before 28 October 2026 may have its stock's corner or centre at the drawing's
+origin. It keeps that place, and a list under the size shows it, until you choose
+*centred on the drawing* there. On the command line, `stock.origin` still takes
+`bottom-left` and `center`.
+
+The **Material** section chooses your own feeds per tool for what you cut
+([Materials](../library/materials.md)): every operation, and those added later, takes it and
+its values. It never changes the stock.
 
 For many jobs the stock is mostly a picture for the simulation: you cut from whatever board
 is at hand. What you need to know then is how big a board must be. **After Generate, the
@@ -28,11 +34,16 @@ choose a position at the drawing's origin first.
 
 ## Work zero
 
-**Work zero X Y** (under Machine) is the point of the drawing that becomes X0 Y0 in the
-G-code:
+The **Zero** section's summary line says where the zeros are, e.g. "X0 Y0 drawing origin ·
+Z0 stock top", so you can read it with the section closed.
+
+**Work zero X Y** is the point of the drawing that becomes X0 Y0 in the G-code:
 - **the drawing's origin**, the default;
 - **a stock corner or the stock centre**;
 - **any point**, in drawing coordinates.
+
+**Z zero** is where Z0 is: the stock **top** (depths are negative Z) or its **bottom**, the
+spoilboard (the top is at Z = thickness).
 
 Only the G-code moves; the drawing and the canvas stay where they are. The canvas draws the
 X and Y axes at the work zero.
@@ -44,6 +55,8 @@ machine's zero exactly there.
 ## Safe Z and travel
 
 Under Machine:
+- **Max depth below stock:** how far a cut may go below the stock bottom, into the
+  spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm.
 - **Safe Z:** the height for every rapid move sideways, above the stock top. Make it clear
   of your clamps. Before a plunge the tool rapids down to 1 mm above the stock top, then
   feeds; it never rapids below the stock top.

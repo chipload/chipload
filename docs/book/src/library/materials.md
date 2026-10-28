@@ -44,7 +44,7 @@ surface keeps its own wide stepover). A material without values for the tool is 
 "Plywood (no values for this tool)"; choosing it changes nothing yet, and *Save to Plywood*
 fills it from the operation. *None* leaves the operation's feeds as they are.
 
-**For every operation:** *Job settings > Stock > Material*, or *Use for all operations* on a
+**For every operation:** *Job settings > Material*, or *Use for all operations* on a
 material. As one step (one Undo takes it back) every operation takes the material and its
 values; an operation whose tool has no values there keeps its own, and the report says so.
 Operations you add later start with this material.

@@ -170,20 +170,30 @@ fn clicking_an_operations_number_on_the_toolpath_opens_it() {
     assert_eq!(harness.state().focus, Focus::Op(op));
 }
 
-/// *Fit the drawing* is a box at the top of Stock (the user, 2026-10-28): on fits the
-/// drawing; off again keeps the size it had, fixed.
+/// Whether the stock's position list shows: one of its two places at the drawing origin.
+fn position_shown(harness: &Harness<'_, ChiploadApp>) -> bool {
+    use egui_kittest::kittest::NodeT;
+    harness
+        .query_all_by_role(egui::accesskit::Role::ComboBox)
+        .filter_map(|n| n.accesskit_node().value())
+        .any(|v| v == "corner at drawing origin" || v == "centred on drawing origin")
+}
+
+/// The stock's size is one choice of two (docs/specs/job-settings-layout.md §2): the
+/// outline plus a margin, or a fixed size, both centred on the outline (the user,
+/// 2026-10-28). Fixed keeps the size it had. An older project's stock at the drawing origin
+/// keeps its place, with its position shown, until centred.
 #[test]
-fn the_fit_the_drawing_box_switches_between_fitting_and_a_fixed_size() {
+fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     let mut harness = harness("en", WINDOW);
     harness.state_mut().focus = Focus::Job;
     harness.run_steps(3);
     let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
-    assert_eq!(
-        settings(&harness).stock.fit,
-        None,
-        "the sample's stock is fixed"
-    );
-    harness.get_by_label("Fit the drawing").click();
+    let old = settings(&harness);
+    assert_eq!(old.stock.fit, None, "the sample's stock is fixed");
+    assert_ne!(old.stock.origin, chipload_job::StockOrigin::Drawing);
+    assert!(position_shown(&harness));
+    harness.get_by_label("Outline + margin").click();
     harness.run_steps(3);
     let fitted = settings(&harness);
     assert_eq!(
@@ -191,12 +201,14 @@ fn the_fit_the_drawing_box_switches_between_fitting_and_a_fixed_size() {
         Some(chipload_pipeline::DEFAULT_STOCK_MARGIN)
     );
     assert_eq!(fitted.stock.origin, chipload_job::StockOrigin::Drawing);
-    harness.get_by_label("Fit the drawing").click();
+    harness.get_by_label("Fixed size, centred").click();
     harness.run_steps(3);
     let fixed = settings(&harness);
     assert_eq!(fixed.stock.fit, None);
+    assert_eq!(fixed.stock.origin, chipload_job::StockOrigin::Drawing);
     assert_eq!(fixed.stock_size(), fitted.stock_size());
     assert_eq!(fixed.stock_bounds(), fitted.stock_bounds());
+    assert!(!position_shown(&harness), "centred: no position to choose");
 }
 
 /// An array tool can always be finished (the user, 2026-10-28): its Create and Cancel are
@@ -270,4 +282,23 @@ fn a_project_started_empty_can_add_a_drawing_file() {
     let settings = &harness.state().edit.as_ref().unwrap().settings;
     assert_eq!(settings.drawing.dxfs.len(), 1);
     assert!(!settings.drawing.shapes.is_empty());
+}
+
+/// Job settings in the order a job is set up (docs/specs/job-settings-layout.md §2): the
+/// zero reads from its section's summary line, and the machine, set once, starts closed.
+#[test]
+fn job_settings_show_the_zero_and_keep_the_machine_closed() {
+    let mut harness = harness("en", WINDOW);
+    harness.state_mut().focus = Focus::Job;
+    harness.run_steps(3);
+    assert!(
+        harness
+            .query_by_label_contains("X0 Y0 drawing origin · Z0 stock top")
+            .is_some()
+    );
+    assert!(harness.query_by_label("Thickness").is_some());
+    assert!(harness.query_by_label("Post").is_none(), "machine closed");
+    harness.get_by_label_contains("safe Z").click();
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Post").is_some());
 }

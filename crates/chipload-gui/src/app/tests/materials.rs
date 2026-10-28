@@ -200,8 +200,11 @@ fn material_pictures() {
     };
     let dir = PathBuf::from(dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let shots: [(&str, &str); 4] = [
+    let shots: [(&str, &str); 7] = [
         ("material-job-en", "job"),
+        ("job-fit-en", "job-fit"),
+        ("job-fit-de", "job-fit"),
+        ("job-machine-en", "job-machine"),
         ("material-op-en", "op"),
         ("material-form-en", "form"),
         ("material-form-de", "form"),
@@ -225,14 +228,26 @@ fn material_pictures() {
                     p.feed = 1300.0;
                 }
                 app.commit();
+                if view == "job-fit" {
+                    let stock = &mut app.edit.as_mut().unwrap().settings.stock;
+                    stock.fit = Some(10.0);
+                    stock.origin = chipload_job::StockOrigin::Drawing;
+                    app.commit();
+                }
                 app.focus = match view {
-                    "job" => Focus::Job,
+                    "job" | "job-fit" | "job-machine" => Focus::Job,
                     "op" => Focus::Op(1),
                     _ => Focus::LibraryMaterial(super::super::library_view::uid_key(&uid)),
                 };
                 app
             });
         harness.run_steps(6);
+        if view == "job-machine" {
+            // The machine section opened, as a click on its header does.
+            use egui_kittest::kittest::Queryable;
+            harness.get_by_label_contains("safe Z").click();
+            harness.run_steps(4);
+        }
         let image = harness.render().unwrap();
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }
