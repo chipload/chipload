@@ -2,8 +2,8 @@
 
 Status: **approved 2026-10-28** for §2–§4 (the user's answers: "1 yes, 2 no, keep drawing
 origin, 3 yes, 4 no, if so we should have a checkbox in the operation that says 'all
-through' or something, then it will follow stock thickness, 5 yes"). §5 is a **proposal**,
-waiting for the user.
+through' or something, then it will follow stock thickness, 5 yes"). §2 and §3 **built
+2026-10-28**. §5 is a **proposal**, waiting for the user.
 
 ## 1. Why
 

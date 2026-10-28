@@ -49,6 +49,10 @@ material. As one step (one Undo takes it back) every operation takes the materia
 values; an operation whose tool has no values there keeps its own, and the report says so.
 Operations you add later start with this material.
 
+**For new projects:** *Make default* on a material (`chipload material default Plywood`,
+`--none` to clear it). A new project, empty or imported, starts with it, as it starts with
+the default machine and tool; the report says so.
+
 **Changing an operation's tool** takes its material's values for the new tool, when the
 material has some.
 
@@ -68,6 +72,7 @@ chipload material add Plywood
 chipload material set Plywood --tool "6 mm 2-flute" --feed 1500 --plunge-feed 500 --step-down 2.5 --stepover 0.4
 chipload material list                         # every material with its values per tool
 chipload material show Plywood
+chipload material default Plywood              # new projects start with it (--none: no default)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
 chipload material save part.chipload --op 2    # keep operation 2's values in its material (--material NAME)

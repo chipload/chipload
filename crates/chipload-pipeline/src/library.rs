@@ -161,6 +161,13 @@ pub fn apply_library(
         );
         job.tools = vec![tool];
     }
+    // The default material, last: the operations an import made take its values for
+    // their tools (docs/specs/job-settings-layout.md §3).
+    if let Some(material) = library.materials.default_entry() {
+        let (with, _) = crate::materials::use_material(job, Some(material));
+        *job = with;
+        notes.push(Message::new("pipeline-library-material").arg("name", &material.name));
+    }
     Ok(notes)
 }
 

@@ -404,6 +404,7 @@ pipeline-library-machine = máquina: { $name } ({ $how ->
    *[profile] perfil
 })
 pipeline-library-tool = herramienta { $tool }: { $name } (herramienta predeterminada)
+pipeline-library-material = material: { $name } (material predeterminado)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocesador "{ $name }": { $error }
 pipeline-library-unknown-post = Máquina "{ $name }": este Chipload no tiene el postprocesador "{ $post }"; los proyectos que la usan no pueden generar código G hasta que lo tenga

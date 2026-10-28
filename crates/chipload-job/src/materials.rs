@@ -98,6 +98,10 @@ pub struct MaterialLibrary {
     /// The Chipload version that wrote the file.
     #[serde(default)]
     pub written_by: Option<String>,
+    /// The name of the material new projects start with. Null: none.
+    // Spec: docs/specs/job-settings-layout.md §3 (optional, no version bump).
+    #[serde(default)]
+    pub default_material: Option<String>,
     /// The materials.
     pub materials: Vec<Material>,
 }
@@ -107,6 +111,7 @@ impl Default for MaterialLibrary {
         MaterialLibrary {
             schema_version: MATERIALS_VERSION,
             written_by: None,
+            default_material: None,
             materials: Vec::new(),
         }
     }
@@ -150,10 +155,34 @@ impl MaterialLibrary {
         Ok(&self.materials[self.materials.len() - 1])
     }
 
-    /// Remove a material.
+    /// The material a new project starts with, if one is set.
+    pub fn default_entry(&self) -> Option<&Material> {
+        self.default_material.as_deref().and_then(|n| self.find(n))
+    }
+
+    /// Rename a material, keeping it the default if it was.
+    pub fn rename(&mut self, old: &str, new: &str) {
+        if self
+            .default_material
+            .as_deref()
+            .is_some_and(|d| crate::library::same_name(d, old))
+        {
+            self.default_material = Some(new.to_string());
+        }
+    }
+
+    /// Remove a material; the default is cleared if it was that material.
     pub fn remove(&mut self, name: &str) -> Result<Material, LibraryError> {
         let i = self.position(name).ok_or_else(|| no_material(name))?;
-        Ok(self.materials.remove(i))
+        let removed = self.materials.remove(i);
+        if self
+            .default_material
+            .as_deref()
+            .is_some_and(|d| crate::library::same_name(d, &removed.name))
+        {
+            self.default_material = None;
+        }
+        Ok(removed)
     }
 
     /// Remove a library tool's values from every material: the names of those that had
@@ -170,8 +199,8 @@ impl MaterialLibrary {
         let mut problems = name_problems(
             "materials",
             self.materials.iter().map(|m| m.name.as_str()),
-            None,
-            "",
+            self.default_material.as_deref(),
+            "default_material",
         );
         problems.extend(uid_problems(
             "materials",
@@ -243,11 +272,12 @@ impl Collection for MaterialLibrary {
     fn entries_mut(&mut self) -> &mut Vec<Material> {
         &mut self.materials
     }
-    // Materials have no default.
     fn default_name(&self) -> Option<&str> {
-        None
+        self.default_material.as_deref()
     }
-    fn set_default_name(&mut self, _name: Option<String>) {}
+    fn set_default_name(&mut self, name: Option<String>) {
+        self.default_material = name;
+    }
 }
 
 impl Entry for Material {
@@ -356,8 +386,17 @@ mod tests {
         lib.materials[0].tools[0].stepover = 0.4;
         assert_eq!(lib.forget_tool("a1b2c3d4e5f60718"), vec!["Oak".to_string()]);
         assert!(lib.materials[0].tools.is_empty());
-        assert!(lib.remove("oak").is_ok());
+        // The default follows a rename and goes with the material.
+        lib.default_material = Some("Oak".into());
+        assert!(lib.validate().is_empty());
+        lib.materials[0].name = "White oak".into();
+        lib.rename("oak", "White oak");
+        assert_eq!(lib.default_entry().unwrap().name, "White oak");
+        assert!(lib.remove("white oak").is_ok());
+        assert_eq!(lib.default_material, None);
         assert!(lib.remove("oak").is_err());
+        lib.default_material = Some("Pine".into());
+        assert!(lib.validate().join("\n").contains("default_material"));
     }
 
     #[test]

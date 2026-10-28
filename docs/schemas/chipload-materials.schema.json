@@ -70,6 +70,14 @@
   "additionalProperties": false,
   "description": "Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
+    "default_material": {
+      "default": null,
+      "description": "The name of the material new projects start with. Null: none.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "materials": {
       "description": "The materials.",
       "items": {

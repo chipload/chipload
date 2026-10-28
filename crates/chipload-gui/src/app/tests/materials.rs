@@ -75,6 +75,24 @@ fn choosing_a_material_fills_the_operations_in_one_undo_step() {
 }
 
 #[test]
+fn a_new_project_starts_with_the_default_material() {
+    let mut app = app_with_library("default");
+    let uid = add_plywood(&mut app);
+    assert!(app.make_default_material(&uid));
+    // Renamed in its form: still the default.
+    let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
+    draft.name = "Birch ply".into();
+    app.library_state.material_drafts.insert(uid.clone(), draft);
+    assert!(app.save_material_draft(&uid));
+    app.new_project();
+    let edit = app.edit.as_ref().unwrap();
+    assert_eq!(
+        edit.settings.stock.material.as_ref().unwrap().name,
+        "Birch ply"
+    );
+}
+
+#[test]
 fn a_new_operation_takes_the_materials_values() {
     let mut app = app_with_library("new-op");
     let uid = add_plywood(&mut app);

@@ -828,6 +828,15 @@ fn materials_fill_a_project_and_learn_from_it() {
     ok(s, &["material", "import", path(&file)]);
     assert!(ok(s, &["material", "list"]).contains("Plywood: 1 tool(s)"));
 
+    // The default material: a new project starts with it.
+    ok(s, &["material", "default", "plywood"]);
+    assert!(ok(s, &["material", "list"]).contains("(default)"));
+    let fresh = dir.join("fresh.chipload");
+    ok(s, &["new", "-o", path(&fresh)]);
+    assert_eq!(json(&fresh)["stock"]["material"]["name"], "Plywood");
+    ok(s, &["material", "default", "--none"]);
+    assert!(!ok(s, &["material", "list"]).contains("(default)"));
+
     // Removing the tool removes its values.
     let out = ok(s, &["tool", "remove", "6 mm 2-flute"]);
     assert!(out.contains("removed from: Plywood"), "{out}");

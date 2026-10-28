@@ -10,6 +10,7 @@ Schema version 2. Older files load through Chipload's migrations; this schema de
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `default_material` | string or null | no | The name of the material new projects start with. Null: none. |
 | `materials` | list of [Material](#material) | yes | The materials. |
 | `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |

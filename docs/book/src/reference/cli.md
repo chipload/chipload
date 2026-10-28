@@ -1176,6 +1176,19 @@ chipload material set <NAME> [OPTIONS]
 | `--step-down <STEP_DOWN>` |  |
 | `--stepover <STEPOVER>` | Fraction of the tool diameter (pockets) |
 
+### `chipload material default`
+
+The material new projects start with (--none: none)
+
+```text
+chipload material default <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` | The material; omit with --none. |
+| `--none` |  |
+
 ### `chipload material remove`
 
 Remove a material, or with --tool only that tool's values

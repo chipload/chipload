@@ -26,6 +26,7 @@ enum MaterialAct {
     Revert(String),
     Delete(String),
     UseInProject(String),
+    MakeDefault(String),
 }
 
 impl ChiploadApp {
@@ -156,6 +157,9 @@ impl ChiploadApp {
                 .map(|m| m.library_uid.clone());
             for material in &materials {
                 let mut note = t!(ui, "materials-tool-count", count = material.tools.len());
+                if self.library.materials.default_entry().map(|m| &m.uid) == Some(&material.uid) {
+                    note = format!("{note} · {}", t!(ui, "library-view-note-default"));
+                }
                 if chosen.as_deref() == Some(material.uid.as_str()) {
                     note = format!("{note} · {}", t!(ui, "materials-note-in-project"));
                 }
@@ -366,6 +370,22 @@ impl ChiploadApp {
             {
                 *act = Some(MaterialAct::UseInProject(uid.to_string()));
             }
+            let is_default = self
+                .library
+                .materials
+                .default_entry()
+                .map(|m| m.uid.as_str())
+                == Some(uid);
+            if ui
+                .add_enabled(
+                    !is_default && !changed,
+                    egui::Button::new(t!(ui, "library-view-make-default")),
+                )
+                .on_hover_text(t!(ui, "library-view-make-default-hover"))
+                .clicked()
+            {
+                *act = Some(MaterialAct::MakeDefault(uid.to_string()));
+            }
             if ui
                 .button(t!(ui, "common-delete"))
                 .on_hover_text(t!(ui, "library-view-delete-hover"))
@@ -417,6 +437,9 @@ impl ChiploadApp {
             MaterialAct::UseInProject(uid) => {
                 self.use_material(Some(&uid));
             }
+            MaterialAct::MakeDefault(uid) => {
+                self.make_default_material(&uid);
+            }
         }
     }
 
@@ -447,6 +470,19 @@ impl ChiploadApp {
         }
     }
 
+    /// Make material `uid` the one new projects start with
+    /// (docs/specs/job-settings-layout.md §3).
+    pub fn make_default_material(&mut self, uid: &str) -> bool {
+        let Some(name) = self.library.materials.find_uid(uid).map(|m| m.name.clone()) else {
+            return false;
+        };
+        self.change_materials(|library| {
+            library.default_material = Some(name);
+            Ok(())
+        })
+        .is_ok()
+    }
+
     /// Write the draft of material `uid` into the library file.
     pub fn save_material_draft(&mut self, uid: &str) -> bool {
         let Some(mut draft) = self.library_state.material_drafts.get(uid).cloned() else {
@@ -463,6 +499,10 @@ impl ChiploadApp {
                     "materials-name-taken",
                     name = &draft.name
                 ))));
+            }
+            let old = library.find_uid(&draft.uid).map(|m| m.name.clone());
+            if let Some(old) = old {
+                library.rename(&old, &draft.name);
             }
             match library.materials.iter_mut().find(|m| m.uid == draft.uid) {
                 Some(m) => *m = draft.clone(),

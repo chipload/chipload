@@ -46,6 +46,14 @@ pub enum MaterialAction {
         #[arg(long, requires = "tool")]
         stepover: Option<f64>,
     },
+    /// The material new projects start with (--none: none).
+    Default {
+        /// The material; omit with --none.
+        #[arg(required_unless_present = "none")]
+        name: Option<String>,
+        #[arg(long, conflicts_with = "name")]
+        none: bool,
+    },
     /// Remove a material, or with --tool only that tool's values.
     Remove {
         name: String,
@@ -132,6 +140,9 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
                     "a material named \"{new}\" already exists"
                 )));
             }
+            if let Some(new) = rename.as_deref() {
+                library.rename(&name, new.trim());
+            }
             let material = library.find_mut(&name)?;
             if let Some(new) = rename {
                 material.name = new.trim().to_string();
@@ -159,6 +170,22 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             }
             Ok(format!("Changed material \"{}\".", material.name))
         }),
+        MaterialAction::Default { name, none: _ } => {
+            update_library(&path, |library: &mut MaterialLibrary| match name {
+                Some(name) => {
+                    let found = library
+                        .find(&name)
+                        .map(|m| m.name.clone())
+                        .ok_or_else(|| refused(format!("no material named \"{name}\"")))?;
+                    library.default_material = Some(found.clone());
+                    Ok(format!("New projects start with material \"{found}\"."))
+                }
+                None => {
+                    library.default_material = None;
+                    Ok("New projects start with no material.".to_string())
+                }
+            })
+        }
         MaterialAction::Remove { name, tool } => {
             update_library(&path, |library: &mut MaterialLibrary| match tool {
                 None => {
@@ -255,11 +282,17 @@ fn list(out: &mut Out, path: &Path, tools: &ToolLibrary) -> ExitCode {
     out.line(format!("Materials: {}", path.display()));
     out.set("path", serde_json::json!(path.display().to_string()));
     out.set("materials", serde_json::json!(library.materials));
+    out.set("default", serde_json::json!(library.default_material));
     if library.materials.is_empty() {
         out.line("  (no materials)");
     }
     for material in &library.materials {
-        out.line(format!("  {}", heading(material)));
+        let is_default = library
+            .default_material
+            .as_deref()
+            .is_some_and(|d| chipload_job::library::same_name(d, &material.name));
+        let mark = if is_default { " (default)" } else { "" };
+        out.line(format!("  {}{mark}", heading(material)));
         for t in &material.tools {
             out.line(format!(
                 "    {}: {}",
