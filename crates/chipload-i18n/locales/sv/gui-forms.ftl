@@ -199,7 +199,7 @@ forms-units = Enheter
 forms-dxf-inch = tum (omräknat till mm)
 forms-shapes = Former
 forms-section-placement = Läge, rotation och skala
-forms-update-dxf = Uppdatera från en DXF…
+forms-update-dxf = Uppdatera från en DXF eller SVG…
 forms-update-dxf-hover = En ny version av ritningen: operationerna behåller sina lager
 # A button (verb).
 forms-remove = Ta bort

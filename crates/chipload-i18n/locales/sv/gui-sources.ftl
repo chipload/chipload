@@ -4,17 +4,17 @@
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Ritning
 sources-drawing-hover = DXF:er, bilder, texter och ritade former; högerklicka för att lägga till
-sources-add-dxf = Lägg till DXF…
+sources-add-dxf = Lägg till DXF eller SVG…
 sources-add-dxf-hover = En till detalj: en DXF som placeras och uppdateras för sig
 # "File > Import DXF" names a menu item.
-sources-add-dxf-disabled-hover = Arkiv > Importera DXF… startar ett projekt från en
+sources-add-dxf-disabled-hover = Arkiv > Importera DXF eller SVG… startar ett projekt från en
 sources-import-image = Importera bild…
 sources-import-image-hover = Spåra en bild till former, för V-gravyr
 sources-add-text = Lägg till text
 sources-add-text-hover = Skriv en text och klicka sedan där den börjar
 sources-no-shapes = Inga former än.
-# The name of DXF files in the file dialog's filter.
-sources-dxf-filter = DXF-ritningar
+# The name of drawing files (DXF, SVG) in the file dialog's filter.
+sources-dxf-filter = Ritningar (DXF, SVG)
 
 # Rows of the folder. $file: the picture's file name; $text: what the text says.
 sources-image-title = { $file } (bild { $id })
@@ -37,7 +37,7 @@ sources-show = Visa
 sources-hide = Dölj
 sources-place = Placera…
 sources-place-hover = Flytta, vrid eller skala denna DXF, i dess egenskaper
-sources-update-from-dxf = Uppdatera från en DXF…
+sources-update-from-dxf = Uppdatera från en DXF eller SVG…
 sources-update-from-path = Uppdatera från en sökväg…
 sources-remove-dxf-hover = Ta bort denna DXF och dess former
 sources-trace-settings = Spårningsinställningar…

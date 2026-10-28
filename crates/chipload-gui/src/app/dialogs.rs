@@ -28,7 +28,7 @@ impl ChiploadApp {
                 t!(self, "dialogs-filter-projects"),
                 &[PROJECT_EXTENSION, "json"],
             )
-            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
             .pick_file()
         {
             self.open(&path);
@@ -37,7 +37,7 @@ impl ChiploadApp {
 
     pub(super) fn import_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
             .pick_file()
         {
             self.import_dxf(&path, None);
@@ -64,7 +64,7 @@ impl ChiploadApp {
 
     pub(super) fn ask_update(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
             .pick_file()
         {
             self.update_from(&path, None);
@@ -74,7 +74,7 @@ impl ChiploadApp {
     /// File > Add DXF to project… (docs/specs/drawing-sources.md §2).
     pub(super) fn ask_add_dxf(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter(t!(self, "dialogs-filter-dxf"), &["dxf"])
+            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
             .pick_file()
         {
             self.add_dxf_from(&path, None);
@@ -192,6 +192,66 @@ impl ChiploadApp {
                             }
                         });
                     });
+            }
+            Prompt::PxPerInch(path, purpose, mut typed) => {
+                let mut chosen = None;
+                egui::Window::new(t!(ctx, "dialogs-px-title"))
+                    .id(egui::Id::new("drawing-px-per-inch"))
+                    .collapsible(false)
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        ui.label(t!(ui, "dialogs-px-unknown", file = file_name(&path)));
+                        ui.label(t!(ui, "dialogs-px-question"));
+                        ui.horizontal(|ui| {
+                            if ui.button(t!(ui, "dialogs-px-96")).clicked() {
+                                chosen = Some(96.0);
+                            }
+                            if ui.button(t!(ui, "dialogs-px-72")).clicked() {
+                                chosen = Some(72.0);
+                            }
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label(t!(ui, "dialogs-px-other"));
+                            ui.add(egui::TextEdit::singleline(&mut typed).desired_width(60.0));
+                            let value = typed
+                                .trim()
+                                .replace(',', ".")
+                                .parse::<f64>()
+                                .ok()
+                                .filter(|v| v.is_finite() && *v > 0.0);
+                            if ui
+                                .add_enabled(
+                                    value.is_some(),
+                                    egui::Button::new(t!(ui, "dialogs-px-use")),
+                                )
+                                .clicked()
+                            {
+                                chosen = value;
+                            }
+                        });
+                        if ui.button(t!(ui, "common-cancel")).clicked() {
+                            self.dialogs.prompt = None;
+                            self.error(vec![t!(ui, "dialogs-px-cancelled")]);
+                        }
+                    });
+                match chosen {
+                    Some(px) => match purpose {
+                        UnitsFor::NewProject => {
+                            self.import_file(&path, None, Some(px));
+                        }
+                        UnitsFor::Update(id) => {
+                            self.update_file_from(id, &path, None, Some(px));
+                        }
+                        UnitsFor::Add => {
+                            self.add_file_from(&path, None, Some(px));
+                        }
+                    },
+                    None => {
+                        if let Some(Prompt::PxPerInch(_, _, text)) = self.dialogs.prompt.as_mut() {
+                            *text = typed;
+                        }
+                    }
+                }
             }
             Prompt::Discard(action) => {
                 // In the middle of the window, over a dimmed app, so it can't be missed.

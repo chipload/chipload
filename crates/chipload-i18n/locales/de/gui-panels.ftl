@@ -1,8 +1,8 @@
 # The Properties panel and the start screen (crates/chipload-gui/src/app/panels.rs).
 
 panels-no-project = Kein Projekt geöffnet.
-# The file dialog's filter name for .dxf files.
-panels-dxf-filter = DXF-Zeichnungen
+# The file dialog's filter name for .dxf and .svg files.
+panels-dxf-filter = Zeichnungen (DXF, SVG)
 
 # The start screen, shown with no project open, under the name Chipload.
 panels-tagline = 2.5D-CAM: Zeichnungen rein, geprüfter G-Code raus

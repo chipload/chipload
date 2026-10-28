@@ -39,7 +39,7 @@ header-new = Nytt
 header-new-hover = Nytt projekt
 header-open = Öppna
 header-import = Importera
-header-import-hover = Nytt projekt från en DXF
+header-import-hover = Nytt projekt från en DXF eller SVG
 header-save = Spara
 
 # DRAW: short words under icons, and what each does.
@@ -56,9 +56,9 @@ header-image-hover = Spåra en bild till former, för V-gravyr eller Följ bana
 header-add-dxf = Lägg till DXF
 header-add-dxf-hover = En till detalj: en DXF som placeras och uppdateras för sig
 # "FILE > Import": the ribbon group FILE and its Import button.
-header-add-dxf-first-hover = Importera en DXF först (ARKIV > Importera)
+header-add-dxf-first-hover = Importera en DXF eller SVG först (ARKIV > Importera)
 header-import-image-menu = Importera bild…
-header-add-dxf-menu = Lägg till DXF i projektet…
+header-add-dxf-menu = Lägg till DXF eller SVG i projektet…
 
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Följ

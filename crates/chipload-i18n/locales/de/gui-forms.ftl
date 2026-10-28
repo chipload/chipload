@@ -199,7 +199,7 @@ forms-units = Einheiten
 forms-dxf-inch = Zoll (in mm umgerechnet)
 forms-shapes = Formen
 forms-section-placement = Position, Drehung und Maßstab
-forms-update-dxf = Aus einer DXF aktualisieren…
+forms-update-dxf = Aus einer DXF oder SVG aktualisieren…
 forms-update-dxf-hover = Eine neue Version der Zeichnung: Bearbeitungen behalten ihre Layer
 # A button (verb).
 forms-remove = Entfernen

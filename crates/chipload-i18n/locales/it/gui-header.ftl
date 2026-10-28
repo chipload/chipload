@@ -39,7 +39,7 @@ header-new = Nuovo
 header-new-hover = Nuovo progetto
 header-open = Apri
 header-import = Importa
-header-import-hover = Nuovo progetto da un DXF
+header-import-hover = Nuovo progetto da un DXF o SVG
 header-save = Salva
 
 # DRAW: short words under icons, and what each does.
@@ -56,9 +56,9 @@ header-image-hover = Vettorizza un'immagine in forme, per un'incisione a V o un 
 header-add-dxf = Aggiungi DXF
 header-add-dxf-hover = Un altro pezzo: un DXF posizionato e aggiornato per conto suo
 # "FILE > Import": the ribbon group FILE and its Import button.
-header-add-dxf-first-hover = Importa prima un DXF (FILE > Importa)
+header-add-dxf-first-hover = Importa prima un DXF o SVG (FILE > Importa)
 header-import-image-menu = Importa immagine…
-header-add-dxf-menu = Aggiungi DXF al progetto…
+header-add-dxf-menu = Aggiungi DXF o SVG al progetto…
 
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Segui

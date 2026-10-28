@@ -4,17 +4,17 @@
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Drawing
 sources-drawing-hover = DXFs, pictures, texts and drawn shapes; right-click to add one
-sources-add-dxf = Add DXF…
+sources-add-dxf = Add DXF or SVG…
 sources-add-dxf-hover = Another part: a DXF placed and updated on its own
 # "File > Import DXF" names a menu item.
-sources-add-dxf-disabled-hover = File > Import DXF starts a project from one
+sources-add-dxf-disabled-hover = File > Import DXF or SVG starts a project from one
 sources-import-image = Import image…
 sources-import-image-hover = Trace a picture into shapes, for V-carving
 sources-add-text = Add text
 sources-add-text-hover = Write a text, then click where it starts
 sources-no-shapes = No shapes yet.
-# The name of DXF files in the file dialog's filter.
-sources-dxf-filter = DXF drawings
+# The name of drawing files (DXF, SVG) in the file dialog's filter.
+sources-dxf-filter = Drawings (DXF, SVG)
 
 # Rows of the folder. $file: the picture's file name; $text: what the text says.
 sources-image-title = { $file } (image { $id })
@@ -37,7 +37,7 @@ sources-show = Show
 sources-hide = Hide
 sources-place = Place…
 sources-place-hover = Move, turn or scale this DXF, in its properties
-sources-update-from-dxf = Update from a DXF…
+sources-update-from-dxf = Update from a DXF or SVG…
 sources-update-from-path = Update from a path…
 sources-remove-dxf-hover = Remove this DXF and its shapes
 sources-trace-settings = Trace settings…

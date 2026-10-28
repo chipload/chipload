@@ -11,6 +11,10 @@ chipload dxf add part.chipload logo.svg            # beside the project's DXFs
 chipload update part.chipload --from logo.svg --dxf 2   # a new version of it
 ```
 
+In the window: *File > Import DXF or SVG…* (Ctrl+I) or *File > Open…* starts a project
+from it, *Add DXF or SVG to project…* adds it, and dropping an SVG on the window does either,
+as for a DXF. The file dialogs offer both kinds.
+
 The SVG shares the DXFs' numbers: `--dxf 2`, `place --dxf 2` and `dxf remove … 2` work on
 it, and `dxf list` shows its format. Compressed `.svgz` files are read too.
 
@@ -43,7 +47,7 @@ it, and `dxf list` shows its format. Compressed `.svgz` files are read too.
   sits as it does in the editor.
 - **A file in plain pixels** gives no real size: Chipload asks how many pixels make an inch,
   as it asks a DXF without units. Inkscape and browsers use **96**; older Illustrator files
-  use **72**. On the command line: `--px-per-inch 96`. The answer is kept with the file and
+  use **72**; any other number can be typed. On the command line: `--px-per-inch 96`. The answer is kept with the file and
   used again on update.
 
 ## Left out, and said so

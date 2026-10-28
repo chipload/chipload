@@ -19,7 +19,7 @@ pub(super) fn dropped_kind(path: &Path) -> Option<Dropped> {
         .map(|e| e.to_string_lossy().to_lowercase())
         .unwrap_or_default();
     match extension.as_str() {
-        "dxf" => Some(Dropped::Dxf),
+        "dxf" | "svg" | "svgz" => Some(Dropped::Dxf),
         "png" | "jpg" | "jpeg" | "bmp" => Some(Dropped::Picture),
         e if e == PROJECT_EXTENSION || e == "json" => Some(Dropped::Project),
         _ => None,
@@ -162,11 +162,11 @@ mod tests {
         );
         assert_eq!(
             drop_meaning(&p(&["Part.DXF"]), false).as_deref(),
-            Ok("New project with 1 DXF")
+            Ok("New project with 1 drawing")
         );
         assert_eq!(
             drop_meaning(&p(&["a.dxf", "b.dxf", "logo.PNG"]), true).as_deref(),
-            Ok("Add 2 DXFs and 1 picture to the project")
+            Ok("Add 2 drawings and 1 picture to the project")
         );
         assert!(drop_meaning(&p(&["a.chipload", "b.dxf"]), true).is_err());
         assert!(drop_meaning(&p(&["notes.txt"]), true).is_err());

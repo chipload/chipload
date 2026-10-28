@@ -1,7 +1,7 @@
 # Generating the toolpath and G-code, and the live preview
 # (crates/chipload-gui/src/app/generation.rs).
 
-generation-no-project = Importa un DXF o abre un proyecto primero.
+generation-no-project = Importa un DXF o SVG o abre un proyecto primero.
 generation-could-not-start = No se pudo iniciar el cálculo: { $error }
 generation-cancelled = Cálculo cancelado
 # What went wrong when the planning stopped without an answer.

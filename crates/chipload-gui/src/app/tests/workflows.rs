@@ -59,13 +59,13 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
 fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     // docs/specs/new-project.md
     let mut app = ChiploadApp::default();
-    assert_eq!(app.update_labels().0, "Update drawing from DXF…");
+    assert_eq!(app.update_labels().0, "Update drawing from DXF or SVG…");
     app.ask_new();
     let job = app.edit.as_ref().unwrap().settings.clone();
     assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
     assert_eq!((job.stock.x, job.stock.y), (300.0, 200.0));
     assert!(app.job_path.is_none() && app.contours.is_empty());
-    assert_eq!(app.update_labels().0, "Import DXF into project…");
+    assert_eq!(app.update_labels().0, "Import DXF or SVG into project…");
     assert_eq!(
         app.scene.fit_points(0.0).len(),
         10,
@@ -102,7 +102,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     assert!(app.dialogs.prompt.is_none());
     assert!(app.shape(1).is_some());
     assert!(app.contours.len() > 1);
-    assert_eq!(app.update_labels().0, "Update drawing from DXF…");
+    assert_eq!(app.update_labels().0, "Update drawing from DXF or SVG…");
     assert!(app.generate_and_wait(), "{:?}", app.report);
 }
 

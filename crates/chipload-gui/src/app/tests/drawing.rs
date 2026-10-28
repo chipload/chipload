@@ -733,3 +733,34 @@ fn the_selection_aligns_and_distributes_its_shapes() {
     app.align_to_stock = true;
     assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
 }
+
+#[test]
+fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
+    // docs/specs/svg-import.md §7, §10.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("svg/badge_layers.svg")));
+    assert_eq!(app.contours.len(), 3);
+    // Dropped on the open project: a second drawing file, which asks first.
+    assert!(app.drop_files(&[corpus("svg/pixels.svg")]));
+    assert!(matches!(
+        &app.dialogs.prompt,
+        Some(Prompt::PxPerInch(_, UnitsFor::Add, typed)) if typed == "96"
+    ));
+    assert!(app.add_file_from(&corpus("svg/pixels.svg"), None, Some(96.0)));
+    let files = &app.edit.as_ref().unwrap().settings.drawing.dxfs;
+    assert_eq!(files.len(), 2);
+    assert_eq!(files[1].px_per_inch, Some(96.0));
+    // Colours as layers: the red plate, the blue hole.
+    let layers: BTreeSet<&str> = app
+        .edit
+        .as_ref()
+        .unwrap()
+        .settings
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.dxf() == Some(2))
+        .map(|s| s.layer.as_str())
+        .collect();
+    assert_eq!(layers, BTreeSet::from(["#0000ff", "#ff0000"]));
+}

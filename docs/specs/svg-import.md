@@ -156,6 +156,12 @@ as it does in the editor. *Implemented:* H is usvg's page height, which it alway
   in English). The added, removed and exploded messages name the format (`SVG 2`). The
   units line says `from svg`. Placement texts still say "as in the DXF" for an SVG.
 
+- *Implemented (step 4, the window):* Open, Import, *Add DXF or SVG*, Update and dropping
+  take `.svg` and `.svgz` (the file dialogs offer "Drawings (DXF, SVG)"); a file in pixels
+  asks with a small window: 96, 72, or a number typed. The entry points name SVG beside
+  DXF; many other texts (the Browser's and the placement form's hints, "DXF 2" in the
+  selection summary) still say DXF for any drawing file.
+
 ## 11. Tests
 
 - `chipload-svg`: hand-written SVGs in `tests/corpus/svg/`: an Inkscape file with layers in

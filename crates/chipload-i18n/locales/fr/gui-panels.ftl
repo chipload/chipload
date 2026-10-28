@@ -1,8 +1,8 @@
 # The Properties panel and the start screen (crates/chipload-gui/src/app/panels.rs).
 
 panels-no-project = Aucun projet ouvert.
-# The file dialog's filter name for .dxf files.
-panels-dxf-filter = Dessins DXF
+# The file dialog's filter name for .dxf and .svg files.
+panels-dxf-filter = Dessins (DXF, SVG)
 
 # The start screen, shown with no project open, under the name Chipload.
 panels-tagline = FAO 2.5D : des dessins en entrée, du G-code vérifié en sortie

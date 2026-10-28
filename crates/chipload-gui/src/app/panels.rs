@@ -173,7 +173,7 @@ impl ChiploadApp {
             Some(JobRequest::ToolRemoved) => self.focus = Focus::Tools,
             Some(JobRequest::UpdateDxf(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter(t!(self, "panels-dxf-filter"), &["dxf"])
+                    .add_filter(t!(self, "panels-dxf-filter"), DRAWING_FILES)
                     .pick_file()
                 {
                     self.update_dxf_from(Some(dxf), &path, None);

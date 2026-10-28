@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_dxf::{ImportError, shapes_from_dxf};
+use chipload_dxf::{ImportError, shapes_from_file};
 use chipload_job::edit::{Handle, handles, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
@@ -21,8 +21,7 @@ use chipload_job::{
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
 use chipload_pipeline::sheet::{SheetInfo, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, empty_project, load_drawing, new_project, update_drawing,
-    write_gcode_files,
+    PipelineError, RunResult, empty_project, load_drawing, new_project, write_gcode_files,
 };
 use chipload_toolpath::select::{select_contours, select_paths};
 use eframe::egui::{
@@ -201,6 +200,9 @@ pub(super) enum UnitsFor {
 enum Prompt {
     /// The DXF declares no units: for what it was being brought in.
     Units(PathBuf, UnitsFor),
+    /// The SVG gives no real size: its pixels per inch, as typed so far
+    /// (docs/specs/svg-import.md §7).
+    PxPerInch(PathBuf, UnitsFor, String),
     Path(PathPurpose, String),
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
@@ -597,9 +599,14 @@ fn selector_text(selector: &Selector) -> String {
     format!("{{{}}}", fields.join(", "))
 }
 
-fn is_dxf(path: &Path) -> bool {
+/// The extensions of the drawing files the file dialogs offer (docs/specs/svg-import.md §10).
+pub(super) const DRAWING_FILES: &[&str] = &["dxf", "svg", "svgz"];
+
+/// A DXF or an SVG, by its extension.
+fn is_drawing_file(path: &Path) -> bool {
     path.extension()
         .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
+        || chipload_dxf::is_svg(path)
 }
 
 impl ChiploadApp {
@@ -716,9 +723,9 @@ impl ChiploadApp {
 
     // -- operations (also called directly by tests)
 
-    /// Open a project, an older job, or a DXF (imported as a new project).
+    /// Open a project, an older job, or a DXF or SVG (imported as a new project).
     pub fn open(&mut self, path: &Path) -> bool {
-        if is_dxf(path) {
+        if is_drawing_file(path) {
             self.import_dxf(path, None)
         } else {
             self.open_project(path)
@@ -785,11 +792,31 @@ impl ChiploadApp {
         self.set_report(Report::info(lines));
     }
 
-    /// Import a DXF as a new, unsaved project. A DXF without units asks for them.
+    /// Ask for an SVG's pixels per inch, 96 offered first (docs/specs/svg-import.md §7).
+    fn ask_px_per_inch(&mut self, path: &Path, purpose: UnitsFor) {
+        self.dialogs.prompt = Some(Prompt::PxPerInch(path.to_path_buf(), purpose, "96".into()));
+        self.set_report(Report::info([t!(
+            self,
+            "app-px-missing",
+            file = file_name(path)
+        )]));
+    }
+
+    /// Import a DXF or an SVG as a new, unsaved project. A DXF without units asks for them.
     pub fn import_dxf(&mut self, path: &Path, units: Option<Units>) -> bool {
+        self.import_file(path, units, None)
+    }
+
+    /// [`ChiploadApp::import_dxf`] with an SVG's pixels per inch; an SVG without a real size
+    /// and none given asks for them.
+    pub fn import_file(&mut self, path: &Path, units: Option<Units>, px: Option<f64>) -> bool {
         self.dialogs.prompt = None;
-        let imported = match shapes_from_dxf(path, units) {
+        let imported = match shapes_from_file(path, units, px, 1.0) {
             Ok(imported) => imported,
+            Err(ImportError::ScaleMissing) => {
+                self.ask_px_per_inch(path, UnitsFor::NewProject);
+                return false;
+            }
             Err(ImportError::UnitsMissing) => {
                 self.dialogs.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
                 self.set_report(Report::info([t!(
@@ -840,6 +867,18 @@ impl ChiploadApp {
 
     /// [`ChiploadApp::update_from`] for DXF `id` of several (None: the project's only one).
     pub fn update_dxf_from(&mut self, id: Option<u64>, dxf: &Path, units: Option<Units>) -> bool {
+        self.update_file_from(id, dxf, units, None)
+    }
+
+    /// [`ChiploadApp::update_dxf_from`] with an SVG's pixels per inch (None: as chosen
+    /// before, or ask).
+    pub fn update_file_from(
+        &mut self,
+        id: Option<u64>,
+        dxf: &Path,
+        units: Option<Units>,
+        px: Option<f64>,
+    ) -> bool {
         self.dialogs.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
@@ -856,8 +895,8 @@ impl ChiploadApp {
             }
         };
         let updated = match id {
-            Some(id) => chipload_pipeline::dxfs::update_dxf(&job, id, dxf, units),
-            None => update_drawing(&job, dxf, units),
+            Some(id) => chipload_pipeline::dxfs::update_drawing_file(&job, id, dxf, units, px),
+            None => chipload_pipeline::update_drawing_with(&job, dxf, units, px),
         };
         match updated {
             Ok((updated, report)) => {
@@ -875,6 +914,10 @@ impl ChiploadApp {
                     self.set_status(t!(self, "app-lost-geometry"), ERROR_STATUS_SECONDS);
                 }
                 true
+            }
+            Err(PipelineError::Import(ImportError::ScaleMissing)) => {
+                self.ask_px_per_inch(dxf, UnitsFor::Update(id));
+                false
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
                 self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Update(id)));
@@ -898,6 +941,11 @@ impl ChiploadApp {
     /// Add `dxf` to the project as another DXF, where its file has it, as one undo step
     /// (docs/specs/drawing-sources.md §2). A DXF without units asks for them.
     pub fn add_dxf_from(&mut self, dxf: &Path, units: Option<Units>) -> bool {
+        self.add_file_from(dxf, units, None)
+    }
+
+    /// [`ChiploadApp::add_dxf_from`] for a DXF or an SVG, with an SVG's pixels per inch.
+    pub fn add_file_from(&mut self, dxf: &Path, units: Option<Units>, px: Option<f64>) -> bool {
         self.dialogs.prompt = None;
         self.commit();
         let Some(edit) = &self.edit else {
@@ -913,7 +961,7 @@ impl ChiploadApp {
                 return false;
             }
         };
-        match chipload_pipeline::dxfs::add_dxf(&job, dxf, units) {
+        match chipload_pipeline::dxfs::add_drawing_file(&job, dxf, units, px, None) {
             Ok((added, report)) => {
                 let mut next = EditJob::from_job(&added);
                 for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
@@ -924,6 +972,10 @@ impl ChiploadApp {
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(report.messages));
                 true
+            }
+            Err(PipelineError::Import(ImportError::ScaleMissing)) => {
+                self.ask_px_per_inch(dxf, UnitsFor::Add);
+                false
             }
             Err(PipelineError::Import(ImportError::UnitsMissing)) => {
                 self.dialogs.prompt = Some(Prompt::Units(dxf.to_path_buf(), UnitsFor::Add));

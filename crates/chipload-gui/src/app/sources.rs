@@ -430,7 +430,7 @@ impl ChiploadApp {
             Some(PanelAction::Place(dxf)) => self.focus = Focus::Dxf(dxf),
             Some(PanelAction::Update(dxf)) => {
                 if let Some(path) = rfd::FileDialog::new()
-                    .add_filter(t!(ui, "sources-dxf-filter"), &["dxf"])
+                    .add_filter(t!(ui, "sources-dxf-filter"), DRAWING_FILES)
                     .pick_file()
                 {
                     self.update_dxf_from(Some(dxf), &path, None);

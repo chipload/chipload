@@ -39,7 +39,7 @@ header-new = New
 header-new-hover = New project
 header-open = Open
 header-import = Import
-header-import-hover = New project from a DXF
+header-import-hover = New project from a DXF or SVG
 header-save = Save
 
 # DRAW: short words under icons, and what each does.
@@ -56,9 +56,9 @@ header-image-hover = Trace a picture into shapes, for V-carving or a follow path
 header-add-dxf = Add DXF
 header-add-dxf-hover = Another part: a DXF placed and updated on its own
 # "FILE > Import": the ribbon group FILE and its Import button.
-header-add-dxf-first-hover = Import a DXF first (FILE > Import)
+header-add-dxf-first-hover = Import a DXF or SVG first (FILE > Import)
 header-import-image-menu = Import image…
-header-add-dxf-menu = Add DXF to project…
+header-add-dxf-menu = Add DXF or SVG to project…
 
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Follow

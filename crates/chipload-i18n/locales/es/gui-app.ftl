@@ -7,7 +7,7 @@ app-show-properties-hover = Mostrar Propiedades (P: ambos paneles)
 # The heading of the right-hand panel.
 app-properties = Propiedades
 
-app-start-hint = Importa un DXF (Ctrl+I) para empezar un proyecto, o abre uno (Ctrl+O).
+app-start-hint = Importa un DXF o SVG (Ctrl+I) para empezar un proyecto, o abre uno (Ctrl+O).
 
 app-cannot-open = No se puede abrir { $file }:
 app-project = Proyecto: { $file }
@@ -18,6 +18,7 @@ app-new-project = Proyecto nuevo.
 app-started-with = Iniciado con { $what }.
 app-new-project-next = Dibuja formas con el menú Dibujar, o trae un dibujo con Archivo > Importar DXF al proyecto. Revisa el material en bruto, la máquina y la herramienta en Ajustes del trabajo.
 app-units-missing = { $file } no indica qué unidades usa; elige mm o pulgadas.
+app-px-missing = { $file } solo da su tamaño en píxeles; elige sus píxeles por pulgada.
 app-cannot-import = No se puede importar { $file }:
 app-new-project-from = Proyecto nuevo a partir de { $file } ({ $shapes } formas).
 app-import-next = Selecciona contornos y luego Nuevo contorneado o Nueva cajera. Revisa el material en bruto, la máquina y la herramienta en Ajustes del trabajo.
@@ -78,8 +79,8 @@ app-selection-contours = contornos
 app-open-not-cut = Abiertos (no se cortan): { $list }
 
 # File menu, for a project started without a drawing.
-app-import-dxf-into-project = Importar DXF al proyecto…
-app-import-dxf-into-project-path = Importar DXF al proyecto desde ruta…
+app-import-dxf-into-project = Importar DXF o SVG al proyecto…
+app-import-dxf-into-project-path = Importar DXF o SVG al proyecto desde ruta…
 # File menu, a new version of the project's drawing.
-app-update-drawing-from-dxf = Actualizar dibujo desde DXF…
+app-update-drawing-from-dxf = Actualizar dibujo desde DXF o SVG…
 app-update-drawing-from-path = Actualizar dibujo desde ruta…

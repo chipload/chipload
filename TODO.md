@@ -131,9 +131,11 @@ it's built (see `CLAUDE.md`).
   grid and polar arrays, align and distribute, each on the command line and in the
   window; golden v30_drawn_edited drawn with these commands alone. Next: phase 3
   (SVG import through `usvg`, added 2026-10-27; spec approved 2026-10-28,
-  docs/specs/svg-import.md, ADR 0024: the reader crate, schema 31 and the command line
-  done 2026-10-28, the window next; follow-ups: placement texts say "as in the DXF" for an
-  SVG, run the new svg_import fuzz target), 4 (parameters), 5 (DXF export,
+  docs/specs/svg-import.md, ADR 0024: **done 2026-10-28, not pushed**: the reader crate,
+  schema 31, the command line and the window; follow-ups: texts that still say DXF for
+  any drawing file (placement "as in the DXF", Browser and form hints, "DXF 2" in the
+  selection summary), run the new svg_import fuzz target, try it by hand with real
+  Inkscape and Illustrator files), 4 (parameters), 5 (DXF export,
   construction lines), each with its own spec.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 

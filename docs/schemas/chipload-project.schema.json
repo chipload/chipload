@@ -2237,12 +2237,12 @@
       "oneOf": [
         {
           "const": "dxf",
-          "description": "Declared by the DXF ($INSUNITS).",
+          "description": "Declared by the file: a DXF's $INSUNITS, an SVG's size in real units.",
           "type": "string"
         },
         {
           "const": "user",
-          "description": "The DXF declared none; the user chose.",
+          "description": "The file declared none; the user chose (a DXF's units, an SVG's pixels per inch).",
           "type": "string"
         }
       ]

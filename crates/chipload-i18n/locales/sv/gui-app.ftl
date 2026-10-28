@@ -7,7 +7,7 @@ app-show-properties-hover = Visa Egenskaper (P: båda panelerna)
 # The heading of the right-hand panel.
 app-properties = Egenskaper
 
-app-start-hint = Importera en DXF (Ctrl+I) för att starta ett projekt, eller öppna ett (Ctrl+O).
+app-start-hint = Importera en DXF eller SVG (Ctrl+I) för att starta ett projekt, eller öppna ett (Ctrl+O).
 
 app-cannot-open = Kan inte öppna { $file }:
 app-project = Projekt: { $file }
@@ -18,6 +18,7 @@ app-new-project = Nytt projekt.
 app-started-with = Startade med { $what }.
 app-new-project-next = Rita former från menyn Rita, eller hämta in en ritning med Arkiv > Importera DXF till projektet. Kontrollera ämne, maskin och verktyg under Jobbinställningar.
 app-units-missing = { $file } anger inte vilka enheter den använder; välj mm eller tum.
+app-px-missing = { $file } anger sin storlek bara i pixlar; välj dess pixlar per tum.
 app-cannot-import = Kan inte importera { $file }:
 app-new-project-from = Nytt projekt från { $file } ({ $shapes } former).
 app-import-next = Markera konturer och välj sedan Ny konturfräsning eller Ny ficka. Kontrollera ämne, maskin och verktyg under Jobbinställningar.
@@ -78,8 +79,8 @@ app-selection-contours = konturer
 app-open-not-cut = Öppna (fräses inte): { $list }
 
 # File menu, for a project started without a drawing.
-app-import-dxf-into-project = Importera DXF till projektet…
-app-import-dxf-into-project-path = Importera DXF till projektet från sökväg…
+app-import-dxf-into-project = Importera DXF eller SVG till projektet…
+app-import-dxf-into-project-path = Importera DXF eller SVG till projektet från sökväg…
 # File menu, a new version of the project's drawing.
-app-update-drawing-from-dxf = Uppdatera ritning från DXF…
+app-update-drawing-from-dxf = Uppdatera ritning från DXF eller SVG…
 app-update-drawing-from-path = Uppdatera ritning från sökväg…

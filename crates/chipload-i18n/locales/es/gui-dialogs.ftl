@@ -6,7 +6,7 @@ dialogs-user-guide = La guía del usuario viene con cada versión como chipload-
 
 # Names of file types in the system's file dialogs.
 dialogs-filter-projects = Proyectos de Chipload
-dialogs-filter-dxf = Dibujos DXF
+dialogs-filter-dxf = Dibujos (DXF, SVG)
 
 dialogs-selector-copied = Selector copiado al portapapeles
 
@@ -21,6 +21,14 @@ dialogs-units-question = ¿En qué unidades se dibujó?
 # A button: the drawing was drawn in inches.
 dialogs-inch = pulgadas
 dialogs-units-cancelled = Dibujo no importado: sus unidades son desconocidas.
+dialogs-px-title = Píxeles por pulgada
+dialogs-px-unknown = { $file } solo da su tamaño en píxeles.
+dialogs-px-question = ¿Cuántos píxeles forman una pulgada?
+dialogs-px-96 = 96 (Inkscape, navegadores)
+dialogs-px-72 = 72 (Illustrator antiguo)
+dialogs-px-other = Otro:
+dialogs-px-use = Usar
+dialogs-px-cancelled = Dibujo no importado: su tamaño es desconocido.
 
 dialogs-unsaved-title = Cambios sin guardar
 dialogs-unsaved-body = El proyecto tiene cambios sin guardar. ¿Guardarlos primero?
@@ -48,9 +56,9 @@ dialogs-path-update = El DXF:
 dialogs-path-image-title = Importar imagen
 dialogs-path-image = Una imagen (PNG, JPEG o BMP):
 dialogs-path-add-dxf-title = Añadir DXF
-dialogs-path-add-dxf = El DXF que se añade al proyecto:
+dialogs-path-add-dxf = El DXF o SVG que se añade al proyecto:
 dialogs-path-update-dxf-title = Actualizar DXF
-dialogs-path-update-dxf = La nueva versión del DXF:
+dialogs-path-update-dxf = La nueva versión del DXF o SVG:
 
 # In the window's title bar, for a project never saved.
 dialogs-title-new-project = proyecto nuevo

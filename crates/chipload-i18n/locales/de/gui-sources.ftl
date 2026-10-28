@@ -4,17 +4,17 @@
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Zeichnung
 sources-drawing-hover = DXFs, Bilder, Texte und gezeichnete Formen; Rechtsklick zum Hinzufügen
-sources-add-dxf = DXF hinzufügen…
+sources-add-dxf = DXF oder SVG hinzufügen…
 sources-add-dxf-hover = Ein weiteres Teil: eine DXF, eigenständig platziert und aktualisiert
 # "File > Import DXF" names a menu item.
-sources-add-dxf-disabled-hover = Datei > DXF importieren beginnt damit ein Projekt
+sources-add-dxf-disabled-hover = Datei > DXF oder SVG importieren beginnt damit ein Projekt
 sources-import-image = Bild importieren…
 sources-import-image-hover = Ein Bild in Formen nachzeichnen, für V-Gravur
 sources-add-text = Text hinzufügen
 sources-add-text-hover = Einen Text schreiben, dann klicken, wo er beginnt
 sources-no-shapes = Noch keine Formen.
-# The name of DXF files in the file dialog's filter.
-sources-dxf-filter = DXF-Zeichnungen
+# The name of drawing files (DXF, SVG) in the file dialog's filter.
+sources-dxf-filter = Zeichnungen (DXF, SVG)
 
 # Rows of the folder. $file: the picture's file name; $text: what the text says.
 sources-image-title = { $file } (Bild { $id })
@@ -37,7 +37,7 @@ sources-show = Einblenden
 sources-hide = Ausblenden
 sources-place = Platzieren…
 sources-place-hover = Diese DXF verschieben, drehen oder skalieren, in ihren Eigenschaften
-sources-update-from-dxf = Aus einer DXF aktualisieren…
+sources-update-from-dxf = Aus einer DXF oder SVG aktualisieren…
 sources-update-from-path = Aus einem Pfad aktualisieren…
 sources-remove-dxf-hover = Diese DXF und ihre Formen entfernen
 sources-trace-settings = Nachzeichnen…

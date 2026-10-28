@@ -6,7 +6,7 @@ dialogs-user-guide = Användarhandboken följer med varje version som chipload-g
 
 # Names of file types in the system's file dialogs.
 dialogs-filter-projects = Chipload-projekt
-dialogs-filter-dxf = DXF-ritningar
+dialogs-filter-dxf = Ritningar (DXF, SVG)
 
 dialogs-selector-copied = Selektorn kopierad till Urklipp
 
@@ -21,6 +21,14 @@ dialogs-units-question = Vilka enheter ritades den i?
 # A button: the drawing was drawn in inches.
 dialogs-inch = tum
 dialogs-units-cancelled = Ritningen importerades inte: dess enheter är okända.
+dialogs-px-title = Pixlar per tum
+dialogs-px-unknown = { $file } anger sin storlek bara i pixlar.
+dialogs-px-question = Hur många pixlar blir en tum?
+dialogs-px-96 = 96 (Inkscape, webbläsare)
+dialogs-px-72 = 72 (äldre Illustrator)
+dialogs-px-other = Annat:
+dialogs-px-use = Använd
+dialogs-px-cancelled = Ritningen importerades inte: dess storlek är okänd.
 
 dialogs-unsaved-title = Osparade ändringar
 dialogs-unsaved-body = Projektet har ändringar som inte är sparade. Spara dem först?
@@ -50,7 +58,7 @@ dialogs-path-image = En bild (PNG, JPEG eller BMP):
 dialogs-path-add-dxf-title = Lägg till DXF
 dialogs-path-add-dxf = DXF-filen som ska läggas till i projektet:
 dialogs-path-update-dxf-title = Uppdatera DXF
-dialogs-path-update-dxf = Den nya versionen av DXF-filen:
+dialogs-path-update-dxf = Den nya versionen av DXF- eller SVG-filen:
 
 # In the window's title bar, for a project never saved.
 dialogs-title-new-project = nytt projekt

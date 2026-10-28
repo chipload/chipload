@@ -7,7 +7,7 @@ app-show-properties-hover = Show Properties (P: both panels)
 # The heading of the right-hand panel.
 app-properties = Properties
 
-app-start-hint = Import a DXF (Ctrl+I) to start a project, or open one (Ctrl+O).
+app-start-hint = Import a DXF or SVG (Ctrl+I) to start a project, or open one (Ctrl+O).
 
 app-cannot-open = Cannot open { $file }:
 app-project = Project: { $file }
@@ -18,6 +18,7 @@ app-new-project = New project.
 app-started-with = Started with { $what }.
 app-new-project-next = Draw shapes from the Draw menu, or bring in a drawing with File > Import DXF into project. Check stock, machine and tool under Job settings.
 app-units-missing = { $file } does not say which units it uses; choose mm or inch.
+app-px-missing = { $file } gives its size in pixels only; choose its pixels per inch.
 app-cannot-import = Cannot import { $file }:
 app-new-project-from = New project from { $file } ({ $shapes } shapes).
 app-import-next = Select contours, then New profile or New pocket. Check stock, machine and tool under Job settings.
@@ -78,8 +79,8 @@ app-selection-contours = contours
 app-open-not-cut = Open (not cut): { $list }
 
 # File menu, for a project started without a drawing.
-app-import-dxf-into-project = Import DXF into project…
-app-import-dxf-into-project-path = Import DXF into project from path…
+app-import-dxf-into-project = Import DXF or SVG into project…
+app-import-dxf-into-project-path = Import DXF or SVG into project from path…
 # File menu, a new version of the project's drawing.
-app-update-drawing-from-dxf = Update drawing from DXF…
+app-update-drawing-from-dxf = Update drawing from DXF or SVG…
 app-update-drawing-from-path = Update drawing from path…
