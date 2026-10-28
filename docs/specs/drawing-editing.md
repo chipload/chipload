@@ -152,6 +152,11 @@ chipload shape intersect P IDS
   the first other result only when the first input isn't kept so. Flat outlines the
   library returns along a side two shapes share are left out. On the command line the
   flagged operations make the exit code 1, as deleting does.
+- *Implemented (GUI):* the canvas selection is a set, with no order, so *Subtract* is a
+  tool: select the shapes to cut out, choose it, then click the shape to cut them from
+  (previewed under the cursor; the tool ends after one cut). *Union* and *Intersect* act
+  at once on the selection, the shape drawn first keeping its id. All three are enabled
+  only with enough drawn shapes selected (two; one for subtract).
 
 ## 6. Arrays
 

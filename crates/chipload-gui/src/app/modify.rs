@@ -4,9 +4,9 @@
 
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
-    Corners, Cut, Edited, OffsetSide, break_shape, cut_shape_corners, extend_shape, nearer_end,
-    nearest_drawn, nearest_point, offset_at, offset_shapes, shape_corners, trim_preview,
-    trim_shape,
+    Combine, Corners, Cut, Edited, OffsetSide, break_shape, combine_shapes, cut_shape_corners,
+    extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at, offset_shapes,
+    shape_corners, trim_preview, trim_shape,
 };
 
 use super::*;
@@ -26,6 +26,12 @@ pub enum ModifyTool {
     Extend,
     /// Split a shape at the point under the cursor (§4).
     Break,
+    /// Join the selected shapes into one, at once (§5).
+    Union,
+    /// Cut the selected shapes out of the shape clicked (§5).
+    Subtract,
+    /// Keep what the selected shapes share, at once (§5).
+    Intersect,
 }
 
 impl ModifyTool {
@@ -33,7 +39,7 @@ impl ModifyTool {
     pub fn on_shape_under_cursor(self) -> bool {
         matches!(
             self,
-            ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break
+            ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break | ModifyTool::Subtract
         )
     }
 }
@@ -49,6 +55,18 @@ impl ChiploadApp {
     pub fn start_modify(&mut self, tool: ModifyTool) {
         if !self.can_draw() {
             return;
+        }
+        // Union and intersect need no click: they act on the selection.
+        match tool {
+            ModifyTool::Union => {
+                self.combine_selected(Combine::Union);
+                return;
+            }
+            ModifyTool::Intersect => {
+                self.combine_selected(Combine::Intersect);
+                return;
+            }
+            _ => {}
         }
         if self.three_d {
             self.view_top();
@@ -304,7 +322,14 @@ impl ChiploadApp {
                     self.apply_on_shape(tool, id, at);
                 }
             }
-            None => {}
+            Some(ModifyTool::Subtract) => {
+                if let Some(base) = self.drawn_under(picked, at)
+                    && self.combine(Combine::Subtract, &self.subtract_ids(base))
+                {
+                    self.cancel_modify();
+                }
+            }
+            Some(ModifyTool::Union | ModifyTool::Intersect) | None => {}
         }
     }
 
@@ -411,8 +436,74 @@ impl ChiploadApp {
                 (lines, None)
             }
             ModifyTool::Break => (Vec::new(), nearest_point(job, id, at)),
+            ModifyTool::Subtract => {
+                let ids = self.subtract_ids(id);
+                let lines = combine_shapes(job, Combine::Subtract, &ids)
+                    .map(|edited| {
+                        edited
+                            .job
+                            .drawing
+                            .shapes
+                            .iter()
+                            .filter(|s| ids.contains(&s.id) || edited.new_ids.contains(&s.id))
+                            .flat_map(|s| crate::draw::outline(&s.geometry))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                (lines, None)
+            }
             _ => (Vec::new(), None),
         }
+    }
+
+    /// Whether `tool` can start: union and intersect need two drawn shapes selected,
+    /// subtract one (the shapes to cut out); the others pick their shape themselves.
+    pub fn modify_ready(&self, tool: ModifyTool) -> bool {
+        match tool {
+            ModifyTool::Union | ModifyTool::Intersect => self.selected_drawn().len() >= 2,
+            ModifyTool::Subtract => !self.selected_drawn().is_empty(),
+            _ => true,
+        }
+    }
+
+    /// The shapes a subtraction from `base` takes: the base, then the selected drawn shapes
+    /// cut out of it.
+    fn subtract_ids(&self, base: u64) -> Vec<u64> {
+        std::iter::once(base)
+            .chain(self.selected_drawn().into_iter().filter(|&id| id != base))
+            .collect()
+    }
+
+    /// Union or intersect the selected drawn shapes, as one undo step.
+    pub fn combine_selected(&mut self, op: Combine) -> bool {
+        let ids = self.selected_drawn();
+        if ids.len() < 2 {
+            self.set_status(t!(self, "modify-combine-pick"), STATUS_SECONDS);
+            return false;
+        }
+        self.combine(op, &ids)
+    }
+
+    /// Combine drawn shapes `ids` (for a subtraction the first is cut), as one undo step;
+    /// the shapes left are selected.
+    fn combine(&mut self, op: Combine, ids: &[u64]) -> bool {
+        let Some(job) = self.job_with_operations() else {
+            return false;
+        };
+        if ids.len() < 2 {
+            self.set_status(t!(self, "modify-combine-pick"), STATUS_SECONDS);
+            return false;
+        }
+        let result = combine_shapes(&job, op, ids);
+        let left: Vec<u64> = match &result {
+            Ok(edited) => ids
+                .iter()
+                .copied()
+                .filter(|id| edited.job.drawing.shapes.iter().any(|s| s.id == *id))
+                .collect(),
+            Err(_) => Vec::new(),
+        };
+        self.take_edit(result, &left)
     }
 
     /// Whether contour `picked` is a drawn shape outside the selection.
@@ -467,6 +558,11 @@ impl ChiploadApp {
             ModifyTool::Trim => t!(self, "modify-trim-status"),
             ModifyTool::Extend => t!(self, "modify-extend-status"),
             ModifyTool::Break => t!(self, "modify-break-status"),
+            ModifyTool::Subtract if self.selected_drawn().is_empty() => {
+                t!(self, "modify-combine-pick")
+            }
+            ModifyTool::Subtract => t!(self, "modify-subtract-status"),
+            ModifyTool::Union | ModifyTool::Intersect => return None,
         })
     }
 

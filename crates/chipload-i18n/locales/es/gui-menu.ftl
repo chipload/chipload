@@ -140,3 +140,6 @@ menu-modify-chamfer = Chaflán
 menu-modify-trim = Recortar
 menu-modify-extend = Alargar
 menu-modify-break = Partir
+menu-modify-union = Unir
+menu-modify-subtract = Restar
+menu-modify-intersect = Intersecar

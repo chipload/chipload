@@ -33,6 +33,9 @@ pub enum Icon {
     Trim,
     Extend,
     Break,
+    Union,
+    Subtract,
+    Intersect,
     Paths,
     Profile,
     Pocket,
@@ -187,6 +190,29 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::Break => {
             pen.line([(0.1, 0.6), (0.42, 0.4)]);
             pen.line([(0.58, 0.6), (0.9, 0.4)]);
+        }
+        // Two overlapping circles: their joined outline, the left one with the right bitten
+        // out of it, and the lens they share (the rest dotted).
+        Icon::Union => {
+            let third = PI / 3.0;
+            let mut points = pen.arc(LEFT, BOOLEAN_R, third, TAU - third);
+            points.extend(pen.arc(RIGHT, BOOLEAN_R, PI + third, PI + TAU - third));
+            pen.closed(&points);
+        }
+        Icon::Subtract => {
+            let third = PI / 3.0;
+            let mut points = pen.arc(LEFT, BOOLEAN_R, third, TAU - third);
+            points.extend(pen.arc(RIGHT, BOOLEAN_R, PI + third, PI - third));
+            pen.closed(&points);
+            dotted_arc(&pen, RIGHT, -2.0 * third, 2.0 * third);
+        }
+        Icon::Intersect => {
+            let third = PI / 3.0;
+            let mut points = pen.arc(LEFT, BOOLEAN_R, -third, third);
+            points.extend(pen.arc(RIGHT, BOOLEAN_R, PI - third, PI + third));
+            pen.closed(&points);
+            dotted_arc(&pen, LEFT, PI - 2.0 * third, PI + 2.0 * third);
+            dotted_arc(&pen, RIGHT, -2.0 * third, 2.0 * third);
         }
         Icon::Polygon => {
             let points: Vec<(f32, f32)> = (0..6)
@@ -511,6 +537,25 @@ pub fn paint_logo(painter: &Painter, rect: Rect, color: Color32) {
 }
 
 /// Lines in unit coordinates of the icon's square (0,0 top left, 1,1 bottom right).
+/// The boolean icons' two circles: centres a radius apart, so they cross at ±60°.
+const LEFT: (f32, f32) = (0.38, 0.5);
+const RIGHT: (f32, f32) = (0.62, 0.5);
+const BOOLEAN_R: f32 = 0.24;
+
+/// Dots along an arc, for the part of a shape a boolean leaves out.
+fn dotted_arc(pen: &Pen<'_>, centre: (f32, f32), from: f32, to: f32) {
+    for k in 0..4 {
+        let t = from + (to - from) * (k as f32 + 0.5) / 4.0;
+        pen.dot(
+            (
+                centre.0 + BOOLEAN_R * t.cos(),
+                centre.1 + BOOLEAN_R * t.sin(),
+            ),
+            0.025,
+        );
+    }
+}
+
 struct Pen<'a> {
     painter: &'a Painter,
     rect: Rect,

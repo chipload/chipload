@@ -140,3 +140,6 @@ menu-modify-chamfer = Fase
 menu-modify-trim = Stutzen
 menu-modify-extend = Verlängern
 menu-modify-break = Teilen
+menu-modify-union = Vereinigen
+menu-modify-subtract = Abziehen
+menu-modify-intersect = Schneiden

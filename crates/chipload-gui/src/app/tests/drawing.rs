@@ -645,3 +645,42 @@ fn trim_extend_and_break_work_on_the_shape_clicked() {
         before + 1
     );
 }
+
+#[test]
+fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() {
+    // docs/specs/drawing-editing.md §5. S1 a rectangle round S2 (circle at 75,80 r 12).
+    use super::modify::ModifyTool;
+    let mut app = drawn_part();
+    let circle = |app: &mut ChiploadApp, x: f64, r: f64| {
+        let id = app
+            .add_drawn(Geometry::Circle {
+                center: [x, 80.0],
+                radius: r,
+            })
+            .unwrap();
+        app.commit();
+        id
+    };
+    let kind = |app: &ChiploadApp, id: u64| app.shape(id).map(chipload_job::Shape::kind_name);
+    // Union needs two shapes selected; S2 takes the joined outline, the other goes.
+    let bump = circle(&mut app, 87.0, 5.0);
+    app.selection = CanvasSelection::Shapes([2].into());
+    assert!(!app.modify_ready(ModifyTool::Union));
+    app.selection = CanvasSelection::Shapes([2, bump].into());
+    assert!(app.modify_ready(ModifyTool::Union));
+    app.start_modify(ModifyTool::Union);
+    assert_eq!(kind(&app, 2), Some("polyline"));
+    assert!(app.shape(bump).is_none());
+    assert_eq!(app.modify, None);
+    app.commit();
+    // Subtract: the selected circle cut out of the rectangle clicked; the tool ends.
+    let notch = circle(&mut app, 160.0, 10.0);
+    app.selection = CanvasSelection::Shapes([notch].into());
+    app.start_modify(ModifyTool::Subtract);
+    let picked = Some(contour_of(&app, 1));
+    assert!(!app.on_shape_preview(picked, (40.0, 60.0)).0.is_empty());
+    app.modify_click(picked, (40.0, 60.0), false, (false, false));
+    assert_eq!(kind(&app, 1), Some("polyline"));
+    assert!(app.shape(notch).is_none());
+    assert_eq!(app.modify, None);
+}

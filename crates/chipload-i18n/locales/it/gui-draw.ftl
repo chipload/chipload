@@ -71,3 +71,5 @@ modify-trim-status = Taglia: clicca il pezzo di una forma disegnata da togliere;
 modify-extend-status = Estendi: clicca vicino all'estremità di una forma aperta per allungarla fino alla forma successiva (Esc termina)
 modify-break-status = Spezza: clicca una forma disegnata dove deve dividersi (Esc termina)
 modify-extend-closed = una forma chiusa non ha estremità da estendere
+modify-combine-pick = Seleziona prima due o più forme disegnate chiuse
+modify-subtract-status = Sottrai: clicca la forma da cui ritagliare quelle selezionate (Esc termina)

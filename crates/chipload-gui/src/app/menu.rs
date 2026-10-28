@@ -582,9 +582,27 @@ impl ChiploadApp {
                 t!(ui, "menu-modify-break"),
                 t!(ui, "header-break-hover"),
             ),
+            (
+                super::modify::ModifyTool::Union,
+                t!(ui, "menu-modify-union"),
+                t!(ui, "header-union-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Subtract,
+                t!(ui, "menu-modify-subtract"),
+                t!(ui, "header-subtract-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Intersect,
+                t!(ui, "menu-modify-intersect"),
+                t!(ui, "header-intersect-hover"),
+            ),
         ] {
             if ui
-                .add_enabled(can_draw, egui::Button::new(label))
+                .add_enabled(
+                    can_draw && self.modify_ready(tool),
+                    egui::Button::new(label),
+                )
                 .on_hover_text(hover)
                 .clicked()
             {

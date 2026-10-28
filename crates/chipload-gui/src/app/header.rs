@@ -511,6 +511,27 @@ impl ChiploadApp {
                         t!(ui, "header-break-hover"),
                         None,
                     ),
+                    (
+                        super::modify::ModifyTool::Union,
+                        Icon::Union,
+                        t!(ui, "header-union"),
+                        t!(ui, "header-union-hover"),
+                        None,
+                    ),
+                    (
+                        super::modify::ModifyTool::Subtract,
+                        Icon::Subtract,
+                        t!(ui, "header-subtract"),
+                        t!(ui, "header-subtract-hover"),
+                        None,
+                    ),
+                    (
+                        super::modify::ModifyTool::Intersect,
+                        Icon::Intersect,
+                        t!(ui, "header-intersect"),
+                        t!(ui, "header-intersect-hover"),
+                        None,
+                    ),
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
@@ -523,7 +544,8 @@ impl ChiploadApp {
                                     Some(action) => hover_keys(&hint, *action),
                                     None => hint,
                                 };
-                                if small_ribbon_button(ui, *icon, label, can_draw, active)
+                                let enabled = can_draw && app.modify_ready(*tool);
+                                if small_ribbon_button(ui, *icon, label, enabled, active)
                                     .on_hover_text(hint)
                                     .clicked()
                                 {

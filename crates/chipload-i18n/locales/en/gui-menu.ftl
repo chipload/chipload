@@ -140,3 +140,6 @@ menu-modify-chamfer = Chamfer
 menu-modify-trim = Trim
 menu-modify-extend = Extend
 menu-modify-break = Break
+menu-modify-union = Union
+menu-modify-subtract = Subtract
+menu-modify-intersect = Intersect

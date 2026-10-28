@@ -71,3 +71,5 @@ modify-trim-status = Recortar: haga clic en el trozo de una forma dibujada que s
 modify-extend-status = Alargar: haga clic cerca del extremo de una forma abierta para alargarla hasta la forma siguiente (Esc termina)
 modify-break-status = Partir: haga clic en una forma dibujada donde deba partirse (Esc termina)
 modify-extend-closed = una forma cerrada no tiene extremo que alargar
+modify-combine-pick = Seleccione primero dos o más formas dibujadas cerradas
+modify-subtract-status = Restar: haga clic en la forma de la que recortar las seleccionadas (Esc termina)

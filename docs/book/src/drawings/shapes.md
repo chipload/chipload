@@ -108,8 +108,11 @@ DXF first, [Explode](several.md)).
   result that is one of the shapes unchanged (a hole cut where a circle already lies, a
   shape a union swallows whole) stays as drawn, a circle still a circle; anything else
   becomes a polyline. A ring of shapes united gives the outline and the hole inside as
-  two shapes. Open shapes are refused, and so is a result with nothing left. On the
-  command line: `chipload shape union P 1 2 3`, `chipload shape subtract P 1 4 5` (4
+  two shapes. Open shapes are refused, and so is a result with nothing left. In the
+  window: select the shapes, then *Union* or *Intersect* acts at once (the shape drawn
+  first keeps its number). For *Subtract*, select the shapes to cut out, choose
+  *Subtract*, then click the shape to cut them from: the preview shows the result under
+  the cursor. On the command line: `chipload shape union P 1 2 3`, `chipload shape subtract P 1 4 5` (4
   and 5 cut out of 1), `chipload shape intersect P 1 2`.
 - New shapes on a layer that an operation selects by its name are cut by that operation
   too, as a shape drawn there is; the status bar names those operations.

@@ -71,3 +71,5 @@ modify-trim-status = Trimma: klicka den bit av en ritad form som ska bort; den v
 modify-extend-status = Förläng: klicka nära änden av en öppen ritad form för att förlänga den till nästa form (Esc avslutar)
 modify-break-status = Bryt: klicka en ritad form där den ska delas (Esc avslutar)
 modify-extend-closed = en sluten form har ingen ände att förlänga
+modify-combine-pick = Välj först två eller fler slutna ritade former
+modify-subtract-status = Subtrahera: klicka på formen som de valda ska skäras ut ur (Esc avslutar)

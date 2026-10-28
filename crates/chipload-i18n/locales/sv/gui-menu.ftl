@@ -140,3 +140,6 @@ menu-modify-chamfer = Fasa
 menu-modify-trim = Trimma
 menu-modify-extend = Förläng
 menu-modify-break = Bryt
+menu-modify-union = Förena
+menu-modify-subtract = Subtrahera
+menu-modify-intersect = Snitt

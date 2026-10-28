@@ -71,3 +71,5 @@ modify-trim-status = Stutzen: das Stück einer gezeichneten Form anklicken, das 
 modify-extend-status = Verlängern: nahe dem Ende einer offenen gezeichneten Form klicken, um sie bis zur nächsten Form zu verlängern (Esc beendet)
 modify-break-status = Teilen: eine gezeichnete Form dort klicken, wo sie geteilt werden soll (Esc beendet)
 modify-extend-closed = eine geschlossene Form hat kein Ende zum Verlängern
+modify-combine-pick = Zuerst zwei oder mehr geschlossene gezeichnete Formen wählen
+modify-subtract-status = Abziehen: die Form klicken, aus der die gewählten ausgeschnitten werden (Esc beendet)

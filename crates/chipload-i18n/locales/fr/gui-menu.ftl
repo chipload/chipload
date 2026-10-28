@@ -140,3 +140,6 @@ menu-modify-chamfer = Chanfrein
 menu-modify-trim = Ajuster
 menu-modify-extend = Prolonger
 menu-modify-break = Couper
+menu-modify-union = Union
+menu-modify-subtract = Soustraire
+menu-modify-intersect = Intersection

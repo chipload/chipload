@@ -71,3 +71,5 @@ modify-trim-status = Ajuster : cliquez le morceau d'une forme dessinée à enlev
 modify-extend-status = Prolonger : cliquez près de l'extrémité d'une forme ouverte pour la prolonger jusqu'à la forme suivante (Échap termine)
 modify-break-status = Couper : cliquez une forme dessinée là où elle doit être coupée (Échap termine)
 modify-extend-closed = une forme fermée n'a pas d'extrémité à prolonger
+modify-combine-pick = Sélectionnez d'abord au moins deux formes dessinées fermées
+modify-subtract-status = Soustraire : cliquez la forme dans laquelle découper celles sélectionnées (Échap termine)

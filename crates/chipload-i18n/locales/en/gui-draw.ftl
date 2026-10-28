@@ -72,3 +72,5 @@ modify-trim-status = Trim: click the piece of a drawn shape to remove; it shows 
 modify-extend-status = Extend: click near the end of an open drawn shape to grow it to the next shape (Esc ends)
 modify-break-status = Break: click a drawn shape where it should split (Esc ends)
 modify-extend-closed = a closed shape has no end to extend
+modify-combine-pick = Select two closed drawn shapes or more first
+modify-subtract-status = Subtract: click the shape to cut the selected ones out of (Esc ends)
