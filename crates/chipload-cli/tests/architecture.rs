@@ -80,6 +80,7 @@ fn checker_is_independent_of_the_generator() {
         "chipload-dxf",
         "chipload-image",
         "chipload-text",
+        "chipload-svg",
         "chipload-pipeline",
     ] {
         assert!(
@@ -121,6 +122,18 @@ fn text_lettering_sits_beside_image_tracing() {
         .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
         .collect();
     assert!(bad.is_empty(), "chipload-text depends on {bad:?}");
+}
+
+#[test]
+fn svg_reading_sits_beside_the_dxf_reader() {
+    // docs/specs/svg-import.md §3: SVG bytes in, shapes out, on chipload-core alone (and
+    // the texts of its errors).
+    let deps = &runtime_closure()["chipload-svg"];
+    let bad: Vec<&String> = deps
+        .iter()
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
+        .collect();
+    assert!(bad.is_empty(), "chipload-svg depends on {bad:?}");
 }
 
 #[test]

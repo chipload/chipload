@@ -15,6 +15,7 @@ The original Python implementation was the reference during the port and has bee
 | `chipload-dxf` | DXF import into shapes, shapes into contours, the `ImportReport` |
 | `chipload-image` | pictures (PNG, JPEG, BMP) into black and white and traced loops for V-carving, with arcs (docs/specs/image-trace.md, image-arcs-centrelines.md); core only, no file I/O |
 | `chipload-text` | text into closed outlines with arcs, in 17 built-in fonts: GNU FreeFont and ten Apache-2.0 fonts (docs/specs/text.md, more-fonts.md, ADR 0020, 0021); core only, no file I/O |
+| `chipload-svg` | SVG into shapes of lines and arcs in mm, through `usvg` without text or system fonts: Inkscape layers or stroke colours as layers, curves fitted, text, pictures and clips counted, hostile-input limits (docs/specs/svg-import.md, ADR 0024); core only, no file I/O |
 | `chipload-draw` | drawing geometry on core's lines and arcs: intersections, snapping (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); later editing drawn shapes (docs/specs/drawing-roadmap.md, drawing-input.md, ADR 0023); core only, no I/O |
 | `chipload-toolpath` | selection, offsets, profiles (spiral laps, ramped tabs, finishing laps, onion skins, dogbones), tabs, pockets (with rest machining), V-carving (medial axis via boostvoronoi, ADR 0015), centre lines of traced strokes, follow paths, holes (drill cycles, helical bores), surfacing, merging overlapping outlines (text), job planning |
 | `chipload-post` | post-processor configs and templates (`posts/`, `templates/`) |

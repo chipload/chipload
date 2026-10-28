@@ -1,6 +1,7 @@
 # Spec: SVG import (drawing phase 3)
 
-Status: **draft 2026-10-28, for review** (decisions in §12).
+Status: **approved 2026-10-28** (the user: "approve"; every recommendation in §12). ADR
+0024. Details settled while building are marked *Implemented:*.
 
 Phase 3 of docs/specs/drawing-roadmap.md (§6, added 2026-10-27). Logos and artwork come from
 Inkscape, Illustrator, Affinity and the like as SVG, which many laser and sign shops work in.
@@ -78,6 +79,9 @@ limited to one file (`{"layer": "Cut", "dxf": 2}`).
 - **Update matching:** each shape keeps a key of its element's `id` and its subpath's
   number (`logo-path12#2`), in the field a DXF's handle uses; elements without an `id`
   are keyed by their order in the file. *Update* matches by key, as by DXF handle.
+- *Implemented:* the key of a path without an `id` is `@n` (the n-th such path), then
+  `#k`; a path drawn through `use` comes back from usvg without the element's id, so it is
+  keyed by order too. Keys are made unique with `~2`, `~3` (duplicate ids).
 
 ## 5. Layers (decision 2)
 
@@ -120,8 +124,8 @@ An operation selects shapes by layer, so an SVG needs layers that mean something
 
 SVG's Y points down. Chipload's points up. A point (x, y) becomes (x, H − y), H the page
 height, so **the page's lower-left corner is the drawing's origin** and the drawing looks
-as it does in the editor. Without a page size (no `viewBox`, `width` or `height`), H is the
-lowest point of the drawing. Placement then moves, turns and scales it as a DXF's.
+as it does in the editor. *Implemented:* H is usvg's page height, which it always gives
+(from `width`/`height`, else the `viewBox`). Placement then moves, turns and scales it as a DXF's.
 
 ## 9. Hostile input (as for DXF)
 

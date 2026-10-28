@@ -1,0 +1,23 @@
+[package]
+name = "chipload-svg"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chipload-core = { version = "0.27.1", path = "../chipload-core" }
+chipload-i18n = { version = "0.27.1", path = "../chipload-i18n" }
+# SVG parsing into plain paths (Apache-2.0 OR MIT; ADR 0024, docs/specs/svg-import.md §3).
+# No default features: no text shaping, no system fonts, no writer. Its roxmltree is used
+# through `usvg::roxmltree`.
+usvg = { version = "0.48.1", default-features = false }
+# .svgz, decompressed here with a size limit (MIT OR Apache-2.0, already in the tree).
+flate2 = { version = "1.1.10", default-features = false, features = ["rust_backend"] }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+proptest = "1"

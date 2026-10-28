@@ -22,6 +22,7 @@ flowchart TB
     toolpath["chipload-toolpath<br/>operations into moves"] --> job
     dxf["chipload-dxf<br/>DXF import"] --> job
     image["chipload-image<br/>picture tracing"] --> core
+    svg["chipload-svg<br/>SVG reading"] --> core
     text["chipload-text<br/>fonts to outlines"] --> core
     draw["chipload-draw<br/>drawing geometry, snapping"] --> core
     gui --> draw
@@ -51,7 +52,7 @@ flowchart TB
 | Front ends | `chipload-gui`, `chipload-cli` |
 | Services | `chipload-pipeline` |
 | Output | `chipload-post` |
-| Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-image`, `chipload-text` |
+| Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-svg`, `chipload-image`, `chipload-text` |
 | Drawing | `chipload-draw`: drawing geometry for the shapes drawn in Chipload (ADR 0023) |
 | Model | `chipload-job` |
 | Geometry | `chipload-core` |
@@ -92,6 +93,7 @@ error.
 | `chipload-core` | Lines and arcs, chaining into contours, which contour is inside which, fitting arcs to points, every tolerance (`tolerances`). No I/O. | no workspace crate; cavalier_contours |
 | `chipload-job` | The project file and everything else saved to disk: versioned loading with one migration per schema step, saving with a `.bak`, the tool library and machine profiles, settings, recovery notes. | core, i18n |
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. | core, job, i18n; dxf |
+| `chipload-svg` | SVG into shapes of lines and arcs in mm: usvg resolves styles, `use`, transforms and units into paths; curves fitted with lines and arcs; layers from Inkscape layers or stroke colours; text, pictures and clips counted, not imported (ADR 0024). Not yet used by the import (docs/specs/svg-import.md). | core, i18n; usvg, flate2 |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts. | core, i18n; ttf-parser |
 | `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); offsets of drawn shapes, and the other editing operations to come (docs/specs/drawing-editing.md). No I/O, no project model. | core; cavalier_contours |
