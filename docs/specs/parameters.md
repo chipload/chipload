@@ -1,6 +1,7 @@
 # Spec: parameters (drawing phase 4)
 
-Status: **draft 2026-10-28, for review** (decisions in §11). The user chose designs (a box
+Status: **draft 2026-10-28, on hold** (the user, the same day; decisions in §11 not yet
+reviewed). The user chose designs (a box
 maker, docs/specs/designs.md) to come first; parameters follow and can drive a design's
 values.
 

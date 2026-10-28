@@ -136,10 +136,10 @@ it's built (see `CLAUDE.md`).
   any drawing file (placement "as in the DXF", Browser and form hints, "DXF 2" in the
   selection summary), run the new svg_import fuzz target, try it by hand with real
   Inkscape and Illustrator files), 4 (designs, a box maker with finger
-  joints first, extensible to more designs: spec drafted 2026-10-28,
-  docs/specs/designs.md, awaiting review; the user chose it before parameters, whose spec
-  docs/specs/parameters.md is drafted and comes next), 5 (DXF export,
-  construction lines), each with its own spec.
+  joints first, extensible to more designs, docs/specs/designs.md, and parameters,
+  docs/specs/parameters.md: both drafted 2026-10-28 and **on hold** by the user the same
+  day), 5 (DXF export and construction geometry: spec drafted 2026-10-28,
+  docs/specs/dxf-export.md, awaiting review).
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

@@ -1,6 +1,7 @@
 # Spec: designs, and a box maker first (drawing phase 4)
 
-Status: **draft 2026-10-28, for review** (decisions in §12).
+Status: **draft 2026-10-28, on hold** (the user, the same day: DXF export first; decisions
+in §12 not yet reviewed).
 
 The user (2026-10-28), on parameters: "this would be cooler if the entire drawing could be
 parametrized to create a cabinet of a certain size … So that box can be created just giving
