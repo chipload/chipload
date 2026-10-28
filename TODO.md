@@ -135,8 +135,10 @@ it's built (see `CLAUDE.md`).
   schema 31, the command line and the window; follow-ups: texts that still say DXF for
   any drawing file (placement "as in the DXF", Browser and form hints, "DXF 2" in the
   selection summary), run the new svg_import fuzz target, try it by hand with real
-  Inkscape and Illustrator files), 4 (parameters: spec drafted 2026-10-28,
-  docs/specs/parameters.md, awaiting review), 5 (DXF export,
+  Inkscape and Illustrator files), 4 (designs, a box maker with finger
+  joints first, extensible to more designs: spec drafted 2026-10-28,
+  docs/specs/designs.md, awaiting review; the user chose it before parameters, whose spec
+  docs/specs/parameters.md is drafted and comes next), 5 (DXF export,
   construction lines), each with its own spec.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 

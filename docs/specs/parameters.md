@@ -1,6 +1,8 @@
 # Spec: parameters (drawing phase 4)
 
-Status: **draft 2026-10-28, for review** (decisions in §11).
+Status: **draft 2026-10-28, for review** (decisions in §11). The user chose designs (a box
+maker, docs/specs/designs.md) to come first; parameters follow and can drive a design's
+values.
 
 Phase 4 of docs/specs/drawing-roadmap.md (§7). Project values with names, used in the
 length fields of shapes and operations, so that one change carries through the drawing and
