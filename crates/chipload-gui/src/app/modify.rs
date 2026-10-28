@@ -128,6 +128,10 @@ impl ChiploadApp {
         self.placing_text = false;
         self.typed = None;
         self.modify = Some(tool);
+        if matches!(tool, ModifyTool::Array | ModifyTool::PolarArray) {
+            // Its values and Create are under Selection: show it.
+            self.focus = Focus::Selection;
+        }
     }
 
     pub fn cancel_modify(&mut self) {
@@ -674,9 +678,14 @@ impl ChiploadApp {
                 ui.end_row();
             }
         });
-        if ui.button(t!(ui, "array-create")).clicked() {
-            self.create_array();
-        }
+        ui.horizontal(|ui| {
+            if ui.button(t!(ui, "array-create")).clicked() {
+                self.create_array();
+            }
+            if ui.button(t!(ui, "common-cancel")).clicked() {
+                self.cancel_modify();
+            }
+        });
     }
 
     /// Align or distribute the selected drawn shapes (§7), as one undo step.

@@ -563,7 +563,12 @@ impl ChiploadApp {
                                     .on_hover_text(hint)
                                     .clicked()
                                 {
-                                    app.start_modify(*tool);
+                                    // The active tool's button ends it again.
+                                    if active {
+                                        app.cancel_modify();
+                                    } else {
+                                        app.start_modify(*tool);
+                                    }
                                 }
                             }
                         });

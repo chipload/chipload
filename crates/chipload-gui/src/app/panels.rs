@@ -97,6 +97,8 @@ impl ChiploadApp {
         if self.focus == Focus::Selection {
             if self.selection.ids(&self.contours).is_empty() {
                 ui.weak(t!(ui, "panels-nothing-selected"));
+                // An array tool waits for shapes: its values and Cancel stay at hand.
+                self.array_form(ui);
             } else {
                 self.selection_section(ui);
             }

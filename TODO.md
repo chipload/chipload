@@ -106,6 +106,10 @@ it's built (see `CLAUDE.md`).
   6. *Fit the drawing* was a button pushed off a narrow panel, and should be the default.
      Done 2026-10-28: a box at the top of Stock with the margin beside it; projects
      started empty fit the drawing too.
+  7. The array tools couldn't be finished: their Create was under Selection, hidden while
+     another item was open. Fixed 2026-10-28: starting one shows Selection, its form has
+     *Cancel*, and the ribbon button ends the active tool.
+  8. A DXF or SVG can't be added to an existing project without starting a new one.
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)

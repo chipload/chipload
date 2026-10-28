@@ -123,7 +123,8 @@ DXF first, [Explode](several.md)).
   [grid of copies](copies.md) is different, it repeats the whole part with
   its operations. In the window: select the shapes, choose *Array* or *Polar array*,
   and set the copies under *Selection*; for a polar array click the centre on the canvas
-  (it snaps as drawing does). The preview shows the copies; *Create* adds them. On the
+  (it snaps as drawing does). The preview shows the copies; *Create* adds them and ends
+  the tool. *Cancel*, Esc or the tool's button again ends it without copies. On the
   command line: `chipload shape array P 2 3 --columns 4 --rows 2
   --dx 30 --dy 20`, `chipload shape array-polar P 5 --count 6 --center 100,80
   [--angle-deg 180] [--no-rotate]`.

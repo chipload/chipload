@@ -198,3 +198,52 @@ fn the_fit_the_drawing_box_switches_between_fitting_and_a_fixed_size() {
     assert_eq!(fixed.stock_size(), fitted.stock_size());
     assert_eq!(fixed.stock_bounds(), fitted.stock_bounds());
 }
+
+/// An array tool can always be finished (the user, 2026-10-28): its Create and Cancel are
+/// under Selection whatever was open, and its ribbon button ends it again.
+#[test]
+fn an_array_tool_shows_create_and_cancel_and_ends() {
+    use crate::app::modify::ModifyTool;
+    let mut harness = harness("en", WINDOW);
+    harness.get_by_label("S2").click();
+    harness.run_steps(3);
+    harness.state_mut().focus = Focus::Job;
+    harness.state_mut().start_modify(ModifyTool::PolarArray);
+    harness.run_steps(3);
+    harness.get_by_label("Cancel").click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().modify, None);
+
+    let shapes = harness
+        .state()
+        .edit
+        .as_ref()
+        .unwrap()
+        .settings
+        .drawing
+        .shapes
+        .len();
+    harness.state_mut().start_modify(ModifyTool::Array);
+    harness.run_steps(3);
+    harness.get_by_label("Create").click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().modify, None);
+    assert!(
+        harness
+            .state()
+            .edit
+            .as_ref()
+            .unwrap()
+            .settings
+            .drawing
+            .shapes
+            .len()
+            > shapes
+    );
+
+    harness.state_mut().start_modify(ModifyTool::Array);
+    harness.run_steps(3);
+    harness.get_by_label("Array").click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().modify, None, "its ribbon button ends it");
+}
