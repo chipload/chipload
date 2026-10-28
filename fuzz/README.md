@@ -48,6 +48,19 @@ With arcs and centre lines (2026-10-13, docs/specs/image-arcs-centrelines.md): 2
 in 10 minutes, nothing found and no timeouts. Much slower per input: each picture is now
 traced three times (lines, arcs, centre lines); which inputs are slow is still to be measured.
 
+## SVG
+
+`fuzz_targets/svg_import.rs` does the same for SVGs (docs/specs/svg-import.md §9): any bytes
+read at 96 pixels per inch, with the same rules for panics and finite coordinates. Seed it
+with the test SVGs:
+
+```sh
+mkdir -p corpus/svg_import && cp ../tests/corpus/svg/*.svg corpus/svg_import/
+cargo +nightly fuzz run svg_import corpus/svg_import -- -max_total_time=900 -timeout=10 -max_len=200000
+```
+
+Not run yet (added 2026-10-28).
+
 ## Found so far
 
 DXF:

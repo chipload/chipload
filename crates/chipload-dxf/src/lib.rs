@@ -15,6 +15,7 @@
 mod convert;
 mod curves;
 mod sanitize;
+mod svg;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -35,6 +36,7 @@ use sha2::{Digest, Sha256};
 
 pub use chipload_job::{IssueSeverity as Severity, UnitsFrom};
 pub use convert::{Affine, MAX_BLOCK_DEPTH};
+pub use svg::{is_svg, shapes_from_svg_bytes};
 
 /// Millimetres per inch.
 const MM_PER_INCH: f64 = 25.4;
@@ -54,6 +56,9 @@ pub enum ImportError {
         dxf: &'static str,
         expected: &'static str,
     },
+    /// An SVG without a real size: its pixels per inch must be chosen
+    /// (docs/specs/svg-import.md §7).
+    ScaleMissing,
 }
 
 impl ImportError {
@@ -71,6 +76,7 @@ impl ImportError {
                     .arg("dxf", *dxf)
                     .arg("expected", *expected)
             }
+            ImportError::ScaleMissing => Message::new("svg-error-needs-scale"),
         }
     }
 }
@@ -115,6 +121,8 @@ impl Issue {
 pub struct ImportReport {
     pub units: Units,
     pub units_from: UnitsFrom,
+    /// The first drawing file's format: where `units_from` says the units came from.
+    pub format: DrawingFormat,
     /// DXF type -> count, sorted by type.
     pub imported: BTreeMap<String, usize>,
     /// Splines and ellipses approximated by lines.
@@ -198,6 +206,29 @@ pub fn shapes_from_dxf_scaled(
         |n| n.to_string_lossy().into_owned(),
     );
     shapes_from_dxf_bytes(&bytes, &name, units, scale)
+}
+
+/// A drawing file, DXF or SVG by its extension, read into shapes at `scale` (see
+/// [`shapes_from_dxf_scaled`]). `units` is for a DXF without units, `px_per_inch` for an SVG
+/// without a real size; each is ignored by the other format.
+pub fn shapes_from_file(
+    path: &Path,
+    units: Option<Units>,
+    px_per_inch: Option<f64>,
+    scale: f64,
+) -> Result<ImportedShapes, ImportError> {
+    if !is_svg(path) {
+        return shapes_from_dxf_scaled(path, units, scale);
+    }
+    let bytes = std::fs::read(path).map_err(|err| ImportError::Unreadable {
+        path: path.display().to_string(),
+        reason: Value::Text(err.to_string()),
+    })?;
+    let name = path.file_name().map_or_else(
+        || path.display().to_string(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    shapes_from_svg_bytes(&bytes, &name, px_per_inch, scale)
 }
 
 /// [`shapes_from_dxf_scaled`] for a DXF already read into memory; `name` is the file name
@@ -366,7 +397,9 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
         .iter()
         .flat_map(|s| {
             s.issues.iter().map(move |i| {
-                let message = stored_issue(i, s.units);
+                let message = svg::issue_message(&i.code, s)
+                    .filter(|_| s.format == DrawingFormat::Svg)
+                    .unwrap_or_else(|| stored_issue(i, s.units));
                 let message = if several {
                     Message::new("dxf-source-issue")
                         .arg("source", s.name.as_str())
@@ -425,6 +458,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
     let report = ImportReport {
         units: first.map_or(Units::Mm, |s| s.units),
         units_from: first.map_or(UnitsFrom::User, |s| s.units_from),
+        format: first.map_or(DrawingFormat::Dxf, |s| s.format),
         bbox: bbox(&segments),
         imported: summed(|s| &s.imported),
         flattened: summed(|s| &s.flattened),

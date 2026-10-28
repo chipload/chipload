@@ -1804,3 +1804,44 @@ fn the_golden_edited_part_is_drawn_with_the_editing_commands_alone() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn svgs_are_imported_inspected_and_added_from_the_command_line() {
+    // docs/specs/svg-import.md §10.
+    let dir = temp_dir("svg");
+    let svg = corpus("svg/badge_layers.svg");
+    let out = chipload(&["inspect", path(&svg)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let shown = text(&out.stdout);
+    assert!(shown.contains("Units: mm (from svg)"), "{shown}");
+    assert!(shown.contains("1 text left out"), "{shown}");
+    let project = dir.join("badge.chipload");
+    let p = path(&project);
+    let out = chipload(&["import", path(&svg), "-o", p]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    // A file in plain pixels: refused until its pixels per inch are given.
+    let pixels = dir.join("pixels.svg");
+    std::fs::write(
+        &pixels,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+             <rect x="10" y="10" width="96" height="48"/></svg>"#,
+    )
+    .unwrap();
+    let out = chipload(&["dxf", "add", p, path(&pixels)]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains("pixels per inch"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&["dxf", "add", p, path(&pixels), "--px-per-inch", "96"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout).contains("as SVG 2 \"pixels\""),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["dxf", "list", p, "--json"]);
+    assert!(text(&out.stdout).contains("\"format\":\"svg\""));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -1,8 +1,8 @@
 # Several drawings
 
-A project can hold several DXFs, for example two parts cut from one sheet, besides its
-[images](images.md) and the shapes you draw. Each DXF has its own place, turn and scale, and
-is updated from its own file.
+A project can hold several DXFs (and [SVGs](svg.md), which work the same way), for example
+two parts cut from one sheet, besides its [images](images.md) and the shapes you draw. Each
+DXF has its own place, turn and scale, and is updated from its own file.
 
 ```
 chipload dxf add part.chipload lid.dxf --name lid     # a second DXF, where its file has it

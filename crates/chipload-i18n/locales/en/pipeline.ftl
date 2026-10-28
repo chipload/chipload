@@ -71,6 +71,7 @@ pipeline-chip-load-hint = Chip load: how thick a chip each cutting edge takes, f
 # $units is "mm" or "inch", as the DXF gives them or the user chose them.
 pipeline-report-units = Units: { $units } (from { $from ->
     [dxf] dxf
+    [svg] svg
    *[user] user
 })
 # Numbers without their unit, except $height, which brings it.
@@ -187,7 +188,7 @@ pipeline-scale-units = If the DXF's units are wrong, set them on update instead 
 ## Adding, updating and removing a DXF
 
 # $file is the DXF's file, $id its number, $name its name in the project.
-pipeline-dxf-added = Added { $file } as DXF { $id } "{ $name }": { $count } { $count ->
+pipeline-dxf-added = Added { $file } as { $kind } { $id } "{ $name }": { $count } { $count ->
     [one] shape
    *[other] shapes
 }.
@@ -196,7 +197,7 @@ pipeline-dxf-pinned = { $count ->
     [one] Operation { $operations } keeps cutting { $name } only: the new DXF has its layers too.
    *[other] Operations { $operations } keep cutting { $name } only: the new DXF has their layers too.
 }
-pipeline-dxf-removed = Removed DXF { $id } "{ $name }" and its { $count } { $count ->
+pipeline-dxf-removed = Removed { $kind } { $id } "{ $name }" and its { $count } { $count ->
     [one] shape
    *[other] shapes
 }.
@@ -410,10 +411,10 @@ pipeline-gcode-file = { $name } (tool { $tool }, operations { $operations })
 
 ## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
 
-pipeline-dxf-exploded = Exploded DXF { $id } "{ $name }" into { $count } drawn { $count ->
+pipeline-dxf-exploded = Exploded { $kind } { $id } "{ $name }" into { $count } drawn { $count ->
     [one] shape
    *[other] shapes
-}. The project no longer knows the DXF file.
+}. The project no longer knows the { $kind } file.
 # $shapes shape numbers ("S3, S4"); $tolerance a length.
 pipeline-explode-split = { $count ->
     [one] Shape { $shapes } was in pieces that don't meet: each piece is a shape now.

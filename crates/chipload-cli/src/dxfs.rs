@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{Job, Units, save_job};
-use chipload_pipeline::dxfs::{add_named_dxf, remove_dxf};
+use chipload_pipeline::dxfs::{add_drawing_file, remove_dxf};
 use chipload_pipeline::explode::{explode_dxf, which_dxf};
 use chipload_pipeline::placement::{dxf_size, placement_text};
 use clap::Subcommand;
@@ -17,15 +17,20 @@ use crate::out::Out;
 
 #[derive(Subcommand)]
 pub enum DxfAction {
-    /// Add a DXF to the project, where the file has it; move it with `place --dxf ID`.
+    /// Add a DXF or an SVG to the project, where the file has it; move it with
+    /// `place --dxf ID` (an SVG shares the DXFs' numbers and commands).
     Add {
         /// The project (.chipload).
         project: PathBuf,
-        /// The DXF.
+        /// The DXF or SVG (.svg, .svgz).
         dxf: PathBuf,
         /// The DXF's units, if it doesn't say.
         #[arg(long, value_parser = parse_units)]
         units: Option<Units>,
+        /// An SVG's pixels per inch, if it gives no real size: 96 (Inkscape, browsers) or
+        /// 72 (older Illustrator).
+        #[arg(long)]
+        px_per_inch: Option<f64>,
         /// Its name; default: the file's name without its extension.
         #[arg(long)]
         name: Option<String>,
@@ -78,6 +83,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             project,
             dxf,
             units,
+            px_per_inch,
             name,
             output,
         } => {
@@ -85,7 +91,8 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let (job, report) = match add_named_dxf(&job, &dxf, units, name.as_deref()) {
+            let added = add_drawing_file(&job, &dxf, units, px_per_inch, name.as_deref());
+            let (job, report) = match added {
                 Ok(done) => done,
                 Err(err) => return out.fail(err),
             };
@@ -173,6 +180,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "id": dxf.id,
             "name": dxf.name,
             "file": dxf.file,
+            "format": dxf.format,
             "sha256": dxf.sha256,
             "units": dxf.units,
             "placement": dxf.placement,

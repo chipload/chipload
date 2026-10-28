@@ -130,8 +130,10 @@ it's built (see `CLAUDE.md`).
   offset, fillet and chamfer, trim, extend and break, union, subtract and intersect,
   grid and polar arrays, align and distribute, each on the command line and in the
   window; golden v30_drawn_edited drawn with these commands alone. Next: phase 3
-  (SVG import through `usvg`, added 2026-10-27; spec drafted 2026-10-28,
-  docs/specs/svg-import.md, awaiting review), 4 (parameters), 5 (DXF export,
+  (SVG import through `usvg`, added 2026-10-27; spec approved 2026-10-28,
+  docs/specs/svg-import.md, ADR 0024: the reader crate, schema 31 and the command line
+  done 2026-10-28, the window next; follow-ups: placement texts say "as in the DXF" for an
+  SVG, run the new svg_import fuzz target), 4 (parameters), 5 (DXF export,
   construction lines), each with its own spec.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 

@@ -618,9 +618,9 @@ One of: `"mm"`, `"inch"`.
 
 ## UnitsFrom
 
-- `"dxf"`: Declared by the DXF ($INSUNITS).
+- `"dxf"`: Declared by the file: a DXF's $INSUNITS, an SVG's size in real units.
 
-- `"user"`: The DXF declared none; the user chose.
+- `"user"`: The file declared none; the user chose (a DXF's units, an SVG's pixels per inch).
 
 ## Wall
 

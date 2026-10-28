@@ -69,6 +69,7 @@ pipeline-chip-load-hint = Matning per tand: hur tjock spån varje skär tar, mat
 # $units is "mm" or "inch", as the DXF gives them or the user chose them.
 pipeline-report-units = Enheter: { $units } ({ $from ->
     [dxf] från DXF:en
+    [svg] från SVG:en
    *[user] valda av dig
 })
 # Numbers without their unit, except $height, which brings it.
@@ -194,7 +195,7 @@ pipeline-scale-units = Om DXF:ens enheter är fel, ange dem i stället vid uppda
 ## Adding, updating and removing a DXF
 
 # $file is the DXF's file, $id its number, $name its name in the project.
-pipeline-dxf-added = Lade till { $file } som DXF { $id } "{ $name }": { $count } { $count ->
+pipeline-dxf-added = Lade till { $file } som { $kind } { $id } "{ $name }": { $count } { $count ->
     [one] form
    *[other] former
 }.
@@ -203,7 +204,7 @@ pipeline-dxf-pinned = { $count ->
     [one] Operation { $operations } fortsätter att bara fräsa { $name }: den nya DXF:en har också dess lager.
    *[other] Operationerna { $operations } fortsätter att bara fräsa { $name }: den nya DXF:en har också deras lager.
 }
-pipeline-dxf-removed = Tog bort DXF { $id } "{ $name }" och { $count ->
+pipeline-dxf-removed = Tog bort { $kind } { $id } "{ $name }" och { $count ->
     [one] dess { $count } form
    *[other] dess { $count } former
 }.
@@ -417,10 +418,10 @@ pipeline-gcode-file = { $name } (verktyg { $tool }, operationerna { $operations 
 
 ## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
 
-pipeline-dxf-exploded = Bröt upp DXF { $id } "{ $name }" i { $count } ritade { $count ->
+pipeline-dxf-exploded = Bröt upp { $kind } { $id } "{ $name }" i { $count } ritade { $count ->
     [one] form
    *[other] former
-}. Projektet känner inte längre till DXF-filen.
+}. Projektet känner inte längre till { $kind }-filen.
 # $shapes shape numbers ("S3, S4"); $tolerance a length.
 pipeline-explode-split = { $count ->
     [one] Form { $shapes } bestod av delar som inte möts: varje del är nu en egen form.

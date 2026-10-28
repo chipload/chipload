@@ -16,7 +16,9 @@ use std::process::ExitCode;
 
 use chipload_check::{CheckIssue, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::chain::Contour;
-use chipload_dxf::{ImportResult, UnitsFrom, import_dxf, shapes_from_dxf, units_name};
+use chipload_dxf::{
+    ImportResult, UnitsFrom, contours_from_shapes, import_dxf, is_svg, shapes_from_file, units_name,
+};
 use chipload_i18n::{Language, Message};
 use chipload_job::edit::Mirror;
 use chipload_job::{
@@ -46,7 +48,7 @@ use chipload_pipeline::shapes::{
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, add_rest_pass, empty_project, foreign_text, load_drawing,
-    new_project, run_job, set_op_rest, set_op_tool, update_drawing, write_atomically,
+    new_project, run_job, set_op_rest, set_op_tool, update_drawing_with, write_atomically,
     write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
@@ -80,13 +82,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Dump units, entities, contours and issues of a DXF or a project.
+    /// Dump units, entities, contours and issues of a DXF, an SVG or a project.
     Inspect {
-        /// A .dxf drawing or a .chipload project.
+        /// A .dxf or .svg drawing or a .chipload project.
         file: PathBuf,
         /// Units of a DXF that does not declare them.
         #[arg(long)]
         units: Option<UnitsArg>,
+        /// Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72
+        /// (older Illustrator).
+        #[arg(long)]
+        px_per_inch: Option<f64>,
     },
     /// Create an empty project, to draw in or import a DXF into later (`update --from`).
     New {
@@ -97,13 +103,17 @@ enum Command {
         #[arg(long)]
         machine: Option<String>,
     },
-    /// Create a project from a DXF.
+    /// Create a project from a DXF or an SVG.
     Import {
-        /// The DXF.
+        /// The DXF or SVG (.svg, .svgz).
         dxf: PathBuf,
         /// Units of a DXF that does not declare them.
         #[arg(long)]
         units: Option<UnitsArg>,
+        /// Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72
+        /// (older Illustrator).
+        #[arg(long)]
+        px_per_inch: Option<f64>,
         /// The project to write (.chipload).
         #[arg(short, long)]
         output: PathBuf,
@@ -111,16 +121,20 @@ enum Command {
         #[arg(long)]
         machine: Option<String>,
     },
-    /// Replace a project's imported drawing with a new version of the DXF.
+    /// Replace a project's imported drawing with a new version of the DXF or SVG.
     Update {
         /// The project (.chipload).
         project: PathBuf,
-        /// The new DXF.
+        /// The new DXF or SVG.
         #[arg(long)]
         from: PathBuf,
         /// Units of the new DXF, if they differ from the last import.
         #[arg(long)]
         units: Option<UnitsArg>,
+        /// Pixels per inch of an SVG without a real size, if they differ from the last
+        /// import.
+        #[arg(long)]
+        px_per_inch: Option<f64>,
         /// Which DXF of the project (as `dxf list` shows); needed when it has several.
         #[arg(long)]
         dxf: Option<u64>,
@@ -1215,7 +1229,11 @@ fn command_line() -> ExitCode {
 fn execute(out: &mut Out, command: Command) -> ExitCode {
     let units = |u: Option<UnitsArg>| u.map(UnitsArg::value);
     match command {
-        Command::Inspect { file, units: u } => inspect(out, &file, units(u)),
+        Command::Inspect {
+            file,
+            units: u,
+            px_per_inch,
+        } => inspect(out, &file, units(u), px_per_inch),
         Command::New { output, machine } => create(
             out,
             empty_project(),
@@ -1226,16 +1244,31 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Import {
             dxf,
             units: u,
+            px_per_inch,
             output,
             machine,
-        } => import(out, &dxf, units(u), &output, machine.as_deref()),
+        } => import(
+            out,
+            &dxf,
+            (units(u), px_per_inch),
+            &output,
+            machine.as_deref(),
+        ),
         Command::Update {
             project,
             from,
             units: u,
+            px_per_inch,
             dxf,
             output,
-        } => update(out, &project, &from, units(u), dxf, output.as_deref()),
+        } => update(
+            out,
+            &project,
+            &from,
+            (units(u), px_per_inch),
+            dxf,
+            output.as_deref(),
+        ),
         Command::Plan { project, sets } => plan(out, &project, &sets),
         Command::Get { project, path } => get(out, &project, &path),
         Command::Set {
@@ -1473,14 +1506,17 @@ fn is_dxf(path: &Path) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("dxf"))
 }
 
+/// A drawing file's size when it doesn't give one: a DXF's units, an SVG's pixels per inch.
+type SizeGiven = (Option<Units>, Option<f64>);
+
 fn import(
     out: &mut Out,
     dxf: &Path,
-    units: Option<Units>,
+    (units, px_per_inch): SizeGiven,
     output: &Path,
     machine: Option<&str>,
 ) -> ExitCode {
-    let imported = match shapes_from_dxf(dxf, units) {
+    let imported = match shapes_from_file(dxf, units, px_per_inch, 1.0) {
         Ok(imported) => imported,
         Err(err) => return out.fail(err),
     };
@@ -1821,7 +1857,7 @@ fn update(
     out: &mut Out,
     project: &Path,
     from: &Path,
-    units: Option<Units>,
+    (units, px_per_inch): SizeGiven,
     dxf: Option<u64>,
     output: Option<&Path>,
 ) -> ExitCode {
@@ -1830,8 +1866,10 @@ fn update(
         Err(err) => return out.fail(err),
     };
     let updated = match dxf {
-        Some(id) => chipload_pipeline::dxfs::update_dxf(&job, id, from, units),
-        None => update_drawing(&job, from, units),
+        Some(id) => {
+            chipload_pipeline::dxfs::update_drawing_file(&job, id, from, units, px_per_inch)
+        }
+        None => update_drawing_with(&job, from, units, px_per_inch),
     };
     let (updated, report) = match updated {
         Ok(done) => done,
@@ -3660,12 +3698,16 @@ fn program_json(program: &Program) -> Value {
     })
 }
 
-fn inspect(out: &mut Out, path: &Path, units: Option<Units>) -> ExitCode {
+fn inspect(out: &mut Out, path: &Path, units: Option<Units>, px: Option<f64>) -> ExitCode {
     let mut shapes = None;
     let mut work_zero = None;
     let mut copies_line: Vec<String> = Vec::new();
     let mut placement_line = None;
-    let loaded = if is_dxf(path) {
+    let loaded = if is_svg(path) {
+        shapes_from_file(path, units, px, 1.0)
+            .map(|read| contours_from_shapes(&read.shapes, std::slice::from_ref(&read.source)))
+            .map_err(|e| e.to_string())
+    } else if is_dxf(path) {
         import_dxf(path, units).map_err(|e| e.to_string())
     } else {
         load_job(path).map_err(|e| e.to_string()).and_then(|job| {

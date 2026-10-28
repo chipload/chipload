@@ -4,7 +4,7 @@
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity, UnitsFrom, units_name};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Geometry, Shape};
+use chipload_job::{DrawingFormat, Geometry, Shape};
 
 pub fn severity_name(severity: Severity) -> &'static str {
     match severity {
@@ -27,9 +27,10 @@ fn coordinate(mm: f64) -> Value {
 
 /// [`format_import_report`] as messages, for the app (docs/specs/translations.md §7).
 pub fn import_report_messages(report: &ImportReport) -> Vec<Message> {
-    let from = match report.units_from {
-        UnitsFrom::Dxf => "dxf",
-        UnitsFrom::User => "user",
+    let from = match (report.units_from, report.format) {
+        (UnitsFrom::Dxf, DrawingFormat::Svg) => "svg",
+        (UnitsFrom::Dxf, DrawingFormat::Dxf) => "dxf",
+        (UnitsFrom::User, _) => "user",
     };
     let mut lines = vec![
         Message::new("pipeline-report-units")

@@ -823,6 +823,7 @@ dependencies = [
  "chipload-core",
  "chipload-i18n",
  "chipload-job",
+ "chipload-svg",
  "dxf",
  "serde_json",
  "sha2",

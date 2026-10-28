@@ -36,6 +36,6 @@ fuzz_target!(
         }
     }
     // Contours, nesting and the report, as Chipload builds them after every import.
-    let _ = chipload_dxf::contours_from_shapes(&imported.shapes, Some(&imported.source));
+    let _ = chipload_dxf::contours_from_shapes(&imported.shapes, std::slice::from_ref(&imported.source));
     }
 );

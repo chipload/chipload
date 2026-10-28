@@ -1,0 +1,425 @@
+{
+  "schema_version": 31,
+  "written_by": "chipload 0.27.1",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "Outline",
+        "kind": "path",
+        "dxf_handle": "outline#1",
+        "dxf_type": "path",
+        "dxf": 1,
+        "closed": true,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                18.000000591467302,
+                17.999996554246493
+              ],
+              "radius": 8.000001322618152,
+              "start_angle": -1.5707964643065742,
+              "sweep": -1.5707965564240585
+            }
+          },
+          {
+            "line": {
+              "start": [
+                9.999999268849692,
+                17.9999994913737
+              ],
+              "end": [
+                9.999999268849692,
+                61.9999986966451
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                18.000000376092906,
+                61.999997811925894
+              ],
+              "radius": 8.000001107243264,
+              "start_angle": 3.141592542999908,
+              "sweep": -1.5707961056151258
+            }
+          },
+          {
+            "line": {
+              "start": [
+                17.9999994913737,
+                69.99999891916912
+              ],
+              "end": [
+                101.99999980926513,
+                69.99999891916912
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                101.99999897943054,
+                62.000001904031194
+              ],
+              "radius": 7.999997015137964,
+              "start_angle": 1.5707962230655341,
+              "sweep": -1.5707966239889455
+            }
+          },
+          {
+            "line": {
+              "start": [
+                109.99999599456787,
+                61.9999986966451
+              ],
+              "end": [
+                109.99999599456787,
+                17.9999994913737
+              ]
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                101.99999876405482,
+                17.999992462144487
+              ],
+              "radius": 7.999997230516134,
+              "start_angle": 8.786539557921266e-7,
+              "sweep": -1.5707970747975184
+            }
+          },
+          {
+            "line": {
+              "start": [
+                101.99999980926513,
+                9.999995231628418
+              ],
+              "end": [
+                17.9999994913737,
+                9.999995231628418
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "layer": "Pocket",
+        "kind": "path",
+        "dxf_handle": "leaf#1",
+        "dxf_type": "path",
+        "dxf": 1,
+        "closed": true,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                56.4488014559936,
+                28.028533442669705
+              ],
+              "radius": 24.563529308035598,
+              "start_angle": 2.632520145817677,
+              "sweep": -0.45968248028011605
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                58.958426672814674,
+                24.329319367312667
+              ],
+              "radius": 29.03363064827223,
+              "start_angle": 2.1719223362459203,
+              "sweep": -0.3624646807538241
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                59.98492193828558,
+                20.629832000526545
+              ],
+              "radius": 32.871152343067834,
+              "start_angle": 1.8131944650475007,
+              "sweep": -0.5661447915970321
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                61.5414104966452,
+                25.325980635518462
+              ],
+              "radius": 27.92382237247456,
+              "start_angle": 1.2463938428863681,
+              "sweep": -0.35248466346063034
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                63.71155857592454,
+                28.14626573461703
+              ],
+              "radius": 24.366136378554536,
+              "start_angle": 0.8908371600884082,
+              "sweep": -0.3827762553555961
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                63.55119784464475,
+                51.971468782570824
+              ],
+              "radius": 24.563529308036237,
+              "start_angle": -0.5090725077721234,
+              "sweep": -0.4596824802801036
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                61.041572627824095,
+                55.67068285792743
+              ],
+              "radius": 29.03363064827228,
+              "start_angle": -0.9696703173438719,
+              "sweep": -0.36246468075382476
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                60.01507736235325,
+                59.37017022471346
+              ],
+              "radius": 32.87115234306778,
+              "start_angle": -1.3283981885422935,
+              "sweep": -0.5661447915970321
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                58.45858880399351,
+                54.67402158972135
+              ],
+              "radius": 27.92382237247428,
+              "start_angle": -1.8951988107034243,
+              "sweep": -0.35248466346063334
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                56.28844072471418,
+                51.853736490622964
+              ],
+              "radius": 24.36613637855441,
+              "start_angle": -2.250755493501383,
+              "sweep": -0.3827762553555982
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "layer": "Pocket",
+        "kind": "path",
+        "dxf_handle": "eye#1",
+        "dxf_type": "path",
+        "dxf": 1,
+        "closed": true,
+        "segments": [
+          {
+            "arc": {
+              "center": [
+                47.999913851342576,
+                40.00007216136501
+              ],
+              "radius": 3.000069619509043,
+              "start_angle": -1.5707671662044527,
+              "sweep": -3.063423648362898
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                48.00016855877626,
+                39.99987919247509
+              ],
+              "radius": 3.0002819055704673,
+              "start_angle": 1.6490741033412164,
+              "sweep": -3.0646647710655097
+            }
+          },
+          {
+            "arc": {
+              "center": [
+                48.001024809846015,
+                40.02283338104431
+              ],
+              "radius": 3.022831011177612,
+              "start_angle": -1.4170443693160133,
+              "sweep": -0.1540905389998959
+            }
+          }
+        ]
+      }
+    ],
+    "next_shape_id": 4,
+    "dxfs": [
+      {
+        "id": 1,
+        "format": "svg",
+        "name": "badge_layers",
+        "file": "badge_layers.svg",
+        "sha256": "4daa5e79b526370b6e4bced612cbe7c36808360486dddf80b5846d9d1c6007cc",
+        "units": "mm",
+        "units_from": "dxf",
+        "imported": {
+          "path": 3
+        },
+        "flattened": {
+          "curve": 10
+        },
+        "ignored": {
+          "text": 1
+        },
+        "issues": [
+          {
+            "severity": "warning",
+            "code": "svg_text",
+            "message": "1 text left out: turn text into paths in its editor (Inkscape: Path > Object to Path; Illustrator: Create Outlines), or use Chipload's own text"
+          }
+        ],
+        "px_per_inch": null,
+        "placement": {
+          "scale": 1.0,
+          "rotation": 0.0,
+          "dx": 0.0,
+          "dy": 0.0
+        }
+      }
+    ],
+    "images": [],
+    "hidden": []
+  },
+  "stock": {
+    "x": 300.0,
+    "y": 220.0,
+    "thickness": 12.0,
+    "origin": "bottom_left",
+    "z_zero": "top",
+    "max_overcut": 0.5
+  },
+  "machine": {
+    "name": null,
+    "library_uid": null,
+    "post": "grbl",
+    "gcode_units": "mm",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": 5000.0,
+    "travel": {
+      "x": 800.0,
+      "y": 600.0,
+      "z": 100.0
+    },
+    "work_zero": {
+      "at": "drawing_origin"
+    },
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "library_uid": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": false,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "parts": [
+    {
+      "id": 1,
+      "name": "Part 1",
+      "enabled": true,
+      "copies": null
+    }
+  ],
+  "active_part": null,
+  "operations": [
+    {
+      "type": "pocket",
+      "name": "Leaf round the eye",
+      "enabled": true,
+      "part": 1,
+      "select": {
+        "layer": "Pocket",
+        "shapes": null
+      },
+      "tool": 1,
+      "start_depth": 2.0,
+      "end_depth": 6.0,
+      "clearance": 0.2,
+      "step_down": 2.0,
+      "stepover": 0.4,
+      "direction": "climb",
+      "feed": 1200.0,
+      "plunge_feed": 400.0,
+      "entry": {
+        "type": "helix",
+        "radius": 1.5,
+        "ramp_angle": 0.05235987755982988
+      },
+      "starts": [],
+      "lead": {
+        "radius": 2.0
+      },
+      "corners": null,
+      "rest": null
+    },
+    {
+      "type": "profile",
+      "name": "Badge outline",
+      "enabled": true,
+      "part": 1,
+      "select": {
+        "layer": "Outline",
+        "shapes": null
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.3,
+      "clearance": -0.3,
+      "step_down": 4.0,
+      "feed": 1800.0,
+      "plunge_feed": 600.0,
+      "tabs": {
+        "count": 4,
+        "width": 6.0,
+        "height": 2.0,
+        "flank_angle": 0.05235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    }
+  ]
+}

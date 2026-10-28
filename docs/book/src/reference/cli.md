@@ -6,7 +6,7 @@ Every command takes `--json`: one JSON object instead of text (see [Scripting](.
 
 ## `chipload inspect`
 
-Dump units, entities, contours and issues of a DXF or a project
+Dump units, entities, contours and issues of a DXF, an SVG or a project
 
 ```text
 chipload inspect <FILE> [OPTIONS]
@@ -14,8 +14,9 @@ chipload inspect <FILE> [OPTIONS]
 
 | Argument | Meaning |
 |---|---|
-| `<FILE>` | A .dxf drawing or a .chipload project. |
+| `<FILE>` | A .dxf or .svg drawing or a .chipload project. |
 | `--units <UNITS>` | Units of a DXF that does not declare them. One of: `mm`, `inch`. |
+| `--px-per-inch <PX_PER_INCH>` | Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator) |
 
 ## `chipload new`
 
@@ -32,7 +33,7 @@ chipload new [OPTIONS]
 
 ## `chipload import`
 
-Create a project from a DXF
+Create a project from a DXF or an SVG
 
 ```text
 chipload import <DXF> [OPTIONS]
@@ -40,14 +41,15 @@ chipload import <DXF> [OPTIONS]
 
 | Argument | Meaning |
 |---|---|
-| `<DXF>` | The DXF. |
+| `<DXF>` | The DXF or SVG (.svg, .svgz) |
 | `--units <UNITS>` | Units of a DXF that does not declare them. One of: `mm`, `inch`. |
+| `--px-per-inch <PX_PER_INCH>` | Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator) |
 | `-o, --output <OUTPUT>` | The project to write (.chipload) Required. |
 | `--machine <MACHINE>` | The machine profile to start from (default: your default machine) |
 
 ## `chipload update`
 
-Replace a project's imported drawing with a new version of the DXF
+Replace a project's imported drawing with a new version of the DXF or SVG
 
 ```text
 chipload update <PROJECT> [OPTIONS]
@@ -56,8 +58,9 @@ chipload update <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--from <FROM>` | The new DXF. Required. |
+| `--from <FROM>` | The new DXF or SVG. Required. |
 | `--units <UNITS>` | Units of the new DXF, if they differ from the last import. One of: `mm`, `inch`. |
+| `--px-per-inch <PX_PER_INCH>` | Pixels per inch of an SVG without a real size, if they differ from the last import. |
 | `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
@@ -891,7 +894,7 @@ A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources
 
 ### `chipload dxf add`
 
-Add a DXF to the project, where the file has it; move it with `place --dxf ID`
+Add a DXF or an SVG to the project, where the file has it; move it with `place --dxf ID` (an SVG shares the DXFs' numbers and commands)
 
 ```text
 chipload dxf add <PROJECT> <DXF> [OPTIONS]
@@ -900,8 +903,9 @@ chipload dxf add <PROJECT> <DXF> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<DXF>` | The DXF. |
+| `<DXF>` | The DXF or SVG (.svg, .svgz) |
 | `--units <UNITS>` | The DXF's units, if it doesn't say. |
+| `--px-per-inch <PX_PER_INCH>` | An SVG's pixels per inch, if it gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator) |
 | `--name <NAME>` | Its name; default: the file's name without its extension. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

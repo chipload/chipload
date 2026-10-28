@@ -71,6 +71,7 @@ pipeline-chip-load-hint = Avance par dent : l'épaisseur du copeau que prend cha
 # $units is "mm" or "inch", as the DXF gives them or the user chose them.
 pipeline-report-units = Unités : { $units } ({ $from ->
     [dxf] du dxf
+    [svg] du svg
    *[user] choix de l'utilisateur
 })
 # Numbers without their unit, except $height, which brings it.
@@ -202,7 +203,7 @@ pipeline-scale-units = Si les unités du DXF sont fausses, définissez-les plut�
 ## Adding, updating and removing a DXF
 
 # $file is the DXF's file, $id its number, $name its name in the project.
-pipeline-dxf-added = { $file } ajouté comme DXF { $id } "{ $name }" : { $count } { $count ->
+pipeline-dxf-added = { $file } ajouté comme { $kind } { $id } "{ $name }" : { $count } { $count ->
     [one] forme
    *[other] formes
 }.
@@ -211,7 +212,7 @@ pipeline-dxf-pinned = { $count ->
     [one] L'opération { $operations } continue d'usiner { $name } seulement : le nouveau DXF a aussi ses calques.
    *[other] Les opérations { $operations } continuent d'usiner { $name } seulement : le nouveau DXF a aussi leurs calques.
 }
-pipeline-dxf-removed = DXF { $id } "{ $name }" retiré avec { $count ->
+pipeline-dxf-removed = { $kind } { $id } "{ $name }" retiré avec { $count ->
     [one] sa forme
    *[other] ses { $count } formes
 }.
@@ -425,10 +426,10 @@ pipeline-gcode-file = { $name } (outil { $tool }, opérations { $operations })
 
 ## Explode a DXF, join close ends (docs/specs/explode-and-join.md)
 
-pipeline-dxf-exploded = DXF { $id } « { $name } » décomposé en { $count } { $count ->
+pipeline-dxf-exploded = { $kind } { $id } « { $name } » décomposé en { $count } { $count ->
     [one] forme dessinée
    *[other] formes dessinées
-}. Le projet ne connaît plus le fichier DXF.
+}. Le projet ne connaît plus le fichier { $kind }.
 # $shapes shape numbers ("S3, S4"); $tolerance a length.
 pipeline-explode-split = { $count ->
     [one] La forme { $shapes } était en morceaux qui ne se rejoignent pas : chaque morceau est maintenant une forme.

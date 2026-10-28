@@ -1,4 +1,4 @@
-# Fuzzing the DXF importer and the image tracer (cargo-fuzz, needs a nightly toolchain): see fuzz/README.md.
+# Fuzzing the DXF and SVG importers and the image tracer (cargo-fuzz, needs a nightly toolchain): see fuzz/README.md.
 # Not part of the workspace and never shipped.
 [package]
 name = "chipload-fuzz"
@@ -21,6 +21,13 @@ chipload-toolpath = { path = "../crates/chipload-toolpath" }
 [[bin]]
 name = "dxf_import"
 path = "fuzz_targets/dxf_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "svg_import"
+path = "fuzz_targets/svg_import.rs"
 test = false
 doc = false
 bench = false

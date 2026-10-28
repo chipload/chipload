@@ -6,8 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use chipload_dxf::shapes_from_dxf;
-use chipload_dxf::shapes_from_dxf_scaled;
+use chipload_dxf::shapes_from_file;
 use chipload_i18n::Message;
 use chipload_job::{Geometry, Job, Note, Placement, Shape, Units};
 
@@ -31,7 +30,19 @@ pub fn add_named_dxf(
     units: Option<Units>,
     name: Option<&str>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
-    let mut imported = shapes_from_dxf(dxf, units)?;
+    add_drawing_file(job, dxf, units, None, name)
+}
+
+/// Add a drawing file, DXF or SVG by its extension (docs/specs/svg-import.md), as
+/// [`add_named_dxf`] does a DXF; `px_per_inch` is for an SVG without a real size.
+pub fn add_drawing_file(
+    job: &Job,
+    dxf: &Path,
+    units: Option<Units>,
+    px_per_inch: Option<f64>,
+    name: Option<&str>,
+) -> Result<(Job, UpdateReport), PipelineError> {
+    let mut imported = shapes_from_file(dxf, units, px_per_inch, 1.0)?;
     let id = job.drawing.dxfs.iter().map(|d| d.id).max().unwrap_or(0) + 1;
     imported.source.id = id;
     let wanted = name
@@ -51,6 +62,7 @@ pub fn add_named_dxf(
     report.messages.push(
         Message::new("pipeline-dxf-added")
             .arg("file", dxf.display().to_string())
+            .arg("kind", imported.source.format.name())
             .arg("id", id)
             .arg("name", imported.source.name.as_str())
             .arg("count", report.added.len()),
@@ -141,6 +153,7 @@ pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<Message>), PipelineErr
         .retain(|h| h != &key && !h.starts_with(&format!("{key}/")));
     let mut lines = vec![
         Message::new("pipeline-dxf-removed")
+            .arg("kind", source.format.name())
             .arg("id", id)
             .arg("name", source.name.as_str())
             .arg("count", removed.len()),
@@ -258,14 +271,27 @@ pub fn update_dxf(
     dxf: &Path,
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
+    update_drawing_file(job, id, dxf, units, None)
+}
+
+/// [`update_dxf`] for a drawing file, DXF or SVG by the new file's extension; an SVG without
+/// a real size is read at `px_per_inch`, else at the pixels per inch chosen before.
+pub fn update_drawing_file(
+    job: &Job,
+    id: u64,
+    dxf: &Path,
+    units: Option<Units>,
+    px_per_inch: Option<f64>,
+) -> Result<(Job, UpdateReport), PipelineError> {
     let Some(previous) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
         return Err(placement::no_dxf(id));
     };
     let expected = units.or(Some(previous.units));
+    let px_per_inch = px_per_inch.or(previous.px_per_inch);
     // The new drawing goes where the old one was put (docs/specs/drawing-placement.md), read
     // at its scale so curves are approximated at that size (docs/specs/drawing-scale.md).
     let placed = previous.placement;
-    let mut imported = shapes_from_dxf_scaled(dxf, expected, placed.scale)?;
+    let mut imported = shapes_from_file(dxf, expected, px_per_inch, placed.scale)?;
     placement::place_scaled_import(&mut imported.shapes, placed);
     imported.source.placement = placed;
     imported.source.id = id;

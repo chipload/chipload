@@ -135,6 +135,7 @@ pub fn explode_dxf(
 
     report.messages.push(
         Message::new("pipeline-dxf-exploded")
+            .arg("kind", source.format.name())
             .arg("id", id)
             .arg("name", source.name.as_str())
             .arg("count", report.shapes.len()),

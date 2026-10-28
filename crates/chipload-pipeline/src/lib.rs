@@ -871,9 +871,20 @@ pub fn update_drawing(
     dxf: &Path,
     units: Option<Units>,
 ) -> Result<(Job, UpdateReport), PipelineError> {
+    update_drawing_with(job, dxf, units, None)
+}
+
+/// [`update_drawing`] from a drawing file, DXF or SVG; `px_per_inch` for an SVG without a
+/// real size (docs/specs/svg-import.md §7).
+pub fn update_drawing_with(
+    job: &Job,
+    dxf: &Path,
+    units: Option<Units>,
+    px_per_inch: Option<f64>,
+) -> Result<(Job, UpdateReport), PipelineError> {
     match job.drawing.dxfs.as_slice() {
-        [] => dxfs::add_dxf(job, dxf, units),
-        [only] => dxfs::update_dxf(job, only.id, dxf, units),
+        [] => dxfs::add_drawing_file(job, dxf, units, px_per_inch, None),
+        [only] => dxfs::update_drawing_file(job, only.id, dxf, units, px_per_inch),
         several => Err(PipelineError::Job(
             Message::new("pipeline-update-which-dxf")
                 .arg("count", several.len())

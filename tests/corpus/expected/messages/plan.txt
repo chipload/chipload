@@ -657,6 +657,24 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v31/svg_badge.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Badge outline): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 2 (Badge outline), contour #1: tabs 1 and 2, 2 and 3, 3 and 4, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
+Operation 1: a ring starts at (51.554, 44.584) (default)
+Operation 1: a ring starts at (62.751, 50.573) (default)
+Operation 2: a ring starts at (18.000, 6.700) (default)
+Estimated time: 1 min 39 s (cutting 1 min 34 s, rapids 2 s, spindle 3 s)
+  Operation 1 (Leaf round the eye): 49 s
+  Operation 2 (Badge outline): 47 s
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Leaf round the eye): 0.033 mm/tooth
+  Operation 2 (Badge outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

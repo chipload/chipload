@@ -1331,9 +1331,9 @@ pub struct ArcSegment {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "lowercase")]
 pub enum UnitsFrom {
-    /// Declared by the DXF ($INSUNITS).
+    /// Declared by the file: a DXF's $INSUNITS, an SVG's size in real units.
     Dxf,
-    /// The DXF declared none; the user chose.
+    /// The file declared none; the user chose (a DXF's units, an SVG's pixels per inch).
     User,
 }
 
@@ -1409,6 +1409,16 @@ pub struct DrawingSource {
 pub enum DrawingFormat {
     Dxf,
     Svg,
+}
+
+impl DrawingFormat {
+    /// Its name in messages: `DXF` or `SVG`, the same in every language.
+    pub fn name(self) -> &'static str {
+        match self {
+            DrawingFormat::Dxf => "DXF",
+            DrawingFormat::Svg => "SVG",
+        }
+    }
 }
 
 /// Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (dx, dy),

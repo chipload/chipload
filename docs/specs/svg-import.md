@@ -147,6 +147,15 @@ as it does in the editor. *Implemented:* H is usvg's page height, which it alway
   as a dropped DXF. The Browser group shows the SVG's name with a drawing-file icon; its
   layers are below it.
 
+- *Implemented (step 3):* `chipload_dxf::shapes_from_file` reads a DXF or an SVG by the
+  extension (`.svg`, `.svgz`); the pipeline's `add_drawing_file`, `update_drawing_file` and
+  `update_drawing_with` take the pixels per inch, and the DXF functions call them. An
+  SVG's counts are kept in the drawing file (`imported`: path, hidden path; `flattened`:
+  curve; `ignored`: text, image, clip path or mask, empty subpath), and its issues are made
+  again from them, so the report shows in the app's language (DXF issues are still stored
+  in English). The added, removed and exploded messages name the format (`SVG 2`). The
+  units line says `from svg`. Placement texts still say "as in the DXF" for an SVG.
+
 ## 11. Tests
 
 - `chipload-svg`: hand-written SVGs in `tests/corpus/svg/`: an Inkscape file with layers in
