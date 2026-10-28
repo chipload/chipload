@@ -93,7 +93,7 @@ fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
     let top = stock.top_z();
     // The program is in work coordinates: the stock as placed in the drawing, shifted so
     // the project's work zero is at X0 Y0 (docs/specs/work-zero.md).
-    let ((x0, y0), (x1, y1)) = stock.xy_bounds();
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
     let (zx, zy) = job.work_zero_xy();
     let (stock_min, stock_max) = ((x0 - zx, y0 - zy), (x1 - zx, y1 - zy));
     CheckLimits {

@@ -209,8 +209,8 @@ fn setup(html: &mut String, job: &Job, w: Words) {
         &w.text(&Message::new("sheet-stock")),
         &w.html(
             &Message::new("sheet-stock-size")
-                .arg("width", len(stock.x))
-                .arg("length", len_u(stock.y))
+                .arg("width", len(job.stock_size().0))
+                .arg("length", len_u(job.stock_size().1))
                 .arg("thickness", len_u(stock.thickness)),
         ),
     );
@@ -297,7 +297,7 @@ pub fn xy_zero_message(job: &Job) -> Message {
     if let WorkZero::Stock { corner: at } = job.machine.work_zero {
         return corner(at);
     }
-    let ((x0, y0), (x1, y1)) = job.stock.xy_bounds();
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
     let (zx, zy) = job.work_zero_xy();
     let (dx, dy) = (zx - x0, zy - y0);
     let mut parts = Vec::new();
@@ -848,7 +848,7 @@ const DASHES: [&str; 4] = ["", "6 3", "2 2", "9 3 2 3"];
 
 /// The top view: stock, parts, each file's cutting moves, tabs and the X0 Y0 mark (§2.4).
 fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
-    let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
+    let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
     let mut bounds = Bounds::new((sx0, sy0));
     bounds.add((sx1, sy1));
     let zero = job.work_zero_xy();

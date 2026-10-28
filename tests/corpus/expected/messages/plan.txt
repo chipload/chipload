@@ -2,6 +2,7 @@ $ chipload plan tests/corpus/jobs/v10/vcarve_letters.chipload
 exit 0
 --- stdout
 Estimated time: 54 s (cutting 38 s, rapids 13 s, spindle 3 s)
+Cut outline: 66.146 × 32.500 mm (X -1.250 … 64.896, Y -1.250 … 31.250, the tool included): the smallest stock that holds the job.
   Operation 1 (Letters): 51 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -17,6 +18,7 @@ Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
+Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 0 s
   Operation 2 (Outline): 1 min 3 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -34,6 +36,7 @@ Operation 1: a ring starts at (79.253, 84.021) (default)
 Operation 1: a ring starts at (53.500, 110.822) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 18 s (cutting 7 min 7 s, rapids 5 s, spindle 6 s), plus 1 tool change
+Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 6 min 10 s
   Operation 2 (Outline): 1 min 2 s
   File 1: 6 min 13 s
@@ -55,6 +58,7 @@ Operation 1: a ring starts at (70.539, 71.954) (default)
 Operation 1: a ring starts at (118.910, 76.560) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 2 min 32 s (cutting 2 min 26 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 29 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -72,6 +76,7 @@ Operation 1: a ring starts at (79.253, 84.021) (default)
 Operation 1: a ring starts at (53.500, 110.822) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 18 s (cutting 7 min 7 s, rapids 5 s, spindle 6 s), plus 1 tool change
+Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 6 min 10 s
   Operation 2 (Outline): 1 min 2 s
   File 1: 6 min 13 s
@@ -92,6 +97,7 @@ Operation 1: a ring starts at (136.023, 89.876) (default)
 Operation 1: a ring starts at (89.446, 83.218) (default)
 Operation 1: a ring starts at (42.800, 117.200) (default)
 Estimated time: 5 min 34 s (cutting 5 min 21 s, rapids 10 s, spindle 3 s)
+Cut outline: 120.400 × 80.400 mm (X 39.800 … 160.200, Y 39.800 … 120.200, the tool included): the smallest stock that holds the job.
   Operation 1 (Pocket round two islands): 5 min 31 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -107,6 +113,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -126,6 +133,7 @@ Operation 1: a ring starts at (114.996, 81.252) (default)
 Operation 1: a ring starts at (93.540, 116.635) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Rounded rings): 6 min 27 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -143,6 +151,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -160,6 +169,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -177,6 +187,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 53 s (cutting 1 min 47 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline, straight tabs): 1 min 1 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -194,6 +205,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline, spiral): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -212,6 +224,7 @@ Operation 1: a ring starts at (75.000, 71.000) (default)
 Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 55 s (cutting 1 min 48 s, rapids 4 s, spindle 3 s)
+Cut outline: 145.265 × 112.821 mm (X 27.367 … 172.633, Y 23.589 … 136.409, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes, finished): 33 s
   Operation 2 (Outline, finish and skin): 1 min 18 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -226,6 +239,7 @@ exit 0
 --- stdout
 warning: Operation 1 (Engrave): the V-groove is 1.932 mm wide at the top
 Estimated time: 1 min 15 s (cutting 1 min 7 s, rapids 2 s, spindle 6 s), plus 1 tool change
+Cut outline: 112.700 × 77.850 mm (X 43.650 … 156.350, Y 33.650 … 111.500, the tool included): the smallest stock that holds the job.
   Operation 1 (Engrave): 30 s
   Operation 2 (Groove): 39 s
   File 1: 33 s
@@ -247,6 +261,7 @@ Operation 1: a ring starts at (28.000, 38.000) (default)
 Operation 2: a ring starts at (77.900, 38.900) (default)
 Operation 3: a ring starts at (10.000, 7.000) (default)
 Estimated time: 1 min 38 s (cutting 1 min 33 s, rapids 2 s, spindle 3 s)
+Cut outline: 132.000 × 92.000 mm (X 4.000 … 136.000, Y 4.000 … 96.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Mortise): 9 s
   Operation 2 (Slot): 20 s
   Operation 3 (Outline): 1 min 7 s
@@ -265,6 +280,7 @@ warning: Operation 1 (Drilled): skipped 1 shape that isn't a circle
 warning: Operation 1 (Drilled): hole 10 mm: not the 8 mm drill's size (within 0.1 mm); not drilled
 warning: Operation 2 (Bored): 1 hole leaves a loose core (hole more than twice the tool); hold it down or use a pocket
 Estimated time: 43 s (cutting 34 s, rapids 3 s, spindle 6 s), plus 1 tool change
+Cut outline: 69.000 × 64.998 mm (X 26.000 … 95.000, Y 25.000 … 89.998, the tool included): the smallest stock that holds the job.
   Operation 1 (Drilled): 7 s
   Operation 2 (Bored): 30 s
   File 1: 10 s
@@ -289,6 +305,7 @@ Operation 2: a ring starts at (58.000, 44.146) (default)
 Operation 2: a ring starts at (15.854, 48.000) (default)
 Operation 2: a ring starts at (12.000, 15.854) (default)
 Estimated time: 1 min 7 s (cutting 56 s, rapids 5 s, spindle 6 s), plus 1 tool change
+Cut outline: 80.000 × 40.000 mm (X 10.000 … 90.000, Y 10.000 … 50.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Rough): 25 s
   Operation 2 (Rest): 36 s
   File 1: 28 s
@@ -308,6 +325,7 @@ exit 0
 warning: Operation 1 (Logo): contours #1, #3: too wide for a carve at most 3.500 mm deep (4.241 mm wide at the surface); the edges of the widest parts aren't reached (they need 6.024 mm). Allow deeper, use a wider angle, or clear the floor
 warning: Operation 1 (Logo): contours #2, #4: too wide for a carve at most 3.500 mm deep (4.241 mm wide at the surface); the edges of the widest parts aren't reached (they need 9.546 mm). Allow deeper, use a wider angle, or clear the floor
 Estimated time: 55 s (cutting 41 s, rapids 11 s, spindle 3 s)
+Cut outline: 79.040 × 35.630 mm (X 7.186 … 86.226, Y 7.185 … 42.814, the tool included): the smallest stock that holds the job.
   Operation 1 (Logo): 52 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -319,6 +337,7 @@ $ chipload plan tests/corpus/jobs/v20/image_centre_line.chipload
 exit 0
 --- stdout
 Estimated time: 10 s (cutting 6 s, rapids 1 s, spindle 3 s)
+Cut outline: 40.026 × 21.541 mm (X 10.001 … 50.027, Y 9.501 … 31.043, the tool included): the smallest stock that holds the job.
   Operation 1 (Strokes): 7 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -334,6 +353,7 @@ Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
+Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 0 s
   Operation 2 (Outline): 1 min 3 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -352,6 +372,7 @@ Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, copy by copy
 Estimated time: 10 min 17 s (cutting 9 min 51 s, rapids 23 s, spindle 3 s)
+Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 16 s
   Operation 2 (Outline): 5 min 58 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -375,6 +396,7 @@ Operation 1: a ring starts at (278.000, 43.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 3: a ring starts at (230.000, 2.000) (default)
 Estimated time: 3 min 55 s (cutting 3 min 33 s, rapids 16 s, spindle 6 s), plus 1 tool change
+Cut outline: 458.481 × 197.000 mm (X 4.000 … 462.481, Y -1.000 … 196.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 51 s
   Operation 2 (Outline): 1 min 4 s
   Operation 3 (Outline B): 39 s
@@ -405,6 +427,7 @@ Operation 4: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
 Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
 Estimated time: 3 min 42 s (cutting 3 min 22 s, rapids 11 s, spindle 9 s), plus 2 tool changes
+Cut outline: 417.000 × 195.958 mm (X 4.000 … 421.000, Y 4.000 … 199.958, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 17 s
     Operation 1 (Holes): 1 min 0 s
     Operation 2 (Outline): 1 min 3 s
@@ -439,6 +462,7 @@ Operation 4: a ring starts at (340.000, 2.000) (default)
 Part 1 simple part: one
 Part 2 part B: 2 × 1 copies, pitch 82.000 × 122.000 mm, operation by operation
 Estimated time: 3 min 43 s (cutting 3 min 22 s, rapids 12 s, spindle 9 s), plus 2 tool changes
+Cut outline: 479.000 × 200.958 mm (X 4.000 … 483.000, Y -1.000 … 199.958, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 17 s
     Operation 1 (Holes): 1 min 0 s
     Operation 2 (Outline): 1 min 3 s
@@ -470,6 +494,7 @@ Operation 1: a ring starts at (114.996, 81.252) (default)
 Operation 1: a ring starts at (93.540, 116.635) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Rings round the rectangle): 6 min 27 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -490,6 +515,7 @@ Operation 1: a ring starts at (114.996, 81.252) (default)
 Operation 1: a ring starts at (93.540, 116.635) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 19 s (cutting 7 min 1 s, rapids 15 s, spindle 3 s)
+Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
   Operation 1 (Rings in the rounded rectangle): 6 min 21 s
   Operation 2 (Rounded outline): 55 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -507,6 +533,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 53 s (cutting 1 min 47 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline, plunge with leads): 1 min 1 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -521,6 +548,7 @@ exit 0
 --- stdout
 Operation 2: a ring starts at (134.972, 62.970) (default)
 Estimated time: 1 min 3 s (cutting 47 s, rapids 10 s, spindle 6 s), plus 1 tool change
+Cut outline: 148.732 × 52.465 mm (X 8.793 … 157.525, Y 20.000 … 72.465, the tool included): the smallest stock that holds the job.
   Operation 1 (Words): 45 s
   Operation 2 (Letter): 12 s
   File 1: 48 s
@@ -542,6 +570,7 @@ Operation 1: a ring starts at (54.420, 71.000) (default)
 Operation 2: a ring starts at (146.000, 86.432) (default)
 Operation 3: a ring starts at (10.000, 24.000) (default)
 Estimated time: 3 min 26 s (cutting 3 min 5 s, rapids 13 s, spindle 9 s), plus 2 tool changes
+Cut outline: 244.000 × 144.000 mm (X -2.000 … 242.000, Y 18.000 … 162.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Box): 44 s
   Operation 1.1 (Box, rest): 14 s
   Operation 2 (Square): 47 s
@@ -571,6 +600,7 @@ Operation 2: a ring starts at (120.631, 32.124) (default)
 Operation 2: a ring starts at (123.125, 45.347) (default)
 Operation 2: a ring starts at (137.974, 45.289) (default)
 Estimated time: 2 min 32 s (cutting 2 min 7 s, rapids 19 s, spindle 6 s), plus 1 tool change
+Cut outline: 145.290 × 61.495 mm (X 8.379 … 153.668, Y 20.000 … 81.495, the tool included): the smallest stock that holds the job.
   Operation 1 (Words): 1 min 0 s
   Operation 2 (Letter): 1 min 26 s
   File 1: 1 min 3 s
@@ -597,6 +627,7 @@ Operation 5: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
 Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
 Estimated time: 8 min 17 s (cutting 7 min 53 s, rapids 12 s, spindle 12 s), plus 3 tool changes
+Cut outline: 530.000 × 232.500 mm (X -25.000 … 505.000, Y -6.250 … 226.250, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 6 min 49 s
     Operation 1 (Face the stock): 4 min 31 s
     Operation 2 (Holes): 1 min 1 s
@@ -629,6 +660,7 @@ warning: Operation 2 (Scalloped outline): cuts 0.300 mm below the stock (into th
 Operation 1: a ring starts at (185.808, 98.365) (default)
 Operation 2: a ring starts at (119.158, 58.249) (default)
 Estimated time: 4 min 59 s (cutting 4 min 52 s, rapids 4 s, spindle 3 s)
+Cut outline: 124.389 × 119.523 mm (X 87.805 … 212.195, Y 55.249 … 174.772, the tool included): the smallest stock that holds the job.
   Operation 1 (Pocket in the pentagon): 3 min 58 s
   Operation 2 (Scalloped outline): 58 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -648,6 +680,7 @@ Operation 1: a ring starts at (75.000, 94.800) (start point 1)
 Operation 1: a ring starts at (93.540, 116.635) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 20 s (cutting 7 min 4 s, rapids 13 s, spindle 3 s)
+Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
   Operation 1 (Pocket round a hexagon): 6 min 21 s
   Operation 2 (Rounded outline): 55 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -666,6 +699,7 @@ Operation 1: a ring starts at (51.554, 44.584) (default)
 Operation 1: a ring starts at (62.751, 50.573) (default)
 Operation 2: a ring starts at (18.000, 6.700) (default)
 Estimated time: 1 min 39 s (cutting 1 min 34 s, rapids 2 s, spindle 3 s)
+Cut outline: 112.600 × 72.600 mm (X 3.700 … 116.300, Y 3.700 … 76.300, the tool included): the smallest stock that holds the job.
   Operation 1 (Leaf round the eye): 49 s
   Operation 2 (Badge outline): 47 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -680,6 +714,7 @@ exit 0
 --- stdout
 Operation 1: a ring starts at (60.000, 47.000) (default)
 Estimated time: 1 min 5 s (cutting 1 min 2 s, rapids 0 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Outside cut): 1 min 2 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -696,6 +731,7 @@ Operation 1: a ring starts at (67.000, 28.000) (default)
 Operation 1: a ring starts at (-62.500, 52.000) (default)
 Operation 2: a ring starts at (-60.000, -53.000) (default)
 Estimated time: 2 min 2 s (cutting 1 min 54 s, rapids 5 s, spindle 3 s)
+Cut outline: 193.000 × 112.000 mm (X -96.500 … 96.500, Y -56.000 … 56.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Openings): 59 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -714,6 +750,7 @@ Operation 1: a ring starts at (67.000, 28.000) (default)
 Operation 1: a ring starts at (-62.500, 52.000) (default)
 Operation 2: a ring starts at (-60.000, -53.000) (default)
 Estimated time: 2 min 4 s (cutting 1 min 56 s, rapids 5 s, spindle 3 s)
+Cut outline: 193.000 × 112.000 mm (X -96.500 … 96.500, Y -56.000 … 56.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Openings): 59 s
   Operation 2 (Outline): 1 min 2 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -731,6 +768,7 @@ Operation 1: a ring starts at (140.000, 83.000) (default)
 Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 6 s
   Operation 2 (Outline): 1 min 9 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -749,6 +787,7 @@ Operation 1: a ring starts at (140.000, 83.000) (default)
 Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 21 s (cutting 2 min 15 s, rapids 4 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 6 s
   Operation 2 (Outline with tabs): 1 min 12 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -765,6 +804,7 @@ Operation 1: a ring starts at (75.000, 71.000) (default)
 Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (47.857, 27.189) (default)
 Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
+Cut outline: 144.068 × 111.622 mm (X 27.966 … 172.034, Y 24.189 … 135.811, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 33 s
   Operation 2 (Outline): 46 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -781,6 +821,7 @@ Operation 1: a ring starts at (75.000, 71.000) (default)
 Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (47.857, 27.189) (default)
 Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
+Cut outline: 144.068 × 111.622 mm (X 27.966 … 172.034, Y 24.189 … 135.811, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 33 s
   Operation 2 (Outline): 46 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -798,6 +839,7 @@ Operation 1: a ring starts at (70.539, 71.954) (default)
 Operation 1: a ring starts at (118.910, 76.560) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 2 min 32 s (cutting 2 min 26 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 29 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -816,6 +858,7 @@ Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, operation by operation
 Estimated time: 10 min 21 s (cutting 9 min 51 s, rapids 28 s, spindle 3 s)
+Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 15 s
   Operation 2 (Outline): 6 min 3 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -833,6 +876,7 @@ Operation 1: a ring starts at (68.384, 73.607) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 34 s (cutting 1 min 28 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 31 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -850,6 +894,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 49 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -867,6 +912,7 @@ Operation 1: a ring starts at (75.000, 89.200) (start point 1)
 Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 51 s (cutting 1 min 45 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 48 s
   Operation 2 (Outline): 59 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -884,6 +930,7 @@ Operation 1: a ring starts at (68.384, 73.607) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 44 s (cutting 1 min 38 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 41 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -901,6 +948,7 @@ Operation 1: a ring starts at (140.000, 83.000) (default)
 Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 6 s
   Operation 2 (Outline): 1 min 9 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -918,6 +966,7 @@ Operation 1: a ring starts at (68.384, 73.607) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 34 s (cutting 1 min 28 s, rapids 3 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 31 s
   Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -935,6 +984,7 @@ Operation 1: a ring starts at (120.000, 113.000) (default)
 Operation 1: a ring starts at (133.000, 153.000) (default)
 Operation 2: a ring starts at (130.000, 77.000) (start point 1)
 Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 24.000 … 236.000, Y 74.000 … 206.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 6 s
   Operation 2 (Outline): 1 min 9 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
@@ -952,6 +1002,7 @@ Operation 1: a ring starts at (90.000, 93.000) (default)
 Operation 1: a ring starts at (33.000, 113.000) (default)
 Operation 2: a ring starts at (133.000, 110.000) (start point 1)
 Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
+Cut outline: 132.000 × 212.000 mm (X 4.000 … 136.000, Y 4.000 … 216.000, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 1 min 7 s
   Operation 2 (Outline): 1 min 9 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.

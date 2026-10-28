@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 32. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 33. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -15,7 +15,7 @@ Schema version 32. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `32` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `33` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `stock` | [Stock](#stock) | yes | The material on the machine. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -520,8 +520,9 @@ An import-time issue that can't be recomputed from the shapes.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `fit` | number or null | no | Centred on the drawing only: its size is the drawing's outline plus this margin each side, mm, following the drawing; `x` and `y` are then used only while the drawing is empty. Null: the size is `x` × `y`. |
 | `max_overcut` | number | yes | How far a cut may go below the stock bottom, into the spoilboard, mm. |
-| `origin` | [StockOrigin](#stockorigin) | no | Where the stock lies around the drawing's origin: its `bottom_left` corner or its `center` there. |
+| `origin` | [StockOrigin](#stockorigin) | no | Where the stock lies: its `bottom_left` corner or its `center` at the drawing's origin, or centred on the drawing itself (`drawing`), following it. |
 | `thickness` | number | yes | Thickness, mm. Depths count down from the top. |
 | `x` | number | yes | Size along X, mm. |
 | `y` | number | yes | Size along Y, mm. |
@@ -533,7 +534,9 @@ One of: `"center"`, `"bottom_left"`, `"bottom_right"`, `"top_left"`, `"top_right
 
 ## StockOrigin
 
-One of: `"bottom_left"`, `"center"`.
+- `"bottom_left"`, `"center"`: 
+
+- `"drawing"`: Centred on the drawing's outline, sticking out equally all round, and following the drawing when it moves or changes (the user, 2026-10-28). Construction geometry doesn't count; an empty drawing centres it on the origin.
 
 ## Tabs
 

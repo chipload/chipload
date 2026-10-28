@@ -40,6 +40,7 @@ job-must-be-positive = debe ser mayor que 0, es { $got }
 job-must-be-positive-number = debe ser un número positivo, es { $got }
 job-must-be-more-than-0 = debe ser más de 0, es { $got }
 job-must-be-0-or-more = debe ser 0 o más, es { $got }
+job-stock-fit-needs-centred = un material que se ajusta al dibujo debe estar centrado en él (stock.origin: drawing)
 job-must-be-1-or-more = debe ser 1 o más
 job-must-be-at-least-1 = debe ser al menos 1
 job-must-not-be-empty = no debe estar vacío

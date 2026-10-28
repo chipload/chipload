@@ -164,6 +164,8 @@ pipeline-place-drawn-stay = In Chipload gezeichnete Formen bleiben, wo sie sind.
 pipeline-place-other-dxfs-stay = Die anderen DXFs bleiben, wo sie sind.
 pipeline-place-work-zero-stays = Der Werkstücknullpunkt bleibt am Punkt X{ $x }, Y{ $y }; prüfen Sie, ob er noch dort liegt, wo Sie ihn haben wollen.
 pipeline-place-margin = der Randabstand muss 0 oder mehr sein, ist { $got }
+pipeline-place-stock-follows = das Rohteil ist mittig auf der Zeichnung und folgt ihr, Ausrichten der Zeichnung daran ändert also nichts: wählen Sie zuerst eine Rohteillage am Zeichnungsursprung
+pipeline-cut-outline = Umriss des Schnitts: { $width } × { $length } (X { $x0 } … { $x1 }, Y { $y0 } … { $y1 }, mit dem Werkzeug): das kleinste Rohteil, das den Auftrag fasst.
 # $got is a number as typed, in degrees, without a unit.
 pipeline-place-rotation = die Drehung muss eine Zahl in Grad sein, ist { $got }
 pipeline-place-scale = der Maßstab muss eine Zahl größer als 0 sein, ist { $got }

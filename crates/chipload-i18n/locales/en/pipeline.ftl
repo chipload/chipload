@@ -157,6 +157,8 @@ pipeline-place-drawn-stay = Shapes drawn in Chipload stay where they are.
 pipeline-place-other-dxfs-stay = The other DXFs stay where they are.
 pipeline-place-work-zero-stays = The work zero stays at the point X{ $x }, Y{ $y }; check that it's still where you want it.
 pipeline-place-margin = the margin must be 0 or more, got { $got }
+pipeline-place-stock-follows = the stock is centred on the drawing and follows it, so aligning the drawing to it changes nothing: choose a stock position at the drawing origin first
+pipeline-cut-outline = Cut outline: { $width } × { $length } (X { $x0 } … { $x1 }, Y { $y0 } … { $y1 }, the tool included): the smallest stock that holds the job.
 # $got is a number as typed, in degrees, without a unit.
 pipeline-place-rotation = the rotation must be a number of degrees, got { $got }
 pipeline-place-scale = the scale must be a number greater than 0, got { $got }

@@ -261,7 +261,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         // Half the stock's width to start with, shown and editable: never a guess from the
         // picture's DPI (spec §3.5).
-        let width = (edit.settings.stock.x / 2.0).round().max(1.0);
+        let width = (edit.settings.stock_size().0 / 2.0).round().max(1.0);
         let defaults = NewImage::new(&file, &bytes, width);
         let draft = Image {
             id: 0,

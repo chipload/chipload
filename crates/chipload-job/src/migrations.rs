@@ -11,11 +11,11 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 28] = [
+const MIGRATIONS: [Migration; 29] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
-    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32,
+    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -542,6 +542,14 @@ fn v30_to_v31(mut data: Value) -> Result<Value, String> {
 /// a project with guides rather than cut them.
 fn v31_to_v32(data: Value) -> Result<Value, String> {
     Ok(set_version(data, 32))
+}
+
+/// v32 -> v33: the stock can be centred on the drawing (`origin: "drawing"`,
+/// docs/specs/stock-around-drawing.md). Older projects keep their placement, so only the
+/// version changes; the bump makes an older Chipload say the file is newer instead of
+/// failing on the new value.
+fn v32_to_v33(data: Value) -> Result<Value, String> {
+    Ok(set_version(data, 33))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

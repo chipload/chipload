@@ -683,6 +683,9 @@ pub fn load_drawing(job: &Job) -> Result<ImportResult, PipelineError> {
 
 /// Defaults for a new project (docs/specs/job-editor.md §6): all visible and editable.
 pub const DEFAULT_THICKNESS: f64 = 10.0;
+/// How far a new project's stock sticks out round the drawing, each side, mm (the user,
+/// 2026-10-28).
+pub const DEFAULT_STOCK_MARGIN: f64 = 10.0;
 /// How far a new project may cut below the stock (spoilboard), mm (decision 2026-10-10).
 pub const DEFAULT_MAX_OVERCUT: f64 = 0.5;
 pub const DEFAULT_SAFE_Z: f64 = 5.0;
@@ -712,6 +715,7 @@ pub fn empty_project() -> Job {
             thickness: DEFAULT_THICKNESS,
             max_overcut: DEFAULT_MAX_OVERCUT,
             origin: StockOrigin::BottomLeft,
+            fit: None,
             z_zero: ZZero::Top,
         },
         machine: Machine {
@@ -783,15 +787,13 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         .report
         .bbox;
     let ((x0, y0), (x1, y1)) = bbox.unwrap_or(((0.0, 0.0), (100.0, 100.0)));
-    let (origin, x, y) = if x0 >= 0.0 && y0 >= 0.0 {
-        (StockOrigin::BottomLeft, x1, y1)
-    } else {
-        (
-            StockOrigin::Center,
-            2.0 * x0.abs().max(x1.abs()),
-            2.0 * y0.abs().max(y1.abs()),
-        )
-    };
+    // Centred on the drawing, sticking out equally all round (the user, 2026-10-28;
+    // docs/specs/stock-around-drawing.md).
+    let (origin, x, y) = (
+        StockOrigin::Drawing,
+        x1 - x0 + 2.0 * DEFAULT_STOCK_MARGIN,
+        y1 - y0 + 2.0 * DEFAULT_STOCK_MARGIN,
+    );
     let next_shape_id = imported.shapes.iter().map(|s| s.id).max().unwrap_or(0) + 1;
     let mut job = empty_project();
     job.drawing = Drawing {
@@ -805,6 +807,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
     job.stock.x = x.max(1.0);
     job.stock.y = y.max(1.0);
     job.stock.origin = origin;
+    job.stock.fit = Some(DEFAULT_STOCK_MARGIN);
     job
 }
 
@@ -820,7 +823,7 @@ pub fn stock_fit_message(job: &Job) -> Option<Message> {
         .report
         .bbox?;
     let ((x0, y0), (x1, y1)) = bbox;
-    let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
+    let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
     let fits = x0 >= sx0 - CHAIN_TOL_MM
         && y0 >= sy0 - CHAIN_TOL_MM
         && x1 <= sx1 + CHAIN_TOL_MM
@@ -833,8 +836,8 @@ pub fn stock_fit_message(job: &Job) -> Option<Message> {
             .arg("x1", length(x1))
             .arg("y0", number(y0))
             .arg("y1", length(y1))
-            .arg("width", number(job.stock.x))
-            .arg("length", length(job.stock.y))
+            .arg("width", number(job.stock_size().0))
+            .arg("length", length(job.stock_size().1))
     })
 }
 
@@ -915,7 +918,7 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> 
         let Some(((x0, y0), (x1, y1))) = cut_extent(&program.moves, &mine, None) else {
             continue;
         };
-        let (lo, hi) = job.stock.xy_bounds();
+        let (lo, hi) = job.stock_bounds();
         let tol = CHAIN_TOL_MM;
         let fits = x0 >= lo.0 - tol && y0 >= lo.1 - tol && x1 <= hi.0 + tol && y1 <= hi.1 + tol;
         if fits {
@@ -934,8 +937,8 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> 
                 .arg("x1", length(x1))
                 .arg("y0", number(y0))
                 .arg("y1", length(y1))
-                .arg("stock_x", number(job.stock.x))
-                .arg("stock_y", length(job.stock.y)),
+                .arg("stock_x", number(job.stock_size().0))
+                .arg("stock_y", length(job.stock_size().1)),
         );
     }
     notes
@@ -945,7 +948,7 @@ fn extent_notes(job: &Job, report: &ImportReport) -> Vec<Message> {
     let Some(((x0, y0), (x1, y1))) = report.bbox else {
         return Vec::new();
     };
-    let (lo, hi) = job.stock.xy_bounds();
+    let (lo, hi) = job.stock_bounds();
     if x0 < lo.0 || y0 < lo.1 || x1 > hi.0 || y1 > hi.1 {
         vec![Message::new("pipeline-drawing-outside-stock")]
     } else {

@@ -830,3 +830,11 @@ fn clicking_a_shape_shows_the_shape_not_the_open_operation() {
     app.focus = Focus::Op(op);
     assert_eq!(app.selection, CanvasSelection::Shapes([2].into()));
 }
+
+#[test]
+fn a_new_project_without_operations_has_no_problem() {
+    // The user, 2026-10-28: "of course there are no operations when I just started".
+    let mut app = ChiploadApp::default();
+    assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+    assert!(app.problems.is_empty(), "{:?}", app.problems);
+}

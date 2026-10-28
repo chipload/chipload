@@ -159,6 +159,8 @@ fn run(
     with_history: bool,
 ) -> Result<(Simulation, Option<History>), PipelineError> {
     let stock = &job.stock;
+    // The stock's real size (it may fit the drawing): the grid covers exactly it.
+    let (size_x, size_y) = job.stock_size();
     let cell = match cell {
         Some(cell) => {
             if !(MIN_CELL_MM..=MAX_CELL_MM).contains(&cell) {
@@ -169,7 +171,7 @@ fn run(
                         .arg("got", Value::Length(cell, Digits::Shortest)),
                 ));
             }
-            let cells = cells_for(stock.x, stock.y, cell);
+            let cells = cells_for(size_x, size_y, cell);
             if cells > MAX_CELLS {
                 return Err(PipelineError::Job(
                     Message::new("pipeline-simulate-too-many-cells")
@@ -181,8 +183,8 @@ fn run(
             cell
         }
         None => {
-            let cell = auto_cell(stock.x, stock.y);
-            if cells_for(stock.x, stock.y, cell) > MAX_CELLS {
+            let cell = auto_cell(size_x, size_y);
+            if cells_for(size_x, size_y, cell) > MAX_CELLS {
                 return Err(PipelineError::Job(
                     Message::new("pipeline-simulate-stock-too-large")
                         .arg("cell", Value::Length(cell, Digits::Shortest))
@@ -192,8 +194,8 @@ fn run(
             cell
         }
     };
-    let (columns, rows) = grid_size(stock.x, stock.y, cell);
-    let (origin, _) = stock.xy_bounds();
+    let (columns, rows) = grid_size(size_x, size_y, cell);
+    let (origin, _) = job.stock_bounds();
     let top = stock.top_z();
     let mut numbers = Numbers {
         removed_cm3: 0.0,
@@ -242,7 +244,7 @@ fn run(
         grid.cut((x0, y0, z0), (x1, y1, z1), shape);
     }
     let bottom = top - stock.thickness;
-    numbers.removed_cm3 = grid.removed(top, stock.x, stock.y) / 1000.0;
+    numbers.removed_cm3 = grid.removed(top, size_x, size_y) / 1000.0;
     let lowest = grid
         .heights
         .iter()
@@ -262,7 +264,7 @@ fn run(
             rows,
             top,
             bottom,
-            size: (stock.x, stock.y),
+            size: (size_x, size_y),
             starts: Vec::new(),
             entries: Vec::new(),
         })
@@ -275,7 +277,7 @@ fn run(
         heights: grid.heights,
         top,
         bottom,
-        size: (stock.x, stock.y),
+        size: (size_x, size_y),
         numbers,
     };
     Ok((sim, history))

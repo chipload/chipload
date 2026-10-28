@@ -226,7 +226,7 @@ fn the_picture_covers_the_stock_and_every_cut() {
     let (x0, top, w, h) = (numbers[0], numbers[1], numbers[2], numbers[3]);
     // SVG y runs down: drawing y is -svg y.
     let (y0, y1, x1) = (-(top + h), -top, x0 + w);
-    let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
+    let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
     assert!(x0 < sx0 && y0 < sy0 && x1 > sx1 && y1 > sy1);
     for m in &result.program.moves {
         if let (Some(x), Some(y)) = (m.x, m.y) {

@@ -166,6 +166,8 @@ pipeline-place-drawn-stay = Les formes dessinées dans Chipload restent où elle
 pipeline-place-other-dxfs-stay = Les autres DXF restent où ils sont.
 pipeline-place-work-zero-stays = L'origine pièce reste au point X{ $x }, Y{ $y } ; vérifiez qu'elle est toujours là où vous la voulez.
 pipeline-place-margin = la marge doit être 0 ou plus, reçu { $got }
+pipeline-place-stock-follows = le brut est centré sur le dessin et le suit, aligner le dessin dessus ne change donc rien : choisissez d'abord une position du brut à l'origine du dessin
+pipeline-cut-outline = Contour de la coupe : { $width } × { $length } (X { $x0 } … { $x1 }, Y { $y0 } … { $y1 }, outil compris) : le plus petit brut qui contient le travail.
 # $got is a number as typed, in degrees, without a unit.
 pipeline-place-rotation = la rotation doit être un nombre de degrés, reçu { $got }
 pipeline-place-scale = l'échelle doit être un nombre supérieur à 0, reçu { $got }

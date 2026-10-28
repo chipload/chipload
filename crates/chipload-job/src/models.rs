@@ -20,7 +20,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 32;
+pub const CURRENT_VERSION: i64 = 33;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -1518,6 +1518,11 @@ pub enum StockOrigin {
     #[default]
     BottomLeft,
     Center,
+    /// Centred on the drawing's outline, sticking out equally all round, and following the
+    /// drawing when it moves or changes (the user, 2026-10-28). Construction geometry
+    /// doesn't count; an empty drawing centres it on the origin.
+    // Spec: docs/specs/stock-around-drawing.md (schema 33).
+    Drawing,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -1539,10 +1544,16 @@ pub struct Stock {
     pub y: f64,
     /// Thickness, mm. Depths count down from the top.
     pub thickness: f64,
-    /// Where the stock lies around the drawing's origin: its `bottom_left` corner or its
-    /// `center` there.
+    /// Where the stock lies: its `bottom_left` corner or its `center` at the drawing's
+    /// origin, or centred on the drawing itself (`drawing`), following it.
     #[serde(default)]
     pub origin: StockOrigin,
+    /// Centred on the drawing only: its size is the drawing's outline plus this margin each
+    /// side, mm, following the drawing; `x` and `y` are then used only while the drawing is
+    /// empty. Null: the size is `x` × `y`.
+    // Spec: docs/specs/stock-around-drawing.md (schema 33).
+    #[serde(default)]
+    pub fit: Option<f64>,
     /// Where Z0 is: the stock `top` or `bottom`.
     #[serde(default)]
     pub z_zero: ZZero,
@@ -1560,11 +1571,22 @@ impl Stock {
         }
     }
 
-    /// (min, max) corners in work coordinates; work zero is the DXF origin.
-    pub fn xy_bounds(&self) -> ((f64, f64), (f64, f64)) {
+    /// (min, max) corners in drawing coordinates, for a stock of `size` that sits around
+    /// `centre` when it is centred on the drawing. Use [`Job::stock_bounds`], which knows
+    /// the drawing.
+    pub fn xy_bounds_around(
+        &self,
+        size: (f64, f64),
+        centre: (f64, f64),
+    ) -> ((f64, f64), (f64, f64)) {
+        let (hx, hy) = (size.0 / 2.0, size.1 / 2.0);
         match self.origin {
-            StockOrigin::BottomLeft => ((0.0, 0.0), (self.x, self.y)),
-            StockOrigin::Center => ((-self.x / 2.0, -self.y / 2.0), (self.x / 2.0, self.y / 2.0)),
+            StockOrigin::BottomLeft => ((0.0, 0.0), size),
+            StockOrigin::Center => ((-hx, -hy), (hx, hy)),
+            StockOrigin::Drawing => (
+                (centre.0 - hx, centre.1 - hy),
+                (centre.0 + hx, centre.1 + hy),
+            ),
         }
     }
 }
@@ -1797,10 +1819,33 @@ impl Job {
             .map_or(0, |i| i + 1)
     }
 
+    /// The stock's (min, max) corners in drawing coordinates, wherever it is placed: at the
+    /// drawing origin, or centred on the drawing.
+    pub fn stock_bounds(&self) -> ((f64, f64), (f64, f64)) {
+        let centre = self
+            .drawing
+            .extents()
+            .map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
+                ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+            });
+        self.stock.xy_bounds_around(self.stock_size(), centre)
+    }
+
+    /// The stock's size, mm: the drawing's outline plus the margin each side when it fits
+    /// the drawing, otherwise as set.
+    pub fn stock_size(&self) -> (f64, f64) {
+        match (self.stock.origin, self.stock.fit, self.drawing.extents()) {
+            (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {
+                (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin)
+            }
+            _ => (self.stock.x, self.stock.y),
+        }
+    }
+
     /// The work zero in drawing coordinates: subtract it from every X, Y of the toolpath to
     /// get program coordinates.
     pub fn work_zero_xy(&self) -> (f64, f64) {
-        let ((x0, y0), (x1, y1)) = self.stock.xy_bounds();
+        let ((x0, y0), (x1, y1)) = self.stock_bounds();
         match self.machine.work_zero {
             WorkZero::DrawingOrigin {} => (0.0, 0.0),
             WorkZero::Point { x, y } => (x, y),
@@ -2944,6 +2989,22 @@ pub const MAX_RAMP_ANGLE_RAD: f64 = std::f64::consts::PI / 6.0;
 pub const DEFAULT_RAMP_ANGLE_RAD: f64 = 3.0 * std::f64::consts::PI / 180.0;
 
 impl Drawing {
+    /// The box round the shapes that are cut (construction geometry left out), arcs
+    /// included, mm: ((x0, y0), (x1, y1)). None for an empty drawing.
+    pub fn extents(&self) -> Option<((f64, f64), (f64, f64))> {
+        self.shapes
+            .iter()
+            .filter(|s| !s.construction)
+            .flat_map(Shape::segments)
+            .map(|seg| seg.to_primitive().bounds())
+            .reduce(|(lo, hi), (a, b)| {
+                (
+                    (lo.0.min(a.0), lo.1.min(a.1)),
+                    (hi.0.max(b.0), hi.1.max(b.1)),
+                )
+            })
+    }
+
     /// The `hidden` key of the group a shape is in (docs/specs/drawing-sources.md §4):
     /// `dxf:1`, `image:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`, or `paths`
     /// for a path from neither.
@@ -3451,6 +3512,20 @@ impl Job {
                     format!("{at}.rotation"),
                     Message::new("job-rotation-range")
                         .arg("got", Value::Number(rotation, Digits::Shortest)),
+                ));
+            }
+        }
+        if let Some(margin) = self.stock.fit {
+            if !(margin.is_finite() && margin >= 0.0) {
+                problems.push(Problem::at(
+                    "stock.fit",
+                    Message::new("job-must-be-0-or-more")
+                        .arg("got", Value::LengthNumber(margin, Digits::Shortest)),
+                ));
+            } else if self.stock.origin != StockOrigin::Drawing {
+                problems.push(Problem::at(
+                    "stock.fit",
+                    Message::new("job-stock-fit-needs-centred"),
                 ));
             }
         }

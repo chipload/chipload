@@ -1978,24 +1978,68 @@ pub(super) fn job_form(
     let title = t!(ui, "forms-job-settings");
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
 
+    let (size_x, size_y) = job.stock_size();
     let stock = format!(
         "{} × {} × {} {len_unit}",
-        len_in(units, job.stock.x),
-        len_in(units, job.stock.y),
+        len_in(units, size_x),
+        len_in(units, size_y),
         len_in(units, job.stock.thickness)
     );
+    let drawing = job.drawing.extents();
     section(
         ui,
         "job-stock",
         &t!(ui, "forms-section-stock"),
         &stock,
         |ui| {
+            // The size fits the drawing (its outline plus a margin), or is typed
+            // (docs/specs/stock-around-drawing.md).
             ui.label(t!(ui, "forms-stock-size"));
-            ui.horizontal(|ui| {
-                flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
-                flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
+            ui.horizontal(|ui| match job.stock.fit {
+                Some(mut margin) => {
+                    ui.label(format!(
+                        "{} × {} {len_unit}",
+                        len_in(units, size_x),
+                        len_in(units, size_y)
+                    ))
+                    .on_hover_text(t!(ui, "forms-stock-fits-hover"));
+                    ui.label(t!(ui, "forms-stock-margin"));
+                    if ui.add(mm(&mut margin)).changed() {
+                        job.stock.fit = Some(margin);
+                    }
+                    if ui
+                        .button(t!(ui, "forms-stock-fixed"))
+                        .on_hover_text(t!(ui, "forms-stock-fixed-hover"))
+                        .clicked()
+                    {
+                        (job.stock.x, job.stock.y) = (size_x, size_y);
+                        job.stock.fit = None;
+                    }
+                }
+                None => {
+                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
+                    if ui
+                        .button(t!(ui, "forms-stock-fit"))
+                        .on_hover_text(t!(ui, "forms-stock-fit-hover"))
+                        .clicked()
+                    {
+                        job.stock.origin = StockOrigin::Drawing;
+                        job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
+                    }
+                }
             });
             ui.end_row();
+            if let Some(((x0, y0), (x1, y1))) = drawing {
+                ui.label(t!(ui, "forms-drawing-size"))
+                    .on_hover_text(t!(ui, "forms-drawing-size-hover"));
+                ui.label(format!(
+                    "{} × {} {len_unit}",
+                    len_in(units, x1 - x0),
+                    len_in(units, y1 - y0)
+                ));
+                ui.end_row();
+            }
             ui.label(t!(ui, "forms-thickness"));
             flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
             ui.end_row();
@@ -2013,12 +2057,29 @@ pub(super) fn job_form(
             let origin_name = |ui: &egui::Ui, origin: StockOrigin| match origin {
                 StockOrigin::BottomLeft => t!(ui, "forms-stock-corner-at-origin"),
                 StockOrigin::Center => t!(ui, "forms-stock-centred-on-origin"),
+                StockOrigin::Drawing => t!(ui, "forms-stock-centred-on-drawing"),
             };
             ComboBox::from_id_salt("origin")
                 .selected_text(origin_name(ui, job.stock.origin))
                 .show_ui(ui, |ui| {
-                    for origin in [StockOrigin::BottomLeft, StockOrigin::Center] {
-                        ui.selectable_value(&mut job.stock.origin, origin, origin_name(ui, origin));
+                    for origin in [
+                        StockOrigin::Drawing,
+                        StockOrigin::BottomLeft,
+                        StockOrigin::Center,
+                    ] {
+                        if ui
+                            .selectable_value(
+                                &mut job.stock.origin,
+                                origin,
+                                origin_name(ui, origin),
+                            )
+                            .changed()
+                            && origin != StockOrigin::Drawing
+                            && job.stock.fit.take().is_some()
+                        {
+                            // Only a stock centred on the drawing can fit it: keep its size.
+                            (job.stock.x, job.stock.y) = (size_x, size_y);
+                        }
                     }
                 });
             ui.end_row();

@@ -179,6 +179,10 @@ impl ChiploadApp {
             .as_ref()
             .map(EditJob::problems)
             .unwrap_or_default();
+        // A project with no operations yet isn't a problem while it is being set up (the
+        // user, 2026-10-28): the Browser says what to do, and Generate says it if pressed.
+        self.problems
+            .retain(|p| p.short_message.id != "toolpath-no-operations");
     }
 
     /// The problems of operation `i`.

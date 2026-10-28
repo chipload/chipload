@@ -166,6 +166,8 @@ pipeline-place-drawn-stay = Le forme disegnate in Chipload restano dove sono.
 pipeline-place-other-dxfs-stay = Gli altri DXF restano dove sono.
 pipeline-place-work-zero-stays = Lo zero pezzo resta nel punto X{ $x }, Y{ $y }; controlla che sia ancora dove lo vuoi.
 pipeline-place-margin = il margine deve essere 0 o più, trovato { $got }
+pipeline-place-stock-follows = il grezzo è centrato sul disegno e lo segue, quindi allineare il disegno al grezzo non cambia nulla: scegli prima una posizione del grezzo nell'origine del disegno
+pipeline-cut-outline = Contorno del taglio: { $width } × { $length } (X { $x0 } … { $x1 }, Y { $y0 } … { $y1 }, utensile compreso): il grezzo più piccolo che contiene il lavoro.
 # $got is a number as typed, in degrees, without a unit.
 pipeline-place-rotation = la rotazione deve essere un numero di gradi, trovato { $got }
 pipeline-place-scale = la scala deve essere un numero maggiore di 0, trovato { $got }

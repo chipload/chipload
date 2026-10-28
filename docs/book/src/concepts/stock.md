@@ -7,14 +7,22 @@ Job settings > **Stock** describes the material on the machine, and Job settings
 
 | Setting | |
 |---|---|
-| **Size X × Y** | the board's size, mm |
+| **Size X × Y** | the board's size: either **fits the drawing** (the drawing's outline plus a margin on every side, 10 mm in a new project, following the drawing as it changes), or a **fixed size** you type, for a board you want to use. *Fixed size* and *Fit the drawing* switch between them. |
+| **Drawing** | the size of the drawing's outline (what is cut; construction geometry left out) |
 | **Thickness** | mm. Depths count down from the stock top, so set this to the real board. |
 | **Max depth below stock** | how far a cut may go below the stock bottom, into the spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm. |
-| **Stock position** | where the stock lies around the drawing's origin: its bottom-left corner or its centre there |
+| **Stock position** | where the stock lies: **centred on the drawing** (sticking out equally all round, following the drawing; new projects), or its bottom-left corner or its centre at the drawing's origin |
 | **Z zero** | where Z0 is: the stock **top** (depths are negative Z) or its **bottom**, the spoilboard (the top is at Z = thickness) |
 
-A new project from a DXF gets stock that just covers the drawing. If the drawing reaches
-past the stock (after an update, or a move), the report says so.
+For many jobs the stock is mostly a picture for the simulation: you cut from whatever board
+is at hand. What you need to know then is how big a board must be. **After Generate, the
+report gives the cut's outline**, the area the tool cuts with its radius included, for
+example `Cut outline: 144.068 × 111.622 mm`: the smallest board that holds the job. The
+setup sheet has it too.
+
+If the drawing reaches past a fixed stock (after an update, or a move), the report says so.
+A stock centred on the drawing can't be used to align the drawing (it would follow it):
+choose a position at the drawing's origin first.
 
 ## Work zero
 

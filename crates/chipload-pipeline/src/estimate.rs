@@ -29,6 +29,9 @@ pub struct Estimate {
     pub rapid_rate: f64,
     /// No max feed was set: the rate is [`ASSUMED_RAPID_MM_MIN`].
     pub rapid_assumed: bool,
+    /// The box the tool cuts in, its radius included, mm: the smallest stock that holds the
+    /// job (docs/specs/stock-around-drawing.md). None when nothing is cut.
+    pub outline: Option<((f64, f64), (f64, f64))>,
 }
 
 /// The seconds of each move: (cutting, rapid). Lengths in 3D from where the last move
@@ -121,6 +124,7 @@ pub fn estimate(
         tool_changes: groups.len().saturating_sub(1),
         rapid_rate,
         rapid_assumed,
+        outline: chipload_toolpath::plan::cut_extent(&program.moves, spans, None),
     }
 }
 
@@ -161,6 +165,19 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
             .arg("spindle", duration_message(estimate.spindle))
             .arg("changes", estimate.tool_changes),
     )];
+    if let Some(((x0, y0), (x1, y1))) = estimate.outline {
+        let number = |mm: f64| Value::LengthNumber(mm, Digits::Fixed(3));
+        let length = |mm: f64| Value::Length(mm, Digits::Fixed(3));
+        lines.push(Note::job(
+            Message::new("pipeline-cut-outline")
+                .arg("width", number(x1 - x0))
+                .arg("length", length(y1 - y0))
+                .arg("x0", number(x0))
+                .arg("x1", number(x1))
+                .arg("y0", number(y0))
+                .arg("y1", number(y1)),
+        ));
+    }
     // With two parts or more, each part's time over its operations' (docs/specs/parts.md
     // §6); one part reads as before parts.
     let several_parts = job.parts.len() > 1;

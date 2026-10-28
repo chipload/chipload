@@ -1049,7 +1049,7 @@ fn plan_holes_op(
 /// side, every depth started beside it.
 fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
     let cut = SurfaceCut {
-        stock: ctx.job.stock.xy_bounds(),
+        stock: ctx.job.stock_bounds(),
         tool_radius: ctx.tool.diameter / 2.0,
         stepover: op.stepover * ctx.tool.diameter,
         safe_z: ctx.job.machine.safe_z,

@@ -429,7 +429,15 @@ fn step_for(
             .bbox
             .ok_or_else(nothing_imported)
     };
-    let ((sx0, sy0), (sx1, sy1)) = job.stock.xy_bounds();
+    let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
+    // A stock centred on the drawing follows it: aligning the drawing to it moves both.
+    if job.stock.origin == chipload_job::StockOrigin::Drawing
+        && matches!(how, Move::BottomLeft { .. } | Move::Center)
+    {
+        return Err(PipelineError::Job(Message::new(
+            "pipeline-place-stock-follows",
+        )));
+    }
     Ok(match how {
         Move::By(dx, dy) => moved(dx, dy),
         Move::To(x, y) => moved(x - current.dx, y - current.dy),

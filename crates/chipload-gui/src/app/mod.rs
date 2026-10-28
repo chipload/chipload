@@ -707,7 +707,7 @@ impl ChiploadApp {
         }
         self.loaded_drawing = Some(job.drawing.clone());
         self.corners.forget();
-        self.scene.stock = Some(job.stock.xy_bounds());
+        self.scene.stock = Some(job.stock_bounds());
         match load_drawing(&job) {
             Ok(imported) => {
                 self.contours = imported.contours;
@@ -1830,7 +1830,7 @@ impl ChiploadApp {
             self.drag.context_ring = None;
             self.toolpath_stale = true;
         }
-        self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock.xy_bounds());
+        self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock_bounds());
         self.refresh_drawing();
     }
 

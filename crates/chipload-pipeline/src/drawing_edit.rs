@@ -858,7 +858,7 @@ pub fn align_shapes(
     }
     let boxes = boxes(job, ids)?;
     let target = if stock {
-        job.stock.xy_bounds()
+        job.stock_bounds()
     } else {
         boxes
             .iter()
@@ -1253,7 +1253,7 @@ mod tests {
         assert!(near(bounds_of(&left, 2).0.0, 63.0));
         let top = align_shapes(&job, &[2, 3], AlignTo::Top, false).unwrap();
         assert!(near(bounds_of(&top, 2).1.1, 95.0));
-        let stock = job.stock.xy_bounds();
+        let stock = job.stock_bounds();
         let middle = align_shapes(&job, &[2], AlignTo::Centre, true).unwrap();
         assert!(near(
             (bounds_of(&middle, 2).0.0 + bounds_of(&middle, 2).1.0) / 2.0,

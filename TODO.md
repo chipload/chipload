@@ -89,12 +89,15 @@ it's built (see `CLAUDE.md`).
 
 - **Shakedown findings** (the user on the router, 2026-10-28; docs/reviews/2026-10-28-
   shakedown.md):
-  1. The stock should sit centred on the drawing, sticking out equally all round; today it
-     starts at the drawing origin, while a drawing often starts there itself and the stock
-     must cover it. Being decided (stock placement, its margin, the default work zero).
+  1. The stock should sit centred on the drawing, sticking out equally all round. Done
+     2026-10-28 (docs/specs/stock-around-drawing.md, schema 33): new projects get a stock
+     centred on the drawing that fits it with 10 mm, a fixed size stays possible, and the
+     report gives the cut's outline (the smallest board that holds the job).
   2. With an operation open, a shape couldn't be picked for editing: Properties kept the
      operation. Fixed 2026-10-28: a click on a shape closes the open operation; the
      selection stays for its *Use selection*.
+  3. A new project showed the problem "Job has no operations" straight away. Fixed
+     2026-10-28: the window leaves it out; Generate still says so if pressed.
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)

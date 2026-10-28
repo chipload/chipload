@@ -161,6 +161,8 @@ pipeline-place-drawn-stay = Former ritade i Chipload ligger kvar där de är.
 pipeline-place-other-dxfs-stay = De andra DXF:erna ligger kvar där de är.
 pipeline-place-work-zero-stays = Arbetsnollpunkten ligger kvar i punkten X{ $x }, Y{ $y }; kontrollera att den fortfarande är där du vill ha den.
 pipeline-place-margin = marginalen måste vara 0 eller mer, fick { $got }
+pipeline-place-stock-follows = ämnet är centrerat på ritningen och följer den, så att justera ritningen mot det ändrar ingenting: välj först en ämnesplacering vid ritningens origo
+pipeline-cut-outline = Skärets kontur: { $width } × { $length } (X { $x0 } … { $x1 }, Y { $y0 } … { $y1 }, med verktyget): det minsta ämne som rymmer jobbet.
 # $got is a number as typed, in degrees, without a unit.
 pipeline-place-rotation = vridningen måste vara ett antal grader, fick { $got }
 pipeline-place-scale = skalan måste vara ett tal större än 0, fick { $got }
