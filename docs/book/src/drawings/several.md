@@ -12,7 +12,9 @@ chipload update part.chipload --from lid.dxf --dxf 2  # a new version of that on
 chipload dxf remove part.chipload 2                   # it and its shapes
 ```
 
-In the app: *File > Add DXF to project…*, or drop the DXF on the window.
+In the app: *File > Add DXF or SVG to project…* (or *Add DXF* on the ribbon), or drop the
+file on the window. Any open project takes one, also a project started empty or drawn in
+Chipload.
 
 ## In the Browser
 

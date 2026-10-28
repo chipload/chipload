@@ -247,3 +247,27 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     assert_eq!(harness.state().modify, None, "its ribbon button ends it");
 }
+
+/// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *Add DXF* is
+/// on, and adds the file beside the drawn shapes.
+#[test]
+fn a_project_started_empty_can_add_a_drawing_file() {
+    use egui_kittest::kittest::NodeT;
+    let mut harness = harness("en", WINDOW);
+    harness.state_mut().new_project();
+    harness.run_steps(3);
+    assert!(
+        !harness
+            .get_by_label("Add DXF")
+            .accesskit_node()
+            .is_disabled()
+    );
+    assert!(
+        harness
+            .state_mut()
+            .add_file_from(&corpus("dxf/simple_part.dxf"), None, None)
+    );
+    let settings = &harness.state().edit.as_ref().unwrap().settings;
+    assert_eq!(settings.drawing.dxfs.len(), 1);
+    assert!(!settings.drawing.shapes.is_empty());
+}

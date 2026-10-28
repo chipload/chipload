@@ -54,7 +54,7 @@ header-text-hover = Skriv en text: klicka där den börjar och skriv den sedan i
 header-image = Bild
 header-image-hover = Spåra en bild till former, för V-gravyr eller Följ bana
 header-add-dxf = Lägg till DXF
-header-add-dxf-hover = En till detalj: en DXF som placeras och uppdateras för sig
+header-add-dxf-hover = En DXF eller SVG i det här projektet, bredvid det som finns: placeras och uppdateras för sig
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importera en DXF eller SVG först (ARKIV > Importera)
 header-import-image-menu = Importera bild…

@@ -109,7 +109,8 @@ it's built (see `CLAUDE.md`).
   7. The array tools couldn't be finished: their Create was under Selection, hidden while
      another item was open. Fixed 2026-10-28: starting one shows Selection, its form has
      *Cancel*, and the ribbon button ends the active tool.
-  8. A DXF or SVG can't be added to an existing project without starting a new one.
+  8. A DXF or SVG couldn't be added to a project without a drawing file yet: *Add DXF*
+     was off. Fixed 2026-10-28: any open project takes one.
 
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)

@@ -149,7 +149,7 @@ impl ChiploadApp {
         {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Update, String::new()));
         }
-        let adding = has_job && self.dxf_count() > 0;
+        let adding = has_job;
         if ui
             .add_enabled(adding, egui::Button::new(t!(ui, "menu-add-dxf")))
             .on_hover_text(t!(ui, "menu-add-dxf-hover"))

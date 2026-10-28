@@ -54,7 +54,7 @@ header-text-hover = Einen Text schreiben: klicken, wo er beginnt, dann unter Eig
 header-image = Bild
 header-image-hover = Ein Bild in Formen nachzeichnen, für V-Gravur oder Pfad folgen
 header-add-dxf = DXF hinzu
-header-add-dxf-hover = Ein weiteres Teil: eine DXF, eigenständig platziert und aktualisiert
+header-add-dxf-hover = Eine DXF oder SVG in dieses Projekt, neben das Vorhandene: eigenständig platziert und aktualisiert
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Zuerst eine DXF oder SVG importieren (DATEI > Import)
 header-import-image-menu = Bild importieren…

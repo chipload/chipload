@@ -428,7 +428,8 @@ impl ChiploadApp {
                 {
                     app.import_image_dialog();
                 }
-                let adding = has_job && app.dxf_count() > 0;
+                // Any project takes a drawing file, its first too (the user, 2026-10-28).
+                let adding = has_job;
                 let label = t!(ui, "header-add-dxf");
                 if ribbon_button(ui, Icon::Dxf, &label, adding, false)
                     .on_hover_text(if adding {
@@ -449,7 +450,7 @@ impl ChiploadApp {
                 }
                 if ui
                     .add_enabled(
-                        app.edit.is_some() && app.dxf_count() > 0,
+                        app.edit.is_some(),
                         egui::Button::new(t!(ui, "header-add-dxf-menu")),
                     )
                     .clicked()
