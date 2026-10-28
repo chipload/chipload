@@ -87,6 +87,15 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Shakedown findings** (the user on the router, 2026-10-28; docs/reviews/2026-10-28-
+  shakedown.md):
+  1. The stock should sit centred on the drawing, sticking out equally all round; today it
+     starts at the drawing origin, while a drawing often starts there itself and the stock
+     must cover it. Being decided (stock placement, its margin, the default work zero).
+  2. With an operation open, a shape couldn't be picked for editing: Properties kept the
+     operation. Fixed 2026-10-28: a click on a shape closes the open operation; the
+     selection stays for its *Use selection*.
+
 - **Surface property test failed on CI** (Windows, reported by the user 2026-10-27):
   `passes_cover_the_stock_and_go_down_beside_it` (crates/chipload-toolpath/tests/surface.rs)
   says "down at 0.25, move 2" for x0 = 0, y0 = 0, w = 291.88231113195496,

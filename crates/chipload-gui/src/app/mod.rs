@@ -1588,6 +1588,12 @@ impl ChiploadApp {
     /// A click on the canvas: `picked` is the contour hit (if any); `toggle` (Ctrl) adds or
     /// removes it instead of replacing the selection. Selections are kept as shape ids.
     pub fn click(&mut self, picked: Option<usize>, toggle: bool) {
+        // Picking shapes is about the shapes, not the open operation: close it so Properties
+        // shows them (user, 2026-10-28). The selection stays when the operation is opened
+        // again, for its Use selection.
+        if picked.is_some() && matches!(self.focus, Focus::Op(_) | Focus::RestPass(..)) {
+            self.focus = Focus::Job;
+        }
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so
         // operations select the picture or text, not its shapes (docs/specs/image-trace.md

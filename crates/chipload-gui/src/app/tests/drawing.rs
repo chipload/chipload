@@ -814,3 +814,19 @@ fn k_draws_construction_geometry_and_toggles_the_selection() {
     app.toggle_construction();
     assert!(!app.shape(3).unwrap().construction);
 }
+
+#[test]
+fn clicking_a_shape_shows_the_shape_not_the_open_operation() {
+    // The user, 2026-10-28: with an operation open, a shape couldn't be picked for editing.
+    let mut app = drawn_part();
+    app.selection = CanvasSelection::Shapes([1].into());
+    let op = app.add_operation(OpKind::Profile).unwrap();
+    assert_eq!(app.focus, Focus::Op(op));
+    app.click(Some(contour_of(&app, 2)), false);
+    assert_eq!(app.focus, Focus::Job);
+    assert!(app.selection_shown());
+    assert_eq!(app.selected_shape(), Some(2));
+    // Opened again, the operation can take the picked shape with Use selection.
+    app.focus = Focus::Op(op);
+    assert_eq!(app.selection, CanvasSelection::Shapes([2].into()));
+}

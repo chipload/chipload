@@ -168,11 +168,11 @@ While shapes are selected, a **Selection** section comes first. It holds:
 - *Copy as selector*, which copies the selection as JSON for a project file (also under
   DRAW ▾, and Ctrl+Shift+C).
 
-Its triangle folds it away. While an operation is open there is no Selection section, so
-selecting shapes never moves the operation's settings: its *Use selection* button counts
-what is selected ("Use selection (3)"), and its tooltip lists the contours. To edit a drawn
-shape's values, open the project (Job settings) and select the shape. Nor is there one when
-the open DXF, picture or text is itself what is selected.
+Its triangle folds it away. **Clicking a shape on the canvas closes the open operation,**
+so Properties shows the shape, with its values to edit. The selection stays: open the
+operation again in the Browser and its *Use selection* button counts what is selected
+("Use selection (3)") and takes it as the operation's geometry. There is no Selection
+section when the open DXF, picture or text is itself what is selected.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
 
