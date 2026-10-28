@@ -2946,11 +2946,6 @@ pub(super) fn machine_rows(
                 z: 100.0,
             });
         }
-        if let Some(t) = &mut machine.travel {
-            flag(ui.add(mm(&mut t.x)), ui, "machine.travel.x");
-            flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
-            flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
-        }
         if let Some(from) = from
             && from.travel != machine.travel
             && revert_mark(ui, profile, &travel_text(ui, from.travel.as_ref()))
@@ -2959,6 +2954,17 @@ pub(super) fn machine_rows(
         }
     });
     ui.end_row();
+    // The three fields on a row of their own: beside the box they run past a narrow
+    // panel's edge.
+    if let Some(t) = &mut machine.travel {
+        ui.label("");
+        ui.horizontal(|ui| {
+            flag(ui.add(mm(&mut t.x)), ui, "machine.travel.x");
+            flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
+            flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
+        });
+        ui.end_row();
+    }
     picked
 }
 

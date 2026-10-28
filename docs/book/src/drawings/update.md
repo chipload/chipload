@@ -21,7 +21,7 @@ part.chipload --from part.dxf`, takes in the new version and keeps the operation
   so.
 
 An empty project (*File > New project*, `chipload new`) takes its first DXF the same way:
-*File > Import DXF into project…*.
+*Add DXF*, or *File > Add DXF or SVG to project…*.
 
 A DXF saved by a program that gives every entity a new handle on each save makes every
 shape look new. Operations that select by **layer** survive that; ones that select single

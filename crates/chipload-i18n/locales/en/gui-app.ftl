@@ -16,12 +16,12 @@ app-old-schema = This file is schema version { $version }; saving writes version
 app-new-project = New project.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Started with { $what }.
-app-new-project-next = Draw shapes from the Draw menu, or bring in a drawing with File > Import DXF into project. Check stock, machine and tool under Job settings.
+app-new-project-next = Draw shapes from the Draw menu, or bring in a drawing with Add DXF. Check stock and machine under Job settings, and the tool under Tools.
 app-units-missing = { $file } does not say which units it uses; choose mm or inch.
 app-px-missing = { $file } gives its size in pixels only; choose its pixels per inch.
 app-cannot-import = Cannot import { $file }:
 app-new-project-from = New project from { $file } ({ $shapes } shapes).
-app-import-next = Select contours, then New profile or New pocket. Check stock, machine and tool under Job settings.
+app-import-next = Select contours, then New profile or New pocket. Check stock and machine under Job settings, and the tool under Tools.
 
 # Followed by the list of problems.
 app-project-incomplete = The project is not complete:

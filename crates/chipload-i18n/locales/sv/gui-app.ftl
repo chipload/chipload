@@ -16,12 +16,12 @@ app-old-schema = Filen har schemaversion { $version }; när du sparar skrivs ver
 app-new-project = Nytt projekt.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Startade med { $what }.
-app-new-project-next = Rita former från menyn Rita, eller hämta in en ritning med Arkiv > Importera DXF till projektet. Kontrollera ämne, maskin och verktyg under Jobbinställningar.
+app-new-project-next = Rita former från menyn Rita, eller hämta in en ritning med Lägg till DXF. Kontrollera ämne och maskin under Jobbinställningar, och verktyget under Verktyg.
 app-units-missing = { $file } anger inte vilka enheter den använder; välj mm eller tum.
 app-px-missing = { $file } anger sin storlek bara i pixlar; välj dess pixlar per tum.
 app-cannot-import = Kan inte importera { $file }:
 app-new-project-from = Nytt projekt från { $file } ({ $shapes } former).
-app-import-next = Markera konturer och välj sedan Ny konturfräsning eller Ny ficka. Kontrollera ämne, maskin och verktyg under Jobbinställningar.
+app-import-next = Markera konturer och välj sedan Ny konturfräsning eller Ny ficka. Kontrollera ämne och maskin under Jobbinställningar, och verktyget under Verktyg.
 
 # Followed by the list of problems.
 app-project-incomplete = Projektet är inte komplett:
