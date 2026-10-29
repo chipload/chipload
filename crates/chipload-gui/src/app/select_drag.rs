@@ -140,11 +140,13 @@ impl ChiploadApp {
     /// a picture or text count only when the box catches nothing else and replaces the
     /// selection: then it selects the whole picture or text, as a click does.
     pub fn end_select_drag(&mut self, add: bool, toggle: bool) {
-        // What the box picks is what Properties shows (one thing at a time).
-        self.focus = Focus::Selection;
+        // Only a box being let go: every drag ends here, and dragging a tab or a start
+        // keeps its operation open (the user, 2026-10-29).
         let Some((from, to, mode)) = self.select_box() else {
             return;
         };
+        // What the box picks is what Properties shows (one thing at a time).
+        self.focus = Focus::Selection;
         self.drag.select_box = None;
         let mut plain = BTreeSet::new();
         let mut sources = BTreeSet::new();

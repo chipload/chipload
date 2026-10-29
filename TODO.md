@@ -197,7 +197,8 @@ it's built (see `CLAUDE.md`).
   part…* on a part's right-click menu, `--part` on run/sheet/plan; built.
   **A pocket stays down between its depth passes** (docs/specs/pocket-stay-down.md,
   2026-10-29, the user missed *keep tool down* for deep holes): lifts 0.5 mm and feeds
-  back where checked safe; built.
+  back where checked safe; built. Fixed the same day: letting go of a dragged tab
+  or start point no longer moves Properties to the shape selection.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

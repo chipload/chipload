@@ -130,3 +130,31 @@ fn tab_markers_are_only_for_the_focused_profile_in_top_view() {
     app.toolpath_out_of_date();
     assert!(app.scene.tab_markers.is_empty());
 }
+
+/// A real mouse drag of a tab: the profile stays focused afterwards, so the next tab can
+/// be dragged straight away (the user, 2026-10-29).
+#[test]
+fn the_profile_stays_selected_after_a_tab_is_dragged() {
+    use egui_kittest::Harness;
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .build_eframe(|_| tabbed());
+    h.run_steps(6);
+    let at = markers(h.state())[0].at;
+    let from = h.state().view.to_screen(at);
+    let to = h.state().view.to_screen((at.0 + 10.0, at.1 + 10.0));
+    h.hover_at(from);
+    h.run_steps(2);
+    h.drag_at(from);
+    h.run_steps(2);
+    for k in 1..=5 {
+        h.hover_at(from + (to - from) * (k as f32 / 5.0));
+        h.run_steps(2);
+    }
+    h.drop_at(to);
+    h.run_steps(3);
+    h.state_mut().wait_for_generation();
+    h.run_steps(3);
+    assert!(!points(h.state()).is_empty(), "the tab was moved");
+    assert_eq!(h.state().focus, Focus::Op(1));
+}
