@@ -187,6 +187,9 @@ it's built (see `CLAUDE.md`).
   holes whose end depth follows the thickness (`through`, optional, no bump); built. Open:
   dropping `stock.origin` bottom-left/center from the format (a migration that moves the
   stock) if the user wants it.
+  **Work zero as a marker** (docs/specs/work-zero-marker.md, 2026-10-29, the user's idea):
+  a Browser row, a handle in the view that is picked and dragged with snapping, stock
+  corner buttons in Properties, a `zero` command; proposal, five decisions waiting.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
