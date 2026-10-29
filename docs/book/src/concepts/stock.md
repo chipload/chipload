@@ -48,7 +48,9 @@ it. It snaps to the stock's corners and centre and to the drawing origin, then a
 snaps when drawing (points of the drawing, the grid); hold **Alt** to place it freely. A label
 at the pointer says where it goes. **Esc** while dragging leaves it where it was, and one drag
 is one step for Undo. Until the zero is selected, a drag on its handle does what it does
-anywhere else, so a drag meant for a shape under it never moves it.
+anywhere else, so a drag meant for a shape under it never moves it. Once the zero is away
+from the drawing origin, the origin stays in view as grey ghost axes, so you can still see
+where the drawing's own X0 Y0 is.
 
 **Its properties:**
 - **On the stock:** a small drawing of the board with a dot at each corner and the centre.

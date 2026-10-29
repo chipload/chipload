@@ -191,7 +191,8 @@ it's built (see `CLAUDE.md`).
   a Browser row, a handle in the view that is picked and dragged with snapping, stock
   corner buttons in Properties, a `zero` command; new projects and machine profiles start
   at the stock's bottom-left corner; built. Later: **setups** (a board with its own stock
-  and zero, holding parts), raised by the user as a zero per part.
+  and zero, holding parts), raised by the user as a zero per part. After the first test cut
+  (2026-10-29): the drawing origin as ghost axes once the zero is elsewhere; built.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

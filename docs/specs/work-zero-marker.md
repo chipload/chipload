@@ -45,6 +45,9 @@ in the program change. The checker shifts the stock itself, so it still judges t
   - While dragging, a label at the cursor says which: "stock bottom-left", "X 25.0 Y −10.0".
   - One drag is one undo step. Escape while dragging puts it back.
 - 2D view only. The 3D view keeps drawing the axes.
+- **The drawing origin** (added 2026-10-29, the user after a test cut): once the zero is
+  elsewhere, the drawing origin shows as ghost axes, grey and thinner, so it can still be
+  found. They can't be picked.
 
 ## 4. Properties
 

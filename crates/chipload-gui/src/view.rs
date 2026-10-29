@@ -1123,9 +1123,24 @@ impl Scene {
                 }
             }
         }
-        // The axes mark the G-code zero (docs/specs/work-zero.md).
+        // The drawing origin as ghost axes once the work zero is elsewhere, so it can still
+        // be found (docs/specs/work-zero-marker.md §3).
         let (zx, zy) = self.work_zero;
         let origin = view.to_screen((zx, zy));
+        let drawing_origin = view.to_screen((0.0, 0.0));
+        if origin.distance(drawing_origin) > 1.0 {
+            let ghost = Stroke::new(1.5, pal.ghost);
+            painter.line_segment(
+                [drawing_origin, view.to_screen((AXIS_LENGTH_MM, 0.0))],
+                ghost,
+            );
+            painter.line_segment(
+                [drawing_origin, view.to_screen((0.0, AXIS_LENGTH_MM))],
+                ghost,
+            );
+            painter.circle_stroke(drawing_origin, ZERO_HANDLE_PX - 1.0, ghost);
+        }
+        // The axes mark the G-code zero (docs/specs/work-zero.md).
         painter.line_segment(
             [origin, view.to_screen((zx + AXIS_LENGTH_MM, zy))],
             Stroke::new(2.0, pal.axis_x),

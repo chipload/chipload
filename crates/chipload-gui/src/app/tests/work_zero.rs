@@ -154,6 +154,7 @@ fn work_zero_pictures() {
         ("zero-de", "de", 1200.0),
         ("zero-sv-narrow", "sv", 900.0),
         ("zero-job-en", "en", 1200.0),
+        ("zero-centre-en", "en", 1200.0),
     ] {
         let mut harness = Harness::builder()
             .with_size(egui::vec2(width, 800.0))
@@ -167,9 +168,13 @@ fn work_zero_pictures() {
                 let mut app = ChiploadApp::default();
                 app.set_language(language);
                 assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
-                app.edit.as_mut().unwrap().settings.machine.work_zero = WorkZero::Stock {
-                    corner: StockCorner::BottomLeft,
+                // Away from the drawing origin, which then shows as ghost axes.
+                let corner = if name == "zero-centre-en" {
+                    StockCorner::Center
+                } else {
+                    StockCorner::BottomLeft
                 };
+                app.edit.as_mut().unwrap().settings.machine.work_zero = WorkZero::Stock { corner };
                 app.commit();
                 app.focus = if name.starts_with("zero-job") {
                     Focus::Job
