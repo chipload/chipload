@@ -170,6 +170,34 @@ fn pocket_fields_parse() {
     assert_eq!(job.tools[0].center_cutting, Some(true));
 }
 
+#[test]
+fn a_cut_through_the_stock_follows_its_thickness() {
+    // docs/specs/job-settings-layout.md §5.
+    let mut data = lower_job();
+    data["stock"]["thickness"] = json!(12.0);
+    data["operations"][1]["through"] = json!(0.3);
+    let job = parse_job(data, "job.json").unwrap();
+    assert_eq!(job.operations[1].through(), Some(0.3));
+    assert_eq!(job.operations[1].depths().1, 12.3);
+    // The pocket keeps its end depth as set.
+    let pocket = parse_job(lower_job(), "job.json").unwrap().operations[0].depths();
+    assert_eq!(job.operations[0].depths(), pocket);
+    // A new thickness moves it; setting the end depth stops it following.
+    let set = |job: &chipload_job::Job, path: &str, value: Value| {
+        chipload_job::paths::set_all(job, &[(path.to_string(), value)]).unwrap()
+    };
+    let thicker = set(&job, "stock.thickness", json!(18.0));
+    assert_eq!(thicker.operations[1].depths().1, 18.3);
+    let typed = set(&thicker, "operations.1.end_depth", json!(10.0));
+    assert_eq!(typed.operations[1].through(), None);
+    assert_eq!(typed.operations[1].depths().1, 10.0);
+    // Below the stock is 0 or more.
+    let mut data = lower_job();
+    data["operations"][1]["through"] = json!(-0.1);
+    let err = parse_job(data, "job.json").unwrap_err();
+    assert!(err.to_string().contains("through"), "{err}");
+}
+
 // -- saving
 
 fn temp_dir(name: &str) -> PathBuf {

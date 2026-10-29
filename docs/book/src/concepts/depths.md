@@ -12,8 +12,14 @@ stock top, whatever the [Z zero](stock.md#stock) is.
 - **Cutting through:** an end depth below the stock bottom goes into the spoilboard. That's
   allowed up to *Max depth below stock* (Job settings), with a warning; deeper is refused,
   so a typo can't reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
-  0.3 mm into the spoilboard. The **Through** button next to the end depth sets it to the
-  stock thickness plus that allowance.
+  0.3 mm into the spoilboard.
+- **Through:** tick **Through** next to the end depth of a profile, pocket, follow path or
+  holes, and the end depth is the stock thickness plus **Below stock**, which starts at
+  *Max depth below stock*. It follows the thickness: make the board 18 mm and the cut ends
+  at 18.3. Untick it to type an end depth again. In the project file it is the operation's
+  `through` (mm below the stock, null when not ticked); `chipload set part.chipload
+  operations.1.through=0.3` ticks it from the command line, and setting the `end_depth`
+  unticks it.
 - **Going down:** from safe Z the tool rapids to 1 mm above the stock top, then goes down
   at the plunge feed. The air between the stock top and the start depth is crossed at the
   plunge feed too: Chipload doesn't know whether another operation already cleared it.

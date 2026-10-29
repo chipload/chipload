@@ -309,6 +309,7 @@ A library material, as a project names it.
 | `starts` | list of 2 × number | no | Where the cut starts, as points in drawing coordinates (mm): each moves the start of the ring (contour) nearest to it. Empty: chosen by Chipload. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `tabs` | [Tabs](#tabs) or null | no | Holding tabs left at the bottom of the cut, so a part cut out doesn't come loose. Null: none. |
+| `through` | number or null | no | Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "pocket"`
@@ -335,6 +336,7 @@ A library material, as a project names it.
 | `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter: more than 0, at most 1. |
+| `through` | number or null | no | Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "vcarve"`
@@ -372,6 +374,7 @@ Follow path: the tool centre on the selected shapes, open or closed.
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
+| `through` | number or null | no | Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "holes"`
@@ -390,6 +393,7 @@ Holes: drilled with a drill, bored with a helix with an endmill.
 | `plunge_feed` | number | yes | A drill's feed down, or a bore's feed straight down to the start depth, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the circles among the shapes on a layer, or shapes by id. Other shapes are skipped with a note. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
+| `through` | number or null | no | Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "surface"`

@@ -432,6 +432,7 @@ impl EditJob {
                         tool,
                         start_depth: 0.0,
                         end_depth: DEFAULT_DEPTH,
+                        through: None,
                         clearance: 0.0,
                         step_down,
                         feed,
@@ -457,6 +458,7 @@ impl EditJob {
                     tool,
                     start_depth: 0.0,
                     end_depth: DEFAULT_DEPTH,
+                    through: None,
                     clearance: 0.0,
                     step_down,
                     stepover,
@@ -499,6 +501,7 @@ impl EditJob {
                     tool,
                     start_depth: 0.0,
                     end_depth: DEFAULT_DEPTH,
+                    through: None,
                     step_down,
                     feed,
                     plunge_feed,
@@ -526,6 +529,7 @@ impl EditJob {
                         tool,
                         start_depth: 0.0,
                         end_depth: DEFAULT_DEPTH,
+                        through: None,
                         feed,
                         plunge_feed,
                         method,
@@ -701,10 +705,12 @@ impl EditJob {
         out
     }
 
-    /// The project as it stands, complete or not.
+    /// The project as it stands, complete or not, its cuts through the stock following the
+    /// thickness as set now.
     fn job(&self) -> Job {
         let mut job = self.settings.clone();
         job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+        job.follow_thickness();
         job
     }
 

@@ -40,6 +40,7 @@ job-must-be-positive = måste vara större än 0, fick { $got }
 job-must-be-positive-number = måste vara ett positivt tal, fick { $got }
 job-must-be-more-than-0 = måste vara mer än 0, fick { $got }
 job-must-be-0-or-more = måste vara 0 eller mer, fick { $got }
+job-through-stale = skär igenom materialet och slutar därför på { $depth }
 job-stock-fit-needs-centred = ett ämne som anpassas efter ritningen måste vara centrerat på den (stock.origin: drawing)
 job-must-be-1-or-more = måste vara 1 eller mer
 job-must-be-at-least-1 = måste vara minst 1

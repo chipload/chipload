@@ -96,10 +96,22 @@ pub fn assignment(text: &str) -> Result<(String, Value), String> {
 
 /// The job with each value set, loaded and validated again as the current version; the
 /// error names the first path that couldn't be set, or why the result doesn't load.
+/// Setting an operation's end depth stops it following the thickness (`through`), unless
+/// `through` is set too (docs/specs/job-settings-layout.md §5).
 pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String> {
     let mut value = serde_json::to_value(job).map_err(|e| e.to_string())?;
     for (path, new) in assignments {
         set(&mut value, path, new.clone())?;
+    }
+    for (path, _) in assignments {
+        let Some(op) = path.strip_suffix(".end_depth") else {
+            continue;
+        };
+        let through = format!("{op}.through");
+        let set_too = assignments.iter().any(|(p, _)| *p == through);
+        if !set_too && get(&value, &through).is_ok() {
+            set(&mut value, &through, Value::Null)?;
+        }
     }
     let shown: Vec<&str> = assignments.iter().map(|(p, _)| p.as_str()).collect();
     parse_job(value, "").map_err(|e| match e {

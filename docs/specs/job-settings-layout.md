@@ -3,7 +3,8 @@
 Status: **approved 2026-10-28** for §2–§4 (the user's answers: "1 yes, 2 no, keep drawing
 origin, 3 yes, 4 no, if so we should have a checkbox in the operation that says 'all
 through' or something, then it will follow stock thickness, 5 yes"). §2 and §3 **built
-2026-10-28**. §5 is a **proposal**, waiting for the user.
+2026-10-28**. §5 **approved 2026-10-29** with the three recommendations ("Ok!") and built
+the same day.
 
 ## 1. Why
 
@@ -101,7 +102,7 @@ As a default machine and a default tool: `materials.json` gets an optional
 - **Default material:** saved and read back; a new project and an import start with it;
   rename and removal; CLI `material default` with `--json`.
 
-## 5. Proposal, not approved: cuts that follow the thickness
+## 5. Cuts that follow the thickness
 
 The user (decision 4): typing a new thickness should not move depths, "if so we should have
 a checkbox in the operation that says 'all through' or something, then it will follow stock
@@ -114,11 +115,16 @@ thickness".
   stock, mm (e.g. 0.3). Optional with a safe default (null: the end depth as typed), so no
   schema bump. The end depth is still written, kept equal to thickness + `through`, so
   older code and the checker read the depth that is cut.
-- **Where it is kept equal:** in one function of `chipload-job`, run when a project is
-  checked (load, every edit in the window, `set`, `run`, `plan`), so no path can leave a
-  stale end depth.
+- **Where it is kept equal:** in one function of `chipload-job`, `Job::follow_thickness`,
+  run where a project is read (`parse_job`: loading, `set`, `run --set`, MCP) and where the
+  window builds the project from its edits (every check, run and save). A project whose end
+  depth still doesn't follow is refused (`job-through-stale`), never cut at an old depth.
+- **Setting the end depth** (`set operations.N.end_depth=…`) unticks it, unless `through`
+  is set in the same command; in the window the field is read-only while ticked.
+- **In the window:** ticked, a *Below stock* row follows, starting at *Max depth below
+  stock*.
 
-**Decisions:**
+**Decisions** (all three as recommended, 2026-10-29):
 1. **How far below the stock?** **Recommended:** its own amount per operation, starting at
    *Max depth below stock* (today's *Through* button), shown beside the box: "Through,
    0.3 mm below". Alternative: always *Max depth below stock*, one number for the project.

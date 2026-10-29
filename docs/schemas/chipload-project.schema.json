@@ -955,6 +955,15 @@
               "default": null,
               "description": "Holding tabs left at the bottom of the cut, so a part cut out doesn't come loose.\nNull: none."
             },
+            "through": {
+              "default": null,
+              "description": "Cut through the stock: how far below the stock bottom it ends, mm. The end depth is\nthen the stock thickness plus this, and follows the thickness. Null: the end depth as\nset.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
               "format": "int64",
@@ -1126,6 +1135,15 @@
               "description": "The distance between the clearing rings, as a fraction of the tool diameter: more\nthan 0, at most 1.",
               "format": "double",
               "type": "number"
+            },
+            "through": {
+              "default": null,
+              "description": "Cut through the stock: how far below the stock bottom it ends, mm. The end depth is\nthen the stock thickness plus this, and follows the thickness. Null: the end depth as\nset.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
@@ -1305,6 +1323,15 @@
               "format": "double",
               "type": "number"
             },
+            "through": {
+              "default": null,
+              "description": "Cut through the stock: how far below the stock bottom it ends, mm. The end depth is\nthen the stock thickness plus this, and follows the thickness. Null: the end depth as\nset.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
               "format": "int64",
@@ -1388,6 +1415,15 @@
               "description": "Where the cut starts, mm down from the stock top: 0 for the top, more when an\nearlier operation already cut down to there.",
               "format": "double",
               "type": "number"
+            },
+            "through": {
+              "default": null,
+              "description": "Cut through the stock: how far below the stock bottom it ends, mm. The end depth is\nthen the stock thickness plus this, and follows the thickness. Null: the end depth as\nset.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",

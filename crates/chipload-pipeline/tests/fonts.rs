@@ -101,6 +101,7 @@ fn pocket() -> Operation {
         tool: 3,
         start_depth: 0.0,
         end_depth: 1.0,
+        through: None,
         clearance: 0.0,
         step_down: 1.0,
         stepover: 0.4,

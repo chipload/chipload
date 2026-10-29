@@ -1792,6 +1792,16 @@ pub fn find_tool(tools: &[Tool], id: i64) -> Option<&Tool> {
 }
 
 impl Job {
+    /// Every operation cut through the stock ends its thickness plus `through` down
+    /// (docs/specs/job-settings-layout.md §5): run wherever a project is read or changed, so
+    /// no end depth is left from an older thickness.
+    pub fn follow_thickness(&mut self) {
+        let thickness = self.stock.thickness;
+        for op in &mut self.operations {
+            op.follow_thickness(thickness);
+        }
+    }
+
     /// The part with this id.
     pub fn part(&self, id: u64) -> Option<&Part> {
         self.parts.iter().find(|p| p.id == id)
@@ -2349,6 +2359,44 @@ impl Operation {
         }
     }
 
+    /// How far below the stock an operation cut through it ends (`through`); None for one
+    /// whose end depth is as set, and always for a V-carve and a surface.
+    pub fn through(&self) -> Option<f64> {
+        match self {
+            Operation::Profile(op) => op.through,
+            Operation::Pocket(op) => op.through,
+            Operation::Path(op) => op.through,
+            Operation::Holes(op) => op.through,
+            Operation::Vcarve(_) | Operation::Surface(_) => None,
+        }
+    }
+
+    /// None for an operation that never cuts through (a V-carve, a surface).
+    pub fn through_mut(&mut self) -> Option<&mut Option<f64>> {
+        match self {
+            Operation::Profile(op) => Some(&mut op.through),
+            Operation::Pocket(op) => Some(&mut op.through),
+            Operation::Path(op) => Some(&mut op.through),
+            Operation::Holes(op) => Some(&mut op.through),
+            Operation::Vcarve(_) | Operation::Surface(_) => None,
+        }
+    }
+
+    /// The end depth of an operation cut through stock `thickness` mm thick: the thickness
+    /// plus `through`. Nothing changes for one whose end depth is as set.
+    pub fn follow_thickness(&mut self, thickness: f64) {
+        let end = match self {
+            Operation::Profile(op) => op.through.map(|t| (&mut op.end_depth, t)),
+            Operation::Pocket(op) => op.through.map(|t| (&mut op.end_depth, t)),
+            Operation::Path(op) => op.through.map(|t| (&mut op.end_depth, t)),
+            Operation::Holes(op) => op.through.map(|t| (&mut op.end_depth, t)),
+            Operation::Vcarve(_) | Operation::Surface(_) => None,
+        };
+        if let Some((end_depth, below)) = end {
+            *end_depth = thickness + below;
+        }
+    }
+
     pub fn entry(&self) -> Entry {
         match self {
             // A profile always spirals (docs/specs/profile-always-spiral.md).
@@ -2524,6 +2572,12 @@ pub struct ProfileOp {
     /// Where the cut ends, mm down from the stock top. More than the start depth; below the
     /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
+    /// Cut through the stock: how far below the stock bottom it ends, mm. The end depth is
+    /// then the stock thickness plus this, and follows the thickness. Null: the end depth as
+    /// set.
+    // Spec: docs/specs/job-settings-layout.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub through: Option<f64>,
     /// How far the cut moves into the material that is kept, mm: positive removes more (a
     /// larger pocket, a smaller part), negative leaves material. Less than the tool radius.
     pub clearance: f64,
@@ -2733,6 +2787,12 @@ pub struct PocketOp {
     /// Where the cut ends, mm down from the stock top. More than the start depth; below the
     /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
+    /// Cut through the stock: how far below the stock bottom it ends, mm. The end depth is
+    /// then the stock thickness plus this, and follows the thickness. Null: the end depth as
+    /// set.
+    // Spec: docs/specs/job-settings-layout.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub through: Option<f64>,
     /// How far the cut moves into the material that is kept, mm: positive removes more (a
     /// larger pocket, a smaller part), negative leaves material. Less than the tool radius.
     pub clearance: f64,
@@ -2889,6 +2949,12 @@ pub struct PathOp {
     /// Where the cut ends, mm down from the stock top. More than the start depth; below the
     /// stock bottom only within `stock.max_overcut`.
     pub end_depth: f64,
+    /// Cut through the stock: how far below the stock bottom it ends, mm. The end depth is
+    /// then the stock thickness plus this, and follows the thickness. Null: the end depth as
+    /// set.
+    // Spec: docs/specs/job-settings-layout.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub through: Option<f64>,
     /// The deepest each pass goes, mm. The passes are equal, and the last one ends exactly
     /// at the end depth.
     pub step_down: f64,
@@ -2931,6 +2997,12 @@ pub struct HolesOp {
     /// Where the hole ends, mm down from the stock top. For a drill, the depth of its
     /// point.
     pub end_depth: f64,
+    /// Cut through the stock: how far below the stock bottom it ends, mm. The end depth is
+    /// then the stock thickness plus this, and follows the thickness. Null: the end depth as
+    /// set.
+    // Spec: docs/specs/job-settings-layout.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub through: Option<f64>,
     /// A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it.
     pub feed: f64,
     /// A drill's feed down, or a bore's feed straight down to the start depth, mm/min.
@@ -3769,6 +3841,28 @@ impl Job {
                         }
                     }
                 }
+            }
+        }
+        for (i, op) in self.operations.iter().enumerate() {
+            let Some(below) = op.through() else {
+                continue;
+            };
+            if !(below.is_finite() && below >= 0.0) {
+                problems.push(Problem::at(
+                    format!("operations.{i}.through"),
+                    Message::new("job-must-be-0-or-more")
+                        .arg("got", Value::LengthNumber(below, Digits::Shortest)),
+                ));
+            } else if (op.depths().1 - (self.stock.thickness + below)).abs() > DEPTH_TOL_MM {
+                // A project read or edited follows the thickness (`follow_thickness`); one
+                // that doesn't is refused rather than cut at an old depth.
+                problems.push(Problem::at(
+                    format!("operations.{i}.end_depth"),
+                    Message::new("job-through-stale").arg(
+                        "depth",
+                        Value::Length(self.stock.thickness + below, Digits::Shortest),
+                    ),
+                ));
             }
         }
         problems.extend(max_overcut_problems("stock", self.stock.max_overcut));

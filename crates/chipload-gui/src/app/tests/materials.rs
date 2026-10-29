@@ -218,12 +218,14 @@ fn material_pictures() {
     };
     let dir = PathBuf::from(dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let shots: [(&str, &str); 7] = [
+    let shots: [(&str, &str); 9] = [
         ("material-job-en", "job"),
         ("job-fit-en", "job-fit"),
         ("job-fit-de", "job-fit"),
         ("job-machine-en", "job-machine"),
         ("material-op-en", "op"),
+        ("through-en", "through"),
+        ("through-de", "through"),
         ("material-form-en", "form"),
         ("material-form-de", "form"),
     ];
@@ -244,6 +246,9 @@ fn material_pictures() {
                 assert!(app.use_material(Some(&uid)));
                 if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
                     p.feed = 1300.0;
+                    if view == "through" {
+                        p.through = Some(0.3);
+                    }
                 }
                 app.commit();
                 if view == "job-fit" {
@@ -254,7 +259,7 @@ fn material_pictures() {
                 }
                 app.focus = match view {
                     "job" | "job-fit" | "job-machine" => Focus::Job,
-                    "op" => Focus::Op(1),
+                    "op" | "through" => Focus::Op(1),
                     _ => Focus::LibraryMaterial(super::super::library_view::uid_key(&uid)),
                 };
                 app

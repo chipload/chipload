@@ -62,11 +62,18 @@ pub(super) fn has_problem_under(ui: &egui::Ui, prefix: &str) -> bool {
 /// The fields each form section holds, for the dot on its header.
 pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
     match key {
-        "op-cut" => &["start_depth", "end_depth", "clearance", "step_down"],
+        "op-cut" => &[
+            "start_depth",
+            "end_depth",
+            "through",
+            "clearance",
+            "step_down",
+        ],
         // A profile's ramp angle sits with its depths (docs/specs/profile-form.md).
         "op-profile-cut" => &[
             "start_depth",
             "end_depth",
+            "through",
             "clearance",
             "step_down",
             "ramp_angle",
@@ -75,21 +82,48 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         "op-entry" => &["entry", "lead"],
         "op-holding" => &["tabs", "skin"],
         "op-clearing" => &["stepover", "rest"],
+        // The job's sections (docs/specs/job-settings-layout.md §2): a field goes to the
+        // section with the longest prefix it is under (`section_has_problem`).
         "job-stock" => &["stock"],
+        "job-zero" => &["machine.work_zero", "stock.z_zero"],
+        "job-material" => &["stock.material"],
         "part-copies" => &["parts"],
-        "job-machine" => &["machine"],
+        "job-machine" => &["machine", "stock.max_overcut"],
         "job-tools" => &["tools"],
         "job-placement" => &["drawing"],
         _ => &[],
     }
 }
 
+/// The job's sections, whose prefixes overlap (`stock` and `stock.z_zero`).
+const JOB_SECTIONS: [&str; 4] = ["job-stock", "job-zero", "job-material", "job-machine"];
+
+/// How closely section `key` holds `field`: the length of its longest prefix the field is
+/// under, None if none.
+fn hold(key: &str, field: &str) -> Option<usize> {
+    section_fields(key)
+        .iter()
+        .filter(|prefix| under(field, prefix))
+        .map(|prefix| prefix.len())
+        .max()
+}
+
+/// Whether section `key` shows `field`: it holds it, and no other job section holds it
+/// more closely.
+fn section_shows(key: &str, field: &str) -> bool {
+    let Some(mine) = hold(key, field) else {
+        return false;
+    };
+    JOB_SECTIONS
+        .iter()
+        .filter(|other| **other != key)
+        .all(|other| hold(other, field).is_none_or(|theirs| theirs < mine))
+}
+
 /// A field of section `key` has a problem.
 pub(super) fn section_has_problem(ui: &egui::Ui, key: &str) -> bool {
     let problems = form_problems(ui);
-    section_fields(key)
-        .iter()
-        .any(|prefix| problems.0.keys().any(|field| under(field, prefix)))
+    problems.0.keys().any(|field| section_shows(key, field))
 }
 
 /// What the form calls a field: of an operation (`feed`), or of the job (`machine.safe_z`).
@@ -120,6 +154,7 @@ fn field_label(src: &impl crate::i18n::Lang, field: &str) -> String {
         "plunge_feed" => t!(src, "problems-field-plunge-feed"),
         "start_depth" => t!(src, "problems-field-start-depth"),
         "end_depth" => t!(src, "problems-field-end-depth"),
+        "through" => t!(src, "forms-through-below"),
         "step_down" => t!(src, "problems-field-step-down"),
         "stepover" => t!(src, "problems-field-stepover"),
         "clearance" => t!(src, "problems-field-clearance"),
@@ -346,5 +381,28 @@ impl ChiploadApp {
         if let Some(focus) = go {
             self.focus = focus;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::section_shows;
+
+    #[test]
+    fn a_job_field_marks_the_section_it_is_in() {
+        // docs/specs/job-settings-layout.md §2.
+        let shown = |field: &str| -> Vec<&str> {
+            super::JOB_SECTIONS
+                .into_iter()
+                .filter(|key| section_shows(key, field))
+                .collect()
+        };
+        assert_eq!(shown("stock.thickness"), ["job-stock"]);
+        assert_eq!(shown("stock.z_zero"), ["job-zero"]);
+        assert_eq!(shown("machine.work_zero.x"), ["job-zero"]);
+        assert_eq!(shown("stock.material"), ["job-material"]);
+        assert_eq!(shown("stock.max_overcut"), ["job-machine"]);
+        assert_eq!(shown("machine.safe_z"), ["job-machine"]);
+        assert!(section_shows("op-cut", "through"));
     }
 }

@@ -183,9 +183,10 @@ it's built (see `CLAUDE.md`).
   import/export of materials in the window. Then styles (docs/specs/presets.md).
   **Job settings, clearer** (docs/specs/job-settings-layout.md, 2026-10-28): four sections
   (stock, zero, material, machine), stock size "outline + margin" or "fixed, centred", a
-  default material; built. Open: §5, a *Through* box per operation that follows the
-  thickness, a proposal waiting for the user; dropping `stock.origin` bottom-left/center
-  from the format (a migration that moves the stock) if the user wants it.
+  default material; and §5 (2026-10-29), a *Through* box per profile, pocket, path and
+  holes whose end depth follows the thickness (`through`, optional, no bump); built. Open:
+  dropping `stock.origin` bottom-left/center from the format (a migration that moves the
+  stock) if the user wants it.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

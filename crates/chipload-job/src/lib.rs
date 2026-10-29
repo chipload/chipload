@@ -167,12 +167,14 @@ pub fn save_job(job: &Job, path: &Path) -> Result<(), JobError> {
     std::fs::rename(&tmp, path).map_err(failed)
 }
 
-/// Validate already-migrated data as the current version.
+/// Validate already-migrated data as the current version, the end depths of cuts through
+/// the stock following its thickness ([`Job::follow_thickness`]).
 pub fn parse_job(data: Value, path: &str) -> Result<Job, JobError> {
-    let job: Job = serde_json::from_value(data).map_err(|e| JobError::Invalid {
+    let mut job: Job = serde_json::from_value(data).map_err(|e| JobError::Invalid {
         path: path.to_string(),
         reason: foreign(e),
     })?;
+    job.follow_thickness();
     let problems = job.validate().into_iter().map(|p| p.text_message);
     match problem::semicolons(problems) {
         None => Ok(job),

@@ -40,6 +40,7 @@ job-must-be-positive = deve essere maggiore di 0, trovato { $got }
 job-must-be-positive-number = deve essere un numero positivo, trovato { $got }
 job-must-be-more-than-0 = deve essere più di 0, trovato { $got }
 job-must-be-0-or-more = deve essere 0 o più, trovato { $got }
+job-through-stale = attraversa il grezzo, quindi finisce a { $depth }
 job-stock-fit-needs-centred = un grezzo che si adatta al disegno deve essere centrato su di esso (stock.origin: drawing)
 job-must-be-1-or-more = deve essere 1 o più
 job-must-be-at-least-1 = deve essere almeno 1

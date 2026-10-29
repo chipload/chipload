@@ -2,7 +2,7 @@
 //! The side panels' contents: the selected shape's editor, the properties panel and the
 //! start screen. The Browser is in browser.rs.
 
-use super::forms::{JobRequest, OpFormRequest, ToolChoice};
+use super::forms::{JobRequest, OpFormRequest, StockDepths, ToolChoice};
 
 use super::*;
 use chipload_job::find_tool;
@@ -176,9 +176,12 @@ impl ChiploadApp {
                     cutting,
                     materials,
                 };
-                let through = edit.settings.stock.thickness + edit.settings.stock.max_overcut;
+                let stock = StockDepths {
+                    thickness: edit.settings.stock.thickness,
+                    max_overcut: edit.settings.stock.max_overcut,
+                };
                 if let Some(entry) = edit.ops.get_mut(i) {
-                    op_request = op_form(ui, i, entry, contours, choice, through);
+                    op_request = op_form(ui, i, entry, contours, choice, stock);
                 }
             }
         });

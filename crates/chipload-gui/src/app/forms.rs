@@ -24,39 +24,70 @@ pub(super) fn mm(value: &mut f64) -> crate::units::Field<'_> {
         .range(0.0..=100_000.0)
 }
 
-/// Start depth, end depth and clearance (docs/specs/depths-and-clearance.md). `through`:
-/// the end depth that cuts through the stock (its thickness plus the allowed overcut).
+/// The stock's thickness and how far below it a cut may go (`stock.max_overcut`), for an
+/// end depth that cuts through the stock.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct StockDepths {
+    pub thickness: f64,
+    pub max_overcut: f64,
+}
+
+/// An end depth with its Through box (docs/specs/job-settings-layout.md §5): ticked, the
+/// depth is the stock's thickness plus how far below it the cut goes, shown but not typed.
+fn end_depth_rows(
+    ui: &mut egui::Ui,
+    end: &mut f64,
+    through: &mut Option<f64>,
+    stock: StockDepths,
+    hover: String,
+) {
+    ui.label(t!(ui, "forms-end-depth")).on_hover_text(hover);
+    wrapped_cell(ui, |ui| {
+        if let Some(below) = through {
+            *end = stock.thickness + *below;
+        }
+        flag(ui.add_enabled(through.is_none(), mm(end)), ui, "end_depth");
+        let mut on = through.is_some();
+        let check = ui
+            .checkbox(&mut on, t!(ui, "forms-through"))
+            .on_hover_text(t!(ui, "forms-through-hover"));
+        if flag(check, ui, "through").changed() {
+            *through = on.then_some(stock.max_overcut);
+        }
+    });
+    ui.end_row();
+    if let Some(below) = through {
+        let units = crate::units::display(ui.ctx());
+        let len_unit = chipload_pipeline::units::length_unit(units);
+        ui.label(t!(ui, "forms-through-below")).on_hover_text(t!(
+            ui,
+            "forms-through-below-hover",
+            depth = format!("{} {len_unit}", len_in(units, stock.max_overcut))
+        ));
+        flag(ui.add(mm(below)), ui, "through");
+        *end = stock.thickness + *below;
+        ui.end_row();
+    }
+}
+
+/// Start depth, end depth (with its Through box) and clearance
+/// (docs/specs/depths-and-clearance.md).
+#[allow(clippy::too_many_arguments)]
 fn depth_rows(
     ui: &mut egui::Ui,
     start: &mut f64,
     end: &mut f64,
+    through: &mut Option<f64>,
     clearance: &mut f64,
     can_clear: bool,
-    through: f64,
+    stock: StockDepths,
 ) {
-    let units = crate::units::display(ui.ctx());
-    let len_unit = chipload_pipeline::units::length_unit(units);
     ui.label(t!(ui, "forms-start-depth"))
         .on_hover_text(t!(ui, "forms-start-depth-hover"));
     flag(ui.add(mm(start)), ui, "start_depth");
     ui.end_row();
-    ui.label(t!(ui, "forms-end-depth"))
-        .on_hover_text(t!(ui, "forms-end-depth-hover"));
-    wrapped_cell(ui, |ui| {
-        flag(ui.add(mm(end)), ui, "end_depth");
-        if ui
-            .small_button(t!(ui, "forms-through"))
-            .on_hover_text(t!(
-                ui,
-                "forms-through-hover",
-                depth = format!("{} {len_unit}", len_in(units, through))
-            ))
-            .clicked()
-        {
-            *end = through;
-        }
-    });
-    ui.end_row();
+    let hover = t!(ui, "forms-end-depth-hover");
+    end_depth_rows(ui, end, through, stock, hover);
     ui.label(t!(ui, "forms-oversize")).on_hover_text(t!(
         ui,
         "units-text-oversize-hover",
@@ -354,14 +385,14 @@ pub(super) struct ToolChoice<'a> {
 }
 
 /// The selected operation's fields, in sections.
-/// `through`: the end depth that cuts through the stock, for the Through button.
+/// `stock`: for an end depth that cuts through the stock.
 pub(super) fn op_form(
     ui: &mut egui::Ui,
     index: usize,
     entry: &mut crate::editor::EditOp,
     contours: &[Contour],
     choice: ToolChoice<'_>,
-    through: f64,
+    stock: StockDepths,
 ) -> OpFormRequest {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
@@ -499,9 +530,10 @@ pub(super) fn op_form(
                         ui,
                         &mut p.start_depth,
                         &mut p.end_depth,
+                        &mut p.through,
                         &mut p.clearance,
                         can_clear,
-                        through,
+                        stock,
                     );
                     ui.label(t!(ui, "forms-step-down"));
                     flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
@@ -532,9 +564,10 @@ pub(super) fn op_form(
                     ui,
                     &mut p.start_depth,
                     &mut p.end_depth,
+                    &mut p.through,
                     &mut p.clearance,
                     true,
-                    through,
+                    stock,
                 );
                 ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
@@ -626,10 +659,8 @@ pub(super) fn op_form(
                     .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut p.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label(t!(ui, "forms-end-depth"))
-                    .on_hover_text(t!(ui, "forms-end-depth-hover"));
-                flag(ui.add(mm(&mut p.end_depth)), ui, "end_depth");
-                ui.end_row();
+                let hover = t!(ui, "forms-end-depth-hover");
+                end_depth_rows(ui, &mut p.end_depth, &mut p.through, stock, hover);
                 ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
@@ -641,7 +672,7 @@ pub(super) fn op_form(
                 entry_rows(ui, index, &mut p.entry, None);
             });
         }
-        Operation::Holes(h) => holes_sections(ui, index, h, op_tool),
+        Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
                 ui,
@@ -838,25 +869,27 @@ fn material_rows(
         }
     };
     ui.end_row();
+    // A row each: a grid cell that wraps overlaps the row under it.
+    if let Some(c) = use_values {
+        ui.label("");
+        if ui
+            .button(t!(ui, "forms-material-use", name = name))
+            .on_hover_text(t!(ui, "forms-material-use-hover"))
+            .clicked()
+        {
+            op.apply_cutting(&c);
+        }
+        ui.end_row();
+    }
     if save {
         ui.label("");
-        ui.horizontal_wrapped(|ui| {
-            if let Some(c) = use_values
-                && ui
-                    .button(t!(ui, "forms-material-use", name = name))
-                    .on_hover_text(t!(ui, "forms-material-use-hover"))
-                    .clicked()
-            {
-                op.apply_cutting(&c);
-            }
-            if ui
-                .button(t!(ui, "forms-material-save", name = name))
-                .on_hover_text(t!(ui, "forms-material-save-hover"))
-                .clicked()
-            {
-                request.save_to_material = true;
-            }
-        });
+        if ui
+            .button(t!(ui, "forms-material-save", name = name))
+            .on_hover_text(t!(ui, "forms-material-save-hover"))
+            .clicked()
+        {
+            request.save_to_material = true;
+        }
         ui.end_row();
     }
     *values
@@ -1127,7 +1160,13 @@ fn corner_rows(
 
 /// A Holes operation's cut, method and feeds (docs/specs/holes.md §7): a drill shows its
 /// pecks and plunge feed, an endmill the helix.
-fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option<&Tool>) {
+fn holes_sections(
+    ui: &mut egui::Ui,
+    index: usize,
+    h: &mut HolesOp,
+    tool: Option<&Tool>,
+    stock: StockDepths,
+) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
     let feed_unit = chipload_pipeline::units::feed_unit(units);
@@ -1163,13 +1202,12 @@ fn holes_sections(ui: &mut egui::Ui, index: usize, h: &mut HolesOp, tool: Option
         flag(ui.add(mm(&mut h.start_depth)), ui, "start_depth");
         ui.end_row();
         let drill = matches!(h.method, HoleMethod::Drill { .. });
-        ui.label(t!(ui, "forms-end-depth")).on_hover_text(if drill {
+        let hover = if drill {
             t!(ui, "forms-holes-drill-end-depth-hover")
         } else {
             t!(ui, "forms-end-depth-hover")
-        });
-        flag(ui.add(mm(&mut h.end_depth)), ui, "end_depth");
-        ui.end_row();
+        };
+        end_depth_rows(ui, &mut h.end_depth, &mut h.through, stock, hover);
         match &mut h.method {
             HoleMethod::Drill { peck } => {
                 ui.label(t!(ui, "forms-pecks"))
