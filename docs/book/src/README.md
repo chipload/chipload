@@ -4,8 +4,9 @@
 
 Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.
 
-- **In:** DXF drawings, text in built-in fonts, pictures traced into shapes, and simple
-  shapes drawn in Chipload (circles, rectangles, polylines).
+- **In:** DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, and
+  shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
+  offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.
 - **Out:** G-code for your controller, in mm or inches, through a post-processor: GRBL,
   LinuxCNC and Mach3/4 are built in, and you can write your own.
 - **Operations:**
@@ -13,7 +14,8 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
   - ring pockets, with helix entry and rest machining;
   - V-carving;
   - follow path;
-  - drilled and helically bored holes.
+  - drilled and helically bored holes;
+  - surfacing the stock.
 - **Checked:** every program passes an independent checker before Chipload writes it. The
   checker is separate code that reads the G-code back and refuses rapids through the stock,
   cuts outside the machine, and other mistakes.
@@ -24,7 +26,8 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
 - **mm or inches:** the app shows lengths in either, and the G-code can be in either.
 
 > **Testers with real machines wanted.** Chipload's programs pass its checker and many
-> tests, but they haven't been run on a real controller yet. If you have a CNC router or
+> tests, and they cut wood on a GRBL router (a Shapeoko), but they haven't run on LinuxCNC
+> or Mach3/4 yet, nor in inches. If you have a CNC router or
 > mill, please try it, starting with an air cut, and tell us how it went in an
 > [issue](https://github.com/chipload/chipload/issues), also when it worked. The
 > [README](https://github.com/chipload/chipload#testing-on-your-machine) says what to try and

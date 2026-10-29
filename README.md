@@ -1,6 +1,7 @@
 <h1><img src="packaging/brand/chipload-wordmark.svg" alt="Chipload" height="72"></h1>
 
-2.5D CAM for CNC routers and mills: drawings in (DXF), checked G-code out. Free software
+2.5D CAM for CNC routers and mills: drawings in (DXF, SVG or drawn in the app), checked
+G-code out. Free software
 for Linux, Windows and macOS, written in Rust.
 
 **[User guide](https://chipload.github.io/chipload/)** · **[Download](https://github.com/chipload/chipload/releases)**
@@ -9,10 +10,10 @@ for Linux, Windows and macOS, written in Rust.
 from a traced picture and an outline held by tabs, its toolpaths over the simulated stock in
 3D](docs/book/src/images/showcase.png)
 
-> **Testers with real machines wanted.** Chipload's programs pass its own checker, but they
-> haven't yet run on a real controller (GRBL, LinuxCNC, Mach3/4), nor in inches. If you have
-> a CNC router or mill, please try it, starting with an air cut, and
-> [tell us how it went](#testing-on-your-machine).
+> **Testers with real machines wanted.** Chipload's programs pass its own checker, and they
+> cut wood on a GRBL router (a Shapeoko), but they haven't yet run on LinuxCNC or Mach3/4,
+> nor in inches. If you have a CNC router or mill, please try it, starting with an air cut,
+> and [tell us how it went](#testing-on-your-machine).
 
 ## Highlights
 
@@ -23,11 +24,16 @@ from a traced picture and an outline held by tabs, its toolpaths over the simula
   or bored) and surfacing.
 - **See it before you cut:** a material-removal simulation in 3D, playback, cycle time,
   chip load and a setup sheet for the operator.
-- **Drawings:** several DXFs, text in built-in fonts, traced pictures and shapes drawn in
-  the app; a new version of a DXF keeps the operations.
-- **A sheet of parts:** several parts with their own operations and grids of copies.
-- **Your tools and machines** in a library, copied into each project, so it cuts the same
-  on any computer.
+- **Drawings:** several DXFs and SVGs, text in built-in fonts, traced pictures, and shapes
+  drawn and edited in the app (snapping, offset, fillet, trim, union and subtract, arrays,
+  construction lines); a new version of a DXF keeps the operations, and the drawing exports
+  as a DXF.
+- **A sheet of parts:** several parts with their own operations and grids of copies; export
+  the whole sheet or one part.
+- **The work zero where you want it:** a stock corner, its centre, the drawing origin or any
+  point, dragged in the view.
+- **Your tools, materials and machines** in a library, with your own feeds per tool and
+  material, copied into each project, so it cuts the same on any computer.
 - **Any controller:** GRBL, LinuxCNC and Mach3/4 posts with arcs, in mm or inches. A post is
   a template and a small config, easy to copy and change.
 - **Scriptable:** every feature on the command line, `--json` everywhere, and `chipload mcp`
