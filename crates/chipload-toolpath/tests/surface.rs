@@ -4,6 +4,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_core::Point;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_toolpath::model::{Move, MoveKind};
 use chipload_toolpath::surface::{
     SIDE_OVERLAP_DIAMETERS, SurfaceCut, pass_positions, surface_moves,
@@ -127,7 +128,9 @@ proptest! {
         let pass_z: Vec<f64> = (1..=depths).map(|k| -0.5 * k as f64).collect();
         let (moves, _) = surface_moves(&cut(stock, radius, stepover), &pass_z, start);
         let at = positions(&moves);
-        let along_x = w >= h;
+        // Along the longer side; a square, within the chaining tolerance, along X (as
+        // surface_moves: CI found a stock 0.00012 mm taller than wide, run along X).
+        let along_x = w >= h - CHAIN_TOL_MM;
         let tol = 1e-6;
         for (k, (m, (x, y), _)) in at.iter().enumerate() {
             if m.kind != MoveKind::Feed {
