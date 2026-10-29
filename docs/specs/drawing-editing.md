@@ -114,8 +114,15 @@ chipload shape break P ID --at X,Y      # split at the point
   within 10 000 mm; refused when nothing is ahead.
 - **Break:** an open polyline becomes two at the point; a closed one opens there. The
   point is the nearest on the shape to `--at`.
-- **GUI:** Trim (X): click the pieces to remove, one after the other, each a step; Esc
-  ends. Extend: click near the end to extend. Break: click the point.
+- **Joining after a trim** (the user, 2026-10-29: a slot trimmed by a line stayed two
+  polylines, the line still movable on its own): what is left joins, in the same step, the
+  drawn open polylines on its layer whose ends meet its ends within the chaining
+  tolerance, and those meeting these (`drawing_edit::joined_where_ends_meet`, through the
+  Join command's `apply_join`; the lowest id is kept). A shape whose own ends meet after
+  the trim closes. Never construction geometry; nothing joins where three ends meet.
+- **GUI:** Trim (X): click the pieces to remove, one after the other, each a step; a click
+  on empty space deselects, and with nothing selected ends the tool, as Esc does
+  (2026-10-29). Extend: click near the end to extend. Break: click the point.
 - *Implemented:* the tools work on the drawn shape under the cursor (of a contour that
   joins several, the nearest: `drawing_edit::nearest_drawn`), with no selection first.
   The preview shows the piece a trim removes, the extended shape, or the break point

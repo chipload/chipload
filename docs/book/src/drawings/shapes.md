@@ -92,10 +92,14 @@ DXF first, [Explode](several.md)).
   need to select it first. Trim shows the piece it will remove before you click, Extend
   the shape grown to the next one ahead (click near the end to extend), Break a mark where
   it will split. Each click is one step, and the changed shape is selected; a click on
-  empty space deselects it, and Esc ends the tool. On the command line:
+  empty space deselects it, another ends the tool, as Esc does. On the command line:
   - `chipload shape trim P ID --at X,Y` removes the piece of a drawn shape at that point,
     between the nearest places where shown shapes cross it: an open shape cut in its
-    middle becomes two, a closed one opens, a circle becomes an arc.
+    middle becomes two, a closed one opens, a circle becomes an arc. What is left joins
+    the drawn open shapes on its layer whose ends meet its own into one shape (closed when
+    it comes round): a slot trimmed in half by a line, and the line's ends trimmed, is one
+    closed shape. Construction geometry never joins, and nothing joins where three ends
+    meet.
   - `chipload shape extend P ID --end start|end` lengthens a straight end along itself
     to the next shape ahead.
   - `chipload shape break P ID --at X,Y` splits an open shape there, or opens a closed

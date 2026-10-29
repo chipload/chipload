@@ -378,8 +378,13 @@ impl ChiploadApp {
                     self.apply_on_shape(tool, id, at);
                 } else if picked.is_none() {
                     // Empty space clears the selection, as without a tool (the user,
-                    // 2026-10-29: the trimmed shape stayed selected).
-                    self.click(None, toggle);
+                    // 2026-10-29: the trimmed shape stayed selected); with nothing
+                    // selected it ends the tool, as Esc does (the user, the same day).
+                    if self.selection == CanvasSelection::Nothing {
+                        self.cancel_modify();
+                    } else {
+                        self.click(None, toggle);
+                    }
                 }
             }
             Some(ModifyTool::Subtract) => {
@@ -425,6 +430,13 @@ impl ChiploadApp {
                 }
                 let mut ids = changed.to_vec();
                 ids.extend(&edited.new_ids);
+                // Pieces joined after a trim: the joined shape, the others gone.
+                if let Some(kept) = edited.joined {
+                    ids.retain(|id| edit.settings.drawing.shapes.iter().any(|s| s.id == *id));
+                    if !ids.contains(&kept) {
+                        ids.push(kept);
+                    }
+                }
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
                 let units = self.units.into();
@@ -706,6 +718,7 @@ impl ChiploadApp {
             job,
             new_ids: Vec::new(),
             notes: Vec::new(),
+            joined: None,
         });
         self.take_edit(result, &ids)
     }
@@ -802,6 +815,7 @@ impl ChiploadApp {
             job,
             new_ids: Vec::new(),
             notes,
+            joined: None,
         });
         self.take_edit(result, ids)
     }

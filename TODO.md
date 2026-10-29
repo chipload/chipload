@@ -185,7 +185,9 @@ it's built (see `CLAUDE.md`).
   or start point no longer moves Properties to the shape selection. A tab or start dropped where the
   planner refuses it goes back with the reason, the markers staying (no Reset needed). The chip load
   has its own row under the feed; a project's tool shows its flutes in Properties. While trimming, extending or
-  breaking, a click on empty space deselects.
+  breaking, a click on empty space deselects, and with nothing selected ends the tool; a trim
+  joins what is left with drawn shapes whose ends meet it (a slot trimmed by a line is one closed
+  shape).
   CI runs on every push to main again since 2026-10-29 (by hand only from 2026-10-27, which let
   platform-dependent pocket G-code through to the 0.28.0 release build).
 

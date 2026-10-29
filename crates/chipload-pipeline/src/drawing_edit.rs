@@ -3,6 +3,7 @@
 //! `chipload-draw`'s; here shapes become its chains and its results become shapes, keeping
 //! a shape's kind where the result is exactly that kind, with ids as the spec says.
 
+use std::collections::BTreeSet;
 use std::f64::consts::PI;
 
 use chipload_core::tolerances::CHAIN_TOL_MM;
@@ -30,6 +31,9 @@ pub struct Edited {
     pub job: Job,
     pub new_ids: Vec<u64>,
     pub notes: Vec<Message>,
+    /// After a trim: the shape its pieces joined into with shapes whose ends meet theirs
+    /// (the others are gone).
+    pub joined: Option<u64>,
 }
 
 /// The drawn shape `id`, refused when it is imported.
@@ -173,6 +177,7 @@ pub fn offset_shapes(
         job: out,
         new_ids,
         notes,
+        joined: None,
     })
 }
 
@@ -490,6 +495,7 @@ fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edite
         job: out,
         new_ids,
         notes,
+        joined: None,
     })
 }
 
@@ -500,7 +506,125 @@ pub fn trim_shape(job: &Job, id: u64, at: (f64, f64)) -> Result<Edited, Pipeline
     let shape = drawn(job, id)?.clone();
     let pieces = trim::trim(&chain_of(&shape), &shown_cutters(job), at)
         .map_err(|why| trim_refusal(id, why))?;
-    replace_by_pieces(job, &shape, &pieces)
+    let edited = replace_by_pieces(job, &shape, &pieces)?;
+    joined_where_ends_meet(edited, &shape)
+}
+
+/// The ends of an open polyline.
+fn open_ends(geometry: &Geometry) -> Option<[[f64; 2]; 2]> {
+    match geometry {
+        Geometry::Polyline {
+            closed: false,
+            points,
+            ..
+        } if points.len() >= 2 => Some([points[0], points[points.len() - 1]]),
+        _ => None,
+    }
+}
+
+/// After a trim of `shape`: its pieces joined with the drawn open polylines on its layer
+/// whose ends meet theirs (within the chaining tolerance), and with those meeting these, as
+/// one shape (the user, 2026-10-29: a slot trimmed by a line stayed two polylines). Never
+/// construction geometry; nothing joins where three ends meet.
+fn joined_where_ends_meet(edited: Edited, shape: &Shape) -> Result<Edited, PipelineError> {
+    let layer = shape.layer.to_lowercase();
+    let candidates: Vec<(u64, [[f64; 2]; 2])> = edited
+        .job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.is_drawn() && !s.construction && s.layer.to_lowercase() == layer)
+        .filter_map(|s| open_ends(&s.geometry).map(|ends| (s.id, ends)))
+        .collect();
+    let meets = |a: &[[f64; 2]; 2], b: &[[f64; 2]; 2]| {
+        a.iter().any(|p| {
+            b.iter().any(|q| {
+                chipload_core::primitives::distance((p[0], p[1]), (q[0], q[1])) <= CHAIN_TOL_MM
+            })
+        })
+    };
+    let mut group: BTreeSet<u64> = std::iter::once(shape.id)
+        .chain(edited.new_ids.iter().copied())
+        .filter(|id| candidates.iter().any(|c| c.0 == *id))
+        .collect();
+    loop {
+        let more: Vec<u64> = candidates
+            .iter()
+            .filter(|c| !group.contains(&c.0))
+            .filter(|c| {
+                candidates
+                    .iter()
+                    .filter(|g| group.contains(&g.0))
+                    .any(|g| meets(&g.1, &c.1))
+            })
+            .map(|c| c.0)
+            .collect();
+        if more.is_empty() {
+            break;
+        }
+        group.extend(more);
+    }
+    if group.len() < 2 {
+        // One piece whose own ends meet (a shape joined by an earlier trim, its last
+        // protruding end trimmed now) closes.
+        // Left open if closing would make no valid shape.
+        let mut edited = edited;
+        let mut job = edited.job.clone();
+        if group.contains(&shape.id)
+            && close_if_ends_meet(&mut job, shape.id)
+            && job.drawing.validate().is_empty()
+        {
+            edited.job = job;
+            edited.joined = Some(shape.id);
+        }
+        return Ok(edited);
+    }
+    let (job, report) = crate::explode::apply_join(&edited.job, &group, CHAIN_TOL_MM);
+    let Some(&kept) = report.shapes.first() else {
+        return Ok(edited);
+    };
+    crate::refuse_problems(&job.drawing.validate())?;
+    let mut notes = edited.notes;
+    notes.extend(report.messages.into_iter().take(1));
+    Ok(Edited {
+        job,
+        new_ids: edited
+            .new_ids
+            .into_iter()
+            .filter(|id| !report.removed.contains(id))
+            .collect(),
+        notes,
+        joined: Some(kept),
+    })
+}
+
+/// Close drawn open polyline `id` when its ends meet (within the chaining tolerance): its
+/// last point goes, the last segment's bulge closing it. Whether it did.
+fn close_if_ends_meet(job: &mut Job, id: u64) -> bool {
+    let Some(shape) = job.drawing.shapes.iter_mut().find(|s| s.id == id) else {
+        return false;
+    };
+    let Geometry::Polyline {
+        closed,
+        points,
+        bulges,
+    } = &mut shape.geometry
+    else {
+        return false;
+    };
+    let n = points.len();
+    if *closed || n < 3 {
+        return false;
+    }
+    let (first, last) = (points[0], points[n - 1]);
+    if chipload_core::primitives::distance((first[0], first[1]), (last[0], last[1])) > CHAIN_TOL_MM
+    {
+        return false;
+    }
+    points.pop();
+    bulges.truncate(n - 1);
+    *closed = true;
+    true
 }
 
 /// The piece a trim of drawn shape `id` at `at` would remove, for a preview.
@@ -527,6 +651,7 @@ pub fn extend_shape(job: &Job, id: u64, end: End) -> Result<Edited, PipelineErro
         job: reshape(job, id, polyline_of(&longer))?,
         new_ids: Vec::new(),
         notes: Vec::new(),
+        joined: None,
     })
 }
 
@@ -633,6 +758,7 @@ pub fn combine_shapes(job: &Job, op: Combine, ids: &[u64]) -> Result<Edited, Pip
         job: out,
         new_ids,
         notes,
+        joined: None,
     })
 }
 
@@ -802,6 +928,7 @@ fn copies(
         job: out,
         new_ids,
         notes,
+        joined: None,
     })
 }
 
@@ -1049,6 +1176,82 @@ mod tests {
         assert!(points[1][0] > 100.0 && points[1][0] < 125.0);
         let broken = break_shape(&job, id, (60.0, 80.0)).unwrap();
         assert_eq!(broken.new_ids.len(), 1);
+    }
+
+    /// A slot cut by a line (the user, 2026-10-29): half the slot trimmed, then the line's
+    /// two ends; the half slot and the line between its ends become one closed polyline.
+    #[test]
+    fn a_trim_joins_pieces_whose_ends_meet() {
+        let slot = Geometry::Rectangle {
+            center: [300.0, 100.0],
+            length: 80.0,
+            width: 20.0,
+            angle: 0.0,
+            corner_radius: 10.0,
+        };
+        let line = Geometry::straight_polyline(false, vec![[300.0, 70.0], [300.0, 130.0]]);
+        let (job, s) = add_shape(&drawn_part(), "cut", slot).unwrap();
+        let (job, l) = add_shape(&job, "cut", line.clone()).unwrap();
+        let half = trim_shape(&job, s, (340.0, 100.0)).unwrap();
+        assert_eq!(half.joined, None, "the line's ends still stick out");
+        // The line's lower end goes: what is left of it meets the half slot at (300, 90).
+        let one = trim_shape(&half.job, l, (300.0, 75.0)).unwrap();
+        assert_eq!(one.joined, Some(s));
+        assert!(!ids(&one.job).contains(&l));
+        assert!(matches!(
+            geometry(&one.job, s),
+            Geometry::Polyline { closed: false, .. }
+        ));
+        // Its upper end goes: the shape's own ends meet, and it closes.
+        let closed = trim_shape(&one.job, s, (300.0, 125.0)).unwrap();
+        assert_eq!(closed.joined, Some(s));
+        let Geometry::Polyline {
+            closed: true,
+            points,
+            ..
+        } = geometry(&closed.job, s)
+        else {
+            panic!("{:?}", geometry(&closed.job, s))
+        };
+        assert_eq!(points.len(), 5);
+
+        // Only shapes on the trimmed shape's layer, never construction geometry, and
+        // nothing that merely touches elsewhere.
+        for (layer, construction) in [("other", false), ("cut", true)] {
+            let (job, s) = add_shape(&drawn_part(), "cut", slot_again()).unwrap();
+            let (mut job, l) = add_shape(&job, layer, line.clone()).unwrap();
+            if let Some(shape) = job.drawing.shapes.iter_mut().find(|x| x.id == l) {
+                shape.construction = construction;
+            }
+            let half = trim_shape(&job, s, (340.0, 100.0)).unwrap();
+            let cut = trim_shape(&half.job, l, (300.0, 75.0)).unwrap();
+            assert_eq!(cut.joined, None, "{layer} {construction}");
+            assert!(ids(&cut.job).contains(&l) && ids(&cut.job).contains(&s));
+        }
+        let (job, a) = add_shape(
+            &job,
+            "cut",
+            Geometry::straight_polyline(false, vec![[0.0, 0.0], [10.0, 0.0]]),
+        )
+        .unwrap();
+        let (job, b) = add_shape(
+            &job,
+            "cut",
+            Geometry::straight_polyline(false, vec![[10.0, 0.0], [10.0, 10.0]]),
+        )
+        .unwrap();
+        let half = trim_shape(&job, s, (340.0, 100.0)).unwrap();
+        assert!(ids(&half.job).contains(&a) && ids(&half.job).contains(&b));
+    }
+
+    fn slot_again() -> Geometry {
+        Geometry::Rectangle {
+            center: [300.0, 100.0],
+            length: 80.0,
+            width: 20.0,
+            angle: 0.0,
+            corner_radius: 10.0,
+        }
     }
 
     fn ids(job: &Job) -> Vec<u64> {

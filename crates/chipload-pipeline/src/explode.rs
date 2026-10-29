@@ -302,7 +302,7 @@ pub fn join_shapes(job: &Job, ids: &[u64], gap: f64) -> Result<(Job, ShapesRepor
 
 /// Join the shapes `chosen` of `job`: the kept shapes take the joined geometry, the others
 /// go, and selectors naming them name the kept one.
-fn apply_join(job: &Job, chosen: &BTreeSet<u64>, gap: f64) -> (Job, ShapesReport) {
+pub(crate) fn apply_join(job: &Job, chosen: &BTreeSet<u64>, gap: f64) -> (Job, ShapesReport) {
     let pieces: Vec<JoinPiece> = job
         .drawing
         .shapes
