@@ -140,6 +140,9 @@ fn clicking_an_operations_number_on_the_toolpath_opens_it() {
     let mut harness = harness("en", WINDOW);
     assert!(harness.state_mut().generate_and_wait());
     harness.state_mut().focus = Focus::Job;
+    // Folded: in this narrow canvas the open legend stands on the navigation bar, over
+    // the number.
+    harness.state_mut().legend_open = false;
     harness.run_steps(3);
     let labels = harness
         .state()
