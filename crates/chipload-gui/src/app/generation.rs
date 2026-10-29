@@ -178,7 +178,7 @@ impl ChiploadApp {
     }
 
     /// Wait for the run in progress and apply its result (tests, screenshots).
-    #[cfg(any(test, feature = "screenshots"))]
+    #[cfg(test)]
     pub fn wait_for_generation(&mut self) -> bool {
         let Some(generation) = self.generation.take() else {
             return false;
@@ -191,7 +191,7 @@ impl ChiploadApp {
     }
 
     /// Generate and wait for the result (tests, screenshots).
-    #[cfg(any(test, feature = "screenshots"))]
+    #[cfg(test)]
     pub fn generate_and_wait(&mut self) -> bool {
         self.generate() && self.wait_for_generation()
     }

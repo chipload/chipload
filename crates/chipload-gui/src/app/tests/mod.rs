@@ -27,6 +27,7 @@ mod posts;
 mod profile_form;
 mod properties_sources;
 mod recovery_copies;
+mod screenshots;
 mod select_drag;
 mod tab_markers;
 mod texts;

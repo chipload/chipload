@@ -24,7 +24,7 @@ publish it.
 5. Download and try the AppImages, the Windows `.exe` files and the macOS app, edit the notes,
    then **Publish**.
 6. The user guide (docs/specs/user-guide.md §5): renew its screenshots **before tagging**
-   (needs a display) and commit them if they changed; the workflow builds the zip from the
+   (headless, no display needed) and commit them if they changed; the workflow builds the zip from the
    tag:
 
        packaging/docs/screenshots.sh         # docs/book/src/images/*.png

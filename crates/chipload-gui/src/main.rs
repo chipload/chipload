@@ -36,17 +36,7 @@ fn main() -> ExitCode {
     // A file on the command line: a .chipload project, an older .json job, or a .dxf to import.
     let file: Option<PathBuf> = std::env::args_os().nth(1).map(PathBuf::from);
 
-    #[allow(unused_mut)]
-    let mut size = [1200.0, 800.0];
-    // A larger window for the README's picture (packaging/docs/screenshots.sh).
-    #[cfg(feature = "screenshots")]
-    if let Some((w, h)) = std::env::var("CHIPLOAD_SCREENSHOT_SIZE")
-        .ok()
-        .and_then(|s| s.split_once('x').map(|(w, h)| (w.parse(), h.parse())))
-        .and_then(|(w, h)| Some((w.ok()?, h.ok()?)))
-    {
-        size = [w, h];
-    }
+    let size = [1200.0, 800.0];
     let options = eframe::NativeOptions {
         viewport: window_icon(
             egui::ViewportBuilder::default()
@@ -65,11 +55,6 @@ fn main() -> ExitCode {
             app.set_settings_dir(chipload_pipeline::library::settings_dir());
             if let Some(file) = &file {
                 app.open(file);
-            }
-            // The user guide's screenshots (packaging/docs/screenshots.sh).
-            #[cfg(feature = "screenshots")]
-            if let Ok(steps) = std::env::var("CHIPLOAD_SCREENSHOT_SETUP") {
-                app.screenshot_setup(&cc.egui_ctx, &steps);
             }
             Ok(Box::new(app))
         }),

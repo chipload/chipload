@@ -7,10 +7,10 @@ Built 2026-10-13. As built:
   (`chipload …`), every operation type (`"type": "…"`) and every operation field (in
   backticks) appears on a written page. Each operation page has an "In the file" table
   mapping its settings to their fields.
-- §3: screenshots come from the GUI built with the `screenshots` feature (eframe's
-  first-frame screenshot, plus a setup read from `CHIPLOAD_SCREENSHOT_SETUP`), which release
-  builds don't have. `packaging/docs/screenshots.sh` makes three: the toolpath, the
-  simulation in 3D, and playback half way.
+- §3: screenshots come from the GUI's test `screenshots`, rendered headless with
+  egui_kittest and wgpu (since 2026-10-29; before, eframe's first-frame screenshot in a
+  build with a `screenshots` feature, which needed a display). Each opens a corpus project
+  and sets up a view (`screenshot_setup`). `packaging/docs/screenshots.sh` runs it.
 - §4: the generated references take their descriptions from the code's doc comments, some of
   which are written for developers ("None: …", spec references) or missing. Rewriting them
   for users is a follow-up (TODO).
@@ -81,10 +81,10 @@ Written for an operator who knows CNC but not Chipload:
     means.
 
 Pictures: a few GUI screenshots where words don't do it (the canvas, the playback slider).
-`packaging/docs/screenshots.sh` makes them, using the GUI's existing screenshot feature
-(decision 3). It also makes the README's picture (`images/showcase.png`, added
-2026-10-16): `packaging/docs/showcase.chipload` in 3D with its simulated stock, in a larger
-window (`CHIPLOAD_SCREENSHOT_SIZE`), the report folded and the pocket's form open.
+`packaging/docs/screenshots.sh` makes them, headless (decision 3). It also makes the
+README's picture (`images/showcase.png`, added 2026-10-16): `packaging/docs/showcase.chipload`
+in 3D with its simulated stock, in a larger window (1600 × 950), the report folded and the
+outline's form open.
 
 ## 4. Kept up to date
 

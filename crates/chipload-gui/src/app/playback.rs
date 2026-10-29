@@ -315,13 +315,13 @@ impl ChiploadApp {
     }
 
     /// Set up what the user guide's screenshots show (docs/specs/user-guide.md §3), from
-    /// `CHIPLOAD_SCREENSHOT_SETUP`: comma-separated steps `generate`, `simulation`, `3d`,
+    /// comma-separated steps `generate`, `simulation`, `3d`,
     /// `half` (the playback half way), `notoolpath` (View > Show toolpath off), `image` (the
     /// first image's window, traced) and `drawing` (the last DXF hidden, the first one's
     /// placement window open), `select` (the first drawn shape selected, with operation 1
     /// open), `part` (the last part's properties), `explode` (the first DXF's explode dialog,
-    /// joining ticked). Only in builds made for screenshots.
-    #[cfg(feature = "screenshots")]
+    /// joining ticked). Run by the test `screenshots` (packaging/docs/screenshots.sh).
+    #[cfg(test)]
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
         // The legend would cover part of the canvas.

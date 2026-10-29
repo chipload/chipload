@@ -127,7 +127,7 @@ impl ChiploadApp {
     }
 
     /// Wait for the simulation in progress and show it (tests, screenshots).
-    #[cfg(any(test, feature = "screenshots"))]
+    #[cfg(test)]
     pub fn wait_for_simulation(&mut self, ctx: &egui::Context) -> bool {
         let Some(run) = self.sim.run.take() else {
             return false;

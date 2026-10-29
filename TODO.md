@@ -137,7 +137,7 @@ it's built (see `CLAUDE.md`).
   `chipload-draw` crate with more snaps; keys, typed values and angle steps; box
   selection and moving with the mouse; arc and slot tools; polygons (schema 30); lengths
   on the canvas. Not tried by hand in the running app beyond screenshots; the guide's
-  screenshots show the old ribbon until `packaging/docs/screenshots.sh` runs again.
+  screenshots renewed for 0.28.0.
   Phase 2, editing (docs/specs/drawing-editing.md), **done 2026-10-28, not pushed**:
   offset, fillet and chamfer, trim, extend and break, union, subtract and intersect,
   grid and polar arrays, align and distribute, each on the command line and in the

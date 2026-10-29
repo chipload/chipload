@@ -38,11 +38,6 @@ winit = { version = "0.30.13", default-features = false, features = ["wayland-cs
 # rendered with wgpu (snapshot). MIT OR Apache-2.0, egui's own test library; tests only.
 egui_kittest = { version = "0.36.2", features = ["eframe", "wgpu", "snapshot"] }
 
-[features]
-# Screenshots for the user guide (packaging/docs/screenshots.sh): eframe saves the first
-# frame, and CHIPLOAD_SCREENSHOT_SETUP sets up what it shows. Never in release builds.
-screenshots = ["eframe/__screenshot"]
-
 [lints]
 workspace = true
 

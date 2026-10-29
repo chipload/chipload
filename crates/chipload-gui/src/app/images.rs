@@ -424,7 +424,7 @@ impl ChiploadApp {
     }
 
     /// Wait until the image window's preview is traced (screenshots and tests).
-    #[cfg(any(test, feature = "screenshots"))]
+    #[cfg(test)]
     pub fn wait_for_image_preview(&mut self, ctx: &egui::Context) {
         while let Some(dialog) = self.image_dialog.as_mut() {
             if !dialog.step(ctx) {
