@@ -186,7 +186,8 @@ it's built (see `CLAUDE.md`).
   planner refuses it goes back with the reason, the markers staying (no Reset needed). The chip load
   has its own row under the feed; a project's tool shows its flutes in Properties. While trimming, extending or
   breaking, a click on empty space deselects.
-  CI runs only when started by hand since 2026-10-27 (Actions minutes).
+  CI runs on every push to main again since 2026-10-29 (by hand only from 2026-10-27, which let
+  platform-dependent pocket G-code through to the 0.28.0 release build).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 

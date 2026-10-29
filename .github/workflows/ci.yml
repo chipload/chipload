@@ -1,9 +1,13 @@
-# The checks, started by hand (Actions > CI > Run workflow, or `gh workflow run ci.yml`)
-# to save Actions minutes; run the same commands locally before pushing (CLAUDE.md). The
-# toolchain comes from rust-toolchain.toml.
+# Checks on every push to main and every pull request, also startable by hand (Actions >
+# CI > Run workflow). Back on automatic since 2026-10-29: started by hand only, it missed
+# G-code that differed on Windows until a release build. The toolchain comes from
+# rust-toolchain.toml.
 name: CI
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:

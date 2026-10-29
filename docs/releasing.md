@@ -8,7 +8,7 @@ publish it.
    dependency pins (`chipload-* = { version = "0.2.0", path = … }` in `crates/*/Cargo.toml`),
    then run `cargo build` so `Cargo.lock` follows.
 2. Regenerate the notices. Always: they list Chipload's own crates with their version, so
-   every version bump changes them, and the CI checks (started by hand) fail if they're stale:
+   every version bump changes them, and CI fails if they're stale:
 
        cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt
 
