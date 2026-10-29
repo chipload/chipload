@@ -1,7 +1,7 @@
 # Spec: the stock around the drawing, and the cut's outline
 
 Status: **decided and built 2026-10-28** by the user during the router shakedown
-(docs/reviews/2026-10-28-shakedown.md).
+(2026-10-28).
 
 ## Why
 

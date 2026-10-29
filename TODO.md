@@ -87,8 +87,8 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Shakedown findings** (the user on the router, 2026-10-28; docs/reviews/2026-10-28-
-  shakedown.md):
+- **Shakedown findings** (the user on the router, 2026-10-28; the checklist is kept
+  private, outside the repository):
   1. The stock should sit centred on the drawing, sticking out equally all round. Done
      2026-10-28 (docs/specs/stock-around-drawing.md, schema 33): new projects get a stock
      centred on the drawing that fits it with 10 mm, a fixed size stays possible, and the
@@ -155,11 +155,11 @@ it's built (see `CLAUDE.md`).
   2026-10-28, not pushed; follow-ups: try the exported DXF in other programs (LibreCAD,
   Inkscape, LightBurn, Fusion), keep the construction flag through a clipboard paste).
   **Next (the user, 2026-10-28): step back and think about the app's direction, the
-  workflow now and what we want in the future, before more features.** Review written:
-  docs/reviews/2026-10-28-direction.md (yardstick: a CamBam replacement for the user's own
+  workflow now and what we want in the future, before more features.** Review written
+  (kept private, outside the repository; yardstick: a CamBam replacement for the user's own
   router, powerful but easy; recommends A, the daily driver: a shakedown on the router,
-  styles/presets, materials with feeds, defaults that know the job, first-run setup). Waiting
-  for the user's answers and choice.
+  styles/presets, materials with feeds, defaults that know the job, first-run setup). The
+  user chose A and started with the shakedown on the router (above).
   **Materials first, then styles** (the user, 2026-10-28: simple, your own numbers, no
   manufacturers' charts): built 2026-10-28 with the recommended decisions for the user to
   try (docs/specs/materials.md §10); then the same day a material per operation (a list

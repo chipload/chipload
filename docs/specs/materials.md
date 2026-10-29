@@ -11,7 +11,7 @@ differs from the first draft.
 
 Today every operation's feeds and step down are typed by hand, or come from a library
 tool's single set of values (`Cutting`), whatever the material. The direction review
-(docs/reviews/2026-10-28-direction.md §7, step 3) puts materials next, before styles
+(2026-10-28, kept private) puts materials next, before styles
 (docs/specs/presets.md): first how fast, then what to do.
 
 The user, 2026-10-28:
