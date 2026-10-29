@@ -23,8 +23,8 @@ use chipload_dxf::{
 use chipload_i18n::{Language, Message};
 use chipload_job::edit::Mirror;
 use chipload_job::{
-    Copies, CopyOrder, Geometry, Job, Placement, Spindle, Units, WorkZero, load_job,
-    polyline_segment_count, save_job,
+    Copies, CopyOrder, Geometry, Job, Placement, Spindle, StockCorner, Units, WorkZero, ZZero,
+    load_job, polyline_segment_count, save_job,
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
@@ -308,6 +308,28 @@ enum Command {
         #[command(subcommand)]
         action: parts::PartAction,
     },
+    /// Where the G-code's X0 Y0 Z0 is (docs/specs/work-zero-marker.md §5): a corner or the
+    /// centre of the stock, the drawing origin, or a point. Moving it moves no cut, only the
+    /// program's numbers. Without an option, print where it is.
+    Zero {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// At a corner or the centre of the stock; it follows the stock's size.
+        #[arg(long, conflicts_with_all = ["drawing_origin", "at"])]
+        stock: Option<CornerArg>,
+        /// At the drawing's origin.
+        #[arg(long, conflicts_with = "at")]
+        drawing_origin: bool,
+        /// At the point "X,Y" in drawing coordinates (any length unit; plain numbers are mm).
+        #[arg(long, allow_hyphen_values = true)]
+        at: Option<String>,
+        /// Z0 at the stock's top or bottom.
+        #[arg(long)]
+        z: Option<ZArg>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Cut a part several times in a grid (docs/specs/copies-grid.md).
     Copies {
         /// The project (.chipload).
@@ -461,6 +483,22 @@ enum AlignArg {
     BottomLeft,
     /// Centre on the stock's centre.
     Center,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum CornerArg {
+    BottomLeft,
+    BottomRight,
+    TopLeft,
+    TopRight,
+    #[value(alias = "centre")]
+    Center,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum ZArg {
+    Top,
+    Bottom,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -1360,6 +1398,24 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Machine { action } => library::machine(out, action),
         Command::Post { action } => library::post(out, action),
         Command::Part { action } => parts::part(out, action),
+        Command::Zero {
+            project,
+            stock,
+            drawing_origin,
+            at,
+            z,
+            output,
+        } => zero(
+            out,
+            &project,
+            ZeroArgs {
+                stock,
+                drawing_origin,
+                at,
+                z,
+            },
+            output.as_deref(),
+        ),
         Command::Copies {
             project,
             part,
@@ -1587,6 +1643,72 @@ fn create(
         out.line(note.english());
     }
     out.wrote(output, "");
+    ExitCode::SUCCESS
+}
+
+struct ZeroArgs {
+    stock: Option<CornerArg>,
+    drawing_origin: bool,
+    at: Option<String>,
+    z: Option<ZArg>,
+}
+
+/// `zero`: set the work zero, or print where it is (docs/specs/work-zero-marker.md §5).
+fn zero(out: &mut Out, project: &Path, args: ZeroArgs, output: Option<&Path>) -> ExitCode {
+    let mut job = match load_job(project) {
+        Ok(job) => job,
+        Err(err) => return out.fail(err),
+    };
+    let before = (job.machine.work_zero, job.stock.z_zero);
+    if let Some(corner) = args.stock {
+        let corner = match corner {
+            CornerArg::BottomLeft => StockCorner::BottomLeft,
+            CornerArg::BottomRight => StockCorner::BottomRight,
+            CornerArg::TopLeft => StockCorner::TopLeft,
+            CornerArg::TopRight => StockCorner::TopRight,
+            CornerArg::Center => StockCorner::Center,
+        };
+        job.machine.work_zero = WorkZero::Stock { corner };
+    }
+    if args.drawing_origin {
+        job.machine.work_zero = WorkZero::DrawingOrigin {};
+    }
+    if let Some(at) = &args.at {
+        match point_arg(at) {
+            Ok([x, y]) => job.machine.work_zero = WorkZero::Point { x, y },
+            Err(err) => return out.fail(format!("--at: {err}")),
+        }
+    }
+    if let Some(z) = args.z {
+        job.stock.z_zero = match z {
+            ZArg::Top => ZZero::Top,
+            ZArg::Bottom => ZZero::Bottom,
+        };
+    }
+    let (x, y) = job.work_zero_xy();
+    out.set(
+        "work_zero",
+        serde_json::to_value(job.machine.work_zero).unwrap_or_default(),
+    );
+    out.set(
+        "z_zero",
+        serde_json::to_value(job.stock.z_zero).unwrap_or_default(),
+    );
+    out.set("x", json!(x));
+    out.set("y", json!(y));
+    out.line(format!("Work zero: {}", job.work_zero_text()));
+    if (job.machine.work_zero, job.stock.z_zero) == before && output.is_none() {
+        return ExitCode::SUCCESS;
+    }
+    let problems = job.validate();
+    if !problems.is_empty() {
+        return out.fail(chipload_pipeline::joined(&problems));
+    }
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&job, target) {
+        return out.fail(err);
+    }
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 

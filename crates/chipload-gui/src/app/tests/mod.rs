@@ -33,6 +33,7 @@ mod three_d_view;
 mod tool_library;
 mod units;
 mod view_bar;
+mod work_zero;
 mod workflows;
 
 fn corpus(rel: &str) -> PathBuf {

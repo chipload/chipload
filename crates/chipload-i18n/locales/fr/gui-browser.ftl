@@ -33,6 +33,8 @@ browser-surface-hover = Tout le brut dressé à plat avec une large fraise : sur
 # Job settings and Tools.
 browser-job-settings = Paramètres d'usinage
 browser-job-settings-hover = Brut, machine, post-processeur et outils
+browser-work-zero = Origine pièce
+browser-work-zero-hover = Où se trouve le X0 Y0 Z0 du G-code. Cliquez pour le régler, ou sélectionnez-le et faites-le glisser dans la vue.
 browser-job-settings-problems-hover = Brut, machine, post-processeur et outils. { $count ->
         [one] { $count } problème
        *[other] { $count } problèmes

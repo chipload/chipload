@@ -85,6 +85,8 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         // The job's sections (docs/specs/job-settings-layout.md §2): a field goes to the
         // section with the longest prefix it is under (`section_has_problem`).
         "job-stock" => &["stock"],
+        // The work zero has its own properties: listed so Stock and Machine don't claim
+        // its fields.
         "job-zero" => &["machine.work_zero", "stock.z_zero"],
         "job-material" => &["stock.material"],
         "part-copies" => &["parts"],
@@ -93,6 +95,11 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         "job-placement" => &["drawing"],
         _ => &[],
     }
+}
+
+/// A field the work zero's properties hold.
+fn is_zero_field(field: &str) -> bool {
+    under(field, "machine.work_zero") || under(field, "stock.z_zero")
 }
 
 /// The job's sections, whose prefixes overlap (`stock` and `stock.z_zero`).
@@ -239,8 +246,14 @@ impl ChiploadApp {
             let field = p.field();
             !(field.starts_with("tools")
                 || field.starts_with("parts")
-                || field.starts_with("drawing"))
+                || field.starts_with("drawing")
+                || is_zero_field(field))
         })
+    }
+
+    /// The work zero's problems (docs/specs/work-zero-marker.md §4).
+    pub(super) fn zero_problems(&self) -> impl Iterator<Item = &Problem> {
+        self.job_problems().filter(|p| is_zero_field(p.field()))
     }
 
     /// The problems under `prefix` ("tools.0."), of the job's own settings.
@@ -259,6 +272,7 @@ impl ChiploadApp {
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
             Focus::Op(i) | Focus::RestPass(i, _) => Box::new(self.op_problems(i)),
             Focus::Job => Box::new(self.settings_problems()),
+            Focus::WorkZero => Box::new(self.zero_problems()),
             Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
             Focus::LibraryTools
             | Focus::LibraryTool(_)
@@ -372,6 +386,7 @@ impl ChiploadApp {
                             (Some(i), _, _) => Focus::Op(i),
                             (None, Some(id), _) => Focus::Part(id),
                             (None, None, Some(id)) => Focus::Tool(id),
+                            _ if is_zero_field(problem.field()) => Focus::WorkZero,
                             (None, None, None) => Focus::Job,
                         });
                     }

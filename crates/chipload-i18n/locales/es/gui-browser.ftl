@@ -33,6 +33,8 @@ browser-surface-hover = Todo el material en bruto rebajado en plano con una fres
 # Job settings and Tools.
 browser-job-settings = Ajustes del trabajo
 browser-job-settings-hover = Material en bruto, máquina, postprocesador y herramientas
+browser-work-zero = Cero pieza
+browser-work-zero-hover = Dónde está el X0 Y0 Z0 del código G. Haga clic para ajustarlo, o selecciónelo y arrástrelo en la vista.
 browser-job-settings-problems-hover = Material en bruto, máquina, postprocesador y herramientas. { $count ->
         [one] { $count } problema
        *[other] { $count } problemas

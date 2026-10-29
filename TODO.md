@@ -189,7 +189,9 @@ it's built (see `CLAUDE.md`).
   stock) if the user wants it.
   **Work zero as a marker** (docs/specs/work-zero-marker.md, 2026-10-29, the user's idea):
   a Browser row, a handle in the view that is picked and dragged with snapping, stock
-  corner buttons in Properties, a `zero` command; proposal, five decisions waiting.
+  corner buttons in Properties, a `zero` command; new projects and machine profiles start
+  at the stock's bottom-left corner; built. Later: **setups** (a board with its own stock
+  and zero, holding parts), raised by the user as a zero per part.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

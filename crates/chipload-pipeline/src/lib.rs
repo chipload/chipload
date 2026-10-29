@@ -39,7 +39,7 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::library::Cutting;
 use chipload_job::{
     CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, RestRefusal, Spindle,
-    Stock, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    Stock, StockCorner, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
     rest_refusal,
 };
 use chipload_post::{
@@ -701,7 +701,7 @@ pub const DEFAULT_EMPTY_STOCK: (f64, f64) = (300.0, 200.0);
 
 /// A new project with no drawing yet (docs/specs/new-project.md): stock fitting the drawing
 /// with a 10 mm margin once there is one (300 × 200 mm centred on the origin until then),
-/// GRBL, one 6 mm endmill, no operations.
+/// work zero at its bottom-left corner, GRBL, one 6 mm endmill, no operations.
 pub fn empty_project() -> Job {
     Job {
         schema_version: CURRENT_VERSION,
@@ -734,7 +734,11 @@ pub fn empty_project() -> Job {
             spindle: Spindle::Cw,
             max_feed: None,
             travel: None,
-            work_zero: WorkZero::DrawingOrigin {},
+            // The board's corner the operator touches off on (the user, 2026-10-29;
+            // docs/specs/work-zero-marker.md §7).
+            work_zero: WorkZero::Stock {
+                corner: StockCorner::BottomLeft,
+            },
             tool_change: ToolChange::Files,
             custom_post: None,
         },

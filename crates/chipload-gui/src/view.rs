@@ -136,6 +136,8 @@ const GHOST_FADE: f32 = 0.65;
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
 const AXIS_LENGTH_MM: f64 = 15.0;
+/// The radius of the work zero's handle at the foot of the axes, pixels.
+const ZERO_HANDLE_PX: f32 = 5.0;
 /// More lines than this across the area and the finer ones are left out.
 const GRID_MAX_LINES: usize = 400;
 /// In 3D the grid reaches at least this far past the stock.
@@ -780,6 +782,9 @@ pub struct Scene {
     pub measure: Option<(Point, Point, String)>,
     /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
     pub work_zero: Point,
+    /// The work zero's handle and whether the zero is selected (top view only;
+    /// docs/specs/work-zero-marker.md §3).
+    pub zero_handle: Option<(Point, bool)>,
     /// The stock's (top, bottom) Z, for the 3D view.
     pub stock_z: Option<(f64, f64)>,
     /// The copies (copy 1 excluded): a contour's id and a shift, one for each copy of each
@@ -1295,6 +1300,16 @@ impl Scene {
                 Stroke::new(1.5, pal.selected),
                 eframe::egui::StrokeKind::Middle,
             );
+        }
+        if let Some((p, selected)) = self.zero_handle.filter(|_| flat) {
+            let at = view.to_screen(p);
+            if selected {
+                painter.circle_filled(at, ZERO_HANDLE_PX, pal.selected);
+                painter.circle_stroke(at, ZERO_HANDLE_PX + 2.0, Stroke::new(1.5, pal.selected));
+            } else {
+                painter.circle_filled(at, ZERO_HANDLE_PX, pal.handle_fill);
+                painter.circle_stroke(at, ZERO_HANDLE_PX, Stroke::new(1.5, pal.axis_x));
+            }
         }
         for &p in self.middle_handles.iter().filter(|_| flat) {
             let at = view.to_screen(p);

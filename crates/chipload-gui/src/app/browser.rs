@@ -496,9 +496,30 @@ impl ChiploadApp {
         if job.clicked() {
             self.focus = Focus::Job;
         }
+        self.work_zero_row(ui);
         self.tool_rows(ui);
         self.drawing_rows(ui);
         self.operation_rows(ui);
+    }
+
+    /// The G-code's zero, with where it is (docs/specs/work-zero-marker.md §2).
+    fn work_zero_row(&mut self, ui: &mut egui::Ui) {
+        let Some(edit) = &self.edit else {
+            return;
+        };
+        let place = super::forms::work_zero_name(ui, &edit.settings.machine.work_zero);
+        let summary = super::forms::zero_summary(ui, &edit.settings);
+        let problems = self.zero_problems().count();
+        let row = Row::new(Id::new("browser-work-zero"), 1, t!(ui, "browser-work-zero"))
+            .icon(Icon::WorkZero)
+            .trailing(place)
+            .selected(self.focus == Focus::WorkZero)
+            .alert(problems > 0)
+            .show(ui);
+        let hover = format!("{summary}\n{}", t!(ui, "browser-work-zero-hover"));
+        if row.response.on_hover_text(hover).clicked() {
+            self.focus = Focus::WorkZero;
+        }
     }
 
     /// Tools: the project's tools; a click opens the job settings, where they are edited.

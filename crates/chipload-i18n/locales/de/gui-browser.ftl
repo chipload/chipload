@@ -33,6 +33,8 @@ browser-surface-hover = Das ganze Rohteil mit einem breiten Schaftfräser plan a
 # Job settings and Tools.
 browser-job-settings = Jobeinstellungen
 browser-job-settings-hover = Rohteil, Maschine, Postprozessor und Werkzeuge
+browser-work-zero = Nullpunkt
+browser-work-zero-hover = Wo X0 Y0 Z0 des G-Codes liegt. Klicken, um ihn einzustellen, oder auswählen und in der Ansicht ziehen.
 browser-job-settings-problems-hover = Rohteil, Maschine, Postprozessor und Werkzeuge. { $count ->
         [one] { $count } Problem
        *[other] { $count } Probleme

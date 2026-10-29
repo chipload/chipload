@@ -52,6 +52,8 @@ The **Browser** on the left holds your library and the whole project as a tree:
 - **The project**, named after its file.
   - **Job settings:** stock, machine, post-processor and tools, shown on the right when
     clicked. A red dot means one of them has a problem.
+  - **Work zero:** where the G-code's X0 Y0 Z0 is, named at the right ("stock bottom
+    left"); see [Work zero](concepts/stock.md#work-zero).
   - **Tools:** the project's tools, each with the library tool it came from at the right
     ("← 6 mm 2F", "(changed)" when the values differ). See [Tool
     library](library/tools.md#project-tools-and-the-library).
@@ -117,7 +119,9 @@ colour theme: dark, or light grey.
   - It follows the zoom, and the status bar gives its step ("grid 5 mm").
   - **G** or *View > Show grid* hides it, and Chipload remembers that.
 - **The axes:** a red line along X and a green one along Y run through the program's zero.
-  Short thick strokes point the positive way, and in 3D a blue one points up Z.
+  Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
+  a round handle sits at their foot: click it to select the
+  [work zero](concepts/stock.md#work-zero), then drag it.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - how you look: **Fit** (F), **Top** (T) and **3D**;
   - what is shown: **Stock** (the [simulation](checking/simulation.md)), **Toolpath**,
@@ -148,7 +152,9 @@ navigation bar](images/simulation-3d.png)
 ## Properties
 
 The **Properties** panel on the right shows what is open, under a title:
-- **Job settings:** the stock, the machine and the post.
+- **Job settings:** the stock, the material, the machine and the post.
+- **Work zero:** the stock's corners and centre to click, the drawing origin, its position
+  and Z zero.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is
   written with the G-code, updating the toolpath automatically, the units (mm or inch) and
   the colour theme.

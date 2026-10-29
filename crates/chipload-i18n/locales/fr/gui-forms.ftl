@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = brut en bas à droite
 forms-zero-stock-top-left = brut en haut à gauche
 forms-zero-stock-top-right = brut en haut à droite
 forms-zero-point = point
+forms-zero-on-stock = Sur le brut
+forms-zero-on-stock-hover = Cliquez un coin ou le centre : l'origine y reste quand la taille du brut change
+forms-zero-drawing-origin-button = Origine du dessin
+forms-zero-drawing-origin-hover = X0 Y0 là où le dessin a son propre 0,0
+forms-zero-at = Position
+forms-zero-at-hover = Où se trouve l'origine, en coordonnées du dessin. Saisir une valeur en fait un point à part.
+forms-zero-note = Le X0 Y0 Z0 du G-code. Le déplacer ne déplace aucune coupe, seulement les nombres du programme. Dans la vue, sélectionnez-le et faites-le glisser : il s'accroche aux coins et au centre du brut et à l'origine du dessin.
+forms-zero-link-hover = Afficher les propriétés de l'origine pièce
 
 # An imported DXF.
 forms-file = Fichier
@@ -290,7 +298,6 @@ forms-stock-fit-hover = Centrer le brut sur le contour du dessin et le dimension
 forms-stock-fixed-size = Taille fixe, centrée
 forms-stock-fixed-size-hover = Une taille que vous saisissez, pour un panneau que vous voulez utiliser, centrée sur le contour du dessin
 forms-drawing-size-note = Dessin { $size }
-forms-section-zero = Origine
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Chaque opération peut choisir le sien, sous son outil.
 forms-drawing-size-hover = La taille du contour du dessin (ce qui est usiné ; sans la géométrie de construction). Le contour de la coupe, avec l'outil, figure dans le rapport après Calculer

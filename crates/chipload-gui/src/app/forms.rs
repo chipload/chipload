@@ -1573,7 +1573,7 @@ pub(super) fn work_zero_rows(
 }
 
 /// Where X0 Y0 is, as the work zero list names it.
-fn work_zero_name(ui: &egui::Ui, work_zero: &WorkZero) -> String {
+pub(super) fn work_zero_name(ui: &impl Lang, work_zero: &WorkZero) -> String {
     match work_zero {
         WorkZero::DrawingOrigin {} => t!(ui, "forms-zero-drawing-origin"),
         WorkZero::Stock { corner } => match corner {
@@ -1595,6 +1595,8 @@ pub(super) enum JobRequest {
     Library(LibraryRequest),
     /// Open operation i (a rest pass's pocket).
     OpenOperation(usize),
+    /// Show the work zero's properties (docs/specs/work-zero-marker.md §4).
+    OpenWorkZero,
     /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
     RemoveRestPass(usize, usize),
     /// Set part `id`'s pitch so this many mm are left between its copies' cuts
@@ -2130,9 +2132,10 @@ pub(super) fn job_form(
     edit: &mut EditJob,
     library: Option<&Library>,
 ) -> Option<JobRequest> {
-    // Four sections in the order a job is set up: stock, zero, material, machine
-    // (docs/specs/job-settings-layout.md §2).
+    // Sections in the order a job is set up: stock, material, machine
+    // (docs/specs/job-settings-layout.md §2); the zero has its own properties.
     let mut request = None;
+    let mut zero_request = None;
     let mut copies_request = None;
     let mut material_request = None;
     let title = t!(ui, "forms-job-settings");
@@ -2140,8 +2143,19 @@ pub(super) fn job_form(
     let labels = job_label_width(ui);
     let open = SectionLook { open: true, labels };
     let job = &mut edit.settings;
+    // The zero has its own properties; here where it is, a click away
+    // (docs/specs/work-zero-marker.md §4).
+    let zero = ui
+        .horizontal_wrapped(|ui| {
+            ui.label(t!(ui, "browser-work-zero"));
+            ui.link(zero_summary(ui, job))
+                .on_hover_text(t!(ui, "forms-zero-link-hover"))
+        })
+        .inner;
+    if zero.clicked() {
+        zero_request = Some(JobRequest::OpenWorkZero);
+    }
     stock_section(ui, job, open);
-    zero_section(ui, job, open);
     if let Some(library) = library {
         material_request = material_section(ui, job, library, open);
     }
@@ -2156,7 +2170,8 @@ pub(super) fn job_form(
         &mut request,
         &mut copies_request,
     );
-    material_request
+    zero_request
+        .or(material_request)
         .or(copies_request)
         .or(request.map(JobRequest::Library))
 }
@@ -2328,39 +2343,153 @@ fn stock_position_combo(ui: &mut egui::Ui, origin: &mut StockOrigin) {
         .on_hover_text(t!(ui, "forms-stock-position"));
 }
 
-/// The work zero: X0 Y0 and Z0, with where they are in the summary line, so it reads with
-/// the section closed.
-fn zero_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLook) {
-    let z_name = |ui: &egui::Ui, z: ZZero| match z {
-        ZZero::Top => t!(ui, "forms-z-zero-top"),
-        ZZero::Bottom => t!(ui, "forms-z-zero-bottom"),
-    };
-    let summary = t!(
+/// Where X0 Y0 and Z0 are, in a line: "X0 Y0 stock bottom left · Z0 stock top".
+pub(super) fn zero_summary(ui: &egui::Ui, job: &chipload_job::Job) -> String {
+    t!(
         ui,
         "forms-zero-summary",
         xy = work_zero_name(ui, &job.machine.work_zero),
-        z = z_name(ui, job.stock.z_zero)
-    );
-    let here = job.work_zero_xy();
-    section_look(
-        ui,
-        "job-zero",
-        &t!(ui, "forms-section-zero"),
-        &summary,
-        look,
-        |ui| {
-            work_zero_rows(ui, "job", &mut job.machine.work_zero, here);
+        z = z_zero_name(ui, job.stock.z_zero)
+    )
+}
+
+fn z_zero_name(ui: &egui::Ui, z: ZZero) -> String {
+    match z {
+        ZZero::Top => t!(ui, "forms-z-zero-top"),
+        ZZero::Bottom => t!(ui, "forms-z-zero-bottom"),
+    }
+}
+
+/// The work zero's properties (docs/specs/work-zero-marker.md §4): the stock's corners and
+/// centre to click, the drawing origin, where it is, and Z zero.
+pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
+    let title = t!(ui, "browser-work-zero");
+    super::browser::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
+    let job = &mut edit.settings;
+    let (x, y) = job.work_zero_xy();
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let chosen = job.machine.work_zero;
+    let mut zero = chosen;
+    Grid::new("work-zero-form")
+        .num_columns(2)
+        .min_col_width(label_width(ui))
+        .show(ui, |ui| {
+            ui.label(t!(ui, "forms-zero-on-stock"))
+                .on_hover_text(t!(ui, "forms-zero-on-stock-hover"));
+            if let Some(corner) = stock_corner_picker(ui, (x1 - x0, y1 - y0), chosen) {
+                zero = WorkZero::Stock { corner };
+            }
+            ui.end_row();
+            ui.label("");
+            let origin = matches!(chosen, WorkZero::DrawingOrigin {});
+            if ui
+                .selectable_label(origin, t!(ui, "forms-zero-drawing-origin-button"))
+                .on_hover_text(t!(ui, "forms-zero-drawing-origin-hover"))
+                .clicked()
+            {
+                zero = WorkZero::DrawingOrigin {};
+            }
+            ui.end_row();
+            ui.label(t!(ui, "forms-zero-at"))
+                .on_hover_text(t!(ui, "forms-zero-at-hover"));
+            let (mut px, mut py) = (x, y);
+            let typed = ui.horizontal(|ui| {
+                let a = flag(
+                    ui.add(crate::units::length(&mut px).prefix("X ").speed(0.1)),
+                    ui,
+                    "machine.work_zero",
+                );
+                let b = ui.add(crate::units::length(&mut py).prefix("Y ").speed(0.1));
+                a.changed() || b.changed()
+            });
+            if typed.inner {
+                zero = WorkZero::Point { x: px, y: py };
+            }
+            ui.end_row();
+            ui.label("");
+            ui.weak(work_zero_name(ui, &chosen));
+            ui.end_row();
             ui.label(t!(ui, "forms-z-zero"));
             ComboBox::from_id_salt("z_zero")
-                .selected_text(z_name(ui, job.stock.z_zero))
+                .selected_text(z_zero_name(ui, job.stock.z_zero))
                 .show_ui(ui, |ui| {
                     for z in [ZZero::Top, ZZero::Bottom] {
-                        ui.selectable_value(&mut job.stock.z_zero, z, z_name(ui, z));
+                        ui.selectable_value(&mut job.stock.z_zero, z, z_zero_name(ui, z));
                     }
                 });
             ui.end_row();
-        },
+        });
+    ui.add_space(4.0);
+    ui.add(egui::Label::new(egui::RichText::new(t!(ui, "forms-zero-note")).weak()).wrap());
+    job.machine.work_zero = zero;
+}
+
+/// A small drawing of the stock, in its proportions, with a dot at each corner and the
+/// centre to click; the chosen one filled. Returns the corner clicked.
+fn stock_corner_picker(
+    ui: &mut egui::Ui,
+    (w, h): (f64, f64),
+    chosen: WorkZero,
+) -> Option<StockCorner> {
+    const LONG_SIDE: f32 = 96.0;
+    const SHORT_SIDE_MIN: f32 = 36.0;
+    const DOT: f32 = 6.0;
+    let ratio = if w > 0.0 && h > 0.0 {
+        (h / w) as f32
+    } else {
+        0.6
+    };
+    let (pw, ph) = if ratio <= 1.0 {
+        (LONG_SIDE, (LONG_SIDE * ratio).max(SHORT_SIDE_MIN))
+    } else {
+        ((LONG_SIDE / ratio).max(SHORT_SIDE_MIN), LONG_SIDE)
+    };
+    let margin = DOT + 2.0;
+    let size = egui::vec2(pw + 2.0 * margin, ph + 2.0 * margin);
+    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+    let board = rect.shrink(margin);
+    let visuals = ui.visuals().clone();
+    let painter = ui.painter_at(rect);
+    painter.rect_stroke(
+        board,
+        0.0,
+        egui::Stroke::new(1.0, visuals.weak_text_color()),
+        egui::StrokeKind::Middle,
     );
+    let mut clicked = None;
+    for corner in StockCorner::ALL {
+        let at = match corner {
+            StockCorner::BottomLeft => board.left_bottom(),
+            StockCorner::BottomRight => board.right_bottom(),
+            StockCorner::TopLeft => board.left_top(),
+            StockCorner::TopRight => board.right_top(),
+            StockCorner::Center => board.center(),
+        };
+        let name = work_zero_name(ui, &WorkZero::Stock { corner });
+        let on = chosen == WorkZero::Stock { corner };
+        let hit = egui::Rect::from_center_size(at, egui::vec2(2.0 * margin, 2.0 * margin));
+        let response = ui
+            .interact(
+                hit,
+                ui.id().with(("zero-corner", corner.name())),
+                egui::Sense::click(),
+            )
+            .on_hover_text(&name);
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::RadioButton, true, on, &name)
+        });
+        let color = if on || response.hovered() {
+            visuals.selection.bg_fill
+        } else {
+            visuals.widgets.inactive.bg_fill
+        };
+        painter.circle_filled(at, DOT, color);
+        painter.circle_stroke(at, DOT, visuals.widgets.inactive.fg_stroke);
+        if response.clicked() {
+            clicked = Some(corner);
+        }
+    }
+    clicked
 }
 
 /// The project's material: every operation and those added later take it

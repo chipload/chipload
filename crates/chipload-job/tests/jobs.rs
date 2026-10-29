@@ -2263,3 +2263,46 @@ fn construction_is_kept_on_drawn_shapes_only() {
     let err = parse_job(data, "p").unwrap_err().to_string();
     assert!(err.contains("construction"), "{err}");
 }
+
+#[test]
+fn a_dropped_work_zero_takes_the_stock_corner_or_origin_it_is_near() {
+    // docs/specs/work-zero-marker.md §3.
+    use chipload_job::{StockCorner, WorkZero};
+    let job = parse_job(lower_job(), "job.json").unwrap();
+    for corner in StockCorner::ALL {
+        let (x, y) = job.stock_corner_xy(corner);
+        assert_eq!(
+            job.work_zero_at((x + 0.4, y - 0.3), 1.0),
+            WorkZero::Stock { corner }
+        );
+        assert_eq!(
+            job.work_zero_point(WorkZero::Stock { corner }),
+            (x, y),
+            "{corner:?}"
+        );
+    }
+    // Where the stock's centre is on the drawing origin, the stock wins: it follows the
+    // stock.
+    assert_eq!(job.stock_corner_xy(StockCorner::Center), (0.0, 0.0));
+    assert_eq!(
+        job.work_zero_at((0.2, 0.0), 1.0),
+        WorkZero::Stock {
+            corner: StockCorner::Center
+        }
+    );
+    // Centred on the drawing, which reaches higher than low: the origin is its own.
+    let mut data = lower_job();
+    data["stock"]["origin"] = json!("drawing");
+    data["stock"]["fit"] = json!(10.0);
+    let centred = parse_job(data, "job.json").unwrap();
+    assert_ne!(centred.stock_corner_xy(StockCorner::Center), (0.0, 0.0));
+    assert_eq!(
+        centred.work_zero_at((0.2, 0.0), 1.0),
+        WorkZero::DrawingOrigin {}
+    );
+    let (x, y) = job.stock_corner_xy(StockCorner::BottomLeft);
+    assert_eq!(
+        job.work_zero_at((x + 5.0, y), 1.0),
+        WorkZero::Point { x: x + 5.0, y }
+    );
+}

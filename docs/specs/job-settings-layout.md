@@ -4,7 +4,8 @@ Status: **approved 2026-10-28** for §2–§4 (the user's answers: "1 yes, 2 no,
 origin, 3 yes, 4 no, if so we should have a checkbox in the operation that says 'all
 through' or something, then it will follow stock thickness, 5 yes"). §2 and §3 **built
 2026-10-28**. §5 **approved 2026-10-29** with the three recommendations ("Ok!") and built
-the same day.
+the same day. The *Zero* section moved out on 2026-10-29: the work zero has its own
+properties (docs/specs/work-zero-marker.md), and a line above the sections links to it.
 
 ## 1. Why
 

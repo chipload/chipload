@@ -1517,6 +1517,23 @@ chipload part remove <PROJECT> <ID> [OPTIONS]
 | `--with-operations` | Remove its operations with it. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload zero`
+
+Where the G-code's X0 Y0 Z0 is (docs/specs/work-zero-marker.md §5): a corner or the centre of the stock, the drawing origin, or a point. Moving it moves no cut, only the program's numbers. Without an option, print where it is
+
+```text
+chipload zero <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--stock <STOCK>` | At a corner or the centre of the stock; it follows the stock's size. One of: `bottom-left`, `bottom-right`, `top-left`, `top-right`, `center`. |
+| `--drawing-origin` | At the drawing's origin. |
+| `--at <AT>` | At the point "X,Y" in drawing coordinates (any length unit; plain numbers are mm) |
+| `--z <Z>` | Z0 at the stock's top or bottom. One of: `top`, `bottom`. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload copies`
 
 Cut a part several times in a grid (docs/specs/copies-grid.md)

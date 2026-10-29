@@ -301,4 +301,10 @@ fn job_settings_show_the_zero_and_keep_the_machine_closed() {
     harness.get_by_label_contains("safe Z").click();
     harness.run_steps(3);
     assert!(harness.query_by_label("Post").is_some());
+    // The zero's line opens its own properties (docs/specs/work-zero-marker.md §4).
+    harness
+        .get_by_label("X0 Y0 drawing origin · Z0 stock top")
+        .click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().focus, Focus::WorkZero);
 }

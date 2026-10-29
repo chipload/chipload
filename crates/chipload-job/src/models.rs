@@ -1748,6 +1748,15 @@ pub enum StockCorner {
 }
 
 impl StockCorner {
+    /// Every choice: the four corners, then the centre.
+    pub const ALL: [StockCorner; 5] = [
+        StockCorner::BottomLeft,
+        StockCorner::BottomRight,
+        StockCorner::TopLeft,
+        StockCorner::TopRight,
+        StockCorner::Center,
+    ];
+
     pub fn name(self) -> &'static str {
         match self {
             StockCorner::Center => "center",
@@ -1871,18 +1880,50 @@ impl Job {
     /// The work zero in drawing coordinates: subtract it from every X, Y of the toolpath to
     /// get program coordinates.
     pub fn work_zero_xy(&self) -> (f64, f64) {
-        let ((x0, y0), (x1, y1)) = self.stock_bounds();
-        match self.machine.work_zero {
+        self.work_zero_point(self.machine.work_zero)
+    }
+
+    /// Where work zero `zero` would be, in drawing coordinates.
+    pub fn work_zero_point(&self, zero: WorkZero) -> (f64, f64) {
+        match zero {
             WorkZero::DrawingOrigin {} => (0.0, 0.0),
             WorkZero::Point { x, y } => (x, y),
-            WorkZero::Stock { corner } => match corner {
-                StockCorner::Center => ((x0 + x1) / 2.0, (y0 + y1) / 2.0),
-                StockCorner::BottomLeft => (x0, y0),
-                StockCorner::BottomRight => (x1, y0),
-                StockCorner::TopLeft => (x0, y1),
-                StockCorner::TopRight => (x1, y1),
-            },
+            WorkZero::Stock { corner } => self.stock_corner_xy(corner),
         }
+    }
+
+    /// A corner or the centre of the stock, in drawing coordinates.
+    pub fn stock_corner_xy(&self, corner: StockCorner) -> (f64, f64) {
+        let ((x0, y0), (x1, y1)) = self.stock_bounds();
+        match corner {
+            StockCorner::Center => ((x0 + x1) / 2.0, (y0 + y1) / 2.0),
+            StockCorner::BottomLeft => (x0, y0),
+            StockCorner::BottomRight => (x1, y0),
+            StockCorner::TopLeft => (x0, y1),
+            StockCorner::TopRight => (x1, y1),
+        }
+    }
+
+    /// The work zero a point dropped at `at` means (docs/specs/work-zero-marker.md §3):
+    /// within `reach` mm of a stock corner or its centre, that corner, which follows the
+    /// stock; of the drawing origin, the origin; elsewhere the point itself. The nearest
+    /// wins.
+    pub fn work_zero_at(&self, at: (f64, f64), reach: f64) -> WorkZero {
+        let mut named: Vec<WorkZero> = StockCorner::ALL
+            .into_iter()
+            .map(|corner| WorkZero::Stock { corner })
+            .collect();
+        named.push(WorkZero::DrawingOrigin {});
+        let distance = |zero: WorkZero| {
+            let (x, y) = self.work_zero_point(zero);
+            (x - at.0).hypot(y - at.1)
+        };
+        named
+            .into_iter()
+            .map(|zero| (zero, distance(zero)))
+            .filter(|&(_, d)| d <= reach)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map_or(WorkZero::Point { x: at.0, y: at.1 }, |(zero, _)| zero)
     }
 
     /// "stock center = drawing X150.000 Y110.000, Z0 = stock top", for the G-code header,

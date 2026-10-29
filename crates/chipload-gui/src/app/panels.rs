@@ -149,6 +149,7 @@ impl ChiploadApp {
             // Shown above, alone.
             Focus::Selection => {}
             Focus::Job => request = job_form(ui, edit, library),
+            Focus::WorkZero => forms::work_zero_form(ui, edit),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
             Focus::Tools => request = forms::tools_form(ui, edit, library),
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
@@ -206,6 +207,7 @@ impl ChiploadApp {
                 self.use_material(uid.as_deref());
             }
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
+            Some(JobRequest::OpenWorkZero) => self.focus = Focus::WorkZero,
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
             Some(JobRequest::Activate(part)) => self.activate_part(part),

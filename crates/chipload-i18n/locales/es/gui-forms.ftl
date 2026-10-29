@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = material, abajo a la derecha
 forms-zero-stock-top-left = material, arriba a la izquierda
 forms-zero-stock-top-right = material, arriba a la derecha
 forms-zero-point = punto
+forms-zero-on-stock = En el material
+forms-zero-on-stock-hover = Haga clic en una esquina o en el centro: el cero se queda ahí cuando cambia el tamaño del material
+forms-zero-drawing-origin-button = Origen del dibujo
+forms-zero-drawing-origin-hover = X0 Y0 donde el dibujo tiene su propio 0,0
+forms-zero-at = Posición
+forms-zero-at-hover = Dónde está el cero, en coordenadas del dibujo. Escribir un valor lo convierte en un punto propio.
+forms-zero-note = El X0 Y0 Z0 del código G. Moverlo no mueve ningún corte, solo los números del programa. En la vista, selecciónelo y arrástrelo: se ajusta a las esquinas y al centro del material y al origen del dibujo.
+forms-zero-link-hover = Mostrar las propiedades del cero de pieza
 
 # An imported DXF.
 forms-file = Archivo
@@ -290,7 +298,6 @@ forms-stock-fit-hover = Centrar el material en el contorno del dibujo y darle el
 forms-stock-fixed-size = Tamaño fijo, centrado
 forms-stock-fixed-size-hover = Un tamaño que escribes, para un tablero que quieres usar, centrado en el contorno del dibujo
 forms-drawing-size-note = Dibujo { $size }
-forms-section-zero = Cero
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Cada operación puede elegir el suyo, bajo su herramienta.
 forms-drawing-size-hover = El tamaño del contorno del dibujo (lo que se corta; sin la geometría auxiliar). El contorno del corte, con la herramienta, aparece en el informe tras Calcular

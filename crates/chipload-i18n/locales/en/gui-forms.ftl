@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = stock bottom right
 forms-zero-stock-top-left = stock top left
 forms-zero-stock-top-right = stock top right
 forms-zero-point = point
+forms-zero-on-stock = On the stock
+forms-zero-on-stock-hover = Click a corner or the centre: the zero stays there when the stock changes size
+forms-zero-drawing-origin-button = Drawing origin
+forms-zero-drawing-origin-hover = X0 Y0 where the drawing has its own 0,0
+forms-zero-at = Position
+forms-zero-at-hover = Where the zero is, in drawing coordinates. Typing a value makes it a point of its own.
+forms-zero-note = The G-code's X0 Y0 Z0. Moving it moves no cut, only the numbers in the program. In the view, select it and drag it: it snaps to the stock's corners and centre and to the drawing origin.
+forms-zero-link-hover = Show the work zero's properties
 
 # An imported DXF.
 forms-file = File
@@ -290,7 +298,6 @@ forms-stock-fit-hover = Centre the stock on the drawing's outline and size it to
 forms-stock-fixed-size = Fixed size, centred
 forms-stock-fixed-size-hover = A size you type, for a board you want to use, centred on the drawing's outline
 forms-drawing-size-note = Drawing { $size }
-forms-section-zero = Zero
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Each operation can choose its own, under its tool.
 forms-drawing-size-hover = The size of the drawing's outline (what is cut; construction geometry left out). The cut's outline, with the tool, is in the report after Generate

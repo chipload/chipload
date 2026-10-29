@@ -74,6 +74,7 @@ mod tab_markers;
 mod tests;
 mod texts;
 mod user_library;
+mod zero_drag;
 
 use forms::{job_form, op_form};
 use report::{DrawingFacts, Report, Tone};
@@ -119,6 +120,9 @@ pub enum RestMenu {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
     Job,
+    /// The G-code's zero, selected in the Browser or the view
+    /// (docs/specs/work-zero-marker.md).
+    WorkZero,
     /// What is picked on the canvas, alone (the user, 2026-10-28: one thing at a time in
     /// Properties): its values, or how to pick something.
     Selection,
@@ -283,6 +287,8 @@ struct Drag {
     select_box: Option<(Point, Point)>,
     /// The picture's or text's box handle being dragged, if any.
     boxed: Option<box_drag::BoxDrag>,
+    /// The work zero being dragged (docs/specs/work-zero-marker.md §3).
+    zero: Option<zero_drag::ZeroDrag>,
     /// The start marker being dragged (index in `scene.start_markers`).
     start: Option<usize>,
     /// The start marker right-clicked, for its context menu.

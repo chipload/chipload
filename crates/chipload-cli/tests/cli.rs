@@ -157,10 +157,19 @@ fn import_inspect_update_and_run_a_project() {
     ]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert!(text(&out.stdout).contains("Imported messy_2.dxf (22 shapes)"));
-    // inspect gives the same report for the project as for the DXF.
+    // inspect gives the same report for the project as for the DXF, then where its zero
+    // is: a new project's is the stock's bottom-left corner
+    // (docs/specs/work-zero-marker.md §7).
     let from_dxf = chipload(&["inspect", path(&corpus("dxf/messy_2.dxf"))]);
     let from_project = chipload(&["inspect", path(&project)]);
-    assert_eq!(text(&from_project.stdout), text(&from_dxf.stdout));
+    assert_eq!(
+        text(&from_project.stdout),
+        format!(
+            "{}Work zero: stock bottom left corner = drawing X-100.500 Y-60.000, \
+             Z0 = stock top\n",
+            text(&from_dxf.stdout)
+        )
+    );
     // A project without operations doesn't run.
     let x = dir.join("x.nc");
     assert_eq!(
@@ -1877,4 +1886,37 @@ fn the_drawing_is_exported_as_a_dxf_the_same_everywhere() {
     assert_eq!(out.status.code(), Some(1));
     assert!(text(&out.stderr).contains("has no layer Nope"));
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn zero_sets_and_prints_the_work_zero() {
+    // docs/specs/work-zero-marker.md §5.
+    let dir = temp_dir("zero");
+    let project = dir.join("badge.chipload");
+    std::fs::copy(corpus("jobs/v31/svg_badge.chipload"), &project).unwrap();
+    let p = path(&project);
+    let printed = chipload(&["zero", p]);
+    assert_eq!(
+        text(&printed.stdout),
+        "Work zero: drawing origin = drawing X0.000 Y0.000, Z0 = stock top\n"
+    );
+    let set = chipload(&["zero", p, "--stock", "centre", "--z", "bottom"]);
+    assert!(set.status.success(), "{}", text(&set.stderr));
+    let job = chipload_job::load_job(&project).unwrap();
+    assert_eq!(
+        job.machine.work_zero,
+        chipload_job::WorkZero::Stock {
+            corner: chipload_job::StockCorner::Center
+        }
+    );
+    assert_eq!(job.stock.z_zero, chipload_job::ZZero::Bottom);
+    let json = chipload(&["--json", "zero", p, "--at", "1in,-10"]);
+    let value: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(
+        value["work_zero"],
+        serde_json::json!({"at": "point", "x": 25.4, "y": -10.0})
+    );
+    assert_eq!(value["z_zero"], "bottom");
+    let refused = chipload(&["zero", p, "--drawing-origin", "--at", "1,2"]);
+    assert!(!refused.status.success());
 }

@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = ämnets nedre högra hörn
 forms-zero-stock-top-left = ämnets övre vänstra hörn
 forms-zero-stock-top-right = ämnets övre högra hörn
 forms-zero-point = punkt
+forms-zero-on-stock = På ämnet
+forms-zero-on-stock-hover = Klicka på ett hörn eller mitten: nollpunkten stannar där när ämnets storlek ändras
+forms-zero-drawing-origin-button = Ritningens origo
+forms-zero-drawing-origin-hover = X0 Y0 där ritningen har sin egen 0,0
+forms-zero-at = Position
+forms-zero-at-hover = Var nollpunkten ligger, i ritningens koordinater. Ett inskrivet värde gör den till en egen punkt.
+forms-zero-note = G-kodens X0 Y0 Z0. Att flytta den flyttar ingen fräsning, bara siffrorna i programmet. Markera den i vyn och dra den: den fäster vid ämnets hörn och mitt och vid ritningens origo.
+forms-zero-link-hover = Visa nollpunktens egenskaper
 
 # An imported DXF.
 forms-file = Fil
@@ -290,7 +298,6 @@ forms-stock-fit-hover = Centrera ämnet på ritningens kontur och gör det lika 
 forms-stock-fixed-size = Fast storlek, centrerad
 forms-stock-fixed-size-hover = En storlek du skriver in, för en skiva du vill använda, centrerad på ritningens kontur
 forms-drawing-size-note = Ritning { $size }
-forms-section-zero = Nollpunkt
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Varje operation kan välja sitt eget, under sitt verktyg.
 forms-drawing-size-hover = Storleken på ritningens kontur (det som fräses; utan hjälpgeometri). Skärets kontur, med verktyget, står i rapporten efter Beräkna

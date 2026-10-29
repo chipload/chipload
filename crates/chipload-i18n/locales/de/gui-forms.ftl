@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = Rohteil unten rechts
 forms-zero-stock-top-left = Rohteil oben links
 forms-zero-stock-top-right = Rohteil oben rechts
 forms-zero-point = Punkt
+forms-zero-on-stock = Am Rohteil
+forms-zero-on-stock-hover = Eine Ecke oder die Mitte anklicken: der Nullpunkt bleibt dort, wenn sich die Rohteilgröße ändert
+forms-zero-drawing-origin-button = Zeichnungsursprung
+forms-zero-drawing-origin-hover = X0 Y0 dort, wo die Zeichnung ihren eigenen Nullpunkt hat
+forms-zero-at = Position
+forms-zero-at-hover = Wo der Nullpunkt liegt, in Zeichnungskoordinaten. Ein eingetippter Wert macht ihn zu einem eigenen Punkt.
+forms-zero-note = X0 Y0 Z0 des G-Codes. Ihn zu verschieben verschiebt keinen Schnitt, nur die Zahlen im Programm. In der Ansicht auswählen und ziehen: er rastet an den Ecken und der Mitte des Rohteils und am Zeichnungsursprung ein.
+forms-zero-link-hover = Die Eigenschaften des Werkstücknullpunkts zeigen
 
 # An imported DXF.
 forms-file = Datei
@@ -291,7 +299,6 @@ forms-stock-fit-hover = Das Rohteil mittig auf den Umriss der Zeichnung legen un
 forms-stock-fixed-size = Feste Größe, mittig
 forms-stock-fixed-size-hover = Eine Größe, die Sie eingeben, für eine Platte, die Sie verwenden wollen, mittig auf dem Umriss der Zeichnung
 forms-drawing-size-note = Zeichnung { $size }
-forms-section-zero = Nullpunkt
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Jede Bearbeitung kann unter ihrem Werkzeug ein eigenes wählen.
 forms-drawing-size-hover = Die Größe der Zeichnungsumrisse (was gefräst wird; ohne Hilfsgeometrie). Der Umriss des Schnitts mit dem Werkzeug steht nach Berechnen im Bericht

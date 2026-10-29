@@ -194,6 +194,14 @@ forms-zero-stock-bottom-right = grezzo in basso a destra
 forms-zero-stock-top-left = grezzo in alto a sinistra
 forms-zero-stock-top-right = grezzo in alto a destra
 forms-zero-point = punto
+forms-zero-on-stock = Sul grezzo
+forms-zero-on-stock-hover = Fai clic su un angolo o sul centro: lo zero resta lì quando cambia la dimensione del grezzo
+forms-zero-drawing-origin-button = Origine del disegno
+forms-zero-drawing-origin-hover = X0 Y0 dove il disegno ha il suo 0,0
+forms-zero-at = Posizione
+forms-zero-at-hover = Dove si trova lo zero, in coordinate del disegno. Digitare un valore lo rende un punto a sé.
+forms-zero-note = X0 Y0 Z0 del G-code. Spostarlo non sposta nessun taglio, solo i numeri del programma. Nella vista, selezionalo e trascinalo: si aggancia agli angoli e al centro del grezzo e all'origine del disegno.
+forms-zero-link-hover = Mostra le proprietà dello zero pezzo
 
 # An imported DXF.
 forms-file = File
@@ -290,7 +298,6 @@ forms-stock-fit-hover = Centra il grezzo sul contorno del disegno e dimensionalo
 forms-stock-fixed-size = Dimensione fissa, centrata
 forms-stock-fixed-size-hover = Una dimensione che digiti, per un pannello che vuoi usare, centrata sul contorno del disegno
 forms-drawing-size-note = Disegno { $size }
-forms-section-zero = Zero
 forms-zero-summary = X0 Y0 { $xy } · Z0 { $z }
 forms-material-each-op = Ogni operazione può sceglierne uno proprio, sotto il suo utensile.
 forms-drawing-size-hover = La dimensione del contorno del disegno (ciò che viene lavorato; senza la geometria di costruzione). Il contorno del taglio, con l'utensile, è nel rapporto dopo Calcola

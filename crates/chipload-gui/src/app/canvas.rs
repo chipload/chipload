@@ -62,10 +62,7 @@ impl ChiploadApp {
         self.scene.grid = self.show_grid;
         self.scene.inch_grid = self.units == chipload_job::Units::Inch;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
-        self.scene.work_zero = self
-            .edit
-            .as_ref()
-            .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+        self.scene.work_zero = self.shown_zero_xy();
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
         // its operations cut; copy 1 is the drawing.
         self.scene.copies = self.copy_shifts();
@@ -131,10 +128,15 @@ impl ChiploadApp {
         let on_box_handle = |pos: egui::Pos2| {
             nearest(&mut box_handles.iter().map(|&(_, p)| p), pos).map(|i| box_handles[i].0)
         };
+        // The work zero's handle, over everything else (docs/specs/work-zero-marker.md §3).
+        let zero_handle = self.zero_handle();
+        self.scene.zero_handle = zero_handle.map(|p| (p, self.focus == Focus::WorkZero));
         if response.drag_started_by(egui::PointerButton::Primary)
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
-            if let Some(handle) = on_handle(origin) {
+            if self.on_zero_handle(origin) && self.start_zero_drag() {
+                // Dragged below.
+            } else if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
             } else if let Some(handle) = on_box_handle(origin) {
                 self.start_box_drag(handle);
@@ -159,6 +161,7 @@ impl ChiploadApp {
             }
         }
         if response.drag_stopped() {
+            self.end_zero_drag();
             self.end_handle_drag();
             self.end_box_drag();
             self.end_move_drag();
@@ -168,7 +171,15 @@ impl ChiploadApp {
         }
         self.drag.snapped = None;
         self.scene.snap_mark = None;
-        if let Some(marker) = self.drag.start {
+        let mut zero_label = None;
+        if self.dragging_zero() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let at = self.view.to_world(pos);
+                zero_label = self.drag_zero_to(at, alt).map(|text| (at, text));
+            }
+        } else if let Some(marker) = self.drag.start {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
@@ -239,7 +250,7 @@ impl ChiploadApp {
         } else {
             self.cursor = None;
         }
-        let mut readout = None;
+        let mut readout = zero_label;
         if self.sketch.is_some() {
             self.scene.measure = None;
             let at = self.cursor.map(|c| self.drawing_point(c, alt, shift));
@@ -377,7 +388,14 @@ impl ChiploadApp {
                         && self.tab_marker_at(pos).is_none()
                 })
                 .and_then(|pos| self.scene.op_label_at(&self.view, pos));
-            if let Some(label) = label {
+            let zero_clicked = response
+                .clicked()
+                .then(|| response.interact_pointer_pos())
+                .flatten()
+                .is_some_and(|pos| self.on_zero_handle(pos));
+            if zero_clicked {
+                self.focus = Focus::WorkZero;
+            } else if let Some(label) = label {
                 self.start_typing_dimension(label.dimension, label.value, label.rect.left_top());
             } else if let Some(k) = corner {
                 self.open_corner_menu(k);

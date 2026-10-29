@@ -1081,7 +1081,10 @@ impl ChiploadApp {
                         spindle: Spindle::Cw,
                         max_feed: None,
                         travel: None,
-                        work_zero: WorkZero::DrawingOrigin {},
+                        // As a new project (docs/specs/work-zero-marker.md §7).
+                        work_zero: WorkZero::Stock {
+                            corner: chipload_job::StockCorner::BottomLeft,
+                        },
                         max_overcut: DEFAULT_MAX_OVERCUT,
                         tool_change: ToolChange::Files,
                     },

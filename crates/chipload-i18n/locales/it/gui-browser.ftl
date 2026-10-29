@@ -33,6 +33,8 @@ browser-surface-hover = Tutto il grezzo abbassato in piano con una fresa larga: 
 # Job settings and Tools.
 browser-job-settings = Impostazioni lavoro
 browser-job-settings-hover = Grezzo, macchina, post-processore e utensili
+browser-work-zero = Zero pezzo
+browser-work-zero-hover = Dove si trova X0 Y0 Z0 del G-code. Fai clic per impostarlo, oppure selezionalo e trascinalo nella vista.
 browser-job-settings-problems-hover = Grezzo, macchina, post-processore e utensili. { $count ->
         [one] { $count } problema
        *[other] { $count } problemi

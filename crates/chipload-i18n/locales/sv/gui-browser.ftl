@@ -33,6 +33,8 @@ browser-surface-hover = Hela ämnet planfräst med en bred pinnfräs: plana offe
 # Job settings and Tools.
 browser-job-settings = Jobbinställningar
 browser-job-settings-hover = Ämne, maskin, postprocessor och verktyg
+browser-work-zero = Arbetsnollpunkt
+browser-work-zero-hover = Var G-kodens X0 Y0 Z0 ligger. Klicka för att ställa in den, eller markera den och dra den i vyn.
 browser-job-settings-problems-hover = Ämne, maskin, postprocessor och verktyg. { $count ->
         [one] { $count } problem
        *[other] { $count } problem

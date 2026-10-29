@@ -82,6 +82,8 @@ pub enum Icon {
     Library,
     /// A board with its grain: a material.
     Material,
+    /// Two axes from a dot: the G-code's zero (docs/specs/work-zero-marker.md §2).
+    WorkZero,
 }
 
 /// Line width of the icons, points.
@@ -422,6 +424,14 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::WorkZero => {
+            // X along the bottom, Y up the left, each with its arrowhead, from a ring.
+            pen.line([(0.3, 0.74), (0.92, 0.74)]);
+            pen.poly(&[(0.78, 0.62), (0.92, 0.74), (0.78, 0.86)]);
+            pen.line([(0.22, 0.66), (0.22, 0.08)]);
+            pen.poly(&[(0.1, 0.22), (0.22, 0.08), (0.34, 0.22)]);
+            pen.circle((0.22, 0.74), 0.09);
         }
         Icon::Machine => {
             // A gantry over a bed: two uprights, the beam, the spindle down to the bed.

@@ -12,7 +12,9 @@ outside profile. The same steps follow in the app and on the command line.
 2. **Check the job settings:** click **Job settings** in the [Browser](window.md#the-browser)
    on the left. A new project starts with:
    - stock just covering the drawing, 10 mm thick;
-   - work zero at the drawing's origin, Z zero on the stock top;
+   - [work zero](concepts/stock.md#work-zero) at the stock's bottom-left corner, Z zero
+     on the stock top (the *Work zero* row under Job settings; drag it in the view to move
+     it);
    - the GRBL post, a safe height of 5 mm;
    - a 6 mm endmill at 18 000 rpm.
 

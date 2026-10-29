@@ -65,7 +65,9 @@ impl ChiploadApp {
             self.delete_selected_shapes();
         }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
-            if self.measure.is_some() {
+            if self.cancel_zero_drag() {
+                // The zero stays where it was (docs/specs/work-zero-marker.md §3).
+            } else if self.measure.is_some() {
                 self.measure = None;
             } else if self.modify.is_some() {
                 self.cancel_modify();

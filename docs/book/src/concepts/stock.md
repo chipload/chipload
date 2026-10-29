@@ -1,9 +1,10 @@
 # Stock and work zero
 
-Job settings has four sections, in the order a job is set up: **Stock** (the board),
-**Zero** (where the G-code's zero is), **Material** (the feeds new operations take) and
-**Machine** (set once, so it starts closed; its summary line gives the profile, post, safe
-Z and spindle).
+Job settings has three sections, in the order a job is set up: **Stock** (the board),
+**Material** (the feeds new operations take) and **Machine** (set once, so it starts closed;
+its summary line gives the profile, post, safe Z and spindle). Above them a line says where
+the zero is, e.g. "Work zero: X0 Y0 stock bottom left · Z0 stock top"; click it to set the
+zero.
 
 ## Stock
 
@@ -34,36 +35,40 @@ choose a position at the drawing's origin first.
 
 ## Work zero
 
-The **Zero** section's summary line says where the zeros are, e.g. "X0 Y0 drawing origin ·
-Z0 stock top", so you can read it with the section closed.
+**Work zero** is the point that becomes X0 Y0 Z0 in the G-code. It has its own row in the
+[Browser](../window.md#the-browser), under Job settings, which says where it is ("stock bottom
+left"), and its own place in the view: the foot of the red and green axes.
 
-**Work zero X Y** is the point of the drawing that becomes X0 Y0 in the G-code:
-- **the drawing's origin**, the default;
-- **a stock corner or the stock centre**;
-- **any point**, in drawing coordinates.
+Only the G-code moves; the drawing, the stock and the toolpath stay where they are. So moving
+the zero never moves a cut, only the numbers in the program. The setup sheet and the
+program's first lines say where it is.
 
-**Z zero** is where Z0 is: the stock **top** (depths are negative Z) or its **bottom**, the
-spoilboard (the top is at Z = thickness).
+**In the view:** click the round handle at the foot of the axes to select the zero, then drag
+it. It snaps to the stock's corners and centre and to the drawing origin, then as the pointer
+snaps when drawing (points of the drawing, the grid); hold **Alt** to place it freely. A label
+at the pointer says where it goes. **Esc** while dragging leaves it where it was, and one drag
+is one step for Undo. Until the zero is selected, a drag on its handle does what it does
+anywhere else, so a drag meant for a shape under it never moves it.
 
-Only the G-code moves; the drawing and the canvas stay where they are. The canvas draws the
-X and Y axes at the work zero.
+**Its properties:**
+- **On the stock:** a small drawing of the board with a dot at each corner and the centre.
+  Click one: the zero stays at that corner when the stock changes size.
+- **Drawing origin:** where the drawing has its own 0,0.
+- **Position:** where the zero is, in drawing coordinates. Type a value to make it a point of
+  its own.
+- **Z zero:** the stock **top** (depths are negative Z) or its **bottom**, the spoilboard (the
+  top is at Z = thickness).
 
-Every program says where its zero is in a comment at the top, e.g. `(Work zero: stock center
-= drawing X150.000 Y110.000, Z0 = stock top)`, and so does the setup sheet. Set the
-machine's zero exactly there.
+New projects start with the zero at the stock's **bottom-left corner** and Z0 on its top: the
+corner you touch off on. A [machine profile](../library/machines.md) can give new projects
+another zero. Projects from before 29 October 2026 keep theirs, often the drawing origin.
 
-## Safe Z and travel
+On the command line:
 
-Under Machine:
-- **Max depth below stock:** how far a cut may go below the stock bottom, into the
-  spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm.
-- **Safe Z:** the height for every rapid move sideways, above the stock top. Make it clear
-  of your clamps. Before a plunge the tool rapids down to 1 mm above the stock top, then
-  feeds; it never rapids below the stock top.
-- **Travel X Y Z:** the machine's travel. When set, the checker refuses a program that
-  moves farther than the machine can.
-- **Max feed:** the fastest feed the machine takes. Feeds above it are refused, and the
-  cycle time uses it for rapid moves.
-- **G-code units:** mm (`G21`) or inch (`G20`), as your controller expects. Only the program
-  changes; see [Units and coordinates](units.md). Command line: `chipload set part.chipload
-  machine.gcode_units=inch`, or `--gcode-units inch` on `machine add` and `machine set`.
+```
+chipload zero part.chipload                       # where it is
+chipload zero part.chipload --stock bottom-left   # also bottom-right, top-left, top-right, centre
+chipload zero part.chipload --drawing-origin
+chipload zero part.chipload --at 25,-10           # a point; any length unit
+chipload zero part.chipload --z bottom            # Z0 on the spoilboard
+```

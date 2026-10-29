@@ -1,6 +1,8 @@
 # Spec: the work zero as a thing in the view
 
-Status: **proposal 2026-10-29**, waiting for the user (§7).
+Status: **approved 2026-10-29** ("ok go ahead": all five as recommended) and **built** the
+same day. A work zero per part was raised and left for *setups* (a board with its own stock
+and zero), a later spec.
 
 Follows docs/specs/work-zero.md (the model, the translation at output, the header line: all
 unchanged) and docs/specs/job-settings-layout.md (the Zero section).
@@ -60,9 +62,10 @@ in the program change. The checker shifts the stock itself, so it still judges t
   *Drawing origin* button.
 - **X Y:** where the zero is, in drawing coordinates. Typing a value makes it a point.
 - **Z zero** moves here too: zero is one thing, X, Y and Z.
-- **Job settings:** the *Zero* section goes. Its summary line moves to the top of the
-  Stock section, as a link that selects the work zero. One place to set it, two places it
-  shows.
+- **Job settings:** the *Zero* section goes. Its summary line moves above the sections,
+  as a link that selects the work zero. One place to set it, two places it shows.
+- The picture's row is called *On the stock*, with its hover saying the zero stays at that
+  corner when the stock changes size.
 
 ## 5. Command line
 
@@ -89,7 +92,11 @@ chipload zero part.chipload                          # prints where it is (--jso
   corner chosen in the list (same file).
 - Layout: the six languages, a narrow panel; pictures.
 
-## 7. Decisions
+- **Machine profiles:** a new profile (window or `machine add`) starts with the same zero
+  as a new project. A profile's zero is still what new projects take, so an existing
+  profile with the drawing origin keeps giving that until it is changed.
+
+## 7. Decisions (all as recommended, 2026-10-29)
 
 1. **Default for new projects:** **stock bottom-left (recommended)**, or keep the drawing
    origin (the answer of 2026-10-28). The stock is always centred on the outline now, and a
