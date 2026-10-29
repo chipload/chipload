@@ -18,7 +18,9 @@ publish it.
        git push origin v0.2.0
 
 4. The workflow checks that the tag matches the workspace version, runs the tests on Linux
-   and Windows (x86_64 and ARM64) and macOS, builds the files and the user guide, and creates
+   and Windows (x86_64 and ARM64) and macOS (as release builds, `packaging/test-release.sh`,
+   which the release build then reuses; CI runs them as debug builds on every push to
+   main), builds the files and the user guide, and creates
    a draft release with them and `SHA256SUMS.txt`. To try the builds without a release, run
    it by hand: *Actions > Release > Run workflow* (the files are left as run artifacts).
 5. Download and try the AppImages, the Windows `.exe` files and the macOS app, edit the notes,
