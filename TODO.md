@@ -200,7 +200,8 @@ it's built (see `CLAUDE.md`).
   back where checked safe; built. Fixed the same day: letting go of a dragged tab
   or start point no longer moves Properties to the shape selection. A tab or start dropped where the
   planner refuses it goes back with the reason, the markers staying (no Reset needed). The chip load
-  has its own row under the feed; a project's tool shows its flutes in Properties.
+  has its own row under the feed; a project's tool shows its flutes in Properties. While trimming, extending or
+  breaking, a click on empty space deselects.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

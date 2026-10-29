@@ -376,6 +376,10 @@ impl ChiploadApp {
             Some(tool @ (ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break)) => {
                 if let Some(id) = self.drawn_under(picked, at) {
                     self.apply_on_shape(tool, id, at);
+                } else if picked.is_none() {
+                    // Empty space clears the selection, as without a tool (the user,
+                    // 2026-10-29: the trimmed shape stayed selected).
+                    self.click(None, toggle);
                 }
             }
             Some(ModifyTool::Subtract) => {
