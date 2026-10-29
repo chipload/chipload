@@ -103,10 +103,13 @@ An optional `lead` per profile and pocket. Missing means none, today's behaviour
 ### Where a ring with a lead starts
 
 A ring that has a lead but no start point of its own starts in the **middle of its longest
-chord** (the first, on a tie), not at today's corner. Beside an inside corner a lead has no
+chord**, not at today's corner. Beside an inside corner a lead has no
 room: its start would come within the tool radius of the other wall. Only rings with a lead
 start there, so nothing changes for existing projects. (Found while implementing,
-2026-10-10.)
+2026-10-10.) Ties: chords within the chaining tolerance of the longest, then heights within
+it; the lowest middle wins, then the leftmost (2026-10-29: "the first, on a tie", compared
+exactly, made the G-code depend on the platform's maths library for arcs and symmetric
+shapes, whose chords are equal up to the last bits).
 
 ### Each pass
 

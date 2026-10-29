@@ -8,7 +8,7 @@ use std::f64::consts::FRAC_PI_2;
 
 use chipload_core::Point;
 use chipload_core::primitives::{distance, segment_count};
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, OFFSET_CHECK_SLACK_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM};
 
 use crate::arcs::{ArcTable, Circle, arc_midpoint};
 use crate::geom::PrimIndex;
@@ -128,19 +128,32 @@ pub fn quarter_leads(ring: &[Point], radius: f64, waste_left: bool) -> Option<Le
 }
 
 /// Where a ring with a lead starts when the user hasn't said: the middle of its longest
-/// chord (the first, on a tie), where a lead has the most room. A corner, the planner's
-/// usual start, leaves a lead no room beside an inside corner.
+/// chord, where a lead has the most room. A corner, the planner's usual start, leaves a
+/// lead no room beside an inside corner.
+///
+/// Chords within CHAIN_TOL_MM of the longest are a tie, as are heights within it: the
+/// lowest middle wins, then the leftmost. A flattened arc, or a symmetric drawing, has
+/// chords of one length up to the last bits, and those differ between platforms' maths
+/// libraries: compared exactly, the start and the G-code followed them (golden
+/// v31_svg_badge on Windows, macOS and ARM, 2026-10-29).
 pub fn roomiest_start(ring: &[Point]) -> Option<Point> {
     let n = ring.len();
-    let mut best: Option<(f64, Point)> = None;
-    for i in 0..n {
+    let middle = |i: usize| {
         let (a, b) = (ring[i], ring[(i + 1) % n]);
-        let length = distance(a, b);
-        if best.is_none_or(|(l, _)| length > l) {
-            best = Some((length, ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)));
-        }
-    }
-    best.map(|(_, p)| p)
+        (distance(a, b), ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0))
+    };
+    let longest = (0..n)
+        .map(|i| middle(i).0)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let long: Vec<Point> = (0..n)
+        .map(middle)
+        .filter(|&(length, _)| length >= longest - CHAIN_TOL_MM)
+        .map(|(_, p)| p)
+        .collect();
+    let lowest = long.iter().map(|p| p.1).fold(f64::INFINITY, f64::min);
+    long.into_iter()
+        .filter(|p| p.1 <= lowest + CHAIN_TOL_MM)
+        .min_by(|p, q| p.0.total_cmp(&q.0))
 }
 
 /// The largest leads, from `radius` halving down to `min_radius`, that `fits` accepts;
@@ -183,6 +196,35 @@ mod tests {
             (0.0, 10.0),
             (0.0, 0.0),
         ]
+    }
+
+    /// A regular polygon, its chords one length up to the last bits: the start is the
+    /// lowest middle, then the leftmost, whatever the noise (the platforms' maths libraries
+    /// differ there), and wherever the ring starts.
+    #[test]
+    fn the_roomiest_start_ignores_float_noise_between_equal_chords() {
+        let polygon = |noise: f64, from: usize| -> Vec<Point> {
+            let mut ring: Vec<Point> = (0..8)
+                .map(|k| {
+                    let a = (k as f64 + 0.5) * std::f64::consts::TAU / 8.0;
+                    (10.0 * a.cos(), 10.0 * a.sin())
+                })
+                .collect();
+            ring[3].0 += noise;
+            ring.rotate_left(from);
+            ring
+        };
+        let want = roomiest_start(&polygon(0.0, 0)).unwrap();
+        assert!(
+            close(want, (0.0, -10.0 * (std::f64::consts::PI / 8.0).cos())),
+            "{want:?}"
+        );
+        for noise in [1e-15, -1e-15, 1e-12] {
+            for from in 0..8 {
+                let got = roomiest_start(&polygon(noise, from)).unwrap();
+                assert!(close(got, want), "{noise} {from}: {got:?}");
+            }
+        }
     }
 
     #[test]

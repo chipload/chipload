@@ -130,12 +130,12 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 warning: Operation 1 (Rounded rings): contours #1, #2, #3: no room for a helix (its way to the first path passes a wall or island); ramping in instead
 Operation 1: a ring starts at (75.000, 94.800) (start point 1)
 Operation 1: a ring starts at (114.996, 81.252) (default)
-Operation 1: a ring starts at (93.540, 116.635) (default)
+Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
-Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
+Estimated time: 7 min 30 s (cutting 7 min 12 s, rapids 15 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Rounded rings): 6 min 27 s
-  Operation 2 (Outline): 59 s
+  Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rounded rings): 0.033 mm/tooth
@@ -491,12 +491,12 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 warning: Operation 1 (Rings round the rectangle): contours #1, #2, #3: no room for a helix (its way to the first path passes a wall or island); ramping in instead
 Operation 1: a ring starts at (75.000, 94.800) (start point 1)
 Operation 1: a ring starts at (114.996, 81.252) (default)
-Operation 1: a ring starts at (93.540, 116.635) (default)
+Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
-Estimated time: 7 min 29 s (cutting 7 min 10 s, rapids 16 s, spindle 3 s)
+Estimated time: 7 min 30 s (cutting 7 min 12 s, rapids 15 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Rings round the rectangle): 6 min 27 s
-  Operation 2 (Outline): 59 s
+  Operation 2 (Outline): 1 min 0 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rings round the rectangle): 0.033 mm/tooth
@@ -512,12 +512,12 @@ warning: Operation 1 (Rings in the rounded rectangle): contours #1, #2, #3: no r
 warning: Operation 2 (Rounded outline), contour #1: tabs 2 and 3, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
 Operation 1: a ring starts at (75.000, 94.800) (start point 1)
 Operation 1: a ring starts at (114.996, 81.252) (default)
-Operation 1: a ring starts at (93.540, 116.635) (default)
+Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
-Estimated time: 7 min 19 s (cutting 7 min 1 s, rapids 15 s, spindle 3 s)
+Estimated time: 7 min 20 s (cutting 7 min 3 s, rapids 14 s, spindle 3 s)
 Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
   Operation 1 (Rings in the rounded rectangle): 6 min 21 s
-  Operation 2 (Rounded outline): 55 s
+  Operation 2 (Rounded outline): 56 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rings in the rounded rectangle): 0.033 mm/tooth
@@ -657,12 +657,12 @@ $ chipload plan tests/corpus/jobs/v30/drawn_edited.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Scalloped outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (185.808, 98.365) (default)
+Operation 1: a ring starts at (150.000, 72.349) (default)
 Operation 2: a ring starts at (119.158, 58.249) (default)
-Estimated time: 5 min 0 s (cutting 4 min 53 s, rapids 3 s, spindle 3 s)
+Estimated time: 4 min 58 s (cutting 4 min 53 s, rapids 2 s, spindle 3 s)
 Cut outline: 124.389 × 119.523 mm (X 87.805 … 212.195, Y 55.249 … 174.772, the tool included): the smallest stock that holds the job.
-  Operation 1 (Pocket in the pentagon): 3 min 59 s
-  Operation 2 (Scalloped outline): 58 s
+  Operation 1 (Pocket in the pentagon): 3 min 58 s
+  Operation 2 (Scalloped outline): 57 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket in the pentagon): 0.033 mm/tooth
@@ -677,12 +677,12 @@ warning: Operation 2 (Rounded outline): cuts 0.300 mm below the stock (into the 
 warning: Operation 2 (Rounded outline), contour #1: tabs 2 and 3, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
 Operation 1: a ring starts at (117.538, 67.075) (default)
 Operation 1: a ring starts at (75.000, 94.800) (start point 1)
-Operation 1: a ring starts at (93.540, 116.635) (default)
+Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
-Estimated time: 7 min 21 s (cutting 7 min 6 s, rapids 12 s, spindle 3 s)
+Estimated time: 7 min 20 s (cutting 7 min 4 s, rapids 13 s, spindle 3 s)
 Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
-  Operation 1 (Pocket round a hexagon): 6 min 23 s
-  Operation 2 (Rounded outline): 55 s
+  Operation 1 (Pocket round a hexagon): 6 min 21 s
+  Operation 2 (Rounded outline): 56 s
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket round a hexagon): 0.033 mm/tooth
@@ -694,11 +694,12 @@ $ chipload plan tests/corpus/jobs/v31/svg_badge.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Badge outline): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 1 (Leaf round the eye): contours #2, #3: lead radius reduced to 1.000 mm (no room for 2.000 mm)
 warning: Operation 2 (Badge outline), contour #1: tabs 1 and 2, 2 and 3, 3 and 4, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
-Operation 1: a ring starts at (51.554, 44.584) (default)
-Operation 1: a ring starts at (62.751, 50.573) (default)
+Operation 1: a ring starts at (47.671, 34.209) (default)
+Operation 1: a ring starts at (68.814, 49.376) (default)
 Operation 2: a ring starts at (18.000, 6.700) (default)
-Estimated time: 1 min 39 s (cutting 1 min 34 s, rapids 2 s, spindle 3 s)
+Estimated time: 1 min 39 s (cutting 1 min 33 s, rapids 3 s, spindle 3 s)
 Cut outline: 112.600 × 72.600 mm (X 3.700 … 116.300, Y 3.700 … 76.300, the tool included): the smallest stock that holds the job.
   Operation 1 (Leaf round the eye): 49 s
   Operation 2 (Badge outline): 47 s
