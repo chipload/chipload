@@ -98,6 +98,24 @@ pub fn set_part(
     checked(job)
 }
 
+/// The project with only the parts `ids` cut, every other one switched off: what exporting
+/// those parts writes (docs/specs/part-export.md §2). A part that is off but named is cut.
+/// The parts' names, in the project's order, for the status and the setup sheet.
+pub fn only_parts(job: &Job, ids: &[u64]) -> Result<(Job, Vec<String>), PipelineError> {
+    for &id in ids {
+        index_of(job, id)?;
+    }
+    let mut job = job.clone();
+    let mut names = Vec::new();
+    for part in &mut job.parts {
+        part.enabled = ids.contains(&part.id);
+        if part.enabled {
+            names.push(part.name.clone());
+        }
+    }
+    Ok((job, names))
+}
+
 /// Make part `id` the one new operations go into.
 pub fn activate_part(job: &Job, id: u64) -> Result<Job, PipelineError> {
     index_of(job, id)?;

@@ -428,6 +428,8 @@ pub struct ChiploadApp {
     export_when_done: bool,
     /// Where to export once the run in progress, of every part, is done.
     pub(super) export_path_when_done: Option<PathBuf>,
+    /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
+    pub(super) export_part_when_done: Option<(u64, PathBuf)>,
     /// Preview every part, not only the active one (canvas bar; this session only).
     pub all_parts: bool,
     /// The part the last result is a preview of; None: the whole project.
@@ -554,6 +556,7 @@ impl Default for ChiploadApp {
             export_when_done: false,
             all_parts: false,
             export_path_when_done: None,
+            export_part_when_done: None,
             result_part: None,
             recovery: None,
             recovery_due: None,
@@ -1465,10 +1468,10 @@ impl ChiploadApp {
     /// Write the checked G-code of the last generation, and its setup sheet when the
     /// setting asks for one (docs/specs/setup-sheet.md §4).
     pub fn export_gcode(&mut self, path: &Path) -> bool {
-        let Some(result) = &self.result else {
+        if self.result.is_none() {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
-        };
+        }
         // Never a preview of one part: every part is planned first, then written there
         // (docs/specs/active-part-preview.md §2).
         if self.result_part.is_some() {
@@ -1478,6 +1481,42 @@ impl ChiploadApp {
             }
             return false;
         }
+        self.write_export(path, Vec::new())
+    }
+
+    /// Write the G-code of part `id` alone, as if every other part were switched off, and
+    /// its setup sheet (docs/specs/part-export.md §4): now if the toolpath shown is exactly
+    /// that part's, else once it is planned. Returns whether it was written now.
+    pub fn export_part(&mut self, id: u64, path: &Path) -> bool {
+        let Some(name) = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.part(id))
+            .map(|p| p.name.clone())
+        else {
+            return false;
+        };
+        let current = self.result.is_some() && !self.toolpath_stale && self.generation.is_none();
+        if current && self.result_part == Some(id) {
+            return self.write_export(path, vec![name]);
+        }
+        if self.start_generation_scoped(true, Some(id)) {
+            self.export_path_when_done = None;
+            self.export_when_done = false;
+            self.export_part_when_done = Some((id, path.to_path_buf()));
+            let status = t!(self, "app-planning-part-then-export", name = name);
+            self.set_status(status, STATUS_SECONDS);
+        }
+        false
+    }
+
+    /// Write the last generation's G-code files, and its setup sheet when the setting asks
+    /// for one; `parts` names the parts when only those were planned.
+    fn write_export(&mut self, path: &Path, parts: Vec<String>) -> bool {
+        let Some(result) = &self.result else {
+            self.error(vec![t!(self, "app-generate-before-export")]);
+            return false;
+        };
         let written = match write_gcode_files(path, &result.files) {
             Ok(written) => written,
             Err(err) => {
@@ -1505,6 +1544,7 @@ impl ChiploadApp {
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
                     units: self.units,
                     language: self.lang(),
+                    parts,
                 };
                 match write_setup_sheet(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),
@@ -1955,6 +1995,37 @@ impl ChiploadApp {
         });
         self.default_project_path().with_extension(ext)
     }
+
+    /// The project's name and the part's: `box-lid.nc` (docs/specs/part-export.md §6.3).
+    pub(super) fn default_part_export_path(&self, id: u64, name: &str) -> PathBuf {
+        let general = self.default_export_path();
+        let stem = general
+            .file_stem()
+            .map_or_else(String::new, |s| s.to_string_lossy().into_owned());
+        let mut part = file_safe(name);
+        if part.is_empty() {
+            part = format!("part-{id}");
+        }
+        let file = match general.extension() {
+            Some(ext) => format!("{stem}-{part}.{}", ext.to_string_lossy()),
+            None => format!("{stem}-{part}"),
+        };
+        general.with_file_name(file)
+    }
+}
+
+/// A name fit for a file name: letters, digits, `-` and `_` kept, spaces made `-`, the
+/// rest left out.
+fn file_safe(name: &str) -> String {
+    let mut out = String::new();
+    for c in name.trim().chars() {
+        if c.is_alphanumeric() || c == '-' || c == '_' {
+            out.push(c);
+        } else if c.is_whitespace() && !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    out.trim_matches('-').to_string()
 }
 
 impl eframe::App for ChiploadApp {

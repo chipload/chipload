@@ -193,8 +193,8 @@ it's built (see `CLAUDE.md`).
   at the stock's bottom-left corner; built. Later: **setups** (a board with its own stock
   and zero, holding parts), raised by the user as a zero per part. After the first test cut
   (2026-10-29): the drawing origin as ghost axes once the zero is elsewhere; built.
-  **One part's G-code** (docs/specs/part-export.md, draft 2026-10-29): *Export G-code of
-  this part…* on a part's right-click menu, `--part` on run/sheet/plan; awaiting review.
+  **One part's G-code** (docs/specs/part-export.md, 2026-10-29): *Export G-code of this
+  part…* on a part's right-click menu, `--part` on run/sheet/plan; built.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

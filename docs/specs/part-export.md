@@ -1,6 +1,9 @@
 # Spec: exporting one part's G-code
 
-Status: **draft 2026-10-29**, for the user's review.
+Status: **approved 2026-10-29** ("sounds good go ahead": all five as recommended) and
+**built** the same day. As built, the window plans the part in the background as its
+preview does, so the toolpath shown is that part's afterwards (§4 said it wouldn't change);
+the status while planning names the part, and the export's own status is as for *Export*.
 
 Follows docs/specs/parts.md and docs/specs/active-part-preview.md, whose §2.2 ("Export
 always writes every part that is cut") this changes: *Export* still does that, and a new

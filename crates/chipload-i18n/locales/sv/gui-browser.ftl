@@ -53,6 +53,8 @@ browser-part-hover = Klicka för dess kopior; dubbelklicka för att göra den ak
 # A verb: make this the active part.
 browser-activate = Aktivera
 browser-activate-hover = Nya operationer hamnar i den aktiva detaljen
+browser-export-part = Exportera G-kod för den här detaljen…
+browser-export-part-hover = Skriv G-koden för bara den här detaljen, som om alla andra detaljer var avstängda; även dess uppsättningsblad när den inställningen är på.
 browser-new-operation = Ny operation
 browser-select-shapes-first = Markera former först
 browser-move-up = Flytta upp

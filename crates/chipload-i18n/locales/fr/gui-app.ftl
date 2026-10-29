@@ -51,6 +51,7 @@ app-now-rest-pass = L'opération { $op } est maintenant une passe de reprise de 
 
 app-generate-before-export = Calculez (F5) avant d'exporter le G-code.
 app-planning-then-export = Calcul de chaque pièce, puis export
+app-planning-part-then-export = Planification de la pièce { $name }, puis export
 app-could-not-export = Impossible d'exporter { $path } :
 app-dxf-exported = { $path } écrit.
 app-could-not-export-dxf = Le dessin n'a pas été exporté :

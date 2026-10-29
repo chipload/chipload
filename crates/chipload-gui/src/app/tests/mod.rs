@@ -21,6 +21,7 @@ mod leave_out_shapes;
 mod live_problems;
 mod materials;
 mod narrow_panel;
+mod part_export;
 mod parts;
 mod posts;
 mod profile_form;

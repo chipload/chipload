@@ -51,6 +51,7 @@ app-now-rest-pass = Bearbeitung { $op } ist jetzt ein Restdurchgang von Bearbeit
 
 app-generate-before-export = Vor dem Export des G-Codes berechnen (F5).
 app-planning-then-export = Alle Teile werden geplant, dann exportiert
+app-planning-part-then-export = Teil { $name } wird geplant, dann exportiert
 app-could-not-export = { $path } konnte nicht exportiert werden:
 app-dxf-exported = { $path } geschrieben.
 app-could-not-export-dxf = Die Zeichnung wurde nicht exportiert:

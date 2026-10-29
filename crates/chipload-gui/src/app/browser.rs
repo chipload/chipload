@@ -402,6 +402,7 @@ enum OpAction {
     ToPart(usize, u64),
     PartFocus(u64),
     PartActivate(u64),
+    PartExport(u64),
     PartToggle(u64),
     PartMove(u64, bool),
     PartDelete(u64),
@@ -697,6 +698,7 @@ impl ChiploadApp {
             Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
             Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
             Some(OpAction::PartActivate(id)) => self.activate_part(id),
+            Some(OpAction::PartExport(id)) => self.ask_export_part(id),
             Some(OpAction::PartToggle(id)) => self.toggle_part(id),
             Some(OpAction::PartMove(id, up)) => self.move_part(id, up),
             Some(OpAction::PartDelete(id)) => self.delete_part(id),
@@ -785,6 +787,13 @@ impl ChiploadApp {
                 .clicked()
             {
                 action = Some(OpAction::PartActivate(part.id));
+            }
+            if ui
+                .button(t!(ui, "browser-export-part"))
+                .on_hover_text(t!(ui, "browser-export-part-hover"))
+                .clicked()
+            {
+                action = Some(OpAction::PartExport(part.id));
             }
             ui.menu_button(t!(ui, "browser-new-operation"), |ui| {
                 for (label, kind, hover) in new_operations(ui) {

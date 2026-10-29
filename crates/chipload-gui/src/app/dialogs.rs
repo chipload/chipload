@@ -113,6 +113,22 @@ impl ChiploadApp {
         }
     }
 
+    /// A part's right-click menu: *Export G-code of this part…* (docs/specs/part-export.md).
+    pub(super) fn ask_export_part(&mut self, id: u64) {
+        let Some(name) = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.part(id))
+            .map(|p| p.name.clone())
+        else {
+            return;
+        };
+        let suggested = self.default_part_export_path(id, &name);
+        if let Some(path) = save_dialog(&suggested, "G-code", "nc") {
+            self.export_part(id, &path);
+        }
+    }
+
     pub(super) fn copy_selector(&mut self, ctx: &egui::Context) {
         if let Some(text) = self.selector_json() {
             ctx.copy_text(text);

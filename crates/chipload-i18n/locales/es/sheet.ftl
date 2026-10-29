@@ -5,6 +5,11 @@
 # (project, tools, parts, operations, layers, files) are never translated.
 
 sheet-title = Hoja de preparación: { $project }
+# Only some of the project's parts were exported.
+sheet-title-parts = Hoja de preparación: { $project }, { $count ->
+    [one] pieza
+   *[other] piezas
+} { $parts }
 # The line under the title, its parts joined with " · ".
 sheet-post = postprocesador { $post }
 sheet-written-by = escrita por { $by }

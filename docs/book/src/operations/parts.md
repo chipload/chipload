@@ -19,8 +19,15 @@ boxes.
   simulation and playback show only the active part, so a change to part 2 doesn't plan
   part 1 again. The status bar says "part 2 of 2 · cycle …". **All parts** on the canvas
   bar shows every part.
-- **Export always writes every part** that is on. When only the active part is shown,
-  Export plans the whole project first, then writes it.
+- **Export writes every part** that is on. When only the active part is shown, Export
+  plans the whole project first, then writes it.
+- **One part's G-code:** right-click a part in the Browser and choose **Export G-code of
+  this part…**. You get the program the project gives with every other part switched off:
+  that part with all its copies, the same stock, work zero and machine, checked as every
+  program is. It works for a part that is off too. The file name suggested is the
+  project's and the part's (`box-lid.nc`), and the setup sheet, when one is written, is of
+  that part and names it. The project isn't changed. On the command line, `--part ID` on
+  `run`, `sheet` and `plan` does the same, and can be given more than once.
 - **Stock:** all parts share the project's stock and work zero. Parts cut from a different
   material belong in another project.
 - **Safety:**
@@ -38,11 +45,13 @@ chipload op part part.chipload --op 4 --part 2          # move operation 4 into 
 chipload copies part.chipload --part 2 --grid 2x1 --gap 10
 chipload part set part.chipload 2 --name lid --off      # rename, turn off (--on)
 chipload part activate part.chipload 1
+chipload run part.chipload -o lid.nc --part 2           # only part 2's G-code
 chipload part remove part.chipload 2 --with-operations  # without the flag: refused while it has operations
 ```
 
 In the app, the [Browser](../window.md#the-browser) lists the parts with their operations.
-Click a part to see its copies in Properties. Right-click it to activate, move or delete it,
+Click a part to see its copies in Properties. Right-click it to activate, export, move or
+delete it,
 or right-click *Parts* for a new one. Drag an operation onto a part to move it there.
 
 ![Two parts in the Browser: part B is active, cut twice, and its properties are

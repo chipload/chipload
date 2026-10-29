@@ -147,6 +147,10 @@ enum Command {
     Plan {
         /// The project (.chipload).
         project: PathBuf,
+        /// Only this part (as `part list` numbers it), as if every other part were switched
+        /// off; may be given more than once (docs/specs/part-export.md).
+        #[arg(long = "part", value_name = "ID")]
+        parts: Vec<u64>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -175,6 +179,10 @@ enum Command {
         /// English.
         #[arg(long, value_name = "LANG")]
         sheet_lang: Option<LangArg>,
+        /// Only this part (as `part list` numbers it), as if every other part were switched
+        /// off; may be given more than once (docs/specs/part-export.md).
+        #[arg(long = "part", value_name = "ID")]
+        parts: Vec<u64>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -229,6 +237,10 @@ enum Command {
         /// Its language (default: English). The command line itself stays English.
         #[arg(long)]
         lang: Option<LangArg>,
+        /// Only this part (as `part list` numbers it), as if every other part were switched
+        /// off; may be given more than once (docs/specs/part-export.md).
+        #[arg(long = "part", value_name = "ID")]
+        parts: Vec<u64>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -1321,7 +1333,11 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             dxf,
             output.as_deref(),
         ),
-        Command::Plan { project, sets } => plan(out, &project, &sets),
+        Command::Plan {
+            project,
+            parts,
+            sets,
+        } => plan(out, &project, &sets, &parts),
         Command::Get { project, path } => get(out, &project, &path),
         Command::Set {
             project,
@@ -1336,6 +1352,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             no_sheet,
             sheet_units,
             sheet_lang,
+            parts,
             sets,
         } => {
             let sheet = (!no_sheet).then(|| {
@@ -1344,7 +1361,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                     sheet_lang.map_or(Language::En, LangArg::value),
                 )
             });
-            run(out, &project, &output, tool_change, sheet, &sets)
+            run(out, &project, &output, tool_change, sheet, &sets, &parts)
         }
         Command::Sheet {
             project,
@@ -1353,6 +1370,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             tool_change,
             units: sheet_units,
             lang,
+            parts,
             sets,
         } => sheet(
             out,
@@ -1364,7 +1382,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 units(sheet_units).unwrap_or(Units::Mm),
                 lang.map_or(Language::En, LangArg::value),
             ),
-            &sets,
+            (&sets, &parts),
         ),
         Command::Simulate {
             project,
@@ -2678,19 +2696,36 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
     Ok(written)
 }
 
-/// Load a project and run it, as `run` and `sheet` do; errors are printed.
+/// `load_set`, then only the parts `parts` cut when any are given
+/// (docs/specs/part-export.md); with them their names.
+fn load_parts(
+    out: &mut Out,
+    project: &Path,
+    sets: &[String],
+    parts: &[u64],
+) -> Result<(Job, Vec<String>), ExitCode> {
+    let job = load_set(out, project, sets)?;
+    if parts.is_empty() {
+        return Ok((job, Vec::new()));
+    }
+    chipload_pipeline::parts::only_parts(&job, parts).map_err(|e| out.fail(e))
+}
+
+/// Load a project and run it, as `run` and `sheet` do; errors are printed. With `parts`,
+/// only those parts, and their names.
 fn load_and_run(
     out: &mut Out,
     project: &Path,
     tool_change: Option<library::ToolChangeArg>,
     sets: &[String],
-) -> Result<(Job, RunResult), ExitCode> {
-    let mut job = load_set(out, project, sets)?;
+    parts: &[u64],
+) -> Result<(Job, RunResult, Vec<String>), ExitCode> {
+    let (mut job, names) = load_parts(out, project, sets, parts)?;
     if let Some(change) = tool_change {
         job.machine.tool_change = change.value();
     }
     match run_job(&job) {
-        Ok(result) => Ok((job, result)),
+        Ok(result) => Ok((job, result, names)),
         Err(err @ PipelineError::CheckFailed { .. }) => {
             out.err(format!("error: {err}"));
             out.err("No output written.");
@@ -2706,7 +2741,11 @@ fn load_and_run(
 
 /// What the sheet says it was made from: the project's file name and this version; its
 /// lengths in `units`, its words in `language`.
-fn sheet_info(project: &Path, (units, language): (Units, Language)) -> SheetInfo {
+fn sheet_info(
+    project: &Path,
+    (units, language): (Units, Language),
+    parts: Vec<String>,
+) -> SheetInfo {
     SheetInfo {
         project: project.file_name().map_or_else(
             || project.display().to_string(),
@@ -2715,6 +2754,7 @@ fn sheet_info(project: &Path, (units, language): (Units, Language)) -> SheetInfo
         written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
         units,
         language,
+        parts,
     }
 }
 
@@ -2725,9 +2765,9 @@ fn sheet(
     gcode: Option<&Path>,
     tool_change: Option<library::ToolChangeArg>,
     words: (Units, Language),
-    sets: &[String],
+    (sets, parts): (&[String], &[u64]),
 ) -> ExitCode {
-    let (job, result) = match load_and_run(out, project, tool_change, sets) {
+    let (job, result, names) = match load_and_run(out, project, tool_change, sets, parts) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -2735,7 +2775,7 @@ fn sheet(
         || project.with_extension(result.post.file_extension.trim_start_matches('.')),
         Path::to_path_buf,
     );
-    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project, words));
+    let html = setup_sheet(&job, &result, &gcode, &sheet_info(project, words, names));
     if let Err(err) = write_atomically(output, &html) {
         out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
@@ -2765,7 +2805,7 @@ fn simulate(
         image,
         hash,
     } = args;
-    let (job, result) = match load_and_run(out, project, None, sets) {
+    let (job, result, _) = match load_and_run(out, project, None, sets, &[]) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -2849,8 +2889,9 @@ fn run(
     tool_change: Option<library::ToolChangeArg>,
     sheet: Option<(Units, Language)>,
     sets: &[String],
+    parts: &[u64],
 ) -> ExitCode {
-    let (job, result) = match load_and_run(out, project, tool_change, sets) {
+    let (job, result, names) = match load_and_run(out, project, tool_change, sets, parts) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -2864,6 +2905,9 @@ fn run(
         out.line(format!("check warning: {}", warning.message));
     }
     out.line(format!("Work zero: {}", job.work_zero_text()));
+    if !names.is_empty() {
+        out.line(format!("Only: {}", names.join(", ")));
+    }
     if let Err(err) = write_gcode_files(output, &result.files) {
         out.err(format!("error: cannot write {}: {err}", output.display()));
         return ExitCode::from(EXIT_FAILED);
@@ -2907,7 +2951,7 @@ fn run(
         ));
     }
     if let Some(words) = sheet {
-        match write_setup_sheet(&job, &result, output, &sheet_info(project, words)) {
+        match write_setup_sheet(&job, &result, output, &sheet_info(project, words, names)) {
             Ok(path) => {
                 out.wrote(&path, " (setup sheet)");
                 let shown = std::path::absolute(&path).unwrap_or(path);
@@ -3592,9 +3636,9 @@ fn program_from_json(value: &Value) -> Result<Program, String> {
     })
 }
 
-fn plan(out: &mut Out, project: &Path, sets: &[String]) -> ExitCode {
-    let job = match load_set(out, project, sets) {
-        Ok(job) => job,
+fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCode {
+    let job = match load_parts(out, project, sets, parts) {
+        Ok((job, _)) => job,
         Err(code) => return code,
     };
     let imported = match load_drawing(&job) {

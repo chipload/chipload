@@ -36,6 +36,9 @@ pub struct SheetInfo {
     pub units: Units,
     /// What its words are written in.
     pub language: Language,
+    /// The parts' names when only some of the project's parts were exported
+    /// (docs/specs/part-export.md §4); empty for the whole project.
+    pub parts: Vec<String>,
 }
 
 /// `part-sheet.html` next to `part.nc` (§4, decision 7).
@@ -148,8 +151,18 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 ";
 
 /// "Setup sheet: part.chipload", escaped.
+/// With some parts only: "Setup sheet: box.chipload, part "lid"".
 fn title(info: &SheetInfo, w: Words) -> String {
-    w.text(&Message::new("sheet-title").arg("project", info.project.as_str()))
+    if info.parts.is_empty() {
+        return w.text(&Message::new("sheet-title").arg("project", info.project.as_str()));
+    }
+    let names = info.parts.join(", ");
+    w.text(
+        &Message::new("sheet-title-parts")
+            .arg("project", info.project.as_str())
+            .arg("parts", names)
+            .arg("count", info.parts.len()),
+    )
 }
 
 fn head(html: &mut String, info: &SheetInfo, w: Words) {

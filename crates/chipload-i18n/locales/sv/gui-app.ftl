@@ -51,6 +51,7 @@ app-now-rest-pass = Operation { $op } är nu restbearbetning av operation { $par
 
 app-generate-before-export = Beräkna (F5) innan du exporterar G-kod.
 app-planning-then-export = Planerar alla detaljer och exporterar sedan
+app-planning-part-then-export = Planerar detaljen { $name } och exporterar sedan
 app-could-not-export = Kunde inte exportera { $path }:
 app-dxf-exported = Skrev { $path }.
 app-could-not-export-dxf = Ritningen exporterades inte:

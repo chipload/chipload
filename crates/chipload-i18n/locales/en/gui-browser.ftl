@@ -53,6 +53,8 @@ browser-part-hover = Click for its copies; double-click to make it the active pa
 # A verb: make this the active part.
 browser-activate = Activate
 browser-activate-hover = New operations go into the active part
+browser-export-part = Export G-code of this part…
+browser-export-part-hover = Write the G-code of this part only, as if every other part were switched off; its setup sheet too when that setting is on.
 browser-new-operation = New operation
 browser-select-shapes-first = Select shapes first
 browser-move-up = Move up

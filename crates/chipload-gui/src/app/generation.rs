@@ -83,6 +83,13 @@ impl ChiploadApp {
     /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
     /// export).
     pub(super) fn start_generation_of(&mut self, loud: bool, whole: bool) -> bool {
+        let scope = if whole { None } else { self.preview_part() };
+        self.start_generation_scoped(loud, scope)
+    }
+
+    /// Plan only part `scope`, as if every other part were switched off, or every part
+    /// that is cut (None).
+    pub(super) fn start_generation_scoped(&mut self, loud: bool, scope: Option<u64>) -> bool {
         self.commit();
         self.stop_generation();
         self.changed_at = None;
@@ -91,7 +98,6 @@ impl ChiploadApp {
             return false;
         };
         let project = edit.clone();
-        let scope = if whole { None } else { self.preview_part() };
         let job = match edit.to_job() {
             // Only the active part: the others are planned as if switched off.
             Ok(mut job) => {
@@ -154,6 +160,7 @@ impl ChiploadApp {
             self.stop_generation();
             self.export_when_done = false;
             self.export_path_when_done = None;
+            self.export_part_when_done = None;
             self.set_status(t!(self, "generation-cancelled"), STATUS_SECONDS);
         }
     }
@@ -245,6 +252,11 @@ impl ChiploadApp {
             && done
         {
             self.export_gcode(&path);
+        }
+        if let Some((id, path)) = self.export_part_when_done.take()
+            && done
+        {
+            self.export_part(id, &path);
         }
         done
     }

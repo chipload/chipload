@@ -15,7 +15,8 @@ part 1. We want only to simulate part 2 then."
    show. The stock is simulated from uncut, as a part's cuts are in its own place.
    With one part, or an active part that is switched off, the whole project is planned, as
    before.
-2. **Export always writes every part that is cut.** When the toolpath shown is of one part,
+2. **Export always writes every part that is cut** (one part alone: its right-click menu,
+   docs/specs/part-export.md). When the toolpath shown is of one part,
    Export plans the whole project first (in the background, as Generate does), then writes
    it; the status says "Planning every part, then exporting". The setup sheet is of the
    whole project too.

@@ -1920,3 +1920,51 @@ fn zero_sets_and_prints_the_work_zero() {
     let refused = chipload(&["zero", p, "--drawing-origin", "--at", "1,2"]);
     assert!(!refused.status.success());
 }
+
+/// `--part`: the program of that part alone is the project's with every other part
+/// switched off (docs/specs/part-export.md §2, §5).
+#[test]
+fn run_part_writes_that_part_as_if_the_others_were_off() {
+    let dir = temp_dir("run-part");
+    let project = corpus("jobs/v22/two_parts.chipload");
+    let only = dir.join("only.nc");
+    let out = chipload(&["run", path(&project), "-o", path(&only), "--part", "2"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(text(&out.stdout).contains("Only: part B"));
+    let off = dir.join("off.nc");
+    let out = chipload(&[
+        "run",
+        path(&project),
+        "-o",
+        path(&off),
+        "--set",
+        "parts.0.enabled=false",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(
+        std::fs::read_to_string(&only).unwrap(),
+        std::fs::read_to_string(&off).unwrap()
+    );
+    // The sheet names the part.
+    let sheet = std::fs::read_to_string(dir.join("only-sheet.html")).unwrap();
+    assert!(sheet.contains("two_parts.chipload, part part B"), "{sheet}");
+    // Both parts: the whole project.
+    let (both, whole) = (dir.join("both.nc"), dir.join("whole.nc"));
+    for (file, extra) in [
+        (&both, vec!["--part", "1", "--part", "2"]),
+        (&whole, vec![]),
+    ] {
+        let mut args = vec!["run", path(&project), "-o", path(file)];
+        args.extend(extra);
+        assert!(chipload(&args).status.success());
+    }
+    // One file per tool: three here.
+    for suffix in ["-1-T1.nc", "-2-T2.nc", "-3-T1.nc"] {
+        let read = |stem: &str| std::fs::read_to_string(dir.join(format!("{stem}{suffix}")));
+        assert_eq!(read("both").unwrap(), read("whole").unwrap(), "{suffix}");
+    }
+    // An unknown part is refused, and nothing is written.
+    let out = chipload(&["plan", path(&project), "--part", "7"]);
+    assert!(!out.status.success());
+    assert!(text(&out.stderr).contains('7'), "{}", text(&out.stderr));
+}

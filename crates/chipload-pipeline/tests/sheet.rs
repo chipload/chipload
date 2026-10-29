@@ -25,6 +25,7 @@ fn info(project: &str) -> SheetInfo {
         written_by: "chipload (test)".into(),
         units: chipload_job::Units::Mm,
         language: chipload_i18n::Language::En,
+        parts: Vec::new(),
     }
 }
 
@@ -316,6 +317,7 @@ fn a_german_sheet_matches_its_golden_file() {
     let result = run_job(&job).unwrap();
     let info = SheetInfo {
         language: chipload_i18n::Language::De,
+        parts: Vec::new(),
         ..info(project)
     };
     let sheet = setup_sheet(&job, &result, Path::new("part.ngc"), &info);

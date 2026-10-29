@@ -53,6 +53,8 @@ browser-part-hover = Klicken für seine Kopien; Doppelklick macht es zum aktiven
 # A verb: make this the active part.
 browser-activate = Aktivieren
 browser-activate-hover = Neue Bearbeitungen kommen in das aktive Teil
+browser-export-part = G-Code dieses Teils exportieren…
+browser-export-part-hover = Den G-Code nur dieses Teils schreiben, als wären alle anderen Teile ausgeschaltet; auch sein Einrichteblatt, wenn diese Einstellung an ist.
 browser-new-operation = Neue Bearbeitung
 browser-select-shapes-first = Zuerst Formen auswählen
 browser-move-up = Nach oben

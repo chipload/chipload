@@ -51,6 +51,7 @@ app-now-rest-pass = Operation { $op } is now a rest pass of operation { $parent 
 
 app-generate-before-export = Generate (F5) before exporting G-code.
 app-planning-then-export = Planning every part, then exporting
+app-planning-part-then-export = Planning part { $name }, then exporting
 app-could-not-export = Could not export { $path }:
 app-dxf-exported = Wrote { $path }.
 app-could-not-export-dxf = The drawing was not exported:
