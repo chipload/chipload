@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = De la biblioteca: avance { $feed } / penetraci�
 
 forms-section-feeds = Avances
 forms-feed = Avance
+forms-chip-load = Avance por diente
+forms-chip-load-no-flutes = filos sin fijar
+forms-chip-load-no-rpm = velocidad del husillo sin fijar
+forms-chip-load-missing-hover = Fíjalos en las propiedades de la herramienta: Herramientas en el navegador, luego la herramienta.
+forms-flutes = Filos
+forms-flutes-hover = Los filos de la herramienta, para el avance por diente. Sin marcar: desconocido.
 forms-plunge-feed = Avance de penetración
 
 # Rest machining: clear only what a larger tool left.

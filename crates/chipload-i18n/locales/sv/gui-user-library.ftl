@@ -25,7 +25,6 @@ user-library-name = Namn
 # The tool's number (T1, T2, …) in a project.
 user-library-tool-number = Verktygsnummer
 user-library-tool-number-hover = Numret det får i ett projekt där numret är ledigt
-user-library-flutes = Skär
 user-library-cutting-values = Skärdata
 user-library-cutting-values-hover = Fylls i för en ny operation med detta verktyg när det inte finns någon operation ovanför att kopiera från. Ändrar aldrig en befintlig operation.
 user-library-feed = Matning

@@ -25,7 +25,6 @@ user-library-name = Name
 # The tool's number (T1, T2, …) in a project.
 user-library-tool-number = Tool number
 user-library-tool-number-hover = The id it gets in a project where that id is free
-user-library-flutes = Flutes
 user-library-cutting-values = Cutting values
 user-library-cutting-values-hover = Filled into a new operation with this tool when there is no operation above to copy from. Never changes an existing operation.
 user-library-feed = Feed

@@ -35,6 +35,7 @@ number and doesn't judge it. As a rough guide:
 Check the tool maker's figures.
 
 Setting it up:
-- **Flutes and spindle speed:** the tool needs both, on the tool (click it in the Browser) or
-  in the tool library.
+- **Where:** in an operation's *Feeds*, on a *Chip load* row under the feed.
+- **Flutes and spindle speed:** the tool needs both, on the tool (click it under *Tools* in
+  the Browser) or in the tool library. Until then the row says which is missing.
 - **Feed:** a drill's chip load uses its feed down; everything else uses the cutting feed.

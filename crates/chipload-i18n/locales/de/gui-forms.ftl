@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = Aus der Bibliothek: Vorschub { $feed } / Eintau
 
 forms-section-feeds = Vorschübe
 forms-feed = Vorschub
+forms-chip-load = Zahnvorschub
+forms-chip-load-no-flutes = Schneiden nicht angegeben
+forms-chip-load-no-rpm = Drehzahl nicht angegeben
+forms-chip-load-missing-hover = In den Eigenschaften des Werkzeugs angeben: Werkzeuge im Browser, dann das Werkzeug.
+forms-flutes = Schneiden
+forms-flutes-hover = Die Schneiden des Werkzeugs, für den Zahnvorschub. Nicht angehakt: unbekannt.
 forms-plunge-feed = Eintauchvorschub
 
 # Rest machining: clear only what a larger tool left.

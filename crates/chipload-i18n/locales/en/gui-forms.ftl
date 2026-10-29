@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = From the library: feed { $feed } / plunge { $pl
 
 forms-section-feeds = Feeds
 forms-feed = Feed
+forms-chip-load = Chip load
+forms-chip-load-no-flutes = flutes not set
+forms-chip-load-no-rpm = spindle speed not set
+forms-chip-load-missing-hover = Set them under the tool's properties: Tools in the Browser, then the tool.
+forms-flutes = Flutes
+forms-flutes-hover = The tool's cutting edges, for the chip load. Unticked: not known.
 forms-plunge-feed = Plunge feed
 
 # Rest machining: clear only what a larger tool left.

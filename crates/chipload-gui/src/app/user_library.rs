@@ -319,17 +319,7 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         entry.center_cutting = tool.center_cutting;
         entry.angle = tool.angle;
         entry.tip_diameter = tool.tip_diameter;
-        ui.label(t!(ui, "user-library-flutes"));
-        ui.horizontal(|ui| {
-            let mut set = entry.flutes.is_some();
-            if ui.checkbox(&mut set, "").changed() {
-                entry.flutes = set.then_some(2);
-            }
-            if let Some(flutes) = &mut entry.flutes {
-                ui.add(crate::units::number(ui, flutes).range(1..=16));
-            }
-        });
-        ui.end_row();
+        entry.flutes = tool.flutes;
         ui.label(t!(ui, "user-library-cutting-values"))
             .on_hover_text(t!(ui, "user-library-cutting-values-hover"));
         let mut set = entry.cutting.is_some();

@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = Från biblioteket: matning { $feed } / nedmatni
 
 forms-section-feeds = Matningar
 forms-feed = Matning
+forms-chip-load = Matning per tand
+forms-chip-load-no-flutes = antal skär inte angivet
+forms-chip-load-no-rpm = spindelvarvtal inte angivet
+forms-chip-load-missing-hover = Ange dem i verktygets egenskaper: Verktyg i bläddraren, sedan verktyget.
+forms-flutes = Skär
+forms-flutes-hover = Verktygets skär, för matningen per tand. Ej markerad: okänt.
 forms-plunge-feed = Nedmatning
 
 # Rest machining: clear only what a larger tool left.

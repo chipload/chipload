@@ -278,13 +278,27 @@ fn wrapped_cell<R>(
     })
 }
 
-/// An operation's chip load beside its feed, with where typical values lie on hover, in
-/// the app's language and display units.
-fn chip_load_label(ui: &mut egui::Ui, load: chipload_pipeline::chip_load::ChipLoad, units: Units) {
+/// An operation's chip load as a row of its own under the feed, with where typical values
+/// lie on hover, in the app's language and display units. When it can't be worked out, a
+/// short note says which tool value is missing; the hover says where to set it (the
+/// user, 2026-10-29: the long sentence beside the feed ran over the next row).
+fn chip_load_row(ui: &mut egui::Ui, load: chipload_pipeline::chip_load::ChipLoad, units: Units) {
+    use chipload_pipeline::chip_load::ChipLoad;
     let (lang, units) = (ui.lang(), units.into());
     let hint = chipload_pipeline::chip_load::chip_load_hint().render(lang, units);
-    ui.label(RichText::new(load.message().render(lang, units)).weak())
-        .on_hover_text(hint);
+    ui.label(t!(ui, "forms-chip-load"))
+        .on_hover_text(hint.clone());
+    let short = match load {
+        ChipLoad::Mm(_) | ChipLoad::NoTool => load.message().render(lang, units),
+        ChipLoad::NoFlutes => t!(ui, "forms-chip-load-no-flutes"),
+        ChipLoad::NoRpm => t!(ui, "forms-chip-load-no-rpm"),
+    };
+    let hover = match load {
+        ChipLoad::NoFlutes | ChipLoad::NoRpm => t!(ui, "forms-chip-load-missing-hover"),
+        _ => hint,
+    };
+    ui.label(RichText::new(short).weak()).on_hover_text(hover);
+    ui.end_row();
 }
 
 /// The tabs' flank angle in degrees, and how far the feet reach (docs/specs/
@@ -912,15 +926,12 @@ fn feeds_section(ui: &mut egui::Ui, cut: &mut f64, plunge: &mut f64, tool: Optio
         &text,
         |ui| {
             ui.label(t!(ui, "forms-feed"));
-            // The chip load goes under the feed when the panel is narrow.
-            wrapped_cell(ui, |ui| {
-                flag(ui.add(feed(cut)), ui, "feed");
-                if let Some(tool) = tool {
-                    let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
-                    chip_load_label(ui, load, units);
-                }
-            });
+            flag(ui.add(feed(cut)), ui, "feed");
             ui.end_row();
+            if let Some(tool) = tool {
+                let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
+                chip_load_row(ui, load, units);
+            }
             ui.label(t!(ui, "forms-plunge-feed"));
             flag(ui.add(feed(plunge)), ui, "plunge_feed");
             ui.end_row();
@@ -1267,14 +1278,12 @@ fn holes_sections(
             &text,
             |ui| {
                 ui.label(t!(ui, "forms-drill-feed"));
-                wrapped_cell(ui, |ui| {
-                    flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
-                    if let Some(tool) = tool {
-                        let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
-                        chip_load_label(ui, load, units);
-                    }
-                });
+                flag(ui.add(feed(&mut h.plunge_feed)), ui, "plunge_feed");
                 ui.end_row();
+                if let Some(tool) = tool {
+                    let load = chipload_pipeline::chip_load::chip_load_of(h.plunge_feed, tool);
+                    chip_load_row(ui, load, units);
+                }
             },
         );
     } else {
@@ -3458,7 +3467,7 @@ fn tool_change_name(ui: &egui::Ui, change: ToolChange) -> String {
     }
 }
 
-/// Type, diameter, spindle speed and centre cutting.
+/// Type, diameter, spindle speed, flutes and centre cutting.
 /// `at`: the tool's path in the project (`tools.0`), for its problems; empty elsewhere.
 pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool) {
     ui.label(t!(ui, "forms-tool-type"));
@@ -3489,6 +3498,23 @@ pub(super) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &mut Tool
     if flag(response, ui, &format!("{at}.rpm")).changed() {
         tool.rpm = (rpm > 0.0).then_some(rpm);
     }
+    ui.end_row();
+    // Ticked: the number of cutting edges, for the chip load; unticked: unknown.
+    ui.label(t!(ui, "forms-flutes"))
+        .on_hover_text(t!(ui, "forms-flutes-hover"));
+    ui.horizontal(|ui| {
+        let mut set = tool.flutes.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            tool.flutes = set.then_some(2);
+        }
+        if let Some(flutes) = &mut tool.flutes {
+            flag(
+                ui.add(crate::units::number(ui, flutes).range(1..=16)),
+                ui,
+                &format!("{at}.flutes"),
+            );
+        }
+    });
     ui.end_row();
     ui.label(t!(ui, "forms-centre-cutting"));
     let cutting_name = |ui: &egui::Ui, cutting: Option<bool>| match cutting {

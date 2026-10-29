@@ -25,7 +25,6 @@ user-library-name = Name
 # The tool's number (T1, T2, …) in a project.
 user-library-tool-number = Werkzeugnummer
 user-library-tool-number-hover = Die Nummer, die es in einem Projekt bekommt, in dem diese Nummer frei ist
-user-library-flutes = Schneiden
 user-library-cutting-values = Schnittwerte
 user-library-cutting-values-hover = Werden in eine neue Bearbeitung mit diesem Werkzeug eingetragen, wenn es keine Bearbeitung darüber gibt, von der kopiert werden kann. Ändert nie eine bestehende Bearbeitung.
 user-library-feed = Vorschub

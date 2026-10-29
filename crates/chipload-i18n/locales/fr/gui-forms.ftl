@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = Depuis la bibliothèque : avance { $feed } / pl
 
 forms-section-feeds = Avances
 forms-feed = Avance
+forms-chip-load = Avance par dent
+forms-chip-load-no-flutes = dents non réglées
+forms-chip-load-no-rpm = vitesse de broche non réglée
+forms-chip-load-missing-hover = Réglez-les dans les propriétés de l'outil : Outils dans le navigateur, puis l'outil.
+forms-flutes = Dents
+forms-flutes-hover = Les arêtes de coupe de l'outil, pour l'avance par dent. Décoché : inconnu.
 forms-plunge-feed = Avance plongée
 
 # Rest machining: clear only what a larger tool left.

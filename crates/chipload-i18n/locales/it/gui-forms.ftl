@@ -101,6 +101,12 @@ forms-use-cutting-values-hover = Dalla libreria: avanzamento { $feed } / affonda
 
 forms-section-feeds = Avanzamenti
 forms-feed = Avanzamento
+forms-chip-load = Avanzamento per dente
+forms-chip-load-no-flutes = taglienti non impostati
+forms-chip-load-no-rpm = velocità mandrino non impostata
+forms-chip-load-missing-hover = Impostali nelle proprietà dell'utensile: Utensili nel browser, poi l'utensile.
+forms-flutes = Taglienti
+forms-flutes-hover = I taglienti dell'utensile, per l'avanzamento per dente. Non spuntato: sconosciuto.
 forms-plunge-feed = Affondamento
 
 # Rest machining: clear only what a larger tool left.
