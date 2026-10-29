@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Drawing shapes - Chipload 0.27.1 user guide</title>
+        <title>Drawing shapes - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,24 +178,182 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="drawing-shapes"><a class="header" href="#drawing-shapes">Drawing shapes</a></h1>
-<p>Chipload draws three kinds of shape, for the odd hole, slot or outline that isn’t in the
-DXF, or a project without one:</p>
+<p>Chipload draws the parts it cuts, with or without a DXF:</p>
 <ul>
-<li><strong>Circle:</strong> centre and radius.</li>
-<li><strong>Rectangle:</strong> centre, length and width, a rotation, and a corner radius (0: sharp
-corners).</li>
-<li><strong>Polyline:</strong> points joined by straight or arc segments, open or closed.</li>
+<li><strong>Circle</strong> (key <strong>C</strong>): the centre, then a point on it.</li>
+<li><strong>Rectangle</strong> (<strong>R</strong>): two opposite corners. It keeps its centre, length and width, a
+rotation, and a corner radius (0: sharp corners).</li>
+<li><strong>Polyline</strong> (<strong>L</strong>): points joined by straight or arc segments, open or closed. Click
+the first point again to close it; Enter or a double-click finishes it open.</li>
+<li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
+its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
+segments.</li>
+<li><strong>Slot</strong> (<strong>S</strong>): the centres of its two ends, then its width (a click, or type it). It
+is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
+when you change its width.</li>
+<li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
+while you draw (6 to start with, then the last you chose). Its form has the radius to
+the corners and the size <strong>across flats</strong>, either of which sets the other (a hexagon
+nut’s spanner size), and the angle of its first corner. <code>chipload shape add P polygon --center 50,30 --sides 6 --across-flats 13</code>.</li>
 </ul>
-<p><strong>Circle</strong>, <strong>Rectangle</strong> or <strong>Polyline</strong> in the ribbon’s DRAW group, then click on the
-canvas. Clicks snap to the drawing’s ends, centres and middles, else to the
-<a href="../window.html#the-canvas">grid</a>, whose step the status bar gives (“grid 1 mm”). Anything more
-is CAD’s job: draw it there and import the DXF.</p>
+<p>Pick the tool in the ribbon’s DRAW group (the small buttons; hover over one for its name
+and key) or by its key, then click on the canvas. With no
+tool active, <strong>Enter</strong> starts the last one again. Clicks snap to the drawing (below), else
+to the <a href="../window.html#the-canvas">grid</a>, whose step the status bar gives (“grid 1 mm”).</p>
+<h2 id="snapping"><a class="header" href="#snapping">Snapping</a></h2>
+<p>Within 8 pixels of the cursor, a click or a drag lands exactly on a point of the drawing,
+marked with a small diamond and named on the status bar (“intersection of #3 and #4”):</p>
+<ul>
+<li><strong>End</strong> of a line or arc, <strong>intersection</strong> where two cross or touch, <strong>centre</strong> of an arc
+or circle, <strong>quadrant</strong> (an arc’s points at 0°, 90°, 180° and 270°), <strong>middle</strong> of a line
+or arc.</li>
+<li>While drawing a polyline or measuring, from the last point: <strong>perpendicular</strong> to a line
+or arc, and <strong>tangent</strong> to an arc.</li>
+<li><strong>On</strong> a line or arc: the nearest point of it, when none of the others is near.</li>
+</ul>
+<p>The nearest of them wins; at the same spot, they count in the order above. Hold <strong>Alt</strong> to
+turn snapping off.</p>
+<h2 id="exact-values"><a class="header" href="#exact-values">Exact values</a></h2>
+<p>While a tool waits for a point, type a number: an entry opens beside the cursor. <strong>Enter</strong>
+uses it, <strong>Esc</strong> closes it.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>For</th></tr>
+</thead>
+<tbody>
+<tr><td><code>120,40</code></td><td>the point X 120, Y 40</td></tr>
+<tr><td><code>@30,-10</code></td><td>30 to the right of the last point and 10 down</td></tr>
+<tr><td><code>30</code></td><td>30 from the last point, towards the cursor</td></tr>
+<tr><td><code>30&lt;45</code></td><td>30 from the last point at 45° (counter-clockwise from the X axis)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Lengths are in the units the app shows, unless you name them: <code>1/2in</code>, <code>12mm</code>. Where the
+decimal point is a comma, separate X and Y with a semicolon: <code>12,5;30</code>. For a circle, a
+plain length after the centre is its radius. The preview shows where the value lands before
+you press Enter; a value that can’t be used turns red and the status bar says why.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"><span class="img-wrapper"><img src="../images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"></span></label></p>
+<p>Beside the cursor, the size being drawn: the line’s length and angle, a circle’s radius, a
+rectangle’s length × width. Hold <strong>Shift</strong> to keep the line from the last point at a
+multiple of 15° (0° and 90° for straight lines), its length on the grid.</p>
+<h2 id="editing-operations"><a class="header" href="#editing-operations">Editing operations</a></h2>
+<p>The ribbon’s MODIFY group (and the <em>Modify</em> menu) holds tools that make new shapes from
+drawn ones. Shapes from a DXF, a picture or a text can’t be changed by them (explode a
+DXF first, <a href="several.html">Explode</a>).</p>
+<ul>
+<li><strong>Offset</strong> (<strong>O</strong>): select the shapes (or click one with the tool), then move the cursor
+to the side you want, outside or inside a closed shape, left or right of an open one:
+the preview follows at the cursor’s distance on the grid (Alt: off the grid). Click, or
+type the distance and press Enter. The status bar has the corners, <em>round</em> (the exact
+offset, arcs round the corners) or <em>sharp</em> (the sides extended until they meet, as a
+frame), and a <em>Count</em> for several rings, each the distance further. The shapes stay; the
+new ones go on the same layer and are selected. A circle, a rectangle or slot, and a
+polygon inward or with sharp corners keep their kind; anything else becomes a polyline
+with true arcs. On the command line: <code>chipload shape offset P 1 2 --distance 3 [--side inside] [--corners sharp] [--count 2]</code>.</li>
+<li><strong>Fillet</strong> and <strong>Chamfer</strong>: select one drawn shape (or click it with the tool), then
+click a corner (it is marked when the cursor is near it) to round it with an arc of the
+<em>Radius</em> on the status bar, or cut it straight across, the <em>Distance</em> back along each
+side. Shift+click does every corner. A corner is a point between two straight sides; a
+radius too large for the sides is refused with the most that fits (two corners on one
+side share it). A rectangle rounded all round keeps its kind (its corner radius); any
+other shape becomes a polyline and keeps its number, so operations still cut it.
+<code>chipload shape fillet P 3 --radius 2 [--corner 0]</code>, <code>chipload shape chamfer P 3 --distance 1</code>.</li>
+<li><strong>Trim</strong> (<strong>X</strong>), <strong>Extend</strong> and <strong>Break</strong> work on the drawn shape under the cursor; no
+need to select it first. Trim shows the piece it will remove before you click, Extend
+the shape grown to the next one ahead (click near the end to extend), Break a mark where
+it will split. Each click is one step, and the changed shape is selected; a click on
+empty space deselects it, another ends the tool, as Esc does. On the command line:
+<ul>
+<li><code>chipload shape trim P ID --at X,Y</code> removes the piece of a drawn shape at that point,
+between the nearest places where shown shapes cross it: an open shape cut in its
+middle becomes two, a closed one opens, a circle becomes an arc. What is left joins
+the drawn open shapes on its layer whose ends meet its own into one shape (closed when
+it comes round): a slot trimmed in half by a line, and the line’s ends trimmed, is one
+closed shape. Construction geometry never joins, and nothing joins where three ends
+meet.</li>
+<li><code>chipload shape extend P ID --end start|end</code> lengthens a straight end along itself
+to the next shape ahead.</li>
+<li><code>chipload shape break P ID --at X,Y</code> splits an open shape there, or opens a closed
+one.</li>
+<li>The shape keeps its id for the first piece, so operations follow it.</li>
+</ul>
+</li>
+<li><strong>Union</strong>, <strong>Subtract</strong> and <strong>Intersect</strong> combine closed drawn shapes, with true arcs
+where they have arcs: a union is everything any of them covers, a subtraction the first
+shape with the others cut out of it, an intersection what they all cover. The result
+takes the first shape’s number, so operations that cut it follow; the other shapes go,
+and operations that cut those are flagged until you choose their geometry again. A
+result that is one of the shapes unchanged (a hole cut where a circle already lies, a
+shape a union swallows whole) stays as drawn, a circle still a circle; anything else
+becomes a polyline. A ring of shapes united gives the outline and the hole inside as
+two shapes. Open shapes are refused, and so is a result with nothing left. In the
+window: select the shapes, then <em>Union</em> or <em>Intersect</em> acts at once (the shape drawn
+first keeps its number). For <em>Subtract</em>, select the shapes to cut out, choose
+<em>Subtract</em>, then click the shape to cut them from: the preview shows the result under
+the cursor. On the command line: <code>chipload shape union P 1 2 3</code>, <code>chipload shape subtract P 1 4 5</code> (4
+and 5 cut out of 1), <code>chipload shape intersect P 1 2</code>.</li>
+<li><strong>Arrays</strong> add copies of drawn shapes in a grid or round a centre; the originals stay
+and the copies go on their layers with new numbers. A grid counts the originals in its
+columns and rows and spaces them centre to centre (negative goes left or down). A polar
+array counts the originals too: over 360° the copies spread evenly round, over a
+smaller angle the first and last sit at its ends; each copy turns with its place unless
+you say not to. This adds shapes to the drawing; the project’s
+<a href="copies.html">grid of copies</a> is different, it repeats the whole part with
+its operations. In the window: select the shapes, choose <em>Array</em> or <em>Polar array</em>,
+and set the copies under <em>Selection</em>; for a polar array click the centre on the canvas
+(it snaps as drawing does). The preview shows the copies; <em>Create</em> adds them and ends
+the tool. <em>Cancel</em>, Esc or the tool’s button again ends it without copies. On the
+command line: <code>chipload shape array P 2 3 --columns 4 --rows 2 --dx 30 --dy 20</code>, <code>chipload shape array-polar P 5 --count 6 --center 100,80 [--angle-deg 180] [--no-rotate]</code>.</li>
+<li><strong>Align</strong> and <strong>Distribute</strong> sit under <em>Selection</em> when drawn shapes are selected.
+Align lines up each shape’s box (its left or right side, top or bottom, or middle) with
+the box round them all, or, with <em>To the stock</em>, with the stock’s (then one shape is
+enough). Distribute, with three shapes or more, evens out the gaps between their boxes
+across or up and down; the outermost two stay put. Shapes move whole and keep their
+numbers. On the command line: <code>chipload shape align P 2 3 --to left|centre|right|top| middle|bottom [--stock]</code>, <code>chipload shape distribute P 2 3 4 --horizontal</code> (or
+<code>--vertical</code>).</li>
+<li>New shapes on a layer that an operation selects by its name are cut by that operation
+too, as a shape drawn there is; the status bar names those operations.</li>
+</ul>
+<h2 id="construction-geometry"><a class="header" href="#construction-geometry">Construction geometry</a></h2>
+<p>Lines and circles that help you draw (a centre line to mirror about, a circle to place
+holes on, a guide at 45°) and are <strong>never cut</strong>.</p>
+<ul>
+<li><strong>Draw one:</strong> with a drawing tool active, press <strong>K</strong> (or tick <em>Construction</em> on the
+status bar): the shapes you draw next are construction geometry, until you press K again.</li>
+<li><strong>Make a shape one,</strong> or an ordinary shape again: select drawn shapes and press K, tick
+<em>Construction</em> under <em>Selection</em>, or right-click.</li>
+<li><strong>It shows</strong> finely dotted and faint, and the cursor snaps to it like any shape: its
+ends, middles, centres and where it crosses other shapes.</li>
+<li><strong>It is never cut:</strong> it never joins other shapes into a contour, an operation never picks
+it up from a layer, and an operation that names it by its number is refused until it
+cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
+copies and arrays of it are construction geometry too.</li>
+<li><strong>Exported</strong> only when you ask (<code>chipload dxf export … --construction</code>, or the
+checkbox), on a layer of its own named after its layer with <code>_construction</code>.</li>
+<li>On the command line: <code>chipload shape add P polyline --points "0,0 100,0" --open --construction</code>, <code>chipload shape set P 4 --construction false</code>.</li>
+</ul>
 <h2 id="editing"><a class="header" href="#editing">Editing</a></h2>
 <ul>
-<li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps to end points,
-centres and middles; hold Alt to turn snapping off.</li>
+<li><strong>Moving with the mouse:</strong> drag a drawn shape to move it; if it is selected, the whole
+selection moves with it. The point you grab snaps as drawing does, so a corner can be
+dropped exactly on another shape’s corner or a crossing; Shift keeps the move to 15°
+steps, Alt turns snapping off. Select several with a box first (drag on empty canvas,
+<a href="../window.html#the-canvas">the canvas</a>). Shapes from a DXF, a picture or a text move as a
+whole with their own handles.</li>
+<li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps as drawing does;
+hold Alt to turn snapping off.</li>
+<li><strong>Polyline segments:</strong> on a selected polyline, drag one of its lines (anywhere, or its
+round middle handle) to move that segment; the segments either side stretch to stay
+joined. <strong>Ctrl+drag</strong> inserts a new point there instead, and <strong>Shift+drag</strong> bends the
+segment into an arc. The dashed box round the polyline moves it whole.</li>
 <li><strong>Exact values:</strong> under <em>Selection</em> in the <a href="../window.html#properties">Properties</a> panel, a
 selected shape has its exact numbers and its layer.</li>
+<li><strong>Lengths on the canvas:</strong> a selected drawn shape shows its lengths beside it: each
+straight side of a polyline, a rectangle’s length and width, a circle’s or polygon’s
+radius (a side too short on screen to hold its label shows none until you zoom in).
+Click one, type the new length and press Enter: a polyline side keeps its start and its
+end moves along it, a rectangle keeps its centre.</li>
 <li><strong>Rounded corners:</strong> a rectangle’s <em>Corner radius</em> rounds all four corners with true arcs
 (G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
 short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
@@ -214,8 +372,8 @@ corner of a rectangle you move or resize).</li>
 drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
 type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
 Enter. A polyline keeps no angle of its own; turning moves its points.</li>
-<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em> and <em>Polylines</em> groups list
-their shapes, in a folder per layer when there are several. Click a row to select the
+<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em> and
+<em>Polygons</em> groups list their shapes, in a folder per layer when there are several. Click a row to select the
 shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
 with more than 20 shapes starts closed.</li>
 <li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the

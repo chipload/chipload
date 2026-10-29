@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Several drawings - Chipload 0.27.1 user guide</title>
+        <title>Several drawings - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,16 +178,18 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="several-drawings"><a class="header" href="#several-drawings">Several drawings</a></h1>
-<p>A project can hold several DXFs, for example two parts cut from one sheet, besides its
-<a href="images.html">images</a> and the shapes you draw. Each DXF has its own place, turn and scale, and
-is updated from its own file.</p>
+<p>A project can hold several DXFs (and <a href="svg.html">SVGs</a>, which work the same way), for example
+two parts cut from one sheet, besides its <a href="images.html">images</a> and the shapes you draw. Each
+DXF has its own place, turn and scale, and is updated from its own file.</p>
 <pre><code>chipload dxf add part.chipload lid.dxf --name lid     # a second DXF, where its file has it
 chipload dxf list part.chipload                       # id, name, file, placement, size
 chipload place part.chipload --dxf 2 --by 250,0       # move, turn or scale that one
 chipload update part.chipload --from lid.dxf --dxf 2  # a new version of that one
 chipload dxf remove part.chipload 2                   # it and its shapes
 </code></pre>
-<p>In the app: <em>File &gt; Add DXF to project…</em>, or drop the DXF on the window.</p>
+<p>In the app: <em>File &gt; Add DXF or SVG to project…</em> (or <em>Add DXF</em> on the ribbon), or drop the
+file on the window. Any open project takes one, also a project started empty or drawn in
+Chipload.</p>
 <h2 id="in-the-browser"><a class="header" href="#in-the-browser">In the Browser</a></h2>
 <p>The <strong>Drawing</strong> folder of the <a href="../window.html#the-browser">Browser</a> lists what the project’s
 shapes come from:</p>

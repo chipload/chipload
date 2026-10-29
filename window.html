@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.27.1 user guide</title>
+        <title>The window - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f602bac1.js"></script>
+        <script src="toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -201,14 +201,17 @@ guide, keyboard shortcuts, about) and the version.</li>
 </thead>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>Circle, Rectangle, Polyline, Text, Image, Add DXF</td><td>copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, Add DXF</td><td>copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
 <tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
 <tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end.</p>
+<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end. When the buttons with their names
+don’t fit, in a longer language or a narrow window, the large buttons show their icons
+alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
 <p>Each group’s caption (<strong>FILE ▾</strong> …) opens its whole menu. This guide writes those menus as
 <em>File &gt; …</em>, <em>Draw &gt; …</em> and <em>View &gt; …</em>. <em>Help &gt; …</em> is the question mark in the top bar.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
@@ -232,6 +235,8 @@ for what it writes, and <em>Use in this project</em>.</li>
 <ul>
 <li><strong>Job settings:</strong> stock, machine, post-processor and tools, shown on the right when
 clicked. A red dot means one of them has a problem.</li>
+<li><strong>Work zero:</strong> where the G-code’s X0 Y0 Z0 is, named at the right (“stock bottom
+left”); see <a href="concepts/stock.html#work-zero">Work zero</a>.</li>
 <li><strong>Tools:</strong> the project’s tools, each with the library tool it came from at the right
 (“← 6 mm 2F”, “(changed)” when the values differ). See <a href="library/tools.html#project-tools-and-the-library">Tool
 library</a>.</li>
@@ -303,7 +308,9 @@ colour theme: dark, or light grey.</p>
 </ul>
 </li>
 <li><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
-Short thick strokes point the positive way, and in 3D a blue one points up Z.</li>
+Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
+a round handle sits at their foot: click it to select the
+<a href="concepts/stock.html#work-zero">work zero</a>, then drag it.</li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
 <ul>
 <li>how you look: <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>;</li>
@@ -325,13 +332,22 @@ FRONT, RIGHT, BACK, LEFT) to look straight at it.</li>
 <li>In top view, the corner has an X–Y sign instead.</li>
 </ul>
 </li>
+<li><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
+operation’s number. Click it to open that operation.</li>
 <li><strong>The legend</strong> (bottom left) explains the colours.</li>
+<li><strong>The mouse:</strong> the wheel zooms. In top view, a left drag on empty canvas selects with a
+box: from left to right it takes what lies wholly inside, from right to left also what
+it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
+shape <a href="drawings/shapes.html#editing">moves it</a>. To pan, drag with the right or middle
+button, or hold Space and drag. In 3D, a left drag orbits.</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>
 <p>The <strong>Properties</strong> panel on the right shows what is open, under a title:</p>
 <ul>
-<li><strong>Job settings:</strong> the stock, the machine and the post.</li>
+<li><strong>Job settings:</strong> the stock, the material, the machine and the post.</li>
+<li><strong>Work zero:</strong> the stock’s corners and centre to click, the drawing origin, its position
+and Z zero.</li>
 <li><strong>Preferences:</strong> the settings folder, whether a <a href="checking/sheet.html">setup sheet</a> is
 written with the G-code, updating the toolpath automatically, the units (mm or inch) and
 the colour theme.</li>
@@ -347,18 +363,20 @@ the edit, and traces the picture again. <em>Trace settings…</em> opens its
 <li><strong>A part:</strong> its name, on or off, and its <a href="drawings/copies.html">copies</a>.</li>
 <li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”).</li>
 </ul>
-<p>While shapes are selected, a <strong>Selection</strong> section comes first. It holds:</p>
+<p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Job settings,
+an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
+both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <ul>
 <li>what is selected, by contour number;</li>
-<li>a drawn shape’s exact values, to edit;</li>
+<li>a drawn shape’s exact values, to edit, and the tools for the selection (align, arrays,
+construction);</li>
 <li><em>Copy as selector</em>, which copies the selection as JSON for a project file (also under
 DRAW ▾, and Ctrl+Shift+C).</li>
 </ul>
-<p>Its triangle folds it away. While an operation is open there is no Selection section, so
-selecting shapes never moves the operation’s settings: its <em>Use selection</em> button counts
-what is selected (“Use selection (3)”), and its tooltip lists the contours. To edit a drawn
-shape’s values, open the project (Job settings) and select the shape. Nor is there one when
-the open DXF, picture or text is itself what is selected.</p>
+<p>The selection stays on the canvas when you open something else. An operation’s <em>Use
+selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.
+With nothing picked, Properties says how to pick something.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"><span class="img-wrapper"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"></span></label></p>
 <h2 id="making-room-for-the-canvas"><a class="header" href="#making-room-for-the-canvas">Making room for the canvas</a></h2>
 <ul>

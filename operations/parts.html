@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Parts - Chipload 0.27.1 user guide</title>
+        <title>Parts - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -197,8 +197,15 @@ changes.</li>
 simulation and playback show only the active part, so a change to part 2 doesn’t plan
 part 1 again. The status bar says “part 2 of 2 · cycle …”. <strong>All parts</strong> on the canvas
 bar shows every part.</li>
-<li><strong>Export always writes every part</strong> that is on. When only the active part is shown,
-Export plans the whole project first, then writes it.</li>
+<li><strong>Export writes every part</strong> that is on. When only the active part is shown, Export
+plans the whole project first, then writes it.</li>
+<li><strong>One part’s G-code:</strong> right-click a part in the Browser and choose <strong>Export G-code of
+this part…</strong>. You get the program the project gives with every other part switched off:
+that part with all its copies, the same stock, work zero and machine, checked as every
+program is. It works for a part that is off too. The file name suggested is the
+project’s and the part’s (<code>box-lid.nc</code>), and the setup sheet, when one is written, is of
+that part and names it. The project isn’t changed. On the command line, <code>--part ID</code> on
+<code>run</code>, <code>sheet</code> and <code>plan</code> does the same, and can be given more than once.</li>
 <li><strong>Stock:</strong> all parts share the project’s stock and work zero. Parts cut from a different
 material belong in another project.</li>
 <li><strong>Safety:</strong>
@@ -218,10 +225,12 @@ chipload op part part.chipload --op 4 --part 2          # move operation 4 into 
 chipload copies part.chipload --part 2 --grid 2x1 --gap 10
 chipload part set part.chipload 2 --name lid --off      # rename, turn off (--on)
 chipload part activate part.chipload 1
+chipload run part.chipload -o lid.nc --part 2           # only part 2's G-code
 chipload part remove part.chipload 2 --with-operations  # without the flag: refused while it has operations
 </code></pre>
 <p>In the app, the <a href="../window.html#the-browser">Browser</a> lists the parts with their operations.
-Click a part to see its copies in Properties. Right-click it to activate, move or delete it,
+Click a part to see its copies in Properties. Right-click it to activate, export, move or
+delete it,
 or right-click <em>Parts</em> for a new one. Drag an operation onto a part to move it there.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"><span class="img-wrapper"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"></span></label></p>
 

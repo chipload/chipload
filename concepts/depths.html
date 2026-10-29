@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Depths and oversize - Chipload 0.27.1 user guide</title>
+        <title>Depths and oversize - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -189,8 +189,13 @@ last pass is exactly at the end depth. Start 2, end 6, step down 2 gives passes 
 <li><strong>Cutting through:</strong> an end depth below the stock bottom goes into the spoilboard. That’s
 allowed up to <em>Max depth below stock</em> (Job settings), with a warning; deeper is refused,
 so a typo can’t reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
-0.3 mm into the spoilboard. The <strong>Through</strong> button next to the end depth sets it to the
-stock thickness plus that allowance.</li>
+0.3 mm into the spoilboard.</li>
+<li><strong>Through:</strong> tick <strong>Through</strong> next to the end depth of a profile, pocket, follow path or
+holes, and the end depth is the stock thickness plus <strong>Below stock</strong>, which starts at
+<em>Max depth below stock</em>. It follows the thickness: make the board 18 mm and the cut ends
+at 18.3. Untick it to type an end depth again. In the project file it is the operation’s
+<code>through</code> (mm below the stock, null when not ticked); <code>chipload set part.chipload operations.1.through=0.3</code> ticks it from the command line, and setting the <code>end_depth</code>
+unticks it.</li>
 <li><strong>Going down:</strong> from safe Z the tool rapids to 1 mm above the stock top, then goes down
 at the plunge feed. The air between the stock top and the start depth is crossed at the
 plunge feed too: Chipload doesn’t know whether another operation already cleared it.</li>

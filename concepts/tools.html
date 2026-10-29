@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tools and tool changes - Chipload 0.27.1 user guide</title>
+        <title>Tools and tool changes - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -198,7 +198,10 @@ which is the tool number in the G-code, and:</p>
 </div>
 <p>Each operation names its tool: pick it in the operation’s form, or on the command line
 <code>chipload op tool part.chipload --op 2 --tool 3</code> (the tool must be in the project). Changing
-the tool keeps the feeds; check them. Tools usually come from your <a href="../library/tools.html">tool
+the tool keeps the feeds, unless the operation has a <a href="../library/materials.html">material</a>
+with values for the new tool; otherwise check them. Under the tool, each operation’s
+<strong>Material</strong> list (<code>material</code> in the project file) chooses where its feeds come from.
+Tools usually come from your <a href="../library/tools.html">tool
 library</a>:
 the project keeps its own copy, so it cuts the same later.</p>
 <h2 id="tool-changes"><a class="header" href="#tool-changes">Tool changes</a></h2>

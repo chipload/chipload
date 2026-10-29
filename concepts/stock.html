@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Stock and work zero - Chipload 0.27.1 user guide</title>
+        <title>Stock and work zero - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,8 +178,11 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="stock-and-work-zero"><a class="header" href="#stock-and-work-zero">Stock and work zero</a></h1>
-<p>Job settings &gt; <strong>Stock</strong> describes the material on the machine, and Job settings &gt;
-<strong>Machine</strong> says where the G-code’s zero is.</p>
+<p>Job settings has three sections, in the order a job is set up: <strong>Stock</strong> (the board),
+<strong>Material</strong> (the feeds new operations take) and <strong>Machine</strong> (set once, so it starts closed;
+its summary line gives the profile, post, safe Z and spindle). Above them a line says where
+the zero is, e.g. “Work zero: X0 Y0 stock bottom left · Z0 stock top”; click it to set the
+zero.</p>
 <h2 id="stock"><a class="header" href="#stock">Stock</a></h2>
 <div class="table-wrapper">
 <table>
@@ -187,41 +190,62 @@
 <tr><th>Setting</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Size X × Y</strong></td><td>the board’s size, mm</td></tr>
-<tr><td><strong>Thickness</strong></td><td>mm. Depths count down from the stock top, so set this to the real board.</td></tr>
-<tr><td><strong>Max depth below stock</strong></td><td>how far a cut may go below the stock bottom, into the spoilboard. Within it a cut gets a warning; deeper is refused. New projects: 0.5 mm.</td></tr>
-<tr><td><strong>Stock position</strong></td><td>where the stock lies around the drawing’s origin: its bottom-left corner or its centre there</td></tr>
-<tr><td><strong>Z zero</strong></td><td>where Z0 is: the stock <strong>top</strong> (depths are negative Z) or its <strong>bottom</strong>, the spoilboard (the top is at Z = thickness)</td></tr>
+<tr><td><strong>Thickness</strong></td><td>first, as every job needs it. Depths count down from the stock top, so set this to the real board.</td></tr>
+<tr><td><strong>Size: Outline + margin</strong></td><td>new projects: the stock is the drawing’s outline (its size in brackets) plus the <strong>margin</strong> on every side, centred on it, and follows the drawing as it changes.</td></tr>
+<tr><td><strong>Size: Fixed size, centred</strong></td><td>a size you type, for a board you want to use, centred on the drawing’s outline; it starts at the size the stock had. The drawing’s size is shown under it, to check the board against.</td></tr>
 </tbody>
 </table>
 </div>
-<p>A new project from a DXF gets stock that just covers the drawing. If the drawing reaches
-past the stock (after an update, or a move), the report says so.</p>
+<p>A project from before 28 October 2026 may have its stock’s corner or centre at the drawing’s
+origin. It keeps that place, and a list under the size shows it, until you choose
+<em>centred on the drawing</em> there. On the command line, <code>stock.origin</code> still takes
+<code>bottom-left</code> and <code>center</code>.</p>
+<p>The <strong>Material</strong> section chooses your own feeds per tool for what you cut
+(<a href="../library/materials.html">Materials</a>): every operation, and those added later, takes it and
+its values. It never changes the stock.</p>
+<p>For many jobs the stock is mostly a picture for the simulation: you cut from whatever board
+is at hand. What you need to know then is how big a board must be. <strong>After Generate, the
+report gives the cut’s outline</strong>, the area the tool cuts with its radius included, for
+example <code>Cut outline: 144.068 × 111.622 mm</code>: the smallest board that holds the job. The
+setup sheet has it too.</p>
+<p>If the drawing reaches past a fixed stock (after an update, or a move), the report says so.
+A stock centred on the drawing can’t be used to align the drawing (it would follow it):
+choose a position at the drawing’s origin first.</p>
 <h2 id="work-zero"><a class="header" href="#work-zero">Work zero</a></h2>
-<p><strong>Work zero X Y</strong> (under Machine) is the point of the drawing that becomes X0 Y0 in the
-G-code:</p>
+<p><strong>Work zero</strong> is the point that becomes X0 Y0 Z0 in the G-code. It has its own row in the
+<a href="../window.html#the-browser">Browser</a>, under Job settings, which says where it is (“stock bottom
+left”), and its own place in the view: the foot of the red and green axes.</p>
+<p>Only the G-code moves; the drawing, the stock and the toolpath stay where they are. So moving
+the zero never moves a cut, only the numbers in the program. The setup sheet and the
+program’s first lines say where it is.</p>
+<p><strong>In the view:</strong> click the round handle at the foot of the axes to select the zero, then drag
+it. It snaps to the stock’s corners and centre and to the drawing origin, then as the pointer
+snaps when drawing (points of the drawing, the grid); hold <strong>Alt</strong> to place it freely. A label
+at the pointer says where it goes. <strong>Esc</strong> while dragging leaves it where it was, and one drag
+is one step for Undo. Until the zero is selected, a drag on its handle does what it does
+anywhere else, so a drag meant for a shape under it never moves it. Once the zero is away
+from the drawing origin, the origin stays in view as grey ghost axes, so you can still see
+where the drawing’s own X0 Y0 is.</p>
+<p><strong>Its properties:</strong></p>
 <ul>
-<li><strong>the drawing’s origin</strong>, the default;</li>
-<li><strong>a stock corner or the stock centre</strong>;</li>
-<li><strong>any point</strong>, in drawing coordinates.</li>
+<li><strong>On the stock:</strong> a small drawing of the board with a dot at each corner and the centre.
+Click one: the zero stays at that corner when the stock changes size.</li>
+<li><strong>Drawing origin:</strong> where the drawing has its own 0,0.</li>
+<li><strong>Position:</strong> where the zero is, in drawing coordinates. Type a value to make it a point of
+its own.</li>
+<li><strong>Z zero:</strong> the stock <strong>top</strong> (depths are negative Z) or its <strong>bottom</strong>, the spoilboard (the
+top is at Z = thickness).</li>
 </ul>
-<p>Only the G-code moves; the drawing and the canvas stay where they are. The canvas draws the
-X and Y axes at the work zero.</p>
-<p>Every program says where its zero is in a comment at the top, e.g. <code>(Work zero: stock center = drawing X150.000 Y110.000, Z0 = stock top)</code>, and so does the setup sheet. Set the
-machine’s zero exactly there.</p>
-<h2 id="safe-z-and-travel"><a class="header" href="#safe-z-and-travel">Safe Z and travel</a></h2>
-<p>Under Machine:</p>
-<ul>
-<li><strong>Safe Z:</strong> the height for every rapid move sideways, above the stock top. Make it clear
-of your clamps. Before a plunge the tool rapids down to 1 mm above the stock top, then
-feeds; it never rapids below the stock top.</li>
-<li><strong>Travel X Y Z:</strong> the machine’s travel. When set, the checker refuses a program that
-moves farther than the machine can.</li>
-<li><strong>Max feed:</strong> the fastest feed the machine takes. Feeds above it are refused, and the
-cycle time uses it for rapid moves.</li>
-<li><strong>G-code units:</strong> mm (<code>G21</code>) or inch (<code>G20</code>), as your controller expects. Only the program
-changes; see <a href="units.html">Units and coordinates</a>. Command line: <code>chipload set part.chipload machine.gcode_units=inch</code>, or <code>--gcode-units inch</code> on <code>machine add</code> and <code>machine set</code>.</li>
-</ul>
+<p>New projects start with the zero at the stock’s <strong>bottom-left corner</strong> and Z0 on its top: the
+corner you touch off on. A <a href="../library/machines.html">machine profile</a> can give new projects
+another zero. Projects from before 29 October 2026 keep theirs, often the drawing origin.</p>
+<p>On the command line:</p>
+<pre><code>chipload zero part.chipload                       # where it is
+chipload zero part.chipload --stock bottom-left   # also bottom-right, top-left, top-right, centre
+chipload zero part.chipload --drawing-origin
+chipload zero part.chipload --at 25,-10           # a point; any length unit
+chipload zero part.chipload --z bottom            # Z0 on the spoilboard
+</code></pre>
 
                     </main>
 

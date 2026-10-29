@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - Chipload 0.27.1 user guide</title>
+        <title>Introduction - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f602bac1.js"></script>
+        <script src="toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -181,8 +181,9 @@
 <img src="images/chipload-wordmark.svg" alt="Chipload" height="64">
 <p>Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.</p>
 <ul>
-<li><strong>In:</strong> DXF drawings, text in built-in fonts, pictures traced into shapes, and simple
-shapes drawn in Chipload (circles, rectangles, polylines).</li>
+<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, and
+shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
+offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
 LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li><strong>Operations:</strong>
@@ -191,7 +192,8 @@ LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li>ring pockets, with helix entry and rest machining;</li>
 <li>V-carving;</li>
 <li>follow path;</li>
-<li>drilled and helically bored holes.</li>
+<li>drilled and helically bored holes;</li>
+<li>surfacing the stock.</li>
 </ul>
 </li>
 <li><strong>Checked:</strong> every program passes an independent checker before Chipload writes it. The
@@ -205,7 +207,8 @@ and AI assistants can drive it.</li>
 </ul>
 <blockquote>
 <p><strong>Testers with real machines wanted.</strong> Chipload’s programs pass its checker and many
-tests, but they haven’t been run on a real controller yet. If you have a CNC router or
+tests, and they cut wood on a GRBL router (a Shapeoko), but they haven’t run on LinuxCNC
+or Mach3/4 yet, nor in inches. If you have a CNC router or
 mill, please try it, starting with an air cut, and tell us how it went in an
 <a href="https://github.com/chipload/chipload/issues">issue</a>, also when it worked. The
 <a href="https://github.com/chipload/chipload#testing-on-your-machine">README</a> says what to try and

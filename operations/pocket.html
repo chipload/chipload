@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Pocket - Chipload 0.27.1 user guide</title>
+        <title>Pocket - Chipload 0.28.1 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e24d3434.js";
+            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-f602bac1.js"></script>
+        <script src="../toc-a462de50.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.27.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -213,6 +213,11 @@ ring closes and is linked.</li>
 <li><strong>Links:</strong> where a ring closes, the tool feeds across to the next at depth when the move
 stays clear of the walls and is at most one tool diameter, which it checks; otherwise it
 retracts. There is nothing to set: a checked link is always better than a retract.</li>
+<li><strong>Between depth passes</strong> the tool stays down too: it lifts 0.5 mm off the floor it just
+cut, feeds back to where the next pass starts, and goes down from there, which saves
+the trip to safe Z in a deep pocket or hole. It does so only when that pass left no
+uncut material and the move back keeps clear of the walls and islands; otherwise it
+retracts. After the last pass it always retracts.</li>
 </ul>
 <p>What a round tool leaves is normal: inside corners keep the tool’s radius, and slots
 narrower than the tool stay uncut. The <a href="../checking/simulation.html">simulation</a> shows it.
