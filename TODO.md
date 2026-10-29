@@ -115,12 +115,6 @@ it's built (see `CLAUDE.md`).
      need modifier keys. Done 2026-10-28: plain drag moves the segment, Ctrl inserts a
      point, Shift bends (`SegmentDrag`).
 
-- **The legend runs under the navigation bar in a narrow canvas** (seen 2026-10-28 in the
-  kittest pictures, `pictures` in crates/chipload-gui/src/app/tests/layout.rs): in German at
-  the default 1200 × 800 the canvas is about 420 px wide, the open legend about 190, and the
-  bar can't keep to its right, so it covers the legend's fifth row. Older than the drawing
-  work. Ideas: the bar above the legend when there's no room beside it, or the legend
-  folded by default in a narrow canvas; a layout test like the ribbon's.
 - **Traced loops cross on a tiny picture with arcs** (found 2026-10-28 by a local
   workspace run): `traced_loops_separate_black_from_white`
   (crates/chipload-image/tests/trace.rs) fails `no_crossings` for w = 4, h = 5, smoothing
@@ -210,6 +204,10 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **The legend and the navigation bar no longer overlap** (2026-10-29, seen 2026-10-28 in
+  German at 1200 × 800): when even the compact bar has no room beside the legend, the bar
+  is centred and the legend stands on it; in a wide canvas the bar keeps to its right as
+  before. Layout test `the_legend_stays_clear_of_the_navigation_bar`.
 - **Surface property test that failed on CI** (2026-10-29, found 2026-10-27 on Windows): a
   test bug, not a code bug. `surface_moves` runs a stock that is square within the chaining
   tolerance along X; the test took plain `w >= h`, so for a stock 0.00012 mm taller than

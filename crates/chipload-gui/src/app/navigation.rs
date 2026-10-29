@@ -22,6 +22,9 @@ const COMPACT_SIDE: f32 = 30.0;
 const NAV_MARGIN: f32 = 8.0;
 /// Where the canvas's legend ends on the right, this frame (egui temp data).
 pub(super) const LEGEND_RIGHT: &str = "legend-right";
+/// The bar's top when there is no room for it beside the legend, so the legend stands on
+/// it instead (egui temp data; absent while the bar fits beside it).
+pub(super) const NAV_TOP: &str = "navigation-bar-top";
 /// Half the cube's edge on screen, points.
 const CUBE_HALF: f32 = 20.0;
 /// Room around the cube in the corner, points.
@@ -116,16 +119,36 @@ impl ChiploadApp {
             NAV_ESTIMATE
         };
         let width = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
-        // Moved right when even the compact bar can't be centred clear of the legend.
+        // Moved right when even the compact bar can't be centred clear of the legend; with
+        // no room beside it at all, centred, and the legend goes above it (seen 2026-10-28:
+        // in German at 1200 × 800 the bar covered the legend's rows).
+        let beside = left + width <= right;
+        let lo = if beside {
+            left
+        } else {
+            rect.left() + NAV_MARGIN
+        };
         let x = rect
             .center()
             .x
-            .max(left + width / 2.0)
+            .max(lo + width / 2.0)
             .min(right - width / 2.0);
         let at = Rect::from_center_size(
             pos2(x, rect.bottom() - 10.0 - height / 2.0),
             vec2(width, height),
         );
+        let top_id = egui::Id::new(NAV_TOP);
+        let was = ui.data(|d| d.get_temp::<f32>(top_id));
+        let now = (!beside).then_some(at.top());
+        if was != now {
+            ui.data_mut(|d| match now {
+                Some(top) => {
+                    d.insert_temp(top_id, top);
+                }
+                None => d.remove::<f32>(top_id),
+            });
+            ui.ctx().request_repaint();
+        }
         let place = egui::UiBuilder::new()
             .max_rect(at)
             .layout(egui::Layout::left_to_right(egui::Align::Center));

@@ -634,9 +634,16 @@ impl ChiploadApp {
         let rows = if self.legend_open { items.len() } else { 0 };
         let estimate = 30.0 + 15.0 * rows as f32;
         let height = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
-        let top_left = egui::pos2(inner.left(), (inner.bottom() - height).max(inner.top()));
+        // Standing on the navigation bar when there's no room for the bar beside it.
+        let bottom = ui
+            .data(|d| d.get_temp::<f32>(egui::Id::new(super::navigation::NAV_TOP)))
+            .map_or(inner.bottom(), |top| inner.bottom().min(top - 6.0));
+        let top_left = egui::pos2(inner.left(), (bottom - height).max(inner.top()));
         let place = egui::UiBuilder::new()
-            .max_rect(egui::Rect::from_min_max(top_left, inner.right_bottom()))
+            .max_rect(egui::Rect::from_min_max(
+                top_left,
+                egui::pos2(inner.right(), bottom),
+            ))
             .layout(egui::Layout::top_down(egui::Align::Min));
         let shown = ui
             .scope_builder(place, |ui| {

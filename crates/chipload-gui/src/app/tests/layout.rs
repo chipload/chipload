@@ -308,3 +308,27 @@ fn job_settings_show_the_zero_and_keep_the_machine_closed() {
     harness.run_steps(3);
     assert_eq!(harness.state().focus, Focus::WorkZero);
 }
+
+/// The legend and the navigation bar never overlap: in a narrow canvas the legend stands on
+/// the bar, in a wide one the bar keeps to its right (seen 2026-10-28 in German at
+/// 1200 × 800: the bar covered the legend's rows).
+#[test]
+fn the_legend_stays_clear_of_the_navigation_bar() {
+    let nav_top = |h: &Harness<'_, ChiploadApp>| {
+        h.ctx
+            .data(|d| d.get_temp::<f32>(egui::Id::new(super::super::navigation::NAV_TOP)))
+    };
+    let mut narrow = harness("de", WINDOW);
+    narrow.run_steps(4);
+    let top = nav_top(&narrow).expect("no room beside the legend");
+    // The legend's last row, "Rohteil": the leftmost of that name (Properties has one too).
+    let last = narrow
+        .query_all_by_label("Rohteil")
+        .map(|n| n.rect())
+        .min_by(|a, b| a.left().total_cmp(&b.left()))
+        .expect("the legend's stock row");
+    assert!(last.bottom() <= top, "{last:?} over the bar at {top}");
+    let mut wide = harness("de", egui::vec2(1900.0, 800.0));
+    wide.run_steps(4);
+    assert_eq!(nav_top(&wide), None, "beside the legend");
+}
