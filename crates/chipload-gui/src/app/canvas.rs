@@ -1098,6 +1098,7 @@ impl ChiploadApp {
             None => starts.push(point),
         }
         self.commit();
+        self.undo_if_refused.clone_from(&self.edit);
         self.generate();
     }
 

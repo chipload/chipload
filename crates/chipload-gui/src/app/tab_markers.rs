@@ -167,6 +167,7 @@ impl ChiploadApp {
         };
         change(points);
         self.commit();
+        self.undo_if_refused.clone_from(&self.edit);
         self.generate();
     }
 }

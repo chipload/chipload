@@ -13,6 +13,8 @@ canvas-start-moved-hover = Start dieses Rings: entlang des Rings ziehen; Rechtsk
 canvas-start-hover = Start dieses Rings: entlang des Rings ziehen, um ihn zu verschieben
 canvas-tab-hover = Haltesteg: entlang des Rings ziehen; Rechtsklick, um ihn zu entfernen oder die Haltestege des Rings gleichmäßig zu verteilen
 canvas-tab-hover-placed = Von Hand gesetzter Haltesteg: entlang des Rings ziehen; Rechtsklick, um ihn zu entfernen oder die Haltestege des Rings gleichmäßig zu verteilen
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = Nicht verschoben: { $reason }
 canvas-tab-remove = Haltesteg entfernen
 canvas-tab-even = Haltestege dieses Rings gleichmäßig verteilen
 canvas-tab-add = Hier einen Haltesteg hinzufügen

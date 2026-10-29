@@ -13,6 +13,8 @@ canvas-start-moved-hover = Slingans start: dra den längs slingan; högerklicka 
 canvas-start-hover = Slingans start: dra den längs slingan för att flytta den
 canvas-tab-hover = Brygga: dra den längs slingan; högerklicka för att ta bort den eller sprida slingans bryggor jämnt
 canvas-tab-hover-placed = Handplacerad brygga: dra den längs slingan; högerklicka för att ta bort den eller sprida slingans bryggor jämnt
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = Inte flyttad: { $reason }
 canvas-tab-remove = Ta bort bryggan
 canvas-tab-even = Sprid slingans bryggor jämnt
 canvas-tab-add = Lägg till en brygga här

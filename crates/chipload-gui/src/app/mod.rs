@@ -430,6 +430,10 @@ pub struct ChiploadApp {
     pub(super) export_path_when_done: Option<PathBuf>,
     /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
     pub(super) export_part_when_done: Option<(u64, PathBuf)>,
+    /// The project as a tab or start was just dropped on the canvas: if its run fails, the
+    /// drop is taken back, so the markers stay to be dragged elsewhere (the user,
+    /// 2026-10-29).
+    pub(super) undo_if_refused: Option<EditJob>,
     /// Preview every part, not only the active one (canvas bar; this session only).
     pub all_parts: bool,
     /// The part the last result is a preview of; None: the whole project.
@@ -557,6 +561,7 @@ impl Default for ChiploadApp {
             all_parts: false,
             export_path_when_done: None,
             export_part_when_done: None,
+            undo_if_refused: None,
             result_part: None,
             recovery: None,
             recovery_due: None,
@@ -664,6 +669,15 @@ impl ChiploadApp {
         self.commit();
         if let Some(previous) = self.undo.pop() {
             self.redo.push(self.edit.take());
+            self.edit = previous;
+            self.committed.clone_from(&self.edit);
+            self.after_history_step();
+        }
+    }
+
+    /// Take back the last edit for good (no redo): a drop the planner refused.
+    pub(super) fn take_back_edit(&mut self) {
+        if let Some(previous) = self.undo.pop() {
             self.edit = previous;
             self.committed.clone_from(&self.edit);
             self.after_history_step();

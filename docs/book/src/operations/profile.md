@@ -61,7 +61,10 @@ You can put a contour's tabs where you want them instead. Select the profile aft
 generating: each tab has a small square on the canvas, hollow where Chipload spaced it and
 filled where you placed it.
 
-- **Drag** a tab along its contour; it generates again when you let go.
+- **Drag** a tab along its contour; it generates again when you let go. A tab dropped where
+  it can't be (on the contour's start, or too close to another tab) goes back where it
+  was, and the status bar says why; drag it somewhere else. The same goes for a start
+  point dropped onto a tab.
 - **Right-click a tab** to remove it, or to space that contour's tabs evenly again.
 - **Right-click the contour's toolpath** for *Add a tab here*.
 - Under **Tabs** in Properties, *5 tabs placed by hand* counts them, and *Reset* spaces every

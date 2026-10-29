@@ -13,6 +13,8 @@ canvas-start-moved-hover = Départ de ce tour : glisser le long du tour ; clic d
 canvas-start-hover = Départ de ce tour : glisser le long du tour pour le déplacer
 canvas-tab-hover = Attache : la glisser le long du tour ; clic droit pour la retirer ou répartir régulièrement les attaches du tour
 canvas-tab-hover-placed = Attache placée à la main : la glisser le long du tour ; clic droit pour la retirer ou répartir régulièrement les attaches du tour
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = Non déplacé : { $reason }
 canvas-tab-remove = Retirer l'attache
 canvas-tab-even = Répartir régulièrement les attaches de ce tour
 canvas-tab-add = Ajouter une attache ici

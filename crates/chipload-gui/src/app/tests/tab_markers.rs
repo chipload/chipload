@@ -158,3 +158,61 @@ fn the_profile_stays_selected_after_a_tab_is_dragged() {
     assert!(!points(h.state()).is_empty(), "the tab was moved");
     assert_eq!(h.state().focus, Focus::Op(1));
 }
+
+/// A tab dropped on the ring's start is refused by the planner: the drop is taken back,
+/// with the reason, and the tab and start markers stay to be dragged elsewhere (the user,
+/// 2026-10-29).
+#[test]
+fn a_tab_dropped_on_the_start_goes_back_and_the_markers_stay() {
+    let mut app = tabbed();
+    let before = markers(&app);
+    let start = app
+        .scene
+        .start_markers
+        .iter()
+        .find(|m| m.operation == 1)
+        .unwrap()
+        .at;
+    let k = index_of(&app, 0);
+    app.drag_tab_to(k, start);
+    app.drop_tab();
+    assert!(!app.wait_for_generation(), "refused");
+    assert!(points(&app).is_empty(), "taken back");
+    let status = app.status.as_ref().map(|(text, _)| text.clone()).unwrap();
+    assert!(status.starts_with("Not moved: "), "{status}");
+    // The project before the drop is planned again: its markers are back.
+    assert!(app.wait_for_generation(), "{:?}", app.report);
+    assert_eq!(markers(&app), before);
+    assert!(app.scene.start_markers.iter().any(|m| m.operation == 1));
+    // Nothing to redo: the refused drop is gone for good.
+    app.redo();
+    assert!(points(&app).is_empty());
+}
+
+/// The same for a ring start dropped onto a tab placed by hand (tabs placed evenly move
+/// out of its way).
+#[test]
+fn a_start_dropped_on_a_tab_goes_back() {
+    let mut app = tabbed();
+    let k = index_of(&app, 0);
+    let at = markers(&app)[0].at;
+    app.drag_tab_to(k, (at.0 + 5.0, at.1 + 5.0));
+    app.drop_tab();
+    assert!(app.wait_for_generation(), "{:?}", app.report);
+    let before = markers(&app);
+    assert!(before.iter().all(|m| m.tab.by_hand));
+    let starts = |app: &ChiploadApp| app.edit.as_ref().unwrap().ops[1].op.starts().to_vec();
+    let was = starts(&app);
+    let marker = app
+        .scene
+        .start_markers
+        .iter()
+        .position(|m| m.operation == 1)
+        .unwrap();
+    app.drag_start_to(marker, before[1].at);
+    app.drop_start();
+    assert!(!app.wait_for_generation(), "refused");
+    assert_eq!(starts(&app), was, "taken back");
+    assert!(app.wait_for_generation(), "{:?}", app.report);
+    assert_eq!(markers(&app), before);
+}

@@ -13,6 +13,8 @@ canvas-start-moved-hover = Inicio de este anillo: arrástralo a lo largo del ani
 canvas-start-hover = Inicio de este anillo: arrástralo a lo largo del anillo para moverlo
 canvas-tab-hover = Puente: arrástralo a lo largo del anillo; clic derecho para quitarlo o repartir por igual los puentes del anillo
 canvas-tab-hover-placed = Puente colocado a mano: arrástralo a lo largo del anillo; clic derecho para quitarlo o repartir por igual los puentes del anillo
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = No movido: { $reason }
 canvas-tab-remove = Quitar el puente
 canvas-tab-even = Repartir por igual los puentes de este anillo
 canvas-tab-add = Añadir un puente aquí

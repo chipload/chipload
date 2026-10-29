@@ -13,6 +13,8 @@ canvas-start-moved-hover = Start of this ring: drag it along the ring; right-cli
 canvas-start-hover = Start of this ring: drag it along the ring to move it
 canvas-tab-hover = Tab: drag it along the ring; right-click to remove it or space the ring's tabs evenly
 canvas-tab-hover-placed = Tab placed by hand: drag it along the ring; right-click to remove it or space the ring's tabs evenly
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = Not moved: { $reason }
 canvas-tab-remove = Remove tab
 canvas-tab-even = Space this ring's tabs evenly
 canvas-tab-add = Add a tab here

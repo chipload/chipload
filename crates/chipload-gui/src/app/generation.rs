@@ -200,6 +200,7 @@ impl ChiploadApp {
         if self.edit.as_ref() != Some(&generation.project) {
             return false; // made for a project that has changed since: dropped
         }
+        let refusable = self.undo_if_refused.take().as_ref() == Some(&generation.project);
         let Generation {
             job, loud, scope, ..
         } = generation;
@@ -220,6 +221,16 @@ impl ChiploadApp {
                     report.push_message(Tone::Error, message, None);
                 }
                 self.fail_with(report, loud);
+                false
+            }
+            Ok(Err(err)) if refusable => {
+                // A dropped tab or start the planner refuses goes back where it was, with
+                // the reason; the markers come back with the run of the project before.
+                let reason = self.say(&err.message());
+                self.take_back_edit();
+                self.start_generation(false);
+                let text = t!(self, "canvas-drop-refused", reason = reason);
+                self.set_status(text, ERROR_STATUS_SECONDS);
                 false
             }
             Ok(Err(err)) => {

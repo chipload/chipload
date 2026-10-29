@@ -13,6 +13,8 @@ canvas-start-moved-hover = Inizio di questo anello: trascinalo lungo l'anello; c
 canvas-start-hover = Inizio di questo anello: trascinalo lungo l'anello per spostarlo
 canvas-tab-hover = Ponticello: trascinalo lungo l'anello; clic destro per rimuoverlo o distribuire uniformemente i ponticelli dell'anello
 canvas-tab-hover-placed = Ponticello posto a mano: trascinalo lungo l'anello; clic destro per rimuoverlo o distribuire uniformemente i ponticelli dell'anello
+# A dropped tab or ring start that the planner refuses goes back; $reason says why.
+canvas-drop-refused = Non spostato: { $reason }
 canvas-tab-remove = Rimuovi il ponticello
 canvas-tab-even = Distribuisci uniformemente i ponticelli di questo anello
 canvas-tab-add = Aggiungi un ponticello qui
