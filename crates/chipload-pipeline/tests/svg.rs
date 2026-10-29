@@ -15,6 +15,38 @@ fn corpus(rel: &str) -> PathBuf {
         .join(rel)
 }
 
+/// Within this, two saved numbers count as the same: the last bits of the maths differ
+/// between platforms (macOS and Windows in the release build of 2026-10-29).
+const SAME_NUMBER: f64 = 1e-6;
+
+/// `a` and `b` alike, numbers within `SAME_NUMBER`; panics naming the first difference.
+fn assert_near(a: &serde_json::Value, b: &serde_json::Value, at: &str) {
+    use serde_json::Value;
+    match (a, b) {
+        (Value::Number(x), Value::Number(y)) => {
+            let (x, y) = (x.as_f64().unwrap(), y.as_f64().unwrap());
+            assert!((x - y).abs() <= SAME_NUMBER, "{at}: {x} != {y}");
+        }
+        (Value::Array(x), Value::Array(y)) => {
+            assert_eq!(x.len(), y.len(), "{at}: lengths");
+            for (i, (x, y)) in x.iter().zip(y).enumerate() {
+                assert_near(x, y, &format!("{at}.{i}"));
+            }
+        }
+        (Value::Object(x), Value::Object(y)) => {
+            assert_eq!(
+                x.keys().collect::<Vec<_>>(),
+                y.keys().collect::<Vec<_>>(),
+                "{at}: keys"
+            );
+            for (k, x) in x {
+                assert_near(x, &y[k], &format!("{at}.{k}"));
+            }
+        }
+        _ => assert_eq!(a, b, "{at}"),
+    }
+}
+
 /// A scratch file with `text`, in a folder of this test's own.
 fn scratch(test: &str, name: &str, text: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("chipload-svg-{test}"));
@@ -137,7 +169,11 @@ fn the_golden_badge_is_the_svg_as_imported_now() {
     // the SVG again must give the same, so the golden guards the reader too.
     let frozen = chipload_job::load_job(&corpus("jobs/v31/svg_badge.chipload")).unwrap();
     let now = badge();
-    assert_eq!(now.drawing.shapes, frozen.drawing.shapes);
+    assert_near(
+        &serde_json::to_value(&now.drawing.shapes).unwrap(),
+        &serde_json::to_value(&frozen.drawing.shapes).unwrap(),
+        "shapes",
+    );
     let (mut a, mut b) = (now.drawing.dxfs[0].clone(), frozen.drawing.dxfs[0].clone());
     a.placement = b.placement;
     b.name.clone_from(&a.name);
