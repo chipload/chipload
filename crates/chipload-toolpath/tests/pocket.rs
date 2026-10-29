@@ -322,6 +322,41 @@ fn large_stepover_reports_uncut_material() {
     );
 }
 
+/// A pocket that leaves material retracts between its passes: the floor isn't all cut
+/// (docs/specs/pocket-stay-down.md §2).
+#[test]
+fn uncut_material_retracts_between_passes() {
+    let result = plan_with(&[outline()], 6.0, Direction::Climb, Spindle::Cw).unwrap();
+    assert!(result.pieces.iter().all(|p| !p.back_link));
+    assert!(plan(&[outline()]).pieces[0].back_link);
+}
+
+/// Moving back between passes keeps the tool off every wall and island, or doesn't happen
+/// (docs/specs/pocket-stay-down.md §2).
+#[test]
+fn the_move_back_between_passes_keeps_off_walls_and_islands() {
+    let clearance = 3.0 - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM;
+    let round = [outline(), circle_id(2, (50.0, 30.0), 8.0)];
+    let neck = [outline(), rect(2, 8.0, 20.0, 30.0, 40.0)];
+    let mut linked = 0;
+    for contours in [&two_islands()[..], &round[..], &neck[..], &[outline()][..]] {
+        let walls: Vec<Primitive> = contours
+            .iter()
+            .flat_map(|c| pline_segments(&contour_pline(c)))
+            .collect();
+        for piece in plan(contours).pieces.iter().filter(|p| p.back_link) {
+            linked += 1;
+            let a = piece.rings.last().unwrap().end().unwrap();
+            let b = piece.rings[0].points[0];
+            for wall in &walls {
+                let d = segment_distance(a, b, wall);
+                assert!(d >= clearance, "back {a:?}-{b:?} is {d} from a wall");
+            }
+        }
+    }
+    assert!(linked > 0);
+}
+
 #[test]
 fn normal_stepover_leaves_nothing() {
     assert!(plan(&[outline()]).notes.is_empty());
@@ -815,9 +850,27 @@ fn moves_plunge_at_the_centre_for_every_depth() {
         .iter()
         .filter(|m| m.kind == MoveKind::Feed && m.z.is_some())
         .collect();
-    // Every ring of a plain rectangle is linked: one plunge per depth.
-    assert_eq!(plunges.len(), 2);
+    // Every ring of a plain rectangle is linked: one plunge per depth, and between them
+    // a lift 0.5 mm off the first floor instead of a retract (pocket-stay-down.md).
+    let zs: Vec<f64> = plunges.iter().map(|m| m.z.unwrap()).collect();
+    assert_eq!(zs, [-3.0, -2.5, -6.0]);
     assert!(plunges.iter().all(|m| m.feed == Some(400.0)));
+    let retracts = moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Rapid && m.z == Some(5.0))
+        .count();
+    assert_eq!(retracts, 2, "before the first pass and after the last");
+    // Back to the first ring's start at the lifted height.
+    let first = piece.rings[0].points[0];
+    let back = moves
+        .iter()
+        .position(|m| m.z == Some(-2.5))
+        .map(|i| &moves[i + 1])
+        .unwrap();
+    assert_eq!(
+        (back.kind, back.x, back.y),
+        (MoveKind::Feed, Some(first.0), Some(first.1))
+    );
     let last = moves.last().unwrap();
     assert!(last.kind == MoveKind::Rapid && last.z == Some(5.0));
 }

@@ -200,3 +200,5 @@ rounded corners.
 - **Spiral** (same day, docs/specs/pocket-spiral.md): a ring steps out onto the ring
   outside it over its last two diameters instead of closing, where that is checked safe;
   the link move goes with it.
+- **Between depth passes** (2026-10-29, docs/specs/pocket-stay-down.md): the tool lifts
+  0.5 mm and moves back at feed instead of retracting, where checked safe.

@@ -195,6 +195,9 @@ it's built (see `CLAUDE.md`).
   (2026-10-29): the drawing origin as ghost axes once the zero is elsewhere; built.
   **One part's G-code** (docs/specs/part-export.md, 2026-10-29): *Export G-code of this
   part…* on a part's right-click menu, `--part` on run/sheet/plan; built.
+  **A pocket stays down between its depth passes** (docs/specs/pocket-stay-down.md,
+  2026-10-29, the user missed *keep tool down* for deep holes): lifts 0.5 mm and feeds
+  back where checked safe; built.
   CI runs only when started by hand since 2026-10-27 (Actions minutes).
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.

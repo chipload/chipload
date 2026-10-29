@@ -106,15 +106,22 @@ fn a_pocket_goes_down_round_a_helix_in_its_middle_on_every_pass() {
     let sideways = assert_entries_safe(&plan, -1.0);
     assert!(sideways > 0);
     let at = positions(&plan.program.moves);
-    let starts = plan
+    // The first pass from safe Z; the second from the floor of the first, moved back at
+    // feed (docs/specs/pocket-stay-down.md).
+    let arrivals: Vec<MoveKind> = plan
         .program
         .moves
         .iter()
         .enumerate()
-        .filter(|(_, m)| m.kind == MoveKind::Rapid && m.x.is_some())
+        .filter(|(_, m)| m.x.is_some() && m.circle.is_none())
         .filter(|(i, _)| distance((at[*i].0, at[*i].1), h.start) < 1e-9)
-        .count();
-    assert_eq!(starts, 2, "one helix per pass");
+        .map(|(_, m)| m.kind)
+        .collect();
+    assert_eq!(
+        arrivals,
+        [MoveKind::Rapid, MoveKind::Feed],
+        "one helix per pass"
+    );
     // The helix's moves carry its circle, ready for G2/G3.
     let on_helix = plan
         .program

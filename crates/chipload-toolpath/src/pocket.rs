@@ -109,7 +109,15 @@ pub struct PocketPiece {
     /// The helix each depth pass goes down round, then feeds at depth to the first ring's
     /// start (part C); None: the first path's own entry.
     pub helix: Option<Helix>,
+    /// Between depth passes the tool stays down: from the last ring's end, lifted off the
+    /// floor, back to where the next pass starts (docs/specs/pocket-stay-down.md). False:
+    /// it retracts to safe Z.
+    pub back_link: bool,
 }
+
+/// How far the tool lifts off the floor just cut to move back between depth passes
+/// (docs/specs/pocket-stay-down.md decision 2).
+const BACK_LINK_LIFT_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PocketPlan {
@@ -1018,6 +1026,16 @@ fn link_is_safe(
     region.contains(a) && clear_of(walls, a, b, min_clearance(offset))
 }
 
+/// Moving back at depth between passes is safe if the piece is cleared everywhere the tool
+/// reaches and the move keeps the tool off every wall and island; any length, as it runs
+/// through material already cut (docs/specs/pocket-stay-down.md §2).
+fn back_link_is_safe(region: &Area, walls: &PrimIndex, a: Point, b: Point, offset: f64) -> bool {
+    if distance(a, b) < CHAIN_TOL_MM {
+        return true;
+    }
+    region.contains(a) && clear_of(walls, a, b, min_clearance(offset))
+}
+
 /// Every cutting move as a segment: ring chords (closed) and links fed at depth.
 fn cutting_segments(rings: &[PocketRing], links: &[bool]) -> Vec<(Point, Point)> {
     let mut segments = Vec::new();
@@ -1566,12 +1584,22 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
             None => None,
         };
         cancel::check(cancel)?;
+        let next_start = helix
+            .as_ref()
+            .map(|h| h.start)
+            .or_else(|| rings.first().and_then(|r| r.points.first().copied()));
+        let back_link = uncut.is_none()
+            && match (rings.last().and_then(PocketRing::end), next_start) {
+                (Some(from), Some(to)) => back_link_is_safe(&region, &walls, from, to, offset),
+                _ => false,
+            };
         notes.extend(uncut);
         pieces.push(PocketPiece {
             rings,
             feed_links: links,
             contour_ids: ids,
             helix,
+            back_link,
         });
     }
     Ok(PocketPlan {
@@ -1826,18 +1854,26 @@ pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, T
             crate::profile::closed_path(&ring.points)
         }
     };
-    let descend = |ring: &PocketRing, cleared: f64, z: f64| {
+    let descend = |ring: &PocketRing, from_z: f64, cleared: f64, z: f64| {
         let path = path_of(ring);
         let length = crate::ramp::polyline_length(&path);
-        crate::ramp::enter(&path, length, safe_z, cleared, z, entry, feed, plunge_feed)
+        crate::ramp::enter(&path, length, from_z, cleared, z, entry, feed, plunge_feed)
     };
     let mut cleared = top_z;
-    for &z in pass_z {
+    // Where the tool is before a pass: at safe Z, or lifted off the floor of the pass
+    // before (docs/specs/pocket-stay-down.md).
+    let mut from_z = safe_z;
+    for (pass, &z) in pass_z.iter().enumerate() {
+        let down = from_z < safe_z;
         match (piece.helix, entry) {
             (Some(helix), Entry::Helix { ramp_angle, .. }) => {
                 // Down round the helix, then at depth to the first path (checked when the
                 // helix was fitted).
-                moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(helix.start)]);
+                if down {
+                    moves.push(Move::feed_xy(helix.start, feed));
+                } else {
+                    moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(helix.start)]);
+                }
                 moves.extend(helix_moves(
                     &helix,
                     cleared,
@@ -1849,8 +1885,12 @@ pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, T
                 moves.push(Move::feed_xy(first, feed));
             }
             _ => {
-                moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
-                moves.extend(descend(&piece.rings[0], cleared, z)?);
+                if down {
+                    moves.push(Move::feed_xy(first, feed));
+                } else {
+                    moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(first)]);
+                }
+                moves.extend(descend(&piece.rings[0], from_z, cleared, z)?);
             }
         }
         for (index, ring) in piece.rings.iter().enumerate() {
@@ -1863,7 +1903,7 @@ pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, T
                     }
                 } else {
                     moves.extend([Move::rapid_z(safe_z), Move::rapid_xy(start)]);
-                    moves.extend(descend(ring, cleared, z)?);
+                    moves.extend(descend(ring, safe_z, cleared, z)?);
                 }
             }
             moves.extend(ring.points[1..].iter().map(|&p| Move::feed_xy(p, feed)));
@@ -1871,8 +1911,14 @@ pub fn pocket_moves(piece: &PocketPiece, cut: &PocketCut) -> Result<Vec<Move>, T
                 moves.push(Move::feed_xy(start, feed));
             }
         }
-        moves.push(Move::rapid_z(safe_z));
         cleared = z;
+        if piece.back_link && pass + 1 < pass_z.len() {
+            from_z = (z + BACK_LINK_LIFT_MM).min(safe_z);
+            moves.push(Move::feed_z(from_z, plunge_feed));
+        } else {
+            from_z = safe_z;
+            moves.push(Move::rapid_z(safe_z));
+        }
     }
     Ok(moves)
 }

@@ -205,10 +205,10 @@ fn plunges_are_counted_per_operation() {
     app.commit();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let path = app.scene.toolpath.clone().unwrap();
-    // Two operations, many plunges (every depth pass, every ring change).
+    // Two operations, each with its own plunges.
     let ops: BTreeSet<Option<usize>> = path.starts.iter().map(|s| s.operation).collect();
     assert_eq!(ops, BTreeSet::from([Some(0), Some(1)]));
-    assert!(path.starts.len() > 2);
+    assert!(path.starts.len() >= 2);
     // The pocket starts every depth at the same point: hovering it lists all of them.
     let first = path.starts[0].at;
     let same: Vec<usize> = (0..path.starts.len())
@@ -220,12 +220,10 @@ fn plunges_are_counted_per_operation() {
         .filter(|s| s.operation == Some(0))
         .count();
     let text = app.plunge_text(&same);
-    assert!(
-        text.starts_with("Operation 1 (Pocket 1): plunges 1, "),
-        "{text}"
-    );
-    // One plunge per depth pass: the rings are linked at depth.
-    assert_eq!(pocket_total, 3, "{pocket_total}");
+    assert_eq!(text, "Operation 1 (Pocket 1): plunge 1 of 1");
+    // One plunge from safe Z: the rings are linked at depth, and the later passes move
+    // back without a retract (docs/specs/pocket-stay-down.md).
+    assert_eq!(pocket_total, 1, "{pocket_total}");
     assert!(text.ends_with(&format!(" of {pocket_total}")), "{text}");
 }
 

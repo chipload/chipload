@@ -1252,13 +1252,13 @@ fn op_rest_sets_and_removes_rest_machining() {
     let out_path = dir.join("rest.nc");
     let plan = |project: &Path| text(&chipload(&["plan", path(project)]).stdout);
     let rested = plan(&project);
-    assert!(rested.contains("Operation 2 (Rest): 36 s"), "{rested}");
+    assert!(rested.contains("Operation 2 (Rest): 31 s"), "{rested}");
 
     let out = chipload(&["op", "rest", path(&project), "--op", "2", "--none"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert!(text(&out.stdout).contains("Operation 2 now clears the whole pocket."));
     let whole = plan(&project);
-    assert!(!whole.contains("Operation 2 (Rest): 36 s"), "{whole}");
+    assert!(!whole.contains("Operation 2 (Rest): 31 s"), "{whole}");
 
     let out = chipload(&[
         "op",

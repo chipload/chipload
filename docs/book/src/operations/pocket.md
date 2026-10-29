@@ -36,6 +36,11 @@ The pocket is cleared in **rings**:
 - **Links:** where a ring closes, the tool feeds across to the next at depth when the move
   stays clear of the walls and is at most one tool diameter, which it checks; otherwise it
   retracts. There is nothing to set: a checked link is always better than a retract.
+- **Between depth passes** the tool stays down too: it lifts 0.5 mm off the floor it just
+  cut, feeds back to where the next pass starts, and goes down from there, which saves
+  the trip to safe Z in a deep pocket or hole. It does so only when that pass left no
+  uncut material and the move back keeps clear of the walls and islands; otherwise it
+  retracts. After the last pass it always retracts.
 
 What a round tool leaves is normal: inside corners keep the tool's radius, and slots
 narrower than the tool stay uncut. The [simulation](../checking/simulation.md) shows it.
