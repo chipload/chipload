@@ -17,5 +17,5 @@ units-text-oversize-hover = Wie viel mehr als gezeichnet gefräst wird, { $unit 
 units-text-picture-position-hover = Die untere linke Ecke des Bildrahmens, { $unit }
 units-text-text-position-corner-hover = Die untere linke Ecke des Textrahmens, { $unit }
 units-text-text-position-centre-hover = Die Mitte des Textrahmens, { $unit }
-units-text-dxf-position-hover = Die untere linke Ecke des Zeichnungsrahmens, { $unit }. In Chipload gezeichnete Formen und andere DXFs bewegen sich nicht.
+units-text-dxf-position-hover = Die untere linke Ecke des Zeichnungsrahmens, { $unit }. In Chipload gezeichnete Formen und andere Zeichnungsdateien bewegen sich nicht.
 units-text-pitch-hover = Von Kopie zu Kopie, { $unit }. Negativ wächst nach links oder unten.

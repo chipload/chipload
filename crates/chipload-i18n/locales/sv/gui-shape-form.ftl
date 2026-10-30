@@ -41,7 +41,7 @@ shape-form-delete-point = Radera denna punkt
 # An imported shape (from a DXF) can't be edited.
 shape-form-imported = Form S{ $id } (importerad, skrivskyddad)
 # The DXF entity the shape comes from: its type (LINE, ARC, …) and handle.
-shape-form-imported-from = Lager { $layer }, DXF { $entity } { $handle }
+shape-form-imported-from = Lager { $layer }, { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = objekt
 shape-form-position = Position

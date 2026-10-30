@@ -15,7 +15,7 @@ drawing-add-failed = Cannot add the shape:
 drawing-no-shape-selected = no shape selected
 drawing-no-project = no project
 
-drawing-imported-not-deletable = Imported shapes can't be deleted here; change the drawing and use Update drawing from DXF.
+drawing-imported-not-deletable = Imported shapes can't be deleted here; change the drawing and use Update drawing from DXF or SVG.
 # $shapes: the deleted shapes, such as "S1, S4".
 drawing-deleted-report = Deleted { $count ->
         [one] shape
@@ -25,6 +25,6 @@ drawing-deleted-status = Deleted { $count ->
         [one] shape
        *[other] shapes
     } { $shapes }
-drawing-imported-kept = Imported shapes in the selection were kept (they change only with the DXF).
+drawing-imported-kept = Imported shapes in the selection were kept (they change only with their file).
 drawing-kind-slot = slot
 drawing-kind-polygon = polygon

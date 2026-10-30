@@ -17,7 +17,7 @@ menu-import-image = Importera bild…
 menu-import-image-hover = Spåra en bild till former, för V-gravyr
 menu-open-path = Öppna sökväg…
 menu-import-image-path = Importera bild från sökväg…
-menu-several-dxfs = Flera DXF:er: uppdatera en från bläddraren (högerklicka på den)
+menu-several-dxfs = Flera ritningsfiler: uppdatera en från bläddraren (högerklicka på den)
 menu-add-dxf = Lägg till DXF eller SVG i projektet…
 menu-add-dxf-hover = En DXF eller SVG i det här projektet, bredvid det som finns: placeras och uppdateras för sig
 menu-add-dxf-path = Lägg till DXF eller SVG från sökväg…
@@ -36,14 +36,14 @@ menu-quit = Avsluta
 # Edit: undo, and the selected drawn shapes.
 menu-undo = Ångra
 menu-redo = Gör om
-menu-only-drawn = Bara ritade former; importerade ändras bara med DXF:en
+menu-only-drawn = Bara ritade former; importerade ändras bara med sin fil
 menu-copy = Kopiera
 menu-paste = Klistra in
 menu-mirror-left-right = Spegla vänster–höger
 menu-mirror-up-down = Spegla upp–ner
 menu-mirror-hover = Vänd de markerade ritade formerna kring mitten av deras ram
 menu-delete-shapes = Radera former
-menu-delete-shapes-hover = Raderar de markerade ritade formerna; importerade ändras bara med DXF:en
+menu-delete-shapes-hover = Raderar de markerade ritade formerna; importerade ändras bara med sin fil
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Kopiera som selektor
 

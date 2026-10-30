@@ -3,9 +3,9 @@
 
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Ritning
-sources-drawing-hover = DXF:er, bilder, texter och ritade former; högerklicka för att lägga till
+sources-drawing-hover = Ritningsfiler, bilder, texter och ritade former; högerklicka för att lägga till
 sources-add-dxf = Lägg till DXF eller SVG…
-sources-add-dxf-hover = En till detalj: en DXF som placeras och uppdateras för sig
+sources-add-dxf-hover = En till detalj: en DXF eller SVG som placeras och uppdateras för sig
 # "File > Import DXF" names a menu item.
 sources-add-dxf-disabled-hover = Arkiv > Importera DXF eller SVG… startar ett projekt från en
 sources-import-image = Importera bild…
@@ -25,21 +25,21 @@ sources-circles = Cirklar
 sources-polylines = Polylinjer
 sources-other-paths = Övriga banor
 
-sources-dxf-hover = Klick markerar hela DXF:en: en operation gjord från den följer dess uppdateringar. Läge och skala visas i Egenskaper; högerklicka för mer
+sources-dxf-hover = Klick markerar hela filen: en operation gjord från den följer dess uppdateringar. Läge och skala visas i Egenskaper; högerklicka för mer
 sources-image-hover = Klick markerar hela bilden: en operation gjord från den följer när den spåras om. Storlek och läge visas i Egenskaper; dubbelklicka för spårningsinställningar
 sources-text-hover = Klick markerar hela texten: en operation gjord från den följer dess ändringar. Innehåll, typsnitt, storlek och läge finns i Egenskaper
 sources-drawn-hover = Klick markerar formerna; Ctrl+klick lägger till dem
-sources-layer-hover = Klick markerar detta lager i denna DXF: en operation gjord från det fräser bara detta lager i DXF:en
+sources-layer-hover = Klick markerar detta lager i denna fil: en operation gjord från det fräser bara detta lager i filen
 
 # Right-click menu items, verbs.
 sources-select = Markera
 sources-show = Visa
 sources-hide = Dölj
 sources-place = Placera…
-sources-place-hover = Flytta, vrid eller skala denna DXF, i dess egenskaper
+sources-place-hover = Flytta, vrid eller skala denna ritningsfil, i dess egenskaper
 sources-update-from-dxf = Uppdatera från en DXF eller SVG…
 sources-update-from-path = Uppdatera från en sökväg…
-sources-remove-dxf-hover = Ta bort denna DXF och dess former
+sources-remove-dxf-hover = Ta bort denna ritningsfil och dess former
 sources-trace-settings = Spårningsinställningar…
 sources-trace-settings-hover = Tröskel, utjämning, konturer eller mittlinjer; storlek och läge finns i dess egenskaper
 sources-remove-image-hover = Ta bort bilden och dess former
@@ -48,10 +48,10 @@ sources-remove-text-hover = Ta bort texten och dess bokstäver
 # Followed by the project's problems, one per line.
 sources-project-incomplete = Projektet är inte komplett:
 # Followed by the error on its own line.
-sources-remove-dxf-failed = Kunde inte ta bort DXF:en:
+sources-remove-dxf-failed = Kunde inte ta bort ritningsfilen:
 sources-explode = Bryt upp i former…
-sources-explode-hover = Gör om denna DXF:s former till ritade former som du kan ändra; kopplingen till DXF-filen försvinner
-sources-explode-failed = Kunde inte bryta upp DXF:en:
+sources-explode-hover = Gör om denna fils former till ritade former som du kan ändra; kopplingen till filen försvinner
+sources-explode-failed = Kunde inte bryta upp ritningsfilen:
 sources-join-failed = Kunde inte foga ihop formerna:
 sources-drawn-layer-hover = Klicka för att markera de här formerna; ögat döljer dem
 sources-shape-hover = Klicka för att markera den; Ctrl+klick lägger till eller tar bort; högerklicka för att byta namn, kopiera eller radera

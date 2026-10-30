@@ -3,9 +3,9 @@
 
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Drawing
-sources-drawing-hover = DXFs, pictures, texts and drawn shapes; right-click to add one
+sources-drawing-hover = Drawing files, pictures, texts and drawn shapes; right-click to add one
 sources-add-dxf = Add DXF or SVG…
-sources-add-dxf-hover = Another part: a DXF placed and updated on its own
+sources-add-dxf-hover = Another part: a DXF or SVG placed and updated on its own
 # "File > Import DXF" names a menu item.
 sources-add-dxf-disabled-hover = File > Import DXF or SVG starts a project from one
 sources-import-image = Import image…
@@ -25,21 +25,21 @@ sources-circles = Circles
 sources-polylines = Polylines
 sources-other-paths = Other paths
 
-sources-dxf-hover = Click selects the whole DXF: an operation made from it follows its updates. Its position and scale show in Properties; right-click for more
+sources-dxf-hover = Click selects the whole file: an operation made from it follows its updates. Its position and scale show in Properties; right-click for more
 sources-image-hover = Click selects the whole picture: an operation made from it follows its retracing. Its size and place show in Properties; double-click for its trace settings
 sources-text-hover = Click selects the whole text: an operation made from it follows its changes. What it says, its font, size and place are in Properties
 sources-drawn-hover = Click selects these shapes; Ctrl+click adds them
-sources-layer-hover = Click selects this layer of this DXF: an operation made from it cuts only this DXF's layer
+sources-layer-hover = Click selects this layer of this file: an operation made from it cuts only this file's layer
 
 # Right-click menu items, verbs.
 sources-select = Select
 sources-show = Show
 sources-hide = Hide
 sources-place = Place…
-sources-place-hover = Move, turn or scale this DXF, in its properties
+sources-place-hover = Move, turn or scale this drawing file, in its properties
 sources-update-from-dxf = Update from a DXF or SVG…
 sources-update-from-path = Update from a path…
-sources-remove-dxf-hover = Remove this DXF and its shapes
+sources-remove-dxf-hover = Remove this drawing file and its shapes
 sources-trace-settings = Trace settings…
 sources-trace-settings-hover = Threshold, smoothing, outlines or centre lines; its size and place are in its properties
 sources-remove-image-hover = Remove the picture and its shapes
@@ -48,10 +48,10 @@ sources-remove-text-hover = Remove the text and its letters
 # Followed by the project's problems, one per line.
 sources-project-incomplete = The project is not complete:
 # Followed by the error on its own line.
-sources-remove-dxf-failed = Could not remove the DXF:
+sources-remove-dxf-failed = Could not remove the drawing file:
 sources-explode = Explode into shapes…
-sources-explode-hover = Turn this DXF's shapes into drawn shapes you can edit; the link to the DXF file goes
-sources-explode-failed = Could not explode the DXF:
+sources-explode-hover = Turn this file's shapes into drawn shapes you can edit; the link to the file goes
+sources-explode-failed = Could not explode the drawing file:
 sources-join-failed = Could not join the shapes:
 sources-drawn-layer-hover = Click to select these shapes; the eye hides them
 sources-shape-hover = Click to select it; Ctrl+click adds or removes; right-click to rename, copy or delete

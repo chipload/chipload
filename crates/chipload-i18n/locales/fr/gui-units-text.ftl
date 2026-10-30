@@ -17,5 +17,5 @@ units-text-oversize-hover = De combien on usine plus que le dessin, en { $unit }
 units-text-picture-position-hover = Le coin inférieur gauche de la boîte de l'image, en { $unit }
 units-text-text-position-corner-hover = Le coin inférieur gauche de la boîte du texte, en { $unit }
 units-text-text-position-centre-hover = Le centre de la boîte du texte, en { $unit }
-units-text-dxf-position-hover = Le coin inférieur gauche de la boîte du dessin, en { $unit }. Les formes dessinées dans Chipload et les autres DXF ne bougent pas.
+units-text-dxf-position-hover = Le coin inférieur gauche de la boîte du dessin, en { $unit }. Les formes dessinées dans Chipload et les autres fichiers de dessin ne bougent pas.
 units-text-pitch-hover = D'une copie à l'autre, en { $unit }. Négatif s'étend vers la gauche ou le bas.

@@ -55,18 +55,18 @@ dialogs-keep-mine-hover = Garder vos modifications ; le prochain enregistrement 
 
 # Windows where a file's path is typed in: a title and what to type.
 dialogs-path-open-title = Ouvrir un chemin
-dialogs-path-open = Un projet .chipload ou un .dxf :
+dialogs-path-open = Un projet .chipload, ou un .dxf ou .svg :
 dialogs-path-save-title = Enregistrer le projet
 dialogs-path-save = Enregistrer le projet vers :
 dialogs-path-export-title = Exporter le G-code
 dialogs-path-export = Exporter le G-code vérifié vers :
 dialogs-path-update-title = Mettre à jour le dessin
-dialogs-path-update = Le DXF :
+dialogs-path-update = Le DXF ou SVG :
 dialogs-path-image-title = Importer une image
 dialogs-path-image = Une image (PNG, JPEG ou BMP) :
-dialogs-path-add-dxf-title = Ajouter un DXF
+dialogs-path-add-dxf-title = Ajouter un DXF ou SVG
 dialogs-path-add-dxf = Le DXF ou SVG à ajouter au projet :
-dialogs-path-update-dxf-title = Mettre à jour le DXF
+dialogs-path-update-dxf-title = Mettre à jour le fichier de dessin
 dialogs-path-update-dxf = La nouvelle version du DXF ou SVG :
 
 # In the window's title bar, for a project never saved.

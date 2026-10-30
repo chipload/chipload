@@ -41,7 +41,7 @@ shape-form-delete-point = Supprimer ce point
 # An imported shape (from a DXF) can't be edited.
 shape-form-imported = Forme S{ $id } (importée, lecture seule)
 # The DXF entity the shape comes from: its type (LINE, ARC, …) and handle.
-shape-form-imported-from = Calque { $layer }, DXF { $entity } { $handle }
+shape-form-imported-from = Calque { $layer }, { $entity } { $handle }
 # Shown when the DXF entity's type is not known.
 shape-form-entity = entité
 shape-form-position = Position

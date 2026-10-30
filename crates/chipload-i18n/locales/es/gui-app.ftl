@@ -16,7 +16,7 @@ app-old-schema = Este archivo es de la versión de esquema { $version }; al guar
 app-new-project = Proyecto nuevo.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Iniciado con { $what }.
-app-new-project-next = Dibuja formas con el menú Dibujar, o trae un dibujo con Añadir DXF. Revisa el material en bruto y la máquina en Ajustes del trabajo, y la herramienta en Herramientas.
+app-new-project-next = Dibuja formas con el menú Dibujar, o trae un dibujo con Añadir DXF o SVG. Revisa el material en bruto y la máquina en Ajustes del trabajo, y la herramienta en Herramientas.
 app-units-missing = { $file } no indica qué unidades usa; elige mm o pulgadas.
 app-px-missing = { $file } solo da su tamaño en píxeles; elige sus píxeles por pulgada.
 app-cannot-import = No se puede importar { $file }:
@@ -72,7 +72,7 @@ app-nothing-selected = No hay nada seleccionado.
 # $count contours selected; $what says how (one of the texts below); $list their numbers.
 app-selected = { $count } seleccionados ({ $what }): { $list }
 app-selection-layer = capa { $layer }
-app-selection-dxf = DXF { $id }
+app-selection-dxf = dibujo { $id }
 app-selection-image = imagen { $id }
 app-selection-text = texto { $id }
 # $source: one of the three texts above.

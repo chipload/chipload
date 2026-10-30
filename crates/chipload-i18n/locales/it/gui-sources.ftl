@@ -3,9 +3,9 @@
 
 # The folder's name: everything that is drawn, a noun.
 sources-drawing = Disegno
-sources-drawing-hover = DXF, immagini, testi e forme disegnate; clic destro per aggiungerne
+sources-drawing-hover = File di disegno, immagini, testi e forme disegnate; clic destro per aggiungerne
 sources-add-dxf = Aggiungi DXF o SVG…
-sources-add-dxf-hover = Un altro pezzo: un DXF posizionato e aggiornato per conto suo
+sources-add-dxf-hover = Un altro pezzo: un DXF o SVG posizionato e aggiornato per conto suo
 # "File > Import DXF" names a menu item.
 sources-add-dxf-disabled-hover = File > Importa DXF o SVG avvia un progetto da un DXF
 sources-import-image = Importa immagine…
@@ -25,21 +25,21 @@ sources-circles = Cerchi
 sources-polylines = Polilinee
 sources-other-paths = Altri percorsi
 
-sources-dxf-hover = Il clic seleziona tutto il DXF: una lavorazione creata da esso ne segue gli aggiornamenti. Posizione e scala sono in Proprietà; clic destro per altro
+sources-dxf-hover = Il clic seleziona tutto il file: una lavorazione creata da esso ne segue gli aggiornamenti. Posizione e scala sono in Proprietà; clic destro per altro
 sources-image-hover = Il clic seleziona tutta l'immagine: una lavorazione creata da essa segue le sue nuove vettorizzazioni. Dimensione e posizione sono in Proprietà; doppio clic per le impostazioni di vettorizzazione
 sources-text-hover = Il clic seleziona tutto il testo: una lavorazione creata da esso ne segue le modifiche. Contenuto, font, dimensione e posizione sono in Proprietà
 sources-drawn-hover = Il clic seleziona queste forme; Ctrl+clic le aggiunge
-sources-layer-hover = Il clic seleziona questo layer di questo DXF: una lavorazione creata da esso lavora solo questo layer del DXF
+sources-layer-hover = Il clic seleziona questo layer di questo file: una lavorazione creata da esso lavora solo questo layer del file
 
 # Right-click menu items, verbs.
 sources-select = Seleziona
 sources-show = Mostra
 sources-hide = Nascondi
 sources-place = Posiziona…
-sources-place-hover = Sposta, ruota o scala questo DXF, nelle sue proprietà
+sources-place-hover = Sposta, ruota o scala questo file di disegno, nelle sue proprietà
 sources-update-from-dxf = Aggiorna da un DXF o SVG…
 sources-update-from-path = Aggiorna da un percorso…
-sources-remove-dxf-hover = Rimuovi questo DXF e le sue forme
+sources-remove-dxf-hover = Rimuovi questo file di disegno e le sue forme
 sources-trace-settings = Vettorizzazione…
 sources-trace-settings-hover = Soglia, levigatura, contorni o linee mediane; dimensione e posizione sono nelle sue proprietà
 sources-remove-image-hover = Rimuovi l'immagine e le sue forme
@@ -48,10 +48,10 @@ sources-remove-text-hover = Rimuovi il testo e le sue lettere
 # Followed by the project's problems, one per line.
 sources-project-incomplete = Il progetto non è completo:
 # Followed by the error on its own line.
-sources-remove-dxf-failed = Impossibile rimuovere il DXF:
+sources-remove-dxf-failed = Impossibile rimuovere il file di disegno:
 sources-explode = Esplodi in forme…
-sources-explode-hover = Trasforma le forme di questo DXF in forme disegnate modificabili; il legame con il file DXF si perde
-sources-explode-failed = Impossibile esplodere il DXF:
+sources-explode-hover = Trasforma le forme di questo file in forme disegnate modificabili; il legame con il file si perde
+sources-explode-failed = Impossibile esplodere il file di disegno:
 sources-join-failed = Impossibile unire le forme:
 sources-drawn-layer-hover = Fai clic per selezionare queste forme; l'occhio le nasconde
 sources-shape-hover = Fai clic per selezionarla; Ctrl+clic aggiunge o toglie; clic destro per rinominare, copiare o eliminare

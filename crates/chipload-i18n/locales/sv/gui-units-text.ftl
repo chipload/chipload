@@ -17,5 +17,5 @@ units-text-oversize-hover = Hur mycket mer än ritat som fräses bort, { $unit }
 units-text-picture-position-hover = Nedre vänstra hörnet av bildens ram, { $unit }
 units-text-text-position-corner-hover = Nedre vänstra hörnet av textens ram, { $unit }
 units-text-text-position-centre-hover = Centrum av textens ram, { $unit }
-units-text-dxf-position-hover = Nedre vänstra hörnet av ritningens ram, { $unit }. Former ritade i Chipload och andra DXF:er flyttas inte.
+units-text-dxf-position-hover = Nedre vänstra hörnet av ritningens ram, { $unit }. Former ritade i Chipload och andra ritningsfiler flyttas inte.
 units-text-pitch-hover = Från kopia till kopia, { $unit }. Negativt växer åt vänster eller nedåt.

@@ -17,5 +17,5 @@ units-text-oversize-hover = Quanto si taglia in più rispetto al disegno, { $uni
 units-text-picture-position-hover = L'angolo in basso a sinistra del riquadro dell'immagine, { $unit }
 units-text-text-position-corner-hover = L'angolo in basso a sinistra del riquadro del testo, { $unit }
 units-text-text-position-centre-hover = Il centro del riquadro del testo, { $unit }
-units-text-dxf-position-hover = L'angolo in basso a sinistra del riquadro del disegno, { $unit }. Le forme disegnate in Chipload e gli altri DXF non si spostano.
+units-text-dxf-position-hover = L'angolo in basso a sinistra del riquadro del disegno, { $unit }. Le forme disegnate in Chipload e gli altri file di disegno non si spostano.
 units-text-pitch-hover = Da copia a copia, { $unit }. Un valore negativo cresce verso sinistra o verso il basso.

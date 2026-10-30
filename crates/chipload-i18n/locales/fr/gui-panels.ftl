@@ -8,8 +8,8 @@ panels-dxf-filter = Dessins (DXF, SVG)
 # The start screen, shown with no project open, under the name Chipload.
 panels-tagline = FAO 2.5D : des dessins en entrée, du G-code vérifié en sortie
 panels-new-project = Nouveau projet
-panels-new-project-hover = Un projet vide : dessinez des formes ou importez un DXF plus tard
-panels-import-dxf = Importer un DXF…
+panels-new-project-hover = Un projet vide : dessinez des formes ou importez un DXF ou SVG plus tard
+panels-import-dxf = Importer un DXF ou SVG…
 panels-import-dxf-hover = Un nouveau projet à partir d'un dessin (Ctrl+I)
 panels-open-project = Ouvrir un projet…
 # Heading over the recently opened projects.

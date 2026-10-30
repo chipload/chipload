@@ -17,7 +17,7 @@ editor-name-copy = { $name } (kopia)
 # What an operation cuts, shown in the operation list. The stock is the material block.
 editor-summary-whole-stock = hela ämnet
 # Where the shapes come from: a DXF file, a traced picture or a text, by number.
-editor-summary-dxf = DXF { $id }
+editor-summary-dxf = ritning { $id }
 editor-summary-image = bild { $id }
 editor-summary-text = text { $id }
 # A drawing layer (user's name); the source is one of the three texts above.

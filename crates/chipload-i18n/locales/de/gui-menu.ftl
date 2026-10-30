@@ -17,7 +17,7 @@ menu-import-image = Bild importieren…
 menu-import-image-hover = Ein Bild in Formen nachzeichnen, für V-Gravur
 menu-open-path = Pfad öffnen…
 menu-import-image-path = Bild aus Pfad importieren…
-menu-several-dxfs = Mehrere DXFs: eine im Browser aktualisieren (Rechtsklick)
+menu-several-dxfs = Mehrere Zeichnungsdateien: eine im Browser aktualisieren (Rechtsklick)
 menu-add-dxf = DXF oder SVG zum Projekt hinzufügen…
 menu-add-dxf-hover = Eine DXF oder SVG in dieses Projekt, neben das Vorhandene: eigenständig platziert und aktualisiert
 menu-add-dxf-path = DXF oder SVG aus Pfad hinzufügen…
@@ -36,14 +36,14 @@ menu-quit = Beenden
 # Edit: undo, and the selected drawn shapes.
 menu-undo = Rückgängig
 menu-redo = Wiederholen
-menu-only-drawn = Nur gezeichnete Formen; importierte ändern sich nur mit der DXF
+menu-only-drawn = Nur gezeichnete Formen; importierte ändern sich nur mit ihrer Datei
 menu-copy = Kopieren
 menu-paste = Einfügen
 menu-mirror-left-right = Links–rechts spiegeln
 menu-mirror-up-down = Oben–unten spiegeln
 menu-mirror-hover = Die ausgewählten gezeichneten Formen um die Mitte ihres Rahmens spiegeln
 menu-delete-shapes = Formen löschen
-menu-delete-shapes-hover = Löscht die ausgewählten gezeichneten Formen; importierte ändern sich nur mit der DXF
+menu-delete-shapes-hover = Löscht die ausgewählten gezeichneten Formen; importierte ändern sich nur mit ihrer Datei
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Als Selektor kopieren
 

@@ -219,7 +219,7 @@ forms-update-dxf = Uppdatera från en DXF eller SVG…
 forms-update-dxf-hover = En ny version av ritningen: operationerna behåller sina lager
 # A button (verb).
 forms-remove = Ta bort
-forms-remove-dxf-hover = Ta bort denna DXF och dess former
+forms-remove-dxf-hover = Ta bort denna ritningsfil och dess former
 
 # A picture traced into shapes.
 forms-picture = Bild
@@ -333,17 +333,17 @@ forms-remove-tool-disabled = Används av operationer { $operations }; ge dem ett
 forms-reset = Återställ
 
 # A DXF's position, rotation and scale.
-forms-dxf-reset-position = Tillbaka dit DXF:en har den (vridning och skala kvarstår)
+forms-dxf-reset-position = Tillbaka dit filen har den (vridning och skala kvarstår)
 forms-bottom-left = Nere till vänster
 forms-bottom-left-hover = Ritningens hörn { $margin } in från ämnets nedre vänstra hörn
 # A button: centre the drawing on the stock.
 forms-centre = Centrera
 forms-centre-hover = Ritningens centrum på ämnets centrum
-forms-dxf-rotation-hover = Grader moturs från DXF:en som den ritats, valfri vinkel, kring ritningens centrum
-forms-dxf-reset-rotation = Tillbaka till DXF:ens egen vinkel (0°)
+forms-dxf-rotation-hover = Grader moturs från filen som den ritats, valfri vinkel, kring ritningens centrum
+forms-dxf-reset-rotation = Tillbaka till filens egen vinkel (0°)
 forms-scale = Skala
-forms-scale-hover = Från DXF:en som den ritats, kring ritningens centrum. Verktygsstorlekar, djup och bryggor skalas inte.
-forms-dxf-reset-scale = Tillbaka till DXF:ens egen storlek (× 1)
+forms-scale-hover = Från filen som den ritats, kring ritningens centrum. Verktygsstorlekar, djup och bryggor skalas inte.
+forms-dxf-reset-scale = Tillbaka till filens egen storlek (× 1)
 
 # A part: a group of operations cut one after the other.
 forms-part-number = Detalj { $number }

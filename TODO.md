@@ -128,9 +128,7 @@ it's built (see `CLAUDE.md`).
   window; golden v30_drawn_edited drawn with these commands alone. Next: phase 3
   (SVG import through `usvg`, added 2026-10-27; spec approved 2026-10-28,
   docs/specs/svg-import.md, ADR 0024: **done 2026-10-28, not pushed**: the reader crate,
-  schema 31, the command line and the window; follow-ups: texts that still say DXF for
-  any drawing file (placement "as in the DXF", Browser and form hints, "DXF 2" in the
-  selection summary), run the new svg_import fuzz target, try it by hand with real
+  schema 31, the command line and the window; follow-ups: run the new svg_import fuzz target, try it by hand with real
   Inkscape and Illustrator files), 4 (designs, a box maker with finger
   joints first, extensible to more designs, docs/specs/designs.md, and parameters,
   docs/specs/parameters.md: both drafted 2026-10-28 and **on hold** by the user the same
@@ -191,6 +189,10 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Texts for any drawing file** (2026-10-30, a follow-up of SVG import): the window's
+  texts that said DXF where an SVG works too say "drawing file", "the file" or "DXF or
+  SVG" in all six languages; a selection names "drawing 2", not "DXF 2"; an imported
+  shape's entity no longer says "DXF" before an SVG's.
 - **A move more on macOS** (2026-10-30, found 2026-10-24): a ramp over a tab ended 2e-15 mm
   above its depth and a plunge of that length followed, on some platforms only. A vertical
   step under `Z_NOISE_MM` is no move now; the G-code was the same everywhere already.

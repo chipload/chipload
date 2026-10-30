@@ -16,7 +16,7 @@ app-old-schema = Filen har schemaversion { $version }; när du sparar skrivs ver
 app-new-project = Nytt projekt.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Startade med { $what }.
-app-new-project-next = Rita former från menyn Rita, eller hämta in en ritning med Lägg till DXF. Kontrollera ämne och maskin under Jobbinställningar, och verktyget under Verktyg.
+app-new-project-next = Rita former från menyn Rita, eller hämta in en ritning med Lägg till DXF eller SVG. Kontrollera ämne och maskin under Jobbinställningar, och verktyget under Verktyg.
 app-units-missing = { $file } anger inte vilka enheter den använder; välj mm eller tum.
 app-px-missing = { $file } anger sin storlek bara i pixlar; välj dess pixlar per tum.
 app-cannot-import = Kan inte importera { $file }:
@@ -72,7 +72,7 @@ app-nothing-selected = Inget markerat.
 # $count contours selected; $what says how (one of the texts below); $list their numbers.
 app-selected = { $count } markerade ({ $what }): { $list }
 app-selection-layer = lager { $layer }
-app-selection-dxf = DXF { $id }
+app-selection-dxf = ritning { $id }
 app-selection-image = bild { $id }
 app-selection-text = text { $id }
 # $source: one of the three texts above.

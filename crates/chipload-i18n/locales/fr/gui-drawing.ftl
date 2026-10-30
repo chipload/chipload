@@ -15,7 +15,7 @@ drawing-add-failed = Impossible d'ajouter la forme :
 drawing-no-shape-selected = aucune forme sélectionnée
 drawing-no-project = aucun projet
 
-drawing-imported-not-deletable = Les formes importées ne peuvent pas être supprimées ici ; modifiez le dessin et utilisez Mettre à jour le dessin depuis un DXF.
+drawing-imported-not-deletable = Les formes importées ne peuvent pas être supprimées ici ; modifiez le dessin et utilisez Mettre à jour le dessin depuis un DXF ou SVG.
 # $shapes: the deleted shapes, such as "S1, S4".
 drawing-deleted-report = { $count ->
         [one] Forme supprimée :
@@ -25,6 +25,6 @@ drawing-deleted-status = { $count ->
         [one] Forme supprimée :
        *[other] Formes supprimées :
     } { $shapes }
-drawing-imported-kept = Les formes importées de la sélection ont été gardées (elles ne changent qu'avec le DXF).
+drawing-imported-kept = Les formes importées de la sélection ont été gardées (elles ne changent qu'avec leur fichier).
 drawing-kind-slot = rainure
 drawing-kind-polygon = polygone

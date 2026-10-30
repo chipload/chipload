@@ -219,7 +219,7 @@ forms-update-dxf = Aus einer DXF oder SVG aktualisieren…
 forms-update-dxf-hover = Eine neue Version der Zeichnung: Bearbeitungen behalten ihre Layer
 # A button (verb).
 forms-remove = Entfernen
-forms-remove-dxf-hover = Diese DXF und ihre Formen entfernen
+forms-remove-dxf-hover = Diese Zeichnungsdatei und ihre Formen entfernen
 
 # A picture traced into shapes.
 forms-picture = Bild
@@ -334,17 +334,17 @@ forms-remove-tool-disabled = Verwendet von Bearbeitungen { $operations }; geben 
 forms-reset = Zurücksetzen
 
 # A DXF's position, rotation and scale.
-forms-dxf-reset-position = Zurück an die Stelle aus der DXF (Drehung und Maßstab bleiben)
+forms-dxf-reset-position = Zurück an die Stelle aus der Datei (Drehung und Maßstab bleiben)
 forms-bottom-left = Unten links
 forms-bottom-left-hover = Die Ecke der Zeichnung { $margin } innerhalb der unteren linken Rohteilecke
 # A button: centre the drawing on the stock.
 forms-centre = Zentrieren
 forms-centre-hover = Die Mitte der Zeichnung auf die Mitte des Rohteils
-forms-dxf-rotation-hover = Grad gegen den Uhrzeigersinn gegenüber der gezeichneten DXF, beliebiger Winkel, um die Zeichnungsmitte
-forms-dxf-reset-rotation = Zurück zum Winkel der DXF (0°)
+forms-dxf-rotation-hover = Grad gegen den Uhrzeigersinn gegenüber der gezeichneten Datei, beliebiger Winkel, um die Zeichnungsmitte
+forms-dxf-reset-rotation = Zurück zum Winkel der Datei (0°)
 forms-scale = Maßstab
-forms-scale-hover = Gegenüber der gezeichneten DXF, um die Zeichnungsmitte. Werkzeuggrößen, Tiefen und Haltestege werden nicht skaliert.
-forms-dxf-reset-scale = Zurück zur Größe der DXF (× 1)
+forms-scale-hover = Gegenüber der gezeichneten Datei, um die Zeichnungsmitte. Werkzeuggrößen, Tiefen und Haltestege werden nicht skaliert.
+forms-dxf-reset-scale = Zurück zur Größe der Datei (× 1)
 
 # A part: a group of operations cut one after the other.
 forms-part-number = Teil { $number }

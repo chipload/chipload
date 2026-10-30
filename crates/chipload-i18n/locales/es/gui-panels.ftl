@@ -8,8 +8,8 @@ panels-dxf-filter = Dibujos (DXF, SVG)
 # The start screen, shown with no project open, under the name Chipload.
 panels-tagline = CAM 2.5D: entran dibujos, sale código G comprobado
 panels-new-project = Proyecto nuevo
-panels-new-project-hover = Un proyecto vacío: dibuja formas o importa un DXF más tarde
-panels-import-dxf = Importar DXF…
+panels-new-project-hover = Un proyecto vacío: dibuja formas o importa un DXF o SVG más tarde
+panels-import-dxf = Importar DXF o SVG…
 panels-import-dxf-hover = Un proyecto nuevo a partir de un dibujo (Ctrl+I)
 panels-open-project = Abrir proyecto…
 # Heading over the recently opened projects.

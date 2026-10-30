@@ -15,7 +15,7 @@ drawing-add-failed = Kan inte lägga till formen:
 drawing-no-shape-selected = ingen form markerad
 drawing-no-project = inget projekt
 
-drawing-imported-not-deletable = Importerade former kan inte raderas här; ändra ritningen och använd Uppdatera ritning från DXF.
+drawing-imported-not-deletable = Importerade former kan inte raderas här; ändra ritningen och använd Uppdatera ritning från DXF eller SVG.
 # $shapes: the deleted shapes, such as "S1, S4".
 drawing-deleted-report = Raderade { $count ->
         [one] formen
@@ -25,6 +25,6 @@ drawing-deleted-status = Raderade { $count ->
         [one] formen
        *[other] formerna
     } { $shapes }
-drawing-imported-kept = Importerade former i markeringen behölls (de ändras bara med DXF:en).
+drawing-imported-kept = Importerade former i markeringen behölls (de ändras bara med sin fil).
 drawing-kind-slot = spår
 drawing-kind-polygon = polygon

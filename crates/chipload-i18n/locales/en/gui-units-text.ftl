@@ -17,5 +17,5 @@ units-text-oversize-hover = How much more than drawn is cut, { $unit } (clearanc
 units-text-picture-position-hover = The lower-left corner of the picture's box, { $unit }
 units-text-text-position-corner-hover = The lower-left corner of the text's box, { $unit }
 units-text-text-position-centre-hover = The centre of the text's box, { $unit }
-units-text-dxf-position-hover = The lower-left corner of the drawing's box, { $unit }. Shapes drawn in Chipload and other DXFs don't move.
+units-text-dxf-position-hover = The lower-left corner of the drawing's box, { $unit }. Shapes drawn in Chipload and other drawing files don't move.
 units-text-pitch-hover = Copy to copy, { $unit }. Negative grows to the left or down.

@@ -219,7 +219,7 @@ forms-update-dxf = Aggiorna da un DXF o SVG…
 forms-update-dxf-hover = Una nuova versione del disegno: le lavorazioni mantengono i loro layer
 # A button (verb).
 forms-remove = Rimuovi
-forms-remove-dxf-hover = Rimuovi questo DXF e le sue forme
+forms-remove-dxf-hover = Rimuovi questo file di disegno e le sue forme
 
 # A picture traced into shapes.
 forms-picture = Immagine
@@ -333,17 +333,17 @@ forms-remove-tool-disabled = Usato dalle lavorazioni { $operations }; assegna pr
 forms-reset = Ripristina
 
 # A DXF's position, rotation and scale.
-forms-dxf-reset-position = Torna dove lo pone il DXF (rotazione e scala restano)
+forms-dxf-reset-position = Torna dove lo pone il file (rotazione e scala restano)
 forms-bottom-left = In basso a sinistra
 forms-bottom-left-hover = L'angolo del disegno a { $margin } dall'angolo in basso a sinistra del grezzo
 # A button: centre the drawing on the stock.
 forms-centre = Centra
 forms-centre-hover = Il centro del disegno sul centro del grezzo
-forms-dxf-rotation-hover = Gradi in senso antiorario rispetto al DXF come disegnato, qualsiasi angolo, attorno al centro del disegno
-forms-dxf-reset-rotation = Torna all'angolo originale del DXF (0°)
+forms-dxf-rotation-hover = Gradi in senso antiorario rispetto al file come disegnato, qualsiasi angolo, attorno al centro del disegno
+forms-dxf-reset-rotation = Torna all'angolo originale del file (0°)
 forms-scale = Scala
-forms-scale-hover = Rispetto al DXF come disegnato, attorno al centro del disegno. Dimensioni degli utensili, profondità e ponticelli non vengono scalati.
-forms-dxf-reset-scale = Torna alla dimensione originale del DXF (× 1)
+forms-scale-hover = Rispetto al file come disegnato, attorno al centro del disegno. Dimensioni degli utensili, profondità e ponticelli non vengono scalati.
+forms-dxf-reset-scale = Torna alla dimensione originale del file (× 1)
 
 # A part: a group of operations cut one after the other.
 forms-part-number = Pezzo { $number }

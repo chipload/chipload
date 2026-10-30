@@ -55,18 +55,18 @@ dialogs-keep-mine-hover = Behåll dina ändringar; nästa Spara skriver över fi
 
 # Windows where a file's path is typed in: a title and what to type.
 dialogs-path-open-title = Öppna sökväg
-dialogs-path-open = Ett .chipload-projekt eller en .dxf:
+dialogs-path-open = Ett .chipload-projekt, eller en .dxf eller .svg:
 dialogs-path-save-title = Spara projekt
 dialogs-path-save = Spara projektet till:
 dialogs-path-export-title = Exportera G-kod
 dialogs-path-export = Exportera den kontrollerade G-koden till:
 dialogs-path-update-title = Uppdatera ritning
-dialogs-path-update = DXF-filen:
+dialogs-path-update = DXF- eller SVG-filen:
 dialogs-path-image-title = Importera bild
 dialogs-path-image = En bild (PNG, JPEG eller BMP):
-dialogs-path-add-dxf-title = Lägg till DXF
+dialogs-path-add-dxf-title = Lägg till DXF eller SVG
 dialogs-path-add-dxf = DXF-filen som ska läggas till i projektet:
-dialogs-path-update-dxf-title = Uppdatera DXF
+dialogs-path-update-dxf-title = Uppdatera ritningsfil
 dialogs-path-update-dxf = Den nya versionen av DXF- eller SVG-filen:
 
 # In the window's title bar, for a project never saved.

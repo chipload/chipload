@@ -16,7 +16,7 @@ fn ctrl_click_leaves_a_contour_out_of_the_selected_dxf_and_puts_it_back() {
     assert_eq!(ids.len(), all.len() - 1);
     assert!(!ids.contains(&one));
     assert!(
-        app.selection_lines()[0].contains("DXF 1, 1 left out"),
+        app.selection_lines()[0].contains("drawing 1, 1 left out"),
         "{:?}",
         app.selection_lines()
     );

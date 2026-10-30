@@ -17,5 +17,5 @@ units-text-oversize-hover = Cuánto más de lo dibujado se corta, en { $unit } (
 units-text-picture-position-hover = La esquina inferior izquierda del recuadro de la imagen, { $unit }
 units-text-text-position-corner-hover = La esquina inferior izquierda del recuadro del texto, { $unit }
 units-text-text-position-centre-hover = El centro del recuadro del texto, { $unit }
-units-text-dxf-position-hover = La esquina inferior izquierda del recuadro del dibujo, { $unit }. Las formas dibujadas en Chipload y los demás DXF no se mueven.
+units-text-dxf-position-hover = La esquina inferior izquierda del recuadro del dibujo, { $unit }. Las formas dibujadas en Chipload y los demás archivos de dibujo no se mueven.
 units-text-pitch-hover = De copia a copia, { $unit }. Los negativos crecen hacia la izquierda o hacia abajo.

@@ -17,7 +17,7 @@ menu-import-image = Import image…
 menu-import-image-hover = Trace a picture into shapes, for V-carving
 menu-open-path = Open path…
 menu-import-image-path = Import image from path…
-menu-several-dxfs = Several DXFs: update one from the Browser (right-click it)
+menu-several-dxfs = Several drawing files: update one from the Browser (right-click it)
 menu-add-dxf = Add DXF or SVG to project…
 menu-add-dxf-hover = A DXF or SVG into this project, beside what is there: placed and updated on its own
 menu-add-dxf-path = Add DXF or SVG from path…
@@ -36,14 +36,14 @@ menu-quit = Quit
 # Edit: undo, and the selected drawn shapes.
 menu-undo = Undo
 menu-redo = Redo
-menu-only-drawn = Only drawn shapes; imported ones change only with the DXF
+menu-only-drawn = Only drawn shapes; imported ones change only with their file
 menu-copy = Copy
 menu-paste = Paste
 menu-mirror-left-right = Mirror left–right
 menu-mirror-up-down = Mirror up–down
 menu-mirror-hover = Flip the selected drawn shapes about the middle of their box
 menu-delete-shapes = Delete shapes
-menu-delete-shapes-hover = Deletes the selected drawn shapes; imported ones change only with the DXF
+menu-delete-shapes-hover = Deletes the selected drawn shapes; imported ones change only with their file
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Copy as selector
 
