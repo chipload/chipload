@@ -1325,3 +1325,28 @@ fn an_inch_machine_with_a_post_that_writes_only_mm_is_a_problem_and_writes_nothi
     job.machine.gcode_units = chipload_job::Units::Mm;
     assert!(run_job(&job).is_ok());
 }
+
+/// No straight up or down move of float noise: the rounded rectangle's ramp over a tab
+/// ended 2e-15 mm above its depth, and a plunge of that length followed on Linux and
+/// Windows but not on macOS (found 2026-10-24 by the release build: 5041 moves against
+/// 5040).
+#[test]
+fn no_vertical_move_is_float_noise() {
+    let job = load_job(&corpus("jobs/v25/rounded_rectangle.chipload")).unwrap();
+    let result = run_job(&job).unwrap();
+    let mut z: Option<f64> = None;
+    for (i, m) in result.program.moves.iter().enumerate() {
+        if let Some(to) = m.z {
+            if let Some(from) = z
+                && m.x.is_none()
+                && m.y.is_none()
+            {
+                assert!(
+                    (to - from).abs() > 1e-6 || to == from,
+                    "move {i}: {from} to {to}"
+                );
+            }
+            z = Some(to);
+        }
+    }
+}

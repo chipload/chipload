@@ -36,6 +36,10 @@ pub const REST_TOL_MM: f64 = 0.05;
 /// Boundary points closer than ARC_APPROX_TOL_MM but farther apart than this along the
 /// boundary mean the outline folds back on itself (docs/specs/folded-contours.md).
 pub const FOLD_MIN_PATH_MM: f64 = 1.0;
+/// A straight up or down move shorter than this is float noise, not a move: a ramp's end
+/// and the depth it ramps to can differ in the last bits, and differently on each
+/// platform's maths library (one move more or less in a plan).
+pub const Z_NOISE_MM: f64 = 1e-9;
 /// Imported geometry within this of the stored one counts as unchanged after an update: a
 /// drawing moved several times may differ in the last bits (docs/specs/drawing-placement.md).
 pub const PLACEMENT_ROUNDING_MM: f64 = 1e-9;

@@ -115,12 +115,6 @@ it's built (see `CLAUDE.md`).
      need modifier keys. Done 2026-10-28: plain drag moves the segment, Ctrl inserts a
      point, Shift bends (`SegmentDrag`).
 
-- **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
-  tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
-  5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
-  zero-length move, from a last-digit difference in the platform's maths library. Find
-  which move and whether the planner should drop it everywhere.
-
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and
   the basic tools (docs/specs/drawing-input.md), **done and pushed 2026-10-27**: the
@@ -197,6 +191,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **A move more on macOS** (2026-10-30, found 2026-10-24): a ramp over a tab ended 2e-15 mm
+  above its depth and a plunge of that length followed, on some platforms only. A vertical
+  step under `Z_NOISE_MM` is no move now; the G-code was the same everywhere already.
 - **Traced loops "crossing" on a tiny picture** (2026-10-30, found 2026-10-28): the loops
   never crossed; two edges on one line, apart, looked crossing to the test's orientation
   check through a last-bit error. The check now wants their boxes to overlap; a fixed test

@@ -13,7 +13,7 @@
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, Z_NOISE_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::flank_is_straight;
 
@@ -977,7 +977,9 @@ fn emit(moves: &mut Vec<Move>, cut: Feeds, along: &Along, samples: &[Sample], ar
         }
         chord = next_chord;
         if point == here {
-            if sample.z != z {
+            // A step of float noise is no move; the next move along takes the tool to its
+            // height exactly.
+            if (sample.z - z).abs() > Z_NOISE_MM {
                 moves.push(Move::feed_z(sample.z, cut.plunge_feed));
                 z = sample.z;
             }
