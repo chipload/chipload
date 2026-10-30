@@ -770,7 +770,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-check"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
@@ -780,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-cli"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "boon",
  "chipload-check",
@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-core"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "cavalier_contours",
  "proptest",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-draw"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "cavalier_contours",
  "chipload-core",
@@ -817,7 +817,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-dxf"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "cavalier_contours",
  "chipload-core",
@@ -832,7 +832,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-gui"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-draw",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-i18n"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "fluent-bundle",
  "fluent-syntax",
@@ -862,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-image"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
@@ -872,7 +872,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-job"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
@@ -883,7 +883,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-pipeline"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "base64",
  "chipload-check",
@@ -904,7 +904,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-post"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-check",
  "chipload-i18n",
@@ -918,7 +918,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-svg"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-text"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
@@ -938,7 +938,7 @@ dependencies = [
 
 [[package]]
 name = "chipload-toolpath"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "boostvoronoi",
  "cavalier_contours",
