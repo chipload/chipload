@@ -737,9 +737,8 @@ Operation 1: a ring starts at (64.000, 35.500) (default)
 Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
+Setup 1 (12 mm sides) of 2: the other setups are planned on their own (--setup N)
 Part 1 simple part: one
-Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
-Part 3 Part 3: one
 Estimated time: 2 min 29 s (cutting 2 min 16 s, rapids 7 s, spindle 6 s), plus 1 tool change
 Cut outline: 128.481 × 196.800 mm (X 4.000 … 132.481, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
@@ -753,7 +752,6 @@ Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
   Operation 2 (Outline): 0.050 mm/tooth
   Operation 3 (Logo): 0.033 mm/tooth
-  Operation 4 (Outline B): 0.050 mm/tooth
 Tool group 1: tool 1, operations 1, 2
 Tool group 2: tool 2, operations 3
 Planned … moves.

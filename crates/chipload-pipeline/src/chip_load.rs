@@ -130,7 +130,7 @@ impl ChipLoad {
     }
 }
 
-/// One line per enabled operation, for `chipload plan`.
+/// One line per operation that is cut, for `chipload plan`.
 pub fn chip_load_lines(job: &Job) -> Vec<String> {
     chip_load_messages(job)
         .iter()
@@ -145,7 +145,7 @@ pub fn chip_load_messages(job: &Job) -> Vec<Message> {
         .operations
         .iter()
         .enumerate()
-        .filter(|(_, op)| op.enabled())
+        .filter(|(i, _)| job.cuts(*i))
     {
         lines.push(
             Message::new("pipeline-chip-load-line")

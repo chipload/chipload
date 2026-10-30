@@ -2004,3 +2004,36 @@ fn run_part_writes_that_part_as_if_the_others_were_off() {
     assert!(!out.status.success());
     assert!(text(&out.stderr).contains('7'), "{}", text(&out.stderr));
 }
+
+#[test]
+fn plan_lists_only_the_setup_it_planned() {
+    // docs/specs/setups.md §8: another setup's parts and chip loads aren't this program's.
+    let project = corpus("jobs/v34/two_setups.chipload");
+    let out = chipload(&["plan", path(&project)]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let stdout = text(&out.stdout);
+    assert!(stdout.contains("Setup 1 (12 mm sides) of 2"), "{stdout}");
+    assert!(stdout.contains("Part 1 simple part"), "{stdout}");
+    assert!(!stdout.contains("part B"), "{stdout}");
+    assert!(!stdout.contains("Operation 4"), "{stdout}");
+    let out = chipload(&["plan", path(&project), "--setup", "2"]);
+    let stdout = text(&out.stdout);
+    assert!(
+        stdout.contains("Part 2 part B"),
+        "numbered as in the project: {stdout}"
+    );
+    assert!(
+        stdout.contains("Operation 4 (Outline B): 0.050"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("Operation 1"), "{stdout}");
+    let out = chipload(&["plan", path(&project), "--json"]);
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let ops: Vec<u64> = plan["chip_load"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["operation"].as_u64().unwrap())
+        .collect();
+    assert_eq!(ops, [0, 1, 2]);
+}

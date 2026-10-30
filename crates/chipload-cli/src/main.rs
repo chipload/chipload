@@ -3842,6 +3842,10 @@ fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCo
             return out.fail(err);
         }
     };
+    // What was planned: the active setup, its parts and their operations
+    // (docs/specs/setups.md §8).
+    let active = job.active_setup_id();
+    let planned = active.map_or_else(|| job.clone(), |id| job.for_setup(id));
     // The post's spindle wait; a post that can't be read only leaves it out here (`run`
     // refuses it).
     let dwell = chipload_pipeline::posts::job_post(&job).map_or(0.0, |p| p.spindle_dwell_s);
@@ -3875,11 +3879,11 @@ fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCo
                 "operation": operation,
                 "largest_mm": largest,
             })).collect::<Vec<_>>(),
-            "chip_load": job.operations.iter().enumerate()
-                .filter(|(i, _)| job.cuts(*i))
+            "chip_load": planned.operations.iter().enumerate()
+                .filter(|(i, _)| planned.cuts(*i))
                 .map(|(i, op)| json!({
                     "operation": i,
-                    "chip_load_mm": chip_load(&job, op).mm(),
+                    "chip_load_mm": chip_load(&planned, op).mm(),
                 })).collect::<Vec<_>>(),
         }));
     } else {
@@ -3902,16 +3906,29 @@ fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCo
                 start.operation + 1
             ));
         }
+        if job.setups.len() > 1
+            && let Some(setup) = active.and_then(|id| job.setup(id))
+        {
+            out.line(format!(
+                "Setup {} ({}) of {}: the other setups are planned on their own (--setup N)",
+                setup.id,
+                setup.name,
+                job.setups.len()
+            ));
+        }
         if let Some(text) = copies_text(&job) {
             out.line(format!("Copies: {text}"));
         }
-        for line in parts_lines(&job) {
-            out.line(line);
+        // Numbered as in the project.
+        for (line, part) in parts_lines(&job).into_iter().zip(&job.parts) {
+            if job.setups.len() < 2 || Some(part.setup) == active {
+                out.line(line);
+            }
         }
         for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
             out.line(line.to_string());
         }
-        for line in chip_load_lines(&job) {
+        for line in chip_load_lines(&planned) {
             out.line(line.to_string());
         }
         if plan.groups.len() > 1 {

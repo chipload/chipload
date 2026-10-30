@@ -150,7 +150,9 @@ or a point).
 
 - `chipload setup list | add --name NAME [--thickness 6] | set ID … | remove ID |
   activate ID`; `part set ID --setup N`.
-- `run`, `plan`, `sheet`, `simulate`: every setup by default, `--setup N` for one.
+- `run`: every setup that is on by default, `--setup N` for one. `plan`, `sheet`,
+  `simulate`: the active setup, or `--setup N`. With several setups `plan` says which one
+  it planned and lists only its parts and their operations (2026-10-30).
 - `zero` and `place … --align` act on the active setup, or `--setup N`.
 
 ## 9. Not now: turning the board over
