@@ -73,5 +73,8 @@ SVG:
   ten billion of them here, and ran out of memory. Numbers beyond `MAX_NUMBER` (1e9) in an
   element's geometry are refused before usvg reads the file (a test in chipload-svg keeps
   the case).
+- A contour 150 m long (2026-10-30, second run, a timeout after 500 000 inputs): the fold
+  check sampled every edge every 0.01 mm against each edge near it, 17 s. It now samples
+  only where the edge passes the other's box (chipload-core `fold.rs`), 38 ms.
 
 `corpus/`, `artifacts/` and `target/` are local and not committed.

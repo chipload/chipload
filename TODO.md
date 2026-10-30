@@ -192,7 +192,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 - **SVG fuzzing, first run** (2026-10-30): an elliptic arc reaching x = 3e62 ran usvg out
   of memory (it split the arc into ten billion curves). Numbers beyond 1e9 in an element's
   geometry are refused before usvg reads the file (docs/specs/svg-import.md §9). "Cannot
-  read DXF" said DXF for an SVG too; now "Cannot read FILE".
+  read DXF" said DXF for an SVG too; now "Cannot read FILE". The second run timed out on a
+  150 m contour: the fold check sampled whole edges; it now samples only where an edge
+  passes the other's box (17 s to 38 ms, the same answers).
 - **Texts for any drawing file** (2026-10-30, a follow-up of SVG import): the window's
   texts that said DXF where an SVG works too say "drawing file", "the file" or "DXF or
   SVG" in all six languages; a selection names "drawing 2", not "DXF 2"; an imported

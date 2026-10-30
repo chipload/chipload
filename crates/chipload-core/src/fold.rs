@@ -124,10 +124,15 @@ fn near_and_far(e: &Edge, other: &Edge, perimeter: f64) -> Option<(f64, Point)> 
     if !overlaps(limit, perimeter - limit) && !overlaps(limit - perimeter, -limit) {
         return None;
     }
-    // Sample `e` every tolerance; the narrow part of a fold is longer than that.
+    // Sample `e` every tolerance; the narrow part of a fold is longer than that. Only
+    // where `e` runs through `other`'s box grown by the tolerance: no point outside it is
+    // that near. The same samples, so the same answer, without a hundred-metre edge's ten
+    // million (an SVG found by fuzzing took 17 s, 2026-10-30).
     let steps = (e.length / tol).ceil().max(1.0);
-    let count = steps as usize;
-    for k in 0..=count {
+    let (t0, t1) = clip(e, other, tol)?;
+    let first = (t0 * steps).floor().max(0.0) as usize;
+    let last = (t1 * steps).ceil().min(steps) as usize;
+    for k in first..=last {
         let t = k as f64 / steps;
         let p = e.point_at(t);
         let u = other.nearest(p);
@@ -145,6 +150,31 @@ fn near_and_far(e: &Edge, other: &Edge, perimeter: f64) -> Option<(f64, Point)> 
         }
     }
     None
+}
+
+/// The parameters (0..1) of `e` between which it lies in `other`'s box grown by `grow`
+/// (clipping, as Liang and Barsky), or None if it never does.
+fn clip(e: &Edge, other: &Edge, grow: f64) -> Option<(f64, f64)> {
+    let (mut t0, mut t1) = (0.0_f64, 1.0_f64);
+    let (dx, dy) = (e.b.0 - e.a.0, e.b.1 - e.a.1);
+    let sides = [
+        (-dx, e.a.0 - (other.min_x() - grow)),
+        (dx, other.max_x() + grow - e.a.0),
+        (-dy, e.a.1 - (other.min_y() - grow)),
+        (dy, other.max_y() + grow - e.a.1),
+    ];
+    for (p, q) in sides {
+        if p == 0.0 {
+            if q < 0.0 {
+                return None;
+            }
+        } else if p < 0.0 {
+            t0 = t0.max(q / p);
+        } else {
+            t1 = t1.min(q / p);
+        }
+    }
+    (t0 <= t1).then_some((t0, t1))
 }
 
 /// Distance along a closed boundary between two positions, the shorter way round.
@@ -223,5 +253,51 @@ mod tests {
         // A slot 0.02 mm wide is thin, but wider than the tolerance.
         let slot = square_with(&[(20.0, 0.0), (20.0, 10.0), (20.02, 10.0), (20.02, 0.0)]);
         assert!(fold_point(&slot).is_none());
+    }
+
+    fn edge(a: Point, b: Point) -> Edge {
+        Edge {
+            a,
+            b,
+            start: 0.0,
+            length: distance(a, b),
+        }
+    }
+
+    proptest::proptest! {
+        /// Every point of `e` outside the clipped range is at least the tolerance from
+        /// `other`: the samples left out could never have been near.
+        #[test]
+        fn the_clip_leaves_out_only_points_far_from_the_other_edge(
+            a in (-50.0f64..50.0, -50.0f64..50.0),
+            b in (-50.0f64..50.0, -50.0f64..50.0),
+            c in (-50.0f64..50.0, -50.0f64..50.0),
+            d in (-50.0f64..50.0, -50.0f64..50.0),
+        ) {
+            let (e, other) = (edge(a, b), edge(c, d));
+            let range = clip(&e, &other, ARC_APPROX_TOL_MM);
+            for k in 0..=200 {
+                let t = f64::from(k) / 200.0;
+                let p = e.point_at(t);
+                let near = distance(p, other.point_at(other.nearest(p))) < ARC_APPROX_TOL_MM;
+                let inside = range.is_some_and(|(t0, t1)| t >= t0 - 1e-12 && t <= t1 + 1e-12);
+                proptest::prop_assert!(!near || inside, "t {} near but outside {:?}", t, range);
+            }
+        }
+    }
+
+    /// Edges a hundred metres long that cross: answered at once, not sampled every 0.01 mm
+    /// (an SVG found by fuzzing took 17 s, 2026-10-30).
+    #[test]
+    fn long_crossing_edges_are_checked_quickly() {
+        let ring = [
+            (0.0, 0.0),
+            (100_000.0, 100_000.0),
+            (100_000.0, 0.0),
+            (0.0, 100_000.0),
+        ];
+        let start = std::time::Instant::now();
+        let _ = fold_point(&ring);
+        assert!(start.elapsed().as_secs_f64() < 5.0, "{:?}", start.elapsed());
     }
 }

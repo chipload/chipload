@@ -61,7 +61,9 @@ into that.
 - How: sample the flattened boundary every `ARC_APPROX_TOL_MM`. For each sample, find the
   segments within the tolerance (grid index), the nearest point on each, and the distance
   between the two along the boundary. The first hit in boundary order is the reported
-  location (deterministic).
+  location (deterministic). Only the samples of an edge inside the other edge's box grown by
+  the tolerance are tried (2026-10-30): none outside it can be that near, and a 150 m
+  contour from a fuzzed SVG took 17 s sampling all of them.
 
 Existing projects: contours are rebuilt from the embedded shapes every time a project is
 loaded, so a project holding such a contour starts refusing it. That's intended: it was
