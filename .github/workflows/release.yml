@@ -30,7 +30,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: version
         name: Tag matches the workspace version
         run: |
@@ -61,7 +61,7 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Rust (from rust-toolchain.toml)
         run: |
           command -v rustup || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
@@ -80,7 +80,7 @@ jobs:
           mkdir -p "$stage"
           cp target/release/chipload LICENSE THIRD-PARTY-LICENSES.txt "$stage/"
           tar -czf "dist/$stage.tar.gz" "$stage"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux-${{ matrix.arch }}
           path: dist/*
@@ -106,7 +106,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Rust (from rust-toolchain.toml)
         run: |
           if ! command -v rustup; then
@@ -137,7 +137,7 @@ jobs:
             Write-Output $deps
             if ($deps -match "VCRUNTIME|MSVCP|api-ms-win-crt") { throw "chipload-gui.exe depends on the VC++ runtime" }
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-${{ matrix.arch }}
           path: dist/*
@@ -152,7 +152,7 @@ jobs:
       # The oldest macOS the binaries run on (build-macos.sh writes the same into Info.plist).
       MACOSX_DEPLOYMENT_TARGET: "11.0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Both architectures
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - run: packaging/test-release.sh
@@ -162,7 +162,7 @@ jobs:
         run: brew install librsvg
       - name: App, disk image and CLI archive
         run: packaging/macos/build-macos.sh "$VERSION" dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*
@@ -172,11 +172,11 @@ jobs:
     needs: version
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: mdBook (the version build-book.sh wants)
         run: cargo install mdbook --version 0.5.4 --locked
       - run: packaging/docs/build-book.sh zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: guide
           path: target/chipload-guide-*.zip
@@ -193,8 +193,8 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true

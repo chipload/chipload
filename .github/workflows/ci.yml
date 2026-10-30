@@ -22,7 +22,7 @@ jobs:
   linux:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The compiled dependencies, with a fallback when Cargo.lock changes (a version bump
       # missed the old cache and rebuilt everything); our own crates are built each time.
       - uses: Swatinem/rust-cache@v2
@@ -55,7 +55,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked --no-fail-fast
