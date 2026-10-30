@@ -1914,6 +1914,12 @@ impl ChiploadApp {
             });
         if let (Some(from), false) = (traced, toggle) {
             self.selection = CanvasSelection::Source(from);
+            // A letter opens its text, as the text's Browser row does: its words, font and
+            // height to change (the user, 2026-10-30). The text stays selected for an
+            // operation's Use selection.
+            if let chipload_core::chain::ShapeFrom::Text(id) = from {
+                self.focus = Focus::Text(id);
+            }
             return;
         }
         // Ctrl+click on a contour of the selected DXF or image leaves it out, or puts it

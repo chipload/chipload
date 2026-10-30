@@ -116,7 +116,8 @@ it's built (see `CLAUDE.md`).
      point, Shift bends (`SegmentDrag`).
   10. A text clicked in the view selects its letters' shapes, not the text: its
      properties (words, font, height) open only from the Browser (the user, 2026-10-30).
-     A click on a text's letters should open the text, as its Browser row does. Not built.
+     Fixed 2026-10-30: a click on a letter opens the text, as its Browser row does and
+     the guide said; the text stays selected for *Use selection*, Ctrl+click picks letters.
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and

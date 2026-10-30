@@ -101,6 +101,13 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
         .id;
     app.click(Some(letter), false);
     assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    // Its properties open, as from its Browser row (the user, 2026-10-30).
+    assert_eq!(app.focus, Focus::Text(id));
+    draw_properties(&mut app);
+    // Ctrl+click picks letters, not the text: the selection shows.
+    app.click(Some(letter), true);
+    assert_eq!(app.focus, Focus::Selection);
+    app.click(Some(letter), false);
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().ops[index].op;
     assert_eq!(op.select().text, Some(id));
