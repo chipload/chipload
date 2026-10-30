@@ -1040,9 +1040,17 @@ fn a_cancelled_run_stops_and_an_uncancelled_one_is_unchanged() {
 #[test]
 fn a_run_cancelled_from_another_thread_stops_early() {
     let job = round_corners_job();
-    let started = std::time::Instant::now();
+    // Timed warm, the quickest of a few runs: a cold first run is slower, and a cancel timed
+    // from it could come after a warm run is done (the 0.29.0 release build on macOS).
     run(&job);
-    let full = started.elapsed();
+    let full = (0..3)
+        .map(|_| {
+            let started = std::time::Instant::now();
+            run(&job);
+            started.elapsed()
+        })
+        .min()
+        .unwrap();
     if full < std::time::Duration::from_millis(40) {
         return; // too quick to cancel halfway on this machine
     }
