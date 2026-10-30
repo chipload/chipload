@@ -760,6 +760,16 @@ pub struct AppSettings {
     /// newer version) counts as `"system"`. Missing (written before it existed): system.
     #[serde(default = "language_default")]
     pub language: String,
+    /// Check for new versions once a day (docs/specs/update-notice.md): true or false as
+    /// the user answered; missing until asked.
+    #[serde(default)]
+    pub update_check: Option<bool>,
+    /// When the daily check last ran, seconds since 1970 (UTC). Missing: never.
+    #[serde(default)]
+    pub update_checked_at: Option<u64>,
+    /// A version the user chose to skip, e.g. "0.30.0". Missing: none.
+    #[serde(default)]
+    pub update_skipped: Option<String>,
 }
 
 /// The `language` that follows the system's language.
@@ -793,6 +803,9 @@ impl Default for AppSettings {
             show_grid: true,
             units: Units::Mm,
             language: language_default(),
+            update_check: None,
+            update_checked_at: None,
+            update_skipped: None,
         }
     }
 }

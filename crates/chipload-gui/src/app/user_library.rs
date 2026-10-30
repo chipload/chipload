@@ -427,6 +427,7 @@ impl ChiploadApp {
             .map(chipload_pipeline::library::settings_path)
             .and_then(|path| load_settings(&path).ok())
             .unwrap_or_default();
+        self.load_update_settings(&settings);
         self.recent = settings.recent_projects;
         self.theme = settings.theme;
         self.auto_generate = settings.auto_generate;

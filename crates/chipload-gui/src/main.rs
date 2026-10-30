@@ -15,6 +15,7 @@ mod icons;
 mod shape_form;
 mod style;
 mod units;
+mod updates;
 mod view;
 
 use std::path::PathBuf;

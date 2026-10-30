@@ -87,11 +87,6 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
-- **Update notice** (asked 2026-10-30): tell the user when a newer release is on GitHub.
-  Spec drafted (docs/specs/update-notice.md): decisions 1–5 agreed, 6–11 proposed, to
-  review. Ask once, a daily background check of GitHub's latest release, a quiet notice
-  with *What's new…* and *Skip this version*; `ureq` + `rustls` with the system's
-  certificates, in the window only.
 - **Shakedown findings** (the user on the router, 2026-10-28; the checklist is kept
   private, outside the repository):
   1. The stock should sit centred on the drawing, sticking out equally all round. Done
@@ -213,6 +208,14 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Update notice** (2026-10-30, the user: "could we also add an update notification when
+  there are new releases available at GitHub?"; docs/specs/update-notice.md, ADR 0026):
+  asked once; when on, a daily check at start of GitHub's latest published release (one
+  HTTPS request, nothing about the user sent); *Chipload X is available* in the status
+  bar and under Help with *What's new…* and *Skip this version*; *Help > Check for new
+  versions now*; the setting in Preferences. `ureq` + `rustls`/`ring` with the system's
+  certificates (`rustls-native-certs`), in the window only. Checked against the real
+  GitHub by hand (`github_answers`, ignored).
 - **Windows installer** (2026-10-30, the user: "could we add a windows installer so we can
   open chipload files with a double click?"; docs/specs/windows-installer.md, ADR 0025):
   `chipload-X.Y.Z-windows-<arch>-setup.exe`, NSIS built on Linux, per user: the app and

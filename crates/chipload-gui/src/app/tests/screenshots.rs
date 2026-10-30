@@ -140,6 +140,8 @@ fn screenshots() {
                 crate::style::apply(&cc.egui_ctx);
                 let mut app = ChiploadApp::default();
                 app.set_settings_dir(Some(settings));
+                // The guide's pictures show the work, not the question about new versions.
+                app.updates.bar_closed = true;
                 app.set_language(&language);
                 assert!(app.open(&project), "{}", project.display());
                 app.screenshot_setup(&cc.egui_ctx, steps);

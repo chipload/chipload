@@ -84,6 +84,20 @@ cargo build --release -p chipload-gui -p chipload-cli
 # target/release/chipload-gui and target/release/chipload
 ```
 
+## New versions
+
+The first time it starts, Chipload asks whether to check for new versions. If you say yes,
+it asks GitHub once a day, when it starts, for the latest release. That is one request:
+nothing about you, your computer or your projects is sent, though GitHub sees your network
+address as it does for any visit. When a newer version is out, the status bar says
+*Chipload X is available*; click it for **What's new…** (the release's page in your
+browser) or **Skip this version**. The same is under **Help**. Chipload never downloads or
+installs anything by itself: download the new version as you did this one.
+
+**Help > Check for new versions now** checks at once, also with the daily check off, and
+says what it found. Change your answer in *This computer > Preferences > New versions*.
+Behind a proxy, set `HTTPS_PROXY`.
+
 ## Your settings
 
 Chipload keeps your tool library, machine profiles, own post-processors and app settings in

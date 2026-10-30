@@ -1,8 +1,9 @@
 # Update notice
 
-Status: draft for review (2026-10-30). The user: "could we also add an update notification
-when there are new releases available at GitHub?", then "go ahead with the spec" on the
-five recommendations given (decisions 1–5 below). Decisions 6–11 are proposals.
+Status: agreed 2026-10-30. The user: "could we also add an update notification when there
+are new releases available at GitHub?", then "go ahead with the spec" on the five
+recommendations given (decisions 1–5 below), then "update notice sounds good" on the spec
+(decisions 6–11). ADR 0026.
 
 ## 1. Why
 
@@ -118,7 +119,7 @@ Agreed 2026-10-30 ("go ahead with the spec"):
    pop-up, no download, no install.
 5. **An HTTPS client in the window only:** `ureq` with `rustls`.
 
-Proposed:
+Agreed 2026-10-30 ("update notice sounds good"):
 
 6. **The system's certificate store** (`rustls-platform-verifier`), not `webpki-roots`
    (CDLA-Permissive-2.0, not on the allowed list).

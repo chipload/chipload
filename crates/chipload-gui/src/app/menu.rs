@@ -665,6 +665,7 @@ impl ChiploadApp {
         if ui.button(t!(ui, "menu-about")).clicked() {
             self.dialogs.about_open = true;
         }
+        self.update_help_items(ui);
     }
 
     pub(super) fn status_bar(&mut self, ui: &mut egui::Ui) {
@@ -727,6 +728,8 @@ impl ChiploadApp {
             let cursor = self.cursor;
             let units = self.units;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                // A newer version, at the far right (docs/specs/update-notice.md §2).
+                self.update_notice_status(ui);
                 if let Some(name) = active {
                     ui.weak(t!(ui, "menu-status-active-part", name = name))
                         .on_hover_text(t!(ui, "menu-status-active-part-hover"));

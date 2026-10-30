@@ -151,6 +151,7 @@ impl ChiploadApp {
                         }
                     });
                 ui.end_row();
+                self.update_setting_row(ui);
             });
         if sheet != self.setup_sheet {
             self.set_setup_sheet(sheet);

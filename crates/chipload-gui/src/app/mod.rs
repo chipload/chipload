@@ -74,6 +74,7 @@ mod tab_markers;
 #[cfg(test)]
 mod tests;
 mod texts;
+mod update_notice;
 mod user_library;
 mod zero_drag;
 
@@ -458,6 +459,9 @@ pub struct ChiploadApp {
     pub units: chipload_job::Units,
     /// Settings > Language as kept in the app settings: `"system"` or a language code.
     pub language_setting: String,
+    /// The update notice: the user's answer, the daily check, a newer release
+    /// (docs/specs/update-notice.md).
+    pub updates: crate::updates::Updates,
     /// The language the app is shown in: `language_setting` resolved
     /// (docs/specs/translations.md decision 5).
     pub language: crate::i18n::Language,
@@ -561,6 +565,7 @@ impl Default for ChiploadApp {
             show_grid: true,
             units: chipload_job::Units::Mm,
             language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
+            updates: crate::updates::Updates::default(),
             language: crate::i18n::Language::En,
             changed_at: None,
             export_when_done: false,
@@ -2362,6 +2367,10 @@ impl eframe::App for ChiploadApp {
         .inner;
         self.properties_open = open || unfold;
         CentralPanel::no_frame().show(ui, |ui| {
+            // Asked once whether to check for new versions (docs/specs/update-notice.md §2).
+            if self.update_question_shown() {
+                Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
+            }
             if self.edit.is_some() && self.playback.is_some() {
                 Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
                 self.sync_playback(&ctx);
@@ -2392,6 +2401,7 @@ impl eframe::App for ChiploadApp {
         if self.poll_simulation(&ctx) {
             ctx.request_repaint_after(generation::POLL);
         }
+        self.poll_updates(&ctx);
         if !busy
             && self.drag.handle.is_none()
             && let Some(wait) = self.live_preview(Instant::now())

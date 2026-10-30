@@ -36,6 +36,7 @@ mod three_d_view;
 mod tool_library;
 mod trim_select;
 mod units;
+mod update_notice;
 mod view_bar;
 mod work_zero;
 mod workflows;

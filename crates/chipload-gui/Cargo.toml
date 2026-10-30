@@ -28,6 +28,14 @@ serde_json = "1"
 # 5): on Windows and macOS it takes the system API, which forbid(unsafe_code) rules out here.
 # MIT OR Apache-2.0.
 sys-locale = "0.3.2"
+# The update notice's one HTTPS request (docs/specs/update-notice.md, ADR 0026): ureq
+# (MIT OR Apache-2.0) over rustls (Apache-2.0 OR ISC OR MIT) with ring (Apache-2.0 AND ISC),
+# checked against the system's own certificates, loaded by rustls-native-certs (Apache-2.0
+# OR ISC OR MIT). Not ureq's default features: they bundle webpki-roots, and its
+# platform-verifier brings webpki-root-certs for wasm32 (both CDLA-Permissive-2.0, not
+# allowed).
+ureq = { version = "3.5.0", default-features = false, features = ["rustls-no-provider", "_ring"] }
+rustls-native-certs = "0.8.5"
 # Only to pick the window frame: winit's fallback frame (what eframe gets without its default
 # features) makes WSLg's compositor drop the connection while resizing; the adwaita frame
 # (winit's own default) is fine. See ADR 0008.
