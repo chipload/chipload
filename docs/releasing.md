@@ -63,7 +63,6 @@ and `chipload`.
 | `chipload-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
 | `chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
 | `chipload-cli-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
-| `chipload-cli-X.Y.Z-windows-x86_64.zip`, `…-windows-aarch64.zip` | Windows command line, the same |
 | `chipload-cli-X.Y.Z-macos-universal.tar.gz` | macOS command line, the same |
 | `SHA256SUMS.txt` | checksums of the above |
 | `chipload-guide-X.Y.Z.zip` | the user guide (HTML; open `index.html`) |
@@ -100,9 +99,9 @@ From WSL, in `/mnt/c/code/chipload`:
 
 `rust-toolchain.toml` makes rustup install the pinned Rust on the first run. Then:
 
-1. Copy `target/release/chipload-gui.exe` to `chipload-0.13.0-windows-x86_64.exe`, and zip
-   a folder `chipload-cli-0.13.0-windows-x86_64` holding `target/release/chipload.exe`,
-   `LICENSE` and `THIRD-PARTY-LICENSES.txt` into `chipload-cli-0.13.0-windows-x86_64.zip`.
+1. Copy `target/release/chipload-gui.exe` to `chipload-0.13.0-windows-x86_64.exe`. The
+   command line, `target/release/chipload.exe`, goes into the installer (step 3), not a
+   file of its own.
 2. Check that neither needs the VC++ runtime: `strings -a FILE | grep -iE
    '^(vcruntime|msvcp|api-ms-win-crt)'` prints nothing.
 3. The installer, back in WSL (needs `makensis`, Ubuntu's `nsis` package):
@@ -110,9 +109,9 @@ From WSL, in `/mnt/c/code/chipload`:
    target/release/chipload.exe dist` gives `dist/chipload-0.13.0-windows-x86_64-setup.exe`;
    upload it with the others. Install and remove it once by hand (docs/specs/windows-installer.md §7).
 4. Add their checksums to the release's `SHA256SUMS.txt` (`gh release download v0.13.0 -p
-   SHA256SUMS.txt`, then `sha256sum *.exe *.zip >> SHA256SUMS.txt`).
+   SHA256SUMS.txt`, then `sha256sum *.exe >> SHA256SUMS.txt`).
 5. `gh release upload v0.13.0 chipload-0.13.0-windows-x86_64.exe
-   chipload-cli-0.13.0-windows-x86_64.zip SHA256SUMS.txt --clobber`, and list the Windows files
+   dist/chipload-0.13.0-windows-x86_64-setup.exe SHA256SUMS.txt --clobber`, and list the Windows files
    in the release notes.
 6. `git switch main` in the Windows checkout, so it isn't left on the tag.
 

@@ -219,9 +219,8 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
   the command line, `.chipload` opened with a double-click, Chipload in *Open with* for
   DXF and SVG, Start menu, uninstaller that keeps the settings. The release workflow
   builds both and tests a silent install and uninstall on Windows. To try by hand before
-  the first release with it (spec §7). Open: drop the Windows CLI zips now that the
-  installer carries `chipload.exe` (the user asked whether the CLI downloads are needed;
-  recommended: drop the Windows zips, keep Linux and macOS).
+  the first release with it (spec §7). The Windows CLI zips are dropped (the user: "drop
+  cli"): the installer carries `chipload.exe`; Linux and macOS keep their archives.
 - **V-carve passes of equal load** (2026-10-30, the user: "each stepdown will cut the entire
   length of the v-bit", then "final depth: 5 mm, passes: 6"; docs/specs/v-carve.md decision
   12, schema 35): a V-carve has a number of passes, 1 to 100, in place of its step down;

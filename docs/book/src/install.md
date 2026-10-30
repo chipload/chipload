@@ -55,8 +55,8 @@ The installer isn't code-signed, so Windows SmartScreen may warn the first time.
   it; use *File > Open* in the app.
 - **Command line:** the installer puts `chipload.exe` beside the app, in the folder above;
   run it from a terminal (PowerShell or Command Prompt) with its full path, e.g.
-  `& "$env:LOCALAPPDATA\Programs\Chipload\chipload.exe" --version`. Without installing,
-  it's in `chipload-cli-X.Y.Z-windows-x86_64.zip` (ARM: `…-windows-aarch64.zip`).
+  `& "$env:LOCALAPPDATA\Programs\Chipload\chipload.exe" --version`. It comes only with
+  the installer.
 
 ## macOS
 

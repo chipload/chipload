@@ -109,8 +109,8 @@ Agreed 2026-10-30 ("go ahead"):
 Settled while writing (recommended, open to change):
 
 7. **The command line comes with it:** `chipload.exe` beside the app, for scripting and
-   AI assistants (the guide's *AI assistants* page gives its path). Whether the separate
-   Windows CLI zips then go is the user's to decide.
+   AI assistants (the guide's *AI assistants* page gives its path). The separate Windows
+   CLI zips go (the user, 2026-10-30: "drop cli"); Linux and macOS keep their archives.
 8. **zlib compression,** not LZMA: NSIS's LZMA module is under the CPL (with an exception
    for installers); zlib keeps the whole installer under one permissive licence. It is a
    few MB larger.

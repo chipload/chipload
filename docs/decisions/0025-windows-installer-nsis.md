@@ -19,7 +19,8 @@ no Start menu entry or uninstaller. The user asked for double-click.
   exception); with zlib all of NSIS's code in the installer is under its zlib licence.
 - **Per user, without administrator rights;** `.chipload` registered as Chipload's, DXF
   and SVG only in *Open with*; the uninstaller keeps the user's settings.
-- **The portable `.exe` stays** beside the installer.
+- **The portable `.exe` stays** beside the installer. The Windows command-line zips go:
+  the installer carries `chipload.exe`.
 
 ## Consequences
 - The release workflow gains `windows-installer` (Linux) and `windows-installer-test` (a

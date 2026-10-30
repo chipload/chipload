@@ -4,13 +4,13 @@
 #
 # The app takes the plain name, so it sorts first on the release page and is what people
 # download; the command line is `chipload-cli-…`, always in an archive, never a bare program.
+# On Windows the installer carries the command line instead (docs/specs/windows-installer.md).
 #
 #   Linux:   chipload-X.Y.Z-linux-x86_64.AppImage, chipload-X.Y.Z-linux-aarch64.AppImage (GUI),
 #            chipload-cli-X.Y.Z-linux-x86_64.tar.gz, chipload-cli-X.Y.Z-linux-aarch64.tar.gz (CLI)
 #   Windows: chipload-X.Y.Z-windows-x86_64-setup.exe, chipload-X.Y.Z-windows-aarch64-setup.exe
 #            (installers: app and command line), chipload-X.Y.Z-windows-x86_64.exe,
-#            chipload-X.Y.Z-windows-aarch64.exe (GUI, portable),
-#            chipload-cli-X.Y.Z-windows-x86_64.zip, chipload-cli-X.Y.Z-windows-aarch64.zip (CLI)
+#            chipload-X.Y.Z-windows-aarch64.exe (GUI, portable)
 #   macOS:   chipload-X.Y.Z-macos-universal.dmg (GUI), chipload-cli-X.Y.Z-macos-universal.tar.gz (CLI)
 #   chipload-guide-X.Y.Z.zip (the user guide), SHA256SUMS.txt
 name: Release
@@ -123,13 +123,6 @@ jobs:
         run: |
           mkdir -p dist
           cp target/release/chipload-gui.exe "dist/chipload-$VERSION-windows-${{ matrix.arch }}.exe"
-      - name: CLI archive
-        shell: pwsh
-        run: |
-          $stage = "chipload-cli-$env:VERSION-windows-${{ matrix.arch }}"
-          New-Item -ItemType Directory -Force $stage | Out-Null
-          Copy-Item target/release/chipload.exe, LICENSE, THIRD-PARTY-LICENSES.txt $stage
-          Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip"
       - name: No runtime DLL beyond Windows itself
         shell: pwsh
         run: |
@@ -144,6 +137,13 @@ jobs:
           name: windows-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
+      # The command line, for the installer only: not a release file of its own.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-windows-${{ matrix.arch }}
+          path: target/release/chipload.exe
+          if-no-files-found: error
+          retention-days: 1
 
   # The installers (docs/specs/windows-installer.md), built on Linux with NSIS from the
   # Windows builds above.
@@ -158,15 +158,18 @@ jobs:
         with:
           pattern: windows-*
           path: win
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cli-windows-*
+          path: cli
       - name: NSIS
         run: sudo apt-get update && sudo apt-get install -y nsis
       - name: Installers
         run: |
           for arch in x86_64 aarch64; do
-            unzip -q "win/windows-$arch/chipload-cli-$VERSION-windows-$arch.zip" -d "cli-$arch"
             packaging/windows/build-installer.sh "$VERSION" "$arch" \
               "win/windows-$arch/chipload-$VERSION-windows-$arch.exe" \
-              "cli-$arch/chipload-cli-$VERSION-windows-$arch/chipload.exe" dist
+              "cli/cli-windows-$arch/chipload.exe" dist
           done
       - uses: actions/upload-artifact@v7
         with:
@@ -241,10 +244,25 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
+      # The release files: every artifact but the installers' command lines (cli-windows-*).
       - uses: actions/download-artifact@v8
         with:
+          pattern: linux-*
           path: dist
           merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: windows-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: guide
+          path: dist
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - name: Draft release
@@ -269,9 +287,9 @@ jobs:
           **User guide:** online at https://chipload.github.io/chipload/, or
           \`chipload-guide-$VERSION.zip\` to read offline (open \`index.html\`).
 
-          **Command line**, for scripts and automation (not needed for the app):
-          \`chipload-cli-$VERSION-<system>.zip\` (Windows) or \`.tar.gz\` (Linux, macOS), each with
-          \`chipload\`, LICENSE and the third-party notices.
+          **Command line**, for scripts, automation and AI assistants (not needed for the app): on
+          Windows the installer puts \`chipload.exe\` beside the app; on Linux and macOS
+          \`chipload-cli-$VERSION-<system>.tar.gz\`, with \`chipload\`, LICENSE and the third-party notices.
 
           Free software under GPL-3.0-or-later; the source is attached to this release.
           Third-party licences: Help > About and licences, or \`chipload licenses\`.
