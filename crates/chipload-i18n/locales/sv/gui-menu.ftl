@@ -75,7 +75,7 @@ menu-show-drawing-hover = Dölj ritningen för att se bara ämnet eller verktygs
 menu-show-images = Visa bilder
 menu-show-images-hover = Bilderna som spårats till former, svagt över ämnet
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Visa ämne (simulering)
+menu-simulate = Simulera
 menu-simulation-hint = Visa ämnet som programmet lämnar det: varje rörelse fräst med verktygets form (mörkare är djupare; rött är under ämnet). Endast visning.
 menu-units = Enheter
 menu-units-mm-hover = Längder i mm, matning i mm/min
@@ -132,6 +132,7 @@ menu-generating = Beräknar…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Drar till ({ $x }, { $y }){ $snapped } (Alt: ingen fästning; på ett segment infogar Ctrl en punkt, Shift böjer det)
 menu-status-hint = Klicka på en kontur för att markera den · Ctrl+klick lägger till eller tar bort · högerklick markerar dess lager · Esc rensar
+menu-status-simulate-hint = Simulera: dra för att panorera (3D: rotera) · klicka på en operations nummer för att öppna den · F6 tillbaka till Redigera
 menu-join-ends = Foga ihop ändar…
 menu-join-ends-hover = Foga ihop öppna ritade polylinjer vars ändar nästan möts till en: de markerade, eller alla om ingen är markerad
 menu-join-ends-disabled-hover = Det finns inga ritade former. En DXF:s former kan fogas ihop när den har brutits upp (högerklicka på den i bläddraren).

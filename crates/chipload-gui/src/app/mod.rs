@@ -355,7 +355,8 @@ pub struct ChiploadApp {
     /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
     corners: corners::CornerMarkers,
     context_pick: Option<usize>,
-    /// View > Show stock (docs/specs/simulation.md §4): the simulation.
+    /// Simulate mode (docs/specs/edit-and-simulate.md §2): the shaded simulation and
+    /// playback, the canvas a viewer. Off: Edit, the canvas a drawing board.
     pub show_simulation: bool,
     /// The Browser and the Properties panel open, or folded to a strip for a larger canvas
     /// (View, the P key, or dragging a panel's edge past its least width).
@@ -431,6 +432,8 @@ pub struct ChiploadApp {
     pub show_grid: bool,
     /// When the project last changed, while the live preview hasn't generated it yet.
     changed_at: Option<Instant>,
+    /// What the toolpath shown is made from (docs/specs/edit-and-simulate.md §5).
+    shown_inputs: Option<chipload_pipeline::CutInputs>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
     export_when_done: bool,
     /// Where to export once the run in progress, of every part, is done.
@@ -524,7 +527,7 @@ impl Default for ChiploadApp {
             context_pick: None,
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
-            show_simulation: true,
+            show_simulation: false,
             browser_open: true,
             properties_open: true,
             sim: Sim::default(),
@@ -568,6 +571,7 @@ impl Default for ChiploadApp {
             updates: crate::updates::Updates::default(),
             language: crate::i18n::Language::En,
             changed_at: None,
+            shown_inputs: None,
             export_when_done: false,
             all_parts: false,
             export_path_when_done: None,
@@ -672,7 +676,14 @@ impl ChiploadApp {
             self.undo.push(self.committed.take());
             self.redo.clear();
             self.committed.clone_from(&self.edit);
-            self.toolpath_out_of_date();
+            // A shape no operation selects changes nothing that is cut: the toolpath
+            // stands, and nothing is generated again (docs/specs/edit-and-simulate.md §5).
+            if self.edit_keeps_cut() {
+                self.refresh_problems();
+                self.recovery_due = Some(Instant::now());
+            } else {
+                self.toolpath_out_of_date();
+            }
         }
     }
 
@@ -717,7 +728,11 @@ impl ChiploadApp {
                 Focus::Op(len - 1)
             };
         }
-        self.toolpath_out_of_date();
+        if self.edit_keeps_cut() {
+            self.refresh_problems();
+        } else {
+            self.toolpath_out_of_date();
+        }
     }
 
     /// Start editing `job` as a fresh document (no undo history).
@@ -2116,6 +2131,7 @@ impl ChiploadApp {
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
         self.stop_generation();
+        self.shown_inputs = None;
         self.changed_at = None;
         self.export_when_done = false;
         self.toolpath_stale = false;
@@ -2130,6 +2146,7 @@ impl ChiploadApp {
     fn toolpath_out_of_date(&mut self) {
         self.refresh_problems();
         self.stop_generation();
+        self.shown_inputs = None;
         self.changed_at = Some(Instant::now());
         self.recovery_due = self.changed_at;
         if self.result.is_some() || self.scene.toolpath.is_some() {
@@ -2371,7 +2388,7 @@ impl eframe::App for ChiploadApp {
             if self.update_question_shown() {
                 Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
             }
-            if self.edit.is_some() && self.playback.is_some() {
+            if self.edit.is_some() && self.playback.is_some() && self.show_simulation {
                 Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
                 self.sync_playback(&ctx);
             }

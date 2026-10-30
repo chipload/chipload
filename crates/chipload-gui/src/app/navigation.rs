@@ -211,29 +211,31 @@ impl ChiploadApp {
         }
     }
 
-    /// What is shown: the simulated stock, the toolpath, the drawing, the pictures and the
-    /// grid.
+    /// Simulate or Edit (docs/specs/edit-and-simulate.md §2), then what is shown: the
+    /// toolpath, the drawing (in Simulate: Edit always shows it), the pictures and the grid.
     fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
-        let can = self.result.is_some();
         let label = if self.simulating() {
-            t!(ui, "navigation-stock-busy")
+            t!(ui, "navigation-simulate-busy")
         } else {
-            t!(ui, "navigation-stock")
+            t!(ui, "navigation-simulate")
         };
         let hover = if self.simulating() {
             t!(ui, "navigation-simulating-hover")
-        } else if can {
-            simulation_hint(ui)
         } else {
-            t!(ui, "navigation-stock-first-hover")
+            format!(
+                "{}\n\n{}",
+                hover_keys(&t!(ui, "navigation-simulate-hover"), Action::Simulate),
+                simulation_hint(ui)
+            )
         };
+        let can = self.edit.is_some();
         if nav_button(
             ui,
             compact,
             Icon::Simulation,
             &label,
             can,
-            can && self.show_simulation,
+            self.show_simulation,
         )
         .on_hover_text(hover)
         .clicked()
@@ -250,9 +252,10 @@ impl ChiploadApp {
         }
         let drawing = self.show_drawing();
         let label = t!(ui, "navigation-drawing");
-        if nav_button(ui, compact, Icon::Drawing, &label, true, drawing)
-            .on_hover_text(t!(ui, "navigation-drawing-hover"))
-            .clicked()
+        if self.show_simulation
+            && nav_button(ui, compact, Icon::Drawing, &label, true, drawing)
+                .on_hover_text(t!(ui, "navigation-drawing-hover"))
+                .clicked()
         {
             self.set_show_drawing(!drawing);
         }

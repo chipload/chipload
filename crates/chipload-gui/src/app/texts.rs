@@ -23,6 +23,7 @@ impl ChiploadApp {
         if self.three_d {
             self.view_top(); // placed by a click in top view, as drawing is
         }
+        self.enter_edit_mode();
         self.sketch = None;
         self.measure = None;
         self.placing_text = true;

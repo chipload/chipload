@@ -31,6 +31,7 @@ shortcuts-generate = Beräkna verktygsbana och G-kod
 shortcuts-fit = Anpassa vyn
 shortcuts-top-view = Vy uppifrån
 shortcuts-grid = Visa eller dölj rutnätet
+shortcuts-simulate = Simulera eller redigera
 shortcuts-measure = Mät: två klick ger avstånd och vinkel
 shortcuts-panels = Fäll ihop eller öppna sidopanelerna, för större rityta
 shortcuts-this-list = Den här listan

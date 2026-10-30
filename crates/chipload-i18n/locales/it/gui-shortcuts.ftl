@@ -31,6 +31,7 @@ shortcuts-generate = Calcola il percorso utensile e il G-code
 shortcuts-fit = Adatta la vista
 shortcuts-top-view = Vista dall'alto
 shortcuts-grid = Mostra o nascondi la griglia
+shortcuts-simulate = Simula o modifica
 shortcuts-measure = Misura: due clic danno distanza e angolo
 shortcuts-panels = Chiudi o apri i pannelli laterali, per un'area di disegno più grande
 shortcuts-this-list = Questo elenco

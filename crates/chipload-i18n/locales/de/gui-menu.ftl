@@ -75,7 +75,7 @@ menu-show-drawing-hover = Zeichnung ausblenden, um nur das Rohteil oder den Werk
 menu-show-images = Bilder zeigen
 menu-show-images-hover = Die in Formen nachgezeichneten Bilder, blass über dem Rohteil
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Rohteil zeigen (Simulation)
+menu-simulate = Simulieren
 menu-simulation-hint = Das Rohteil zeigen, wie das Programm es hinterlässt: jede Bewegung mit der Form des Werkzeugs gefräst (dunkler ist tiefer; rot ist unterhalb des Rohteils). Nur Anzeige.
 menu-units = Einheiten
 menu-units-mm-hover = Längen in mm, Vorschübe in mm/min
@@ -132,6 +132,7 @@ menu-generating = Berechnung läuft…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Ziehen nach ({ $x }, { $y }){ $snapped } (Alt: ohne Fang; an einem Segment fügt Strg einen Punkt ein, Shift biegt es)
 menu-status-hint = Kontur anklicken zum Auswählen · Ctrl+Klick fügt hinzu oder entfernt · Rechtsklick wählt ihren Layer · Esc hebt auf
+menu-status-simulate-hint = Simulieren: ziehen verschiebt (3D: dreht) · Nummer eines Arbeitsgangs anklicken öffnet ihn · F6 zurück zu Bearbeiten
 menu-join-ends = Enden verbinden…
 menu-join-ends-hover = Offene gezeichnete Polylinien, deren Enden sich fast treffen, zu einer verbinden: die ausgewählten, oder alle, wenn keine ausgewählt ist
 menu-join-ends-disabled-hover = Es gibt keine gezeichneten Formen. Die Formen einer DXF lassen sich verbinden, sobald sie aufgelöst ist (Rechtsklick auf sie im Browser).

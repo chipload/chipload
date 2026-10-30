@@ -125,17 +125,26 @@ colour theme: dark, or light grey.
   Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
   a round handle sits at their foot: click it to select the
   [work zero](concepts/stock.md#work-zero), then drag it.
+- **Edit and Simulate:** the canvas works in one of two modes.
+  - **Edit** (projects open in it) is the drawing board: the drawing and the toolpath's
+    lines; selecting, box selection, drawing, handles, tabs and start points.
+  - **Simulate** (**Simulate** on the navigation bar, *View > Simulate* or F6) shows the
+    [simulated stock](checking/simulation.md) and the playback slider. The canvas is then
+    a viewer: a drag pans (in 3D it orbits) and never selects; a click on an operation's
+    number opens it. Properties stay editable: change a depth and watch the cut change.
+  - Starting a drawing or editing tool, or selecting something in the Browser, goes back to
+    Edit. F6 or **Simulate** again does too.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - how you look: **Fit** (F), **Top** (T) and **3D**;
-  - what is shown: **Stock** (the [simulation](checking/simulation.md)), **Toolpath**,
-    **Drawing**, **Images** and **Grid** (G);
+  - the mode: **Simulate** (F6);
+  - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
+    **Images** and **Grid** (G);
   - with two parts or more, **All parts**: the toolpath and simulation of every part, not
     only the [active one](operations/parts.md).
   - When the canvas is too narrow for the names, the buttons show only their icons; hover
     over one to see its name.
-- **Drawing off** hides the drawing's contours, to see the simulated stock or the toolpath
-  alone. While it's off, clicks on the canvas don't select anything. Selecting something
-  in the Browser, or starting to draw a shape, shows the drawing again.
+- **Drawing off** (in Simulate) hides the drawing's contours, to see the simulated stock or
+  the toolpath alone. Back in Edit the drawing shows again.
 - **The corner:**
   - In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
     FRONT, RIGHT, BACK, LEFT) to look straight at it.
@@ -143,11 +152,12 @@ colour theme: dark, or light grey.
 - **The toolpath's numbers:** each operation's first plunge has a circle and the
   operation's number. Click it to open that operation.
 - **The legend** (bottom left) explains the colours.
-- **The mouse:** the wheel zooms. In top view, a left drag on empty canvas selects with a
-  box: from left to right it takes what lies wholly inside, from right to left also what
+- **The mouse:** the wheel zooms. In Edit, in top view, a left drag on empty canvas
+  selects with a box: from left to right it takes what lies wholly inside, from right to left also what
   it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
   shape [moves it](drawings/shapes.md#editing). To pan, drag with the right or middle
-  button, or hold Space and drag. In 3D, a left drag orbits.
+  button, or hold Space and drag. In 3D, a left drag orbits. In Simulate a left drag pans
+  (in 3D it orbits).
 
 ![The canvas in 3D: the simulated stock on the grid, the cube in the corner and the
 navigation bar](images/simulation-3d.png)

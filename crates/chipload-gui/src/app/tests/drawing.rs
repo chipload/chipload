@@ -835,3 +835,56 @@ fn a_new_project_without_operations_has_no_problem() {
     assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
     assert!(app.problems.is_empty(), "{:?}", app.problems);
 }
+
+/// docs/specs/edit-and-simulate.md §5: a shape no operation selects changes nothing that is
+/// cut, so the toolpath stands; one an operation selects, or one that moves a board that
+/// fits its drawing or reaches outside the stock, needs a new one.
+#[test]
+fn a_shape_no_operation_selects_keeps_the_toolpath() {
+    let mut app = drawn_part();
+    assert!(app.generate_and_wait());
+    let fresh = |app: &ChiploadApp| {
+        app.result.is_some() && app.changed_at.is_none() && app.generation.is_none()
+    };
+    assert!(fresh(&app));
+    // A circle on the stock that no operation cuts (they select shapes 1, 2 and 3).
+    let circle = Geometry::Circle {
+        center: [250.0, 180.0],
+        radius: 5.0,
+    };
+    let id = app.add_drawn(circle.clone()).unwrap();
+    app.commit();
+    assert!(fresh(&app), "nothing to generate");
+    // Undone: the same.
+    app.undo();
+    assert!(fresh(&app));
+    app.redo();
+    assert!(fresh(&app));
+    // Now an operation cuts it: generated again.
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+        p.select.shapes = Some(vec![1, id]);
+    }
+    app.commit();
+    assert!(app.result.is_none() && app.changed_at.is_some());
+    assert!(app.generate_and_wait());
+    // A shape off the stock: the "outside the stock" note changes, so a new run.
+    app.add_drawn(Geometry::Circle {
+        center: [400.0, 100.0],
+        radius: 5.0,
+    });
+    app.commit();
+    assert!(app.changed_at.is_some(), "outside the stock");
+    // A board that fits its drawing grows with a new shape, and a zero on its corner moves.
+    let mut app = drawn_part();
+    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
+    stock.origin = chipload_job::StockOrigin::Drawing;
+    stock.fit = Some(10.0);
+    app.commit();
+    assert!(app.generate_and_wait());
+    app.add_drawn(Geometry::Circle {
+        center: [10.0, 210.0],
+        radius: 30.0,
+    });
+    app.commit();
+    assert!(app.changed_at.is_some(), "the board grew");
+}

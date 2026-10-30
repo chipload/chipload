@@ -14,15 +14,21 @@ its real depths.
 
 ## Simulation
 
-The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; *View > Show stock* (or **Stock** on the canvas's navigation bar) turns it
-off and on.
+The simulation cuts the stock with every move of the program and shows the result, in
+**Simulate** mode: **Simulate** on the canvas's navigation bar, *View > Simulate* or F6, and
+the same again to go back to Edit ([Edit and Simulate](../window.md#the-canvas)).
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its
   tip, and a drill's 118° point.
-- **When:** it runs in the background after each generation. Until it's done, the canvas
-  says *Updating the simulation…* and still shows the stock as the last toolpath cut it.
+- **When:** in the background, when you enter Simulate and after each new toolpath while
+  you're in it; in Edit nothing is simulated. Until it's done, the canvas says *Updating
+  the simulation…* and still shows the stock as the last toolpath cut it. Back in Simulate
+  without changes, the last simulation shows at once. With no toolpath yet, entering
+  Simulate makes one.
+- **What makes a new toolpath:** a change that can change the cut. Drawing a shape that no
+  operation selects doesn't, unless the board fits the drawing and grows with it, or the
+  shape lies off the stock.
 - **Without the toolpath:** *View > Show toolpath* (also **Toolpath** on the navigation bar
   and a checkbox on the canvas legend)
   hides the toolpath's lines, plunges and tabs. During playback, the tool still shows where

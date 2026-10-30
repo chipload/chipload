@@ -75,7 +75,7 @@ menu-show-drawing-hover = Oculta el dibujo para ver solo el material o la trayec
 menu-show-images = Mostrar imágenes
 menu-show-images-hover = Las imágenes vectorizadas en formas, tenues sobre el material
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Mostrar material (simulación)
+menu-simulate = Simular
 menu-simulation-hint = Muestra el material como lo deja el programa: cada movimiento cortado con la forma de la herramienta (más oscuro es más profundo; rojo es por debajo del material). Solo visualización.
 menu-units = Unidades
 menu-units-mm-hover = Longitudes en mm, avances en mm/min
@@ -132,6 +132,7 @@ menu-generating = Calculando…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Arrastrando a ({ $x }, { $y }){ $snapped } (Alt: sin ajuste; en un segmento, Ctrl inserta un punto y Shift lo curva)
 menu-status-hint = Clic en un contorno para seleccionarlo · Ctrl+clic añade o quita · clic derecho selecciona su capa · Esc borra la selección
+menu-status-simulate-hint = Simular: arrastrar desplaza (3D: gira) · clic en el número de una operación la abre · F6 vuelve a Editar
 menu-join-ends = Unir extremos…
 menu-join-ends-hover = Unir en una las polilíneas dibujadas abiertas cuyos extremos casi se tocan: las seleccionadas, o todas si no hay ninguna seleccionada
 menu-join-ends-disabled-hover = No hay formas dibujadas. Las formas de un DXF se pueden unir una vez descompuesto (clic derecho sobre él en el Navegador).

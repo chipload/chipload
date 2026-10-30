@@ -38,14 +38,38 @@ pub(super) struct SimRun {
 }
 
 impl ChiploadApp {
-    /// View → Show stock (simulation), and the canvas bar's Stock.
+    /// Simulate (on) or Edit (off) (docs/specs/edit-and-simulate.md §2, §3): the view
+    /// bar's Simulate, View > Simulate, F6. Leaving Simulate keeps the simulation, hidden,
+    /// for coming back; entering it computes one when there is none, and makes a toolpath
+    /// first when there is none either.
     pub fn set_show_simulation(&mut self, on: bool) {
-        self.show_simulation = on;
-        if on {
-            self.start_simulation();
-        } else {
-            self.drop_simulation();
+        if on == self.show_simulation {
+            return;
         }
+        self.show_simulation = on;
+        if let Some(playback) = &mut self.playback {
+            playback.shown = None; // redrawn from the history when shown again
+        }
+        if !on {
+            self.stop_simulation();
+            self.scene.sim = None;
+            // Edit always shows the drawing: its shapes are what is worked on.
+            self.drawing_hidden = None;
+            return;
+        }
+        if self.sim.simulation.is_some() {
+            self.scene.sim.clone_from(&self.sim.full_layer);
+        } else if self.result.is_some() {
+            self.start_simulation();
+        } else if self.generation.is_none() && self.edit.is_some() {
+            self.start_generation(false);
+        }
+    }
+
+    /// Back to Edit: a drawing or editing tool, placing text or a Browser selection
+    /// (docs/specs/edit-and-simulate.md decision 5).
+    pub(super) fn enter_edit_mode(&mut self) {
+        self.set_show_simulation(false);
     }
 
     /// A simulation is being computed.

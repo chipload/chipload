@@ -42,6 +42,7 @@ impl ChiploadApp {
 
     pub fn start_drawing(&mut self, tool: Tool) {
         if self.can_draw() {
+            self.enter_edit_mode();
             if self.three_d {
                 self.view_top(); // drawing works in top view only
             }

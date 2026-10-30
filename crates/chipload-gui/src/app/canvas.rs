@@ -98,7 +98,9 @@ impl ChiploadApp {
             )
         });
         self.update_corner_markers();
-        let shape_handles = if self.show_drawing() {
+        // Simulate is a viewer: no handles to drag (docs/specs/edit-and-simulate.md §2).
+        let editing = !self.show_simulation;
+        let shape_handles = if editing && self.show_drawing() {
             self.shape_handles()
         } else {
             Vec::new()
@@ -109,7 +111,11 @@ impl ChiploadApp {
         self.scene.handles = others.into_iter().map(|&(_, p)| p).collect();
         self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
         // A selected picture's or text's box handles (docs/specs/box-handles.md).
-        let box_handles = self.box_handle_points();
+        let box_handles = if editing {
+            self.box_handle_points()
+        } else {
+            Vec::new()
+        };
         self.scene
             .handles
             .extend(box_handles.iter().map(|&(_, p)| p));
@@ -131,7 +137,8 @@ impl ChiploadApp {
         // The work zero's handle, over everything else (docs/specs/work-zero-marker.md §3).
         let zero_handle = self.zero_handle();
         self.scene.zero_handle = zero_handle.map(|p| (p, self.focus == Focus::WorkZero));
-        if response.drag_started_by(egui::PointerButton::Primary)
+        if editing
+            && response.drag_started_by(egui::PointerButton::Primary)
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
             if self.on_zero_handle(origin) && self.start_zero_drag() {
@@ -365,14 +372,12 @@ impl ChiploadApp {
             self.scene.sketch_points.clear();
             self.scene.measure = None;
             // A corner marker opens its menu (docs/specs/dogbone-per-corner.md §6).
-            let corner = response
-                .clicked()
+            let corner = (editing && response.clicked())
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .filter(|&pos| on_handle(pos).is_none() && on_box_handle(pos).is_none())
                 .and_then(|pos| self.corner_marker_at(pos));
-            let label = response
-                .clicked()
+            let label = (editing && response.clicked())
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .and_then(|pos| labels.iter().find(|l| l.rect.contains(pos)));
@@ -388,8 +393,7 @@ impl ChiploadApp {
                         && self.tab_marker_at(pos).is_none()
                 })
                 .and_then(|pos| self.scene.op_label_at(&self.view, pos));
-            let zero_clicked = response
-                .clicked()
+            let zero_clicked = (editing && response.clicked())
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .is_some_and(|pos| self.on_zero_handle(pos));
@@ -401,7 +405,8 @@ impl ChiploadApp {
                 self.open_corner_menu(k);
             } else if let Some(op) = op_label {
                 self.focus = Focus::Op(op);
-            } else if response.clicked()
+            } else if editing
+                && response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
                 && on_handle(pos).is_none()
                 && on_box_handle(pos).is_none()
@@ -419,14 +424,13 @@ impl ChiploadApp {
         let moved = self.move_outlines();
         self.scene.preview.extend(moved);
         // Right-clicking a corner marker opens its menu, not the canvas's.
-        let corner_clicked = response
-            .secondary_clicked()
+        let corner_clicked = (editing && response.secondary_clicked())
             .then(|| response.interact_pointer_pos())
             .flatten()
             .and_then(|pos| self.corner_marker_at(pos));
         if let Some(k) = corner_clicked {
             self.open_corner_menu(k);
-        } else if response.secondary_clicked() {
+        } else if editing && response.secondary_clicked() {
             let at = response.interact_pointer_pos();
             self.drag.context_start = at.and_then(|pos| self.start_marker_at(pos));
             self.drag.context_tab = at.and_then(|pos| self.tab_marker_at(pos));
@@ -450,7 +454,7 @@ impl ChiploadApp {
                 .flatten()
         });
         let picked_id = picked.map(|c| c.id);
-        if corner_clicked.is_none() {
+        if editing && corner_clicked.is_none() {
             response.context_menu(|ui| {
                 // A tab, or the ring a tab can be added to (docs/specs/tabs-by-hand.md §1).
                 if let (None, Some(marker)) = (context_start, context_tab) {

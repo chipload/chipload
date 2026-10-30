@@ -75,7 +75,7 @@ menu-show-drawing-hover = Masquer le dessin pour voir le brut ou le parcours d'o
 menu-show-images = Afficher les images
 menu-show-images-hover = Les images vectorisées en formes, en transparence sur le brut
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Afficher le brut (simulation)
+menu-simulate = Simuler
 menu-simulation-hint = Afficher le brut tel que le programme le laisse : chaque mouvement usiné avec la forme de l'outil (plus foncé = plus profond ; rouge = sous le brut). Affichage seulement.
 menu-units = Unités
 menu-units-mm-hover = Longueurs en mm, avances en mm/min
@@ -132,6 +132,7 @@ menu-generating = Calcul…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; sur un segment, Ctrl insère un point, Shift le courbe)
 menu-status-hint = Cliquer un contour pour le sélectionner · Ctrl+clic ajoute ou retire · clic droit sélectionne son calque · Esc désélectionne
+menu-status-simulate-hint = Simuler : glisser pour déplacer (3D : pivoter) · cliquer le numéro d'une opération l'ouvre · F6 revient à Modifier
 menu-join-ends = Joindre les extrémités…
 menu-join-ends-hover = Joindre en une seule les polylignes dessinées ouvertes dont les extrémités se touchent presque : celles sélectionnées, ou toutes si aucune ne l'est
 menu-join-ends-disabled-hover = Il n'y a aucune forme dessinée. Les formes d'un DXF peuvent être jointes une fois celui-ci décomposé (clic droit dessus dans le Navigateur).

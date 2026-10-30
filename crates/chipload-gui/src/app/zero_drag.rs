@@ -42,6 +42,7 @@ impl ChiploadApp {
     /// placed.
     pub(super) fn zero_handle(&self) -> Option<Point> {
         if self.three_d
+            || self.show_simulation
             || self.sketch.is_some()
             || self.modify.is_some()
             || self.measure.is_some()

@@ -41,6 +41,9 @@ pub(super) struct Generation {
     /// The one part planned for the preview; None: the whole project
     /// (docs/specs/active-part-preview.md).
     scope: Option<u64>,
+    /// What the run is made from: an edit that leaves it so keeps the run
+    /// (docs/specs/edit-and-simulate.md §5).
+    inputs: Option<chipload_pipeline::CutInputs>,
 }
 
 fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
@@ -123,6 +126,7 @@ impl ChiploadApp {
                 return false;
             }
         };
+        let inputs = self.cut_inputs_now();
         let (sender, receiver) = channel();
         let cancel = Arc::new(Cancel::new());
         let flag = Arc::clone(&cancel);
@@ -149,6 +153,7 @@ impl ChiploadApp {
             project,
             loud,
             scope,
+            inputs,
         });
         true
     }
@@ -203,17 +208,26 @@ impl ChiploadApp {
     }
 
     fn finish_generation(&mut self, generation: Generation, outcome: Outcome) -> bool {
-        if self.edit.as_ref() != Some(&generation.project) {
-            return false; // made for a project that has changed since: dropped
+        // Made for a project that has changed since in a way that can change the run:
+        // dropped (a shape no operation selects keeps it).
+        if self.edit.as_ref() != Some(&generation.project)
+            && (generation.inputs.is_none() || self.cut_inputs_now() != generation.inputs)
+        {
+            return false;
         }
         let refusable = self.undo_if_refused.take().as_ref() == Some(&generation.project);
         let Generation {
-            job, loud, scope, ..
+            job,
+            loud,
+            scope,
+            inputs,
+            ..
         } = generation;
         let done = match outcome {
             Ok(Ok(result)) => {
                 self.result_part = scope;
                 self.show_result(&job, result);
+                self.shown_inputs = inputs;
                 true
             }
             Ok(Err(PipelineError::Toolpath(ToolpathError::Cancelled))) => false,
@@ -474,5 +488,23 @@ impl ChiploadApp {
     pub fn set_auto_generate(&mut self, on: bool) {
         self.auto_generate = on;
         self.change_settings(|settings| settings.auto_generate = on);
+    }
+
+    /// What a run of the project as edited would be made from; None when it can't be
+    /// read (docs/specs/edit-and-simulate.md §5).
+    pub(super) fn cut_inputs_now(&self) -> Option<chipload_pipeline::CutInputs> {
+        let job = self.edit.as_ref()?.to_job().ok()?;
+        chipload_pipeline::cut_inputs(&job)
+    }
+
+    /// Whether the edit just made leaves the toolpath shown, or the run under way, as it
+    /// is: it can't change what they are made from (a shape no operation selects).
+    pub(super) fn edit_keeps_cut(&self) -> bool {
+        let made_from = match &self.generation {
+            Some(generation) => generation.inputs.as_ref(),
+            None if self.result.is_some() => self.shown_inputs.as_ref(),
+            None => None,
+        };
+        made_from.is_some_and(|inputs| self.cut_inputs_now().as_ref() == Some(inputs))
     }
 }

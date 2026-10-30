@@ -208,6 +208,15 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Edit and Simulate** (2026-10-30, the user: box selection didn't work after the
+  simulation was shown, then "a distinct simulation switch"; docs/specs/edit-and-simulate.md):
+  two canvas modes, Edit (projects open in it: drawing, selecting, handles) and Simulate
+  (**Simulate** on the navigation bar, View > Simulate, F6: the shaded stock and playback, a
+  drag pans or orbits, a click opens an operation by its number). A drawing tool or a
+  Browser selection goes back to Edit, which always shows the drawing. The simulation is
+  computed only in Simulate and kept while in Edit. Only edits that can change the cut make
+  a new toolpath (`chipload_pipeline::cut_inputs`): a shape no operation selects doesn't,
+  unless it grows a fitting board or lies off the stock. To try by hand.
 - **Update notice** (2026-10-30, the user: "could we also add an update notification when
   there are new releases available at GitHub?"; docs/specs/update-notice.md, ADR 0026):
   asked once; when on, a daily check at start of GitHub's latest published release (one

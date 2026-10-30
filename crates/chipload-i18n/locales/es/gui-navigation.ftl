@@ -11,10 +11,10 @@ navigation-3d-hover = 3D: arrastrar con el botón izquierdo gira e inclina; con 
 navigation-3d-stretched-hover = 3D, Z estirada × { $scale }: arrastrar con el botón izquierdo gira e inclina; con el derecho o Shift+arrastrar desplaza
 
 # What is shown. "Stock": the simulated material as it is cut.
-navigation-stock = Material
-navigation-stock-busy = Material…
+navigation-simulate = Simular
+navigation-simulate-busy = Simular…
 navigation-simulating-hover = Simulando…
-navigation-stock-first-hover = El material tal como queda cortado: calcula la trayectoria primero
+navigation-simulate-hover = Simular: el material como lo deja el programa, con reproducción. Arrastrar desplaza o gira; no se edita nada en el lienzo. Clic de nuevo o F6 para volver a Editar
 navigation-toolpath = Trayectoria
 navigation-toolpath-hover = Mostrar la trayectoria; desactivada, solo el dibujo o el material simulado
 navigation-drawing = Dibujo

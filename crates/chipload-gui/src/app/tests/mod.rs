@@ -201,12 +201,15 @@ fn import_create_operations_generate_save_and_run_without_the_dxf() {
 }
 
 #[test]
-fn the_simulation_is_on_from_the_start_and_shows_what_the_tools_leave() {
+fn the_simulation_shows_what_the_tools_leave() {
     // docs/specs/material-left-merge.md: the simulation, not a separate shading, shows the
-    // material left, and the report has no "can't reach" lines any more.
+    // material left, and the report has no "can't reach" lines any more. Projects open in
+    // Edit (docs/specs/edit-and-simulate.md): nothing is simulated until Simulate.
     let mut app = lower_part();
-    assert!(app.show_simulation);
+    assert!(!app.show_simulation);
     assert!(app.generate_and_wait(), "{:?}", app.report);
+    assert!(!app.simulating());
+    app.set_show_simulation(true);
     let ctx = egui::Context::default();
     assert!(app.wait_for_simulation(&ctx));
     assert!(app.sim.simulation.is_some());

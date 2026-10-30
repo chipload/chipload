@@ -99,3 +99,77 @@ fn a_drag_on_an_imported_contour_selects_with_a_box() {
     assert!(app.drag.moving.is_none());
     assert!(app.drag.select_box.is_some());
 }
+
+mod modes {
+    //! Edit and Simulate (docs/specs/edit-and-simulate.md §2), with the mouse in the window.
+    use super::*;
+    use egui_kittest::Harness;
+
+    fn harness() -> Harness<'static, ChiploadApp> {
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1200.0, 800.0))
+            .build_eframe(|_| {
+                let mut app = ChiploadApp::default();
+                assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+                app
+            });
+        harness.run_steps(6);
+        harness
+    }
+
+    fn drag(h: &mut Harness<'_, ChiploadApp>, from: (f64, f64), to: (f64, f64)) {
+        let (from, to) = (h.state().view.to_screen(from), h.state().view.to_screen(to));
+        h.hover_at(from);
+        h.run_steps(2);
+        h.drag_at(from);
+        h.run_steps(2);
+        for k in 1..=5 {
+            h.hover_at(from + (to - from) * (k as f32 / 5.0));
+            h.run_steps(2);
+        }
+        h.drop_at(to);
+        h.run_steps(3);
+    }
+
+    #[test]
+    fn simulate_is_a_viewer_and_edit_selects_with_a_box_again() {
+        let mut h = harness();
+        assert!(!h.state().show_simulation, "projects open in Edit");
+        // F6: Simulate, which makes the toolpath and its simulation.
+        h.key_press(egui::Key::F6);
+        h.run_steps(2);
+        assert!(h.state().show_simulation);
+        assert!(h.state_mut().wait_for_generation() || h.state().result.is_some());
+        let ctx = egui::Context::default();
+        h.state_mut().wait_for_simulation(&ctx);
+        assert!(h.state().sim.simulation.is_some());
+        // In Simulate a drag pans: nothing is selected.
+        h.state_mut().selection = CanvasSelection::Nothing;
+        let before = h.state().view.to_screen((0.0, 0.0));
+        drag(&mut h, (40.0, 40.0), (160.0, 120.0));
+        assert_eq!(h.state().selection, CanvasSelection::Nothing);
+        assert_ne!(h.state().view.to_screen((0.0, 0.0)), before, "panned");
+        // F6 again: Edit, where the same drag selects with a box (the user's report).
+        h.key_press(egui::Key::F6);
+        h.run_steps(2);
+        assert!(!h.state().show_simulation);
+        h.state_mut().fit_pending = true;
+        h.run_steps(3);
+        drag(&mut h, (40.0, 40.0), (160.0, 120.0));
+        assert_eq!(selected(h.state()), [2, 3].into());
+    }
+
+    #[test]
+    fn a_drawing_tool_or_a_browser_selection_goes_back_to_edit() {
+        let mut app = drawn_part();
+        app.set_show_simulation(true);
+        app.start_drawing(Tool::Circle);
+        assert!(!app.show_simulation);
+        app.sketch = None;
+        app.set_show_simulation(true);
+        app.set_show_drawing(false);
+        app.select_row(CanvasSelection::Layer("drawn".into(), None), false);
+        assert!(!app.show_simulation);
+        assert!(app.show_drawing(), "Edit always shows the drawing");
+    }
+}

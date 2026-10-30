@@ -89,6 +89,8 @@ pockets, clearance, and now rest machining.
    today it starts off. **Recommended**: with the material-left shading gone, it is how you
    see what's left. It runs in the background after generating, typically in well under a
    second. Alternative: off at start as now, with a hint in the report when it's off.
+   *Replaced 2026-10-30 by docs/specs/edit-and-simulate.md: projects open in Edit, and the
+   simulation shows in Simulate mode (F6).*
 3. **Keep the missed-material warning, text only.** **Recommended**: it flags a toolpath
    fault, not a property of the drawing. Alternative: drop it too and rely on the
    simulation, which would lose a warning that needs no simulation.

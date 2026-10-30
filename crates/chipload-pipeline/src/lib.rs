@@ -1106,6 +1106,43 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> 
     notes
 }
 
+/// What a run is made from (docs/specs/edit-and-simulate.md §5): the project without its
+/// shapes, the contours each operation selects (numbers and geometry), each setup's board
+/// and work zero, and whether the drawing reaches outside the stock (a note). Two projects
+/// with the same inputs give the same run, so an edit that leaves them unchanged (a shape
+/// no operation selects, on a board that doesn't fit the drawing) needs no new one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CutInputs {
+    project: Job,
+    selections: Vec<Vec<Contour>>,
+    boards: Vec<((Point, Point), Point)>,
+    outside: bool,
+}
+
+/// The [`CutInputs`] of a project; None when its drawing or a selection can't be read
+/// (then a run says why).
+pub fn cut_inputs(job: &Job) -> Option<CutInputs> {
+    let imported = load_drawing(job).ok()?;
+    let selections = chipload_toolpath::plan::selections(job, &imported.contours).ok()?;
+    let boards = job
+        .setups
+        .iter()
+        .map(|setup| {
+            let one = job.for_setup(setup.id);
+            (one.stock_bounds(), one.work_zero_xy())
+        })
+        .collect();
+    let mut project = job.clone();
+    project.drawing.shapes.clear();
+    project.drawing.next_shape_id = 0;
+    Some(CutInputs {
+        project,
+        selections,
+        boards,
+        outside: !extent_notes(job, &imported.report).is_empty(),
+    })
+}
+
 fn extent_notes(job: &Job, report: &ImportReport) -> Vec<Message> {
     let Some(((x0, y0), (x1, y1))) = report.bbox else {
         return Vec::new();

@@ -75,7 +75,7 @@ menu-show-drawing-hover = Nascondi il disegno per vedere solo il grezzo o il per
 menu-show-images = Mostra immagini
 menu-show-images-hover = Le immagini vettorizzate in forme, tenui sopra il grezzo
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Mostra grezzo (simulazione)
+menu-simulate = Simula
 menu-simulation-hint = Mostra il grezzo come lo lascia il programma: ogni movimento tagliato con la forma dell'utensile (più scuro è più profondo; rosso è sotto il grezzo). Solo visualizzazione.
 menu-units = Unità
 menu-units-mm-hover = Lunghezze in mm, avanzamenti in mm/min
@@ -132,6 +132,7 @@ menu-generating = Calcolo…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Trascinamento a ({ $x }, { $y }){ $snapped } (Alt: niente aggancio; su un segmento Ctrl inserisce un punto, Shift lo curva)
 menu-status-hint = Clic su un contorno per selezionarlo · Ctrl+clic aggiunge o toglie · clic destro seleziona il suo layer · Esc annulla la selezione
+menu-status-simulate-hint = Simula: trascina per spostare (3D: ruotare) · clic sul numero di un'operazione la apre · F6 torna a Modifica
 menu-join-ends = Unisci estremi…
 menu-join-ends-hover = Unisci in una sola le polilinee disegnate aperte i cui estremi quasi si toccano: quelle selezionate, o tutte se nessuna è selezionata
 menu-join-ends-disabled-hover = Non ci sono forme disegnate. Le forme di un DXF si possono unire dopo averlo esploso (clic destro su di esso nel Browser).

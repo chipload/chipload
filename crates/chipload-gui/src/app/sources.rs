@@ -347,6 +347,7 @@ impl ChiploadApp {
 
     /// Select what a row stands for; with Ctrl, add its contours to the selection.
     pub(super) fn select_row(&mut self, selection: CanvasSelection, add: bool) {
+        self.enter_edit_mode();
         if !add || self.selection == CanvasSelection::Nothing {
             self.selection = selection;
             return;

@@ -31,6 +31,7 @@ shortcuts-generate = Generate the toolpath and G-code
 shortcuts-fit = Fit the view
 shortcuts-top-view = Top view
 shortcuts-grid = Show or hide the grid
+shortcuts-simulate = Simulate or edit
 shortcuts-measure = Measure: two clicks give the distance and angle
 shortcuts-panels = Fold or open the side panels, for a larger canvas
 shortcuts-this-list = This list

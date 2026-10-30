@@ -31,6 +31,7 @@ shortcuts-generate = Calcular la trayectoria y el código G
 shortcuts-fit = Ajustar la vista
 shortcuts-top-view = Vista superior
 shortcuts-grid = Mostrar u ocultar la cuadrícula
+shortcuts-simulate = Simular o editar
 shortcuts-measure = Medir: dos clics dan la distancia y el ángulo
 shortcuts-panels = Plegar o abrir los paneles laterales, para un lienzo más grande
 shortcuts-this-list = Esta lista

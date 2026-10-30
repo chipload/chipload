@@ -108,6 +108,7 @@ impl ChiploadApp {
         if !self.can_draw() {
             return;
         }
+        self.enter_edit_mode();
         // Union and intersect need no click: they act on the selection.
         match tool {
             ModifyTool::Union => {

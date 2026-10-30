@@ -652,13 +652,21 @@ fn the_simulation_follows_the_toggle_and_the_toolpath() {
             .iter()
             .any(|l| l.text.starts_with("Simulation:"))
     );
-    // A new toolpath replaces it; switching off drops it.
+    // A new toolpath replaces it.
     assert!(app.generate_and_wait());
     assert!(app.scene.sim.is_none());
     assert!(app.wait_for_simulation(&ctx));
     assert!(app.scene.sim.is_some());
+    // Back to Edit: hidden but kept; Simulate again shows it at once, nothing recomputed
+    // (docs/specs/edit-and-simulate.md §3).
     app.set_show_simulation(false);
-    assert!(app.scene.sim.is_none() && app.sim.simulation.is_none());
+    assert!(app.scene.sim.is_none() && app.sim.simulation.is_some());
+    app.set_show_simulation(true);
+    assert!(app.scene.sim.is_some() && !app.simulating());
+    // A new toolpath made in Edit drops it: it no longer matches.
+    app.set_show_simulation(false);
+    assert!(app.generate_and_wait());
+    assert!(app.sim.simulation.is_none() && !app.simulating());
 }
 
 #[test]

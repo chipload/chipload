@@ -11,10 +11,10 @@ navigation-3d-hover = 3D : glisser à gauche fait tourner et incliner ; glisser 
 navigation-3d-stretched-hover = 3D, Z étiré × { $scale } : glisser à gauche fait tourner et incliner ; glisser à droite ou Shift+glisser déplace
 
 # What is shown. "Stock": the simulated material as it is cut.
-navigation-stock = Brut
-navigation-stock-busy = Brut…
+navigation-simulate = Simuler
+navigation-simulate-busy = Simuler…
 navigation-simulating-hover = Simulation…
-navigation-stock-first-hover = Le brut tel qu'usiné : calculez d'abord le parcours d'outil
+navigation-simulate-hover = Simuler : le brut tel que le programme le laisse, avec la lecture. Glisser déplace ou fait pivoter ; rien n'est modifié sur le canevas. Cliquer à nouveau ou F6 pour revenir à Modifier
 navigation-toolpath = Parcours
 navigation-toolpath-hover = Afficher le parcours d'outil ; désactivé, le dessin ou le brut simulé seul
 navigation-drawing = Dessin

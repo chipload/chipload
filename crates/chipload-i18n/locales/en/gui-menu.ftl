@@ -75,7 +75,7 @@ menu-show-drawing-hover = Hide the drawing to see the stock or the toolpath alon
 menu-show-images = Show images
 menu-show-images-hover = The pictures traced into shapes, faintly over the stock
 # The stock: the material being cut, as the simulation shows it.
-menu-show-simulation = Show stock (simulation)
+menu-simulate = Simulate
 menu-simulation-hint = Show the stock as the program leaves it: every move cut with the tool's shape (darker is deeper; red is below the stock). Display only.
 menu-units = Units
 menu-units-mm-hover = Lengths in mm, feeds in mm/min
@@ -132,6 +132,7 @@ menu-generating = Generating…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; on a segment Ctrl inserts a point, Shift bends it)
 menu-status-hint = Click a contour to select it · Ctrl+click adds or removes · right-click selects its layer · Esc clears
+menu-status-simulate-hint = Simulate: drag to pan (3D: orbit) · click an operation's number to open it · F6 back to Edit
 menu-join-ends = Join ends…
 menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one: the selected ones, or all when none is selected
 menu-join-ends-disabled-hover = There are no drawn shapes. A DXF's shapes can be joined once it is exploded (right-click it in the Browser).

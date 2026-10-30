@@ -57,7 +57,7 @@ the G-code headers and the setup sheet show the passes where they are cut.
 - **Nothing left:** if the large tool reaches the whole pocket (a circle wider than it),
   the pass cuts nothing and says so.
 
-*View > Show stock* shows the result: the corners cut by the small tool.
+**Simulate** (F6) shows the result: the corners cut by the small tool.
 
 ## Rules
 

@@ -440,9 +440,13 @@ impl ChiploadApp {
         }
         ui.checkbox(&mut self.show_toolpath, t!(ui, "menu-show-toolpath"))
             .on_hover_text(t!(ui, "menu-show-toolpath-hover"));
+        // Edit always shows the drawing (docs/specs/edit-and-simulate.md §2).
         let mut drawing = self.show_drawing();
         if ui
-            .checkbox(&mut drawing, t!(ui, "menu-show-drawing"))
+            .add_enabled(
+                self.show_simulation,
+                egui::Checkbox::new(&mut drawing, t!(ui, "menu-show-drawing")),
+            )
             .on_hover_text(t!(ui, "menu-show-drawing-hover"))
             .changed()
         {
@@ -452,7 +456,10 @@ impl ChiploadApp {
             .on_hover_text(t!(ui, "menu-show-images-hover"));
         let mut sim = self.show_simulation;
         if ui
-            .checkbox(&mut sim, t!(ui, "menu-show-simulation"))
+            .checkbox(
+                &mut sim,
+                with_keys(&t!(ui, "menu-simulate"), Action::Simulate),
+            )
             .on_hover_text(simulation_hint(ui))
             .changed()
         {
@@ -873,6 +880,8 @@ impl ChiploadApp {
             }
         } else if self.polyline_selected() {
             ui.label(RichText::new(crate::shape_form::polyline_help(ui)).weak());
+        } else if self.edit.is_some() && self.show_simulation {
+            ui.label(RichText::new(t!(ui, "menu-status-simulate-hint")).weak());
         } else if self.edit.is_some() {
             ui.label(RichText::new(t!(ui, "menu-status-hint")).weak());
         }

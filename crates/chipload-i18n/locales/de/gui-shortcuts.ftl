@@ -31,6 +31,7 @@ shortcuts-generate = Werkzeugweg und G-Code berechnen
 shortcuts-fit = Die Ansicht einpassen
 shortcuts-top-view = Draufsicht
 shortcuts-grid = Das Raster zeigen oder ausblenden
+shortcuts-simulate = Simulieren oder bearbeiten
 shortcuts-measure = Messen: zwei Klicks ergeben Abstand und Winkel
 shortcuts-panels = Die Seitenbereiche ein- oder ausklappen, für eine größere Zeichenfläche
 shortcuts-this-list = Diese Liste

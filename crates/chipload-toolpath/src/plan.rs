@@ -257,6 +257,19 @@ struct Chosen<'a> {
     selection: Selection<'a>,
 }
 
+/// The contours each cut operation and rest pass of the active setup selects, in cut order:
+/// all that planning reads of the drawing (the contours some operation cuts are these
+/// together). For telling whether a change to the drawing can change a plan
+/// (docs/specs/edit-and-simulate.md §5).
+pub fn selections(job: &Job, contours: &[Contour]) -> Result<Vec<Vec<Contour>>, ToolpathError> {
+    let one = job.active_setup_id().map(|id| job.for_setup(id));
+    let job = one.as_ref().unwrap_or(job);
+    Ok(select_all(job, contours)?
+        .into_iter()
+        .map(|chosen| chosen.selection.contours.into_iter().cloned().collect())
+        .collect())
+}
+
 /// Every cut operation's and rest pass's selection (docs/specs/v0-profile-pipeline.md §3),
 /// in the job's cut list (docs/specs/rest-passes.md §3).
 fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>, ToolpathError> {
