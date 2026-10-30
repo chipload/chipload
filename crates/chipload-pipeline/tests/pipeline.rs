@@ -1039,36 +1039,47 @@ fn a_cancelled_run_stops_and_an_uncancelled_one_is_unchanged() {
 
 #[test]
 fn a_run_cancelled_from_another_thread_stops_early() {
+    use std::time::{Duration, Instant};
     let job = round_corners_job();
-    // Timed warm, the quickest of a few runs: a cold first run is slower, and a cancel timed
-    // from it could come after a warm run is done (the 0.29.0 release build on macOS).
+    // Timed warm, the quickest of a few runs: a cold first run is slower.
     run(&job);
     let full = (0..3)
         .map(|_| {
-            let started = std::time::Instant::now();
+            let started = Instant::now();
             run(&job);
             started.elapsed()
         })
         .min()
         .unwrap();
-    if full < std::time::Duration::from_millis(40) {
+    if full < Duration::from_millis(40) {
         return; // too quick to cancel halfway on this machine
     }
-    let cancel = std::sync::Arc::new(Cancel::new());
-    let flag = cancel.clone();
-    let canceller = std::thread::spawn(move || {
-        std::thread::sleep(full / 8);
-        flag.cancel();
-    });
-    let started = std::time::Instant::now();
-    let result = run_job_cancellable(&job, &cancel);
-    let took = started.elapsed();
-    canceller.join().unwrap();
-    assert!(matches!(
-        result,
-        Err(PipelineError::Toolpath(ToolpathError::Cancelled))
-    ));
-    assert!(took < full * 3 / 4, "{took:?} of {full:?}");
+    // What counts is how soon a run stops once the flag is set, timed from when it was set:
+    // a sleeping canceller can wake late on a busy machine (the 0.29.0 release build on
+    // macOS), and then the run may be done first. Then cancel earlier and try again.
+    for k in 0..5 {
+        let cancel = std::sync::Arc::new(Cancel::new());
+        let flag = cancel.clone();
+        let canceller = std::thread::spawn(move || {
+            std::thread::sleep(full / (8 << k));
+            flag.cancel();
+            Instant::now()
+        });
+        let result = run_job_cancellable(&job, &cancel);
+        let done = Instant::now();
+        let cancelled_at = canceller.join().unwrap();
+        let after = done.saturating_duration_since(cancelled_at);
+        assert!(
+            after < full / 2,
+            "ran on {after:?} after the cancel, of {full:?}"
+        );
+        match result {
+            Err(PipelineError::Toolpath(ToolpathError::Cancelled)) => return,
+            Ok(_) => continue, // done before the cancel was seen
+            Err(err) => panic!("{err}"),
+        }
+    }
+    panic!("never cancelled: every run was done first");
 }
 
 // -- problems while editing (docs/specs/live-problems.md)
