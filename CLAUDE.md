@@ -161,6 +161,7 @@ cargo run -p chipload-gui -- part.chipload                # GUI (also opens a .d
 CHIPLOAD_PICTURES=$TMPDIR/pictures cargo test -p chipload-gui pictures -- --ignored   # the window rendered headless (egui_kittest, wgpu): each language, a narrow window
 cargo about generate --fail about.hbs > THIRD-PARTY-LICENSES.txt   # after dependency changes (CI checks it)
 packaging/linux/build-appimage.sh 0.2.0 dist              # Linux AppImage (after cargo build --release)
+packaging/windows/build-installer.sh 0.2.0 x86_64 GUI.exe CLI.exe dist   # Windows installer (NSIS's makensis, on Linux)
 ```
 
 Releases: push a `vX.Y.Z` tag; CI builds the AppImage, Windows executables and a **draft**

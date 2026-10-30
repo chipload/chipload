@@ -7,7 +7,9 @@
 #
 #   Linux:   chipload-X.Y.Z-linux-x86_64.AppImage, chipload-X.Y.Z-linux-aarch64.AppImage (GUI),
 #            chipload-cli-X.Y.Z-linux-x86_64.tar.gz, chipload-cli-X.Y.Z-linux-aarch64.tar.gz (CLI)
-#   Windows: chipload-X.Y.Z-windows-x86_64.exe, chipload-X.Y.Z-windows-aarch64.exe (GUI),
+#   Windows: chipload-X.Y.Z-windows-x86_64-setup.exe, chipload-X.Y.Z-windows-aarch64-setup.exe
+#            (installers: app and command line), chipload-X.Y.Z-windows-x86_64.exe,
+#            chipload-X.Y.Z-windows-aarch64.exe (GUI, portable),
 #            chipload-cli-X.Y.Z-windows-x86_64.zip, chipload-cli-X.Y.Z-windows-aarch64.zip (CLI)
 #   macOS:   chipload-X.Y.Z-macos-universal.dmg (GUI), chipload-cli-X.Y.Z-macos-universal.tar.gz (CLI)
 #   chipload-guide-X.Y.Z.zip (the user guide), SHA256SUMS.txt
@@ -143,6 +145,51 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # The installers (docs/specs/windows-installer.md), built on Linux with NSIS from the
+  # Windows builds above.
+  windows-installer:
+    needs: [version, windows]
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: windows-*
+          path: win
+      - name: NSIS
+        run: sudo apt-get update && sudo apt-get install -y nsis
+      - name: Installers
+        run: |
+          for arch in x86_64 aarch64; do
+            unzip -q "win/windows-$arch/chipload-cli-$VERSION-windows-$arch.zip" -d "cli-$arch"
+            packaging/windows/build-installer.sh "$VERSION" "$arch" \
+              "win/windows-$arch/chipload-$VERSION-windows-$arch.exe" \
+              "cli-$arch/chipload-cli-$VERSION-windows-$arch/chipload.exe" dist
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-installers
+          path: dist/*
+          if-no-files-found: error
+
+  # Install, check, uninstall, check again, on a clean Windows.
+  windows-installer-test:
+    needs: [version, windows-installer]
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-installers
+          path: dist
+      - name: Install and uninstall
+        shell: pwsh
+        run: packaging/windows/test-installer.ps1 "dist/chipload-$env:VERSION-windows-x86_64-setup.exe" $env:VERSION
+
   macos:
     needs: version
     # Apple silicon; the Intel half of the universal binaries is cross-compiled.
@@ -185,7 +232,7 @@ jobs:
   draft-release:
     # Only for a tag: a run by hand builds the files and stops there.
     if: github.event_name == 'push'
-    needs: [version, linux, windows, macos, guide]
+    needs: [version, linux, windows, windows-installer, windows-installer-test, macos, guide]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -207,9 +254,11 @@ jobs:
 
           **Download the app** (one file per system):
 
-          - **Windows:** \`chipload-$VERSION-windows-x86_64.exe\`, or \`chipload-$VERSION-windows-aarch64.exe\`
-            for ARM laptops (Snapdragon): a single file, no installer. It is not code-signed yet, so
-            Windows SmartScreen may ask before the first start (*More info > Run anyway*).
+          - **Windows:** \`chipload-$VERSION-windows-x86_64-setup.exe\`, or \`chipload-$VERSION-windows-aarch64-setup.exe\`
+            for ARM laptops (Snapdragon): installs Chipload for you, no administrator needed, and opens
+            \`.chipload\` files with a double-click. Or the portable \`chipload-$VERSION-windows-x86_64.exe\`
+            (\`…-aarch64.exe\`): a single file, no installer. Neither is code-signed yet, so Windows
+            SmartScreen may ask the first time (*More info > Run anyway*).
           - **Linux:** \`chipload-$VERSION-linux-x86_64.AppImage\`, or \`chipload-$VERSION-linux-aarch64.AppImage\`
             for ARM64 (Raspberry Pi 4 and 5 with a 64-bit OS): make it executable and run it
             (\`chmod +x\`). Without FUSE: \`--appimage-extract-and-run\`.

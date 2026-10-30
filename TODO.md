@@ -87,6 +87,10 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Update notice** (asked 2026-10-30): tell the user when a newer release is on GitHub.
+  Needs a spec: whether it asks first or checks by default, how often, what it sends (one
+  request to GitHub's releases API), where it shows, and never a download or install by
+  itself. The window only: no network calls from the library crates.
 - **Shakedown findings** (the user on the router, 2026-10-28; the checklist is kept
   private, outside the repository):
   1. The stock should sit centred on the drawing, sticking out equally all round. Done
@@ -208,6 +212,15 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Windows installer** (2026-10-30, the user: "could we add a windows installer so we can
+  open chipload files with a double click?"; docs/specs/windows-installer.md, ADR 0025):
+  `chipload-X.Y.Z-windows-<arch>-setup.exe`, NSIS built on Linux, per user: the app and
+  the command line, `.chipload` opened with a double-click, Chipload in *Open with* for
+  DXF and SVG, Start menu, uninstaller that keeps the settings. The release workflow
+  builds both and tests a silent install and uninstall on Windows. To try by hand before
+  the first release with it (spec §7). Open: drop the Windows CLI zips now that the
+  installer carries `chipload.exe` (the user asked whether the CLI downloads are needed;
+  recommended: drop the Windows zips, keep Linux and macOS).
 - **V-carve passes of equal load** (2026-10-30, the user: "each stepdown will cut the entire
   length of the v-bit", then "final depth: 5 mm, passes: 6"; docs/specs/v-carve.md decision
   12, schema 35): a V-carve has a number of passes, 1 to 100, in place of its step down;

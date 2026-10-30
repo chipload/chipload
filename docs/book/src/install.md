@@ -33,16 +33,30 @@ chmod +x chipload-*.AppImage
 
 ## Windows
 
-Download `chipload-X.Y.Z-windows-x86_64.exe`: the app as one file with nothing to install.
-Double-click it to start. On a Windows laptop with an ARM processor (Snapdragon), take
-`chipload-X.Y.Z-windows-aarch64.exe` instead.
+Download `chipload-X.Y.Z-windows-x86_64-setup.exe` and run it. On a Windows laptop with an
+ARM processor (Snapdragon), take `chipload-X.Y.Z-windows-aarch64-setup.exe` instead. It
+installs Chipload for you alone, without asking for administrator rights, into
+`%LOCALAPPDATA%\Programs\Chipload` (you can choose another folder), and then:
 
-The app isn't code-signed, so Windows SmartScreen may warn the first time. Choose *More
-info > Run anyway*.
+- `.chipload` files open in Chipload with a double-click, and show its icon;
+- DXF and SVG files have Chipload under *Open with*; the program that opens them now
+  stays as it is;
+- *Chipload* is in the Start menu.
 
-- **Command line:** it's in `chipload-cli-X.Y.Z-windows-x86_64.zip` (ARM:
-  `…-windows-aarch64.zip`). Unzip it and run `chipload.exe` from a terminal (PowerShell or
-  Command Prompt); it isn't meant to be double-clicked.
+To update, run the newer installer: it replaces the old version in place. To remove
+Chipload, use *Settings > Apps*. Your settings, tools, machines, materials and posts stay,
+for when you install it again.
+
+The installer isn't code-signed, so Windows SmartScreen may warn the first time. Choose
+*More info > Run anyway*.
+
+- **Without installing:** `chipload-X.Y.Z-windows-x86_64.exe` (`…-aarch64.exe`) is the app
+  as one file, to run from anywhere, a USB stick too. Double-clicking a project won't open
+  it; use *File > Open* in the app.
+- **Command line:** the installer puts `chipload.exe` beside the app, in the folder above;
+  run it from a terminal (PowerShell or Command Prompt) with its full path, e.g.
+  `& "$env:LOCALAPPDATA\Programs\Chipload\chipload.exe" --version`. Without installing,
+  it's in `chipload-cli-X.Y.Z-windows-x86_64.zip` (ARM: `…-windows-aarch64.zip`).
 
 ## macOS
 

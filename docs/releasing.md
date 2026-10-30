@@ -57,7 +57,9 @@ and `chipload`.
 |---|---|
 | `chipload-X.Y.Z-linux-x86_64.AppImage` | Linux GUI; glibc 2.35+ (Ubuntu 22.04, Debian 12, Fedora 36 or newer) |
 | `chipload-X.Y.Z-linux-aarch64.AppImage` | the same for ARM64: Raspberry Pi 4 and 5 with a 64-bit OS, ARM boards and laptops |
-| `chipload-X.Y.Z-windows-x86_64.exe` | Windows GUI, single file (static C runtime), not code-signed |
+| `chipload-X.Y.Z-windows-x86_64-setup.exe` | Windows installer (NSIS, per user): the GUI and the command line, `.chipload` opened with a double-click, Start menu, uninstaller (docs/specs/windows-installer.md) |
+| `chipload-X.Y.Z-windows-aarch64-setup.exe` | the same for Windows on ARM (its installer program is x86, run by Windows' emulation) |
+| `chipload-X.Y.Z-windows-x86_64.exe` | Windows GUI, portable: single file (static C runtime), not code-signed |
 | `chipload-X.Y.Z-windows-aarch64.exe` | the same for Windows on ARM (Snapdragon laptops) |
 | `chipload-X.Y.Z-macos-universal.dmg` | macOS GUI (`Chipload.app`, Apple silicon and Intel, macOS 11+), signed ad hoc, not notarised |
 | `chipload-cli-X.Y.Z-linux-x86_64.tar.gz`, `…-linux-aarch64.tar.gz` | Linux command line, with LICENSE and the third-party notices |
@@ -103,12 +105,16 @@ From WSL, in `/mnt/c/code/chipload`:
    `LICENSE` and `THIRD-PARTY-LICENSES.txt` into `chipload-cli-0.13.0-windows-x86_64.zip`.
 2. Check that neither needs the VC++ runtime: `strings -a FILE | grep -iE
    '^(vcruntime|msvcp|api-ms-win-crt)'` prints nothing.
-3. Add their checksums to the release's `SHA256SUMS.txt` (`gh release download v0.13.0 -p
+3. The installer, back in WSL (needs `makensis`, Ubuntu's `nsis` package):
+   `packaging/windows/build-installer.sh 0.13.0 x86_64 chipload-0.13.0-windows-x86_64.exe
+   target/release/chipload.exe dist` gives `dist/chipload-0.13.0-windows-x86_64-setup.exe`;
+   upload it with the others. Install and remove it once by hand (docs/specs/windows-installer.md §7).
+4. Add their checksums to the release's `SHA256SUMS.txt` (`gh release download v0.13.0 -p
    SHA256SUMS.txt`, then `sha256sum *.exe *.zip >> SHA256SUMS.txt`).
-4. `gh release upload v0.13.0 chipload-0.13.0-windows-x86_64.exe
+5. `gh release upload v0.13.0 chipload-0.13.0-windows-x86_64.exe
    chipload-cli-0.13.0-windows-x86_64.zip SHA256SUMS.txt --clobber`, and list the Windows files
    in the release notes.
-5. `git switch main` in the Windows checkout, so it isn't left on the tag.
+6. `git switch main` in the Windows checkout, so it isn't left on the tag.
 
 ### macOS
 

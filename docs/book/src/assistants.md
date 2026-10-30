@@ -30,8 +30,9 @@ listens on the network.
   }
   ```
 
-  On Windows, the command is the full path to `chipload.exe`, from
-  `chipload-cli-X.Y.Z-windows-x86_64.zip`. Ask
+  On Windows, the command is the full path to `chipload.exe`: with the installer,
+  `C:\\Users\\YOU\\AppData\\Local\\Programs\\Chipload\\chipload.exe` (in JSON each `\` is
+  written twice), otherwise where you unzipped `chipload-cli-X.Y.Z-windows-x86_64.zip`. Ask
   the assistant to use full paths to your files there, as it has no project folder.
 
 ## What the assistant can do
