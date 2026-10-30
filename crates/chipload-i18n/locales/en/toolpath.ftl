@@ -66,6 +66,8 @@ toolpath-rest-pass-no-tool = tool { $tool } is not defined in the job
 toolpath-rest-pass-endmill = tool { $tool } is a { $type }; a rest pass cuts with an endmill
 toolpath-rest-pass-larger = tool { $tool } ({ $diameter }) must be smaller than tool { $before } ({ $before_diameter }) before it
 toolpath-rest-pass-no-rpm = tool { $tool } has no spindle speed (rpm)
+toolpath-floor-pass-endmill = tool { $tool } is a { $type }; a floor pass cuts with an end mill
+toolpath-floor-no-fit = contours { $contours }: the { $diameter } end mill doesn't fit in the floor; the V-bit cleans it along the centre line
 
 ## Planning notes: warnings that don't stop the G-code
 
@@ -161,6 +163,8 @@ toolpath-rest-too-small = rest machining: material in { $count ->
 # carves at that depth, $need the depth the widest stroke needs.
 toolpath-vcarve-floor-left-bit = contours { $contours }: wider than the V-bit ({ $across } across) reaches at most { $cap } deep ({ $wide } at the surface): it cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 toolpath-vcarve-floor-left = contours { $contours }: wider than a carve at most { $cap } deep reaches ({ $wide } at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+toolpath-vcarve-floor-cleared = contours { $contours }: with the { $diameter } end mill, { $cleared } % of the floor is cleared; one of at most { $largest } would clear all of it
+toolpath-vcarve-floor-cleared-none = contours { $contours }: with the { $diameter } end mill, { $cleared } % of the floor is cleared; parts of it are too narrow for any end mill
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours }: { $narrow } of centre line is narrower than the tip ({ $tip }) and isn't carved
 toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $length }); skipped

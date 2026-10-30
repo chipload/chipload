@@ -2959,6 +2959,48 @@ pub struct VcarveOp {
     pub feed: f64,
     /// The feed for moves steeper than 45°, mm/min.
     pub plunge_feed: f64,
+    /// A floor pass: an end mill that clears the floor between the walls of strokes too
+    /// wide to carve from their centre line. Missing: none. Left out when missing.
+    // Spec: docs/specs/vcarve-wide-strokes.md §4 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floor: Option<FloorPass>,
+}
+
+impl VcarveOp {
+    /// How far inside the outline the floor of a stroke too wide to carve begins: where the
+    /// V-bit `bit`'s walls meet the floor, at its deepest (the end depth, or as deep as its
+    /// cone reaches). None for a bit without an angle.
+    // Spec: docs/specs/vcarve-wide-strokes.md §4.
+    pub fn floor_inset(&self, bit: &Tool) -> Option<f64> {
+        let slope = (bit.angle? / 2.0).tan();
+        let tip = bit.tip_diameter.unwrap_or(0.0);
+        let deepest = (bit.diameter - tip) / 2.0 / slope;
+        let depth = (self.end_depth - self.start_depth).min(deepest);
+        Some(depth * slope)
+    }
+}
+
+/// The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears
+/// the floor between the walls, in the V-carve's shapes and depths, before it.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct FloorPass {
+    /// The id of the project tool it cuts with (`tools`): an end mill.
+    pub tool: i64,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down into the material, mm/min.
+    pub plunge_feed: f64,
+    /// The deepest each pass goes, mm.
+    pub step_down: f64,
+    /// The distance between the clearing rings, as a fraction of the tool diameter.
+    pub stepover: f64,
+    /// How the tool goes down: `plunge`, `ramp` or `helix`.
+    pub entry: Entry,
+    /// False: kept, but not cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
 }
 
 /// Follow path: the tool centre on the selected shapes, open or closed, in depth passes.
@@ -3854,6 +3896,13 @@ impl Job {
                     }
                     positive(at("feed"), v.feed);
                     positive(at("plunge_feed"), v.plunge_feed);
+                    if let Some(floor) = &v.floor {
+                        let at = |field: &str| format!("operations.{i}.floor.{field}");
+                        positive(at("step_down"), floor.step_down);
+                        positive(at("feed"), floor.feed);
+                        positive(at("plunge_feed"), floor.plunge_feed);
+                        positive(at("stepover"), floor.stepover);
+                    }
                 }
                 Operation::Path(p) => {
                     positive(at("end_depth"), p.end_depth);
@@ -4183,6 +4232,17 @@ impl Job {
                         ));
                     }
                 }
+            }
+            if let Operation::Vcarve(VcarveOp {
+                floor: Some(floor), ..
+            }) = op
+                && floor.stepover > 1.0
+            {
+                problems.push(Problem::at(
+                    format!("operations.{i}.floor.stepover"),
+                    Message::new("job-stepover-at-most-1")
+                        .arg("got", Value::Number(floor.stepover, Digits::Shortest)),
+                ));
             }
             if let Operation::Profile(ProfileOp {
                 tabs: Some(tabs), ..

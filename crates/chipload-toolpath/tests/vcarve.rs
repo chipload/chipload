@@ -25,7 +25,7 @@ fn bit(degrees: f64, tip: f64) -> VBit {
 
 fn carve(contours: &[Contour], bit: &VBit, max_depth: f64) -> VcarvePlan {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0)).unwrap()
+    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0), None).unwrap()
 }
 
 // -- an independent geometry, for the checks
@@ -365,6 +365,52 @@ fn a_stroke_wider_than_the_cap_gets_walls_and_its_floor_is_reported() {
     assert!(note.contains("floor pass"), "{note}");
 }
 
+/// The share of the floor cleared with an end mill of `radius` (1 when nothing is left).
+fn cleared(shape: &[Contour], bit: &VBit, cap: f64, radius: f64) -> f64 {
+    let refs: Vec<&Contour> = shape.iter().collect();
+    let plan = plan_vcarve(&refs, bit, cap, (0.0, 0.0), Some(radius)).unwrap();
+    plan.floors.iter().map(|f| f.cleared).fold(1.0, f64::min)
+}
+
+#[test]
+fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
+    // 40 x 10, a 90° bit at most 2 deep: the floor is 36 x 6 (vcarve-wide-strokes.md §8).
+    let shape = [common::rect(7, 0.0, 0.0, 40.0, 10.0)];
+    let bit = bit(90.0, 0.0);
+    let refs: Vec<&Contour> = shape.iter().collect();
+    // A 3 mm end mill fits: the V-bit cleans the corners, nothing is left.
+    let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5)).unwrap();
+    assert!(fits.floors.is_empty(), "{:?}", fits.floors);
+    assert!(
+        fits.notes.is_empty(),
+        "no floor-left note: {:?}",
+        fits.notes
+    );
+    assert_no_gouge(&shape, &fits, &bit);
+    // A 12 mm one doesn't fit: the hint is about the floor's width.
+    let wide = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(6.0)).unwrap();
+    assert_eq!(wide.floors.len(), 1, "{:?}", wide.floors);
+    let floor = &wide.floors[0];
+    assert_eq!(floor.contours, "#7");
+    assert!(floor.cleared < 1.0);
+    assert!(
+        (5.0..=6.0).contains(&floor.largest),
+        "largest {}",
+        floor.largest
+    );
+    // The hint holds: an end mill of that size leaves nothing that counts.
+    assert_eq!(cleared(&shape, &bit, 2.0, floor.largest / 2.0), 1.0);
+    // The V-bit cleans along the centre line where the end mill can't reach.
+    assert_no_gouge(&shape, &wide, &bit);
+    assert!(
+        wide.paths
+            .iter()
+            .flat_map(|p| &p.points)
+            .any(|&p| dist_to_outline(&shape, p) > 4.0),
+        "a clean-up down the middle"
+    );
+}
+
 #[test]
 fn the_bit_limits_the_depth_too() {
     // A 90° bit 6 mm across carves at most 3 mm deep.
@@ -492,6 +538,22 @@ proptest! {
         assert_no_gouge(&shape, &plan, &bit);
         let miss = worst_miss(&shape, &plan, &bit, 0.4);
         prop_assert!(miss <= TOL, "missed by {miss}");
+    }
+
+    /// A smaller end mill never clears less of a floor (vcarve-wide-strokes.md §8).
+    #[test]
+    fn a_smaller_end_mill_never_clears_less(
+        points in 3usize..7,
+        outer in 8.0f64..14.0,
+        ratio in 0.4f64..0.7,
+        angle in 60.0f64..100.0,
+        small in 0.3f64..2.0,
+        more in 0.1f64..3.0,
+    ) {
+        let shape = [star(points, outer, outer * ratio, 0.3)];
+        let bit = bit(angle, 0.0);
+        let (a, b) = (cleared(&shape, &bit, 0.8, small), cleared(&shape, &bit, 0.8, small + more));
+        prop_assert!(a >= b - 0.02, "{} mm clears {}, {} mm clears {}", small, a, small + more, b);
     }
 
     /// Too wide for the depth: walls, no gouge, and everything within the walls' reach

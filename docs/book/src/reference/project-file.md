@@ -178,6 +178,20 @@ A finishing pass on a profile.
 |---|---|---|---|
 | `stock` | number | yes | Left on the wall by the roughing passes, mm: more than 0, less than the tool radius. |
 
+## FloorPass
+
+The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears the floor between the walls, in the V-carve's shapes and depths, before it.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
+| `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `step_down` | number | yes | The deepest each pass goes, mm. |
+| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill. |
+
 ## HoleMethod
 
 How a Holes operation cuts.
@@ -348,6 +362,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
 | `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
+| `floor` | [FloorPass](#floorpass) or null | no | A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing. |
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |

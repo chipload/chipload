@@ -302,6 +302,8 @@ pipeline-not-a-pocket = operation { $number } is not a pocket; only pockets rest
 pipeline-operation-refused = operation { $number }: { $reason }
 pipeline-rest-dogbones = it has dogbones, and dogbones and rest machining can't be combined yet; dogbone corners need no rest
 pipeline-rest-not-endmill = tool { $tool } is not an endmill
+pipeline-not-a-vcarve = operation { $number } is not a V-carve; only V-carves have a floor pass
+pipeline-floor-not-endmill = tool { $tool } is not an end mill; a floor pass cuts with one
 pipeline-rest-before-not-endmill = tool { $tool } before it is not an endmill
 pipeline-rest-not-smaller = tool { $tool } ({ $diameter }) is not smaller than tool { $before } ({ $before_diameter }) before it
 # $dxfs lists the project's DXFs by number and name ("1 part-a, 2 part-b").

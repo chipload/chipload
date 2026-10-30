@@ -31,16 +31,16 @@ use std::path::{Path, PathBuf};
 use chipload_check::{CheckIssue, CheckLimits, check_gcode, limits_for_tool, limits_from_job};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_dxf::{
     ImportError, ImportReport, ImportResult, ImportedShapes, contours_from_shapes, sha256_hex,
 };
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::library::Cutting;
+use chipload_job::library::{Cutting, LibraryTool};
 use chipload_job::{
     CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, RestRefusal, Spindle,
-    Stock, StockCorner, StockOrigin, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
-    rest_refusal,
+    Stock, StockCorner, StockOrigin, Tool, ToolChange, ToolType, Units, VcarveOp, WorkZero, ZZero,
+    find_tool, rest_refusal,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
@@ -162,6 +162,9 @@ pub struct RunResult {
     pub unreached_corners: Vec<(usize, chipload_core::Point)>,
     /// Every profile tab's centre, for the tab markers.
     pub tab_centres: Vec<chipload_toolpath::plan::TabCentre>,
+    /// V-carves whose floor pass leaves part of the floor: the operation and the largest
+    /// end mill diameter that would clear it all, mm (docs/specs/vcarve-wide-strokes.md §4.1).
+    pub floor_hints: Vec<(usize, f64)>,
     /// Toolpath warnings, each with the operation it is about.
     pub notes: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
@@ -366,6 +369,94 @@ pub fn add_rest_pass(
     ))
 }
 
+/// A floor pass for `vcarve` with project tool `tool` (docs/specs/vcarve-wide-strokes.md
+/// §4). The feeds, step down and stepover are `cutting`'s (the library's values for the
+/// tool) when given, else the V-carve's feeds, its step down (or its whole depth) and 0.45;
+/// it plunges, or goes down in a helix when the end mill isn't centre-cutting. Refused, with
+/// the reason, for a tool that isn't an end mill.
+pub fn floor_pass_of(
+    vcarve: &VcarveOp,
+    tools: &[Tool],
+    tool: i64,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::FloorPass, Message> {
+    let mill =
+        find_tool(tools, tool).ok_or_else(|| Message::new("pipeline-no-tool").arg("tool", tool))?;
+    if mill.kind != ToolType::Endmill {
+        return Err(Message::new("pipeline-floor-not-endmill").arg("tool", tool));
+    }
+    let entry = if mill.center_cutting == Some(false) {
+        Entry::default_helix(mill.diameter)
+    } else {
+        Entry::Plunge {}
+    };
+    let (feed, plunge_feed, step_down, stepover) = match cutting {
+        Some(c) => (c.feed, c.plunge_feed, c.step_down, c.stepover),
+        None => (
+            vcarve.feed,
+            vcarve.plunge_feed,
+            vcarve
+                .step_down
+                .unwrap_or(vcarve.end_depth - vcarve.start_depth),
+            FLOOR_STEPOVER,
+        ),
+    };
+    Ok(chipload_job::FloorPass {
+        tool,
+        feed,
+        plunge_feed,
+        step_down,
+        stepover,
+        entry,
+        enabled: true,
+    })
+}
+
+/// A floor pass's stepover when the library has no values for its tool.
+const FLOOR_STEPOVER: f64 = 0.45;
+
+/// Give V-carve `number` (1-based) a floor pass with tool `tool`, in place of any it had
+/// (docs/specs/vcarve-wide-strokes.md §7). Returns the pass.
+pub fn add_floor_pass(
+    job: &mut Job,
+    number: usize,
+    tool: i64,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::OpRef, PipelineError> {
+    let count = job.operations.len();
+    let index = number
+        .checked_sub(1)
+        .filter(|&i| i < count)
+        .ok_or_else(|| no_operation(number, count))?;
+    let tools = job.tools.clone();
+    let Operation::Vcarve(vcarve) = &mut job.operations[index] else {
+        return Err(PipelineError::Job(
+            Message::new("pipeline-not-a-vcarve").arg("number", number),
+        ));
+    };
+    let pass = floor_pass_of(vcarve, &tools, tool, cutting).map_err(|e| {
+        PipelineError::Job(
+            Message::new("pipeline-operation-refused")
+                .arg("number", number)
+                .arg("reason", e),
+        )
+    })?;
+    vcarve.floor = Some(pass);
+    Ok(chipload_job::OpRef::pass(index, 0))
+}
+
+/// The library's end mills no wider than `largest` (a floor hint, mm), the nearest to it
+/// first (docs/specs/vcarve-wide-strokes.md §4.1, decision 8).
+pub fn fitting_end_mills(library: &[LibraryTool], largest: f64) -> Vec<&LibraryTool> {
+    let mut fitting: Vec<&LibraryTool> = library
+        .iter()
+        .filter(|t| t.kind == ToolType::Endmill && t.diameter <= largest + DEPTH_TOL_MM)
+        .collect();
+    // Stable: equal diameters keep the library's order.
+    fitting.sort_by(|a, b| b.diameter.total_cmp(&a.diameter));
+    fitting
+}
+
 /// A standalone rest pocket that copies an earlier pocket of the same part: the same shapes,
 /// depths, clearance and direction, resting after that pocket's tool (or its last pass's).
 /// Its index, for *Make it a rest pass* (docs/specs/rest-passes.md §5).
@@ -525,6 +616,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         ring_starts: plan.ring_starts,
         unreached_corners: plan.unreached_corners,
         tab_centres: plan.tab_centres,
+        floor_hints: plan.floor_hints,
         notes,
         check_warnings,
     })

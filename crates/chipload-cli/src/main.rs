@@ -48,9 +48,9 @@ use chipload_pipeline::shapes::{
 };
 use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
 use chipload_pipeline::{
-    PipelineError, RunResult, add_rest_pass, empty_project, foreign_text, load_drawing,
-    new_project, run_job, set_op_rest, set_op_tool, update_drawing_with, write_atomically,
-    write_gcode_files,
+    PipelineError, RunResult, add_floor_pass, add_rest_pass, empty_project, foreign_text,
+    load_drawing, new_project, run_job, set_op_rest, set_op_tool, update_drawing_with,
+    write_atomically, write_gcode_files,
 };
 use chipload_post::{load_builtin_post, render_program};
 use chipload_toolpath::arcs::Circle;
@@ -563,6 +563,34 @@ enum OpAction {
         /// The smaller tool's id in the project.
         #[arg(long)]
         tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Give a V-carve a floor pass (docs/specs/vcarve-wide-strokes.md §4): an end mill that
+    /// clears the floor between the walls of strokes too wide to carve from their centre
+    /// line, cut before the V-carve. Replaces the floor pass it had.
+    AddFloor {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The V-carve's number as the app lists it (1 = first; `get` and `set` paths count
+        /// from 0).
+        #[arg(long)]
+        op: usize,
+        /// The end mill's id in the project.
+        #[arg(long)]
+        tool: i64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4).
+    RemoveFloor {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The V-carve's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -2901,6 +2929,9 @@ fn run(
     for note in &result.notes {
         out.line(format!("warning: {note}"));
     }
+    for line in floor_hint_lines(&result.floor_hints) {
+        out.line(line);
+    }
     for warning in &result.check_warnings {
         out.line(format!("check warning: {}", warning.message));
     }
@@ -3258,6 +3289,71 @@ fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ));
             out.set("operation", json!(at.operation));
             out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddFloor {
+            project,
+            op,
+            tool,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            // The library's cutting values for the tool, as for a new operation.
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let cutting = job
+                .tools
+                .iter()
+                .find(|t| t.id == tool)
+                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
+            let at = match add_floor_pass(&mut job, op, tool, cutting.as_ref()) {
+                Ok(at) => at,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            let from = if cutting.is_some() {
+                "the library's cutting values for the tool"
+            } else {
+                "the V-carve's feeds; check them for the end mill"
+            };
+            out.line(format!(
+                "Added floor pass {at} to operation {op}, tool {tool}, with {from}."
+            ));
+            out.set("operation", json!(at.operation));
+            out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::RemoveFloor {
+            project,
+            op,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(chipload_job::Operation::Vcarve(vcarve)) =
+                op.checked_sub(1).and_then(|i| job.operations.get_mut(i))
+            else {
+                return out.fail(format!("operation {op} is not a V-carve"));
+            };
+            if vcarve.floor.take().is_none() {
+                return out.fail(format!("operation {op} has no floor pass"));
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            out.line(format!("Removed the floor pass of operation {op}."));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
@@ -3681,6 +3777,10 @@ fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCo
                 "stored": s.stored,
             })).collect::<Vec<_>>(),
             "estimate": estimate_json(&estimate),
+            "floor_hints": plan.floor_hints.iter().map(|&(operation, largest)| json!({
+                "operation": operation,
+                "largest_mm": largest,
+            })).collect::<Vec<_>>(),
             "chip_load": job.operations.iter().enumerate()
                 .filter(|(i, _)| job.cuts(*i))
                 .map(|(i, op)| json!({
@@ -3691,6 +3791,9 @@ fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]) -> ExitCo
     } else {
         for note in &plan.notes {
             out.line(format!("warning: {note}"));
+        }
+        for line in floor_hint_lines(&plan.floor_hints) {
+            out.line(line);
         }
         for start in &plan.ring_starts {
             let Some((x, y)) = start.ring.first() else {
@@ -4073,4 +4176,33 @@ fn check(out: &mut Out, gcode: &Path, job_path: &Path, tool: Option<i64>) -> Exi
     } else {
         ExitCode::from(EXIT_FAILED)
     }
+}
+
+/// For each V-carve whose floor pass leaves part of the floor, the library's end mills that
+/// would clear it all (docs/specs/vcarve-wide-strokes.md §4.1, decision 8). Nothing when
+/// none fits or there is no library.
+fn floor_hint_lines(hints: &[(usize, f64)]) -> Vec<String> {
+    if hints.is_empty() {
+        return Vec::new();
+    }
+    let library = settings_dir()
+        .map(|dir| Library::load(&dir))
+        .unwrap_or_default();
+    hints
+        .iter()
+        .filter_map(|&(operation, largest)| {
+            let fitting = chipload_pipeline::fitting_end_mills(&library.tools.tools, largest);
+            (!fitting.is_empty()).then(|| {
+                let names: Vec<String> = fitting
+                    .iter()
+                    .map(|t| format!("{} ({} mm)", t.name, chipload_core::text::mm(t.diameter)))
+                    .collect();
+                format!(
+                    "Operation {}: end mills in your library that clear the floor: {}",
+                    operation + 1,
+                    names.join(", ")
+                )
+            })
+        })
+        .collect()
 }

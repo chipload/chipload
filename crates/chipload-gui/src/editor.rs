@@ -488,6 +488,7 @@ impl EditJob {
                     step_down: None,
                     feed,
                     plunge_feed,
+                    floor: None,
                 }),
                 true,
             ),

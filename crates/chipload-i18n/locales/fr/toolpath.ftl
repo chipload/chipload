@@ -66,6 +66,8 @@ toolpath-rest-pass-no-tool = l'outil { $tool } n'est pas défini dans le projet
 toolpath-rest-pass-endmill = l'outil { $tool } est de type { $type } ; une passe de reprise usine avec une fraise
 toolpath-rest-pass-larger = l'outil { $tool } ({ $diameter }) doit être plus petit que l'outil { $before } ({ $before_diameter }) qui le précède
 toolpath-rest-pass-no-rpm = l'outil { $tool } n'a pas de vitesse de broche (rpm)
+toolpath-floor-pass-endmill = l'outil { $tool } est de type { $type } ; une passe de fond usine avec une fraise
+toolpath-floor-no-fit = contours { $contours } : la fraise droite de { $diameter } n'entre pas dans le fond ; la fraise en V le dégage le long de la ligne médiane
 
 ## Planning notes: warnings that don't stop the G-code
 
@@ -161,6 +163,8 @@ toolpath-rest-too-small = reprise des restes : la matière à { $count ->
 # carves at that depth, $need the depth the widest stroke needs.
 toolpath-vcarve-floor-left-bit = contours { $contours } : plus larges que ce qu'atteint la fraise en V ({ $across } de diamètre) à au plus { $cap } de profondeur ({ $wide } en surface) : elle taille les flancs, et le fond entre eux reste à la surface. Ajoutez une passe de fond avec une fraise droite pour le dégager
 toolpath-vcarve-floor-left = contours { $contours } : plus larges que ce qu'atteint une gravure d'au plus { $cap } de profondeur ({ $wide } en surface) : la fraise en V taille les flancs, et le fond entre eux reste à la surface. Ajoutez une passe de fond avec une fraise droite pour le dégager
+toolpath-vcarve-floor-cleared = contours { $contours } : avec la fraise droite de { $diameter }, { $cleared } % du fond est dégagé ; une d'au plus { $largest } le dégagerait entièrement
+toolpath-vcarve-floor-cleared-none = contours { $contours } : avec la fraise droite de { $diameter }, { $cleared } % du fond est dégagé ; certaines parties sont trop étroites pour toute fraise droite
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours } : { $narrow } de ligne médiane sont plus étroits que la pointe ({ $tip }) et ne sont pas gravés
 toolpath-path-too-short = le contour #{ $contour } est trop court pour être suivi ({ $length }) ; ignoré

@@ -10,9 +10,9 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef, Operation,
-    Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs, Tool, ToolType,
-    VcarveOp, ZZero, rest_refusal,
+    Copies, CopyOrder, Entry, FloorPass, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef,
+    Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs,
+    Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -64,6 +64,9 @@ pub struct Plan {
     /// Every profile tab's centre on its ring (on the part, copy 1), for the tab markers
     /// and `op tabs` (docs/specs/tabs-by-hand.md).
     pub tab_centres: Vec<TabCentre>,
+    /// V-carves whose floor pass leaves part of the floor: the operation and the largest end
+    /// mill diameter that would clear it all, mm (docs/specs/vcarve-wide-strokes.md §4.1).
+    pub floor_hints: Vec<(usize, f64)>,
     /// The tool groups in cut order (docs/specs/tool-per-operation.md §2): one per tool
     /// change, each a program of its own or a part of one. A one-tool job has one.
     pub groups: Vec<ToolGroup>,
@@ -208,6 +211,7 @@ pub fn plan_job_cancellable(
         ring_starts,
         unreached_corners,
         tab_centres,
+        floor_hints,
         arcs,
         comments,
         ..
@@ -235,6 +239,7 @@ pub fn plan_job_cancellable(
         ring_starts,
         unreached_corners,
         tab_centres,
+        floor_hints,
         groups,
     })
 }
@@ -464,6 +469,7 @@ fn plan_step(
         tab_points: &tab_points,
         cut_contours: &cut_contours,
         cancel,
+        floor_pass: job.is_floor_pass(chosen.at),
     };
     let moved: Vec<Contour> = chosen
         .selection
@@ -547,6 +553,7 @@ struct Gathered {
     ring_starts: Vec<RingStart>,
     unreached_corners: Vec<(usize, Point)>,
     tab_centres: Vec<TabCentre>,
+    floor_hints: Vec<(usize, f64)>,
     arcs: ArcTable,
     /// With two parts or more, a comment where each part starts (docs/specs/parts.md §6).
     comments: Vec<String>,
@@ -595,6 +602,11 @@ impl Gathered {
         self.pockets.extend(planned.pockets);
         // Start markers are drawn on the part: the copies' are the same. A rest pass's rings
         // start where the planner puts them: starts belong to the pocket.
+        if step.copy == 1
+            && let Some(largest) = planned.floor_hint
+        {
+            self.floor_hints.push((index, largest));
+        }
         if step.copy == 1 && at.pass.is_none() {
             self.unreached_corners
                 .extend(planned.unreached.iter().map(|&p| (index, p)));
@@ -657,6 +669,8 @@ struct Context<'a> {
     /// against these (docs/specs/dogbones.md §6).
     cut_contours: &'a [Contour],
     cancel: &'a Cancel,
+    /// A V-carve's floor pass, planned as a pocket (docs/specs/vcarve-wide-strokes.md §4).
+    floor_pass: bool,
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
@@ -673,6 +687,9 @@ struct Planned {
     unreached: Vec<Point>,
     /// Each tab's ring (index in the rings), centre and whether it was placed by hand.
     tab_centres: Vec<(usize, Point, bool)>,
+    /// A V-carve with a floor pass that leaves part of the floor: the largest end mill
+    /// diameter that would clear it all, mm (docs/specs/vcarve-wide-strokes.md §4.1).
+    floor_hint: Option<f64>,
 }
 
 fn plan_pocket_op(
@@ -716,6 +733,7 @@ fn plan_pocket_op(
             spiral: true,
             cancel: Some(ctx.cancel),
             rest,
+            floor: ctx.floor_pass,
         },
     };
     let plan = plan_pocket(&request).map_err(|err| err.with_context(ctx.label_message.clone()))?;
@@ -762,6 +780,7 @@ fn plan_pocket_op(
         starts: Vec::new(),
         unreached: unreached_at,
         tab_centres: Vec::new(),
+        floor_hint: None,
     };
     let cut = PocketCut {
         pass_z: ctx.pass_z,
@@ -912,6 +931,7 @@ fn plan_path_op(
         starts: Vec::new(),
         unreached: Vec::new(),
         tab_centres: Vec::new(),
+        floor_hint: None,
     })
 }
 
@@ -1042,6 +1062,7 @@ fn plan_holes_op(
         starts: Vec::new(),
         unreached: Vec::new(),
         tab_centres: Vec::new(),
+        floor_hint: None,
     })
 }
 
@@ -1067,6 +1088,7 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
         starts: Vec::new(),
         unreached: Vec::new(),
         tab_centres: Vec::new(),
+        floor_hint: None,
     }
 }
 
@@ -1087,6 +1109,9 @@ fn groove_note(tool: &Tool, depth: f64) -> Option<Message> {
     })
 }
 
+/// The smallest end mill a floor hint names, mm: below it, no end mill clears the floor.
+const FLOOR_HINT_MIN_MM: f64 = 0.1;
+
 fn plan_vcarve_op(
     op: &VcarveOp,
     ctx: &Context,
@@ -1106,13 +1131,40 @@ fn plan_vcarve_op(
         tip_diameter: tool.tip_diameter.unwrap_or(0.0),
         diameter: tool.diameter,
     };
+    // The floor pass's end mill, when it is cut (checked in validate_job).
+    let floor_tool = op
+        .floor
+        .filter(|f| f.enabled)
+        .and_then(|f| ctx.job.tool(f.tool))
+        .filter(|t| t.kind == ToolType::Endmill);
     let plan = plan_vcarve(
         &selection.contours,
         &bit,
         op.end_depth - op.start_depth,
         start,
+        floor_tool.map(|t| t.diameter / 2.0),
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
+    let mut notes = plan.notes;
+    let floor_hint = plan.floors.iter().map(|f| f.largest).reduce(f64::min);
+    if let Some(tool) = floor_tool {
+        for left in &plan.floors {
+            let note = if left.largest >= FLOOR_HINT_MIN_MM {
+                Message::new("toolpath-vcarve-floor-cleared")
+                    .arg("largest", Value::mm(left.largest))
+            } else {
+                Message::new("toolpath-vcarve-floor-cleared-none")
+            };
+            notes.push(
+                note.arg("contours", left.contours.as_str())
+                    .arg("diameter", Value::mm(tool.diameter))
+                    .arg(
+                        "cleared",
+                        Value::Number((left.cleared * 100.0).floor(), Digits::Fixed(0)),
+                    ),
+            );
+        }
+    }
     let levels = carve_levels(plan.deepest, op.step_down)?;
     let moves = vcarve_moves(
         &plan.paths,
@@ -1129,8 +1181,7 @@ fn plan_vcarve_op(
         .unwrap_or(start);
     Ok(Planned {
         moves,
-        notes: plan
-            .notes
+        notes: notes
             .into_iter()
             .map(|n| labelled_note(ctx.label_message, n))
             .collect(),
@@ -1141,6 +1192,7 @@ fn plan_vcarve_op(
         starts: Vec::new(),
         unreached: Vec::new(),
         tab_centres: Vec::new(),
+        floor_hint,
     })
 }
 
@@ -1228,6 +1280,7 @@ fn plan_profile_op(
             .collect(),
         unreached: unreached_at,
         tab_centres: Vec::new(),
+        floor_hint: None,
     };
     if let Some(rough) = &rough {
         out.arcs.extend(rough.arcs.clone());
@@ -1923,6 +1976,14 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             problems.extend(more_problems);
             notes.extend(more_notes);
         }
+        if let Operation::Vcarve(VcarveOp {
+            floor: Some(floor), ..
+        }) = op
+        {
+            let (more_problems, more_notes) = floor_pass_checks(job, index, floor);
+            problems.extend(more_problems);
+            notes.extend(more_notes);
+        }
         if let Some(max_feed) = job.machine.max_feed {
             for (name, value) in [("feed", feed), ("plunge_feed", plunge_feed)] {
                 if value > max_feed {
@@ -2243,6 +2304,48 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
                 ),
             ));
         }
+    }
+    (problems, notes)
+}
+
+/// A V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4): it cuts with a project
+/// end mill with a spindle speed; its plunge notes are as for any pocket.
+fn floor_pass_checks(job: &Job, index: usize, floor: &FloorPass) -> (Vec<Problem>, Vec<Note>) {
+    let (mut problems, mut notes) = (Vec::new(), Vec::new());
+    let label_message = job.label_message(OpRef::pass(index, 0));
+    let at = |field: &str| format!("operations.{index}.floor.{field}");
+    let Some(tool) = job.tool(floor.tool) else {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-rest-pass-no-tool").arg("tool", floor.tool),
+        ));
+        return (problems, notes);
+    };
+    if tool.kind != ToolType::Endmill {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-floor-pass-endmill")
+                .arg("tool", tool.id)
+                .arg("type", tool.kind.name_message()),
+        ));
+    }
+    if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-rest-pass-no-rpm").arg("tool", tool.id),
+        ));
+    }
+    if let Ok(true) = pocket_tool_notes(tool, floor.entry) {
+        notes.push(Note::at(
+            index,
+            labelled_note(
+                &label_message,
+                Message::new("toolpath-rest-pass-plunge").arg("tool", tool.id),
+            ),
+        ));
     }
     (problems, notes)
 }

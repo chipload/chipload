@@ -66,6 +66,8 @@ toolpath-rest-pass-no-tool = verktyg { $tool } finns inte i jobbet
 toolpath-rest-pass-endmill = verktyg { $tool } är av typen { $type }; en restbearbetning fräser med en pinnfräs
 toolpath-rest-pass-larger = verktyg { $tool } ({ $diameter }) måste vara mindre än verktyg { $before } ({ $before_diameter }) före det
 toolpath-rest-pass-no-rpm = verktyg { $tool } har inget spindelvarvtal (rpm)
+toolpath-floor-pass-endmill = verktyg { $tool } är av typen { $type }; ett bottenpass fräser med en pinnfräs
+toolpath-floor-no-fit = konturer { $contours }: pinnfräsen på { $diameter } får inte plats i botten; V-fräsen rensar den längs mittlinjen
 
 ## Planning notes: warnings that don't stop the G-code
 
@@ -161,6 +163,8 @@ toolpath-rest-too-small = restbearbetning: materialet på { $count ->
 # carves at that depth, $need the depth the widest stroke needs.
 toolpath-vcarve-floor-left-bit = konturer { $contours }: bredare än V-fräsen ({ $across } i diameter) når som högst { $cap } djupt ({ $wide } i ytan): den skär väggarna, och botten mellan dem står kvar i ytan. Lägg till ett bottenpass med en pinnfräs för att rensa den
 toolpath-vcarve-floor-left = konturer { $contours }: bredare än ett snitt som är högst { $cap } djupt når ({ $wide } i ytan): V-fräsen skär väggarna, och botten mellan dem står kvar i ytan. Lägg till ett bottenpass med en pinnfräs för att rensa den
+toolpath-vcarve-floor-cleared = konturer { $contours }: med pinnfräsen på { $diameter } rensas { $cleared } % av botten; en på högst { $largest } skulle rensa hela
+toolpath-vcarve-floor-cleared-none = konturer { $contours }: med pinnfräsen på { $diameter } rensas { $cleared } % av botten; delar av den är för smala för alla pinnfräsar
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = konturerna { $contours }: { $narrow } av mittlinjen är smalare än spetsen ({ $tip }) och graveras inte
 toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $length }); hoppas över

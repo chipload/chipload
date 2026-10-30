@@ -317,6 +317,8 @@ pipeline-not-a-pocket = la operación { $number } no es una cajera; solo las caj
 pipeline-operation-refused = operación { $number }: { $reason }
 pipeline-rest-dogbones = tiene dogbones, y los dogbones y el mecanizado de restos aún no se pueden combinar; las esquinas dogbone no necesitan restos
 pipeline-rest-not-endmill = la herramienta { $tool } no es una fresa
+pipeline-not-a-vcarve = la operación { $number } no es un tallado en V; solo los tallados en V tienen pasada de fondo
+pipeline-floor-not-endmill = la herramienta { $tool } no es una fresa; una pasada de fondo corta con una fresa
 pipeline-rest-before-not-endmill = la herramienta { $tool } anterior no es una fresa
 pipeline-rest-not-smaller = la herramienta { $tool } ({ $diameter }) no es más pequeña que la herramienta { $before } ({ $before_diameter }) anterior
 # $dxfs lists the project's DXFs by number and name ("1 part-a, 2 part-b").

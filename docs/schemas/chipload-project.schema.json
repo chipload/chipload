@@ -458,6 +458,55 @@
       ],
       "type": "object"
     },
+    "FloorPass": {
+      "additionalProperties": false,
+      "description": "The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears\nthe floor between the walls, in the V-carve's shapes and depths, before it.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "False: kept, but not cut. Missing: true.",
+          "type": "boolean"
+        },
+        "entry": {
+          "$ref": "#/$defs/Entry",
+          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
+        },
+        "feed": {
+          "description": "The cutting feed, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "description": "The feed going down into the material, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "step_down": {
+          "description": "The deepest each pass goes, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
+          "format": "double",
+          "type": "number"
+        },
+        "tool": {
+          "description": "The id of the project tool it cuts with (`tools`): an end mill.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "feed",
+        "plunge_feed",
+        "step_down",
+        "stepover",
+        "entry"
+      ],
+      "type": "object"
+    },
     "HoleMethod": {
       "description": "How a Holes operation cuts.",
       "oneOf": [
@@ -1189,6 +1238,17 @@
               "description": "The feed, mm/min, for moves no steeper than 45°.",
               "format": "double",
               "type": "number"
+            },
+            "floor": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/FloorPass"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A floor pass: an end mill that clears the floor between the walls of strokes too\nwide to carve from their centre line. Missing: none. Left out when missing."
             },
             "material": {
               "anyOf": [

@@ -40,6 +40,14 @@ pub const FOLD_MIN_PATH_MM: f64 = 1.0;
 /// and the depth it ramps to can differ in the last bits, and differently on each
 /// platform's maths library (one move more or less in a plan).
 pub const Z_NOISE_MM: f64 = 1e-9;
+/// The floor of a V-carve's wide strokes counts as cleared where no more than this stands on
+/// it (docs/specs/vcarve-wide-strokes.md §4.1, decision 6): without a height, no round end
+/// mill ever clears a sharp corner, so the largest that clears it all would be 0.
+pub const FLOOR_LEFT_MM: f64 = 0.2;
+/// And what stands there counts only when it is at least this share of the region's floor:
+/// the specks a round end mill leaves in sharp corners of the floor are less, and a note for
+/// them would come with nearly every carving (2026-10-30, "not obtrusive").
+pub const FLOOR_LEFT_SHARE: f64 = 0.01;
 /// Imported geometry within this of the stored one counts as unchanged after an update: a
 /// drawing moved several times may differ in the last bits (docs/specs/drawing-placement.md).
 pub const PLACEMENT_ROUNDING_MM: f64 = 1e-9;

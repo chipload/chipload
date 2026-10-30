@@ -22,6 +22,8 @@ job-operation-label-named = Bearbeitung { $number } ({ $name })
 # A rest pass of a pocket: $number is the pocket's and the pass's, as "3.1".
 job-operation-label-rest = Bearbeitung { $number } (Rest)
 job-operation-label-named-rest = Bearbeitung { $number } ({ $name }, Rest)
+job-operation-label-floor = Bearbeitung { $number } (Boden)
+job-operation-label-named-floor = Bearbeitung { $number } ({ $name }, Boden)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] Bohrer

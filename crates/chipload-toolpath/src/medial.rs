@@ -71,7 +71,7 @@ impl Outline {
 
 /// The medial axis as a graph: nodes are Voronoi vertices, edges the bisectors between
 /// them (as polylines), each point with its cut radius once [`Graph::set_cut`] ran.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Graph {
     pub(crate) nodes: Vec<Point>,
     pub(crate) edges: Vec<Edge>,
@@ -230,10 +230,17 @@ impl Graph {
 
 impl Graph {
     /// Keep only the parts of the axis whose cut radius is at most `limit`: an edge that
-    /// crosses it is cut there (at a new node, radius `limit`), the parts beyond are
-    /// dropped (docs/specs/vcarve-wide-strokes.md §3.2). Radii are linear between points
-    /// within the tolerance `set_cut` used, so the crossing is that close.
+    /// crosses it is cut there (at a new node), the parts beyond are dropped
+    /// (docs/specs/vcarve-wide-strokes.md §3.2). Radii are linear between points within the
+    /// tolerance `set_cut` used, so the crossing is that close.
     pub(crate) fn keep_within(&mut self, limit: f64) {
+        self.keep_where(|_, r| r <= limit);
+    }
+
+    /// Keep only the parts of the axis where `keep(point, radius)`: an edge that crosses
+    /// from kept to dropped is cut where it does (found by halving the chord, the radius
+    /// linear along it), at a new node.
+    pub(crate) fn keep_where(&mut self, keep: impl Fn(Point, f64) -> bool) {
         let mut kept = Vec::new();
         let edges = std::mem::take(&mut self.edges);
         for edge in edges.into_iter().filter(|e| e.alive) {
@@ -241,18 +248,34 @@ impl Graph {
             let mut piece: Option<(usize, Vec<Point>, Vec<f64>)> = None;
             for k in 0..edge.points.len() {
                 let (p, r) = (edge.points[k], edge.radii[k]);
-                let inside = r <= limit;
+                let inside = keep(p, r);
                 if k > 0 {
                     let (q, s) = (edge.points[k - 1], edge.radii[k - 1]);
-                    if (s <= limit) != inside {
-                        let t = (limit - s) / (r - s);
-                        let at = (q.0 + (p.0 - q.0) * t, q.1 + (p.1 - q.1) * t);
+                    if piece.is_some() != inside {
+                        let at_t = |t: f64| {
+                            (
+                                (q.0 + (p.0 - q.0) * t, q.1 + (p.1 - q.1) * t),
+                                s + (r - s) * t,
+                            )
+                        };
+                        // Halve [lo, hi] keeping keep(lo) != keep(hi): lo is on q's side.
+                        let (mut lo, mut hi) = (0.0_f64, 1.0_f64);
+                        for _ in 0..MAX_SPLITS {
+                            let mid = (lo + hi) / 2.0;
+                            let (m, rm) = at_t(mid);
+                            if keep(m, rm) == inside {
+                                hi = mid;
+                            } else {
+                                lo = mid;
+                            }
+                        }
+                        let (at, ra) = at_t((lo + hi) / 2.0);
                         let node = self.nodes.len();
                         self.nodes.push(at);
                         match piece.take() {
                             Some((start, mut points, mut radii)) => {
                                 points.push(at);
-                                radii.push(limit);
+                                radii.push(ra);
                                 kept.push(Edge {
                                     ends: [start, node],
                                     points,
@@ -260,7 +283,7 @@ impl Graph {
                                     alive: true,
                                 });
                             }
-                            None => piece = Some((node, vec![at], vec![limit])),
+                            None => piece = Some((node, vec![at], vec![ra])),
                         }
                     }
                 }
@@ -285,6 +308,48 @@ impl Graph {
         }
         kept.retain(|e| e.points.len() >= 2);
         self.edges = kept;
+    }
+
+    /// Split every chord longer than `step` into equal ones, radii linear along it.
+    pub(crate) fn densify(&mut self, step: f64) {
+        for edge in self.edges.iter_mut().filter(|e| e.alive) {
+            let mut points = Vec::with_capacity(edge.points.len());
+            let mut radii = Vec::with_capacity(edge.radii.len());
+            for k in 0..edge.points.len() {
+                if k > 0 {
+                    let (a, b) = (edge.points[k - 1], edge.points[k]);
+                    let (ra, rb) = (edge.radii[k - 1], edge.radii[k]);
+                    let pieces = (distance(a, b) / step).ceil().clamp(1.0, 1.0e6) as usize;
+                    for j in 1..pieces {
+                        let t = j as f64 / pieces as f64;
+                        points.push((a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t));
+                        radii.push(ra + (rb - ra) * t);
+                    }
+                }
+                points.push(edge.points[k]);
+                radii.push(edge.radii[k]);
+            }
+            edge.points = points;
+            edge.radii = radii;
+        }
+    }
+
+    /// The axis's chords whose ends both have a radius over `limit` and pass `keep`.
+    pub(crate) fn chords_where(
+        &self,
+        limit: f64,
+        keep: impl Fn(Point) -> bool,
+    ) -> Vec<(Point, Point)> {
+        let mut chords = Vec::new();
+        for edge in self.edges.iter().filter(|e| e.alive) {
+            for k in 1..edge.points.len() {
+                let (a, b) = (edge.points[k - 1], edge.points[k]);
+                if edge.radii[k - 1] > limit && edge.radii[k] > limit && keep(a) && keep(b) {
+                    chords.push((a, b));
+                }
+            }
+        }
+        chords
     }
 }
 

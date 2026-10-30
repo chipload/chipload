@@ -35,9 +35,33 @@ edge at the surface. The walls come out as drawn, sharp, at the bit's angle; nar
 of the same shape are still carved along their centre line, and corners are carved up into
 their tips.
 
-The floor between the walls is left standing at the surface, with a warning: an outline
-carving. To clear it flat, pocket it first with an end mill and carve on the pocket floor
-with the start depth.
+Without more, the floor between the walls is left standing at the surface, with a
+warning: an outline carving.
+
+### The floor pass
+
+To clear the floor flat, give the V-carve a **floor pass**: an end mill that clears the
+floor at the end depth, kept clear of the sloped walls. It belongs to the V-carve, as a rest
+pass belongs to its pocket: it takes the V-carve's shapes and depths, has its own tool,
+feeds, step down and stepover, and is cut first, so the end mill takes the bulk and the
+V-bit only cuts the walls. Where the end mill can't reach (corners of the floor, parts
+narrower than it), the V-bit cleans up along the centre line at the end depth.
+
+If the end mill is too wide for part of the floor, the plan says how much it clears and the
+largest end mill that would clear it all, and names the end mills in your library that do:
+
+```text
+warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
+Operation 1: end mills in your library that clear the floor: 0.8 mm flat (0.8 mm)
+```
+
+Specks lower than 0.2 mm, or less than 1 % of a shape's floor, don't count: no round end
+mill reaches into a sharp corner. The advice is information only; the job runs either way.
+
+```sh
+chipload op add-floor sign.chipload --op 1 --tool 2   # the floor pass with project tool 2
+chipload op remove-floor sign.chipload --op 1
+```
 
 ## Limits
 
@@ -65,3 +89,4 @@ in mm, feeds in mm/min, angles in radians.
 | `step_down` | Step down, or null for one pass |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
+| `floor` | the floor pass, left out when there is none: `tool` (an end mill), `feed`, `plunge_feed`, `step_down`, `stepover` (a fraction of the end mill's diameter), `entry` and `enabled` |

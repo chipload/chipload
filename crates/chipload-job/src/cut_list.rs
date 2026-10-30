@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! What is cut, in the order it is cut: the operations, and their pockets' rest passes after
-//! the run of pockets they belong to (docs/specs/rest-passes.md §3). An operation keeps its
-//! number in the list; a rest pass is "N.k", k counting from 1.
+//! What is cut, in the order it is cut: the operations, their pockets' rest passes after
+//! the run of pockets they belong to (docs/specs/rest-passes.md §3), and V-carves' floor
+//! passes before the run of V-carves they belong to (docs/specs/vcarve-wide-strokes.md §4).
+//! An operation keeps its number in the list; a rest pass is "N.k", k counting from 1, and
+//! a floor pass "N.1".
 
 use std::fmt;
 
 use chipload_i18n::Message;
 
-use crate::models::{Job, Operation, PocketOp, Rest, operation_label, operation_label_message};
+use crate::models::{
+    Direction, Job, Operation, PocketOp, Rest, VcarveOp, operation_label, operation_label_message,
+};
 
 /// An operation, or one of its pocket's rest passes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OpRef {
     /// Index in `job.operations`.
     pub operation: usize,
-    /// Index in the pocket's `rest_passes`; None: the operation itself.
+    /// Index in the pocket's `rest_passes`, or 0 for a V-carve's floor pass; None: the
+    /// operation itself.
     pub pass: Option<usize>,
 }
 
@@ -52,27 +57,53 @@ impl Job {
     pub fn cut_list(&self) -> Vec<OpRef> {
         let mut list = Vec::new();
         let mut run: Vec<usize> = Vec::new();
+        let mut carves: Vec<usize> = Vec::new();
         let cut: Vec<usize> = (0..self.operations.len())
             .filter(|&i| self.cuts(i))
             .collect();
         for (n, &i) in cut.iter().enumerate() {
+            let joins = |kind: fn(&Operation) -> bool| {
+                cut.get(n + 1).is_some_and(|&j| {
+                    let (a, b) = (&self.operations[i], &self.operations[j]);
+                    kind(a) && kind(b) && a.part() == b.part() && a.tool() == b.tool()
+                })
+            };
+            // V-carves wait for the end of their run: its floor passes go first.
+            if matches!(self.operations[i], Operation::Vcarve(_)) {
+                carves.push(i);
+                if !joins(|op| matches!(op, Operation::Vcarve(_))) {
+                    list.extend(self.floor_passes_of(&carves));
+                    list.extend(carves.drain(..).map(OpRef::op));
+                }
+                continue;
+            }
             list.push(OpRef::op(i));
             if matches!(self.operations[i], Operation::Pocket(_)) {
                 run.push(i);
             }
-            let next_joins = cut.get(n + 1).is_some_and(|&j| {
-                let (a, b) = (&self.operations[i], &self.operations[j]);
-                matches!(a, Operation::Pocket(_))
-                    && matches!(b, Operation::Pocket(_))
-                    && a.part() == b.part()
-                    && a.tool() == b.tool()
-            });
-            if !next_joins {
+            if !joins(|op| matches!(op, Operation::Pocket(_))) {
                 list.extend(self.rest_passes_of(&run));
                 run.clear();
             }
         }
         list
+    }
+
+    /// The enabled floor passes of the V-carves in `run`, larger tools first (stable).
+    fn floor_passes_of(&self, run: &[usize]) -> Vec<OpRef> {
+        let mut passes: Vec<(f64, OpRef)> = Vec::new();
+        for &i in run {
+            if let Operation::Vcarve(VcarveOp {
+                floor: Some(floor), ..
+            }) = &self.operations[i]
+                && floor.enabled
+            {
+                let diameter = self.tool(floor.tool).map_or(0.0, |t| t.diameter);
+                passes.push((diameter, OpRef::pass(i, 0)));
+            }
+        }
+        passes.sort_by(|a, b| b.0.total_cmp(&a.0));
+        passes.into_iter().map(|(_, r)| r).collect()
     }
 
     /// The enabled rest passes of the pockets in `run`, larger tools first; a pocket's own
@@ -104,6 +135,9 @@ impl Job {
         let Some(k) = r.pass else {
             return Some(op.clone());
         };
+        if let Operation::Vcarve(vcarve) = op {
+            return self.floor_pocket(vcarve, k).map(Operation::Pocket);
+        }
         let Operation::Pocket(pocket) = op else {
             return None;
         };
@@ -133,14 +167,58 @@ impl Job {
         }))
     }
 
-    /// "Operation 3 (Mortise)", or "Operation 3.1 (Mortise, rest)" for a rest pass.
+    /// A V-carve's floor pass as a pocket (docs/specs/vcarve-wide-strokes.md §4): its
+    /// shapes and depths, kept the floor inset away from the outline (a negative
+    /// clearance), with the pass's tool, feeds, step down, stepover and entry. None for
+    /// another pass than 0, no floor pass, or a V-bit without an angle.
+    fn floor_pocket(&self, vcarve: &VcarveOp, k: usize) -> Option<PocketOp> {
+        let floor = vcarve.floor.filter(|_| k == 0)?;
+        let inset = vcarve.floor_inset(self.tool(vcarve.tool)?)?;
+        Some(PocketOp {
+            name: floor_pass_name(&vcarve.name),
+            enabled: floor.enabled,
+            part: vcarve.part,
+            material: None,
+            select: vcarve.select.clone(),
+            tool: floor.tool,
+            start_depth: vcarve.start_depth,
+            end_depth: vcarve.end_depth,
+            through: None,
+            clearance: -inset,
+            step_down: floor.step_down,
+            stepover: floor.stepover,
+            direction: Direction::Climb,
+            feed: floor.feed,
+            plunge_feed: floor.plunge_feed,
+            entry: floor.entry,
+            starts: Vec::new(),
+            lead: None,
+            corners: None,
+            corner_choices: Vec::new(),
+            rest: None,
+            rest_passes: Vec::new(),
+        })
+    }
+
+    /// Whether `r` is a V-carve's floor pass.
+    pub fn is_floor_pass(&self, r: OpRef) -> bool {
+        r.pass.is_some() && matches!(self.operations.get(r.operation), Some(Operation::Vcarve(_)))
+    }
+
+    /// "Operation 3 (Mortise)", "Operation 3.1 (Mortise, rest)" for a rest pass, or
+    /// "Operation 2.1 (Sign, floor)" for a floor pass.
     pub fn label(&self, r: OpRef) -> String {
         let name = self.operations.get(r.operation).map_or("", |op| op.name());
+        let kind = if self.is_floor_pass(r) {
+            "floor"
+        } else {
+            "rest"
+        };
         match r.pass {
             None => operation_label(r.operation, name),
             Some(_) => match name {
-                "" => format!("Operation {r} (rest)"),
-                name => format!("Operation {r} ({name}, rest)"),
+                "" => format!("Operation {r} ({kind})"),
+                name => format!("Operation {r} ({name}, {kind})"),
             },
         }
     }
@@ -148,10 +226,18 @@ impl Job {
     /// [`Job::label`] as a message, for problems shown in the reader's language.
     pub fn label_message(&self, r: OpRef) -> Message {
         let name = self.operations.get(r.operation).map_or("", |op| op.name());
+        let (bare, named) = if self.is_floor_pass(r) {
+            (
+                "job-operation-label-floor",
+                "job-operation-label-named-floor",
+            )
+        } else {
+            ("job-operation-label-rest", "job-operation-label-named-rest")
+        };
         match (r.pass, name) {
             (None, name) => operation_label_message(r.operation, name),
-            (Some(_), "") => Message::new("job-operation-label-rest").arg("number", r.to_string()),
-            (Some(_), name) => Message::new("job-operation-label-named-rest")
+            (Some(_), "") => Message::new(bare).arg("number", r.to_string()),
+            (Some(_), name) => Message::new(named)
                 .arg("number", r.to_string())
                 .arg("name", name),
         }
@@ -163,5 +249,13 @@ fn rest_pass_name(pocket: &str) -> String {
     match pocket {
         "" => "rest".into(),
         name => format!("{name}, rest"),
+    }
+}
+
+/// A floor pass's name, as the planner's resolved pocket carries it.
+fn floor_pass_name(vcarve: &str) -> String {
+    match vcarve {
+        "" => "floor".into(),
+        name => format!("{name}, floor"),
     }
 }

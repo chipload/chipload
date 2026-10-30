@@ -9,6 +9,7 @@ pub mod cancel;
 pub(crate) mod cavalier;
 pub mod centre;
 pub mod corners;
+mod floor;
 pub mod geom;
 pub mod helix;
 pub mod holes;

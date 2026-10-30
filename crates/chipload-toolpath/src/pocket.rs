@@ -1360,6 +1360,10 @@ pub struct Choices<'a> {
     /// Rest machining: the radius of the larger tool whose leftovers are all this pocket
     /// clears (docs/specs/rest-machining.md).
     pub rest: Option<f64>,
+    /// A V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4): a region the tool
+    /// doesn't fit in is left to the V-bit, with a note when it has a floor, instead of
+    /// refusing the operation.
+    pub floor: bool,
 }
 
 /// One piece's paths before its links are chosen and it is verified.
@@ -1389,6 +1393,7 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 spiral,
                 cancel,
                 rest,
+                floor,
             },
     } = *request;
     if stepover <= 0.0 || stepover.is_nan() {
@@ -1442,6 +1447,17 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
             area: region,
             contour_ids: ids,
         } = remaining.remove(index);
+        if floor && region.shrunk(offset)?.is_empty() {
+            // Only a region with a floor is worth a word: narrow strokes have none.
+            if !region.shrunk(-clearance)?.is_empty() {
+                notes.push(
+                    Message::new("toolpath-floor-no-fit")
+                        .arg("contours", ids_text(&ids))
+                        .arg("diameter", Value::mm(2.0 * tool_radius)),
+                );
+            }
+            continue;
+        }
         let clearing = Clearing {
             round_corners,
             offset,
@@ -1460,7 +1476,8 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
         } = cleared_piece(&region, &ids, &clearing)?;
         arcs.extend(used_arcs);
         notes.extend(used_notes);
-        if level0.len() > 1 {
+        // A floor pass's narrow parts are in the V-carve's coverage note.
+        if level0.len() > 1 && !floor {
             notes.push(
                 Message::new("toolpath-pocket-narrow")
                     .arg("contours", ids_text(&ids))

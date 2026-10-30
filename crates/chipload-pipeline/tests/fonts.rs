@@ -55,6 +55,7 @@ fn vcarve() -> Operation {
         step_down: None,
         feed: 1200.0,
         plunge_feed: 400.0,
+        floor: None,
     })
 }
 

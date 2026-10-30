@@ -190,7 +190,10 @@ G-code changes, for the better, and the release notes say so.
 6. **What counts as left** for coverage and the hint: material more than 0.2 mm above the
    floor (`FLOOR_LEFT_MM`, a named tolerance). **Recommended:** without a height, no round
    tool ever reaches 100 % (sharp corners, tapering ends), so the hint would always be 0.
-   Alternative: 0.1 mm, or a field per operation.
+   Alternative: 0.1 mm, or a field per operation. *Settled while building (2026-10-30):
+   and only when it is at least 1 % of the region's floor (`FLOOR_LEFT_SHARE`): a 3 mm end
+   mill leaves specks about 0.25 mm high in the sharp corners of a 36 × 6 floor (0.2 %),
+   and a note for them would come with nearly every carving.*
 7. **The V-bit cleans up after the floor pass** along the centre line, at the maximum depth,
    only where the end mill left material. **Recommended:** corners and tapering ends come
    out clean, and a larger end mill becomes usable. Alternative: no clean-up; the corners

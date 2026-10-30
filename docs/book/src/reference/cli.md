@@ -194,6 +194,35 @@ chipload op add-rest <PROJECT> [OPTIONS]
 | `--tool <TOOL>` | The smaller tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op add-floor`
+
+Give a V-carve a floor pass (docs/specs/vcarve-wide-strokes.md §4): an end mill that clears the floor between the walls of strokes too wide to carve from their centre line, cut before the V-carve. Replaces the floor pass it had
+
+```text
+chipload op add-floor <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The V-carve's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
+| `--tool <TOOL>` | The end mill's id in the project. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op remove-floor`
+
+Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4)
+
+```text
+chipload op remove-floor <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The V-carve's number as the app lists it (1 = first) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op add-surface`
 
 Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock

@@ -11,11 +11,12 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, VCARVE_TOL_MM};
+use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_SHARE, VCARVE_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 use crate::cavalier::{Area, geometry};
+use crate::floor::Floor;
 use crate::medial::{Graph, Outline, fine_ring, medial_axis};
 use crate::model::Move;
 use crate::pocket::build_region;
@@ -34,7 +35,7 @@ pub struct VBit {
 
 impl VBit {
     /// How much wider the cut gets at the surface per mm of depth, on each side.
-    fn slope(&self) -> f64 {
+    pub fn slope(&self) -> f64 {
         (self.angle / 2.0).tan()
     }
 
@@ -54,6 +55,10 @@ impl VBit {
     }
 }
 
+/// The longest chord of the centre line when it is cleaned up after a floor pass, mm: where
+/// the end mill stops reaching is found on each.
+const CLEANUP_STEP_MM: f64 = 0.5;
+
 /// One continuous cut: points and the tip depth below the carved surface at each (>= 0).
 #[derive(Debug, Clone, PartialEq)]
 pub struct CarvePath {
@@ -69,16 +74,32 @@ pub struct VcarvePlan {
     pub notes: Vec<Message>,
     /// The deepest any path goes, mm below the carved surface.
     pub deepest: f64,
+    /// With a floor pass: each wide region's floor its end mill and the V-bit don't clear
+    /// (docs/specs/vcarve-wide-strokes.md §4.1).
+    pub floors: Vec<FloorLeft>,
+}
+
+/// A region's floor that its floor pass leaves partly standing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FloorLeft {
+    /// The region's contours, as "#3, #4".
+    pub contours: String,
+    /// The share of the floor cleared, 0 to 1.
+    pub cleared: f64,
+    /// The largest end mill diameter that would clear it all, mm.
+    pub largest: f64,
 }
 
 /// Paths for the regions the selected closed contours make (as pockets do: outer minus the
 /// contours inside it). `max_depth` is the cap below the carved surface; `start` is where the
-/// tool is, for the cut order.
+/// tool is, for the cut order. `floor`: the radius of the floor pass's end mill, if there is
+/// one (docs/specs/vcarve-wide-strokes.md §4).
 pub fn plan_vcarve(
     contours: &[&Contour],
     bit: &VBit,
     max_depth: f64,
     start: Point,
+    floor: Option<f64>,
 ) -> Result<VcarvePlan, ToolpathError> {
     if !(bit.angle > 0.0 && bit.angle < std::f64::consts::PI) {
         return Err(geometry(Message::new("toolpath-error-vbit-angle").arg(
@@ -91,6 +112,7 @@ pub fn plan_vcarve(
     let mut graph = Graph::default();
     let mut walls: Vec<CarvePath> = Vec::new();
     let mut notes = Vec::new();
+    let mut floors = Vec::new();
     for region in build_region(contours)? {
         let ids = ids_text(&region.contour_ids);
         let outline = Outline::new(&region.area);
@@ -103,18 +125,51 @@ pub fn plan_vcarve(
             // Within half the tolerance over the cap the centre line still reaches.
             let reach = cap_radius + VCARVE_TOL_MM / 2.0;
             axis.set_cut(&outline, cap_radius + VCARVE_TOL_MM, VCARVE_TOL_MM);
-            axis.keep_within(reach);
             walls.extend(wall_rings(&region.area, &outline, cap_radius, cap, &ids)?);
-            let note = if bit.deepest() < max_depth {
-                Message::new("toolpath-vcarve-floor-left-bit").arg("across", fixed3(bit.diameter))
-            } else {
-                Message::new("toolpath-vcarve-floor-left")
+            let inset = cap_radius - bit.tip_diameter / 2.0;
+            let floor_of = match floor {
+                Some(radius) => {
+                    Floor::new(&region.area, inset, bit.slope(), bit.tip_diameter / 2.0)?
+                        .map(|f| (f, radius))
+                }
+                None => None,
             };
-            notes.push(
-                note.arg("contours", ids.as_str())
-                    .arg("cap", fixed3(cap))
-                    .arg("wide", fixed3(2.0 * cap_radius)),
-            );
+            match floor_of {
+                Some((floor, radius)) => {
+                    // The V-bit cleans up along the centre line where the end mill can't
+                    // reach (§4.1, decision 7).
+                    axis.densify(CLEANUP_STEP_MM);
+                    let full = axis.clone();
+                    let reached = floor.reach(radius)?;
+                    axis.keep_where(|p, r| r <= reach || !reached.reaches(p));
+                    let cleanup =
+                        |at: &crate::floor::Reach| full.chords_where(reach, |p| !at.reaches(p));
+                    let left = floor.left_share(&reached, &cleanup(&reached));
+                    if left > FLOOR_LEFT_SHARE {
+                        floors.push(FloorLeft {
+                            contours: ids.clone(),
+                            cleared: 1.0 - left,
+                            largest: 2.0 * floor.largest_clearing(radius, cleanup)?,
+                        });
+                    }
+                }
+                None => {
+                    axis.keep_within(reach);
+                    if floor.is_none() {
+                        let note = if bit.deepest() < max_depth {
+                            Message::new("toolpath-vcarve-floor-left-bit")
+                                .arg("across", fixed3(bit.diameter))
+                        } else {
+                            Message::new("toolpath-vcarve-floor-left")
+                        };
+                        notes.push(
+                            note.arg("contours", ids.as_str())
+                                .arg("cap", fixed3(cap))
+                                .arg("wide", fixed3(2.0 * cap_radius)),
+                        );
+                    }
+                }
+            }
         } else {
             axis.set_cut(&outline, cap_radius, VCARVE_TOL_MM);
         }
@@ -149,6 +204,7 @@ pub fn plan_vcarve(
         paths,
         notes,
         deepest,
+        floors,
     })
 }
 

@@ -66,6 +66,8 @@ toolpath-rest-pass-no-tool = l'utensile { $tool } non è definito nel lavoro
 toolpath-rest-pass-endmill = l'utensile { $tool } è una { $type }; una passata di ripresa taglia con una fresa
 toolpath-rest-pass-larger = l'utensile { $tool } ({ $diameter }) deve essere più piccolo dell'utensile { $before } ({ $before_diameter }) che lo precede
 toolpath-rest-pass-no-rpm = l'utensile { $tool } non ha una velocità mandrino (rpm)
+toolpath-floor-pass-endmill = l'utensile { $tool } è una { $type }; una passata di fondo taglia con una fresa
+toolpath-floor-no-fit = contorni { $contours }: la fresa piatta da { $diameter } non entra nel fondo; la fresa a V lo svuota lungo la linea mediana
 
 ## Planning notes: warnings that don't stop the G-code
 
@@ -161,6 +163,8 @@ toolpath-rest-too-small = ripresa dei residui: il materiale in { $count ->
 # carves at that depth, $need the depth the widest stroke needs.
 toolpath-vcarve-floor-left-bit = contorni { $contours }: più larghi di quanto raggiunga la fresa a V ({ $across } di diametro) a una profondità massima di { $cap } ({ $wide } in superficie): taglia le pareti e il fondo tra di esse resta in superficie. Aggiungi una passata di fondo con una fresa piatta per svuotarlo
 toolpath-vcarve-floor-left = contorni { $contours }: più larghi di quanto raggiunga un'incisione profonda al massimo { $cap } ({ $wide } in superficie): la fresa a V taglia le pareti e il fondo tra di esse resta in superficie. Aggiungi una passata di fondo con una fresa piatta per svuotarlo
+toolpath-vcarve-floor-cleared = contorni { $contours }: con la fresa piatta da { $diameter } si svuota il { $cleared } % del fondo; una da al massimo { $largest } lo svuoterebbe tutto
+toolpath-vcarve-floor-cleared-none = contorni { $contours }: con la fresa piatta da { $diameter } si svuota il { $cleared } % del fondo; alcune parti sono troppo strette per qualsiasi fresa piatta
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contorni { $contours }: { $narrow } di linea mediana sono più stretti della punta ({ $tip }) e non vengono incisi
 toolpath-path-too-short = il contorno #{ $contour } è troppo corto da seguire ({ $length }); saltato

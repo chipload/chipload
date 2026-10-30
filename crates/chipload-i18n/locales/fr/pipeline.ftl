@@ -317,6 +317,8 @@ pipeline-not-a-pocket = l'opération { $number } n'est pas une poche ; seules le
 pipeline-operation-refused = opération { $number } : { $reason }
 pipeline-rest-dogbones = elle a des dogbones, et les dogbones et la reprise des restes ne peuvent pas encore être combinés ; les coins en dogbone n'ont pas besoin de reprise
 pipeline-rest-not-endmill = l'outil { $tool } n'est pas une fraise
+pipeline-not-a-vcarve = l'opération { $number } n'est pas une gravure en V ; seules les gravures en V ont une passe de fond
+pipeline-floor-not-endmill = l'outil { $tool } n'est pas une fraise ; une passe de fond usine avec une fraise
 pipeline-rest-before-not-endmill = l'outil { $tool } qui la précède n'est pas une fraise
 pipeline-rest-not-smaller = l'outil { $tool } ({ $diameter }) n'est pas plus petit que l'outil { $before } ({ $before_diameter }) qui le précède
 # $dxfs lists the project's DXFs by number and name ("1 part-a, 2 part-b").

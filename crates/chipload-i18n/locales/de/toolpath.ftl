@@ -66,6 +66,8 @@ toolpath-rest-pass-no-tool = Werkzeug { $tool } ist im Job nicht definiert
 toolpath-rest-pass-endmill = Werkzeug { $tool } ist ein { $type }; ein Restdurchgang fräst mit einem Schaftfräser
 toolpath-rest-pass-larger = Werkzeug { $tool } ({ $diameter }) muss kleiner sein als Werkzeug { $before } ({ $before_diameter }) davor
 toolpath-rest-pass-no-rpm = Werkzeug { $tool } hat keine Drehzahl (rpm)
+toolpath-floor-pass-endmill = Werkzeug { $tool } ist ein { $type }; ein Bodendurchgang fräst mit einem Schaftfräser
+toolpath-floor-no-fit = Konturen { $contours }: der Schaftfräser { $diameter } passt nicht in den Boden; der V-Fräser räumt ihn entlang der Mittellinie aus
 
 ## Planning notes: warnings that don't stop the G-code
 
@@ -161,6 +163,8 @@ toolpath-rest-too-small = Restbearbeitung: Material an { $count ->
 # carves at that depth, $need the depth the widest stroke needs.
 toolpath-vcarve-floor-left-bit = Konturen { $contours }: breiter, als der V-Fräser ({ $across } Durchmesser) mit höchstens { $cap } Tiefe reicht ({ $wide } an der Oberfläche): er schneidet die Wände, der Boden dazwischen bleibt an der Oberfläche stehen. Fügen Sie einen Bodendurchgang mit einem Schaftfräser hinzu, um ihn auszuräumen
 toolpath-vcarve-floor-left = Konturen { $contours }: breiter, als ein höchstens { $cap } tiefer Schnitt reicht ({ $wide } an der Oberfläche): der V-Fräser schneidet die Wände, der Boden dazwischen bleibt an der Oberfläche stehen. Fügen Sie einen Bodendurchgang mit einem Schaftfräser hinzu, um ihn auszuräumen
+toolpath-vcarve-floor-cleared = Konturen { $contours }: mit dem Schaftfräser { $diameter } wird { $cleared } % des Bodens ausgeräumt; einer von höchstens { $largest } würde ihn ganz ausräumen
+toolpath-vcarve-floor-cleared-none = Konturen { $contours }: mit dem Schaftfräser { $diameter } wird { $cleared } % des Bodens ausgeräumt; Teile davon sind für jeden Schaftfräser zu schmal
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = Konturen { $contours }: { $narrow } Mittellinie sind schmaler als die Spitze ({ $tip }) und werden nicht graviert
 toolpath-path-too-short = Kontur #{ $contour } ist zu kurz zum Folgen ({ $length }); übersprungen
