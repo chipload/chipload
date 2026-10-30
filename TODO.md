@@ -210,7 +210,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
   `--setup`; in the window *Setups* in the Browser, the active one in full colour and the
   others as ghosts (as PrusaSlicer shows plates). To iterate: export writes the active
   setup only; the Browser keeps *Parts* as one list (parts say their setup); turning the
-  board over is a later spec (§9).
+  board over is a later spec (§9). Fixed 2026-10-30: with two setups, a board that fits
+  its parts showed the whole drawing's size in its Stock section, and the zero's form and
+  handle placed the zero on that board (the window's edited copy has no operations).
 - **V-carving wide strokes** (2026-10-30, docs/specs/vcarve-wide-strokes.md, the user's
   request): where a stroke is too wide for the depth, the V-bit cuts walls along the outline
   instead of a capped centre line; an optional floor pass (an end mill, before the V-carve)

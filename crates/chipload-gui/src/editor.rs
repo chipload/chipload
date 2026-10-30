@@ -11,7 +11,7 @@ use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
     PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, ToolType, VcarveOp,
-    find_tool,
+    WorkZero, find_tool,
 };
 
 use crate::i18n::{Lang, t};
@@ -229,7 +229,42 @@ pub struct EditJob {
     pub ops: Vec<EditOp>,
 }
 
+/// A (min, max) box in drawing coordinates, mm.
+type Bounds = ((f64, f64), (f64, f64));
+
 impl EditJob {
+    /// The extents of the drawing the active setup's board is placed on: `settings` has no
+    /// operations, the edited ones choose its shapes (docs/specs/setups.md §3).
+    pub fn board(&self) -> Option<Bounds> {
+        self.settings
+            .board_extents_with(self.ops.iter().map(|e| &e.op))
+    }
+
+    /// The active setup's stock, (min, max) corners in drawing coordinates.
+    pub fn stock_bounds(&self) -> Bounds {
+        self.settings.stock_bounds_around(self.board())
+    }
+
+    /// The active setup's stock size, mm.
+    pub fn stock_size(&self) -> (f64, f64) {
+        self.settings.stock_size_around(self.board())
+    }
+
+    /// Where work zero `zero` would be, in drawing coordinates.
+    pub fn work_zero_point(&self, zero: WorkZero) -> (f64, f64) {
+        Job::work_zero_on(zero, self.stock_bounds())
+    }
+
+    /// Where the active setup's work zero is, in drawing coordinates.
+    pub fn work_zero_xy(&self) -> (f64, f64) {
+        self.work_zero_point(self.settings.work_zero())
+    }
+
+    /// The work zero a point dropped at `at` means ([`Job::work_zero_at`]).
+    pub fn work_zero_at(&self, at: (f64, f64), reach: f64) -> WorkZero {
+        Job::work_zero_at_on(self.stock_bounds(), at, reach)
+    }
+
     pub fn from_job(job: &Job) -> Self {
         let mut settings = job.clone();
         let ops = std::mem::take(&mut settings.operations)

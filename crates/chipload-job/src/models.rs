@@ -1953,13 +1953,21 @@ impl Job {
     /// The drawing a board is placed on (docs/specs/setups.md §3): with one setup the whole
     /// drawing, as always; with several, the shapes the active setup's operations select.
     pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
+        self.board_extents_with(&self.operations)
+    }
+
+    /// [`Job::board_extents`] with these operations: the window edits them apart from the
+    /// rest of the project.
+    pub fn board_extents_with<'a>(
+        &self,
+        operations: impl IntoIterator<Item = &'a Operation>,
+    ) -> Option<((f64, f64), (f64, f64))> {
         if self.setups.len() < 2 {
             return self.drawing.extents();
         }
         let setup = self.active_setup_id();
-        let selectors: Vec<&Selector> = self
-            .operations
-            .iter()
+        let selectors: Vec<&Selector> = operations
+            .into_iter()
             .filter(|op| op.selects_shapes() && self.part_of(op).map(|p| p.setup) == setup)
             .map(Operation::select)
             .collect();
@@ -1970,18 +1978,30 @@ impl Job {
     /// The stock's (min, max) corners in drawing coordinates, wherever it is placed: at the
     /// drawing origin, or centred on the drawing (its setup's part of it).
     pub fn stock_bounds(&self) -> ((f64, f64), (f64, f64)) {
-        let centre = self
-            .board_extents()
-            .map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
-                ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
-            });
-        self.stock().xy_bounds_around(self.stock_size(), centre)
+        self.stock_bounds_around(self.board_extents())
+    }
+
+    /// [`Job::stock_bounds`] around these board extents ([`Job::board_extents_with`]).
+    pub fn stock_bounds_around(
+        &self,
+        board: Option<((f64, f64), (f64, f64))>,
+    ) -> ((f64, f64), (f64, f64)) {
+        let centre = board.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
+            ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+        });
+        self.stock()
+            .xy_bounds_around(self.stock_size_around(board), centre)
     }
 
     /// The stock's size, mm: the drawing's outline plus the margin each side when it fits
     /// the drawing, otherwise as set.
     pub fn stock_size(&self) -> (f64, f64) {
-        match (self.stock().origin, self.stock().fit, self.board_extents()) {
+        self.stock_size_around(self.board_extents())
+    }
+
+    /// [`Job::stock_size`] around these board extents ([`Job::board_extents_with`]).
+    pub fn stock_size_around(&self, board: Option<((f64, f64), (f64, f64))>) -> (f64, f64) {
+        match (self.stock().origin, self.stock().fit, board) {
             (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {
                 (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin)
             }
@@ -1997,16 +2017,27 @@ impl Job {
 
     /// Where work zero `zero` would be, in drawing coordinates.
     pub fn work_zero_point(&self, zero: WorkZero) -> (f64, f64) {
+        Self::work_zero_on(zero, self.stock_bounds())
+    }
+
+    /// Where work zero `zero` would be on a stock with these (min, max) corners.
+    pub fn work_zero_on(zero: WorkZero, stock: ((f64, f64), (f64, f64))) -> (f64, f64) {
         match zero {
             WorkZero::DrawingOrigin {} => (0.0, 0.0),
             WorkZero::Point { x, y } => (x, y),
-            WorkZero::Stock { corner } => self.stock_corner_xy(corner),
+            WorkZero::Stock { corner } => Self::corner_of(stock, corner),
         }
     }
 
     /// A corner or the centre of the stock, in drawing coordinates.
     pub fn stock_corner_xy(&self, corner: StockCorner) -> (f64, f64) {
-        let ((x0, y0), (x1, y1)) = self.stock_bounds();
+        Self::corner_of(self.stock_bounds(), corner)
+    }
+
+    fn corner_of(
+        ((x0, y0), (x1, y1)): ((f64, f64), (f64, f64)),
+        corner: StockCorner,
+    ) -> (f64, f64) {
         match corner {
             StockCorner::Center => ((x0 + x1) / 2.0, (y0 + y1) / 2.0),
             StockCorner::BottomLeft => (x0, y0),
@@ -2021,13 +2052,22 @@ impl Job {
     /// stock; of the drawing origin, the origin; elsewhere the point itself. The nearest
     /// wins.
     pub fn work_zero_at(&self, at: (f64, f64), reach: f64) -> WorkZero {
+        Self::work_zero_at_on(self.stock_bounds(), at, reach)
+    }
+
+    /// [`Job::work_zero_at`] on a stock with these (min, max) corners.
+    pub fn work_zero_at_on(
+        stock: ((f64, f64), (f64, f64)),
+        at: (f64, f64),
+        reach: f64,
+    ) -> WorkZero {
         let mut named: Vec<WorkZero> = StockCorner::ALL
             .into_iter()
             .map(|corner| WorkZero::Stock { corner })
             .collect();
         named.push(WorkZero::DrawingOrigin {});
         let distance = |zero: WorkZero| {
-            let (x, y) = self.work_zero_point(zero);
+            let (x, y) = Self::work_zero_on(zero, stock);
             (x - at.0).hypot(y - at.1)
         };
         named

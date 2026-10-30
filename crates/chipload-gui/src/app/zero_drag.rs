@@ -33,7 +33,7 @@ impl ChiploadApp {
     /// Where the axes are drawn: the zero, or where a drag has it.
     pub(super) fn shown_zero_xy(&self) -> Point {
         match (self.shown_zero(), self.edit.as_ref()) {
-            (Some(zero), Some(edit)) => edit.settings.work_zero_point(zero),
+            (Some(zero), Some(edit)) => edit.work_zero_point(zero),
             _ => (0.0, 0.0),
         }
     }
@@ -50,7 +50,7 @@ impl ChiploadApp {
             return None;
         }
         let zero = self.shown_zero()?;
-        Some(self.edit.as_ref()?.settings.work_zero_point(zero))
+        Some(self.edit.as_ref()?.work_zero_point(zero))
     }
 
     /// The pointer at `pos` is on the zero's handle.
@@ -87,13 +87,14 @@ impl ChiploadApp {
         let drag = self.drag.zero.filter(|d| !d.cancelled)?;
         let reach = f64::from(crate::view::PICK_TOLERANCE_PX) / self.view.scale;
         let named = match (free, self.edit.as_ref()) {
-            (false, Some(edit)) => Some(edit.settings.work_zero_at(at, reach))
-                .filter(|z| !matches!(z, WorkZero::Point { .. })),
+            (false, Some(edit)) => {
+                Some(edit.work_zero_at(at, reach)).filter(|z| !matches!(z, WorkZero::Point { .. }))
+            }
             _ => None,
         };
         let now = match named {
             Some(zero) => {
-                self.scene.snap_mark = self.edit.as_ref().map(|e| e.settings.work_zero_point(zero));
+                self.scene.snap_mark = self.edit.as_ref().map(|e| e.work_zero_point(zero));
                 zero
             }
             None => {

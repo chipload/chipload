@@ -723,7 +723,7 @@ impl ChiploadApp {
             let zero = self
                 .edit
                 .as_ref()
-                .map_or((0.0, 0.0), |e| e.settings.work_zero_xy());
+                .map_or((0.0, 0.0), crate::editor::EditJob::work_zero_xy);
             let cursor = self.cursor;
             let units = self.units;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

@@ -2202,17 +2202,24 @@ fn job_label_width(ui: &egui::Ui) -> f32 {
 
 /// The stock: its thickness first, then its size, fitting the drawing or fixed
 /// (docs/specs/stock-around-drawing.md).
-fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLook) {
+/// `board`: the extents of the drawing the board is placed on, its setup's own shapes
+/// ([`chipload_job::Job::board_extents_with`]).
+fn stock_section(
+    ui: &mut egui::Ui,
+    job: &mut chipload_job::Job,
+    board: Option<((f64, f64), (f64, f64))>,
+    look: SectionLook,
+) {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let (size_x, size_y) = job.stock_size();
+    let (size_x, size_y) = job.stock_size_around(board);
     let summary = format!(
         "{} × {} × {} {len_unit}",
         len_in(units, size_x),
         len_in(units, size_y),
         len_in(units, job.stock().thickness)
     );
-    let drawing = job.drawing.extents().map(|((x0, y0), (x1, y1))| {
+    let drawing = board.map(|((x0, y0), (x1, y1))| {
         format!(
             "{} × {} {len_unit}",
             len_in(units, x1 - x0),
@@ -2366,9 +2373,9 @@ fn z_zero_name(ui: &egui::Ui, z: ZZero) -> String {
 pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     let title = t!(ui, "browser-work-zero");
     super::browser::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
+    let (x, y) = edit.work_zero_xy();
+    let ((x0, y0), (x1, y1)) = edit.stock_bounds();
     let job = &mut edit.settings;
-    let (x, y) = job.work_zero_xy();
-    let ((x0, y0), (x1, y1)) = job.stock_bounds();
     let chosen = job.work_zero();
     let mut zero = chosen;
     Grid::new("work-zero-form")
@@ -3057,6 +3064,8 @@ pub(super) fn setup_form(
         }
         return request;
     }
+    // The settings hold no operations: the board's shapes come from the edited ones.
+    let board = edit.board();
     let job = &mut edit.settings;
     // The zero has its own properties; here where it is, a click away
     // (docs/specs/work-zero-marker.md §4).
@@ -3070,7 +3079,7 @@ pub(super) fn setup_form(
     if zero.clicked() {
         request = Some(JobRequest::OpenWorkZero);
     }
-    stock_section(ui, job, open);
+    stock_section(ui, job, board, open);
     if let Some(library) = library
         && let Some(material) = material_section(ui, job, library, open)
     {
