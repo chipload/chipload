@@ -612,7 +612,7 @@ fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
             .is_some_and(|d| chipload_job::library::same_name(d, &t.name));
         let kind = t.kind.name();
         let mut line = format!(
-            "  {}{}: id {}, {kind} {} mm",
+            "  {}{}: T{}, {kind} {} mm",
             t.name,
             mark(is_default),
             t.id,

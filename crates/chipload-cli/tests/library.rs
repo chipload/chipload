@@ -121,7 +121,7 @@ fn tools_are_added_listed_changed_and_removed() {
     assert!(listed.contains(path(&dir.join("tools.json"))), "{listed}");
     assert!(
         listed.contains(
-            "6 mm upcut (default): id 1, endmill 6 mm, flutes 2, centre cutting yes, rpm 18000; \
+            "6 mm upcut (default): T1, endmill 6 mm, flutes 2, centre cutting yes, rpm 18000; \
              feed 1200 plunge 300 mm/min, step down 2 mm, stepover 0.4"
         ),
         "{listed}"
@@ -521,7 +521,7 @@ fn a_vbit_gets_its_angle_and_tip_and_carves_letters() {
     );
     let listed = ok(&dir, &["tool", "list"]);
     assert!(
-        listed.contains("V 60: id 1, V-bit 12.7 mm, rpm 18000, angle 60.0°, tip 0.2 mm"),
+        listed.contains("V 60: T1, V-bit 12.7 mm, rpm 18000, angle 60.0°, tip 0.2 mm"),
         "{listed}"
     );
     let file = json(&dir.join("tools.json"));
