@@ -28,3 +28,24 @@ fn a_browser_click_selects_and_ctrl_click_adds() {
     app.focus = Focus::Op(2);
     draw_sidebar(&mut app);
 }
+
+/// The tool change line follows the program: a floor pass is cut before its V-carve, so the
+/// line above the V-carve names both tools in cut order (found 2026-10-30: it said only the
+/// V-bit's, as if the floor pass's end mill came after).
+#[test]
+fn tool_change_lines_follow_the_cut_order() {
+    use crate::app::browser::tool_changes;
+    let job = chipload_job::load_job(&corpus("jobs/v33/vcarve_floor.chipload")).unwrap();
+    // The floor pass with tool 2, then the V-carve with tool 1.
+    assert_eq!(tool_changes(&job).get(&0), Some(&vec![2, 1]));
+    // Without its floor pass, one tool and no line.
+    let mut plain = job.clone();
+    if let chipload_job::Operation::Vcarve(v) = &mut plain.operations[0] {
+        v.floor = None;
+    }
+    assert!(tool_changes(&plain).is_empty());
+    // Two parts with a tool each, in list order: one change, above the second.
+    let two = chipload_job::load_job(&corpus("jobs/v22/two_parts.chipload")).unwrap();
+    let changes = tool_changes(&two);
+    assert!(changes.values().all(|c| c.len() == 1), "{changes:?}");
+}

@@ -220,8 +220,8 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
   cleared and the largest end mill that would clear it all, with the library's that do.
   Command line `op add-floor`/`remove-floor`; Browser leaf, *Add floor pass ▸*, its form.
   To try on the router: does it feel right, not obtrusive but convenient. Not built: an
-  action on the floor-left warning; the Browser's tool-change line ignores that the floor
-  pass is cut before its V-carve.
+  action on the floor-left warning. Fixed 2026-10-30: the Browser's tool-change line
+  follows the cut order, "tool change → T2 → T1" above a V-carve with its floor pass.
 - **SVG fuzzing, first run** (2026-10-30): an elliptic arc reaching x = 3e62 ran usvg out
   of memory (it split the arc into ten billion curves). Numbers beyond 1e9 in an element's
   geometry are refused before usvg reads the file (docs/specs/svg-import.md §9). "Cannot

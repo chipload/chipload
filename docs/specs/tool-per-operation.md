@@ -299,4 +299,6 @@ The checker stays independent. Each program is checked **on its own**:
   library…* and *New tool* (a 6 mm endmill) sit above them. The operation's *Tool* box lists
   the project's tools and then the library's ("+ name"). Picking one copies it in and
   selects it, as one undo step. The operation cards show `T<n>`, and a line marks each
-  tool change.
+  tool change. Where rows are cut out of the list's order (floor passes before their run of
+  V-carves, rest passes after their run of pockets), the line above the run's first row
+  names its tools in cut order, the first one too: "tool change → T2 → T1" (2026-10-30).

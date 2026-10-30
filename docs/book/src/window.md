@@ -59,7 +59,9 @@ The **Browser** on the left holds your library and the whole project as a tree:
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
   - **Setups**, each a board with its **Work zero** and its **parts** under it, each part
-    with its operations, in cutting order. A line marks each tool change. See
+    with its operations, in cutting order. A line marks each tool change. A floor pass is
+    cut before its V-carve and a rest pass after its pockets, so the line above them names
+    their tools in the order they are cut: *tool change → T2 → T1*. See
     [Setups](concepts/setups.md) and [Parts](operations/parts.md).
 
 ![The Browser: two DXFs with their layers, the second hidden, a picture, and four

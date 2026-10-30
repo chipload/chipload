@@ -377,8 +377,8 @@ struct PartRows<'a> {
     active: Option<u64>,
     op_parts: &'a [u64],
     count: usize,
-    /// The tool cut just before each operation, in cut order.
-    tool_before: &'a std::collections::BTreeMap<usize, i64>,
+    /// The tool changes shown above an operation's row ([`tool_changes`]).
+    tool_before: &'a std::collections::BTreeMap<usize, Vec<i64>>,
 }
 
 /// What a click in the operation rows asks for, done after they are drawn.
@@ -716,24 +716,9 @@ impl ChiploadApp {
         let active = edit.settings.active_part_id();
         let count = edit.ops.len();
         let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
-        // The tool cut just before each operation, in cut order: rest passes wait for their
-        // run of pockets (docs/specs/rest-passes.md §3), so the list's order isn't enough.
-        let tool_before: std::collections::BTreeMap<usize, i64> = self
+        let tool_before = self
             .edited_job()
-            .map(|job| {
-                let mut before = std::collections::BTreeMap::new();
-                let mut last: Option<i64> = None;
-                for at in job.cut_list() {
-                    let tool = job.resolve(at).map(|op| op.tool());
-                    if at.pass.is_none()
-                        && let Some(t) = last
-                    {
-                        before.insert(at.operation, t);
-                    }
-                    last = tool.or(last);
-                }
-                before
-            })
+            .map(|job| tool_changes(&job))
             .unwrap_or_default();
         let mut action: Option<OpAction> = None;
         // Setups, each with its zero and its parts as leaves (docs/specs/setups.md §7): the
@@ -1074,21 +1059,22 @@ impl ChiploadApp {
             });
         }
         for i in mine {
-            if let Some(a) = self.operation_row(ui, i, count, tool_before.get(&i).copied()) {
+            let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
+            if let Some(a) = self.operation_row(ui, i, count, changes) {
                 action = Some(a);
             }
         }
         action
     }
 
-    /// Operation `i`'s row (and the tool change line above it). `previous`: the tool cut
-    /// just before it, in cut order.
+    /// Operation `i`'s row (and the tool change line above it). `changes`: the tools changed
+    /// to above it ([`tool_changes`]).
     fn operation_row(
         &mut self,
         ui: &mut egui::Ui,
         i: usize,
         count: usize,
-        previous: Option<i64>,
+        changes: &[i64],
     ) -> Option<OpAction> {
         let edit = self.edit.as_ref()?;
         let entry = edit.ops.get(i)?;
@@ -1099,8 +1085,8 @@ impl ChiploadApp {
         };
         // A line marks each tool change (docs/specs/tool-per-operation.md §8).
         let is_cut = cut(op);
-        if is_cut && previous.is_some_and(|t| t != op.tool()) {
-            tool_change(ui, op.tool());
+        if is_cut && !changes.is_empty() {
+            tool_change(ui, changes);
         }
         let problem = self
             .problems
@@ -1466,21 +1452,75 @@ impl ChiploadApp {
     }
 }
 
-/// "tool change → T2": a thin line with the new tool, between operation rows.
-fn tool_change(ui: &mut egui::Ui, tool: i64) {
+/// The tool changes shown above each operation's row, by operation index, in cut order
+/// (docs/specs/tool-per-operation.md §8). Floor passes are cut before their run of V-carves
+/// and rest passes after their run of pockets, though their rows are leaves below: where
+/// rows are cut out of the Browser's order, the line above the first row of the run says
+/// its tools in cut order, "tool change → T3 → T1", the first one too.
+pub(super) fn tool_changes(job: &chipload_job::Job) -> std::collections::BTreeMap<usize, Vec<i64>> {
+    let list = job.cut_list();
+    let tools: Vec<Option<i64>> = list
+        .iter()
+        .map(|&at| job.resolve(at).map(|op| op.tool()))
+        .collect();
+    let mut last_at = std::collections::BTreeMap::new();
+    for (k, at) in list.iter().enumerate() {
+        last_at.insert(at.operation, k);
+    }
+    let mut changes = std::collections::BTreeMap::new();
+    let mut last: Option<i64> = None;
+    let mut k = 0;
+    while k < list.len() {
+        // A run: from this row's first item to the last item of any row cut within it.
+        let first = list[k].operation;
+        let mut end = last_at.get(&first).copied().unwrap_or(k);
+        let start = k;
+        let mut here = Vec::new();
+        while k <= end && k < list.len() {
+            end = end.max(last_at.get(&list[k].operation).copied().unwrap_or(k));
+            if let Some(tool) = tools[k] {
+                if last.is_some_and(|t| t != tool) {
+                    here.push(tool);
+                }
+                last = Some(tool);
+            }
+            k += 1;
+        }
+        let first_tool = tools[start..k].iter().flatten().next().copied();
+        if k - start > 1
+            && !here.is_empty()
+            && let Some(tool) = first_tool
+            && here.first() != Some(&tool)
+        {
+            here.insert(0, tool);
+        }
+        if !here.is_empty() {
+            changes.insert(first, here);
+        }
+    }
+    changes
+}
+
+/// "tool change → T2", or "tool change → T3 → T1" for a run cut out of the list's order: a
+/// thin line with the new tools, between operation rows.
+fn tool_change(ui: &mut egui::Ui, tools: &[i64]) {
+    let tool = tools
+        .iter()
+        .map(i64::to_string)
+        .collect::<Vec<_>>()
+        .join(" → T");
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 16.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let color = ui.visuals().weak_text_color();
     let left = rect.left() + PAD + 4.0 * INDENT + INDENT;
-    let galley = egui::WidgetText::from(
-        RichText::new(t!(ui, "browser-tool-change", tool = tool.to_string())).small(),
-    )
-    .into_galley(
-        ui,
-        Some(egui::TextWrapMode::Extend),
-        f32::INFINITY,
-        egui::TextStyle::Small,
-    );
+    let galley =
+        egui::WidgetText::from(RichText::new(t!(ui, "browser-tool-change", tool = tool)).small())
+            .into_galley(
+                ui,
+                Some(egui::TextWrapMode::Extend),
+                f32::INFINITY,
+                egui::TextStyle::Small,
+            );
     let text_at = egui::pos2(left, rect.center().y - galley.size().y / 2.0);
     let line_from = left + galley.size().x + GAP * 2.0;
     painter.galley(text_at, galley, color);

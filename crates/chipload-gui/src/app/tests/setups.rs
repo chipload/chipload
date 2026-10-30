@@ -86,7 +86,11 @@ fn a_fitting_board_and_its_zero_are_placed_around_their_own_parts() {
     let job = app.edited_job().unwrap();
     let edit = app.edit.as_ref().unwrap();
     assert_eq!(edit.board(), job.board_extents());
-    assert_ne!(edit.board(), job.drawing.extents(), "its own parts, not all");
+    assert_ne!(
+        edit.board(),
+        job.drawing.extents(),
+        "its own parts, not all"
+    );
     assert_eq!(edit.stock_bounds(), job.stock_bounds());
     assert_eq!(edit.stock_size(), job.stock_size());
     assert_eq!(edit.work_zero_xy(), job.work_zero_xy());
