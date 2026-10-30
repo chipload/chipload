@@ -37,7 +37,7 @@ use crate::model::Move;
 use crate::offset::{contour_pline, dedupe_ring, flatten_tagged, pline_segments};
 use crate::profile::cut_clockwise;
 use crate::retry::{Failure, Nudge, nudged_or_tight};
-use crate::start::{assign, onto, point_value, restart};
+use crate::start::{assign, nearest_ties, onto, point_value, restart};
 
 /// Guard against runaway loops on absurd input; a 2 m pocket at 0.1 mm stepover is 10 000.
 pub const MAX_RING_LEVELS: usize = 20_000;
@@ -672,15 +672,16 @@ fn verification_failed(ids: &[usize]) -> ToolpathError {
     geometry(Message::new("toolpath-error-pocket-verification").arg("contours", ids_text(ids)))
 }
 
-/// Order for the travel direction and start at the vertex nearest `near` (ties: y, x).
+/// Order for the travel direction and start at the vertex nearest `near` (ties, as
+/// `nearest_ties` has them: y, x).
 fn orient_from(ring: &[Point], clockwise: bool, near: Point) -> Vec<Point> {
     let mut ordered = ring.to_vec();
     if (signed_area(ring) < 0.0) != clockwise {
         ordered.reverse();
     }
-    let key = |p: Point| (Ordered(distance(near, p)), Ordered(p.1), Ordered(p.0));
-    let start = (0..ordered.len())
-        .min_by_key(|&i| key(ordered[i]))
+    let start = nearest_ties((0..ordered.len()).map(|i| (i, distance(near, ordered[i]))))
+        .into_iter()
+        .min_by_key(|&i| (Ordered(ordered[i].1), Ordered(ordered[i].0)))
         .unwrap_or(0);
     ordered.rotate_left(start);
     ordered
@@ -737,29 +738,35 @@ fn cut_order(
     let mut last: Option<usize> = None;
     for _ in 0..loops.len() {
         let here = position;
-        let key = |i: usize| {
-            let l = &loops[i];
-            let d = l
-                .points
-                .iter()
-                .map(|&p| distance(here, p))
-                .fold(f64::INFINITY, f64::min);
-            (Ordered(d), l.level, l.node, l.island)
+        // The nearest ring; equally near ones (`nearest_ties`) by level, node and kind.
+        let nearest = |candidates: Vec<usize>| {
+            let found = candidates.into_iter().map(|i| {
+                let d = loops[i]
+                    .points
+                    .iter()
+                    .map(|&p| distance(here, p))
+                    .fold(f64::INFINITY, f64::min);
+                (i, d)
+            });
+            nearest_ties(found).into_iter().min_by_key(|&i| {
+                let l = &loops[i];
+                (l.level, l.node, l.island)
+            })
         };
         let onward = last.and_then(|from| {
-            (0..loops.len())
-                .filter(|&i| {
-                    ready(i, &done)
-                        && loops[i].island == loops[from].island
-                        && loops[i].deps.contains(&from)
-                })
-                .min_by_key(|&i| key(i))
+            nearest(
+                (0..loops.len())
+                    .filter(|&i| {
+                        ready(i, &done)
+                            && loops[i].island == loops[from].island
+                            && loops[i].deps.contains(&from)
+                    })
+                    .collect(),
+            )
         });
-        let Some(next) = onward.or_else(|| {
-            (0..loops.len())
-                .filter(|&i| ready(i, &done))
-                .min_by_key(|&i| key(i))
-        }) else {
+        let Some(next) =
+            onward.or_else(|| nearest((0..loops.len()).filter(|&i| ready(i, &done)).collect()))
+        else {
             break; // every ring waits on another: cannot happen, levels only go outward
         };
         if onward.is_some()
@@ -1420,16 +1427,17 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
     while !remaining.is_empty() {
         cancel::check(cancel)?;
         let here = position;
-        let key = |a: &PocketArea| {
-            (
-                Ordered(a.area.distance(here)),
-                a.area.sort_key(),
-                a.contour_ids.clone(),
-            )
-        };
-        let index = (0..remaining.len())
-            .min_by_key(|&i| key(&remaining[i]))
-            .unwrap_or(0);
+        // The nearest region; equally near ones (`nearest_ties`) by place and contours.
+        let index =
+            nearest_ties((0..remaining.len()).map(|i| (i, remaining[i].area.distance(here))))
+                .into_iter()
+                .min_by_key(|&i| {
+                    (
+                        remaining[i].area.sort_key(),
+                        remaining[i].contour_ids.clone(),
+                    )
+                })
+                .unwrap_or(0);
         let PocketArea {
             area: region,
             contour_ids: ids,
@@ -1664,7 +1672,10 @@ fn fit_helix(
         );
     }
     let areas = room(used)?;
-    let Some(nearest) = areas.iter().min_by_key(|a| Ordered(a.distance(first))) else {
+    let nearest = nearest_ties(areas.iter().map(|a| (a, a.distance(first))))
+        .into_iter()
+        .min_by_key(|a| a.sort_key());
+    let Some(nearest) = nearest else {
         notes.push(without(Message::new("toolpath-no-helix-narrow")));
         return Ok(None);
     };

@@ -120,6 +120,13 @@ With the material on the right for climb (M3, as for profiles):
 Each ring starts at its vertex nearest the current tool position (ties: lowest y, then lowest x).
 That keeps links short. Deterministic.
 
+**Ties, amended 2026-10-30:** every "nearest" choice in a pocket (cut order, ring starts,
+stored start points, region order, the helix's room) counts distances within the chaining
+tolerance (0.001 mm) of the nearest as equal, and takes one of those by its second key
+(lowest y, then x; or level, node and kind). On a symmetric drawing two candidates are
+equally near up to the last bits, which differ between platforms' maths libraries;
+compared exactly, the G-code followed them.
+
 ### Links between rings at the same depth
 The user chooses per operation (decision 2026-10-08):
 - `keep_tool_down: false` (default): always retract to safe_z, rapid to the next ring's start,

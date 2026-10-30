@@ -4,10 +4,26 @@
 //! stored one. Rings without a point keep the start the planner gave them.
 
 use chipload_core::Point;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
 use crate::arcs::{ArcTable, Circle};
+
+/// The items within CHAIN_TOL_MM of the nearest one, in their order: equally near as far as
+/// geometry goes. A choice of "the nearest" takes one of these by a second key, never by
+/// the exact distance: on a symmetric drawing two candidates are equally near up to the
+/// last bits, which differ between platforms' maths libraries, and the G-code followed them
+/// (golden v31_svg_badge on Windows, macOS and ARM, 2026-10-29).
+pub(crate) fn nearest_ties<T>(items: impl IntoIterator<Item = (T, f64)>) -> Vec<T> {
+    let items: Vec<(T, f64)> = items.into_iter().collect();
+    let nearest = items.iter().map(|i| i.1).fold(f64::INFINITY, f64::min);
+    items
+        .into_iter()
+        .filter(|i| i.1 <= nearest + CHAIN_TOL_MM)
+        .map(|i| i.0)
+        .collect()
+}
 
 /// The point of segment a-b nearest to `p`.
 fn nearest_on_segment(a: Point, b: Point, p: Point) -> Point {
@@ -21,19 +37,18 @@ fn nearest_on_segment(a: Point, b: Point, p: Point) -> Point {
 }
 
 /// The closed ring's point nearest to `p`: the index of the chord it lies on (from
-/// ring[i] to ring[i + 1], wrapping), the point, and its distance from `p`. None for an
-/// empty ring.
+/// ring[i] to ring[i + 1], wrapping), the point, and its distance from `p`. Points equally
+/// near (`nearest_ties`) go to the lowest, then the leftmost, then the first chord. None for
+/// an empty ring.
 pub fn nearest_on_ring(ring: &[Point], p: Point) -> Option<(usize, Point, f64)> {
     let n = ring.len();
-    let mut best: Option<(usize, Point, f64)> = None;
-    for i in 0..n {
+    let found = (0..n).map(|i| {
         let q = nearest_on_segment(ring[i], ring[(i + 1) % n], p);
-        let d = distance(p, q);
-        if best.is_none_or(|(_, _, bd)| d < bd) {
-            best = Some((i, q, d));
-        }
-    }
-    best
+        ((i, q, distance(p, q)), distance(p, q))
+    });
+    nearest_ties(found)
+        .into_iter()
+        .min_by_key(|&(i, q, _)| (Ordered(q.1), Ordered(q.0), i))
 }
 
 /// The point a stored start chose on its ring, and how far the stored point was from it.
@@ -51,15 +66,13 @@ pub fn assign(starts: &[Point], rings: &[&[Point]]) -> (Vec<Option<Chosen>>, Vec
     let mut chosen: Vec<Option<Chosen>> = vec![None; rings.len()];
     let mut duplicates = Vec::new();
     for (index, &stored) in starts.iter().enumerate() {
-        // Ties go to the earlier ring, so the result doesn't depend on float noise order.
-        let mut best: Option<(usize, f64)> = None;
-        for (r, ring) in rings.iter().enumerate() {
-            if let Some((_, _, d)) = nearest_on_ring(ring, stored)
-                && best.is_none_or(|(_, bd)| d < bd)
-            {
-                best = Some((r, d));
-            }
-        }
+        // Ties (`nearest_ties`) go to the earlier ring, so the result doesn't depend on
+        // float noise.
+        let found = rings
+            .iter()
+            .enumerate()
+            .filter_map(|(r, ring)| nearest_on_ring(ring, stored).map(|(_, _, d)| ((r, d), d)));
+        let best: Option<(usize, f64)> = nearest_ties(found).into_iter().next();
         let Some((r, d)) = best else { continue };
         if chosen[r].is_some() {
             duplicates.push((index, r));
@@ -180,6 +193,21 @@ mod tests {
         assert_eq!(arcs.get(p, b), Some(circle));
         assert_eq!(out[1], b);
         assert_eq!(out[4], a);
+    }
+
+    /// Equally near up to float noise is a tie, whatever the noise: the lowest point wins.
+    #[test]
+    fn equally_near_points_go_to_the_lowest_whatever_the_noise() {
+        for noise in [0.0, 1e-15, -1e-15, 1e-9] {
+            let ring = vec![(0.0, 0.0), (10.0 + noise, 0.0), (10.0, 10.0), (0.0, 10.0)];
+            // The middle is as near to all four sides: the bottom one wins.
+            let (_, q, _) = nearest_on_ring(&ring, (5.0, 5.0)).unwrap();
+            assert!(distance(q, (5.0, 0.0)) < 1e-6, "{noise}: {q:?}");
+        }
+        assert_eq!(
+            nearest_ties([("a", 1.0), ("b", 1.0005), ("c", 1.01)]),
+            vec!["a", "b"]
+        );
     }
 
     #[test]

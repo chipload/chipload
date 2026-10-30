@@ -32,8 +32,8 @@ $ chipload plan tests/corpus/jobs/v11/two_tools.chipload
 exit 0
 --- stdout
 Operation 1: a ring starts at (54.176, 39.109) (default)
-Operation 1: a ring starts at (79.253, 84.021) (default)
-Operation 1: a ring starts at (53.500, 110.822) (default)
+Operation 1: a ring starts at (79.388, 83.969) (default)
+Operation 1: a ring starts at (53.500, 110.548) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 17 s (cutting 7 min 7 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
@@ -72,8 +72,8 @@ $ chipload plan tests/corpus/jobs/v12/two_tools_program.chipload
 exit 0
 --- stdout
 Operation 1: a ring starts at (54.176, 39.109) (default)
-Operation 1: a ring starts at (79.253, 84.021) (default)
-Operation 1: a ring starts at (53.500, 110.822) (default)
+Operation 1: a ring starts at (79.388, 83.969) (default)
+Operation 1: a ring starts at (53.500, 110.548) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 17 s (cutting 7 min 7 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
@@ -367,7 +367,7 @@ $ chipload plan tests/corpus/jobs/v21/copies_by_part.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (68.384, 73.607) (default)
+Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, copy by copy
@@ -854,7 +854,7 @@ $ chipload plan tests/corpus/jobs/v7/copies.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (68.384, 73.607) (default)
+Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, operation by operation
@@ -873,7 +873,7 @@ $ chipload plan tests/corpus/jobs/v7/depths_and_clearance.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (68.384, 73.607) (default)
+Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 33 s (cutting 1 min 28 s, rapids 2 s, spindle 3 s)
@@ -927,7 +927,7 @@ $ chipload plan tests/corpus/jobs/v7/ramp_entry.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (68.384, 73.607) (default)
+Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 43 s (cutting 1 min 38 s, rapids 2 s, spindle 3 s)
@@ -963,7 +963,7 @@ $ chipload plan tests/corpus/jobs/v7/trochoidal.chipload
 exit 0
 --- stdout
 warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
-Operation 1: a ring starts at (68.384, 73.607) (default)
+Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 33 s (cutting 1 min 28 s, rapids 2 s, spindle 3 s)

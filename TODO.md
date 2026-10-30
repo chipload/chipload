@@ -207,6 +207,9 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Platform-proof pocket choices** (2026-10-30): the pocket's "nearest" choices (cut order,
+  ring starts, stored start points, region order, helix room) take distances within the
+  chaining tolerance as a tie, as the lead's start did since 0.28.1 (docs/specs/pocket.md).
 - **The legend and the navigation bar no longer overlap** (2026-10-29, seen 2026-10-28 in
   German at 1200 × 800): when even the compact bar has no room beside the legend, the bar
   is centred and the legend stands on it; in a wide canvas the bar keeps to its right as
@@ -680,14 +683,6 @@ Follow-ups, not planned yet:
 
 - **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
 - **Pockets:** a finishing pass (walls and floor); dogbones with rest passes.
-- **Platform-proof choices (2026-10-29):** the lead's start (roomiest_start) took the
-  longest chord exactly, so arcs and symmetric shapes gave different G-code on Windows,
-  macOS and ARM (fixed: ties within the chaining tolerance, lowest then leftmost). The
-  pocket's other "nearest" choices (cut order, ring starts, restart, region order, helix
-  area) still compare distances exactly; making them tolerant too changed 18 goldens with
-  no failure seen, so it waits. Golden projects nudged by a few ulps also change where an
-  arc passes exactly through a quarter point (split there or not); harmless while the
-  numbers are exact, which they are on every platform today.
 - **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
   hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
   counterbores in one operation.
