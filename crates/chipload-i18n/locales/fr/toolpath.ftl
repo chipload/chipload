@@ -159,8 +159,8 @@ toolpath-rest-too-small = reprise des restes : la matière à { $count ->
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = contours { $contours } : trop large pour la fraise en V ({ $across } de diamètre), qui grave au plus à { $cap } de profondeur ({ $wide } de large en surface) ; les bords des parties les plus larges ne sont pas atteints (il leur faut { $need }). Autorisez plus profond, utilisez un angle plus ouvert ou évidez le fond
-toolpath-vcarve-too-wide = contours { $contours } : trop large pour une gravure d'au plus { $cap } de profondeur ({ $wide } de large en surface) ; les bords des parties les plus larges ne sont pas atteints (il leur faut { $need }). Autorisez plus profond, utilisez un angle plus ouvert ou évidez le fond
+toolpath-vcarve-floor-left-bit = contours { $contours } : plus larges que ce qu'atteint la fraise en V ({ $across } de diamètre) à au plus { $cap } de profondeur ({ $wide } en surface) : elle taille les flancs, et le fond entre eux reste à la surface. Ajoutez une passe de fond avec une fraise droite pour le dégager
+toolpath-vcarve-floor-left = contours { $contours } : plus larges que ce qu'atteint une gravure d'au plus { $cap } de profondeur ({ $wide } en surface) : la fraise en V taille les flancs, et le fond entre eux reste à la surface. Ajoutez une passe de fond avec une fraise droite pour le dégager
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours } : { $narrow } de ligne médiane sont plus étroits que la pointe ({ $tip }) et ne sont pas gravés
 toolpath-path-too-short = le contour #{ $contour } est trop court pour être suivi ({ $length }) ; ignoré

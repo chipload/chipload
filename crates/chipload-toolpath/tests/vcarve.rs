@@ -174,6 +174,18 @@ fn assert_no_gouge(contours: &[Contour], plan: &VcarvePlan, bit: &VBit) {
 /// Rule 2 of spec §1: every point of the shape is within reach of some cut (grid points
 /// `spacing` apart). Returns the worst miss.
 fn worst_miss(contours: &[Contour], plan: &VcarvePlan, bit: &VBit, spacing: f64) -> f64 {
+    worst_miss_within(contours, plan, bit, spacing, f64::INFINITY)
+}
+
+/// [`worst_miss`] over the points no farther than `band` from the outline: the strip walls
+/// reach when the floor between them is left.
+fn worst_miss_within(
+    contours: &[Contour],
+    plan: &VcarvePlan,
+    bit: &VBit,
+    spacing: f64,
+    band: f64,
+) -> f64 {
     let cuts = samples(&plan.paths, bit, TOL / 2.0);
     let all: Vec<Point> = contours.iter().flat_map(|c| c.points()).collect();
     let lo = all.iter().fold((f64::INFINITY, f64::INFINITY), |a, p| {
@@ -190,7 +202,7 @@ fn worst_miss(contours: &[Contour], plan: &VcarvePlan, bit: &VBit, spacing: f64)
         let mut x = lo.0 + spacing / 2.0;
         while x < hi.0 {
             let g = (x, y);
-            if inside(contours, g) {
+            if inside(contours, g) && dist_to_outline(contours, g) <= band {
                 let miss = cuts
                     .iter()
                     .map(|(p, r)| ((g.0 - p.0).powi(2) + (g.1 - p.1).powi(2)).sqrt() - r)
@@ -322,23 +334,35 @@ fn a_flat_tip_carves_shallower_and_leaves_the_corner_tips() {
 }
 
 #[test]
-fn a_stroke_wider_than_the_cap_is_carved_to_it_and_reported() {
+fn a_stroke_wider_than_the_cap_gets_walls_and_its_floor_is_reported() {
+    // 30 x 10, a 90° bit at most 2 deep: 4 wide at the surface (vcarve-wide-strokes.md §8).
     let shape = [common::rect(7, 0.0, 0.0, 30.0, 10.0)];
     let bit = bit(90.0, 0.0);
     let plan = carve(&shape, &bit, 2.0);
     assert!((deepest(&plan) - 2.0).abs() < 1e-9);
     assert_no_gouge(&shape, &plan, &bit);
+    // The walls reach the outline all round: everything within 4 of it is cut.
+    assert!(worst_miss_within(&shape, &plan, &bit, 0.25, 4.0 - TOL) <= TOL);
+    // A closed wall 2 in from the outline, at 2 deep.
+    let wall = plan
+        .paths
+        .iter()
+        .find(|p| p.points.first() == p.points.last() && p.points.len() > 4)
+        .expect("a closed wall");
+    for (&p, &d) in wall.points.iter().zip(&wall.depths) {
+        assert!((dist_to_outline(&shape, p) - 2.0).abs() <= TOL, "{p:?}");
+        assert!((d - 2.0).abs() < 1e-9);
+    }
+    // No centre line down the middle, where the floor is: only the corner branches.
+    for path in &plan.paths {
+        for &p in &path.points {
+            assert!(dist_to_outline(&shape, p) <= 2.0 + TOL, "{p:?}");
+        }
+    }
     assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
-    assert!(
-        plan.notes[0].english().contains("contours #7"),
-        "{:?}",
-        plan.notes[0]
-    );
-    assert!(
-        plan.notes[0].english().contains("need 5.000 mm"),
-        "{:?}",
-        plan.notes[0]
-    );
+    let note = plan.notes[0].english();
+    assert!(note.contains("contours #7"), "{note}");
+    assert!(note.contains("floor pass"), "{note}");
 }
 
 #[test]
@@ -354,7 +378,7 @@ fn the_bit_limits_the_depth_too() {
     assert!(
         plan.notes[0]
             .english()
-            .contains("carves at most 3.000 mm deep"),
+            .contains("reaches at most 3.000 mm deep"),
         "{:?}",
         plan.notes
     );
@@ -468,6 +492,30 @@ proptest! {
         assert_no_gouge(&shape, &plan, &bit);
         let miss = worst_miss(&shape, &plan, &bit, 0.4);
         prop_assert!(miss <= TOL, "missed by {miss}");
+    }
+
+    /// Too wide for the depth: walls, no gouge, and everything within the walls' reach
+    /// (twice the cut's radius at the surface) of the outline is cut
+    /// (vcarve-wide-strokes.md §8).
+    #[test]
+    fn wide_shapes_get_walls_without_gouging(
+        points in 3usize..8,
+        outer in 8.0f64..16.0,
+        ratio in 0.4f64..0.8,
+        turn in 0.0f64..1.0,
+        angle in 30.0f64..120.0,
+        tip in 0.0f64..0.5,
+        cap in 0.3f64..1.5,
+    ) {
+        let shape = [star(points, outer, outer * ratio, turn)];
+        let bit = bit(angle, tip);
+        let plan = carve(&shape, &bit, cap);
+        assert_no_gouge(&shape, &plan, &bit);
+        let band = 2.0 * bit.radius_at(cap) - tip;
+        let miss = worst_miss_within(&shape, &plan, &bit, 0.4, band - TOL);
+        // Corner tips narrower than a flat tip are never reached (v-carve.md §1).
+        let corner_tip = tip / 2.0 / (std::f64::consts::PI / points as f64 / 2.0).sin();
+        prop_assert!(miss <= TOL + corner_tip, "missed by {miss}");
     }
 }
 

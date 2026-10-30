@@ -159,8 +159,8 @@ toolpath-rest-too-small = rest machining: material in { $count ->
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = contours { $contours }: too wide for the V-bit ({ $across } across), which carves at most { $cap } deep ({ $wide } wide at the surface); the edges of the widest parts aren't reached (they need { $need }). Allow deeper, use a wider angle, or clear the floor
-toolpath-vcarve-too-wide = contours { $contours }: too wide for a carve at most { $cap } deep ({ $wide } wide at the surface); the edges of the widest parts aren't reached (they need { $need }). Allow deeper, use a wider angle, or clear the floor
+toolpath-vcarve-floor-left-bit = contours { $contours }: wider than the V-bit ({ $across } across) reaches at most { $cap } deep ({ $wide } at the surface): it cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+toolpath-vcarve-floor-left = contours { $contours }: wider than a carve at most { $cap } deep reaches ({ $wide } at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours }: { $narrow } of centre line is narrower than the tip ({ $tip }) and isn't carved
 toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $length }); skipped

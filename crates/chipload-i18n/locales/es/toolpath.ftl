@@ -159,8 +159,8 @@ toolpath-rest-too-small = mecanizado de restos: el material en { $count ->
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = contornos { $contours }: demasiado anchos para la fresa en V ({ $across } de diámetro), que talla como máximo { $cap } de profundidad ({ $wide } de ancho en la superficie); no se alcanzan los bordes de las partes más anchas (necesitan { $need }). Permite más profundidad, usa un ángulo mayor o vacía el fondo
-toolpath-vcarve-too-wide = contornos { $contours }: demasiado anchos para un tallado de como máximo { $cap } de profundidad ({ $wide } de ancho en la superficie); no se alcanzan los bordes de las partes más anchas (necesitan { $need }). Permite más profundidad, usa un ángulo mayor o vacía el fondo
+toolpath-vcarve-floor-left-bit = contornos { $contours }: más anchos de lo que alcanza la fresa en V ({ $across } de diámetro) a { $cap } de profundidad como máximo ({ $wide } en la superficie): corta las paredes y el fondo entre ellas queda en la superficie. Añade una pasada de fondo con una fresa plana para vaciarlo
+toolpath-vcarve-floor-left = contornos { $contours }: más anchos de lo que alcanza un tallado de { $cap } de profundidad como máximo ({ $wide } en la superficie): la fresa en V corta las paredes y el fondo entre ellas queda en la superficie. Añade una pasada de fondo con una fresa plana para vaciarlo
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contornos { $contours }: { $narrow } de línea central son más estrechos que la punta ({ $tip }) y no se tallan
 toolpath-path-too-short = el contorno #{ $contour } es demasiado corto para seguirlo ({ $length }); se omite

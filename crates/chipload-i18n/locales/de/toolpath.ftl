@@ -159,8 +159,8 @@ toolpath-rest-too-small = Restbearbeitung: Material an { $count ->
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = Konturen { $contours }: zu breit für den V-Fräser ({ $across } Durchmesser), der höchstens { $cap } tief graviert ({ $wide } breit an der Oberfläche); die Ränder der breitesten Stellen werden nicht erreicht (sie bräuchten { $need }). Erlauben Sie mehr Tiefe, nehmen Sie einen größeren Winkel oder räumen Sie den Boden aus
-toolpath-vcarve-too-wide = Konturen { $contours }: zu breit für eine Gravur von höchstens { $cap } Tiefe ({ $wide } breit an der Oberfläche); die Ränder der breitesten Stellen werden nicht erreicht (sie bräuchten { $need }). Erlauben Sie mehr Tiefe, nehmen Sie einen größeren Winkel oder räumen Sie den Boden aus
+toolpath-vcarve-floor-left-bit = Konturen { $contours }: breiter, als der V-Fräser ({ $across } Durchmesser) mit höchstens { $cap } Tiefe reicht ({ $wide } an der Oberfläche): er schneidet die Wände, der Boden dazwischen bleibt an der Oberfläche stehen. Fügen Sie einen Bodendurchgang mit einem Schaftfräser hinzu, um ihn auszuräumen
+toolpath-vcarve-floor-left = Konturen { $contours }: breiter, als ein höchstens { $cap } tiefer Schnitt reicht ({ $wide } an der Oberfläche): der V-Fräser schneidet die Wände, der Boden dazwischen bleibt an der Oberfläche stehen. Fügen Sie einen Bodendurchgang mit einem Schaftfräser hinzu, um ihn auszuräumen
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = Konturen { $contours }: { $narrow } Mittellinie sind schmaler als die Spitze ({ $tip }) und werden nicht graviert
 toolpath-path-too-short = Kontur #{ $contour } ist zu kurz zum Folgen ({ $length }); übersprungen

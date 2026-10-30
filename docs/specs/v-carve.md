@@ -224,7 +224,8 @@ Agreed 2026-10-11:
    exact predicates on integer input. It is used behind our own checks (§4.6). If it fails
    on our corpus, we write our own. A short ADR comes with it.
 3. **Strokes wider than the bit:** capped at the maximum depth and reported; no flat floor
-   clearing yet.
+   clearing yet. *Replaced 2026-10-30 by docs/specs/vcarve-wide-strokes.md: walls along the
+   outline, and a floor pass.*
 4. **Depth passes:** optional `step_down`.
 5. **V-bit data:** the angle (required for V-carving) and an optional tip diameter on the
    tool; schema bump for projects and the tool library.

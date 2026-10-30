@@ -159,8 +159,8 @@ toolpath-rest-too-small = restbearbetning: materialet på { $count ->
 
 # $across is the V-bit's diameter, $cap the deepest it carves, $wide the widest stroke it
 # carves at that depth, $need the depth the widest stroke needs.
-toolpath-vcarve-too-wide-bit = konturerna { $contours }: för breda för V-fräsen ({ $across } i diameter), som graverar högst { $cap } djupt ({ $wide } brett vid ytan); kanterna på de bredaste delarna nås inte (de kräver { $need }). Tillåt större djup, använd en bredare vinkel eller fräs ur botten
-toolpath-vcarve-too-wide = konturerna { $contours }: för breda för en gravyr som är högst { $cap } djup ({ $wide } bred vid ytan); kanterna på de bredaste delarna nås inte (de kräver { $need }). Tillåt större djup, använd en bredare vinkel eller fräs ur botten
+toolpath-vcarve-floor-left-bit = konturer { $contours }: bredare än V-fräsen ({ $across } i diameter) når som högst { $cap } djupt ({ $wide } i ytan): den skär väggarna, och botten mellan dem står kvar i ytan. Lägg till ett bottenpass med en pinnfräs för att rensa den
+toolpath-vcarve-floor-left = konturer { $contours }: bredare än ett snitt som är högst { $cap } djupt når ({ $wide } i ytan): V-fräsen skär väggarna, och botten mellan dem står kvar i ytan. Lägg till ett bottenpass med en pinnfräs för att rensa den
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = konturerna { $contours }: { $narrow } av mittlinjen är smalare än spetsen ({ $tip }) och graveras inte
 toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $length }); hoppas över

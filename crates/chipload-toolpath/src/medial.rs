@@ -228,6 +228,66 @@ impl Graph {
     }
 }
 
+impl Graph {
+    /// Keep only the parts of the axis whose cut radius is at most `limit`: an edge that
+    /// crosses it is cut there (at a new node, radius `limit`), the parts beyond are
+    /// dropped (docs/specs/vcarve-wide-strokes.md §3.2). Radii are linear between points
+    /// within the tolerance `set_cut` used, so the crossing is that close.
+    pub(crate) fn keep_within(&mut self, limit: f64) {
+        let mut kept = Vec::new();
+        let edges = std::mem::take(&mut self.edges);
+        for edge in edges.into_iter().filter(|e| e.alive) {
+            // The piece being collected: its first node, points and radii.
+            let mut piece: Option<(usize, Vec<Point>, Vec<f64>)> = None;
+            for k in 0..edge.points.len() {
+                let (p, r) = (edge.points[k], edge.radii[k]);
+                let inside = r <= limit;
+                if k > 0 {
+                    let (q, s) = (edge.points[k - 1], edge.radii[k - 1]);
+                    if (s <= limit) != inside {
+                        let t = (limit - s) / (r - s);
+                        let at = (q.0 + (p.0 - q.0) * t, q.1 + (p.1 - q.1) * t);
+                        let node = self.nodes.len();
+                        self.nodes.push(at);
+                        match piece.take() {
+                            Some((start, mut points, mut radii)) => {
+                                points.push(at);
+                                radii.push(limit);
+                                kept.push(Edge {
+                                    ends: [start, node],
+                                    points,
+                                    radii,
+                                    alive: true,
+                                });
+                            }
+                            None => piece = Some((node, vec![at], vec![limit])),
+                        }
+                    }
+                }
+                if inside {
+                    match &mut piece {
+                        Some((_, points, radii)) => {
+                            points.push(p);
+                            radii.push(r);
+                        }
+                        None => piece = Some((edge.ends[0], vec![p], vec![r])),
+                    }
+                }
+            }
+            if let Some((start, points, radii)) = piece {
+                kept.push(Edge {
+                    ends: [start, edge.ends[1]],
+                    points,
+                    radii,
+                    alive: true,
+                });
+            }
+        }
+        kept.retain(|e| e.points.len() >= 2);
+        self.edges = kept;
+    }
+}
+
 /// Points after `a` up to and including `b`, split until the radius at the quarter, middle
 /// and three-quarter points is within half of `tol` of linear between its ends: the points
 /// the verification checks. The cut is the distance capped at the deepest radius, so it has
@@ -443,7 +503,10 @@ fn split_parabola(
 /// The loop's points, arcs split into chords within a quarter of `tol`: the centre line
 /// between chords wobbles by up to their sag, and end branches into chord corners are only
 /// dropped when they add less than the tolerance (v-carve.md §4.3).
-fn fine_ring(pline: &cavalier_contours::polyline::Polyline<f64>, tol: f64) -> Vec<Point> {
+pub(crate) fn fine_ring(
+    pline: &cavalier_contours::polyline::Polyline<f64>,
+    tol: f64,
+) -> Vec<Point> {
     let sag = tol / 4.0;
     let mut ring = Vec::new();
     for prim in pline_segments(pline) {

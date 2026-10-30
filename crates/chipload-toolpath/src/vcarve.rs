@@ -9,15 +9,17 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::order::Ordered;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, VCARVE_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
 use crate::cavalier::{Area, geometry};
-use crate::medial::{Graph, Outline, medial_axis};
+use crate::medial::{Graph, Outline, fine_ring, medial_axis};
 use crate::model::Move;
 use crate::pocket::build_region;
+use crate::start::nearest_ties;
 
 /// A V-bit's cutting geometry.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -87,6 +89,7 @@ pub fn plan_vcarve(
     let cap = max_depth.min(bit.deepest());
     let cap_radius = bit.radius_at(cap);
     let mut graph = Graph::default();
+    let mut walls: Vec<CarvePath> = Vec::new();
     let mut notes = Vec::new();
     for region in build_region(contours)? {
         let ids = ids_text(&region.contour_ids);
@@ -94,21 +97,28 @@ pub fn plan_vcarve(
         let mut axis = medial_axis(&region.area, &outline, &ids, "V-carve", VCARVE_TOL_MM)?;
         axis.prune(&outline, VCARVE_TOL_MM);
         let widest = axis.widest(&outline);
-        axis.set_cut(&outline, cap_radius, VCARVE_TOL_MM);
-        axis.verify(&region.area, &outline, &ids)?;
         if widest > cap_radius + VCARVE_TOL_MM {
+            // Too wide to reach both sides: the centre line where the stroke is narrow
+            // enough, walls along the outline where it is wider (vcarve-wide-strokes.md §3).
+            // Within half the tolerance over the cap the centre line still reaches.
+            let reach = cap_radius + VCARVE_TOL_MM / 2.0;
+            axis.set_cut(&outline, cap_radius + VCARVE_TOL_MM, VCARVE_TOL_MM);
+            axis.keep_within(reach);
+            walls.extend(wall_rings(&region.area, &outline, cap_radius, cap, &ids)?);
             let note = if bit.deepest() < max_depth {
-                Message::new("toolpath-vcarve-too-wide-bit").arg("across", fixed3(bit.diameter))
+                Message::new("toolpath-vcarve-floor-left-bit").arg("across", fixed3(bit.diameter))
             } else {
-                Message::new("toolpath-vcarve-too-wide")
+                Message::new("toolpath-vcarve-floor-left")
             };
             notes.push(
                 note.arg("contours", ids.as_str())
                     .arg("cap", fixed3(cap))
-                    .arg("wide", fixed3(2.0 * cap_radius))
-                    .arg("need", fixed3(bit.depth_for(widest))),
+                    .arg("wide", fixed3(2.0 * cap_radius)),
             );
+        } else {
+            axis.set_cut(&outline, cap_radius, VCARVE_TOL_MM);
         }
+        axis.verify(&region.area, &outline, &ids)?;
         let narrow = axis.narrow_length(bit.tip_diameter / 2.0);
         if narrow > VCARVE_TOL_MM {
             notes.push(
@@ -122,7 +132,14 @@ pub fn plan_vcarve(
     }
     let mut paths = Vec::new();
     for walked in graph.walk(start) {
-        paths.extend(carve_pieces(&walked, bit));
+        paths.extend(carve_pieces(&walked, bit, cap));
+    }
+    let mut at = paths
+        .last()
+        .and_then(|p| p.points.last().copied())
+        .unwrap_or(start);
+    for wall in nearest_first(walls, &mut at) {
+        paths.push(wall);
     }
     let deepest = paths
         .iter()
@@ -237,10 +254,10 @@ fn split_where(path: &CarvePath, keep: impl Fn(f64) -> bool, level: f64) -> Vec<
 
 /// A walked path (points and cut radius) as cuts: the tip depth for each radius, without the
 /// parts narrower than the tip.
-fn carve_pieces(walked: &[(Point, f64)], bit: &VBit) -> Vec<CarvePath> {
+fn carve_pieces(walked: &[(Point, f64)], bit: &VBit, cap: f64) -> Vec<CarvePath> {
     let path = CarvePath {
         points: walked.iter().map(|w| w.0).collect(),
-        depths: walked.iter().map(|w| bit.depth_for(w.1)).collect(),
+        depths: walked.iter().map(|w| bit.depth_for(w.1).min(cap)).collect(),
     };
     split_where(&path, |d| d >= -DEPTH_TOL_MM, 0.0)
         .into_iter()
@@ -252,6 +269,86 @@ fn carve_pieces(walked: &[(Point, f64)], bit: &VBit) -> Vec<CarvePath> {
         })
         .filter(|piece| piece.depths.iter().any(|&d| d > DEPTH_TOL_MM))
         .collect()
+}
+
+/// The walls of a region too wide to carve from its centre line: the region shrunk by the
+/// cut's radius at the surface, `radius`, each loop a closed path at `depth`, its cone
+/// touching the outline at the surface (vcarve-wide-strokes.md §3.1). Every point and the
+/// middle of every chord is checked to keep the cone inside the outline.
+fn wall_rings(
+    area: &Area,
+    outline: &Outline,
+    radius: f64,
+    depth: f64,
+    ids: &str,
+) -> Result<Vec<CarvePath>, ToolpathError> {
+    let mut rings = Vec::new();
+    for inner in area.shrunk(radius)? {
+        for pline in std::iter::once(&inner.outer).chain(&inner.holes) {
+            let mut points = fine_ring(pline, VCARVE_TOL_MM);
+            let Some(&first) = points.first() else {
+                continue;
+            };
+            points.push(first);
+            for w in points.windows(2) {
+                let middle = ((w[0].0 + w[1].0) / 2.0, (w[0].1 + w[1].1) / 2.0);
+                for p in [w[0], middle] {
+                    if outline.distance(p) + VCARVE_TOL_MM < radius {
+                        return Err(geometry(
+                            Message::new("toolpath-error-vcarve-verification")
+                                .arg("contours", ids)
+                                .arg("at", Value::Point(p.0, p.1, Digits::Fixed(3))),
+                        ));
+                    }
+                }
+            }
+            let depths = vec![depth; points.len()];
+            rings.push(CarvePath { points, depths });
+        }
+    }
+    Ok(rings)
+}
+
+/// The closed `rings` in cut order: each the nearest to where the tool is (`at`), started at
+/// its point nearest that; `at` ends where the last one closes. Equally near
+/// (`nearest_ties`): the first ring, the lowest then leftmost point.
+fn nearest_first(mut rings: Vec<CarvePath>, at: &mut Point) -> Vec<CarvePath> {
+    let mut ordered = Vec::new();
+    while !rings.is_empty() {
+        let here = *at;
+        let gap = |ring: &CarvePath| {
+            ring.points
+                .iter()
+                .map(|&p| distance(here, p))
+                .fold(f64::INFINITY, f64::min)
+        };
+        let pick = nearest_ties(rings.iter().enumerate().map(|(i, r)| (i, gap(r))))
+            .into_iter()
+            .next()
+            .unwrap_or(0);
+        let mut ring = rings.remove(pick);
+        // Closed: the last point repeats the first. Start at the nearest instead.
+        ring.points.pop();
+        ring.depths.pop();
+        let near = ring
+            .points
+            .iter()
+            .enumerate()
+            .map(|(k, &p)| (k, distance(here, p)));
+        let k = nearest_ties(near)
+            .into_iter()
+            .min_by_key(|&k| (Ordered(ring.points[k].1), Ordered(ring.points[k].0)))
+            .unwrap_or(0);
+        ring.points.rotate_left(k);
+        ring.depths.rotate_left(k);
+        if let (Some(&p), Some(&d)) = (ring.points.first(), ring.depths.first()) {
+            ring.points.push(p);
+            ring.depths.push(d);
+            *at = p;
+        }
+        ordered.push(ring);
+    }
+    ordered
 }
 
 /// A length with 3 decimals, for notes.
