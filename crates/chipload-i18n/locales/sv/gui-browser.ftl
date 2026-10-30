@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = Den aktiva uppspänningen: visas i full färg, simuleras och beräknas. Klicka för dess skiva; dess arbetsnollpunkt ligger under den
 browser-setup-hover = Klicka för att göra den till aktiv uppspänning: visas, simuleras och beräknas
 browser-move-to-setup = Flytta till uppspänning
+browser-export-setup = Exportera G-kod för den här uppspänningen…
+browser-export-setup-hover = Dess program och riggblad, med namnet -S1, -S2 när det finns flera; den blir aktiv uppspänning och beräknas först om den inte visas
 browser-new-part = Ny detalj
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv

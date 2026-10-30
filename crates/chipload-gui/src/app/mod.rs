@@ -1673,6 +1673,48 @@ impl ChiploadApp {
         false
     }
 
+    /// Write the G-code of setup `id` and its setup sheet (docs/specs/setups.md §7), named
+    /// `-S<id>` when there are several: the setup is made the active one, then written now
+    /// if the toolpath shown is all of it, else once it is planned. Returns whether it was
+    /// written now.
+    pub fn export_setup(&mut self, id: u64, path: &Path) -> bool {
+        if self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.setup(id))
+            .is_none()
+        {
+            return false;
+        }
+        if self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.active_setup_id())
+            != Some(id)
+        {
+            self.activate_setup(id);
+        }
+        let shown = self
+            .result_job
+            .as_ref()
+            .is_some_and(|job| job.active_setup_id() == Some(id));
+        let current = self.result.is_some()
+            && !self.toolpath_stale
+            && self.generation.is_none()
+            && self.result_part.is_none()
+            && shown;
+        if current {
+            return self.write_export(path, Vec::new());
+        }
+        if self.start_generation_of(true, true) {
+            self.export_when_done = false;
+            self.export_part_when_done = None;
+            self.export_path_when_done = Some(path.to_path_buf());
+            self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
+        }
+        false
+    }
+
     /// Write the last generation's G-code files, and its setup sheet when the setting asks
     /// for one; `parts` names the parts when only those were planned.
     fn write_export(&mut self, path: &Path, parts: Vec<String>) -> bool {

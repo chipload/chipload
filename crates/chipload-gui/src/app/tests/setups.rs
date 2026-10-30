@@ -49,3 +49,20 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     app.undo();
     assert_eq!(app.edited_job().unwrap().setups.len(), 3);
 }
+
+#[test]
+fn a_setup_exports_from_its_right_click_whichever_is_shown() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let dir = temp_dir("setup-export-menu");
+    // Setup 2 isn't shown: it becomes active, is planned, then written.
+    assert!(!app.export_setup(2, &dir.join("box.nc")), "planned first");
+    assert_eq!(app.edited_job().unwrap().active_setup_id(), Some(2));
+    assert!(app.wait_for_generation(), "{:?}", app.report);
+    assert!(dir.join("box-S2.nc").exists());
+    assert!(!dir.join("box-S1-1-T1.nc").exists());
+    // Shown and current: written at once.
+    assert!(app.export_setup(2, &dir.join("again.nc")));
+    assert!(dir.join("again-S2.nc").exists());
+}

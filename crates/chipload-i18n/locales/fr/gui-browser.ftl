@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = Le montage actif : affiché en couleur, simulé et calculé. Un clic montre son panneau ; son origine est en dessous
 browser-setup-hover = Un clic en fait le montage actif : affiché, simulé et calculé
 browser-move-to-setup = Déplacer vers le montage
+browser-export-setup = Exporter le G-code de ce montage…
+browser-export-setup-hover = Son programme et sa fiche de réglage, nommés -S1, -S2 s'il y en a plusieurs ; il devient le montage actif et est calculé d'abord s'il n'est pas affiché
 browser-new-part = Nouvelle pièce
 # At a part row's right end: the part new operations go into.
 browser-part-active = active

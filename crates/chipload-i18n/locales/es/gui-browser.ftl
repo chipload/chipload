@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = La sujeción activa: se muestra a todo color, se simula y se calcula. Un clic muestra su tablero; su cero está debajo
 browser-setup-hover = Un clic la hace la sujeción activa: se muestra, se simula y se calcula
 browser-move-to-setup = Mover a la sujeción
+browser-export-setup = Exportar el código G de esta sujeción…
+browser-export-setup-hover = Su programa y su hoja de preparación, llamados -S1, -S2 si hay varias; pasa a ser la sujeción activa y se calcula antes si no se muestra
 browser-new-part = Pieza nueva
 # At a part row's right end: the part new operations go into.
 browser-part-active = activa

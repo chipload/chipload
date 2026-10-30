@@ -82,7 +82,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **The Drawing folder:** *Add DXF…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down*, *Move to setup ▸* and *Delete part* (with its operations).
-  - **A setup:** *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
+  - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
     setup*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
     *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,

@@ -129,6 +129,23 @@ impl ChiploadApp {
         }
     }
 
+    /// A setup's right-click menu: *Export G-code of this setup…* (docs/specs/setups.md
+    /// §7).
+    pub(super) fn ask_export_setup(&mut self, id: u64) {
+        if self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.setup(id))
+            .is_none()
+        {
+            return;
+        }
+        let suggested = self.default_export_path();
+        if let Some(path) = save_dialog(&suggested, "G-code", "nc") {
+            self.export_setup(id, &path);
+        }
+    }
+
     pub(super) fn copy_selector(&mut self, ctx: &egui::Context) {
         if let Some(text) = self.selector_json() {
             ctx.copy_text(text);

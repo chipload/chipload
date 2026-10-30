@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = Il piazzamento attivo: mostrato a colori, simulato e calcolato. Un clic mostra il suo pannello; il suo zero è sotto
 browser-setup-hover = Un clic lo rende il piazzamento attivo: mostrato, simulato e calcolato
 browser-move-to-setup = Sposta nel piazzamento
+browser-export-setup = Esporta il G-code di questo piazzamento…
+browser-export-setup-hover = Il suo programma e il foglio di attrezzaggio, chiamati -S1, -S2 se ce ne sono più; diventa il piazzamento attivo e viene calcolato prima se non è mostrato
 browser-new-part = Nuovo pezzo
 # At a part row's right end: the part new operations go into.
 browser-part-active = attivo

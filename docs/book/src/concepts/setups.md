@@ -44,7 +44,9 @@ generated, simulated and exported, while the other boards and their shapes are g
 and out of the way. Right-click a part for **Move to setup ▸**. The machine, shared by every
 setup, is under **Machine**.
 
-**Export G-code** writes the active setup's program, named `-S1`, `-S2` as `run` names them,
+Right-click a setup for **Export G-code of this setup…**: it becomes the active setup, is
+planned if it isn't shown already, and its program and sheet are written. **Export G-code**
+writes the active setup's program, named `-S1`, `-S2` as `run` names them,
 with its own sheet. Make the next setup active and export it too. A setup whose parts still
 have operations can't be removed: move them or delete them first.
 

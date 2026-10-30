@@ -427,6 +427,7 @@ enum SetupAction {
     Zero(u64),
     NewPart(u64),
     Remove(u64),
+    Export(u64),
 }
 
 /// A tool picked from a tool menu: a project tool by id, or a library tool by name.
@@ -793,6 +794,14 @@ impl ChiploadApp {
                     t!(ui, "browser-setup-hover")
                 };
                 out.response.on_hover_text(hover).context_menu(|ui| {
+                    if ui
+                        .button(t!(ui, "browser-export-setup"))
+                        .on_hover_text(t!(ui, "browser-export-setup-hover"))
+                        .clicked()
+                    {
+                        setup_action = Some(SetupAction::Export(setup.id));
+                    }
+                    ui.separator();
                     if ui.button(t!(ui, "browser-new-part")).clicked() {
                         setup_action = Some(SetupAction::NewPart(setup.id));
                     }
@@ -851,6 +860,7 @@ impl ChiploadApp {
                 self.add_part();
             }
             Some(SetupAction::Remove(id)) => self.remove_setup(id),
+            Some(SetupAction::Export(id)) => self.ask_export_setup(id),
             None => {}
         }
         match action {

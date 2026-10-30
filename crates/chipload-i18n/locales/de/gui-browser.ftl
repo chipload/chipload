@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = Die aktive Aufspannung: in voller Farbe gezeigt, simuliert und berechnet. Klicken zeigt ihre Platte; ihr Nullpunkt steht darunter
 browser-setup-hover = Klicken macht sie zur aktiven Aufspannung: gezeigt, simuliert und berechnet
 browser-move-to-setup = In Aufspannung verschieben
+browser-export-setup = G-Code dieser Aufspannung exportieren…
+browser-export-setup-hover = Ihr Programm und Einrichteblatt, benannt -S1, -S2 bei mehreren; sie wird zur aktiven Aufspannung und zuerst berechnet, wenn sie nicht gezeigt wird
 browser-new-part = Neues Teil
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv

@@ -54,6 +54,8 @@ browser-setup-parts = { $count ->
 browser-setup-active-hover = The active setup: shown in full colour, simulated and generated. Click it for its board; its work zero is beneath it
 browser-setup-hover = Click to make it the active setup: shown, simulated and generated
 browser-move-to-setup = Move to setup
+browser-export-setup = Export G-code of this setup…
+browser-export-setup-hover = Its program and setup sheet, named -S1, -S2 when there are several; it becomes the active setup and is planned first if it isn't shown
 browser-new-part = New part
 # At a part row's right end: the part new operations go into.
 browser-part-active = active
