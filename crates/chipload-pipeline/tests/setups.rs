@@ -134,3 +134,22 @@ fn setups_are_added_activated_moved_and_removed() {
     let (one, _) = remove_setup(&fewer, 3, true).unwrap();
     assert!(remove_setup(&one, 1, true).is_err());
 }
+
+#[test]
+fn a_setup_is_simulated_on_its_own_board() {
+    let job = two_boards();
+    let runs = run_setups(&job, Some(2)).unwrap();
+    let one = job.for_setup(2);
+    let sim = chipload_pipeline::simulate::simulate(
+        &one,
+        &runs[0].1.program,
+        &runs[0].1.groups,
+        Some(1.0),
+        &chipload_pipeline::Cancel::new(),
+    )
+    .unwrap();
+    // The 6 mm board, cut through to its bottom and no further.
+    let deepest = sim.numbers.deepest.unwrap();
+    assert!((deepest + 6.0).abs() < 1e-6, "{deepest}");
+    assert!(sim.numbers.below_bottom.is_none_or(|b| b <= 1e-6));
+}

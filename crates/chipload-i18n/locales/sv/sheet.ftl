@@ -11,6 +11,8 @@ sheet-title-parts = Uppsättningsblad: { $project }, { $count ->
    *[other] detaljer
 } { $parts }
 # The line under the title, its parts joined with " · ".
+# With several setups, after the title: which one this sheet is for.
+sheet-setup = uppspänning ”{ $name }”
 sheet-post = postprocessor { $post }
 sheet-written-by = skrivet av { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".

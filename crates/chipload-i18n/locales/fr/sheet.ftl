@@ -11,6 +11,8 @@ sheet-title-parts = Fiche de réglage : { $project }, { $count ->
    *[other] pièces
 } { $parts }
 # The line under the title, its parts joined with " · ".
+# With several setups, after the title: which one this sheet is for.
+sheet-setup = montage « { $name } »
 sheet-post = post-processeur { $post }
 sheet-written-by = écrit par { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".

@@ -99,7 +99,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
         units: info.units,
     };
     let mut html = String::new();
-    head(&mut html, info, w);
+    head(&mut html, job, info, w);
     header(&mut html, job, result, info, w);
     setup(&mut html, job, w);
     picture(&mut html, job, result, w);
@@ -152,27 +152,37 @@ svg.picture { width: 100%; max-height: 520px; border: 1px solid #ccc; }
 
 /// "Setup sheet: part.chipload", escaped.
 /// With some parts only: "Setup sheet: box.chipload, part "lid"".
-fn title(info: &SheetInfo, w: Words) -> String {
-    if info.parts.is_empty() {
-        return w.text(&Message::new("sheet-title").arg("project", info.project.as_str()));
+/// With several setups, the active one's name after it: "Setup sheet: box.chipload, setup
+/// "6 mm bottom"" (docs/specs/setups.md §4).
+fn title(job: &Job, info: &SheetInfo, w: Words) -> String {
+    let base = if info.parts.is_empty() {
+        w.text(&Message::new("sheet-title").arg("project", info.project.as_str()))
+    } else {
+        let names = info.parts.join(", ");
+        w.text(
+            &Message::new("sheet-title-parts")
+                .arg("project", info.project.as_str())
+                .arg("parts", names)
+                .arg("count", info.parts.len()),
+        )
+    };
+    match job.active_setup_id().and_then(|id| job.setup(id)) {
+        Some(setup) if job.setups.len() > 1 => format!(
+            "{base}, {}",
+            w.text(&Message::new("sheet-setup").arg("name", setup.name.as_str()))
+        ),
+        _ => base,
     }
-    let names = info.parts.join(", ");
-    w.text(
-        &Message::new("sheet-title-parts")
-            .arg("project", info.project.as_str())
-            .arg("parts", names)
-            .arg("count", info.parts.len()),
-    )
 }
 
-fn head(html: &mut String, info: &SheetInfo, w: Words) {
+fn head(html: &mut String, job: &Job, info: &SheetInfo, w: Words) {
     let _ = writeln!(
         html,
         "<!doctype html>\n<html lang=\"{}\">\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
          <title>{}</title>\n<style>\n{STYLE}</style>\n</head>\n<body>",
         info.language.code(),
-        title(info, w)
+        title(job, info, w)
     );
 }
 
@@ -200,7 +210,7 @@ fn header(html: &mut String, job: &Job, result: &RunResult, info: &SheetInfo, w:
     let _ = writeln!(
         html,
         "<header>\n<h1>{}</h1>\n<p class=\"meta\">{}</p>\n</header>",
-        title(info, w),
+        title(job, info, w),
         meta.join(" &middot; ")
     );
 }

@@ -11,6 +11,8 @@ sheet-title-parts = Setup sheet: { $project }, { $count ->
    *[other] parts
 } { $parts }
 # The line under the title, its parts joined with " · ".
+# With several setups, after the title: which one this sheet is for.
+sheet-setup = setup “{ $name }”
 sheet-post = post { $post }
 sheet-written-by = written by { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".

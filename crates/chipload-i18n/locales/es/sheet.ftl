@@ -11,6 +11,8 @@ sheet-title-parts = Hoja de preparación: { $project }, { $count ->
    *[other] piezas
 } { $parts }
 # The line under the title, its parts joined with " · ".
+# With several setups, after the title: which one this sheet is for.
+sheet-setup = sujeción «{ $name }»
 sheet-post = postprocesador { $post }
 sheet-written-by = escrita por { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".

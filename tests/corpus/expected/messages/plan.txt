@@ -728,6 +728,37 @@ Tool group 2: tool 1, operations 1
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v34/two_setups.chipload
+exit 0
+--- stdout
+warning: Operation 3 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+warning: Operation 3 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+Operation 1: a ring starts at (64.000, 35.500) (default)
+Operation 1: a ring starts at (82.000, 85.000) (default)
+Operation 1: a ring starts at (31.000, 103.000) (default)
+Operation 2: a ring starts at (19.000, 7.000) (default)
+Part 1 simple part: one
+Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
+Part 3 Part 3: one
+Estimated time: 2 min 29 s (cutting 2 min 16 s, rapids 7 s, spindle 6 s), plus 1 tool change
+Cut outline: 128.481 × 196.800 mm (X 4.000 … 132.481, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
+  Part 1 (simple part): 2 min 23 s
+    Operation 1 (Holes): 1 min 0 s
+    Operation 2 (Outline): 1 min 3 s
+    Operation 3 (Logo): 21 s
+  File 1: 2 min 6 s
+  File 2: 24 s
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Holes): 0.042 mm/tooth
+  Operation 2 (Outline): 0.050 mm/tooth
+  Operation 3 (Logo): 0.033 mm/tooth
+  Operation 4 (Outline B): 0.050 mm/tooth
+Tool group 1: tool 1, operations 1, 2
+Tool group 2: tool 2, operations 3
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

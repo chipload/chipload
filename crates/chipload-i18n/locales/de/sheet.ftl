@@ -11,6 +11,8 @@ sheet-title-parts = Einrichteblatt: { $project }, { $count ->
    *[other] Teile
 } { $parts }
 # The line under the title, its parts joined with " · ".
+# With several setups, after the title: which one this sheet is for.
+sheet-setup = Aufspannung „{ $name }“
 sheet-post = Postprozessor { $post }
 sheet-written-by = erstellt von { $by }
 # $length is "mm" or "in", $feed "mm/min" or "in/min".

@@ -337,3 +337,31 @@ fn a_german_sheet_matches_its_golden_file() {
         golden.display()
     );
 }
+
+/// With several setups, each sheet says which setup it is for, its own zero and its own
+/// files (docs/specs/setups.md §4).
+#[test]
+fn a_sheet_names_its_setup_when_there_are_several() {
+    let job = load_job(&corpus("jobs/v34/two_setups.chipload")).unwrap();
+    let runs = chipload_pipeline::run_setups(&job, None).unwrap();
+    assert_eq!(runs.len(), 2);
+    let (id, result) = &runs[1];
+    let one = job.for_setup(*id);
+    let sheet = setup_sheet(&one, result, Path::new("out/box.nc"), &info("box.chipload"));
+    assert!(
+        sheet.contains("box.chipload, setup &#x201c;6 mm bottom&#x201d;"),
+        "{sheet}"
+    );
+    assert!(sheet.contains("box-S2.nc"), "{sheet}");
+    assert!(!sheet.contains("box-S1"), "only its own files");
+    assert!(sheet.is_ascii());
+    // One setup: the title is as it always was.
+    let single = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
+    let plain = setup_sheet(
+        &single,
+        &run_job(&single).unwrap(),
+        Path::new("out/part.nc"),
+        &info("two_tools"),
+    );
+    assert!(!plain.contains("setup &#x201c;"));
+}
