@@ -433,7 +433,7 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
         panic!("a V-carve");
     };
     assert_eq!(v.name, "V-carve 1");
-    assert_eq!((v.start_depth, v.step_down), (0.0, None));
+    assert_eq!((v.start_depth, v.passes), (0.0, 1));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let moves = &app.result.as_ref().unwrap().program.moves;
     assert!(

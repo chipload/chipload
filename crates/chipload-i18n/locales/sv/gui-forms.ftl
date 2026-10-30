@@ -13,7 +13,6 @@ forms-oversize = Förskjutning
 forms-oversize-disabled = En konturfräsning på linjen har ingen sida att fräsa mer på
 forms-step-down = Skärdjup
 # Indented under "Passes": the depth of each pass.
-forms-step-down-sub = skärdjup
 
 # Cutting direction (milling).
 forms-direction = Riktning
@@ -73,7 +72,7 @@ forms-pocket-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { 
 forms-path-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { $unit }, på linjen
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { $unit }, sidosteg { $stepover } × D
 forms-vcarve-cut-one-pass = från { $start }, högst { $end } djupt, ett skär
-forms-vcarve-cut-steps = från { $start }, högst { $end } djupt, steg om { $step }
+forms-vcarve-cut-passes = från { $start }, högst { $end } djupt, { $count } skär
 
 # A pocket's clearing, in rings.
 forms-section-clearing = Urfräsning
@@ -89,8 +88,9 @@ forms-section-entry = Nedgång
 # V-carving.
 forms-vcarve-start-depth-hover = Ytan som graveras, nedåt från ämnets ovansida (0: ovansidan; mer för att gravera i ett fickgolv)
 forms-vcarve-end-depth-hover = Det djupaste spetsen går, från ämnets ovansida (end_depth i filen). Bredare streck graveras till detta djup och rapporteras
+forms-vcarve-passes-hover = Hur många skär till slutdjupet. Varje skär tar bort lika mycket som de andra, så de blir grundare på vägen ner
+forms-vcarve-pass-depths = till { $depths }
 forms-passes = Djupsteg
-forms-in-steps = i steg
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Verktyg

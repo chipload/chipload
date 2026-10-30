@@ -704,7 +704,7 @@ fn depth_text(op: &Operation, w: Words) -> String {
     let step = match op {
         Operation::Profile(p) => Some(p.step_down),
         Operation::Pocket(p) => Some(p.step_down),
-        Operation::Vcarve(v) => v.step_down,
+        Operation::Vcarve(_) => None,
         Operation::Path(p) => Some(p.step_down),
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
@@ -734,6 +734,11 @@ fn depth_text(op: &Operation, w: Words) -> String {
         }) => vec![
             depths("sheet-depths"),
             Message::new("sheet-per-turn").arg("step", len(*step_down)),
+        ],
+        // docs/specs/v-carve.md decision 12: a number of passes of equal load.
+        Operation::Vcarve(v) if v.passes > 1 => vec![
+            depths("sheet-depths"),
+            Message::new("sheet-passes").arg("count", v.passes),
         ],
         _ => vec![
             depths("sheet-depths"),

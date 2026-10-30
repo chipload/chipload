@@ -40,6 +40,7 @@ job-tool-type-article = { $type ->
 
 job-must-be-positive = must be greater than 0, got { $got }
 job-must-be-positive-number = must be a positive number, got { $got }
+job-vcarve-passes = must be a whole number from 1 to { $most }, got { $got }
 job-must-be-more-than-0 = must be more than 0, got { $got }
 job-must-be-0-or-more = must be 0 or more, got { $got }
 job-through-stale = cuts through the stock, so it ends at { $depth }

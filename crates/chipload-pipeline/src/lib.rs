@@ -372,7 +372,8 @@ pub fn add_rest_pass(
 
 /// A floor pass for `vcarve` with project tool `tool` (docs/specs/vcarve-wide-strokes.md
 /// §4). The feeds, step down and stepover are `cutting`'s (the library's values for the
-/// tool) when given, else the V-carve's feeds, its step down (or its whole depth) and 0.45;
+/// tool) when given, else the V-carve's feeds, its depth in as many equal steps as it has
+/// passes, and 0.45;
 /// it plunges, or goes down in a helix when the end mill isn't centre-cutting. Refused, with
 /// the reason, for a tool that isn't an end mill.
 pub fn floor_pass_of(
@@ -396,9 +397,8 @@ pub fn floor_pass_of(
         None => (
             vcarve.feed,
             vcarve.plunge_feed,
-            vcarve
-                .step_down
-                .unwrap_or(vcarve.end_depth - vcarve.start_depth),
+            // As many passes as the V-carve, equally deep.
+            (vcarve.end_depth - vcarve.start_depth) / f64::from(vcarve.passes.max(1)),
             FLOOR_STEPOVER,
         ),
     };
@@ -444,6 +444,16 @@ pub fn add_floor_pass(
     })?;
     vcarve.floor = Some(pass);
     Ok(chipload_job::OpRef::pass(index, 0))
+}
+
+/// The depths a V-carve's passes go to, mm down from the stock top, the last its end depth:
+/// equal loads (docs/specs/v-carve.md decision 12). For the window to show under its
+/// *Passes*.
+pub fn vcarve_pass_depths(vcarve: &chipload_job::VcarveOp) -> Vec<f64> {
+    chipload_toolpath::vcarve::carve_levels(vcarve.end_depth - vcarve.start_depth, vcarve.passes)
+        .into_iter()
+        .map(|level| vcarve.start_depth + level)
+        .collect()
 }
 
 /// The library's end mills no wider than `largest` (a floor hint, mm), the nearest to it

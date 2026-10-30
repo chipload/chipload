@@ -343,12 +343,7 @@ impl EditJob {
         let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
             Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
-            Operation::Vcarve(v) => (
-                v.step_down.unwrap_or(DEFAULT_STEP_DOWN),
-                v.feed,
-                v.plunge_feed,
-                None,
-            ),
+            Operation::Vcarve(v) => (DEFAULT_STEP_DOWN, v.feed, v.plunge_feed, None),
             Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
             Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
             Operation::Surface(f) => (f.step_down, f.feed, f.plunge_feed, None),
@@ -520,7 +515,7 @@ impl EditJob {
                     tool,
                     start_depth: 0.0,
                     end_depth: DEFAULT_DEPTH,
-                    step_down: None,
+                    passes: 1,
                     feed,
                     plunge_feed,
                     floor: None,

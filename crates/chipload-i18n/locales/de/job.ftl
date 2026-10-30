@@ -40,6 +40,7 @@ job-tool-type-article = { $type ->
 
 job-must-be-positive = muss größer als 0 sein, ist { $got }
 job-must-be-positive-number = muss eine positive Zahl sein, ist { $got }
+job-vcarve-passes = muss eine ganze Zahl von 1 bis { $most } sein, ist { $got }
 job-must-be-more-than-0 = muss mehr als 0 sein, ist { $got }
 job-must-be-0-or-more = muss 0 oder mehr sein, ist { $got }
 job-through-stale = schneidet durch das Material, endet also bei { $depth }

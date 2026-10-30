@@ -171,7 +171,7 @@ fn vcarve(select: Selector) -> Operation {
         tool: 2,
         start_depth: 0.0,
         end_depth: 3.0,
-        step_down: None,
+        passes: 1,
         feed: 1200.0,
         plunge_feed: 400.0,
         floor: None,

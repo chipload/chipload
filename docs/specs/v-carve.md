@@ -83,9 +83,10 @@ The same two fields go into the tool library (`tools.json`), and `use_tool` copi
   0 ≤ start_depth < end_depth.
 - `end_depth`: the deepest the tip may go, mm down from the stock top: a cap (decision 3).
   Strokes that need more are carved to it and reported (§5).
-- `step_down`: optional (decision 4). Missing means one pass. When set, pass k cuts no deeper
-  than start_depth + k × step_down, and only along the parts of the axis that the previous
-  pass left deeper than that.
+- `step_down`: optional (decision 4). Missing means one pass. When set, the carve goes down in
+  passes that each remove the same amount of material (decision 12), the first no deeper than
+  `step_down`, and each only along the parts of the axis that the previous pass left deeper
+  than that.
 - `feed`, `plunge_feed` mm/min. Moves that go down steeper than 45° use the plunge feed; all
   others use the feed (decision 10).
 - No side, direction, clearance, tabs, entry, leads or start points. A V-carve cuts both
@@ -249,3 +250,16 @@ Agreed 2026-10-11 ("go ahead"), all as recommended:
 11. **Tip diameter not set:** taken as pointed (0) and said so in the plan report.
     Recommended. With a real tip of w, the carving is then up to w/2 wider on each side
     (0.1 mm for a common 0.2 mm tip). Alternative: require it for V-carving like the angle.
+
+Agreed 2026-10-30 (the user: "add the progressive v-bit stepdown"):
+
+12. **Passes of equal load** (the user, 2026-10-30: "each stepdown will cut the entire length of
+    the v-bit"). A V groove's cross-section grows as the square of its depth (depth² ×
+    tan(angle/2)), so passes of equal depth remove more and more: 1 : 3 : 5 for three. The
+    passes now remove equal areas instead. For a carve `D` deep below the carved surface
+    (the deepest its paths go) and a step down `s`, the number of passes is the fewest whose
+    first pass is no deeper than `s`, n = ⌈(D / s)²⌉, and pass k goes to D × √(k / n), the
+    last exactly `D`. 3 mm with a 1.5 mm step: 1.5, 2.12, 2.6, 3.0; with a 2 mm step: 1.73,
+    2.45, 3.0. One way, no setting: `step_down` is the first pass's depth, and every later
+    pass is no heavier. Projects keep their `step_down`; their passes change (the golden
+    G-code with them).

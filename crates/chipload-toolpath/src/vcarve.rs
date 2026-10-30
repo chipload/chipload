@@ -255,13 +255,21 @@ pub fn vcarve_moves(
     moves
 }
 
-/// Pass depths below the carved surface: one pass at `deepest`, or equal passes no deeper
-/// than `step_down`, the last exactly `deepest`.
-pub fn carve_levels(deepest: f64, step_down: Option<f64>) -> Result<Vec<f64>, ToolpathError> {
-    match step_down {
-        Some(step) if deepest > DEPTH_TOL_MM => crate::profile::pass_depths(0.0, deepest, step),
-        _ => Ok(vec![deepest]),
-    }
+/// Pass depths below the carved surface: `passes` passes to `depth` that each remove the
+/// same cross-section (docs/specs/v-carve.md decision 12). A V groove's cross-section grows
+/// as its depth squared, so pass k of n goes to `depth` × √(k / n), the last exactly
+/// `depth`. Where a stroke is shallower than a pass, that pass finds nothing left to cut.
+pub fn carve_levels(depth: f64, passes: u32) -> Vec<f64> {
+    let count = passes.max(1);
+    (1..=count)
+        .map(|k| {
+            if k == count {
+                depth
+            } else {
+                depth * (f64::from(k) / f64::from(count)).sqrt()
+            }
+        })
+        .collect()
 }
 
 /// The parts of `path` deeper than `above`, each starting and ending at `above`

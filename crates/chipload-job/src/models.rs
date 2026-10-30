@@ -20,7 +20,10 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 34;
+pub const CURRENT_VERSION: i64 = 35;
+
+/// The most depth passes a V-carve takes (docs/specs/v-carve.md decision 12).
+pub const MAX_VCARVE_PASSES: u32 = 100;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -2378,9 +2381,7 @@ impl Operation {
                 (p.feed, p.plunge_feed, p.step_down, p.stepover)
                     == (c.feed, c.plunge_feed, c.step_down, c.stepover)
             }
-            Operation::Vcarve(v) => {
-                (v.feed, v.plunge_feed, v.step_down) == (c.feed, c.plunge_feed, Some(c.step_down))
-            }
+            Operation::Vcarve(v) => (v.feed, v.plunge_feed) == (c.feed, c.plunge_feed),
             Operation::Path(p) => {
                 (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
             }
@@ -2401,9 +2402,7 @@ impl Operation {
                 (p.feed, p.plunge_feed, p.step_down, p.stepover) =
                     (c.feed, c.plunge_feed, c.step_down, c.stepover);
             }
-            Operation::Vcarve(v) => {
-                (v.feed, v.plunge_feed, v.step_down) = (c.feed, c.plunge_feed, Some(c.step_down));
-            }
+            Operation::Vcarve(v) => (v.feed, v.plunge_feed) = (c.feed, c.plunge_feed),
             Operation::Path(p) => {
                 (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
             }
@@ -2426,12 +2425,7 @@ impl Operation {
                 (c.feed, c.plunge_feed, c.step_down, c.stepover) =
                     (p.feed, p.plunge_feed, p.step_down, p.stepover);
             }
-            Operation::Vcarve(v) => {
-                (c.feed, c.plunge_feed) = (v.feed, v.plunge_feed);
-                if let Some(step_down) = v.step_down {
-                    c.step_down = step_down;
-                }
-            }
+            Operation::Vcarve(v) => (c.feed, c.plunge_feed) = (v.feed, v.plunge_feed),
             Operation::Path(p) => {
                 (c.feed, c.plunge_feed, c.step_down) = (p.feed, p.plunge_feed, p.step_down);
             }
@@ -3129,9 +3123,9 @@ pub struct VcarveOp {
     /// The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need
     /// more are carved to it, narrower than drawn, with a warning.
     pub end_depth: f64,
-    /// Carve in passes no deeper than this, mm. Null: one pass.
-    #[serde(default)]
-    pub step_down: Option<f64>,
+    /// How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same
+    /// cross-section, the last at the end depth (docs/specs/v-carve.md decision 12).
+    pub passes: u32,
     /// The feed, mm/min, for moves no steeper than 45°.
     pub feed: f64,
     /// The feed for moves steeper than 45°, mm/min.
@@ -4076,6 +4070,8 @@ impl Job {
         for (i, tool) in self.tools.iter().enumerate() {
             problems.extend(tool.problems(&format!("tools.{i}")));
         }
+        // Whole numbers out of range: added after the operations.
+        let mut counts = Vec::new();
         // Feeds in mm/min, a stepover a fraction, everything else a length in mm (written,
         // so messages can be shown in inches: docs/specs/inch-units.md §5.1).
         let mut positive = |path: String, value: f64| {
@@ -4129,8 +4125,13 @@ impl Job {
                 }
                 Operation::Vcarve(v) => {
                     positive(at("end_depth"), v.end_depth);
-                    if let Some(step_down) = v.step_down {
-                        positive(at("step_down"), step_down);
+                    if !(1..=MAX_VCARVE_PASSES).contains(&v.passes) {
+                        counts.push(Problem::at(
+                            at("passes"),
+                            Message::new("job-vcarve-passes")
+                                .arg("most", MAX_VCARVE_PASSES)
+                                .arg("got", v.passes),
+                        ));
                     }
                     positive(at("feed"), v.feed);
                     positive(at("plunge_feed"), v.plunge_feed);
@@ -4171,6 +4172,7 @@ impl Job {
                 }
             }
         }
+        problems.extend(counts);
         for (i, op) in self.operations.iter().enumerate() {
             let Some(below) = op.through() else {
                 continue;

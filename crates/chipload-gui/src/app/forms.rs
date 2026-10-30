@@ -623,14 +623,14 @@ pub(super) fn op_form(
         Operation::Vcarve(v) => {
             let start = format!("{} {len_unit}", len_in(units, v.start_depth));
             let end = format!("{} {len_unit}", len_in(units, v.end_depth));
-            let cut = match v.step_down {
-                None => t!(ui, "forms-vcarve-cut-one-pass", start = start, end = end),
-                Some(s) => t!(
+            let cut = match v.passes {
+                0 | 1 => t!(ui, "forms-vcarve-cut-one-pass", start = start, end = end),
+                count => t!(
                     ui,
-                    "forms-vcarve-cut-steps",
+                    "forms-vcarve-cut-passes",
                     start = start,
                     end = end,
-                    step = format!("{} {len_unit}", len_in(units, s))
+                    count = count
                 ),
             };
             section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
@@ -642,18 +642,34 @@ pub(super) fn op_form(
                     .on_hover_text(t!(ui, "forms-vcarve-end-depth-hover"));
                 flag(ui.add(mm(&mut v.end_depth)), ui, "end_depth");
                 ui.end_row();
-                ui.label(t!(ui, "forms-passes"));
-                let mut stepped = v.step_down.is_some();
-                if ui
-                    .checkbox(&mut stepped, t!(ui, "forms-in-steps"))
-                    .changed()
-                {
-                    v.step_down = stepped.then_some(DEFAULT_STEP_DOWN);
-                }
+                // A number of passes of equal load, their depths beneath
+                // (docs/specs/v-carve.md decision 12).
+                ui.label(t!(ui, "forms-passes"))
+                    .on_hover_text(t!(ui, "forms-vcarve-passes-hover"));
+                let most = chipload_job::MAX_VCARVE_PASSES;
+                flag(
+                    ui.add(crate::units::number(ui, &mut v.passes).range(1..=most)),
+                    ui,
+                    "passes",
+                );
                 ui.end_row();
-                if let Some(step) = &mut v.step_down {
-                    ui.label(format!("  {}", t!(ui, "forms-step-down-sub")));
-                    flag(ui.add(mm(step)), ui, "step_down");
+                if v.passes > 1 {
+                    let depths: Vec<String> = chipload_pipeline::vcarve_pass_depths(v)
+                        .iter()
+                        .map(|d| len_in(units, *d))
+                        .collect();
+                    ui.label("");
+                    ui.add(
+                        egui::Label::new(
+                            RichText::new(t!(
+                                ui,
+                                "forms-vcarve-pass-depths",
+                                depths = format!("{} {len_unit}", depths.join(", "))
+                            ))
+                            .weak(),
+                        )
+                        .wrap(),
+                    );
                     ui.end_row();
                 }
             });

@@ -21,11 +21,27 @@ a V-bit without one is refused.
 |---|---|
 | **Start depth** | where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut |
 | **End depth** | the deepest the tip may go. Strokes that need more get walls (see *Wide strokes*). The bit's own size is a limit too: it can't go deeper than its cutting edge reaches. |
-| **Step down** | optional: carve in passes, each only where the last stopped short |
+| **Passes** | how many passes to the end depth, 1 for one: each removes as much as the others, so they get shallower on the way down, and each runs only where the last stopped short. Their depths are shown under the field (see *Passes*) |
 | **Feed**, **Plunge feed** | moves steeper than 45° use the plunge feed |
 
 Regions work as in pockets: an outline minus the selected contours inside it (the inside of
 an O stays standing). Open contours are skipped.
+
+## Passes
+
+A V groove gets wider as it gets deeper: twice as deep removes four times as much. Passes
+of the same depth would get heavier and heavier, the last one the hardest on the bit and the
+machine. So you say how deep and in how many passes, and each pass removes the same amount:
+the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04, 2.89, 3.54, 4.08, 4.56
+and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. The depths are counted from the end
+depth, so a stroke that is shallower than that is done in fewer passes: the deeper ones find
+nothing left to cut. More passes are lighter on the bit and take longer.
+
+![A V-carve 3.5 mm deep in 4 passes: their depths under Passes](../images/vcarve-passes.png)
+
+Projects from before Chipload 0.29 had a step down instead. They open with as many passes
+as that step down took to reach the end depth (3.5 mm with a 1.6 mm step down: 3 passes),
+each now no heavier than the old last one.
 
 ## Wide strokes
 
@@ -93,7 +109,7 @@ in mm, feeds in mm/min, angles in radians.
 | `tool` | Tool: the project tool's id |
 | `start_depth` | Start depth |
 | `end_depth` | End depth |
-| `step_down` | Step down, or null for one pass |
+| `passes` | Passes: how many, 1 to 100 |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
 | `floor` | the floor pass, left out when there is none: `tool` (an end mill), `feed`, `plunge_feed`, `step_down`, `stepover` (a fraction of the end mill's diameter), `entry` and `enabled` |

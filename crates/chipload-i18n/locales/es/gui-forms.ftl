@@ -13,7 +13,6 @@ forms-oversize = Holgura
 forms-oversize-disabled = Un contorneado sobre la línea no tiene lado en el que cortar más
 forms-step-down = Prof. de pasada
 # Indented under "Passes": the depth of each pass.
-forms-step-down-sub = prof. de pasada
 
 # Cutting direction (milling).
 forms-direction = Sentido
@@ -73,7 +72,7 @@ forms-pocket-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step } { $unit }, sobre la línea
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step } { $unit }, paso lateral { $stepover } × D
 forms-vcarve-cut-one-pass = desde { $start }, como máximo { $end } de profundidad, una pasada
-forms-vcarve-cut-steps = desde { $start }, como máximo { $end } de profundidad, pasadas de { $step }
+forms-vcarve-cut-passes = desde { $start }, como máximo { $end } de profundidad, { $count } pasadas
 
 # A pocket's clearing, in rings.
 forms-section-clearing = Vaciado
@@ -89,8 +88,9 @@ forms-section-entry = Entrada
 # V-carving.
 forms-vcarve-start-depth-hover = La superficie tallada, medida hacia abajo desde la cara superior del material (0: la cara superior; más para tallar en el fondo de una cajera)
 forms-vcarve-end-depth-hover = Lo más hondo que llega la punta, desde la cara superior del material (end_depth en el archivo). Los trazos más anchos se tallan hasta ahí y se informa de ellos
+forms-vcarve-passes-hover = Cuántas pasadas hasta la profundidad final. Cada una quita lo mismo que las demás, por eso se hacen menos profundas al bajar
+forms-vcarve-pass-depths = a { $depths }
 forms-passes = Pasadas
-forms-in-steps = en pasadas
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Herramienta

@@ -40,6 +40,7 @@ job-tool-type-article = { $type ->
 
 job-must-be-positive = deve essere maggiore di 0, trovato { $got }
 job-must-be-positive-number = deve essere un numero positivo, trovato { $got }
+job-vcarve-passes = deve essere un numero intero da 1 a { $most }, trovato { $got }
 job-must-be-more-than-0 = deve essere più di 0, trovato { $got }
 job-must-be-0-or-more = deve essere 0 o più, trovato { $got }
 job-through-stale = attraversa il grezzo, quindi finisce a { $depth }

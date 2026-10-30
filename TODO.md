@@ -114,6 +114,9 @@ it's built (see `CLAUDE.md`).
   9. Dragging a polyline's line should move that segment; a new point and a bulge should
      need modifier keys. Done 2026-10-28: plain drag moves the segment, Ctrl inserts a
      point, Shift bends (`SegmentDrag`).
+  10. A text clicked in the view selects its letters' shapes, not the text: its
+     properties (words, font, height) open only from the Browser (the user, 2026-10-30).
+     A click on a text's letters should open the text, as its Browser row does. Not built.
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and
@@ -204,6 +207,13 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **V-carve passes of equal load** (2026-10-30, the user: "each stepdown will cut the entire
+  length of the v-bit", then "final depth: 5 mm, passes: 6"; docs/specs/v-carve.md decision
+  12, schema 35): a V-carve has a number of passes, 1 to 100, in place of its step down;
+  each removes the same cross-section, pass k of n at the depth × √(k / n), so the steps get
+  smaller on the way down, and the window shows the depths under the field. Migration 35:
+  as many passes as the step down took (⌈depth ÷ step⌉), so no pass is heavier than the
+  old last one; the depths change. To try on the router.
 - **Setups** (2026-10-30, docs/specs/setups.md, schema 34; the user: "we will probably
   need to iterate on this"): a project's boards, each with its stock, work zero and parts,
   each a program of its own (`-S1`, `-S2`), with its own sheet. Command line `setup …`,

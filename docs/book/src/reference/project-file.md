@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 34. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 35. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 34. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `34` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `35` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -366,10 +366,10 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `passes` | integer | yes | How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same cross-section, the last at the end depth (docs/specs/v-carve.md decision 12). |
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
-| `step_down` | number or null | no | Carve in passes no deeper than this, mm. Null: one pass. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "path"`

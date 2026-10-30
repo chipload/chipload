@@ -127,6 +127,7 @@ sheet-one-go = i ett tag
 sheet-per-turn = { $step } per varv
 sheet-per-pass = skärdjup { $step }
 sheet-one-pass = ett skär
+sheet-passes = { $count } skär
 sheet-finish = finskär { $stock }
 sheet-skin = skikt { $thickness }
 # The entry column.

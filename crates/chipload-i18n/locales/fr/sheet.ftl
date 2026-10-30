@@ -130,6 +130,7 @@ sheet-one-go = en une fois
 sheet-per-turn = { $step } par tour
 sheet-per-pass = { $step } par passe
 sheet-one-pass = une passe
+sheet-passes = { $count } passes
 sheet-finish = finition { $stock }
 sheet-skin = peau { $thickness }
 # The entry column.

@@ -1163,7 +1163,7 @@ fn vcarve_job() -> Value {
     data["tools"][0]["tip_diameter"] = json!(0.2);
     data["operations"] = json!([{
         "type": "vcarve", "part": 1, "name": "Letters", "select": {"layer": "TEXT"}, "tool": 1,
-        "start_depth": 0.0, "end_depth": 3.0, "step_down": null,
+        "start_depth": 0.0, "end_depth": 3.0, "passes": 1,
         "feed": 1200.0, "plunge_feed": 400.0
     }]);
     data
@@ -1175,12 +1175,11 @@ fn a_vcarve_operation_loads() {
     let Operation::Vcarve(v) = &job.operations[0] else {
         panic!("a vcarve operation");
     };
-    assert_eq!((v.start_depth, v.end_depth, v.step_down), (0.0, 3.0, None));
+    assert_eq!((v.start_depth, v.end_depth, v.passes), (0.0, 3.0, 1));
     assert_eq!(job.tools[0].tip_diameter, Some(0.2));
     // The optional fields may be left out.
     let mut data = vcarve_job();
     let op = data["operations"][0].as_object_mut().unwrap();
-    op.remove("step_down");
     op.remove("name");
     assert!(parse_job(data, "p").is_ok());
 }
@@ -1192,7 +1191,8 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
         ("/tools/0/angle", json!(std::f64::consts::PI), "angle"),
         ("/tools/0/tip_diameter", json!(-0.1), "tip_diameter"),
         ("/tools/0/tip_diameter", json!(1000.0), "tip_diameter"),
-        ("/operations/0/step_down", json!(0.0), "step_down"),
+        ("/operations/0/passes", json!(0), "passes"),
+        ("/operations/0/passes", json!(101), "passes"),
         ("/operations/0/feed", json!(0.0), "feed"),
         ("/operations/0/end_depth", json!(0.0), "end_depth"),
     ];
@@ -1212,7 +1212,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 #[test]
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
-    let mut current = as_v33(migrate(v10.clone()).unwrap());
+    let mut current = with_step_downs(as_v33(migrate(v10.clone()).unwrap()), &v10);
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1515,8 +1515,8 @@ fn without_dxfs(data: &mut Value) {
 /// A current project as it was at v33, before setups (docs/specs/setups.md §6): the
 /// setup's stock back at the top, its zero back in the machine, the parts without a setup. For the older migration tests, which
 /// compare with v33's layout.
-fn as_v33(mut data: Value) -> Value {
-    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+fn as_v33(data: Value) -> Value {
+    let mut data = as_v34(data);
     let map = data.as_object_mut().unwrap();
     let setups = map.remove("setups").unwrap();
     assert_eq!(setups.as_array().unwrap().len(), 1);
@@ -1531,6 +1531,39 @@ fn as_v33(mut data: Value) -> Value {
     }
     map.insert("schema_version".into(), json!(33));
     data
+}
+
+/// Current-version data in v34's layout: a V-carve's passes back as a step down, the depth
+/// split evenly (v35 doesn't keep the old step down: a sample with one puts it back).
+fn as_v34(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    for op in data["operations"].as_array_mut().unwrap() {
+        let op = op.as_object_mut().unwrap();
+        if op["type"] != json!("vcarve") {
+            continue;
+        }
+        let passes = op.remove("passes").unwrap().as_u64().unwrap();
+        let range = op["end_depth"].as_f64().unwrap() - op["start_depth"].as_f64().unwrap();
+        let step = if passes > 1 {
+            json!(range / passes as f64)
+        } else {
+            Value::Null
+        };
+        op.insert("step_down".into(), step);
+    }
+    data["schema_version"] = json!(34);
+    data
+}
+
+/// Put an old sample's V-carve step downs back after [`as_v34`].
+fn with_step_downs(mut current: Value, old: &Value) -> Value {
+    let ops = current["operations"].as_array_mut().unwrap();
+    for (op, before) in ops.iter_mut().zip(old["operations"].as_array().unwrap()) {
+        if op["type"] == json!("vcarve") {
+            op["step_down"] = before["step_down"].clone();
+        }
+    }
+    current
 }
 
 fn without_custom_post(data: &mut Value) {
@@ -1939,7 +1972,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 #[test]
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
-    let mut current = as_v33(migrate(v19.clone()).unwrap());
+    let mut current = with_step_downs(as_v33(migrate(v19.clone()).unwrap()), &v19);
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_dxfs(&mut current);
@@ -2353,7 +2386,43 @@ fn v33_to_v34_moves_the_stock_and_zero_into_one_setup() {
             .all(|p| p["setup"] == json!(1))
     );
     // Back to v33's layout, nothing else changed.
-    assert_eq!(as_v33(current), v33);
+    assert_eq!(with_step_downs(as_v33(current), &v33), v33);
     let job = parse_job(migrate(v33).unwrap(), "p").unwrap();
     assert_eq!(job.active_setup_id(), Some(1));
+}
+
+/// docs/specs/v-carve.md decision 12: a V-carve's step down becomes as many passes as it cut
+/// to the end depth; nothing else changes.
+#[test]
+fn v34_to_v35_gives_a_vcarve_its_passes() {
+    let v34 = raw("v34/vcarve_step_down.chipload");
+    assert_eq!(v34["operations"][0]["step_down"], json!(1.0));
+    let current = migrate(v34.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(CURRENT_VERSION));
+    // 0 to 3.5 mm in steps of 1 mm: four passes.
+    assert_eq!(current["operations"][0]["passes"], json!(4));
+    assert!(current["operations"][0].get("step_down").is_none());
+    assert_eq!(with_step_downs(as_v34(current), &v34), v34);
+    // Without a step down, one pass; a tiny one, at most 100.
+    for (step, passes) in [
+        (Value::Null, 1),
+        (json!(0.01), 100),
+        (json!(3.5), 1),
+        (json!(1.6), 3),
+    ] {
+        let mut old = v34.clone();
+        old["operations"][0]["step_down"] = step;
+        let current = migrate(old).unwrap();
+        assert_eq!(current["operations"][0]["passes"], json!(passes));
+        assert!(parse_job(current, "p").is_ok());
+    }
+    // A step down that was refused is still refused, now as the passes.
+    for step in [json!(0.0), json!(-2.6)] {
+        let mut old = v34.clone();
+        old["operations"][0]["step_down"] = step;
+        let current = migrate(old).unwrap();
+        assert_eq!(current["operations"][0]["passes"], json!(0));
+        let err = parse_job(current, "p").unwrap_err().to_string();
+        assert!(err.contains("operations.0.passes"), "{err}");
+    }
 }

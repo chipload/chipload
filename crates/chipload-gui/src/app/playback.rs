@@ -360,6 +360,10 @@ impl ChiploadApp {
         if steps.contains(&"pass") {
             self.focus = Focus::RestPass(0, 0);
         }
+        // The first operation open, its form in Properties.
+        if steps.contains(&"op") {
+            self.focus = Focus::Op(0);
+        }
         // The first V-carve's floor pass open (docs/specs/vcarve-wide-strokes.md).
         if steps.contains(&"floor") {
             self.focus = Focus::FloorPass(0);

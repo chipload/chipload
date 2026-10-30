@@ -80,6 +80,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "simulation,noimages,floor",
         (1200.0, 800.0),
     ),
+    // V-carving in passes of equal load: the V-carve open, its depths under *Passes*
+    // (docs/specs/v-carve.md decision 12).
+    (
+        "vcarve-passes",
+        "tests/corpus/jobs/v34/vcarve_step_down.chipload",
+        "generate,noimages,op",
+        (1200.0, 800.0),
+    ),
     // Setups: two boards, the second active in full colour, the first a ghost
     // (docs/specs/setups.md).
     (

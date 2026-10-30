@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 53] = [
+const GOLDEN: [(&str, &str); 54] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -147,11 +147,15 @@ const GOLDEN: [(&str, &str); 53] = [
     // (docs/specs/svg-import.md §11). `tests/svg.rs` in the pipeline imports it again.
     ("v31_svg_badge", "jobs/v31/svg_badge.chipload"),
     // A v33 project (V-carve walls and a floor pass) moved into a setup by migration 34
-    // (docs/specs/setups.md §6): the G-code is the one v33 wrote.
+    // (docs/specs/setups.md §6): the G-code is the one v33 wrote, but for the V-carve's
+    // passes, of equal load since schema 35 (docs/specs/v-carve.md decision 12).
     ("v33_vcarve_floor", "jobs/v33/vcarve_floor.chipload"),
     // Two setups (docs/specs/setups.md): 12 mm sides and a 6 mm bottom with its own zero,
     // each a program of its own (`-S1…`, `-S2…`).
     ("v34_two_setups", "jobs/v34/two_setups.chipload"),
+    // docs/specs/v-carve.md decision 12: a step down of 1 mm, 3.5 deep, becomes 4 passes of
+    // equal load.
+    ("v34_vcarve_step_down", "jobs/v34/vcarve_step_down.chipload"),
     // Built-in fonts beyond FreeFont (docs/specs/more-fonts.md): two lines of joined
     // Satisfy script, merged where the letters overlap, V-carved; an Ultra B pocketed.
     ("v29_script_text", "jobs/v29/script_text.chipload"),

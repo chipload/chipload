@@ -13,7 +13,6 @@ forms-oversize = Oversize
 forms-oversize-disabled = A profile on the line has no side to cut more on
 forms-step-down = Step down
 # Indented under "Passes": the depth of each pass.
-forms-step-down-sub = step down
 
 # Cutting direction (milling).
 forms-direction = Direction
@@ -73,7 +72,7 @@ forms-pocket-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } {
 forms-path-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } { $unit }, on the line
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } { $unit }, stepover { $stepover } × D
 forms-vcarve-cut-one-pass = from { $start }, at most { $end } deep, one pass
-forms-vcarve-cut-steps = from { $start }, at most { $end } deep, steps of { $step }
+forms-vcarve-cut-passes = from { $start }, at most { $end } deep, { $count } passes
 
 # A pocket's clearing, in rings.
 forms-section-clearing = Clearing
@@ -89,8 +88,9 @@ forms-section-entry = Entry
 # V-carving.
 forms-vcarve-start-depth-hover = The surface carved, down from the stock top (0: the top; more to carve into a pocket floor)
 forms-vcarve-end-depth-hover = The deepest the tip goes, from the stock top (end_depth in the file). Wider strokes are carved to it and reported
+forms-vcarve-passes-hover = How many passes to the end depth. Each removes as much as the others, so they get shallower on the way down
+forms-vcarve-pass-depths = to { $depths }
 forms-passes = Passes
-forms-in-steps = in steps
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Tool

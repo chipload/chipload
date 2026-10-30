@@ -1266,6 +1266,12 @@
               "minimum": 0,
               "type": "integer"
             },
+            "passes": {
+              "description": "How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same\ncross-section, the last at the end depth (docs/specs/v-carve.md decision 12).",
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
             "plunge_feed": {
               "description": "The feed for moves steeper than 45°, mm/min.",
               "format": "double",
@@ -1279,15 +1285,6 @@
               "description": "The surface carved, mm down from the stock top: 0 for the top, more to carve on a\nfloor an earlier pocket cut.",
               "format": "double",
               "type": "number"
-            },
-            "step_down": {
-              "default": null,
-              "description": "Carve in passes no deeper than this, mm. Null: one pass.",
-              "format": "double",
-              "type": [
-                "number",
-                "null"
-              ]
             },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
@@ -1306,6 +1303,7 @@
             "tool",
             "start_depth",
             "end_depth",
+            "passes",
             "feed",
             "plunge_feed"
           ],
@@ -2588,7 +2586,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 34. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 35. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2633,7 +2631,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 34,
+      "const": 35,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "setups": {

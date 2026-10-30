@@ -55,7 +55,7 @@ cut), except the floor when there is no floor pass, which is a warning (§6).
    without lifting where the walk allows (as paths join today, v-carve.md §4.5). At an inside
    corner of a wide part the axis branch running into the corner is narrow near the corner
    (r → 0) and is kept: it carves the corner up to the surface, as today.
-4. **Depth passes** (`step_down`): every pass follows the same paths, no deeper than its
+4. **Depth passes** (`passes` since schema 35, v-carve.md decision 12): every pass follows the same paths, no deeper than its
    level, and a later pass only where the one before stopped short (as v-carve.md §4.5).
    A wall at a shallower level keeps its cone inside the outline (its radius at the surface
    is smaller), so passes need nothing new. (Settled while building, 2026-10-30.)
@@ -74,7 +74,9 @@ like a rest pass belongs to its pocket (rest-passes.md).
   floor. Its tool centre stays a tool radius inside that, so the end mill never touches a
   wall (the walls slope away from the floor upward, so touching the floor line at the bottom
   is the closest it gets).
-- **Depth:** from the V-carve's start depth to its end depth, in steps of its own step down.
+- **Depth:** from the V-carve's start depth to its end depth, in steps of its own step down
+  (a new floor pass without the library's values: the depth in as many equal steps as the
+  V-carve has passes).
 - **Taken from the V-carve, always:** the shapes, start and end depth, and whether it is cut.
   **Its own:** the tool (an end mill), feed, plunge feed, step down, stepover, entry, on/off.
 - **Cut:** as a pocket of that area (the pocket planner: rings, entry, verification), so

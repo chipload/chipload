@@ -13,7 +13,6 @@ forms-oversize = Surcote
 forms-oversize-disabled = Un contour sur la ligne n'a pas de côté où usiner plus
 forms-step-down = Prof. de passe
 # Indented under "Passes": the depth of each pass.
-forms-step-down-sub = prof. de passe
 
 # Cutting direction (milling).
 forms-direction = Sens
@@ -73,7 +72,7 @@ forms-pocket-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } 
 forms-path-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } { $unit }, sur la ligne
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } { $unit }, pas latéral { $stepover } × D
 forms-vcarve-cut-one-pass = depuis { $start }, au plus { $end } de profondeur, une passe
-forms-vcarve-cut-steps = depuis { $start }, au plus { $end } de profondeur, passes de { $step }
+forms-vcarve-cut-passes = depuis { $start }, au plus { $end } de profondeur, { $count } passes
 
 # A pocket's clearing, in rings.
 forms-section-clearing = Évidement
@@ -89,8 +88,9 @@ forms-section-entry = Entrée
 # V-carving.
 forms-vcarve-start-depth-hover = La surface gravée, vers le bas depuis le dessus du brut (0 : le dessus ; plus pour graver dans un fond de poche)
 forms-vcarve-end-depth-hover = La profondeur maximale de la pointe, depuis le dessus du brut (end_depth dans le fichier). Les traits plus larges sont gravés à cette profondeur et signalés
+forms-vcarve-passes-hover = Combien de passes jusqu'à la profondeur finale. Chacune enlève autant que les autres, elles deviennent donc moins profondes en descendant
+forms-vcarve-pass-depths = à { $depths }
 forms-passes = Passes
-forms-in-steps = en plusieurs passes
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Outil

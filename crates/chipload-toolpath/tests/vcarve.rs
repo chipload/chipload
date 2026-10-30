@@ -583,9 +583,10 @@ proptest! {
 
 // -- the operation in a job (plan_job)
 
-fn vcarve_job(tool: serde_json::Value, step_down: serde_json::Value) -> chipload_job::Job {
+/// A V-carve 0.5 to `end_depth` mm deep in `passes` passes.
+fn vcarve_job(tool: serde_json::Value, end_depth: f64, passes: u32) -> chipload_job::Job {
     use chipload_job::migrations::migrate;
-    chipload_job::parse_job(
+    let mut job = chipload_job::parse_job(
         migrate(serde_json::json!({
             "schema_version": 21, // written as v21 JSON: migrated into one part
             "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
@@ -594,13 +595,17 @@ fn vcarve_job(tool: serde_json::Value, step_down: serde_json::Value) -> chipload
             "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
             "tools": [tool],
             "operations": [{"type": "vcarve", "select": {"layer": "L"}, "tool": 1,
-                            "start_depth": 0.5, "end_depth": 10, "step_down": step_down,
+                            "start_depth": 0.5, "end_depth": end_depth,
                             "feed": 1000, "plunge_feed": 300}],
         }))
         .unwrap(),
         "test.json",
     )
-    .unwrap()
+    .unwrap();
+    if let chipload_job::Operation::Vcarve(v) = &mut job.operations[0] {
+        v.passes = passes;
+    }
+    job
 }
 
 fn vbit_tool(tip: Option<f64>) -> serde_json::Value {
@@ -612,28 +617,19 @@ fn vbit_tool(tip: Option<f64>) -> serde_json::Value {
 fn a_vcarve_needs_a_vbit_with_an_angle() {
     let shape = [common::rect(1, 0.0, 0.0, 10.0, 4.0)];
     let endmill = serde_json::json!({"id": 1, "diameter": 6, "rpm": 18000});
-    let err = chipload_toolpath::plan_job(&vcarve_job(endmill, serde_json::Value::Null), &shape)
-        .unwrap_err();
+    let err = chipload_toolpath::plan_job(&vcarve_job(endmill, 10.0, 1), &shape).unwrap_err();
     assert!(err.to_string().contains("needs a V-bit"), "{err}");
     let no_angle = serde_json::json!({"id": 1, "type": "vbit", "diameter": 6, "rpm": 18000});
-    let err = chipload_toolpath::plan_job(&vcarve_job(no_angle, serde_json::Value::Null), &shape)
-        .unwrap_err();
+    let err = chipload_toolpath::plan_job(&vcarve_job(no_angle, 10.0, 1), &shape).unwrap_err();
     assert!(err.to_string().contains("no angle"), "{err}");
-    let plan = chipload_toolpath::plan_job(
-        &vcarve_job(vbit_tool(None), serde_json::Value::Null),
-        &shape,
-    )
-    .unwrap();
+    let plan = chipload_toolpath::plan_job(&vcarve_job(vbit_tool(None), 10.0, 1), &shape).unwrap();
     assert!(
         plan.notes.iter().any(|n| n.contains("takes it as pointed")),
         "{:?}",
         plan.notes
     );
-    let plan = chipload_toolpath::plan_job(
-        &vcarve_job(vbit_tool(Some(0.0)), serde_json::Value::Null),
-        &shape,
-    )
-    .unwrap();
+    let plan =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 10.0, 1), &shape).unwrap();
     assert!(plan.notes.is_empty(), "{:?}", plan.notes);
 }
 
@@ -660,16 +656,10 @@ fn feed_moves(program: &chipload_toolpath::model::Program) -> Vec<([f64; 3], [f6
 fn passes_go_down_in_steps_and_never_recut() {
     // 90° bit, 10 × 4 rectangle: 2 mm deep below the surface at 0.5 mm.
     let shape = [common::rect(1, 0.0, 0.0, 10.0, 4.0)];
-    let one = chipload_toolpath::plan_job(
-        &vcarve_job(vbit_tool(Some(0.0)), serde_json::Value::Null),
-        &shape,
-    )
-    .unwrap();
-    let stepped = chipload_toolpath::plan_job(
-        &vcarve_job(vbit_tool(Some(0.0)), serde_json::json!(0.8)),
-        &shape,
-    )
-    .unwrap();
+    let one =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 3.0, 1), &shape).unwrap();
+    let stepped =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 3.0, 4), &shape).unwrap();
     let lowest = |moves: &[([f64; 3], [f64; 3])]| {
         moves
             .iter()
@@ -679,13 +669,16 @@ fn passes_go_down_in_steps_and_never_recut() {
     let (single, passes) = (feed_moves(&one.program), feed_moves(&stepped.program));
     assert!((lowest(&single) + 2.5).abs() < 1e-9, "{}", lowest(&single));
     assert!((lowest(&passes) + 2.5).abs() < 1e-9);
-    // Three passes: to 0.5 + 0.667, 0.5 + 1.333 and 0.5 + 2 below the top.
+    // Four passes of equal load to the end depth, 2.5 below the surface (v-carve.md
+    // decision 12): pass k at 0.5 + 2.5 × √(k / 4) below the top, where the carve is that
+    // deep; the rectangle is 2 deep, so the third pass reaches its bottom and the fourth
+    // finds nothing left.
     let levels: Vec<f64> = passes
         .iter()
         .filter(|(a, b)| a[2] == b[2] && (a[0] != b[0] || a[1] != b[1]))
         .map(|(_, b)| b[2])
         .collect();
-    for z in [-0.5 - 2.0 / 3.0, -0.5 - 4.0 / 3.0, -2.5] {
+    for z in [-0.5 - 1.25, -0.5 - 2.5 * 0.5_f64.sqrt(), -2.5] {
         assert!(
             levels.iter().any(|l| (l - z).abs() < 1e-9),
             "{z} in {levels:?}"
@@ -705,4 +698,30 @@ fn passes_go_down_in_steps_and_never_recut() {
     for (_, b) in &passes {
         assert!(b[2] <= -0.5 + 1e-9 || b[2] >= 5.0 - 1e-9, "{b:?}");
     }
+}
+
+/// Depth passes remove equal cross-sections (v-carve.md decision 12): the last exactly the
+/// depth, and a V groove's area (depth²) grows by the same amount each pass.
+#[test]
+fn passes_remove_equal_areas() {
+    use chipload_toolpath::vcarve::carve_levels;
+    // The user's example: 5 mm in 6 passes.
+    let levels = carve_levels(5.0, 6);
+    assert_eq!(levels.len(), 6);
+    let rounded: Vec<f64> = levels.iter().map(|l| (l * 100.0).round() / 100.0).collect();
+    assert_eq!(rounded, [2.04, 2.89, 3.54, 4.08, 4.56, 5.0]);
+    for (depth, passes) in [(3.0, 3), (3.5, 4), (6.0, 100), (0.5, 2)] {
+        let levels = carve_levels(depth, passes);
+        assert_eq!(levels.len(), passes as usize);
+        assert_eq!(*levels.last().unwrap(), depth);
+        let area = levels[0] * levels[0];
+        let mut before = 0.0;
+        for level in &levels {
+            assert!(((level * level - before) - area).abs() < 1e-9, "{levels:?}");
+            before = level * level;
+        }
+    }
+    // One pass, and 0 taken as one.
+    assert_eq!(carve_levels(3.0, 1), [3.0]);
+    assert_eq!(carve_levels(3.0, 0), [3.0]);
 }

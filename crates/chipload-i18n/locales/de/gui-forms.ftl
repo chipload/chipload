@@ -13,7 +13,6 @@ forms-oversize = Übermaß
 forms-oversize-disabled = Eine Kontur auf der Linie hat keine Seite, auf der mehr gefräst werden könnte
 forms-step-down = Zustellung
 # Indented under "Passes": the depth of each pass.
-forms-step-down-sub = Zustellung
 
 # Cutting direction (milling).
 forms-direction = Richtung
@@ -73,7 +72,7 @@ forms-pocket-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step } { $unit }, auf der Linie
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step } { $unit }, seitl. Zustellung { $stepover } × D
 forms-vcarve-cut-one-pass = ab { $start }, höchstens { $end } tief, ein Durchgang
-forms-vcarve-cut-steps = ab { $start }, höchstens { $end } tief, Zustellung { $step }
+forms-vcarve-cut-passes = ab { $start }, höchstens { $end } tief, { $count } Durchgänge
 
 # A pocket's clearing, in rings.
 forms-section-clearing = Ausräumen
@@ -89,8 +88,9 @@ forms-section-entry = Eintauchen
 # V-carving.
 forms-vcarve-start-depth-hover = Die gravierte Fläche, gemessen von der Rohteiloberkante nach unten (0: die Oberkante; mehr, um in einen Taschenboden zu gravieren)
 forms-vcarve-end-depth-hover = Die größte Tiefe der Spitze, ab Rohteiloberkante (end_depth in der Datei). Breitere Striche werden bis dahin graviert und gemeldet
+forms-vcarve-passes-hover = Wie viele Durchgänge bis zur Endtiefe. Jeder trägt gleich viel ab, deshalb werden sie nach unten flacher
+forms-vcarve-pass-depths = bis { $depths }
 forms-passes = Durchgänge
-forms-in-steps = in Stufen
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Werkzeug

@@ -40,6 +40,7 @@ job-tool-type-article = { $type ->
 
 job-must-be-positive = måste vara större än 0, fick { $got }
 job-must-be-positive-number = måste vara ett positivt tal, fick { $got }
+job-vcarve-passes = måste vara ett heltal från 1 till { $most }, fick { $got }
 job-must-be-more-than-0 = måste vara mer än 0, fick { $got }
 job-must-be-0-or-more = måste vara 0 eller mer, fick { $got }
 job-through-stale = skär igenom materialet och slutar därför på { $depth }

@@ -6,16 +6,18 @@
 use serde_json::{Map, Value};
 
 use crate::JobError;
-use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
+use chipload_core::tolerances::DEPTH_TOL_MM;
+
+use crate::models::{CURRENT_VERSION, MAX_VCARVE_PASSES, OLDEST_VERSION};
 
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 30] = [
+const MIGRATIONS: [Migration; 31] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
-    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33, v33_to_v34,
+    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33, v33_to_v34, v34_to_v35,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -576,6 +578,36 @@ fn v33_to_v34(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 34))
+}
+
+/// v35 gives a V-carve a number of depth passes in place of its step down
+/// (docs/specs/v-carve.md decision 12): as many passes as the step down cut to the end
+/// depth, ⌈(end − start) ÷ step down⌉ (at most 100), one without a step down; none for a
+/// step down that was refused (0 or less), so the project is still refused. The passes
+/// now each remove the same cross-section instead of going equally deep, so the depths
+/// change: with as many passes, none is heavier than the old last one was.
+fn v34_to_v35(mut data: Value) -> Result<Value, String> {
+    for op in operations_mut(&mut data) {
+        if op.get("type").and_then(Value::as_str) != Some("vcarve") {
+            continue;
+        }
+        let number = |key: &str| op.get(key).and_then(Value::as_f64);
+        let range = number("end_depth").unwrap_or(0.0) - number("start_depth").unwrap_or(0.0);
+        let passes = match op.remove("step_down") {
+            None | Some(Value::Null) => 1.0,
+            Some(step) => match step.as_f64() {
+                Some(step) if step > 0.0 && range > DEPTH_TOL_MM => ((range - DEPTH_TOL_MM) / step)
+                    .ceil()
+                    .clamp(1.0, f64::from(MAX_VCARVE_PASSES)),
+                Some(step) if step > 0.0 => 1.0,
+                // A step down that was refused stays refused, as no passes: never a guess.
+                _ => 0.0,
+            },
+        };
+        // A whole number from 0 to MAX_VCARVE_PASSES.
+        op.insert("passes".into(), Value::from(passes as u32));
+    }
+    Ok(set_version(data, 35))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

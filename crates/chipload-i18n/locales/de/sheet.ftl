@@ -130,6 +130,7 @@ sheet-one-go = in einem Zug
 sheet-per-turn = { $step } pro Umdrehung
 sheet-per-pass = { $step } pro Durchgang
 sheet-one-pass = ein Durchgang
+sheet-passes = { $count } Durchgänge
 sheet-finish = Schlichten, Aufmaß { $stock }
 sheet-skin = Restschicht { $thickness }
 # The entry column.
