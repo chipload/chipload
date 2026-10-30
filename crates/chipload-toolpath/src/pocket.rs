@@ -336,6 +336,7 @@ fn ring_tree(
     stepover: f64,
     ids: &[usize],
     nudge: Nudge,
+    cancel: Option<&Cancel>,
 ) -> Result<(Vec<Node>, Vec<usize>), Failure> {
     let numerical = |wall: bool| move |error| Failure::Numerical { error, wall };
     let wall_offset = radius + nudge.wall;
@@ -377,6 +378,9 @@ fn ring_tree(
     }
     let mut level = roots.clone();
     for k in 1..=MAX_RING_LEVELS {
+        // Each ring is an offset of the whole region: a big pocket's rings are most of a
+        // run, so a cancel is seen ring by ring (docs/specs/background-generation.md).
+        cancel::check(cancel).map_err(Failure::Final)?;
         let areas = region
             .shrunk_with(wall_offset + k as f64 * stepover, nudge.tight)
             .map_err(numerical(false))?;
@@ -537,7 +541,15 @@ fn attempt_piece(
     nudge: Nudge,
 ) -> Result<Attempt, Failure> {
     let mut a = Attempt::default();
-    let (mut nodes, roots) = ring_tree(region, c.offset, c.tool_radius, c.stepover, ids, nudge)?;
+    let (mut nodes, roots) = ring_tree(
+        region,
+        c.offset,
+        c.tool_radius,
+        c.stepover,
+        ids,
+        nudge,
+        c.cancel,
+    )?;
     if c.round_corners {
         let stepover = c.stepover - nudge.step;
         rounded_rings(region, &mut nodes, &roots, stepover, ids, c, &mut a.notes)
@@ -600,12 +612,16 @@ fn rounded_rings(
         let Some(left) = missed(nodes) else {
             return Ok(());
         };
+        // The uncut check and the search below are most of a big pocket's time: a cancel is
+        // seen between them and ring by ring (docs/specs/background-generation.md).
+        cancel::check(c.cancel)?;
         let mut changed = false;
         let points: Vec<Point> = left
             .iter()
             .flat_map(|piece| piece.iter().flatten().copied())
             .collect();
         for (i, node) in nodes.iter().enumerate() {
+            cancel::check(c.cancel)?;
             let edges = PrimIndex::new(node.area.boundary(), near);
             let close = points.iter().any(|&p| edges.any_within(p, near));
             if close && scales[i] > 0.0 {
@@ -627,6 +643,7 @@ fn rounded_rings(
     for (node, area) in nodes.iter_mut().zip(&sharp) {
         node.area = area.clone();
     }
+    cancel::check(c.cancel)?;
     if missed(nodes).is_none() {
         notes.push(Message::new("toolpath-corners-not-rounded").arg("contours", ids_text(ids)));
     }
