@@ -45,6 +45,17 @@ browser-tools-hover = Die Werkzeuge des Projekts: klicken, um alle zu sehen und 
 # Parts: groups of operations, each cut with its copies before the next.
 browser-parts = Teile
 browser-parts-hover = Jedes Teil wird mit seinen Kopien vor dem nächsten gefräst; Rechtsklick für ein neues Teil
+browser-setups = Aufspannungen
+browser-setups-hover = Die Platten, aus denen das Projekt nacheinander gefräst wird: jede ein eigenes Programm, mit ihrem Rohteil und Nullpunkt. Klicken macht eine zur aktiven
+browser-add-setup = Aufspannung hinzufügen
+browser-add-setup-hover = Eine weitere Platte: eigenes Rohteil, eigener Nullpunkt und eigene Teile, als eigenes Programm gefräst
+browser-setup-parts = { $count ->
+    [one] { $count } Teil
+   *[other] { $count } Teile
+}
+browser-setup-active-hover = Die aktive Aufspannung: in voller Farbe gezeigt, simuliert und berechnet. Ihr Rohteil und Nullpunkt stehen unter Jobeinstellungen und Nullpunkt
+browser-setup-hover = Klicken macht sie zur aktiven Aufspannung: gezeigt, simuliert und berechnet
+browser-move-to-setup = In Aufspannung verschieben
 browser-new-part = Neues Teil
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv

@@ -14,6 +14,14 @@ guide page. A new setup gets a part of its own (both active), so new operations 
 Step 3 built: each sheet's title names its setup when there are several; the simulation
 reads the active setup's board; a two-setup golden (tests/corpus/jobs/v34/two_setups:
 12 mm sides, a 6 mm bottom with its own point zero).
+Step 4 built: the Browser's *Setups* (two or more; a click makes one active), *Add a setup*
+on *Parts*, a setup's form (name, on/off, *Open* to its board and zero, parts, remove),
+*Move to setup ▸* on a part; other setups' boards and contours drawn as ghosts; the preview
+is the active setup's (the active part only when it is in it with operations). Export
+writes the active setup's program named `-S<id>` with its sheet, and says to export the
+others in turn: planning every setup at once would block the window (to iterate on).
+Fixed on the way: every operation is checked against its own setup's board, and safe Z
+against the highest board.
 
 ## 1. Why
 

@@ -80,6 +80,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "simulation,noimages,floor",
         (1200.0, 800.0),
     ),
+    // Setups: two boards, the second active in full colour, the first a ghost
+    // (docs/specs/setups.md).
+    (
+        "setups",
+        "tests/corpus/jobs/v34/two_setups.chipload",
+        "setup2,generate",
+        (1200.0, 800.0),
+    ),
     // The library: a settings folder of its own with two tools and a machine.
     (
         "library",

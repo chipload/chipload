@@ -44,6 +44,9 @@ app-part-needed = Un projet doit avoir au moins une pièce
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Impossible d'ajouter une passe de reprise : { $error }
 app-could-not-add-floor-pass = Impossible d'ajouter une passe de fond : { $error }
+app-setup-refused = Impossible de modifier les montages : { $error }
+app-setup-has-operations = Le montage a des pièces avec des opérations : déplacez-les d'abord vers un autre montage, ou supprimez-les.
+app-exported-setup = Montage « { $name } » seulement : rendez un autre montage actif et exportez-le aussi.
 app-floor-no-endmill = Aucune fraise droite dans le projet ni dans votre bibliothèque d'outils
 app-rest-with-corners = Cette poche a des coins dogbone ou T-bone, et les passes de reprise ne peuvent pas encore s'y combiner. Les coins atteignent déjà ce qu'une passe de reprise atteindrait.
 # $tool: a tool number such as T3.

@@ -155,6 +155,7 @@ impl ChiploadApp {
             Focus::Job => request = job_form(ui, edit, library),
             Focus::WorkZero => forms::work_zero_form(ui, edit),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
+            Focus::Setup(id) => request = forms::setup_form(ui, edit, id),
             Focus::Tools => request = forms::tools_form(ui, edit, library),
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
@@ -215,6 +216,15 @@ impl ChiploadApp {
             }
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
             Some(JobRequest::OpenWorkZero) => self.focus = Focus::WorkZero,
+            Some(JobRequest::SetupBoard(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::Job;
+            }
+            Some(JobRequest::SetupZero(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::WorkZero;
+            }
+            Some(JobRequest::RemoveSetup(id)) => self.remove_setup(id),
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::RemoveFloorPass(i)) => self.remove_floor_pass(i),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),

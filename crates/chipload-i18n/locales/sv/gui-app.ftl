@@ -44,6 +44,9 @@ app-part-needed = Ett projekt behöver minst en detalj
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Kunde inte lägga till restbearbetning: { $error }
 app-could-not-add-floor-pass = Kunde inte lägga till ett bottenpass: { $error }
+app-setup-refused = Kunde inte ändra uppspänningarna: { $error }
+app-setup-has-operations = Uppspänningen har detaljer med operationer: flytta dem till en annan uppspänning eller radera dem först.
+app-exported-setup = Bara uppspänning ”{ $name }”: gör en annan uppspänning aktiv och exportera den också.
 app-floor-no-endmill = Ingen pinnfräs i projektet eller i ditt verktygsbibliotek
 app-rest-with-corners = Fickan har dogbone- eller T-bone-hörn, och restbearbetning kan ännu inte kombineras med dem. Hörnen når redan dit en restbearbetning skulle nå.
 # $tool: a tool number such as T3.

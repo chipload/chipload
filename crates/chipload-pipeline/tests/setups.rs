@@ -153,3 +153,29 @@ fn a_setup_is_simulated_on_its_own_board() {
     assert!((deepest + 6.0).abs() < 1e-6, "{deepest}");
     assert!(sim.numbers.below_bottom.is_none_or(|b| b <= 1e-6));
 }
+
+/// Each operation is checked against its own setup's board, whichever is active: the 12 mm
+/// sides aren't too deep while the 6 mm bottom is active (found in the window's
+/// screenshot, 2026-10-30).
+#[test]
+fn every_operation_is_checked_against_its_own_board() {
+    let job = load_job(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/corpus/jobs/v34/two_setups.chipload"),
+    )
+    .unwrap();
+    for active in [1, 2] {
+        let mut job = job.clone();
+        job.active_setup = Some(active);
+        let problems = chipload_pipeline::job_problems(&job);
+        assert!(problems.is_empty(), "setup {active} active: {problems:?}");
+    }
+    // A board too thin for its own operations is still refused.
+    let mut thin = job.clone();
+    thin.setups[0].stock.thickness = 6.0;
+    let problems = chipload_pipeline::job_problems(&thin);
+    assert!(
+        problems.iter().any(|p| p.path == "operations.0.end_depth"),
+        "{problems:?}"
+    );
+}

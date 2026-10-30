@@ -45,6 +45,17 @@ browser-tools-hover = Las herramientas del proyecto: haz clic para verlas todas 
 # Parts: groups of operations, each cut with its copies before the next.
 browser-parts = Piezas
 browser-parts-hover = Cada pieza se corta con sus copias antes de la siguiente; clic derecho para una pieza nueva
+browser-setups = Sujeciones
+browser-setups-hover = Los tableros de los que se corta el proyecto, uno tras otro: cada uno un programa propio, con su material en bruto y su cero pieza. Un clic lo hace activo
+browser-add-setup = Añadir una sujeción
+browser-add-setup-hover = Otro tablero: su material, su cero y sus piezas, cortado como un programa propio
+browser-setup-parts = { $count ->
+    [one] { $count } pieza
+   *[other] { $count } piezas
+}
+browser-setup-active-hover = La sujeción activa: se muestra a todo color, se simula y se calcula. Su tablero y su cero están en Ajustes del trabajo y Cero pieza
+browser-setup-hover = Un clic la hace la sujeción activa: se muestra, se simula y se calcula
+browser-move-to-setup = Mover a la sujeción
 browser-new-part = Pieza nueva
 # At a part row's right end: the part new operations go into.
 browser-part-active = activa

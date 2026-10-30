@@ -765,6 +765,10 @@ impl PictureLayer {
 pub struct Scene {
     pub contours: Vec<ContourShape>,
     pub stock: Option<(Point, Point)>,
+    /// The other setups' boards, drawn as ghosts (docs/specs/setups.md §5).
+    pub ghost_boards: Vec<(Point, Point)>,
+    /// Contours only another setup's parts cut: drawn as ghosts.
+    pub ghost_contours: std::collections::BTreeSet<usize>,
     pub toolpath: Option<ToolpathShape>,
     pub tabs: Vec<Vec<Point>>,
     /// The shape being drawn, as it would be with the cursor's point.
@@ -1110,6 +1114,13 @@ impl Scene {
         };
 
         let flat = view.is_top();
+        for &((x0, y0), (x1, y1)) in &self.ghost_boards {
+            let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
+            dashed(
+                screen(&corners),
+                Stroke::new(1.0, pal.ghost.gamma_multiply(0.6)),
+            );
+        }
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
             dashed(screen(&corners), Stroke::new(1.0, pal.stock));
@@ -1193,8 +1204,10 @@ impl Scene {
             if operation.contains(&c.id) {
                 painter.add(Shape::line(pts.clone(), Stroke::new(6.0, pal.operation)));
             }
+            let ghost = self.ghost_contours.contains(&c.id);
             let (color, width) = match (is_selected, c.kind) {
                 (true, _) => (pal.selected, 3.0),
+                (false, _) if ghost => (pal.ghost.gamma_multiply(0.6), 1.0),
                 (false, Kind::Outer) => (pal.outer, 1.5),
                 (false, Kind::Hole) => (pal.hole, 1.5),
                 (false, Kind::Open) => (pal.open, 1.5),

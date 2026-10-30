@@ -44,6 +44,9 @@ app-part-needed = Ein Projekt braucht mindestens ein Teil
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Restdurchgang konnte nicht hinzugefügt werden: { $error }
 app-could-not-add-floor-pass = Bodendurchgang konnte nicht hinzugefügt werden: { $error }
+app-setup-refused = Die Aufspannungen konnten nicht geändert werden: { $error }
+app-setup-has-operations = Die Aufspannung hat Teile mit Bearbeitungen: verschieben Sie sie zuerst in eine andere Aufspannung oder löschen Sie sie.
+app-exported-setup = Nur Aufspannung „{ $name }“: machen Sie eine andere Aufspannung aktiv und exportieren Sie auch sie.
 app-floor-no-endmill = Kein Schaftfräser im Projekt oder in Ihrer Werkzeugbibliothek
 app-rest-with-corners = Diese Tasche hat Dogbone- oder T-Bone-Ecken, und Restdurchgänge lassen sich noch nicht damit kombinieren. Die Ecken reichen schon dorthin, wo ein Restdurchgang hinkäme.
 # $tool: a tool number such as T3.

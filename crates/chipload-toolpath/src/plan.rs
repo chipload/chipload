@@ -1864,8 +1864,15 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             }
         }
     }
-    let top = job.stock().top_z();
-    let z_zero = match job.stock().z_zero {
+    // Safe Z clears every setup's board (docs/specs/setups.md §5): the highest top.
+    let highest = job
+        .setups
+        .iter()
+        .map(|s| &s.stock)
+        .max_by(|a, b| a.top_z().total_cmp(&b.top_z()))
+        .unwrap_or(job.stock());
+    let top = highest.top_z();
+    let z_zero = match highest.z_zero {
         ZZero::Top => "top",
         ZZero::Bottom => "bottom",
     };
@@ -1903,9 +1910,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
         let (_, end_depth) = op.depths();
-        let thickness = job.stock().thickness;
+        // Its own setup's board (docs/specs/setups.md §5).
+        let stock = job.setup_of(op).map_or(job.stock(), |s| &s.stock);
+        let thickness = stock.thickness;
         let below = end_depth - thickness;
-        if below > job.stock().max_overcut + DEPTH_TOL_MM {
+        if below > stock.max_overcut + DEPTH_TOL_MM {
             problems.push(labelled(
                 at("end_depth"),
                 &label_message,
@@ -1913,7 +1922,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("end", length(end_depth))
                     .arg("below", Value::Length(below, Digits::Fixed(3)))
                     .arg("thickness", length(thickness))
-                    .arg("allowed", length(job.stock().max_overcut)),
+                    .arg("allowed", length(stock.max_overcut)),
             ));
         } else if below > DEPTH_TOL_MM {
             notes.push(Note::at(

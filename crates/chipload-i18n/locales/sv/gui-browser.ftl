@@ -45,6 +45,17 @@ browser-tools-hover = Projektets verktyg: klicka för att se alla och lägga til
 # Parts: groups of operations, each cut with its copies before the next.
 browser-parts = Detaljer
 browser-parts-hover = Varje detalj fräses med sina kopior före nästa; högerklicka för en ny detalj
+browser-setups = Uppspänningar
+browser-setups-hover = Skivorna projektet fräses ur, den ena efter den andra: var och en ett eget program, med sitt ämne och sin arbetsnollpunkt. Klicka för att göra en aktiv
+browser-add-setup = Lägg till en uppspänning
+browser-add-setup-hover = En skiva till: eget ämne, egen nollpunkt och egna detaljer, fräst som ett eget program
+browser-setup-parts = { $count ->
+    [one] { $count } detalj
+   *[other] { $count } detaljer
+}
+browser-setup-active-hover = Den aktiva uppspänningen: visas i full färg, simuleras och beräknas. Dess skiva och nollpunkt finns under Jobbinställningar och Arbetsnollpunkt
+browser-setup-hover = Klicka för att göra den till aktiv uppspänning: visas, simuleras och beräknas
+browser-move-to-setup = Flytta till uppspänning
 browser-new-part = Ny detalj
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv

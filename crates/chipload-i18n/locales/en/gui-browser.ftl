@@ -45,6 +45,17 @@ browser-tools-hover = The project's tools: click to see them all and add one
 # Parts: groups of operations, each cut with its copies before the next.
 browser-parts = Parts
 browser-parts-hover = Each part is cut with its copies before the next; right-click for a new part
+browser-setups = Setups
+browser-setups-hover = The boards the project is cut from, one after the other: each its own program, with its stock and work zero. Click one to make it the active one
+browser-add-setup = Add a setup
+browser-add-setup-hover = Another board: its own stock, work zero and parts, cut as a program of its own
+browser-setup-parts = { $count ->
+    [one] { $count } part
+   *[other] { $count } parts
+}
+browser-setup-active-hover = The active setup: shown in full colour, simulated and generated. Its board and work zero are in Job settings and Work zero
+browser-setup-hover = Click to make it the active setup: shown, simulated and generated
+browser-move-to-setup = Move to setup
 browser-new-part = New part
 # At a part row's right end: the part new operations go into.
 browser-part-active = active

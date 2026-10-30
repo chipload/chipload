@@ -44,6 +44,9 @@ app-part-needed = Un proyecto necesita al menos una pieza
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = No se pudo añadir una pasada de restos: { $error }
 app-could-not-add-floor-pass = No se pudo añadir una pasada de fondo: { $error }
+app-setup-refused = No se pudieron cambiar las sujeciones: { $error }
+app-setup-has-operations = La sujeción tiene piezas con operaciones: muévelas antes a otra sujeción o elimínalas.
+app-exported-setup = Solo la sujeción «{ $name }»: activa otra sujeción y expórtala también.
 app-floor-no-endmill = No hay ninguna fresa plana en el proyecto ni en tu biblioteca de herramientas
 app-rest-with-corners = Esta cajera tiene esquinas dogbone o T-bone, y todavía no se pueden combinar con pasadas de restos. Las esquinas ya llegan adonde llegaría una pasada de restos.
 # $tool: a tool number such as T3.

@@ -44,6 +44,9 @@ app-part-needed = Un progetto richiede almeno un pezzo
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Impossibile aggiungere una passata di ripresa: { $error }
 app-could-not-add-floor-pass = Impossibile aggiungere una passata di fondo: { $error }
+app-setup-refused = Impossibile modificare i piazzamenti: { $error }
+app-setup-has-operations = Il piazzamento ha pezzi con lavorazioni: spostali prima in un altro piazzamento, o eliminali.
+app-exported-setup = Solo il piazzamento «{ $name }»: rendi attivo un altro piazzamento ed esporta anche quello.
 app-floor-no-endmill = Nessuna fresa piatta nel progetto o nella tua libreria utensili
 app-rest-with-corners = Questa tasca ha angoli dogbone o T-bone, e le passate di ripresa non si possono ancora combinare con essi. Gli angoli arrivano già dove arriverebbe una passata di ripresa.
 # $tool: a tool number such as T3.

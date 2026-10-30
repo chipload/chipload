@@ -45,6 +45,17 @@ browser-tools-hover = Gli utensili del progetto: fai clic per vederli tutti e ag
 # Parts: groups of operations, each cut with its copies before the next.
 browser-parts = Pezzi
 browser-parts-hover = Ogni pezzo viene lavorato con le sue copie prima del successivo; clic destro per un nuovo pezzo
+browser-setups = Piazzamenti
+browser-setups-hover = I pannelli da cui si ricava il progetto, uno dopo l'altro: ognuno un programma a sé, con il suo grezzo e il suo zero pezzo. Un clic lo rende attivo
+browser-add-setup = Aggiungi un piazzamento
+browser-add-setup-hover = Un altro pannello: il suo grezzo, il suo zero e i suoi pezzi, lavorato come programma a sé
+browser-setup-parts = { $count ->
+    [one] { $count } pezzo
+   *[other] { $count } pezzi
+}
+browser-setup-active-hover = Il piazzamento attivo: mostrato a colori, simulato e calcolato. Il suo pannello e il suo zero sono in Impostazioni lavoro e Zero pezzo
+browser-setup-hover = Un clic lo rende il piazzamento attivo: mostrato, simulato e calcolato
+browser-move-to-setup = Sposta nel piazzamento
 browser-new-part = Nuovo pezzo
 # At a part row's right end: the part new operations go into.
 browser-part-active = attivo

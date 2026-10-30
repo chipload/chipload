@@ -1606,6 +1606,11 @@ pub(super) enum JobRequest {
     OpenOperation(usize),
     /// Show the work zero's properties (docs/specs/work-zero-marker.md §4).
     OpenWorkZero,
+    /// Setup `id`'s board (Job settings) or its work zero, made the active setup first
+    /// (docs/specs/setups.md §7); remove it.
+    SetupBoard(u64),
+    SetupZero(u64),
+    RemoveSetup(u64),
     /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
     RemoveRestPass(usize, usize),
     /// Remove V-carve i's floor pass.
@@ -3016,6 +3021,87 @@ pub(super) fn placement_rows(
 
 /// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the
 /// active part, and its copies.
+/// Setup `id` (docs/specs/setups.md §7): its name, on/off, its board and zero (summaries,
+/// edited in Job settings and Work zero once it is active), its parts.
+pub(super) fn setup_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Option<JobRequest> {
+    let mut request = None;
+    let units = crate::units::display(ui.ctx());
+    let index = edit.settings.setups.iter().position(|s| s.id == id)?;
+    let one = {
+        let mut job = edit.settings.clone();
+        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        job.for_setup(id)
+    };
+    let (x, y) = one.stock_size();
+    let size = |v: f64| chipload_pipeline::units::length_text(v, units);
+    let board = format!(
+        "{} × {} × {}",
+        size(x),
+        size(y),
+        size(one.stock().thickness)
+    );
+    let zero = work_zero_name(ui, &one.work_zero());
+    let parts: Vec<String> = edit
+        .settings
+        .parts
+        .iter()
+        .filter(|p| p.setup == id)
+        .map(|p| p.name.clone())
+        .collect();
+    let setup = &mut edit.settings.setups[index];
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Rectangle,
+        None,
+        &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
+    );
+    let at = |field: &str| format!("setups.{index}.{field}");
+    Grid::new(("setup-form", id))
+        .num_columns(2)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label(t!(ui, "forms-name"));
+            let response =
+                ui.add(TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)));
+            flag(response, ui, &at("name"));
+            ui.end_row();
+            ui.label(t!(ui, "forms-setup-cut"))
+                .on_hover_text(t!(ui, "forms-setup-cut-hover"));
+            ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
+            ui.end_row();
+            ui.label(t!(ui, "forms-setup-board"));
+            ui.horizontal(|ui| {
+                ui.label(&board);
+                if ui.small_button(t!(ui, "forms-open")).clicked() {
+                    request = Some(JobRequest::SetupBoard(id));
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-setup-zero"));
+            ui.horizontal(|ui| {
+                ui.label(&zero);
+                if ui.small_button(t!(ui, "forms-open")).clicked() {
+                    request = Some(JobRequest::SetupZero(id));
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-setup-parts"));
+            ui.label(if parts.is_empty() {
+                t!(ui, "forms-operations-none")
+            } else {
+                parts.join(", ")
+            });
+            ui.end_row();
+        });
+    ui.add_space(4.0);
+    ui.weak(t!(ui, "forms-setup-note"));
+    ui.add_space(6.0);
+    if ui.button(t!(ui, "forms-remove-setup")).clicked() {
+        request = Some(JobRequest::RemoveSetup(id));
+    }
+    request
+}
+
 pub(super) fn part_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Option<JobRequest> {
     let mut request = None;
     let active = edit.settings.active_part_id() == Some(id);

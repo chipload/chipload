@@ -56,9 +56,23 @@ pub fn write_setup_sheet(
     output: &Path,
     info: &SheetInfo,
 ) -> std::io::Result<PathBuf> {
-    let path = sheet_path(output);
+    let path = setup_sheet_path(job, output);
     write_atomically(&path, &setup_sheet(job, result, output, info))?;
     Ok(path)
+}
+
+/// Where the sheet of `job`'s run to `output` goes: `part-sheet.html`, or with several
+/// setups the active one's, `part-S2-sheet.html` (docs/specs/setups.md §4).
+pub fn setup_sheet_path(job: &Job, output: &Path) -> PathBuf {
+    match job.active_setup_id().filter(|_| job.setups.len() > 1) {
+        Some(id) => {
+            let stem = output
+                .file_stem()
+                .map_or(String::new(), |s| s.to_string_lossy().into_owned());
+            output.with_file_name(format!("{stem}-S{id}-sheet.html"))
+        }
+        None => sheet_path(output),
+    }
 }
 
 /// The sheet's language and units, which its texts are written in.

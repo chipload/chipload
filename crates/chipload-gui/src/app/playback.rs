@@ -328,6 +328,11 @@ impl ChiploadApp {
         self.legend_open = false;
         // Only the shots that ask for it show the simulation (it is on at start).
         self.show_simulation = steps.contains(&"simulation");
+        // The second setup active, its form open (docs/specs/setups.md §7).
+        if steps.contains(&"setup2") {
+            self.activate_setup(2);
+            self.focus = Focus::Setup(2);
+        }
         if steps.contains(&"generate") || steps.contains(&"simulation") {
             self.generate_and_wait();
         }

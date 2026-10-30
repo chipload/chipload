@@ -416,6 +416,17 @@ enum OpAction {
     /// A new operation of this kind in part `id`: it becomes the active part first.
     NewIn(OpKind, u64),
     NewPart,
+    /// Another setup (docs/specs/setups.md §7); part `0` into setup `1`.
+    NewSetup,
+    PartToSetup(u64, u64),
+}
+
+/// What a setup row asks for.
+enum SetupAction {
+    Add,
+    Toggle(u64),
+    Open(u64),
+    Remove(u64),
 }
 
 /// A tool picked from a tool menu: a project tool by id, or a library tool by name.
@@ -572,7 +583,89 @@ impl ChiploadApp {
         self.work_zero_row(ui);
         self.tool_rows(ui);
         self.drawing_rows(ui);
+        self.setup_rows(ui);
         self.operation_rows(ui);
+    }
+
+    /// Setups (docs/specs/setups.md §7), only when there are two or more: each board with
+    /// its parts' count; a click makes it the active one, shown in full colour while the
+    /// others are ghosts.
+    fn setup_rows(&mut self, ui: &mut egui::Ui) {
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        if edit.settings.setups.len() < 2 {
+            return;
+        }
+        let setups = edit.settings.setups.clone();
+        let active = edit.settings.active_setup_id();
+        let counts: Vec<usize> = setups
+            .iter()
+            .map(|s| {
+                edit.settings
+                    .parts
+                    .iter()
+                    .filter(|p| p.setup == s.id)
+                    .count()
+            })
+            .collect();
+        let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
+            .icon(Icon::Rectangle)
+            .trailing(setups.len().to_string());
+        let (open, folder_row) = folder(ui, row, true);
+        let mut action: Option<SetupAction> = None;
+        folder_row
+            .response
+            .on_hover_text(t!(ui, "browser-setups-hover"))
+            .context_menu(|ui| {
+                if ui.button(t!(ui, "browser-add-setup")).clicked() {
+                    action = Some(SetupAction::Add);
+                }
+            });
+        if open {
+            for (setup, count) in setups.iter().zip(counts) {
+                let is_active = active == Some(setup.id);
+                let out = Row::new(Id::new(("browser-setup", setup.id)), 2, &setup.name)
+                    .tick(setup.enabled)
+                    .icon(Icon::Rectangle)
+                    .trailing(t!(ui, "browser-setup-parts", count = count))
+                    .selected(self.focus == Focus::Setup(setup.id))
+                    .dim(!setup.enabled || !is_active)
+                    .strong(is_active)
+                    .show(ui);
+                if out.tick {
+                    action = Some(SetupAction::Toggle(setup.id));
+                } else if out.response.clicked() {
+                    action = Some(SetupAction::Open(setup.id));
+                }
+                let hover = if is_active {
+                    t!(ui, "browser-setup-active-hover")
+                } else {
+                    t!(ui, "browser-setup-hover")
+                };
+                out.response.on_hover_text(hover).context_menu(|ui| {
+                    if ui.button(t!(ui, "browser-add-setup")).clicked() {
+                        action = Some(SetupAction::Add);
+                    }
+                    ui.separator();
+                    if ui.button(t!(ui, "browser-delete")).clicked() {
+                        action = Some(SetupAction::Remove(setup.id));
+                    }
+                });
+            }
+        }
+        match action {
+            Some(SetupAction::Add) => {
+                self.add_setup();
+            }
+            Some(SetupAction::Toggle(id)) => self.toggle_setup(id),
+            Some(SetupAction::Open(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::Setup(id);
+            }
+            Some(SetupAction::Remove(id)) => self.remove_setup(id),
+            None => {}
+        }
     }
 
     /// The G-code's zero, with where it is (docs/specs/work-zero-marker.md §2).
@@ -724,6 +817,14 @@ impl ChiploadApp {
                 if ui.button(t!(ui, "browser-new-part")).clicked() {
                     action = Some(OpAction::NewPart);
                 }
+                // Another board (docs/specs/setups.md §7).
+                if ui
+                    .button(t!(ui, "browser-add-setup"))
+                    .on_hover_text(t!(ui, "browser-add-setup-hover"))
+                    .clicked()
+                {
+                    action = Some(OpAction::NewSetup);
+                }
             });
         if open {
             for (k, part) in parts.iter().enumerate() {
@@ -790,6 +891,10 @@ impl ChiploadApp {
             Some(OpAction::NewPart) => {
                 self.add_part();
             }
+            Some(OpAction::NewSetup) => {
+                self.add_setup();
+            }
+            Some(OpAction::PartToSetup(part, setup)) => self.move_part_to_setup(part, setup),
             None => {}
         }
     }
@@ -814,7 +919,22 @@ impl ChiploadApp {
             self.problems.iter().any(|p| p.operation() == Some(*i)) || self.error_ops.contains(i)
         }) || !self.form_problem_map(Focus::Part(part.id)).is_empty();
         let is_active = active == Some(part.id);
+        // Parts of another setup are ghosts too (docs/specs/setups.md §7).
+        let (setups, in_active_setup) = self.edit.as_ref().map_or((Vec::new(), true), |e| {
+            let setups: Vec<(u64, String)> = e
+                .settings
+                .setups
+                .iter()
+                .map(|s| (s.id, s.name.clone()))
+                .collect();
+            (setups, e.settings.active_setup_id() == Some(part.setup))
+        });
         let mut trailing = Vec::new();
+        if setups.len() > 1
+            && let Some((_, name)) = setups.iter().find(|(id, _)| *id == part.setup)
+        {
+            trailing.push(name.clone());
+        }
         if is_active && parts.len() > 1 {
             trailing.push(t!(ui, "browser-part-active"));
         }
@@ -830,7 +950,7 @@ impl ChiploadApp {
             .icon(Icon::Part)
             .trailing(trailing.join(" · "))
             .selected(self.focus == Focus::Part(part.id))
-            .dim(!part.enabled)
+            .dim(!part.enabled || !in_active_setup)
             .alert(flagged)
             .strong(is_active && parts.len() > 1)
             .show(ui);
@@ -875,6 +995,18 @@ impl ChiploadApp {
                 .clicked()
             {
                 action = Some(OpAction::PartExport(part.id));
+            }
+            if setups.len() > 1 {
+                ui.menu_button(t!(ui, "browser-move-to-setup"), |ui| {
+                    for (id, name) in &setups {
+                        if ui
+                            .add_enabled(*id != part.setup, egui::Button::new(name))
+                            .clicked()
+                        {
+                            action = Some(OpAction::PartToSetup(part.id, *id));
+                        }
+                    }
+                });
             }
             ui.menu_button(t!(ui, "browser-new-operation"), |ui| {
                 for (label, kind, hover) in new_operations(ui) {

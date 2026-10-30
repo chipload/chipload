@@ -193,6 +193,13 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Setups** (2026-10-30, docs/specs/setups.md, schema 34; the user: "we will probably
+  need to iterate on this"): a project's boards, each with its stock, work zero and parts,
+  each a program of its own (`-S1`, `-S2`), with its own sheet. Command line `setup …`,
+  `--setup`; in the window *Setups* in the Browser, the active one in full colour and the
+  others as ghosts (as PrusaSlicer shows plates). To iterate: export writes the active
+  setup only; the Browser keeps *Parts* as one list (parts say their setup); turning the
+  board over is a later spec (§9).
 - **V-carving wide strokes** (2026-10-30, docs/specs/vcarve-wide-strokes.md, the user's
   request): where a stroke is too wide for the depth, the V-bit cuts walls along the outline
   instead of a capped centre line; an optional floor pass (an end mill, before the V-carve)

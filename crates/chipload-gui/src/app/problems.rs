@@ -290,6 +290,10 @@ impl ChiploadApp {
                 let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
                 Box::new(self.problems_under(index_of(k, "parts")))
             }
+            Focus::Setup(id) => {
+                let k = settings.and_then(|s| s.setups.iter().position(|p| p.id == id));
+                Box::new(self.problems_under(index_of(k, "setups")))
+            }
             Focus::Tool(id) => {
                 let k = settings.and_then(|s| s.tools.iter().position(|t| t.id == id));
                 Box::new(self.problems_under(index_of(k, "tools")))

@@ -19,7 +19,7 @@ use chipload_job::{
     StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
-use chipload_pipeline::sheet::{SheetInfo, sheet_path, write_setup_sheet};
+use chipload_pipeline::sheet::{SheetInfo, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, write_gcode_files,
 };
@@ -66,6 +66,7 @@ mod problems;
 mod recovery;
 mod report;
 mod select_drag;
+mod setups;
 mod shortcuts;
 mod simulation;
 mod sources;
@@ -134,6 +135,8 @@ pub enum Focus {
     FloorPass(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
+    /// A setup, by id (docs/specs/setups.md §7).
+    Setup(u64),
     /// The project's tools; one tool, by id; an imported DXF; a picture
     /// (docs/specs/properties-for-tools-and-dxfs.md).
     Tools,
@@ -745,7 +748,6 @@ impl ChiploadApp {
         }
         self.loaded_drawing = Some(job.drawing.clone());
         self.corners.forget();
-        self.scene.stock = Some(job.stock_bounds());
         match load_drawing(&job) {
             Ok(imported) => {
                 self.contours = imported.contours;
@@ -768,6 +770,19 @@ impl ChiploadApp {
                 self.drawing_facts = Some(DrawingFacts::failed(err.message()));
             }
         }
+        self.update_ghosts();
+    }
+
+    /// The active setup's board, and the other setups' boards and contours as ghosts
+    /// (docs/specs/setups.md §5), from the edited project with its operations: a board
+    /// that fits fits its own setup's parts.
+    fn update_ghosts(&mut self) {
+        let job = self.edited_job();
+        self.scene.stock = job.as_ref().map(chipload_job::Job::stock_bounds);
+        self.scene.ghost_boards = job.as_ref().map(ghost_boards).unwrap_or_default();
+        self.scene.ghost_contours = job
+            .map(|job| ghost_contours(&job, &self.contours))
+            .unwrap_or_default();
     }
 
     // -- operations (also called directly by tests)
@@ -1228,9 +1243,11 @@ impl ChiploadApp {
     /// Make part `id` the one new operations go into.
     pub fn activate_part(&mut self, id: u64) {
         if let Some(edit) = self.edit.as_mut()
-            && edit.settings.part(id).is_some()
+            && let Some(setup) = edit.settings.part(id).map(|p| p.setup)
         {
             edit.settings.active_part = Some(id);
+            // Its setup is the one shown (docs/specs/setups.md §7).
+            edit.settings.active_setup = Some(setup);
             self.commit();
         }
     }
@@ -1663,6 +1680,26 @@ impl ChiploadApp {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         };
+        // With several setups the result is the active one's: its files say so
+        // (`-S2-1-T1`), as `run` names them (docs/specs/setups.md §4).
+        let setup = self
+            .result_job
+            .as_ref()
+            .filter(|job| job.setups.len() > 1)
+            .and_then(|job| job.active_setup_id());
+        let named;
+        let result = match setup {
+            Some(id) => {
+                let mut copy = result.clone();
+                for file in &mut copy.files {
+                    let tail = file.suffix.take().unwrap_or_default();
+                    file.suffix = Some(format!("-S{id}{tail}"));
+                }
+                named = copy;
+                &named
+            }
+            None => result,
+        };
         let written = match write_gcode_files(path, &result.files) {
             Ok(written) => written,
             Err(err) => {
@@ -1700,7 +1737,9 @@ impl ChiploadApp {
                             t!(
                                 self,
                                 "app-sheet-failed",
-                                path = sheet_path(path).display().to_string()
+                                path = chipload_pipeline::sheet::setup_sheet_path(job, path)
+                                    .display()
+                                    .to_string()
                             ),
                             err.to_string(),
                         ]);
@@ -1711,6 +1750,11 @@ impl ChiploadApp {
             _ => None,
         };
         let shown = path.display().to_string();
+        let setup_note = setup.and_then(|id| {
+            let job = self.result_job.as_ref()?;
+            let name = job.setup(id)?.name.clone();
+            Some(t!(self, "app-exported-setup", name = name))
+        });
         if written.len() > 1 {
             let mut report = Report::default();
             report.push(
@@ -1753,6 +1797,12 @@ impl ChiploadApp {
                 ),
                 None => t!(self, "app-exported", path = shown),
             };
+            self.set_status(text, STATUS_SECONDS);
+        }
+        if let Some(note) = setup_note
+            && let Some((text, _)) = &self.status
+        {
+            let text = format!("{text} {note}");
             self.set_status(text, STATUS_SECONDS);
         }
         true
@@ -2045,8 +2095,8 @@ impl ChiploadApp {
             self.drag.context_ring = None;
             self.toolpath_stale = true;
         }
-        self.scene.stock = self.edit.as_ref().map(|e| e.settings.stock_bounds());
         self.refresh_drawing();
+        self.update_ghosts();
     }
 
     fn error(&mut self, lines: Vec<String>) {
@@ -2323,4 +2373,49 @@ impl ChiploadApp {
         use crate::i18n::Lang;
         message.render(self.lang(), self.units.into())
     }
+}
+
+/// The boards of the setups that aren't active, for the view's ghosts
+/// (docs/specs/setups.md §5): none with one setup.
+fn ghost_boards(job: &chipload_job::Job) -> Vec<(chipload_core::Point, chipload_core::Point)> {
+    let active = job.active_setup_id();
+    job.setups
+        .iter()
+        .filter(|s| Some(s.id) != active)
+        .map(|s| job.for_setup(s.id).stock_bounds())
+        .collect()
+}
+
+/// The contours only another setup's operations cut (every shape of them picked by one,
+/// none by the active setup's): drawn as ghosts (docs/specs/setups.md §5). None with one
+/// setup.
+fn ghost_contours(
+    job: &chipload_job::Job,
+    contours: &[chipload_core::chain::Contour],
+) -> BTreeSet<usize> {
+    if job.setups.len() < 2 {
+        return BTreeSet::new();
+    }
+    let active = job.active_setup_id();
+    let picks = |mine: bool, shape: &chipload_job::Shape| {
+        job.operations.iter().any(|op| {
+            let here = job.part_of(op).map(|p| p.setup) == active;
+            here == mine && op.selects_shapes() && op.select().may_pick(shape)
+        })
+    };
+    let shape = |id: u64| job.drawing.shapes.iter().find(|s| s.id == id);
+    contours
+        .iter()
+        .filter(|c| {
+            let shapes: Vec<&chipload_job::Shape> = c
+                .parts
+                .iter()
+                .filter_map(|p| p.segment.shape.and_then(shape))
+                .collect();
+            !shapes.is_empty()
+                && shapes.iter().all(|s| picks(false, s))
+                && !shapes.iter().any(|s| picks(true, s))
+        })
+        .map(|c| c.id)
+        .collect()
 }

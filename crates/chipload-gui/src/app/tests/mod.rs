@@ -29,6 +29,7 @@ mod properties_sources;
 mod recovery_copies;
 mod screenshots;
 mod select_drag;
+mod setups;
 mod tab_markers;
 mod texts;
 mod three_d_view;

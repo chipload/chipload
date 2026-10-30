@@ -47,7 +47,7 @@ use chipload_pipeline::shapes::{
     add_shape, copy_shapes, delete_shape, drawn_middle, mirror_shapes, name_shape,
     set_construction, set_shape, transform_shapes,
 };
-use chipload_pipeline::sheet::{SheetInfo, setup_sheet, sheet_path, write_setup_sheet};
+use chipload_pipeline::sheet::{SheetInfo, setup_sheet, write_setup_sheet};
 use chipload_pipeline::{
     PipelineError, RunResult, add_floor_pass, add_rest_pass, empty_project, foreign_text,
     load_drawing, new_project, run_job, set_op_rest, set_op_tool, update_drawing_with,
@@ -3044,17 +3044,8 @@ fn run(
         }
         if let Some(words) = sheet {
             // Each setup's sheet beside its files: out-S2-sheet.html.
-            let named = if several {
-                with_stem_suffix(output, &format!("-S{id}"))
-            } else {
-                output.to_path_buf()
-            };
-            match write_setup_sheet(
-                &one,
-                result,
-                &named,
-                &sheet_info(project, words, names.clone()),
-            ) {
+            let info = sheet_info(project, words, names.clone());
+            match write_setup_sheet(&one, result, output, &info) {
                 Ok(path) => {
                     out.wrote(&path, " (setup sheet)");
                     let shown = std::path::absolute(&path).unwrap_or(path);
@@ -3063,7 +3054,7 @@ fn run(
                 Err(err) => {
                     out.err(format!(
                         "error: cannot write the setup sheet {}: {err}",
-                        sheet_path(&named).display()
+                        chipload_pipeline::sheet::setup_sheet_path(&one, output).display()
                     ));
                     return ExitCode::from(EXIT_FAILED);
                 }
@@ -3090,17 +3081,6 @@ fn run(
         out.set("sheet", json!(sheets));
     }
     ExitCode::SUCCESS
-}
-
-/// `path` with `suffix` after its stem: `out.nc` and `-S2` give `out-S2.nc`.
-fn with_stem_suffix(path: &Path, suffix: &str) -> PathBuf {
-    let stem = path
-        .file_stem()
-        .map_or_else(|| "out".into(), |s| s.to_string_lossy().into_owned());
-    match path.extension() {
-        Some(ext) => path.with_file_name(format!("{stem}{suffix}.{}", ext.to_string_lossy())),
-        None => path.with_file_name(format!("{stem}{suffix}")),
-    }
 }
 
 /// `sets` with `active_setup=ID` when a setup is chosen (docs/specs/setups.md §8).

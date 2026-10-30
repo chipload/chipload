@@ -70,14 +70,20 @@ impl ChiploadApp {
         self.start_generation_of(loud, false)
     }
 
-    /// The part a preview plans: the active one, when the project has several parts that
-    /// are cut and "All parts" is off (docs/specs/active-part-preview.md §1). None: all.
+    /// The part a preview plans: the active one, when the active setup has several parts
+    /// that are cut and "All parts" is off (docs/specs/active-part-preview.md §1), and it is
+    /// in that setup with operations of its own (an empty part has nothing to show; the
+    /// setup's parts are previewed then, docs/specs/setups.md §7). None: all of the setup's.
     pub(super) fn preview_part(&self) -> Option<u64> {
-        let settings = &self.edit.as_ref()?.settings;
-        let cut = settings.parts.iter().filter(|p| p.enabled).count();
+        let edit = self.edit.as_ref()?;
+        let settings = &edit.settings;
+        let setup = settings.active_setup_id();
+        let in_setup = |p: &chipload_job::Part| p.enabled && Some(p.setup) == setup;
+        let cut = settings.parts.iter().filter(|p| in_setup(p)).count();
         let active = settings.active_part_id()?;
-        let on = settings.part(active).is_some_and(|p| p.enabled);
-        (!self.all_parts && cut > 1 && on).then_some(active)
+        let on = settings.part(active).is_some_and(in_setup);
+        let has_operations = edit.ops.iter().any(|e| e.op.part() == active);
+        (!self.all_parts && cut > 1 && on && has_operations).then_some(active)
     }
 
     /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
