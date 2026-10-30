@@ -309,6 +309,11 @@ pipeline-tab-none-there = la lavorazione { $number } non ha ponticelli entro un 
 pipeline-tab-no-tabs = la lavorazione { $number } non ha ponticelli: solo una contornatura con ponticelli ne ha da posizionare
 pipeline-corner-none-there = la lavorazione { $number } non ha un angolo in { $at }; `chipload op corners` elenca i suoi angoli
 pipeline-corner-not-profile-or-pocket = la lavorazione { $number } non ha angoli da scegliere: solo contornature e tasche hanno dogbone
+pipeline-no-setup = nessun piazzamento { $id } nel progetto
+pipeline-setup-name-empty = un piazzamento ha bisogno di un nome
+pipeline-last-setup = un progetto ha bisogno di almeno un piazzamento
+pipeline-setup-has-parts = il piazzamento { $name } ha { $count } pezzo/i; spostali prima in un altro piazzamento o rimuovili insieme
+pipeline-no-setup-cut = nessun piazzamento è attivo con qualcosa da lavorare
 pipeline-not-a-pocket = la lavorazione { $number } non è una tasca; solo le tasche fanno ripresa dei residui
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = lavorazione { $number }: { $reason }

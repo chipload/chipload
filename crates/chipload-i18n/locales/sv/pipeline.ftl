@@ -304,6 +304,11 @@ pipeline-tab-none-there = operation { $number } har ingen brygga inom en verktyg
 pipeline-tab-no-tabs = operation { $number } har inga bryggor: bara en konturfräsning med bryggor har några att placera
 pipeline-corner-none-there = operation { $number } har inget hörn vid { $at }; `chipload op corners` listar dess hörn
 pipeline-corner-not-profile-or-pocket = operation { $number } har inga hörn att välja: bara konturfräsningar och fickor har dogbones
+pipeline-no-setup = ingen uppspänning { $id } i projektet
+pipeline-setup-name-empty = en uppspänning behöver ett namn
+pipeline-last-setup = ett projekt behöver minst en uppspänning
+pipeline-setup-has-parts = uppspänning { $name } har { $count } del(ar); flytta dem till en annan uppspänning först, eller ta bort dem med den
+pipeline-no-setup-cut = ingen uppspänning är på och har något att fräsa
 pipeline-not-a-pocket = operation { $number } är inte en ficka; bara fickor kan restbearbetas
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = operation { $number }: { $reason }

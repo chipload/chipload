@@ -18,6 +18,7 @@ pub mod placement;
 pub mod posts;
 pub mod recovery;
 pub mod report;
+pub mod setups;
 pub mod shapes;
 pub mod sheet;
 pub mod simulate;
@@ -573,10 +574,47 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
     run_job_cancellable(job, &Cancel::new())
 }
 
+/// Every setup that is on and has something to cut, each run as its own program
+/// (docs/specs/setups.md §4), or only setup `only`. With more than one setup in the project,
+/// each file's name gets the setup's id first (`-S2`, `-S2-1-T1`); with one, the names are
+/// as they always were.
+pub fn run_setups(job: &Job, only: Option<u64>) -> Result<Vec<(u64, RunResult)>, PipelineError> {
+    let several = job.setups.len() > 1;
+    let mut runs = Vec::new();
+    for setup in &job.setups {
+        if only.is_some_and(|id| id != setup.id) || (only.is_none() && !setup.enabled) {
+            continue;
+        }
+        let one = job.for_setup(setup.id);
+        if several && only.is_none() && !(0..one.operations.len()).any(|i| one.cuts(i)) {
+            continue;
+        }
+        let mut result = run_job(&one)?;
+        if several {
+            for file in &mut result.files {
+                let tail = file.suffix.take().unwrap_or_default();
+                file.suffix = Some(format!("-S{}{tail}", setup.id));
+            }
+        }
+        runs.push((setup.id, result));
+    }
+    if runs.is_empty() {
+        return Err(PipelineError::Job(match only {
+            Some(id) => Message::new("pipeline-no-setup").arg("id", id),
+            None => Message::new("pipeline-no-setup-cut"),
+        }));
+    }
+    Ok(runs)
+}
+
 /// [`run_job`] that stops with `ToolpathError::Cancelled` once `cancel` is set, from
 /// another thread (docs/specs/background-generation.md). Not cancelled, it gives the same
 /// result.
 pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, PipelineError> {
+    // One program is one setup's (docs/specs/setups.md §4): the active one. Every setup in
+    // turn: `run_setups`.
+    let one = job.active_setup_id().map(|id| job.for_setup(id));
+    let job = one.as_ref().unwrap_or(job);
     validate_job(job)?;
     let post = posts::job_post(job)?;
     let imported = load_drawing(job)?;

@@ -6,6 +6,11 @@ path aliases. In code, `job.stock()` and `job.work_zero()` are the active setup'
 `job.for_setup(id)` is a project of one setup for planning; problem paths are
 `setups.N.stock.x`, and the forms name them `stock.x` and `work_zero` as before. The aliases
 print no note: they just work.
+Step 2 built: `run_job` and planning take the active setup only; `run_setups` runs each
+(`-S<id>` in the file names with several); a board that fits fits the shapes its setup's
+operations may pick (`Selector::may_pick`, only with two or more setups); `setup
+list|add|set|activate|part|remove`; `--setup` on `run`, `plan`, `sheet`, `simulate`; a
+guide page. A new setup gets a part of its own (both active), so new operations have a home.
 
 ## 1. Why
 

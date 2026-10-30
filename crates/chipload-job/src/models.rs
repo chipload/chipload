@@ -1950,12 +1950,28 @@ impl Job {
             .map_or(0, |i| i + 1)
     }
 
+    /// The drawing a board is placed on (docs/specs/setups.md §3): with one setup the whole
+    /// drawing, as always; with several, the shapes the active setup's operations select.
+    pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
+        if self.setups.len() < 2 {
+            return self.drawing.extents();
+        }
+        let setup = self.active_setup_id();
+        let selectors: Vec<&Selector> = self
+            .operations
+            .iter()
+            .filter(|op| op.selects_shapes() && self.part_of(op).map(|p| p.setup) == setup)
+            .map(Operation::select)
+            .collect();
+        self.drawing
+            .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+    }
+
     /// The stock's (min, max) corners in drawing coordinates, wherever it is placed: at the
-    /// drawing origin, or centred on the drawing.
+    /// drawing origin, or centred on the drawing (its setup's part of it).
     pub fn stock_bounds(&self) -> ((f64, f64), (f64, f64)) {
         let centre = self
-            .drawing
-            .extents()
+            .board_extents()
             .map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
                 ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
             });
@@ -1965,11 +1981,7 @@ impl Job {
     /// The stock's size, mm: the drawing's outline plus the margin each side when it fits
     /// the drawing, otherwise as set.
     pub fn stock_size(&self) -> (f64, f64) {
-        match (
-            self.stock().origin,
-            self.stock().fit,
-            self.drawing.extents(),
-        ) {
+        match (self.stock().origin, self.stock().fit, self.board_extents()) {
             (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {
                 (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin)
             }
@@ -2170,6 +2182,31 @@ impl Selector {
             && self.image.is_none()
             && self.text.is_none()
             && self.shapes.as_ref().is_none_or(Vec::is_empty)
+    }
+
+    /// Whether it could pick `shape`: on its layer or among its shapes, and from its DXF,
+    /// image or text when it names one. For where a setup's board goes
+    /// (docs/specs/setups.md §3), not for cutting: planning selects contours exactly.
+    pub fn may_pick(&self, shape: &Shape) -> bool {
+        let from = |want: Option<u64>, has: Option<u64>| want.is_none_or(|w| has == Some(w));
+        if !(from(self.dxf, shape.dxf())
+            && from(self.image, shape.image())
+            && from(self.text, shape.text()))
+        {
+            return false;
+        }
+        let on_layer = self
+            .layer
+            .as_ref()
+            .is_some_and(|l| l.eq_ignore_ascii_case(&shape.layer));
+        let named = self
+            .shapes
+            .as_ref()
+            .is_some_and(|ids| ids.contains(&shape.id));
+        let whole_source = self.layer.is_none()
+            && self.shapes.is_none()
+            && (self.dxf.is_some() || self.image.is_some() || self.text.is_some());
+        on_layer || named || whole_source
     }
 }
 
@@ -3386,9 +3423,14 @@ impl Drawing {
     /// The box round the shapes that are cut (construction geometry left out), arcs
     /// included, mm: ((x0, y0), (x1, y1)). None for an empty drawing.
     pub fn extents(&self) -> Option<((f64, f64), (f64, f64))> {
+        self.extents_of(|_| true)
+    }
+
+    /// [`Drawing::extents`] of the shapes `keep` accepts.
+    pub fn extents_of(&self, keep: impl Fn(&Shape) -> bool) -> Option<((f64, f64), (f64, f64))> {
         self.shapes
             .iter()
-            .filter(|s| !s.construction)
+            .filter(|s| !s.construction && keep(s))
             .flat_map(Shape::segments)
             .map(|seg| seg.to_primitive().bounds())
             .reduce(|(lo, hi), (a, b)| {

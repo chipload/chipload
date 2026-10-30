@@ -150,6 +150,9 @@ pub fn plan_job_cancellable(
     contours: &[Contour],
     cancel: &Cancel,
 ) -> Result<Plan, ToolpathError> {
+    // One program is one setup's (docs/specs/setups.md §4): the active one.
+    let one = job.active_setup_id().map(|id| job.for_setup(id));
+    let job = one.as_ref().unwrap_or(job);
     let mut notes = validate_job(job)?;
     let chosen = select_all(job, contours)?;
     // Construction geometry is never cut and never counts (as an island, a wall a dogbone

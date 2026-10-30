@@ -312,6 +312,11 @@ pipeline-tab-none-there = la operación { $number } no tiene ningún puente a me
 pipeline-tab-no-tabs = la operación { $number } no tiene puentes: solo un contorneado con puentes tiene puentes que colocar
 pipeline-corner-none-there = la operación { $number } no tiene ninguna esquina en { $at }; `chipload op corners` lista sus esquinas
 pipeline-corner-not-profile-or-pocket = la operación { $number } no tiene esquinas que elegir: solo los contorneados y las cajeras tienen dogbones
+pipeline-no-setup = no hay sujeción { $id } en el proyecto
+pipeline-setup-name-empty = una sujeción necesita un nombre
+pipeline-last-setup = un proyecto necesita al menos una sujeción
+pipeline-setup-has-parts = la sujeción { $name } tiene { $count } pieza(s); muévelas antes a otra sujeción o quítalas con ella
+pipeline-no-setup-cut = ninguna sujeción está activada con algo que cortar
 pipeline-not-a-pocket = la operación { $number } no es una cajera; solo las cajeras admiten mecanizado de restos
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = operación { $number }: { $reason }

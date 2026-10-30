@@ -68,6 +68,12 @@ The GUI's Generate button and the CLI's `run` both call one function,
 `chipload_pipeline::run_job`. It returns either G-code that passed the check or a typed
 error.
 
+A project holds one or more **setups** (docs/specs/setups.md): boards clamped one after the
+other, each with its stock and work zero. `run_job` plans the active setup only
+(`Job::for_setup`: the other setups' parts are off, operation numbers unchanged), so one
+program is always one board. `run_setups` runs every setup that is on, one `run_job` each,
+and names the files `-S1…`, `-S2…` when there are several.
+
 1. **Validate.** Check the project's values and resolve its post-processor, built in or
    copied into the project (`toolpath::plan::validate_job`, `pipeline::posts::job_post`).
 2. **Load the drawings.** The drawings stored in the project become contours, each with its

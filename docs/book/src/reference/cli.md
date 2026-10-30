@@ -75,6 +75,7 @@ chipload plan <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
+| `--setup <ID>` | Only this setup (as `setup list` numbers it); default: every setup for `run`, the active one otherwise (docs/specs/setups.md §8) |
 | `--part <ID>` | Only this part (as `part list` numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
@@ -94,6 +95,7 @@ chipload run <PROJECT> [OPTIONS]
 | `--no-sheet` | Don't write the setup sheet (by default `part-sheet.html` next to `part.nc`) |
 | `--sheet-units <UNITS>` | The setup sheet's lengths and feeds: mm (default) or inch. The G-code's units are the machine's (machine.gcode_units) One of: `mm`, `inch`. |
 | `--sheet-lang <LANG>` | The setup sheet's language (default: English). The command line itself stays English. One of: `en`, `de`, `fr`, `es`, `it`, `sv`. |
+| `--setup <ID>` | Only this setup (as `setup list` numbers it); default: every setup for `run`, the active one otherwise (docs/specs/setups.md §8) |
 | `--part <ID>` | Only this part (as `part list` numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
@@ -112,6 +114,7 @@ chipload simulate <PROJECT> [OPTIONS]
 | `--cell <CELL>` | Cell size, mm (default: automatic, from the stock's size) |
 | `--no-image` | Print the numbers only. |
 | `--after <N>` | The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts. |
+| `--setup <ID>` | The setup to simulate (as `setup list` numbers it); default: the active one. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
 ## `chipload sheet`
@@ -130,6 +133,7 @@ chipload sheet <PROJECT> [OPTIONS]
 | `--tool-change <TOOL_CHANGE>` | For this sheet only: one file per tool, or one file with M6 tool changes. One of: `files` (One G-code file per tool group), `program` (One file with `T<n> M6` at each tool change). |
 | `--units <UNITS>` | Its lengths and feeds: mm (default) or inch. The G-code's units are the machine's (machine.gcode_units) One of: `mm`, `inch`. |
 | `--lang <LANG>` | Its language (default: English). The command line itself stays English. One of: `en`, `de`, `fr`, `es`, `it`, `sv`. |
+| `--setup <ID>` | Only this setup (as `setup list` numbers it); default: every setup for `run`, the active one otherwise (docs/specs/setups.md §8) |
 | `--part <ID>` | Only this part (as `part list` numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
@@ -1547,6 +1551,98 @@ chipload part remove <PROJECT> <ID> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The part's id. |
 | `--with-operations` | Remove its operations with it. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+## `chipload setup`
+
+A project's setups: each a board clamped once, with its stock, work zero and parts, run as a program of its own (docs/specs/setups.md)
+
+### `chipload setup list`
+
+The project's setups: id, name, on or off, board, work zero and parts
+
+```text
+chipload setup list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload setup add`
+
+Add a setup at the end, a board like the active one's, with a first part of its own; both become active
+
+```text
+chipload setup add <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--name <NAME>` | Its name; default: "Setup N". |
+| `--thickness <THICKNESS>` | Its board's thickness; default: the active setup's. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload setup set`
+
+Rename a setup, or turn it off or on (a setup that is off isn't cut)
+
+```text
+chipload setup set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The setup's id (as `setup list` shows it) |
+| `--name <NAME>` | Its new name. |
+| `--off` | Leave the setup and its parts out. |
+| `--on` | Cut the setup again. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload setup activate`
+
+Make a setup the active one: shown, simulated, where new parts go
+
+```text
+chipload setup activate <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The setup's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload setup part`
+
+Move a part into a setup: it is cut from that board, with its zero
+
+```text
+chipload setup part <PROJECT> <PART> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<PART>` | The part's id (as `part list` shows it) |
+| `--to <TO>` | The setup's id. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload setup remove`
+
+Remove a setup. Refused while it has parts, unless --with-parts
+
+```text
+chipload setup remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The setup's id. |
+| `--with-parts` | Remove its parts and their operations with it. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload zero`

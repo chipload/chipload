@@ -11,6 +11,7 @@ mod lengths;
 mod library;
 mod materials;
 mod parts;
+mod setups;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -147,6 +148,10 @@ enum Command {
     Plan {
         /// The project (.chipload).
         project: PathBuf,
+        /// Only this setup (as `setup list` numbers it); default: every setup for `run`, the
+        /// active one otherwise (docs/specs/setups.md §8).
+        #[arg(long, value_name = "ID")]
+        setup: Option<u64>,
         /// Only this part (as `part list` numbers it), as if every other part were switched
         /// off; may be given more than once (docs/specs/part-export.md).
         #[arg(long = "part", value_name = "ID")]
@@ -179,6 +184,10 @@ enum Command {
         /// English.
         #[arg(long, value_name = "LANG")]
         sheet_lang: Option<LangArg>,
+        /// Only this setup (as `setup list` numbers it); default: every setup for `run`, the
+        /// active one otherwise (docs/specs/setups.md §8).
+        #[arg(long, value_name = "ID")]
+        setup: Option<u64>,
         /// Only this part (as `part list` numbers it), as if every other part were switched
         /// off; may be given more than once (docs/specs/part-export.md).
         #[arg(long = "part", value_name = "ID")]
@@ -210,6 +219,9 @@ enum Command {
         /// Also print a hash of the heights (for regression tests).
         #[arg(long, hide = true)]
         hash: bool,
+        /// The setup to simulate (as `setup list` numbers it); default: the active one.
+        #[arg(long, value_name = "ID")]
+        setup: Option<u64>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -237,6 +249,10 @@ enum Command {
         /// Its language (default: English). The command line itself stays English.
         #[arg(long)]
         lang: Option<LangArg>,
+        /// Only this setup (as `setup list` numbers it); default: every setup for `run`, the
+        /// active one otherwise (docs/specs/setups.md §8).
+        #[arg(long, value_name = "ID")]
+        setup: Option<u64>,
         /// Only this part (as `part list` numbers it), as if every other part were switched
         /// off; may be given more than once (docs/specs/part-export.md).
         #[arg(long = "part", value_name = "ID")]
@@ -319,6 +335,12 @@ enum Command {
     Part {
         #[command(subcommand)]
         action: parts::PartAction,
+    },
+    /// A project's setups: each a board clamped once, with its stock, work zero and parts,
+    /// run as a program of its own (docs/specs/setups.md).
+    Setup {
+        #[command(subcommand)]
+        action: setups::SetupAction,
     },
     /// Where the G-code's X0 Y0 Z0 is (docs/specs/work-zero-marker.md §5): a corner or the
     /// centre of the stock, the drawing origin, or a point. Moving it moves no cut, only the
@@ -1364,8 +1386,9 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Plan {
             project,
             parts,
+            setup,
             sets,
-        } => plan(out, &project, &sets, &parts),
+        } => plan(out, &project, &with_setup(sets, setup), &parts),
         Command::Get { project, path } => get(out, &project, &path),
         Command::Set {
             project,
@@ -1381,6 +1404,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             sheet_units,
             sheet_lang,
             parts,
+            setup,
             sets,
         } => {
             let sheet = (!no_sheet).then(|| {
@@ -1389,7 +1413,15 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                     sheet_lang.map_or(Language::En, LangArg::value),
                 )
             });
-            run(out, &project, &output, tool_change, sheet, &sets, &parts)
+            run(
+                out,
+                &project,
+                &output,
+                tool_change,
+                sheet,
+                &sets,
+                (&parts, setup),
+            )
         }
         Command::Sheet {
             project,
@@ -1399,6 +1431,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             units: sheet_units,
             lang,
             parts,
+            setup,
             sets,
         } => sheet(
             out,
@@ -1410,7 +1443,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 units(sheet_units).unwrap_or(Units::Mm),
                 lang.map_or(Language::En, LangArg::value),
             ),
-            (&sets, &parts),
+            (&with_setup(sets, setup), &parts),
         ),
         Command::Simulate {
             project,
@@ -1419,6 +1452,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             no_image,
             after,
             hash,
+            setup,
             sets,
         } => simulate(
             out,
@@ -1430,7 +1464,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 image: !no_image,
                 hash,
             },
-            &sets,
+            &with_setup(sets, setup),
         ),
         Command::Render { program, post } => render(out, &program, &post),
         Command::Check { gcode, job, tool } => check(out, &gcode, &job, tool),
@@ -1444,6 +1478,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Machine { action } => library::machine(out, action),
         Command::Post { action } => library::post(out, action),
         Command::Part { action } => parts::part(out, action),
+        Command::Setup { action } => setups::setup(out, action),
         Command::Zero {
             project,
             stock,
@@ -2917,87 +2952,163 @@ fn run(
     tool_change: Option<library::ToolChangeArg>,
     sheet: Option<(Units, Language)>,
     sets: &[String],
-    parts: &[u64],
+    (parts, setup): (&[u64], Option<u64>),
 ) -> ExitCode {
-    let (job, result, names) = match load_and_run(out, project, tool_change, sets, parts) {
-        Ok(run) => run,
+    let (mut job, names) = match load_parts(out, project, sets, parts) {
+        Ok(loaded) => loaded,
         Err(code) => return code,
     };
-    for line in format_import_report(&result.import_report) {
-        out.line(line.to_string());
+    if let Some(change) = tool_change {
+        job.machine.tool_change = change.value();
     }
-    for note in &result.notes {
-        out.line(format!("warning: {note}"));
-    }
-    for line in floor_hint_lines(&result.floor_hints) {
-        out.line(line);
-    }
-    for warning in &result.check_warnings {
-        out.line(format!("check warning: {}", warning.message));
-    }
-    out.line(format!("Work zero: {}", job.work_zero_text()));
-    if !names.is_empty() {
-        out.line(format!("Only: {}", names.join(", ")));
-    }
-    if let Err(err) = write_gcode_files(output, &result.files) {
-        out.err(format!("error: cannot write {}: {err}", output.display()));
-        return ExitCode::from(EXIT_FAILED);
-    }
-    let mut files = Vec::new();
-    for file in &result.files {
-        let lines = file.gcode.matches('\n').count();
-        let path = file.path(output);
-        if file.suffix.is_some() {
-            let detail = format!(
-                " ({lines} lines, tool {}, operations {})",
-                file.tool,
-                chipload_post::operations_text(&file.operations)
-            );
-            out.wrote(&path, &detail);
-        } else {
-            out.wrote(
-                &path,
-                &format!(" ({lines} lines, post {})", result.post.name),
-            );
+    // Every setup is a program of its own (docs/specs/setups.md §4).
+    let runs = match chipload_pipeline::run_setups(&job, setup) {
+        Ok(runs) => runs,
+        Err(err @ PipelineError::CheckFailed { .. }) => {
+            out.err(format!("error: {err}"));
+            out.err("No output written.");
+            return ExitCode::from(EXIT_FAILED);
         }
-        files.push(json!({
-            "path": std::path::absolute(&path).unwrap_or(path).display().to_string(),
-            "tool": file.tool,
-            "operations": operations_json(&file.operations),
-            "rest_passes": rest_passes_json(&file.operations),
-        }));
+        Err(err) => {
+            out.err(format!("error: {err}"));
+            out.problems(chipload_pipeline::job_problems(&job));
+            return ExitCode::from(EXIT_FAILED);
+        }
+    };
+    let several = job.setups.len() > 1;
+    let mut files = Vec::new();
+    let mut sheets = Vec::new();
+    for (index, (id, result)) in runs.iter().enumerate() {
+        let one = job.for_setup(*id);
+        if several {
+            let name = one.setup(*id).map_or("", |s| s.name.as_str());
+            out.line(format!("Setup {id} ({name}):"));
+        }
+        // The drawing's facts are the same for every setup: said once.
+        if index == 0 {
+            for line in format_import_report(&result.import_report) {
+                out.line(line.to_string());
+            }
+        }
+        for note in &result.notes {
+            out.line(format!("warning: {note}"));
+        }
+        for line in floor_hint_lines(&result.floor_hints) {
+            out.line(line);
+        }
+        for warning in &result.check_warnings {
+            out.line(format!("check warning: {}", warning.message));
+        }
+        out.line(format!("Work zero: {}", one.work_zero_text()));
+        if !names.is_empty() {
+            out.line(format!("Only: {}", names.join(", ")));
+        }
+        if let Err(err) = write_gcode_files(output, &result.files) {
+            out.err(format!("error: cannot write {}: {err}", output.display()));
+            return ExitCode::from(EXIT_FAILED);
+        }
+        for file in &result.files {
+            let lines = file.gcode.matches('\n').count();
+            let path = file.path(output);
+            if file.suffix.is_some() {
+                let detail = format!(
+                    " ({lines} lines, tool {}, operations {})",
+                    file.tool,
+                    chipload_post::operations_text(&file.operations)
+                );
+                out.wrote(&path, &detail);
+            } else {
+                out.wrote(
+                    &path,
+                    &format!(" ({lines} lines, post {})", result.post.name),
+                );
+            }
+            files.push(json!({
+                "path": std::path::absolute(&path).unwrap_or(path).display().to_string(),
+                "setup": id,
+                "tool": file.tool,
+                "operations": operations_json(&file.operations),
+                "rest_passes": rest_passes_json(&file.operations),
+            }));
+        }
+        for line in estimate_lines(&one, &result.estimate, result.files.len() > 1) {
+            out.line(line.to_string());
+        }
+        if result.files.len() > 1 {
+            out.line(format!(
+                "{} files, post {}: change the tool and set Z zero between them, keeping X \
+                 and Y zero.",
+                result.files.len(),
+                result.post.name
+            ));
+        }
+        if let Some(words) = sheet {
+            // Each setup's sheet beside its files: out-S2-sheet.html.
+            let named = if several {
+                with_stem_suffix(output, &format!("-S{id}"))
+            } else {
+                output.to_path_buf()
+            };
+            match write_setup_sheet(
+                &one,
+                result,
+                &named,
+                &sheet_info(project, words, names.clone()),
+            ) {
+                Ok(path) => {
+                    out.wrote(&path, " (setup sheet)");
+                    let shown = std::path::absolute(&path).unwrap_or(path);
+                    sheets.push(json!(shown.display().to_string()));
+                }
+                Err(err) => {
+                    out.err(format!(
+                        "error: cannot write the setup sheet {}: {err}",
+                        sheet_path(&named).display()
+                    ));
+                    return ExitCode::from(EXIT_FAILED);
+                }
+            }
+        }
     }
     out.set("files", json!(files));
-    out.set("estimate", estimate_json(&result.estimate));
-    out.set("sheet", Value::Null);
-    for line in estimate_lines(&job, &result.estimate, result.files.len() > 1) {
-        out.line(line.to_string());
-    }
-    if result.files.len() > 1 {
-        out.line(format!(
-            "{} files, post {}: change the tool and set Z zero between them, keeping X and Y \
-             zero.",
-            result.files.len(),
-            result.post.name
-        ));
-    }
-    if let Some(words) = sheet {
-        match write_setup_sheet(&job, &result, output, &sheet_info(project, words, names)) {
-            Ok(path) => {
-                out.wrote(&path, " (setup sheet)");
-                let shown = std::path::absolute(&path).unwrap_or(path);
-                out.set("sheet", json!(shown.display().to_string()));
-            }
-            Err(err) => {
-                out.err(format!(
-                    "error: cannot write the setup sheet {}: {err}",
-                    sheet_path(output).display()
-                ));
-                return ExitCode::from(EXIT_FAILED);
-            }
-        }
+    if let [(_, result)] = runs.as_slice() {
+        out.set("estimate", estimate_json(&result.estimate));
+        out.set("sheet", sheets.first().cloned().unwrap_or(Value::Null));
+    } else {
+        out.set(
+            "setups",
+            json!(
+                runs.iter()
+                    .map(|(id, r)| json!({
+                        "setup": id,
+                        "estimate": estimate_json(&r.estimate),
+                    }))
+                    .collect::<Vec<_>>()
+            ),
+        );
+        out.set("estimate", Value::Null);
+        out.set("sheet", json!(sheets));
     }
     ExitCode::SUCCESS
+}
+
+/// `path` with `suffix` after its stem: `out.nc` and `-S2` give `out-S2.nc`.
+fn with_stem_suffix(path: &Path, suffix: &str) -> PathBuf {
+    let stem = path
+        .file_stem()
+        .map_or_else(|| "out".into(), |s| s.to_string_lossy().into_owned());
+    match path.extension() {
+        Some(ext) => path.with_file_name(format!("{stem}{suffix}.{}", ext.to_string_lossy())),
+        None => path.with_file_name(format!("{stem}{suffix}")),
+    }
+}
+
+/// `sets` with `active_setup=ID` when a setup is chosen (docs/specs/setups.md §8).
+fn with_setup(mut sets: Vec<String>, setup: Option<u64>) -> Vec<String> {
+    if let Some(id) = setup {
+        sets.push(format!("active_setup={id}"));
+    }
+    sets
 }
 
 /// `get` (docs/specs/scripting.md §4): the value as JSON.

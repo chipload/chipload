@@ -307,6 +307,11 @@ pipeline-tab-none-there = Bearbeitung { $number } hat keinen Haltesteg innerhalb
 pipeline-tab-no-tabs = Bearbeitung { $number } hat keine Haltestege: nur Konturfräsen mit Haltestegen haben welche zu setzen
 pipeline-corner-none-there = Bearbeitung { $number } hat keine Ecke bei { $at }; `chipload op corners` listet ihre Ecken
 pipeline-corner-not-profile-or-pocket = Bearbeitung { $number } hat keine Ecken zum Wählen: nur Konturfräsen und Taschen haben Dogbones
+pipeline-no-setup = keine Aufspannung { $id } im Projekt
+pipeline-setup-name-empty = eine Aufspannung braucht einen Namen
+pipeline-last-setup = ein Projekt braucht mindestens eine Aufspannung
+pipeline-setup-has-parts = Aufspannung { $name } hat { $count } Teil(e); verschieben Sie sie zuerst in eine andere Aufspannung oder entfernen Sie sie mit
+pipeline-no-setup-cut = keine Aufspannung ist eingeschaltet und hat etwas zu fräsen
 pipeline-not-a-pocket = Bearbeitung { $number } ist keine Tasche; nur Taschen haben eine Restbearbeitung
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = Bearbeitung { $number }: { $reason }

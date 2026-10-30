@@ -297,6 +297,11 @@ pipeline-tab-none-there = operation { $number } has no tab within a tool diamete
 pipeline-tab-no-tabs = operation { $number } has no tabs: only a profile with tabs has them to place
 pipeline-corner-none-there = operation { $number } has no corner at { $at }; `chipload op corners` lists its corners
 pipeline-corner-not-profile-or-pocket = operation { $number } has no corners to choose: only profiles and pockets have dogbones
+pipeline-no-setup = no setup { $id } in the project
+pipeline-setup-name-empty = a setup needs a name
+pipeline-last-setup = a project needs at least one setup
+pipeline-setup-has-parts = setup { $name } has { $count } part(s); move them to another setup first, or remove them with it
+pipeline-no-setup-cut = no setup is on with something to cut
 pipeline-not-a-pocket = operation { $number } is not a pocket; only pockets rest machine
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = operation { $number }: { $reason }

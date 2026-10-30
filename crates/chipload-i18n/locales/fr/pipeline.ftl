@@ -312,6 +312,11 @@ pipeline-tab-none-there = l'opération { $number } n'a pas d'attache à moins d'
 pipeline-tab-no-tabs = l'opération { $number } n'a pas d'attaches : seul un contour avec attaches en a à placer
 pipeline-corner-none-there = l'opération { $number } n'a pas de coin en { $at } ; `chipload op corners` liste ses coins
 pipeline-corner-not-profile-or-pocket = l'opération { $number } n'a pas de coins à choisir : seuls les contours et les poches ont des dogbones
+pipeline-no-setup = pas de montage { $id } dans le projet
+pipeline-setup-name-empty = un montage a besoin d'un nom
+pipeline-last-setup = un projet a besoin d'au moins un montage
+pipeline-setup-has-parts = le montage { $name } a { $count } pièce(s) ; déplacez-les d'abord vers un autre montage, ou retirez-les avec lui
+pipeline-no-setup-cut = aucun montage n'est actif avec quelque chose à usiner
 pipeline-not-a-pocket = l'opération { $number } n'est pas une poche ; seules les poches font de la reprise des restes
 # $reason is one of the pipeline-rest-… texts.
 pipeline-operation-refused = opération { $number } : { $reason }

@@ -30,6 +30,8 @@ correction here is a correction everywhere: change the term, then every text usi
 |---|---|---|---|---|---|
 | project | Projekt | projet | proyecto | progetto | projekt |
 | part (a group of operations) | Teil | pièce | pieza | pezzo | detalj |
+| setup (one board clamped once, a program of its own) | Aufspannung | montage | sujeción | piazzamento | uppspänning |
+| floor pass (V-carve) | Bodendurchgang | passe de fond | pasada de fondo | passata di fondo | bottenpass |
 | operation | Bearbeitung | opération | operación | lavorazione | operation |
 | drawing | Zeichnung | dessin | dibujo | disegno | ritning |
 | layer | Layer | calque | capa | layer | lager |
