@@ -115,16 +115,6 @@ it's built (see `CLAUDE.md`).
      need modifier keys. Done 2026-10-28: plain drag moves the segment, Ctrl inserts a
      point, Shift bends (`SegmentDrag`).
 
-- **Traced loops cross on a tiny picture with arcs** (found 2026-10-28 by a local
-  workspace run): `traced_loops_separate_black_from_white`
-  (crates/chipload-image/tests/trace.rs) fails `no_crossings` for w = 4, h = 5, smoothing
-  0.135, arcs on, the black pixels (row by row from the top) at indices 15, 26, 27, 37, 38,
-  39 and 48 of `bits`; proptest seed
-  `cc 2c938f78133a9767c000bb3dba47553796243e75bc66d9f341e2809614ebb474`. A diagonal
-  staircase of a few pixels: likely two arcs fitted to neighbouring loops bulge into each
-  other where they pass a shared corner. Not checked yet: reproduce, see whether the
-  crossing is in the fitted arcs or already in the loops, fix, and add the seed to
-  `trace.proptest-regressions` with the fix (left out until then so main stays green).
 - **A move more on macOS** (found 2026-10-24 by the release build): `chipload plan
   tests/corpus/jobs/v25/rounded_rectangle.chipload` plans 5041 moves on Linux and Windows,
   5040 on macOS, with byte-identical G-code (the golden passes everywhere): likely a
@@ -207,6 +197,10 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 ## Done
 
+- **Traced loops "crossing" on a tiny picture** (2026-10-30, found 2026-10-28): the loops
+  never crossed; two edges on one line, apart, looked crossing to the test's orientation
+  check through a last-bit error. The check now wants their boxes to overlap; a fixed test
+  and the proptest seed keep the case.
 - **Platform-proof pocket choices** (2026-10-30): the pocket's "nearest" choices (cut order,
   ring starts, stored start points, region order, helix room) take distances within the
   chaining tolerance as a tie, as the lead's start did since 0.28.1 (docs/specs/pocket.md).

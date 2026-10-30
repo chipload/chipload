@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 2456d7dcdfd4b3e7dfce279c8963af0fcdf7e7a45751a9a9d16eca1167822376 # shrinks to w = 4, h = 6, greys = [0, 0, 0, 106, 0, 0, 0, 0, 0, 0, 164, 124, 197, 163, 0, 0, 0, 0, 0, 0, 6, 191, 64, 72, 0, 0, 0, 0, 0, 0, 78, 66, 4, 200, 0, 0, 0, 0, 0, 0, 198, 143, 61, 225, 0, 0, 0, 0, 0, 0, 122, 12, 237, 246, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], blur = 1.8554335051270592, threshold = 183, invert = true
+cc 2c938f78133a9767c000bb3dba47553796243e75bc66d9f341e2809614ebb474 # shrinks to w = 4, h = 5, smoothing = 0.135, arcs = true; black at bits 15, 26, 27, 37, 38, 39 and 48 (a staircase and a lone pixel on one diagonal)

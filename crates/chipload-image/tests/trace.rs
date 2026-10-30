@@ -69,7 +69,13 @@ fn edge_distance(loops: &[Vec<Point>], p: Point) -> f64 {
     best
 }
 
+/// Whether a-b and c-d meet. Segments whose boxes are apart never do, though on one line
+/// their orientations are zero but for the last bits.
 fn crosses(a: Point, b: Point, c: Point, d: Point) -> bool {
+    let apart = |p: f64, q: f64, r: f64, s: f64| p.max(q) < r.min(s) || r.max(s) < p.min(q);
+    if apart(a.0, b.0, c.0, d.0) || apart(a.1, b.1, c.1, d.1) {
+        return false;
+    }
     let o = |p: Point, q: Point, r: Point| (q.0 - p.0) * (r.1 - p.1) - (q.1 - p.1) * (r.0 - p.0);
     let (o1, o2, o3, o4) = (o(a, b, c), o(a, b, d), o(c, d, a), o(c, d, b));
     o1 * o2 <= 0.0 && o3 * o4 <= 0.0 && !(o1 == 0.0 && o2 == 0.0)
@@ -398,4 +404,21 @@ proptest! {
             }
         }
     }
+}
+
+/// A diagonal staircase of a few pixels with arcs (proptest seed cc 2c938f78…, found
+/// 2026-10-28). The loops never crossed: a lone pixel's edge and the staircase's closing
+/// chord lie on one line, y = x + 0.5, half a millimetre apart, and a last-bit error made
+/// the orientation test call them crossing. `crosses` now wants their boxes to overlap.
+#[test]
+fn a_tiny_staircase_with_arcs_traces_without_crossings() {
+    let rows = ["....", "...#", "..##", ".###", "#..."];
+    let bytes = png(4, 5, |x, y| rows[y as usize].as_bytes()[x as usize] == b'#');
+    let settings = Settings {
+        smoothing: 0.135,
+        arcs: true,
+        ..sharp()
+    };
+    let t = trace(&decode(&bytes).unwrap(), &settings, 4.0).unwrap();
+    assert!(no_crossings(&t.loops));
 }
