@@ -270,7 +270,9 @@ impl ChiploadApp {
         let settings = self.edit.as_ref().map(|e| &e.settings);
         let index_of = |list: Option<usize>, what: &str| list.map(|k| format!("{what}.{k}."));
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
-            Focus::Op(i) | Focus::RestPass(i, _) => Box::new(self.op_problems(i)),
+            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) => {
+                Box::new(self.op_problems(i))
+            }
             Focus::Job => Box::new(self.settings_problems()),
             Focus::WorkZero => Box::new(self.zero_problems()),
             Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
@@ -310,9 +312,14 @@ impl ChiploadApp {
             map.entry(problem.field().to_string())
                 .or_insert_with(|| at_field(self, self.units, problem));
         }
-        // A rest pass's form names its fields without the pass's place in its pocket.
-        if let Focus::RestPass(_, k) = focus {
-            let prefix = format!("rest_passes.{k}.");
+        // A rest pass's form names its fields without the pass's place in its pocket, a
+        // floor pass's without `floor.`.
+        let prefix = match focus {
+            Focus::RestPass(_, k) => Some(format!("rest_passes.{k}.")),
+            Focus::FloorPass(_) => Some("floor.".to_string()),
+            _ => None,
+        };
+        if let Some(prefix) = prefix {
             map = map
                 .into_iter()
                 .filter_map(|(field, text)| {

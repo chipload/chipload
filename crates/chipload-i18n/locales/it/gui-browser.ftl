@@ -88,6 +88,10 @@ browser-delete = Elimina
 # A rest pass's row. "Rest": a rest pass, a smaller tool after the pocket's own.
 browser-rest = Ripresa
 browser-rest-pass-hover = Una passata di ripresa: rimuove ciò che lascia l'utensile precedente, nelle forme e profondità della sua tasca, e viene eseguita dopo le tasche vicine alla sua con lo stesso utensile
+browser-add-floor-pass = Aggiungi passata di fondo
+browser-add-floor-pass-hover = Una fresa piatta che svuota il fondo tra le pareti dei tratti troppo larghi, nelle forme e profondità di questa incisione a V. Viene eseguita prima dell'incisione a V
+browser-floor = Fondo
+browser-floor-pass-hover = Una passata di fondo: una fresa piatta svuota il fondo tra le pareti della sua incisione a V, prima di questa; la fresa a V ripassa dove non arriva
 browser-remove = Rimuovi
 
 # An operation row's hover text: its lines.

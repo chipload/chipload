@@ -427,6 +427,15 @@ forms-cut-it = Cut it
 forms-cut-it-hover = Off: kept, but not cut
 forms-rest-pass-note = Cut after the pockets next to its pocket that use the same tool, all their rest passes together: the small tool comes in once.
 forms-remove-rest-pass = Remove rest pass
+forms-floor-pass = Floor pass
+forms-floor-of = Floor of
+forms-floor-of-hover = It cuts its V-carve's shapes to its end depth, kept clear of the sloped walls
+forms-from-vcarve = From the V-carve
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, { $inset } { $unit } in from the outline
+forms-floor-pass-note = Cut before the V-carves next to its V-carve that use the same V-bit, all their floor passes together. Where the end mill can't reach, the V-bit cleans up along the centre line.
+forms-remove-floor-pass = Remove floor pass
+forms-floor-hint = Leaves part of the floor: one of at most { $largest } would clear all of it.
+forms-floor-hint-library = In your library: { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Plain

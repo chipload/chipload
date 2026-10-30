@@ -823,6 +823,57 @@ fn a_rest_pass_is_added_under_its_pocket_opened_turned_off_and_undone() {
 }
 
 #[test]
+fn a_floor_pass_is_added_under_its_vcarve_with_a_hint_turned_off_and_undone() {
+    // docs/specs/vcarve-wide-strokes.md §7: a traced logo too wide for its V-carve.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v19/image_vcarve.chipload")));
+    // No end mill in the project; the library is empty in tests.
+    assert!(matches!(app.floor_menu(0), Some(RestMenu::Unavailable(_))));
+    let edit = app.edit.as_mut().unwrap();
+    let mut mill = edit.settings.tools[0].clone();
+    mill.id = 2;
+    mill.kind = chipload_job::ToolType::Endmill;
+    mill.diameter = 6.0;
+    mill.angle = None;
+    mill.tip_diameter = None;
+    edit.settings.tools.push(mill);
+    app.commit();
+    assert!(
+        matches!(app.floor_menu(0), Some(RestMenu::Tools { project, .. }) if project == [(2, 6.0)])
+    );
+    // A V-bit is refused: nothing added.
+    assert!(!app.add_floor_pass(0, 1));
+    assert!(app.add_floor_pass(0, 2));
+    assert_eq!(app.focus, Focus::FloorPass(0));
+    let floor = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+        Operation::Vcarve(v) => v.floor,
+        _ => panic!("a V-carve"),
+    };
+    assert_eq!(floor(&app).map(|f| f.tool), Some(2));
+    // Generated: cut first, and a 6 mm end mill is too wide here, so its form gets a hint.
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let result = app.result.as_ref().unwrap();
+    assert!(
+        result
+            .op_spans
+            .iter()
+            .any(|s| s.operation == 0 && s.pass == Some(0))
+    );
+    let (largest, _) = app.floor_hint(0).expect("a hint");
+    assert!(largest < 6.0);
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    // Off, then removed, then back with undo.
+    app.toggle_floor_pass(0);
+    assert!(!floor(&app).unwrap().enabled);
+    app.remove_floor_pass(0);
+    assert!(floor(&app).is_none());
+    assert_eq!(app.focus, Focus::Op(0));
+    app.undo();
+    assert!(floor(&app).is_some());
+}
+
+#[test]
 fn a_rest_pocket_that_copies_its_pocket_becomes_its_rest_pass() {
     // docs/specs/rest-passes.md §5.
     let mut app = ChiploadApp::default();

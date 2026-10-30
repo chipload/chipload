@@ -43,6 +43,8 @@ app-part-needed = A project needs at least one part
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Could not add a rest pass: { $error }
+app-could-not-add-floor-pass = Could not add a floor pass: { $error }
+app-floor-no-endmill = No end mill in the project or your tool library
 app-rest-with-corners = This pocket has dogbone or T-bone corners, and rest passes can't be combined with them yet. The corners already reach where a rest pass would.
 # $tool: a tool number such as T3.
 app-rest-tool-missing = Tool { $tool } isn't in the project: give the pocket a tool first.

@@ -428,6 +428,15 @@ forms-cut-it = Fräsen
 forms-cut-it-hover = Aus: behalten, aber nicht gefräst
 forms-rest-pass-note = Wird nach den benachbarten Taschen seiner Tasche mit demselben Werkzeug gefräst, alle ihre Restdurchgänge zusammen: das kleine Werkzeug kommt nur einmal.
 forms-remove-rest-pass = Restdurchgang entfernen
+forms-floor-pass = Bodendurchgang
+forms-floor-of = Boden von
+forms-floor-of-hover = Er fräst die Formen seiner V-Gravur bis zu deren Endtiefe, mit Abstand zu den schrägen Wänden
+forms-from-vcarve = Von der V-Gravur
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, { $inset } { $unit } innerhalb der Kontur
+forms-floor-pass-note = Wird vor den benachbarten V-Gravuren mit demselben V-Fräser gefräst, alle ihre Bodendurchgänge zusammen. Wo der Schaftfräser nicht hinkommt, räumt der V-Fräser entlang der Mittellinie nach.
+forms-remove-floor-pass = Bodendurchgang entfernen
+forms-floor-hint = Lässt einen Teil des Bodens stehen: einer von höchstens { $largest } würde ihn ganz ausräumen.
+forms-floor-hint-library = In Ihrer Bibliothek: { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Schlicht

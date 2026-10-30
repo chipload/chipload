@@ -427,6 +427,15 @@ forms-cut-it = Cortarla
 forms-cut-it-hover = Desactivado: se conserva, pero no se corta
 forms-rest-pass-note = Se corta después de las cajeras contiguas a su cajera que usan la misma herramienta, todas sus pasadas de restos juntas: la herramienta pequeña entra una sola vez.
 forms-remove-rest-pass = Quitar pasada de restos
+forms-floor-pass = Pasada de fondo
+forms-floor-of = Fondo de
+forms-floor-of-hover = Corta las formas de su tallado en V hasta su profundidad final, apartada de las paredes inclinadas
+forms-from-vcarve = Del tallado en V
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, { $inset } { $unit } hacia dentro del contorno
+forms-floor-pass-note = Se corta antes de los tallados en V contiguos que usan la misma fresa en V, todas sus pasadas de fondo juntas. Donde la fresa plana no llega, la fresa en V repasa a lo largo de la línea central.
+forms-remove-floor-pass = Quitar pasada de fondo
+forms-floor-hint = Deja parte del fondo: una de { $largest } como máximo lo vaciaría entero.
+forms-floor-hint-library = En tu biblioteca: { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Normal

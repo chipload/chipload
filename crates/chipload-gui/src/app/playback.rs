@@ -355,6 +355,10 @@ impl ChiploadApp {
         if steps.contains(&"pass") {
             self.focus = Focus::RestPass(0, 0);
         }
+        // The first V-carve's floor pass open (docs/specs/vcarve-wide-strokes.md).
+        if steps.contains(&"floor") {
+            self.focus = Focus::FloorPass(0);
+        }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
             self.show_images = false;

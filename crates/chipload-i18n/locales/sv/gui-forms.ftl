@@ -427,6 +427,15 @@ forms-cut-it = Fräs den
 forms-cut-it-hover = Av: behålls men fräses inte
 forms-rest-pass-note = Fräses efter fickorna intill sin ficka som använder samma verktyg, alla deras restbearbetningar tillsammans: det lilla verktyget sätts i en gång.
 forms-remove-rest-pass = Ta bort restbearbetning
+forms-floor-pass = Bottenpass
+forms-floor-of = Botten av
+forms-floor-of-hover = Den fräser V-gravyrens former till dess slutdjup, på avstånd från de sneda väggarna
+forms-from-vcarve = Från V-gravyren
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, { $inset } { $unit } innanför konturen
+forms-floor-pass-note = Fräses före V-gravyrerna intill som använder samma V-fräs, alla deras bottenpass tillsammans. Där pinnfräsen inte når rensar V-fräsen efter längs mittlinjen.
+forms-remove-floor-pass = Ta bort bottenpass
+forms-floor-hint = Lämnar en del av botten: en på högst { $largest } skulle rensa hela.
+forms-floor-hint-library = I ditt bibliotek: { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Vanliga

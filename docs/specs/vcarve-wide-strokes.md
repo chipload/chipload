@@ -1,6 +1,9 @@
 # Spec: V-carving strokes wider than the bit can carve
 
-Status: **approved 2026-10-30**, all decisions as recommended (§9). Step 1 built: the walls (§3).
+Status: **approved 2026-10-30**, all decisions as recommended (§9). Built 2026-10-30: the
+walls (§3), the floor pass with the V-bit's clean-up and the hint (§4), the command line and
+the window (§7). Not built: an action on the floor-left warning itself; the Browser's
+right-click offers *Add floor pass ▸*.
 
 Builds on docs/specs/v-carve.md (its decision 3, "strokes wider than the bit: capped at the
 maximum depth and reported; no flat floor clearing yet", is replaced by this) and on

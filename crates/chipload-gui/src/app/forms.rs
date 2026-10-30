@@ -1608,6 +1608,8 @@ pub(super) enum JobRequest {
     OpenWorkZero,
     /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
     RemoveRestPass(usize, usize),
+    /// Remove V-carve i's floor pass.
+    RemoveFloorPass(usize),
     /// Set part `id`'s pitch so this many mm are left between its copies' cuts
     /// (docs/specs/copies-grid.md decision 2).
     CopiesGap(u64, f64),
@@ -3701,6 +3703,136 @@ pub(super) fn rest_pass_form(
     ui.add_space(6.0);
     if ui.button(t!(ui, "forms-remove-rest-pass")).clicked() {
         request = Some(JobRequest::RemoveRestPass(i, k));
+    }
+    request
+}
+
+/// V-carve `i`'s floor pass (docs/specs/vcarve-wide-strokes.md §7): its own values, what it
+/// takes from its V-carve as facts, and, when its end mill leaves part of the floor, the
+/// largest that would clear it all and the library's that do (`hint`). None when there is
+/// no floor pass (after an undo).
+pub(super) fn floor_pass_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    i: usize,
+    hint: Option<&(f64, Vec<(String, f64)>)>,
+) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let tools = edit.settings.tools.clone();
+    let Some(Operation::Vcarve(vcarve)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        return None;
+    };
+    let vcarve_name = match vcarve.name.as_str() {
+        "" => t!(ui, "forms-rest-pass-of", number = i + 1),
+        name => t!(ui, "forms-rest-pass-of-named", number = i + 1, name = name),
+    };
+    let inset = tools
+        .iter()
+        .find(|t| t.id == vcarve.tool)
+        .and_then(|bit| vcarve.floor_inset(bit))
+        .unwrap_or(0.0);
+    let facts = t!(
+        ui,
+        "forms-floor-pass-facts",
+        start = len_in(units, vcarve.start_depth),
+        end = len_in(units, vcarve.end_depth),
+        unit = len_unit,
+        inset = len_in(units, inset)
+    );
+    let pass = vcarve.floor.as_mut()?;
+    let at = chipload_job::OpRef::pass(i, 0);
+    let mut request = None;
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Pocket,
+        None,
+        &format!(
+            "{} · {}",
+            t!(ui, "forms-floor-pass"),
+            t!(ui, "forms-operation-number", number = at.to_string())
+        ),
+    );
+    Grid::new(("floor-pass", i))
+        .num_columns(2)
+        .min_col_width(label_width(ui) + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label(t!(ui, "forms-floor-of"))
+                .on_hover_text(t!(ui, "forms-floor-of-hover"));
+            ui.horizontal(|ui| {
+                ui.label(&vcarve_name);
+                if ui.small_button(t!(ui, "forms-open")).clicked() {
+                    request = Some(JobRequest::OpenOperation(i));
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-from-vcarve"));
+            ui.weak(&facts);
+            ui.end_row();
+            ui.label(t!(ui, "forms-cut-it"));
+            ui.checkbox(&mut pass.enabled, "")
+                .on_hover_text(t!(ui, "forms-cut-it-hover"));
+            ui.end_row();
+            ui.label(t!(ui, "forms-tool"));
+            let lang = ui.lang();
+            let label = |id: i64| {
+                tools
+                    .iter()
+                    .find(|t| t.id == id)
+                    .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
+                        tool_label(ui, t, units)
+                    })
+            };
+            let combo = ComboBox::from_id_salt(("floor-pass-tool", i))
+                .selected_text(label(pass.tool))
+                .show_ui(ui, |ui| {
+                    for t in tools.iter().filter(|t| t.kind == ToolType::Endmill) {
+                        ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
+                    }
+                });
+            flag(combo.response, ui, "tool");
+            ui.end_row();
+            if let Some((largest, library)) = hint {
+                ui.label("");
+                ui.vertical(|ui| {
+                    let size = |d: f64| chipload_pipeline::units::length_text(d, units);
+                    ui.weak(t!(ui, "forms-floor-hint", largest = size(*largest)));
+                    if !library.is_empty() {
+                        let names: Vec<String> = library
+                            .iter()
+                            .map(|(name, d)| format!("{name} ({})", size(*d)))
+                            .collect();
+                        ui.weak(t!(ui, "forms-floor-hint-library", tools = names.join(", ")));
+                    }
+                });
+                ui.end_row();
+            }
+            ui.label(t!(ui, "forms-step-down"));
+            flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
+            ui.end_row();
+            ui.label(t!(ui, "forms-stepover"));
+            let stepover = ui.add(
+                crate::units::number(ui, &mut pass.stepover)
+                    .speed(0.01)
+                    .range(0.01..=1.0)
+                    .suffix(" × D"),
+            );
+            flag(stepover, ui, "stepover");
+            ui.end_row();
+            ui.label(t!(ui, "forms-feed"));
+            flag(ui.add(feed(&mut pass.feed)), ui, "feed");
+            ui.end_row();
+            ui.label(t!(ui, "forms-plunge-feed"));
+            flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
+            ui.end_row();
+            let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
+            entry_rows(ui, 2000 + i, &mut pass.entry, diameter);
+        });
+    ui.add_space(6.0);
+    ui.weak(t!(ui, "forms-floor-pass-note"));
+    ui.add_space(6.0);
+    if ui.button(t!(ui, "forms-remove-floor-pass")).clicked() {
+        request = Some(JobRequest::RemoveFloorPass(i));
     }
     request
 }

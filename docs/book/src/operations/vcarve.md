@@ -47,8 +47,15 @@ feeds, step down and stepover, and is cut first, so the end mill takes the bulk 
 V-bit only cuts the walls. Where the end mill can't reach (corners of the floor, parts
 narrower than it), the V-bit cleans up along the centre line at the end depth.
 
+In the window, right-click the V-carve in the Browser: **Add floor pass ▸** lists the
+project's end mills, then your library's. The floor pass is a leaf under the V-carve; click
+it for its settings.
+
+![A sign carved with walls and a floor pass, the floor pass open](../images/vcarve-floor.png)
+
 If the end mill is too wide for part of the floor, the plan says how much it clears and the
-largest end mill that would clear it all, and names the end mills in your library that do:
+largest end mill that would clear it all, and names the end mills in your library that do
+(in the floor pass's settings too, under its tool):
 
 ```text
 warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it

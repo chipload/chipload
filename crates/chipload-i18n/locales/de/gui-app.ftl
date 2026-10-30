@@ -43,6 +43,8 @@ app-part-needed = Ein Projekt braucht mindestens ein Teil
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Restdurchgang konnte nicht hinzugefügt werden: { $error }
+app-could-not-add-floor-pass = Bodendurchgang konnte nicht hinzugefügt werden: { $error }
+app-floor-no-endmill = Kein Schaftfräser im Projekt oder in Ihrer Werkzeugbibliothek
 app-rest-with-corners = Diese Tasche hat Dogbone- oder T-Bone-Ecken, und Restdurchgänge lassen sich noch nicht damit kombinieren. Die Ecken reichen schon dorthin, wo ein Restdurchgang hinkäme.
 # $tool: a tool number such as T3.
 app-rest-tool-missing = Werkzeug { $tool } ist nicht im Projekt: geben Sie der Tasche zuerst ein Werkzeug.

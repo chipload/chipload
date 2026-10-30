@@ -427,6 +427,15 @@ forms-cut-it = Usiner
 forms-cut-it-hover = Désactivé : gardée, mais pas usinée
 forms-rest-pass-note = Usinée après les poches voisines de sa poche qui utilisent le même outil, toutes leurs passes de reprise ensemble : le petit outil n'est monté qu'une fois.
 forms-remove-rest-pass = Retirer la passe de reprise
+forms-floor-pass = Passe de fond
+forms-floor-of = Fond de
+forms-floor-of-hover = Elle usine les formes de sa gravure en V jusqu'à sa profondeur finale, à l'écart des flancs inclinés
+forms-from-vcarve = De la gravure en V
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, à { $inset } { $unit } du contour
+forms-floor-pass-note = Usinée avant les gravures en V voisines qui utilisent la même fraise en V, toutes leurs passes de fond ensemble. Là où la fraise droite n'atteint pas, la fraise en V reprend le long de la ligne médiane.
+forms-remove-floor-pass = Retirer la passe de fond
+forms-floor-hint = Laisse une partie du fond : une fraise d'au plus { $largest } le dégagerait entièrement.
+forms-floor-hint-library = Dans votre bibliothèque : { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Simple

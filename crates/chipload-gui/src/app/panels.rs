@@ -107,6 +107,10 @@ impl ChiploadApp {
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
         let selected = self.selection.ids(&self.contours).len();
         let selection_text = self.selection_lines().join("\n");
+        let floor_hint = match self.focus {
+            Focus::FloorPass(i) => self.floor_hint(i),
+            _ => None,
+        };
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
@@ -157,6 +161,9 @@ impl ChiploadApp {
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
             Focus::Text(id) => request = forms::text_form(ui, edit, id, grab),
             Focus::RestPass(i, k) => request = forms::rest_pass_form(ui, edit, i, k),
+            Focus::FloorPass(i) => {
+                request = forms::floor_pass_form(ui, edit, i, floor_hint.as_ref());
+            }
             // Drawn by `library_properties` above.
             Focus::LibraryTools
             | Focus::LibraryTool(_)
@@ -209,6 +216,7 @@ impl ChiploadApp {
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
             Some(JobRequest::OpenWorkZero) => self.focus = Focus::WorkZero,
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
+            Some(JobRequest::RemoveFloorPass(i)) => self.remove_floor_pass(i),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
             Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {

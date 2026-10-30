@@ -88,6 +88,10 @@ browser-delete = Löschen
 # A rest pass's row. "Rest": a rest pass, a smaller tool after the pocket's own.
 browser-rest = Rest
 browser-rest-pass-hover = Ein Restdurchgang: räumt, was das Werkzeug davor stehen lässt, in den Formen und Tiefen seiner Tasche, und wird nach den benachbarten Taschen mit demselben Werkzeug gefräst
+browser-add-floor-pass = Bodendurchgang hinzufügen
+browser-add-floor-pass-hover = Ein Schaftfräser, der den Boden zwischen den Wänden zu breiter Striche ausräumt, in den Formen und Tiefen dieser V-Gravur. Er wird vor der V-Gravur gefräst
+browser-floor = Boden
+browser-floor-pass-hover = Ein Bodendurchgang: ein Schaftfräser räumt den Boden zwischen den Wänden seiner V-Gravur aus, vor der V-Gravur; wo er nicht hinkommt, räumt der V-Fräser nach
 browser-remove = Entfernen
 
 # An operation row's hover text: its lines.

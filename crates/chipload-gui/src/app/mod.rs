@@ -103,10 +103,11 @@ fn folded_strip(ui: &mut egui::Ui, arrow: &str, hover: &str) -> bool {
     .inner
 }
 
-/// What a pocket's *Add rest pass ▸* offers (docs/specs/rest-passes.md §6).
+/// What a pocket's *Add rest pass ▸* (docs/specs/rest-passes.md §6) or a V-carve's *Add
+/// floor pass ▸* (docs/specs/vcarve-wide-strokes.md §7) offers.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RestMenu {
-    /// Smaller endmills: the project's (id, diameter mm), then the library's not yet in the
+    /// Endmills that fit: the project's (id, diameter mm), then the library's not yet in the
     /// project (name, diameter mm).
     Tools {
         project: Vec<(i64, f64)>,
@@ -129,6 +130,8 @@ pub enum Focus {
     Op(usize),
     /// Pocket `0`'s rest pass `1` (docs/specs/rest-passes.md §6).
     RestPass(usize, usize),
+    /// V-carve `0`'s floor pass (docs/specs/vcarve-wide-strokes.md §7).
+    FloorPass(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
     /// The project's tools; one tool, by id; an imported DXF; a picture
@@ -1423,6 +1426,135 @@ impl ChiploadApp {
         }
     }
 
+    /// Give V-carve `i` a floor pass cut with `tool` (docs/specs/vcarve-wide-strokes.md §7),
+    /// in place of any it had, and open it. False, with the reason shown, when it can't.
+    pub fn add_floor_pass(&mut self, i: usize, tool: i64) -> bool {
+        let cutting = self.tool_cutting(tool);
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let tools = edit.settings.tools.clone();
+        let Some(Operation::Vcarve(vcarve)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+            return false;
+        };
+        match chipload_pipeline::floor_pass_of(vcarve, &tools, tool, cutting.as_ref()) {
+            Ok(pass) => {
+                vcarve.floor = Some(pass);
+                self.focus = Focus::FloorPass(i);
+                self.commit();
+                true
+            }
+            Err(err) => {
+                self.error(vec![t!(
+                    self,
+                    "app-could-not-add-floor-pass",
+                    error = self.say(&err)
+                )]);
+                false
+            }
+        }
+    }
+
+    /// [`App::add_floor_pass`] with the library tool `name`, copied into the project first
+    /// unless it is there already. If the pass can't be added, the tools stay as they were.
+    pub fn add_floor_pass_from_library(&mut self, i: usize, name: &str) -> bool {
+        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+            return false;
+        };
+        let Some(tool) = self.insert_library_tool(name) else {
+            return false;
+        };
+        if self.add_floor_pass(i, tool) {
+            return true;
+        }
+        if let Some(edit) = self.edit.as_mut() {
+            edit.settings.tools = before;
+        }
+        false
+    }
+
+    /// What V-carve `i`'s *Add floor pass ▸* offers: every end mill, the project's and then
+    /// the library's not yet in it; or why there is none. None for any other operation.
+    pub fn floor_menu(&self, i: usize) -> Option<RestMenu> {
+        let edit = self.edit.as_ref()?;
+        let Operation::Vcarve(_) = &edit.ops.get(i)?.op else {
+            return None;
+        };
+        let tools = &edit.settings.tools;
+        let project: Vec<(i64, f64)> = tools
+            .iter()
+            .filter(|t| t.kind == ToolType::Endmill)
+            .map(|t| (t.id, t.diameter))
+            .collect();
+        let library: Vec<(String, f64)> = self
+            .library()
+            .map(|l| l.tools.tools.as_slice())
+            .unwrap_or_default()
+            .iter()
+            .filter(|e| e.kind == ToolType::Endmill)
+            .filter(|e| {
+                !tools
+                    .iter()
+                    .any(|t| t.library_uid.as_deref() == Some(e.uid.as_str()) && e.same_values(t))
+            })
+            .map(|e| (e.name.clone(), e.diameter))
+            .collect();
+        if project.is_empty() && library.is_empty() {
+            return Some(RestMenu::Unavailable(t!(self, "app-floor-no-endmill")));
+        }
+        Some(RestMenu::Tools { project, library })
+    }
+
+    /// V-carve `i`'s floor pass, to change.
+    pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::FloorPass> {
+        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+            Some(Operation::Vcarve(v)) => v.floor.as_mut(),
+            _ => None,
+        }
+    }
+
+    /// Remove V-carve `i`'s floor pass; the V-carve opens.
+    pub fn remove_floor_pass(&mut self, i: usize) {
+        if let Some(Some(Operation::Vcarve(v))) = self
+            .edit
+            .as_mut()
+            .map(|e| e.ops.get_mut(i).map(|e| &mut e.op))
+            && v.floor.take().is_some()
+        {
+            self.focus = Focus::Op(i);
+            self.commit();
+        }
+    }
+
+    /// Turn V-carve `i`'s floor pass on or off.
+    pub fn toggle_floor_pass(&mut self, i: usize) {
+        if let Some(pass) = self.floor_pass_mut(i) {
+            pass.enabled = !pass.enabled;
+            self.commit();
+        }
+    }
+
+    /// For V-carve `i`'s floor pass form: the largest end mill that would clear its whole
+    /// floor, mm, and the library's end mills that do, by name, nearest first
+    /// (docs/specs/vcarve-wide-strokes.md §4.1). None when it clears it all.
+    pub(super) fn floor_hint(&self, i: usize) -> Option<(f64, Vec<(String, f64)>)> {
+        let (_, largest) = self
+            .result
+            .as_ref()?
+            .floor_hints
+            .iter()
+            .find(|(op, _)| *op == i)?;
+        let library = self
+            .library()
+            .map(|l| l.tools.tools.as_slice())
+            .unwrap_or_default();
+        let fitting = chipload_pipeline::fitting_end_mills(library, *largest)
+            .into_iter()
+            .map(|t| (t.name.clone(), t.diameter))
+            .collect();
+        Some((*largest, fitting))
+    }
+
     /// The project as edited, its operations included, for the pipeline's job-level rules.
     pub(super) fn edited_job(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
@@ -1812,7 +1944,9 @@ impl ChiploadApp {
     // -- internals
 
     fn focused_contours(&self) -> BTreeSet<usize> {
-        let (Focus::Op(i) | Focus::RestPass(i, _), Some(edit)) = (self.focus, &self.edit) else {
+        let (Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i), Some(edit)) =
+            (self.focus, &self.edit)
+        else {
             return BTreeSet::new();
         };
         edit.ops

@@ -398,6 +398,13 @@ enum OpAction {
     PassRemove(usize, usize),
     /// Rest pocket i becomes a rest pass of the pocket it copies.
     MakePass(usize),
+    /// A floor pass for V-carve i with this tool, or a library tool by name
+    /// (docs/specs/vcarve-wide-strokes.md §7); its floor pass: open, on or off, remove.
+    AddFloor(usize, i64),
+    AddFloorFromLibrary(usize, String),
+    FloorFocus(usize),
+    FloorToggle(usize),
+    FloorRemove(usize),
     /// Into part `id`, at the end of its operations (dropped on the part's row).
     ToPart(usize, u64),
     PartFocus(u64),
@@ -409,6 +416,71 @@ enum OpAction {
     /// A new operation of this kind in part `id`: it becomes the active part first.
     NewIn(OpKind, u64),
     NewPart,
+}
+
+/// A tool picked from a tool menu: a project tool by id, or a library tool by name.
+enum ToolPick {
+    Project(i64),
+    Library(String),
+}
+
+/// A *▸* menu of end mills (`menu`): the project's, then the library's, each with its size;
+/// or greyed out with why. The pick, if any.
+fn tool_menu(
+    ui: &mut egui::Ui,
+    label: &str,
+    hover: &str,
+    menu: &RestMenu,
+    units: Units,
+) -> Option<ToolPick> {
+    let mut pick = None;
+    match menu {
+        RestMenu::Tools { project, library } => {
+            let size = |d: f64| chipload_pipeline::units::length_text(d, units);
+            ui.menu_button(label, |ui| {
+                for (tool, diameter) in project {
+                    if ui
+                        .button(t!(
+                            ui,
+                            "browser-rest-project-tool",
+                            tool = tool.to_string(),
+                            size = size(*diameter)
+                        ))
+                        .clicked()
+                    {
+                        pick = Some(ToolPick::Project(*tool));
+                    }
+                }
+                if !library.is_empty() {
+                    if !project.is_empty() {
+                        ui.separator();
+                    }
+                    ui.weak(t!(ui, "browser-from-library"));
+                    for (name, diameter) in library {
+                        if ui
+                            .button(t!(
+                                ui,
+                                "browser-rest-library-tool",
+                                name = name,
+                                size = size(*diameter)
+                            ))
+                            .on_hover_text(t!(ui, "browser-copied-into-project-hover"))
+                            .clicked()
+                        {
+                            pick = Some(ToolPick::Library(name.clone()));
+                        }
+                    }
+                }
+            })
+            .response
+            .on_hover_text(hover);
+        }
+        RestMenu::Unavailable(why) => {
+            ui.add_enabled(false, egui::Button::new(label))
+                .on_disabled_hover_text(why);
+        }
+    }
+    pick
 }
 
 /// The kinds of new operation: label, kind and what it does.
@@ -695,6 +767,15 @@ impl ChiploadApp {
             Some(OpAction::PassToggle(i, k)) => self.toggle_rest_pass(i, k),
             Some(OpAction::PassRemove(i, k)) => self.remove_rest_pass(i, k),
             Some(OpAction::MakePass(i)) => self.make_rest_pass(i),
+            Some(OpAction::AddFloor(i, tool)) => {
+                self.add_floor_pass(i, tool);
+            }
+            Some(OpAction::AddFloorFromLibrary(i, name)) => {
+                self.add_floor_pass_from_library(i, &name);
+            }
+            Some(OpAction::FloorFocus(i)) => self.focus = Focus::FloorPass(i),
+            Some(OpAction::FloorToggle(i)) => self.toggle_floor_pass(i),
+            Some(OpAction::FloorRemove(i)) => self.remove_floor_pass(i),
             Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
             Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
             Some(OpAction::PartActivate(id)) => self.activate_part(id),
@@ -890,6 +971,16 @@ impl ChiploadApp {
         // (docs/specs/rest-passes.md §6).
         let units = crate::units::display(ui.ctx());
         let rest_menu = self.rest_menu(i, units);
+        // A V-carve's floor pass, or what it can be cut with
+        // (docs/specs/vcarve-wide-strokes.md §7).
+        let floor = match op {
+            Operation::Vcarve(v) => v.floor,
+            _ => None,
+        };
+        let floor_menu = match floor {
+            None => self.floor_menu(i),
+            Some(_) => None,
+        };
         let name = match op.name() {
             "" => t!(ui, "browser-no-name"),
             name => name.to_string(),
@@ -965,52 +1056,27 @@ impl ChiploadApp {
             if ui.button(t!(ui, "browser-duplicate")).clicked() {
                 action = Some(OpAction::Duplicate(i));
             }
-            match &rest_menu {
-                Some(RestMenu::Tools { project, library }) => {
-                    let size = |d: f64| chipload_pipeline::units::length_text(d, units);
-                    ui.menu_button(t!(ui, "browser-add-rest-pass"), |ui| {
-                        for (tool, diameter) in project {
-                            if ui
-                                .button(t!(
-                                    ui,
-                                    "browser-rest-project-tool",
-                                    tool = tool.to_string(),
-                                    size = size(*diameter)
-                                ))
-                                .clicked()
-                            {
-                                action = Some(OpAction::AddRest(i, *tool));
-                            }
-                        }
-                        if !library.is_empty() {
-                            if !project.is_empty() {
-                                ui.separator();
-                            }
-                            ui.weak(t!(ui, "browser-from-library"));
-                            for (name, diameter) in library {
-                                if ui
-                                    .button(t!(
-                                        ui,
-                                        "browser-rest-library-tool",
-                                        name = name,
-                                        size = size(*diameter)
-                                    ))
-                                    .on_hover_text(t!(ui, "browser-copied-into-project-hover"))
-                                    .clicked()
-                                {
-                                    action = Some(OpAction::AddRestFromLibrary(i, name.clone()));
-                                }
-                            }
-                        }
-                    })
-                    .response
-                    .on_hover_text(t!(ui, "browser-add-rest-pass-hover"));
+            if let Some(menu) = &rest_menu {
+                let label = t!(ui, "browser-add-rest-pass");
+                let hover = t!(ui, "browser-add-rest-pass-hover");
+                match tool_menu(ui, &label, &hover, menu, units) {
+                    Some(ToolPick::Project(tool)) => action = Some(OpAction::AddRest(i, tool)),
+                    Some(ToolPick::Library(name)) => {
+                        action = Some(OpAction::AddRestFromLibrary(i, name));
+                    }
+                    None => {}
                 }
-                Some(RestMenu::Unavailable(why)) => {
-                    ui.add_enabled(false, egui::Button::new(t!(ui, "browser-add-rest-pass")))
-                        .on_disabled_hover_text(why);
+            }
+            if let Some(menu) = &floor_menu {
+                let label = t!(ui, "browser-add-floor-pass");
+                let hover = t!(ui, "browser-add-floor-pass-hover");
+                match tool_menu(ui, &label, &hover, menu, units) {
+                    Some(ToolPick::Project(tool)) => action = Some(OpAction::AddFloor(i, tool)),
+                    Some(ToolPick::Library(name)) => {
+                        action = Some(OpAction::AddFloorFromLibrary(i, name));
+                    }
+                    None => {}
                 }
-                None => {}
             }
             if let Some(parent) = parent
                 && ui
@@ -1035,6 +1101,61 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
+        if let Some(pass) = &floor
+            && let Some(a) = self.floor_pass_row(ui, i, pass, is_cut, color)
+        {
+            action = Some(a);
+        }
+        action
+    }
+
+    /// V-carve `i`'s floor pass, a leaf under it (docs/specs/vcarve-wide-strokes.md §7).
+    fn floor_pass_row(
+        &self,
+        ui: &mut egui::Ui,
+        i: usize,
+        pass: &chipload_job::FloorPass,
+        vcarve_cut: bool,
+        color: Color32,
+    ) -> Option<OpAction> {
+        let at = chipload_job::OpRef::pass(i, 0);
+        let flagged = self
+            .problems
+            .iter()
+            .any(|p| p.operation() == Some(i) && p.field().starts_with("floor"));
+        let time = self
+            .result
+            .as_ref()
+            .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
+            .map_or(String::new(), |(_, s)| {
+                let time = chipload_pipeline::estimate::duration_message(*s);
+                format!("{} · ", time.render(ui.lang(), self.units.into()))
+            });
+        let row = Row::new(
+            Id::new(("browser-floor", i)),
+            4,
+            format!("{at}  {}", t!(ui, "browser-floor")),
+        )
+        .tick(pass.enabled)
+        .icon_colored(Icon::Pocket, color)
+        .trailing(format!("{time}T{}", pass.tool))
+        .selected(self.focus == Focus::FloorPass(i))
+        .dim(!(vcarve_cut && pass.enabled))
+        .alert(flagged)
+        .show(ui);
+        let mut action = None;
+        if row.tick {
+            action = Some(OpAction::FloorToggle(i));
+        } else if row.response.clicked() {
+            action = Some(OpAction::FloorFocus(i));
+        }
+        row.response
+            .on_hover_text(t!(ui, "browser-floor-pass-hover"))
+            .context_menu(|ui| {
+                if ui.button(t!(ui, "browser-remove")).clicked() {
+                    action = Some(OpAction::FloorRemove(i));
+                }
+            });
         action
     }
 

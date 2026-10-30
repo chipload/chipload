@@ -88,6 +88,10 @@ browser-delete = Delete
 # A rest pass's row. "Rest": a rest pass, a smaller tool after the pocket's own.
 browser-rest = Rest
 browser-rest-pass-hover = A rest pass: it clears what the tool before it leaves, in its pocket's shapes and depths, and is cut after the pockets next to its pocket with the same tool
+browser-add-floor-pass = Add floor pass
+browser-add-floor-pass-hover = An end mill that clears the floor between the walls of strokes too wide to carve, in this V-carve's shapes and depths. It is cut before the V-carve
+browser-floor = Floor
+browser-floor-pass-hover = A floor pass: an end mill clears the floor between its V-carve's walls, before the V-carve; the V-bit cleans up where it can't reach
 browser-remove = Remove
 
 # An operation row's hover text: its lines.

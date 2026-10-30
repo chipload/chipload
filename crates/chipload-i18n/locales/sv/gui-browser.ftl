@@ -88,6 +88,10 @@ browser-delete = Radera
 # A rest pass's row. "Rest": a rest pass, a smaller tool after the pocket's own.
 browser-rest = Rest
 browser-rest-pass-hover = En restbearbetning: den tar bort det som verktyget före lämnar, i fickans former och djup, och fräses efter fickorna intill sin ficka med samma verktyg
+browser-add-floor-pass = Lägg till bottenpass
+browser-add-floor-pass-hover = En pinnfräs som rensar botten mellan väggarna i streck som är för breda att gravera, i den här V-gravyrens former och djup. Den fräses före V-gravyren
+browser-floor = Botten
+browser-floor-pass-hover = Ett bottenpass: en pinnfräs rensar botten mellan V-gravyrens väggar, före V-gravyren; V-fräsen rensar efter där den inte når
 browser-remove = Ta bort
 
 # An operation row's hover text: its lines.

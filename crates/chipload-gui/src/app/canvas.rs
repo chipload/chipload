@@ -513,7 +513,7 @@ impl ChiploadApp {
             });
         }
         let operation = match self.focus {
-            Focus::Op(i) | Focus::RestPass(i, _) => Some(i),
+            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) => Some(i),
             _ => None,
         };
         let plunges = response

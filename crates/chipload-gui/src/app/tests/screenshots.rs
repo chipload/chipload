@@ -72,6 +72,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "typing",
         (1200.0, 800.0),
     ),
+    // V-carving: a sign too wide for its V-carve, its floor cleared by a floor pass, whose
+    // form is open (docs/specs/vcarve-wide-strokes.md).
+    (
+        "vcarve-floor",
+        "packaging/docs/vcarve-floor.chipload",
+        "simulation,noimages,floor",
+        (1200.0, 800.0),
+    ),
     // The library: a settings folder of its own with two tools and a machine.
     (
         "library",

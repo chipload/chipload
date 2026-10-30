@@ -427,6 +427,15 @@ forms-cut-it = Lavorala
 forms-cut-it-hover = Disattivato: conservata, ma non lavorata
 forms-rest-pass-note = Eseguita dopo le tasche vicine alla sua che usano lo stesso utensile, tutte le loro passate di ripresa insieme: l'utensile piccolo entra una sola volta.
 forms-remove-rest-pass = Rimuovi passata di ripresa
+forms-floor-pass = Passata di fondo
+forms-floor-of = Fondo di
+forms-floor-of-hover = Lavora le forme della sua incisione a V fino alla profondità finale, lontano dalle pareti inclinate
+forms-from-vcarve = Dall'incisione a V
+forms-floor-pass-facts = { $start }–{ $end } { $unit }, { $inset } { $unit } dentro il contorno
+forms-floor-pass-note = Eseguita prima delle incisioni a V vicine che usano la stessa fresa a V, tutte le loro passate di fondo insieme. Dove la fresa piatta non arriva, la fresa a V ripassa lungo la linea mediana.
+forms-remove-floor-pass = Rimuovi passata di fondo
+forms-floor-hint = Lascia parte del fondo: una da al massimo { $largest } lo svuoterebbe tutto.
+forms-floor-hint-library = Nella tua libreria: { $tools }
 
 # Font styles, headings in the font list.
 forms-font-plain = Normali

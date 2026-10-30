@@ -43,6 +43,8 @@ app-part-needed = Ett projekt behöver minst en detalj
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Kunde inte lägga till restbearbetning: { $error }
+app-could-not-add-floor-pass = Kunde inte lägga till ett bottenpass: { $error }
+app-floor-no-endmill = Ingen pinnfräs i projektet eller i ditt verktygsbibliotek
 app-rest-with-corners = Fickan har dogbone- eller T-bone-hörn, och restbearbetning kan ännu inte kombineras med dem. Hörnen når redan dit en restbearbetning skulle nå.
 # $tool: a tool number such as T3.
 app-rest-tool-missing = Verktyg { $tool } finns inte i projektet: ge fickan ett verktyg först.
