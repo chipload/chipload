@@ -119,6 +119,9 @@ job-tip-diameter = must be 0 or more and less than the diameter ({ $diameter }),
 ## Parts
 
 job-no-parts = a project needs at least one part
+job-no-setups = the project has no setup; it needs at least one
+job-setup-twice = setup id { $id } is used twice
+job-no-such-setup = no setup { $id } in setups
 job-part-twice = part { $id } is listed twice
 job-part-name-taken = another part is named "{ $name }"
 # "parts" is a place in the project file.

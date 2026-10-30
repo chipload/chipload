@@ -20,7 +20,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 33;
+pub const CURRENT_VERSION: i64 = 34;
 
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
@@ -38,9 +38,15 @@ pub struct Job {
     pub written_by: Option<String>,
     /// The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload.
     pub drawing: Drawing,
-    /// The material on the machine.
-    pub stock: Stock,
-    /// The machine: post-processor, safe height, limits and zero.
+    /// The setups: each a board clamped on the machine, with its stock, its work zero and
+    /// the parts cut from it, written as a program of its own. At least one. Since schema 34.
+    // Spec: docs/specs/setups.md.
+    pub setups: Vec<Setup>,
+    /// The setup shown, simulated and previewed, where new parts go (its id). Null or no
+    /// such setup: the first. Only the app and the command line read it.
+    #[serde(default)]
+    pub active_setup: Option<u64>,
+    /// The machine: post-processor, safe height, limits.
     pub machine: Machine,
     /// The tools the operations cut with.
     pub tools: Vec<Tool>,
@@ -54,6 +60,28 @@ pub struct Job {
     pub active_part: Option<u64>,
     /// The operations, cut in this order: grouped by part, in the parts' order.
     pub operations: Vec<Operation>,
+}
+
+/// A setup: one board clamped once on the machine, with its stock and work zero, and the
+/// parts cut from it (docs/specs/setups.md §2).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Setup {
+    /// Its number, unique in the project: what parts name it by.
+    pub id: u64,
+    /// Its name, shown in the Browser, the report and the setup sheet.
+    pub name: String,
+    /// False: the setup and its parts stay in the project but aren't cut.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The board.
+    pub stock: Stock,
+    /// The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing's
+    /// origin.
+    // Spec: docs/specs/work-zero.md.
+    #[serde(default)]
+    pub work_zero: WorkZero,
 }
 
 /// A part: a named group of operations, cut together, with its own copies
@@ -71,6 +99,9 @@ pub struct Part {
     /// Cut the part several times in a grid. Null: once.
     // Spec: docs/specs/copies-grid.md.
     pub copies: Option<Copies>,
+    /// The id of the setup it is cut in (`setups`). Since schema 34.
+    // Spec: docs/specs/setups.md.
+    pub setup: u64,
 }
 
 impl Part {
@@ -1682,11 +1713,6 @@ pub struct Machine {
     /// not checked.
     #[serde(default)]
     pub travel: Option<Travel>,
-    /// The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's
-    /// origin.
-    // Spec: docs/specs/work-zero.md.
-    #[serde(default)]
-    pub work_zero: WorkZero,
     /// With several tools: `files` (one file per tool) or `program` (one file with tool
     /// changes).
     pub tool_change: ToolChange,
@@ -1801,14 +1827,82 @@ pub fn find_tool(tools: &[Tool], id: i64) -> Option<&Tool> {
 }
 
 impl Job {
-    /// Every operation cut through the stock ends its thickness plus `through` down
+    /// Every operation cut through the stock ends its setup's thickness plus `through` down
     /// (docs/specs/job-settings-layout.md §5): run wherever a project is read or changed, so
     /// no end depth is left from an older thickness.
     pub fn follow_thickness(&mut self) {
-        let thickness = self.stock.thickness;
-        for op in &mut self.operations {
+        let thickness: Vec<f64> = self
+            .operations
+            .iter()
+            .map(|op| self.setup_of(op).map_or(0.0, |s| s.stock.thickness))
+            .collect();
+        for (op, thickness) in self.operations.iter_mut().zip(thickness) {
             op.follow_thickness(thickness);
         }
+    }
+
+    /// The setup with this id.
+    pub fn setup(&self, id: u64) -> Option<&Setup> {
+        self.setups.iter().find(|s| s.id == id)
+    }
+
+    /// The setup operation `op` is cut in: its part's.
+    pub fn setup_of(&self, op: &Operation) -> Option<&Setup> {
+        self.setup(self.part_of(op)?.setup)
+    }
+
+    /// The id of the active setup: `active_setup` when it names a setup, else the first.
+    pub fn active_setup_id(&self) -> Option<u64> {
+        self.active_setup
+            .filter(|id| self.setup(*id).is_some())
+            .or_else(|| self.setups.first().map(|s| s.id))
+    }
+
+    /// Where the active setup is in `setups` (0 when there is none, which validation
+    /// refuses).
+    pub fn active_setup_index(&self) -> usize {
+        let id = self.active_setup_id();
+        self.setups
+            .iter()
+            .position(|s| Some(s.id) == id)
+            .unwrap_or(0)
+    }
+
+    /// The active setup's stock: what planning, the simulation and the view use
+    /// (docs/specs/setups.md §5). [`Job::for_setup`] makes a setup the active one.
+    pub fn stock(&self) -> &Stock {
+        &self.setups[self.active_setup_index()].stock
+    }
+
+    /// The active setup's stock, to change.
+    pub fn stock_mut(&mut self) -> &mut Stock {
+        let index = self.active_setup_index();
+        &mut self.setups[index].stock
+    }
+
+    /// The active setup's work zero.
+    pub fn work_zero(&self) -> WorkZero {
+        self.setups[self.active_setup_index()].work_zero
+    }
+
+    /// The active setup's work zero, to change.
+    pub fn work_zero_mut(&mut self) -> &mut WorkZero {
+        let index = self.active_setup_index();
+        &mut self.setups[index].work_zero
+    }
+
+    /// This project as setup `id` alone (docs/specs/setups.md §4): `id` is the active setup,
+    /// and the parts of the other setups are off, so planning cuts only its parts with its
+    /// stock and zero. Operation numbers stay as they are.
+    pub fn for_setup(&self, id: u64) -> Job {
+        let mut job = self.clone();
+        job.active_setup = Some(id);
+        for part in &mut job.parts {
+            if part.setup != id {
+                part.enabled = false;
+            }
+        }
+        job
     }
 
     /// The part with this id.
@@ -1829,9 +1923,11 @@ impl Job {
     /// Whether operation `index` is cut: it is on and so is its part (docs/specs/parts.md
     /// §3).
     pub fn cuts(&self, index: usize) -> bool {
-        self.operations
-            .get(index)
-            .is_some_and(|op| op.enabled() && self.part_of(op).is_some_and(|p| p.enabled))
+        self.operations.get(index).is_some_and(|op| {
+            op.enabled()
+                && self.part_of(op).is_some_and(|p| p.enabled)
+                && self.setup_of(op).is_some_and(|s| s.enabled)
+        })
     }
 
     /// The id of the part new operations go into: `active_part` when it names a part, else
@@ -1863,24 +1959,28 @@ impl Job {
             .map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
                 ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
             });
-        self.stock.xy_bounds_around(self.stock_size(), centre)
+        self.stock().xy_bounds_around(self.stock_size(), centre)
     }
 
     /// The stock's size, mm: the drawing's outline plus the margin each side when it fits
     /// the drawing, otherwise as set.
     pub fn stock_size(&self) -> (f64, f64) {
-        match (self.stock.origin, self.stock.fit, self.drawing.extents()) {
+        match (
+            self.stock().origin,
+            self.stock().fit,
+            self.drawing.extents(),
+        ) {
             (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {
                 (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin)
             }
-            _ => (self.stock.x, self.stock.y),
+            _ => (self.stock().x, self.stock().y),
         }
     }
 
     /// The work zero in drawing coordinates: subtract it from every X, Y of the toolpath to
     /// get program coordinates.
     pub fn work_zero_xy(&self) -> (f64, f64) {
-        self.work_zero_point(self.machine.work_zero)
+        self.work_zero_point(self.work_zero())
     }
 
     /// Where work zero `zero` would be, in drawing coordinates.
@@ -1930,12 +2030,12 @@ impl Job {
     /// the CLI and the GUI. No parentheses or semicolons, so it fits in a G-code comment.
     pub fn work_zero_text(&self) -> String {
         let (x, y) = self.work_zero_xy();
-        let at = match self.machine.work_zero {
+        let at = match self.work_zero() {
             WorkZero::DrawingOrigin {} => "drawing origin".to_string(),
             WorkZero::Stock { corner } => format!("stock {}", corner.name()),
             WorkZero::Point { .. } => "point".to_string(),
         };
-        let z = match self.stock.z_zero {
+        let z = match self.stock().z_zero {
             ZZero::Top => "stock top",
             ZZero::Bottom => "stock bottom",
         };
@@ -3646,21 +3746,58 @@ pub(crate) fn max_overcut_problems(at: &str, overcut: f64) -> Vec<Problem> {
     }
 }
 
+/// A work zero's rules, at `at`: a point must be a point. Shared by setups and machine
+/// profiles.
+pub fn work_zero_problems(at: &str, zero: WorkZero) -> Vec<Problem> {
+    match zero {
+        WorkZero::Point { x, y } if !(x.is_finite() && y.is_finite()) => vec![Problem::at(
+            at,
+            Message::new("job-work-zero-not-finite")
+                .arg("x", Value::LengthNumber(x, Digits::Shortest))
+                .arg("y", Value::LengthNumber(y, Digits::Shortest)),
+        )],
+        _ => Vec::new(),
+    }
+}
+
+impl Stock {
+    /// A stock's rules, each at "<at>.field": a size and thickness, a fit only when centred
+    /// on the drawing, a max overcut.
+    pub fn problems(&self, at: &str) -> Vec<Problem> {
+        let mut problems = Vec::new();
+        if let Some(margin) = self.fit {
+            if !(margin.is_finite() && margin >= 0.0) {
+                problems.push(Problem::at(
+                    format!("{at}.fit"),
+                    Message::new("job-must-be-0-or-more")
+                        .arg("got", Value::LengthNumber(margin, Digits::Shortest)),
+                ));
+            } else if self.origin != StockOrigin::Drawing {
+                problems.push(Problem::at(
+                    format!("{at}.fit"),
+                    Message::new("job-stock-fit-needs-centred"),
+                ));
+            }
+        }
+        for (field, value) in [("x", self.x), ("y", self.y), ("thickness", self.thickness)] {
+            if value <= 0.0 || value.is_nan() {
+                problems.push(Problem::at(
+                    format!("{at}.{field}"),
+                    Message::new("job-must-be-positive")
+                        .arg("got", Value::Length(value, Digits::Shortest)),
+                ));
+            }
+        }
+        problems.extend(max_overcut_problems(at, self.max_overcut));
+        problems
+    }
+}
+
 impl Machine {
     /// Value rules of a machine, each at "<at>.field"; shared by projects and machine
     /// profiles.
     pub fn problems(&self, at: &str) -> Vec<Problem> {
         let mut problems = Vec::new();
-        if let WorkZero::Point { x, y } = self.work_zero
-            && !(x.is_finite() && y.is_finite())
-        {
-            problems.push(Problem::at(
-                format!("{at}.work_zero"),
-                Message::new("job-work-zero-not-finite")
-                    .arg("x", Value::LengthNumber(x, Digits::Shortest))
-                    .arg("y", Value::LengthNumber(y, Digits::Shortest)),
-            ));
-        }
         if let Some(t) = &self.travel {
             for (axis, value) in [("x", t.x), ("y", t.y), ("z", t.z)] {
                 problems.extend(positive_problem(&format!("{at}.travel"), axis, value));
@@ -3704,6 +3841,50 @@ impl Job {
     /// The parts' rules (docs/specs/parts.md §4): at least one, unique ids and names,
     /// valid copies, every operation in a part, and the operations grouped by part in the
     /// parts' order.
+    /// The setups' rules (docs/specs/setups.md §6): at least one, ids unique and not 0, a
+    /// name, and each stock and work zero as the stock and zero have always been checked.
+    fn setup_problems(&self) -> Vec<Problem> {
+        let mut problems = Vec::new();
+        if self.setups.is_empty() {
+            problems.push(Problem::at("setups", Message::new("job-no-setups")));
+        }
+        for (k, setup) in self.setups.iter().enumerate() {
+            let at = format!("setups.{k}");
+            if setup.id == 0 {
+                problems.push(Problem::at(
+                    format!("{at}.id"),
+                    Message::new("job-must-be-1-or-more"),
+                ));
+            }
+            if self.setups[..k].iter().any(|s| s.id == setup.id) {
+                problems.push(Problem::at(
+                    format!("{at}.id"),
+                    Message::new("job-setup-twice").arg("id", setup.id),
+                ));
+            }
+            if setup.name.trim().is_empty() {
+                problems.push(Problem::at(
+                    format!("{at}.name"),
+                    Message::new("job-must-not-be-empty"),
+                ));
+            }
+            problems.extend(setup.stock.problems(&format!("{at}.stock")));
+            problems.extend(work_zero_problems(
+                &format!("{at}.work_zero"),
+                setup.work_zero,
+            ));
+        }
+        for (i, part) in self.parts.iter().enumerate() {
+            if self.setup(part.setup).is_none() {
+                problems.push(Problem::at(
+                    format!("parts.{i}.setup"),
+                    Message::new("job-no-such-setup").arg("id", part.setup),
+                ));
+            }
+        }
+        problems
+    }
+
     fn part_problems(&self) -> Vec<Problem> {
         let mut problems = Vec::new();
         if self.parts.is_empty() {
@@ -3809,32 +3990,7 @@ impl Job {
                 ));
             }
         }
-        if let Some(margin) = self.stock.fit {
-            if !(margin.is_finite() && margin >= 0.0) {
-                problems.push(Problem::at(
-                    "stock.fit",
-                    Message::new("job-must-be-0-or-more")
-                        .arg("got", Value::LengthNumber(margin, Digits::Shortest)),
-                ));
-            } else if self.stock.origin != StockOrigin::Drawing {
-                problems.push(Problem::at(
-                    "stock.fit",
-                    Message::new("job-stock-fit-needs-centred"),
-                ));
-            }
-        }
-        let mut positive = |path: String, value: f64| {
-            if value <= 0.0 || value.is_nan() {
-                problems.push(Problem::at(
-                    path,
-                    Message::new("job-must-be-positive")
-                        .arg("got", Value::Length(value, Digits::Shortest)),
-                ));
-            }
-        };
-        positive("stock.x".into(), self.stock.x);
-        positive("stock.y".into(), self.stock.y);
-        positive("stock.thickness".into(), self.stock.thickness);
+        problems.extend(self.setup_problems());
         for (i, tool) in self.tools.iter().enumerate() {
             problems.extend(tool.problems(&format!("tools.{i}")));
         }
@@ -3937,25 +4093,23 @@ impl Job {
             let Some(below) = op.through() else {
                 continue;
             };
+            let thickness = self.setup_of(op).map_or(0.0, |s| s.stock.thickness);
             if !(below.is_finite() && below >= 0.0) {
                 problems.push(Problem::at(
                     format!("operations.{i}.through"),
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::LengthNumber(below, Digits::Shortest)),
                 ));
-            } else if (op.depths().1 - (self.stock.thickness + below)).abs() > DEPTH_TOL_MM {
+            } else if (op.depths().1 - (thickness + below)).abs() > DEPTH_TOL_MM {
                 // A project read or edited follows the thickness (`follow_thickness`); one
                 // that doesn't is refused rather than cut at an old depth.
                 problems.push(Problem::at(
                     format!("operations.{i}.end_depth"),
-                    Message::new("job-through-stale").arg(
-                        "depth",
-                        Value::Length(self.stock.thickness + below, Digits::Shortest),
-                    ),
+                    Message::new("job-through-stale")
+                        .arg("depth", Value::Length(thickness + below, Digits::Shortest)),
                 ));
             }
         }
-        problems.extend(max_overcut_problems("stock", self.stock.max_overcut));
         problems.extend(self.part_problems());
         for (i, op) in self.operations.iter().enumerate() {
             let (start, end) = op.depths();
@@ -3981,7 +4135,8 @@ impl Job {
                 ));
             }
             if let Operation::Surface(f) = op {
-                problems.extend(surface_problems(i, f, self.stock.thickness));
+                let thickness = self.setup_of(op).map_or(0.0, |s| s.stock.thickness);
+                problems.extend(surface_problems(i, f, thickness));
             }
             if let Operation::Profile(p) = op
                 && p.side == Side::On

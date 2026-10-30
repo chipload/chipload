@@ -11,11 +11,11 @@ use crate::models::{CURRENT_VERSION, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 29] = [
+const MIGRATIONS: [Migration; 30] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
-    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33,
+    v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33, v33_to_v34,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -550,6 +550,32 @@ fn v31_to_v32(data: Value) -> Result<Value, String> {
 /// failing on the new value.
 fn v32_to_v33(data: Value) -> Result<Value, String> {
     Ok(set_version(data, 33))
+}
+
+/// v34 moves the stock and the machine's work zero into setups (docs/specs/setups.md §6):
+/// one setup, id 1, "Setup 1", with the old stock and zero, and every part cut in it. A
+/// missing work zero was the drawing origin. The program is the same.
+fn v33_to_v34(mut data: Value) -> Result<Value, String> {
+    let map = data.as_object_mut().ok_or("the project is not an object")?;
+    let stock = map.remove("stock").ok_or("the project has no stock")?;
+    let zero = map
+        .get_mut("machine")
+        .and_then(Value::as_object_mut)
+        .and_then(|machine| machine.remove("work_zero"))
+        .unwrap_or_else(|| serde_json::json!({"at": "drawing_origin"}));
+    map.insert(
+        "setups".into(),
+        serde_json::json!([{
+            "id": 1, "name": "Setup 1", "enabled": true, "stock": stock, "work_zero": zero,
+        }]),
+    );
+    map.insert("active_setup".into(), Value::Null);
+    if let Some(parts) = map.get_mut("parts").and_then(Value::as_array_mut) {
+        for part in parts.iter_mut().filter_map(Value::as_object_mut) {
+            part.insert("setup".into(), Value::from(1));
+        }
+    }
+    Ok(set_version(data, 34))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

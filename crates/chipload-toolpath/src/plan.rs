@@ -426,7 +426,7 @@ fn plan_step(
     let index = chosen.at.operation;
     let op = &chosen.op;
     let tool = op_tool(job, op).map_err(|err| err.at(index))?;
-    let top_z = job.stock.top_z();
+    let top_z = job.stock().top_z();
     let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
     let (start_depth, _) = op.depths();
     let shift = step.shift;
@@ -579,7 +579,7 @@ impl Gathered {
         let first = self.moves.len();
         self.moves.extend(lower_approaches(
             planned.moves,
-            job.stock.top_z(),
+            job.stock().top_z(),
             job.machine.safe_z,
         ));
         self.comment_part_start(job, index, first);
@@ -973,7 +973,7 @@ fn plan_holes_op(
             && bore_radius(&hole, tool_radius) > tool_radius + CHAIN_TOL_MM
         {
             // A core is left standing inside the helix's ring (docs/specs/holes.md §4).
-            if op.end_depth < ctx.job.stock.thickness - DEPTH_TOL_MM {
+            if op.end_depth < ctx.job.stock().thickness - DEPTH_TOL_MM {
                 return Err(job_error(labelled_note(
                     ctx.label_message,
                     Message::new("toolpath-error-blind-bore")
@@ -1861,8 +1861,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             }
         }
     }
-    let top = job.stock.top_z();
-    let z_zero = match job.stock.z_zero {
+    let top = job.stock().top_z();
+    let z_zero = match job.stock().z_zero {
         ZZero::Top => "top",
         ZZero::Bottom => "bottom",
     };
@@ -1900,9 +1900,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
         let (_, end_depth) = op.depths();
-        let thickness = job.stock.thickness;
+        let thickness = job.stock().thickness;
         let below = end_depth - thickness;
-        if below > job.stock.max_overcut + DEPTH_TOL_MM {
+        if below > job.stock().max_overcut + DEPTH_TOL_MM {
             problems.push(labelled(
                 at("end_depth"),
                 &label_message,
@@ -1910,7 +1910,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("end", length(end_depth))
                     .arg("below", Value::Length(below, Digits::Fixed(3)))
                     .arg("thickness", length(thickness))
-                    .arg("allowed", length(job.stock.max_overcut)),
+                    .arg("allowed", length(job.stock().max_overcut)),
             ));
         } else if below > DEPTH_TOL_MM {
             notes.push(Note::at(

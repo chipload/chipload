@@ -16,7 +16,7 @@ pub const DEFAULT_STEPOVER: f64 = 0.4;
 /// The project's material in the library, if it names one that is there: what new
 /// operations take.
 pub fn project_material<'a>(job: &Job, materials: &'a MaterialLibrary) -> Option<&'a Material> {
-    materials.find_uid(&job.stock.material.as_ref()?.library_uid)
+    materials.find_uid(&job.stock().material.as_ref()?.library_uid)
 }
 
 /// Operation `index`'s material (0-based) in the library, if it names one that is there.
@@ -85,7 +85,7 @@ pub fn use_material(job: &Job, material: Option<&Material>) -> (Job, Vec<Message
     let mut out = job.clone();
     let mut messages = Vec::new();
     let Some(material) = material else {
-        let old = out.stock.material.take();
+        let old = out.stock_mut().material.take();
         for op in &mut out.operations {
             op.set_material(None);
         }
@@ -94,7 +94,7 @@ pub fn use_material(job: &Job, material: Option<&Material>) -> (Job, Vec<Message
         }
         return (out, messages);
     };
-    out.stock.material = Some(material_ref(material));
+    out.stock_mut().material = Some(material_ref(material));
     messages.push(Message::new("pipeline-material-chosen").arg("name", material.name.as_str()));
     for index in 0..out.operations.len() {
         if let Some(message) = set_op_material(&mut out, index, material) {
@@ -251,8 +251,8 @@ mod tests {
         let mut material = ply();
         material.set_values(UID, values());
         let (out, messages) = use_material(&job(), Some(&material));
-        assert_eq!(out.stock, {
-            let mut stock = job().stock;
+        assert_eq!(out.stock(), &{
+            let mut stock = job().stock().clone();
             stock.material = Some(material_ref(&material));
             stock
         });
@@ -275,7 +275,7 @@ mod tests {
         assert_eq!(messages.len(), 1, "only 'material chosen'");
         // None: the materials go, the feeds stay.
         let (none, _) = use_material(&out, None);
-        assert_eq!(none.stock.material, None);
+        assert_eq!(none.stock().material, None);
         assert!(none.operations.iter().all(|op| op.material().is_none()));
         for (a, b) in none.operations.iter().zip(&out.operations) {
             assert!(a.has_cutting(&b.cutting_over(values())));
@@ -287,7 +287,7 @@ mod tests {
         let mut material = ply();
         material.set_values(UID, values());
         let (out, messages) = use_material_for_op(&job(), 1, Some(&material)).unwrap();
-        assert_eq!(out.stock, job().stock, "the project's material stays");
+        assert_eq!(out.stock(), job().stock(), "the project's material stays");
         assert!(out.operations[1].has_cutting(&values()));
         assert_eq!(out.operations[0], job().operations[0]);
         assert_eq!(messages.len(), 1);

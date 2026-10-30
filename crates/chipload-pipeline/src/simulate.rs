@@ -158,7 +158,7 @@ fn run(
     cancel: &Cancel,
     with_history: bool,
 ) -> Result<(Simulation, Option<History>), PipelineError> {
-    let stock = &job.stock;
+    let stock = &job.stock();
     // The stock's real size (it may fit the drawing): the grid covers exactly it.
     let (size_x, size_y) = job.stock_size();
     let cell = match cell {

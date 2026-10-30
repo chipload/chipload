@@ -18,18 +18,18 @@ fn opened(name: &str) -> (ChiploadApp, PathBuf) {
 /// the file's size changes too).
 fn changed_elsewhere(path: &Path, x: f64) {
     let mut job = chipload_job::load_job(path).unwrap();
-    job.stock.x = x;
+    job.stock_mut().x = x;
     chipload_job::save_job(&job, path).unwrap();
 }
 
 /// The stock's X size in the app.
 fn stock_x(app: &ChiploadApp) -> f64 {
-    app.edit.as_ref().unwrap().settings.stock.x
+    app.edit.as_ref().unwrap().settings.stock().x
 }
 
 /// The user sets the stock's X size in the app.
 fn set_here(app: &mut ChiploadApp, x: f64) {
-    app.edit.as_mut().unwrap().settings.stock.x = x;
+    app.edit.as_mut().unwrap().settings.stock_mut().x = x;
     app.commit();
 }
 

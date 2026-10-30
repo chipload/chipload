@@ -185,8 +185,8 @@ impl ChiploadApp {
                     materials,
                 };
                 let stock = StockDepths {
-                    thickness: edit.settings.stock.thickness,
-                    max_overcut: edit.settings.stock.max_overcut,
+                    thickness: edit.settings.stock().thickness,
+                    max_overcut: edit.settings.stock().max_overcut,
                 };
                 if let Some(entry) = edit.ops.get_mut(i) {
                     op_request = op_form(ui, i, entry, contours, choice, stock);

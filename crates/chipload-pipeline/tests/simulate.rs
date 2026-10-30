@@ -212,8 +212,8 @@ fn a_cell_size_out_of_range_or_too_fine_is_refused() {
         );
     }
     let mut big = job.clone();
-    big.stock.x = 2000.0;
-    big.stock.y = 1000.0;
+    big.stock_mut().x = 2000.0;
+    big.stock_mut().y = 1000.0;
     let err = simulate(&big, &program, &[], Some(0.1), &Cancel::new()).unwrap_err();
     assert!(err.to_string().contains("use a larger cell"), "{err}");
 }
@@ -362,8 +362,8 @@ fn a_long_move_is_cut_as_the_tool_goes() {
 #[ignore]
 fn playback_frame_timing() {
     let mut job = job(endmill(6.0));
-    job.stock.x = 600.0;
-    job.stock.y = 400.0;
+    job.stock_mut().x = 600.0;
+    job.stock_mut().y = 400.0;
     // Rows of cuts over the whole sheet in three depth passes: about 10 000 moves.
     let mut moves = vec![Move::rapid_z(5.0), Move::rapid_xy((10.0, 10.0))];
     for pass in 1..=3 {

@@ -390,7 +390,7 @@ fn save_from_op(
                 .checked_sub(1)
                 .and_then(|i| job.operations.get(i))
                 .and_then(|o| o.material())
-                .or(job.stock.material.as_ref())
+                .or(job.stock().material.as_ref())
                 .and_then(|m| library.find_uid(&m.library_uid))
                 .map(|m| m.name.clone())
                 .ok_or_else(|| {

@@ -87,7 +87,7 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         "job-stock" => &["stock"],
         // The work zero has its own properties: listed so Stock and Machine don't claim
         // its fields.
-        "job-zero" => &["machine.work_zero", "stock.z_zero"],
+        "job-zero" => &["work_zero", "stock.z_zero"],
         "job-material" => &["stock.material"],
         "part-copies" => &["parts"],
         "job-machine" => &["machine", "stock.max_overcut"],
@@ -99,7 +99,7 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
 
 /// A field the work zero's properties hold.
 fn is_zero_field(field: &str) -> bool {
-    under(field, "machine.work_zero") || under(field, "stock.z_zero")
+    under(field, "work_zero") || under(field, "stock.z_zero")
 }
 
 /// The job's sections, whose prefixes overlap (`stock` and `stock.z_zero`).
@@ -421,7 +421,7 @@ mod tests {
         };
         assert_eq!(shown("stock.thickness"), ["job-stock"]);
         assert_eq!(shown("stock.z_zero"), ["job-zero"]);
-        assert_eq!(shown("machine.work_zero.x"), ["job-zero"]);
+        assert_eq!(shown("work_zero.x"), ["job-zero"]);
         assert_eq!(shown("stock.material"), ["job-material"]);
         assert_eq!(shown("stock.max_overcut"), ["job-machine"]);
         assert_eq!(shown("machine.safe_z"), ["job-machine"]);

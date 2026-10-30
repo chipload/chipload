@@ -68,11 +68,14 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
     let mut job = job.clone();
     let id = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
     let name = free_name(&job, name)?;
+    // In the active setup (docs/specs/setups.md §7).
+    let setup = job.active_setup_id().unwrap_or(1);
     job.parts.push(Part {
         id,
         name,
         enabled: true,
         copies: None,
+        setup,
     });
     job.active_part = Some(id);
     Ok((checked(job)?, id))

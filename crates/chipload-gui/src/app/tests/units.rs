@@ -120,9 +120,9 @@ fn a_new_project_in_inches_starts_from_tidy_inch_values() {
     app.new_project();
     let job = &app.edit.as_ref().unwrap().settings;
     let inches = |mm: f64| mm / 25.4;
-    assert!((inches(job.stock.x) - 24.0).abs() < 1e-12);
-    assert!((inches(job.stock.y) - 12.0).abs() < 1e-12);
-    assert!((inches(job.stock.thickness) - 0.75).abs() < 1e-12);
+    assert!((inches(job.stock().x) - 24.0).abs() < 1e-12);
+    assert!((inches(job.stock().y) - 12.0).abs() < 1e-12);
+    assert!((inches(job.stock().thickness) - 0.75).abs() < 1e-12);
     assert!((inches(job.machine.safe_z) - 0.2).abs() < 1e-12);
     assert!((inches(job.tools[0].diameter) - 0.25).abs() < 1e-12);
     // The G-code stays mm until the machine says otherwise.
@@ -130,7 +130,7 @@ fn a_new_project_in_inches_starts_from_tidy_inch_values() {
     // In mm, nothing changes.
     let mut app = ChiploadApp::default();
     app.new_project();
-    assert_eq!(app.edit.as_ref().unwrap().settings.stock.thickness, 10.0);
+    assert_eq!(app.edit.as_ref().unwrap().settings.stock().thickness, 10.0);
 }
 
 #[test]

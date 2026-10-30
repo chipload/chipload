@@ -1061,7 +1061,7 @@ impl ChiploadApp {
         // The project's material: the new operation names it, and its values for the tool
         // come first (docs/specs/materials.md §2).
         let material = self.material_cutting(tool);
-        let material_ref = self.edit.as_ref()?.settings.stock.material.clone();
+        let material_ref = self.edit.as_ref()?.settings.stock().material.clone();
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(

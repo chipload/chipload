@@ -211,7 +211,7 @@ fn fact(html: &mut String, heading: &str, value: &str) {
 }
 
 fn setup(html: &mut String, job: &Job, w: Words) {
-    let stock = &job.stock;
+    let stock = &job.stock();
     let _ = writeln!(
         html,
         "<section class=\"setup\">\n<h2>{}</h2>\n<table class=\"facts\">",
@@ -307,7 +307,7 @@ pub fn xy_zero_message(job: &Job) -> Message {
             StockCorner::TopRight => "sheet-zero-top-right",
         })
     };
-    if let WorkZero::Stock { corner: at } = job.machine.work_zero {
+    if let WorkZero::Stock { corner: at } = job.work_zero() {
         return corner(at);
     }
     let ((x0, y0), (x1, y1)) = job.stock_bounds();
@@ -351,7 +351,7 @@ pub fn xy_zero_message(job: &Job) -> Message {
 }
 
 fn z_zero_message(job: &Job) -> Message {
-    Message::new(match job.stock.z_zero {
+    Message::new(match job.stock().z_zero {
         ZZero::Top => "sheet-z-top",
         ZZero::Bottom => "sheet-z-bottom",
     })
@@ -793,14 +793,14 @@ fn deepest_cut_text(job: &Job, program: &Program, group: &ToolGroup, w: Words) -
         .fold(None, |low: Option<f64>, z| {
             Some(low.map_or(z, |l| l.min(z)))
         })?;
-    let top = job.stock.top_z();
+    let top = job.stock().top_z();
     let depth = top - lowest;
     let mut parts = vec![
         Message::new("sheet-cuts-down")
             .arg("z", len(lowest))
             .arg("depth", len_u(depth)),
     ];
-    let into = depth - job.stock.thickness;
+    let into = depth - job.stock().thickness;
     if into > CHAIN_TOL_MM {
         parts.push(Message::new("sheet-into-spoilboard").arg("depth", len_u(into)));
     } else if into.abs() <= CHAIN_TOL_MM {

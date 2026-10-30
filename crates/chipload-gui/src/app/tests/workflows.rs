@@ -31,7 +31,7 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
     assert_eq!(other.recent, app.recent);
 
     // Unsaved changes: opening a recent project asks first.
-    app.edit.as_mut().unwrap().settings.stock.thickness = 12.0;
+    app.edit.as_mut().unwrap().settings.stock_mut().thickness = 12.0;
     let second_path = app.recent[1].clone();
     assert!(!app.open_recent(&second_path));
     assert!(matches!(
@@ -63,7 +63,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     app.ask_new();
     let job = app.edit.as_ref().unwrap().settings.clone();
     assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
-    assert_eq!((job.stock.x, job.stock.y), (300.0, 200.0));
+    assert_eq!((job.stock().x, job.stock().y), (300.0, 200.0));
     assert!(app.job_path.is_none() && app.contours.is_empty());
     assert_eq!(app.update_labels().0, "Import DXF or SVG into project…");
     assert_eq!(
@@ -125,8 +125,8 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     let copies = app.edit.as_ref().unwrap().settings.parts[0].copies.unwrap();
     assert!(copies.dx > 5.0 && copies.dy > 5.0, "{copies:?}");
     // Generating again: the copies are cut, the gap leaves them apart.
-    app.edit.as_mut().unwrap().settings.stock.x = 1000.0;
-    app.edit.as_mut().unwrap().settings.stock.y = 1000.0;
+    app.edit.as_mut().unwrap().settings.stock_mut().x = 1000.0;
+    app.edit.as_mut().unwrap().settings.stock_mut().y = 1000.0;
     app.commit();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let result = app.result.as_ref().unwrap();
@@ -333,7 +333,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     let mut app = ChiploadApp::default();
     app.ask_new();
     // A fixed board with its corner at the origin: the drawing is placed onto it.
-    let stock = &mut app.edit.as_mut().unwrap().settings.stock;
+    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
     stock.origin = chipload_job::StockOrigin::BottomLeft;
     stock.fit = None;
     app.start_drawing(Tool::Circle);

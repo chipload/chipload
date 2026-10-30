@@ -19,8 +19,8 @@ fn corpus(rel: &str) -> PathBuf {
 fn a_new_project_s_stock_is_centred_on_the_drawing_and_fits_it() {
     // simple_part.dxf spans X 50..250, Y 50..170.
     let job = new_project(shapes_from_dxf(&corpus("dxf/simple_part.dxf"), None).unwrap());
-    assert_eq!(job.stock.origin, StockOrigin::Drawing);
-    assert_eq!(job.stock.fit, Some(10.0));
+    assert_eq!(job.stock().origin, StockOrigin::Drawing);
+    assert_eq!(job.stock().fit, Some(10.0));
     assert_eq!(job.stock_size(), (220.0, 140.0));
     assert_eq!(job.stock_bounds(), ((40.0, 40.0), (260.0, 180.0)));
     // It follows the drawing when the drawing moves.
@@ -33,8 +33,8 @@ fn a_new_project_s_stock_is_centred_on_the_drawing_and_fits_it() {
 #[test]
 fn a_fixed_size_stays_centred_and_the_run_reports_the_cut_outline() {
     let mut job = new_project(shapes_from_dxf(&corpus("dxf/simple_part.dxf"), None).unwrap());
-    job.stock.fit = None;
-    (job.stock.x, job.stock.y) = (400.0, 300.0);
+    job.stock_mut().fit = None;
+    (job.stock_mut().x, job.stock_mut().y) = (400.0, 300.0);
     assert_eq!(job.stock_bounds(), ((-50.0, -40.0), (350.0, 260.0)));
     // With an operation, the estimate knows the box the tool cuts in.
     let with_ops = chipload_job::load_job(&corpus("jobs/v5/drawn_part.chipload")).unwrap();

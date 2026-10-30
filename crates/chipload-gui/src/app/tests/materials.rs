@@ -53,12 +53,12 @@ fn add_plywood(app: &mut ChiploadApp) -> String {
 fn choosing_a_material_fills_the_operations_in_one_undo_step() {
     let mut app = app_with_library("choose");
     let uid = add_plywood(&mut app);
-    let before = app.edit.as_ref().unwrap().settings.stock.thickness;
+    let before = app.edit.as_ref().unwrap().settings.stock().thickness;
     assert!(app.use_material(Some(&uid)));
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock.thickness, before, "the stock stays");
+    assert_eq!(edit.settings.stock().thickness, before, "the stock stays");
     assert_eq!(
-        edit.settings.stock.material.as_ref().unwrap().name,
+        edit.settings.stock().material.as_ref().unwrap().name,
         "Plywood"
     );
     assert!(edit.ops.iter().all(|e| e.op.has_cutting(&plywood())));
@@ -70,7 +70,7 @@ fn choosing_a_material_fills_the_operations_in_one_undo_step() {
     );
     app.undo();
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock.material, None);
+    assert_eq!(edit.settings.stock().material, None);
     assert!(edit.ops.iter().all(|e| e.op.material().is_none()));
 }
 
@@ -87,7 +87,7 @@ fn a_new_project_starts_with_the_default_material() {
     app.new_project();
     let edit = app.edit.as_ref().unwrap();
     assert_eq!(
-        edit.settings.stock.material.as_ref().unwrap().name,
+        edit.settings.stock().material.as_ref().unwrap().name,
         "Birch ply"
     );
 }
@@ -133,7 +133,7 @@ fn an_operation_chooses_its_own_material_in_its_form() {
     assert_eq!(chosen.material().unwrap().name, "Plywood");
     assert!(chosen.has_cutting(&plywood()));
     let edit = harness.state().edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock.material, None, "the project's stays");
+    assert_eq!(edit.settings.stock().material, None, "the project's stays");
     assert_eq!(edit.ops[0].op.material(), None, "the other operation's too");
     assert!(harness.query_by_label("From Plywood").is_some());
 }
@@ -252,7 +252,7 @@ fn material_pictures() {
                 }
                 app.commit();
                 if view == "job-fit" {
-                    let stock = &mut app.edit.as_mut().unwrap().settings.stock;
+                    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
                     stock.fit = Some(10.0);
                     stock.origin = chipload_job::StockOrigin::Drawing;
                     app.commit();

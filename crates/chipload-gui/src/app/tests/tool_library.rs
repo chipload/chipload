@@ -223,7 +223,7 @@ mod library {
         assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
         let job = settings_of(&app);
         assert_eq!(job.machine, shapeoko().machine());
-        assert_eq!(job.stock.max_overcut, 0.3);
+        assert_eq!(job.stock().max_overcut, 0.3);
         assert_eq!(job.tools, [upcut().tool(2)]);
         assert!(
             app.report

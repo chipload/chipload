@@ -2233,7 +2233,7 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
         "{} × {} × {} {len_unit}",
         len_in(units, size_x),
         len_in(units, size_y),
-        len_in(units, job.stock.thickness)
+        len_in(units, job.stock().thickness)
     );
     let drawing = job.drawing.extents().map(|((x0, y0), (x1, y1))| {
         format!(
@@ -2250,11 +2250,15 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
         look,
         |ui| {
             ui.label(t!(ui, "forms-thickness"));
-            flag(ui.add(mm(&mut job.stock.thickness)), ui, "stock.thickness");
+            flag(
+                ui.add(mm(&mut job.stock_mut().thickness)),
+                ui,
+                "stock.thickness",
+            );
             ui.end_row();
             // One choice of two: fit the drawing (the usual one, the user 2026-10-28), or
             // a fixed size for a board you want to use.
-            let fits = job.stock.fit.is_some();
+            let fits = job.stock().fit.is_some();
             ui.label(t!(ui, "forms-stock-size"));
             ui.horizontal_wrapped(|ui| {
                 if ui
@@ -2263,8 +2267,8 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
                     .clicked()
                     && !fits
                 {
-                    job.stock.origin = StockOrigin::Drawing;
-                    job.stock.fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
+                    job.stock_mut().origin = StockOrigin::Drawing;
+                    job.stock_mut().fit = Some(chipload_pipeline::DEFAULT_STOCK_MARGIN);
                 }
                 if let Some(size) = &drawing {
                     ui.weak(format!("({size})"))
@@ -2272,14 +2276,14 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
                 }
             });
             ui.end_row();
-            if let Some(mut margin) = job.stock.fit {
+            if let Some(mut margin) = job.stock().fit {
                 ui.label("");
                 ui.horizontal(|ui| {
                     ui.add_space(ui.spacing().indent);
                     ui.label(t!(ui, "forms-stock-margin"))
                         .on_hover_text(t!(ui, "forms-stock-fits-hover"));
                     if ui.add(mm(&mut margin)).changed() {
-                        job.stock.fit = Some(margin);
+                        job.stock_mut().fit = Some(margin);
                     }
                 });
                 ui.end_row();
@@ -2292,28 +2296,28 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
                 && fits
             {
                 // Keep the size it had, now fixed, still centred on the outline.
-                (job.stock.x, job.stock.y) = (size_x, size_y);
-                job.stock.fit = None;
-                job.stock.origin = StockOrigin::Drawing;
+                (job.stock_mut().x, job.stock_mut().y) = (size_x, size_y);
+                job.stock_mut().fit = None;
+                job.stock_mut().origin = StockOrigin::Drawing;
             }
             ui.end_row();
-            if job.stock.fit.is_none() {
+            if job.stock().fit.is_none() {
                 ui.label("");
                 ui.horizontal(|ui| {
                     ui.add_space(ui.spacing().indent);
-                    flag(ui.add(mm(&mut job.stock.x)), ui, "stock.x");
+                    flag(ui.add(mm(&mut job.stock_mut().x)), ui, "stock.x");
                     ui.label("×");
-                    flag(ui.add(mm(&mut job.stock.y)), ui, "stock.y");
+                    flag(ui.add(mm(&mut job.stock_mut().y)), ui, "stock.y");
                 });
                 ui.end_row();
                 // A stock is centred on the outline (the user, 2026-10-28). An older
                 // project's stock at the drawing's origin keeps its place until changed
                 // here, so its stock and a work zero on it never move unseen.
-                if job.stock.origin != StockOrigin::Drawing {
+                if job.stock().origin != StockOrigin::Drawing {
                     ui.label("");
                     ui.horizontal(|ui| {
                         ui.add_space(ui.spacing().indent);
-                        stock_position_combo(ui, &mut job.stock.origin);
+                        stock_position_combo(ui, &mut job.stock_mut().origin);
                     });
                     ui.end_row();
                 }
@@ -2359,8 +2363,8 @@ pub(super) fn zero_summary(ui: &egui::Ui, job: &chipload_job::Job) -> String {
     t!(
         ui,
         "forms-zero-summary",
-        xy = work_zero_name(ui, &job.machine.work_zero),
-        z = z_zero_name(ui, job.stock.z_zero)
+        xy = work_zero_name(ui, &job.work_zero()),
+        z = z_zero_name(ui, job.stock().z_zero)
     )
 }
 
@@ -2379,7 +2383,7 @@ pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     let job = &mut edit.settings;
     let (x, y) = job.work_zero_xy();
     let ((x0, y0), (x1, y1)) = job.stock_bounds();
-    let chosen = job.machine.work_zero;
+    let chosen = job.work_zero();
     let mut zero = chosen;
     Grid::new("work-zero-form")
         .num_columns(2)
@@ -2408,7 +2412,7 @@ pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
                 let a = flag(
                     ui.add(crate::units::length(&mut px).prefix("X ").speed(0.1)),
                     ui,
-                    "machine.work_zero",
+                    "work_zero",
                 );
                 let b = ui.add(crate::units::length(&mut py).prefix("Y ").speed(0.1));
                 a.changed() || b.changed()
@@ -2422,17 +2426,17 @@ pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
             ui.end_row();
             ui.label(t!(ui, "forms-z-zero"));
             ComboBox::from_id_salt("z_zero")
-                .selected_text(z_zero_name(ui, job.stock.z_zero))
+                .selected_text(z_zero_name(ui, job.stock().z_zero))
                 .show_ui(ui, |ui| {
                     for z in [ZZero::Top, ZZero::Bottom] {
-                        ui.selectable_value(&mut job.stock.z_zero, z, z_zero_name(ui, z));
+                        ui.selectable_value(&mut job.stock_mut().z_zero, z, z_zero_name(ui, z));
                     }
                 });
             ui.end_row();
         });
     ui.add_space(4.0);
     ui.add(egui::Label::new(egui::RichText::new(t!(ui, "forms-zero-note")).weak()).wrap());
-    job.machine.work_zero = zero;
+    *job.work_zero_mut() = zero;
 }
 
 /// A small drawing of the stock, in its proportions, with a dot at each corner and the
@@ -2512,7 +2516,7 @@ fn material_section(
     look: SectionLook,
 ) -> Option<JobRequest> {
     let materials = &library.materials;
-    let chosen = job.stock.material.clone();
+    let chosen = job.stock().material.clone();
     let known = chosen
         .as_ref()
         .and_then(|m| materials.find_uid(&m.library_uid));
@@ -2629,7 +2633,7 @@ fn machine_section(
             ui.label(t!(ui, "forms-max-overcut"))
                 .on_hover_text(t!(ui, "forms-max-overcut-hover"));
             flag(
-                ui.add(mm(&mut job.stock.max_overcut)),
+                ui.add(mm(&mut job.stock_mut().max_overcut)),
                 ui,
                 "stock.max_overcut",
             );

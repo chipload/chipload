@@ -119,6 +119,9 @@ job-tip-diameter = måste vara 0 eller mer och mindre än diametern ({ $diameter
 ## Parts
 
 job-no-parts = ett projekt behöver minst en detalj
+job-no-setups = projektet har ingen uppspänning; det behöver minst en
+job-setup-twice = uppspänningens id { $id } används två gånger
+job-no-such-setup = ingen uppspänning { $id } i setups
 job-part-twice = detalj { $id } finns med två gånger
 job-part-name-taken = en annan detalj heter "{ $name }"
 # "parts" is a place in the project file.

@@ -4,19 +4,20 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 33. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 34. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `active_part` | integer or null | no | The part new operations go into (its id). Null or no such part: the first part. Only the app and the command line read it; it changes nothing that is cut. |
+| `active_setup` | integer or null | no | The setup shown, simulated and previewed, where new parts go (its id). Null or no such setup: the first. Only the app and the command line read it. |
 | `drawing` | [Drawing](#drawing) | yes | The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload. |
-| `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits and zero. |
+| `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `33` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
-| `stock` | [Stock](#stock) | yes | The material on the machine. |
+| `schema_version` | `34` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
 
@@ -286,7 +287,6 @@ Quarter-circle lead-in and lead-out.
 | `spindle` | [Spindle](#spindle) | yes | The spindle's direction: `cw` (M3) or `ccw` (M4). |
 | `tool_change` | [ToolChange](#toolchange) | yes | With several tools: `files` (one file per tool) or `program` (one file with tool changes). |
 | `travel` | [Travel](#travel) or null | no | The machine's travel, mm. When set, a program that moves farther is refused. Null: not checked. |
-| `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's origin. |
 
 ## MaterialRef
 
@@ -439,6 +439,7 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 | `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what operations name it by. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
+| `setup` | integer | yes | The id of the setup it is cut in (`setups`). Since schema 34. |
 
 ## PathSegment
 
@@ -489,6 +490,18 @@ One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
 | `text` | integer or null | no | Only the letters of this text (an id in `drawing.texts`). |
+
+## Setup
+
+A setup: one board clamped once on the machine, with its stock and work zero, and the parts cut from it (docs/specs/setups.md §2).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
+| `id` | integer | yes | Its number, unique in the project: what parts name it by. |
+| `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
+| `stock` | [Stock](#stock) | yes | The board. |
+| `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing's origin. |
 
 ## Shape
 

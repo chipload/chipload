@@ -258,7 +258,7 @@ pub fn place_dxf(job: &Job, id: u64, how: Move) -> Result<(Job, PlaceReport), Pi
     if job.drawing.dxfs.len() > 1 {
         lines.push(Message::new("pipeline-place-other-dxfs-stay"));
     }
-    if let WorkZero::Point { x, y } = job.machine.work_zero {
+    if let WorkZero::Point { x, y } = job.work_zero() {
         lines.push(
             Message::new("pipeline-place-work-zero-stays")
                 .arg("x", Value::Length(x, Digits::Fixed(3)))
@@ -431,7 +431,7 @@ fn step_for(
     };
     let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
     // A stock centred on the drawing follows it: aligning the drawing to it moves both.
-    if job.stock.origin == chipload_job::StockOrigin::Drawing
+    if job.stock().origin == chipload_job::StockOrigin::Drawing
         && matches!(how, Move::BottomLeft { .. } | Move::Center)
     {
         return Err(PipelineError::Job(Message::new(

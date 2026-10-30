@@ -59,7 +59,7 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
             .unwrap();
         (
             edit.to_job().unwrap().operations[i].clone(),
-            edit.settings.stock.clone(),
+            edit.settings.stock().clone(),
         )
     };
     assert_eq!(profile(&harness).0.through(), None);
@@ -76,7 +76,7 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
         .as_mut()
         .unwrap()
         .settings
-        .stock
+        .stock_mut()
         .thickness = 12.0;
     harness.state_mut().commit();
     harness.run_steps(4);

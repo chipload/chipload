@@ -338,7 +338,7 @@ impl ChiploadApp {
     fn work_zero_message(job: &chipload_job::Job) -> Message {
         use chipload_i18n::{Digits, Value};
         use chipload_job::{StockCorner, WorkZero, ZZero};
-        let at = match job.machine.work_zero {
+        let at = match job.work_zero() {
             WorkZero::DrawingOrigin {} => "forms-zero-drawing-origin",
             WorkZero::Stock { corner } => match corner {
                 StockCorner::Center => "forms-zero-stock-centre",
@@ -349,7 +349,7 @@ impl ChiploadApp {
             },
             WorkZero::Point { .. } => "forms-zero-point",
         };
-        let z = match job.stock.z_zero {
+        let z = match job.stock().z_zero {
             ZZero::Top => "units-text-zero-stock-top",
             ZZero::Bottom => "units-text-zero-stock-bottom",
         };

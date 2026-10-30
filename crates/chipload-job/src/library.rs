@@ -414,8 +414,8 @@ impl MachineProfile {
             spindle: m.spindle,
             max_feed: m.max_feed,
             travel: m.travel.clone(),
-            work_zero: m.work_zero,
-            max_overcut: job.stock.max_overcut,
+            work_zero: job.work_zero(),
+            max_overcut: job.stock().max_overcut,
             tool_change: m.tool_change,
         }
     }
@@ -431,7 +431,6 @@ impl MachineProfile {
             spindle: self.spindle,
             max_feed: self.max_feed,
             travel: self.travel.clone(),
-            work_zero: self.work_zero,
             tool_change: self.tool_change,
             // A user post is copied in by the caller, which knows the posts folder.
             custom_post: None,
@@ -441,7 +440,10 @@ impl MachineProfile {
     /// What applying this profile would change in a project, one line per value
     /// ("safe Z 5 -> 10 mm"); empty when the values already match (the name aside).
     pub fn changes(&self, job: &Job) -> Vec<Message> {
-        self.changes_from(&job.machine, job.stock.max_overcut)
+        self.compare(
+            &job.machine,
+            Some((job.stock().max_overcut, job.work_zero())),
+        )
     }
 
     /// What differs in the machine values only (post, tool changes, spindle, max feed,
@@ -451,14 +453,10 @@ impl MachineProfile {
         self.compare(old, None)
     }
 
-    /// As `changes`, from a machine and a max overcut.
-    fn changes_from(&self, old: &Machine, max_overcut: f64) -> Vec<Message> {
-        self.compare(old, Some(max_overcut))
-    }
-
-    /// What differs from `old`; with the job values too when `max_overcut` is given.
-    fn compare(&self, old: &Machine, max_overcut: Option<f64>) -> Vec<Message> {
-        let job_values = max_overcut.is_some();
+    /// What differs from `old`; with the job values too when the project's max overcut and
+    /// work zero are given.
+    fn compare(&self, old: &Machine, job: Option<(f64, WorkZero)>) -> Vec<Message> {
+        let job_values = job.is_some();
         let mut changes = Changes::default();
         changes.differs("post", old.post.clone().into(), self.post.clone().into());
         changes.differs(
@@ -489,10 +487,10 @@ impl MachineProfile {
             optional(old.travel.as_ref().map(travel_text)),
             optional(self.travel.as_ref().map(travel_text)),
         );
-        if let Some(max_overcut) = max_overcut {
+        if let Some((max_overcut, work_zero)) = job {
             changes.differs(
                 "work-zero",
-                work_zero_name(&old.work_zero),
+                work_zero_name(&work_zero),
                 work_zero_name(&self.work_zero),
             );
             changes.differs("max-overcut", mm(max_overcut), mm(self.max_overcut));
@@ -505,17 +503,19 @@ impl MachineProfile {
     /// (docs/specs/linked-machine.md §3).
     pub fn update_machine_values(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.machine_changes(&job.machine);
-        let keep = (job.machine.safe_z, job.machine.work_zero);
+        let keep = job.machine.safe_z;
         job.machine = self.machine();
-        (job.machine.safe_z, job.machine.work_zero) = keep;
+        job.machine.safe_z = keep;
         changes
     }
 
-    /// Copy this profile's values (and name) into a project; returns what changed.
+    /// Copy this profile's values (and name) into a project, its work zero and max overcut
+    /// into the active setup; returns what changed.
     pub fn apply(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.changes(job);
         job.machine = self.machine();
-        job.stock.max_overcut = self.max_overcut;
+        job.stock_mut().max_overcut = self.max_overcut;
+        *job.work_zero_mut() = self.work_zero;
         changes
     }
 }
@@ -691,6 +691,11 @@ impl MachineLibrary {
             );
             problems.extend(
                 max_overcut_problems(&at, profile.max_overcut)
+                    .iter()
+                    .map(ToString::to_string),
+            );
+            problems.extend(
+                crate::models::work_zero_problems(&format!("{at}.work_zero"), profile.work_zero)
                     .iter()
                     .map(ToString::to_string),
             );
@@ -1558,7 +1563,7 @@ impl Entry for MachineProfile {
         }
     }
     fn differences(&self, other: &Self) -> Vec<Message> {
-        other.changes_from(&self.machine(), self.max_overcut)
+        other.compare(&self.machine(), Some((self.max_overcut, self.work_zero)))
     }
 }
 

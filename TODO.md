@@ -173,6 +173,10 @@ it's built (see `CLAUDE.md`).
   CI runs on every push to main again since 2026-10-29 (by hand only from 2026-10-27, which let
   platform-dependent pocket G-code through to the 0.28.0 release build).
 
+- **STEP import** (the user, 2026-10-30): import a STEP file, choose an axis (the view
+  to look along), and project the model's curves into the drawing as shapes. Needs a spec
+  and a licence-compatible STEP reader (an ADR); not started.
+
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
 1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan

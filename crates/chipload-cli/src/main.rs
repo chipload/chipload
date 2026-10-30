@@ -1705,7 +1705,7 @@ fn zero(out: &mut Out, project: &Path, args: ZeroArgs, output: Option<&Path>) ->
         Ok(job) => job,
         Err(err) => return out.fail(err),
     };
-    let before = (job.machine.work_zero, job.stock.z_zero);
+    let before = (job.work_zero(), job.stock().z_zero);
     if let Some(corner) = args.stock {
         let corner = match corner {
             CornerArg::BottomLeft => StockCorner::BottomLeft,
@@ -1714,19 +1714,19 @@ fn zero(out: &mut Out, project: &Path, args: ZeroArgs, output: Option<&Path>) ->
             CornerArg::TopRight => StockCorner::TopRight,
             CornerArg::Center => StockCorner::Center,
         };
-        job.machine.work_zero = WorkZero::Stock { corner };
+        *job.work_zero_mut() = WorkZero::Stock { corner };
     }
     if args.drawing_origin {
-        job.machine.work_zero = WorkZero::DrawingOrigin {};
+        *job.work_zero_mut() = WorkZero::DrawingOrigin {};
     }
     if let Some(at) = &args.at {
         match point_arg(at) {
-            Ok([x, y]) => job.machine.work_zero = WorkZero::Point { x, y },
+            Ok([x, y]) => *job.work_zero_mut() = WorkZero::Point { x, y },
             Err(err) => return out.fail(format!("--at: {err}")),
         }
     }
     if let Some(z) = args.z {
-        job.stock.z_zero = match z {
+        job.stock_mut().z_zero = match z {
             ZArg::Top => ZZero::Top,
             ZArg::Bottom => ZZero::Bottom,
         };
@@ -1734,16 +1734,16 @@ fn zero(out: &mut Out, project: &Path, args: ZeroArgs, output: Option<&Path>) ->
     let (x, y) = job.work_zero_xy();
     out.set(
         "work_zero",
-        serde_json::to_value(job.machine.work_zero).unwrap_or_default(),
+        serde_json::to_value(job.work_zero()).unwrap_or_default(),
     );
     out.set(
         "z_zero",
-        serde_json::to_value(job.stock.z_zero).unwrap_or_default(),
+        serde_json::to_value(job.stock().z_zero).unwrap_or_default(),
     );
     out.set("x", json!(x));
     out.set("y", json!(y));
     out.line(format!("Work zero: {}", job.work_zero_text()));
-    if (job.machine.work_zero, job.stock.z_zero) == before && output.is_none() {
+    if (job.work_zero(), job.stock().z_zero) == before && output.is_none() {
         return ExitCode::SUCCESS;
     }
     let problems = job.validate();
@@ -3010,6 +3010,9 @@ fn get(out: &mut Out, project: &Path, path: &str) -> ExitCode {
         Ok(value) => value,
         Err(err) => return out.fail(err),
     };
+    // `stock…` and `machine.work_zero…` are the active setup's since schema 34.
+    let aliased = chipload_job::paths::alias(&job, path);
+    let path = aliased.as_deref().unwrap_or(path);
     match chipload_job::paths::get(&value, path) {
         Ok(found) => {
             if out.json() {
@@ -4023,7 +4026,7 @@ fn inspect(out: &mut Out, path: &Path, units: Option<Units>, px: Option<f64>) ->
         load_job(path).map_err(|e| e.to_string()).and_then(|job| {
             shapes = Some(job.drawing.shapes.clone());
             // Only when set, so a fresh project still inspects exactly like its DXF.
-            if job.machine.work_zero != (WorkZero::DrawingOrigin {}) {
+            if job.work_zero() != (WorkZero::DrawingOrigin {}) {
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
             copies_line = copies_text(&job)

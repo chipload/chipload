@@ -119,6 +119,9 @@ job-tip-diameter = debe ser 0 o más y menor que el diámetro ({ $diameter }), e
 ## Parts
 
 job-no-parts = un proyecto necesita al menos una pieza
+job-no-setups = el proyecto no tiene ninguna sujeción; necesita al menos una
+job-setup-twice = el id de sujeción { $id } se usa dos veces
+job-no-such-setup = no hay sujeción { $id } en setups
 job-part-twice = la pieza { $id } aparece dos veces
 job-part-name-taken = otra pieza se llama "{ $name }"
 # "parts" is a place in the project file.

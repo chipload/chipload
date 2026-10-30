@@ -710,6 +710,24 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v33/vcarve_floor.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Sign): contours #2, #4: with the 3 mm end mill, 94 % of the floor is cleared; one of at most 1.3 mm would clear all of it
+Estimated time: 2 min 18 s (cutting 1 min 58 s, rapids 15 s, spindle 6 s), plus 1 tool change
+Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
+  Operation 1 (Sign): 1 min 24 s
+  Operation 1.1 (Sign, floor): 48 s
+  File 1: 51 s
+  File 2: 1 min 27 s
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Sign): 0.033 mm/tooth
+Tool group 1: tool 2, operations 1.1
+Tool group 2: tool 1, operations 1
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

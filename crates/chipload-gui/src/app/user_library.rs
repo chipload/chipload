@@ -370,13 +370,12 @@ pub(super) fn machine_entry_form(
         }
         let safe_z = t!(ui, "user-library-safe-z");
         safe_z_row(ui, &safe_z, &mut machine);
-        work_zero_rows(ui, "library", &mut machine.work_zero, (0.0, 0.0));
+        work_zero_rows(ui, "library", &mut profile.work_zero, (0.0, 0.0));
         profile.post = machine.post;
         profile.safe_z = machine.safe_z;
         profile.spindle = machine.spindle;
         profile.max_feed = machine.max_feed;
         profile.travel = machine.travel;
-        profile.work_zero = machine.work_zero;
         ui.label(t!(ui, "user-library-max-overcut"))
             .on_hover_text(t!(ui, "user-library-max-overcut-hover"));
         ui.add(mm(&mut profile.max_overcut));

@@ -89,7 +89,7 @@ pub fn limits_for_tool(job: &Job, tool: i64) -> Option<CheckLimits> {
 }
 
 fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
-    let stock = &job.stock;
+    let stock = &job.stock();
     let top = stock.top_z();
     // The program is in work coordinates: the stock as placed in the drawing, shifted so
     // the project's work zero is at X0 Y0 (docs/specs/work-zero.md).

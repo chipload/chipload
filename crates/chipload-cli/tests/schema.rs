@@ -110,7 +110,9 @@ fn broken_projects_are_refused() {
     assert!(broken(&|v| {
         v["operations"][0].as_object_mut().unwrap().remove("tool");
     }));
-    assert!(broken(&|v| v["stock"]["thickness"] = json!("12")));
+    assert!(broken(
+        &|v| v["setups"][0]["stock"]["thickness"] = json!("12")
+    ));
     assert!(broken(&|v| v["schema_version"] = json!(17)));
     assert!(broken(
         &|v| v["operations"][0]["direction"] = json!("sideways")

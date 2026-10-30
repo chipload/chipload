@@ -818,13 +818,6 @@
           ],
           "default": null,
           "description": "The machine's travel, mm. When set, a program that moves farther is refused. Null:\nnot checked."
-        },
-        "work_zero": {
-          "$ref": "#/$defs/WorkZero",
-          "default": {
-            "at": "drawing_origin"
-          },
-          "description": "The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing's\norigin."
         }
       },
       "required": [
@@ -1623,12 +1616,19 @@
         "name": {
           "description": "Its name, unique in the project, shown in the Browser, the report and the sheet.",
           "type": "string"
+        },
+        "setup": {
+          "description": "The id of the setup it is cut in (`setups`). Since schema 34.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
         }
       },
       "required": [
         "id",
         "name",
-        "enabled"
+        "enabled",
+        "setup"
       ],
       "type": "object"
     },
@@ -1821,6 +1821,44 @@
           ]
         }
       },
+      "type": "object"
+    },
+    "Setup": {
+      "additionalProperties": false,
+      "description": "A setup: one board clamped once on the machine, with its stock and work zero, and the\nparts cut from it (docs/specs/setups.md §2).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "False: the setup and its parts stay in the project but aren't cut.",
+          "type": "boolean"
+        },
+        "id": {
+          "description": "Its number, unique in the project: what parts name it by.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Its name, shown in the Browser, the report and the setup sheet.",
+          "type": "string"
+        },
+        "stock": {
+          "$ref": "#/$defs/Stock",
+          "description": "The board."
+        },
+        "work_zero": {
+          "$ref": "#/$defs/WorkZero",
+          "default": {
+            "at": "drawing_origin"
+          },
+          "description": "The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing's\norigin."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "stock"
+      ],
       "type": "object"
     },
     "Shape": {
@@ -2550,11 +2588,21 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 33. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 34. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
       "description": "The part new operations go into (its id). Null or no such part: the first part.\nOnly the app and the command line read it; it changes nothing that is cut.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "active_setup": {
+      "default": null,
+      "description": "The setup shown, simulated and previewed, where new parts go (its id). Null or no\nsuch setup: the first. Only the app and the command line read it.",
       "format": "uint64",
       "minimum": 0,
       "type": [
@@ -2568,7 +2616,7 @@
     },
     "machine": {
       "$ref": "#/$defs/Machine",
-      "description": "The machine: post-processor, safe height, limits and zero."
+      "description": "The machine: post-processor, safe height, limits."
     },
     "operations": {
       "description": "The operations, cut in this order: grouped by part, in the parts' order.",
@@ -2585,12 +2633,15 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 33,
+      "const": 34,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
-    "stock": {
-      "$ref": "#/$defs/Stock",
-      "description": "The material on the machine."
+    "setups": {
+      "description": "The setups: each a board clamped on the machine, with its stock, its work zero and\nthe parts cut from it, written as a program of its own. At least one. Since schema 34.",
+      "items": {
+        "$ref": "#/$defs/Setup"
+      },
+      "type": "array"
     },
     "tools": {
       "description": "The tools the operations cut with.",
@@ -2611,7 +2662,7 @@
   "required": [
     "schema_version",
     "drawing",
-    "stock",
+    "setups",
     "machine",
     "tools",
     "parts",

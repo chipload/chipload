@@ -580,7 +580,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return;
         };
-        let place = super::forms::work_zero_name(ui, &edit.settings.machine.work_zero);
+        let place = super::forms::work_zero_name(ui, &edit.settings.work_zero());
         let summary = super::forms::zero_summary(ui, &edit.settings);
         let problems = self.zero_problems().count();
         let row = Row::new(Id::new("browser-work-zero"), 1, t!(ui, "browser-work-zero"))

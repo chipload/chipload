@@ -449,10 +449,10 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
         serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
     assert_eq!(job["drawing"]["shapes"].as_array().unwrap().len(), 0);
     assert_eq!(job["drawing"]["dxfs"], serde_json::json!([]));
-    assert_eq!(job["stock"]["x"], 300.0);
-    assert_eq!(job["stock"]["y"], 200.0);
-    assert_eq!(job["stock"]["origin"], "drawing");
-    assert_eq!(job["stock"]["fit"], 10.0);
+    assert_eq!(job["setups"][0]["stock"]["x"], 300.0);
+    assert_eq!(job["setups"][0]["stock"]["y"], 200.0);
+    assert_eq!(job["setups"][0]["stock"]["origin"], "drawing");
+    assert_eq!(job["setups"][0]["stock"]["fit"], 10.0);
     assert!(ok(&["inspect", p]).contains("Contours (0)"));
 
     // Draw, cut it out, run: the program passes the checker.
@@ -483,14 +483,17 @@ fn a_project_started_empty_is_drawn_in_run_and_gets_its_dxf_later() {
     assert_eq!(shapes.len(), 8);
     assert!(shapes.iter().any(|s| s["id"] == 1 && s["kind"] == "circle"));
     assert_eq!(job["drawing"]["dxfs"][0]["file"], "simple_part.dxf");
-    assert_eq!(job["stock"]["x"], 300.0, "the stock is left as it is");
+    assert_eq!(
+        job["setups"][0]["stock"]["x"], 300.0,
+        "the stock is left as it is"
+    );
     ok(&["run", p, "-o", path(&dir.join("disc2.nc"))]);
 
     // A drawing that doesn't fit a fixed stock is pointed out.
     let mut job = job;
-    job["stock"]["x"] = 100.0.into();
-    job["stock"]["origin"] = "bottom_left".into();
-    job["stock"]["fit"] = serde_json::Value::Null;
+    job["setups"][0]["stock"]["x"] = 100.0.into();
+    job["setups"][0]["stock"]["origin"] = "bottom_left".into();
+    job["setups"][0]["stock"]["fit"] = serde_json::Value::Null;
     std::fs::write(&project, serde_json::to_string_pretty(&job).unwrap()).unwrap();
     let out = ok(&["update", p, "--from", path(&dxf)]);
     assert!(
@@ -1937,12 +1940,12 @@ fn zero_sets_and_prints_the_work_zero() {
     assert!(set.status.success(), "{}", text(&set.stderr));
     let job = chipload_job::load_job(&project).unwrap();
     assert_eq!(
-        job.machine.work_zero,
+        job.work_zero(),
         chipload_job::WorkZero::Stock {
             corner: chipload_job::StockCorner::Center
         }
     );
-    assert_eq!(job.stock.z_zero, chipload_job::ZZero::Bottom);
+    assert_eq!(job.stock().z_zero, chipload_job::ZZero::Bottom);
     let json = chipload(&["--json", "zero", p, "--at", "1in,-10"]);
     let value: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
     assert_eq!(

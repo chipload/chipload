@@ -94,12 +94,31 @@ pub fn assignment(text: &str) -> Result<(String, Value), String> {
     }
 }
 
+/// The path an older one stands for since setups (docs/specs/setups.md §6, decision 5):
+/// `stock…` and `machine.work_zero…` are the active setup's. None for any other path.
+pub fn alias(job: &Job, path: &str) -> Option<String> {
+    let k = job.active_setup_index();
+    let rest = |prefix: &str| {
+        path.strip_prefix(prefix)
+            .filter(|r| r.is_empty() || r.starts_with('.'))
+    };
+    if let Some(r) = rest("stock") {
+        return Some(format!("setups.{k}.stock{r}"));
+    }
+    rest("machine.work_zero").map(|r| format!("setups.{k}.work_zero{r}"))
+}
+
 /// The job with each value set, loaded and validated again as the current version; the
 /// error names the first path that couldn't be set, or why the result doesn't load.
 /// Setting an operation's end depth stops it following the thickness (`through`), unless
 /// `through` is set too (docs/specs/job-settings-layout.md §5).
 pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String> {
     let mut value = serde_json::to_value(job).map_err(|e| e.to_string())?;
+    let assignments: Vec<(String, Value)> = assignments
+        .iter()
+        .map(|(path, v)| (alias(job, path).unwrap_or_else(|| path.clone()), v.clone()))
+        .collect();
+    let assignments = assignments.as_slice();
     for (path, new) in assignments {
         set(&mut value, path, new.clone())?;
     }

@@ -62,6 +62,10 @@ A **path** is keys and array indexes joined by dots, as in the project file, cou
 `stock.thickness`, `operations.1.end_depth`, `tools.0.rpm`. Note that `--op` on `op tool`
 and `op rest` counts from 1, as Chipload numbers operations on screen.
 
+The stock and the work zero belong to a setup (`setups.0.stock.thickness`,
+`setups.0.work_zero`); `stock.…` and `machine.work_zero` still work and mean the active
+setup's, so older scripts keep working.
+
 ```sh
 chipload get part.chipload operations.1.end_depth          # 6.0
 chipload set part.chipload operations.1.end_depth=6.5 operations.1.name=Corners

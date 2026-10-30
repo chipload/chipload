@@ -230,8 +230,8 @@ fn a_new_project_starts_from_the_default_machine_and_tool() {
     assert_eq!(job["machine"]["name"], "Shapeoko");
     assert_eq!(job["machine"]["safe_z"], 10.0);
     assert_eq!(job["machine"]["travel"]["x"], 830.0);
-    assert_eq!(job["machine"]["work_zero"]["corner"], "bottom_left");
-    assert_eq!(job["stock"]["max_overcut"], 0.3);
+    assert_eq!(job["setups"][0]["work_zero"]["corner"], "bottom_left");
+    assert_eq!(job["setups"][0]["stock"]["max_overcut"], 0.3);
     assert_eq!(job["tools"].as_array().unwrap().len(), 1);
     assert_eq!(job["tools"][0]["name"], "6 mm upcut");
     assert_eq!(job["tools"][0]["center_cutting"], true);
@@ -795,7 +795,7 @@ fn materials_fill_a_project_and_learn_from_it() {
     // One operation first: only it takes Plywood.
     ok(s, &["material", "use", p, "plywood", "--op", "2"]);
     let job = json(&project);
-    assert_eq!(job["stock"]["material"], Value::Null);
+    assert_eq!(job["setups"][0]["stock"]["material"], Value::Null);
     assert_eq!(job["operations"][0]["material"], Value::Null);
     assert_eq!(job["operations"][1]["material"]["name"], "Plywood");
     assert_eq!(job["operations"][1]["feed"], 1500.0);
@@ -803,8 +803,8 @@ fn materials_fill_a_project_and_learn_from_it() {
     // Every operation; the stock stays.
     ok(s, &["material", "use", p, "plywood"]);
     let job = json(&project);
-    assert_eq!(job["stock"]["thickness"], 12.0);
-    assert_eq!(job["stock"]["material"]["name"], "Plywood");
+    assert_eq!(job["setups"][0]["stock"]["thickness"], 12.0);
+    assert_eq!(job["setups"][0]["stock"]["material"]["name"], "Plywood");
     for op in job["operations"].as_array().unwrap() {
         assert_eq!(op["material"]["name"], "Plywood");
         assert_eq!(
@@ -833,7 +833,10 @@ fn materials_fill_a_project_and_learn_from_it() {
     assert!(ok(s, &["material", "list"]).contains("(default)"));
     let fresh = dir.join("fresh.chipload");
     ok(s, &["new", "-o", path(&fresh)]);
-    assert_eq!(json(&fresh)["stock"]["material"]["name"], "Plywood");
+    assert_eq!(
+        json(&fresh)["setups"][0]["stock"]["material"]["name"],
+        "Plywood"
+    );
     ok(s, &["material", "default", "--none"]);
     assert!(!ok(s, &["material", "list"]).contains("(default)"));
 
@@ -845,7 +848,7 @@ fn materials_fill_a_project_and_learn_from_it() {
     // No material: the feeds stay.
     ok(s, &["material", "use", p, "--none"]);
     let job = json(&project);
-    assert!(job["stock"]["material"].is_null());
+    assert!(job["setups"][0]["stock"]["material"].is_null());
     assert_eq!(job["operations"][1]["feed"], 1300.0);
     std::fs::remove_dir_all(dir).unwrap();
 }

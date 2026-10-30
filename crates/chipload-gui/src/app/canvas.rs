@@ -68,7 +68,7 @@ impl ChiploadApp {
         self.scene.copies = self.copy_shifts();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
         if let Some(edit) = &self.edit {
-            let stock = &edit.settings.stock;
+            let stock = &edit.settings.stock();
             let top = stock.top_z();
             self.view.top_z = top;
             self.scene.stock_z = Some((top, top - stock.thickness));

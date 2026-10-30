@@ -144,40 +144,40 @@ fn the_sheet_warns_of_the_spoilboard_and_untested_posts() {
 fn the_zero_is_said_in_words_on_the_stock() {
     let mut job = empty_project();
     // 300 x 200, bottom left at the drawing origin
-    job.stock.origin = StockOrigin::BottomLeft;
-    job.stock.fit = None;
+    job.stock_mut().origin = StockOrigin::BottomLeft;
+    job.stock_mut().fit = None;
     assert_eq!(xy_zero_text(&job), "the stock's bottom left corner");
-    job.machine.work_zero = WorkZero::Stock {
+    *job.work_zero_mut() = WorkZero::Stock {
         corner: StockCorner::Center,
     };
     assert_eq!(xy_zero_text(&job), "the centre of the stock");
-    job.machine.work_zero = WorkZero::Stock {
+    *job.work_zero_mut() = WorkZero::Stock {
         corner: StockCorner::TopRight,
     };
     assert_eq!(xy_zero_text(&job), "the stock's top right corner");
-    job.machine.work_zero = WorkZero::Point { x: 25.0, y: 10.5 };
+    *job.work_zero_mut() = WorkZero::Point { x: 25.0, y: 10.5 };
     assert_eq!(
         xy_zero_text(&job),
         "25 mm right of and 10.5 mm above the stock's bottom left corner"
     );
-    job.machine.work_zero = WorkZero::Point { x: 0.0, y: 40.0 };
+    *job.work_zero_mut() = WorkZero::Point { x: 0.0, y: 40.0 };
     assert_eq!(
         xy_zero_text(&job),
         "40 mm above the stock's bottom left corner"
     );
-    job.machine.work_zero = WorkZero::Point { x: -5.0, y: 0.0 };
+    *job.work_zero_mut() = WorkZero::Point { x: -5.0, y: 0.0 };
     assert_eq!(
         xy_zero_text(&job),
         "5 mm left of the stock's bottom left corner (outside the stock)"
     );
     // A centred stock: the drawing origin is its centre.
-    job.stock.origin = StockOrigin::Center;
-    job.machine.work_zero = WorkZero::DrawingOrigin {};
+    job.stock_mut().origin = StockOrigin::Center;
+    *job.work_zero_mut() = WorkZero::DrawingOrigin {};
     assert_eq!(
         xy_zero_text(&job),
         "150 mm right of and 100 mm above the stock's bottom left corner"
     );
-    job.machine.work_zero = WorkZero::Point { x: 0.0, y: -120.0 };
+    *job.work_zero_mut() = WorkZero::Point { x: 0.0, y: -120.0 };
     assert_eq!(
         xy_zero_text(&job),
         "150 mm right of and 20 mm below the stock's bottom left corner (outside the stock)"
@@ -187,8 +187,8 @@ fn the_zero_is_said_in_words_on_the_stock() {
 #[test]
 fn z_zero_on_the_spoilboard_is_said_so() {
     let mut job = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
-    job.stock.z_zero = ZZero::Bottom;
-    job.machine.safe_z += job.stock.thickness;
+    job.stock_mut().z_zero = ZZero::Bottom;
+    job.machine.safe_z += job.stock().thickness;
     let result = run_job(&job).unwrap();
     let sheet = setup_sheet(&job, &result, Path::new("part.nc"), &info("two_tools"));
     assert!(sheet.contains("the bottom of the stock (the spoilboard)"));

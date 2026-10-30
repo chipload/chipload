@@ -119,6 +119,9 @@ job-tip-diameter = muss 0 oder mehr und kleiner als der Durchmesser ({ $diameter
 ## Parts
 
 job-no-parts = ein Projekt braucht mindestens ein Teil
+job-no-setups = das Projekt hat keine Aufspannung; es braucht mindestens eine
+job-setup-twice = die Aufspannungs-ID { $id } kommt zweimal vor
+job-no-such-setup = keine Aufspannung { $id } in setups
 job-part-twice = Teil { $id } ist zweimal aufgeführt
 job-part-name-taken = ein anderes Teil heißt bereits "{ $name }"
 # "parts" is a place in the project file.

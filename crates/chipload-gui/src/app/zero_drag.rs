@@ -26,7 +26,7 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         Some(match self.drag.zero {
             Some(drag) if !drag.cancelled => drag.now,
-            _ => edit.settings.machine.work_zero,
+            _ => edit.settings.work_zero(),
         })
     }
 
@@ -65,7 +65,7 @@ impl ChiploadApp {
         if self.focus != Focus::WorkZero {
             return false;
         }
-        let Some(zero) = self.edit.as_ref().map(|e| e.settings.machine.work_zero) else {
+        let Some(zero) = self.edit.as_ref().map(|e| e.settings.work_zero()) else {
             return false;
         };
         self.drag.zero = Some(ZeroDrag {
@@ -126,7 +126,7 @@ impl ChiploadApp {
             return;
         }
         if let Some(edit) = self.edit.as_mut() {
-            edit.settings.machine.work_zero = drag.now;
+            *edit.settings.work_zero_mut() = drag.now;
             self.commit();
         }
     }

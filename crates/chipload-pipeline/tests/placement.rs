@@ -43,8 +43,8 @@ fn drawn_then_imported(name: &str) -> (Job, PathBuf, PathBuf) {
     square_dxf(&dxf, &[("A1", "CUT", 500.0, 400.0, 50.0)]);
     let mut job = empty_project();
     // A fixed board with its corner at the origin: the drawing is placed onto it.
-    job.stock.origin = StockOrigin::BottomLeft;
-    job.stock.fit = None;
+    job.stock_mut().origin = StockOrigin::BottomLeft;
+    job.stock_mut().fit = None;
     job.drawing.shapes.push(Shape {
         construction: false,
         id: 1,
@@ -150,7 +150,7 @@ fn centre_on_the_stock() {
     assert_box(&placed, 2, (125.0, 75.0), (175.0, 125.0));
     // A centred stock: its centre is the drawing origin.
     let mut centred = job.clone();
-    centred.stock.origin = chipload_job::StockOrigin::Center;
+    centred.stock_mut().origin = chipload_job::StockOrigin::Center;
     let (placed, _) = place_drawing(&centred, Move::Center).unwrap();
     assert_box(&placed, 2, (-25.0, -25.0), (25.0, 25.0));
     std::fs::remove_dir_all(dir).unwrap();
@@ -281,9 +281,9 @@ fn start_points_on_the_imported_drawing_move_with_it() {
 #[test]
 fn a_work_zero_at_a_point_stays_and_is_mentioned() {
     let (mut job, _, dir) = drawn_then_imported("work-zero");
-    job.machine.work_zero = WorkZero::Point { x: 500.0, y: 400.0 };
+    *job.work_zero_mut() = WorkZero::Point { x: 500.0, y: 400.0 };
     let (placed, report) = place_drawing(&job, Move::By(1.0, 1.0)).unwrap();
-    assert_eq!(placed.machine.work_zero, job.machine.work_zero);
+    assert_eq!(placed.work_zero(), job.work_zero());
     assert!(
         report.lines.iter().any(|l| l.contains("work zero stays")),
         "{:?}",

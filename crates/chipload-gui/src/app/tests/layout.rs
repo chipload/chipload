@@ -193,22 +193,22 @@ fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     harness.run_steps(3);
     let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
     let old = settings(&harness);
-    assert_eq!(old.stock.fit, None, "the sample's stock is fixed");
-    assert_ne!(old.stock.origin, chipload_job::StockOrigin::Drawing);
+    assert_eq!(old.stock().fit, None, "the sample's stock is fixed");
+    assert_ne!(old.stock().origin, chipload_job::StockOrigin::Drawing);
     assert!(position_shown(&harness));
     harness.get_by_label("Outline + margin").click();
     harness.run_steps(3);
     let fitted = settings(&harness);
     assert_eq!(
-        fitted.stock.fit,
+        fitted.stock().fit,
         Some(chipload_pipeline::DEFAULT_STOCK_MARGIN)
     );
-    assert_eq!(fitted.stock.origin, chipload_job::StockOrigin::Drawing);
+    assert_eq!(fitted.stock().origin, chipload_job::StockOrigin::Drawing);
     harness.get_by_label("Fixed size, centred").click();
     harness.run_steps(3);
     let fixed = settings(&harness);
-    assert_eq!(fixed.stock.fit, None);
-    assert_eq!(fixed.stock.origin, chipload_job::StockOrigin::Drawing);
+    assert_eq!(fixed.stock().fit, None);
+    assert_eq!(fixed.stock().origin, chipload_job::StockOrigin::Drawing);
     assert_eq!(fixed.stock_size(), fitted.stock_size());
     assert_eq!(fixed.stock_bounds(), fitted.stock_bounds());
     assert!(!position_shown(&harness), "centred: no position to choose");

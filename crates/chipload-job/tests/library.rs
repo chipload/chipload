@@ -428,7 +428,7 @@ fn a_machine_profile_lists_what_it_changes() {
 
     assert_eq!(profile.apply(&mut job), messages);
     assert_eq!(job.machine.name.as_deref(), Some("Shapeoko"));
-    assert_eq!(job.stock.max_overcut, 0.3);
+    assert_eq!(job.stock().max_overcut, 0.3);
     assert!(profile.changes(&job).is_empty());
     // A profile saved from the project gives the project back.
     assert_eq!(
@@ -920,8 +920,8 @@ fn the_machine_links_by_uid() {
     // The job values (safe Z, work zero, max overcut) never count
     // (docs/specs/linked-machine.md §2).
     job.machine.safe_z = 20.0;
-    job.machine.work_zero = WorkZero::DrawingOrigin {};
-    job.stock.max_overcut = 0.1;
+    *job.work_zero_mut() = WorkZero::DrawingOrigin {};
+    job.stock_mut().max_overcut = 0.1;
     assert_eq!(machine_link(&library, &job), Link::Same("Shapeoko".into()));
     library.machines[0].spindle = Spindle::Ccw;
     let Link::Differs(name, changes) = machine_link(&library, &job) else {

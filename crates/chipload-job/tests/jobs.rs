@@ -133,7 +133,7 @@ fn pockets_cannot_have_tabs() {
 #[test]
 fn unknown_fields_are_refused() {
     let mut data = lower_job();
-    data["stock"]["colour"] = json!("oak");
+    data["setups"][0]["stock"]["colour"] = json!("oak");
     assert!(parse_job(data, "job.json").is_err());
     // Removed in v6: refused in current files, not ignored.
     let mut data = lower_job();
@@ -144,7 +144,7 @@ fn unknown_fields_are_refused() {
 #[test]
 fn value_constraints_are_checked() {
     let cases: [(&str, Value); 5] = [
-        ("/stock/thickness", json!(0)),
+        ("/setups/0/stock/thickness", json!(0)),
         ("/operations/0/stepover", json!(1.5)),
         ("/operations/0/end_depth", json!(-1)),
         ("/tools/0/diameter", json!(0)),
@@ -174,7 +174,7 @@ fn pocket_fields_parse() {
 fn a_cut_through_the_stock_follows_its_thickness() {
     // docs/specs/job-settings-layout.md §5.
     let mut data = lower_job();
-    data["stock"]["thickness"] = json!(12.0);
+    data["setups"][0]["stock"]["thickness"] = json!(12.0);
     data["operations"][1]["through"] = json!(0.3);
     let job = parse_job(data, "job.json").unwrap();
     assert_eq!(job.operations[1].through(), Some(0.3));
@@ -230,7 +230,7 @@ fn saving_over_a_project_keeps_the_previous_one_as_bak() {
     chipload_job::save_job(&job, &path).unwrap();
     assert!(!bak.exists(), "a first save makes no backup");
     let first = std::fs::read(&path).unwrap();
-    job.stock.thickness += 1.0;
+    job.stock_mut().thickness += 1.0;
     chipload_job::save_job(&job, &path).unwrap();
     assert_eq!(std::fs::read(&bak).unwrap(), first);
     assert_ne!(std::fs::read(&path).unwrap(), first);
@@ -240,7 +240,7 @@ fn saving_over_a_project_keeps_the_previous_one_as_bak() {
     chipload_job::save_job(&job, &blocked).unwrap();
     let before = std::fs::read(&blocked).unwrap();
     std::fs::create_dir_all(dir.join("blocked.chipload.bak")).unwrap();
-    job.stock.thickness += 1.0;
+    job.stock_mut().thickness += 1.0;
     let err = chipload_job::save_job(&job, &blocked)
         .unwrap_err()
         .to_string();
@@ -279,10 +279,10 @@ fn old_version_is_saved_as_current() {
 fn defaults_are_written_explicitly() {
     let job = load_job(&corpus().join("v4/example_job.chipload")).unwrap();
     let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(data["stock"]["origin"], json!("bottom_left"));
-    assert_eq!(data["stock"]["z_zero"], json!("top"));
+    assert_eq!(data["setups"][0]["stock"]["origin"], json!("bottom_left"));
+    assert_eq!(data["setups"][0]["stock"]["z_zero"], json!("top"));
     assert_eq!(
-        data["machine"]["work_zero"],
+        data["setups"][0]["work_zero"],
         json!({"at": "drawing_origin"})
     );
     assert!(
@@ -603,7 +603,7 @@ fn a_file_from_a_newer_chipload_is_refused_by_its_version() {
 fn work_zero_round_trips_and_is_checked() {
     let with_zero = |zero: Value| {
         let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
-        data["machine"]["work_zero"] = zero;
+        data["setups"][0]["work_zero"] = zero;
         data
     };
     for zero in [
@@ -614,19 +614,19 @@ fn work_zero_round_trips_and_is_checked() {
     ] {
         let job = parse_job(with_zero(zero.clone()), "p").unwrap();
         let data: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-        assert_eq!(data["machine"]["work_zero"], zero);
+        assert_eq!(data["setups"][0]["work_zero"], zero);
     }
     // Missing: the drawing origin, written explicitly on save.
     let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
-    data["machine"].as_object_mut().unwrap().remove("work_zero");
+    data["setups"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("work_zero");
     let job = parse_job(data, "p").unwrap();
-    assert_eq!(
-        job.machine.work_zero,
-        chipload_job::WorkZero::DrawingOrigin {}
-    );
+    assert_eq!(job.work_zero(), chipload_job::WorkZero::DrawingOrigin {});
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
     assert_eq!(
-        saved["machine"]["work_zero"],
+        saved["setups"][0]["work_zero"],
         json!({"at": "drawing_origin"})
     );
     for bad in [
@@ -652,7 +652,7 @@ fn v6_to_v7_keeps_machining_as_it_was() {
         .map(|op| op["depth"].clone())
         .collect();
     let current = migrate(v6).unwrap();
-    assert_eq!(current["stock"]["max_overcut"], json!(0.0));
+    assert_eq!(current["setups"][0]["stock"]["max_overcut"], json!(0.0));
     for (op, depth) in current["operations"].as_array().unwrap().iter().zip(depths) {
         assert!(op.get("depth").is_none());
         assert_eq!(op["end_depth"], depth);
@@ -679,8 +679,8 @@ fn depth_and_clearance_rules_are_checked() {
         "start_depth: must be less than end_depth",
     );
     refused(
-        &|d| d["stock"]["max_overcut"] = json!(-1),
-        "stock.max_overcut: must be 0 or more",
+        &|d| d["setups"][0]["stock"]["max_overcut"] = json!(-1),
+        "setups.0.stock.max_overcut: must be 0 or more",
     );
     refused(
         &|d| {
@@ -705,7 +705,7 @@ fn v27_turns_a_profiles_entry_into_a_ramp_angle_and_drops_its_lead() {
     let plunged = &v26["operations"][1];
     assert_eq!(plunged["entry"], json!({"type": "plunge"}));
     assert!(plunged.get("lead").is_some());
-    let current = migrate(v26.clone()).unwrap();
+    let current = as_v33(migrate(v26.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     let op = &current["operations"][1];
     assert_eq!(op["type"], json!("profile"));
@@ -723,7 +723,7 @@ fn v27_turns_a_profiles_entry_into_a_ramp_angle_and_drops_its_lead() {
     let pocket = &current["operations"][0];
     assert_eq!(pocket["entry"]["type"], json!("helix"));
     assert!(pocket["lead"].is_object());
-    let job = parse_job(current, "p").unwrap();
+    let job = parse_job(migrate(v26.clone()).unwrap(), "p").unwrap();
     let Operation::Profile(p) = &job.operations[1] else {
         panic!()
     };
@@ -872,7 +872,7 @@ fn v22_to_v23_links_named_tools_and_the_machine_by_the_uid_of_their_name() {
         assert_eq!(tool.library_uid, tool.name.as_deref().map(uid));
     }
     // Nothing else changes.
-    let mut current = migrate(v22.clone()).unwrap();
+    let mut current = as_v33(migrate(v22.clone()).unwrap());
     without_rotation(&mut current);
     for tool in current["tools"].as_array_mut().unwrap() {
         tool.as_object_mut().unwrap().remove("library_uid");
@@ -893,7 +893,7 @@ fn v22_to_v23_links_named_tools_and_the_machine_by_the_uid_of_their_name() {
 
 #[test]
 fn v21_to_v22_puts_every_operation_in_one_part_with_the_copies() {
-    let mut v21 = lower_job();
+    let mut v21 = as_v33(lower_job());
     // As a v21 file: no parts, copies at the top, the old order name.
     let map = v21.as_object_mut().unwrap();
     map.remove("parts");
@@ -932,8 +932,8 @@ fn part_rules_are_enforced() {
     let two = || {
         let mut data = lower_job();
         data["parts"] = json!([
-            {"id": 1, "name": "lid", "enabled": true, "copies": null},
-            {"id": 2, "name": "box", "enabled": true, "copies": null},
+            {"id": 1, "name": "lid", "enabled": true, "copies": null, "setup": 1},
+            {"id": 2, "name": "box", "enabled": true, "copies": null, "setup": 1},
         ]);
         data["operations"][1]["part"] = json!(2);
         data
@@ -1077,7 +1077,7 @@ fn rotations_are_at_least_0_and_under_360() {
 #[test]
 fn v23_to_v24_makes_quarter_turns_degrees() {
     let v23 = raw("v23/turned_parts.chipload");
-    let mut current = migrate(v23.clone()).unwrap();
+    let mut current = as_v33(migrate(v23.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     let dxfs = current["drawing"]["dxfs"].as_array_mut().unwrap();
@@ -1109,10 +1109,10 @@ fn v23_to_v24_makes_quarter_turns_degrees() {
 #[test]
 fn v24_to_v25_gives_rectangles_sharp_corners() {
     let v24 = raw("v24/rectangle_part.chipload");
-    let mut current = migrate(v24.clone()).unwrap();
+    let mut current = as_v33(migrate(v24.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     assert_eq!(current["drawing"]["shapes"][0]["corner_radius"], json!(0.0));
-    let job = parse_job(current.clone(), "p").unwrap();
+    let job = parse_job(migrate(v24.clone()).unwrap(), "p").unwrap();
     assert!(matches!(
         job.drawing.shapes[0].geometry,
         chipload_job::Geometry::Rectangle { corner_radius, .. } if corner_radius == 0.0
@@ -1128,7 +1128,7 @@ fn v24_to_v25_gives_rectangles_sharp_corners() {
 #[test]
 fn v9_to_v10_changes_nothing_but_the_version() {
     let v9 = raw("v9/turned_part.chipload");
-    let mut current = migrate(v9.clone()).unwrap();
+    let mut current = as_v33(migrate(v9.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1212,7 +1212,7 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
 #[test]
 fn v10_to_v11_gives_a_placement_scale_1() {
     let v10 = raw("v10/vcarve_letters.chipload");
-    let mut current = migrate(v10.clone()).unwrap();
+    let mut current = as_v33(migrate(v10.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1273,7 +1273,7 @@ fn the_scale_is_required_and_in_range() {
 fn v11_to_v12_gives_the_machine_one_file_per_tool() {
     for sample in ["v11/scaled_part.chipload", "v11/two_tools.chipload"] {
         let v11 = raw(sample);
-        let mut current = migrate(v11.clone()).unwrap();
+        let mut current = as_v33(migrate(v11.clone()).unwrap());
         assert_eq!(current["schema_version"], json!(33));
         without_gcode_units(&mut current);
         without_images(&mut current);
@@ -1325,7 +1325,7 @@ fn v12_to_v13_makes_the_adaptive_load_the_stepover() {
     let v12 = raw("v12/adaptive.chipload");
     assert_eq!(v12["operations"][0]["strategy"]["load"], json!(0.1));
     assert_eq!(v12["operations"][0]["stepover"], json!(0.4));
-    let mut current = migrate(v12.clone()).unwrap();
+    let mut current = as_v33(migrate(v12.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1512,6 +1512,27 @@ fn without_dxfs(data: &mut Value) {
     }
 }
 
+/// A current project as it was at v33, before setups (docs/specs/setups.md §6): the
+/// setup's stock back at the top, its zero back in the machine, the parts without a setup. For the older migration tests, which
+/// compare with v33's layout.
+fn as_v33(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    let map = data.as_object_mut().unwrap();
+    let setups = map.remove("setups").unwrap();
+    assert_eq!(setups.as_array().unwrap().len(), 1);
+    map.remove("active_setup");
+    map.insert("stock".into(), setups[0]["stock"].clone());
+    map["machine"]
+        .as_object_mut()
+        .unwrap()
+        .insert("work_zero".into(), setups[0]["work_zero"].clone());
+    for part in map["parts"].as_array_mut().unwrap() {
+        part.as_object_mut().unwrap().remove("setup");
+    }
+    map.insert("schema_version".into(), json!(33));
+    data
+}
+
 fn without_custom_post(data: &mut Value) {
     if let Some(machine) = data["machine"].as_object_mut() {
         machine.remove("custom_post");
@@ -1572,7 +1593,7 @@ fn stripped(data: &Value) -> Value {
 #[test]
 fn v13_to_v14_added_round_corners_which_v26_took_off_again() {
     let v13 = raw("v13/helix_rings.chipload");
-    let mut current = migrate(v13.clone()).unwrap();
+    let mut current = as_v33(migrate(v13.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1590,7 +1611,7 @@ fn v13_to_v14_added_round_corners_which_v26_took_off_again() {
 #[test]
 fn v14_to_v15_keeps_the_built_in_post() {
     let v14 = raw("v14/round_corners.chipload");
-    let mut current = migrate(v14.clone()).unwrap();
+    let mut current = as_v33(migrate(v14.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1626,9 +1647,9 @@ fn a_copied_post_round_trips_and_stray_fields_are_refused() {
 #[test]
 fn every_value_rule_names_its_field() {
     let mut job = load_job(&corpus().join("v14/round_corners.chipload")).unwrap();
-    job.stock.x = 0.0;
-    job.stock.thickness = -1.0;
-    job.stock.max_overcut = -1.0;
+    job.stock_mut().x = 0.0;
+    job.stock_mut().thickness = -1.0;
+    job.stock_mut().max_overcut = -1.0;
     job.tools[0].diameter = 0.0;
     if let Operation::Pocket(p) = &mut job.operations[0] {
         p.feed = 0.0;
@@ -1643,9 +1664,9 @@ fn every_value_rule_names_its_field() {
     }
     let paths: Vec<&str> = problems.iter().map(|p| p.path.as_str()).collect();
     for path in [
-        "stock.x",
-        "stock.thickness",
-        "stock.max_overcut",
+        "setups.0.stock.x",
+        "setups.0.stock.thickness",
+        "setups.0.stock.max_overcut",
         "tools.0.diameter",
         "operations.0.feed",
         "operations.0.stepover",
@@ -1660,7 +1681,7 @@ fn every_value_rule_names_its_field() {
 #[test]
 fn v15_to_v16_keeps_plunged_tabs_straight() {
     let v15 = raw("v15/straight_tabs.chipload");
-    let mut current = migrate(v15.clone()).unwrap();
+    let mut current = as_v33(migrate(v15.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1751,7 +1772,7 @@ fn new_tabs_get_a_flank_that_suits_the_tool() {
 #[test]
 fn v16_to_v17_changes_only_the_version() {
     let v16 = raw("v16/profile_spiral.chipload");
-    let mut current = migrate(v16.clone()).unwrap();
+    let mut current = as_v33(migrate(v16.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_images(&mut current);
@@ -1786,7 +1807,7 @@ fn a_follow_path_round_trips() {
 fn v17_to_v18_changes_only_the_version() {
     for sample in ["v17/follow_path.chipload", "v17/finish_skin.chipload"] {
         let v17 = raw(sample);
-        let mut current = migrate(v17.clone()).unwrap();
+        let mut current = as_v33(migrate(v17.clone()).unwrap());
         assert_eq!(current["schema_version"], json!(33));
         without_gcode_units(&mut current);
         without_images(&mut current);
@@ -1900,7 +1921,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
         "v18/rest.chipload",
     ] {
         let v18 = raw(sample);
-        let mut current = migrate(v18.clone()).unwrap();
+        let mut current = as_v33(migrate(v18.clone()).unwrap());
         assert_eq!(current["schema_version"], json!(33));
         without_gcode_units(&mut current);
         without_images(&mut current);
@@ -1918,7 +1939,7 @@ fn v18_to_v19_adds_an_empty_image_list() {
 #[test]
 fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
     let v19 = raw("v19/image_vcarve.chipload");
-    let mut current = migrate(v19.clone()).unwrap();
+    let mut current = as_v33(migrate(v19.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     without_dxfs(&mut current);
@@ -1938,7 +1959,7 @@ fn v19_to_v20_keeps_images_as_outlines_without_arcs() {
 #[test]
 fn v20_to_v21_makes_the_dxf_the_first_of_a_list() {
     let v20 = raw("v20/scaled_part.chipload");
-    let mut current = migrate(v20.clone()).unwrap();
+    let mut current = as_v33(migrate(v20.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_gcode_units(&mut current);
     let dxf = &current["drawing"]["dxfs"][0];
@@ -2063,9 +2084,9 @@ fn v27_to_v28_says_the_gcode_is_in_mm_and_changes_nothing_else() {
     // docs/specs/surfacing.md, drawing-input.md §5).
     let v27 = raw("v27/text.chipload");
     assert!(v27["machine"].get("gcode_units").is_none());
-    let mut current = migrate(v27.clone()).unwrap();
+    let mut current = as_v33(migrate(v27.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
-    let job = parse_job(current.clone(), "p").unwrap();
+    let job = parse_job(migrate(v27.clone()).unwrap(), "p").unwrap();
     assert_eq!(job.machine.gcode_units, chipload_job::Units::Mm);
     without_gcode_units(&mut current);
     assert_eq!(current, v27);
@@ -2086,7 +2107,7 @@ fn a_machine_without_gcode_units_is_refused_at_28() {
 #[test]
 fn v28_to_v29_changes_only_the_version() {
     let v28 = raw("v28/rest_passes.chipload");
-    let mut current = migrate(v28.clone()).unwrap();
+    let mut current = as_v33(migrate(v28.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     without_format(&mut current);
     current["schema_version"] = json!(28);
@@ -2097,7 +2118,7 @@ fn v28_to_v29_changes_only_the_version() {
 fn v29_to_v30_changes_only_the_version() {
     for sample in ["v29/surface.chipload", "v29/script_text.chipload"] {
         let v29 = raw(sample);
-        let mut current = migrate(v29.clone()).unwrap();
+        let mut current = as_v33(migrate(v29.clone()).unwrap());
         assert_eq!(current["schema_version"], json!(33));
         without_format(&mut current);
         current["schema_version"] = json!(29);
@@ -2115,7 +2136,7 @@ fn v30_to_v31_marks_every_drawing_file_a_dxf() {
         "v29/surface.chipload",
     ] {
         let old = raw(sample);
-        let mut current = migrate(old.clone()).unwrap();
+        let mut current = as_v33(migrate(old.clone()).unwrap());
         assert_eq!(current["schema_version"], json!(33));
         for dxf in current["drawing"]["dxfs"].as_array().unwrap() {
             assert_eq!(dxf["format"], json!("dxf"), "{sample}");
@@ -2225,7 +2246,7 @@ fn a_drawn_shapes_name_round_trips() {
 #[test]
 fn v31_to_v32_changes_only_the_version() {
     let v31 = raw("v31/svg_badge.chipload");
-    let mut current = migrate(v31.clone()).unwrap();
+    let mut current = as_v33(migrate(v31.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     current["schema_version"] = json!(31);
     assert_eq!(current, v31);
@@ -2236,7 +2257,7 @@ fn v31_to_v32_changes_only_the_version() {
 #[test]
 fn v32_to_v33_keeps_the_stock_where_it_was() {
     let v31 = raw("v31/svg_badge.chipload");
-    let current = migrate(v31.clone()).unwrap();
+    let current = as_v33(migrate(v31.clone()).unwrap());
     assert_eq!(current["schema_version"], json!(33));
     assert_eq!(current["stock"], v31["stock"]);
 }
@@ -2292,8 +2313,8 @@ fn a_dropped_work_zero_takes_the_stock_corner_or_origin_it_is_near() {
     );
     // Centred on the drawing, which reaches higher than low: the origin is its own.
     let mut data = lower_job();
-    data["stock"]["origin"] = json!("drawing");
-    data["stock"]["fit"] = json!(10.0);
+    data["setups"][0]["stock"]["origin"] = json!("drawing");
+    data["setups"][0]["stock"]["fit"] = json!(10.0);
     let centred = parse_job(data, "job.json").unwrap();
     assert_ne!(centred.stock_corner_xy(StockCorner::Center), (0.0, 0.0));
     assert_eq!(
@@ -2305,4 +2326,34 @@ fn a_dropped_work_zero_takes_the_stock_corner_or_origin_it_is_near() {
         job.work_zero_at((x + 5.0, y), 1.0),
         WorkZero::Point { x: x + 5.0, y }
     );
+}
+
+/// docs/specs/setups.md §6: schema 34 moves the stock and the work zero into one setup, and
+/// every part is cut in it.
+#[test]
+fn v33_to_v34_moves_the_stock_and_zero_into_one_setup() {
+    let v33 = raw("v33/vcarve_floor.chipload");
+    let current = migrate(v33.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(CURRENT_VERSION));
+    assert!(current.get("stock").is_none());
+    assert!(current["machine"].get("work_zero").is_none());
+    assert_eq!(current["setups"].as_array().unwrap().len(), 1);
+    let setup = &current["setups"][0];
+    assert_eq!(
+        (setup["id"].clone(), setup["name"].clone()),
+        (json!(1), json!("Setup 1"))
+    );
+    assert_eq!(setup["stock"], v33["stock"]);
+    assert_eq!(setup["work_zero"], v33["machine"]["work_zero"]);
+    assert!(
+        current["parts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|p| p["setup"] == json!(1))
+    );
+    // Back to v33's layout, nothing else changed.
+    assert_eq!(as_v33(current), v33);
+    let job = parse_job(migrate(v33).unwrap(), "p").unwrap();
+    assert_eq!(job.active_setup_id(), Some(1));
 }

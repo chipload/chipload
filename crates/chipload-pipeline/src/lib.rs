@@ -806,17 +806,28 @@ pub fn empty_project() -> Job {
             texts: Vec::new(),
             hidden: Vec::new(),
         },
-        stock: Stock {
-            x: DEFAULT_EMPTY_STOCK.0,
-            y: DEFAULT_EMPTY_STOCK.1,
-            thickness: DEFAULT_THICKNESS,
-            max_overcut: DEFAULT_MAX_OVERCUT,
-            // Fitting the drawing is the default (the user, 2026-10-28).
-            origin: StockOrigin::Drawing,
-            fit: Some(DEFAULT_STOCK_MARGIN),
-            material: None,
-            z_zero: ZZero::Top,
-        },
+        setups: vec![chipload_job::Setup {
+            id: 1,
+            name: "Setup 1".into(),
+            enabled: true,
+            stock: Stock {
+                x: DEFAULT_EMPTY_STOCK.0,
+                y: DEFAULT_EMPTY_STOCK.1,
+                thickness: DEFAULT_THICKNESS,
+                max_overcut: DEFAULT_MAX_OVERCUT,
+                // Fitting the drawing is the default (the user, 2026-10-28).
+                origin: StockOrigin::Drawing,
+                fit: Some(DEFAULT_STOCK_MARGIN),
+                material: None,
+                z_zero: ZZero::Top,
+            },
+            // The board's corner the operator touches off on (the user, 2026-10-29;
+            // docs/specs/work-zero-marker.md §7).
+            work_zero: WorkZero::Stock {
+                corner: StockCorner::BottomLeft,
+            },
+        }],
+        active_setup: Some(1),
         machine: Machine {
             name: None,
             library_uid: None,
@@ -826,11 +837,6 @@ pub fn empty_project() -> Job {
             spindle: Spindle::Cw,
             max_feed: None,
             travel: None,
-            // The board's corner the operator touches off on (the user, 2026-10-29;
-            // docs/specs/work-zero-marker.md §7).
-            work_zero: WorkZero::Stock {
-                corner: StockCorner::BottomLeft,
-            },
             tool_change: ToolChange::Files,
             custom_post: None,
         },
@@ -851,6 +857,7 @@ pub fn empty_project() -> Job {
             name: "Part 1".into(),
             enabled: true,
             copies: None,
+            setup: 1,
         }],
         active_part: Some(1),
         operations: Vec::new(),
@@ -863,17 +870,18 @@ pub fn empty_project() -> Job {
 /// Only values that are still the mm defaults change; the project stays in mm.
 pub fn with_inch_defaults(mut job: Job) -> Job {
     let inch = chipload_core::MM_PER_INCH;
-    if job.drawing.shapes.is_empty() && (job.stock.x, job.stock.y) == DEFAULT_EMPTY_STOCK {
-        (job.stock.x, job.stock.y) = (24.0 * inch, 12.0 * inch);
+    if job.drawing.shapes.is_empty() && (job.stock().x, job.stock().y) == DEFAULT_EMPTY_STOCK {
+        job.stock_mut().x = 24.0 * inch;
+        job.stock_mut().y = 12.0 * inch;
     }
-    if job.stock.fit == Some(DEFAULT_STOCK_MARGIN) {
-        job.stock.fit = Some(0.5 * inch);
+    if job.stock().fit == Some(DEFAULT_STOCK_MARGIN) {
+        job.stock_mut().fit = Some(0.5 * inch);
     }
-    if job.stock.thickness == DEFAULT_THICKNESS {
-        job.stock.thickness = 0.75 * inch;
+    if job.stock().thickness == DEFAULT_THICKNESS {
+        job.stock_mut().thickness = 0.75 * inch;
     }
-    if job.stock.max_overcut == DEFAULT_MAX_OVERCUT {
-        job.stock.max_overcut = 0.02 * inch;
+    if job.stock().max_overcut == DEFAULT_MAX_OVERCUT {
+        job.stock_mut().max_overcut = 0.02 * inch;
     }
     if job.machine.safe_z == DEFAULT_SAFE_Z {
         job.machine.safe_z = 0.2 * inch;
@@ -910,10 +918,10 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         texts: Vec::new(),
         hidden: Vec::new(),
     };
-    job.stock.x = x.max(1.0);
-    job.stock.y = y.max(1.0);
-    job.stock.origin = origin;
-    job.stock.fit = Some(DEFAULT_STOCK_MARGIN);
+    job.stock_mut().x = x.max(1.0);
+    job.stock_mut().y = y.max(1.0);
+    job.stock_mut().origin = origin;
+    job.stock_mut().fit = Some(DEFAULT_STOCK_MARGIN);
     job
 }
 

@@ -55,8 +55,9 @@ impl Problem {
         rest.split('.').next()?.parse().ok()
     }
 
-    /// The field within its operation (`feed`, `tabs.width`), or the whole path for the
-    /// rest of the project; empty for an operation as a whole.
+    /// The field within its operation (`feed`, `tabs.width`) or its setup (`stock.x`,
+    /// `work_zero`), or the whole path for the rest of the project; empty for an operation
+    /// as a whole.
     pub fn field(&self) -> &str {
         match self.operation() {
             Some(i) => {
@@ -64,7 +65,15 @@ impl Problem {
                 let rest = self.path.get(prefix.len()..).unwrap_or("");
                 rest.strip_prefix('.').unwrap_or(rest)
             }
-            None => &self.path,
+            // A setup's field as the forms name it, without the setup's place
+            // (docs/specs/setups.md): `stock.x`, `work_zero`.
+            None => match self.path.strip_prefix("setups.") {
+                Some(rest) => match rest.split_once('.') {
+                    Some((index, field)) if index.parse::<usize>().is_ok() => field,
+                    _ => &self.path,
+                },
+                None => &self.path,
+            },
         }
     }
 }

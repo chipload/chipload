@@ -119,6 +119,9 @@ job-tip-diameter = doit être 0 ou plus et inférieur au diamètre ({ $diameter 
 ## Parts
 
 job-no-parts = un projet a besoin d'au moins une pièce
+job-no-setups = le projet n'a aucun montage ; il en faut au moins un
+job-setup-twice = l'id de montage { $id } est utilisé deux fois
+job-no-such-setup = pas de montage { $id } dans setups
 job-part-twice = la pièce { $id } est listée deux fois
 job-part-name-taken = une autre pièce s'appelle « { $name } »
 # "parts" is a place in the project file.

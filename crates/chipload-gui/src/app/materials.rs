@@ -92,7 +92,7 @@ impl ChiploadApp {
             .operations
             .get(i)
             .and_then(|op| op.material())
-            .or(job.stock.material.as_ref())
+            .or(job.stock().material.as_ref())
             .map(|m| m.library_uid.clone())
         else {
             return false;
@@ -153,7 +153,7 @@ impl ChiploadApp {
             let chosen = self
                 .edit
                 .as_ref()
-                .and_then(|e| e.settings.stock.material.as_ref())
+                .and_then(|e| e.settings.stock().material.as_ref())
                 .map(|m| m.library_uid.clone());
             for material in &materials {
                 let mut note = t!(ui, "materials-tool-count", count = material.tools.len());

@@ -35,6 +35,20 @@ fn with(mut base: Value, changes: Value) -> Job {
             base["parts"][0]["copies"] = value.clone();
             continue;
         }
+        // The stock and the work zero belong to the one setup (docs/specs/setups.md §6).
+        if key == "stock" {
+            for (k, v) in value.as_object().unwrap() {
+                base["setups"][0]["stock"][k] = v.clone();
+            }
+            continue;
+        }
+        let mut value = value.clone();
+        if key == "machine"
+            && let Some(zero) = value.as_object_mut().unwrap().remove("work_zero")
+        {
+            base["setups"][0]["work_zero"] = zero;
+        }
+        let value = &value;
         match (base.get_mut(key), value) {
             (Some(Value::Object(target)), Value::Object(update)) => {
                 for (k, v) in update {
@@ -764,8 +778,8 @@ fn temp_dir(name: &str) -> PathBuf {
 fn project_with_profile(dxf: &Path) -> Job {
     let mut job = new_project(chipload_dxf::shapes_from_dxf(dxf, None).unwrap());
     let mut data = serde_json::to_value(&job).unwrap();
-    data["stock"]["x"] = json!(300);
-    data["stock"]["y"] = json!(300);
+    data["setups"][0]["stock"]["x"] = json!(300);
+    data["setups"][0]["stock"]["y"] = json!(300);
     data["operations"] = json!([op(
         json!({"select": {"shapes": [1]}, "end_depth": 3, "step_down": 3})
     )]);
@@ -881,7 +895,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
 
 fn drawn_part_with(work_zero: chipload_job::WorkZero) -> Job {
     let mut job = load_job(&corpus("jobs/v5/drawn_part.chipload")).unwrap();
-    job.machine.work_zero = work_zero;
+    *job.work_zero_mut() = work_zero;
     job
 }
 

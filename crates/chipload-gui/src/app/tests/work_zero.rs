@@ -18,7 +18,7 @@ fn harness() -> Harness<'static, ChiploadApp> {
 }
 
 fn zero(h: &Harness<'_, ChiploadApp>) -> WorkZero {
-    h.state().edit.as_ref().unwrap().settings.machine.work_zero
+    h.state().edit.as_ref().unwrap().settings.work_zero()
 }
 
 /// A drawing point on the screen.
@@ -117,7 +117,7 @@ fn the_work_zero_dropped_away_from_corners_is_a_point_and_alt_leaves_it_free() {
 }
 
 fn zero_of(app: &ChiploadApp) -> WorkZero {
-    app.edit.as_ref().unwrap().settings.machine.work_zero
+    app.edit.as_ref().unwrap().settings.work_zero()
 }
 
 #[test]
@@ -174,7 +174,7 @@ fn work_zero_pictures() {
                 } else {
                     StockCorner::BottomLeft
                 };
-                app.edit.as_mut().unwrap().settings.machine.work_zero = WorkZero::Stock { corner };
+                *app.edit.as_mut().unwrap().settings.work_zero_mut() = WorkZero::Stock { corner };
                 app.commit();
                 app.focus = if name.starts_with("zero-job") {
                     Focus::Job

@@ -627,6 +627,7 @@ impl EditJob {
             name,
             enabled: true,
             copies: None,
+            setup: self.settings.active_setup_id().unwrap_or(1),
         });
         self.settings.active_part = Some(id);
         id
