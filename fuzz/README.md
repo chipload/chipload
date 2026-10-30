@@ -59,12 +59,19 @@ mkdir -p corpus/svg_import && cp ../tests/corpus/svg/*.svg corpus/svg_import/
 cargo +nightly fuzz run svg_import corpus/svg_import -- -max_total_time=900 -timeout=10 -max_len=200000
 ```
 
-Not run yet (added 2026-10-28).
+First run (2026-10-30): out of memory after 113 000 inputs, an elliptic arc from x = 3e62
+that usvg split into ten billion curves (see *Found so far*).
 
 ## Found so far
 
 DXF:
 - `huge_coordinate.dxf` (2026-10-13): a 127-digit coordinate overflowed the contour
   joining's grid. Entities past `MAX_COORDINATE_MM` (1 km) are now skipped and reported.
+
+SVG:
+- An arc to x = 3e62 (2026-10-30): usvg splits an arc into cubic curves by its radius,
+  ten billion of them here, and ran out of memory. Numbers beyond `MAX_NUMBER` (1e9) in an
+  element's geometry are refused before usvg reads the file (a test in chipload-svg keeps
+  the case).
 
 `corpus/`, `artifacts/` and `target/` are local and not committed.

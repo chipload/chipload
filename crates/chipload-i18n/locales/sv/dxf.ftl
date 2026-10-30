@@ -55,7 +55,7 @@ dxf-ring-no-area = omsluter ingen yta
 
 # $path is the file; $reason the operating system's or the DXF reader's own words, or one
 # of the texts below.
-dxf-error-unreadable = Kan inte läsa DXF:en { $path }: { $reason }
+dxf-error-unreadable = Kan inte läsa { $path }: { $reason }
 dxf-error-parser-crashed = DXF-läsaren kraschade på den här filen
 # $scale is a factor without a unit.
 dxf-error-scale = kan inte importera i skala { $scale }

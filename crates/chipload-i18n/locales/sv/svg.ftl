@@ -7,6 +7,7 @@ svg-error-needs-scale = SVG-filen anger ingen verklig storlek (bara pixlar): vä
 svg-error-scale = skalan eller pixlarna per tum måste vara större än 0, fick { $got }
 svg-error-too-many = SVG-filen har { $count } former, fler än { $most }
 svg-error-far-out = { $element } har en punkt som inte är ett tal eller ligger mer än { $most } från origo
+svg-error-huge-number = { $element } har ett tal över { $most } i filens egna enheter
 svg-px-chosen = SVG-filen anger ingen verklig storlek; läst med { $px } pixlar per tum, som valt
 svg-text-left-out = { $count ->
     [one] 1 text utelämnad

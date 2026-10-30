@@ -136,6 +136,11 @@ as it does in the editor. *Implemented:* H is usvg's page height, which it alway
   before parsing.
 - Non-finite or enormous coordinates (beyond ±10 km after scaling) refused with the
   element's id.
+- **Numbers beyond 1e9** in an element's geometry (`d`, `points`, positions and sizes,
+  `viewBox`, `transform`), in the file's own units, refused with the element's id or tag
+  before usvg reads the file (added 2026-10-30, found by fuzzing): usvg splits an elliptic
+  arc into about the sixth root of its radius of cubic curves, so an arc reaching 3e62 ran
+  out of memory, which no `catch_unwind` stops. At 1e9 it is about fifty.
 - Degenerate pieces (zero length, collapsed curves) dropped and counted, never silently.
 
 ## 10. Command line and window

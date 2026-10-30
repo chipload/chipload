@@ -8,6 +8,7 @@ svg-error-needs-scale = the SVG gives no real size (only pixels): choose its pix
 svg-error-scale = the scale or pixels per inch must be more than 0, got { $got }
 svg-error-too-many = the SVG has { $count } shapes, more than { $most }
 svg-error-far-out = { $element } has a point that is not a number or lies more than { $most } from the origin
+svg-error-huge-number = { $element } has a number beyond { $most } in the file's own units
 svg-px-chosen = the SVG gives no real size; read at { $px } pixels per inch, as chosen
 svg-text-left-out = { $count ->
     [one] 1 text left out

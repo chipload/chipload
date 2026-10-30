@@ -52,7 +52,7 @@ dxf-ring-no-area = encloses no area
 
 # $path is the file; $reason the operating system's or the DXF reader's own words, or one
 # of the texts below.
-dxf-error-unreadable = Cannot read DXF { $path }: { $reason }
+dxf-error-unreadable = Cannot read { $path }: { $reason }
 dxf-error-parser-crashed = the DXF parser crashed on this file
 # $scale is a factor without a unit.
 dxf-error-scale = can't import at scale { $scale }

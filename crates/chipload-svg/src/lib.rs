@@ -31,6 +31,32 @@ pub const MAX_DEPTH: usize = 256;
 pub const MAX_SHAPES: usize = 200_000;
 /// The farthest a point may lie from the origin after scaling, mm (10 km).
 pub const MAX_COORDINATE_MM: f64 = 10_000_000.0;
+/// The largest number read in an element's geometry, in the file's own units, before any
+/// transform. An elliptic arc is split into cubic curves before Chipload sees it, about
+/// the sixth root of its radius of them: around fifty at this size, ten billion (out of
+/// memory) for a radius of 1e62 (found by fuzzing, 2026-10-30).
+pub const MAX_NUMBER: f64 = 1.0e9;
+/// The attributes whose numbers [`MAX_NUMBER`] bounds: the geometry of shapes, the view
+/// box and transforms.
+const GEOMETRY: [&str; 17] = [
+    "d",
+    "points",
+    "x",
+    "y",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "cx",
+    "cy",
+    "r",
+    "rx",
+    "ry",
+    "width",
+    "height",
+    "viewBox",
+    "transform",
+];
 /// CSS pixels per inch: what usvg converts real units to.
 pub const CSS_PX_PER_INCH: f64 = 96.0;
 
@@ -58,6 +84,8 @@ pub enum SvgError {
     TooMany(usize),
     /// A point of this element is not a number or lies beyond [`MAX_COORDINATE_MM`].
     FarOut(String),
+    /// A number in this element's geometry is beyond [`MAX_NUMBER`].
+    HugeNumber(String),
 }
 
 impl SvgError {
@@ -82,6 +110,9 @@ impl SvgError {
             SvgError::FarOut(key) => Message::new("svg-error-far-out")
                 .arg("element", Value::Text(key.clone()))
                 .arg("most", Value::Length(MAX_COORDINATE_MM, Digits::Shortest)),
+            SvgError::HugeNumber(key) => Message::new("svg-error-huge-number")
+                .arg("element", Value::Text(key.clone()))
+                .arg("most", Value::Number(MAX_NUMBER, Digits::Shortest)),
         }
     }
 }
@@ -163,6 +194,7 @@ pub fn read_svg(
     .map_err(|_| SvgError::Crashed)?
     .map_err(|e| SvgError::Unreadable(e.to_string()))?;
     check_depth(&doc)?;
+    check_numbers(&doc)?;
     let scan = scan(&doc);
     let px_per_inch = if scan.units_in_file {
         CSS_PX_PER_INCH
@@ -241,6 +273,69 @@ fn check_depth(doc: &roxmltree::Document<'_>) -> Result<(), SvgError> {
         }
     }
     Ok(())
+}
+
+/// Every number in the elements' geometry is within [`MAX_NUMBER`], checked before usvg
+/// reads them.
+fn check_numbers(doc: &roxmltree::Document<'_>) -> Result<(), SvgError> {
+    for node in doc.descendants().filter(roxmltree::Node::is_element) {
+        for name in GEOMETRY {
+            let Some(value) = node.attribute(name) else {
+                continue;
+            };
+            if numbers(value).any(|v| !v.is_finite() || v.abs() > MAX_NUMBER) {
+                let key = node
+                    .attribute("id")
+                    .unwrap_or(node.tag_name().name())
+                    .to_string();
+                return Err(SvgError::HugeNumber(key));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The numbers in an attribute's text, as SVG writes them: an optional sign, digits with
+/// an optional point, an optional exponent. Anything else separates them.
+fn numbers(text: &str) -> impl Iterator<Item = f64> + '_ {
+    let bytes = text.as_bytes();
+    let mut i = 0;
+    std::iter::from_fn(move || {
+        let digits = |mut k: usize| {
+            while k < bytes.len() && bytes[k].is_ascii_digit() {
+                k += 1;
+            }
+            k
+        };
+        while i < bytes.len() {
+            let starts = bytes[i].is_ascii_digit()
+                || (bytes[i] == b'.' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit));
+            if !starts {
+                i += 1;
+                continue;
+            }
+            let signed = i > 0 && matches!(bytes[i - 1], b'-' | b'+');
+            let start = if signed { i - 1 } else { i };
+            let mut end = digits(i);
+            if end < bytes.len() && bytes[end] == b'.' {
+                end = digits(end + 1);
+            }
+            if end < bytes.len() && matches!(bytes[end], b'e' | b'E') {
+                let mut k = end + 1;
+                if k < bytes.len() && matches!(bytes[k], b'-' | b'+') {
+                    k += 1;
+                }
+                if k < bytes.len() && bytes[k].is_ascii_digit() {
+                    end = digits(k);
+                }
+            }
+            i = end;
+            if let Ok(v) = text[start..end].parse::<f64>() {
+                return Some(v);
+            }
+        }
+        None
+    })
 }
 
 /// What the XML itself says: real units, Inkscape layers (group id -> label), and what

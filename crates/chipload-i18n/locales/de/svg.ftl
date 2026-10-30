@@ -7,6 +7,7 @@ svg-error-needs-scale = das SVG hat keine echte Größe (nur Pixel): wählen Sie
 svg-error-scale = der Maßstab oder die Pixel pro Zoll müssen größer als 0 sein, ist { $got }
 svg-error-too-many = das SVG hat { $count } Formen, mehr als { $most }
 svg-error-far-out = { $element } hat einen Punkt, der keine Zahl ist oder mehr als { $most } vom Ursprung entfernt liegt
+svg-error-huge-number = { $element } hat eine Zahl über { $most } in den Einheiten der Datei
 svg-px-chosen = das SVG hat keine echte Größe; gelesen mit { $px } Pixeln pro Zoll, wie gewählt
 svg-text-left-out = { $count ->
     [one] 1 Text ausgelassen

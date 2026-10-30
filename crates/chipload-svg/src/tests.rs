@@ -227,10 +227,27 @@ fn hostile_files_are_refused_never_crash() {
         read_svg(bomb.as_bytes(), None, 1.0),
         Err(SvgError::Unreadable(_))
     ));
-    let far = page(10.0, 10.0, r#"<path id="far" d="M 0 0 L 1e19 0"/>"#);
+    // A point beyond 10 km once scaled.
+    let far = page(10.0, 10.0, r#"<path id="far" d="M 0 0 L 1e8 0"/>"#);
     assert_eq!(
-        read_svg(far.as_bytes(), None, 1.0),
+        read_svg(far.as_bytes(), None, 1e6),
         Err(SvgError::FarOut("far".into()))
+    );
+    // A number beyond MAX_NUMBER is refused before usvg reads it: an arc from x = 3e62
+    // was split into ten billion curves, out of memory (found by fuzzing, 2026-10-30).
+    let huge = page(
+        100.0,
+        60.0,
+        r#"<path d="M 10 10 Q 95 30 3333333333333333333333333333333333333333333333333333333333333390 50 A 20 10 30 1 0 10 50 Z"/>"#,
+    );
+    assert_eq!(
+        read_svg(huge.as_bytes(), None, 1.0),
+        Err(SvgError::HugeNumber("path".into()))
+    );
+    let tiny_points = page(10.0, 10.0, r#"<polygon id="p" points="0,0 -2e9,1 1,1"/>"#);
+    assert_eq!(
+        read_svg(tiny_points.as_bytes(), None, 1.0),
+        Err(SvgError::HugeNumber("p".into()))
     );
     for junk in [&b"not xml at all"[..], &[0xff, 0xfe, 0x00][..], b"<svg"] {
         assert!(matches!(
@@ -320,4 +337,20 @@ mod properties {
             }
         }
     }
+}
+
+#[test]
+fn numbers_are_read_as_svg_writes_them() {
+    let read = |text: &str| crate::numbers(text).collect::<Vec<f64>>();
+    assert_eq!(read("M10-5.5.5e2L+3E-1"), vec![10.0, -5.5, 50.0, 0.3]);
+    assert_eq!(
+        read("rotate(15 50,30) scale(1.2)"),
+        vec![15.0, 50.0, 30.0, 1.2]
+    );
+    assert_eq!(
+        read("a20 10 30 1 0 1e400 5"),
+        vec![20.0, 10.0, 30.0, 1.0, 0.0, f64::INFINITY, 5.0]
+    );
+    // Not geometry, but harmless: a colour's digits read as a small number.
+    assert_eq!(read("#f00 none"), vec![0.0]);
 }

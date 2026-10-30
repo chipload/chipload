@@ -74,7 +74,7 @@ fn inspect_messy_file_reports_problems() {
 fn inspect_missing_file() {
     let out = chipload(&["inspect", "/nonexistent/part.dxf", "--units", "mm"]);
     assert_eq!(out.status.code(), Some(1));
-    assert!(text(&out.stderr).starts_with("error: Cannot read DXF"));
+    assert!(text(&out.stderr).starts_with("error: Cannot read /nonexistent/part.dxf"));
 }
 
 #[test]
