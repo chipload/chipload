@@ -173,9 +173,20 @@ it's built (see `CLAUDE.md`).
   CI runs on every push to main again since 2026-10-29 (by hand only from 2026-10-27, which let
   platform-dependent pocket G-code through to the 0.28.0 release build).
 
-- **STEP import** (the user, 2026-10-30): import a STEP file, choose an axis (the view
-  to look along), and project the model's curves into the drawing as shapes. Needs a spec
-  and a licence-compatible STEP reader (an ADR); not started.
+- **STEP import** (the user, 2026-10-30): import a STEP file, choose the view direction
+  (top, bottom, left, right, front, back), and bring the model's edges into the drawing as
+  lines and arcs. Ideas for the spec: the faces that face the view (planar, square to it)
+  give closed outlines at their depth, so a pocket's floor could come with its depth;
+  edges seen side-on collapse and are left out; curved edges become arcs where they are
+  circles, else are fitted. Needs a spec and an ADR for the STEP reader (a crate with a
+  GPL-compatible licence that reads AP203/AP214 B-rep, checked against Cargo.lock; or
+  OpenCASCADE, a large C++ dependency). Not started.
+- **Setups on sheets of their own** (the user chose it 2026-10-30, for later;
+  docs/specs/setups.md decision 2's alternative): each setup gets its own coordinates and its
+  parts are placed onto its board, so setups show side by side like PrusaSlicer's plates,
+  the active in colour, the others as ghosts, even when their parts overlap in the drawing
+  (the same outline cut twice, a board turned over). Needs a spec: where a part's shapes
+  are placed per setup, picking and editing in the view, migration from one shared drawing.
 
 In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 
