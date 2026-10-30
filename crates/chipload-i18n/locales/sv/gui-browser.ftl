@@ -31,11 +31,11 @@ browser-surface = Planfräsning
 browser-surface-hover = Hela ämnet planfräst med en bred pinnfräs: plana offerskivan eller planfräs ämnet. Kräver ingen markering
 
 # Job settings and Tools.
-browser-job-settings = Jobbinställningar
-browser-job-settings-hover = Ämne, maskin, postprocessor och verktyg
+browser-job-settings = Maskin
+browser-job-settings-hover = Maskinen: postprocessor, G-kodens enheter, säker höjd, rörelseområde och verktygsbyten, gemensamma för alla uppspänningar
 browser-work-zero = Arbetsnollpunkt
 browser-work-zero-hover = Var G-kodens X0 Y0 Z0 ligger. Klicka för att ställa in den, eller markera den och dra den i vyn.
-browser-job-settings-problems-hover = Ämne, maskin, postprocessor och verktyg. { $count ->
+browser-job-settings-problems-hover = Maskin, postprocessor, enheter och rörelseområde. { $count ->
         [one] { $count } problem
        *[other] { $count } problem
     }
@@ -43,8 +43,6 @@ browser-tools = Verktyg
 browser-tools-hover = Projektets verktyg: klicka för att se alla och lägga till ett
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Detaljer
-browser-parts-hover = Varje detalj fräses med sina kopior före nästa; högerklicka för en ny detalj
 browser-setups = Uppspänningar
 browser-setups-hover = Skivorna projektet fräses ur, den ena efter den andra: var och en ett eget program, med sitt ämne och sin arbetsnollpunkt. Klicka för att göra en aktiv
 browser-add-setup = Lägg till en uppspänning
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } detalj
    *[other] { $count } detaljer
 }
-browser-setup-active-hover = Den aktiva uppspänningen: visas i full färg, simuleras och beräknas. Dess skiva och nollpunkt finns under Jobbinställningar och Arbetsnollpunkt
+browser-setup-active-hover = Den aktiva uppspänningen: visas i full färg, simuleras och beräknas. Klicka för dess skiva; dess arbetsnollpunkt ligger under den
 browser-setup-hover = Klicka för att göra den till aktiv uppspänning: visas, simuleras och beräknas
 browser-move-to-setup = Flytta till uppspänning
 browser-new-part = Ny detalj

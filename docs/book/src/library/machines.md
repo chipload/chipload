@@ -17,7 +17,7 @@ Your profiles are under **This computer > Machines** in the [Browser](../window.
 - **Click a profile** to edit it in Properties; **Save** writes it.
 - **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 
-In Job settings > Machine:
+In Machine:
 - **Use profile…** applies a profile to the project: all its values.
 - **While the project's machine is the same as its profile**, the machine's values (post,
   spindle, max feed, tool changes, travel) are shown greyed under "From machine

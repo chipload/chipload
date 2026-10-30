@@ -10,7 +10,7 @@ stock top, whatever the [Z zero](stock.md#stock) is.
   last pass is exactly at the end depth. Start 2, end 6, step down 2 gives passes at 4 and
   6 mm.
 - **Cutting through:** an end depth below the stock bottom goes into the spoilboard. That's
-  allowed up to *Max depth below stock* (Job settings), with a warning; deeper is refused,
+  allowed up to *Max depth below stock* (the setup's Stock), with a warning; deeper is refused,
   so a typo can't reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
   0.3 mm into the spoilboard.
 - **Through:** tick **Through** next to the end depth of a profile, pocket, follow path or

@@ -22,6 +22,10 @@ writes the active setup's program named `-S<id>` with its sheet, and says to exp
 others in turn: planning every setup at once would block the window (to iterate on).
 Fixed on the way: every operation is checked against its own setup's board, and safe Z
 against the highest board.
+Then (the user, 2026-10-30): the Browser always shows *Setups*, each with its *Work zero*
+and its parts as leaves; a setup's properties hold its name, on/off, the Stock (with max
+depth below stock) and Material sections and the zero's line; *Job settings* keeps the
+machine and is renamed *Machine*. Another setup's form offers to make it active first.
 
 ## 1. Why
 
@@ -176,7 +180,9 @@ mirrored geometry, registration holes and a check that the two sides agree.
    have keep working. Alternative: only the new paths.
 6. **The window shows setups only when there are two or more.** **Recommended:** a
    one-board project, the usual case, stays as simple as today. Alternative: always show the
-   Setups level.
+   Setups level. *Changed by the user after trying it, 2026-10-30: setups always, even one,
+   with the parts beneath them as leaves; the stock, material and zero move from Job
+   settings into the setup, and Job settings, the machine alone, is renamed Machine.*
 7. **Order of work** (each step a commit, the goldens unchanged until step 3):
    1. the model, migration 33 → 34, validation, `get`/`set` aliases;
    2. planning, checking and running per setup; file names; `setup` commands; `--setup`;

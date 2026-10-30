@@ -9,11 +9,12 @@ outside profile. The same steps follow in the app and on the command line.
    - If the DXF doesn't say whether it's in mm or inches, Chipload asks. It never guesses.
    - The report under the canvas lists what was imported, and anything skipped or
      repaired: duplicate lines, gaps it closed, splines turned into arcs.
-2. **Check the job settings:** click **Job settings** in the [Browser](window.md#the-browser)
-   on the left. A new project starts with:
+2. **Check the setup and the machine:** click **Setup 1** under *Setups* in the
+   [Browser](window.md#the-browser) on the left for the board, and **Machine** for the
+   machine. A new project starts with:
    - stock just covering the drawing, 10 mm thick;
    - [work zero](concepts/stock.md#work-zero) at the stock's bottom-left corner, Z zero
-     on the stock top (the *Work zero* row under Job settings; drag it in the view to move
+     on the stock top (the *Work zero* row under the setup; drag it in the view to move
      it);
    - the GRBL post, a safe height of 5 mm;
    - a 6 mm endmill at 18 000 rpm.
@@ -30,7 +31,7 @@ outside profile. The same steps follow in the app and on the command line.
    - **Side:** Chipload picks *outside* for an outline and *inside* for holes, and asks
      when a selection mixes both.
    - **End depth:** for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
-     spoilboard. More than the allowed overcut (0.5 mm by default, under Job settings) is
+     spoilboard. More than the allowed overcut (0.5 mm by default, in the setup's Stock) is
      refused.
    - **Step down:** how deep each pass goes.
    - **Tabs:** they keep the part from coming loose on the last pass. Add them under

@@ -29,7 +29,7 @@ Operations run in the list's order. A run of operations next to each other with 
 tool is a **tool group**, and between groups the tool changes. The Browser draws a
 line at each change.
 
-**Tool changes** (Job settings > Machine) says how a job with several tools is written:
+**Tool changes** (Machine) says how a job with several tools is written:
 - **One file per tool:** `part-1-T1.nc`, `part-2-T3.nc`, … Change the tool by hand
   between files, set Z zero with the new tool, and keep X and Y zero. Every post can do
   this.

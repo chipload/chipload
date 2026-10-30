@@ -189,7 +189,8 @@ fn position_shown(harness: &Harness<'_, ChiploadApp>) -> bool {
 #[test]
 fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     let mut harness = harness("en", WINDOW);
-    harness.state_mut().focus = Focus::Job;
+    // The board is the setup's (docs/specs/setups.md §7).
+    harness.state_mut().focus = Focus::Setup(1);
     harness.run_steps(3);
     let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
     let old = settings(&harness);
@@ -287,12 +288,12 @@ fn a_project_started_empty_can_add_a_drawing_file() {
     assert!(!settings.drawing.shapes.is_empty());
 }
 
-/// Job settings in the order a job is set up (docs/specs/job-settings-layout.md §2): the
-/// zero reads from its section's summary line, and the machine, set once, starts closed.
+/// A setup's properties: its zero reads from a summary line that opens it, then its board;
+/// the machine is in Machine settings (docs/specs/setups.md §7, job-settings-layout.md §2).
 #[test]
 fn job_settings_show_the_zero_and_keep_the_machine_closed() {
     let mut harness = harness("en", WINDOW);
-    harness.state_mut().focus = Focus::Job;
+    harness.state_mut().focus = Focus::Setup(1);
     harness.run_steps(3);
     assert!(
         harness
@@ -300,10 +301,10 @@ fn job_settings_show_the_zero_and_keep_the_machine_closed() {
             .is_some()
     );
     assert!(harness.query_by_label("Thickness").is_some());
-    assert!(harness.query_by_label("Post").is_none(), "machine closed");
-    harness.get_by_label_contains("safe Z").click();
-    harness.run_steps(3);
-    assert!(harness.query_by_label("Post").is_some());
+    assert!(
+        harness.query_by_label("Post").is_none(),
+        "the machine is elsewhere"
+    );
     // The zero's line opens its own properties (docs/specs/work-zero-marker.md §4).
     harness
         .get_by_label("X0 Y0 drawing origin · Z0 stock top")

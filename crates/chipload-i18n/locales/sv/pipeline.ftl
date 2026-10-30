@@ -121,7 +121,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = Ritningen (X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }) sträcker sig utanför ämnet ({ $width } × { $length }); kontrollera ämnet under Jobbinställningar.
+pipeline-stock-fit = Ritningen (X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }) sträcker sig utanför ämnet ({ $width } × { $length }); kontrollera uppspänningens ämne.
 
 ## Placing a DXF: moving, turning and scaling it
 

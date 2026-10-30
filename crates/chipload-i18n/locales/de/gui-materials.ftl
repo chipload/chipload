@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } Material
    *[other] { $count } Materialien
 } in Ihrer Bibliothek.
-materials-about = Jedes Material hält Ihre eigenen Werte für die Werkzeuge, die Sie damit verwenden. Tragen Sie sie hier ein oder mit In … speichern bei einer Bearbeitung, die gut geschnitten hat. Wählen Sie eines je Bearbeitung, unter ihrem Werkzeug, oder für das ganze Projekt in den Jobeinstellungen.
+materials-about = Jedes Material hält Ihre eigenen Werte für die Werkzeuge, die Sie damit verwenden. Tragen Sie sie hier ein oder mit In … speichern bei einer Bearbeitung, die gut geschnitten hat. Wählen Sie eines je Bearbeitung, unter ihrem Werkzeug, oder für eine ganze Aufspannung, in ihren Eigenschaften.
 materials-gone = Dieses Material ist nicht mehr in Ihrer Bibliothek.
 materials-entry-about = Ihre Werte für dieses Material, je Bibliothekswerkzeug. Eine Bearbeitung mit diesem Material schneidet damit.
 materials-name = Name

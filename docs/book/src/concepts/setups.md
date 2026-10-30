@@ -33,15 +33,16 @@ them (`part-S2-sheet.html`). `run` writes every setup that is on; `--setup N` on
 
 ## In the window
 
-A project with one setup looks as it always did. Right-click **Parts** in the Browser and
-choose **Add a setup** for another board: it starts like the active one, with a part of its
-own, and both become active.
+The Browser shows **Setups**, always, each with its **Work zero** and its parts beneath it.
+Click a setup for its properties: its name, its board (Stock and Material) and where its zero
+is. Right-click *Setups* or a setup for **Add a setup**, another board: it starts like the
+active one, with a part of its own, and both become active. Right-click a setup for **New
+part** in it.
 
-With two or more, the Browser shows **Setups**. Click one to make it the **active setup**:
-it is shown in full colour, generated, simulated and exported, while the other boards and
-their shapes are ghosts, faint and out of the way. Its form has its name, its on/off tick,
-and *Open* buttons to its board (Job settings) and its work zero. Each part's row says which
-setup it is in; right-click a part for **Move to setup ▸**.
+With two or more, the setup you click is the **active setup**: it is shown in full colour,
+generated, simulated and exported, while the other boards and their shapes are ghosts, faint
+and out of the way. Right-click a part for **Move to setup ▸**. The machine, shared by every
+setup, is under **Machine**.
 
 **Export G-code** writes the active setup's program, named `-S1`, `-S2` as `run` names them,
 with its own sheet. Make the next setup active and export it too. A setup whose parts still

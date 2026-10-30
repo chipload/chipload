@@ -114,7 +114,7 @@ menu-status-units-hover = Lengths are shown in these (View > Units)
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = grid { $step }
 menu-status-grid-hover = The grid's step: clicks while drawing snap to it (G hides it)
-menu-status-post-hover = The post-processor (Job settings > Machine)
+menu-status-post-hover = The post-processor (Machine)
 # Pieces in all, from every part that is cut.
 menu-status-pieces = { $count ->
     [one] { $count } piece

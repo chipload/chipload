@@ -31,11 +31,11 @@ browser-surface = Planeado
 browser-surface-hover = Todo el material en bruto rebajado en plano con una fresa ancha: aplanar el tablero de sacrificio o planear el material. No necesita selección
 
 # Job settings and Tools.
-browser-job-settings = Ajustes del trabajo
-browser-job-settings-hover = Material en bruto, máquina, postprocesador y herramientas
+browser-job-settings = Máquina
+browser-job-settings-hover = La máquina: su postprocesador, las unidades del G-code, la Z segura, los recorridos y los cambios de herramienta, comunes a todas las sujeciones
 browser-work-zero = Cero pieza
 browser-work-zero-hover = Dónde está el X0 Y0 Z0 del código G. Haga clic para ajustarlo, o selecciónelo y arrástrelo en la vista.
-browser-job-settings-problems-hover = Material en bruto, máquina, postprocesador y herramientas. { $count ->
+browser-job-settings-problems-hover = Máquina, postprocesador, unidades y recorridos. { $count ->
         [one] { $count } problema
        *[other] { $count } problemas
     }
@@ -43,8 +43,6 @@ browser-tools = Herramientas
 browser-tools-hover = Las herramientas del proyecto: haz clic para verlas todas y añadir una
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Piezas
-browser-parts-hover = Cada pieza se corta con sus copias antes de la siguiente; clic derecho para una pieza nueva
 browser-setups = Sujeciones
 browser-setups-hover = Los tableros de los que se corta el proyecto, uno tras otro: cada uno un programa propio, con su material en bruto y su cero pieza. Un clic lo hace activo
 browser-add-setup = Añadir una sujeción
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } pieza
    *[other] { $count } piezas
 }
-browser-setup-active-hover = La sujeción activa: se muestra a todo color, se simula y se calcula. Su tablero y su cero están en Ajustes del trabajo y Cero pieza
+browser-setup-active-hover = La sujeción activa: se muestra a todo color, se simula y se calcula. Un clic muestra su tablero; su cero está debajo
 browser-setup-hover = Un clic la hace la sujeción activa: se muestra, se simula y se calcula
 browser-move-to-setup = Mover a la sujeción
 browser-new-part = Pieza nueva

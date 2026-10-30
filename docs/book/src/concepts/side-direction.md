@@ -19,7 +19,7 @@ one. It never guesses which side is waste.
 - **Conventional:** the edge enters at zero chip thickness. It is gentler on machines with
   backlash.
 
-**What it means for the path.** With the spindle turning clockwise (M3, Job settings >
+**What it means for the path.** With the spindle turning clockwise (M3,
 Machine > Spindle):
 - climb goes **clockwise** round an outside profile and an island;
 - climb goes **counter-clockwise** round an inside profile and a pocket's walls.

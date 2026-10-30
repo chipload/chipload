@@ -123,7 +123,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = The drawing (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }) extends beyond the stock ({ $width } × { $length }); check the stock under Job settings.
+pipeline-stock-fit = The drawing (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }) extends beyond the stock ({ $width } × { $length }); check the setup's stock.
 
 ## Placing a DXF: moving, turning and scaling it
 

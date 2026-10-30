@@ -123,7 +123,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = El dibujo (X{ $x0 } a { $x1 }, Y{ $y0 } a { $y1 }) se sale del material en bruto ({ $width } × { $length }); revisa el material en bruto en Ajustes del trabajo.
+pipeline-stock-fit = El dibujo (X{ $x0 } a { $x1 }, Y{ $y0 } a { $y1 }) se sale del material en bruto ({ $width } × { $length }); revisa el material en bruto de la sujeción.
 
 ## Placing a DXF: moving, turning and scaling it
 

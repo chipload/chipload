@@ -2,7 +2,7 @@
 
 - **Millimetres inside.** Chipload works in mm throughout: the project and the toolpath.
   A drawing in inches is converted once, on import.
-- **G-code in mm or inches.** *G-code units* (Job settings > Machine) says what the program
+- **G-code in mm or inches.** *G-code units* (Machine) says what the program
   is written in: **mm** (`G21`, the default) or **inch** (`G20`), as your controller is set.
   In inches every coordinate, arc centre and feed (in/min) is converted as the program is
   written, with 4 decimals, and the header says so. The project itself stays in mm. The checker reads the program in its own units and refuses one in

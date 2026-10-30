@@ -16,12 +16,12 @@ app-old-schema = Diese Datei hat Schemaversion { $version }; beim Speichern wird
 app-new-project = Neues Projekt.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Begonnen mit { $what }.
-app-new-project-next = Zeichnen Sie Formen über das Menü Zeichnen, oder holen Sie eine Zeichnung mit „DXF oder SVG zum Projekt hinzufügen“ dazu. Prüfen Sie Rohteil und Maschine unter Jobeinstellungen und das Werkzeug unter Werkzeuge.
+app-new-project-next = Zeichnen Sie Formen über das Menü Zeichnen, oder holen Sie eine Zeichnung mit „DXF oder SVG zum Projekt hinzufügen“ dazu. Prüfen Sie die Platte unter der Aufspannung, die Maschine unter Maschine und das Werkzeug unter Werkzeuge.
 app-units-missing = { $file } gibt keine Einheiten an; wählen Sie mm oder Zoll.
 app-px-missing = { $file } gibt seine Größe nur in Pixeln an; wählen Sie die Pixel pro Zoll.
 app-cannot-import = { $file } kann nicht importiert werden:
 app-new-project-from = Neues Projekt aus { $file } ({ $shapes } Formen).
-app-import-next = Wählen Sie Konturen, dann Neu: Konturfräsen oder Neue Tasche. Prüfen Sie Rohteil und Maschine unter Jobeinstellungen und das Werkzeug unter Werkzeuge.
+app-import-next = Wählen Sie Konturen, dann Neu: Konturfräsen oder Neue Tasche. Prüfen Sie die Platte unter der Aufspannung, die Maschine unter Maschine und das Werkzeug unter Werkzeuge.
 
 # Followed by the list of problems.
 app-project-incomplete = Das Projekt ist nicht vollständig:

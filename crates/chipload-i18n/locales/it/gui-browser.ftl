@@ -31,11 +31,11 @@ browser-surface = Spianatura
 browser-surface-hover = Tutto il grezzo abbassato in piano con una fresa larga: spiana il piano di sacrificio o il grezzo. Non serve selezione
 
 # Job settings and Tools.
-browser-job-settings = Impostazioni lavoro
-browser-job-settings-hover = Grezzo, macchina, post-processore e utensili
+browser-job-settings = Macchina
+browser-job-settings-hover = La macchina: il suo post-processore, le unità del G-code, la Z di sicurezza, le corse e i cambi utensile, comuni a tutti i piazzamenti
 browser-work-zero = Zero pezzo
 browser-work-zero-hover = Dove si trova X0 Y0 Z0 del G-code. Fai clic per impostarlo, oppure selezionalo e trascinalo nella vista.
-browser-job-settings-problems-hover = Grezzo, macchina, post-processore e utensili. { $count ->
+browser-job-settings-problems-hover = Macchina, post-processore, unità e corse. { $count ->
         [one] { $count } problema
        *[other] { $count } problemi
     }
@@ -43,8 +43,6 @@ browser-tools = Utensili
 browser-tools-hover = Gli utensili del progetto: fai clic per vederli tutti e aggiungerne uno
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Pezzi
-browser-parts-hover = Ogni pezzo viene lavorato con le sue copie prima del successivo; clic destro per un nuovo pezzo
 browser-setups = Piazzamenti
 browser-setups-hover = I pannelli da cui si ricava il progetto, uno dopo l'altro: ognuno un programma a sé, con il suo grezzo e il suo zero pezzo. Un clic lo rende attivo
 browser-add-setup = Aggiungi un piazzamento
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } pezzo
    *[other] { $count } pezzi
 }
-browser-setup-active-hover = Il piazzamento attivo: mostrato a colori, simulato e calcolato. Il suo pannello e il suo zero sono in Impostazioni lavoro e Zero pezzo
+browser-setup-active-hover = Il piazzamento attivo: mostrato a colori, simulato e calcolato. Un clic mostra il suo pannello; il suo zero è sotto
 browser-setup-hover = Un clic lo rende il piazzamento attivo: mostrato, simulato e calcolato
 browser-move-to-setup = Sposta nel piazzamento
 browser-new-part = Nuovo pezzo

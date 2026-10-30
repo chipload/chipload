@@ -114,7 +114,7 @@ menu-status-units-hover = Längen werden in diesen Einheiten gezeigt (Ansicht > 
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = Raster { $step }
 menu-status-grid-hover = Die Rasterweite: Klicks beim Zeichnen rasten darauf ein (G blendet es aus)
-menu-status-post-hover = Der Postprozessor (Jobeinstellungen > Maschine)
+menu-status-post-hover = Der Postprozessor (Maschine)
 # Pieces in all, from every part that is cut.
 menu-status-pieces = { $count ->
     [one] { $count } Stück

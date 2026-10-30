@@ -121,7 +121,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = Die Zeichnung (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }) ragt über das Rohteil hinaus ({ $width } × { $length }); prüfen Sie das Rohteil unter Jobeinstellungen.
+pipeline-stock-fit = Die Zeichnung (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }) ragt über das Rohteil hinaus ({ $width } × { $length }); prüfen Sie das Rohteil der Aufspannung.
 
 ## Placing a DXF: moving, turning and scaling it
 

@@ -1606,10 +1606,8 @@ pub(super) enum JobRequest {
     OpenOperation(usize),
     /// Show the work zero's properties (docs/specs/work-zero-marker.md §4).
     OpenWorkZero,
-    /// Setup `id`'s board (Job settings) or its work zero, made the active setup first
-    /// (docs/specs/setups.md §7); remove it.
-    SetupBoard(u64),
-    SetupZero(u64),
+    /// Make setup `id` the active one; remove it (docs/specs/setups.md §7).
+    ActivateSetup(u64),
     RemoveSetup(u64),
     /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
     RemoveRestPass(usize, usize),
@@ -2141,55 +2139,29 @@ pub(super) fn text_form(
 /// Gap the *Set pitch* helper starts with, mm; only an input, never saved.
 const DEFAULT_COPIES_GAP: f64 = 10.0;
 
-/// The job settings: stock, machine and post. The setup sheet is in Preferences
-/// (docs/specs/this-computer.md §3).
+/// The job settings: the machine and its post, what every setup shares. A setup's board,
+/// material and zero are its own (docs/specs/setups.md §7); the setup sheet is in
+/// Preferences (docs/specs/this-computer.md §3).
 pub(super) fn job_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     library: Option<&Library>,
 ) -> Option<JobRequest> {
-    // Sections in the order a job is set up: stock, material, machine
-    // (docs/specs/job-settings-layout.md §2); the zero has its own properties.
     let mut request = None;
-    let mut zero_request = None;
     let mut copies_request = None;
-    let mut material_request = None;
     let title = t!(ui, "forms-job-settings");
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
     let labels = job_label_width(ui);
-    let open = SectionLook { open: true, labels };
     let job = &mut edit.settings;
-    // The zero has its own properties; here where it is, a click away
-    // (docs/specs/work-zero-marker.md §4).
-    let zero = ui
-        .horizontal_wrapped(|ui| {
-            ui.label(t!(ui, "browser-work-zero"));
-            ui.link(zero_summary(ui, job))
-                .on_hover_text(t!(ui, "forms-zero-link-hover"))
-        })
-        .inner;
-    if zero.clicked() {
-        zero_request = Some(JobRequest::OpenWorkZero);
-    }
-    stock_section(ui, job, open);
-    if let Some(library) = library {
-        material_request = material_section(ui, job, library, open);
-    }
     machine_section(
         ui,
         job,
         library,
-        SectionLook {
-            open: false,
-            labels,
-        },
+        SectionLook { open: true, labels },
         &mut request,
         &mut copies_request,
     );
-    zero_request
-        .or(material_request)
-        .or(copies_request)
-        .or(request.map(JobRequest::Library))
+    copies_request.or(request.map(JobRequest::Library))
 }
 
 /// One label column for every Job settings section: as wide as the widest label, within
@@ -2259,6 +2231,15 @@ fn stock_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, look: SectionLo
                 ui.add(mm(&mut job.stock_mut().thickness)),
                 ui,
                 "stock.thickness",
+            );
+            ui.end_row();
+            // The board's own: a setup's (docs/specs/setups.md §7).
+            ui.label(t!(ui, "forms-max-overcut"))
+                .on_hover_text(t!(ui, "forms-max-overcut-hover"));
+            flag(
+                ui.add(mm(&mut job.stock_mut().max_overcut)),
+                ui,
+                "stock.max_overcut",
             );
             ui.end_row();
             // One choice of two: fit the drawing (the usual one, the user 2026-10-28), or
@@ -2635,14 +2616,6 @@ fn machine_section(
                 ui.end_row();
             }
             safe_z_row(ui, &t!(ui, "forms-safe-z-job"), &mut job.machine);
-            ui.label(t!(ui, "forms-max-overcut"))
-                .on_hover_text(t!(ui, "forms-max-overcut-hover"));
-            flag(
-                ui.add(mm(&mut job.stock_mut().max_overcut)),
-                ui,
-                "stock.max_overcut",
-            );
-            ui.end_row();
             if linked {
                 machine_text_rows(ui, &job.machine);
             } else if let Some(post) =
@@ -3021,26 +2994,19 @@ pub(super) fn placement_rows(
 
 /// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the
 /// active part, and its copies.
-/// Setup `id` (docs/specs/setups.md §7): its name, on/off, its board and zero (summaries,
-/// edited in Job settings and Work zero once it is active), its parts.
-pub(super) fn setup_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Option<JobRequest> {
+/// Setup `id` (docs/specs/setups.md §7): its name and on/off, then its board (stock and
+/// material) and where its work zero is, the sections Job settings had before setups. They
+/// edit the active setup, so another setup's form offers to make it active first.
+pub(super) fn setup_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    id: u64,
+    library: Option<&Library>,
+) -> Option<JobRequest> {
     let mut request = None;
-    let units = crate::units::display(ui.ctx());
     let index = edit.settings.setups.iter().position(|s| s.id == id)?;
-    let one = {
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
-        job.for_setup(id)
-    };
-    let (x, y) = one.stock_size();
-    let size = |v: f64| chipload_pipeline::units::length_text(v, units);
-    let board = format!(
-        "{} × {} × {}",
-        size(x),
-        size(y),
-        size(one.stock().thickness)
-    );
-    let zero = work_zero_name(ui, &one.work_zero());
+    let active = edit.settings.active_setup_id() == Some(id);
+    let several = edit.settings.setups.len() > 1;
     let parts: Vec<String> = edit
         .settings
         .parts
@@ -3048,56 +3014,73 @@ pub(super) fn setup_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Opti
         .filter(|p| p.setup == id)
         .map(|p| p.name.clone())
         .collect();
-    let setup = &mut edit.settings.setups[index];
-    super::browser::title_line(
-        ui,
-        crate::icons::Icon::Rectangle,
-        None,
-        &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
-    );
-    let at = |field: &str| format!("setups.{index}.{field}");
-    Grid::new(("setup-form", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-name"));
-            let response =
-                ui.add(TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)));
-            flag(response, ui, &at("name"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-setup-cut"))
-                .on_hover_text(t!(ui, "forms-setup-cut-hover"));
-            ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-setup-board"));
-            ui.horizontal(|ui| {
-                ui.label(&board);
-                if ui.small_button(t!(ui, "forms-open")).clicked() {
-                    request = Some(JobRequest::SetupBoard(id));
+    let labels = job_label_width(ui);
+    let open = SectionLook { open: true, labels };
+    {
+        let setup = &mut edit.settings.setups[index];
+        super::browser::title_line(
+            ui,
+            crate::icons::Icon::Rectangle,
+            None,
+            &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
+        );
+        let at = |field: &str| format!("setups.{index}.{field}");
+        Grid::new(("setup-form", id))
+            .num_columns(2)
+            .min_col_width(labels + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-name"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)),
+                );
+                flag(response, ui, &at("name"));
+                ui.end_row();
+                if several {
+                    ui.label(t!(ui, "forms-setup-cut"))
+                        .on_hover_text(t!(ui, "forms-setup-cut-hover"));
+                    ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
+                    ui.end_row();
                 }
+                ui.label(t!(ui, "forms-setup-parts"));
+                ui.label(if parts.is_empty() {
+                    t!(ui, "forms-operations-none")
+                } else {
+                    parts.join(", ")
+                });
+                ui.end_row();
             });
-            ui.end_row();
-            ui.label(t!(ui, "forms-setup-zero"));
-            ui.horizontal(|ui| {
-                ui.label(&zero);
-                if ui.small_button(t!(ui, "forms-open")).clicked() {
-                    request = Some(JobRequest::SetupZero(id));
-                }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-setup-parts"));
-            ui.label(if parts.is_empty() {
-                t!(ui, "forms-operations-none")
-            } else {
-                parts.join(", ")
-            });
-            ui.end_row();
-        });
-    ui.add_space(4.0);
-    ui.weak(t!(ui, "forms-setup-note"));
-    ui.add_space(6.0);
-    if ui.button(t!(ui, "forms-remove-setup")).clicked() {
-        request = Some(JobRequest::RemoveSetup(id));
+    }
+    if !active {
+        ui.add_space(6.0);
+        if ui.button(t!(ui, "forms-setup-make-active")).clicked() {
+            request = Some(JobRequest::ActivateSetup(id));
+        }
+        return request;
+    }
+    let job = &mut edit.settings;
+    // The zero has its own properties; here where it is, a click away
+    // (docs/specs/work-zero-marker.md §4).
+    let zero = ui
+        .horizontal_wrapped(|ui| {
+            ui.label(t!(ui, "browser-work-zero"));
+            ui.link(zero_summary(ui, job))
+                .on_hover_text(t!(ui, "forms-zero-link-hover"))
+        })
+        .inner;
+    if zero.clicked() {
+        request = Some(JobRequest::OpenWorkZero);
+    }
+    stock_section(ui, job, open);
+    if let Some(library) = library
+        && let Some(material) = material_section(ui, job, library, open)
+    {
+        request = Some(material);
+    }
+    if several {
+        ui.add_space(6.0);
+        if ui.button(t!(ui, "forms-remove-setup")).clicked() {
+            request = Some(JobRequest::RemoveSetup(id));
+        }
     }
     request
 }

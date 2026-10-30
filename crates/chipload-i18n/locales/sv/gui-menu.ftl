@@ -114,7 +114,7 @@ menu-status-units-hover = Längder visas i dessa (Visa > Enheter)
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = rutnät { $step }
 menu-status-grid-hover = Rutnätets steg: klick under ritning fästs mot det (G döljer det)
-menu-status-post-hover = Postprocessorn (Jobbinställningar > Maskin)
+menu-status-post-hover = Postprocessorn (Maskin)
 # Pieces in all, from every part that is cut.
 menu-status-pieces = { $count ->
     [one] { $count } st

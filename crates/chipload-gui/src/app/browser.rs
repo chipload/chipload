@@ -415,17 +415,17 @@ enum OpAction {
     PartDelete(u64),
     /// A new operation of this kind in part `id`: it becomes the active part first.
     NewIn(OpKind, u64),
-    NewPart,
-    /// Another setup (docs/specs/setups.md §7); part `0` into setup `1`.
-    NewSetup,
+    /// Part `0` into setup `1` (docs/specs/setups.md §7).
     PartToSetup(u64, u64),
 }
 
-/// What a setup row asks for.
+/// What a setup's rows ask for.
 enum SetupAction {
     Add,
     Toggle(u64),
     Open(u64),
+    Zero(u64),
+    NewPart(u64),
     Remove(u64),
 }
 
@@ -580,112 +580,41 @@ impl ChiploadApp {
         if job.clicked() {
             self.focus = Focus::Job;
         }
-        self.work_zero_row(ui);
         self.tool_rows(ui);
         self.drawing_rows(ui);
-        self.setup_rows(ui);
         self.operation_rows(ui);
     }
 
-    /// Setups (docs/specs/setups.md §7), only when there are two or more: each board with
-    /// its parts' count; a click makes it the active one, shown in full colour while the
-    /// others are ghosts.
-    fn setup_rows(&mut self, ui: &mut egui::Ui) {
-        let Some(edit) = self.edit.as_ref() else {
-            return;
+    /// Setup `id`'s G-code zero, with where it is (docs/specs/work-zero-marker.md §2), a
+    /// leaf under the setup (docs/specs/setups.md §7). A click opens it, its setup made the
+    /// active one first.
+    fn work_zero_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+        let edit = self.edit.as_ref()?;
+        let job = edit.settings.for_setup(id);
+        let active = edit.settings.active_setup_id() == Some(id);
+        let place = super::forms::work_zero_name(ui, &job.work_zero());
+        let summary = super::forms::zero_summary(ui, &job);
+        let problems = if active {
+            self.zero_problems().count()
+        } else {
+            0
         };
-        if edit.settings.setups.len() < 2 {
-            return;
-        }
-        let setups = edit.settings.setups.clone();
-        let active = edit.settings.active_setup_id();
-        let counts: Vec<usize> = setups
-            .iter()
-            .map(|s| {
-                edit.settings
-                    .parts
-                    .iter()
-                    .filter(|p| p.setup == s.id)
-                    .count()
-            })
-            .collect();
-        let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
-            .icon(Icon::Rectangle)
-            .trailing(setups.len().to_string());
-        let (open, folder_row) = folder(ui, row, true);
-        let mut action: Option<SetupAction> = None;
-        folder_row
-            .response
-            .on_hover_text(t!(ui, "browser-setups-hover"))
-            .context_menu(|ui| {
-                if ui.button(t!(ui, "browser-add-setup")).clicked() {
-                    action = Some(SetupAction::Add);
-                }
-            });
-        if open {
-            for (setup, count) in setups.iter().zip(counts) {
-                let is_active = active == Some(setup.id);
-                let out = Row::new(Id::new(("browser-setup", setup.id)), 2, &setup.name)
-                    .tick(setup.enabled)
-                    .icon(Icon::Rectangle)
-                    .trailing(t!(ui, "browser-setup-parts", count = count))
-                    .selected(self.focus == Focus::Setup(setup.id))
-                    .dim(!setup.enabled || !is_active)
-                    .strong(is_active)
-                    .show(ui);
-                if out.tick {
-                    action = Some(SetupAction::Toggle(setup.id));
-                } else if out.response.clicked() {
-                    action = Some(SetupAction::Open(setup.id));
-                }
-                let hover = if is_active {
-                    t!(ui, "browser-setup-active-hover")
-                } else {
-                    t!(ui, "browser-setup-hover")
-                };
-                out.response.on_hover_text(hover).context_menu(|ui| {
-                    if ui.button(t!(ui, "browser-add-setup")).clicked() {
-                        action = Some(SetupAction::Add);
-                    }
-                    ui.separator();
-                    if ui.button(t!(ui, "browser-delete")).clicked() {
-                        action = Some(SetupAction::Remove(setup.id));
-                    }
-                });
-            }
-        }
-        match action {
-            Some(SetupAction::Add) => {
-                self.add_setup();
-            }
-            Some(SetupAction::Toggle(id)) => self.toggle_setup(id),
-            Some(SetupAction::Open(id)) => {
-                self.activate_setup(id);
-                self.focus = Focus::Setup(id);
-            }
-            Some(SetupAction::Remove(id)) => self.remove_setup(id),
-            None => {}
-        }
-    }
-
-    /// The G-code's zero, with where it is (docs/specs/work-zero-marker.md §2).
-    fn work_zero_row(&mut self, ui: &mut egui::Ui) {
-        let Some(edit) = &self.edit else {
-            return;
-        };
-        let place = super::forms::work_zero_name(ui, &edit.settings.work_zero());
-        let summary = super::forms::zero_summary(ui, &edit.settings);
-        let problems = self.zero_problems().count();
-        let row = Row::new(Id::new("browser-work-zero"), 1, t!(ui, "browser-work-zero"))
-            .icon(Icon::WorkZero)
-            .trailing(place)
-            .selected(self.focus == Focus::WorkZero)
-            .alert(problems > 0)
-            .show(ui);
+        let row = Row::new(
+            Id::new(("browser-work-zero", id)),
+            3,
+            t!(ui, "browser-work-zero"),
+        )
+        .icon(Icon::WorkZero)
+        .trailing(place)
+        .selected(active && self.focus == Focus::WorkZero)
+        .dim(!active)
+        .alert(problems > 0)
+        .show(ui);
         let hover = format!("{summary}\n{}", t!(ui, "browser-work-zero-hover"));
-        if row.response.on_hover_text(hover).clicked() {
-            self.focus = Focus::WorkZero;
-        }
+        row.response
+            .on_hover_text(hover)
+            .clicked()
+            .then_some(SetupAction::Zero(id))
     }
 
     /// Tools: the project's tools; a click opens the job settings, where they are edited.
@@ -786,11 +715,6 @@ impl ChiploadApp {
         let active = edit.settings.active_part_id();
         let count = edit.ops.len();
         let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
-        let row = Row::new(Id::new("browser-parts"), 1, t!(ui, "browser-parts"))
-            .icon(Icon::Parts)
-            .trailing(parts.len().to_string());
-        let (open, folder_row) = folder(ui, row, true);
-        let mut action: Option<OpAction> = None;
         // The tool cut just before each operation, in cut order: rest passes wait for their
         // run of pockets (docs/specs/rest-passes.md §3), so the list's order isn't enough.
         let tool_before: std::collections::BTreeMap<usize, i64> = self
@@ -810,36 +734,124 @@ impl ChiploadApp {
                 before
             })
             .unwrap_or_default();
+        let mut action: Option<OpAction> = None;
+        // Setups, each with its zero and its parts as leaves (docs/specs/setups.md §7): the
+        // active one in full colour, the others as ghosts.
+        let setups = edit.settings.setups.clone();
+        let active_setup = edit.settings.active_setup_id();
+        let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
+            .icon(Icon::Rectangle)
+            .trailing(setups.len().to_string());
+        let (open, folder_row) = folder(ui, row, true);
+        let mut setup_action: Option<SetupAction> = None;
         folder_row
             .response
-            .on_hover_text(t!(ui, "browser-parts-hover"))
+            .on_hover_text(t!(ui, "browser-setups-hover"))
             .context_menu(|ui| {
-                if ui.button(t!(ui, "browser-new-part")).clicked() {
-                    action = Some(OpAction::NewPart);
-                }
-                // Another board (docs/specs/setups.md §7).
                 if ui
                     .button(t!(ui, "browser-add-setup"))
                     .on_hover_text(t!(ui, "browser-add-setup-hover"))
                     .clicked()
                 {
-                    action = Some(OpAction::NewSetup);
+                    setup_action = Some(SetupAction::Add);
                 }
             });
         if open {
-            for (k, part) in parts.iter().enumerate() {
-                let rows = PartRows {
-                    k,
-                    parts: &parts,
-                    active,
-                    op_parts: &op_parts,
-                    count,
-                    tool_before: &tool_before,
+            for setup in &setups {
+                let is_active = active_setup == Some(setup.id);
+                let mine: Vec<chipload_job::Part> = parts
+                    .iter()
+                    .filter(|p| p.setup == setup.id)
+                    .cloned()
+                    .collect();
+                let id = Id::new(("browser-setup", setup.id));
+                let open_id = id.with("folder-open");
+                let setup_open = folder_open(ui, open_id, true);
+                let several = setups.len() > 1;
+                let mut row = Row::new(id, 2, &setup.name)
+                    .folder(setup_open)
+                    .icon(Icon::Rectangle)
+                    .trailing(t!(ui, "browser-setup-parts", count = mine.len()))
+                    .selected(self.focus == Focus::Setup(setup.id))
+                    .dim(!setup.enabled || !is_active)
+                    .strong(is_active && several);
+                if several {
+                    row = row.tick(setup.enabled);
+                }
+                let out = row.show(ui);
+                if out.toggled {
+                    toggle_folder(ui, open_id, true);
+                }
+                if out.tick {
+                    setup_action = Some(SetupAction::Toggle(setup.id));
+                } else if out.response.clicked() {
+                    setup_action = Some(SetupAction::Open(setup.id));
+                }
+                let hover = if is_active {
+                    t!(ui, "browser-setup-active-hover")
+                } else {
+                    t!(ui, "browser-setup-hover")
                 };
-                if let Some(a) = self.part_rows(ui, part, rows) {
-                    action = Some(a);
+                out.response.on_hover_text(hover).context_menu(|ui| {
+                    if ui.button(t!(ui, "browser-new-part")).clicked() {
+                        setup_action = Some(SetupAction::NewPart(setup.id));
+                    }
+                    if ui
+                        .button(t!(ui, "browser-add-setup"))
+                        .on_hover_text(t!(ui, "browser-add-setup-hover"))
+                        .clicked()
+                    {
+                        setup_action = Some(SetupAction::Add);
+                    }
+                    ui.separator();
+                    if ui
+                        .add_enabled(several, egui::Button::new(t!(ui, "browser-delete")))
+                        .clicked()
+                    {
+                        setup_action = Some(SetupAction::Remove(setup.id));
+                    }
+                });
+                if !setup_open {
+                    continue;
+                }
+                if let Some(a) = self.work_zero_row(ui, setup.id) {
+                    setup_action = Some(a);
+                }
+                for part in &mine {
+                    let k = parts.iter().position(|p| p.id == part.id).unwrap_or(0);
+                    let rows = PartRows {
+                        k,
+                        parts: &parts,
+                        active,
+                        op_parts: &op_parts,
+                        count,
+                        tool_before: &tool_before,
+                    };
+                    if let Some(a) = self.part_rows(ui, part, rows) {
+                        action = Some(a);
+                    }
                 }
             }
+        }
+        match setup_action {
+            Some(SetupAction::Add) => {
+                self.add_setup();
+            }
+            Some(SetupAction::Toggle(id)) => self.toggle_setup(id),
+            Some(SetupAction::Open(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::Setup(id);
+            }
+            Some(SetupAction::Zero(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::WorkZero;
+            }
+            Some(SetupAction::NewPart(id)) => {
+                self.activate_setup(id);
+                self.add_part();
+            }
+            Some(SetupAction::Remove(id)) => self.remove_setup(id),
+            None => {}
         }
         match action {
             Some(OpAction::Focus(i)) => self.focus = Focus::Op(i),
@@ -888,12 +900,6 @@ impl ChiploadApp {
                 self.activate_part(id);
                 self.add_operation(kind);
             }
-            Some(OpAction::NewPart) => {
-                self.add_part();
-            }
-            Some(OpAction::NewSetup) => {
-                self.add_setup();
-            }
             Some(OpAction::PartToSetup(part, setup)) => self.move_part_to_setup(part, setup),
             None => {}
         }
@@ -930,11 +936,6 @@ impl ChiploadApp {
             (setups, e.settings.active_setup_id() == Some(part.setup))
         });
         let mut trailing = Vec::new();
-        if setups.len() > 1
-            && let Some((_, name)) = setups.iter().find(|(id, _)| *id == part.setup)
-        {
-            trailing.push(name.clone());
-        }
         if is_active && parts.len() > 1 {
             trailing.push(t!(ui, "browser-part-active"));
         }
@@ -944,7 +945,7 @@ impl ChiploadApp {
         let id = Id::new(("browser-part", part.id));
         let open_id = id.with("folder-open");
         let open = folder_open(ui, open_id, true);
-        let out = Row::new(id, 2, &part.name)
+        let out = Row::new(id, 3, &part.name)
             .folder(open)
             .tick(part.enabled)
             .icon(Icon::Part)
@@ -1054,7 +1055,7 @@ impl ChiploadApp {
         }
         if mine.is_empty() {
             ui.horizontal(|ui| {
-                ui.add_space(PAD + 4.0 * INDENT);
+                ui.add_space(PAD + 5.0 * INDENT);
                 ui.weak(if is_active {
                     t!(ui, "browser-part-empty-active")
                 } else {
@@ -1134,7 +1135,7 @@ impl ChiploadApp {
             _ => Vec::new(),
         };
         let dark = ui.visuals().dark_mode;
-        let row = Row::new(Id::new(("browser-op", i)), 3, format!("{}  {name}", i + 1))
+        let row = Row::new(Id::new(("browser-op", i)), 4, format!("{}  {name}", i + 1))
             .tick(op.enabled())
             .icon_colored(op_icon(op), kind_color(op, dark))
             .trailing(trailing)
@@ -1265,7 +1266,7 @@ impl ChiploadApp {
             });
         let row = Row::new(
             Id::new(("browser-floor", i)),
-            4,
+            5,
             format!("{at}  {}", t!(ui, "browser-floor")),
         )
         .tick(pass.enabled)
@@ -1315,7 +1316,7 @@ impl ChiploadApp {
             });
         let row = Row::new(
             Id::new(("browser-pass", i, k)),
-            4,
+            5,
             format!("{at}  {}", t!(ui, "browser-rest")),
         )
         .tick(pass.enabled)
@@ -1460,7 +1461,7 @@ fn tool_change(ui: &mut egui::Ui, tool: i64) {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 16.0), Sense::hover());
     let painter = ui.painter_at(rect);
     let color = ui.visuals().weak_text_color();
-    let left = rect.left() + PAD + 3.0 * INDENT + INDENT;
+    let left = rect.left() + PAD + 4.0 * INDENT + INDENT;
     let galley = egui::WidgetText::from(
         RichText::new(t!(ui, "browser-tool-change", tool = tool.to_string())).small(),
     )
@@ -1474,7 +1475,7 @@ fn tool_change(ui: &mut egui::Ui, tool: i64) {
     let line_from = left + galley.size().x + GAP * 2.0;
     painter.galley(text_at, galley, color);
     let guide = Stroke::new(1.0, ui.visuals().widgets.noninteractive.bg_stroke.color);
-    for level in 1..=3 {
+    for level in 1..=4 {
         let x = rect.left() + PAD + (level as f32 - 0.5) * INDENT;
         painter.vline(x.round() + 0.5, rect.y_range(), guide);
     }

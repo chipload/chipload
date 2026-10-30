@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } matériau
    *[other] { $count } matériaux
 } dans votre bibliothèque.
-materials-about = Chaque matériau garde vos propres valeurs pour les outils que vous utilisez avec lui. Saisissez-les ici, ou avec Enregistrer dans … sous une opération qui a bien usiné. Choisissez-en un par opération, sous son outil, ou pour tout le projet dans les Paramètres d'usinage.
+materials-about = Chaque matériau garde vos propres valeurs pour les outils que vous utilisez avec lui. Saisissez-les ici, ou avec Enregistrer dans … sous une opération qui a bien usiné. Choisissez-en un par opération, sous son outil, ou pour tout un montage, dans ses propriétés.
 materials-gone = Ce matériau n'est plus dans votre bibliothèque.
 materials-entry-about = Vos valeurs pour ce matériau, par outil de la bibliothèque. Une opération avec ce matériau usine avec elles.
 materials-name = Nom

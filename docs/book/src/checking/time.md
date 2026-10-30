@@ -12,7 +12,7 @@ Browser shows its time, and so does the setup sheet.
   feed from start to end.
 - **Real time is longer:** a real machine slows down in corners and while accelerating.
   Take the estimate as a lower bound for jobs with many short moves.
-- **Rapids** move at the machine's **max feed** (Job settings > Machine). Without one, the
+- **Rapids** move at the machine's **max feed** (Machine). Without one, the
   estimate assumes 5 000 mm/min and says so: set the max feed for a better estimate.
 
 `chipload plan part.chipload` prints the same, and `--json` gives it as numbers.

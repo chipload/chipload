@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } materials
 } in your library.
-materials-about = Each material keeps your own values for the tools you use with it. Fill them in here, or with Save to … under an operation that cut well. Choose one per operation, under its tool, or for the whole project in Job settings.
+materials-about = Each material keeps your own values for the tools you use with it. Fill them in here, or with Save to … under an operation that cut well. Choose one per operation, under its tool, or for a whole setup, in its properties.
 materials-gone = This material is no longer in your library.
 materials-entry-about = Your values for this material, per library tool. An operation with this material cuts with them.
 materials-name = Name

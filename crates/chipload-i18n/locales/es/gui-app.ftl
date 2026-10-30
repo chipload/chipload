@@ -16,12 +16,12 @@ app-old-schema = Este archivo es de la versión de esquema { $version }; al guar
 app-new-project = Proyecto nuevo.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Iniciado con { $what }.
-app-new-project-next = Dibuja formas con el menú Dibujar, o trae un dibujo con Añadir DXF o SVG. Revisa el material en bruto y la máquina en Ajustes del trabajo, y la herramienta en Herramientas.
+app-new-project-next = Dibuja formas con el menú Dibujar, o trae un dibujo con Añadir DXF o SVG. Revisa el tablero en la sujeción, la máquina en Máquina y la herramienta en Herramientas.
 app-units-missing = { $file } no indica qué unidades usa; elige mm o pulgadas.
 app-px-missing = { $file } solo da su tamaño en píxeles; elige sus píxeles por pulgada.
 app-cannot-import = No se puede importar { $file }:
 app-new-project-from = Proyecto nuevo a partir de { $file } ({ $shapes } formas).
-app-import-next = Selecciona contornos y luego Nuevo contorneado o Nueva cajera. Revisa el material en bruto y la máquina en Ajustes del trabajo, y la herramienta en Herramientas.
+app-import-next = Selecciona contornos y luego Nuevo contorneado o Nueva cajera. Revisa el tablero en la sujeción, la máquina en Máquina y la herramienta en Herramientas.
 
 # Followed by the list of problems.
 app-project-incomplete = El proyecto no está completo:

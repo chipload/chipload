@@ -244,9 +244,11 @@ impl ChiploadApp {
     pub(super) fn settings_problems(&self) -> impl Iterator<Item = &Problem> {
         self.job_problems().filter(|p| {
             let field = p.field();
+            // A setup's board and zero are its own (docs/specs/setups.md §7).
             !(field.starts_with("tools")
                 || field.starts_with("parts")
                 || field.starts_with("drawing")
+                || p.path.starts_with("setups")
                 || is_zero_field(field))
         })
     }
@@ -291,8 +293,15 @@ impl ChiploadApp {
                 Box::new(self.problems_under(index_of(k, "parts")))
             }
             Focus::Setup(id) => {
+                // Its board's problems, by the field names its sections use (`stock.x`).
                 let k = settings.and_then(|s| s.setups.iter().position(|p| p.id == id));
-                Box::new(self.problems_under(index_of(k, "setups")))
+                let prefix = index_of(k, "setups");
+                Box::new(self.job_problems().filter(move |p| {
+                    prefix
+                        .as_ref()
+                        .is_some_and(|prefix| p.path.starts_with(prefix.as_str()))
+                        && !is_zero_field(p.field())
+                }))
             }
             Focus::Tool(id) => {
                 let k = settings.and_then(|s| s.tools.iter().position(|t| t.id == id));

@@ -114,7 +114,7 @@ menu-status-units-hover = Les longueurs sont affichées dans ces unités (Vue > 
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = grille { $step }
 menu-status-grid-hover = Le pas de la grille : les clics en dessinant s'y accrochent (G la masque)
-menu-status-post-hover = Le post-processeur (Paramètres d'usinage > Machine)
+menu-status-post-hover = Le post-processeur (Machine)
 # Pieces in all, from every part that is cut.
 menu-status-pieces = { $count ->
     [one] { $count } exemplaire

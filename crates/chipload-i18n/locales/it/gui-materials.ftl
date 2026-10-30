@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } materiale
    *[other] { $count } materiali
 } nella tua libreria.
-materials-about = Ogni materiale tiene i tuoi valori per gli utensili che usi con esso. Inseriscili qui, o con Salva in … sotto un'operazione che ha lavorato bene. Scegline uno per operazione, sotto il suo utensile, o per tutto il progetto in Impostazioni lavoro.
+materials-about = Ogni materiale tiene i tuoi valori per gli utensili che usi con esso. Inseriscili qui, o con Salva in … sotto un'operazione che ha lavorato bene. Scegline uno per operazione, sotto il suo utensile, o per tutto un piazzamento, nelle sue proprietà.
 materials-gone = Questo materiale non è più nella tua libreria.
 materials-entry-about = I tuoi valori per questo materiale, per utensile della libreria. Un'operazione con questo materiale lavora con essi.
 materials-name = Nome

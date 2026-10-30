@@ -49,10 +49,10 @@ chipload run part.chipload -o lid.nc --part 2           # only part 2's G-code
 chipload part remove part.chipload 2 --with-operations  # without the flag: refused while it has operations
 ```
 
-In the app, the [Browser](../window.md#the-browser) lists the parts with their operations.
-Click a part to see its copies in Properties. Right-click it to activate, export, move or
-delete it,
-or right-click *Parts* for a new one. Drag an operation onto a part to move it there.
+In the app, the [Browser](../window.md#the-browser) lists the parts under their
+[setup](../concepts/setups.md), with their operations. Click a part to see its copies in
+Properties. Right-click it to activate, export, move or delete it, or right-click its setup
+for a new one. Drag an operation onto a part to move it there.
 
 ![Two parts in the Browser: part B is active, cut twice, and its properties are
 open](../images/parts.png)

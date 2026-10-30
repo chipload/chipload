@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } materiales
 } en tu biblioteca.
-materials-about = Cada material guarda tus propios valores para las herramientas que usas con él. Escríbelos aquí, o con Guardar en … bajo una operación que cortó bien. Elige uno por operación, bajo su herramienta, o para todo el proyecto en Ajustes del trabajo.
+materials-about = Cada material guarda tus propios valores para las herramientas que usas con él. Escríbelos aquí, o con Guardar en … bajo una operación que cortó bien. Elige uno por operación, bajo su herramienta, o para toda una sujeción, en sus propiedades.
 materials-gone = Este material ya no está en tu biblioteca.
 materials-entry-about = Tus valores para este material, por herramienta de la biblioteca. Una operación con este material corta con ellos.
 materials-name = Nombre

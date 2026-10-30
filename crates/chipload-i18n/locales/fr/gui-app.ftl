@@ -16,12 +16,12 @@ app-old-schema = Ce fichier est au schéma version { $version } ; l'enregistreme
 app-new-project = Nouveau projet.
 # $what: a machine or tool from the user's library, e.g. machine "Router".
 app-started-with = Démarré avec { $what }.
-app-new-project-next = Dessinez des formes depuis le menu Dessiner, ou ajoutez un dessin avec Ajouter un DXF ou SVG. Vérifiez le brut et la machine dans Paramètres d'usinage, et l'outil dans Outils.
+app-new-project-next = Dessinez des formes depuis le menu Dessiner, ou ajoutez un dessin avec Ajouter un DXF ou SVG. Vérifiez le panneau sous le montage, la machine sous Machine, et l'outil dans Outils.
 app-units-missing = { $file } n'indique pas ses unités ; choisissez mm ou pouce.
 app-px-missing = { $file } ne donne sa taille qu'en pixels ; choisissez ses pixels par pouce.
 app-cannot-import = Impossible d'importer { $file } :
 app-new-project-from = Nouveau projet à partir de { $file } ({ $shapes } formes).
-app-import-next = Sélectionnez des contours, puis Nouveau contour ou Nouvelle poche. Vérifiez le brut et la machine dans Paramètres d'usinage, et l'outil dans Outils.
+app-import-next = Sélectionnez des contours, puis Nouveau contour ou Nouvelle poche. Vérifiez le panneau sous le montage, la machine sous Machine, et l'outil dans Outils.
 
 # Followed by the list of problems.
 app-project-incomplete = Le projet n'est pas complet :

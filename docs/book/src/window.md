@@ -50,18 +50,17 @@ The **Browser** on the left holds your library and the whole project as a tree:
   - **Post-processors:** the built-in ones and [yours](posts.md#your-own-post); click one
     for what it writes, and *Use in this project*.
 - **The project**, named after its file.
-  - **Job settings:** stock, machine, post-processor and tools, shown on the right when
-    clicked. A red dot means one of them has a problem.
-  - **Work zero:** where the G-code's X0 Y0 Z0 is, named at the right ("stock bottom
-    left"); see [Work zero](concepts/stock.md#work-zero).
+  - **Machine:** the post-processor, G-code units, safe Z, travel and tool changes, shown
+    on the right when clicked. A red dot means one of them has a problem.
   - **Tools:** the project's tools, each with the library tool it came from at the right
     ("← 6 mm 2F", "(changed)" when the values differ). See [Tool
     library](library/tools.md#project-tools-and-the-library).
   - **Drawing:** what the shapes come from. Each DXF has its layers under it; then come
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
-  - **Parts**, each with its operations under it, in cutting order. A line marks each
-    tool change. See [Parts](operations/parts.md).
+  - **Setups**, each a board with its **Work zero** and its **parts** under it, each part
+    with its operations, in cutting order. A line marks each tool change. See
+    [Setups](concepts/setups.md) and [Parts](operations/parts.md).
 
 ![The Browser: two DXFs with their layers, the second hidden, a picture, and four
 operations; the first DXF's placement window is open](images/drawing.png)
@@ -70,7 +69,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Click** a row to select it.
   - A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
     to the selection.
-  - An operation, a part, a tool, *Tools*, *Job settings*, a DXF (or one of its layers)
+  - An operation, a part, a setup, its work zero, a tool, *Tools*, *Machine*, a DXF (or one of its layers)
     or a picture shows its settings on the right, in [Properties](#properties).
 - **Double-click** a picture for its trace settings, or a part to make it the active part.
 - **Right-click** a row for the rest:
@@ -82,8 +81,9 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **A rest pass:** *Remove*.
   - **The Drawing folder:** *Add DXF…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
-    down* and *Delete part* (with its operations).
-  - **The Parts folder:** *New part*.
+    down*, *Move to setup ▸* and *Delete part* (with its operations).
+  - **A setup:** *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
+    setup*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
     *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
     *Import…*, *Export…*.
@@ -152,7 +152,8 @@ navigation bar](images/simulation-3d.png)
 ## Properties
 
 The **Properties** panel on the right shows what is open, under a title:
-- **Job settings:** the stock, the material, the machine and the post.
+- **Machine:** the machine and its post.
+- **A setup:** its name, its board (stock and material) and where its work zero is.
 - **Work zero:** the stock's corners and centre to click, the drawing origin, its position
   and Z zero.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is
@@ -170,7 +171,7 @@ The **Properties** panel on the right shows what is open, under a title:
 - **A part:** its name, on or off, and its [copies](drawings/copies.md).
 - **An operation:** its settings, under its kind and number ("Pocket · Operation 1").
 
-**Properties shows one thing at a time:** the item you clicked in the Browser (Job settings,
+**Properties shows one thing at a time:** the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
 both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the **Selection**:

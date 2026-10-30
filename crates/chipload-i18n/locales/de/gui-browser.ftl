@@ -31,11 +31,11 @@ browser-surface = Planfräsen
 browser-surface-hover = Das ganze Rohteil mit einem breiten Schaftfräser plan abgetragen: die Opferplatte planen oder das Rohteil planfräsen. Braucht keine Auswahl
 
 # Job settings and Tools.
-browser-job-settings = Jobeinstellungen
-browser-job-settings-hover = Rohteil, Maschine, Postprozessor und Werkzeuge
+browser-job-settings = Maschine
+browser-job-settings-hover = Die Maschine: Postprozessor, G-Code-Einheiten, sichere Höhe, Verfahrwege und Werkzeugwechsel, für alle Aufspannungen gleich
 browser-work-zero = Nullpunkt
 browser-work-zero-hover = Wo X0 Y0 Z0 des G-Codes liegt. Klicken, um ihn einzustellen, oder auswählen und in der Ansicht ziehen.
-browser-job-settings-problems-hover = Rohteil, Maschine, Postprozessor und Werkzeuge. { $count ->
+browser-job-settings-problems-hover = Maschine, Postprozessor, Einheiten und Verfahrwege. { $count ->
         [one] { $count } Problem
        *[other] { $count } Probleme
     }
@@ -43,8 +43,6 @@ browser-tools = Werkzeuge
 browser-tools-hover = Die Werkzeuge des Projekts: klicken, um alle zu sehen und eines hinzuzufügen
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Teile
-browser-parts-hover = Jedes Teil wird mit seinen Kopien vor dem nächsten gefräst; Rechtsklick für ein neues Teil
 browser-setups = Aufspannungen
 browser-setups-hover = Die Platten, aus denen das Projekt nacheinander gefräst wird: jede ein eigenes Programm, mit ihrem Rohteil und Nullpunkt. Klicken macht eine zur aktiven
 browser-add-setup = Aufspannung hinzufügen
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } Teil
    *[other] { $count } Teile
 }
-browser-setup-active-hover = Die aktive Aufspannung: in voller Farbe gezeigt, simuliert und berechnet. Ihr Rohteil und Nullpunkt stehen unter Jobeinstellungen und Nullpunkt
+browser-setup-active-hover = Die aktive Aufspannung: in voller Farbe gezeigt, simuliert und berechnet. Klicken zeigt ihre Platte; ihr Nullpunkt steht darunter
 browser-setup-hover = Klicken macht sie zur aktiven Aufspannung: gezeigt, simuliert und berechnet
 browser-move-to-setup = In Aufspannung verschieben
 browser-new-part = Neues Teil

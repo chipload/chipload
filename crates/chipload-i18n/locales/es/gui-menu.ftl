@@ -114,7 +114,7 @@ menu-status-units-hover = Las longitudes se muestran en estas unidades (Vista > 
 # $step: the grid's step with its unit, e.g. "10 mm".
 menu-status-grid = cuadrícula { $step }
 menu-status-grid-hover = El paso de la cuadrícula: al dibujar, los clics se ajustan a ella (G la oculta)
-menu-status-post-hover = El postprocesador (Ajustes del trabajo > Máquina)
+menu-status-post-hover = El postprocesador (Máquina)
 # Pieces in all, from every part that is cut.
 menu-status-pieces = { $count ->
     [one] { $count } unidad

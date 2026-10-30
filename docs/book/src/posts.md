@@ -19,7 +19,7 @@ settings.
 
 ## Choosing the post
 
-- **App:** Job settings > Machine > Post. The list shows the built-in posts, then yours.
+- **App:** Machine > Post. The list shows the built-in posts, then yours.
 - **Command line:** `chipload post use part.chipload --post linuxcnc`.
 - **Machine profile:** a profile names its post, and a project made from the profile gets
   it.

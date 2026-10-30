@@ -31,11 +31,11 @@ browser-surface = Surface
 browser-surface-hover = The whole stock taken down flat with a wide endmill: flatten the spoilboard or face the stock. Needs no selection
 
 # Job settings and Tools.
-browser-job-settings = Job settings
-browser-job-settings-hover = Stock, machine, post-processor and tools
+browser-job-settings = Machine
+browser-job-settings-hover = The machine: its post-processor, G-code units, safe Z, travel and tool changes, shared by every setup
 browser-work-zero = Work zero
 browser-work-zero-hover = Where the G-code's X0 Y0 Z0 is. Click to set it, or select it and drag it in the view.
-browser-job-settings-problems-hover = Stock, machine, post-processor and tools. { $count ->
+browser-job-settings-problems-hover = Machine, post-processor, units and travel. { $count ->
         [one] { $count } problem
        *[other] { $count } problems
     }
@@ -43,8 +43,6 @@ browser-tools = Tools
 browser-tools-hover = The project's tools: click to see them all and add one
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Parts
-browser-parts-hover = Each part is cut with its copies before the next; right-click for a new part
 browser-setups = Setups
 browser-setups-hover = The boards the project is cut from, one after the other: each its own program, with its stock and work zero. Click one to make it the active one
 browser-add-setup = Add a setup
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } part
    *[other] { $count } parts
 }
-browser-setup-active-hover = The active setup: shown in full colour, simulated and generated. Its board and work zero are in Job settings and Work zero
+browser-setup-active-hover = The active setup: shown in full colour, simulated and generated. Click it for its board; its work zero is beneath it
 browser-setup-hover = Click to make it the active setup: shown, simulated and generated
 browser-move-to-setup = Move to setup
 browser-new-part = New part

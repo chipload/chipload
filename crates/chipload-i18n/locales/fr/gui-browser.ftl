@@ -31,11 +31,11 @@ browser-surface = Surfaçage
 browser-surface-hover = Tout le brut dressé à plat avec une large fraise : surfacer le martyr ou dresser le brut. Aucune sélection requise
 
 # Job settings and Tools.
-browser-job-settings = Paramètres d'usinage
-browser-job-settings-hover = Brut, machine, post-processeur et outils
+browser-job-settings = Machine
+browser-job-settings-hover = La machine : son post-processeur, les unités du G-code, la hauteur de sécurité, les courses et les changements d'outil, communs à tous les montages
 browser-work-zero = Origine pièce
 browser-work-zero-hover = Où se trouve le X0 Y0 Z0 du G-code. Cliquez pour le régler, ou sélectionnez-le et faites-le glisser dans la vue.
-browser-job-settings-problems-hover = Brut, machine, post-processeur et outils. { $count ->
+browser-job-settings-problems-hover = Machine, post-processeur, unités et courses. { $count ->
         [one] { $count } problème
        *[other] { $count } problèmes
     }
@@ -43,8 +43,6 @@ browser-tools = Outils
 browser-tools-hover = Les outils du projet : cliquer pour les voir tous et en ajouter un
 
 # Parts: groups of operations, each cut with its copies before the next.
-browser-parts = Pièces
-browser-parts-hover = Chaque pièce est usinée avec ses copies avant la suivante ; clic droit pour une nouvelle pièce
 browser-setups = Montages
 browser-setups-hover = Les panneaux dans lesquels le projet est usiné, l'un après l'autre : chacun un programme à lui, avec son brut et son origine pièce. Un clic le rend actif
 browser-add-setup = Ajouter un montage
@@ -53,7 +51,7 @@ browser-setup-parts = { $count ->
     [one] { $count } pièce
    *[other] { $count } pièces
 }
-browser-setup-active-hover = Le montage actif : affiché en couleur, simulé et calculé. Son brut et son origine sont dans Paramètres d'usinage et Origine pièce
+browser-setup-active-hover = Le montage actif : affiché en couleur, simulé et calculé. Un clic montre son panneau ; son origine est en dessous
 browser-setup-hover = Un clic en fait le montage actif : affiché, simulé et calculé
 browser-move-to-setup = Déplacer vers le montage
 browser-new-part = Nouvelle pièce

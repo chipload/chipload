@@ -123,7 +123,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = Il disegno (da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }) esce dal grezzo ({ $width } × { $length }); controlla il grezzo in Impostazioni lavoro.
+pipeline-stock-fit = Il disegno (da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }) esce dal grezzo ({ $width } × { $length }); controlla il grezzo del piazzamento.
 
 ## Placing a DXF: moving, turning and scaling it
 

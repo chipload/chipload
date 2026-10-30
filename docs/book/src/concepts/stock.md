@@ -1,10 +1,10 @@
 # Stock and work zero
 
-Job settings has three sections, in the order a job is set up: **Stock** (the board),
-**Material** (the feeds new operations take) and **Machine** (set once, so it starts closed;
-its summary line gives the profile, post, safe Z and spindle). Above them a line says where
-the zero is, e.g. "Work zero: X0 Y0 stock bottom left · Z0 stock top"; click it to set the
-zero.
+The board is its [setup](setups.md)'s: click the setup in the Browser for its properties.
+They have two sections, **Stock** (the board) and **Material** (the feeds new operations
+take), and above them a line that says where the zero is, e.g. "Work zero: X0 Y0 stock bottom
+left · Z0 stock top"; click it to set the zero. The machine, shared by every setup, is under
+**Machine**.
 
 ## Stock
 
@@ -36,7 +36,7 @@ choose a position at the drawing's origin first.
 ## Work zero
 
 **Work zero** is the point that becomes X0 Y0 Z0 in the G-code. It has its own row in the
-[Browser](../window.md#the-browser), under Job settings, which says where it is ("stock bottom
+[Browser](../window.md#the-browser), under its setup, which says where it is ("stock bottom
 left"), and its own place in the view: the foot of the red and green axes.
 
 Only the G-code moves; the drawing, the stock and the toolpath stay where they are. So moving

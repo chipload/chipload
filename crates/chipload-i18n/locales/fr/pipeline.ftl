@@ -123,7 +123,7 @@ pipeline-text = { $text }
 
 # $x0 and $y0 are lengths without their unit, $x1 and $y1 with it; $width and $length the
 # stock's size, the first without its unit.
-pipeline-stock-fit = Le dessin (X{ $x0 } à { $x1 }, Y{ $y0 } à { $y1 }) dépasse du brut ({ $width } × { $length }) ; vérifiez le brut dans Paramètres d'usinage.
+pipeline-stock-fit = Le dessin (X{ $x0 } à { $x1 }, Y{ $y0 } à { $y1 }) dépasse du brut ({ $width } × { $length }) ; vérifiez le brut du montage.
 
 ## Placing a DXF: moving, turning and scaling it
 
