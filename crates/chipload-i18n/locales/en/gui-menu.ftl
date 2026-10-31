@@ -42,8 +42,8 @@ menu-paste = Paste
 menu-mirror-left-right = Mirror left–right
 menu-mirror-up-down = Mirror up–down
 menu-mirror-hover = Flip the selected drawn shapes about the middle of their box
-menu-delete-shapes = Delete shapes
-menu-delete-shapes-hover = Deletes the selected drawn shapes; imported ones change only with their file
+menu-delete-shapes = Delete
+menu-delete-shapes-hover = Deletes what is selected: drawn shapes, or a text, a picture or a DXF as a whole; a shape picked out of an imported drawing changes only with its file
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Copy as selector
 

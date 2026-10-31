@@ -214,7 +214,11 @@ holes on, a guide at 45°) and are **never cut**.
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
   of their box.
-- **Delete:** Del. Operations that cut the shape are flagged.
+- **Delete:** Del (or right-click > *Delete*). Operations that cut the shape are flagged.
+  Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
+  or on its Browser row), as its *Remove* does; a box round a sign takes its words with the
+  frame. A shape picked out of an imported DXF or traced picture stays: it changes only
+  with its file.
 - **Undo:** Ctrl+Z.
 
 Imported shapes can't be edited: they change only with the DXF, unless you

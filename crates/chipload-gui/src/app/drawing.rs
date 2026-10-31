@@ -3,6 +3,7 @@
 
 use super::*;
 use crate::draw::{EntryError, parse_entry};
+use chipload_core::chain::ShapeFrom;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -364,19 +365,103 @@ impl ChiploadApp {
         (drawn, imported)
     }
 
+    /// What Delete takes from a selection of shapes: the drawn ones, the texts whose letters
+    /// are among them, and whether other imported shapes are (they stay).
+    pub(super) fn deletion(&self) -> (Vec<u64>, BTreeSet<u64>, bool) {
+        let CanvasSelection::Shapes(ids) = &self.selection else {
+            return (Vec::new(), BTreeSet::new(), false);
+        };
+        let Some(edit) = self.edit.as_ref() else {
+            return (Vec::new(), BTreeSet::new(), false);
+        };
+        let mut drawn = Vec::new();
+        let mut texts = BTreeSet::new();
+        let mut imported = false;
+        for shape in edit
+            .settings
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| ids.contains(&s.id))
+        {
+            if shape.is_drawn() {
+                drawn.push(shape.id);
+            } else if let Some(text) = shape.text() {
+                texts.insert(text);
+            } else {
+                imported = true;
+            }
+        }
+        (drawn, texts, imported)
+    }
+
+    /// Remove texts `ids` and their letters, as one undo step (Delete on selected letters).
+    fn remove_texts(&mut self, ids: &BTreeSet<u64>, imported: bool) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let mut job = edit.settings.clone();
+        for &id in ids {
+            match chipload_pipeline::texts::remove_text(&job, id) {
+                Ok(out) => job = out,
+                Err(err) => {
+                    self.error_report(Report::of_error(err.message()));
+                    return;
+                }
+            }
+        }
+        edit.settings = job;
+        self.drawing_changed(&[]);
+        self.selection = CanvasSelection::Nothing;
+        if matches!(self.focus, Focus::Text(id) if ids.contains(&id)) {
+            self.focus = Focus::Job;
+        }
+        self.commit();
+        let mut lines: Vec<String> = ids
+            .iter()
+            .map(|&id| t!(self, "texts-removed", id = id))
+            .collect();
+        if imported {
+            lines.push(t!(self, "drawing-imported-kept"));
+        }
+        self.set_status(lines.join(" "), STATUS_SECONDS);
+    }
+
     /// Delete the selected drawn shape.
     pub fn delete_selected_shape(&mut self) {
         self.delete_selected_shapes();
     }
 
-    /// Delete every drawn shape in the selection (the Delete key). Operations that used one
-    /// are flagged. Imported shapes stay: they change only with the DXF.
+    /// Delete what is selected (the Delete key): a text, a picture or a DXF selected as a
+    /// whole goes as its Browser row's Remove does; otherwise the drawn shapes, and every
+    /// text a selected letter belongs to (a box round a sign takes its words too), as one
+    /// undo step. Operations that used a deleted shape are flagged. Other imported shapes
+    /// stay: they change only with their file.
     pub fn delete_selected_shapes(&mut self) {
-        let (ids, imported) = self.deletable_shapes();
-        if ids.is_empty() {
+        match self.selection {
+            CanvasSelection::Source(ShapeFrom::Text(id)) => {
+                self.remove_text(id);
+                return;
+            }
+            CanvasSelection::Source(ShapeFrom::Image(id)) => {
+                self.remove_image(id);
+                return;
+            }
+            CanvasSelection::Source(ShapeFrom::Dxf(id)) => {
+                self.remove_dxf(id);
+                return;
+            }
+            _ => {}
+        }
+        let (ids, texts, imported) = self.deletion();
+        if ids.is_empty() && texts.is_empty() {
             if imported {
                 self.error(vec![t!(self, "drawing-imported-not-deletable")]);
             }
+            return;
+        }
+        if ids.is_empty() {
+            self.remove_texts(&texts, imported);
             return;
         }
         let Some(edit) = self.edit.as_mut() else {
@@ -391,6 +476,15 @@ impl ChiploadApp {
                     job = out;
                     flagged.extend(lines);
                 }
+                Err(err) => {
+                    self.error_report(Report::of_error(err.message()));
+                    return;
+                }
+            }
+        }
+        for &text in &texts {
+            match chipload_pipeline::texts::remove_text(&job, text) {
+                Ok(out) => job = out,
                 Err(err) => {
                     self.error_report(Report::of_error(err.message()));
                     return;
@@ -421,6 +515,9 @@ impl ChiploadApp {
             count = ids.len(),
             shapes = names.as_str()
         )];
+        for &text in &texts {
+            lines.push(t!(self, "texts-removed", id = text));
+        }
         if imported {
             lines.push(t!(self, "drawing-imported-kept"));
         }

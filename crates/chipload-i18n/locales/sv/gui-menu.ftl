@@ -42,8 +42,8 @@ menu-paste = Klistra in
 menu-mirror-left-right = Spegla vänster–höger
 menu-mirror-up-down = Spegla upp–ner
 menu-mirror-hover = Vänd de markerade ritade formerna kring mitten av deras ram
-menu-delete-shapes = Radera former
-menu-delete-shapes-hover = Raderar de markerade ritade formerna; importerade ändras bara med sin fil
+menu-delete-shapes = Radera
+menu-delete-shapes-hover = Raderar det markerade: ritade former, eller en text, en bild eller en DXF i sin helhet; en enskild form ur en importerad ritning ändras bara med sin fil
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Kopiera som selektor
 

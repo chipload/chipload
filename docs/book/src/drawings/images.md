@@ -119,7 +119,8 @@ path…* takes the picture's path instead.
   position, rotation, width or layer in Properties.
 - **Trace it differently:** double-click it, or right-click it > **Trace settings…**: the
   same window opens (its button says **Apply**).
-- **Remove it:** right-click > **Remove** removes the picture and its shapes.
+- **Remove it:** right-click > **Remove** removes the picture and its shapes; so does
+  **Del** with the picture selected.
 - **See it:** **Images** on the canvas's navigation bar (or *View > Show images*) shows the
   pictures faintly on the stock top, over the simulated stock and under the drawing, in
   top view and 3D, for comparing the traced shapes, and the cut, with the picture.

@@ -42,8 +42,8 @@ menu-paste = Einfügen
 menu-mirror-left-right = Links–rechts spiegeln
 menu-mirror-up-down = Oben–unten spiegeln
 menu-mirror-hover = Die ausgewählten gezeichneten Formen um die Mitte ihres Rahmens spiegeln
-menu-delete-shapes = Formen löschen
-menu-delete-shapes-hover = Löscht die ausgewählten gezeichneten Formen; importierte ändern sich nur mit ihrer Datei
+menu-delete-shapes = Löschen
+menu-delete-shapes-hover = Löscht die Auswahl: gezeichnete Formen, oder einen Text, ein Bild oder eine DXF als Ganzes; eine einzelne Form aus einer importierten Zeichnung ändert sich nur mit ihrer Datei
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Als Selektor kopieren
 

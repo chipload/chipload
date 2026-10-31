@@ -87,6 +87,13 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Delete from the canvas** (the user, 2026-10-31: "text is not deletable from the
+  canvas… all shapes should be deletable via canvas"): **done 2026-10-31.** Del (and
+  right-click > *Delete*) removes a text, a picture or a DXF selected as a whole, as its
+  *Remove* does; a box selection takes drawn shapes and the texts of selected letters, as
+  one undo step. A single shape of an imported DXF or traced picture still stays (it would
+  come back with the file).
+
 - **Rulers on the canvas** (the user, 2026-10-31: "a ruler so I can see the scale of axis
   directly"; docs/specs/rulers.md): **done 2026-10-31**, drawing coordinates (the user's
   choice), ticks on the grid, the cursor marked, *View > Show rulers*.

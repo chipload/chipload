@@ -8,6 +8,7 @@ mod browser_drawing_folder;
 mod chip_load;
 mod corner_choices;
 mod cycle_time;
+mod delete_selection;
 mod disk_changes;
 mod drawing;
 mod drawn_box;

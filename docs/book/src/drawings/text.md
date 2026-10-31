@@ -45,6 +45,8 @@ canvas:
 Each change applies when you finish the edit, as one undo step: **Ctrl+Z** brings the
 earlier text back. An operation that selects the text follows the change.
 
+**Del** removes the selected text with its letters (as *Remove* on its Browser row does).
+
 **On the canvas:** with the text selected, its box shows handles (in top view):
 - the square in the **middle** moves it;
 - the square beyond its right side **turns** it about its centre, in steps of 15°;

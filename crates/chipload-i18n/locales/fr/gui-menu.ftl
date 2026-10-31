@@ -42,8 +42,8 @@ menu-paste = Coller
 menu-mirror-left-right = Miroir gauche–droite
 menu-mirror-up-down = Miroir haut–bas
 menu-mirror-hover = Retourner les formes dessinées sélectionnées autour du milieu de leur boîte
-menu-delete-shapes = Supprimer les formes
-menu-delete-shapes-hover = Supprime les formes dessinées sélectionnées ; les formes importées ne changent qu'avec leur fichier
+menu-delete-shapes = Supprimer
+menu-delete-shapes-hover = Supprime la sélection : des formes dessinées, ou un texte, une image ou un DXF en entier ; une forme isolée d'un dessin importé ne change qu'avec son fichier
 # A selector: the selection written as JSON, for scripts.
 menu-copy-selector = Copier la sélection
 

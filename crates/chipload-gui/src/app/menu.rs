@@ -329,9 +329,14 @@ impl ChiploadApp {
             self.ask_join();
         }
         ui.separator();
+        // Delete takes a text, a picture or a DXF selected whole, and letters' texts too.
+        let deletable = matches!(self.selection, CanvasSelection::Source(_)) || {
+            let (ids, texts, _) = self.deletion();
+            !ids.is_empty() || !texts.is_empty()
+        };
         if ui
             .add_enabled(
-                drawn,
+                deletable,
                 egui::Button::new(format!("{}  (Del)", t!(ui, "menu-delete-shapes"))),
             )
             .on_hover_text(t!(ui, "menu-delete-shapes-hover"))
