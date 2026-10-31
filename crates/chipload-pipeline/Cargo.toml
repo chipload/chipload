@@ -7,16 +7,16 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-check = { version = "0.29.1", path = "../chipload-check" }
-chipload-core = { version = "0.29.1", path = "../chipload-core" }
-chipload-draw = { version = "0.29.1", path = "../chipload-draw" }
-chipload-dxf = { version = "0.29.1", path = "../chipload-dxf" }
-chipload-i18n = { version = "0.29.1", path = "../chipload-i18n" }
-chipload-image = { version = "0.29.1", path = "../chipload-image" }
-chipload-text = { version = "0.29.1", path = "../chipload-text" }
-chipload-job = { version = "0.29.1", path = "../chipload-job" }
-chipload-post = { version = "0.29.1", path = "../chipload-post" }
-chipload-toolpath = { version = "0.29.1", path = "../chipload-toolpath" }
+chipload-check = { version = "0.30.0", path = "../chipload-check" }
+chipload-core = { version = "0.30.0", path = "../chipload-core" }
+chipload-draw = { version = "0.30.0", path = "../chipload-draw" }
+chipload-dxf = { version = "0.30.0", path = "../chipload-dxf" }
+chipload-i18n = { version = "0.30.0", path = "../chipload-i18n" }
+chipload-image = { version = "0.30.0", path = "../chipload-image" }
+chipload-text = { version = "0.30.0", path = "../chipload-text" }
+chipload-job = { version = "0.30.0", path = "../chipload-job" }
+chipload-post = { version = "0.30.0", path = "../chipload-post" }
+chipload-toolpath = { version = "0.30.0", path = "../chipload-toolpath" }
 # The simulation image (docs/specs/simulation.md §6); MIT OR Apache-2.0, already in the
 # tree through eframe.
 png = "0.18.1"

@@ -7,8 +7,8 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-chipload-core = { version = "0.29.1", path = "../chipload-core" }
-chipload-i18n = { version = "0.29.1", path = "../chipload-i18n" }
+chipload-core = { version = "0.30.0", path = "../chipload-core" }
+chipload-i18n = { version = "0.30.0", path = "../chipload-i18n" }
 # SVG parsing into plain paths (Apache-2.0 OR MIT; ADR 0024, docs/specs/svg-import.md §3).
 # No default features: no text shaping, no system fonts, no writer. Its roxmltree is used
 # through `usvg::roxmltree`.
