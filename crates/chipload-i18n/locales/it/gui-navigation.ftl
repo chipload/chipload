@@ -11,10 +11,12 @@ navigation-3d-hover = 3D: trascina col tasto sinistro per ruotare e inclinare; c
 navigation-3d-stretched-hover = 3D, Z allungata × { $scale }: trascina col tasto sinistro per ruotare e inclinare; col tasto destro o Shift+trascina per spostare
 
 # What is shown. "Stock": the simulated material as it is cut.
+navigation-edit = Modifica
+navigation-edit-hover = Modifica: disegnare, selezionare e cambiare il disegno, posare ponticelli e punti d'inizio. Il percorso utensile appare come linee
 navigation-simulate = Simula
 navigation-simulate-busy = Simula…
 navigation-simulating-hover = Simulazione…
-navigation-simulate-hover = Simula: il grezzo come lo lascia il programma, con la riproduzione. Trascinare sposta o ruota; sulla tela non si modifica nulla. Clic di nuovo o F6 per tornare a Modifica
+navigation-simulate-hover = Simula: il grezzo come lo lascia il programma, con la riproduzione. Trascinare sposta o ruota; sulla tela non si modifica nulla. Modifica o F6 per tornare
 navigation-toolpath = Percorso
 navigation-toolpath-hover = Mostra il percorso utensile; spento, solo il disegno o il grezzo simulato
 navigation-drawing = Disegno

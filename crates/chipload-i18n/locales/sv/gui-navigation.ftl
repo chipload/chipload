@@ -11,10 +11,12 @@ navigation-3d-hover = 3D: vänsterdra vrider och lutar; högerdra eller Shift+dr
 navigation-3d-stretched-hover = 3D, Z utdragen × { $scale }: vänsterdra vrider och lutar; högerdra eller Shift+dra panorerar
 
 # What is shown. "Stock": the simulated material as it is cut.
+navigation-edit = Redigera
+navigation-edit-hover = Redigera: rita, markera och ändra ritningen, placera bryggor och startpunkter. Verktygsbanan visas som linjer
 navigation-simulate = Simulera
 navigation-simulate-busy = Simulera…
 navigation-simulating-hover = Simulerar…
-navigation-simulate-hover = Simulera: ämnet som programmet lämnar det, med uppspelning. Dra panorerar eller roterar; inget på ritytan redigeras. Klicka igen eller F6 för att gå tillbaka till Redigera
+navigation-simulate-hover = Simulera: ämnet som programmet lämnar det, med uppspelning. Dra panorerar eller roterar; inget på ritytan redigeras. Redigera eller F6 för att gå tillbaka
 navigation-toolpath = Verktygsbana
 navigation-toolpath-hover = Visa verktygsbanan; av: bara ritningen eller det simulerade ämnet
 navigation-drawing = Ritning

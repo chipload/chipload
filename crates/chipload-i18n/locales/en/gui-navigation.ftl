@@ -11,10 +11,12 @@ navigation-3d-hover = 3D: left-drag turns and tilts; right-drag or Shift+drag pa
 navigation-3d-stretched-hover = 3D, Z stretched × { $scale }: left-drag turns and tilts; right-drag or Shift+drag pans
 
 # What is shown. "Stock": the simulated material as it is cut.
+navigation-edit = Edit
+navigation-edit-hover = Edit: draw, select and change the drawing, and place tabs and starts. The toolpath shows as lines
 navigation-simulate = Simulate
 navigation-simulate-busy = Simulate…
 navigation-simulating-hover = Simulating…
-navigation-simulate-hover = Simulate: the stock as the program leaves it, with playback. Drags pan or orbit; nothing on the canvas is edited. Click again or F6 to go back to Edit
+navigation-simulate-hover = Simulate: the stock as the program leaves it, with playback. Drags pan or orbit; nothing on the canvas is edited. Edit or F6 goes back to editing
 navigation-toolpath = Toolpath
 navigation-toolpath-hover = Show the toolpath; off, the drawing or the simulated stock alone
 navigation-drawing = Drawing

@@ -129,6 +129,10 @@ it's built (see `CLAUDE.md`).
   13. A V-carve in passes went back and forth over the whole carving (the user, after the
      test cut 2026-10-31). Fixed 2026-10-31 (docs/specs/v-carve.md decision 13): each area
      gets all its passes, centre line and walls, before the nearest next one.
+  14. The Simulate button didn't stand out (the user, 2026-10-31). Done 2026-10-31
+     (docs/specs/edit-and-simulate.md decision 10): an **Edit | Simulate** switch first in
+     the navigation bar, in an accent outline with the mode's half filled, and an accent
+     frame round the canvas in Simulate.
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and

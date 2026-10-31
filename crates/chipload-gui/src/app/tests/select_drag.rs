@@ -104,6 +104,7 @@ mod modes {
     //! Edit and Simulate (docs/specs/edit-and-simulate.md §2), with the mouse in the window.
     use super::*;
     use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
 
     fn harness() -> Harness<'static, ChiploadApp> {
         let mut harness = Harness::builder()
@@ -157,6 +158,29 @@ mod modes {
         h.run_steps(3);
         drag(&mut h, (40.0, 40.0), (160.0, 120.0));
         assert_eq!(selected(h.state()), [2, 3].into());
+    }
+
+    /// The bar's Edit | Simulate switch (decision 10, the user 2026-10-31: the Simulate
+    /// button "does not stand out"): each half sets its mode, and clicking the mode's own
+    /// half again keeps it.
+    #[test]
+    fn the_switch_sets_each_mode() {
+        let mut h = harness();
+        h.get_by_label("Simulate").click();
+        h.run_steps(2);
+        assert!(h.state().show_simulation);
+        h.get_by_label("Simulate").click();
+        h.run_steps(2);
+        assert!(
+            h.state().show_simulation,
+            "Simulate's own half keeps Simulate"
+        );
+        h.get_by_label("Edit").click();
+        h.run_steps(2);
+        assert!(!h.state().show_simulation);
+        h.get_by_label("Edit").click();
+        h.run_steps(2);
+        assert!(!h.state().show_simulation, "Edit's own half keeps Edit");
     }
 
     #[test]

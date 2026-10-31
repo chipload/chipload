@@ -15,8 +15,8 @@ its real depths.
 ## Simulation
 
 The simulation cuts the stock with every move of the program and shows the result, in
-**Simulate** mode: **Simulate** on the canvas's navigation bar, *View > Simulate* or F6, and
-the same again to go back to Edit ([Edit and Simulate](../window.md#the-canvas)).
+**Simulate** mode: the **Edit | Simulate** switch on the canvas's navigation bar, *View >
+Simulate* or F6, and **Edit** or F6 to go back ([Edit and Simulate](../window.md#the-canvas)).
 - **Top view:** a shaded picture.
 - **3D:** a surface you can turn.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its

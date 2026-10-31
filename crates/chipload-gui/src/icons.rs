@@ -84,6 +84,8 @@ pub enum Icon {
     Material,
     /// Two axes from a dot: the G-code's zero (docs/specs/work-zero-marker.md §2).
     WorkZero,
+    /// Edit mode: a pencil (docs/specs/edit-and-simulate.md §2).
+    Edit,
 }
 
 /// Line width of the icons, points.
@@ -424,6 +426,12 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::Edit => {
+            // A pencil leaning right: its body, the sharpened end, the lead.
+            pen.closed(&[(0.68, 0.1), (0.9, 0.32), (0.36, 0.86), (0.14, 0.64)]);
+            pen.poly(&[(0.14, 0.64), (0.08, 0.92), (0.36, 0.86)]);
+            pen.line([(0.58, 0.2), (0.8, 0.42)]);
         }
         Icon::WorkZero => {
             // X along the bottom, Y up the left, each with its arrowhead, from a ring.

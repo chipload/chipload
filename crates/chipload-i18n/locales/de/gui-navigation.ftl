@@ -11,10 +11,12 @@ navigation-3d-hover = 3D: Ziehen mit links dreht und neigt; Ziehen mit rechts od
 navigation-3d-stretched-hover = 3D, Z gestreckt × { $scale }: Ziehen mit links dreht und neigt; Ziehen mit rechts oder Shift+Ziehen verschiebt
 
 # What is shown. "Stock": the simulated material as it is cut.
+navigation-edit = Bearbeiten
+navigation-edit-hover = Bearbeiten: zeichnen, auswählen und die Zeichnung ändern, Haltestege und Startpunkte setzen. Die Werkzeugbahn erscheint als Linien
 navigation-simulate = Simulieren
 navigation-simulate-busy = Simulieren…
 navigation-simulating-hover = Simulation läuft…
-navigation-simulate-hover = Simulieren: das Rohteil, wie das Programm es hinterlässt, mit Wiedergabe. Ziehen verschiebt oder dreht; auf der Zeichenfläche wird nichts bearbeitet. Erneut klicken oder F6 für Bearbeiten
+navigation-simulate-hover = Simulieren: das Rohteil, wie das Programm es hinterlässt, mit Wiedergabe. Ziehen verschiebt oder dreht; auf der Zeichenfläche wird nichts bearbeitet. Bearbeiten oder F6 führt zurück
 navigation-toolpath = Werkzeugweg
 navigation-toolpath-hover = Den Werkzeugweg zeigen; aus: nur die Zeichnung oder das simulierte Rohteil
 navigation-drawing = Zeichnung

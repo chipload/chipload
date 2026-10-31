@@ -24,8 +24,10 @@ nothing cuts.
   toggles. A left drag pans in top view and orbits in 3D; it never selects or moves
   anything. A click on an operation's number on the toolpath opens it; nothing else on the
   canvas reacts to a click. Measuring works.
-- **The switch:** *Simulate* in the view bar (where *Stock* was), View > *Simulate*, and
-  **F6** (beside F5, Generate). The canvas's hint line says which mode it is.
+- **The switch:** **Edit | Simulate**, first in the view bar: two halves in an accent
+  outline, the mode's half filled; View > *Simulate*; and **F6** (beside F5, Generate). In
+  Simulate an accent frame runs round the canvas. The canvas's hint line says which mode it
+  is (decision 10).
 - **Properties stay editable in both** (decision 4): in Simulate a changed depth or step
   gives a new toolpath and simulation, as now.
 - **Back to Edit by itself** when a drawing or editing tool starts, text is placed, or
@@ -98,3 +100,12 @@ Agreed 2026-10-30:
 8. **Only edits that can change the cut regenerate** (§5); exporting regenerates first when
    needed.
 9. **F6** for the switch (settled while building: S is already *Draw slot*).
+
+Agreed 2026-10-31 (the user: "maybe the simulation mode button should be more distinctive,
+now it does not stand out"):
+
+10. **An Edit | Simulate switch and a frame.** The *Simulate* button looked like the bar's
+    toggles beside it. Now the mode is a switch of its own, first in the bar: *Edit* (a
+    pencil) and *Simulate* in an outline of the accent colour (Generate's), the mode's half
+    filled; each half sets its mode. In Simulate a 3-point frame of the accent colour runs
+    round the canvas. Chosen over only filling the Simulate button in the accent colour.

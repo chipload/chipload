@@ -114,7 +114,7 @@ impl ChiploadApp {
         };
         // Before the compact bar has been drawn: its buttons and spacing.
         let estimate = if compact {
-            9.0 * (COMPACT_SIDE + 2.0) + 24.0
+            10.0 * (COMPACT_SIDE + 2.0) + 36.0
         } else {
             NAV_ESTIMATE
         };
@@ -161,6 +161,10 @@ impl ChiploadApp {
                     .inner_margin(egui::Margin::same(4))
                     .show(ui, |ui| {
                         ui.spacing_mut().item_spacing.x = 2.0;
+                        self.mode_switch(ui, compact);
+                        ui.add_space(4.0);
+                        ui.separator();
+                        ui.add_space(4.0);
                         self.view_buttons(ui, compact);
                         ui.add_space(4.0);
                         ui.separator();
@@ -211,9 +215,30 @@ impl ChiploadApp {
         }
     }
 
-    /// Simulate or Edit (docs/specs/edit-and-simulate.md §2), then what is shown: the
-    /// toolpath, the drawing (in Simulate: Edit always shows it), the pictures and the grid.
-    fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
+    /// Edit | Simulate, first in the bar: two halves in an accent outline, the mode's half
+    /// filled, so the mode shows at a glance (docs/specs/edit-and-simulate.md §2, decision
+    /// 10).
+    fn mode_switch(&mut self, ui: &mut egui::Ui, compact: bool) {
+        let accent = ui.visuals().selection.bg_fill;
+        egui::Frame::new()
+            .stroke(egui::Stroke::new(1.5, accent))
+            .corner_radius(5.0)
+            .inner_margin(egui::Margin::same(2))
+            .show(ui, |ui| {
+                ui.spacing_mut().item_spacing.x = 2.0;
+                let edit = t!(ui, "navigation-edit");
+                let hover = hover_keys(&t!(ui, "navigation-edit-hover"), Action::Simulate);
+                if nav_button(ui, compact, Icon::Edit, &edit, true, !self.show_simulation)
+                    .on_hover_text(hover)
+                    .clicked()
+                {
+                    self.set_show_simulation(false);
+                }
+                self.simulate_button(ui, compact);
+            });
+    }
+
+    fn simulate_button(&mut self, ui: &mut egui::Ui, compact: bool) {
         let label = if self.simulating() {
             t!(ui, "navigation-simulate-busy")
         } else {
@@ -240,8 +265,13 @@ impl ChiploadApp {
         .on_hover_text(hover)
         .clicked()
         {
-            self.set_show_simulation(!self.show_simulation);
+            self.set_show_simulation(true);
         }
+    }
+
+    /// What is shown: the toolpath, the drawing (in Simulate: Edit always shows it), the
+    /// pictures and the grid.
+    fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
         let toolpath = self.show_toolpath;
         let label = t!(ui, "navigation-toolpath");
         if nav_button(ui, compact, Icon::Toolpath, &label, true, toolpath)

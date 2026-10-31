@@ -128,15 +128,18 @@ colour theme: dark, or light grey.
 - **Edit and Simulate:** the canvas works in one of two modes.
   - **Edit** (projects open in it) is the drawing board: the drawing and the toolpath's
     lines; selecting, box selection, drawing, handles, tabs and start points.
-  - **Simulate** (**Simulate** on the navigation bar, *View > Simulate* or F6) shows the
+  - **Simulate** (the switch's **Simulate** half, *View > Simulate* or F6) shows the
     [simulated stock](checking/simulation.md) and the playback slider. The canvas is then
     a viewer: a drag pans (in 3D it orbits) and never selects; a click on an operation's
-    number opens it. Properties stay editable: change a depth and watch the cut change.
+    number opens it. Properties stay editable: change a depth and watch the cut change. A
+    blue frame round the canvas says you are in Simulate.
+  - **The switch**, first on the navigation bar: **Edit | Simulate**, the mode you are in
+    filled.
   - Starting a drawing or editing tool, or selecting something in the Browser, goes back to
-    Edit. F6 or **Simulate** again does too.
+    Edit. F6 or **Edit** does too.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
+  - the mode: **Edit | Simulate** (F6 switches);
   - how you look: **Fit** (F), **Top** (T) and **3D**;
-  - the mode: **Simulate** (F6);
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
     **Images** and **Grid** (G);
   - with two parts or more, **All parts**: the toolpath and simulation of every part, not

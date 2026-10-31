@@ -6,6 +6,8 @@ use chipload_core::order::Ordered;
 
 /// How far beyond a rectangle's end its rotation handle sits, in screen pixels.
 const ROTATE_HANDLE_PX: f64 = 24.0;
+/// The accent frame round the canvas in Simulate, points.
+const SIMULATE_FRAME: f32 = 3.0;
 
 impl ChiploadApp {
     /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
@@ -573,6 +575,11 @@ impl ChiploadApp {
         self.typed_entry(ui);
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
+        // Simulate frames the canvas in the accent colour (edit-and-simulate.md decision 10).
+        if self.show_simulation {
+            let stroke = egui::Stroke::new(SIMULATE_FRAME, ui.visuals().selection.bg_fill);
+            painter.rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Inside);
+        }
         self.navigation_bar(ui, rect);
         self.orientation(ui, rect);
     }
