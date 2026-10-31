@@ -87,6 +87,11 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Texts in the computer's fonts** (the user, 2026-10-31: "allow to use fonts from the
+  computer when creating texts"; docs/specs/system-fonts.md): spec drafted 2026-10-31,
+  decisions 1–7 to review. A text keeps its letters as shapes, so the project cuts
+  anywhere; without its font, only remaking the letters is locked, with a note.
+
 - **Shakedown findings** (the user on the router, 2026-10-28; the checklist is kept
   private, outside the repository):
   1. The stock should sit centred on the drawing, sticking out equally all round. Done
